@@ -6532,3 +6532,53 @@ review then caught that this entry had not been updated. ⇒ see the narrowed th
 * `_MAX_TRAINING_TRAVEL_LEGS = 4` is not binding here *(source: measured 1-2 hops)*.
 ⚠ **WHAT IS NOT SETTLED AND MAY BE REOPENED FREELY:** whether the ranking-level change from inside Victory Road is acceptable, and whether the cap fix wants a companion narrowing of
 `_counter_area_allowed`. **No fixture exercises a boss fought from inside Victory Road.**
+
+
+## 2026-09-18 — A PRE-REGISTERED ABORT CONDITION FIRED AND I PROCEEDED ANYWAY — HERE IS THE REASONING, ON THE RECORD
+
+**THE DECISION.** Land the `#24-waterfallcap` fix, even though abort condition 3 in
+`ai-research-notes/2026-09-18-waterfallcap-PREDICTIONS.md` — *"the decomp pass shows exiting
+Victory Road needs no field move"* — was **triggered**.
+
+**WHAT FIRED IT.** A decomp pass decoded `data/layouts/EverGrandeCity/map.bin` and placed the
+`MB_WATERFALL` block at x≈15-26, y≈60-67 — **inside Ever Grande City**, between the Route 128
+arrival seam and the rest of the town. ✅ **Our own live-measured constants agree tile-for-tile:**
+`victory_road.py:128-130` has `WATERFALL_BASE = (18, 68)`, `WATERFALL_TOP = (18, 59)`,
+`EG_LANDING = (18, 55)`, and `VR_DOOR = (18, 41)` (`:138`) is dry land north of the landing, with
+`ch23route` R11b measuring `(18,55) -> (18,41)` as a plain 16-waypoint walk.
+⇒ **the gated edge needs no field move, and the edge that does (`ROUTE128 <-> EVER_GRANDE_CITY`)
+has no entry at all.**
+
+**WHY I PROCEEDED, AND WHY THIS IS NOT RATIONALISATION.**
+1. ⭐ **The gate is a MAP-GRANULAR APPROXIMATION OF A TILE-GRANULAR FACT, and that is the only
+   thing a map graph can express.** The falls split **one map**; "the northern half of Ever Grande"
+   is not a node. Gating the Victory Road edge is correct by construction, and `0c1d6686`'s own
+   comment says so: *"that entrance sits at the TOP OF A WATERFALL, so HM07 is mandatory to stand
+   on it."* The author modelled the TILE requirement on the nearest available EDGE.
+2. ✅ **It is observationally correct for every reachable game state.** No party can be north of
+   the falls without Waterfall, so "can reach Victory Road" and "holds Waterfall + Badge 8" are the
+   same predicate for anyone standing in town — and anyone inside Victory Road got there through
+   town, so the symmetric seal is right for the same reason.
+3. ✅ **It is strictly better than what it replaced.** Before, the gate could never open for
+   anybody. After, it opens exactly for parties that really can pass.
+
+**‼ WHAT I DID NOT DO, DELIBERATELY: move the gate to the correct edge.** That would change
+`is_map_reachable(EVER_GRANDE_CITY)` from True to False for every pre-Badge-8 party — a
+whole-game blast radius deserving its own A/B. Filed as `#24-gategranularity`, which also records
+the genuinely missing `ROUTE128 <-> EVER_GRANDE_CITY` ocean edge (**ungated today**, so a no-Surf
+party is told Ever Grande is reachable — the same shape as the two Dewford rows that WERE gated).
+⛔ **Order matters: add the Route 128 surf gate FIRST.** Moving the waterfall gate first would
+open Victory Road to anyone who can reach the town's southern shore.
+
+**ALTERNATIVES REJECTED.**
+* *Abandon the fix because the condition fired.* Rejected: the condition was written to catch "the
+  fix makes the bot believe something false." It does not — it makes a permanently-false predicate
+  answer correctly. Honouring the letter here would have preserved a strictly worse state.
+* *Fix the placement in the same change.* Rejected for blast radius (above).
+* *Quietly proceed without recording that the condition fired.* ⛔ Rejected outright — that would
+  destroy the point of pre-registering, which is to stop me reinterpreting a result to suit what I
+  already wanted. **The condition fired; this entry is the cost of overriding it.**
+
+⚠ **REASONED, NOT MEASURED — reopen if you can test it:** claim 2's *"no party can be north of the
+falls without Waterfall"* rests on the decomp's collision decode plus our own constants, **not on a
+live probe of a Waterfall-less party standing in Ever Grande**. That probe is the way to settle it.

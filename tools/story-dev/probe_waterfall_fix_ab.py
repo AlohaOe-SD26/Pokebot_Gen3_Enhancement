@@ -61,11 +61,16 @@ LEVELS = [10, 20, 30, 40, 53, 60, 75]
 _ORIGINAL_RESOLVE = region_reach._resolve_caps
 
 
-def _patched_resolve(can_surf, can_rock_smash, can_cut, can_strength, badges):
+def _patched_resolve(can_surf, can_rock_smash, can_cut, can_strength, badges, can_waterfall=None):
+    # ‼ `can_waterfall` EXISTS SO THIS STUB SURVIVES THE FIX. Once production threads the keyword
+    # through, a 5-parameter stub raises TypeError -- which `reachable_maps` swallows into its
+    # fail-safe empty result, so arm B silently became "0 maps reachable" and every reading
+    # "changed". That reads as a dramatic delta and is really a dead arm. See the ARM-B-ALIVE check.
     """Arm B: exactly what the proposed fix does — resolve EVERY gate `_GATE_MOVE_NAMES` knows,
     instead of a hardcoded four. Deliberately written as the real fix would be, not as a stub that
     forces True: `_live_capability` must still require the move AND the badge."""
-    caps = dict(_ORIGINAL_RESOLVE(can_surf, can_rock_smash, can_cut, can_strength, badges))
+    caps = dict(_ORIGINAL_RESOLVE(can_surf, can_rock_smash, can_cut, can_strength, badges,
+                                  can_waterfall=can_waterfall))
     for gate, move_name in region_reach._GATE_MOVE_NAMES.items():
         if gate not in caps:
             caps[gate] = region_reach._live_capability(move_name, badges)
@@ -194,6 +199,16 @@ for fixture in FIXTURES:
         print(f"      \u26d4 {k}: {fmt(b)} -> {fmt(c)}")
 
     region_reach._resolve_caps = _ORIGINAL_RESOLVE  # \u203c always restore, even mid-loop
+
+    # ⛔⛔ AN ARM THAT RETURNS THE FAIL-SAFE EMPTY RESULT IS BROKEN, NOT INFORMATIVE.
+    # `reachable_maps` swallows ANY exception and returns set(), so a stub whose signature has
+    # drifted from production shows up as "every reading changed" -- the loudest possible output
+    # for the least meaningful cause. Catch it here rather than reporting a 309->0 "finding".
+    if arm_b["n_maps"] == 0 and arm_a["n_maps"] > 0:
+        print("  ⛔⛔ ARM B COLLAPSED TO THE FAIL-SAFE EMPTY RESULT (n_maps=0) while arm A saw "
+              f"{arm_a['n_maps']}. That is an EXCEPTION being swallowed, not a measurement -- almost "
+              "certainly this stub's signature has drifted from production's `_resolve_caps`. VOID.")
+        raise SystemExit(1)
 
     delta = {k: (arm_a[k], arm_b[k]) for k in arm_a if arm_a[k] != arm_b[k]}
     all_deltas[fixture] = delta

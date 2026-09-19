@@ -32,6 +32,16 @@ import os
 import pathlib as _pl
 import sys
 
+# ‼ THIS GATE PRINTS ⭐/⛔/ℹ, AND ITS OWN DOCSTRING TELLS YOU TO RUN IT STANDALONE.
+# `run_gates.py` forces PYTHONUTF8/PYTHONIOENCODING for its subprocesses, so the suite masked the
+# fact that a bare `py -3.12 probe_caps_resolve_every_gate.py` on this project's default Windows
+# console died with UnicodeEncodeError before printing a single finding. A gate whose documented
+# reproduction crashes teaches the reader to distrust it. Every sibling gate does this; so does this.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
+    pass
+
 sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
 
 from modules.story import region_reach

@@ -19800,3 +19800,94 @@ freely** — each settled item naming its source.
   re-read old rulings, not only to write new ones.**
 - ⭐ **SPLIT A DECISION ENTRY INTO “MEASURED” AND “REOPENABLE”.** A future reader can then act on
   the first half at full confidence without inheriting the second half's guesses.
+
+
+## 2026-09-18 — A PROBE THAT MIRRORS A PRODUCTION SIGNATURE BECAME A DEAD ARM THE MOMENT I FIXED PRODUCTION
+
+**SYMPTOM.** `probe_waterfall_fix_ab.py` monkeypatches `_resolve_caps` to simulate the fix. After
+the real fix landed, re-running it reported **11 readings changed** and `n_maps 309 -> 0` — which
+reads as a catastrophic regression. It was nothing of the sort.
+
+**ROOT CAUSE.** The fix threads a new `can_waterfall=` keyword through the callers. The probe's
+stub still had the old five-parameter signature, so every call raised `TypeError` — and
+`reachable_maps` **swallows any exception and returns the fail-safe empty set**. ⇒ the arm was
+dead, and its death was reported as `0 maps reachable`, i.e. **the loudest possible output for the
+least meaningful cause.**
+
+**⚠ WHY IT WAS NEARLY BELIEVED.** It arrived while grading a prediction, in the slot where a real
+regression would have appeared. The only reason it was caught is that the predicted outcome was
+*"no difference"*, so a huge difference was obviously wrong. **Had the prediction been vaguer, a
+swallowed TypeError would have been written up as a finding.**
+
+**THE FIX THAT WORKED.** Give the stub the new parameter, AND add a guard: if arm B reports zero
+reachable maps while arm A reports more, the run declares itself VOID instead of reporting a delta.
+
+**PREVENTION RULES.**
+- ⛔⛔ **A FAIL-SAFE RETURN VALUE IS INDISTINGUISHABLE FROM A REAL MEASUREMENT — TEST FOR IT
+  EXPLICITLY.** Any function documented as *"returns `{}`/`set()`/False on any error"* will hand a
+  probe a plausible number instead of a traceback. **Assert the result is non-degenerate before
+  treating it as data**: `len(x) > 0`, a key present, a control that must be True.
+- ⛔ **A STUB THAT MIRRORS A PRODUCTION SIGNATURE IS A SECOND COPY OF THAT SIGNATURE, AND IT ROTS.**
+  When changing a signature, grep `tools/story-dev` for stubs and monkeypatches of it in the same
+  commit — they are callers too, and nothing type-checks them.
+- ⭐ **THIS IS THE THIRD VARIANT OF ONE LESSON TODAY, SO STATE THE GENERAL FORM:** a control behind
+  the edge under test, an arm validated by its expected effect, and now an arm validated by a
+  fail-safe value. ⇒ **ASK OF EVERY INSTRUMENT: what would it print if it were simply broken? If
+  that looks like a result, the instrument is not finished.**
+
+
+## 2026-09-18 — I RAN THE PROOF, THEN EDITED THE THING IT PROVES, THEN COMMITTED THE PROOF
+
+**SYMPTOM.** Three documents in one diff asserted **"ALL 65 ENFORCING GATES PASS"**. A Tier 1
+reviewer ran the suite on that exact tree and got `FAILED: 1 of 69`. The claim was true when I made
+it and false when I submitted it.
+
+**ROOT CAUSE, AND IT IS PURELY SEQUENCING.** I ran `run_gates.py` → green. THEN I wrote the
+documentation of the fix. One of those sentences put a **drift digit into prose**
+(`03-PUNCH-LIST.md`: *"sandbox↔custom drift is now **1**"*), which is precisely what
+`probe_drift_restatement.py` exists to forbid — a gate whose own docstring records **13 prior
+instances**. ⇒ my documentation edit broke a gate that my documentation then claimed was green.
+
+**⚠ THE PART THAT MAKES THIS WORTH AN ENTRY RATHER THAN A SHRUG.** The docs here are INPUTS to the
+suite, not just descriptions of it. Six of the gates read `PROJECT KNOWLEDGE/`. So "run the gates,
+then write the docs" is not a harmless ordering preference — **it guarantees the run did not see
+what I am about to commit.** Every previous green run I have quoted after a doc edit had the same
+hole; this is the first time one actually caught fire.
+
+**THE FIX THAT WORKED.** Reword the clause to point at `promote.py --check` instead of stating a
+digit (the gate's own suggested remedy, and the convention `04-HANDOFF.md`'s STATE row already
+follows), then re-run the suite **as the last action before staging**.
+
+**PREVENTION RULES.**
+- ⛔⛔ **THE GREEN RUN MUST BE THE LAST THING BEFORE `git add`, WITH NO EDIT BETWEEN THEM.** If any
+  file changed after the run — including a doc — the run is stale and the claim is unsupported.
+  **Order is: edit → Tier 0 → Tier 1 → fix findings → FULL SUITE → stage → commit.**
+- ⛔ **NEVER WRITE A MEASURED NUMBER INTO PROSE WHEN A COMMAND PRINTS IT.** Drift counts, gate
+  counts, map counts, file counts. Write the COMMAND. This project has a dedicated gate for the
+  drift case because it has recurred 13 times; the general rule is the same one.
+- ⭐ **A CLAIM ABOUT THE TEST SUITE IS ITSELF SUBJECT TO THE TEST SUITE.** "All gates pass" is the
+  one sentence that can be falsified by the act of writing it, because the docs are gate INPUTS.
+  ⇒ treat it like a timestamp: it is only true for the tree that was actually scanned.
+
+## 2026-09-18 — A GATE WHOSE OWN DOCUMENTED REPRODUCTION CRASHED, BECAUSE THE SUITE MASKED IT
+
+**SYMPTOM.** `probe_caps_resolve_every_gate.py` passed inside `run_gates.py` and **crashed** when
+run the way its own docstring instructs (`py -3.12 probe_caps_resolve_every_gate.py`):
+`UnicodeEncodeError: 'charmap' codec can't encode character 'ℹ'`. Its fault arm crashed the
+same way, so the sentence *"it must FAIL naming `surf`"* was unreproducible as written.
+
+**ROOT CAUSE.** `run_gates.py` forces `PYTHONUTF8=1`/`PYTHONIOENCODING=utf-8` on its subprocesses
+(`run_gates.py:45`), so the suite never exercises a bare Windows console. I had only ever run the
+probe with `PYTHONUTF8=1` myself, out of habit — **so both my testing and the suite shared the same
+blind spot**, and every sibling gate carries a `sys.stdout.reconfigure` that I had not copied.
+
+**THE FIX THAT WORKED.** Add the `reconfigure` guard, then re-run both the bare invocation and the
+fault arm **with no environment override at all** and confirm exit 0 / exit 1 respectively.
+
+**PREVENTION RULES.**
+- ⛔ **RUN A NEW GATE EXACTLY AS ITS DOCSTRING TELLS THE READER TO RUN IT** — same command, same
+  environment, no habitual flags. If you cannot resist adding `PYTHONUTF8=1`, put it in the
+  docstring or make the file not need it.
+- ⭐ **A HARNESS THAT NORMALISES THE ENVIRONMENT HIDES ENVIRONMENT BUGS FROM EVERY TOOL INSIDE IT.**
+  Passing under `run_gates.py` is not evidence a script works standalone, and standalone is how a
+  human debugging a red gate will run it — the exact moment it must not crash.

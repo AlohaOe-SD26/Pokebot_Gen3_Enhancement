@@ -32671,3 +32671,46 @@ hops of the lobby — is a different statement, untested here, and if true it ar
 fixture), `tools/story-dev/evidence/2026-09-18-waterfall-capability.stdout.txt`,
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-trainingbrackets-NOGO.md` (full 27,990-char
 synthesis restored), `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-18 — ✅ `#24-waterfallcap` IS FIXED: A GATE THAT COULD NEVER OPEN NOW OPENS, AND A GATE HOLDS THE LINE
+
+**PRODUCTION CHANGE** — `sandbox-pokebot/modules/story/region_reach.py` only. ⛔ `custom-pokebot/`
+is untouched, so sandbox↔custom drift is now **1**; promotion needs explicit user approval.
+
+`_resolve_caps` built its result by iterating a hardcoded four-key literal (`surf`, `rock_smash`,
+`cut`, `strength`) while `KNOWN_GATES` gated the sole Ever Grande ↔ Victory Road edge on
+`"waterfall"`. `_bfs_distances` drops any edge whose gate is missing from `caps`, so the result was
+not an open gate or a closed one but **a gate that could never open for anyone, in either
+direction**. It shipped on 2026-07-26 in commit `0c1d6686`, which added the edge, the move name AND
+the badge — three of the four pieces — and never touched the resolver. No revert exists.
+
+**THE FIX, AND WHY THIS SHAPE:** `_resolve_caps` now iterates `_GATE_MOVE_NAMES`, so the move-name
+table is the single source of truth and a sixth gate string cannot repeat this silently. Adding a
+fifth literal would have left the identical trap one gate further along. `can_waterfall` is threaded
+through `reachable_map_distances`, `reachable_maps` and `why_unreachable` so that *"an explicit
+argument always wins over live detection"* stays true for **every** gate rather than four of five —
+a parity gap an adversarial review caught.
+
+✅ **MEASURED AFTER:** `is_map_reachable(VICTORY_ROAD_1F)` is True on all 4 fixtures,
+`why_unreachable` reads `reachable`, and from the grind tile the bot's world went **3 → 309 maps**.
+
+⭐ **NEW GATE #65, `probe_caps_resolve_every_gate.py`** — asserts every gate string `KNOWN_GATES`
+uses is resolvable by `_resolve_caps`. ⛔ **It was written and run BEFORE the fix and shown to FAIL**
+on the unfixed code naming `waterfall`, which is how it is proven to detect the real bug rather than
+pass vacuously; fault-tested a second way with `POKEBOT_CAPS_FAULT_DROPKEY=surf`, which makes it
+fire on a gate that is fine today. ALL 65 ENFORCING GATES PASS.
+
+⭐ **PREDICTIONS WERE PRE-REGISTERED AND PUSHED BEFORE THE EDIT** (`65f29520`) and graded
+**6 confirmed / 1 ungradeable / 0 refuted**. ⚠ The ungraded one is P7 — *"no §Ch23/§Ch24 drive
+behaviour changes"* — an absence claim only a drive can test. **It is untested, not confirmed.**
+
+‼ **AND THE DOC GATE CAUGHT TWO REAL STALENESSES ON THE WAY IN:** the suite count moved 68→69
+(quick 58→59) and drift moved 0→1. Both true; both were fixed in the docs rather than worked around.
+
+**FILES:** `sandbox-pokebot/modules/story/region_reach.py`,
+`tools/story-dev/probe_caps_resolve_every_gate.py` (new, gate #65),
+`tools/story-dev/run_gates.py`, `tools/story-dev/probe_waterfall_fix_ab.py`,
+`tools/story-dev/evidence/2026-09-18-waterfall-{capability-AFTERFIX,fix-AB-AFTERFIX}.stdout.txt`
+(new), `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`,
+`07-CHANGELOG.md`, `08-MISTAKES.md`, `ai-research-notes/2026-09-18-waterfallcap-PREDICTIONS.md`.

@@ -117,3 +117,31 @@ rests on someone else's census plus my own greps, not on a drive.
    single-gate model unfaithful — then the fix would make the bot believe something false.
 3. **The decomp pass shows exiting Victory Road needs no field move**, which would mean the
    SYMMETRIC seal is itself wrong and the fix is incomplete rather than complete.
+
+
+---
+
+# ✅ GRADED, 2026-09-18, AFTER THE EDIT — 6 CONFIRMED, 1 UNGRADEABLE, 0 REFUTED
+
+| # | Prediction | Outcome |
+|---|---|---|
+| P1 | `repro_region_reach.py` still passes, for a better reason | ✅ **CONFIRMED** — exit 0. Victory Road still `False` with *"needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F"*. ⭐ And I verified the premise directly: `devon_scope_got.ss1` has `BADGE08_GET=False`, no Waterfall user, `_live_capability('Waterfall')=False`. It now passes because **that party** lacks Waterfall, not because nobody can pass. |
+| P2 | the two `"surf"` edges untouched | ✅ **CONFIRMED** — `can_surf=True`→True, `can_surf=False`→False, reason still *"needs Surf at ROUTE107<->DEWFORD_TOWN"*. Explicit overrides still win. |
+| P3 | full gate suite green | ✅ **CONFIRMED** — **ALL 65 ENFORCING GATES PASS** (64 + the new one). ‼ It went red once first, correctly: `audit_doc_consistency.py` caught that the suite count moved 68→69 and that sandbox↔custom drift moved 0→1. Both were true; the docs were stale. |
+| P4 | the A/B becomes vacuous — production now IS arm B | ✅ **CONFIRMED** — **"NO READING CHANGED"** on all three fixtures, then the probe's own vacuity guard fired: *"THE ARM APPLIED BUT `is_map_reachable(VICTORY_ROAD_1F)` NEVER FLIPPED"*. ⚠ On the FIRST post-fix run it instead reported 11 changed readings — see the instrument note below. |
+| P5 | the new gate fails BEFORE, passes AFTER | ✅ **CONFIRMED BOTH WAYS** — before: exit 1, *"KNOWN_GATES gates an edge on 'waterfall', but `_resolve_caps` never resolves it"*. After: exit 0, *"all 2 gate string(s) used by KNOWN_GATES resolve."* |
+| P6 | reachability flips; the world stops being 3 maps | ✅ **CONFIRMED EXACTLY** — `is_map_reachable(VICTORY_ROAD_1F)=True` on all 4 fixtures, `why_unreachable` now `"reachable"`, and from the grind tile `reachable_maps()` went **3 → 309**, the predicted number. Outbound seal lifted. |
+| P7 | no §Ch23/§Ch24 drive behaviour changes | ⚠ **UNGRADEABLE WITHOUT A DRIVE, AND I SAID SO WHEN I WROTE IT.** It is an absence claim resting on a census plus greps. It is **NOT** confirmed — it is untested. ⇒ the next §Ch23/§Ch24 drive is its test. |
+
+‼ **AN INSTRUMENT DEFECT THE GRADING ITSELF EXPOSED (P4).** The first post-fix A/B run reported
+**11 readings changed** and a dramatic `n_maps 309 → 0`. That was not a finding: the probe's arm-B
+stub still had the OLD five-parameter `_resolve_caps` signature, so production's new
+`can_waterfall=` keyword raised `TypeError`, which `reachable_maps` swallows into its fail-safe
+empty set. ⇒ **a dead arm produced the loudest possible output.** Fixed by giving the stub the new
+parameter AND adding a guard that treats `arm_b n_maps == 0` as VOID rather than as a measurement.
+
+⭐ **WHAT THE DECOMP PASS FOUND, WHICH FIRED ABORT CONDITION 3 — SEE `06-DECISIONS-LOG.md`.**
+The waterfall is **inside Ever Grande City** (y≈59-68), not on the town↔Victory Road edge, and the
+town→door leg is a plain walk. The gate is therefore a **map-granular approximation of a
+tile-granular fact**, not a literal model of the edge. I proceeded anyway, with the reasoning
+recorded in the decisions log rather than quietly.

@@ -1,0 +1,2015 @@
+Running mGBA 0.10.2
+============================================================================================================
+A/B: WHAT WOULD THE WATERFALL CAP FIX CHANGE?  — arm B is an IN-PROCESS patch, nothing written
+============================================================================================================
+
+─── post_ch24_atdoor_L75.ss1
+  standing : EVER_GRANDE_CITY (18, 6)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 13 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 15 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 10 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 12 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 15 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 9 hops away (limit
+8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+  arm B caps keys : ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']  ✅ patch is live
+  arm B waterfall resolved to : True
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 13 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 15 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 10 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 12 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 15 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 9 hops away (limit
+8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 13 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 15 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 10 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 12 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 9 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 15 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: GRANITE_CAVE_1F rejected — reachable but 15 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 16 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 16 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 9 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 11 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY to SEAFLOOR_CAVERN_ROOM8
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 9 hops away (limit
+8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 13 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+  [arm C = arm B + the proposed TRAINING_GRASS row] vr_hunt_tile None -> None; 0 actionable hunt pick(s) changed
+  → NO READING CHANGED.
+
+─── grind_stall_ppzero.ss1
+  standing : VICTORY_ROAD_1F (15, 39)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+  arm B caps keys : ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']  ✅ patch is live
+  arm B waterfall resolved to : True
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+VICTORY_ROAD_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from VICTORY_ROAD_1F to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+VICTORY_ROAD_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+  [arm C = arm B + the proposed TRAINING_GRASS row] vr_hunt_tile None -> None; 0 actionable hunt pick(s) changed
+  → NO READING CHANGED.
+
+─── post_league_lobby.ss1
+  standing : EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+  arm B caps keys : ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']  ✅ patch is live
+  arm B waterfall resolved to : True
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE115 rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: JAGGED_PASS rejected — reachable but 14 hops away (limit 8)
+counter gate: FIERY_PATH rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 10 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: MT_PYRE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_2F rejected — reachable but 10 hops away (limit 8)
+counter gate: MT_PYRE_3F rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_EXTERIOR rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE103 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE101 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE104 rejected — reachable but 16 hops away (limit 8)
+counter gate: PETALBURG_WOODS rejected — reachable but 17 hops away (limit 8)
+counter gate: ROUTE102 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE117 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE116 rejected — reachable but 14 hops away (limit 8)
+counter gate: ROUTE110 rejected — reachable but 11 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MIRAGE_TOWER_1F rejected — reachable but 13 hops away (limit 8)
+counter gate: MIRAGE_TOWER_2F rejected — reachable but 14 hops away (limit 8)
+counter gate: MIRAGE_TOWER_3F rejected — reachable but 15 hops away (limit 8)
+counter gate: MIRAGE_TOWER_4F rejected — reachable but 16 hops away (limit 8)
+counter gate: ROUTE111 rejected — reachable but 12 hops away (limit 8)
+counter gate: ROUTE113 rejected — reachable but 13 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE114 rejected — reachable but 15 hops away (limit 8)
+counter gate: ROUTE118 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE119 rejected — reachable but 10 hops away (limit 8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: METEOR_FALLS_1F_1R rejected — reachable but 16 hops away (limit 
+8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 16 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 18 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 17 hops away (limit 8)
+counter gate: METEOR_FALLS_1F_2R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_B1F_1R rejected — reachable but 17 hops away (limit 
+8)
+counter gate: METEOR_FALLS_STEVENS_CAVE rejected — reachable but 17 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 10 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 12 hops away (limit 8)
+counter gate: CAVE_OF_ORIGIN_1F rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_1F
+counter gate: CAVE_OF_ORIGIN_ENTRANCE rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to CAVE_OF_ORIGIN_ENTRANCE
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+counter gate: CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3 rejected — no connection
+path from EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to 
+CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+counter gate: SEAFLOOR_CAVERN_ROOM1 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM1
+counter gate: SEAFLOOR_CAVERN_ROOM2 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM2
+counter gate: SEAFLOOR_CAVERN_ROOM3 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM3
+counter gate: SEAFLOOR_CAVERN_ROOM4 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM4
+counter gate: SEAFLOOR_CAVERN_ROOM5 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM5
+counter gate: SEAFLOOR_CAVERN_ROOM6 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM6
+counter gate: SEAFLOOR_CAVERN_ROOM7 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM7
+counter gate: SEAFLOOR_CAVERN_ROOM8 rejected — no connection path from 
+EVER_GRANDE_CITY_POKEMON_LEAGUE_1F to SEAFLOOR_CAVERN_ROOM8
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTH rejected — reachable but 9 hops away (limit 8)
+counter gate: SAFARI_ZONE_SOUTHWEST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: METEOR_FALLS_B1F_2R rejected — reachable but 18 hops away (limit 
+8)
+counter gate: ROUTE123 rejected — reachable but 9 hops away (limit 8)
+counter gate: MT_PYRE_SUMMIT rejected — reachable but 11 hops away (limit 8)
+counter gate: MT_PYRE_4F rejected — reachable but 12 hops away (limit 8)
+counter gate: MT_PYRE_5F rejected — reachable but 13 hops away (limit 8)
+counter gate: MT_PYRE_6F rejected — reachable but 14 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 9 hops away
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_SOUTHEAST rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+counter gate: SAFARI_ZONE_NORTHEAST rejected — reachable but 11 hops away 
+(limit 8)
+  [arm C = arm B + the proposed TRAINING_GRASS row] vr_hunt_tile None -> None; 0 actionable hunt pick(s) changed
+  → NO READING CHANGED.
+
+============================================================================================================
+  ⛔⛔ THE ARM APPLIED BUT `is_map_reachable(VICTORY_ROAD_1F)` NEVER FLIPPED False->True on
+     any fixture. The patch is not doing what the real fix would do ⇒ this A/B cannot
+     support a 'safe to land alone' conclusion. VOID.
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_19-05-58.ss1 created!
+Updated `current_state.ss1`!

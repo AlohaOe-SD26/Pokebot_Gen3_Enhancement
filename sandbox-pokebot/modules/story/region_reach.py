@@ -225,14 +225,45 @@ def _live_capability(move_name: str, badges=None) -> bool:
         return False
 
 
-def _resolve_caps(can_surf, can_rock_smash, can_cut, can_strength, badges) -> dict[str, bool]:
-    explicit = {"surf": can_surf, "rock_smash": can_rock_smash, "cut": can_cut, "strength": can_strength}
+def _resolve_caps(
+    can_surf, can_rock_smash, can_cut, can_strength, badges, can_waterfall=None
+) -> dict[str, bool]:
+    """Resolve EVERY capability gate `_GATE_MOVE_NAMES` knows about, to True or False.
+
+    ⛔⛔ THE LOOP ITERATES `_GATE_MOVE_NAMES`, NOT `explicit`, AND THAT IS THE WHOLE POINT
+    (fixed 2026-09-18, `#24-waterfallcap`). It used to iterate a hardcoded four-key literal --
+    surf / rock_smash / cut / strength -- while `KNOWN_GATES` gated the sole Ever Grande <->
+    Victory Road edge on "waterfall". `_bfs_distances` drops any edge whose gate is missing from
+    `caps`, so the result was not an open gate or a closed one but **a gate that could never open
+    for anybody, at any badge count, in either direction** (`_gate_key` is symmetric).
+
+    ‼ IT FAILED BY BEING QUIET, which is the worst shape this project has: `is_map_reachable` is
+    fail-safe, so a wrong refusal is indistinguishable from a right one. MEASURED before the fix
+    (`tools/story-dev/evidence/2026-09-18-waterfall-capability.stdout.txt`): a bot standing at the
+    Victory Road grind tile believed the entire world was **3 maps**, while holding BADGE08 and a
+    Wailord that knows Waterfall.
+
+    ⭐ ITERATING THE MOVE-NAME TABLE MAKES THE BUG CLASS STRUCTURALLY IMPOSSIBLE -- a new gate
+    string is resolved the moment it has a move name, instead of silently defaulting to False.
+    `tools/story-dev/probe_caps_resolve_every_gate.py` holds that line.
+
+    An explicit `can_*` argument still wins over live detection, for every gate including this
+    one; `None` means "read the live party and badges".
+    """
+    explicit = {
+        "surf": can_surf,
+        "rock_smash": can_rock_smash,
+        "cut": can_cut,
+        "strength": can_strength,
+        "waterfall": can_waterfall,
+    }
     resolved: dict[str, bool] = {}
-    for gate, value in explicit.items():
+    for gate, move_name in _GATE_MOVE_NAMES.items():
+        value = explicit.get(gate)
         if value is not None:
             resolved[gate] = bool(value)  # explicit argument always wins over live detection
         else:
-            resolved[gate] = _live_capability(_GATE_MOVE_NAMES[gate], badges)
+            resolved[gate] = _live_capability(move_name, badges)
     return resolved
 
 
@@ -383,6 +414,7 @@ def reachable_map_distances(
     can_rock_smash: bool | None = None,
     can_cut: bool | None = None,
     can_strength: bool | None = None,
+    can_waterfall: bool | None = None,
     badges=None,
 ) -> dict:
     """Every map reachable from `from_map` (default: current player position),
@@ -396,7 +428,10 @@ def reachable_map_distances(
         graph = _get_graph()
         if start not in graph.nodes:
             return {}
-        caps = _resolve_caps(can_surf, can_rock_smash, can_cut, can_strength, badges)
+        caps = _resolve_caps(
+            can_surf, can_rock_smash, can_cut, can_strength, badges,
+            can_waterfall=can_waterfall,
+        )
         return _bfs_distances(start, graph, caps)
     except Exception as error:
         _log.debug("reachable_map_distances failed: %s", error)
@@ -411,6 +446,7 @@ def reachable_maps(
     can_rock_smash: bool | None = None,
     can_cut: bool | None = None,
     can_strength: bool | None = None,
+    can_waterfall: bool | None = None,
     badges=None,
 ) -> set:
     """All maps reachable from `from_map` (default: current player position),
@@ -420,7 +456,7 @@ def reachable_maps(
     try:
         distances = reachable_map_distances(
             from_map, can_surf=can_surf, can_rock_smash=can_rock_smash, can_cut=can_cut,
-            can_strength=can_strength, badges=badges,
+            can_strength=can_strength, can_waterfall=can_waterfall, badges=badges,
         )
         if max_hops is None:
             return set(distances)
@@ -487,7 +523,7 @@ def why_unreachable(target_map, from_map=None, *, max_hops: int | None = None, *
 
         resolved_caps = _resolve_caps(
             caps.get("can_surf"), caps.get("can_rock_smash"), caps.get("can_cut"), caps.get("can_strength"),
-            caps.get("badges"),
+            caps.get("badges"), can_waterfall=caps.get("can_waterfall"),
         )
         distances = _bfs_distances(start, graph, resolved_caps)
         if target in distances:

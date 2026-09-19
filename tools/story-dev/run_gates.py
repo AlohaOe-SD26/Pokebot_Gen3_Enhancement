@@ -708,6 +708,30 @@ GATES: list[tuple[str, bool]] = [
     # CRLF normalisation lived in `scan_docs`, so a legitimate CRLF was reported. The gate was right
     # and the CONTRACT was split — normalisation moved into `scan_text`. A lone CR still fires (ARM 4).
     ("probe_doc_control_chars.py", False),
+    # --- #65 — A GATE STRING NOTHING RESOLVES (`probe_caps_resolve_every_gate.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#64 carry.
+    # WHY A GATE: `region_reach.py` keeps one fact in three places — `KNOWN_GATES` (which edges
+    # are gated, on which capability STRING), `_GATE_MOVE_NAMES` (string -> field-move name), and
+    # `_resolve_caps` (which strings actually get RESOLVED). Nothing made them agree. On
+    # 2026-07-26 commit `0c1d6686` added a `"waterfall"` edge plus its move name plus its badge —
+    # THREE of the four pieces — while `_resolve_caps` kept a hardcoded four-key literal.
+    # `_bfs_distances` drops any edge whose gate is missing from `caps`, so the result was not an
+    # open gate or a closed one but **a gate that could never open for anyone, in either
+    # direction** (`_gate_key` is symmetric). It survived ~7 weeks.
+    # ⛔ IT FAILED BY BEING QUIET, which is why prose could never have caught it: `is_map_reachable`
+    # is fail-safe, so a wrong refusal is indistinguishable from a right one. MEASURED before the
+    # fix — a bot standing at the Victory Road grind tile believed the world was **3 maps**
+    # (`evidence/2026-09-18-waterfall-capability.stdout.txt`); after, 309.
+    # ⭐ ENFORCING, and the justification is about the INPUT DOMAIN, not a judgement call: a gate
+    # string that `KNOWN_GATES` uses but `_resolve_caps` cannot resolve is a defect BY
+    # CONSTRUCTION — there is nothing to weigh and nothing to misjudge. It reads the live dicts,
+    # never text, so it cannot fire on a mention in a comment or docstring.
+    # ⛔ FAULT-TESTED IN BOTH DIRECTIONS. (1) On UNFIXED code it goes red naming `waterfall` — it
+    # was written and run BEFORE the fix precisely so it could be shown to detect the real bug
+    # rather than pass vacuously. (2) `POKEBOT_CAPS_FAULT_DROPKEY=surf` drops a gate that DOES
+    # resolve today, and it goes red naming `surf` — proving it fires on any broken pairing, not
+    # only on the one known defect.
+    ("probe_caps_resolve_every_gate.py", False),
 ]
 
 
