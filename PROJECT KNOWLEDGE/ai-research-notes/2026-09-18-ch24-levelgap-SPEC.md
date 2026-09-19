@@ -178,7 +178,7 @@ Why, in one line each:
 ```
 train_team(target_level, scope="whole", grass=..., heal_center=..., slots=None)
 ```
-`early_game.py:2069-2075` **[READ]**. **One target for the whole call.** No per-mon knob. Three paths, `slots` taking precedence over `scope` silently, and `scope` never validated (`:2106-2113`).
+`early_game.py:2106-2221` **[READ]**. **One target for the whole call.** No per-mon knob. Three paths, `slots` taking precedence over `scope` silently, and `scope` never validated (`:2106-2113`).
 
 ### 3.2 What NOT to do
 * ⛔ **`scope="whole"`** — `need` comes from `_battler_slots()` (`:1965-1974`), which filters on *not-an-egg + has a damaging move* and knows **nothing** about `BENCH_SPECIES`. It would grind Zigzagoon and Castform. It also picks **strictly lowest-first** (`:2120`), so it pins on Zigzagoon for ~139 consecutive battles before touching anything else **[COMPUTED: 19→36 is 39,797 exp ÷ 286.86]**. *(It becomes correct under reading (b), once there is no bench.)*
@@ -225,7 +225,7 @@ for (pid, species), (slot, level) in sorted(battler_identities().items(), key=la
 KI-28 — **19.9M frames**. `05-KNOWN-ISSUES.md:535-537`: *"these produce real encounters, real battles and real healing trips — they are busy, just not progressing. A 'nothing happened for N frames' detector is blind to them by construction. Only a resource budget catches them."*
 
 Two amplifiers specific to this leg **[READ]**:
-* `train_team` has **no frame budget** — only `guard > 500` **rounds** (`early_game.py:2101-2103`). `MAX_TRAINING_FRAMES` is enforced at exactly one site, `victory_road.py:2021`, inside `train_for_victory_road`. A leg calling `train_team` directly inherits **nothing**.
+* `train_team` has **no frame budget** — only `guard > 500` **rounds** (`early_game.py:2139`). `MAX_TRAINING_FRAMES` is enforced at exactly one site, `victory_road.py:2021`, inside `train_for_victory_road`. A leg calling `train_team` directly inherits **nothing**.
 * `_story_spin`'s no-progress watchdog measures **total party exp** (`early_game.py:195-199`). Under swap-training the finisher banks every battle, so party total keeps moving and **the watchdog cannot fire even if the trainee gains literally zero**.
 
 ### 4.2 The ×3.30, honestly

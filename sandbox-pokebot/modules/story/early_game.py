@@ -1687,6 +1687,43 @@ def _yield_bounded(gen, max_frames: int) -> Generator:
     return False
 
 
+def _yield_bounded_by_frames(gen, real_frames: int) -> Generator:
+    """`_yield_bounded` with the CORRECT DENOMINATOR — REAL emulator frames.
+
+    ⛔⛔ WHY THIS EXISTS AND WHY `_yield_bounded` CANNOT BE USED FOR TRAINING. That function is
+    `for _ in range(max_frames): next(gen)` — it counts **its own advances of the story
+    generator**. But `main.py:148` advances only the TOP of the controller stack
+    (`next(context.controller_stack[-1])`), and a wild battle pushes its own controller on top.
+    ⇒ for the duration of every battle the story generator is NOT advanced, so that counter does
+    not tick. A grind is almost entirely battle frames, so a budget expressed in those units
+    silently buys far more real time than it claims. That is KI-28's shape (19.9M frames burned).
+
+    ⭐ THE PRECEDENT THIS COPIES: `_FORTREE_MAX_TOTAL_FRAMES` (this file) uses
+    `context.emulator.get_frame_count()` as "a hard backstop independent of the above counters".
+    Same idea, made reusable.
+
+    Returns True if the sub-generator finished, False if the real-frame bound expired (and the
+    sub-generator is then closed, exactly as `_yield_bounded` does).
+
+    ⛔ WHAT IT STILL CANNOT BOUND, STATED SO NOBODY TRUSTS IT TOO FAR: a sub-generator that loops
+    in pure Python WITHOUT yielding never returns from `next(gen)`, so control never comes back
+    here and no wrapper of this shape can help. This bounds *slow*, not *stuck*.
+    """
+    start = context.emulator.get_frame_count()
+    while True:
+        try:
+            next(gen)
+        except StopIteration:
+            return True
+        if context.emulator.get_frame_count() - start > real_frames:
+            try:
+                gen.close()
+            except Exception:  # noqa: BLE001 - a generator that refuses to close is not a reason
+                pass            # to keep burning frames; the bound is the point
+            return False
+        yield
+
+
 def _rotate_lead_safely(target_slot: int, *, attempts: int = 3) -> Generator:
     """`change_lead_party_pokemon` with INTERRUPT AWARENESS (user directive 2026-07-22:
     "ensure the interrupt logic works — know when a trainer interrupts anything").

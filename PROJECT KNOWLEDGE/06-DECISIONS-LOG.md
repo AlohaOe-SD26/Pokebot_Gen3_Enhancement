@@ -6705,3 +6705,31 @@ grinds on that exact tile"*. ✅ True of §Ch23's hardcoded call, and **false of
 ruling requires**, which does not exist yet and cannot work without the promotion. The other four
 reasons stand and still constrain HOW it lands (see the item). ⇒ **the item is RE-OPENED, with its
 scope corrected.**
+
+
+## 2026-09-19 — `max_wild_max` TAKES A NUMBER, NOT A MARGIN, BECAUSE `modules/` MAY NOT IMPORT `plugins/`
+
+**THE DECISION.** `best_training_area`'s new out-level cap is expressed as **a number** —
+`max_wild_max=mon.level + 1` — rather than as the conceptually tidier `underlevel_margin=2`.
+
+**WHY.** The margin that matters is `SwapTrainBattleStrategy.UNDERLEVEL_MARGIN`, which lives in
+`plugins/custom_modes/story_mode.py`. `training_areas.py` is a `modules/` file. Importing a plugin
+from a module would invert this project's layering, and a picker that reaches into a battle
+strategy for a constant is the kind of coupling that makes both untestable.
+⇒ **the caller already knows the margin; the picker only needs the resulting cap.**
+
+**ALTERNATIVES REJECTED.**
+* *Duplicate `UNDERLEVEL_MARGIN` as a constant in `training_areas.py`.* Rejected: two copies of a
+  tuning constant is exactly the shape that produced `#24-waterfallcap` (three tables that had to
+  agree and nothing enforcing it).
+* *Make `best_training_grass` honour `AREA_PREREQ` at `allow=None` instead.* ⛔ **REFUTED BY
+  MEASUREMENT** — it changes 83 of 99 levels and makes every one worse. See `07-CHANGELOG.md`
+  2026-09-19.
+* *Have the leg filter the picker's answer itself.* Rejected: the picker would still RETURN a
+  leaking ground, so every future caller would have to remember to re-filter. The cap belongs where
+  the scoring happens.
+
+⚠ **REASONED, NOT MEASURED — reopen freely:** that `mon.level + 1` is the right cap. It follows
+from `UNDERLEVEL_MARGIN = 2` (swap fires at `trainee + 2 <= foe`), but no drive has yet confirmed
+that a trainee at exactly `hi - 1` never swaps for the OTHER reason (the "can't continue" low-HP
+trigger). `#24-ladderleak`'s probe states that limit explicitly.

@@ -44,7 +44,7 @@ proposing work that is already shipped:
 | KI-17 | body said *"Workaround: none in-run yet"* + prescribed a decomp read that is done | `modules/battle_handler.py:508-528` (`post_gap=24`; never gamble an A) |
 | KI-16 | heading said FIXED, body still said *"use this repro for a focused fix"* | `modules/story/early_game.py:4434-4470` (`_rock_present()` world-judged) |
 | KI-24 | body read as an open architectural bug; KI-24b already declares it fixed | `story_mode.py:553` and `:606` both call `region_reach.is_map_reachable` |
-| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3710-3876` (Shipyard → Dock leg) |
+| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3747-3876` (Shipyard → Dock leg) |
 | KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
 
 **✅ RESOLVED — USER RULING 2026-07-29 (`#doc-policy-05`, option A):** entries fixed in
@@ -510,7 +510,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6643`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:6680`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:454`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
@@ -637,7 +637,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   measurement.
   ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
   the proposal is deliberately conservative and only fires on large wins.
-- **Related:** `train_team` (`early_game.py:2069`) never consults `best_training_area` at all;
+- **Related:** `train_team` (`early_game.py:2106`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
 > 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.

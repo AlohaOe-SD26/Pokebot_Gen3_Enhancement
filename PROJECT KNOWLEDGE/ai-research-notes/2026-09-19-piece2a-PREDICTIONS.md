@@ -82,3 +82,23 @@ an absence, and the suite is the test, not my confidence.
 ## WHAT WOULD MAKE ME STOP
 1. **P1 fails** — the default changed ⇒ revert immediately.
 2. **P3 fails** — the counters agree ⇒ the purse premise is wrong ⇒ stop and re-derive.
+
+
+---
+
+# ✅ GRADED, 2026-09-19 — 4 CONFIRMED, 1 CONFIRMED-STRUCTURALLY, 0 REFUTED
+
+| # | Prediction | Outcome |
+|---|---|---|
+| P1 | ⭐ **STOP** — `max_wild_max=None` changes nothing | ✅ **CONFIRMED** — omitting the parameter and passing `None` give identical answers at **every level 2-100**, for both `allow=None` and a permissive predicate. Spot checks unchanged: `allow=None` L53 → ROUTE117; permissive L53 → VICTORY_ROAD_1F. |
+| P2 | `max_wild_max=lvl+1` reproduces the corrected ladder | ✅ **CONFIRMED EXACTLY** — ROUTE117 L15-20, ROUTE111 L21-24, ROUTE115 L25-26, ROUTE118 L27, ROUTE121 L28-38, VICTORY_ROAD_1F **L39-75**. **Zero leaking rungs; no level without a ground.** |
+| P3 | ⭐ **STOP** — the two frame counters genuinely disagree | ✅ **CONFIRMED STRUCTURALLY, NOT NUMERICALLY — and the distinction is deliberate.** `_listeners.py:120` does `context.controller_stack.append(self.fight(action))`, and `main.py:148` advances only `controller_stack[-1]`. ⇒ during a battle the story generator underneath is **not** advanced, so `_yield_bounded`'s counter cannot tick. ⚠ **I did NOT measure the ratio** — that needs the harness's real main loop, and my prediction deliberately named no value. A ~5.5× figure appears in the research and **remains unverified by me**. |
+| P4 | gate #66 passes; no caller widened | ✅ **CONFIRMED** — all 66 enforcing gates pass. |
+| P5 | ⚠ no other consumer breaks | ✅ **CONFIRMED, AND THIS TIME BY ENUMERATION RATHER THAN ASSERTION.** I greped and NAMED every call site: production is `counter_hunt.py:647`, `story_mode.py:3177`, `:3208` — all keyword-only — plus ~20 in `tools/`. **No caller passes positionally beyond `team_level`**, so a keyword-only parameter with a `None` default cannot reach them. *(Yesterday I asserted this shape and missed `_hm_hunting_grounds`; enumerating is the correction.)* |
+
+‼ **AND THE LINE-SHIFT TAX CAME DUE A THIRD TIME.** Adding 37 lines to `early_game.py` staled
+**16 citations across 6 files**. Every one was caught by running `audit_doc_citations.py`
+immediately after touching the `.py` — the rule written this morning, working as intended.
+⚠ One was subtler than a shift: `early_game.py:2101` cited `train_team`'s **round guard**, not its
+`def`. Re-pointed to the def (`:2106`); the guard now lives at `:2138`, and prose that means the
+guard should say so rather than borrow the function's citation.

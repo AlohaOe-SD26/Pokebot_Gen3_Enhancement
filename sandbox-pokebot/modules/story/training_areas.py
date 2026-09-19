@@ -509,7 +509,8 @@ def hunt_ground_tile(map_enum, *, require_driven: bool | None = None) -> "tuple 
         return None
 
 
-def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
+def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None,
+                       max_wild_max: "int | None" = None):
     """Pick the training area best matched to `team_level` for FULL-xp grinding.
 
     Returns ``(map_enum, tile, (lo, hi))`` or ``None``. Only areas whose max wild level
@@ -518,6 +519,11 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     the trainee (``team_level >= lo - 1``). Among the winnable, richer-than-min areas,
     prefer the one whose HIGH end is closest to ``team_level`` without a hard cap —
     ties break toward the HIGHER band (more xp per battle).
+
+    ``max_wild_max``, if given, refuses any area whose TOP wild exceeds it — the out-level
+    rule (`#24-ladderleak`). Pass ``mon.level + 1`` to guarantee the trainee is never 2+ below
+    its wilds, which is what stops swap-training adding a second participant and leaking xp to
+    the finisher. ``None`` (default) is exactly the historical behaviour.
 
     ``allow`` is a REACHABILITY predicate ``(map_enum, tile, prereq_or_None) -> bool`` and
     is what keeps the answer honest — see AREA_PREREQ. It receives the TILE too, because
@@ -537,6 +543,21 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
             continue
         if hi <= min_wild_max:
             continue  # doesn't beat the floor the caller already has
+        # ⭐ THE OUT-LEVEL CAP (`#24-ladderleak`, 2026-09-19). Optional; `None` is exactly
+        # today's behaviour. A caller passing `max_wild_max=mon.level + 1` gets only grounds
+        # the trainee OUT-LEVELS.
+        # ⛔ WHY IT IS NEEDED: the scorer minimises `abs(hi - team_level)` — the CLOSEST band,
+        # which is not the same as one the trainee beats. MEASURED over L10-75, the closest
+        # band leaves the trainee 2+ below the top wild at **L12, L18-20, L24, L35-38**. On
+        # those rungs `SwapTrainBattleStrategy` (UNDERLEVEL_MARGIN = 2) fires, a SECOND
+        # participant enters, and the finisher banks an equal share — the mechanism that
+        # computed a L75 Wailord to L89 and broke the L65-75 ruling's own ceiling.
+        # ✅ With this cap the same walk has ZERO leaking rungs and no level without a ground.
+        # ‼ WHY A NUMBER AND NOT A MARGIN: `UNDERLEVEL_MARGIN` lives in
+        # `plugins/custom_modes/story_mode.py`; importing a plugin from `modules/` would
+        # invert the layering. The caller knows the margin; the picker only needs the cap.
+        if max_wild_max is not None and hi > max_wild_max:
+            continue
         if team_level < lo - 1:
             continue  # wilds too strong — the trainee would lose here
         prereq = AREA_PREREQ.get(map_enum)

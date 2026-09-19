@@ -64,7 +64,7 @@ because `best_training_grass` does no filtering at `allow=None` **by design**
   centre**. Only `decide_maintenance` (`:1560-1561`) fails safe. *(Filed as `#24-healmapfallback`.)*
 * `_exit_training_cave_if_inside()` no-ops for Victory Road — it is absent from `_CAVE_EXITS`
   (`early_game.py:2003-2046`, only `GRANITE_CAVE_1F` / `FIERY_PATH`).
-* A bare `train_team` has **no frame cap** — only a 500-round guard (`early_game.py:2101-2103`).
+* A bare `train_team` has **no frame cap** — only a 500-round guard (`early_game.py:2139`).
   `MAX_TRAINING_FRAMES = 250_000` is enforced by `train_for_victory_road` **before** calling
   (`victory_road.py:2020-2027`). ⇒ a generic caller inherits none of it — KI-28's 19.9M-frame shape.
 

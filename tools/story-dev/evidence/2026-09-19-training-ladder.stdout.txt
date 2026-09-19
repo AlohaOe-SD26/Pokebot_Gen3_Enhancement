@@ -44,4 +44,20 @@ THE TRAINING LADDER: at which levels does the exp leak still fire?
          (a) require `trainee >= hi - 1` and accept a lower band when none qualifies, or
          (b) accept the leak at those rungs and CHECK the ceiling afterwards.
        ⛔ (b) is the shape that produced L89 finishers before the ruling. Prefer (a).
+
+========================================================================================================
+  THE CORRECTED LADDER — best_training_area(lvl, max_wild_max=lvl+1)
+========================================================================================================
+  L15-L20    ROUTE117 (13, 14)
+  L21-L24    ROUTE111 (19, 22)
+  L25-L26    ROUTE115 (23, 26)
+  L27        ROUTE118 (24, 27)
+  L28-L38    ROUTE121 (25, 28)
+  L39-L75    VICTORY_ROAD_1F (36, 40)
+
+  leaking rungs under the cap : NONE ✅
+  levels with no ground       : none ✅
+  ⭐⭐ AND THE STRUCTURAL POINT: from L39 to L75 there is exactly ONE ground in the game,
+     and it is the one a §Ch24 party is already standing on. ⇒ the Fly ladder serves the
+     LOW mōn only, and only up to L38 — it is required, but it is not the expensive half.
 ========================================================================================================

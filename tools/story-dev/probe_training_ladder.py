@@ -114,4 +114,35 @@ else:
     print("         (a) require `trainee >= hi - 1` and accept a lower band when none qualifies, or")
     print("         (b) accept the leak at those rungs and CHECK the ceiling afterwards.")
     print("       \u26d4 (b) is the shape that produced L89 finishers before the ruling. Prefer (a).")
+
+# \u2b50 THE CORRECTED LADDER \u2014 what the same walk answers once the out-level cap is applied. This is
+# the table Piece 2's selector must reproduce, so it lives here and stays re-runnable.
+print()
+print("=" * 104)
+print("  THE CORRECTED LADDER \u2014 best_training_area(lvl, max_wild_max=lvl+1)")
+print("=" * 104)
+runs = []
+for lvl in range(15, CEILING + 1):
+    r = best_training_area(lvl, allow=PERMISSIVE, max_wild_max=lvl + 1)
+    key = None if r is None else (r[0].name, tuple(r[2]))
+    if not runs or runs[-1][0] != key:
+        runs.append([key, lvl, lvl])
+    else:
+        runs[-1][2] = lvl
+for key, a, b in runs:
+    span = f"L{a}" if a == b else f"L{a}-L{b}"
+    print(f"  {span:<10} " + ("\u26d4 NO GROUND" if key is None else f"{key[0]} {key[1]}"))
+
+capped_leaks = [l for l in range(15, CEILING + 1)
+                if (r := best_training_area(l, allow=PERMISSIVE, max_wild_max=l + 1))
+                and l <= r[2][1] - MARGIN]
+capped_none = [l for l in range(15, CEILING + 1)
+               if best_training_area(l, allow=PERMISSIVE, max_wild_max=l + 1) is None]
+print()
+print(f"  leaking rungs under the cap : {capped_leaks or 'NONE \u2705'}")
+print(f"  levels with no ground       : {capped_none or 'none \u2705'}")
+if not capped_leaks and not capped_none:
+    print("  \u2b50\u2b50 AND THE STRUCTURAL POINT: from L39 to L75 there is exactly ONE ground in the game,")
+    print("     and it is the one a \u00a7Ch24 party is already standing on. \u21d2 the Fly ladder serves the")
+    print("     LOW m\u014dn only, and only up to L38 \u2014 it is required, but it is not the expensive half.")
 print("=" * 104)

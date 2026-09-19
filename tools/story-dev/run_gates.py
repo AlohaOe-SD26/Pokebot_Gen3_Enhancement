@@ -753,6 +753,31 @@ GATES: list[tuple[str, bool]] = [
     # (`POKEBOT_PICKER_FAULT_INJECT=1`) is the ONLY proof it works. ✅ Fault-tested 2026-09-19:
     # passes clean on 206 production files; with the arm set it fails naming the injected call.
     ("probe_picker_allow_required.py", False),
+    # --- #67 — AN INVERTED RANGE CITATION (`probe_citation_ranges.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#66 carry.
+    # WHY A GATE, AND IT IS A GAP IN ANOTHER GATE: `audit_doc_citations.py` pairs an identifier
+    # with `file.py:LINE` and checks that LINE sits inside the identifier's span — but its
+    # `FILEREF` captures a single `(\d+)`, so for `file.py:100-220` it reads the START and is
+    # STRUCTURALLY BLIND to the END.
+    # ⛔ MEASURED CONSEQUENCE, 2026-09-19: a 37-line insertion staled 16 citations; a bulk
+    # re-point shifted every START and left every END, producing NINE inverted ranges
+    # (`early_game.py:4614-4605`, `:2106-2103`, …). The full 66-gate suite went green over all
+    # of them and the commit claimed the gate had "caught every one". It had not; it could not.
+    # A Tier 1 reviewer found them by reading. This gate is so that reading is not required.
+    # ⭐ ONLY THE UNAMBIGUOUS CHECK IS FATAL: `start > end` is a defect by construction — nothing
+    # legitimate looks like it, so there is nothing to judge and nothing to misjudge. A
+    # "straddle" (end leaves the definition its start is in) is ADVISORY: 67 exist in this tree
+    # and many are honestly imprecise, so failing on them would make a noisy gate — which this
+    # project's own rule says is strictly worse than no gate.
+    # ⭐ SPANS COME FROM `ast`, NOT A REGEX. v1 treated every nested `def` as a boundary and
+    # reported a CLASS as straddling its own methods — a false positive on its first run.
+    # ⛔⛔ APPEND-ONLY HISTORY (06/07/08/28-) IS EXEMPT, AND THAT IS A DESIGN REQUIREMENT:
+    # `08-MISTAKES.md` QUOTES a malformed range as the evidence of a past defect. A gate that
+    # forced that quote to be "fixed" would make a green build an argument for falsifying the
+    # record. A gate over documentation must never be able to demand that history be edited.
+    # ✅ FAULT-TESTED 2026-09-19: clean over 205 in-scope documents; with
+    # `POKEBOT_CITERANGE_FAULT=1` it fails naming the injected inverted citation.
+    ("probe_citation_ranges.py", False),
 ]
 
 

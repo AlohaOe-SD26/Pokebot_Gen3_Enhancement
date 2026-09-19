@@ -32944,3 +32944,44 @@ of zero swaps.
 
 **FILES:** `tools/story-dev/probe_training_ladder.py` (new) + its evidence file,
 `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-19 — ✅ PIECE 2a: A REAL-FRAME BOUND, AND AN OUT-LEVEL CAP THAT CLOSES ALL 9 LEAKING RUNGS
+
+**PRODUCTION CHANGE**, sandbox-pokebot only. Two additions, both additive; no behaviour changes
+unless a caller opts in.
+
+**1. `_yield_bounded_by_frames(gen, real_frames)` (`early_game.py`) — THE SAFETY FOUNDATION.**
+⛔ **The existing bound counts the wrong thing, and I verified the mechanism at source.**
+`_yield_bounded` is `for _ in range(max_frames): next(gen)` — it counts its own advances of the
+STORY generator. But `_listeners.py:120` pushes `self.fight(action)` onto the controller stack and
+`main.py:148` advances only `controller_stack[-1]`. ⇒ for the whole of every battle the story
+generator is not advanced and that counter does not tick. A grind is almost entirely battle frames,
+so a budget in those units silently buys far more real time than it claims — **KI-28's shape**.
+The new wrapper uses `context.emulator.get_frame_count()`, copying the `_FORTREE_MAX_TOTAL_FRAMES`
+precedent, and its docstring states what it still cannot bound: a sub-generator that loops in pure
+Python without yielding never returns from `next(gen)`. **It bounds *slow*, not *stuck*.**
+
+**2. `max_wild_max` on `best_training_area` — THE OUT-LEVEL RULE.** Optional, default `None`
+(✅ verified identical at every level 2-100). A caller passing `mon.level + 1` gets only grounds the
+trainee OUT-LEVELS. ⭐ **MEASURED: this closes all 9 leaking rungs** (`#24-ladderleak` — L12,
+L18-20, L24, L35-38) and leaves **no level without a ground**. The resulting ladder is six rungs:
+ROUTE117 L15-20 → ROUTE111 L21-24 → ROUTE115 L25-26 → ROUTE118 L27 → ROUTE121 L28-38 →
+**VICTORY_ROAD_1F L39-75**.
+‼ A number rather than a margin because `UNDERLEVEL_MARGIN` lives in `plugins/`, and importing a
+plugin from `modules/` would invert the layering.
+
+⭐⭐ **THE STRUCTURAL FINDING WORTH KEEPING: FROM L39 TO L75 THERE IS EXACTLY ONE GROUND IN THE
+GAME, AND IT IS THE ONE THE BOT IS STANDING ON.** ⇒ the Fly ladder serves only the two low mōn
+(Zigzagoon L19, Castform L36) and only up to L38; the four battlers never leave Victory Road. Fly is
+**required** — without it the 4-hop budget refuses every route ground from Ever Grande — but it is
+not the expensive half of this work.
+
+Predictions pre-registered at `e2978517`, graded **4 confirmed + 1 confirmed-structurally, 0
+refuted**. ⚠ P3 is marked structural deliberately: the mechanism is verified, the RATIO is not, and
+a ~5.5× figure in the research remains unverified by me.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py`,
+`sandbox-pokebot/modules/story/training_areas.py`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
+`05-KNOWN-ISSUES.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
+`tools/story-dev/probe_training_ladder.py` + its evidence file (the corrected-ladder section that proves P2), `ai-research-notes/2026-09-19-piece2a-PREDICTIONS.md` and three other notes (citation re-points).

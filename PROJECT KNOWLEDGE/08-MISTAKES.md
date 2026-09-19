@@ -20088,3 +20088,80 @@ in a no-ROM context), plus answering the tripwire in place, plus regrading P7 as
 - ⭐ **AN ACCIDENT IS NOT A GUARD.** The concrete hazard here was blocked only because
   `calculate_path` happens to refuse warp-only-reachable maps. Document such a backstop or replace
   it — never rely on it silently.
+
+
+## 2026-09-19 — THE LINE-SHIFT TAX CAME DUE THREE TIMES IN ONE SESSION; SHARPENING THE RULE THAT CAUGHT IT
+
+**SYMPTOM.** Three separate production edits this session — a 9-line comment in `story_mode.py`, a
+25-line comment in `early_game.py`, and a 37-line function in `early_game.py` — each staled a batch
+of doc citations: 4, then 2, then **16 across 6 files**. Every batch was caught, none reached a
+commit.
+
+**✅ WHAT WORKED, AND IT IS WHY THIS ENTRY IS A SHARPENING AND NOT A NEW MISTAKE.** The rule written
+after the FIRST occurrence — *"after inserting or deleting lines in a production file, run
+`audit_doc_citations.py` before assuming the docs are fine, even when the edit is comment-only"* —
+fired correctly all three times. The cost was minutes of re-pointing, not a bad commit.
+
+**⭐ WHAT THE THIRD OCCURRENCE ADDED.** One stale citation was not a simple shift:
+`early_game.py:2101` cited `train_team`'s **round guard**, not its `def`. The gate reports only
+"outside the identifier's span", so the obvious repair — re-point to the def — **silently changes
+what the prose is pointing at.** The guard moved to `:2138`; a sentence about the guard that now
+cites the def is subtly wrong in a way no gate can see.
+
+**SHARPENED RULES.**
+- ⭐ **BATCH THE RE-POINT, BUT READ EACH ONE.** A bulk `old -> new` map is the efficient fix and the
+  dangerous one: it assumes every citation of a line MEANT the definition. **Before re-pointing,
+  ask what the prose is actually pointing AT** — a def, a guard, a specific branch — and if it is
+  not the def, cite the thing it means at its new line instead.
+- ⭐ **THE SIZE OF THE INSERTION PREDICTS THE SIZE OF THE TAX.** 9 lines → 4 citations; 37 lines →
+  16. When an edit is large, run the citation gate BEFORE writing any documentation, so the
+  re-pointing does not get tangled with new prose.
+- ⚠ **DO NOT "FIX" THIS BY REMOVING LINE NUMBERS.** The gate requires identifier + line precisely
+  because a bare identifier cannot be checked. The tax is the price of a checkable citation, and it
+  is cheap compared with a citation nobody can verify.
+
+
+## 2026-09-19 — I WROTE "READ EACH ONE" AND THEN BULK-SHIFTED 16 CITATIONS WITHOUT READING THEM
+
+**SYMPTOM.** After a 37-line insertion into `early_game.py` I re-pointed 16 stale citations with a
+bulk `old -> new` map. The rule I had written **one hour earlier**, in this very file, said:
+*"BATCH THE RE-POINT, BUT READ EACH ONE … if it is not the def, cite the thing it means at its new
+line instead."* I did not. The result:
+* **9 INVERTED ranges** (`early_game.py:4614-4605`, `:2106-2103`, `:2086-2068`, …) — only the START
+  got the shift; every END kept its old value.
+* **3 of them did not mean a function at all.** The prose says *"only a 500-round guard"* — the
+  guard is one line (`:2139`), not a span to `train_team`'s `def`. A range to the definition points
+  at the wrong thing while looking plausible.
+* I then wrote, in the commit and the grading note, that *"every one was caught by
+  `audit_doc_citations.py` … working as intended."* ⛔ **It had not been, and could not be.**
+
+**ROOT CAUSE, AND IT IS NOT LAZINESS.** `audit_doc_citations.py`'s `FILEREF` captures a single
+`(\d+)` — it is **structurally blind to the END of a range**. The full 66-gate suite went green
+over all 9. ⇒ I trusted a green gate as evidence for a property **that gate does not check**, which
+is the same error as citing a green suite for code the suite does not reach (logged 2026-09-19,
+`_hm_hunting_grounds`). **Twice in one day, the same shape: a passing check taken as broader
+evidence than its own scope.**
+
+**THE FIX THAT WORKED — AND IT IS A GATE, NOT A RESOLUTION.**
+`tools/story-dev/probe_citation_ranges.py` (gate #67) fails on any INVERTED range.
+⭐ Three design choices in it are the real lesson:
+1. **Only the unambiguous check is fatal.** A "straddle" (end leaves the definition its start is
+   in) is *suspicious* but also the shape of an honestly imprecise citation — 67 exist in this
+   tree. Failing on those would make a noisy gate, which this project's own rule says is worse
+   than none. They are counted and listed, never fatal.
+2. **Spans come from `ast`, not a regex.** The first version treated every nested `def` as a
+   boundary and reported a CLASS as straddling its own methods — a false positive on its first run.
+3. ⛔ **APPEND-ONLY HISTORY IS EXEMPT, AND THAT IS A DESIGN REQUIREMENT, NOT A CONVENIENCE.**
+   `08-MISTAKES.md` *quotes* a malformed range as the evidence of a past defect. A gate that forced
+   that quote to be "fixed" would make a green build an argument for **falsifying the record**.
+   ⇒ **a gate over documentation must never be able to demand that history be edited.**
+
+**PREVENTION RULES.**
+- ⛔⛔ **A BULK RE-POINT IS A RED FLAG, NOT A TECHNIQUE.** If more than two citations move, the
+  right move is to re-derive each target from `ast` and read the prose around it. The efficient
+  path and the correct path diverge here, and the efficient one leaves inverted ranges.
+- ⛔ **NEVER CITE A GREEN CHECK AS EVIDENCE WITHOUT NAMING WHAT IT CHECKS.** "The gate passed" is
+  only evidence for the gate's own predicate. Write the predicate down; if you cannot, the claim is
+  "untested".
+- ⭐ **WHEN A REVIEWER FINDS A CLASS OF ERROR A GATE CANNOT SEE, EXTEND THE GATES — DO NOT JUST FIX
+  THE INSTANCES.** The instances were 9; the class is unbounded.
