@@ -95,3 +95,24 @@ confidence.**
 1. **P2 fails** — the conservative default changes ⇒ mid-game exposure is real ⇒ revert immediately.
 2. **P5 fails** — Victory Road becomes huntable ⇒ revert; that guard is load-bearing.
 3. A gate fails for a reason that is **not** stale prose and **not** in the four known constraints.
+
+
+---
+
+# GRADED, 2026-09-19 — **6 CONFIRMED, 1 REFUTED** *(first written as “7 of 7”; a Tier 1 review refuted P7 and the header is corrected rather than quietly adjusted)*
+
+| # | Prediction | Outcome |
+|---|---|---|
+| P1 | the L34-46 bracket answers Victory Road under a real predicate | ✅ **CONFIRMED** — `best_training_area(allow=<permissive>)` returns `VICTORY_ROAD_1F (15,39)(36,40)` at **L36, 40, 46, 53, 60, 65, 75**, replacing ROUTE121. ⭐ L30 and L34 correctly still answer ROUTE121: the `team_level < lo - 1` guard refuses an under-levelled party a L36-40 ground — the ruling's own logic, enforced by the scorer. |
+| P2 | ⭐ **SAFETY** — the conservative default is unchanged | ✅ **CONFIRMED** — `best_training_area(lvl, allow=None)` answers `VICTORY_ROAD_1F` at **ZERO levels across 2-100**. The `AREA_PREREQ` row does exactly its job. |
+| P3 | `best_training_grass(allow=None)` DOES change, harmlessly | ✅ **CONFIRMED** — it answers `VICTORY_ROAD_1F` from **L35 to L100** (66 levels), because that function ignores `AREA_PREREQ` by design. Harmless today; gate #66 keeps it so. |
+| P4 | the new gate passes now, and its fault arm fires | ✅ **CONFIRMED BOTH WAYS** — clean over **206** production files (exit 0); `POKEBOT_PICKER_FAULT_INJECT=1` fails naming the injected call (exit 1). Ran bare, no `PYTHONUTF8` needed. |
+| P5 | counter-hunt execution untouched | ✅ **CONFIRMED** — `hunt_ground_tile(VICTORY_ROAD_1F)` is still `None`; nothing becomes huntable. |
+| P6 | ⭐ the suite goes RED on stale prose | ✅ **CONFIRMED, AND IT WAS THE POINT** — first run `FAILED: 2 of 70`. Both real: gate counts (69→70, quick 59→60), drift (2→3), plus four citations. **A green first run would have meant those gates were not watching this file.** |
+| P7 | no OTHER consumer changes behaviour | ⛔⛔ **REFUTED — and I had graded it CONFIRMED.** A Tier 1 review found a **third** `TRAINING_GRASS` consumer I never examined: `_hm_hunting_grounds` (`early_game.py:4577-4605`) iterates the table with **no** `AREA_PREREQ` check, so the new row became a candidate for Cut/Surf/Strength/Rock Smash hunts — all PRE-Badge-8 — and `ensure_hm_learner` orders candidates *furthest-progressed first*, putting it near the front. ‼ **MY GRADING WAS ALSO WRONG ABOUT ITS OWN EVIDENCE:** I wrote *“confirmed by the suite”*, but no gate covers `_hm_hunting_grounds`, so the suite could not have tested it. **A green suite is not evidence about code the suite does not reach.** ✅ Fixed with a named exclusion set. |
+
+⭐ **AND THE CITATION GATE CAUGHT SOMETHING I DID NOT PREDICT.** Inserting a 9-line comment into
+`story_mode.py` shifted every line below it, staling four doc citations at once — `_should_catch`
+2002→2011, `decide_dex_catch` 1566→1575. ‼ One turned out to be a **PRE-EXISTING malformed
+range**, `story_mode.py:2002-1442` (start greater than end), unnoticed until the start line moved.
+Corrected to `2011-2110`.

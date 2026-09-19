@@ -32861,3 +32861,53 @@ now priced and the mechanics are settled; the choice goes to the user.
 
 **FILES:** `ai-research-notes/2026-09-18-ch24-levelgap-SPEC.md` (new), `03-PUNCH-LIST.md`,
 `07-CHANGELOG.md`.
+
+
+## 2026-09-19 — ✅ VICTORY ROAD IS PROMOTED: the level-appropriate ground the ruling needs, with a structural guard
+
+**PRODUCTION CHANGE**, sandbox-pokebot only. `custom-pokebot/` untouched; drift is now 3 and
+promotion needs user approval.
+
+USER RULING 2026-09-19 requires training each mōn at a **level-appropriate ground**, flying to reach
+it. ✅ MEASURED: from Ever Grande the 4-hop travel budget refuses **every** route ground (ROUTE121
+**6** hops, ROUTE118/119 **9**, ROUTE111/117 **11**, ROUTE115 **15**); `VICTORY_ROAD_1F` at **1 hop**
+is the only level-appropriate candidate in budget. ⇒ **without this promotion a per-trainee selector
+returns `None` for every trainee.**
+
+**WHAT LANDED (piece 1 — the data foundation; no selector, no leg, no Fly yet):**
+1. `TRAINING_GRASS` gains `(VICTORY_ROAD_1F, (15,39), (36,40))`; the duplicate `PENDING_GRASS` row is
+   removed, so one map lives in one list.
+2. `AREA_PREREQ[VICTORY_ROAD_1F] = "region"` — paired with the row and **never to be split**, since
+   `allow=None` performs no reachability check and only skips rows that HAVE a prereq. The comment
+   records that `"region"` is an imprecise label kept deliberately (the real gate is the HM
+   capability, modelled in `region_reach`), because it is what `_training_area_allowed` accepts.
+3. `_training_area_heal_map()` gains `VICTORY_ROAD_1F -> EvergrandeCity` — **not optional**: two of
+   its three consumers fall back to the BOSS's own centre on a miss (`#24-healmapfallback`), so
+   promoting without it would silently aim a heal across Hoenn.
+4. **NEW GATE #66 `probe_picker_allow_required.py`** — no production caller may ask a training
+   picker without an `allow` predicate.
+
+⭐ **WHY THE GUARD IS STRUCTURAL AND NOT BEHAVIOURAL.** The previously-proposed
+`assert best_training_grass(40) is not VICTORY_ROAD_1F` is **self-refuting** — reproduced, it returns
+Victory Road from L35 up the day the row lands. And ✅ MEASURED: narrowing that function's
+`allow=None` default changes **83 of 99 levels** and makes every one WORSE (L27+ drops from
+ROUTE121's L25-28 to ROUTE117's L13-14), so the asymmetry is load-bearing. ⇒ forbid the dangerous
+CALL SHAPE instead. AST-based, so it cannot fire on comments or docstrings; scans `modules/` +
+`plugins/` only, because `tools/` probes legitimately call the pickers bare to measure them.
+⚠ It has no pre-existing defect to catch — a ratchet, not a repair — so its fault arm
+(`POKEBOT_PICKER_FAULT_INJECT`, registered per R6) is the only proof it works.
+
+**PREDICTIONS pre-registered at `3c044a0d` and graded 7/7, 0 refuted** — including P2 (the
+conservative default answers Victory Road at ZERO levels) and P5 (still not huntable), the two
+declared STOP conditions. P6 predicted a RED first run and got one.
+
+‼ **THE CITATION GATE CAUGHT A SIDE EFFECT I HAD NOT PREDICTED:** a 9-line comment inserted into
+`story_mode.py` staled four doc citations at once, one of which was a **pre-existing malformed
+range** (`story_mode.py:2002-1442`, start > end) that had gone unnoticed until the start line moved.
+
+**FILES:** `sandbox-pokebot/modules/story/training_areas.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`,
+`tools/story-dev/probe_picker_allow_required.py` (new, gate #66), `tools/story-dev/run_gates.py`,
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`,
+`ai-research-notes/2026-09-19-trainingbrackets-PREDICTIONS.md`.

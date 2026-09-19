@@ -4583,8 +4583,33 @@ def _hm_hunting_grounds(item) -> list[tuple]:
     from modules.map import get_wild_encounters_for_map
     from modules.story.training_areas import TRAINING_GRASS
 
+    #: ⛔⛔ GROUNDS AN HM HUNT MUST NEVER BE OFFERED, however well their encounter table fits.
+    #: ADDED 2026-09-19 WITH THE VICTORY ROAD PROMOTION, and found by a Tier 1 review rather
+    #: than by me: this function is a THIRD consumer of `TRAINING_GRASS` alongside the two
+    #: pickers, and unlike them it consults **no** `AREA_PREREQ`. The moment Victory Road
+    #: entered the table it became a candidate for Cut / Surf / Strength / Rock Smash hunts —
+    #: every one of them a PRE-Badge-8 errand — and `ensure_hm_learner` tries candidates
+    #: `reversed(grounds)`, *furthest-progressed first*, which puts it near the FRONT.
+    #: ‼ THE CONCRETE HAZARD WAS CLOSED ONLY BY ACCIDENT, AND AN ACCIDENT IS NOT A GUARD:
+    #: `calculate_path` refuses Victory Road from the early game because it is warp-only
+    #: reachable (*“not on connected maps … warps don't count”*), so the bot never actually
+    #: walked there. That is unrelated behaviour nobody documented or tested for this purpose.
+    #: ✅ WHY A NAMED EXCLUSION AND NOT A PREREQ FILTER: skipping every `AREA_PREREQ` map would
+    #: also drop ROUTE111/115/118/119/121, which ARE legitimate mid-game HM hunting grounds.
+    #: And a live reachability check is wrong here too — `is_map_reachable` is fail-safe, so in
+    #: a no-ROM context it would silently filter EVERYTHING out.
+    #: ⇒ the honest rule is about the ERRAND, not the party: HMs are taught as they are earned,
+    #: so an HM hunt is an early/mid-game job and an endgame dungeon is never the right answer.
+    _HM_HUNT_EXCLUDED = {
+        MapRSE.VICTORY_ROAD_1F,
+        MapRSE.VICTORY_ROAD_B1F,
+        MapRSE.VICTORY_ROAD_B2F,
+    }
+
     grounds = []
     for map_enum, tile, _band in TRAINING_GRASS:
+        if map_enum in _HM_HUNT_EXCLUDED:
+            continue
         if tile is None:
             continue
         try:

@@ -20016,3 +20016,75 @@ re-reading, not a day of undoing — nothing was built on the closure.
 - ⭐ **A CLOSURE WITH FIVE REASONS IS NOT FIVE TIMES SAFER IF THEY SHARE A PREMISE.** Reasons (1)
   and (2) were the same fact twice ("nothing calls it that way today"). Count INDEPENDENT reasons,
   not bullets.
+
+
+## 2026-09-19 — INSERTING COMMENTS INTO A PRODUCTION FILE SILENTLY INVALIDATED FOUR DOC CITATIONS
+
+**SYMPTOM.** The Victory Road promotion added a 9-line explanatory comment inside
+`_training_area_heal_map()` in `story_mode.py`. `audit_doc_citations.py` then failed with four
+findings — `_should_catch` cited at `:2002` but spanning `:2011-2110`, `decide_dex_catch` at `:1566`
+but spanning `:1575-1702`, across `03-PUNCH-LIST.md` and `04-HANDOFF.md`. **I changed no behaviour
+and no documentation, and still broke four documents.**
+
+**ROOT CAUSE.** A line-number citation is a reference into a coordinate system that **every
+insertion above it shifts**. I thought carefully about the blast radius of the DATA change and not
+at all about the blast radius of the COMMENT, because comments feel inert. They are inert to the
+interpreter and not to the docs.
+
+**⭐ AND IT EXPOSED A PRE-EXISTING DEFECT, WHICH IS THE INTERESTING PART.** One stale citation was
+`story_mode.py:2002-1442` — a range whose **start is greater than its end**. It had been wrong since
+it was written and nothing noticed, because the gate checks whether the START line falls inside the
+identifier's span. Moving the function moved that start out, and the nonsense surfaced. ⇒ **a gate
+can be silently under-checking a malformed input for months and still be the thing that eventually
+catches it.**
+
+**THE FIX THAT WORKED.** Re-cite each identifier at its real current span, and repair the malformed
+range properly (`2011-2110`) rather than bumping its broken start.
+
+**PREVENTION RULES.**
+- ⛔ **AFTER INSERTING OR DELETING LINES IN A PRODUCTION FILE, RUN `audit_doc_citations.py` BEFORE
+  ASSUMING THE DOCS ARE FINE** — even when the edit is comment-only. Cheapest habit: run Tier 0
+  immediately after touching a `.py`, not only after touching a `.md`.
+- ⭐ **PREFER CITING AN IDENTIFIER OVER A BARE LINE WHERE THE PROSE ALLOWS.** `_should_catch` is
+  stable; `:2002` is not. A citation naming the function AND a line survives being slightly wrong;
+  one giving only a line does not.
+- ⭐ **WHEN A GATE FAILS ON SOMETHING YOU DID NOT CHANGE, READ IT ANYWAY.** Three findings were my
+  line shift; the fourth was an old malformed range my shift merely uncovered. **Fix the one you
+  found, not only the ones you caused.**
+
+
+## 2026-09-19 — I TRIPPED A TRIPWIRE THE CODEBASE HAD LEFT FOR EXACTLY MY CHANGE, AND DID NOT READ IT
+
+**SYMPTOM.** `story_mode.py` carried a dated note: *"`\"double\": True` … is INERT TODAY … but it
+becomes a live misjudgement **the moment `TRAINING_GRASS` gains an entry above L28**, which
+`#24-maintain` is explicitly waiting on."* My change added `VICTORY_ROAD_1F (36,40)` to
+`TRAINING_GRASS` — **firing that tripwire exactly** — and I never looked at it. A Tier 1 reviewer
+did, traced the flag, and confirmed it is still correctly set.
+
+**ROOT CAUSE.** I searched for things my change would BREAK (callers, gates, prose that states the
+old ceiling). I did not search for things that had asked to be TOLD. A tripwire is neither a caller
+nor a contradiction — it is a standing request, and it is invisible to every check I ran.
+
+**⭐ THE SAME REVIEW FOUND A SECOND, WORSE INSTANCE OF THE SAME BLINDNESS.** `_hm_hunting_grounds`
+is a **third** consumer of `TRAINING_GRASS`, alongside the two pickers I had censused. It applies no
+`AREA_PREREQ`, so the new row immediately became a candidate ground for pre-Badge-8 HM hunts. ‼ And
+I had graded prediction P7 — *"no other consumer changes behaviour"* — as **"confirmed by the
+suite"**, when **no gate covers that function at all**. ⇒ **I cited a green suite as evidence about
+code the suite does not reach.**
+
+**THE FIX THAT WORKED.** A named `_HM_HUNT_EXCLUDED` set (a prereq filter would wrongly drop
+ROUTE111/115/118/119/121, and a live reachability check is fail-safe so it would filter everything
+in a no-ROM context), plus answering the tripwire in place, plus regrading P7 as REFUTED.
+
+**PREVENTION RULES.**
+- ⛔⛔ **BEFORE CHANGING A SHARED TABLE, GREP FOR ITS NAME — NOT FOR ITS CONSUMERS.** I censused
+  `best_training_area` and `best_training_grass` and missed a third reader that imports
+  `TRAINING_GRASS` directly. **The table is the interface; the pickers are only two of its users.**
+- ⛔⛔ **A GREEN SUITE IS EVIDENCE ONLY ABOUT WHAT THE SUITE COVERS.** Before writing "confirmed by
+  the gates", name the gate. If you cannot name it, the claim is "untested", not "confirmed".
+- ⭐ **SEARCH FOR TRIPWIRES ADDRESSED TO YOUR CHANGE.** Grep the tree for the identifier you are
+  about to modify plus words like *"the moment"*, *"as soon as"*, *"waiting on"*, *"becomes live"*.
+  This project writes those deliberately; they are worthless if nobody greps them.
+- ⭐ **AN ACCIDENT IS NOT A GUARD.** The concrete hazard here was blocked only because
+  `calculate_path` happens to refuse warp-only-reachable maps. Document such a backstop or replace
+  it — never rely on it silently.

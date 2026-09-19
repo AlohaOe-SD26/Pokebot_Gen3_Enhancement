@@ -26,7 +26,13 @@ from modules.map_data import MapRSE
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 # ⛔⛔ THE L28 CEILING IS THE GAME, NOT A GAP IN THIS TABLE. PROVEN 2026-09-10 — DO NOT RE-SURVEY.
 # ══════════════════════════════════════════════════════════════════════════════════════════════
-# This table tops out at ROUTE121 (25, 28). That has repeatedly been read as "the survey is
+# ‼ UPDATED 2026-09-19: this table now tops out at VICTORY_ROAD_1F (36, 40), promoted under the
+# level-appropriate-training ruling. **THE BLOCK'S CONCLUSION IS UNCHANGED AND STILL PROVEN** —
+# the ROUTE ceiling is L28 and no route can raise it; Victory Road is a DUNGEON, which is exactly
+# what the paragraph below says every L30+ ground in the game is. Do not read the promotion as a
+# refutation of this block; it is an instance of it.
+# The ROUTE survey: this table's route entries top out at ROUTE121 (25, 28). That has repeatedly
+# been read as "the survey is
 # incomplete" — most recently while trying to build `#24-maintain`, whose whole premise is sending an
 # under-levelled mon to a LEVEL-MATCHED ground. It is not incomplete. Measured against the decomp's
 # own `src/data/wild_encounters.json` (group `gWildMonHeaders`, 124 entries / 116 maps):
@@ -93,6 +99,22 @@ TRAINING_GRASS: list[tuple] = [
     # vs. (27, 9) (dist 8) on norman_done.ss1, 2026-07-24
     (MapRSE.ROUTE119, (21, 109), (24, 27)),  # post-Norman band; same-map two-way verified
     # vs. (21, 101) (dist 8) on norman_done.ss1, 2026-07-24
+    # ⭐⭐ PROMOTED 2026-09-19 (`#24-trainingbrackets`, USER RULING: train each mōn at a
+    # LEVEL-APPROPRIATE ground, flying to reach it). ‼ THE L28 CEILING NOTE ABOVE STILL STANDS —
+    # this is not a route and does not raise it; every L30+ ground in the game is a cave or
+    # dungeon, exactly as that block says.
+    # ⛔ WHY IT HAD TO BE PROMOTED, MEASURED 2026-09-19: from Ever Grande the training-travel
+    # budget `_MAX_TRAINING_TRAVEL_LEGS = 4` refuses EVERY route ground — ROUTE121 is 6 hops,
+    # ROUTE118/119 9, ROUTE111/117 11, ROUTE115 15. VICTORY_ROAD_1F is **1 hop** and is the only
+    # level-appropriate candidate inside the budget. ⇒ without this row a per-trainee selector
+    # returns None for every trainee at the League.
+    # ✅ The tile is MEASURED: `(15,39)` reads `has_encounters=True tile_type=Cave collision=0`
+    # with a SEPARATING control (`probe_grind_tile_encounters.py`) — `(15,40)` is a South Arrow
+    # Warp and `(15,41)` is Normal/collision=1, both False. It is also the tile §Ch23's own
+    # `TRAIN_SPOT_1F` (`victory_road.py:477`) has always trained on.
+    # ‼ PAIRED WITH `AREA_PREREQ[VICTORY_ROAD_1F]` BELOW — they must never be split: `allow=None`
+    # performs NO reachability check, it only skips rows that HAVE a prereq.
+    (MapRSE.VICTORY_ROAD_1F, (15, 39), (36, 40)),  # Aron/Golbat/Hariyama/Lairon/Loudred/…, rate 10.
     (MapRSE.ROUTE121, (44, 14), (25, 28)),  # post-Norman band (highest mapped); same-map
     # two-way verified vs. (48, 10) (dist 8) on norman_done.ss1, 2026-07-24
 ]
@@ -153,7 +175,9 @@ PENDING_GRASS: list[tuple] = [
     # is not a new idea, it is the existing idea with its numbers finally written down.
     # ⚠ B1F/B2F are AFTER the Wally fight in the leg order, so they are prep for the EXIT climb and
     # the Elite Four, never for Wally himself.
-    (MapRSE.VICTORY_ROAD_1F, None, (36, 40)),      # Aron/Golbat/Hariyama/Lairon/Loudred/…, rate 10.
+    # ‼ VICTORY_ROAD_1F WAS HERE AND IS NOW IN `TRAINING_GRASS` (promoted 2026-09-19). Removed
+    # rather than left in both lists: a map in two tables is the state that makes a future
+    # reader ask which one wins.
     (MapRSE.VICTORY_ROAD_B1F, None, (38, 42)),     # rate 10; ALSO a rock-smash table L30-40 rate 20.
     (MapRSE.VICTORY_ROAD_B2F, None, (40, 44)),     # Golbat/Lairon/Mawile/Sableye, rate 10.
     #
@@ -284,6 +308,14 @@ AREA_PREREQ: dict = {
     # circular: the counter for Wattson sits behind Wattson.
     # ‼ This also correctly gates TRAINING there, which was equally impossible pre-badge.
     MapRSE.FIERY_PATH: "rocksmash",
+    # ⭐ VICTORY_ROAD_1F (added 2026-09-19 WITH the `TRAINING_GRASS` row — never split them).
+    # ‼ “region” IS AN IMPRECISE LABEL HERE AND THE IMPRECISION IS DELIBERATE. The real gate is
+    # an HM CAPABILITY (Waterfall + BADGE08), fully modelled in `region_reach.KNOWN_GATES`, not
+    # a within-map position split like Route 111's desert. “region” is used because it is in
+    # `_training_area_allowed`'s accepted set (`story_mode.py:1211`) and because its only job
+    # here is to make the conservative `allow=None` default REFUSE this area. ⛔ Do NOT invent a
+    # “waterfall” prereq string without extending that whitelist — it would fail closed forever.
+    MapRSE.VICTORY_ROAD_1F: "region",
     MapRSE.ROUTE111: "region",
     MapRSE.ROUTE115: "surf",
     MapRSE.ROUTE118: "surf",

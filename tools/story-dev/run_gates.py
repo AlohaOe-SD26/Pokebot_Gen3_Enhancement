@@ -732,6 +732,27 @@ GATES: list[tuple[str, bool]] = [
     # resolve today, and it goes red naming `surf` — proving it fires on any broken pairing, not
     # only on the one known defect.
     ("probe_caps_resolve_every_gate.py", False),
+    # --- #66 — A TRAINING PICKER ASKED WITHOUT A PREDICATE (`probe_picker_allow_required.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#65 carry.
+    # WHY A GATE: `training_areas.py`'s two pickers behave DIFFERENTLY at `allow=None`, on purpose.
+    # `best_training_area` refuses anything with an `AREA_PREREQ`; `best_training_grass` does NO
+    # filtering, because it is injected as `decide_maintenance`'s `ground_for`. ✅ MEASURED
+    # 2026-09-19: narrowing that default changes 83 of 99 levels and makes every one WORSE, so the
+    # asymmetry is load-bearing and must NOT be "fixed".
+    # ⇒ when VICTORY_ROAD_1F was promoted (2026-09-19) the `AREA_PREREQ` row kept
+    # `best_training_area(allow=None)` conservative — measured, zero levels — but
+    # `best_training_grass(allow=None)` now answers VICTORY_ROAD_1F from L35 up. That is harmless
+    # ONLY because no production caller uses that shape. THIS GATE KEEPS IT TRUE.
+    # ⛔ THE BEHAVIOURAL ALTERNATIVE WAS SELF-REFUTING: `assert best_training_grass(40) is not
+    # VICTORY_ROAD_1F` is FALSE the day the row lands. A guard that cannot be satisfied is not one.
+    # ⭐ AST, NOT GREP — it inspects real Call nodes only, so it cannot fire on a mention in a
+    # comment or docstring (including its own prose). Scans modules/ + plugins/ only: tools/
+    # probes legitimately call the pickers bare to MEASURE them, which is how the asymmetry above
+    # was established.
+    # ⚠ IT HAS NO PRE-EXISTING DEFECT TO CATCH — it is a RATCHET, not a repair, so its FAULT ARM
+    # (`POKEBOT_PICKER_FAULT_INJECT=1`) is the ONLY proof it works. ✅ Fault-tested 2026-09-19:
+    # passes clean on 206 production files; with the arm set it fails naming the injected call.
+    ("probe_picker_allow_required.py", False),
 ]
 
 
