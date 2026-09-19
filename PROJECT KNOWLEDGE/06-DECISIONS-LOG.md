@@ -6452,3 +6452,69 @@ one day assert. ⇒ **when §Ch24 is wired, its acceptance should be graded on t
 “the driver printed PASS”. That is the same lesson §Ch15/§Ch18/§Ch19 taught — three chapters that
 passed their own tests while stranded — applied one level up: **the CHAPTER can pass its own test
 while the PRODUCT has not done the thing.**
+
+
+## 2026-09-18 — THE VICTORY ROAD TRAINING ROW IS NOT ADDED UNTIL `#24-waterfallcap` IS FIXED; THE CAP FIX ITSELF MAY LAND ALONE, AND FIRST
+
+**THE DECISION.** Do **not** add `(VICTORY_ROAD_1F, (15,39), (36,40))` to `TRAINING_GRASS`, and
+do not add `AREA_PREREQ[VICTORY_ROAD_1F]`, on today's code — they would be inert.
+✅ **`#24-waterfallcap` (the capability fix) MAY BE DONE ON ITS OWN, AND FIRST.** Once it is in,
+add the two data edits **together with each other** — the row must never ship without its
+`AREA_PREREQ` row — and prove the result with a drive.
+‼ *(This clause first read “add both edits and the cap fix as a single change”. That came from
+the audit's ordering argument, which I refuted at source before committing — see below. A Tier 1
+reviewer caught that the correction had reached the body and NOT this decision line or the
+title, which is precisely the P2 “the headline carries the caveat” failure.)*
+
+**WHY (verified, not asserted).** `is_map_reachable(VICTORY_ROAD_1F)` is False for every party at
+every badge count: `region_reach.py:97` gates the only edge on `"waterfall"`, `:342` drops
+gate-missing edges, and `_resolve_caps` (`:228-236`) only ever resolves `surf`, `rock_smash`, `cut`
+and `strength`. ⇒ the `AREA_PREREQ` row would gate on a predicate that is already permanently
+False, so the pair of edits would change nothing.
+
+**⭐ THE PART THAT MAKES THIS AN ORDERING DECISION — AND THE AUDIT GOT ITS DIRECTION BACKWARDS.**
+The audit argued the reachability bug is an *accidental safety net*, so fixing it alone would
+expose Victory Road to `_training_area_allowed` / `_counter_area_allowed` for any L35+ party at
+any story point. ⛔ **I verified that at source before committing, and it is refuted:** with no
+Victory Road row in `TRAINING_GRASS`, `best_training_area` cannot return it at all, and the cap
+resolves through `_live_capability` to **Badge 8 ∧ a party Waterfall user**, never
+unconditionally True. ⇒ **the cap fix is safe alone and may land first.**
+✅ **THE COUPLING THAT IS REAL RUNS THE OTHER WAY.** `best_training_area` under the production
+default `allow=None` performs **no reachability check whatsoever** — it only skips areas that
+HAVE an `AREA_PREREQ`. ⇒ the `TRAINING_GRASS` row must NEVER land without its `AREA_PREREQ`
+row, or Victory Road is proposed to any L35+ party at any story point, ungated. **That pair is
+inseparable** — not the cap.
+⛔⛔ **AND A THIRD REQUIREMENT, ADDED THE SAME DAY AFTER A TIER 1 REVIEW READ THE AUDIT'S VERBATIM
+§7 — THE PAIR ABOVE IS NECESSARY BUT **NOT SUFFICIENT**.** ✅ Verified at source:
+**`best_training_grass` iterates the SAME `TRAINING_GRASS` table**, and its gate is
+`training_areas.py:242` — `if allow is not None and not allow(…)`. At `allow=None` it does **no
+prereq and no reachability filtering whatsoever**; `AREA_PREREQ` is never consulted there. ‼ That
+asymmetry is DELIBERATE and documented at `:213-219`: it *"keeps its historical behaviour when
+`allow is None` — no filtering at all"* because it is also injected as `decide_maintenance`'s
+`ground_for`, where narrowing the default would change a pure decision's answers and gate #55's
+expectations. ⇒ **adding the row requires THREE things, not two**, and ⛔ the third must NOT be
+"make `best_training_grass` behave like its sibling" — that is the change its docstring warns
+against. ⭐ **Recommended shape (the audit's own, and it leaves `decide_maintenance` untouched): a
+regression gate asserting `best_training_grass(40) is not VICTORY_ROAD_1F`.**
+✅ **A CLAIMED FOURTH BLOCKER WAS MEASURED AND DISMISSED.** `_MAX_TRAINING_TRAVEL_LEGS = 4`
+(`story_mode.py:1101`, passed as `max_hops` at `:1269`) was called a second blocker on an
+**INFERRED-STRONG, never measured** hop count. Measured: Victory Road would sit **1 hop** from Ever
+Grande and **2** from the League lobby, against a budget of **4** ⇒ not binding here.
+
+**ALTERNATIVES REJECTED.**
+* *Add the `TRAINING_GRASS` row alone.* Rejected: `VICTORY_ROAD_1F` has no prereq, so it would be
+  proposed to any L35+ party at any story point immediately.
+* *Add both data edits now and fix the cap later.* Rejected: inert today, and it leaves a row whose
+  only guard is a predicate that silently flips from always-False to permissive the moment the cap
+  is resolved — a landmine for whoever fixes `#24-waterfallcap` without reading this entry.
+* *Fix `_resolve_caps` now as a one-key bug fix.* ✅ **NOT rejected** — this is `#24-waterfallcap`,
+  it is safe on its own, and it may land first. `_live_capability` already resolves Waterfall
+  correctly and fails safe (`_RSE_BADGE_BY_MOVE["Waterfall"] = "BADGE08_GET"` ∧ a live party
+  move check). *(This bullet first read “rejected for the safety-net reason above”; that reason
+  was the audit's and is refuted — see above.)*
+* *Route around the picker, as we already did.* Rejected by USER RULING 2026-09-18 — *"maybe we need
+  to map and mark training areas for pokemon for level brackets"*. The ruling says fix the table.
+
+**DO NOT REOPEN** the question of adding the row alone, or of fixing the cap alone. Both were
+considered here with the reasons above. A new ruling, or a fix that lands all three parts together,
+is what changes this.

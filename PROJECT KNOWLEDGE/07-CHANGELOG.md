@@ -32545,3 +32545,129 @@ already obeying it.
 
 Files: `tools/story-dev/story_harness.py` (new `Ch24CaveHealMode`, `--driver ch24caveheal`),
 `tools/story-dev/evidence/2026-09-18-ch24caveheal-{TREATMENT,FAULT-NORETURNHEAL,REPLICATION-L75}.txt`.
+
+
+## 2026-09-18 — ⛔ A PROPOSED PRODUCTION CHANGE WAS AUDITED BEFORE IT WAS WRITTEN, AND REFUSED
+
+**WHAT CHANGED:** documentation and one probe docstring. ⛔ **NO PRODUCTION CODE WAS TOUCHED** — that
+is the point of the entry.
+
+`#24-trainingbrackets` proposed two data edits to `sandbox-pokebot/modules/story/training_areas.py`:
+add `(MapRSE.VICTORY_ROAD_1F, (15, 39), (36, 40))` to `TRAINING_GRASS`, and add
+`AREA_PREREQ[VICTORY_ROAD_1F] = "region"` so the conservative `allow=None` path would refuse it
+until a caller proved reachability. A 7-agent audit (3 angles, each adversarially verified, then
+synthesised) returned **NO-GO as specified**; I then re-verified the load-bearing mechanism myself.
+
+✅ **THE MECHANISM, VERIFIED AT SOURCE:** `region_reach.py:97` gates the only Ever Grande ↔ Victory
+Road edge on `"waterfall"`; `:342` drops any edge whose gate is absent from `caps`; and
+`_resolve_caps` (`:228-236`) builds its result by iterating `explicit`, which holds exactly four
+keys — `surf`, `rock_smash`, `cut`, `strength`. ⇒ `caps.get("waterfall", False)` is **always False**,
+and `_gate_key` (`:158-159`) is symmetric, so the edge is sealed in both directions. Therefore
+**`is_map_reachable(VICTORY_ROAD_1F)` is False for every party at every badge count**, the proposed
+`AREA_PREREQ` row would gate on an already-permanently-False predicate, and the change would be
+inert data.
+
+⭐ **FILED AS ITS OWN ITEM, `#24-waterfallcap`.** The tell that it is an omission rather than a
+design: `_GATE_MOVE_NAMES` at `:105` already contains `"waterfall": "Waterfall"` — the lookup table
+knows the move, the resolver never asks for it. It gates exactly one edge, which is why it has gone
+unnoticed — and it is an OMISSION beyond reasonable doubt: `_RSE_BADGE_BY_MOVE` already contains
+`"Waterfall": "BADGE08_GET"` with the comment *“Added with the Victory Road gate below”*, so three
+of the four pieces were wired and only `explicit` in `_resolve_caps` was missed.
+
+⛔ **A CLAIM I DREW FROM THE AUDIT AND THEN REFUTED MYSELF, BEFORE COMMITTING.** The audit held
+that the bug is an *accidental safety net* and that all three parts must land together. Verified
+at source: **false.** With no Victory Road row in `TRAINING_GRASS`, `best_training_area` cannot
+return it, so a cap fix alone exposes nothing; and the cap resolves via `_live_capability` to
+**Badge 8 ∧ a party Waterfall user**, not True. ✅ The real coupling is the opposite one:
+`allow=None` (the production default) does **no reachability check at all** — it only skips areas
+that HAVE an `AREA_PREREQ` — so the `TRAINING_GRASS` row must never land without its prereq row.
+⇒ **`#24-waterfallcap` is safe to fix on its own and may go first.**
+
+✅ **THE DATA ITSELF WAS CONFIRMED CORRECT** — new `tools/story-dev/probe_grind_tile_encounters.py`
+(read-only) reads `(15,39)` as `has_encounters=True tile_type=Cave collision=0 elev=3` **with a
+separating control**: `(15,40)` is a South Arrow Warp and `(15,41)` is Normal/collision=1, both
+`False`. Evidence committed at `tools/story-dev/evidence/2026-09-18-grind-tile-encounters.stdout.txt`.
+⇒ when `#24-waterfallcap` is fixed, the two edits are ready to land.
+
+⚠ **AND ONE CORRECTION TO MY OWN WORK, SHIPPED IN THE SAME COMMIT.** That probe's docstring
+originally justified itself by claiming the only evidence for the tile was a comment "citing a
+driver reading with **no committed artifact**". That was false — `tools/story-dev/ch23route_R15.log:110`
+exists. The docstring now carries the correction, and the probe is re-justified on the honest
+ground: it supplies a separating control the original log lacks. See `08-MISTAKES.md`.
+
+**FILES:** `PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-trainingbrackets-NOGO.md` (new),
+`tools/story-dev/probe_grind_tile_encounters.py` (new),
+`tools/story-dev/evidence/2026-09-18-grind-tile-encounters.stdout.txt` (new),
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-18 — ⭐ `#24-waterfallcap` MEASURED: A BOT AT THE §Ch24 GRIND SPOT BELIEVES THE WORLD IS THREE MAPS
+
+**NEW:** `tools/story-dev/probe_waterfall_capability.py` (read-only) +
+`tools/story-dev/evidence/2026-09-18-waterfall-capability.stdout.txt`.
+
+`#24-waterfallcap` had been established by READING `region_reach.py`. This probe measures it on
+three pinned fixtures, in both directions, and the result is worse than the reading suggested.
+
+✅ **INBOUND** — from `post_ch24_atdoor_L75.ss1` and `post_ch24_atdoor.ss1` (standing in
+EVER_GRANDE_CITY): `is_map_reachable(VICTORY_ROAD_1F)` = **False**, with the module naming its own
+gate — `why_unreachable` returns *"needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F"*.
+⭐ **And the party HAS Waterfall**: `knows Waterfall: ['Wailord']`, `BADGE08_GET = True`, and
+`_live_capability('Waterfall') = True` — the exact value a fixed `_resolve_caps` would use. ⇒ the
+refusal is not "this party cannot Waterfall"; it is `_resolve_caps` never asking, and **the fix
+would work on the parties we actually have**.
+
+✅ **OUTBOUND** — from `grind_stall_ppzero.ss1` at `TRAIN_SPOT_1F (15,39)` inside the cave:
+`is_map_reachable(EVER_GRANDE_CITY)` = **False**, *"needs Waterfall at
+VICTORY_ROAD_1F<->EVER_GRANDE_CITY"*. The symmetric seal is measured rather than inferred.
+
+⛔⛔ **THE HEADLINE:** `reachable_maps()` returns **306 maps** from Ever Grande and **3** from the
+grind tile — `['VICTORY_ROAD_1F', 'VICTORY_ROAD_B1F', 'VICTORY_ROAD_B2F']`. A bot parked at the
+§Ch24 grind spot does not lose one edge; **its whole world-model collapses to the cave it is
+standing in**, and every reachability-gated decision there is computed against a 3-map world.
+
+✅ **LATENT, NOT BITING — which is why it survived.** §Ch23's Victory Road training passes
+`grass=TRAIN_SPOT_1F` hardcoded (`victory_road.py:2088`), and `:3426-3427` records that this
+deliberately bypasses `best_training_area`. ⚠ But it sits directly in the path of the §Ch24
+training leg `#24-trainingbrackets` exists to build.
+
+‼ **TWO INSTRUMENTS DISAGREE ABOUT THE SAME ROUTE.** `is_map_reachable` says the grind cannot reach
+Ever Grande; the `ch24caveheal` drive MEASURED the bot walking out to the Poké Center and back, via
+`navigate_to_anywhere`, which does not consult this graph. The graph is the one that is wrong ⇒
+⛔ **never gate the heal on `is_map_reachable`.**
+
+⚠ **WHAT IT DOES NOT SHOW:** that the bot can WALK an opened edge. Reachability answers at MAP
+granularity (`story_mode.py:1213` already records it saying YES for maps whose specific TILE is
+not reachable). A drive remains the only proof of traversal.
+
+
+## 2026-09-18 — TIER 1 ROUND 2: A THIRD REQUIREMENT FOUND, AND A CLAIMED FOURTH BLOCKER MEASURED AWAY
+
+A second Tier 1 pass read the audit's **verbatim** synthesis — newly recoverable, because the first
+version of the note had preserved a parse failure instead of it — and found two of its surviving
+findings had never reached any corrected document. Both verified at source here; one then measured.
+
+⛔⛔ **THE THIRD REQUIREMENT.** My corrected text said the `TRAINING_GRASS` row must never land
+without its `AREA_PREREQ` row, and presented that as the complete safety condition. **It is not.**
+`best_training_grass` iterates the SAME `TRAINING_GRASS` table, and its gate is
+`training_areas.py:242` — `if allow is not None and not allow(…)`. At `allow=None` it performs **no
+prereq and no reachability filtering at all**, so `AREA_PREREQ` is never consulted on that path.
+‼ And this is DELIBERATE: the docstring at `:213-219` records that it *"keeps its historical
+behaviour when `allow is None` — no filtering at all"* because it is also injected as
+`decide_maintenance`'s `ground_for`, where narrowing the default would change a pure decision's
+answers and gate #55's expectations. ⇒ the row needs a **third** guard. The audit's own cheap
+proposal is the recommended shape — a regression gate asserting
+`best_training_grass(40) is not VICTORY_ROAD_1F` — because it leaves `decide_maintenance` alone.
+
+✅ **AND A CLAIMED FOURTH BLOCKER, MEASURED AND DISMISSED.** The synthesis called
+`_MAX_TRAINING_TRAVEL_LEGS = 4` (`story_mode.py:1101`, passed as `max_hops` at `:1269`) a second
+blocker, while marking its own hop count **INFERRED-STRONG, never measured**. Measured via
+`probe_waterfall_capability.py` (now covering `post_league_lobby.ss1` too): once the gate opens
+VICTORY_ROAD_1F sits **1 hop** from EVER_GRANDE_CITY and **2 hops** from the League lobby, against a
+budget of **4** ⇒ **it fits with margin.** ‼ Its separate claim — that no EXISTING row is within 4
+hops of the lobby — is a different statement, untested here, and if true it argues **for** the row.
+
+**FILES:** `tools/story-dev/probe_waterfall_capability.py` (+ hop-budget measurement and the lobby
+fixture), `tools/story-dev/evidence/2026-09-18-waterfall-capability.stdout.txt`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-trainingbrackets-NOGO.md` (full 27,990-char
+synthesis restored), `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.

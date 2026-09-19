@@ -1,0 +1,80 @@
+Running mGBA 0.10.2
+============================================================================================================
+DOES THE WATERFALL CAPABILITY GAP BITE A REAL PARTY?  — reading memory only
+============================================================================================================
+
+─── post_ch24_atdoor_L75.ss1
+  standing        : EVER_GRANDE_CITY (18, 6)
+  party           : Mightyena L75, Zigzagoon L19, Sceptile L75, Swellow L75, Wailord L75, Castform L36
+  knows Waterfall : ['Wailord']
+  has_pokemon_with_move('Waterfall') = True     BADGE08_GET = True
+  ⛔ CONTROL        : reachable_maps() returned 306 map(s) → ✅ graph is LIVE
+  ⭐ _live_capability('Waterfall') = True   <- what a fixed `_resolve_caps` would use
+  is_map_reachable(VICTORY_ROAD_1F) = False
+  is_map_reachable(EVER_GRANDE_CITY) = True
+  why_unreachable -> VICTORY_ROAD_1F  : needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+  why_unreachable -> EVER_GRANDE_CITY : reachable
+  ⭐ hops -> EVER_GRANDE_CITY : 0   ⇒ VICTORY_ROAD_1F would be 1 hop(s) once the gate opens, vs budget 4 -> ✅ FITS
+
+─── post_ch24_atdoor.ss1
+  standing        : EVER_GRANDE_CITY (18, 6)
+  party           : Sceptile L53, Zigzagoon L19, Swellow L48, Wailord L47, Mightyena L48, Castform L36
+  knows Waterfall : ['Wailord']
+  has_pokemon_with_move('Waterfall') = True     BADGE08_GET = True
+  ⛔ CONTROL        : reachable_maps() returned 306 map(s) → ✅ graph is LIVE
+  ⭐ _live_capability('Waterfall') = True   <- what a fixed `_resolve_caps` would use
+  is_map_reachable(VICTORY_ROAD_1F) = False
+  is_map_reachable(EVER_GRANDE_CITY) = True
+  why_unreachable -> VICTORY_ROAD_1F  : needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+  why_unreachable -> EVER_GRANDE_CITY : reachable
+  ⭐ hops -> EVER_GRANDE_CITY : 0   ⇒ VICTORY_ROAD_1F would be 1 hop(s) once the gate opens, vs budget 4 -> ✅ FITS
+
+─── grind_stall_ppzero.ss1
+  standing        : VICTORY_ROAD_1F (15, 39)
+  party           : Wailord L61, Zigzagoon L19, Mightyena L60, Sceptile L60, Swellow L60, Castform L36
+  knows Waterfall : ['Wailord']
+  has_pokemon_with_move('Waterfall') = True     BADGE08_GET = True
+  ⛔ CONTROL        : reachable_maps() returned 3 map(s) → ✅ graph is LIVE
+     ‼ THE WHOLE KNOWN WORLD FROM HERE: ['VICTORY_ROAD_1F', 'VICTORY_ROAD_B1F', 'VICTORY_ROAD_B2F']
+  ⭐ _live_capability('Waterfall') = True   <- what a fixed `_resolve_caps` would use
+  is_map_reachable(VICTORY_ROAD_1F) = True
+  is_map_reachable(EVER_GRANDE_CITY) = False
+  why_unreachable -> VICTORY_ROAD_1F  : reachable
+  why_unreachable -> EVER_GRANDE_CITY : needs Waterfall at VICTORY_ROAD_1F<->EVER_GRANDE_CITY
+  ⭐ hops -> EVER_GRANDE_CITY : ⛔ unreachable (the sealed edge) — cannot derive
+
+─── post_league_lobby.ss1
+  standing        : EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+  party           : Mightyena L75, Zigzagoon L19, Sceptile L75, Swellow L75, Wailord L75, Castform L36
+  knows Waterfall : ['Wailord']
+  has_pokemon_with_move('Waterfall') = True     BADGE08_GET = True
+  ⛔ CONTROL        : reachable_maps() returned 306 map(s) → ✅ graph is LIVE
+  ⭐ _live_capability('Waterfall') = True   <- what a fixed `_resolve_caps` would use
+  is_map_reachable(VICTORY_ROAD_1F) = False
+  is_map_reachable(EVER_GRANDE_CITY) = True
+  why_unreachable -> VICTORY_ROAD_1F  : needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+  why_unreachable -> EVER_GRANDE_CITY : reachable
+  ⭐ hops -> EVER_GRANDE_CITY : 1   ⇒ VICTORY_ROAD_1F would be 2 hop(s) once the gate opens, vs budget 4 -> ✅ FITS
+
+============================================================================================================
+  ✅ CONTROL HOLDS on all 4 fixture(s): the graph built and traversed edges.
+     ⇒ a False below is a REAL seal, not a swallowed error.
+
+  ⭐ INBOUND (standing OUTSIDE Victory Road): VICTORY_ROAD_1F is UNREACHABLE on 3/3 fixture(s) — ['post_ch24_atdoor_L75.ss1', 'post_ch24_atdoor.ss1', 'post_league_lobby.ss1']
+  ⛔⛔ AND THE PARTY ACTUALLY HAS THE CAPABILITY: `_live_capability('Waterfall')` is TRUE on ['post_ch24_atdoor_L75.ss1', 'post_ch24_atdoor.ss1', 'post_league_lobby.ss1']. ⇒ the refusal is NOT “this party cannot Waterfall” — it is `_resolve_caps` never asking. **THE BUG IS CONFIRMED BY MEASUREMENT, not by reading.**
+  ⛔⛔ OUTBOUND, AND THIS IS THE HALF THAT MATTERS FOR §Ch24: standing INSIDE Victory Road, EVER_GRANDE_CITY reads UNREACHABLE on ['grind_stall_ppzero.ss1']. `_gate_key` is symmetric, so the seal closes BOTH ways.
+     ⇒ a grind parked at `TRAIN_SPOT_1F` is told the map holding its POKÉ CENTER cannot be reached. ✅ The `ch24caveheal` drive MEASURED that it CAN walk out — via `navigate_to_anywhere`, which does not consult this graph. ‼ So the two instruments DISAGREE, and any future code that gates the heal on `is_map_reachable` would break a route that demonstrably works.
+
+  ⭐ HOP BUDGET (`_MAX_TRAINING_TRAVEL_LEGS = 4`): once the gate opens, VICTORY_ROAD_1F would sit at {'post_ch24_atdoor_L75.ss1': 1, 'post_ch24_atdoor.ss1': 1, 'post_league_lobby.ss1': 2} hop(s).
+     ✅ WORST CASE 2 <= 4 → the hop budget is NOT a blocker for this row from any position measured here. ‼ An audit called it a second blocker on an INFERRED hop count; measured, it is not one — for THESE positions.
+     ⚠ SCOPE: this is measured only from the fixtures above. A training decision taken somewhere farther from Ever Grande could still exceed the budget.
+
+  ‼ WHAT THIS PROBE DOES NOT SHOW: that the bot can WALK an opened edge. Reachability is a
+    MAP-granularity graph answer; `story_mode.py:1213` already records that it says YES for
+    maps whose specific TILE is not reachable. A drive is still the only proof of traversal.
+============================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_17-45-32.ss1 created!
+Updated `current_state.ss1`!

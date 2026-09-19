@@ -19534,3 +19534,225 @@ returns, the bot is outdoors *by design*. The predicate was correct; the MOMENT 
   enters and leaves — a building, a menu, a battle — the answer is yes.
 - ⭐ **WHEN A GRADE CONTRADICTS ITS OWN LOG, SUSPECT THE GRADE.** The trace was right and the verdict
   was wrong, and the trace was two lines away.
+
+
+## 2026-09-18 — I CONCLUDED “NO COMMITTED ARTIFACT EXISTS” FROM A SEARCH OF ONE DIRECTORY
+
+**SYMPTOM.** To justify a new probe I wrote, in its docstring, that the only evidence the Victory
+Road grind tile rolls encounters was a source comment *"citing a driver reading with **no committed
+artifact**"*. An audit agent produced the artifact: `tools/story-dev/ch23route_R15.log:110`, which
+reads `[ch23route]     (15, 39) tile_type='Cave' elev=3 collision=0`. I confirmed it exists.
+
+**ROOT CAUSE.** I searched `tools/story-dev/evidence/*.txt` — the directory where drive evidence is
+*supposed* to live — found nothing, and reported the absence as a fact about the repository rather
+than a fact about my glob. The log sits at the `tools/story-dev/` root, one level up, because it was
+written by `--log`, not copied into `evidence/`.
+
+**⚠ WHY IT MATTERED MORE THAN A WRONG SENTENCE.** The false claim was the probe's stated REASON FOR
+EXISTING. Had it stood, a future reader would have believed an unrecorded measurement was being
+recorded for the first time — and would have had no reason to go looking for the earlier reading,
+which is the one that would have *corroborated* or *contradicted* mine.
+
+**THE FIX THAT WORKED.** Cite the log, and re-justify the probe on a claim that is actually true and
+narrower: the old log has **no separating control** — it cannot show the reading is about THIS tile
+rather than the map in general. The probe supplies that control (`(15,40)` South Arrow Warp,
+`(15,41)` Normal/collision=1, both `has_encounters=False`) and is re-runnable.
+
+**PREVENTION RULES.**
+- ⛔ **AN ABSENCE CLAIM REQUIRES A SEARCH OF THE WHOLE TREE, NOT OF THE CANONICAL LOCATION.**
+  Before writing "there is no X", run the search **unscoped** (`grep -rn` from the repo root, or
+  `find . -name`). A glob that returns nothing proves only that the glob was wrong about where to
+  look. *This project stores drive output in two places — `--log` writes to the tool root and only a
+  deliberate copy lands in `evidence/` — so "not in `evidence/`" is never "not committed".*
+- ⭐ **A JUSTIFICATION IS A CLAIM AND CARRIES THE SAME BURDEN AS A RESULT.** I verify findings at
+  FILE:LINE and did not apply that standard to the sentence explaining why the work was needed.
+  **The "why this exists" paragraph is load-bearing text** — a future reader acts on it.
+- ⭐ **WHEN PRIOR EVIDENCE TURNS UP, DO NOT DELETE THE NEW WORK — RE-JUSTIFY IT HONESTLY OR DROP
+  IT.** Ask what the new instrument adds that the old one lacks. If the answer is "nothing", say so.
+
+
+## 2026-09-18 — I LABELLED AN AGENT'S CLAIM “NOT VERIFIED BY ME” AND THEN WROTE IT INTO FOUR DOCUMENTS AS LOAD-BEARING INSTRUCTION
+
+**SYMPTOM.** A 7-agent audit returned NO-GO on a proposed production change. I verified its central
+mechanism at FILE:LINE and it held. I did **not** verify its secondary argument — that the
+underlying bug was an *"accidental safety net"*, so fixing it alone would expose Victory Road to
+`_training_area_allowed` / `_counter_area_allowed` *"for any L35+ party at any story point"*. I
+marked it `⚠ NOT VERIFIED BY ME` in the research note — **and then wrote it as a directive into the
+punch list, the handoff, the changelog and the decisions log**, in the imperative: *"⛔ Neither edit
+is safe without the other"*, *"DO NOT ‘JUST FIX IT’"*, *"the only safe order is … in ONE change"*.
+A later check at source refuted it **twice over**.
+
+**WHY IT WAS FALSE.** (1) With no Victory Road row in `TRAINING_GRASS`, `best_training_area` cannot
+return Victory Road at all — so a capability fix alone exposes *nothing*. (2) The capability does
+not resolve to True: `reachable_maps` defaults every cap to `None`, so `_resolve_caps` would call
+`_live_capability("Waterfall", badges)`, which requires a party mōn that knows Waterfall **and**
+`BADGE08_GET`. ✅ And the real hazard was the mirror image, sitting unexamined: `best_training_area`
+under the production default `allow=None` does **no reachability check whatsoever** — it only skips
+areas that HAVE an `AREA_PREREQ` — so it is the **data row without its prereq row** that is
+inseparable, not the capability.
+
+**⛔ ROOT CAUSE — AND IT IS NOT “I TRUSTED AN AGENT”.** I applied the project's verification rule to
+the claim that *blocked* work and skipped it for the claim that *shaped* work. The NO-GO was the
+headline, so it got checked at source; the ordering argument merely told the next session what to
+do, so it got a caveat label instead. ‼ **The caveat then travelled with the claim into documents
+where it read as instruction, while the label stayed behind in the research note.**
+
+**THE FIX THAT WORKED.** Verify the secondary claim the same way as the headline — read
+`best_training_area`, `reachable_maps` and `_live_capability` — then correct every copy **before the
+commit**, preserving the refuted claim inside the text so the next reader sees it was considered and
+killed rather than never noticed.
+
+**PREVENTION RULES.**
+- ⛔⛔ **AN UNVERIFIED CLAIM MAY NOT BE WRITTEN IN THE IMPERATIVE.** If it says DO NOT, MUST, or
+  ONLY SAFE ORDER, it is load-bearing and needs a FILE:LINE check — regardless of the caveat next to
+  it. **“⚠ not verified by me” is a licence to leave a claim OUT of the instructions, not a licence
+  to put it IN with a disclaimer.** A future agent obeys the sentence and never reads the label.
+- ⛔ **VERIFY THE CLAIM THAT SHAPES THE NEXT ACTION, NOT ONLY THE ONE THAT BLOCKS THIS ONE.** A
+  NO-GO's *reason* gets scrutiny because it stops work; its *recommended ordering* silently becomes
+  the plan. The ordering deserves equal proof.
+- ⭐ **WHEN AN AUDIT SAYS “X IS AN ACCIDENTAL SAFETY NET”, ASK WHAT X ACTUALLY GUARDS TODAY.** Here
+  it guarded nothing, because the thing it would have gated **did not exist in the table**. A safety
+  net over an empty stage is not a safety net.
+- ⭐ **A COUPLING CLAIM HAS A DIRECTION, AND THE WRONG DIRECTION IS WORSE THAN NO CLAIM.** “A and B
+  must land together” sent the next session to do the hard thing first; the true constraint bound a
+  different pair entirely.
+
+
+## 2026-09-18 — MY CONTROL WAS GATED BY THE VERY EDGE UNDER TEST, SO A WORKING RUN REPORTED ITSELF VOID
+
+**SYMPTOM.** `probe_waterfall_capability.py` exists to show that `is_map_reachable` wrongly refuses
+VICTORY_ROAD_1F. Because `is_map_reachable` is fail-safe (it swallows errors and returns False), a
+bare `False` proves nothing — so the probe carries a control: *"something must come back True, or
+the module is simply broken."* I chose `is_map_reachable(EVER_GRANDE_CITY)`. On the third fixture,
+which stands INSIDE Victory Road, the control returned **False** and the probe printed
+**"EVERY TARGET READING IN THIS RUN IS VOID"** — over a run that had worked perfectly and had in
+fact just captured the most valuable reading of the session.
+
+**ROOT CAUSE.** `_gate_key` (`region_reach.py:158-159`) is symmetric, so the Waterfall gate seals
+EVER_GRANDE_CITY ↔ VICTORY_ROAD_1F in **both** directions. From inside the cave, my control target
+was behind the exact edge the probe was testing. ⇒ **the control was inside the blast radius**, so
+it could only agree with the subject, never check it.
+
+**⭐ AND THE “FAILURE” WAS THE BEST RESULT IN THE RUN.** Read properly, that False is the OUTBOUND
+seal measured for the first time — a grind at `TRAIN_SPOT_1F` is told the map holding its Poké
+Center is unreachable. Had I trusted the verdict line and “fixed the probe”, I would have deleted
+the finding.
+
+**THE FIX THAT WORKED.** Make the control geography-independent: `reachable_maps()` returns the
+origin at distance 0 and `{}` on error, so **"more than one map came back"** proves the graph built
+and traversed at least one edge without assuming anything about what is reachable from where. It
+then passed on all three fixtures — and printing the SIZE of that set produced the headline number
+(306 maps from Ever Grande, **3** from the grind tile).
+
+**PREVENTION RULES.**
+- ⛔⛔ **A CONTROL MUST BE IMMUNE TO THE THING UNDER TEST.** Before accepting one, ask: *"if my
+  hypothesis is TRUE, can this control still pass?"* If the answer is no, it is not a control — it
+  is a second copy of the experiment. ‼ Here the hypothesis was *"this edge is sealed"* and the
+  control sat on the far side of that edge.
+- ⛔ **A CONTROL THAT NAMES A SPECIFIC PLACE INHERITS THAT PLACE'S GEOGRAPHY.** Prefer a
+  STRUCTURAL liveness check (*did the instrument produce a non-trivial result at all?*) over
+  *"X must be reachable"*, which quietly encodes a guess about the map.
+- ⭐ **WHEN A CONTROL FAILS, READ THE SUBJECT'S OUTPUT BEFORE BELIEVING THE VERDICT.** This project
+  already says *"read the failing line before touching the thing under test"*; it applies to a
+  probe's own self-invalidation line too. **A loud VOID banner is a claim, and it can be wrong.**
+- ⭐ **PRINT THE SIZE OF A SET YOU TREAT AS A BOOLEAN.** "Reachable / not reachable" hid the real
+  finding; `len()` surfaced it in one line.
+
+
+## 2026-09-18 — I RETRACTED A CLAIM IN THE BODY OF TWO DOCUMENTS AND LEFT BOTH HEADLINES ASSERTING IT
+
+**SYMPTOM.** Having refuted the audit's *"all three parts must land together"* ordering argument, I
+wrote the correction into the body of every document that carried it — and a Tier 1 reviewer found
+that **two headlines still commanded the refuted version**:
+* `03-PUNCH-LIST.md` — item header: *"⇒ WHAT REMAINS: … land that **TOGETHER WITH**
+  `#24-trainingbrackets`' `AREA_PREREQ` row — **never alone**"*, three sentences above its own body
+  line *"⇒ **this item may be fixed on its own and land first.**"*
+* `06-DECISIONS-LOG.md` — entry **title**: *"… AND THEN **ONLY IN THE SAME CHANGE**"*, and its
+  **THE DECISION** clause *"add both edits and the cap fix as a **single change**"*, directly
+  contradicting its own ALTERNATIVES bullet *"✅ NOT rejected — it is safe on its own, and it may
+  land first."*
+
+**⛔ WHY THE SECOND ONE IS THE WORSE ONE.** `06-DECISIONS-LOG.md` carries a DO-NOT-REOPEN
+convention: a future agent is instructed to grep it BEFORE escalating, and to treat what it finds as
+settled. ⇒ the one line most likely to be read in isolation, and least likely to be questioned, was
+the line still asserting the refuted claim.
+
+**ROOT CAUSE.** I corrected by searching for the refuted *argument text* and replacing each
+occurrence. Headlines do not restate the argument — they state its CONCLUSION in different words
+(*"never alone"*, *"in the same change"*), so a search for the reasoning does not match them. ‼ This
+is P2 (*"the headline carries the caveat"*) firing on a RETRACTION rather than on new content, and I
+had written a mistake entry about propagating an unverified claim **in the same edit** that left
+these two headlines wrong.
+
+**THE FIX THAT WORKED.** Rewrite both headlines to state the corrected conclusion, and keep a
+parenthetical recording what they used to say and why it changed.
+
+**PREVENTION RULES.**
+- ⛔⛔ **WHEN YOU RETRACT A CLAIM, GREP FOR ITS CONCLUSION, NOT ITS ARGUMENT.** List the phrasings
+  the conclusion takes — here *"together"*, *"never alone"*, *"single change"*, *"same change"*,
+  *"do not just fix it"* — and search each. **The reasoning lives in the body; the conclusion lives
+  in the title, and they share no words.**
+- ⛔ **A RETRACTION IS NOT COMPLETE UNTIL THE HEADLINE OF EVERY CARRIER IS RE-READ IN FULL.** Not
+  grepped — read. Item headers and entry titles are the halves that get acted on.
+- ⭐ **IN AN APPEND-ONLY FILE, THE TITLE IS THE MOST LOAD-BEARING LINE IN THE ENTRY**, because the
+  file's own convention says its entries are settled. Correct titles there first, not last.
+
+## 2026-09-18 — I HANDED A TIER 1 REVIEWER A SNAPSHOT DIFF AND THEN KEPT EDITING THE FILES IT WAS REVIEWING
+
+**SYMPTOM.** I generated `tier1.diff`, launched the reviewer, and — while it ran — wrote a second
+probe plus ~80 further lines into three of the five files under review. The reviewer opened its
+report by saying so: two untracked files it had not been told about, `07-CHANGELOG.md` and
+`08-MISTAKES.md` each ~37 lines longer than its snapshot, and the very item it was auditing grown by
+5 lines. It then had to re-verify its own findings against the live tree to know whether they still
+held, and closed with `MISSING_EVIDENCE`.
+
+**⚠ WHAT IT COST, AND WHAT IT DIDN'T.** The three findings survived, because the reviewer noticed
+and re-checked. ⇒ the cost was its time and a weakened certification, not a wrong result — **this
+is a near miss, not a disaster, and it is logged as one.** A less careful reviewer would have
+certified a tree that no longer existed.
+
+**ROOT CAUSE.** I treated the reviewer as a background job to overlap with other work, but Tier 1
+certifies **the state about to be committed**. Overlapping edits make that state a moving target, so
+the overlap does not save time — it converts a certification into a guess.
+
+**PREVENTION RULES.**
+- ⛔ **TIER 1 REVIEWS A FROZEN TREE.** From launching the reviewer to reading its report, make no
+  edit to any file in its scope. If new work appears mid-review, QUEUE it.
+- ⭐ **IF YOU MUST WORK IN PARALLEL, WORK SOMEWHERE ELSE** — run probes, gather measurements, read
+  code. Producing *evidence* is safe; producing *text in the reviewed files* is not.
+- ⭐ **RE-RUN TIER 1 ON THE REAL DIFF AFTER FIXING ITS FINDINGS**, and check WHERE each fix landed,
+  not merely THAT it landed — the same rule Tier 2 already carries.
+
+
+## 2026-09-18 — I SUMMARISED A 28,000-CHARACTER AUDIT FROM MEMORY BECAUSE MY EXTRACTOR HAD SILENTLY SAVED A PARSE FAILURE INSTEAD
+
+**SYMPTOM.** The research note that exists to preserve a 7-agent audit contained
+`⛔ COULD NOT PARSE THE SYNTHESIS` plus 6,000 truncated characters of raw JSON. Everything the
+project then recorded about *"what the audit said"* was my paraphrase, with no checkable artifact
+behind it. A Tier 1 reviewer flagged it; once the real 27,990-character text was restored, **two of
+the audit's own surviving findings turned out never to have been carried forward** — the
+`best_training_grass` `allow=None` asymmetry (a THIRD requirement for the change) and
+`_MAX_TRAINING_TRAVEL_LEGS = 4` (a claimed second blocker).
+
+**ROOT CAUSE, TWO LAYERS.**
+1. My extractor read `spec` at the TOP level of the task output; it is nested under `result`. The
+   `try/except` around it fell through to a *"could not parse"* placeholder — **and the script
+   printed a success line with a plausible byte count anyway** (9,203 bytes: the header plus the
+   truncated dump), so nothing looked wrong.
+2. ⛔ **I never re-read the file I had just written.** I went straight from "the script printed a
+   byte count" to quoting the audit from what I remembered of it.
+
+**THE FIX THAT WORKED.** Read `result.spec` explicitly, assert it is a string longer than 8,000
+characters, and embed it verbatim under a banner marking its refuted ordering advice.
+
+**PREVENTION RULES.**
+- ⛔⛔ **A FALLBACK THAT WRITES A PLACEHOLDER MUST FAIL LOUDLY, NOT PRODUCE A FILE.** An
+  `except:` that substitutes *"could not parse"* and continues converts a hard error into a
+  plausible-looking artifact. **If the payload is the point of the file, assert its shape** — here,
+  one `assert len(spec) > 8000` would have caught it at the first run.
+- ⛔ **WHEN YOU SAVE A SOURCE DOCUMENT IN ORDER TO CITE IT, OPEN THE SAVED COPY BEFORE CITING.** A
+  byte count is not a read. ‼ I quoted an audit for hours from a file whose first line said it had
+  failed to save that audit.
+- ⭐ **PARAPHRASE IS NOT PRESERVATION.** The reason to keep an agent's verbatim output is precisely
+  that its *unglamorous* findings — the ones that did not fit my summary's narrative — survive. Both
+  omissions here were secondary findings the headline had no room for.
