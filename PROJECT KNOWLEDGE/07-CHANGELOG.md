@@ -32820,3 +32820,44 @@ second is not mine to decide.
 
 **FILES:** `tools/story-dev/probe_party_l65_audit.py` (new) + its evidence file,
 `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-18 — ⛔ THE OBVIOUS READING OF THE L65-75 RULING IS VERIFIED IMPOSSIBLE, AND THE ALTERNATIVE IS FREE
+
+**NEW:** `ai-research-notes/2026-09-18-ch24-levelgap-SPEC.md` — an 11-agent design workflow (5
+subsystem reads, each adversarially verified, then synthesised), with my own verification prepended.
+
+The ruling sets a floor **and a ceiling**: every member between L65 and L75. The pinned party carries
+Zigzagoon L19 and Castform L36, so the literal reading is "train them too".
+
+⛔⛔ **THAT READING CANNOT SATISFY THE RULING, AND I COMPUTED IT MYSELF** against each mōn's real
+growth curve and real `total_exp` from the saves. `SwapTrainBattleStrategy`
+(`story_mode.py:1038-1096`) exists precisely so an under-levelled trainee can be levelled: it
+switches the trainee out on turn 1 and, in its own words, *"the team-mate finishes and the trainee
+keeps its XP share"* — **two participants, so the finisher gains too**, and `_capable_finisher`
+always selects the STRONGEST. ⇒ the mules need **491,450 exp**, and Wailord L75 absorbing an equal
+share lands at **L89** — **L94** with the ×1.5 traded-mōn boost. **14-19 levels above the cap.**
+
+⛔ **THE WORKFLOW'S PROPOSED ESCAPE IS REFUTED BY THE SAME ARITHMETIC.** Its §1.3 argued the
+overshoot is order-dependent and that running the mule leg first from `post_ch24ready` keeps the
+finisher under the cap (*"~L71"*). Recomputed with BOTH mules and the saves' real values:
+**Sceptile L53 → L85.** The spec is committed with that refutation in its header rather than
+quietly amended.
+
+⭐⭐ **THE ALTERNATIVE IS NOT CHEAPER — IT IS FREE.** On `post_ch24_atdoor_L75.ss1`, boxing the two
+mules leaves Mightyena/Sceptile/Swellow/Wailord **all at L75**, every survivor inside the band ⇒ the
+ruling is satisfied with zero further grinding. ✅ And it is mechanically possible and
+navigationally safe: `deposit_one_dead_weight()` (`pc_trip.py:219`) is standalone and not behind the
+pinned-0 `POKEBOT_PC_ROTATION`, and `team_policy.py:147-148`'s own sole-HM-carrier exemption
+protects Wailord and Swellow while leaving the two mules removable — independently agreeing with the
+party audit.
+
+⚠ **TWO GOTCHAS RECORDED FOR THE BUILDER:** `pc_trip.py:274-276` returns True having deposited
+nothing when the party is already under six; and `find_dead_weight` sorts ascending by level
+(`team_policy.py:169-172`), so a caller cannot name its victim.
+
+⛔ **NOT DECIDED BY ME.** Removing two Pokémon changes what the art piece shows. Both readings are
+now priced and the mechanics are settled; the choice goes to the user.
+
+**FILES:** `ai-research-notes/2026-09-18-ch24-levelgap-SPEC.md` (new), `03-PUNCH-LIST.md`,
+`07-CHANGELOG.md`.
