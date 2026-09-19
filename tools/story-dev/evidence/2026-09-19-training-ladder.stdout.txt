@@ -1,0 +1,47 @@
+========================================================================================================
+THE TRAINING LADDER: at which levels does the exp leak still fire?
+========================================================================================================
+  UNDERLEVEL_MARGIN = 2   (read from SwapTrainBattleStrategy.UNDERLEVEL_MARGIN)
+  swap fires when:  trainee + 2 <= foe   ⇒  leak whenever trainee <= band_hi - 2
+
+  lvl   ground chosen                      band       worst foe  verdict
+  ------------------------------------------------------------------------------------------------
+  L10   ROUTE116(11, 7)                    (6, 8)     L8         ✅ solos (full xp, no leak)
+  L12   ROUTE117(31, 16)                   (13, 14)   L14        ⛔ SWAPS — leaks to the finisher
+  L15   ROUTE117(31, 16)                   (13, 14)   L14        ✅ solos (full xp, no leak)
+  L18   ROUTE111(25, 55)                   (19, 22)   L22        ⛔ SWAPS — leaks to the finisher
+  L19   ROUTE111(25, 55)                   (19, 22)   L22        ⛔ SWAPS — leaks to the finisher
+  L20   ROUTE111(25, 55)                   (19, 22)   L22        ⛔ SWAPS — leaks to the finisher
+  L22   ROUTE111(25, 55)                   (19, 22)   L22        ✅ solos (full xp, no leak)
+  L24   ROUTE115(6, 53)                    (23, 26)   L26        ⛔ SWAPS — leaks to the finisher
+  L25   ROUTE115(6, 53)                    (23, 26)   L26        ✅ solos (full xp, no leak)
+  L28   ROUTE121(44, 14)                   (25, 28)   L28        ✅ solos (full xp, no leak)
+  L30   ROUTE121(44, 14)                   (25, 28)   L28        ✅ solos (full xp, no leak)
+  L34   ROUTE121(44, 14)                   (25, 28)   L28        ✅ solos (full xp, no leak)
+  L35   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ⛔ SWAPS — leaks to the finisher
+  L36   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ⛔ SWAPS — leaks to the finisher
+  L37   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ⛔ SWAPS — leaks to the finisher
+  L38   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ⛔ SWAPS — leaks to the finisher
+  L39   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L40   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L45   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L50   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L60   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L65   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L70   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+  L75   VICTORY_ROAD_1F(15, 39)            (36, 40)   L40        ✅ solos (full xp, no leak)
+
+========================================================================================================
+  ⛔⛔ 9 RUNG(S) STILL LEAK: L12, L18-L20, L24, L35-L38
+
+     ⇒ AT THOSE LEVELS THE RULING'S MECHANISM DOES NOT HOLD. The selector minimises
+       `abs(hi - team_level)`, which finds the CLOSEST band — not necessarily one the
+       trainee out-levels. Where the closest band's top is 2+ above the trainee, the
+       under-levelled trigger still fires and the finisher still banks an equal share.
+
+     ⭐ WHAT A LEG MUST THEREFORE DO, and this is the actionable finding:
+       do NOT simply ask for the closest band. Either
+         (a) require `trainee >= hi - 1` and accept a lower band when none qualifies, or
+         (b) accept the leak at those rungs and CHECK the ceiling afterwards.
+       ⛔ (b) is the shape that produced L89 finishers before the ruling. Prefer (a).
+========================================================================================================

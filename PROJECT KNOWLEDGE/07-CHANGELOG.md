@@ -32911,3 +32911,36 @@ range** (`story_mode.py:2002-1442`, start > end) that had gone unnoticed until t
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
 `29-DISABLED-FEATURES-REGISTRY.md`,
 `ai-research-notes/2026-09-19-trainingbrackets-PREDICTIONS.md`.
+
+
+## 2026-09-19 — ⛔ THE LEVEL-APPROPRIATE LADDER LEAKS AT 9 RUNGS, MEASURED BEFORE PIECE 2 WAS DESIGNED AROUND IT
+
+**NEW:** `tools/story-dev/probe_training_ladder.py` + evidence.
+
+The L65-75 ruling works because of a mechanism, not a preference:
+`SwapTrainBattleStrategy.UNDERLEVEL_MARGIN = 2` means the swap fires when `trainee + 2 <= foe`,
+putting TWO participants in the battle so the finisher banks an equal share — the mechanism that
+computed Wailord to **L89**. A trainee that out-levels its wilds solos for FULL xp and the ceiling
+survives. ⇒ **the ruling holds only on rungs where the trainee is above its band.**
+
+⛔ **MEASURED: 9 rungs are not.** Walking L10→L75 and asking `best_training_area` at each level,
+**L12, L18-L20, L24 and L35-L38 all leave the trainee 2+ below the band's top wild**, so the swap
+still fires and the finisher still gains. The selector minimises `abs(hi - team_level)` — the
+CLOSEST band, which is not the same as one the trainee beats.
+
+‼ **APPORTIONED HONESTLY:** L12 / L18-20 / L24 are **pre-existing** ladder behaviour, newly
+measured. **L35-L38 is the window the same-day Victory Road promotion opened**, because the next
+band up jumped from ROUTE121's `(25,28)` to `(36,40)`. The promotion did not create the defect
+class; it added one instance.
+
+⭐ **THE CONSEQUENCE FOR PIECE 2, FOUND BEFORE IT WAS BUILT:** the selector must be asked for a band
+the trainee OUT-LEVELS (`trainee >= hi - 1`), falling back to a lower band when none qualifies.
+⛔ The obvious alternative — take the closest band and check the ceiling afterwards — is precisely
+the shape that produced the L89 finisher, and is refused in advance rather than discovered again.
+
+⚠ **SCOPE, STATED:** the probe answers the UNDER-LEVELLED trigger only. Slot weights, trainee HP
+and the second *can't continue* trigger are not modelled, so a clean ladder would not be a promise
+of zero swaps.
+
+**FILES:** `tools/story-dev/probe_training_ladder.py` (new) + its evidence file,
+`03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
