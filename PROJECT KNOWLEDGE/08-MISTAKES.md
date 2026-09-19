@@ -19980,3 +19980,39 @@ so an absence claim measured by a silent instrument is worth nothing.
 - ⭐ **WHEN AN ARM FAILS, MAKE THE PROBE NAME THE FAILURE MODE.** It now prints *"SAT IN AN UNFOUGHT
   BATTLE FOR N OF M FRAMES"* and says a harness driver is required. The next person loses minutes,
   not an afternoon — and does not mistake the silence for a result.
+
+
+## 2026-09-19 — I CLOSED AN ITEM BECAUSE NOTHING CURRENTLY NEEDED IT, WITHOUT ASKING WHETHER SOMETHING SHOULD
+
+**SYMPTOM.** On 2026-09-18 I closed `#24-trainingbrackets` with five reasons and no code change.
+Reason (2) was *"the remedy already ships — `victory_road.py:2087-2090` already grinds on that exact
+tile."* The next day the user ruled that training must pick a **level-appropriate ground per
+trainee**, and I measured that such a selector returns **`None` for every trainee** unless Victory
+Road is promoted — because from Ever Grande the 4-hop travel budget refuses every route ground and
+Victory Road is the only candidate at 1 hop. **The promotion I refused is a precondition of the
+feature the user wants.**
+
+**ROOT CAUSE.** Reasons (1) and (2) were both of the form *"no current caller needs this."* That is
+a fact about **today's callers**, not about the requirement. I checked whether the change was
+**necessary now** and never asked whether it was **necessary for what this chapter is for** — and
+the chapter's own goal (get a party to a fightable state for the Elite Four) plainly implies a
+training selector. ‼ The user had even said so earlier — *"maybe we need to map and mark training
+areas for pokemon for level brackets"* — and I read that as satisfied by an existing table rather
+than as a request for a capability.
+
+**⚠ WHAT WAS STILL RIGHT, so the correction is proportionate.** Reasons (3)-(5) were real and still
+constrain the work: the proposed regression gate is self-refuting, the generic path has no heal-map
+row / no cave-exit row / no frame cap, and the code carried a dated warning. **The closure's
+ANALYSIS was sound; its VERDICT was scoped to the wrong question.** Re-opening costs a day of
+re-reading, not a day of undoing — nothing was built on the closure.
+
+**PREVENTION RULES.**
+- ⛔⛔ **"NO CURRENT CALLER" IS NOT "NO REQUIREMENT." ** Before closing an item as unnecessary, state
+  what the feature WOULD be for, and check whether the project's own goals imply a caller that does
+  not exist yet. **An item can be unreachable today and still be a prerequisite.**
+- ⛔ **WHEN A USER RULING CREATED THE ITEM, RE-READ THE RULING BEFORE CLOSING IT** — not the
+  punch-list paraphrase of it. Mine said *"map and mark training areas for pokemon for level
+  brackets"*, which is a request for a MECHANISM. I closed it by showing a TABLE already existed.
+- ⭐ **A CLOSURE WITH FIVE REASONS IS NOT FIVE TIMES SAFER IF THEY SHARE A PREMISE.** Reasons (1)
+  and (2) were the same fact twice ("nothing calls it that way today"). Count INDEPENDENT reasons,
+  not bullets.

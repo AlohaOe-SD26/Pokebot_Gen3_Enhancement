@@ -6662,3 +6662,46 @@ host stays a purpose-built §Ch24 leg rather than the generic picker (`#24-train
 2026-09-18) or §Ch23 (reversal, 2026-09-18). The wild-level ceiling is unchanged and proven: nothing
 in the game exceeds L44 usable, so a L65 floor means the last stretch is fought against wilds ~25
 levels below the trainee.
+
+
+## 2026-09-19 — ⭐⭐ USER RULING: TRAIN EACH MŌN AT A LEVEL-APPROPRIATE GROUND, AND FLY TO REACH IT
+
+**THE RULING, VERBATIM:** *"Training needs to be enhanced the way we discussed earlier as far as how
+the bot decides to train the team member by going to a level appropriate area/zone for the pokemon
+being trained so it can actually fight or be swap trained"* — and, asked how to reach grounds beyond
+the walking budget: **"Fly there, per trainee."**
+
+**⭐⭐ WHY THIS IS THE RIGHT ANSWER AND NOT MERELY A PREFERENCE — IT DISSOLVES A CONTRADICTION I HAD
+JUST PROVED.** I had verified that the L65-75 ruling was unsatisfiable by training the mules at
+Victory Road: `SwapTrainBattleStrategy` fires when the trainee is `UNDERLEVEL_MARGIN = 2` or more
+below the foe, which puts TWO participants in the battle, so the finisher banks an equal share and
+Wailord reaches **L89 (L94 with the ×1.5 trade boost)** — 14-19 levels over the cap.
+✅ **A trainee fighting wilds AT ITS OWN LEVEL never triggers that switch**, so it solos for **FULL
+xp as the only participant**. ⇒ **no exp leaks to a finisher, and the ceiling is preserved by the
+mechanic instead of fought against.** The ruling is not a compromise; it removes the failure mode.
+
+**✅ MEASURED, AND IT IS WHY THIS NEEDS NEW WORK.** From Ever Grande, `_training_area_allowed`'s
+`_MAX_TRAINING_TRAVEL_LEGS = 4` refuses **every** route ground — ROUTE121 is **6** hops, ROUTE118/119
+**9**, ROUTE111/117 **11**, ROUTE115 **15**. The only level-appropriate ground inside the budget is
+**VICTORY_ROAD_1F at 1 hop**, and it is inert (`PENDING_GRASS`, `tile=None`).
+⇒ **a per-trainee selector would return `None` for every trainee today.**
+
+**WHAT THE RULING THEREFORE REQUIRES:**
+1. **Promote `VICTORY_ROAD_1F` into `TRAINING_GRASS`** with `(15,39)` / `(36,40)` — it is the only
+   in-budget ground for the L34-46 bracket, and the battlers live in that bracket.
+2. **A per-trainee ground choice** — pick per mōn from its OWN level, not one ground for the party.
+3. **Fly to reach out-of-budget grounds** for low-level trainees. The hop budget is a proxy for
+   WALKING cost; Fly makes it the wrong measure, so the leg bypasses it deliberately and for a
+   stated reason rather than by raising the constant game-wide.
+
+**⚠ THE TENSION WITH USER RULING 2, AND ITS RESOLUTION.** Ruling 2 put the grind at the Victory Road
+exit side *"as it would be faster to go back and forth from there"*. That still holds **for the
+battlers** — Victory Road is 1 hop and is their level-appropriate ground. Only the low-level mōn
+travel, and only until they are in band. **Nothing about ruling 2 is reversed.**
+
+**⛔ AND IT PARTLY REVERSES MY OWN CLOSURE OF `#24-trainingbrackets` (2026-09-18).** I closed that
+item the previous day, and one of its five reasons was *"the remedy already ships — §Ch23 already
+grinds on that exact tile"*. ✅ True of §Ch23's hardcoded call, and **false of the selector this
+ruling requires**, which does not exist yet and cannot work without the promotion. The other four
+reasons stand and still constrain HOW it lands (see the item). ⇒ **the item is RE-OPENED, with its
+scope corrected.**
