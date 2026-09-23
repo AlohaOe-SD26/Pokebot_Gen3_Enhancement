@@ -33545,3 +33545,17 @@ interval (≈0.6-17 %) is unchanged by it.
 **FILES:** `tools/story-dev/story_harness.py`,
 `tools/story-dev/evidence/2026-09-23-ch24swaptrigger.stdout.txt`, `03-PUNCH-LIST.md`,
 `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (note) — COMMIT `2670ee01`'s MESSAGE IS DAMAGED; THE MISSING WORDS ARE RECORDED HERE
+
+Its body reads *"Corrected to , and the log now distinguishes…"*. The two words lost to shell
+command substitution are **`is not None`** — the fix was changing the `S-CONTINUE` predicate from a
+TRUTHINESS test to an `is not None` test, because `calculate_path(x, x)` returns an empty list and
+**0 waypoints means "already standing on the landing"**, the best possible outcome rather than a
+failure.
+
+⛔ The commit is **not** amended: it is pushed, and this project does not rewrite published history.
+This note is the correction, and `08-MISTAKES.md` carries the prevention — which is now mechanical
+rather than advisory: **always `git commit -F <file>`, never `-m`.** The prose rule had already
+failed twice in one session, both times triggered by the change feeling *small*.

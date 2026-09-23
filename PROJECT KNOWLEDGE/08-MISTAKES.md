@@ -20370,3 +20370,41 @@ gate with false positives teaches the reader to bypass it and is strictly worse 
 gate.** The one-off scan was the right instrument, and it is recorded here as a TECHNIQUE for the
 next corruption rather than shipped as a check:
     `re.findall(r"[a-zA-Z,)—⛔]  +[a-zA-Z(]", suspect_line)`
+
+
+## 2026-09-23 — I MADE THE SHELL-SUBSTITUTION MISTAKE A SECOND TIME, HOURS AFTER WRITING THE RULE FOR IT
+
+**SYMPTOM.** Commit `2670ee01`'s message reads *"Corrected to , and the log now distinguishes…"*.
+The words `is not None` were backticked, the message went through `git commit -m "…"` in a shell
+string, and the shell ran `is not None` as a command and substituted its empty output. The build
+even printed the evidence — `bash: line 42: is: command not found` — which I saw only because I read
+the output.
+
+**⛔ IT IS NOT AMENDED.** The commit is pushed, and this project forbids rewriting published history.
+A damaged message stands as part of the record; this entry is the correction, and
+`07-CHANGELOG.md` carries the sentence the commit lost.
+
+**ROOT CAUSE — AND IT IS NOT "I FORGOT THE RULE".** I wrote the rule into this file EARLIER TODAY,
+after the same substitution ate four identifiers out of the handoff's queue marker. Then I followed
+it for four consecutive commits by writing each message to a file and using `-F`. This one I typed
+with `-m`, because it was a **smaller** commit.
+⇒ **the trigger is the same both times: the edit FELT small, so the rule felt inapplicable.** The
+rule is about the CONTENT of the string, and content does not care how big the change was.
+
+⇒ **PREVENTION, MADE MECHANICAL BECAUSE THE PROSE VERSION HAS NOW FAILED TWICE IN ONE SESSION:**
+**ALWAYS `git commit -F <file>`. NEVER `-m`.** Not "`-m` unless it has backticks" — that requires a
+judgement at exactly the moment judgement is being skipped. `-F` is unconditional, costs one Write,
+and cannot be got wrong. The same applies to every other shell invocation that carries prose: it
+goes through a file, always.
+
+**‼ WHY A GATE IS STILL NOT THE ANSWER HERE, and this is worth stating because the reflex is to
+build one.** A `commit-msg` hook cannot see a `-m`; it sees only the ALREADY-DAMAGED text, in which
+the deleted words leave no reliable signature (the backticks vanish with their contents). The
+earlier scan for a mid-sentence double space was measured at **32 hits, mostly legitimate**, and
+this project's own rule says a false-positive gate is worse than none. ⇒ the fix has to be a
+mechanical habit, not a check — which is precisely why it is stated as an absolute.
+
+**AND THE SECOND-ORDER LESSON, WHICH IS THE ONE I KEEP PAYING FOR.** Both times, the corruption was
+invisible in the thing I was looking at: the first survived two green doc gates, this one survived a
+successful push. **A tool reporting success says the OPERATION worked, never that the CONTENT
+arrived.** Read the stderr, and read back anything written through a shell.
