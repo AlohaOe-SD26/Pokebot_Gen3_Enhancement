@@ -1,0 +1,87 @@
+Running mGBA 0.10.2
+================================================================================================================
+THE LAST MILE: real Fly landing → spin tile, measured BOTH with and without Surf
+================================================================================================================
+  ROM context from: post_ch24_atdoor_L75.ss1
+  origins = Poké Center door + (0,+1)  [decomp heal-location table, 6/6 verified]
+  ⛔ blind spot this cannot see: TRAINER SIGHT CONES — see the module docstring.
+
+─── L15-20   ROUTE117 (31, 16)
+      from VERDANTURF_TOWN(16, 4)  (Fly landing)
+      A. surf allowed : ✅   47 wp  (dry)
+                        via VERDANTURF_TOWN -> ROUTE117
+      B. WALKING ONLY : ✅   47 wp   ⭐ this is the real reading
+      D. ✅ crosses 0 of 0 REAL armed trigger(s) on its maps
+
+─── L21-24   ROUTE111 (25, 55)
+      from FALLARBOR_TOWN(14, 8)  (Fly landing)
+      A. surf allowed : ✅  220 wp  (dry)
+                        via FALLARBOR_TOWN -> ROUTE113 -> ROUTE111
+      B. WALKING ONLY : ✅  220 wp   ⭐ this is the real reading
+      D. ⚠ crosses 1 of 10 REAL armed trigger(s) — a walker FIRES these:
+           ROUTE111 (13, 43)  var #3
+      D'. ⛔ 2 of 24 PHANTOM trigger(s) crossed (`#24-phantomtrigger`) — negative var number, read from a negative save-block
+           offset that silently returns 0. Harmless to WALK, but `calculate_path`
+           still pays +10000 for each — the COST FUNCTION is wrong here.
+           ⚠ Whether any returned ROUTE from this distortion actually differs is
+             NOT measured; a +10000 penalty is survivable when nothing cheaper
+             exists. Do not read this as a cause of ROUTE111's failure rate.
+
+─── L25-26   ROUTE115 (6, 53)
+      from RUSTBORO_CITY(16, 39)  (Fly landing)
+      A. surf allowed : ✅   92 wp  ⚠ 9 water tile(s), 1 Surf step(s)
+                        via RUSTBORO_CITY -> ROUTE115
+      B. WALKING ONLY : ⛔ NO PATH: Could not find a path from (16/39 @ RUSTBORO_CITY) to (6/53 @ ROUTE115
+      ⛔⛔ SURF-ONLY RUNG — arm A passed and arm B did not. v1 reported this shape
+          as a PASS. The bot lands on foot; this last mile is NOT walkable.
+
+─── L27      ROUTE118 (29, 15)
+      from MAUVILLE_CITY(22, 6)  (Fly landing)
+      A. surf allowed : ✅   56 wp  ⚠ 15 water tile(s), 1 Surf step(s)
+                        via MAUVILLE_CITY -> ROUTE118
+      B. WALKING ONLY : ⛔ NO PATH: Could not find a path from (22/6 @ MAUVILLE_CITY) to (29/15 @ ROUTE118
+      ⛔⛔ SURF-ONLY RUNG — arm A passed and arm B did not. v1 reported this shape
+          as a PASS. The bot lands on foot; this last mile is NOT walkable.
+
+─── L28-38   ROUTE121 (44, 14)
+      from LILYCOVE_CITY(24, 15)  (Fly landing)
+      A. surf allowed : ✅   81 wp  (dry)
+                        via LILYCOVE_CITY -> ROUTE121
+      B. WALKING ONLY : ✅   81 wp   ⭐ this is the real reading
+      D. ✅ crosses 0 of 0 REAL armed trigger(s) on its maps
+
+─── L39-75   VICTORY_ROAD_1F (15, 39)
+      from EVER_GRANDE_CITY(27, 49)  (Fly landing)
+      A. surf allowed : ⛔ NO PATH: Source (27/49 @ EVER_GRANDE_CITY) and destination (15/39 @ VICTORY_ROA
+      B. WALKING ONLY : ⛔ NO PATH: Source (27/49 @ EVER_GRANDE_CITY) and destination (15/39 @ VICTORY_ROA
+
+================================================================================================================
+  WALKABLE ON FOOT (arm B): 3/6
+     ✅ L15-20    ROUTE117           47 wp
+     ✅ L21-24    ROUTE111           220 wp
+     ✅ L28-38    ROUTE121           81 wp
+
+  ⛔⛔ SURF-ONLY — 2 rung(s) pass only when swimming is permitted:
+     L25-26    ROUTE115           surf 92 wp / walking NO PATH: Could not find a path from (16/39 @ RUSTBORO_CITY) to (6/53 @ ROUTE115
+     L27       ROUTE118           surf 56 wp / walking NO PATH: Could not find a path from (22/6 @ MAUVILLE_CITY) to (29/15 @ ROUTE118
+     ⇒ the bot arrives on foot. Either the leg must mount Surf deliberately, or the
+       rung needs a different anchor. Do NOT count these as walkable last miles.
+
+  ⛔ NO PATH IN EITHER ARM — 1 rung(s):
+     L39-75    VICTORY_ROAD_1F    NO PATH: Source (27/49 @ EVER_GRANDE_CITY) and destination (15/39 @ VICTORY_ROA
+     ⇒ EACH NEEDS A REASON BEFORE ITS LEG IS BUILT. Two innocent explanations exist and
+       must be told apart: (a) the route crosses a WARP, which this instrument cannot
+       use and `navigate_to_anywhere` CAN; or (b) the ground is genuinely cut off.
+     ⛔ Do NOT assume (a). VICTORY_ROAD_1F is the known warp case (its entrance is a door
+       warp, `victory_road.py:132`, and the `ch24caveheal` drive walked it both ways).
+       The others are not, and would be real holes in the ladder.
+
+  ‼ REMAINING BLIND SPOT, STATED SO NO GREEN COLUMN IMPLIES IT AWAY: trainer sight cones.
+    The planner cannot see them; these routes are full of them; a clean walk here is not a
+    battle-free walk. That is a separate measurement, not a caveat to wave at.
+================================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-23_11-12-05.ss1 created!
+Updated `current_state.ss1`!

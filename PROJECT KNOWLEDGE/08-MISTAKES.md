@@ -20165,3 +20165,90 @@ evidence than its own scope.**
   "untested".
 - ⭐ **WHEN A REVIEWER FINDS A CLASS OF ERROR A GATE CANNOT SEE, EXTEND THE GATES — DO NOT JUST FIX
   THE INSTANCES.** The instances were 9; the class is unbounded.
+
+
+## 2026-09-23 — I SHIPPED A PROBE WHOSE PASS AND FAIL WERE THE SAME EVENT, AND A SECOND READING THAT COULD NOT FIRE
+
+**SYMPTOM.** `#24-flyladder` was published claiming *"five of six last miles are walkable"* and
+*"on the pinned §Ch24 fixtures … Swellow knows Fly"*. The measured answers are **three of six** and
+**three of four**. A third number, *"1,041 logged failures"*, is not reproducible at all.
+
+**ROOT CAUSE — FOUR DISTINCT FAILURES, ALL IN ONE ITEM.**
+
+1. **THE CONTROL WAS NEVER RUN.** `calculate_path(...)` was called without `no_surfing`; the default
+   is `no_surfing=False` (`map_path.py:728`) and the fixture's Wailord holds Surf. So a PASS meant
+   "walkable **or** swimmable" and I reported it as "walkable". Two rungs were swimming.
+   ⇒ **PREVENTION: if a capability could produce the result, run the arm WITHOUT it. A reading that
+   cannot come out differently when the thing under test is removed has measured nothing.** This is
+   the project's existing "an arm with X removed is the only currency" rule, applied to a
+   *capability of the fixture* rather than to a code change — which is where I failed to recognise it.
+
+2. **A DEFENSIVE `except` TURNED A DEAD INSTRUMENT INTO A CLEAN SHEET.** The trigger census read
+   `get_map_data(...).on_enter_event_triggers` — an attribute of the PATHFINDER's node type
+   (`map_path.py:66`), not of `MapLocation`. Every call raised `AttributeError`; `except: continue`
+   ate them; it reported zero triggers on five maps including trigger-dense ROUTE110.
+   ⇒ **PREVENTION: VACUITY-TEST EVERY CENSUS BEFORE QUOTING A ZERO — point it at a case that MUST
+   return non-zero. And print the DENOMINATOR: "0 of 34" is a measurement, bare "0" is a rumour.**
+   ‼ This is the third time in this tree a defensive fallback has disguised a broken read
+   (`#24-pcoverflow`'s `getattr(..., lambda: [])` hid a dead `box_views()` for weeks).
+
+3. **I USED A PROXY AND CALLED THE REAL VALUE UNRECORDABLE, WHILE THE REPO ALREADY ENCODED IT.** The
+   probe's own docstring said the Fly landing tile "is not recorded anywhere in this repo". It is:
+   every landing is the Poké Center door **+ (0,+1)** (6/6 vs the decomp's `heal_locations.json`),
+   and `victory_road.py:147-148` already derives `EG_PC_APRON` that way. ⛔ And the proxy was not
+   merely imprecise — the door is a **warp**, and `calculate_path` follows a warp used as an
+   endpoint. ⇒ **PREVENTION: before writing "this value is not available", grep the tree for a
+   constant that computes it. A module that solved the same geometry has already paid for the answer.**
+
+4. **A VERDICT CONTRADICTED ITS OWN LOG SIX LINES ABOVE IT.** `probe_fly_unlocked.py` printed
+   *"Fly is unusable on this fixture … the ladder cannot be flown from here"* and then
+   *"✅✅ the ladder is flyable end to end from this fixture"* — same run, same fixture. The summary
+   graded only the destination flags and ignored two preconditions it had measured itself.
+   ⇒ **PREVENTION: A GRADE MUST BE A CONJUNCTION OF EVERY PRECONDITION THE RUN MEASURED. If the
+   production guard is `A ∧ B ∧ C`, the probe's verdict is `A ∧ B ∧ C` — mirror the guard, do not
+   re-invent a weaker one.** And where a probe reads N fixtures it must publish **N verdicts**: a
+   single sentence about "the fixtures" will be quoted as covering all of them.
+
+**THE FIX THAT WORKED.** Both probes rebuilt; four fixtures now loaded, not three; the punch-list
+entry rewritten with the corrected numbers; the withdrawn figure re-derived and cited (183 of 289).
+
+**‼ THE META-LESSON, AND IT IS THE EXPENSIVE ONE.** Every one of these four was caught by an
+agent or by re-reading my own output — **none by the 67-gate suite**, which was green throughout.
+The suite checks that documents are consistent with each other and that citations resolve. It cannot
+check that a number is *true*. ⇒ **a green suite over a freshly written claim means the claim is
+well-formed, not that it is correct** — and I have now twice cited a green run as evidence outside
+its scope. The load-bearing number in any new write-up must be re-derived from its source before it
+is published, not after it is questioned.
+
+
+## 2026-09-23 (same session) — I WITHDREW A NUMBER IN THE DOCS AND LEFT THE PROBE PRINTING IT, THEN COMMITTED THAT PRINT AS THE PROOF
+
+**SYMPTOM.** The correction pass above withdrew the "1,041 logged drops" figure and re-derived it as
+**183 of 289**. A Tier 1 reviewer then found `probe_fly_unlocked.py:221` still printing
+*"ROUTE111's walk in particular is the most-failed in this tree (1,041 logged drops)"* — and that
+line appears verbatim in `evidence/2026-09-23-fly-unlocked-v2.stdout.txt`, **the very evidence file
+the correction submits as its proof**. So one commit both withdrew the figure and re-asserted it.
+
+**ROOT CAUSE.** I grepped `PROJECT KNOWLEDGE/*.md` for the retracted number. The number was also
+written in CODE. My own standing rule from 2026-09-19 is *"grep for the conclusion, not the
+argument"* — I applied it, and applied it to **one file type**. The docs were the place the claim
+was *published*; the probe was the place it was *authored*, and the probe is the canonical
+instrument the punch-list entry points a future agent at. That agent would have run it and read the
+debunked figure as current fact, next to a punch-list line withdrawing it.
+
+⇒ **PREVENTION: A RETRACTED VALUE LIVES WHEREVER IT WAS WRITTEN, NOT ONLY WHERE IT WAS PUBLISHED.
+Grep the WHOLE TREE — probes, drivers, docstrings, fixtures, evidence — before calling a figure
+withdrawn.** A one-line `grep -rn` over `tools/` would have caught this in seconds; scoping the
+search to the document set is what made it invisible.
+
+**‼ AND THE SHARPER, MORE GENERAL LESSON — THIS IS THE THIRD VARIANT OF ONE FAILURE IN ONE DAY.**
+Today I: (a) fixed probe bodies while a verdict line still contradicted them; (b) fixed doc bodies
+while headlines carried the old claim; and now (c) fixed docs while the *instrument that generates
+the evidence* carried the old claim. ⇒ **the correction has to reach every SURFACE the claim has,
+and "surface" includes the tool that prints it.** When retracting anything, enumerate its surfaces
+first — prose, headline, probe output, evidence file, gate message — and fix them as one unit.
+
+**WHAT CAUGHT IT.** Not a gate — all 67 were green over the contradiction, because no gate compares
+a number in a document against a string in a probe. A fresh Tier 1 reviewer reading the diff found
+it. ⇒ further confirmation of the meta-lesson recorded in the entry above: **the suite proves
+well-formedness, never truth.**

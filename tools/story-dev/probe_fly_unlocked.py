@@ -56,7 +56,15 @@ from modules.player import get_player_avatar
 from modules.pokemon_party import get_party
 
 SAVES = _ROOT / "tools" / "story-dev" / "saves"
-FIXTURES = ["post_ch24_atdoor_L75.ss1", "post_league_lobby.ss1", "post_grind_L60.ss1"]
+FIXTURES = [
+    "post_ch24_atdoor_L75.ss1",
+    "post_league_lobby.ss1",
+    "post_grind_L60.ss1",
+    # Added 2026-09-23 after a reviewer noted that "the pinned Ch24 fixtures" is an established
+    # FOUR-fixture term here and this probe loaded three -- so the write-up asserted a result for a
+    # canonical fixture that was never read. A claim about "the fixtures" must load all of them.
+    "post_ch24_atdoor.ss1",
+]
 
 #: The ladder, as measured by `probe_training_ladder.py` under the out-level cap, paired with the
 #: heal centre each ground is anchored at. \u203c ANCHORED ON THE HEAL CENTRE, NOT THE NEAREST TOWN \u2014
@@ -94,6 +102,12 @@ def _fly_for(center) -> "object | None":
 
 
 any_read = False
+#: (fixture, can_the_ladder_be_flown_from_here). ‼ PER FIXTURE, AND PRINTED PER FIXTURE AT THE END.
+#: The first write-up of this probe generalised its result over "the pinned §Ch24 fixtures" — and
+#: one of the three has no Fly knower, so the sentence was false for a third of its own subject.
+#: ⇒ a probe that reads N fixtures must publish N verdicts, because a reader given one number will
+#: quote it as if it covered all of them.
+verdicts: list = []
 for fixture in FIXTURES:
     path = SAVES / fixture
     print()
@@ -146,23 +160,72 @@ for fixture in FIXTURES:
             holes.append((rung, center.name, "destination flag is not set"))
 
     print()
-    if holes:
-        print(f"  \u26d4\u26d4 {len(holes)} RUNG(S) OF THE LADDER CANNOT BE FLOWN TO FROM THIS FIXTURE:")
-        for rung, town, why in holes:
-            print(f"     {rung:<9} needs {town} \u2014 {why}")
-        print("     \u21d2 the per-trainee ladder has a HOLE here. Either those m\u014dn cannot be trained")
-        print("       level-appropriately, or the leg must walk instead of fly, or the fixture is")
-        print("       not representative of a real playthrough. Decide before building the leg.")
+    # \u26d4\u26d4 THE VERDICT IS A CONJUNCTION OF ALL THREE GUARDS, NOT JUST THE DESTINATION FLAGS.
+    # This block used to grade ONLY `holes`, so on a fixture with no Fly knower it printed
+    # "Fly is unusable on this fixture" and then, six lines later, "the ladder is flyable end to end
+    # from this fixture". Both sentences, same run, same fixture. The destination flags were read
+    # correctly; the SUMMARY simply ignored a precondition the probe had already measured itself.
+    # \u21d2 a grade that contradicts its own log is worse than no grade: the log scrolls past and the
+    # headline is what gets quoted. `fly_to_destination` needs flyer \u2227 badge \u2227 flag, so this does too.
+    can_fly = flyer is not None and bool(badge06)
+    if holes or not can_fly:
+        if not can_fly:
+            missing = " and ".join(
+                ([] if flyer is not None else ["no party m\u014dn knows Fly"])
+                + ([] if badge06 else ["BADGE06_GET is not set"])
+            )
+            print(f"  \u26d4\u26d4 THE LADDER CANNOT BE FLOWN FROM THIS FIXTURE AT ALL \u2014 {missing}.")
+            unlocked = len(LADDER) - len(holes)
+            print(f"     \u203c {unlocked}/{len(LADDER)} anchor town(s) ARE on the region map, which is a real")
+            print("       reading and is kept \u2014 but an unlocked destination the party cannot fly to is")
+            print("       not a reachable rung. Do NOT quote the destination column as a ladder verdict.")
+        if holes:
+            print(f"  \u26d4\u26d4 {len(holes)} RUNG(S) OF THE LADDER CANNOT BE FLOWN TO FROM THIS FIXTURE:")
+            for rung, town, why in holes:
+                print(f"     {rung:<9} needs {town} \u2014 {why}")
+            print("     \u21d2 the per-trainee ladder has a HOLE here. Either those m\u014dn cannot be trained")
+            print("       level-appropriately, or the leg must walk instead of fly, or the fixture is")
+            print("       not representative of a real playthrough. Decide before building the leg.")
+        verdicts.append((fixture, False))
     else:
-        print("  \u2705\u2705 EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED \u2014 the ladder is flyable end to end")
-        print("     from this fixture (town reachability only; the last mile is a drive question).")
+        print("  \u2705\u2705 EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED, AND THIS FIXTURE CAN ACTUALLY FLY")
+        print(f"     ({flyer.species.name} knows Fly, BADGE06 held) \u2014 flyable end to end from here")
+        print("     (town reachability only; the last mile is a separate question, see")
+        print("     `probe_lastmile_paths.py`).")
+        verdicts.append((fixture, True))
 
 print()
 print("=" * 104)
 if not any_read:
     print("  \u26d4 NO FIXTURE WAS READ \u2014 this run measured nothing.")
     raise SystemExit(1)
+
+print("  PER-FIXTURE VERDICT (\u203c quote THIS table, never a single sentence about 'the fixtures'):")
+for name, ok in verdicts:
+    print(f"     {'\u2705 FLYABLE    ' if ok else '\u26d4 NOT FLYABLE'}  {name}")
+_yes = [n for n, ok in verdicts if ok]
+_no = [n for n, ok in verdicts if not ok]
+print()
+if _no and _yes:
+    print(f"  \u26a0\u26a0 THE FIXTURES DISAGREE \u2014 {len(_yes)} flyable, {len(_no)} not. Any claim of the form")
+    print("     \"on the pinned fixtures, Fly is available\" is FALSE as written. Name the fixture.")
+    print(f"     \u26d4 NOT flyable: {', '.join(_no)}")
+    print("     \u21d2 this is not a defect in the ladder: a mid-grind save simply predates the Fly")
+    print("       carrier. It IS a defect in any sentence that averages over the three.")
+elif _no:
+    print("  \u26d4\u26d4 NO PINNED FIXTURE CAN FLY. The ladder design needs a fixture that can, or a leg")
+    print("     that walks. Do not build the Fly traversal against these saves.")
+print()
 print("  \u203c SCOPE: this answers whether each ANCHOR TOWN is on the region map. It does NOT answer")
-print("    whether the walk from a landing to a spin tile succeeds \u2014 that needs a drive, and")
-print("    ROUTE111's walk in particular is the most-failed in this tree (1,041 logged drops).")
+print("    whether the walk from a landing to a spin tile succeeds \u2014 see `probe_lastmile_paths.py`,")
+print("    which measures it (3 of 6 walkable on foot; ROUTE115/ROUTE118 need Surf).")
+print("    ROUTE111's walk is the most-failed in this tree \u2014 183 of 289 logged drop events (63.3%),")
+print("    re-derived from `PROJECT KNOWLEDGE/batch-evidence/*/`.")
+# \u26d4 THIS LINE USED TO PRINT "1,041 logged drops", AND THAT FIGURE IS WITHDRAWN (`#24-flyladder`).
+# \u203c WHY IT SURVIVED THE CORRECTION PASS: I grepped `PROJECT KNOWLEDGE/*.md` for the retracted
+# number and never grepped the CODE \u2014 so the docs withdrew it while this probe kept asserting it,
+# and this probe's stdout is the very evidence file the correction cites as proof. A future agent
+# running the canonical instrument would have read the debunked number as fact.
+# \u21d2 RULE: a retracted number lives wherever it was WRITTEN, not only where it was published.
+# Grep the whole tree \u2014 probes, drivers and fixtures included \u2014 not just the document set.
 print("=" * 104)

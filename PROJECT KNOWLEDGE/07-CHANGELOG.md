@@ -33061,3 +33061,134 @@ than letting five green ticks read as proof.
 **FILES:** `tools/story-dev/probe_fly_unlocked.py` (new),
 `tools/story-dev/probe_lastmile_paths.py` (new), their evidence files, `03-PUNCH-LIST.md`
 (files `#24-flyladder`), `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (later) — ⛔ CORRECTION: THE FLY-LADDER ENTRY ABOVE OVERSTATED THREE NUMBERS, AND ONE OF ITS INSTRUMENTS COULD NOT FIRE
+
+The entry immediately above this one is **wrong in three places**. It is append-only history so it
+stands as written; this entry is the correction, and the punch list carries the corrected version.
+
+**⛔ (1) "FIVE OF SIX LAST MILES ARE WALKABLE" — IT IS THREE.** `probe_lastmile_paths.py` called
+`calculate_path` without `no_surfing`, whose default is **`no_surfing=False`** (`map_path.py:728`),
+against a fixture whose Wailord holds Surf. ⇒ every PASS meant *"walkable **or** swimmable"*, and
+two of them were swimming: **ROUTE115 crosses 9 water tiles, ROUTE118 crosses 15**, one Surf step
+each. With `no_surfing=True` both return **NO PATH**. The bot lands on foot. ⇒ the ladder has two
+rungs that need a Surf decision or a different anchor, which is a **design question the first
+write-up hid behind a green tick**.
+‼ The rule this cost: **a control that cannot fail differently from the treatment is not a control.**
+The probe never ran an arm in which the thing under test was absent.
+
+**⛔ (2) "ON THE PINNED §Ch24 FIXTURES … SWELLOW KNOWS FLY" — FALSE FOR ONE, AND IT NEVER LOADED A
+SECOND.** `post_grind_L60.ss1` has **no Fly knower at all**, which the probe's own output said
+plainly. Worse, "the pinned §Ch24 fixtures" is an established FOUR-fixture term in this tree and the
+probe loaded three — so the sentence asserted a result for `post_ch24_atdoor.ss1`, which was never
+read. Now loaded: **3 of 4 can fly**, and the probe prints a per-fixture table with an explicit
+instruction not to average over it.
+
+**⛔ (3) THE "1,041 LOGGED FAILURES" FIGURE IS WITHDRAWN.** Re-derived from
+`PROJECT KNOWLEDGE/batch-evidence/*/`: ROUTE111 accounts for **183 of 289** drop events (63.3%),
+3× the next map. The conclusion it supported — ROUTE111 is the most-failed walk, so anchor it at
+Fallarbor not Mauville — **survives on the corrected number**. The figure itself did not, and it was
+the one number in the entry with no citation attached.
+
+**⛔⛔ (4) AND A SECOND PROBE READING WAS VACUOUS — IT REPORTED A CLEAN SHEET WHILE INCAPABLE OF
+COUNTING.** The added trigger census did `get_map_data(...).on_enter_event_triggers`. That attribute
+does **not** belong to `MapLocation`; it is a field of the pathfinder's own node type
+(`map_path.py:66`, populated `:381-385`). Every lookup raised `AttributeError` and a bare
+`except: continue` swallowed all of them. It reported zero triggers on five maps including ROUTE110,
+which is dense with them. ⇒ **a silent zero from a broken instrument is indistinguishable from a
+real zero** — the same shape as `#24-pcoverflow`'s `getattr(..., lambda: [])`, which hid a dead
+`box_views()` for weeks. Rebuilt against `map_data.coord_events`, vacuity-tested (ROUTE111 = 34
+armed, ROUTE117 = 0), and it now always prints the **denominator** so a zero is visibly measured.
+
+**⭐ WHAT THE FIXED INSTRUMENTS FOUND THAT THE BROKEN ONES COULD NOT:**
+- **The real Fly landing is the Poké Center door + (0,+1)**, verified 6/6 against the decomp's
+  `heal_locations.json`. The first write-up called this "recorded nowhere in this repo" — but
+  `victory_road.py:147-148` already derives `EG_PC_APRON` exactly that way. ⛔ And the door itself is
+  a **warp**, which `calculate_path` follows when used as an endpoint, so it was not merely an
+  imprecise origin — it was an actively wrong one.
+- **ROUTE111's 220-wp walk crosses exactly ONE real armed trigger** — **(13,43), `VAR_TEMP_3`**,
+  the decomp's `Route111_EventScript_ViciousSandstormTriggerLeft`, which checks `ITEM_GO_GOGGLES`
+  and lets a holder through. The `avoid_scripted_events` penalty is `+10000`, **not a wall**, so the
+  planner returns such a route and a walker fires the script.
+  ⛔ **This bullet first said "3 of 34", and that was wrong in the same way the rest of this entry
+  was wrong** — 24 of those 34 are PHANTOMS and two of the three crossings were phantom hits. The
+  cause is a real defect in the production planner, filed as `#24-phantomtrigger` and described
+  below. ‼ I corrected one set of numbers and published a second set from the same broken reading
+  in the same pass; the count was re-derived only because an agent queried the mechanism.
+- **`map_path.py:113` excludes `type == "weather"` from the trigger table**, so ROUTE113's 19
+  weather events are invisible to the penalty by design — worth knowing before anyone reads a
+  sandstorm into a path cost.
+
+**⛔⛔ AND THE BLIND SPOT THAT REMAINS, NAMED SO NO GREEN COLUMN IMPLIES IT AWAY: TRAINER SIGHT
+CONES.** `avoid_scripted_events` consults only `on_enter_event_triggers`; spotting is a per-frame
+scan in `trainer_see.c`. The planner cannot see cones — `victory_road.py:2765-2770` states this and
+hardcodes a bypass to survive it. These five last miles are trainer routes. A clean walk is not a
+battle-free walk, and that is a separate measurement, not a caveat to wave at.
+
+**FILES:** `tools/story-dev/probe_fly_unlocked.py` (verdict now conjoins flyer ∧ badge ∧ flags;
+fourth fixture added), `tools/story-dev/probe_lastmile_paths.py` (real landings, `no_surfing` arm,
+water census, working trigger census), evidence `2026-09-23-fly-unlocked-v2.stdout.txt` and
+`2026-09-23-lastmile-paths-v2.stdout.txt`, `03-PUNCH-LIST.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-23 (later still) — ⛔⛔ `#24-phantomtrigger`: THE PATHFINDER PENALISES 24 ROUTE111 TILES ON A READ FROM A NEGATIVE SAVE-BLOCK OFFSET
+
+**FOUND WHILE CORRECTING THE ENTRY ABOVE, AND IT IS A DEFECT IN PRODUCTION CODE, NOT IN A PROBE.**
+
+**THE CHAIN, EVERY LINK VERIFIED AT SOURCE AND THE LAST ONE MEASURED LIVE:**
+1. `MapCoordEvent.trigger_var_number` = `unpack_uint16(...) - 0x4000` (`map.py:605-607`).
+2. A `TRIGGER_RUN_IMMEDIATELY` coord event stores **0** ⇒ its var number is **-16384**.
+3. `get_event_var_by_number` computes `vars_offset + (var_number * 2)` with **no guard**
+   (`memory.py:400-408`) — for Emerald, `0x139C - 32768`.
+4. ‼ **MEASURED: the call raises nothing and returns `0`.** The event's `trigger_value` is also 0,
+   so the comparison succeeds and the tile reads **ARMED**.
+
+**⛔ AND `map_path.py:1034-1037` MAKES EXACTLY THAT COMPARISON**, so the planner — not just my
+probe — is fooled. **MEASURED on ROUTE111: 34 coord events, 24 with a negative var number, all 24
+penalised `+10000`; only 10 are genuinely armed.** The 24 are ambient sandstorm/sun weather tiles
+that are harmless to walk over.
+
+**⚠ WHAT I AM NOT CLAIMING.** ROUTE111 is the most-failed training walk in the corpus (183 of 289
+drops). It is *plausible* that spurious penalties on 24 of its tiles contribute. **That is a
+hypothesis and it is not measured** — a +10000 penalty is survivable when no cheaper route exists,
+which `victory_road.py:162-168` documents happening. ⇒ no causal sentence until an A/B says so.
+
+**THE FIX IS ONE LINE AND STILL NEEDS A DECISION:** skip the comparison when
+`trigger_var_number < 0` at the point of use, **or** guard `get_event_var_by_number` itself — which
+protects every caller but changes a shared primitive and so needs its own A/B. Filed, not fixed.
+
+**⭐ PROVENANCE, BECAUSE IT VALIDATES THE METHOD:** a recon agent looking at trainer sight cones
+flagged the negative offset as an INFERRED latent defect and said plainly it had not verified it.
+It was confirmed here by measurement. ⇒ the agent supplied the lead; the emulator supplied the
+evidence. That is the standing rule working exactly as written.
+
+**FILES:** `tools/story-dev/probe_lastmile_paths.py` (census now separates phantom from real),
+`03-PUNCH-LIST.md` (files `#24-phantomtrigger`, corrects the ROUTE111 count), `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (addendum) — ✅ THE TWO SURF-ONLY RUNGS ARE TRAVERSABLE; WHAT CHANGED IS THE COST, NOT THE FEASIBILITY
+
+Closing the question the correction above left open, **by reading the walker rather than guessing**.
+
+✅ **THE PRODUCTION NAVIGATOR MOUNTS SURF.** `walking.py:221` and `:304` both handle
+`WaypointAction.Surf`, and a repo-wide grep finds **no caller that passes `no_surfing`** — so every
+production path is computed with swimming permitted, exactly as my first (accidental) arm did.
+`can_surf()` gates on `BADGE05_GET` plus a party Surf knower (`map_path.py:787`), both true on the
+§Ch24 party.
+
+⇒ **ROUTE115 and ROUTE118 are reachable.** The correction stands — they are *not walkable*, and
+reporting them as such was wrong — but the ladder does not lose two rungs.
+
+⚠ **THE TWO COSTS, AND I HAVE MEASURED NEITHER:**
+1. **Water encounters.** A surfing leg meets the WATER table, not the land table the rung was
+   selected for. Choosing ROUTE115 because its land mons suit a L25 trainee says nothing about what
+   it meets in the water on the way.
+2. **A dependency on one Pokémon.** Surf is held only by Wailord, which also carries Dive and
+   Waterfall — the single point of failure already filed under `#25-partyroster`. Making two ladder
+   rungs require Surf widens the blast radius of losing it.
+
+⇒ **DESIGN NOTE FOR PIECE 2, NOT A RULING:** prefer a land rung where one exists, and treat the two
+surf rungs as second choice rather than as equals of the walkable three.
+
+**FILES:** `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.

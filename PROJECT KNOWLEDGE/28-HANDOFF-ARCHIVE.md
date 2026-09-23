@@ -12312,3 +12312,75 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
       WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
 
+
+
+## 2026-09-23 — ARCHIVED FROM `03-PUNCH-LIST.md`: `#24-lobbyfixture` (CLOSED)
+
+Moved verbatim because `03-PUNCH-LIST.md` exceeded its 4,400-line budget (gate R3) and
+this was its longest completed item. The work is DONE; only its record moved.
+
+- [x] ✅✅ `#24-lobbyfixture` — **DONE 2026-09-18. THE LOBBY FIXTURE IS MINTED, PINNED AND RE-VERIFIED BY RELOAD, AND THE LOBBY WINDOW IS NOW *READ*. ⭐ IT RETURNED A RESULT THE SPEC DID NOT PREDICT: INSIDE THE LEAGUE, §Ch23 DOES NOT “SELF-SKIP” — IT *RAISES*.**
+  ⭐ **THE ARTIFACT:** `saves/post_league_lobby.ss1`, pinned `5a75ea37ed5cc07ae8b0b0a75da5e909` — the
+  FIRST fixture this repo has ever held inside the Pokémon League. `POKEMON_LEAGUE_1F (3,4)`, L75
+  party, **0 battles fought**, `ENTERED_ELITE_FOUR` **still False** ⇒ the door guards still stand on
+  (9,2)/(10,2), so it is **positionally sealed against the un-fleeable gauntlet**. Minted by
+  `--driver ch24lobby`; ✅ verified by RELOAD (`probe_ch23_leg_guards.py` loads it and reports
+  `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)`), never by the capture line.
+  ⛔ **FRAMING CORRECTED BEFORE COMMIT: THE RAISE WAS ALREADY DERIVED IN `06-DECISIONS-LOG.md`**
+  (*“Any raise past that door re-enters `do_victory_road_chapter()`, whose eleven legs are all
+  position-gated and all self-skip, three times, then raises ⇒ 4 derails ⇒ Manual, parked in a sealed
+  Elite Four room.”*). ‼ I nearly published it as a new discovery. ⇒ **what this drive ADDED:** it
+  **measured** it live, and it moved it from the SEALED ROOMS to **the LOBBY** — a map the marker
+  design deliberately EXCLUDES, and which Decision 3 calls *“protected”* (that protection is only
+  “leg 4 does not wrongly fire” and does **not** prevent the raise). See `#24-ch23lobbyresume`.
+  ⭐⭐ **THE RESULT THAT MATTERS, AND IT RAISES THE MARKER FROM TIDY-UP TO LOAD-BEARING.** P10 asked
+  *which* guards fire and got the predicted answer — **none of the ten**. It never asked what happens
+  when none of them do, and the answer is **not “nothing”**: `do_victory_road_chapter` has exactly one
+  quiet exit, `if ch23_chapter_done(): return` (`victory_road.py:3361-3362`), and this drive
+  **measured `ch23_chapter_done() == False` in the lobby** — that predicate needs `_on_map(EG)`, the
+  OUTDOOR map, which the lobby is not. ⇒ ten call sites skip → no state changes → the chapter still
+  does not grade done → three attempts are consumed →
+  `raise BotModeError("Ch23 (Victory Road) failed after 3 attempts...")` (`:3486-3488`). And
+  `story_mode.py:5172-5173` calls the chapter whenever `ch23_chapter_done()` is False — in the lobby,
+  **always**. ⇒ ⛔ **standing in its own League lobby, the bot can neither finish §Ch23 nor skip it.**
+  ✅ **THE GRADE:** P1-P8 and P11 met with quoted lines; P10 met at ten call sites; **P9 ⚠ PARTLY
+  UNREADABLE and deliberately NOT scored ✅** — it predicted a reading of `marker(sealed)`, a predicate
+  **that does not exist in code yet**. Predicting a reading of something unbuilt was an error in the
+  predictions file, not a result.
+  ✅ **FOUR ARMS, EACH FAILING FOR ITS OWN REASON:** TREATMENT `missing=[]` · VACUITY refused at the
+  premise with **zero readings** · FAULT `NOPATHCHECK` → `missing=['L-PATHSAFE']` and nothing else
+  (and it still reached no sealed map — the guards are the primary defence) · FAULT `NOSTOP` →
+  `missing=['L-CAPTURE','L-STOP']` with **0 files written**.
+  ✅ **HARDENED 2026-09-18 (addendum): THE GRADE NOW INCLUDES “AND THE BOT CAN CONTINUE”.** It did not, and the diff-triggered advisory flagged that twice before I acted — `story-drive` §2 requires a REAL `calculate_path` off the END tile, because §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and §Ch19 in a living room and **all three passed their own tests**. ✅ MEASURED: `⭐ CONTINUE OK — 14 waypoints from (3, 4) to the lobby's exit landing (9, 11)`, and the VACUITY arm now lists `L-CONTINUE` among its missing readings. ⛔ **THE TARGET IS THE EXIT LANDING, NOT “WHAT COMES NEXT IN THE STORY”** — what comes next is the gauntlet through `(9,1)`, and aiming a liveness check there would plan a route into an un-fleeable fight, which is the one thing this leg exists to avoid. ⭐ The check also records the distinction this whole thread turns on: the bot is **physically free** here while §Ch23 **cannot resume** — two different failures.
+  ⛔ **THIS ITEM SHIPPED A DEFECTIVE SAFETY GUARD, FOUND AND FIXED THE SAME DAY — see `#24-pathguardblind`.** Its path assertion could not see the tiles it named (a warp waypoint records the ARRIVAL tile on the DESTINATION map). ✅ The fixture was never at risk: the door guards physically block `(9,1)` and `calculate_path` to it returns NO PATH. The guard is now map- and warp-aware and SELF-TESTS every run.
+  ✅✅ **THE 2F READING IS NOW DONE — `#24-league2f`** (fixture `post_league_2f.ss1`, `d3c09e7af349`; the escalator round trip is measured in both directions).
+  ⚠ **STILL OWED:** a **post-talk** sibling
+  fixture. ✅ 2F is now scoped: it is the **Cable Club** (`LAYOUT_POKEMON_CENTER_2F`; Union Room /
+  Trade Center attendants), reachable from the lobby with `ENTERED_ELITE_FOUR` unset — the escalator
+  at `(1,7)` is 1F warp **4** and the gauntlet doors are warps **2/3**, disjoint tiles — and standing
+  on 2F still reads `inside_league()` and `at_ever_grande_top()` True (`victory_road.py:1380`).
+  ⛔ **NO fixture stands on 2F and its arrival tile has never been measured here** (the decomp's
+  reciprocal warp says `(1,6)`; that is decomp-sourced, unverified in our emulator).
+  Full grade + the three unanticipated results: `ai-research-notes/2026-09-18-ch24lobby-PREDICTIONS.md`
+  **WHY:** prerequisite (1)'s last soft spot. No fixture in this repo stands in the lobby
+  (`grep -c POKEMON_LEAGUE_1F tools/story-dev/saves/FIXTURES.md5` → 0), so “zero §Ch23 legs fire there”
+  rests on an agent probe, not a reading.
+  ⭐⭐ **A REFUTER KILLED THE FIRST INSTRUMENTATION BEFORE IT COST A FIXTURE, AND I VERIFIED THE KILL:**
+  the draft read `FLAG_ENTERED_ELITE_FOUR`. ✅ **ZERO of 1,164 rows in `event_flags/emerald.txt` carry a
+  `FLAG_` prefix** (the real row is `:211 263 ENTERED_ELITE_FOUR`), and `memory.py:336-338` returns
+  **False SILENTLY** for an unknown name. ⇒ the talk arm would have looped for a flag that could never
+  read True, burned its bound **after** setting the flag in-game, and graded FAIL — paying the route's
+  one irreversible cost for a reading it could never take.
+  **THE SPEC:** start `post_ch24_atdoor_L75.ss1` (⚠ **not** `post_ch24_atdoor.ss1` — that one is L47);
+  stop on **`LEAGUE_NURSE_STAND (3,4)`** (9 tiles from the nearest gauntlet door, 5 from the escalator;
+  ⛔ reject `(9,3)`, two steps from a step-on warp into HALL5); **SKIP THE GUARD TALK**; read flags by
+  **bare name** with a pre-flight assert that the name is in `_event_flags`.
+  ⭐ **WHY SKIP THE TALK — and the refuter's reason beats the spec's.** The spec said no code reads the
+  flag so the readings are identical either way. Stronger: while the flag is unset **the guards stand
+  ON `(9,2)/(10,2)`**, *“blocking the north doors positionally”* (`victory_road.py:399-402`) ⇒ a no-talk
+  fixture is **POSITIONALLY SEALED against the gauntlet**, and a post-talk sibling has those doors open
+  **forever** because the flag is permanent. ⇒ mint the no-talk one first; a post-talk sibling is owed
+  separately, since the settled ruling defines the window as the POST-talk interval.
+  ⚠ **THE WINDOW IS TWO MAPS AND THIS SPEC COVERS ONE** — League 2F is reachable by
+  `LEAGUE_ESCALATOR (1,7)`, *“collision 0 — an accidental step-on warp”*. ✅✅ **THE 2F READING IS DONE (2026-09-18, `#24-league2f`)** — `post_league_2f.ss1` pinned `d3c09e7af349`, ten §Ch23 call sites read on 2F (**none fire**), and the escalator round trip measured in BOTH directions, so a stray step on (1,7) is **recoverable**.
+  Full spec + what was measured without driving: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
