@@ -33644,3 +33644,44 @@ Zigzagoon, 46 of 796 for Castform. ⛔ It does NOT remove the marker prerequisit
 **FILES:** `tools/story-dev/probe_ladder_economics.py`,
 `tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt`, `03-PUNCH-LIST.md`,
 `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-23 (late) — ⛔⛔ `#24-ppscope`: THE PP HEAL TRIGGER CANNOT FIRE FOR A SINGLE TRAINEE, AND THAT UNDOES THE LADDER AFTER ~44 BATTLES
+
+Found by an adversarial critique of the Piece 3 spec; every link verified by me at source before
+filing. **It is a defect in existing `train_team`, not only a gap in new code.**
+
+**THE CHAIN.** `train_team` heals on
+`_lead_level() >= target OR _min_battler_hp_pct() <= heal_at OR _team_is_out_of_pp()`
+(`early_game.py:2304-2307`). `_team_is_out_of_pp()` returns **False** as soon as ANY non-egg party
+member has a damaging move with PP (`:1152`, body `:1170-1181`) ⇒ with five L75s benched it is
+**permanently False** while one trainee grinds.
+
+**WHAT FOLLOWS, AND IT COSTS THE LADDER ITS WHOLE BENEFIT:**
+1. The trainee runs dry — measured budget **~44 battles** (Zigzagoon's 80 PP at 1.83 turns/battle).
+2. No PP heal fires.
+3. A dry lead trips `cant_continue`, so **trigger 2's PP half fires every battle** and
+   `_capable_finisher` sends in a L75 ⇒ **exp splits 50/50**.
+4. The finisher now takes the hits, so the trainee stops taking damage, and the only remaining
+   trigger is `_min_battler_hp_pct()` (`:1128`) — a **L75 Wailord with 396 HP against L40 wilds
+   sheds HP very slowly**. ⇒ the split regime persists for a long, unbounded stretch, decaying the
+   measured **21.0 h** toward the **41.1 h** two-way figure.
+
+**‼ IT IS NOT A LIVELOCK, AND THAT DISTINCTION MATTERS.** `_team_is_out_of_pp`'s docstring records
+the stall it was written for — *3,011 consecutive flees, ~2.9M frames* — but that was the STOCK
+strategy FLEEING. Under `SwapTrainBattleStrategy` a dry lead SWAPS instead, so the bot keeps winning
+and keeps levelling. ⇒ the damage is **silent inefficiency, not a stall** — strictly harder to spot,
+and invisible to every watchdog that looks for "no progress".
+
+**⚠⚠ AND MY OWN DRIVE COULD NOT HAVE SEEN IT.** `--driver ch24swaptrigger` ran **29 battles**, below
+the ~44-battle PP budget. It measured the **pre-dry regime only**, so its `pp=0` reading is not
+evidence that the PP half stays quiet — it is evidence that 29 < 44. ⇒ **a drive that stops before a
+failure mode's onset cannot report on it**, and `#24-swaptrigger2`'s result is narrower than it
+first appeared. The punch-list entry has been qualified accordingly.
+
+**✅ THE FIX SHAPE (filed, not built):** a trainee-scoped predicate — *"does the mon we are LEVELLING
+still have a damaging move with PP?"* — OR'd into the heal condition. ⛔ Do **not** narrow
+`_team_is_out_of_pp` itself: it is shared with the early-game whole-team grind, where
+all-quantification is correct because the whole team is fighting. Add a second, narrower term.
+
+**FILES:** `03-PUNCH-LIST.md` (files `#24-ppscope`, qualifies `#24-swaptrigger2`), `07-CHANGELOG.md`.
