@@ -6733,3 +6733,41 @@ strategy for a constant is the kind of coupling that makes both untestable.
 from `UNDERLEVEL_MARGIN = 2` (swap fires at `trainee + 2 <= foe`), but no drive has yet confirmed
 that a trainee at exactly `hi - 1` never swaps for the OTHER reason (the "can't continue" low-HP
 trigger). `#24-ladderleak`'s probe states that limit explicitly.
+
+
+## 2026-09-23 — USER DIRECTIVE: FISHING AS AN HM-CARRIER SOURCE, A SIX-MŌN TEAM, AND WORKING PC SWAPS — SCOPED AFTER §Ch24
+
+**THE DIRECTIVE, VERBATIM:** *"when looking for a surf/dive/waterfall hm user or even a water type
+pokemon, we need to make the bot have more options because if we get the fishing rods we can use
+the best fishing rod we have at the moment to get a better/higher level water pokemon from
+different parts of the world… along with unlocking the team from 4 pokemon to 6 and
+validate/wire/improve the pokemon pc mechanics so the bot can catch pokemon and swap them around
+between the team and pc like a normal human would do organically."*
+
+**SCOPE RULING, FROM THE USER'S OWN FRAMING:** *"This should be slated as something we focus on
+later"* ⇒ **it does not interrupt §Ch24.** Filed as `#25-partyroster`, numbered `#25` rather than
+`#24-*` deliberately: it is the next chapter of work, not a §Ch24 sub-task.
+
+**⭐⭐ THE FINDING THAT SHAPES IT — THE THREE PARTS ARE ONE PROBLEM.** The team is not capped at 4
+by a constant: `PARTY_CAPACITY = 6` already (`story_mode.py:1500`). What holds it lower is a
+deliberate **runway reservation** — post-Badge-1 a dex catch is refused while
+`party_slots_used < PARTY_CAPACITY` (`story_mode.py:1664`), because the empty slots are the runway
+HM and counter catches land on. ⇒ **the team is small because the PC does not work**, and the
+reservation is the workaround. Fix the PC and it becomes unnecessary; raise the cap without fixing
+the PC and the reservation's failure returns.
+
+**⛔ AND THAT FAILURE IS MEASURED, SO THE ORDER IS NOT OPTIONAL.** `#24-partycap`: disturbing the
+early party moved the finish rate **52.0% → 15.8%**, the entire loss on one badge rung, with
+**10 of 16 non-finishes** reading *"No party mōn can learn Surf and the party is full"*. That
+string is the directive's own motivation arriving from the other direction — the user wants more
+HM-carrier options precisely because the bot runs out of them.
+
+**⇒ THE ORDER THIS IMPLIES (suggested, not yet decided):** prove a PC round trip with a NAMED PID
+first (`#24-pcoverflow` shows the withdraw half has never worked — it logged 0 in every batch);
+only then relax the reservation and re-measure `#24-partycap`'s finish rate; then add fishing.
+⛔ Relaxing the reservation before the PC works is the documented failure, not a shortcut.
+
+**⭐ AND IT ADDRESSES A MEASURED SINGLE POINT OF FAILURE.** On the pinned §Ch24 party, Waterfall and
+Dive are held by exactly one mōn (Wailord) and Fly by one (Swellow). Losing Wailord strands the run
+— Waterfall is how Ever Grande is reached at all. A fishing-sourced water mōn is redundancy for the
+two moves §Ch24's geography depends on, not a convenience.

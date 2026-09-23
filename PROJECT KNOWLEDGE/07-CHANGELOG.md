@@ -32985,3 +32985,39 @@ a ~5.5× figure in the research remains unverified by me.
 `sandbox-pokebot/modules/story/training_areas.py`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
 `05-KNOWN-ISSUES.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
 `tools/story-dev/probe_training_ladder.py` + its evidence file (the corrected-ladder section that proves P2), `ai-research-notes/2026-09-19-piece2a-PREDICTIONS.md` and three other notes (citation re-points).
+
+
+## 2026-09-23 — USER DIRECTIVE FILED AS `#25-partyroster`: THE THREE PARTS ARE ONE PROBLEM
+
+A forward-looking directive: use the best available fishing rod to source Surf/Dive/Waterfall
+carriers and water types from around the world; unlock the team "from 4 to 6"; and
+validate/wire/improve the PC so the bot can catch and swap between party and box organically.
+**Explicitly scoped AFTER §Ch24 by the user's own framing**, and numbered `#25` rather than `#24-*`
+because it is the next chapter of work, not a §Ch24 sub-task.
+
+⭐⭐ **THE FINDING THAT MADE IT ONE ITEM RATHER THAN THREE.** The team is not capped at 4 by a
+constant — `PARTY_CAPACITY = 6` already (`story_mode.py:1500`). What holds it lower is a deliberate
+**runway reservation**: post-Badge-1 a dex catch is refused while `party_slots_used <
+PARTY_CAPACITY` (`story_mode.py:1664`), because the free slots are the runway HM and counter
+catches land on. ⇒ **the team is small because the PC does not work.** Fixing the PC removes the
+need for the reservation; raising the cap without fixing the PC re-creates the failure it prevents.
+
+⛔ **AND THAT FAILURE IS MEASURED, SO THE ORDER IS NOT A PREFERENCE.** `#24-partycap`: disturbing
+the early party moved the finish rate **52.0% → 15.8%** — the entire loss on one badge rung — with
+**10 of 16 non-finishes** reading *"No party mōn can learn Surf and the party is full"*. That
+string is the directive's own motivation arriving from the opposite direction.
+
+⭐ **IT ALSO ANSWERS A SINGLE POINT OF FAILURE ALREADY MEASURED HERE:** on the pinned §Ch24 party,
+**Waterfall and Dive are held by exactly one mōn (Wailord)**, Fly by one (Swellow)
+(`evidence/2026-09-18-party-l65-audit.stdout.txt`). Losing Wailord strands the run, since Waterfall
+is how Ever Grande is reached at all. A fishing-sourced water mōn is redundancy for the two moves
+§Ch24's geography depends on.
+
+✅ **WHAT ALREADY EXISTS AND SHOULD NOT BE REBUILT:** a `fish()` primitive
+(`modules/modes/util/higher_level_actions.py:325`), rod identities in `modules/safari_strategy.py`,
+and `deposit_one_dead_weight` (`pc_trip.py:219`) — standalone, not behind the pinned-0
+`POKEBOT_PC_ROTATION`, and proven in real batch runs. ⚠ With two measured gotchas carried into the
+item: it returns True having deposited **nothing** when the party is already under six, and victim
+choice sorts ascending by level, so a caller cannot name which mōn to box.
+
+**FILES:** `03-PUNCH-LIST.md` (files `#25-partyroster`), `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`.
