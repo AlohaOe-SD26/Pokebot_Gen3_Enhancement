@@ -33685,3 +33685,51 @@ still have a damaging move with PP?"* — OR'd into the heal condition. ⛔ Do *
 all-quantification is correct because the whole team is fighting. Add a second, narrower term.
 
 **FILES:** `03-PUNCH-LIST.md` (files `#24-ppscope`, qualifies `#24-swaptrigger2`), `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (late) — ✅ `#24-ppscope` IS BUILT AND GATED: A TRAINEE-SCOPED PP TERM, INERT BY DEFAULT
+
+**BUILT:** `lead_has_no_damaging_pp(party)` in `modules/story/early_game.py` — a **pure** predicate
+beside the all-quantified `_team_is_out_of_pp` — plus a new
+`train_team(..., heal_on_lead_pp: bool = False)` parameter that ORs it into the heal condition.
+
+**⭐⭐ OFF BY DEFAULT, AND THAT IS THE ENTIRE SAFETY ARGUMENT.** `train_team` is a SHARED path:
+early-game grinding, gym prep, and counter hunts all call it. With the default `False` the boolean
+short-circuits before the new predicate is even **called**, so the expression is byte-for-byte the
+old one and **no existing caller can move**. Only a caller training ONE mōn on a strong bench opts
+in. An unconditional term would have changed when every grind in the game heals.
+
+**⛔ AND IT DOES NOT NARROW `_team_is_out_of_pp`.** That predicate is all-quantified and **correct**
+for the whole-team grind it was written for, where the whole team fights. This is a second, narrower
+term — not a replacement. Narrowing the shared one would have fixed §Ch24 by breaking the early game.
+
+**✅ GATE #70 — `probe_lead_pp_scope.py`, four arms, NO EMULATOR.** The predicate takes the party as
+an argument, so the gate fabricates parties and runs in milliseconds. *A predicate that needs a ROM
+to test is a predicate that gets tested once.*
+* **A** — a dry lead on a full bench reads DRY. This is the case the old predicate is structurally
+  blind to, and the gate prints the contrast beside it so the arm demonstrates a GAP rather than
+  merely asserting a return value.
+* **B** — a lead with a damaging move left does NOT read dry. A term that always fired would heal
+  after every battle and turn a grind into a shuttle service.
+* **C** ⭐ — a lead holding only **status** moves reads DRY. Base power 0 with PP left is Castform's
+  real `Sunny Day` / `Hail` shape, and a naive *"any move with PP"* test calls it healthy while it
+  cannot damage anything.
+* **D1-D3** — an egg, absent, or empty lead is **not** dry. Reporting it so would send the bot on a
+  heal trip that fixes nothing, forever.
+
+**✅ FAULT-TESTED, AND THE FIRST GRADING WAS WRONG.** With `POKEBOT_PPSCOPE_FAULT=1` the gate exits 1
+with **both** True-expecting arms (A and C) red and every False-expecting arm green. ‼ My first
+version demanded that ONLY arm A go red and therefore **failed its own fault test** — a blanket-False
+stub must break every arm expecting True. The subject was correct and the GRADING was wrong, which
+is this tree's most-repeated trap. The real signal is that a FALSE expectation cannot be broken by a
+stub returning False; if B or D went red, the harness would be the broken thing.
+
+**⚠⚠ WHAT IS STILL NOT MEASURED — AND IT IS THE POINT OF THE ITEM.** No run has observed the dry
+regime at all: `--driver ch24swaptrigger` stopped at **29 battles** against a **~44-battle** PP
+budget. ⇒ the fix is proven CORRECT **as a predicate** and **unproven in motion**. `#24-ppscope`
+stays open; it must not be closed on gate #70 alone.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py`,
+`tools/story-dev/probe_lead_pp_scope.py` (new), `tools/story-dev/run_gates.py` (gate #70),
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`.

@@ -20470,3 +20470,39 @@ total never would have.
 `training_areas.py` line by line. Not the gate suite — no gate compares a probe's private constants
 with the production table they shadow. ⇒ worth noting as a GAP rather than a gate: such a check
 would be narrow, and the general fix ("call, do not model") is cheaper than policing copies.
+
+
+## 2026-09-23 — I FIXED A CITATION WITH A RANGE REGEX AND CROSSED TWO DIFFERENT REFERENCES
+
+**SYMPTOM.** After inserting ~48 lines into `early_game.py`, 15 citations drifted. I ran
+`fix_citation_drift.py` (which snaps everything to its symbol's `def`) and THEN repaired the
+known non-def case — `train_team`'s 500-round guard — with
+
+    re.sub(r"early_game\.py:22(7[0-9]|8[0-9])", f"early_game.py:{guard_line}", s)
+
+That pattern matches anything in **2270-2289**, which included **2288 — the `def` the tool had just
+written**. So def citations became guard citations, and one SPAN became `2322-2403`: a range
+starting at a line inside the function it was supposed to delimit.
+
+**ROOT CAUSE — TWO, AND THE SECOND IS THE REAL ONE.**
+1. **ORDER.** I ran the blanket tool FIRST and the surgical fix SECOND. On the two previous
+   occasions I did the opposite, and it worked. The tool cannot tell a guard reference from a def
+   reference, so anything it touches must already be a def-meaning citation.
+2. ⛔ **A RANGE PATTERN WHERE AN EXACT VALUE BELONGED.** This is the **bulk-shift antipattern in
+   miniature** — the same shape as the 2026-09-19 incident that produced nine inverted ranges and
+   motivated gate #67. I wrote the rule, built the tool, added the "read every change it prints"
+   warning, and then hand-rolled a regex that shifted a RANGE of line numbers blind.
+
+⇒ **PREVENTION (both halves, because either alone would have saved it):**
+* **Repair known NON-DEF citations FIRST, by their EXACT old value, then run the tool.** The tool's
+  whole contract is "snap to the def", so every citation it is allowed to see must mean the def.
+* **Never match a citation by a NUMERIC RANGE.** `:2273` is an exact string. A pattern that spans
+  twenty line numbers cannot know which of them it is about — and the one it catches by accident is
+  the one a tool just created.
+
+**‼ WHAT ACTUALLY CAUGHT IT.** Not a gate — `audit_doc_citations.py` was GREEN over the crossed
+references, because `:2322` is inside `train_team`'s span and the gate only asks whether a citation
+lands inside its symbol. Both wrong answers were well-formed. I found it by reading the tool's own
+printed change list and noticing it had moved `:2273` (a line I had deliberately set hours earlier)
+to `:2288`. ⇒ **the tool's requirement to READ ITS OUTPUT is not ceremony; it is the only check
+that exists for this class**, and it has now earned its keep twice in one day.

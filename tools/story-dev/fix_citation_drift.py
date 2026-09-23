@@ -24,9 +24,21 @@ specific guard, a specific branch — would be silently destroyed by that.
 and it appears beside the words "KI-28's 19.9M-frame shape" — the guard IS the point of the
 sentence. Snapping it to the `def` line would have quietly deleted the reference the prose depends
 on. Such citations must be fixed by hand.
-⇒ THE WORKFLOW IS: run this, then read the list it prints, and for any entry whose prose meant a
-particular LINE rather than the symbol, fix that one yourself. The tool prints every change it makes
-precisely so that review is possible.
+⇒ THE WORKFLOW, AND THE ORDER IS LOAD-BEARING (learned the hard way, 2026-09-23):
+  1. FIRST repair every known NON-DEF citation BY ITS EXACT OLD VALUE. This tool's whole contract
+     is "snap to the def", so anything it is allowed to see must already mean the def.
+  2. THEN run this tool.
+  3. THEN read the list it prints, and fix by hand any entry whose prose meant a particular LINE
+     rather than the symbol.
+⛔ DOING 1 AND 2 THE OTHER WAY ROUND CROSSES THEM. Measured: the tool moved a deliberately-placed
+GUARD citation (`train_team`'s 500-round line) onto the `def`, and a follow-up repair written as a
+NUMERIC RANGE regex then swept that fresh `def` line back onto the guard -- producing a span that
+began inside the function it delimited. Both wrong answers were well-formed, and
+`audit_doc_citations.py` was GREEN over them, because a citation inside the symbol's span is all it
+checks.
+⛔⛔ AND NEVER MATCH A CITATION BY A NUMERIC RANGE. `:2273` is an exact string; a pattern spanning
+twenty line numbers cannot know which of them it is about, and the one it catches by accident is
+the one this tool just wrote. That is the 2026-09-19 bulk-shift antipattern in miniature.
 
 SCOPE: the CURRENT-STATE docs only (`01`-`05`). ⛔ `06`/`07`/`08`/`28` are APPEND-ONLY history and
 are never touched — a stale citation there is part of the record, and "fixing" it would falsify the

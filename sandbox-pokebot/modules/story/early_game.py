@@ -1149,6 +1149,54 @@ def _lead_level() -> int:
     return party[0].level if party else 0
 
 
+def lead_has_no_damaging_pp(party) -> bool:
+    """True when the LEAD (slot 0) has no damaging move with PP left. PURE — pass the party in.
+
+    ⛔⛔ WHY THIS EXISTS ALONGSIDE `_team_is_out_of_pp`, WHICH LOOKS LIKE IT ALREADY COVERS IT.
+    That one is ALL-QUANTIFIED: it returns False as soon as ANY non-egg party member still has a
+    damaging move with PP. That is CORRECT for the early-game grind it was written for, where the
+    whole team fights. ‼ It is USELESS for single-trainee training on a strong bench: with five L75s
+    benched it is **permanently False**, so the PP heal trigger can never fire for the one mon that
+    is actually swinging.
+
+    ⇒ MEASURED CONSEQUENCE (`#24-ppscope`): the trainee runs dry after ~44 battles (80 PP at the
+    measured 1.83 turns/battle), no heal fires, `cant_continue` trips on every subsequent battle,
+    `SwapTrainBattleStrategy` sends in a L75 finisher, and **the exp splits 50/50 from then on** —
+    decaying the ladder's measured 21.0 h toward the 41.1 h two-way figure.
+    ‼ AND IT IS NOT A STALL. The older livelock this module records (3,011 consecutive flees,
+    ~2.9M frames) was the STOCK strategy FLEEING. A dry lead under swap-training SWAPS instead, so
+    the bot keeps winning and keeps levelling — the damage is SILENT INEFFICIENCY, which no
+    no-progress watchdog can see.
+
+    ⭐ THE LEAD IS THE RIGHT SCOPE, not a guess: `train_team` deliberately rotates the lowest-level
+    needy battler to slot 0 so it banks the shared EXP (`:2290-2293`). The mon we are levelling IS
+    the lead, by construction.
+
+    PURE ON PURPOSE — the party is an argument, so this is gated without a ROM
+    (the `plan_healing` precedent). A predicate that needs an emulator to test is a predicate that
+    gets tested once.
+    """
+    try:
+        if not party:
+            return False
+        lead = party[0]
+        if lead is None or getattr(lead, "is_egg", False):
+            # ⛔ NOT "out of PP". An absent or egg lead is a DIFFERENT condition, and reporting it
+            # as dry would trigger a heal trip that fixes nothing.
+            return False
+        for learned in getattr(lead, "moves", []) or []:
+            if learned is None:
+                continue
+            try:
+                if learned.move.base_power > 0 and learned.pp > 0:
+                    return False
+            except Exception:  # noqa: BLE001 - an unreadable move is not evidence of emptiness
+                continue
+        return True
+    except Exception:  # noqa: BLE001 - an oracle that cannot answer must not claim the lead is dry
+        return False
+
+
 def _team_is_out_of_pp() -> bool:
     """True when NO (non-egg) battler still has a damaging move with PP left.
 
@@ -2243,6 +2291,7 @@ def train_team(
     grass: tuple = RUSTBORO_TRAINING_GRASS,
     heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
     slots: "set[int] | None" = None,
+    heal_on_lead_pp: bool = False,
 ) -> Generator:
     """Grind wild battles until the team reaches ``target_level`` (defeat retrain /
     pre-fight threshold, user directive 2026-07-21).
@@ -2301,12 +2350,25 @@ def train_team(
             # ‼ STOP SPINNING FOR PP TOO, NOT JUST HP (2026-07-26). Out of PP the bot
             # flees every encounter, gains nothing, and — because fleeing takes no
             # damage — never trips the HP trigger. See `_team_is_out_of_pp`.
+            # ⭐ `heal_on_lead_pp` (#24-ppscope, 2026-09-23) — OFF BY DEFAULT, AND THAT IS THE
+            # WHOLE SAFETY ARGUMENT. `train_team` is a SHARED path (early-game grind, gym prep,
+            # counter hunts); adding an unconditional term would change when every one of them
+            # heals. With the default False this expression is byte-for-byte the old one, so no
+            # existing caller can move. Only a caller training ONE mon on a strong bench opts in.
+            # ⛔ WHY IT CANNOT JUST REPLACE `_team_is_out_of_pp`: that predicate is all-quantified
+            # and CORRECT for the whole-team grind it serves. This is a second, NARROWER term.
             yield from _story_spin(
                 lambda: _lead_level() >= target_level
                 or _min_battler_hp_pct() <= heal_at
                 or _team_is_out_of_pp()
+                or (heal_on_lead_pp and lead_has_no_damaging_pp(get_party()))
             )
-            _dry = _team_is_out_of_pp()
+            # ‼ THE REPORTING FLAG MUST SEE THE NEW TERM TOO. If `_dry` kept reading only
+            # the all-quantified predicate, a heal triggered by the lead's empty PP would
+            # be logged as an HP heal — and the one thing that made the ORIGINAL PP bug
+            # survive 2.9M frames was that nothing logged the difference.
+            _dry = _team_is_out_of_pp() or (
+                heal_on_lead_pp and lead_has_no_damaging_pp(get_party()))
             if _dry:
                 # ‼ SAY SO. A fix you cannot see fire cannot be validated — the whole
                 # reason this bug survived ~2.9M frames is that nothing logged the

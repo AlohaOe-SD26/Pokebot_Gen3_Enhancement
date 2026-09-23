@@ -821,6 +821,26 @@ GATES: list[tuple[str, bool]] = [
     # result, not a blanket failure.
     # NO EMULATOR: the oracles are stubbed, so it is pure control flow and runs in under a second.
     ("probe_flyanchor_refusal.py", False),
+    # --- #70 - THE PP HEAL TRIGGER THAT CANNOT FIRE FOR ONE TRAINEE (`probe_lead_pp_scope.py`)
+    # APPENDED AT THE END, never inserted - the same rule #34-#69 carry.
+    # WHY A GATE: `train_team`'s PP heal term is `_team_is_out_of_pp()`, which is ALL-QUANTIFIED -
+    # False as soon as ANY party member has a damaging move with PP. With five L75s benched it is
+    # PERMANENTLY False while one trainee grinds, so the PP heal can never fire for the one mon
+    # actually swinging. `#24-ppscope` adds a narrow, trainee-scoped term beside it.
+    # THE FAILURE IT GUARDS IS SILENT, WHICH IS WHY A WATCHDOG CANNOT REPLACE IT: a dry lead under
+    # SwapTrainBattleStrategy SWAPS rather than FLEES, so the bot keeps winning and keeps levelling
+    # while the exp splits 50/50 - decaying the ladder's measured 21.0 h toward 41.1 h. Every
+    # no-progress check in the tree sees healthy progress.
+    # FOUR ARMS, and arm C is the one a naive fix fails: status-only moves (Castform's real
+    # Sunny Day / Hail shape) have base_power 0, so "has a move with PP" would call a lead healthy
+    # while it cannot damage anything. Arms D1-D3 keep an egg / absent / empty lead from reading
+    # DRY, which would send the bot on a heal trip that fixes nothing forever.
+    # NO EMULATOR: the predicate is PURE (the party is an argument), so this runs in milliseconds.
+    # A predicate that needs a ROM to test is a predicate that gets tested once.
+    # FAULT-TESTED 2026-09-23 (`POKEBOT_PPSCOPE_FAULT=1`): happy path exit 0, all arms green; with
+    # the arm set, exit 1 with BOTH True-expecting arms (A, C) red and every False-expecting arm
+    # still green - which is what a blanket-False stub must do.
+    ("probe_lead_pp_scope.py", False),
 ]
 
 

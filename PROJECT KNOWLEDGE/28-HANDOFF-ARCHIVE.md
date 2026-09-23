@@ -12384,3 +12384,46 @@ this was its longest completed item. The work is DONE; only its record moved.
   ⚠ **THE WINDOW IS TWO MAPS AND THIS SPEC COVERS ONE** — League 2F is reachable by
   `LEAGUE_ESCALATOR (1,7)`, *“collision 0 — an accidental step-on warp”*. ✅✅ **THE 2F READING IS DONE (2026-09-18, `#24-league2f`)** — `post_league_2f.ss1` pinned `d3c09e7af349`, ten §Ch23 call sites read on 2F (**none fire**), and the escalator round trip measured in BOTH directions, so a stray step on (1,7) is **recoverable**.
   Full spec + what was measured without driving: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
+
+
+## 2026-09-23 — ARCHIVED FROM `03-PUNCH-LIST.md`: `#24-pathguardblind` (CLOSED)
+
+Moved verbatim because `03-PUNCH-LIST.md` exceeded its 4,400-line budget (gate R3).
+Chosen by STALENESS rather than size: a same-length closed item (`#24-swaptrigger2`)
+was left in place because it carries caveats the next piece of work depends on.
+The work is DONE; only its record moved.
+
+- [x] ⛔✅ `#24-pathguardblind` — **NEW AND FIXED 2026-09-18. A SHIPPED SAFETY GUARD COULD NOT SEE THE TILES IT NAMED. FIXED, FAULT-TESTED, AND GIVEN A PER-RUN SELF-TEST.**
+  **THE DEFECT.** `Ch24LobbyMode`'s path assertion — shipped hours earlier under `#24-lobbyfixture`
+  and documented as the *second defence* against stepping into the un-fleeable gauntlet — built its
+  hazard list as `[tuple(w.coordinates) for w in path]` and compared it to
+  `FORBIDDEN_TILES = ((9,1),(10,1),(9,2),(10,2),(1,7))`.
+  ✅ **MEASURED:** a `Waypoint` carries its own `map` and an `is_warp` flag, and a step THROUGH a warp
+  records the tile **ARRIVED AT on the DESTINATION map**, not the tile stepped on. The route to the
+  escalator ends `map=(16,14) coords=(1,6) is_warp=True` ⇒ **`(1,7)` never appears in the list the
+  guard inspects.** A route through a gauntlet door would likewise have shown HALL5 arrival
+  coordinates and been waved through. ‼ The naive list also MERGES maps, so `(1,6)` on 2F is
+  indistinguishable from `(1,6)` on 1F — it could false-positive as easily as miss.
+  ✅✅ **THE FIXTURE WAS NEVER AT RISK, AND I CHECKED RATHER THAN ASSUMED.** `calculate_path` from the
+  lobby to `(9,1)` returns **NO PATH** — the door guards physically block it while `ENTERED_ELITE_FOUR`
+  is unset. ⇒ the PRIMARY defence held throughout; what failed was the SECOND one, which had been
+  described in the docs as real protection and was not.
+  **THE FIX.** The rule is now simpler and strictly stronger: **this leg never changes map**, so any
+  `is_warp` waypoint, or any waypoint whose map is not `LEAGUE_1F`, is a refusal — which catches every
+  step-on door on the floor without depending on enumerating them correctly. `FORBIDDEN_TILES` is kept
+  as a same-map belt-and-braces check, no longer as the whole guard.
+  ⭐⭐ **AND THE GUARD NOW SELF-TESTS ON EVERY RUN.** Before vetting the real route it vets the route to
+  `LEAGUE_ESCALATOR (1,7)`, a KNOWN step-on warp, and **refuses the entire leg if it fails to see the
+  hazard** — so this guard cannot rot silently the way v1 did. ✅ `GUARD SELF-TEST OK — the escalator
+  route is correctly rejected: ['waypoint 11 is a WARP -> (16, 14) (1, 6)']`.
+  ✅ **FAULT-TESTED:** `POKEBOT_CH24_FAULT_BLINDGUARD=1` restores v1's logic exactly; the self-test then
+  fires (*“⛔ THE PATH GUARD IS BLIND”*) and the run **walks nothing**
+  (`readings=['L-INLOBBY','L-PRE']`, `battles=0`). Treatment still PASSES; `NOPATHCHECK` still fails on
+  `L-PATHSAFE` alone. Evidence: `evidence/2026-09-18-ch24lobby-GUARDFIX-{TREATMENT,FAULT-BLINDGUARD,FAULT-NOPATHCHECK}.txt`.
+  ✅ **NOT A REPO-WIDE CLASS DEFECT — I CHECKED BEFORE CLAIMING ONE.** Production story code already
+  gets this right: `sootopolis.py:2143` filters waypoints by `tuple(w.map) == floor.value` and `:3340`
+  reads `is_warp` explicitly. The blind instance was **new harness code regressing against a pattern
+  production had already solved.** ⚠ Several PROBES share the coordinate-only shape
+  (`probe_aqua_hideout_graph.py:192`, `probe_warp_maze.py:180`, `probe_live_mapgrid.py:219`,
+  `ab_ch21_leg3_layoutpin.py:108`) — none is a refuse-to-walk guard, so none is a safety defect today,
+  but any one of them becomes one the moment it is promoted.
