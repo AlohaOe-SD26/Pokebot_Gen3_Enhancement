@@ -77,9 +77,35 @@ FPS = 59.7275                   # GBA
 PARTICIPANT_DIVISOR = 2.00      # two mōn in the battle split the exp (0.501 measured)
 FRAMES_PER_WIN = 1.65           # ~2,368 frames per WIN vs the estimator's 1,433 per BATTLE
 
-#: The ladder, as measured under the out-level cap. (rung, ground name, top wild level)
-LADDER = [("L15-20", "ROUTE117", 20), ("L21-24", "ROUTE111", 24), ("L25-26", "ROUTE115", 26),
-          ("L27", "ROUTE118", 27), ("L28-38", "ROUTE121", 38), ("L39-75", "VICTORY_ROAD_1F", 75)]
+#: ⛔⛔ NO HARDCODED LADDER. v1 transcribed one and got FOUR OF SIX RUNGS WRONG, because it copied
+#: the TRAINEE-LEVEL ranges out of `probe_training_ladder.py` ("ROUTE117 L15-20") and used them as
+#: WILD-LEVEL TOPS. Those are different quantities: ROUTE117's real band is (13, 14), ROUTE121's is
+#: (25, 28), and VICTORY_ROAD_1F's is (36, 40) -- not 20 / 38 / 75.
+#: Since `xp_per_battle()` is linear in the WILD level, the two rungs that carry the climb were
+#: priced 1.36x and 1.875x too rich, and every hour figure derived from them was UNDERSTATED.
+#: ⇒ THE FIX IS STRUCTURAL, NOT ARITHMETIC: ask the PRODUCTION PICKER. `best_training_area` is the
+#: function the bot itself uses, `TRAINING_GRASS` is the table it reads, and a probe that models
+#: them instead of calling them is measuring its own model. A transcribed table cannot disagree
+#: with production loudly -- it disagrees silently.
+def _rung_for(level: int):
+    """(ground, top-wild) the PRODUCTION picker chooses for a trainee at this level, or None.
+
+    ‼ `allow=_ALLOW_ALL` deliberately: this probe prices the LADDER's arithmetic, not its
+    reachability, and reachability is measured separately by `probe_fly_disjunct.py` (gate #68).
+    Passing `allow=None` would silently drop every area carrying an `AREA_PREREQ` -- including
+    VICTORY_ROAD_1F and both surf rungs -- and quietly price a SHORTER ladder than the bot walks.
+    """
+    from modules.story.training_areas import best_training_area
+
+    best = best_training_area(level, max_wild_max=level + 1, allow=_ALLOW_ALL)
+    if best is None:
+        return None
+    map_enum, _tile, (_lo, hi) = best
+    return map_enum.name, hi
+
+
+def _ALLOW_ALL(_map_enum, _tile, _prereq) -> bool:
+    return True
 
 #: ✅ MEASURED 2026-09-23, was an assumption: **1.83 turns per wild battle** — 53 `decide_turn` calls
 #: over 29 battles, `--driver ch24swaptrigger` at ROUTE117 with a L19 trainee.
@@ -105,16 +131,6 @@ for _ in range(40):
     context.emulator.run_single_frame()
 print(f"  party read from: {FIXTURE}")
 print()
-
-
-def _rung_for(level: int):
-    """The ladder rung a mōn of this level trains on — the out-level rule: top wild <= level + 1."""
-    best = None
-    for rung, name, hi in LADDER:
-        if hi <= level + 1:
-            if best is None or hi > best[2]:
-                best = (rung, name, hi)
-    return best
 
 
 party = get_party()
@@ -143,15 +159,17 @@ for i, mon in enumerate(party):
         if rung is None:
             print(f"      ⛔ NO RUNG for L{lvl} under the out-level rule — the ladder has a hole here")
             break
-        _label, ground, hi = rung
-        # level at which the NEXT rung opens (its top wild <= lvl+1), else the floor
-        nxt = FLOOR
-        for _r, _g, h in LADDER:
-            if h > hi:
-                need_lvl = h - 1
-                if lvl < need_lvl < nxt:
-                    nxt = need_lvl
-        stop = min(nxt, FLOOR)
+        ground, hi = rung
+        # ⭐ WHERE DOES THIS RUNG END? Ask the picker, do not model it: step the level until it
+        # answers with a DIFFERENT ground. That way the probe's rung boundaries are the bot's rung
+        # boundaries by construction, whatever the table says today.
+        stop = FLOOR
+        for probe_lvl in range(lvl + 1, FLOOR + 1):
+            nxt_rung = _rung_for(probe_lvl)
+            if nxt_rung is not None and nxt_rung[0] != ground:
+                stop = probe_lvl
+                break
+        stop = min(stop, FLOOR)
         exp_stop = curve.get_experience_needed_for_level(stop)
         chunk = max(0, exp_stop - exp)
         xp_per = xp_per_battle(hi)

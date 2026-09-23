@@ -7,37 +7,38 @@ IS RULING 12 ACHIEVABLE? — pricing the Fly ladder from the REAL party   [build
 ─── slot1  Zigzagoon  L19 → L65   (Medium Fast curve)
       exp needed          : 266,953
       total PP in moveset : 80
-        ROUTE117         L19→L23   wild L20    143.4 xp/battle          31 battles
-        ROUTE111         L23→L25   wild L24    172.1 xp/battle          20 battles
-        ROUTE115         L25→L26   wild L26    186.5 xp/battle          10 battles
-        ROUTE118         L26→L37   wild L27    193.6 xp/battle         171 battles
-        ROUTE121         L37→L65   wild L38    272.5 xp/battle         822 battles
-      ⇒ battles (solo)    : 1,055
-      ⇒ PP-bounded cadence: heal every 44 battles ⇒ 24 heal trips
-      ⇒ SOLO  (ladder)    :     12.0 h   (grind 11.6 h + heals 0.4 h)
-      ⇒ 2-WAY (swap fires):     23.6 h   ⚠ what happens if trigger 2 fires every battle
+        ROUTE117         L19→L21   wild L14    100.4 xp/battle          16 battles
+        ROUTE111         L21→L25   wild L22    157.8 xp/battle          40 battles
+        ROUTE115         L25→L27   wild L26    186.5 xp/battle          22 battles
+        ROUTE118         L27→L28   wild L27    193.6 xp/battle          12 battles
+        ROUTE121         L28→L39   wild L28    200.8 xp/battle         186 battles
+        VICTORY_ROAD_1F  L39→L65   wild L40    286.9 xp/battle         751 battles
+      ⇒ battles (solo)    : 1,026
+      ⇒ PP-bounded cadence: heal every 44 battles ⇒ 23 heal trips
+      ⇒ SOLO  (ladder)    :     11.7 h   (grind 11.3 h + heals 0.4 h)
+      ⇒ 2-WAY (swap fires):     23.0 h   ⚠ what happens if trigger 2 fires every battle
 
 ─── slot5  Castform  L36 → L65   (Medium Fast curve)
       exp needed          : 224,497
       total PP in moveset : 50
-        ROUTE118         L36→L37   wild L27    193.6 xp/battle           3 battles
-        ROUTE121         L37→L65   wild L38    272.5 xp/battle         822 battles
-      ⇒ battles (solo)    : 825
-      ⇒ PP-bounded cadence: heal every 27 battles ⇒ 30 heal trips
-      ⇒ SOLO  (ladder)    :      9.6 h   (grind 9.1 h + heals 0.6 h)
-      ⇒ 2-WAY (swap fires):     18.7 h   ⚠ what happens if trigger 2 fires every battle
+        ROUTE121         L36→L39   wild L28    200.8 xp/battle          46 battles
+        VICTORY_ROAD_1F  L39→L65   wild L40    286.9 xp/battle         751 battles
+      ⇒ battles (solo)    : 796
+      ⇒ PP-bounded cadence: heal every 27 battles ⇒ 29 heal trips
+      ⇒ SOLO  (ladder)    :      9.3 h   (grind 8.8 h + heals 0.5 h)
+      ⇒ 2-WAY (swap fires):     18.1 h   ⚠ what happens if trigger 2 fires every battle
 
 ============================================================================================================
-  TOTAL, both trainees:   SOLO (ladder) 21.7 h     2-WAY (swap fires) 42.3 h
+  TOTAL, both trainees:   SOLO (ladder) 21.0 h     2-WAY (swap fires) 41.1 h
 
   ⭐ WHAT THE LADDER BUYS, AS A NUMBER: the difference between those two columns is the
      PARTICIPANT DIVISOR alone. Both already carry the ×1.65 frames-per-WIN correction.
 
   ⛔ THE HEAL CADENCE IS THE DESIGN CONSTRAINT, AND IT IS NOT NEGOTIABLE:
      Zigzagoon  must heal every ~44 battles or trigger 2's PP half fires
-                on EVERY battle thereafter — ~24 heal trips across the grind.
+                on EVERY battle thereafter — ~23 heal trips across the grind.
      Castform   must heal every ~27 battles or trigger 2's PP half fires
-                on EVERY battle thereafter — ~30 heal trips across the grind.
+                on EVERY battle thereafter — ~29 heal trips across the grind.
 
   ‼ WHAT IS STILL NOT MEASURED, AND NO ARITHMETIC HERE CAN SETTLE IT: the HP half of
     trigger 2. `hp_threshold` is 20% and the trainee out-levels its wilds, so it SHOULD be
@@ -47,5 +48,5 @@ IS RULING 12 ACHIEVABLE? — pricing the Fly ladder from the REAL party   [build
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
-026-09-23_13-33-55.ss1 created!
+026-09-23_15-29-57.ss1 created!
 Updated `current_state.ss1`!

@@ -20408,3 +20408,65 @@ mechanical habit, not a check — which is precisely why it is stated as an abso
 invisible in the thing I was looking at: the first survived two green doc gates, this one survived a
 successful push. **A tool reporting success says the OPERATION worked, never that the CONTENT
 arrived.** Read the stderr, and read back anything written through a shell.
+
+
+## 2026-09-23 — I CITED A CONSTANT WITHOUT ASKING WHICH CLASS OWNS IT, AND ASSERTED PERSISTENCE WITHOUT LOOKING FOR A SAVE
+
+**SYMPTOM.** I published Piece 3's design as *"a leg that spends a bounded slice of each run and
+resumes next run — levels are durable (exp lives in the save)"*, and committed it. Both halves are
+false, and a recon agent found it before any code was written.
+
+**ROOT CAUSE 1 — A CONSTANT WITHOUT ITS OWNER.** I grepped `MAX_FRAMES_PER_RUN`, got
+`story_mode.py:5517`, read `5_000_000`, computed 23.3 h, and built a whole design around "the run
+budget". The constant is declared **inside `class StoryEndlessResetMode`** (`:5471`); `StoryMode`
+has no frame cap. A grep returns a LINE; a line does not tell you whose it is.
+⇒ **PREVENTION: when a constant is load-bearing, cite it as `Class.NAME`, not `file:line`.** If you
+cannot name the owner, you have not read enough to use it. (`awk` for the nearest preceding
+`^class ` takes one command.)
+
+**ROOT CAUSE 2 — I ASSERTED A MECHANISM WITHOUT LOOKING FOR ITS CALL SITE.** *"Exp lives in the
+save"* is true of the GAME and says nothing about whether this BOT ever saves. It does not:
+`save_the_game()` has zero call sites in `modules/story/` or `plugins/custom_modes/`. One grep
+would have settled it, and the claim was the load-bearing half of the design.
+⇒ **PREVENTION: before designing around a behaviour, GREP FOR THE CALL SITE THAT PRODUCES IT.**
+"The engine supports X" and "this program does X" are different sentences. This is the same shape as
+the earlier `_yield_bounded_by_frames` finding — where I correctly checked, found one grep hit (its
+own def), and reported it ships INERT. I applied the rule to the helper and not to the save.
+
+**‼ THE PATTERN ACROSS BOTH: I VERIFIED THE THING I WAS SUSPICIOUS OF AND TRUSTED THE THING I WAS
+NOT.** The purse got a call-site check because I expected it to be unwired. The save got none
+because "of course a bot saves". ⇒ **suspicion is not a measurement strategy** — the claims that
+need checking are the ones holding the design up, not the ones that feel shaky.
+
+**WHAT CAUGHT IT.** A recon agent asked, as instructed, what state actually persists across runs —
+and answered with a grep instead of an assumption. Not the gate suite, which was green over the
+published sentence, because no gate can tell a well-formed design from a coherent one.
+
+
+## 2026-09-23 — I TRANSCRIBED A PRODUCTION TABLE INTO A PROBE, ON THE WRONG AXIS, AND THE TOTAL HID IT
+
+**SYMPTOM.** `probe_ladder_economics.py` hardcoded the ladder's wild-level tops and got **four of
+six wrong** (ROUTE117 20 vs 14, ROUTE111 24 vs 22, ROUTE121 38 vs 28, VICTORY_ROAD_1F 75 vs 40).
+Every hour figure, and a published "side-finding" about which rung does the work, came out wrong.
+
+**ROOT CAUSE — A UNIT CONFUSION, DRESSED AS A TRANSCRIPTION.** The numbers I copied were real: they
+are `probe_training_ladder.py`'s **TRAINEE-LEVEL** ranges ("ROUTE117 L15-20"). I pasted them into a
+slot meaning **WILD-LEVEL TOP**. Both are small integers about the same rung, which is exactly why
+nothing looked wrong.
+⇒ **PREVENTION: A PROBE MUST CALL THE PRODUCTION FUNCTION, NEVER MODEL IT.** The fix was to call
+`best_training_area(level, max_wild_max=level+1)` and to find each rung's end by stepping the level
+until the picker changes its answer. A transcribed table cannot disagree with production LOUDLY —
+it disagrees silently, and a copy has no owner to keep it honest.
+
+**‼‼ AND THE LESSON THAT MATTERS MOST: THE BOTTOM LINE DID NOT MOVE.** 21.7 h → 21.0 h. The errors
+partly cancelled — the fake-high ROUTE121 made it look like the workhorse while the fake-high
+VICTORY_ROAD_1F locked the REAL workhorse out of the ladder entirely. ⇒ **a stable total across a
+model change is not corroboration.** If I had "checked" by re-running and comparing the headline, I
+would have confirmed a table that was wrong on two thirds of its load-bearing rows.
+⇒ **CHECK THE MECHANISM, NOT THE ANSWER.** The rung-by-rung breakdown showed it instantly; the
+total never would have.
+
+**WHAT CAUGHT IT.** An adversarial critique of the build spec, reading my probe against
+`training_areas.py` line by line. Not the gate suite — no gate compares a probe's private constants
+with the production table they shadow. ⇒ worth noting as a GAP rather than a gate: such a check
+would be narrow, and the general fix ("call, do not model") is cheaper than policing copies.

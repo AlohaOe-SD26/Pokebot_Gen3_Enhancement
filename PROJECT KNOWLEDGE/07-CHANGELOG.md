@@ -33559,3 +33559,88 @@ failure.
 This note is the correction, and `08-MISTAKES.md` carries the prevention — which is now mechanical
 rather than advisory: **always `git commit -F <file>`, never `-m`.** The prose rule had already
 failed twice in one session, both times triggered by the change feeling *small*.
+
+
+## 2026-09-23 (late) — ⛔⛔ CORRECTION: PIECE 3's DESIGN SENTENCE WAS FALSE ON BOTH HALVES
+
+Published earlier today and corrected before a line of it was built. The sentence was
+*"a leg that spends a BOUNDED SLICE of each run on training and resumes next run — levels are
+durable (exp lives in the save)."* **Neither half is true.**
+
+**⛔ (a) `MAX_FRAMES_PER_RUN` IS NOT `StoryMode`'s BUDGET.** It is declared at
+`story_mode.py:5517`, **inside `class StoryEndlessResetMode`** (`:5471`). `StoryMode` (`:1730`) has
+**no frame cap**. ⇒ the "96 % of a run budget" figure describes only the endless-reset BATCH mode.
+‼ I grepped the constant, read the number, and never asked **which class owns it**.
+
+**⛔ (b) THE STORY BOT NEVER WRITES A SAVE.** `save_the_game()` has **ZERO** call sites in
+`modules/story/` or `plugins/custom_modes/`; the only two in the tree are
+`modules/modes/_listeners.py:279` and `:286`, inside `BattleListener.catch`. Levels live in
+**emulator RAM**. ⇒ *"exp lives in the save"* was an assumption I wrote as a fact, and it is the
+load-bearing half — the whole "resume next run" design rested on it.
+
+**⛔ (c) AND THE ENDLESS MODE RESETS ON PURPOSE:** `reset_per_run_state()` then a hard reset + NEW
+GAME (`:5690`); the class calls the next run *"a clean slate by construction"* (`:5484-5485`).
+
+⇒ **IN THE MODE THAT HAS THE BUDGET, NOTHING PERSISTS. IN THE MODE WHERE THINGS PERSIST, THERE IS
+NO BUDGET AND NO "NEXT RUN".** The design was incoherent rather than merely optimistic.
+
+**✅ THE REFRAME THAT IS BUILDABLE:** Piece 3 trains **to target in ONE uncapped run**, and
+`_yield_bounded_by_frames` is demoted from a scheduler to a **KI-28 backstop** — its actual purpose:
+never let a wedged grind run forever.
+
+**⚠ AND A REAL SCOPE CONSEQUENCE FOR THE USER.** Under `Story (ENDLESS RESET)` — the batch mode the
+project measures with — the grind **cannot fit**: cap 5,000,000, deepest COMPLETED real run
+**3,058,007** (`story_mode.py:5500`), grind **4,794,924**. §Ch24-with-training is reachable in
+`Story` and `Story (DEBUG - RESET)`, both uncapped, and not in the batch. That is a
+measurement-coverage question to put to the user, not a defect to patch.
+
+**FILES:** `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-23 (late) — ⛔⛔ THE ECONOMICS PROBE TRANSCRIBED A PRODUCTION TABLE AND GOT FOUR OF SIX RUNGS WRONG
+
+Found by an adversarial critique of the Piece 3 spec, verified by me against
+`modules/story/training_areas.py` before acting.
+
+**THE DEFECT.** `probe_ladder_economics.py` hardcoded its ladder. Real bands versus what it used:
+
+| rung | probe used | production | cite |
+|---|---|---|---|
+| ROUTE117 | 20 | **(13, 14)** | `training_areas.py:84` |
+| ROUTE111 | 24 | **(19, 22)** | `:91` |
+| ROUTE115 | 26 | (23, 26) ✓ | `:96` |
+| ROUTE118 | 27 | (24, 27) ✓ | `:98` |
+| ROUTE121 | 38 | **(25, 28)** | `:118` |
+| VICTORY_ROAD_1F | 75 | **(36, 40)** | `:117` |
+
+**‼ THE CAUSE IS A UNIT CONFUSION, NOT A TYPO.** I copied the TRAINEE-LEVEL ranges out of
+`probe_training_ladder.py` (*"ROUTE117 L15-20"*) and used them as **WILD-LEVEL TOPS**. Those are
+different quantities. `xp_per_battle()` is linear in the WILD level, so every hour figure derived
+from them was built on the wrong axis.
+
+**✅ THE FIX IS STRUCTURAL.** The probe now **calls `best_training_area(level, max_wild_max=level+1)`**
+— the picker the bot itself uses — and finds each rung's end by stepping the level until the picker
+returns a different ground. Its rung boundaries are now the bot's **by construction**.
+⇒ **A transcribed table cannot disagree with production loudly. It disagrees silently.**
+
+**⛔ AND IT RETRACTS A "SIDE-FINDING" I PUBLISHED THIS MORNING — THE TRUTH IS THE OPPOSITE.** I
+wrote that `VICTORY_ROAD_1F` is admissible only at L74+ and therefore *not* the ladder's workhorse,
+with ROUTE121 carrying L37→L65 alone over 822 battles. With the real `hi=40`, Victory Road opens at
+**L39** and carries **751 of Zigzagoon's 1,026 battles (73 %)** and **751 of Castform's 796 (94 %)**.
+ROUTE121 does **L28→L39, 186 battles**.
+
+**‼ THE TOTAL BARELY MOVED, AND THAT IS THE MOST INSTRUCTIVE PART.** 21.7 h → **21.0 h** solo
+(41.1 h 2-way). The two errors partly cancelled — the fake-high ROUTE121 looked strong while the
+fake-high VICTORY_ROAD_1F locked the real workhorse out. ⇒ **a stable bottom line across a model
+change is not corroboration of the model.** Had I only re-checked the total, I would have concluded
+the table was fine.
+
+**⭐ A CONSEQUENCE FOR THE §Ch23 RE-ENTRY BLOCKER, AND IT IS GOOD NEWS.** The dominant phase happens
+INSIDE Victory Road, where `inside_vr` is True (`victory_road.py:3378`) and **leg 4's ocean crossing
+does not fire**. The re-entry tax applies only to the early rungs — 276 of 1,026 battles for
+Zigzagoon, 46 of 796 for Castform. ⛔ It does NOT remove the marker prerequisite:
+`ch23_chapter_done()` is False inside Victory Road too (`:3318`), so `_guard` still stops the run.
+
+**FILES:** `tools/story-dev/probe_ladder_economics.py`,
+`tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt`, `03-PUNCH-LIST.md`,
+`07-CHANGELOG.md`, `08-MISTAKES.md`.
