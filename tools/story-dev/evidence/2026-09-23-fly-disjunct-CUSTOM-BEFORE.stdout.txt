@@ -1,0 +1,10 @@
+Running mGBA 0.10.2
+Traceback (most recent call last):
+  File "C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\probe_fly_disjunct.py", line 77, in <module>
+    from modules.story.training_areas import can_fly_to_anchor, fly_landing_tile
+ImportError: cannot import name 'can_fly_to_anchor' from 'modules.story.training_areas' (C:\Remote Projects\Pokebot_Gen3_Enhancement\custom-pokebot\modules\story\training_areas.py)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-23_12-11-25.ss1 created!
+Updated `current_state.ss1`!

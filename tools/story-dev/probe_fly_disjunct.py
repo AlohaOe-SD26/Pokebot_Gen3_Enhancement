@@ -35,13 +35,31 @@ except Exception:  # noqa: BLE001
     pass
 
 _ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
-sys.path.insert(0, str(_ROOT / "sandbox-pokebot"))
+
+# ⛔⛔ `--build custom` EXISTS SO A PROMOTION CAN BE MEASURED RATHER THAN ASSUMED, AND THIS PROBE
+# WOULD HAVE SHIPPED WITHOUT IT. `promote.py`'s own docstring records the cost: on 2026-08-14 a
+# hand-run promotion shipped with a hole because "the gate that proved the promoted fix hard-coded
+# `sandbox-pokebot` on its import path, so NOTHING VERIFIED THE FIX HAD ACTUALLY LANDED in the other
+# fork." A byte-compare only proves a file was COPIED; running THIS probe against `custom-pokebot`
+# proves the other fork's PREDICATE actually behaves.
+# ⇒ the post-promotion command is:
+#       PYTHONUTF8=1 py -3.12 probe_fly_disjunct.py --build custom
+_BUILD = ("custom" if "--build" in sys.argv
+          and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox")
+sys.path.insert(0, str(_ROOT / f"{_BUILD}-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
-from modules.profiles import load_profile_by_name
+from modules.profiles import load_profile
 
-_p = load_profile_by_name("repro-fresh")
+# The PROFILE is runtime state, not fork code, and it deliberately lives in ONE place: `promote.py`
+# documents `profiles/` as "gitignored runtime state that is SUPPOSED to differ" between the forks.
+# `custom-pokebot` has no `repro-fresh`, so `load_profile_by_name` under `--build custom` fails with
+# "Path is not a valid profile directory" -- a CONFOUNDED control that looks like a real refusal.
+# It is not: the run never reaches the predicate under test.
+# => load the profile BY PATH from the sandbox tree, always, while importing MODULES from whichever
+# fork `--build` selected. That way the only thing varying between the two runs is the CODE.
+_p = load_profile(_ROOT / "sandbox-pokebot" / "profiles" / "repro-fresh")
 context.profile = _p
 context.config.load(_p.path, strict=False)
 set_rom(_p.rom)
@@ -90,7 +108,12 @@ ARMS = [
 ]
 
 print("=" * 104)
-print("DOES THE FLY DISJUNCT CHANGE AN ANSWER?   walking-only  vs  walking OR fly")
+print(f"DOES THE FLY DISJUNCT CHANGE AN ANSWER?   walking-only  vs  walking OR fly"
+      f"   [build={_BUILD}]")
+# ‼ PRINT THE BUILD, ALWAYS. Two runs of this probe against different forks are otherwise
+# INDISTINGUISHABLE in their output, and an evidence file that cannot say which fork it
+# measured is not evidence of a promotion.
+print(f"  importing from: {_ROOT / (_BUILD + '-pokebot')}")
 print("=" * 104)
 
 results = {}

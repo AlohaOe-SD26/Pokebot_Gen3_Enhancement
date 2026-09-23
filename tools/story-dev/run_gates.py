@@ -800,6 +800,27 @@ GATES: list[tuple[str, bool]] = [
     # It cannot go green by the feature being unnecessary, which is the failure mode a plain
     # "does the predicate work" check would have.
     ("probe_fly_disjunct.py", False),
+    # --- #69 - A DELIBERATE REFUSAL CAUGHT BY ITS OWN TRY BLOCK (`probe_flyanchor_refusal.py`)
+    # APPENDED AT THE END, never inserted - the same rule #34-#68 carry.
+    # WHY A GATE, AND IT IS THE SIBLING OF #68 RATHER THAN A DUPLICATE: #68 proves the Fly
+    # PREDICATE is load-bearing; this proves the TRAVERSAL's refusal actually fires. Nothing
+    # exercised the traversal, and that gap shipped a live defect into the sandbox.
+    # THE DEFECT, MEASURED 2026-09-23: `_fly_to_training_anchor` ends with
+    # `raise UnreachableDestinationError(...)` and that raise sat INSIDE the try whose own
+    # `except Exception as error:` caught it. `reraise_if_aborting` re-raises ONLY when the story
+    # abort latch is set (i.e. after a whiteout), so on every ordinary run the refusal was
+    # swallowed, the generator returned, and `_goto_training_area` fell through to the walk.
+    # WHAT THAT COSTS: the Fly disjunct is what makes 11-to-15-hop training areas selectable at
+    # all. With the refusal inert the bot ADMITS such an area, cannot fly to it, and WALKS at it
+    # under `train_team`'s 500-round guard with no frame cap - KI-28's 19.9M-frame shape.
+    # TWO ARMS, AND ARM B IS NOT DECORATION: a "fix" that re-raises unconditionally passes arm A
+    # and breaks every heal-return, because a Poke Center is `map_type=Indoor` so Fly is ALWAYS
+    # illegal there while the grind tile is two hops away. Arm A alone would grade that a success.
+    # FAULT-TESTED 2026-09-23 (`POKEBOT_FLYREFUSAL_FAULT=1` re-creates the swallow): happy path
+    # exit 0 with both arms green; with the arm set, exit 1 failing arm A ONLY - a discriminating
+    # result, not a blanket failure.
+    # NO EMULATOR: the oracles are stubbed, so it is pure control flow and runs in under a second.
+    ("probe_flyanchor_refusal.py", False),
 ]
 
 

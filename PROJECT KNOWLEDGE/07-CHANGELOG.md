@@ -33331,3 +33331,73 @@ a `"grass"` key would inherit the KI-28 shape.
 `tools/story-dev/probe_fly_unlocked.py`, `tools/story-dev/probe_fly_disjunct.py`,
 `evidence/2026-09-23-fly-disjunct-FAULT.stdout.txt`, `03-PUNCH-LIST.md`,
 `29-DISABLED-FEATURES-REGISTRY.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-23 (late) — ⛔⛔ THE BACKSTOP I ADDED THIS MORNING WAS CATCHING ITSELF: A `raise` INSIDE ITS OWN `try`
+
+**FOUND BY A PROMOTION-SAFETY REVIEW, BEFORE ANYTHING WAS COPIED TO `custom-pokebot`.**
+
+Earlier today an adversarial review found that `_fly_to_training_anchor` could degrade a failed Fly
+into an unbounded cross-Hoenn walk, and I added a backstop: refuse with
+`UnreachableDestinationError` when the area is neither flyable nor walkable. **That backstop never
+worked.** The `raise` sat INSIDE the `try:` whose own `except Exception as error:` caught it, and
+`reraise_if_aborting` re-raises **only** on the story-abort latch (`early_game.py:161`), which on a
+normal run is not set. ⇒ refusal raised → own handler caught it → `return` → caller walked.
+
+**⛔ WHAT THAT WOULD HAVE COST.** The Fly disjunct is what makes 11-to-15-hop training areas
+selectable at all. With the refusal inert the bot ADMITS such an area, fails to fly, and walks at it
+under `train_team`'s 500-round guard with no frame cap — KI-28's 19.9M-frame shape, i.e. precisely
+the outcome the backstop was written to prevent. It would have been promoted into the stable fork.
+
+**✅ FIXED** with an `except UnreachableDestinationError: raise` clause ahead of the broad handler,
+and **PROVEN**: the error reaches the caller; a walkable target still degrades silently.
+
+**✅ GATE #69 — `probe_flyanchor_refusal.py`, because NOTHING exercised the traversal.** Gate #68
+tests the PREDICATE (a flag-and-graph question); the traversal had no coverage at all, which is
+exactly how this shipped. Two arms, and the second is load-bearing:
+* **A** — cannot fly ∧ cannot walk ⇒ the refusal must reach the caller.
+* **B** — cannot fly ∧ CAN walk ⇒ no raise, no steps. ‼ A "fix" that re-raised unconditionally
+  would pass A and break **every heal-return**: a Poké Center is `map_type=Indoor`, so Fly is always
+  illegal there, while the grind tile is two hops away. Arm A alone would grade that a success.
+* FAULT-TESTED: `POKEBOT_FLYREFUSAL_FAULT=1` re-creates the swallow; the gate then fails **arm A
+  only**, arm B staying green — a discriminating result rather than a blanket failure.
+* No emulator, no ROM, no fixture: the oracles are stubbed, so it is pure control flow.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py`,
+`tools/story-dev/probe_flyanchor_refusal.py` (new), `tools/story-dev/run_gates.py` (gate #69),
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-23 (late) — ⛔ GUARD 3 COMPARED THE MAP, AND EVER GRANDE IS SPLIT BY TERRAIN
+
+**SECOND DEFECT FROM THE SAME PROMOTION-SAFETY REVIEW, IN THE SAME HELPER.** `_fly_to_training_anchor`'s
+guard 3 skipped the Fly when already on the anchor town's MAP. That is wrong for the one town this
+chapter starts in.
+
+**MEASURED, NOT ARGUED:** §Ch23's final leg `heal_at_league` leaves the bot at
+**`EVER_GRANDE_CITY (18,6)`** — the League plateau (`victory_road.py:374`). It is the same MAP as the
+Poké Center landing `(27,49)`, and `calculate_path` between them is **NO PATH in both directions**
+(`evidence/2026-09-18-vr-heal-roundtrip.stdout.txt`; the control at `(18,42)` returns 23 wp, so the
+refusal is a genuine reachability answer and not a broken instrument).
+
+⇒ a map-level guard would have **skipped the Fly at the exact tile the previous chapter hands over**,
+where Fly is the only way off the plateau. The leg would have stranded itself at its own start.
+
+**✅ FIXED:** guard 3 compares the **TILE**. Flying to a town you already stand in is legal in Gen 3
+and is exactly what is wanted — it normalises position onto the landing tile that every measured
+last mile begins from.
+
+**✅ PINNED BY GATE #69, ARMS C AND C'.** Arm C: from `(18,6)` the leg must still fly. Arm C': from
+`(27,49)` it must NOT. ‼ C' is what stops the lazy fix — *"just always fly"* would pass A, B and C
+while making guard 3 dead code. Under the fault arm the gate still fails **A only**, with B, C and C'
+green: a discriminating result.
+
+**⭐ WHY BOTH OF TODAY'S TRAVERSAL DEFECTS ARE THE SAME SHAPE.** Each was a guard that looked right
+in isolation and was wrong about the SYSTEM around it — one swallowed by a handler already in scope,
+one comparing a coarser key than the terrain allows. Neither is visible by reading the function; both
+are visible the moment the path is EXECUTED. That is what gate #69 does, in under a second, with no
+emulator.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py`,
+`tools/story-dev/probe_flyanchor_refusal.py`, `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.

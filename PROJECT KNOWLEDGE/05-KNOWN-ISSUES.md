@@ -44,7 +44,7 @@ proposing work that is already shipped:
 | KI-17 | body said *"Workaround: none in-run yet"* + prescribed a decomp read that is done | `modules/battle_handler.py:508-528` (`post_gap=24`; never gamble an A) |
 | KI-16 | heading said FIXED, body still said *"use this repro for a focused fix"* | `modules/story/early_game.py:4434-4470` (`_rock_present()` world-judged) |
 | KI-24 | body read as an open architectural bug; KI-24b already declares it fixed | `story_mode.py:553` and `:606` both call `region_reach.is_map_reachable` |
-| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3856-3985` (Shipyard → Dock leg) |
+| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3884-4013` (Shipyard → Dock leg) |
 | KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
 
 **✅ RESOLVED — USER RULING 2026-07-29 (`#doc-policy-05`, option A):** entries fixed in
@@ -510,7 +510,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6789`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:6817`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:455`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
@@ -637,7 +637,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   measurement.
   ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
   the proposal is deliberately conservative and only fires on large wins.
-- **Related:** `train_team` (`early_game.py:2212`) never consults `best_training_area` at all;
+- **Related:** `train_team` (`early_game.py:2240`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
 > 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.
@@ -2414,7 +2414,7 @@ longer current state. ⛔ **DO NOT REOPEN OR REBUILD IT.**
 ## KI-83 — ⚠ **`tasks_scripts.py` IS 8 UNBOUNDED, ABORT-BLIND WAIT LOOPS THAT EVERY CHAPTER CALLS.** ⛔ **NOT OURS AND DELIBERATELY NOT FIXED — bound it AT THE CALL SITE.** (opened 2026-09-03, MEASURED)
 
 **What.** `sandbox-pokebot/modules/modes/util/tasks_scripts.py` is 162 lines containing **8 loops with no frame cap and no `_check_abort()`**, and the file contains **ZERO** of either (counted, not estimated): `wait_until_task_is_active` (:18), `wait_until_task_is_not_active` (:33), **`wait_for_yes_no_question` (:80, a bare `while True:`)**, `wait_for_multiple_choice_question` (:112), `wait_until_script_is_active` (:130), `wait_until_script_is_no_longer_active` (:138), `wait_for_no_script_to_run` (:152), `wait_for_fade_to_finish` (:160). The only bounded loop is a cursor-movement `for` at :121.
-**Why it matters.** These sit under the most-used helpers in the tree. `heal_in_pokemon_center` (`higher_level_actions.py:463-726`) calls `wait_for_yes_no_question` then `wait_for_no_script_to_run` — **so every heal, in every chapter, runs two unbounded abort-blind waits.** If the expected task never starts, the generator spins silently forever and **`StoryAbort` cannot unwind it**, because nothing checks the latch.
+**Why it matters.** These sit under the most-used helpers in the tree. `heal_in_pokemon_center` (`higher_level_actions.py:465-728`) calls `wait_for_yes_no_question` then `wait_for_no_script_to_run` — **so every heal, in every chapter, runs two unbounded abort-blind waits.** If the expected task never starts, the generator spins silently forever and **`StoryAbort` cannot unwind it**, because nothing checks the latch.
 **The reachable trigger is already documented in our own tree:** the KI-81 comments at `higher_level_actions.py:359-366`/`:387-392` exist because **a whiteout can happen INSIDE the heal call** (field poison ticks on the walk in). After a whiteout the menus are gone, so the awaited task never starts.
 ⚠ **This is the same SHAPE as KI-47** (an unbounded `while … PARTY_MENU: press A` that wedges the battle path), which is also deliberately unfixed.
 ✅⛔ **IT IS UPSTREAM CODE, BYTE-IDENTICAL TO THE PRISTINE MIRROR — we have never modified it** (`diff` against `40cakes repo/pokebot-gen3/…` is empty). ⇒ patching it is a **DIVERGENCE decision**, needs a `DIVERGENCE-LOG` entry, and has the widest blast radius in the codebase (every chapter, every menu). **That is why it is filed rather than fixed.**

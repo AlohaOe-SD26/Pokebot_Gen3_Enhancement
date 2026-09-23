@@ -20290,3 +20290,39 @@ known bug shapes. Not the gates — all of them were green, including the new on
 to guard this exact feature. ⇒ third confirmation this session that **the suite proves
 well-formedness, never truth**, and that an adversarial reader is the only thing that has
 repeatedly caught the expensive class of error.
+
+
+## 2026-09-23 — I PUT A GUARD INSIDE THE HANDLER THAT CATCHES IT, SO IT WAS WRITTEN BUT NEVER INSTALLED
+
+**SYMPTOM.** `_fly_to_training_anchor` ended with a deliberate
+`raise UnreachableDestinationError(...)` — the backstop that stops a failed Fly becoming an
+unbounded cross-Hoenn walk. It never fired. The `raise` was INSIDE the `try:` whose own
+`except Exception as error:` caught it; `reraise_if_aborting` re-raises only when the story-abort
+latch is set, so on any ordinary run the refusal was swallowed and the caller walked anyway.
+
+**ROOT CAUSE.** I added the refusal to the END of an existing `try` block instead of outside it. The
+handler was already there, written for a *different* purpose (a guard that cannot be EVALUATED —
+a failed import, an unreadable map). Two unrelated failure modes ended up sharing one handler, and
+the broad one silently absorbed the deliberate one.
+
+⇒ **PREVENTION: A `raise` THAT IS THE POINT OF A FUNCTION MUST NOT SIT INSIDE THAT FUNCTION'S OWN
+`except`. When adding a deliberate refusal to existing code, check what would CATCH it — and if a
+broad handler is in scope, put a narrow `except <ThatError>: raise` ahead of it, or move the raise
+out.** A handler written for "cannot evaluate" must never decide "deliberately refused".
+
+**‼ AND THE SHARPER LESSON, WHICH IS ABOUT MY OWN REASONING, NOT THE CODE.** I wrote in this very
+file, hours earlier: *"ask not 'is this guard right?' but 'what does the system DO when this guard is
+wrong?'"* — and then shipped a guard whose answer to that question was "nothing at all". Writing a
+rule does not install it either. ⇒ **after adding a guard, EXECUTE the path where it fires.** One
+five-line harness proved it in seconds; reading the code had not, twice.
+
+**WHAT CAUGHT IT.** A promotion-safety review, reading the diff for a different purpose entirely
+(*"would copying this into the stable fork break it?"*). Not gate #68 — which I had written that same
+hour, for this same feature, and which exercises the PREDICATE while nothing exercised the
+TRAVERSAL. ⇒ **a new gate proves the thing you were thinking about; it is silent on the thing you
+were not.** Gate #69 now covers the traversal, with a fault arm that re-creates this exact swallow.
+
+**⇒ AND THE PROCESS POINT WORTH KEEPING:** this was the fourth consecutive defect this session found
+by an adversarial reader rather than by the suite. The gates are ratchets against KNOWN shapes; a
+fresh hostile reading is the only thing that has repeatedly found the unknown ones. Budget for it
+before every promotion, not only before a commit.

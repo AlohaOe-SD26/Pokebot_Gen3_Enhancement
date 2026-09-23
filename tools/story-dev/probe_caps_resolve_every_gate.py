@@ -42,12 +42,25 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+#: BUILD-AWARE (2026-09-23). This gate asserts an INVARIANT about `region_reach`, and that
+#: invariant has to hold in BOTH forks -- but the import path was hardcoded to `sandbox-pokebot`,
+#: so after a promotion nothing checked custom's copy. That is the exact hole `promote.py`'s
+#: docstring records paying for on 2026-08-14: "the gate that proved the promoted fix hard-coded
+#: `sandbox-pokebot` on its import path, so nothing verified the fix had actually landed."
+#: The invariant here is the one `#24-waterfallcap` was: a gate string in `KNOWN_GATES` whose
+#: resolver was never wired produces an edge that can NEVER open, and `is_map_reachable` is
+#: fail-safe, so the wrong refusal is indistinguishable from a right one. Worth checking twice.
+#:     PYTHONUTF8=1 py -3.12 probe_caps_resolve_every_gate.py --build custom
+_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_BUILD = ("custom" if "--build" in sys.argv
+          and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox")
+sys.path.insert(0, str(_ROOT / f"{_BUILD}-pokebot"))
 
 from modules.story import region_reach
 
 print("=" * 96)
-print("GATE: every gate string used by KNOWN_GATES must be resolvable by _resolve_caps")
+print(f"GATE: every gate string used by KNOWN_GATES must be resolvable by _resolve_caps"
+      f"   [build={_BUILD}]")
 print("=" * 96)
 
 used = sorted({gate for gate in region_reach.KNOWN_GATES.values() if gate is not None})

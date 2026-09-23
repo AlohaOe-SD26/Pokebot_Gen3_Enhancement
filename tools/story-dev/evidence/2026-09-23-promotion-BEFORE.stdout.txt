@@ -1,0 +1,38 @@
+PRE-PROMOTION BASELINE — 2026-09-23, captured BEFORE promote.py --go.
+Purpose: give the post-promotion runs something to be compared AGAINST. A copy is not evidence;
+a behaviour that changed from FAIL to PASS in the other fork is.
+
+### gate #65 (every KNOWN_GATES string must resolve) — SANDBOX   exit=0
+================================================================================================
+GATE: every gate string used by KNOWN_GATES must be resolvable by _resolve_caps   [build=sandbox]
+================================================================================================
+  KNOWN_GATES uses      : ['surf', 'waterfall']
+  _GATE_MOVE_NAMES knows: ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']
+  _resolve_caps resolves: ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']
+
+  ℹ NOTE (not a failure): _GATE_MOVE_NAMES knows ['cut', 'rock_smash', 'strength'], which KNOWN_GATES does not
+    currently gate on. Harmless — but if a gate string is being ADDED, this is the
+    half-finished state to look for.
+
+  ✅ PASS — all 2 gate string(s) used by KNOWN_GATES resolve.
+================================================================================================
+
+### gate #65 — CUSTOM   exit=1
+‼ EXPECTED TO FAIL: #24-waterfallcap is still live in custom-pokebot. KNOWN_GATES uses the
+  'waterfall' gate string and custom's _resolve_caps cannot resolve it, so that edge can NEVER
+  open. is_map_reachable is fail-safe, which is why the wrong refusal looks exactly like a right
+  one — measured in sandbox as 'the world is 3 maps' from the Victory Road grind tile.
+================================================================================================
+GATE: every gate string used by KNOWN_GATES must be resolvable by _resolve_caps   [build=custom]
+================================================================================================
+  KNOWN_GATES uses      : ['surf', 'waterfall']
+  _GATE_MOVE_NAMES knows: ['cut', 'rock_smash', 'strength', 'surf', 'waterfall']
+  _resolve_caps resolves: ['cut', 'rock_smash', 'strength', 'surf']
+
+  ℹ NOTE (not a failure): _GATE_MOVE_NAMES knows ['cut', 'rock_smash', 'strength'], which KNOWN_GATES does not
+    currently gate on. Harmless — but if a gate string is being ADDED, this is the
+    half-finished state to look for.
+
+⛔ FAIL
+  • KNOWN_GATES gates an edge on 'waterfall', but _resolve_caps never resolves it ⇒ `caps.get('waterfall', False)` is ALWAYS False, so that edge is permanently sealed for every party at every badge count. This is not a closed gate, it is a wall.
+================================================================================================

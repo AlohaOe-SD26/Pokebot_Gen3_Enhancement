@@ -2121,9 +2121,24 @@ def _fly_to_training_anchor(grass_map, heal_center) -> Generator:
 
         if _map_group_number() == grass_map.value:
             return                                   # guard 2 -- already there
+        # ⛔⛔ GUARD 3 COMPARES THE **TILE**, NOT THE MAP, AND THAT DISTINCTION IS MEASURED.
+        # v1 compared the MAP ("already in the anchor town, so do not fly") and was WRONG on the one
+        # town this chapter actually starts in. `EVER_GRANDE_CITY` is split by terrain: the League
+        # plateau at (18,6) — where `heal_at_league` deliberately leaves the bot
+        # (`victory_road.py:374` `LEAGUE_DOOR_APRON`) — is the SAME MAP as the Poké Center landing
+        # (27,49), and `calculate_path` between them is **NO PATH IN BOTH DIRECTIONS**, measured:
+        # `evidence/2026-09-18-vr-heal-roundtrip.stdout.txt`, with a control at (18,42) returning
+        # 23 wp so the refusal is a real reachability answer and not a broken instrument.
+        # ⇒ a map-level guard would have SKIPPED the Fly precisely when Fly is the only way off the
+        # plateau, stranding the leg at its own starting position.
+        # ✅ Flying to the town you are already standing in is legal in Gen 3 and is exactly what we
+        # want: it NORMALISES position onto the known landing tile, which is where every measured
+        # last mile starts. So the only case worth skipping is "already ON that tile".
         landing = fly_landing_tile(heal_center)
-        if landing is not None and _map_group_number() == landing[0].value:
-            return                                   # guard 3 -- already in the anchor town
+        if (landing is not None
+                and _map_group_number() == landing[0].value
+                and tuple(get_player_avatar().local_coordinates) == tuple(landing[1])):
+            return                                   # guard 3 -- already standing on the landing
         if not can_fly_to_anchor(heal_center):
             # ⛔⛔ CANNOT FLY FROM HERE — AND FALLING THROUGH TO THE WALK IS THE DANGEROUS PART.
             # The area may have been ADMITTED by `_training_area_allowed`'s Fly disjunct, i.e. the
@@ -2149,8 +2164,21 @@ def _fly_to_training_anchor(grass_map, heal_center) -> Generator:
                 f"{_MAX_TRAINING_WALK_HOPS} hops. ⛔ Refusing rather than walking it: an unbounded "
                 f"cross-Hoenn trek on a frame-capless `train_team` is KI-28's shape."
             )
+    except UnreachableDestinationError:
+        # ⛔⛔ THE REFUSAL MUST ESCAPE ITS OWN TRY BLOCK, AND IT DID NOT.
+        # Raised at the end of the block above, it was caught by the broad handler below;
+        # `reraise_if_aborting` re-raises ONLY when `_STORY_ABORT` is latched (`:161`), which on a
+        # normal run it is not. ⇒ the refusal was swallowed, the generator returned, and
+        # `_goto_training_area` fell straight through to the walk — i.e. the backstop added to
+        # prevent an unbounded cross-Hoenn trek was INERT, and the KI-28 shape survived it.
+        # ‼ Caught by an adversarial review, NOT by a gate: gate #68 exercises the PREDICATE, and
+        # nothing exercises this traversal. A guard placed inside the handler that catches it is a
+        # guard that has been written but not installed.
+        raise
     except Exception as error:  # noqa: BLE001 - a guard we cannot evaluate means we do NOT
         # fly; walking is still correct, so this degrades the approach, never the run.
+        # ‼ This clause is for guards that cannot be EVALUATED (a failed import, an unreadable map).
+        # It must never be the thing that decides a deliberate refusal — hence the clause above it.
         reraise_if_aborting(error)
         return
 
