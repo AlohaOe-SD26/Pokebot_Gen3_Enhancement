@@ -1194,6 +1194,36 @@ def fetch_ice_beam(report=None, *, teach: bool = False, skip_key: bool = False) 
 FLY_READINGS = ("R-FLYABLE", "R-FLOWN", "R-CONTINUE")
 
 
+#: ⛔ THE MAP YOU ARE STANDING ON MUST ALLOW FLY — the fourth guard, and the one most easily
+#: forgotten because the other three pass happily inside a cave and the failure then surfaces
+#: in the field-move menu, far from its cause.
+#: ⭐ VERIFIED at `src/overworld.c:1366-1375` `Overworld_MapTypeAllowsTeleportAndFly`: the
+#: allow-list is FOUR NAMED TYPES, not a notion of "outdoors". `Underground` (caves),
+#: `Indoor` (buildings) and `Underwater` are all refused. Encoded verbatim rather than
+#: paraphrased, because a first attempt at this check tested `== "Indoor"` and cheerfully
+#: reported YES for a cave.
+#: ‼ MEASURED 2026-09-17: the finished §Ch24 party sits at VICTORY_ROAD_1F,
+#: `map_type=Underground` — so this is not an edge case for this chapter, it is the
+#: chapter's own grind tile.
+_FLY_ALLOWED_MAP_TYPES = ("Route", "Town", "City", "Ocean Route", "OceanRoute", "Ocean_Route")
+
+
+def fly_is_legal_from_current_map() -> bool:
+    """Does the map under our feet permit Fly? Fails CLOSED — an unreadable type is NO.
+
+    Shares `_FLY_ALLOWED_MAP_TYPES` with `fly_to_destination`'s own guard, so a caller that
+    asks this question in advance and the leg that enforces it can never disagree.
+    ⇒ this is the cheap PREDICATE form; `fly_to_destination` still raises its own detailed
+    `BotModeError` when the guard actually trips, because a leg must explain itself.
+    """
+    try:
+        from modules.map import get_map_data_for_current_position
+
+        return get_map_data_for_current_position().map_type in _FLY_ALLOWED_MAP_TYPES
+    except Exception:  # noqa: BLE001 - an unknown is treated as NO, exactly as the leg does
+        return False
+
+
 def fly_to_destination(destination, report=None) -> Generator:
     """Fly to `destination` and PROVE we arrived.
 
@@ -1245,7 +1275,12 @@ def fly_to_destination(destination, report=None) -> Generator:
     # CITY. Caves (`Underground`), buildings (`Indoor`) and `Underwater` are all refused. My first
     # version of the check tested `== "Indoor"` and reported a cheerful "yes" for a cave, so the
     # list is encoded verbatim here rather than paraphrased as a notion of outdoorsiness.
-    FLY_ALLOWED_MAP_TYPES = ("Route", "Town", "City", "Ocean Route", "OceanRoute", "Ocean_Route")
+    # ‼ HOISTED TO MODULE SCOPE 2026-09-23 (`#24-flyladder` 2b/2c) so there is exactly ONE
+    # definition of this allow-list. A second copy was about to be written in
+    # `training_areas.can_fly_to_anchor`, and a DUPLICATED allow-list that drifts is how a
+    # guard silently stops matching the thing it guards. The local name is kept as an alias
+    # so this proven leg's own code below is untouched.
+    FLY_ALLOWED_MAP_TYPES = _FLY_ALLOWED_MAP_TYPES
     # ‼ IMPORTED LOCALLY, like every other map helper in this module — a helper another
     # function imports locally is NOT available to yours (this file's own recorded trap).
     from modules.map import get_map_data_for_current_position

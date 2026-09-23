@@ -1,0 +1,51 @@
+Running mGBA 0.10.2
+  FAULT ARM ACTIVE: can_fly_to_anchor stubbed to always return False
+========================================================================================================
+DOES THE FLY DISJUNCT CHANGE AN ANSWER?   walking-only  vs  walking OR fly
+========================================================================================================
+
+─── A  flyable fixture: post_ch24_atdoor_L75.ss1
+  rung      ground             walk<=4hops   can fly   combined   effect
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           False         False     False      still NO
+  L21-24    ROUTE111           False         False     False      still NO
+  L25-26    ROUTE115           False         False     False      still NO
+  L27       ROUTE118           False         False     False      still NO
+  L28-38    ROUTE121           False         False     False      still NO
+  L39-75    VICTORY_ROAD_1F    True          False     True       (walking already said yes — disjunct irrelevant)
+
+  → 0 rung(s) admitted ONLY because of Fly
+
+─── B  NEGATIVE CONTROL: post_grind_L60.ss1
+  rung      ground             walk<=4hops   can fly   combined   effect
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           False         False     False      still NO
+  L21-24    ROUTE111           False         False     False      still NO
+  L25-26    ROUTE115           False         False     False      still NO
+  L27       ROUTE118           False         False     False      still NO
+  L28-38    ROUTE121           False         False     False      still NO
+  L39-75    VICTORY_ROAD_1F    True          False     True       (walking already said yes — disjunct irrelevant)
+
+  → 0 rung(s) admitted ONLY because of Fly
+
+========================================================================================================
+  LANDING TILES the traversal will use (door + (0,+1)):
+     ROUTE117           VerdanturfTown     door (16, 3)    → landing (16, 4)
+     ROUTE111           FallarborTown      door (14, 7)    → landing (14, 8)
+     ROUTE115           RustboroCity       door (16, 38)   → landing (16, 39)
+     ROUTE118           MauvilleCity       door (22, 5)    → landing (22, 6)
+     ROUTE121           LilycoveCity       door (24, 14)   → landing (24, 15)
+     VICTORY_ROAD_1F    EvergrandeCity     door (27, 48)   → landing (27, 49)
+
+  ⛔⛔ VACUOUS: on the flyable fixture NOT ONE rung was admitted by Fly alone.
+     Either every rung was already walkable (so Piece 2b changes nothing and must
+     not be described as enabling the ladder), or the guards are failing silently.
+  ✅ ARM B: nothing extra admitted where Fly is unavailable — the control holds.
+
+  VERDICT: ⛔ FAIL — see above
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-23_11-40-05.ss1 created!
+Updated `current_state.ss1`!

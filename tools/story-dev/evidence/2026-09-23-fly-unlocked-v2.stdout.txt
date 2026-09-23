@@ -4,7 +4,7 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
 ========================================================================================================
 
 ─── post_ch24_atdoor_L75.ss1
-  state=OVERWORLD  at EVER_GRANDE_CITY
+  state=OVERWORLD  at EVER_GRANDE_CITY   map_type=City   Fly legal HERE=True
   Fly knower : Swellow     BADGE06_GET = True
 
   rung      ground             anchor town        fly enum           unlocked?
@@ -22,8 +22,10 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
      `probe_lastmile_paths.py`).
 
 ─── post_league_lobby.ss1
-  state=OVERWORLD  at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+  state=OVERWORLD  at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F   map_type=Indoor   Fly legal HERE=False
   Fly knower : Swellow     BADGE06_GET = True
+  ⛔ Fly is unusable FROM THIS FIXTURE'S POSITION, whatever the destinations.
+     map_type=Indoor  (Gen 3 allows Fly only on Route/Town/City/Ocean Route)
 
   rung      ground             anchor town        fly enum           unlocked?
   --------------------------------------------------------------------------------------------
@@ -34,16 +36,16 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
   L28-38    ROUTE121           LilycoveCity       LilycoveCity       ✅ unlocked
   L39-75    VICTORY_ROAD_1F    EvergrandeCity     EverGrandeCity     ✅ unlocked
 
-  ✅✅ EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED, AND THIS FIXTURE CAN ACTUALLY FLY
-     (Swellow knows Fly, BADGE06 held) — flyable end to end from here
-     (town reachability only; the last mile is a separate question, see
-     `probe_lastmile_paths.py`).
+  ⛔⛔ THE LADDER CANNOT BE FLOWN FROM THIS FIXTURE AT ALL — map_type=Indoor forbids Fly here.
+     ‼ 6/6 anchor town(s) ARE on the region map, which is a real
+       reading and is kept — but an unlocked destination the party cannot fly to is
+       not a reachable rung. Do NOT quote the destination column as a ladder verdict.
 
 ─── post_grind_L60.ss1
-  state=OVERWORLD  at VICTORY_ROAD_1F
+  state=OVERWORLD  at VICTORY_ROAD_1F   map_type=Underground   Fly legal HERE=False
   Fly knower : ⛔ NOBODY     BADGE06_GET = True
-  ⛔ Fly is unusable on this fixture regardless of destinations — the first two
-     guards already fail. The ladder cannot be flown from here.
+  ⛔ Fly is unusable FROM THIS FIXTURE'S POSITION, whatever the destinations.
+     map_type=Underground  (Gen 3 allows Fly only on Route/Town/City/Ocean Route)
 
   rung      ground             anchor town        fly enum           unlocked?
   --------------------------------------------------------------------------------------------
@@ -54,13 +56,13 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
   L28-38    ROUTE121           LilycoveCity       LilycoveCity       ✅ unlocked
   L39-75    VICTORY_ROAD_1F    EvergrandeCity     EverGrandeCity     ✅ unlocked
 
-  ⛔⛔ THE LADDER CANNOT BE FLOWN FROM THIS FIXTURE AT ALL — no party mōn knows Fly.
+  ⛔⛔ THE LADDER CANNOT BE FLOWN FROM THIS FIXTURE AT ALL — no party mōn knows Fly and map_type=Underground forbids Fly here.
      ‼ 6/6 anchor town(s) ARE on the region map, which is a real
        reading and is kept — but an unlocked destination the party cannot fly to is
        not a reachable rung. Do NOT quote the destination column as a ladder verdict.
 
 ─── post_ch24_atdoor.ss1
-  state=OVERWORLD  at EVER_GRANDE_CITY
+  state=OVERWORLD  at EVER_GRANDE_CITY   map_type=City   Fly legal HERE=True
   Fly knower : Swellow     BADGE06_GET = True
 
   rung      ground             anchor town        fly enum           unlocked?
@@ -80,13 +82,13 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
 ========================================================================================================
   PER-FIXTURE VERDICT (‼ quote THIS table, never a single sentence about 'the fixtures'):
      ✅ FLYABLE      post_ch24_atdoor_L75.ss1
-     ✅ FLYABLE      post_league_lobby.ss1
+     ⛔ NOT FLYABLE  post_league_lobby.ss1
      ⛔ NOT FLYABLE  post_grind_L60.ss1
      ✅ FLYABLE      post_ch24_atdoor.ss1
 
-  ⚠⚠ THE FIXTURES DISAGREE — 3 flyable, 1 not. Any claim of the form
+  ⚠⚠ THE FIXTURES DISAGREE — 2 flyable, 2 not. Any claim of the form
      "on the pinned fixtures, Fly is available" is FALSE as written. Name the fixture.
-     ⛔ NOT flyable: post_grind_L60.ss1
+     ⛔ NOT flyable: post_league_lobby.ss1, post_grind_L60.ss1
      ⇒ this is not a defect in the ladder: a mid-grind save simply predates the Fly
        carrier. It IS a defect in any sentence that averages over the three.
 
@@ -99,5 +101,5 @@ WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
-026-09-23_11-11-29.ss1 created!
+026-09-23_11-39-13.ss1 created!
 Updated `current_state.ss1`!

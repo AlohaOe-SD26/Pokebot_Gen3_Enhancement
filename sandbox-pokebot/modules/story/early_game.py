@@ -2083,13 +2083,119 @@ _CAVE_ENTRANCES: dict = {
 }
 
 
-def _goto_training_area(grass_map, grass_tile) -> Generator:
+#: ‼ THE SAME WALKING BUDGET `_training_area_allowed` USES (`_MAX_TRAINING_TRAVEL_LEGS = 4`,
+#: `plugins/custom_modes/story_mode.py`). Duplicated as a constant here rather than imported
+#: because `modules/` must not import from `plugins/` -- but it must stay in step: if one
+#: moves and the other does not, the predicate and the traversal disagree about which areas
+#: are walkable, which is precisely the split this whole feature is built to avoid.
+_MAX_TRAINING_WALK_HOPS = 4
+
+
+def _fly_to_training_anchor(grass_map, heal_center) -> Generator:
+    """Fly to a training area's anchor town when walking there is not the plan. (`#24-flyladder` 2c)
+
+    NO-OPS, LOUDLY-SAFELY, IN EVERY CASE IT IS NOT WANTED — and the order of these guards is the
+    whole design, because each one is a way this could waste a Fly or strand the run:
+      1. no anchor given            -> old behaviour, walk (every pre-2026-09-23 caller)
+      2. already ON the target map  -> nothing to travel; flying away would be a REGRESSION
+      3. already IN the anchor town -> the last mile is all that remains; do not re-fly
+      4. guards not satisfied       -> `can_fly_to_anchor` is False; walk and let it fail loudly
+
+    ⛔ WHY IT NEVER RAISES. This is an OPTIMISATION of the approach, not a precondition of it. If
+    Fly is unavailable the walk is still correct-if-slow, and turning a missing HM into a hard abort
+    would convert a degraded run into a dead one. A failure here is reported and swallowed
+    DELIBERATELY — `reraise_if_aborting` first, so a real abort still propagates.
+
+    ‼ MEASURED, so the caller knows what it buys (`probe_lastmile_paths.py`, evidence
+    `2026-09-23-lastmile-paths-v2.stdout.txt`), last mile from each real landing tile:
+        ROUTE117 47 wp | ROUTE111 220 wp (via ROUTE113) | ROUTE121 81 wp   -- walkable on foot
+        ROUTE115 / ROUTE118 -- SURF spots: the spin tile is itself a water tile, and
+                               `AREA_PREREQ` already declares both "surf"
+        VICTORY_ROAD_1F     -- door warp; `calculate_path` cannot express it but
+                               `navigate_to_anywhere` walks it (the `ch24caveheal` drive, both ways)
+    """
+    if heal_center is None:
+        return
+    try:
+        from modules.story.training_areas import can_fly_to_anchor, fly_landing_tile
+
+        if _map_group_number() == grass_map.value:
+            return                                   # guard 2 -- already there
+        landing = fly_landing_tile(heal_center)
+        if landing is not None and _map_group_number() == landing[0].value:
+            return                                   # guard 3 -- already in the anchor town
+        if not can_fly_to_anchor(heal_center):
+            # ⛔⛔ CANNOT FLY FROM HERE — AND FALLING THROUGH TO THE WALK IS THE DANGEROUS PART.
+            # The area may have been ADMITTED by `_training_area_allowed`'s Fly disjunct, i.e. the
+            # 4-hop walking oracle already refused it. Walking anyway means an 11-to-15-hop
+            # cross-Hoenn trek bounded only by `train_team`'s 500-round guard — no frame cap, which
+            # is KI-28's 19.9M-frame shape and the exact outcome this feature must never produce.
+            # ⇒ ask the SAME walking oracle the predicate used. If it can be walked, walk (that is
+            # the old behaviour, and the ordinary heal-return case: standing in a Poké Center is
+            # `map_type=Indoor`, so Fly is illegal there, but the grind tile is two hops away).
+            # If it CANNOT be walked either, this destination is genuinely unreachable from here,
+            # and `UnreachableDestinationError` is the project's existing, proven answer: the caller
+            # (`story_mode.py`) blocklists the area for the run and re-raises so normal derail
+            # recovery runs. ‼ Raising beats walking here — a loud, recoverable refusal instead of a
+            # silent multi-million-frame walk.
+            from modules.story import region_reach
+
+            if region_reach.is_map_reachable(grass_map, max_hops=_MAX_TRAINING_WALK_HOPS):
+                return
+            raise UnreachableDestinationError(
+                f"Training area {grass_map.name} was admitted on the strength of Fly, but Fly is "
+                f"unavailable from here (no flyer / no BADGE06 / destination locked / "
+                f"`map_type` forbids it) and {grass_map.name} is not walkable within "
+                f"{_MAX_TRAINING_WALK_HOPS} hops. ⛔ Refusing rather than walking it: an unbounded "
+                f"cross-Hoenn trek on a frame-capless `train_team` is KI-28's shape."
+            )
+    except Exception as error:  # noqa: BLE001 - a guard we cannot evaluate means we do NOT
+        # fly; walking is still correct, so this degrades the approach, never the run.
+        reraise_if_aborting(error)
+        return
+
+    try:
+        from modules.console import console
+        from modules.story.pokemon_league import fly_to_destination
+        from modules.story.training_areas import fly_destination_for
+
+        dest = fly_destination_for(heal_center)
+        if dest is None:
+            return
+        console.print(f"[cyan]Story: flying to {heal_center.name} for training at "
+                      f"{grass_map.name}.[/]")
+        yield from fly_to_destination(dest)
+    except Exception as error:  # noqa: BLE001
+        reraise_if_aborting(error)
+        # ⛔ NOT SILENT. A swallowed Fly failure that leaves no trace is how a leg gets debugged
+        # twice -- the walk that follows will look like a planner problem instead of a Fly problem.
+        # ‼ Its own import: `console` is bound inside the TRY above, and if the failure happened at
+        # that import line the name would be unbound here -- a NameError on the failure-only path,
+        # which is the one path nobody drives. This module's idiom is a local import per use.
+        from modules.console import console
+
+        console.print(f"[yellow]Story: could not fly to {heal_center.name} "
+                      f"({type(error).__name__}) — walking to {grass_map.name} instead.[/]")
+
+
+def _goto_training_area(grass_map, grass_tile, heal_center=None) -> Generator:
     """Navigate to the training spin tile, threading the CAVE door first when the area
     lives inside a cave and we're currently outside it — the counterpart of
     `_exit_training_cave_if_inside` for the return trip after a heal.
 
     Table-driven (2026-07-26) for the same reason as `_CAVE_EXITS`: it knew only Granite
-    Cave, so a second in-cave ground would have failed to enter at all."""
+    Cave, so a second in-cave ground would have failed to enter at all.
+
+    ⭐⭐ `heal_center` ADDED 2026-09-23 (`#24-flyladder` Piece 2c). When given, and when the area is
+    not already under our feet, the leg FLIES to that anchor town first. This is the half that makes
+    `_training_area_allowed`'s Fly disjunct honest: that predicate now admits areas the 4-hop walking
+    budget refuses, and without this leg the bot would admit a 15-hop area and then try to WALK it.
+    ⛔ THE TWO MUST NEVER BE SPLIT ACROSS COMMITS — a bare `train_team` has no frame cap, only a
+    500-round guard (`:2139`), which is KI-28's 19.9M-frame shape.
+
+    ‼ DEFAULTS TO None = OLD BEHAVIOUR EXACTLY. Every pre-existing caller that does not pass an
+    anchor walks precisely as before, so this cannot regress the early-game grind."""
+    yield from _fly_to_training_anchor(grass_map, heal_center)
     approach = _CAVE_ENTRANCES.get(grass_map)
     if approach is not None and _map_group_number() != grass_map.value:
         outside_map, door_tile = approach
@@ -2159,7 +2265,10 @@ def train_team(
                 yield from _rotate_lead_safely(target_slot)
 
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
-            yield from _goto_training_area(grass_map, grass_tile)
+            # ⭐ `heal_center` threaded through 2026-09-23 (`#24-flyladder` 2c): this is what
+            # lets the leg FLY to a far ground the Fly disjunct in `_training_area_allowed`
+            # now admits. `train_team` has carried this anchor as a parameter all along.
+            yield from _goto_training_area(grass_map, grass_tile, heal_center)
 
             # ‼ STOP SPINNING FOR PP TOO, NOT JUST HP (2026-07-26). Out of PP the bot
             # flees every encounter, gains nothing, and — because fleeing takes no

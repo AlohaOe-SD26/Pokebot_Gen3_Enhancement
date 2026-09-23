@@ -20252,3 +20252,41 @@ first — prose, headline, probe output, evidence file, gate message — and fix
 a number in a document against a string in a probe. A fresh Tier 1 reviewer reading the diff found
 it. ⇒ further confirmation of the meta-lesson recorded in the entry above: **the suite proves
 well-formedness, never truth.**
+
+
+## 2026-09-23 — I MIRRORED A GUARD BLOCK AND COPIED THREE OF ITS FOUR GUARDS, WITH THE FOURTH LABELLED IN THE SOURCE AS THE ONE PEOPLE MISS
+
+**SYMPTOM.** `can_fly_to_anchor` was written to mirror `fly_to_destination`'s preconditions and its
+docstring asserted it did so *"EXACTLY"*. It implemented three of four. The missing one: **the map
+you are standing on must permit Fly.**
+
+**ROOT CAUSE.** I scrolled `fly_to_destination` until I had the guards I expected — Fly knower,
+badge, destination flag — and stopped reading. The fourth guard sits ~40 lines further down under a
+banner comment that says, in the source: *"THE FOURTH GUARD, AND THE ONE THIS FUNCTION SHIPPED
+WITHOUT"*, with the measured example being **this very chapter's grind tile** (VICTORY_ROAD_1F,
+`map_type=Underground`).
+
+⇒ **PREVENTION: WHEN YOU MIRROR A GUARD BLOCK, READ IT TO ITS LAST STATEMENT AND COUNT THE GUARDS.
+State the count in the docstring as a number — "four guards" — because a number is falsifiable on
+sight and "EXACTLY" is not.** The same file's own recorded trap is the sibling of this one ("a
+helper another function imports locally is NOT available to yours").
+
+**‼ AND THE SECOND, LARGER LESSON: THE DEFECT WAS NOT THE MISSING CHECK, IT WAS WHAT THE MISSING
+CHECK LET THROUGH.** A predicate saying yes on a Fly that cannot happen is harmless on its own; it
+became severe because the traversal SWALLOWED the resulting failure and fell through to walking —
+turning a wrong answer into an unbounded cross-Hoenn trek on a frame-capless grind (KI-28's shape).
+⇒ **ask not "is this guard right?" but "what does the system DO when this guard is wrong?"** The fix
+was therefore two things: the guard, and a backstop that raises `UnreachableDestinationError`
+instead of degrading silently.
+
+**AND A THIRD: THE SAME OMISSION WAS IN THE PROBE.** `probe_fly_unlocked.py` graded fixtures on
+three guards too, and had been reporting `post_league_lobby.ss1` as FLYABLE while it stands
+`Indoor`. Fixing it changed a published number from **3 of 4 fixtures to 2 of 4**. ⇒ **when a
+predicate is found to be missing a condition, the INSTRUMENT that measured it is missing the same
+condition** — they were written from the same misunderstanding, so fix and re-run both.
+
+**WHAT CAUGHT IT.** An adversarial code-review subagent, reading the diff against this project's
+known bug shapes. Not the gates — all of them were green, including the new one I had just written
+to guard this exact feature. ⇒ third confirmation this session that **the suite proves
+well-formedness, never truth**, and that an adversarial reader is the only thing that has
+repeatedly caught the expensive class of error.

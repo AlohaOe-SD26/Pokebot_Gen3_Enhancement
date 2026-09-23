@@ -33192,3 +33192,142 @@ reporting them as such was wrong — but the ladder does not lose two rungs.
 surf rungs as second choice rather than as equals of the walkable three.
 
 **FILES:** `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (later) — ⛔ I ALMOST BUILT PIECE 2b ON `calculate_path`, WHICH A STANDING DECISION FORBIDS — AND THE SURF RUNGS WERE NEVER NEWS
+
+**TWO CORRECTIONS BEFORE ANY CODE IS WRITTEN, both found by reading the code I was about to change.**
+
+**⛔ (1) THE DESIGN I PUBLISHED IN THE HANDOFF MARKER WAS WRONG.** I wrote that the Fly-aware
+predicate should *"COMPUTE each last mile with `calculate_path(landing, (map, tile))`"*. That
+contradicts a **standing user decision (2026-07-25, KI-24)** written into
+`_training_area_allowed`'s own docstring (`story_mode.py:1182-1197`): this predicate uses
+`region_reach`, **not** `calculate_path`, because the failure modes are asymmetric —
+> *a wrong NO from `calculate_path` is INVISIBLE and costs a whole run* (it reads the Route
+> 118/119/120 dual-elevation bridges as WALLS, and fails even a same-map walk inside Route 119),
+> whereas *a wrong YES from `region_reach` costs ONE walk*, which fails loudly and recoverably.
+
+‼ And the named failure is not hypothetical here: **ROUTE118 is one of the six rungs**, and it is
+one of the three maps the decision names. Had I shipped a `calculate_path` gate, the most likely
+outcome was silently dropping good bands — the mechanism behind the ~2,000,000-frame L3-4
+pre-Norman grind. ⇒ **the correct shape is a DISJUNCT and it is smaller than what I planned:** keep
+`is_map_reachable` untouched and add *"OR the heal centre is an unlocked Fly destination and a mōn
+knows Fly"*. The last-mile numbers stay as **evidence that the design is sound**, not as a runtime
+gate.
+⇒ RULE RE-EARNED: **`grep` the decisions the code itself records before designing against them.**
+The docstring of the function I was extending contained the ruling; I read the function's signature
+and not its reasoning.
+
+**✅ (2) THE "SURF-ONLY RUNGS" WERE ALREADY DECLARED — MY MEASUREMENT CORROBORATES, IT DOES NOT
+DISCOVER.** `AREA_PREREQ[ROUTE115] = "surf"` and `AREA_PREREQ[ROUTE118] = "surf"`
+(`training_areas.py:320-321`), and `_training_area_allowed` has always refused them without
+`_party_can_surf()`. ‼ **The spin tiles are themselves WATER tiles** — the final waypoint of each
+path IS (29,15) / (6,53) — so they are *surf spots*, not land patches with a wet approach. ⇒ arm B
+returning NO PATH is **correct behaviour**, not a ladder defect, and the honest framing is
+"two independent instruments agree", not "a problem was found". The earlier wording implied an open
+design question where the table had already answered it.
+
+**FILES:** `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 — ✅✅ `#24-flyladder` PIECES 2b + 2c: THE BOT CAN NOW BE *SENT* TO A LEVEL-APPROPRIATE GROUND, AND THE CLAUSE IS PROVEN LOAD-BEARING
+
+**SHIPPED TOGETHER, AS REQUIRED.** A Fly-aware predicate without a Fly traversal would admit a
+15-hop area and then try to WALK it, on a `train_team` bounded only by a 500-round guard
+(`early_game.py:2139`) — KI-28's 19.9M-frame shape.
+
+**PIECE 2b — THE DISJUNCT** (`story_mode.py`, `_training_area_allowed`):
+`is_map_reachable(area, max_hops=4)` **OR** `can_fly_to_anchor(heal_centre_of(area))`. The walking
+oracle is untouched; the hop budget still governs walking. ⛔ `calculate_path` is deliberately NOT
+used — see `06-DECISIONS-LOG.md` 2026-09-23 for why that would have re-imported a run-killing
+invisible false negative on ROUTE118, one of this ladder's own rungs.
+
+**PIECE 2c — THE TRAVERSAL** (`early_game.py`): `_goto_training_area(grass_map, grass_tile,
+heal_center=None)` now calls a new `_fly_to_training_anchor` first. Four ordered guards — no anchor,
+already on the target map, already in the anchor town, guards unsatisfied — and it **never raises**:
+a missing HM degrades to walking rather than killing the run, with `reraise_if_aborting` first so a
+real abort still propagates, and a visible message either way so a Fly failure is never debugged as
+a planner failure.
+
+**SHARED HELPERS** (`training_areas.py`): `can_fly_to_anchor` mirrors `fly_to_destination`'s three
+guards in order (Fly knower ∧ BADGE06 ∧ destination flag); `fly_landing_tile` returns the Poké
+Center door **+ (0,+1)**, the decomp-verified landing. ⭐ Both callers resolve anchors and guards
+through these, so the predicate and the traversal **cannot disagree about a rung**.
+
+**⭐⭐ THE PROOF — AN A/B WITH A NEGATIVE CONTROL, NOW GATE #68** (`probe_fly_disjunct.py`,
+evidence `2026-09-23-fly-disjunct.stdout.txt`):
+* **ARM A** `post_ch24_atdoor_L75.ss1` — the walking oracle refuses ROUTE117, ROUTE111, ROUTE115,
+  ROUTE118 and ROUTE121 at the 4-hop budget and admits only VICTORY_ROAD_1F ⇒ **5 of 6 rungs flip
+  NO→YES on Fly alone.** Without this clause the per-trainee ladder has exactly one ground.
+* **ARM B** `post_grind_L60.ss1` (no Fly knower) — **nothing extra admitted.** The control holds.
+* ‼ **The gate FAILS when ZERO rungs flip**, so it cannot go green by the feature being
+  unnecessary — the failure mode a plain "does the predicate work?" check would have had.
+
+**✅ REGRESSION GUARD MEASURED, NOT ASSUMED:** `_fly_to_training_anchor(map, None)` yields **0**
+steps, so every pre-2026-09-23 caller of `_goto_training_area` behaves identically.
+
+**⚠ WHAT IS NOT PROVEN HERE, so Piece 3 does not inherit a false premise:** no DRIVE has flown this
+ladder end to end. This measures the predicate and its oracle — flag and graph questions — plus the
+static last-mile geometry. Trainer sight cones on the approach remain unmeasured and the planner is
+structurally blind to them.
+
+**FILES:** `sandbox-pokebot/modules/story/training_areas.py` (new `can_fly_to_anchor`,
+`fly_landing_tile`), `sandbox-pokebot/modules/story/early_game.py` (new `_fly_to_training_anchor`;
+`_goto_training_area` takes `heal_center`; call site wired),
+`sandbox-pokebot/plugins/custom_modes/story_mode.py` (the disjunct),
+`tools/story-dev/probe_fly_disjunct.py` (new), `tools/story-dev/run_gates.py` (gate #68),
+`tools/story-dev/evidence/2026-09-23-fly-disjunct.stdout.txt`, `02-ARCHITECTURE.md` (gate count),
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (late) — ⛔⛔ THE FLY PREDICATE WAS MISSING `fly_to_destination`'s FOURTH GUARD, AND THAT WOULD HAVE PRODUCED THE EXACT FAILURE IT WAS BUILT TO PREVENT
+
+**FOUND BY AN ADVERSARIAL CODE REVIEW BEFORE IT SHIPPED.** `can_fly_to_anchor` said it mirrored
+`fly_to_destination`'s *"three guards EXACTLY"*. There are **four**. The missing one is **the map
+you are STANDING ON must allow Fly** — `Route/Town/City/Ocean Route` only; `Underground`, `Indoor`
+and `Underwater` are refused (`src/overworld.c` `Overworld_MapTypeAllowsTeleportAndFly`).
+
+**‼ THE CODEBASE HAD ALREADY WRITTEN THE WARNING, IN THE FUNCTION I WAS MIRRORING.**
+`pokemon_league.py:1237` labels it *"THE FOURTH GUARD, AND THE ONE THIS FUNCTION SHIPPED WITHOUT"*
+and gives the measured example: **the finished §Ch24 party is parked at VICTORY_ROAD_1F,
+`map_type=Underground`** — this ladder's own grind tile. I read the guards I expected and stopped.
+
+**⛔ WHY IT WAS SEVERE RATHER THAN COSMETIC — the full chain:** predicate admits a far area on the
+strength of a Fly that cannot happen → traversal attempts the fly → `fly_to_destination` raises →
+my handler catches, prints and degrades to walking → `_navigate_riding_out` walks an **11-to-15-hop
+cross-Hoenn route** under `train_team`'s 500-round guard with **no frame cap**. That is KI-28's
+19.9M-frame shape — the outcome this feature's own comments say must never happen.
+
+**✅ FIXED, IN TWO PLACES, PLUS A BACKSTOP:**
+1. **The allow-list is now shared, not copied.** `_FLY_ALLOWED_MAP_TYPES` hoisted to module scope in
+   `pokemon_league.py` with a new `fly_is_legal_from_current_map()`; `can_fly_to_anchor` calls it.
+   ⛔ A duplicated guard that drifts is how a check silently stops matching what it guards.
+2. **`probe_fly_unlocked.py` had the same defect** and was grading fixtures on three guards. Fixed —
+   and the result CHANGED: **2 of 4 pinned fixtures can fly, not 3.** `post_league_lobby.ss1` sits in
+   EVER_GRANDE_CITY_POKEMON_LEAGUE_1F, `map_type=Indoor`. Its party *can* fly; it cannot fly *from
+   there*. ⇒ a position fact, not a party fact, and the probe now prints `map_type` on every line.
+3. **A BACKSTOP, because refusing is not sufficient.** When `_fly_to_training_anchor` cannot fly it
+   now asks the SAME 4-hop walking oracle the predicate used: walkable ⇒ walk (the ordinary
+   heal-return case — a Poké Center is `Indoor`, but the grind tile is two hops away); **not
+   walkable ⇒ raise `UnreachableDestinationError`**, which the caller already handles by
+   blocklisting the area and running derail recovery. A loud recoverable refusal, never a silent trek.
+
+**✅ GATE #68 IS NOW FAULT-TESTED** (`POKEBOT_FLYDISJUNCT_FAULT=1`, registered in
+`29-DISABLED-FEATURES-REGISTRY.md`): happy path exit 0, fault arm **exit 1** reporting *"VACUOUS"*.
+A Tier 1 review was right to block on this — the gate guards a SILENT failure, so a green run that
+has never been seen red proves nothing.
+
+**✅ AND THE DUPLICATED LOOKUP IS GONE:** `fly_destination_for()` is now one function with two
+callers, after the review found byte-identical copies in the predicate and the traversal.
+
+**⚠ A LATENT TRAP, NAMED NOT FIXED:** the "LEVEL-APPROPRIATE RELOCATION" branch
+(`story_mode.py:3167-3275`) reaches `train_team` through this predicate with **no frame budget**,
+unlike its sibling top-up branch. Inert today — every boss config with a `"grass"` key is
+pre-Badge-6 and `can_fly_to_anchor` fails closed on BADGE06 — but a future post-Badge-6 config with
+a `"grass"` key would inherit the KI-28 shape.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`,
+`sandbox-pokebot/modules/story/training_areas.py`, `sandbox-pokebot/modules/story/early_game.py`,
+`tools/story-dev/probe_fly_unlocked.py`, `tools/story-dev/probe_fly_disjunct.py`,
+`evidence/2026-09-23-fly-disjunct-FAULT.stdout.txt`, `03-PUNCH-LIST.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

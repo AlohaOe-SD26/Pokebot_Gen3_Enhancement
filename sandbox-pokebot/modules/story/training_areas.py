@@ -776,3 +776,111 @@ def estimate_frames_to_level(mon, target_level: int, wild_level) -> "int | None"
         return None
     battles_needed = math.ceil(needed_exp / xp_per_battle)
     return battles_needed * FRAMES_PER_WILD_BATTLE
+
+
+# ==================================================================================================
+# THE FLY ANCHOR — shared by the reachability PREDICATE and the TRAVERSAL, on purpose.
+# ==================================================================================================
+def fly_destination_for(center):
+    """The `FlyDestinationRSE` member for a Poke Center's town, matched by NAME, or None.
+
+    ONE DEFINITION, TWO CALLERS. `can_fly_to_anchor` (the predicate) and `_fly_to_training_anchor`
+    (the traversal) both need this lookup, and a Tier 1 review caught them holding byte-identical
+    COPIES of it. Identical today is not the risk; a future edit to one and not the other is -- and
+    the symptom would be a predicate that admits a rung the traversal then cannot resolve, which is
+    exactly the predicate/traversal split this whole feature exists to prevent.
+
+    An unmatched name returns None rather than guessing at a neighbour: a silent mis-match would
+    fly the bot to the wrong town, and a silent miss would make a rung permanently unflyable for no
+    visible reason. VERIFIED 2026-09-23: across all 17 `FlyDestinationRSE` members the reduced names
+    are unique -- no collisions -- and `EvergrandeCity` reduces to 'evergrande', which matches
+    `EverGrandeCity` and NEVER `PokemonLeague`. That pair matters: the League is a separate Fly
+    destination on a different tile, and landing there instead would strand the leg on the plateau.
+    """
+    try:
+        from modules.region_map import FlyDestinationRSE
+
+        want = center.name.lower().replace("city", "").replace("town", "")
+        for dest in FlyDestinationRSE:
+            if dest.name.lower().replace("city", "").replace("town", "") == want:
+                return dest
+    except Exception:  # noqa: BLE001 - a lookup that cannot answer must yield None, never a
+        # GUESS: flying to the wrong town would strand the leg somewhere plausible-looking.
+        return None
+    return None
+
+
+def can_fly_to_anchor(center) -> bool:
+    """Can the party Fly to this Poke Center's town RIGHT NOW? (`#24-flyladder`, Piece 2b/2c)
+
+    Mirrors `fly_to_destination`'s **FOUR** guards, in their order
+    (`modules/story/pokemon_league.py`): a party mon must know **Fly**, **BADGE06** must be held,
+    the destination's own visited-flag must be set, and -- the one that is easy to miss --
+    **the map under our feet must permit Fly at all**. Returns False, never raises.
+
+    THE FOURTH GUARD IS NOT AN EDGE CASE FOR THIS CHAPTER, IT IS ITS GRIND TILE. The first version
+    of this function claimed to mirror "three guards EXACTLY" and omitted the map-type check.
+    `pokemon_league.py` calls that omission out in its own source as "THE FOURTH GUARD, AND THE ONE
+    THIS FUNCTION SHIPPED WITHOUT", and gives the measured example: the finished Ch24 party is
+    parked at VICTORY_ROAD_1F with `map_type=Underground`, where Fly is refused.
+    WHY GETTING THIS WRONG WAS SEVERE, not cosmetic: the predicate would have admitted a far
+    training area on the strength of a Fly that could not happen, the traversal's fly attempt would
+    raise, the failure would be caught and degraded to WALKING, and the bot would then walk an
+    11-to-15-hop cross-Hoenn route under `train_team`'s 500-round guard with no frame cap -- KI-28's
+    19.9M-frame shape, which this feature's own comments say must never happen. Found by an
+    adversarial review before it shipped. The allow-list itself is shared, not copied
+    (`_FLY_ALLOWED_MAP_TYPES`), because a duplicated guard that drifts stops matching what it guards.
+
+    WHY THIS FUNCTION EXISTS AT ALL, rather than the two callers each asking their own question:
+    the PREDICATE that admits a far-off training area and the TRAVERSAL that actually goes there
+    must agree, or the bot admits an area it then cannot reach and walks instead. One function,
+    two callers, no second opinion.
+
+    MEASURED 2026-09-23 (`probe_fly_unlocked.py`, evidence `2026-09-23-fly-unlocked-v2.stdout.txt`):
+    on the four pinned Ch24 fixtures every ladder anchor town is unlocked, and three of the four
+    fixtures satisfy all three guards. `post_grind_L60.ss1` does NOT -- it has no Fly knower -- which
+    is exactly the case this returns False for.
+    """
+    if center is None:
+        return False
+    try:
+        from modules.memory import get_event_flag
+        from modules.pokemon_party import get_party
+        from modules.region_map import FlyDestinationRSE
+
+        if get_party().first_pokemon_with_move("Fly") is None:
+            return False
+        if not get_event_flag("BADGE06_GET"):
+            return False
+        # GUARD 4 -- the map we are STANDING ON must allow Fly. Underground/Indoor/Underwater do
+        # not. Shared with the leg that enforces it, so the two can never disagree.
+        from modules.story.pokemon_league import fly_is_legal_from_current_map
+
+        if not fly_is_legal_from_current_map():
+            return False
+        dest = fly_destination_for(center)
+        return False if dest is None else bool(get_event_flag(dest.get_flag_name()))
+    except Exception:  # noqa: BLE001 - an oracle that cannot answer is a NO, like every gate here
+        return False
+
+
+def fly_landing_tile(center):
+    """The tile Fly actually deposits the player on: the Poke Center door, one row SOUTH.
+
+    NOT the door itself -- that is a WARP, and `calculate_path` FOLLOWS a warp used as an
+    endpoint, so a path computed from the door can resolve INSIDE the building.
+
+    VERIFIED 2026-09-23 for all six ladder anchors against the decomp's heal-location table
+    (`pret/pokeemerald:src/data/heal_locations.json`): every landing is exactly door + (0, +1) --
+    6 of 6, zero mismatches. `modules/story/victory_road.py:147-148` already derives `EG_PC_APRON`
+    this way; this generalises the same rule rather than inventing a second one.
+
+    Returns `(map_enum, (x, y))`, or None if the center has no usable value.
+    """
+    try:
+        src_map, src_tile = center.value
+        x, y = tuple(src_tile)
+        return src_map, (x, y + 1)
+    except Exception:  # noqa: BLE001 - a tile we cannot derive is None, not a fabricated
+        # coordinate; a wrong landing tile strands the leg somewhere plausible-looking.
+        return None

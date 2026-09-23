@@ -6771,3 +6771,43 @@ only then relax the reservation and re-measure `#24-partycap`'s finish rate; the
 Dive are held by exactly one mōn (Wailord) and Fly by one (Swellow). Losing Wailord strands the run
 — Waterfall is how Ever Grande is reached at all. A fishing-sourced water mōn is redundancy for the
 two moves §Ch24's geography depends on, not a convenience.
+
+
+## 2026-09-23 — THE FLY-AWARE PREDICATE IS A **DISJUNCT** OVER `region_reach`, NOT A `calculate_path` LAST-MILE CHECK
+
+**THE CHOICE.** `_training_area_allowed` had to admit training areas that Fly can reach. Two shapes
+were available:
+
+* **(A) REJECTED — compute the last mile:** `calculate_path(fly_landing, (map, tile))` and admit the
+  area if a path exists. Appealing because the predicate and the traversal would share one
+  computation and could not disagree, and because I had just measured every last mile.
+* **(B) CHOSEN — a disjunct on the existing oracle:** keep
+  `region_reach.is_map_reachable(area, max_hops=4)` exactly as-is and add
+  *"OR `can_fly_to_anchor(heal_centre)`"*, which mirrors `fly_to_destination`'s own three guards.
+
+**WHY (A) IS WRONG, AND IT IS NOT A NEW ARGUMENT — IT IS A STANDING DECISION (2026-07-25, KI-24)**
+recorded in `_training_area_allowed`'s own docstring. The failure modes are asymmetric:
+> *A wrong **NO** from `calculate_path` is INVISIBLE and costs a whole run* — it reads the Route
+> 118/119/120 dual-elevation bridges as WALLS, and fails even a same-map walk inside Route 119 — so
+> a genuinely-good band is silently never proposed and the bot grinds local fodder instead. *A wrong
+> **YES** from `region_reach` costs ONE walk*, which navigation then fails loudly and recoverably.
+
+‼ **AND THE NAMED FAILURE IS INSIDE THIS FEATURE'S OWN SCOPE: ROUTE118 IS ONE OF THE SIX RUNGS.**
+Shipping (A) would have re-imported the exact false negative the 2026-07-25 decision exists to
+avoid, into the ladder that decision's own reasoning would have protected. ⇒ cheap-and-visible beats
+invisible-and-fatal, again.
+
+**⛔ I WROTE (A) INTO THE HANDOFF BEFORE CHECKING.** The ruling was in the docstring of the function
+I was extending; I had read its signature and not its reasoning. Corrected before any code was
+written. ⇒ **the rule that applies is the existing one — `grep` the decisions the code itself
+records — extended: a function's docstring is part of the decisions log when it carries a ruling.**
+
+**WHAT IS GIVEN UP, HONESTLY.** (B) admits an area on the Fly guards alone, so it can say yes to a
+rung whose last mile is genuinely broken; navigation then fails loudly and
+`_note_training_unreachable` blocklists it for the run. That is the same trade the 4-hop walking
+budget already makes, and the measured last miles say the risk is small: 3 of 6 walkable on foot,
+2 are declared-`surf` spots the party can swim to, 1 is the known door-warp case.
+
+**⛔ AND THE TWO PIECES SHIP IN ONE COMMIT.** A Fly-aware yes without the Fly traversal means the
+bot ADMITS a 15-hop area and then WALKS at it, on a `train_team` with no frame cap. Gate #68 keeps
+the disjunct honest; the traversal's `heal_center=None` default keeps every old caller unchanged.

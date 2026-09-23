@@ -3,7 +3,7 @@
 
 WHY NOW. The per-trainee Fly ladder needs six last miles: land in a town, walk to the ground's spin
 tile. ✅ Already measured (`probe_fly_unlocked.py`): every anchor town is UNLOCKED, and — per-fixture
-— two of the three pinned saves can actually fly. ⇒ the remaining question is the WALK.
+— THREE of the FOUR pinned saves can actually fly. ⇒ the remaining question is the WALK.
 
 ⭐ AND IT IS COMPUTABLE WITHOUT FLYING, because `calculate_path(source, destination, ...)` takes an
 **explicit source** (`modules/map_path.py:724`). So every last mile can be asked for statically.
@@ -37,10 +37,16 @@ WHAT THIS RUN MEASURES PER RUNG — four readings, so a PASS says which KIND of 
   B. `no_surfing=True`  — ⭐ THE DECISIVE ARM. This is what a bot on foot can actually do.
   C. a census of WATER tiles and `WaypointAction.Surf` steps on arm A's path — so "it swam" is
      visible as a number, not an inference.
-  D. a census of ARMED on-enter script triggers crossed on arm B's path
-     (`tile.on_enter_event_triggers` vs `get_event_var_by_number`, the exact test
-     `map_path.py:1034-1037` applies). ‼ `avoid_scripted_events` adds `cost += 10000` — a PENALTY,
-     NOT A WALL — so a path may cross one anyway, and the walker would fire it.
+  D. a census of ARMED on-enter script triggers crossed on arm B's path, built from
+     `map_data.coord_events` the way `map_path.py:113` builds its own table (weather events
+     EXCLUDED, as the planner excludes them). ‼ `avoid_scripted_events` adds `cost += 10000` — a
+     PENALTY, NOT A WALL — so a path may cross one anyway, and the walker would fire it.
+     ⛔ Reported split into REAL and PHANTOM: a coord event with a NEGATIVE var number is read
+     through a negative save-block offset that silently returns 0 and so reads "armed" when it is
+     not — `#24-phantomtrigger`, which affects the production planner too, not just this probe.
+     ‼ v1 of this reading asked `MapLocation` for `on_enter_event_triggers`, which is a field of
+     the PATHFINDER's node type and not of `MapLocation`, so every lookup raised into a bare
+     `except: continue` and it reported a clean sheet on five maps. Always print the DENOMINATOR.
 
 ⛔⛔ WHAT NO ARM HERE CAN SEE — TRAINER SIGHT CONES. `avoid_scripted_events` consults ONLY
 `on_enter_event_triggers`; spotting is a per-frame scan in the decomp's `trainer_see.c`. The
@@ -78,6 +84,8 @@ from modules.libmgba import LibmgbaEmulator
 context.emulator = LibmgbaEmulator(_p, lambda: None)
 context.audio = False
 context.video = False
+# Registered gates must not run at 1x real time -- the suite's throttle check enforces this.
+context.emulation_speed = 0
 
 from modules.map import get_map_data
 from modules.map_data import MapRSE, PokemonCenter

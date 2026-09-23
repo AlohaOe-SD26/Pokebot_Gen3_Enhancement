@@ -49,6 +49,8 @@ from modules.libmgba import LibmgbaEmulator
 context.emulator = LibmgbaEmulator(_p, lambda: None)
 context.audio = False
 context.video = False
+# Registered gates must not run at 1x real time -- the suite's throttle check enforces this.
+context.emulation_speed = 0
 
 from modules.map_data import MapRSE, PokemonCenter
 from modules.memory import get_event_flag, get_game_state
@@ -129,12 +131,25 @@ for fixture in FIXTURES:
     party = get_party()
     flyer = party.first_pokemon_with_move("Fly")
     badge06 = get_event_flag("BADGE06_GET")
-    print(f"  state={state}  at {where}")
+    # THE FOURTH GUARD, ADDED 2026-09-23 AFTER AN ADVERSARIAL REVIEW.
+    # `fly_to_destination` has FOUR guards, not three: the map you are STANDING ON must allow
+    # Fly. This probe graded only three, and so reported `post_league_lobby.ss1` as FLYABLE
+    # while it sits in EVER_GRANDE_CITY_POKEMON_LEAGUE_1F -- `map_type=Indoor`, where Fly is
+    # refused outright. A fixture verdict that omits a guard the real leg enforces is no verdict.
+    try:
+        from modules.map import get_map_data_for_current_position
+        from modules.story.pokemon_league import fly_is_legal_from_current_map
+
+        here_type = get_map_data_for_current_position().map_type
+        fly_legal_here = fly_is_legal_from_current_map()
+    except Exception as error:  # noqa: BLE001 - an unreadable type is a NO, as the leg treats it
+        here_type, fly_legal_here = f"<unreadable: {type(error).__name__}>", False
+    print(f"  state={state}  at {where}   map_type={here_type}   Fly legal HERE={fly_legal_here}")
     print(f"  Fly knower : {flyer.species.name if flyer else '\u26d4 NOBODY'}"
           f"     BADGE06_GET = {badge06}")
-    if flyer is None or not badge06:
-        print("  \u26d4 Fly is unusable on this fixture regardless of destinations \u2014 the first two")
-        print("     guards already fail. The ladder cannot be flown from here.")
+    if flyer is None or not badge06 or not fly_legal_here:
+        print("  ⛔ Fly is unusable FROM THIS FIXTURE'S POSITION, whatever the destinations.")
+        print(f"     map_type={here_type}  (Gen 3 allows Fly only on Route/Town/City/Ocean Route)")
 
     print()
     print(f"  {'rung':<9} {'ground':<18} {'anchor town':<18} {'fly enum':<18} unlocked?")
@@ -167,12 +182,13 @@ for fixture in FIXTURES:
     # correctly; the SUMMARY simply ignored a precondition the probe had already measured itself.
     # \u21d2 a grade that contradicts its own log is worse than no grade: the log scrolls past and the
     # headline is what gets quoted. `fly_to_destination` needs flyer \u2227 badge \u2227 flag, so this does too.
-    can_fly = flyer is not None and bool(badge06)
+    can_fly = flyer is not None and bool(badge06) and bool(fly_legal_here)
     if holes or not can_fly:
         if not can_fly:
             missing = " and ".join(
                 ([] if flyer is not None else ["no party m\u014dn knows Fly"])
                 + ([] if badge06 else ["BADGE06_GET is not set"])
+                + ([] if fly_legal_here else [f"map_type={here_type} forbids Fly here"])
             )
             print(f"  \u26d4\u26d4 THE LADDER CANNOT BE FLOWN FROM THIS FIXTURE AT ALL \u2014 {missing}.")
             unlocked = len(LADDER) - len(holes)

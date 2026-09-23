@@ -778,6 +778,28 @@ GATES: list[tuple[str, bool]] = [
     # ✅ FAULT-TESTED 2026-09-19: clean over 205 in-scope documents; with
     # `POKEBOT_CITERANGE_FAULT=1` it fails naming the injected inverted citation.
     ("probe_citation_ranges.py", False),
+    # --- #68 - THE FLY DISJUNCT GOING VACUOUS (`probe_fly_disjunct.py`)
+    # APPENDED AT THE END, never inserted - the same rule #34-#67 carry.
+    # WHY A GATE: `_training_area_allowed` admits a training area if the WALKING oracle says yes
+    # OR the party can Fly to its anchor town. The Fly clause is the whole of `#24-flyladder`
+    # Piece 2b, and it is INVISIBLE when it stops working: if a refactor makes `can_fly_to_anchor`
+    # always False, the predicate silently falls back to walking-only, the per-trainee ladder
+    # quietly loses five of its six rungs, and NOTHING FAILS. The bot just trains in the one place
+    # it can still walk to - which is precisely the shape of the ~2,000,000-frame fodder grind this
+    # project has already paid for once.
+    # MEASURED AT REGISTRATION (2026-09-23, evidence `2026-09-23-fly-disjunct.stdout.txt`):
+    # on `post_ch24_atdoor_L75.ss1` FIVE of six rungs are admitted BY FLY ALONE - the walking
+    # oracle refuses ROUTE117/111/115/118/121 at the 4-hop budget and only VICTORY_ROAD_1F passes
+    # it. So the clause is load-bearing by measurement, not by argument.
+    # THE NEGATIVE CONTROL IS HALF THE GATE, and it is why this is not just an assertion that
+    # something returned True: `post_grind_L60.ss1` has NO Fly knower, and the gate FAILS if any
+    # rung is admitted there beyond what walking already allowed. A disjunct that says yes on a
+    # fixture that cannot fly is saying yes for some other reason, and the green tick would be
+    # measuring nothing.
+    # ANTI-VACUITY IS THE PASS CONDITION ITSELF: the gate fails when ZERO rungs flip NO->YES.
+    # It cannot go green by the feature being unnecessary, which is the failure mode a plain
+    # "does the predicate work" check would have.
+    ("probe_fly_disjunct.py", False),
 ]
 
 
