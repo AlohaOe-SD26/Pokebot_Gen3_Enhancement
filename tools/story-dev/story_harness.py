@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20486,6 +20486,271 @@ class Ch24Lobby2FMode(BotMode):
         context.set_manual_mode()
 
 
+
+class Ch24SwapTriggerMode(BotMode):
+    """`#24-swaptrigger2` — DOES THE SWAP-TRAINER'S **SECOND** TRIGGER FIRE AT A LEVEL-MATCHED GROUND?
+
+    ⛔ THIS BLOCKS PIECE 3, AND IT IS THE LAST THING BETWEEN USER RULING 12 AND A BUILD.
+    Ruling 12 (2026-09-23) keeps all six mōn and trains the stragglers on the per-trainee Fly ladder.
+    The ladder's whole escape from the L89-L94 overshoot is that a level-matched trainee **solos**,
+    so no finisher splits its exp. ‼ `max_wild_max` kills only **trigger 1** (`underleveled`).
+    `SwapTrainBattleStrategy.decide_turn` fires on `(underleveled or cant_continue)`, and
+    `cant_continue` = HP below `battle.hp_threshold` **OR** no usable move. Neither is touched by the
+    out-level rule, and when it fires `_capable_finisher` takes the STRONGEST qualifying mōn — at a
+    level-matched ground the foe is low, so almost any L75 qualifies.
+
+    ✅ The PP half is already settled by arithmetic (`probe_ladder_economics.py`: Zigzagoon carries
+    80 PP ⇒ ~27 battles). ⛔ **THE HP HALF IS NOT**, and only a drive can answer it.
+
+    ⭐ IT ALSO ANSWERS A SECOND, UNRELATED QUESTION FOR FREE: `_fly_to_training_anchor` and
+    `_goto_training_area(heal_center=...)` have **never been exercised by a driver in either fork**.
+    `promote.py` names exactly that as the outstanding verification after the 2026-09-23 promotion
+    (*"a copy is not evidence… verify by DRIVING"*). Reading `S-ARRIVED` is that proof.
+
+    PREDICTIONS ARE PRE-REGISTERED AND COMMITTED:
+    `PROJECT KNOWLEDGE/ai-research-notes/2026-09-23-swaptrigger2-PREDICTIONS.md` (commit 0218e7e6).
+    ⇒ a reading that contradicts one is a RESULT, not a driver failure.
+
+    ⛔⛔ WHY IT ROTATES THE TRAINEE TO SLOT 0 FIRST, rather than calling `train_team(slots={1})`:
+    MEASURED 2026-09-04 (`victory_road.py:2053-2064`) — `train_team(slots={i})` with `i != 0` does
+    exactly ONE spin-batch and then RETURNS AS IF FINISHED (a 900k-frame run produced **8 battles**
+    against an estimate of 306), because `need` is computed from `party[i]` BY INDEX while
+    `_rotate_lead_safely` performs a SWAP, so on the next iteration `party[i]` is the OLD LEAD. This
+    driver therefore hands `train_team` only the case it gets right — and **verifies the rotation
+    landed BY PID**, because `_rotate_lead_safely` gives up gracefully after 3 attempts and a silent
+    give-up would grind the wrong mōn and quietly answer a different question.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor_L75.ss1 \\
+            --driver ch24swaptrigger --frames 400000 --log swaptrigger.log
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_NOFLY=1` skips the Fly leg, so the run must FAIL on `S-ARRIVED`
+    and never reach a battle — proving the arrival reading is live code and not a foregone tick.
+    """
+
+    TARGET_LEVEL = 23          # ~31 battles at ROUTE117 (economics): enough for a RATE, not just a yes/no
+    TRAINEE_LEVEL_MAX = 30     # PREMISE guard: the trainee must actually be under-levelled
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24SwapTrigger"
+
+    def on_whiteout(self) -> bool:
+        # ‼ LATCH, COUNT, AND RETURN True — all three. Returning True alone leaves `_check_abort()`
+        # dead code under test (KI-67); the latch is what production actually signals with.
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24swaptrigger] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this "
+            f"run: a trainee that faints did not solo, and the exp question is unanswerable.")
+        return True
+
+    def on_battle_started(self, encounter):
+        # Mirror production exactly: `story_mode.py:3556-3559` installs SwapTrainBattleStrategy
+        # whenever `swap_train_active()`. Using anything else here would measure a strategy the
+        # bot does not actually run.
+        from modules.story.early_game import swap_train_active
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy, SwapTrainBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        if swap_train_active() and encounter is not None:
+            return SwapTrainBattleStrategy()
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _check_abort,
+            _fly_to_training_anchor,
+            _goto_training_area,
+            _rotate_lead_safely,
+            train_team,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "ch24swaptrigger"
+        GROUND, SPIN, ANCHOR = MapRSE.ROUTE117, (31, 16), PokemonCenter.VerdanturfTown
+
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"S-PRE", "S-PATCHED", "S-ARRIVED", "S-LEAD", "S-BATTLES", "S-TRIGGERS", "S-EXP"}
+        failure = None
+        no_fly = _os.environ.get("POKEBOT_CH24_FAULT_NOFLY", "").strip() in ("1", "true", "yes")
+
+        def _where():
+            try:
+                av = get_player_avatar()
+                return f"{MapRSE(tuple(av.map_group_and_number)).name}{tuple(av.local_coordinates)}"
+            except Exception:  # noqa: BLE001 - an unreadable position is a reading, not a crash
+                return "<unreadable>"
+
+        try:
+            yield from wait_until_truly_controllable()
+
+            # ---- PREMISE ------------------------------------------------------------------
+            party = get_party()
+            trainee = None
+            for i, mon in enumerate(party):
+                if mon is not None and mon.level <= self.TRAINEE_LEVEL_MAX:
+                    trainee = (i, mon.personality_value, mon.species.name, mon.level)
+                    break
+            if trainee is None:
+                raise BotModeError(
+                    f"{TAG}: PREMISE FAILED — no party member at or below L{self.TRAINEE_LEVEL_MAX}. "
+                    f"This drive measures an UNDER-LEVELLED trainee at a level-matched ground; "
+                    f"without one it would measure nothing and pass. Use post_ch24_atdoor_L75.ss1."
+                )
+            slot0, pid, tname, tlevel = trainee
+            R["trainee"] = f"{tname}#{pid:08X} L{tlevel} slot{slot0}"
+            R["start_at"] = _where()
+            taken.add("S-PRE")
+            log(f"[{TAG}] PRE at={R['start_at']} trainee={R['trainee']}")
+
+            # ---- INSTRUMENT THE ACTION, NOT THE INPUT --------------------------------------
+            # ‼ House style (`Ch20ChapterMode`, :21562): save the real callable, wrap it in a
+            # closure over a counter dict, LOG on fire, delegate, rebind. What is recorded here is
+            # (a) the CONDITIONS at decision time and (b) what the real call actually RETURNED.
+            # ⛔ (b) is the action. A condition being true is not a swap; only a RotateLead is.
+            from modules.battle_strategies._interface import TurnAction
+            from plugins.custom_modes.story_mode import SwapTrainBattleStrategy
+
+            C = {"calls": 0, "underleveled": 0, "hp": 0, "pp": 0, "swaps": 0, "finishers": []}
+            _real_decide = SwapTrainBattleStrategy.decide_turn
+
+            def _counted_decide(self_, battle_state):
+                C["calls"] += 1
+                try:
+                    from modules.battle_strategies import BattleStrategyUtil
+
+                    active = battle_state.own_side.active_battler
+                    foe = battle_state.opponent.active_battler
+                    if active is not None and foe is not None:
+                        util = BattleStrategyUtil(battle_state)
+                        if active.level + SwapTrainBattleStrategy.UNDERLEVEL_MARGIN <= foe.level:
+                            C["underleveled"] += 1
+                        if not self_._pokemon_has_enough_hp(active):
+                            C["hp"] += 1
+                        if not any(util.move_is_usable(m) for m in active.moves):
+                            C["pp"] += 1
+                except Exception:  # noqa: BLE001 - a failed READING must never change the subject
+                    pass
+                out = _real_decide(self_, battle_state)
+                try:
+                    if isinstance(out, tuple) and out and out[0] is TurnAction.RotateLead:
+                        C["swaps"] += 1
+                        C["finishers"].append(out[1])
+                        log(f"[{TAG}] SWAP FIRED #{C['swaps']} -> finisher slot {out[1]}")
+                except Exception:  # noqa: BLE001
+                    pass
+                return out
+
+            SwapTrainBattleStrategy.decide_turn = _counted_decide
+            # ⛔ VERIFY THE PATCH TOOK (`:934` precedent). An instrument that silently failed to
+            # install would report zero firings — indistinguishable from the happy answer.
+            assert SwapTrainBattleStrategy.decide_turn is _counted_decide, "patch did not take"
+            taken.add("S-PATCHED")
+            log(f"[{TAG}] PATCHED SwapTrainBattleStrategy.decide_turn (counter installed)")
+
+            # ---- THE REAL LEG: fly to the anchor, then walk the last mile -------------------
+            if no_fly:
+                log(f"[{TAG}] ⚠ FAULT ARM POKEBOT_CH24_FAULT_NOFLY — skipping the Fly leg")
+            else:
+                yield from VR._budgeted(_fly_to_training_anchor(GROUND, ANCHOR), 40_000,
+                                        f"{TAG}: fly to {ANCHOR.name}")
+                yield from wait_until_truly_controllable()
+                log(f"[{TAG}] after fly: at={_where()}")
+                yield from VR._budgeted(_goto_training_area(GROUND, SPIN, ANCHOR), 120_000,
+                                        f"{TAG}: last mile to {GROUND.name}{SPIN}")
+                yield from wait_until_truly_controllable()
+
+            R["arrived_at"] = _where()
+            on_ground = tuple(get_player_avatar().map_group_and_number) == GROUND.value
+            R["on_ground"] = on_ground
+            if on_ground:
+                taken.add("S-ARRIVED")
+                log(f"[{TAG}] ✅ S-ARRIVED at={R['arrived_at']} — the Fly leg works in a DRIVE, "
+                    f"which is the verification promote.py asked for.")
+            else:
+                raise BotModeError(
+                    f"{TAG}: did not reach {GROUND.name} — at={R['arrived_at']}. "
+                    f"P6 REFUTED: the Fly leg does not arrive."
+                )
+
+            # ---- ROTATE THE TRAINEE TO SLOT 0, AND PROVE IT BY PID -------------------------
+            if slot0 != 0:
+                yield from _rotate_lead_safely(slot0)
+                yield from wait_until_truly_controllable()
+            now = get_party()
+            R["lead_after_rotate"] = (f"{now[0].species.name}#{now[0].personality_value:08X}"
+                                      if now[0] is not None else "<none>")
+            if now[0] is None or now[0].personality_value != pid:
+                raise BotModeError(
+                    f"{TAG}: rotation did not land — slot 0 is {R['lead_after_rotate']}, wanted "
+                    f"{tname}#{pid:08X}. `_rotate_lead_safely` gives up after 3 attempts; grinding "
+                    f"whatever else is in slot 0 would answer a DIFFERENT question and look fine."
+                )
+            taken.add("S-LEAD")
+            log(f"[{TAG}] ✅ S-LEAD slot0={R['lead_after_rotate']} (verified BY PID)")
+
+            exp_before = {m.personality_value: m.total_exp for m in now if m is not None}
+
+            # ---- GRIND, BOUNDED ------------------------------------------------------------
+            _check_abort()
+            yield from VR._budgeted(
+                train_team(self.TARGET_LEVEL, slots={0}, grass=(GROUND, SPIN), heal_center=ANCHOR),
+                260_000, f"{TAG}: grind to L{self.TARGET_LEVEL}")
+
+            R["battles"] = self.battles
+            if self.battles > 0:
+                taken.add("S-BATTLES")
+            log(f"[{TAG}] battles={self.battles}")
+
+            # ---- THE READINGS --------------------------------------------------------------
+            after = get_party()
+            exp_after = {m.personality_value: m.total_exp for m in after if m is not None}
+            gained = {p: exp_after.get(p, 0) - exp_before.get(p, 0) for p in exp_before}
+            R["exp_gained_by_pid"] = {f"{p:08X}": g for p, g in gained.items() if g}
+            R["trainee_exp_gained"] = gained.get(pid, 0)
+            R["other_exp_gained"] = sum(g for p, g in gained.items() if p != pid)
+            taken.add("S-EXP")
+
+            R["decide_calls"] = C["calls"]
+            R["trigger1_underleveled"] = C["underleveled"]
+            R["trigger2_hp"] = C["hp"]
+            R["trigger2_pp"] = C["pp"]
+            R["swaps_actually_taken"] = C["swaps"]
+            R["finisher_slots"] = C["finishers"][:20]
+            if C["calls"] > 0:
+                taken.add("S-TRIGGERS")
+            b = max(1, self.battles)
+            log(f"[{TAG}] TRIGGERS calls={C['calls']} underlevel={C['underleveled']} "
+                f"hp={C['hp']} pp={C['pp']} SWAPS={C['swaps']} "
+                f"(hp/battle={C['hp'] / b:.3f} swaps/battle={C['swaps'] / b:.3f})")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        ok = not missing and failure is None and self.whiteouts == 0
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (fly to {ANCHOR.name}, walk to "
+            f"{GROUND.name}{SPIN}, put the trainee at slot 0 BY PID, grind it, and report which "
+            f"swap trigger fired and who banked the exp)")
+        context.set_manual_mode()
+
+
 class Ch24CaveHealMode(BotMode):
     """`#24-cavehealblind` — CAN A GRIND INSIDE VICTORY ROAD HEAL, AND GET BACK?
 
@@ -23493,6 +23758,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24Lobby2FMode()
         elif args.driver == "ch24caveheal":
             context.bot_mode_instance = Ch24CaveHealMode()
+        elif args.driver == "ch24swaptrigger":
+            context.bot_mode_instance = Ch24SwapTriggerMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

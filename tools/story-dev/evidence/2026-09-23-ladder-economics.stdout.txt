@@ -13,9 +13,9 @@ IS RULING 12 ACHIEVABLE? — pricing the Fly ladder from the REAL party   [build
         ROUTE118         L26→L37   wild L27    193.6 xp/battle         171 battles
         ROUTE121         L37→L65   wild L38    272.5 xp/battle         822 battles
       ⇒ battles (solo)    : 1,055
-      ⇒ PP-bounded cadence: heal every 27 battles ⇒ 40 heal trips
-      ⇒ SOLO  (ladder)    :     12.3 h   (grind 11.6 h + heals 0.7 h)
-      ⇒ 2-WAY (swap fires):     23.9 h   ⚠ what happens if trigger 2 fires every battle
+      ⇒ PP-bounded cadence: heal every 44 battles ⇒ 24 heal trips
+      ⇒ SOLO  (ladder)    :     12.0 h   (grind 11.6 h + heals 0.4 h)
+      ⇒ 2-WAY (swap fires):     23.6 h   ⚠ what happens if trigger 2 fires every battle
 
 ─── slot5  Castform  L36 → L65   (Medium Fast curve)
       exp needed          : 224,497
@@ -23,21 +23,21 @@ IS RULING 12 ACHIEVABLE? — pricing the Fly ladder from the REAL party   [build
         ROUTE118         L36→L37   wild L27    193.6 xp/battle           3 battles
         ROUTE121         L37→L65   wild L38    272.5 xp/battle         822 battles
       ⇒ battles (solo)    : 825
-      ⇒ PP-bounded cadence: heal every 17 battles ⇒ 49 heal trips
-      ⇒ SOLO  (ladder)    :     10.0 h   (grind 9.1 h + heals 0.9 h)
-      ⇒ 2-WAY (swap fires):     19.1 h   ⚠ what happens if trigger 2 fires every battle
+      ⇒ PP-bounded cadence: heal every 27 battles ⇒ 30 heal trips
+      ⇒ SOLO  (ladder)    :      9.6 h   (grind 9.1 h + heals 0.6 h)
+      ⇒ 2-WAY (swap fires):     18.7 h   ⚠ what happens if trigger 2 fires every battle
 
 ============================================================================================================
-  TOTAL, both trainees:   SOLO (ladder) 22.3 h     2-WAY (swap fires) 43.0 h
+  TOTAL, both trainees:   SOLO (ladder) 21.7 h     2-WAY (swap fires) 42.3 h
 
   ⭐ WHAT THE LADDER BUYS, AS A NUMBER: the difference between those two columns is the
      PARTICIPANT DIVISOR alone. Both already carry the ×1.65 frames-per-WIN correction.
 
   ⛔ THE HEAL CADENCE IS THE DESIGN CONSTRAINT, AND IT IS NOT NEGOTIABLE:
-     Zigzagoon  must heal every ~27 battles or trigger 2's PP half fires
-                on EVERY battle thereafter — ~40 heal trips across the grind.
-     Castform   must heal every ~17 battles or trigger 2's PP half fires
-                on EVERY battle thereafter — ~49 heal trips across the grind.
+     Zigzagoon  must heal every ~44 battles or trigger 2's PP half fires
+                on EVERY battle thereafter — ~24 heal trips across the grind.
+     Castform   must heal every ~27 battles or trigger 2's PP half fires
+                on EVERY battle thereafter — ~30 heal trips across the grind.
 
   ‼ WHAT IS STILL NOT MEASURED, AND NO ARITHMETIC HERE CAN SETTLE IT: the HP half of
     trigger 2. `hp_threshold` is 20% and the trainee out-levels its wilds, so it SHOULD be
@@ -47,5 +47,5 @@ IS RULING 12 ACHIEVABLE? — pricing the Fly ladder from the REAL party   [build
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
-026-09-23_13-07-50.ss1 created!
+026-09-23_13-33-55.ss1 created!
 Updated `current_state.ss1`!

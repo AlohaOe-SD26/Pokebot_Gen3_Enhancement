@@ -33449,3 +33449,63 @@ a level-matched ground, counting WHICH BRANCH fires and the chosen finisher INDE
 **FILES:** `tools/story-dev/probe_ladder_economics.py` (new),
 `tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt` (new), `03-PUNCH-LIST.md`,
 `06-DECISIONS-LOG.md` (rulings 12 + 13), `07-CHANGELOG.md`.
+
+
+## 2026-09-23 — ⭐⭐ THE LADDER IS PROVEN IN A DRIVE: THE TRAINEE SOLOED 28 OF 29 BATTLES, AND PIECE 3 IS UNBLOCKED
+
+**NEW:** `--driver ch24swaptrigger` in `story_harness.py`. `ACCEPTANCE: PASS`, all 7 readings,
+`missing=[]`, **29 battles, 0 whiteouts**. Predictions were pre-registered and **committed first**
+(`0218e7e6`), so every grade below is against a target set before the run.
+
+**⭐⭐ P3 — THE ONE THAT DECIDED IT: trigger 2's HP half fired ONCE IN 29 BATTLES (3.4 %)**, against
+a prediction of <10 % and a falsifier of ≥25 %. ⇒ **a level-matched trainee really does solo**, and
+USER RULING 12 (train all six) is achievable as stated.
+
+**⭐ AND THE EXP LEAK IS NOW OBSERVED RATHER THAN MODELLED:** the trainee banked **4,716** exp and
+exactly **one** other mōn banked **108** ⇒ the leak is **2.2 %**. That is the ladder's entire thesis,
+measured directly instead of argued.
+
+| prediction | measured | |
+|---|---|---|
+| P1 trigger 1 never fires | `underleveled = 0` | ✅ the out-level cap is structural |
+| P2 PP half quiet early | `pp = 0` | ⚠ ✅ but CONFOUNDED — see below |
+| **P3 HP half <10 %** | **1 / 29 = 3.4 %** | ✅ |
+| P4 finisher is a L75 | slot 4, **Wailord L75** | ✅ |
+| P5 ~143 xp/battle | **162.6** (+13 %) | ✅ the calibration constant holds at this band |
+| P6 the Fly leg arrives | `ROUTE117 (31,16)` | ✅ |
+
+**⭐⭐ P6 IS A SEPARATE PRIZE, AND IT CLOSES THE PROMOTION'S OUTSTANDING ITEM.** The run started at
+`EVER_GRANDE_CITY (18,6)` — the League plateau — flew to `VERDANTURF_TOWN (16,4)`, and walked to the
+ROUTE117 spin tile. ‼ **That is precisely the case the guard-3 TILE fix exists for**: a map-level
+guard would have read (18,6) as *"already in the anchor town"* and skipped the Fly, stranding the leg
+at the tile §Ch23 hands over. ⇒ this is the **DRIVE verification `promote.py` asked for** after the
+2026-09-23 promotion, and it validates `fly_landing_tile` end to end — the bot landed on exactly the
+door+(0,+1) tile the decomp predicted.
+
+**⚠⚠ WHAT THIS DOES NOT ESTABLISH — stated so 3.4 % is not quoted as settled:**
+* **ONE trajectory, 29 battles.** One firing gives a wide interval (Wilson 95 % ≈ 0.6-17 %). It
+  REFUTES the ≥25 % falsifier decisively; it supports "<10 %" only weakly.
+* **ROUTE117 only.** The real climb spends **822 of ~1,055 battles on ROUTE121** against L38 foes.
+  HP pressure there is a different question and this does **not** transfer.
+* ⛔ **P2 IS CONFOUNDED, AND THE WEAKER CLAIM IS THE TRUE ONE.** The PP half fired 0 times — but
+  `heal_in_pokemon_center` ran **twice** mid-grind (f30201, f67225), which resets PP. So what was
+  measured is *"the existing heal cadence keeps PP up"*, **not** *"PP lasts 29 battles"*.
+  ✅ That is still what Piece 3 needs — `train_team` already bounds the PP half by itself, so the leg
+  needs no new heal logic — but the two sentences are not interchangeable.
+
+**✅ A CONSTANT WAS CORRECTED BY THE RUN.** Turns/battle is **1.83** (53 `decide_turn` calls over 29
+battles), not the 3 `probe_ladder_economics.py` assumed. ⇒ the real PP budget is ~44 battles, not 27,
+and the totals move to **21.7 h solo / 42.3 h 2-way**. ‼ The assumption erred SAFE, but its comment
+reasoned the direction backwards (it called 3 "conservative-LOW" when more turns drain PP *faster*);
+corrected in place rather than quietly replaced, because a right number for a wrong reason will
+mislead the next reader.
+
+**⇒ PIECE 3 IS UNBLOCKED,** and its shape is now fixed by measurement: a leg that spends a **bounded
+slice** of each run on training and **resumes** (the grind is ~96 % of one run's frame budget; levels
+are durable). `_yield_bounded_by_frames` is the purse it must use.
+
+**FILES:** `tools/story-dev/story_harness.py` (new `Ch24SwapTriggerMode` + registration),
+`tools/story-dev/evidence/2026-09-23-ch24swaptrigger.stdout.txt` and `.log`,
+`tools/story-dev/probe_ladder_economics.py` (measured constant),
+`tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt`, `03-PUNCH-LIST.md`,
+`04-HANDOFF.md`, `07-CHANGELOG.md`.

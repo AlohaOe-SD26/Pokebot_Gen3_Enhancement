@@ -81,11 +81,15 @@ FRAMES_PER_WIN = 1.65           # ~2,368 frames per WIN vs the estimator's 1,433
 LADDER = [("L15-20", "ROUTE117", 20), ("L21-24", "ROUTE111", 24), ("L25-26", "ROUTE115", 26),
           ("L27", "ROUTE118", 27), ("L28-38", "ROUTE121", 38), ("L39-75", "VICTORY_ROAD_1F", 75)]
 
-#: ⚠ ASSUMED, AND FLAGGED AS SUCH: turns per wild battle for a trainee that out-levels its foe.
-#: 3 is deliberately CONSERVATIVE-LOW (fewer turns ⇒ MORE battles per PP budget ⇒ a LONGER heal
-#: cadence ⇒ a friendlier answer). If the true figure is higher, trigger 2's PP half fires SOONER
-#: than reported here, so this assumption cannot flatter the conclusion in the dangerous direction.
-TURNS_PER_BATTLE = 3
+#: ✅ MEASURED 2026-09-23, was an assumption: **1.83 turns per wild battle** — 53 `decide_turn` calls
+#: over 29 battles, `--driver ch24swaptrigger` at ROUTE117 with a L19 trainee.
+#: ‼ THE ORIGINAL ASSUMPTION OF 3 WAS CONSERVATIVE, AND ITS COMMENT MISLABELLED THE DIRECTION.
+#: More turns drain PP FASTER ⇒ fewer battles per budget ⇒ a SHORTER cadence ⇒ a HARSHER answer.
+#: Assuming 3 against a real 1.83 therefore understated the PP budget (27 battles vs ~44) — safe,
+#: but the old comment called 3 “conservative-LOW” and reasoned the opposite way round. Corrected
+#: rather than quietly replaced, because the reasoning was the wrong shape even though the number
+#: erred in the right direction.
+TURNS_PER_BATTLE = 1.83
 
 #: Frames for one heal round trip. ⚠ ASSUMED. The measured `ch24caveheal` drive is the nearest
 #: real analogue; a town heal from a route is cheaper. Reported separately so the reader can

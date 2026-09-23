@@ -673,3 +673,5 @@
 {"when": "2026-09-18T15:59:56", "driver": "ch24caveheal", "build": "sandbox", "state": "grind_stall_ppzero.ss1", "frames_run": 22700, "recomputes": 22700, "scans": 76, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T16:01:26", "driver": "ch24caveheal", "build": "sandbox", "state": "post_e4ice_FINAL.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T16:07:39", "driver": "ch24caveheal", "build": "sandbox", "state": "grind_stall_ppzero.ss1", "frames_run": 23054, "recomputes": 23054, "scans": 77, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-23T13:23:29", "driver": "ch24swaptrigger", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-23T13:30:37", "driver": "ch24swaptrigger", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 87725, "recomputes": 87725, "scans": 293, "divergences": {}, "observer_broke": false}
