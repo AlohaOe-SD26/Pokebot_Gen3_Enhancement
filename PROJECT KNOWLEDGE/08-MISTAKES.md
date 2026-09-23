@@ -20326,3 +20326,47 @@ were not.** Gate #69 now covers the traversal, with a fault arm that re-creates 
 by an adversarial reader rather than by the suite. The gates are ratchets against KNOWN shapes; a
 fresh hostile reading is the only thing that has repeatedly found the unknown ones. Budget for it
 before every promotion, not only before a commit.
+
+
+## 2026-09-23 — THE SHELL ATE FOUR IDENTIFIERS OUT OF THE QUEUE MARKER, BOTH DOC GATES PASSED, AND MY FIRST REPAIR MISSED ONE
+
+**SYMPTOM.** I wrote the `NEXT ACTIONS` queue marker through a `py -3.12 -c "..."` one-liner. The
+prose contained backticked identifiers, so the SHELL performed command substitution on them and
+replaced each with its (empty) output. The marker shipped reading
+*"PROMOTED TO \*\*"*, *"the grind is ~22.3 h and  is 23.3 h"*, *"that is what  is for"* and
+*"And  still blocks"* — **four identifiers silently deleted** from the single line a cold session
+reads first and acts on.
+
+**ROOT CAUSE.** CLAUDE.md names this exact mistake — *"⛔ Prose containing backticks must NEVER go
+through a shell string (`bash -c`/heredoc) — use the Write tool."* I had followed it all session,
+then reached for a one-liner because the edit *felt* small. **The rule is about the CONTENT, not the
+size of the edit.**
+⇒ **PREVENTION (sharpened, because the existing rule was already there and did not fire):
+ANY text destined for a document goes through a FILE. Never a `-c` one-liner, regardless of length.
+The tell is not "is this long?" but "does this string contain prose?"**
+
+**‼ FIRST NEW LESSON: BOTH DOC GATES PASSED OVER IT.** `lint_docs.py` and
+`audit_doc_consistency.py` both returned green on a marker with four identifiers missing — because
+they check STRUCTURE, CONSISTENCY and CITATIONS, and deleted words violate none of those. The
+document was perfectly consistent and partially meaningless. ⇒ **a green doc suite means
+well-formed, not meaningful** — the fourth time this session the suite has been green over something
+substantively wrong.
+
+**‼‼ SECOND NEW LESSON, AND IT IS THE ONE WORTH KEEPING: I VERIFIED THE REPAIR AGAINST A LIST OF
+NAMES I REMEMBERED, NOT AGAINST THE SHAPE OF THE DAMAGE.** My fix script asserted that three
+specific identifiers were back. All three were. **A fourth had also been eaten and I did not know
+about it**, so nothing looked for it, and the assertion passed on a still-broken line. It surfaced
+only because I then ran an unrelated experiment scanning for the damage's *signature* (a
+mid-sentence double space).
+⇒ **PREVENTION: WHEN A FAILURE DELETES AN UNKNOWN NUMBER OF THINGS, VERIFY BY THE SIGNATURE OF THE
+DAMAGE, NOT BY AN INVENTORY OF WHAT YOU NOTICED.** "Are the three things I saw back?" is a weaker
+question than "are there any remaining gaps of this shape?", and only the second one can find what
+you never saw. The same asymmetry as instrumenting the action rather than the candidate list.
+
+**AND A GATE WAS CONSIDERED AND DELIBERATELY REJECTED.** A scar leaves a mid-sentence double space,
+which is detectable — but measured across the current-state docs it produces **32 hits, mostly
+legitimate** (aligned tables, embedded C, formatted issue lists). This project's own rule is that a
+gate with false positives teaches the reader to bypass it and is strictly worse than no gate. ⇒ **no
+gate.** The one-off scan was the right instrument, and it is recorded here as a TECHNIQUE for the
+next corruption rather than shipped as a check:
+    `re.findall(r"[a-zA-Z,)—⛔]  +[a-zA-Z(]", suspect_line)`

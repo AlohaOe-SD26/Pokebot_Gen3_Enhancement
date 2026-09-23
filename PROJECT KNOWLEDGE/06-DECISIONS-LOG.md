@@ -6811,3 +6811,65 @@ budget already makes, and the measured last miles say the risk is small: 3 of 6 
 **⛔ AND THE TWO PIECES SHIP IN ONE COMMIT.** A Fly-aware yes without the Fly traversal means the
 bot ADMITS a 15-hop area and then WALKS at it, on a `train_team` with no frame cap. Gate #68 keeps
 the disjunct honest; the traversal's `heal_center=None` default keeps every old caller unchanged.
+
+
+## 2026-09-23 — ⭐⭐ USER RULING 12: TRAIN ALL SIX ON THE FLY LADDER. THE PARTY IS NOT REDUCED.
+
+**THE QUESTION, PUT WITH NUMBERS AS `06-DECISIONS-LOG.md` 2026-09-18 INSTRUCTED.** That entry
+raised two readings of the L65-75 ruling, marked one **"⛔ DO NOT SILENTLY PICK (b)"**, and told a
+future agent to *"price both readings, and put the choice back to the user with numbers attached."*
+It was never ruled. It is now.
+
+**THE NUMBERS PUT TO THE USER** (all re-verified at source before asking, not quoted from an agent):
+* On `post_ch24_atdoor_L75.ss1`, **4 of 6 are already L75**; the exceptions are **Zigzagoon L19
+  (≈20.4 h)** and **Castform L36 (≈17.1 h)**, ≈**37.5 h** summed.
+* Both are **navigationally free to remove** — Zigzagoon's `Rock Smash` and `Surf` are each also
+  held by Sceptile/Wailord, and Castform carries **no field move at all**.
+* Boxing them would satisfy the ruling **immediately, with zero grinding** (four mōn, all L75).
+
+**⭐ THE RULING: (a) — TRAIN THEM, ON THE NEW PER-TRAINEE FLY LADDER.** The party stays at six.
+
+**⇒ WHAT THIS SETTLES, AND WHAT IT DOES NOT.**
+* ✅ SETTLED: the party is **not** reduced for §Ch24. Do not box Zigzagoon or Castform to make the
+  level floor easier. Do not re-raise this.
+* ⛔ **NOT SETTLED, AND IT IS A PRECONDITION OF THE LEG:** whether training all six is *achievable*
+  under the swap-trainer. See the measurement gate below. The ruling says which outcome the user
+  WANTS; it cannot make an impossible one possible, and the honest thing is to say so now rather
+  than discover it in a 37-hour grind.
+
+**⛔⛔ THE MEASUREMENT THAT MUST HAPPEN BEFORE THE LEG IS WRITTEN (`#24-swaptrigger2`).**
+The ladder's whole escape from the L89-L94 overshoot is that a level-matched trainee never triggers
+the swap, so it solos for full xp. ‼ **`max_wild_max` kills only TRIGGER 1.**
+`SwapTrainBattleStrategy.decide_turn` fires on `(underleveled or cant_continue)`, and
+**`cant_continue` = HP below `battle.hp_threshold` **OR** no usable move** — neither of which the
+out-level rule touches. When it fires, `_capable_finisher` picks the **strongest** healthy mōn that
+out-levels the foe, and at a level-matched ground the foe is LOW-level, so **almost any L75
+qualifies** ⇒ an equal exp share leaks exactly as before.
+* ✅ **The HP half looks survivable, by reading:** `hp_threshold` defaults to **20 %**
+  (`modules/config/schemas_v1.py`), and a trainee that OUT-levels its wilds should rarely fall that
+  far in a short wild battle. **Reading, not measurement — do not build on it.**
+* ⚠ **The PP half is the real exposure.** `not any(util.move_is_usable(move))` fires on PP
+  exhaustion, which is *certain* over a long grind and then fires on **every** battle until healed.
+  ‼ This tree already has a fixture named `grind_stall_ppzero.ss1`, i.e. the state is known to occur.
+  ⇒ the leg's heal cadence is not a comfort feature; it is **what bounds trigger 2**.
+* ⇒ **MEASURE: the trigger-2 firing rate at a level-matched ground, split HP-driven vs PP-driven.**
+  If it is rare and PP-bounded by healing, ruling 12 is achievable as stated. If it is common, the
+  L65-75 ceiling cannot be met by training and the choice returns to the user — with real numbers
+  instead of an estimate.
+
+## 2026-09-23 — USER RULING 13: IF A MŌN IS EVER REMOVED, IT IS A PC DEPOSIT — AND THE ROUND TRIP IS PROVEN FIRST
+
+**THE RULING:** removal, if it ever happens, uses the **Poké Center PC** — the organic, human
+method, consistent with the 2026-09-23 directive about wiring up PC mechanics. ⛔ **And it is proven
+before it is relied on:** a full **named-PID round trip** (deposit AND withdraw a specific PID) must
+be demonstrated in a drive first.
+
+**WHY THE PROOF IS NOT OPTIONAL.** `#24-pcoverflow` records that the **withdraw half has never
+worked** — a `getattr(..., lambda: [])` fallback made `box_views()` raise on every call, so
+`find_in_box` could never find anything and withdrawing *"logged 0 in every batch"*. A deposit that
+cannot be undone is not a deposit, it is a discard.
+
+**SCOPE:** this is a **contingency**, not a plan. Ruling 12 keeps all six, so nothing is boxed for
+§Ch24. This ruling exists so that IF the measurement above forces the question back open, the method
+is already decided and its precondition is already named. It also gives `#25-partyroster` its
+method: the PC round trip is step 1 there too.

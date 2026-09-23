@@ -33401,3 +33401,51 @@ emulator.
 
 **FILES:** `sandbox-pokebot/modules/story/early_game.py`,
 `tools/story-dev/probe_flyanchor_refusal.py`, `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 — ⭐⭐ THE LADDER IS PRICED: RULING 12 IS ACHIEVABLE AT ~22 h, AND THE GRIND IS 96 % OF A RUN BUDGET
+
+**NEW:** `tools/story-dev/probe_ladder_economics.py` + evidence. Read-only; one save, real party,
+arithmetic. Written because USER RULING 12 says *train all six* and a ruling cannot make an
+impossible outcome possible — the honest place to find that out is before the leg, not 20 hours in.
+
+**✅ THE PP HALF OF TRIGGER 2 IS SETTLED BY ARITHMETIC.** `not any(move_is_usable)` fires only when
+EVERY move is at 0 PP, and PP is readable from the save: **Zigzagoon 80**, **Castform 50**. At a
+conservative 3 turns/battle that is a heal cadence of **~27** and **~17 battles** respectively,
+i.e. **~40 and ~49 heal trips** across the grind. ⇒ the leg's heal frequency is what BOUNDS trigger
+2. It is a correctness requirement, not a comfort feature.
+
+**✅ THE LADDER'S BENEFIT IS NOW A NUMBER — IT ROUGHLY HALVES THE GRIND.** Priced rung-by-rung
+against each mōn's real growth curve and `total_exp`, with the measured ×1.65 frames-per-WIN
+correction applied to BOTH columns:
+| | Zigzagoon L19→65 | Castform L36→65 | total |
+|---|---|---|---|
+| SOLO (ladder) | 12.3 h | 10.0 h | **22.3 h** |
+| 2-WAY (trigger 2 fires) | 23.9 h | 19.1 h | 43.0 h |
+The gap is exactly the ×2.00 participant divisor the ladder exists to remove. ‼ Both columns already
+carry ×1.65; neither uses the raw estimator, which is known wrong by ~3.30×.
+
+**⛔⛔ AND THE FINDING THAT RESHAPES PIECE 3: THE GRIND IS 96 % OF AN ENTIRE RUN BUDGET.**
+`MAX_FRAMES_PER_RUN = 5_000_000` (`story_mode.py:5517`) is **23.3 h**. The grind alone is **22.3 h**
+(≈4,794,924 frames). ⇒ **a leg that tries to FINISH training in one run cannot work** — it would
+consume the run with nothing left for the Elite Four, and everything before §Ch24 costs frames too.
+✅ Levels are durable (exp lives in the save), so partial progress survives a run boundary.
+⇒ **PIECE 3 IS NOT "a leg that trains the party". It is "a leg that spends a BOUNDED SLICE of each
+run on training, and resumes next run".** That is precisely what `_yield_bounded_by_frames` — built
+2026-09-19 and still uncalled — exists for.
+
+**⚠ A SIDE-FINDING THAT QUALIFIES EARLIER WORK, RECORDED RATHER THAN QUIETLY DROPPED.** Under the
+out-level rule, `VICTORY_ROAD_1F` (top wild **L75**) is only admissible at **L74+**. So it is NOT
+the rung that serves the climb to L65 — **ROUTE121** (top wild L38) carries L37→L65 by itself, 822
+battles. The Victory Road promotion was justified as *"the only candidate in budget"* under a 4-hop
+WALKING budget; once Fly and the out-level cap exist, the workhorse is ROUTE121. The promotion
+remains correct (it is the L74+ rung and the §Ch24 top-up ground) — it simply is not what does the
+work, and the earlier framing implied otherwise.
+
+**⛔ STILL UNMEASURED — THE HP HALF OF TRIGGER 2.** `hp_threshold` is 20 % and the trainee
+out-levels its wilds, so it *should* be rare. That is a reading, not a measurement. Only a drive at
+a level-matched ground, counting WHICH BRANCH fires and the chosen finisher INDEX, settles it.
+
+**FILES:** `tools/story-dev/probe_ladder_economics.py` (new),
+`tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt` (new), `03-PUNCH-LIST.md`,
+`06-DECISIONS-LOG.md` (rulings 12 + 13), `07-CHANGELOG.md`.
