@@ -2739,3 +2739,118 @@ Ghost neither Swellow's Aerial Ace (Flying, 1×) nor Zigzagoon's Surf is zero �
 every candidate and the tuple falls through to `incoming` exactly as before. **Promoting it is safe
 because it is inert on the ordinary path, not because it fixes the filed case.** Do not read this
 entry as "the faint chooser is fixed".
+
+
+# 2026-09-23 — `#24-flyladder` PIECES 2b + 2c, `#24-waterfallcap`, AND FOUR FIXES MADE *DURING* PROMOTION
+
+**USER-AUTHORISED** (2026-09-23, verbatim: *"promote then proceed…"*).
+**ROLLBACK TAG:** `pre-promote-2026-09-23` (annotated, pushed; local + origin verified by the tool).
+**TOOL:** `tools/story-dev/promote.py --restore-point pre-promote-2026-09-23 --go`
+→ `drift after: 0`, `orphaned after: 0`, `byte-identical 5/5`.
+**SCOPE NOTE (the tool's own):** compared `modules/` + `plugins/`, `*.py` only. NOT compared: root
+scripts, `*.yml`, `profiles/` (runtime, expected to differ), `tests/`, `utility/`, `tools/`.
+
+## WHAT MOVED — five files, one closed set
+
+| file | what it brings |
+|---|---|
+| `modules/story/region_reach.py` | `#24-waterfallcap`: `_resolve_caps` iterates `_GATE_MOVE_NAMES` instead of a hardcoded four-key literal, so the `waterfall` gate string finally resolves |
+| `modules/story/training_areas.py` | `can_fly_to_anchor` (4 guards), `fly_landing_tile`, `fly_destination_for`; Victory Road promoted into `TRAINING_GRASS`; the `max_wild_max` out-level cap |
+| `modules/story/pokemon_league.py` | `_FLY_ALLOWED_MAP_TYPES` hoisted to module scope + new `fly_is_legal_from_current_map()` — ONE definition of the Fly map-type allow-list, shared with `fly_to_destination`'s own guard |
+| `modules/story/early_game.py` | `_fly_to_training_anchor` (the Fly traversal) + `_yield_bounded_by_frames`; `_goto_training_area` takes an optional `heal_center` |
+| `plugins/custom_modes/story_mode.py` | the Fly **disjunct** in `_training_area_allowed`; `VICTORY_ROAD_1F` heal-map row |
+
+⚠ `modules/modes/util/higher_level_actions.py` differed by **line endings only** (`core.autocrlf`)
+and was correctly NOT promoted — git sees one blob. The tool reports that class separately, which is
+why the count is 5 and a naive byte-compare says 6.
+
+## VERIFICATION — BEFORE *and* AFTER, because a copy is not evidence
+
+The standing rule here is that a promotion is proven by BEHAVIOUR in the other fork, not by a diff.
+⛔ And the gate that would have proven it **hard-coded `sandbox-pokebot` on its import path** — the
+exact hole `promote.py`'s docstring records paying for on 2026-08-14. Fixed first
+(`probe_caps_resolve_every_gate.py` is now `--build`-aware), then measured:
+
+| gate, run `--build custom` | BEFORE | AFTER |
+|---|---|---|
+| #65 every `KNOWN_GATES` string resolves | ⛔ **FAIL** | ✅ PASS |
+| #68 Fly disjunct is load-bearing | ⛔ `ImportError: can_fly_to_anchor` | ✅ PASS — **5 of 6 rungs flip NO→YES on Fly alone** |
+| #69 the Fly refusal escapes (4 arms) | helper absent | ✅ PASS (A, B, C, C′) |
+
+Evidence: `tools/story-dev/evidence/2026-09-23-promotion-BEFORE.stdout.txt` and
+`…-AFTER.stdout.txt`.
+
+⭐⭐ **THAT "BEFORE" COLUMN IS THE HEADLINE: `#24-waterfallcap` WAS STILL LIVE IN THIS FORK.**
+`KNOWN_GATES` referenced a `waterfall` gate string that custom's `_resolve_caps` could not resolve,
+so that edge **could never open for anybody**. `is_map_reachable` is fail-safe, which is precisely
+why nobody noticed — a wrong refusal is indistinguishable from a right one. Measured in sandbox, a
+bot standing at the Victory Road grind tile believed the world was **3 maps**; after the fix, **309**.
+
+## ⛔ BLAST RADIUS — WIDER THAN "§Ch24", AND THE OBVIOUS READING IS WRONG
+
+The natural claim is *"backward compatible — `heal_center` defaults to `None`"*. That is true of
+`_goto_training_area`'s **signature** and **false of the call chain**: `train_team`'s own parameter
+defaults to a real anchor (`PokemonCenter.RustboroCity`) and it **always forwards it**. All six
+`train_team` call sites pass a non-`None` anchor (`story_mode.py` ×4, `counter_hunt.py`,
+`victory_road.py`).
+
+⇒ **after this promotion the Fly leg runs on EVERY training approach in custom**, not only on new
+ladder rungs. It is inert pre-Badge-6 (`can_fly_to_anchor` fails closed on `BADGE06_GET`, then the
+walking oracle answers as before), but **every post-Badge-6 `train_team` now flies where it
+previously walked**.
+
+⚠ **AND THE PROMOTED *DATA* CHANGES BEHAVIOUR IN CODE THAT WAS NOT PROMOTED.** With the waterfall
+edge finally resolving, `is_map_reachable` starts saying yes to Victory Road — and
+`_counter_area_allowed` **does not consult its `prereq` argument at all**; it tests only
+`is_map_reachable(map_enum, max_hops=COUNTER_MAX_HOPS)` (verified in this fork's own copy). So
+Victory Road's L36-42 wilds become live **counter-hunt** candidates, and `counter_plan` promotes it
+from name-only to verified-tile in its ranking. Neither file changed; both behave differently.
+
+## ⛔ FOUR DEFECTS FIXED *DURING* THIS PROMOTION, NOT CARRIED OVER
+
+All four were found by adversarial review, none by the 69-gate suite, and all four are in code that
+was written earlier the same day:
+
+1. **`can_fly_to_anchor` mirrored three of `fly_to_destination`'s FOUR guards.** The missing one is
+   *the map you are standing on must allow Fly*. `pokemon_league.py` labels that omission in its own
+   source as *"THE FOURTH GUARD, AND THE ONE THIS FUNCTION SHIPPED WITHOUT"*, with the measured
+   example being **VICTORY_ROAD_1F, `map_type=Underground`** — §Ch24's own grind tile.
+2. **The backstop was catching itself.** `raise UnreachableDestinationError(...)` sat INSIDE the
+   `try` whose own `except Exception` caught it; `reraise_if_aborting` re-raises only on the abort
+   latch, so on every ordinary run the refusal was swallowed and the bot walked anyway — an
+   11-to-15-hop cross-Hoenn trek on a frame-capless grind (KI-28's shape).
+3. **Guard 3 compared the MAP, and Ever Grande is split by terrain.** §Ch23 hands over at
+   `EVER_GRANDE_CITY (18,6)`, the League plateau — same MAP as the landing `(27,49)`, but
+   `calculate_path` between them is **NO PATH in both directions** (measured; control at `(18,42)` =
+   23 wp). A map-level guard skipped the Fly at the one tile where Fly is the only way off. Now
+   compares the TILE.
+4. **A probe reported a promotion it could not see.** Gate #65 imported only sandbox. Now
+   `--build`-aware — and that is what produced the BEFORE column above.
+
+## ⚠ WHAT SHIPS INERT — SAY IT, SO NO HANDOFF CLAIMS OTHERWISE
+
+Verified by grep in this fork after the copy:
+* **`_yield_bounded_by_frames`** — exactly **one** hit, its own `def`. The frame purse has **no
+  caller**. §Ch24's training leg (Piece 3) is what would wire it.
+* **`max_wild_max`** — no use outside `training_areas.py`. The `#24-ladderleak` out-level cap also
+  ships with **no caller setting it**.
+⇒ the only true sentence is **"the knobs exist; nothing sets them yet"**. Do not read this promotion
+as "the ladder is running".
+
+## ⚠ TWO RESIDUAL GAPS, RECORDED RATHER THAN FIXED
+
+* **A duplicated constant with nothing enforcing it.** `early_game._MAX_TRAINING_WALK_HOPS = 4`
+  hand-copies `story_mode._MAX_TRAINING_TRAVEL_LEGS = 4` (`modules/` must not import from
+  `plugins/`). If one moves and the other does not, the predicate and the traversal disagree about
+  which areas are walkable — the exact split this feature exists to prevent. No gate covers it.
+* **Trainer sight cones remain unmeasured.** `avoid_scripted_events` consults only
+  `on_enter_event_triggers`; spotting is a per-frame scan in the decomp's `trainer_see.c`, so the
+  planner is structurally blind to cones and these last miles are trainer routes. A walkable last
+  mile is not a battle-free one.
+
+## ‼ NOT VERIFIED BY A DRIVE
+
+`promote.py` prints, correctly, that a copy is not evidence and the standing rule is to verify by
+DRIVING. The three build-aware gates above prove the promoted **predicates and control flow** behave
+in this fork; **no driver has flown the ladder end to end in either fork.** That is Piece 3's work,
+and it is gated on a user ruling about party composition that has not been given.

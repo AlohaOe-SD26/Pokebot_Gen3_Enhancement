@@ -1687,6 +1687,43 @@ def _yield_bounded(gen, max_frames: int) -> Generator:
     return False
 
 
+def _yield_bounded_by_frames(gen, real_frames: int) -> Generator:
+    """`_yield_bounded` with the CORRECT DENOMINATOR — REAL emulator frames.
+
+    ⛔⛔ WHY THIS EXISTS AND WHY `_yield_bounded` CANNOT BE USED FOR TRAINING. That function is
+    `for _ in range(max_frames): next(gen)` — it counts **its own advances of the story
+    generator**. But `main.py:148` advances only the TOP of the controller stack
+    (`next(context.controller_stack[-1])`), and a wild battle pushes its own controller on top.
+    ⇒ for the duration of every battle the story generator is NOT advanced, so that counter does
+    not tick. A grind is almost entirely battle frames, so a budget expressed in those units
+    silently buys far more real time than it claims. That is KI-28's shape (19.9M frames burned).
+
+    ⭐ THE PRECEDENT THIS COPIES: `_FORTREE_MAX_TOTAL_FRAMES` (this file) uses
+    `context.emulator.get_frame_count()` as "a hard backstop independent of the above counters".
+    Same idea, made reusable.
+
+    Returns True if the sub-generator finished, False if the real-frame bound expired (and the
+    sub-generator is then closed, exactly as `_yield_bounded` does).
+
+    ⛔ WHAT IT STILL CANNOT BOUND, STATED SO NOBODY TRUSTS IT TOO FAR: a sub-generator that loops
+    in pure Python WITHOUT yielding never returns from `next(gen)`, so control never comes back
+    here and no wrapper of this shape can help. This bounds *slow*, not *stuck*.
+    """
+    start = context.emulator.get_frame_count()
+    while True:
+        try:
+            next(gen)
+        except StopIteration:
+            return True
+        if context.emulator.get_frame_count() - start > real_frames:
+            try:
+                gen.close()
+            except Exception:  # noqa: BLE001 - a generator that refuses to close is not a reason
+                pass            # to keep burning frames; the bound is the point
+            return False
+        yield
+
+
 def _rotate_lead_safely(target_slot: int, *, attempts: int = 3) -> Generator:
     """`change_lead_party_pokemon` with INTERRUPT AWARENESS (user directive 2026-07-22:
     "ensure the interrupt logic works — know when a trainer interrupts anything").
@@ -2046,13 +2083,147 @@ _CAVE_ENTRANCES: dict = {
 }
 
 
-def _goto_training_area(grass_map, grass_tile) -> Generator:
+#: ‼ THE SAME WALKING BUDGET `_training_area_allowed` USES (`_MAX_TRAINING_TRAVEL_LEGS = 4`,
+#: `plugins/custom_modes/story_mode.py`). Duplicated as a constant here rather than imported
+#: because `modules/` must not import from `plugins/` -- but it must stay in step: if one
+#: moves and the other does not, the predicate and the traversal disagree about which areas
+#: are walkable, which is precisely the split this whole feature is built to avoid.
+_MAX_TRAINING_WALK_HOPS = 4
+
+
+def _fly_to_training_anchor(grass_map, heal_center) -> Generator:
+    """Fly to a training area's anchor town when walking there is not the plan. (`#24-flyladder` 2c)
+
+    NO-OPS, LOUDLY-SAFELY, IN EVERY CASE IT IS NOT WANTED — and the order of these guards is the
+    whole design, because each one is a way this could waste a Fly or strand the run:
+      1. no anchor given            -> old behaviour, walk (every pre-2026-09-23 caller)
+      2. already ON the target map  -> nothing to travel; flying away would be a REGRESSION
+      3. already IN the anchor town -> the last mile is all that remains; do not re-fly
+      4. guards not satisfied       -> `can_fly_to_anchor` is False; walk and let it fail loudly
+
+    ⛔ WHY IT NEVER RAISES. This is an OPTIMISATION of the approach, not a precondition of it. If
+    Fly is unavailable the walk is still correct-if-slow, and turning a missing HM into a hard abort
+    would convert a degraded run into a dead one. A failure here is reported and swallowed
+    DELIBERATELY — `reraise_if_aborting` first, so a real abort still propagates.
+
+    ‼ MEASURED, so the caller knows what it buys (`probe_lastmile_paths.py`, evidence
+    `2026-09-23-lastmile-paths-v2.stdout.txt`), last mile from each real landing tile:
+        ROUTE117 47 wp | ROUTE111 220 wp (via ROUTE113) | ROUTE121 81 wp   -- walkable on foot
+        ROUTE115 / ROUTE118 -- SURF spots: the spin tile is itself a water tile, and
+                               `AREA_PREREQ` already declares both "surf"
+        VICTORY_ROAD_1F     -- door warp; `calculate_path` cannot express it but
+                               `navigate_to_anywhere` walks it (the `ch24caveheal` drive, both ways)
+    """
+    if heal_center is None:
+        return
+    try:
+        from modules.story.training_areas import can_fly_to_anchor, fly_landing_tile
+
+        if _map_group_number() == grass_map.value:
+            return                                   # guard 2 -- already there
+        # ⛔⛔ GUARD 3 COMPARES THE **TILE**, NOT THE MAP, AND THAT DISTINCTION IS MEASURED.
+        # v1 compared the MAP ("already in the anchor town, so do not fly") and was WRONG on the one
+        # town this chapter actually starts in. `EVER_GRANDE_CITY` is split by terrain: the League
+        # plateau at (18,6) — where `heal_at_league` deliberately leaves the bot
+        # (`victory_road.py:374` `LEAGUE_DOOR_APRON`) — is the SAME MAP as the Poké Center landing
+        # (27,49), and `calculate_path` between them is **NO PATH IN BOTH DIRECTIONS**, measured:
+        # `evidence/2026-09-18-vr-heal-roundtrip.stdout.txt`, with a control at (18,42) returning
+        # 23 wp so the refusal is a real reachability answer and not a broken instrument.
+        # ⇒ a map-level guard would have SKIPPED the Fly precisely when Fly is the only way off the
+        # plateau, stranding the leg at its own starting position.
+        # ✅ Flying to the town you are already standing in is legal in Gen 3 and is exactly what we
+        # want: it NORMALISES position onto the known landing tile, which is where every measured
+        # last mile starts. So the only case worth skipping is "already ON that tile".
+        landing = fly_landing_tile(heal_center)
+        if (landing is not None
+                and _map_group_number() == landing[0].value
+                and tuple(get_player_avatar().local_coordinates) == tuple(landing[1])):
+            return                                   # guard 3 -- already standing on the landing
+        if not can_fly_to_anchor(heal_center):
+            # ⛔⛔ CANNOT FLY FROM HERE — AND FALLING THROUGH TO THE WALK IS THE DANGEROUS PART.
+            # The area may have been ADMITTED by `_training_area_allowed`'s Fly disjunct, i.e. the
+            # 4-hop walking oracle already refused it. Walking anyway means an 11-to-15-hop
+            # cross-Hoenn trek bounded only by `train_team`'s 500-round guard — no frame cap, which
+            # is KI-28's 19.9M-frame shape and the exact outcome this feature must never produce.
+            # ⇒ ask the SAME walking oracle the predicate used. If it can be walked, walk (that is
+            # the old behaviour, and the ordinary heal-return case: standing in a Poké Center is
+            # `map_type=Indoor`, so Fly is illegal there, but the grind tile is two hops away).
+            # If it CANNOT be walked either, this destination is genuinely unreachable from here,
+            # and `UnreachableDestinationError` is the project's existing, proven answer: the caller
+            # (`story_mode.py`) blocklists the area for the run and re-raises so normal derail
+            # recovery runs. ‼ Raising beats walking here — a loud, recoverable refusal instead of a
+            # silent multi-million-frame walk.
+            from modules.story import region_reach
+
+            if region_reach.is_map_reachable(grass_map, max_hops=_MAX_TRAINING_WALK_HOPS):
+                return
+            raise UnreachableDestinationError(
+                f"Training area {grass_map.name} was admitted on the strength of Fly, but Fly is "
+                f"unavailable from here (no flyer / no BADGE06 / destination locked / "
+                f"`map_type` forbids it) and {grass_map.name} is not walkable within "
+                f"{_MAX_TRAINING_WALK_HOPS} hops. ⛔ Refusing rather than walking it: an unbounded "
+                f"cross-Hoenn trek on a frame-capless `train_team` is KI-28's shape."
+            )
+    except UnreachableDestinationError:
+        # ⛔⛔ THE REFUSAL MUST ESCAPE ITS OWN TRY BLOCK, AND IT DID NOT.
+        # Raised at the end of the block above, it was caught by the broad handler below;
+        # `reraise_if_aborting` re-raises ONLY when `_STORY_ABORT` is latched (`:161`), which on a
+        # normal run it is not. ⇒ the refusal was swallowed, the generator returned, and
+        # `_goto_training_area` fell straight through to the walk — i.e. the backstop added to
+        # prevent an unbounded cross-Hoenn trek was INERT, and the KI-28 shape survived it.
+        # ‼ Caught by an adversarial review, NOT by a gate: gate #68 exercises the PREDICATE, and
+        # nothing exercises this traversal. A guard placed inside the handler that catches it is a
+        # guard that has been written but not installed.
+        raise
+    except Exception as error:  # noqa: BLE001 - a guard we cannot evaluate means we do NOT
+        # fly; walking is still correct, so this degrades the approach, never the run.
+        # ‼ This clause is for guards that cannot be EVALUATED (a failed import, an unreadable map).
+        # It must never be the thing that decides a deliberate refusal — hence the clause above it.
+        reraise_if_aborting(error)
+        return
+
+    try:
+        from modules.console import console
+        from modules.story.pokemon_league import fly_to_destination
+        from modules.story.training_areas import fly_destination_for
+
+        dest = fly_destination_for(heal_center)
+        if dest is None:
+            return
+        console.print(f"[cyan]Story: flying to {heal_center.name} for training at "
+                      f"{grass_map.name}.[/]")
+        yield from fly_to_destination(dest)
+    except Exception as error:  # noqa: BLE001
+        reraise_if_aborting(error)
+        # ⛔ NOT SILENT. A swallowed Fly failure that leaves no trace is how a leg gets debugged
+        # twice -- the walk that follows will look like a planner problem instead of a Fly problem.
+        # ‼ Its own import: `console` is bound inside the TRY above, and if the failure happened at
+        # that import line the name would be unbound here -- a NameError on the failure-only path,
+        # which is the one path nobody drives. This module's idiom is a local import per use.
+        from modules.console import console
+
+        console.print(f"[yellow]Story: could not fly to {heal_center.name} "
+                      f"({type(error).__name__}) — walking to {grass_map.name} instead.[/]")
+
+
+def _goto_training_area(grass_map, grass_tile, heal_center=None) -> Generator:
     """Navigate to the training spin tile, threading the CAVE door first when the area
     lives inside a cave and we're currently outside it — the counterpart of
     `_exit_training_cave_if_inside` for the return trip after a heal.
 
     Table-driven (2026-07-26) for the same reason as `_CAVE_EXITS`: it knew only Granite
-    Cave, so a second in-cave ground would have failed to enter at all."""
+    Cave, so a second in-cave ground would have failed to enter at all.
+
+    ⭐⭐ `heal_center` ADDED 2026-09-23 (`#24-flyladder` Piece 2c). When given, and when the area is
+    not already under our feet, the leg FLIES to that anchor town first. This is the half that makes
+    `_training_area_allowed`'s Fly disjunct honest: that predicate now admits areas the 4-hop walking
+    budget refuses, and without this leg the bot would admit a 15-hop area and then try to WALK it.
+    ⛔ THE TWO MUST NEVER BE SPLIT ACROSS COMMITS — a bare `train_team` has no frame cap, only a
+    500-round guard (`:2139`), which is KI-28's 19.9M-frame shape.
+
+    ‼ DEFAULTS TO None = OLD BEHAVIOUR EXACTLY. Every pre-existing caller that does not pass an
+    anchor walks precisely as before, so this cannot regress the early-game grind."""
+    yield from _fly_to_training_anchor(grass_map, heal_center)
     approach = _CAVE_ENTRANCES.get(grass_map)
     if approach is not None and _map_group_number() != grass_map.value:
         outside_map, door_tile = approach
@@ -2122,7 +2293,10 @@ def train_team(
                 yield from _rotate_lead_safely(target_slot)
 
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
-            yield from _goto_training_area(grass_map, grass_tile)
+            # ⭐ `heal_center` threaded through 2026-09-23 (`#24-flyladder` 2c): this is what
+            # lets the leg FLY to a far ground the Fly disjunct in `_training_area_allowed`
+            # now admits. `train_team` has carried this anchor as a parameter all along.
+            yield from _goto_training_area(grass_map, grass_tile, heal_center)
 
             # ‼ STOP SPINNING FOR PP TOO, NOT JUST HP (2026-07-26). Out of PP the bot
             # flees every encounter, gains nothing, and — because fleeing takes no
@@ -4583,8 +4757,33 @@ def _hm_hunting_grounds(item) -> list[tuple]:
     from modules.map import get_wild_encounters_for_map
     from modules.story.training_areas import TRAINING_GRASS
 
+    #: ⛔⛔ GROUNDS AN HM HUNT MUST NEVER BE OFFERED, however well their encounter table fits.
+    #: ADDED 2026-09-19 WITH THE VICTORY ROAD PROMOTION, and found by a Tier 1 review rather
+    #: than by me: this function is a THIRD consumer of `TRAINING_GRASS` alongside the two
+    #: pickers, and unlike them it consults **no** `AREA_PREREQ`. The moment Victory Road
+    #: entered the table it became a candidate for Cut / Surf / Strength / Rock Smash hunts —
+    #: every one of them a PRE-Badge-8 errand — and `ensure_hm_learner` tries candidates
+    #: `reversed(grounds)`, *furthest-progressed first*, which puts it near the FRONT.
+    #: ‼ THE CONCRETE HAZARD WAS CLOSED ONLY BY ACCIDENT, AND AN ACCIDENT IS NOT A GUARD:
+    #: `calculate_path` refuses Victory Road from the early game because it is warp-only
+    #: reachable (*“not on connected maps … warps don't count”*), so the bot never actually
+    #: walked there. That is unrelated behaviour nobody documented or tested for this purpose.
+    #: ✅ WHY A NAMED EXCLUSION AND NOT A PREREQ FILTER: skipping every `AREA_PREREQ` map would
+    #: also drop ROUTE111/115/118/119/121, which ARE legitimate mid-game HM hunting grounds.
+    #: And a live reachability check is wrong here too — `is_map_reachable` is fail-safe, so in
+    #: a no-ROM context it would silently filter EVERYTHING out.
+    #: ⇒ the honest rule is about the ERRAND, not the party: HMs are taught as they are earned,
+    #: so an HM hunt is an early/mid-game job and an endgame dungeon is never the right answer.
+    _HM_HUNT_EXCLUDED = {
+        MapRSE.VICTORY_ROAD_1F,
+        MapRSE.VICTORY_ROAD_B1F,
+        MapRSE.VICTORY_ROAD_B2F,
+    }
+
     grounds = []
     for map_enum, tile, _band in TRAINING_GRASS:
+        if map_enum in _HM_HUNT_EXCLUDED:
+            continue
         if tile is None:
             continue
         try:

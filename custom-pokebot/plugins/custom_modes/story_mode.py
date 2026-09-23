@@ -1266,7 +1266,34 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
             # bridge maps, so a "last mile" check here would re-import the exact false
             # negative this predicate just stopped trusting.
             return True
-        return bool(region_reach.is_map_reachable(map_enum, max_hops=_MAX_TRAINING_TRAVEL_LEGS))
+        if bool(region_reach.is_map_reachable(map_enum, max_hops=_MAX_TRAINING_TRAVEL_LEGS)):
+            return True
+        # ⭐⭐ THE FLY DISJUNCT (`#24-flyladder` Piece 2b, USER RULING 2026-09-19: train each mōn at
+        # a level-appropriate ground, FLYING to reach it). Everything above is unchanged; this only
+        # ADDS a second way to say yes, for an area the hop budget refuses.
+        #
+        # ⛔⛔ AND IT IS A DISJUNCT *BECAUSE* OF THE DECISION DOCUMENTED ABOVE, NOT IN SPITE OF IT.
+        # The obvious design — "compute the last mile with `calculate_path(landing, tile)`" — was
+        # written into the handoff on 2026-09-23 and is WRONG here: this predicate deliberately does
+        # not use `calculate_path`, because a wrong NO from it is INVISIBLE and costs a run (it reads
+        # the Route 118/119/120 bridges as walls). Gating Fly on a last-mile path would re-import
+        # exactly that false negative — and ROUTE118 is one of the ladder's own rungs. ⇒ admit the
+        # area on the FLY GUARDS ALONE and let navigation fail loudly if the last mile is bad, which
+        # is the same cheap-and-visible trade the hop budget already makes.
+        #
+        # ‼ THE HOP BUDGET IS NOT WIDENED. `_MAX_TRAINING_TRAVEL_LEGS` still governs WALKING. A
+        # flyable area skips it because Fly does not walk the graph at all — measured hop counts put
+        # ROUTE121 at 6, ROUTE111/117 at 11 and ROUTE115 at 15 from Ever Grande, so under walking
+        # alone a per-trainee ladder returns None for every trainee.
+        #
+        # ⛔ PAIRED WITH `_goto_training_area`'s FLY LEG (`early_game.py`) — THEY SHIP TOGETHER.
+        # A Fly-aware YES here without that leg means the bot ADMITS a 15-hop area and then tries to
+        # WALK it, on a bare `train_team` whose only bound is a 500-round guard (KI-28's
+        # 19.9M-frame shape). Both callers resolve the anchor through `_training_area_heal_map()`
+        # and the guards through `can_fly_to_anchor`, so they cannot disagree about a rung.
+        from modules.story.training_areas import can_fly_to_anchor
+
+        return can_fly_to_anchor(_training_area_heal_map().get(map_enum))
     except Exception:
         return False
 
@@ -1447,6 +1474,15 @@ def _training_area_heal_map() -> dict:
         # these — the repro skips them for exactly this reason.
         MapRSE.ROUTE119: PokemonCenter.FortreeCity,
         MapRSE.ROUTE121: PokemonCenter.LilycoveCity,
+        # ⭐ ADDED 2026-09-19 WITH THE `TRAINING_GRASS` PROMOTION, AND IT IS NOT OPTIONAL.
+        # Two of this map's three consumers fall back to the BOSS's own heal centre on a miss
+        # rather than refusing — `story_mode.py` (the relocation branch) and
+        # `counter_hunt.py` both do `.get(map, cfg["heal"])` with no None-guard
+        # (`#24-healmapfallback`). ⇒ promoting Victory Road without this row would silently aim
+        # a heal across Hoenn. ✅ Ever Grande is the right centre and is MEASURED: a cave-heal
+        # drive walked VICTORY_ROAD_1F → EVER_GRANDE_CITY → POKEMON_CENTER_1F and back,
+        # restoring HP and PP (`#24-cavehealblind`).
+        MapRSE.VICTORY_ROAD_1F: PokemonCenter.EvergrandeCity,
     }
 
 
@@ -4885,7 +4921,7 @@ class StoryMode(BotMode):
         # chapter modules contain ZERO uses of it ⇒ from badge 7 on, **N whiteouts was N IDENTICAL
         # losses** — no escalation, no counter ladder, no honest stop.
         # ⛔ GRASS-LESS ON PURPOSE, AND THE OMISSION IS THE DESIGN, NOT AN OVERSIGHT.
-        # `training_areas.TRAINING_GRASS` tops out at ROUTE121 **L25-28** while Tate & Liza are
+        # `training_areas.TRAINING_GRASS` topped out at ROUTE121 **L25-28** when this was written — ‼ AS OF 2026-09-19 it also holds VICTORY_ROAD_1F **L36-40**, so re-read the arithmetic below before trusting it: Tate & Liza's band is L41-42, still ABOVE the new ceiling, so the conclusion survives **by one level** rather than by a wide margin while Tate & Liza are
         # L41-42, so there is no ground in the table that can train for this fight — a `grass` key
         # here would send a L40 mon to L28 grass. Without it `_prepare_for_fight` still buys
         # everything that was missing: defeat detection (`_defeat_counts` already increments here —
@@ -4919,6 +4955,12 @@ class StoryMode(BotMode):
                 # because a single sweeper cannot answer a 2v2. Omitting it is INERT TODAY — grass-less
                 # already no-ops every branch it gates — but it becomes a live misjudgement the moment
                 # `TRAINING_GRASS` gains an entry above L28, which `#24-maintain` is explicitly waiting on.
+                # ✅✅ THAT TRIPWIRE FIRED ON 2026-09-19 — `TRAINING_GRASS` gained VICTORY_ROAD_1F
+                # (L36-40) — AND THE FLAG WAS RE-CHECKED AS THIS COMMENT DEMANDS. `"double": True`
+                # is still set below and is still load-bearing: `_sufficiency_verdict` continues to
+                # exclude double battles, so a 2v2 is never judged by a single sweeper.
+                # ‼ I did not notice this tripwire when I made the change that fired it — a Tier 1
+                # review found it. **A dated tripwire is only worth the grep that finds it.**
                 # ⇒ a flag that is only correct because a NEIGHBOURING limitation hides it is a latent bug.
                 "double": True,
             }

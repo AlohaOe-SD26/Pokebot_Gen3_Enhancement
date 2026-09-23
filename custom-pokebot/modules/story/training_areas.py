@@ -26,7 +26,13 @@ from modules.map_data import MapRSE
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 # ⛔⛔ THE L28 CEILING IS THE GAME, NOT A GAP IN THIS TABLE. PROVEN 2026-09-10 — DO NOT RE-SURVEY.
 # ══════════════════════════════════════════════════════════════════════════════════════════════
-# This table tops out at ROUTE121 (25, 28). That has repeatedly been read as "the survey is
+# ‼ UPDATED 2026-09-19: this table now tops out at VICTORY_ROAD_1F (36, 40), promoted under the
+# level-appropriate-training ruling. **THE BLOCK'S CONCLUSION IS UNCHANGED AND STILL PROVEN** —
+# the ROUTE ceiling is L28 and no route can raise it; Victory Road is a DUNGEON, which is exactly
+# what the paragraph below says every L30+ ground in the game is. Do not read the promotion as a
+# refutation of this block; it is an instance of it.
+# The ROUTE survey: this table's route entries top out at ROUTE121 (25, 28). That has repeatedly
+# been read as "the survey is
 # incomplete" — most recently while trying to build `#24-maintain`, whose whole premise is sending an
 # under-levelled mon to a LEVEL-MATCHED ground. It is not incomplete. Measured against the decomp's
 # own `src/data/wild_encounters.json` (group `gWildMonHeaders`, 124 entries / 116 maps):
@@ -35,8 +41,15 @@ from modules.map_data import MapRSE
 #     ROUTE121 **28**, ROUTE120 27, ROUTE119 27, ROUTE118 27, ROUTE115 26, ROUTE111 22, ROUTE114 18,
 #     ROUTE113 16, ROUTE112 16, ROUTE117 14, ROUTE110 13, ROUTE116 8.
 #     ⇒ ROUTE121 (held here) and ROUTE123 are JOINT-HIGHEST. **No route can raise this ceiling.**
-#     ⛔ ROUTE130's 50 is MIRAGE ISLAND — a WYNAUT-only table behind a 1/256 daily RNG gate. Not a
-#       training ground; it is the single most inviting-looking row in the file and it is a trap.
+#     ⛔ ROUTE130's 50 is MIRAGE ISLAND — a WYNAUT-only table behind a daily RNG gate of roughly
+#       **1 in 10,900**. Not a training ground; it is the single most inviting-looking row in the
+#       file and it is a trap.
+#       ‼ CORRECTED 2026-09-18: this read “1/256”, which is ~42× too generous. `src/time_events.c`'s
+#       `IsMirageIslandPresent` compares the **HIGH** 16 bits of a daily-advancing RNG
+#       value (`GetMirageRnd() >> 16`) against the **LOW** 16 bits of EACH party mōn's PID
+#       (`MON_DATA_PERSONALITY & 0xFFFF`) ⇒ ≈6/65536 with a full party. The CONCLUSION never
+#       depended on the figure, but a wrong number inside a DO-NOT-RE-SURVEY block is exactly
+#       what teaches a reader to distrust the block.
 #   * NO land table ANYWHERE in Hoenn has a max level of **34, 35, 37, 41, 43, 46, 47, 48 or 49**.
 #     ⇒ §Ch23's `TRAIN_TARGET = 47` has NO ground at its level anywhere in the game.
 #
@@ -86,6 +99,22 @@ TRAINING_GRASS: list[tuple] = [
     # vs. (27, 9) (dist 8) on norman_done.ss1, 2026-07-24
     (MapRSE.ROUTE119, (21, 109), (24, 27)),  # post-Norman band; same-map two-way verified
     # vs. (21, 101) (dist 8) on norman_done.ss1, 2026-07-24
+    # ⭐⭐ PROMOTED 2026-09-19 (`#24-trainingbrackets`, USER RULING: train each mōn at a
+    # LEVEL-APPROPRIATE ground, flying to reach it). ‼ THE L28 CEILING NOTE ABOVE STILL STANDS —
+    # this is not a route and does not raise it; every L30+ ground in the game is a cave or
+    # dungeon, exactly as that block says.
+    # ⛔ WHY IT HAD TO BE PROMOTED, MEASURED 2026-09-19: from Ever Grande the training-travel
+    # budget `_MAX_TRAINING_TRAVEL_LEGS = 4` refuses EVERY route ground — ROUTE121 is 6 hops,
+    # ROUTE118/119 9, ROUTE111/117 11, ROUTE115 15. VICTORY_ROAD_1F is **1 hop** and is the only
+    # level-appropriate candidate inside the budget. ⇒ without this row a per-trainee selector
+    # returns None for every trainee at the League.
+    # ✅ The tile is MEASURED: `(15,39)` reads `has_encounters=True tile_type=Cave collision=0`
+    # with a SEPARATING control (`probe_grind_tile_encounters.py`) — `(15,40)` is a South Arrow
+    # Warp and `(15,41)` is Normal/collision=1, both False. It is also the tile §Ch23's own
+    # `TRAIN_SPOT_1F` (`victory_road.py:477`) has always trained on.
+    # ‼ PAIRED WITH `AREA_PREREQ[VICTORY_ROAD_1F]` BELOW — they must never be split: `allow=None`
+    # performs NO reachability check, it only skips rows that HAVE a prereq.
+    (MapRSE.VICTORY_ROAD_1F, (15, 39), (36, 40)),  # Aron/Golbat/Hariyama/Lairon/Loudred/…, rate 10.
     (MapRSE.ROUTE121, (44, 14), (25, 28)),  # post-Norman band (highest mapped); same-map
     # two-way verified vs. (48, 10) (dist 8) on norman_done.ss1, 2026-07-24
 ]
@@ -146,7 +175,9 @@ PENDING_GRASS: list[tuple] = [
     # is not a new idea, it is the existing idea with its numbers finally written down.
     # ⚠ B1F/B2F are AFTER the Wally fight in the leg order, so they are prep for the EXIT climb and
     # the Elite Four, never for Wally himself.
-    (MapRSE.VICTORY_ROAD_1F, None, (36, 40)),      # Aron/Golbat/Hariyama/Lairon/Loudred/…, rate 10.
+    # ‼ VICTORY_ROAD_1F WAS HERE AND IS NOW IN `TRAINING_GRASS` (promoted 2026-09-19). Removed
+    # rather than left in both lists: a map in two tables is the state that makes a future
+    # reader ask which one wins.
     (MapRSE.VICTORY_ROAD_B1F, None, (38, 42)),     # rate 10; ALSO a rock-smash table L30-40 rate 20.
     (MapRSE.VICTORY_ROAD_B2F, None, (40, 44)),     # Golbat/Lairon/Mawile/Sableye, rate 10.
     #
@@ -154,7 +185,7 @@ PENDING_GRASS: list[tuple] = [
     #   SAFARI_ZONE_* (L33-40 @ rate 25) — ZERO EXP, cannot attack. See the ceiling block above.
     #   ARTISAN_CAVE_1F/B1F (L40-50)     — Battle Frontier, post-game; unreachable during the story.
     #   DESERT_UNDERPASS (L35-45)        — post-game (Fossil Maniac), and Ditto/Whismur/Loudred.
-    #   ROUTE130 (L5-50)                 — Mirage Island, Wynaut-only behind a 1/256 daily RNG gate.
+    #   ROUTE130 (L5-50)                 — Mirage Island, Wynaut-only behind a ~1-in-10,900 daily RNG gate.
     #   SEAFLOOR_CAVERN_*, CAVE_OF_ORIGIN_* (L28-36) — rate **4**: ~6x fewer encounters per step
     #     than a rate-25 route, so the band flatters a patch that barely triggers battles.
 
@@ -277,6 +308,14 @@ AREA_PREREQ: dict = {
     # circular: the counter for Wattson sits behind Wattson.
     # ‼ This also correctly gates TRAINING there, which was equally impossible pre-badge.
     MapRSE.FIERY_PATH: "rocksmash",
+    # ⭐ VICTORY_ROAD_1F (added 2026-09-19 WITH the `TRAINING_GRASS` row — never split them).
+    # ‼ “region” IS AN IMPRECISE LABEL HERE AND THE IMPRECISION IS DELIBERATE. The real gate is
+    # an HM CAPABILITY (Waterfall + BADGE08), fully modelled in `region_reach.KNOWN_GATES`, not
+    # a within-map position split like Route 111's desert. “region” is used because it is in
+    # `_training_area_allowed`'s accepted set (`story_mode.py:1211`) and because its only job
+    # here is to make the conservative `allow=None` default REFUSE this area. ⛔ Do NOT invent a
+    # “waterfall” prereq string without extending that whitelist — it would fail closed forever.
+    MapRSE.VICTORY_ROAD_1F: "region",
     MapRSE.ROUTE111: "region",
     MapRSE.ROUTE115: "surf",
     MapRSE.ROUTE118: "surf",
@@ -470,7 +509,8 @@ def hunt_ground_tile(map_enum, *, require_driven: bool | None = None) -> "tuple 
         return None
 
 
-def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
+def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None,
+                       max_wild_max: "int | None" = None):
     """Pick the training area best matched to `team_level` for FULL-xp grinding.
 
     Returns ``(map_enum, tile, (lo, hi))`` or ``None``. Only areas whose max wild level
@@ -479,6 +519,11 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     the trainee (``team_level >= lo - 1``). Among the winnable, richer-than-min areas,
     prefer the one whose HIGH end is closest to ``team_level`` without a hard cap —
     ties break toward the HIGHER band (more xp per battle).
+
+    ``max_wild_max``, if given, refuses any area whose TOP wild exceeds it — the out-level
+    rule (`#24-ladderleak`). Pass ``mon.level + 1`` to guarantee the trainee is never 2+ below
+    its wilds, which is what stops swap-training adding a second participant and leaking xp to
+    the finisher. ``None`` (default) is exactly the historical behaviour.
 
     ``allow`` is a REACHABILITY predicate ``(map_enum, tile, prereq_or_None) -> bool`` and
     is what keeps the answer honest — see AREA_PREREQ. It receives the TILE too, because
@@ -498,6 +543,21 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
             continue
         if hi <= min_wild_max:
             continue  # doesn't beat the floor the caller already has
+        # ⭐ THE OUT-LEVEL CAP (`#24-ladderleak`, 2026-09-19). Optional; `None` is exactly
+        # today's behaviour. A caller passing `max_wild_max=mon.level + 1` gets only grounds
+        # the trainee OUT-LEVELS.
+        # ⛔ WHY IT IS NEEDED: the scorer minimises `abs(hi - team_level)` — the CLOSEST band,
+        # which is not the same as one the trainee beats. MEASURED over L10-75, the closest
+        # band leaves the trainee 2+ below the top wild at **L12, L18-20, L24, L35-38**. On
+        # those rungs `SwapTrainBattleStrategy` (UNDERLEVEL_MARGIN = 2) fires, a SECOND
+        # participant enters, and the finisher banks an equal share — the mechanism that
+        # computed a L75 Wailord to L89 and broke the L65-75 ruling's own ceiling.
+        # ✅ With this cap the same walk has ZERO leaking rungs and no level without a ground.
+        # ‼ WHY A NUMBER AND NOT A MARGIN: `UNDERLEVEL_MARGIN` lives in
+        # `plugins/custom_modes/story_mode.py`; importing a plugin from `modules/` would
+        # invert the layering. The caller knows the margin; the picker only needs the cap.
+        if max_wild_max is not None and hi > max_wild_max:
+            continue
         if team_level < lo - 1:
             continue  # wilds too strong — the trainee would lose here
         prereq = AREA_PREREQ.get(map_enum)
@@ -716,3 +776,111 @@ def estimate_frames_to_level(mon, target_level: int, wild_level) -> "int | None"
         return None
     battles_needed = math.ceil(needed_exp / xp_per_battle)
     return battles_needed * FRAMES_PER_WILD_BATTLE
+
+
+# ==================================================================================================
+# THE FLY ANCHOR — shared by the reachability PREDICATE and the TRAVERSAL, on purpose.
+# ==================================================================================================
+def fly_destination_for(center):
+    """The `FlyDestinationRSE` member for a Poke Center's town, matched by NAME, or None.
+
+    ONE DEFINITION, TWO CALLERS. `can_fly_to_anchor` (the predicate) and `_fly_to_training_anchor`
+    (the traversal) both need this lookup, and a Tier 1 review caught them holding byte-identical
+    COPIES of it. Identical today is not the risk; a future edit to one and not the other is -- and
+    the symptom would be a predicate that admits a rung the traversal then cannot resolve, which is
+    exactly the predicate/traversal split this whole feature exists to prevent.
+
+    An unmatched name returns None rather than guessing at a neighbour: a silent mis-match would
+    fly the bot to the wrong town, and a silent miss would make a rung permanently unflyable for no
+    visible reason. VERIFIED 2026-09-23: across all 17 `FlyDestinationRSE` members the reduced names
+    are unique -- no collisions -- and `EvergrandeCity` reduces to 'evergrande', which matches
+    `EverGrandeCity` and NEVER `PokemonLeague`. That pair matters: the League is a separate Fly
+    destination on a different tile, and landing there instead would strand the leg on the plateau.
+    """
+    try:
+        from modules.region_map import FlyDestinationRSE
+
+        want = center.name.lower().replace("city", "").replace("town", "")
+        for dest in FlyDestinationRSE:
+            if dest.name.lower().replace("city", "").replace("town", "") == want:
+                return dest
+    except Exception:  # noqa: BLE001 - a lookup that cannot answer must yield None, never a
+        # GUESS: flying to the wrong town would strand the leg somewhere plausible-looking.
+        return None
+    return None
+
+
+def can_fly_to_anchor(center) -> bool:
+    """Can the party Fly to this Poke Center's town RIGHT NOW? (`#24-flyladder`, Piece 2b/2c)
+
+    Mirrors `fly_to_destination`'s **FOUR** guards, in their order
+    (`modules/story/pokemon_league.py`): a party mon must know **Fly**, **BADGE06** must be held,
+    the destination's own visited-flag must be set, and -- the one that is easy to miss --
+    **the map under our feet must permit Fly at all**. Returns False, never raises.
+
+    THE FOURTH GUARD IS NOT AN EDGE CASE FOR THIS CHAPTER, IT IS ITS GRIND TILE. The first version
+    of this function claimed to mirror "three guards EXACTLY" and omitted the map-type check.
+    `pokemon_league.py` calls that omission out in its own source as "THE FOURTH GUARD, AND THE ONE
+    THIS FUNCTION SHIPPED WITHOUT", and gives the measured example: the finished Ch24 party is
+    parked at VICTORY_ROAD_1F with `map_type=Underground`, where Fly is refused.
+    WHY GETTING THIS WRONG WAS SEVERE, not cosmetic: the predicate would have admitted a far
+    training area on the strength of a Fly that could not happen, the traversal's fly attempt would
+    raise, the failure would be caught and degraded to WALKING, and the bot would then walk an
+    11-to-15-hop cross-Hoenn route under `train_team`'s 500-round guard with no frame cap -- KI-28's
+    19.9M-frame shape, which this feature's own comments say must never happen. Found by an
+    adversarial review before it shipped. The allow-list itself is shared, not copied
+    (`_FLY_ALLOWED_MAP_TYPES`), because a duplicated guard that drifts stops matching what it guards.
+
+    WHY THIS FUNCTION EXISTS AT ALL, rather than the two callers each asking their own question:
+    the PREDICATE that admits a far-off training area and the TRAVERSAL that actually goes there
+    must agree, or the bot admits an area it then cannot reach and walks instead. One function,
+    two callers, no second opinion.
+
+    MEASURED 2026-09-23 (`probe_fly_unlocked.py`, evidence `2026-09-23-fly-unlocked-v2.stdout.txt`):
+    on the four pinned Ch24 fixtures every ladder anchor town is unlocked, and three of the four
+    fixtures satisfy all three guards. `post_grind_L60.ss1` does NOT -- it has no Fly knower -- which
+    is exactly the case this returns False for.
+    """
+    if center is None:
+        return False
+    try:
+        from modules.memory import get_event_flag
+        from modules.pokemon_party import get_party
+        from modules.region_map import FlyDestinationRSE
+
+        if get_party().first_pokemon_with_move("Fly") is None:
+            return False
+        if not get_event_flag("BADGE06_GET"):
+            return False
+        # GUARD 4 -- the map we are STANDING ON must allow Fly. Underground/Indoor/Underwater do
+        # not. Shared with the leg that enforces it, so the two can never disagree.
+        from modules.story.pokemon_league import fly_is_legal_from_current_map
+
+        if not fly_is_legal_from_current_map():
+            return False
+        dest = fly_destination_for(center)
+        return False if dest is None else bool(get_event_flag(dest.get_flag_name()))
+    except Exception:  # noqa: BLE001 - an oracle that cannot answer is a NO, like every gate here
+        return False
+
+
+def fly_landing_tile(center):
+    """The tile Fly actually deposits the player on: the Poke Center door, one row SOUTH.
+
+    NOT the door itself -- that is a WARP, and `calculate_path` FOLLOWS a warp used as an
+    endpoint, so a path computed from the door can resolve INSIDE the building.
+
+    VERIFIED 2026-09-23 for all six ladder anchors against the decomp's heal-location table
+    (`pret/pokeemerald:src/data/heal_locations.json`): every landing is exactly door + (0, +1) --
+    6 of 6, zero mismatches. `modules/story/victory_road.py:147-148` already derives `EG_PC_APRON`
+    this way; this generalises the same rule rather than inventing a second one.
+
+    Returns `(map_enum, (x, y))`, or None if the center has no usable value.
+    """
+    try:
+        src_map, src_tile = center.value
+        x, y = tuple(src_tile)
+        return src_map, (x, y + 1)
+    except Exception:  # noqa: BLE001 - a tile we cannot derive is None, not a fabricated
+        # coordinate; a wrong landing tile strands the leg somewhere plausible-looking.
+        return None
