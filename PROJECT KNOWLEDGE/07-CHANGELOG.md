@@ -33509,3 +33509,39 @@ are durable). `_yield_bounded_by_frames` is the purse it must use.
 `tools/story-dev/probe_ladder_economics.py` (measured constant),
 `tools/story-dev/evidence/2026-09-23-ladder-economics.stdout.txt`, `03-PUNCH-LIST.md`,
 `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 (later) — THE SWAP-TRIGGER GRADE SHIPPED WITHOUT "AND THE BOT CAN CONTINUE"; ADDED, AND ITS FIRST RUN CAUGHT A BUG IN THE CHECK
+
+**A DIFF ADVISORY CAUGHT IT, NOT ME.** `R-ACCEPTGRADE` fires on any new pass/fail grade and says a
+grade must include *"and the bot can CONTINUE"* — a real `calculate_path` off the END tile — because
+§Ch15 ended four floors underground, §Ch18 on an eleven-tile island and §Ch19 in a living room, and
+**all three passed their own tests**. ‼ I fixed this exact omission in `ch24phoebe` earlier the same
+day (`a18effe2`) and then shipped a new driver with the same hole.
+
+**`S-CONTINUE` IS NOW A REQUIRED READING,** with two conjuncts because this leg has two independent
+ways to be stranded, both derived from the tile the run actually reached (nothing hardcoded):
+1. a real `calculate_path` from the end tile back to the anchor's landing; and
+2. **Fly must be legal there** — the ladder's next move is another Fly, so a grind that ends
+   somewhere Fly-illegal cannot climb. ROUTE117 is a Route so this should hold, which is precisely
+   why it is asserted rather than assumed.
+
+**⛔⛔ AND ITS FIRST RUN FAILED — ON A BUG IN THE CHECK, NOT IN THE BOT.** It reported `path_home=0`
+at `VERDANTURF_TOWN (16,4)` and graded FAIL. But **0 waypoints means "already standing on the
+landing"**, which is the best possible outcome: `train_team` ends with a heal and leaves the bot in
+town, on that tile. `calculate_path(x, x)` returns an EMPTY list, and I tested **truthiness**.
+⇒ corrected to `is not None`, and the log now distinguishes *"already ON it"* from *"N wp back to
+it"*. ‼ This is the tree's own recurring trap, hit again: **when a probe FAILS, read the failing
+line before touching the thing under test.** The subject was correct; the instrument was not.
+
+**✅ FINAL GRADE: `ACCEPTANCE: PASS`, 8 readings, `missing=[]`, 29 battles, 0 whiteouts.**
+
+**‼ AND A PRECISION POINT ABOUT THE THREE RUNS.** All three produced IDENTICAL numbers (`calls=53`,
+`hp=1`, `swaps=1`, exp `4716`/`108`) — as they must, from a fixed save state in a deterministic
+emulator. ⇒ the correct phrase is **"one trajectory, replayed"**, never "measured three times". It
+confirms the readings are STABLE; it adds **no** statistical weight to the 3.4 %, and the Wilson
+interval (≈0.6-17 %) is unchanged by it.
+
+**FILES:** `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-23-ch24swaptrigger.stdout.txt`, `03-PUNCH-LIST.md`,
+`07-CHANGELOG.md`.

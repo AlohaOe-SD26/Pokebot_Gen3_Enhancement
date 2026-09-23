@@ -20581,7 +20581,8 @@ class Ch24SwapTriggerMode(BotMode):
         self.battles = getattr(self, "battles", 0)
         R: dict = {}
         taken = set()
-        WANT = {"S-PRE", "S-PATCHED", "S-ARRIVED", "S-LEAD", "S-BATTLES", "S-TRIGGERS", "S-EXP"}
+        WANT = {"S-PRE", "S-PATCHED", "S-ARRIVED", "S-LEAD", "S-BATTLES", "S-TRIGGERS",
+                "S-EXP", "S-CONTINUE"}
         failure = None
         no_fly = _os.environ.get("POKEBOT_CH24_FAULT_NOFLY", "").strip() in ("1", "true", "yes")
 
@@ -20735,6 +20736,52 @@ class Ch24SwapTriggerMode(BotMode):
                 f"hp={C['hp']} pp={C['pp']} SWAPS={C['swaps']} "
                 f"(hp/battle={C['hp'] / b:.3f} swaps/battle={C['swaps'] / b:.3f})")
 
+            # ---- ⛔ AND THE BOT CAN CONTINUE — the conjunct this grade shipped WITHOUT ------
+            # `R-ACCEPTGRADE` exists because §Ch15 ended four floors underground, §Ch18 on an
+            # eleven-tile island and §Ch19 in a living room, and ALL THREE PASSED THEIR OWN TESTS.
+            # A grade that stops at "the work happened" cannot tell success from stranded.
+            # ‼ DERIVED FROM THE STATE THE RUN ACTUALLY REACHED, never hardcoded: the origin is
+            # wherever the bot is standing now.
+            # ⭐ TWO CONJUNCTS, because this leg's "continue" has two independent ways to fail:
+            #   (a) a REAL `calculate_path` off the end tile back to the anchor landing — the
+            #       trainee must not be stranded on the route it was grinding; and
+            #   (b) Fly must be LEGAL from here, because the ladder's next move is another Fly.
+            #       ROUTE117 is a Route so this should hold — which is exactly why it is asserted
+            #       rather than assumed. A grind that ends somewhere Fly-illegal cannot climb.
+            from modules.map_path import calculate_path
+            from modules.story.pokemon_league import fly_is_legal_from_current_map
+            from modules.story.training_areas import fly_landing_tile
+
+            here_map = tuple(get_player_avatar().map_group_and_number)
+            here_tile = tuple(get_player_avatar().local_coordinates)
+            landing = fly_landing_tile(ANCHOR)
+            R["end_tile"] = f"{MapRSE(here_map).name}{here_tile}"
+            can_fly_here = fly_is_legal_from_current_map()
+            R["fly_legal_at_end"] = can_fly_here
+            try:
+                back = calculate_path((MapRSE(here_map), here_tile), (landing[0], landing[1]))
+                R["path_home_wp"] = len(back)
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading, and a bad one
+                R["path_home_wp"] = None
+                R["path_home_error"] = f"{type(error).__name__}: {str(error)[:90]}"
+            # ⛔⛔ `is not None`, NOT truthiness. `calculate_path(x, x)` returns an EMPTY list, so a
+            # waypoint count of **0** means "already standing on the landing" — the BEST possible
+            # outcome — and a truthiness test reads it as failure. MEASURED: the first run of this
+            # check FAILED on `path_home=0` at VERDANTURF_TOWN(16,4), because `train_team` ends with
+            # a heal and leaves the bot in town, ON the landing tile. The bot was correct and the
+            # CHECK was wrong — this tree's own recurring trap ("read the failing line before
+            # touching the thing under test").
+            if R["path_home_wp"] is not None and can_fly_here:
+                taken.add("S-CONTINUE")
+                _how = ("already ON it" if R["path_home_wp"] == 0
+                        else f"{R['path_home_wp']} wp back to it")
+                log(f"[{TAG}] ✅ S-CONTINUE from {R['end_tile']}: {ANCHOR.name}'s landing is "
+                    f"{_how}, and Fly is legal here — the ladder can climb on.")
+            else:
+                log(f"[{TAG}] ⛔ S-CONTINUE FAILED from {R['end_tile']}: "
+                    f"path_home={R['path_home_wp']} fly_legal={can_fly_here} — the run did the "
+                    f"work and left the bot unable to proceed, which is NOT a pass.")
+
         except Exception as error:  # noqa: BLE001 - a refusal IS the reading
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")
@@ -20746,8 +20793,9 @@ class Ch24SwapTriggerMode(BotMode):
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (fly to {ANCHOR.name}, walk to "
-            f"{GROUND.name}{SPIN}, put the trainee at slot 0 BY PID, grind it, and report which "
-            f"swap trigger fired and who banked the exp)")
+            f"{GROUND.name}{SPIN}, put the trainee at slot 0 BY PID, grind it, report which swap "
+            f"trigger fired and who banked the exp, AND END ABLE TO CONTINUE — a real path back "
+            f"to the landing, from a tile Fly is legal on)")
         context.set_manual_mode()
 
 
