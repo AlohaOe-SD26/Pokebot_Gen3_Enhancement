@@ -1,0 +1,40 @@
+Running mGBA 0.10.2
+============================================================================================================
+THE LAST MILE: anchor town → spin tile, computed from a PROXY origin (the Poké Center door)
+============================================================================================================
+  ROM context from: post_ch24_atdoor_L75.ss1
+  ‼ origins are PROXIES (Poké Center doors), not measured Fly landings — a FAIL is
+    alarming, a PASS is provisional. `calculate_path` also cannot use warps or Fly.
+
+  rung      ground             from (proxy)                       to         result
+  ----------------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           VERDANTURF_TOWN(16, 3)             (31, 16)   ✅ 48 wp
+                                                                                via VERDANTURF_TOWN -> ROUTE117
+  L21-24    ROUTE111           FALLARBOR_TOWN(14, 7)              (25, 55)   ✅ 221 wp
+                                                                                via FALLARBOR_TOWN -> ROUTE113 -> ROUTE111
+  L25-26    ROUTE115           RUSTBORO_CITY(16, 38)              (6, 53)    ✅ 93 wp
+                                                                                via RUSTBORO_CITY -> ROUTE115
+  L27       ROUTE118           MAUVILLE_CITY(22, 5)               (29, 15)   ✅ 57 wp
+                                                                                via MAUVILLE_CITY -> ROUTE118
+  L28-38    ROUTE121           LILYCOVE_CITY(24, 14)              (44, 14)   ✅ 82 wp
+                                                                                via LILYCOVE_CITY -> ROUTE121
+  L39-75    VICTORY_ROAD_1F    EVER_GRANDE_CITY(27, 48)           (15, 39)   ⛔ NO PATH
+                                                                                Source (27/48 @ EVER_GRANDE_CITY) and destination (15/39 @ VICTORY_ROAD_1F) are no
+
+============================================================================================================
+  walkable from the proxy origin: 5/6
+
+  ⛔⛔ 1 RUNG(S) HAVE NO CONNECTED-MAP PATH FROM THEIR ANCHOR TOWN:
+     L39-75    VICTORY_ROAD_1F    Source (27/48 @ EVER_GRANDE_CITY) and destination (15/39 @ VICTORY_ROA
+
+     ⇒ EACH NEEDS A REASON BEFORE THE LEG IS BUILT. Two innocent explanations exist and
+       must be told apart: (a) the route legitimately crosses a WARP, which this
+       instrument cannot use and the bot's `navigate_to_anywhere` CAN; or (b) the ground
+       is genuinely cut off from its anchor, which would make that rung unbuildable.
+     ⛔ Do NOT assume (a). VICTORY_ROAD_1F is the known warp case; the others are not.
+============================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-23_09-41-46.ss1 created!
+Updated `current_state.ss1`!

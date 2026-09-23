@@ -1,0 +1,65 @@
+Running mGBA 0.10.2
+========================================================================================================
+WHICH FLY DESTINATIONS ARE UNLOCKED ON THE §Ch24 FIXTURES?
+========================================================================================================
+
+─── post_ch24_atdoor_L75.ss1
+  state=OVERWORLD  at EVER_GRANDE_CITY
+  Fly knower : Swellow     BADGE06_GET = True
+
+  rung      ground             anchor town        fly enum           unlocked?
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           VerdanturfTown     VerdanturfTown     ✅ unlocked
+  L21-24    ROUTE111           FallarborTown      FallarborTown      ✅ unlocked
+  L25-26    ROUTE115           RustboroCity       RustboroCity       ✅ unlocked
+  L27       ROUTE118           MauvilleCity       MauvilleCity       ✅ unlocked
+  L28-38    ROUTE121           LilycoveCity       LilycoveCity       ✅ unlocked
+  L39-75    VICTORY_ROAD_1F    EvergrandeCity     EverGrandeCity     ✅ unlocked
+
+  ✅✅ EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED — the ladder is flyable end to end
+     from this fixture (town reachability only; the last mile is a drive question).
+
+─── post_league_lobby.ss1
+  state=OVERWORLD  at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+  Fly knower : Swellow     BADGE06_GET = True
+
+  rung      ground             anchor town        fly enum           unlocked?
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           VerdanturfTown     VerdanturfTown     ✅ unlocked
+  L21-24    ROUTE111           FallarborTown      FallarborTown      ✅ unlocked
+  L25-26    ROUTE115           RustboroCity       RustboroCity       ✅ unlocked
+  L27       ROUTE118           MauvilleCity       MauvilleCity       ✅ unlocked
+  L28-38    ROUTE121           LilycoveCity       LilycoveCity       ✅ unlocked
+  L39-75    VICTORY_ROAD_1F    EvergrandeCity     EverGrandeCity     ✅ unlocked
+
+  ✅✅ EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED — the ladder is flyable end to end
+     from this fixture (town reachability only; the last mile is a drive question).
+
+─── post_grind_L60.ss1
+  state=OVERWORLD  at VICTORY_ROAD_1F
+  Fly knower : ⛔ NOBODY     BADGE06_GET = True
+  ⛔ Fly is unusable on this fixture regardless of destinations — the first two
+     guards already fail. The ladder cannot be flown from here.
+
+  rung      ground             anchor town        fly enum           unlocked?
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           VerdanturfTown     VerdanturfTown     ✅ unlocked
+  L21-24    ROUTE111           FallarborTown      FallarborTown      ✅ unlocked
+  L25-26    ROUTE115           RustboroCity       RustboroCity       ✅ unlocked
+  L27       ROUTE118           MauvilleCity       MauvilleCity       ✅ unlocked
+  L28-38    ROUTE121           LilycoveCity       LilycoveCity       ✅ unlocked
+  L39-75    VICTORY_ROAD_1F    EvergrandeCity     EverGrandeCity     ✅ unlocked
+
+  ✅✅ EVERY LADDER RUNG'S ANCHOR TOWN IS UNLOCKED — the ladder is flyable end to end
+     from this fixture (town reachability only; the last mile is a drive question).
+
+========================================================================================================
+  ‼ SCOPE: this answers whether each ANCHOR TOWN is on the region map. It does NOT answer
+    whether the walk from a landing to a spin tile succeeds — that needs a drive, and
+    ROUTE111's walk in particular is the most-failed in this tree (1,041 logged drops).
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-23_09-38-55.ss1 created!
+Updated `current_state.ss1`!

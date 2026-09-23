@@ -33021,3 +33021,43 @@ item: it returns True having deposited **nothing** when the party is already und
 choice sorts ascending by level, so a caller cannot name which mōn to box.
 
 **FILES:** `03-PUNCH-LIST.md` (files `#25-partyroster`), `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-23 — ✅ THE FLY LADDER IS MEASURABLE, AND THE 1,041-FAILURE WALK WORKS FROM THE RIGHT ANCHOR
+
+**NEW:** `tools/story-dev/probe_fly_unlocked.py` and `tools/story-dev/probe_lastmile_paths.py`,
+with evidence. Both read-only; nothing walked, nothing written.
+
+The per-trainee Fly ladder (USER RULING 2026-09-19) had three unknowns. Two are now measured
+**without a single drive**, because `calculate_path(source, destination, …)` takes an EXPLICIT
+source and `fly_to_destination`'s guards are plain flag reads.
+
+✅✅ **(1) EVERY ANCHOR TOWN IS UNLOCKED.** On the pinned §Ch24 fixtures all six region-map flags
+are set, Swellow knows Fly and `BADGE06_GET` is true ⇒ all three `fly_to_destination` guards pass
+for every rung. **The ladder has no hole**, which was the single worst thing that could have been
+true and is far better learned from a flag read than from a drive walking into it.
+
+✅✅ **(2) FIVE OF SIX LAST MILES ARE WALKABLE:** ROUTE117 48 wp, ROUTE115 93 wp, ROUTE118 57 wp,
+ROUTE121 82 wp, and ⭐ **ROUTE111 221 wp via `FALLARBOR_TOWN → ROUTE113 → ROUTE111`.**
+
+⭐⭐ **THAT LAST ONE VINDICATES THE ANCHOR DESIGN EMPIRICALLY.** ROUTE111 (25,55) is the most-failed
+walk in this tree — **1,041** logged *"not reachable — dropping it"* events — because its NEAREST
+town is Mauville, on the wrong side of the Go-Goggles desert. Its HEAL CENTRE is Fallarbor, and
+from there the path exists. ⇒ anchoring on `_training_area_heal_map()` instead of on proximity is
+now correct **by measurement**, not by argument — and it reuses a table that already encodes
+hard-won failures rather than recomputing geography.
+
+✅ **The one failure is the expected warp case and is cited, not assumed:** `VICTORY_ROAD_1F`
+reports "not on connected maps" because its entrance is a door warp (`victory_road.py:132`), and
+`calculate_path` cannot use warps while `navigate_to_anywhere` can — proven by the `ch24caveheal`
+drive. The probe refuses to assume this: it prints both innocent explanations and names which
+ground is the known warp case.
+
+⚠ **WHAT IS STILL A PROXY, STATED IN THE PROBE ITSELF:** the true Fly landing tile is recorded
+nowhere here, so the origins are each town's Poké Center DOOR. The result is deliberately
+**asymmetric** — a FAIL would be alarming, a PASS is provisional — and the probe says so rather
+than letting five green ticks read as proof.
+
+**FILES:** `tools/story-dev/probe_fly_unlocked.py` (new),
+`tools/story-dev/probe_lastmile_paths.py` (new), their evidence files, `03-PUNCH-LIST.md`
+(files `#24-flyladder`), `07-CHANGELOG.md`.
