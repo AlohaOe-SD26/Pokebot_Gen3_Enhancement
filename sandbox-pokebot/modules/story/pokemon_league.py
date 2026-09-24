@@ -1939,16 +1939,17 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
 
     yield from wait_until_truly_controllable()
 
-    trainees = ch24_trainees_below_floor(floor)
-    report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
-    if not trainees:
-        console.print(f"[dim]§Ch24: every party member is already at or above L{floor} — "
-                      f"skipping the training leg.[/]")
-        report["skipped"] = True
-        return
-
-    # ⛔ LATCH FIRST, BEFORE A SINGLE STEP IS TAKEN. The moment the first Fly happens the position
-    # conjunct is broken; latching afterwards would leave a window in which a derail re-enters §Ch23.
+    # ⛔⛔ LATCH BEFORE THE SELF-SKIP, NOT AFTER IT — AND THIS ORDER WAS WRONG UNTIL 2026-09-24.
+    # The latch used to sit BELOW the `if not trainees: return` below, so a run whose party was
+    # ALREADY at or above the floor took the self-skip and **never latched at all**. The comment
+    # right here said "latching afterwards would leave a window in which a derail re-enters §Ch23"
+    # — and the code did exactly that on its own skip path.
+    # ‼ BENIGN ONLY WHILE NOTHING RUNS AFTER THIS LEG, which is true today and stops being true the
+    # instant the League-entry leg is wired: `_ch23_settled()` is `_ch24_owns_run or
+    # ch23_chapter_done()`, and `ch23_chapter_done()` requires `_on_map(EVER_GRANDE)` — FALSE in the
+    # League lobby and FALSE in HALL5. An unlatched resumed run would therefore re-enter §Ch23,
+    # burn its three attempts and raise. MEASURED live by `Ch24LobbyMode`, not predicted.
+    # ⇒ the latch is about OWNING THE RUN, which is true whether or not there is training left to do.
     mode = getattr(context, "bot_mode_instance", None)
     marker = getattr(mode, "mark_ch24_owns_run", None)
     if callable(marker):
@@ -1961,6 +1962,14 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
         report["latched"] = False
         console.print("[yellow]§Ch24: no StoryMode instance to latch — §Ch23 re-entry is NOT "
                       "suppressed. Expected under a standalone driver; a defect in production.[/]")
+
+    trainees = ch24_trainees_below_floor(floor)
+    report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
+    if not trainees:
+        console.print(f"[dim]§Ch24: every party member is already at or above L{floor} — "
+                      f"skipping the training leg.[/]")
+        report["skipped"] = True
+        return
 
     console.print(f"[bold cyan]§Ch24: training {len(trainees)} mōn to L{floor} — "
                   f"{', '.join(f'{sp} L{lv}' for _p, sp, lv in trainees)}[/]")

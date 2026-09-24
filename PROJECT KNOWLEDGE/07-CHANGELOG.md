@@ -34220,3 +34220,52 @@ covered for the first time.
 **FILES:** `tools/story-dev/audit_flag_names.py`, `tools/story-dev/story_harness.py`,
 `tools/story-dev/evidence/2026-09-24-silent-default-bugs.stdout.txt` (new),
 `PROJECT KNOWLEDGE/08-MISTAKES.md`, `07-CHANGELOG.md`.
+
+---
+
+## 2026-09-24g — THE LEAGUE-ENTRY LEG WAS DESIGNED, REVIEWED AND **SENT BACK**; ONE REAL BUG FELL OUT OF IT
+
+A production `enter_the_league()` was specified and put through a 4-agent review **before a line was
+written**. Three defects came back, each verified against real code. ⇒ **the design is not buildable
+as drafted, and the review is the reason no bad code exists.** Full write-up in
+`ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md`.
+
+### ⛔ D1 — THE SUCCESS STATE IS A DEAD END THAT THE RUN SCORES AS A WIN
+On success the bot stands in `HALL5`, whose only firing warp is **forward** into Sidney's room (the
+backward ones are INERT — our own measurement). The next executable statement sets
+`_reached_end_of_content = True` and hands to manual. ⇒ **`StoryEndlessResetMode` would score an
+in-gauntlet strand as a genuine completion and poison every overnight batch**, with `HALL5` written
+into `current_state.ss1`. ✅ **HARNESS-ONLY until the gauntlet leg lands with it.**
+
+### ✅ D2 — A REAL BUG, FIXED AND PROVEN: `train_for_league` NEVER LATCHED ON ITS SELF-SKIP PATH
+`report["skipped"] = True; return` sat **above** `mark_ch24_owns_run()`, so a run whose party was
+already at the floor **never owned the run** — while the comment beside it warned that *"latching
+afterwards would leave a window in which a derail re-enters §Ch23"*. Benign only while nothing runs
+after this leg; a stranding bug the instant the entry leg is wired, because `ch23_chapter_done()`
+requires `_on_map(EVER_GRANDE)` — **false in the lobby and false in HALL5**.
+**PROVEN DIRECTLY, NOT BY INSPECTION** (`evidence/2026-09-24-latch-before-selfskip.stdout.txt`): at a
+floor nobody is below, `skipped=True` **and** `latched=True`, `mark_ch24_owns_run()` called exactly
+once. ‼ The driver **could not** prove it — `ch24train`'s vacuity guard refuses a floor where the leg
+self-skips, because that would be a vacuous PASS. ⇒ *a guard that makes a path untestable by the
+usual instrument is a reason to change the instrument, not to skip the proof.*
+
+### ⛔ D3 — ALL THREE READINESS REMEDIES ARE NON-FUNCTIONAL FROM THE LOBBY
+`heal_at_league` raises on a healthy party **and** on `not _on_map(EG)`; the Mart needs **₽54,300**
+against a measured post-basket wallet of **₽1,741**; and `train_for_league` needs Fly while the lobby
+is `MAP_TYPE_INDOOR`. ⭐ That last one is a consequence of **my own earlier fix being deliberately
+narrow** — `_ch24_step_out_if_fly_illegal` handles only Victory Road, which was right at the time and
+is no longer free now a second Fly-illegal map is in play. ⇒ **the readiness phase belongs on
+EVER_GRANDE, BEFORE entering the building.**
+
+### ⭐ AND THE HOUSE CONTRACT THE REBUILD MUST FOLLOW
+Chiefly: ⛔⛔ **bound with `_yield_bounded_by_frames`, not `_budgeted`, for anything that can battle** —
+`main.py:148` advances only the top of the controller stack, so during a battle an iteration counter
+does not tick (`KI-28`, 19.9 M frames burned), and the gauntlet is nothing but battles. Plus: the
+leg owns a `*_READINGS` tuple the driver **imports**; `_check_abort()` first in every loop body,
+outside any `try`; `reraise_if_aborting(error)` first in every handler (gate #27 is a **ratchet** at
+baseline 27); and the latch is the leg's **first act**.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`,
+`tools/story-dev/evidence/2026-09-24-latch-before-selfskip.stdout.txt` (new),
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md`, `04-HANDOFF.md`,
+`06-DECISIONS-LOG.md` (the user's E4 → Pokédex → organic ordering), `07-CHANGELOG.md`.

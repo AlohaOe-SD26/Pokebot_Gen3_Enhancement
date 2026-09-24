@@ -1,0 +1,18 @@
+Running mGBA 0.10.2
+================================================================================================
+PROOF: train_for_league LATCHES ON ITS SELF-SKIP PATH (it did not, before 2026-09-24)
+================================================================================================
+  trainees below L5: []   <- empty => the leg SELF-SKIPS
+§Ch24: every party member is already at or above L5 — skipping the training 
+leg.
+  report['skipped'] = True      <- the self-skip path ran
+  report['latched'] = True      <- MUST be True; was absent before the fix
+  mark_ch24_owns_run() call count = 1   <- MUST be 1
+
+  PASS - the run is OWNED even when there is no training left to do.
+================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_14-52-58.ss1 created!
+Updated `current_state.ss1`!

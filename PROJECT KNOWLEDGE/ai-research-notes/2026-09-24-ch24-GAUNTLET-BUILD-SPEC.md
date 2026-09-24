@@ -325,3 +325,80 @@ which is what `map.json` lists because `copyobjectxytoperm` writes the post-flag
 | 5 | face Up; bounded A-press loop | ✅ live-verified once |
 | 6 | ⛔ **CONFIRM IT WORKED** — flag True **and** (9,2)/(10,2) empty by live object read | ⛔ **nothing in the tree asserts this today**; `ch24probe` checks only "are we on HALL5", i.e. the consequence two steps later |
 | 7 | step onto (9,1) ⇒ arrive HALL5 — **the commitment point** | ✅ live-verified once |
+
+---
+
+# ⛔⛔ THE LEAGUE-ENTRY LEG: DESIGNED, ADVERSARIALLY REVIEWED, AND **SENT BACK** (2026-09-24)
+
+A production leg `enter_the_league()` was specified — readiness gate in the lobby, clear the guards,
+step onto `(9,1)` — and put through a 4-agent review before a line was written. **Three defects came
+back, each verified against real code. The design is NOT buildable as drafted, and the review is the
+reason no bad code exists.**
+
+## ⛔ D1 — THE SUCCESS STATE IS A DEAD END, AND THE RUN SCORES IT AS A WIN
+
+On success the bot stands in `HALL5`. The next *executable* statement in `story_mode.py` is the
+END-OF-CONTENT banner: `_reached_end_of_content = True`, then `set_manual_mode()`, then `return`.
+And `HALL5`'s only firing warp is **forward**, into Sidney's room — the three backward warps are
+**INERT**, which is our own measurement (`evidence/2026-09-24-league-return-warps.stdout.txt`).
+
+⇒ the bot ends **in MANUAL, inside a one-way corridor**, with a banner whose text is now false, with
+`HALL5` written into `current_state.ss1` (`libmgba.py:226`), and — worst — with
+`_reached_end_of_content = True`, so **`StoryEndlessResetMode` scores an in-gauntlet strand as a
+genuine completion** and poisons every overnight batch. ‼ There is no wild encounter and no trainer
+in HALL5, so the bot cannot even white out of it.
+
+✅ **REQUIRED: build and drive this leg FROM THE HARNESS ONLY.** Wiring it into `_play` is a separate
+commit that must land **together with** the gauntlet leg and a retargeted banner. If it must be wired
+sooner, the door step sits behind an env arm defaulting **OFF** and the leg stops at the assertion.
+
+## ⛔ D2 — THE LATCH THAT WOULD PREVENT §Ch23 RE-ENTRY IS NOT REACHED ON THE SELF-SKIP PATH
+
+`_ch23_settled()` is `_ch24_owns_run or ch23_chapter_done()`, and `ch23_chapter_done()` requires
+`_on_map(EVER_GRANDE)` — **False in the lobby and False in HALL5**. `_ch24_owns_run` is in-memory
+only and does not survive the shutdown `libmgba.py:226` guarantees.
+‼ **AND `train_for_league` DID NOT LATCH ON ITS SELF-SKIP PATH** — `report["skipped"]=True; return`
+sat **above** the latch, so a run whose party was already at the floor **never owned the run**. The
+comment directly beside it warned *"latching afterwards would leave a window in which a derail
+re-enters §Ch23"* — and the code did exactly that on its own skip path.
+✅ **FIXED 2026-09-24**, and proven directly rather than by inspection
+(`evidence/2026-09-24-latch-before-selfskip.stdout.txt`): with a floor nobody is below,
+`skipped=True` **and** `latched=True`, `mark_ch24_owns_run()` called exactly **once**.
+⚠ The driver could not prove this — `ch24train`'s own vacuity guard **refuses** a floor where the leg
+self-skips, because that would be a vacuous PASS. ⇒ the proof is a direct call with a fake mode
+object. *A guard that makes a path untestable by the usual instrument is a reason to change the
+instrument, not to skip the proof.*
+
+## ⛔ D3 — ALL THREE READINESS REMEDIES ARE NON-FUNCTIONAL **FROM THE LOBBY**
+
+| remedy | what actually happens |
+|---|---|
+| `heal_at_league` | raises on a **healthy** party (anti-vacuity), then raises on `not _on_map(EG)` ⇒ **from the lobby it raises either way**; its postcondition is *outside* the building |
+| `stock_for_the_elite_four` | money guard fires first (`LEAGUE_MIN_MONEY = 54_300`) and the measured post-basket wallet is **₽1,741** ⇒ a second call raises. No self-skip. Also exits the building |
+| `train_for_league` | the lobby is `MAP_TYPE_INDOOR`; Fly is illegal there, and **`_ch24_step_out_if_fly_illegal` handles ONLY Victory Road** ⇒ every ground pick fails and it returns silently with everyone below the floor |
+
+⭐ **The third one is a consequence of MY OWN earlier fix being deliberately narrow.** It was scoped
+to Victory Road on purpose — *"inventing exits for caves this ladder never visits would be untested
+code"* — and that reasoning still holds. But the lobby is a **second** Fly-illegal map the leg can
+now find itself on, so the narrowness is no longer free.
+
+⇒ **AND THE INVARIANT BREAK:** the draft asserted *"we are on LEAGUE_1F"*, yet **every remedy that
+can run relocates the bot off that map**, while the re-check examined only the **party**, never the
+**position**. Pass 2 would then run a cross-map navigate the premise had forbidden.
+✅ **REQUIRED: the readiness/remedy phase belongs on EVER_GRANDE, BEFORE entering the building** — or
+each remedy must be followed by an explicit, asserted re-entry.
+
+## ✅ HOUSE CONTRACT THE REBUILT LEG MUST FOLLOW
+
+* `def enter_the_league(report=None) -> Generator:` + the mandatory two-line `report` prologue;
+  idempotent self-skip; precondition that RAISES with the live position; arrival assertion;
+  `_take(report, "<READING>")`; and a module-level `*_READINGS` tuple **the driver imports**
+  (a private driver copy makes a perfect run report `missing=[…]`).
+* ⛔⛔ **BOUND WITH `_yield_bounded_by_frames`, NOT `_budgeted`, FOR ANYTHING THAT CAN BATTLE.**
+  `main.py:148` advances only the top of the controller stack, so during a battle an iteration
+  counter does not tick — `KI-28`'s shape, 19.9 M frames burned. The gauntlet is nothing but battles.
+* `_check_abort()` first in every loop body, **outside** any `try`; every handler's first statement
+  is `reraise_if_aborting(error)`; `except StoryAbort: raise`, never retried in the leg.
+  ‼ Gate #27 `probe_abort_swallowing.py` is a **ratchet** at baseline 27 — a new unguarded broad
+  `except` around a `yield from` turns it red.
+* The latch is the leg's **first act**, before any button.

@@ -6873,3 +6873,24 @@ cannot be undone is not a deposit, it is a discard.
 §Ch24. This ruling exists so that IF the measurement above forces the question back open, the method
 is already decided and its precondition is already named. It also gives `#25-partyroster` its
 method: the PC round trip is step 1 there too.
+
+
+## 2026-09-24 — ⭐ USER RULING: THE ORDER IS ELITE FOUR → POKÉDEX → ORGANIC PLAY
+
+User, verbatim in substance: *"I want to ensure the bot is able to complete the elite 4 and complete
+the pokedex first before we fine tune the organic aspects of the bot."*
+
+### WHAT THIS DECIDES
+1. **§Ch24 (the Elite Four) is the live priority.** Everything else queues behind it.
+2. ⭐ **POKÉDEX COMPLETION IS A MAIN-LINE GOAL, NOT AN ORGANIC NICETY.** This is a promotion:
+   `#24-dexhunt` was previously bundled under "organic play" polish. It is now **objective #2**, and
+   `#24-catchcap` (the party-size cap that blocks catching at starter + 3) sits on its critical path.
+3. **`#25-organicplay` is DEFERRED, not rejected** — explicitly *"we will discuss soon"*. Its two
+   open DECISIONS still block a build and must be settled in that discussion, not assumed:
+   the L65-75 / no-bench ruling vs a growing roster, and the PC round-trip evidence gate.
+
+### ⇒ CONSEQUENCE FOR SEQUENCING
+The §Ch24 entry leg and gauntlet come first. Then dex completion, which needs `#24-catchcap`'s
+one-line cause fixed (`_catch_team_target = 4` is a PARTY-SIZE target including the starter) and
+`#24-dexhunt`'s fence proven in motion (its A/B has never been run). ⛔ Do NOT start organic-play
+work ahead of those; the user asked for a discussion first and two of its five pieces are decisions.
