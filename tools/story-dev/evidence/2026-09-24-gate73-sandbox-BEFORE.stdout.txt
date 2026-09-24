@@ -1,0 +1,10 @@
+====================================================================================================
+GATE #73 — EVERY ITEM NAME IN A POLICY TABLE RESOLVES TO A REAL ITEM
+====================================================================================================
+  build   : sandbox-pokebot
+  items.json carries 310 distinct item name(s)
+  ⚠ scoped file missing, skipped: modules/battle_items.py
+  scanned 3 scoped file(s)
+
+  ✅ PASS — every item name in every scoped policy table resolves.
+====================================================================================================

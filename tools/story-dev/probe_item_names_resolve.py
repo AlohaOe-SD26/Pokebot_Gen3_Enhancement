@@ -48,7 +48,14 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-SANDBOX = REPO / "sandbox-pokebot"
+# ⭐ `--build custom` MAKES THIS GATE ABLE TO VERIFY A PROMOTION. Without it the gate can only ever
+# read the sandbox, and a gate that cannot see the other fork cannot tell you whether a fix LANDED
+# there — which is precisely the question a promotion asks. Same spelling as the other build-aware
+# gates (`probe_lead_pp_scope.py:53`), so one flag works across all of them.
+_BUILD = ("custom" if "--build" in sys.argv
+          and sys.argv.index("--build") + 1 < len(sys.argv)
+          and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox")
+SANDBOX = REPO / f"{_BUILD}-pokebot"
 ITEMS_JSON = SANDBOX / "modules" / "data" / "items.json"
 
 #: The files that carry item policy. Narrow on purpose — see the docstring.
@@ -122,6 +129,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fault", choices=["phantom", "prose"])
+    ap.add_argument("--build", choices=["sandbox", "custom"], default="sandbox",
+                    help="which fork to scan; `custom` is how a promotion is verified")
     args = ap.parse_args()
 
     bar = "=" * 100
@@ -134,6 +143,7 @@ def main() -> int:
         return 1
 
     items = canonical_item_names()
+    print(f"  build   : {_BUILD}-pokebot")
     print(f"  items.json carries {len(items)} distinct item name(s)")
 
     problems: list[str] = []

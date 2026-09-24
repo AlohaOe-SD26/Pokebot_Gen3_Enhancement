@@ -1,0 +1,34 @@
+Running mGBA 0.10.2
+====================================================================================================
+  §Ch24 M1 (part 1) — LEAGUE LOBBY FACTS.  ⛔ OBSERVE-ONLY: no button is pressed,
+  no step is taken. Stepping through the lobby door is the irreversible act under test.
+  fixture: post_league_lobby.ss1   standing: EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+====================================================================================================
+
+  DOOR TILES — ROM vs LIVE. ‼ KI-74: these two DISAGREE around League doors, both ways,
+  so a design that trusts ROM alone is already wrong.
+          tile     ROM    LIVE   agree          tile_type
+        (9, 1)       0       0   SAME           Non-Animated Door  <- claimed door
+       (10, 1)       0       0   SAME           Non-Animated Door  <- claimed door
+        (8, 1)       1       1   SAME           Normal
+       (11, 1)       1       1   SAME           Normal
+        (9, 2)       0       0   SAME           Normal
+       (10, 2)       0       0   SAME           Normal
+
+  CAN THE BOT STILL ACT FROM HERE? — a readiness check's failure branch must be able to
+  heal, buy, or leave. If any of these refuse, the guard cannot remedy and must not halt here.
+    nurse stand (victory_road.py:391)          -> 0 waypoint(s)  (0 = already standing on it)
+    mart clerk approach                        -> REFUSED — PathFindingError: Could not find a path from (3/4 @ EVER_GRANDE_CITY_POKEMON_L
+    lobby south exit (toward Ever Grande)      -> 14 waypoint(s)
+
+  ⛔ WHAT THIS PROBE DOES **NOT** SETTLE, STATED SO NOTHING OVER-READS IT:
+     whether stepping onto a door tile COMMITS the run. Collision says what can be WALKED
+     ON, never what happens after. The commitment question needs the walk-through arm —
+     step through on a fixture, then try to walk BACK — and that is a separate probe on
+     purpose, so this one can never be the thing that seals a run.
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_08-18-41.ss1 created!
+Updated `current_state.ss1`!

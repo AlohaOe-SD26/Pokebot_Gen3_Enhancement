@@ -34020,3 +34020,79 @@ the spec's own §5 names the probes that settle them, and those come before any 
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (new),
 `…/2026-09-24-ch24-multirung-GRADED.md`, `custom-pokebot/DIVERGENCE-LOG.md`,
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+---
+
+## 2026-09-24d — §Ch24 M1 (PART 1): THE LEAGUE LOBBY IS MEASURED, AND GATE #73 CAN NOW VERIFY A PROMOTION
+
+### ⭐ `probe_league_lobby_facts.py` — OBSERVE-ONLY, AND THAT IS A SAFETY PROPERTY
+
+The gauntlet's design hinges on one unread fact: `pokemon_league.py:5-8` asserts the bot is committed
+*"the moment it steps on lobby tile (9,1)"*, resting on an **`MB_NORMAL` inference nobody has ever
+confirmed by reading tile bytes**. That fact decides **where a readiness check can still act** — a
+guard past the commitment point can only report a problem it can no longer fix, and the lobby is the
+last place a free nurse and a Mart exist.
+
+⛔ **The probe presses no button and takes no step.** Stepping through the lobby door is precisely
+the irreversible act under investigation, so part 1 must not perform it. The walk-through arm is a
+**separate** probe on purpose, so the observe-only one can never be the thing that seals a run.
+
+**MEASURED** (fixture `post_league_lobby.ss1`, evidence
+`evidence/2026-09-24-league-lobby-facts.stdout.txt`; the bot stands on `(3,4)` = `LEAGUE_NURSE_STAND`):
+
+| tile | ROM | LIVE | agree | `tile_type` |
+|---|---|---|---|---|
+| **(9,1)**, **(10,1)** | 0 | 0 | SAME | **Non-Animated Door** |
+| (8,1), (11,1) | 1 | 1 | SAME | Normal |
+
+✅ The lobby's north door **is** `Non-Animated Door` at `(9,1)`/`(10,1)` and is **two tiles wide**.
+✅ **ROM AGREES WITH LIVE THERE — no `KI-74` divergence at the lobby.** Worth stating, because
+`KI-74` and `probe_e4_entry_seal.py` both found ROM/live disagreement *inside* the rooms, so expecting
+it here was reasonable. It is not there.
+
+| destination | `calculate_path` from `(3,4)` |
+|---|---|
+| nurse stand `(3,4)` | **0 wp** — already on it |
+| lobby south exit `(9,11)` | **14 wp** — reachable |
+| mart clerk `(16,3)` | ⛔ **REFUSED — `PathFindingError`** |
+
+⇒ **THE LOBBY IS EMPIRICALLY A PLACE A READINESS CHECK CAN ACT FROM AND RETREAT FROM** — it can heal
+and it can leave. That is the basis for siting the guard there.
+⚠ **The Mart is NOT reachable from this fixture**, confirming the build spec's hazard **H7** ⇒ a
+readiness branch that plans to **restock** cannot be written against this fixture and must not be
+assumed to work until a state with the clerk spawned is captured.
+
+⛔ **STILL NOT SETTLED, AND THE PROBE SAYS SO IN ITS OWN OUTPUT:** whether `(9,1)` COMMITS the run.
+`tile_type` proves the **forward** warp is real; it says nothing about whether the **return** warp
+from `HALL5` fires, which is the whole question. ‼ Collision says what can be walked **on**, never
+what happens **after**.
+
+### ⭐ GATE #73 IS NOW BUILD-AWARE, BECAUSE A GATE THAT CANNOT SEE THE OTHER FORK CANNOT VERIFY A PROMOTION
+
+`probe_item_names_resolve.py` hardcoded the sandbox path, so it could never answer *"did the fix land
+in custom?"* — which is the only question a promotion asks. It now takes `--build custom`, spelled
+exactly as the other build-aware gates (`probe_lead_pp_scope.py:53`) so one flag works across all.
+
+**The BEFORE reading, taken immediately AND SAVED:** `--build sandbox` **PASS** (exit 0);
+`--build custom` **FAILED** (exit 1), naming all three phantom occurrences
+(`overworld_items.py:62`, `:152`, `:153`). Evidence:
+`evidence/2026-09-24-gate73-sandbox-BEFORE.stdout.txt` and `…-gate73-custom-BEFORE.stdout.txt`.
+⛔ **A TIER 1 REVIEW CAUGHT THIS SHIPPING AS A PARAPHRASE** — the claim was stated as fact with no
+artifact behind it, while the lobby half of the very same entry cited its own evidence file. The
+project's rule is blunt: *absent or paraphrased output = FAIL, automatically.* ‼ And it mattered
+more than usual here: the custom reading is **unrecoverable once the promotion lands**, so an
+unsaved BEFORE would have left the promotion's own verification unprovable within the hour.
+
+⚠ **AND ONE CAVEAT ON THE "CAN RETREAT" READING, RAISED BY THE SAME REVIEW:** the 14 waypoints to
+the south exit are a **PLAN, not a walked confirmation**. This tree's own hazard list warns that
+`map_path.py` only *penalises* a non-destination warp and never forbids one, so a plan can route
+through a warp that never fires (the `KI-48` silent-hang shape). ⇒ the wording *"reachable"* is
+accurate, but **a readiness branch that actually retreats must WALK it once before trusting it** —
+fold that into the walk-through arm.
+
+**FILES:** `tools/story-dev/probe_league_lobby_facts.py` (new),
+`tools/story-dev/probe_item_names_resolve.py`,
+`tools/story-dev/evidence/2026-09-24-league-lobby-facts.stdout.txt` (new),
+`tools/story-dev/evidence/2026-09-24-gate73-{sandbox,custom}-BEFORE.stdout.txt` (new),
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md`,
+`PROJECT KNOWLEDGE/04-HANDOFF.md`, `07-CHANGELOG.md`.

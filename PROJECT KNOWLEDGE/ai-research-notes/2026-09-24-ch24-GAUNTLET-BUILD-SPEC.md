@@ -29,6 +29,13 @@ the gate above does confirm. That one reading decides **where a readiness check 
 a guard that runs after the commitment point can only report a problem it can no longer fix.
 Also unverified: the unbounded waits inside the seal (H4). The spec's §5 names the probes.
 
+✅ **UPDATE — M1 (PART 1) IS NOW MEASURED; SEE THE SECTION AT THE END OF THIS FILE.** The lobby's
+north door IS `Non-Animated Door` at `(9,1)`/`(10,1)`, two tiles wide, and **ROM agrees with LIVE
+there** (no `KI-74` divergence at the lobby). The lobby is confirmed as a place a readiness check
+can still act from: the nurse is reachable and the way out is 14 waypoints. ⚠ The **Mart is NOT**
+reachable from `post_league_lobby.ss1`, confirming hazard **H7**. ⛔ Still unread: whether the
+RETURN warp from `HALL5` fires — i.e. whether `(9,1)` is the commitment point.
+
 ---
 
 # §Ch24 ELITE FOUR — PRODUCTION BUILD SPEC
@@ -97,3 +104,56 @@ Rooms 1-4 are byte-identically shaped (13×14, one object at `(6,5)`, entry warp
 ## 6. FAULT ARMS (one per guard; each must FAIL the run when armed)
 
 `POKEBOT_CH24_FAULT_NOREADY` (skip §2 check) · `..._NOREMEDY` (check fails, remediation disabled) · `..._NOROOMHEAL` (existing) · `..._HEALNOOP` (`max_actions=0`, existing) · `..._NOENGAGE` (existing) · `..._NOARRIVE` (bypass `_hop`'s arrival assert) · `..._RETREAT` (navigate to `(6,13)` in a cleared room — M3's instrument) · `..._NOCHAMPGRADE` (grade room 5 on the DEFEATED flags; must fail on a WIN) · `..._UNBOUNDHEAL` (restore the unbounded task wait). All scoped to gauntlet legs only.
+
+---
+
+# ⭐ M1 (PART 1) MEASURED, 2026-09-24 — LEAGUE LOBBY FACTS
+
+`probe_league_lobby_facts.py`, **observe-only** (no button pressed, no step taken), from the pinned
+fixture `post_league_lobby.ss1`. Evidence: `evidence/2026-09-24-league-lobby-facts.stdout.txt`.
+
+**Standing: `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3,4)` — which is `LEAGUE_NURSE_STAND` itself**
+(`victory_road.py:391`). The fixture parks the bot on the nurse tile.
+
+## WHAT IS NOW MEASURED RATHER THAN INFERRED
+
+| tile | ROM | LIVE | agree | `tile_type` |
+|---|---|---|---|---|
+| **(9,1)** | 0 | 0 | SAME | **Non-Animated Door** |
+| **(10,1)** | 0 | 0 | SAME | **Non-Animated Door** |
+| (8,1) | 1 | 1 | SAME | Normal |
+| (11,1) | 1 | 1 | SAME | Normal |
+| (9,2) / (10,2) | 0 | 0 | SAME | Normal |
+
+✅ **The build spec's claim that the lobby's north door is `MB_NON_ANIMATED_DOOR` at `(9,1)`/`(10,1)`
+is CONFIRMED LIVE**, and the door is exactly **two tiles wide** — `(8,1)` and `(11,1)` are blocked.
+✅ **AND ROM AGREES WITH LIVE HERE** — there is **no `KI-74` divergence at the lobby door**. That
+matters: `KI-74` and `probe_e4_entry_seal.py` both found ROM/live disagreement *inside* the rooms, so
+it was reasonable to expect it at the lobby too. It is not there.
+
+## ⭐ THE DESIGN FACT THE GUARD DEPENDS ON
+
+| destination | `calculate_path` from `(3,4)` |
+|---|---|
+| nurse stand `(3,4)` | **0 waypoints** — already standing on it |
+| lobby south exit `(9,11)` (toward Ever Grande) | **14 waypoints** — reachable |
+| mart clerk approach `(16,3)` | ⛔ **REFUSED — `PathFindingError`** |
+
+⇒ **THE LOBBY IS A PLACE WHERE A READINESS CHECK CAN STILL ACT AND STILL RETREAT.** Its failure
+branch can heal (the nurse is right there) and can leave (14 wp to the exit). That is the empirical
+basis for putting the guard here rather than anywhere past the door.
+
+⚠ **BUT THE MART IS NOT REACHABLE FROM THIS FIXTURE** — which CONFIRMS the build spec's hazard **H7**
+(*"the Mart clerk was not spawned in `post_league_lobby.ss1` and paths to it refuse"*). ⇒ a readiness
+branch that plans to **restock** cannot be written against this fixture, and must not be assumed to
+work until a state with the clerk spawned is captured.
+
+## ⛔ WHAT IS STILL NOT SETTLED — AND THE PROBE SAYS SO ITSELF
+
+**Whether stepping onto `(9,1)` COMMITS the run.** `tile_type` says the tile is a door, i.e. the
+**forward** warp is real. It says nothing about whether the **return** warp from `HALL5` fires — and
+that is the whole commitment question. The spec's claim is that every backward warp sits on
+`MB_NORMAL`, which the warp code rejects; **that half remains unread.**
+⇒ It needs the walk-through arm: step through on a fixture, then try to walk back. That is
+deliberately a **separate** probe, so that the observe-only one can never be the thing that seals a
+run. ‼ Collision says what can be *walked on*, never what happens *after*.

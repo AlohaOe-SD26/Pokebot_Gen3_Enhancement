@@ -1,0 +1,18 @@
+====================================================================================================
+GATE #73 — EVERY ITEM NAME IN A POLICY TABLE RESOLVES TO A REAL ITEM
+====================================================================================================
+  build   : custom-pokebot
+  items.json carries 310 distinct item name(s)
+  ⚠ scoped file missing, skipped: modules/battle_items.py
+  scanned 3 scoped file(s)
+
+  ⛔ FAILED — an item policy table names something that is not an item:
+      modules/story/overworld_items.py:152  “Paralyze Heal” is NOT in items.json
+      modules/story/overworld_items.py:153  “Energy Powder” is NOT in items.json
+      modules/story/overworld_items.py:62  “Paralyze Heal” is NOT in items.json
+
+  ⇒ A name that resolves to nothing produces A MISSING ACTION, NEVER AN ERROR. In an
+     allowlist whose own rule is “an item not named here is not used”, a misspelling
+     SILENTLY REMOVES a real item from the bot's options. Fix the spelling against
+     `modules/data/items.json` — do not delete the entry to make the gate green.
+====================================================================================================
