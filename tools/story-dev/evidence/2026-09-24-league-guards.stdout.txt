@@ -1,0 +1,39 @@
+Running mGBA 0.10.2
+========================================================================================================
+  §Ch24 M2 — WHAT STANDS BETWEEN THE BOT AND THE LOBBY DOOR?  ⛔ OBSERVE-ONLY.
+  fixture: post_league_lobby.ss1   standing: EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+========================================================================================================
+
+  FLAG ENTERED_ELITE_FOUR = False   (guards should be BLOCKING the door)
+
+  OBJECTS VISIBLE FROM (3, 4) — ‼ this is a CAMERA-RANGE WINDOW, not a census:
+    local_id=255 gfx=0    move=Player             at (3, 4)
+    local_id=1   gfx=58   move=Face Down          at (3, 2)
+    local_id=3   gfx=33   move=Face Down          at (9, 2)
+    local_id=4   gfx=33   move=Face Down          at (10, 2)
+
+  IS THE APPROACH OCCUPIED?
+    approach (9, 2): OCCUPIED by local_id 3
+    approach (10, 2): OCCUPIED by local_id 4
+    parked   (8, 2): nothing visible
+    parked   (11, 2): nothing visible
+
+  WHAT DOES THE PLANNER THINK? ‼ `calculate_path` plans over TERRAIN and is blind to NPCs.
+    path to door (9, 1): REFUSED - PathFindingError
+    path to door (10, 1): REFUSED - PathFindingError
+
+  VERDICT: THE APPROACH IS BLOCKED BY OBJECT(S) at [(9, 2), (10, 2)].
+     => A PRODUCTION LEG CANNOT SIMPLY NAVIGATE TO THE DOOR. Its FIRST act must
+     be whatever clears the guards.
+     AND THE FAILURE IS LOUD, NOT SILENT: calculate_path REFUSED [(9, 1), (10, 1)]
+     rather than routing through the guards. The KI-48 silent-stall hazard
+     was PREDICTED here and DID NOT MATERIALISE on this fixture - a refusal
+     is an exception the leg can catch, strictly better than a silent wait.
+     Do NOT generalise: the planner is still NPC-blind by construction, so
+     this is one fixture's behaviour, not a rule.
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_13-33-11.ss1 created!
+Updated `current_state.ss1`!

@@ -15816,7 +15816,13 @@ class Ch24ProbeMode(BotMode):
 
     ROUTE (all decomp-sourced, `2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md` §2):
         EVER_GRANDE (18,6)  --face N, HOLD Up (MB_ANIMATED_DOOR)-->  LEAGUE_1F
-        LEAGUE_1F: talk the guards from (9,3) facing N; they step onto (9,2)/(10,2)
+        LEAGUE_1F: talk the guards from (9,3) facing N; they step ASIDE, OFF (9,2)/(10,2)
+        ‼ CORRECTED 2026-09-24 — this line said they step ONTO those tiles, which is BACKWARDS,
+        and it CONTRADICTED this same file ~120 lines below ("They stand ON (9,2)/(10,2) until
+        spoken to"). MEASURED, not argued: `probe_league_guards.py` on `post_league_lobby.ss1`
+        with ENTERED_ELITE_FOUR=False reads local_id=3 at (9,2) and local_id=4 at (10,2) — i.e.
+        they BLOCK the approach until talked to, then vacate to (8,2)/(11,2), which is what
+        `map.json` lists (those are the POST-flag positions, written back by copyobjectxytoperm).
         LEAGUE_1F (9,1)     --STEP-ON (MB_NON_ANIMATED_DOOR)------->  HALL5
         HALL5 (5,2)         --STEP-ON------------------------------>  SIDNEYS_ROOM
         entering auto-walks the player to (6,7); Sidney stands at (6,5)

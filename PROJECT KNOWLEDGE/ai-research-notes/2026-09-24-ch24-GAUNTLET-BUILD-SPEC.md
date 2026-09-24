@@ -240,3 +240,88 @@ non-destructively.* Here the answer was sitting in a helper the tree already use
   collision 0 — **object occupancy is not collision**, so this probe *cannot* see it. It matters for
   the gauntlet's first leg (the bot must clear the guards to reach the door at all) and needs a live
   object read before anything depends on it.
+
+---
+
+# ⭐⭐ M2 MEASURED, 2026-09-24 — **THE GUARDS ARE REAL, AND THE LEG'S FIRST ACT IS NOT A NAVIGATE**
+
+`probe_league_guards.py` on `post_league_lobby.ss1`. **Observe-only** — presses nothing, steps nowhere.
+Evidence: `evidence/2026-09-24-league-guards.stdout.txt`.
+
+| reading | value |
+|---|---|
+| `ENTERED_ELITE_FOUR` | **False** |
+| guard 1 | `local_id=3`, gfx 33, Face Down, at **(9,2)** |
+| guard 2 | `local_id=4`, gfx 33, Face Down, at **(10,2)** |
+| nurse | `local_id=1`, gfx 58, at (3,2) |
+| `calculate_path` → (9,1) and (10,1) | ⛔ **REFUSED — `PathFindingError`** |
+
+⇒ ✅ **The decomp-derived claim is now LIVE-MEASURED:** while the flag is unset, the two guards
+occupy **the only two approach tiles** to a door that is exactly two tiles wide. **A production leg
+cannot simply navigate to the door.**
+
+## ⭐⭐ THE PLANNER RESULT IS THE INTERESTING ONE, AND ITS MECHANISM IS NOW KNOWN
+
+I predicted the `KI-48` silent-stall shape: the planner is NPC-blind, so it would route *through* the
+guards and the navigator would wait forever against an object. **It did not. It refused.**
+‼ A refusal is an exception a leg can catch; a silent wait is not. That is the better failure.
+
+⛔⛔ **BUT THE HAZARD IS REAL — IT SIMPLY DID NOT FIRE AT THIS DISTANCE, AND THE REASON MATTERS:**
+* `map_path.py:810-817` iterates **`get_map_objects()` — the LIVE list** — and blocks each object's
+  `current_coords` **and** `previous_coords`. The guards were loaded, so the planner blocked
+  `(9,2)`/`(10,2)`, and with the only approach gone `(9,1)` became unreachable. **That is why it
+  refused.**
+* `map_path.py:431-440` instead blocks the **TEMPLATE** tile (`map_data.objects` →
+  `local_coordinates`) for an object that is **not loaded**. For these guards the template is
+  **(8,2)/(11,2)** — the POST-flag positions — which leaves **(9,2)/(10,2) OPEN**.
+⇒ **From far enough away that the guards are outside the object window, the planner will happily plan
+a route straight through them.** The refusal measured here is a property of *standing close*, not a
+property of the map. ‼ **Do not turn this reading into a safety assumption.**
+
+## ✅ AND THE RECIPE ALREADY EXISTS, LIVE-VERIFIED ONCE
+
+`Ch24ProbeMode` (`story_harness.py:15939-15952`) already implements the interaction: navigate to
+**(9,3)**, `ensure_facing_direction("Up")`, then a **bounded** A-press loop (30 × 8 frames) with
+`_check_abort()` and two break conditions. `post_sidney_L75.ss1` was captured from it on
+`ACCEPTANCE: PASS` with the `P24-HALL5` reading — *"we reached HALL5, the guards let us through"*.
+⇒ the leg does **not** need to invent this; it needs to **port and instrument** it.
+
+‼ The guard checks **only `FLAG_BADGE06_GET`** (decomp) — no party, level, Pokédex or item check —
+and our fixtures carry all eight badges. ⇒ **the readiness question is entirely ours to impose**; the
+game will let an under-levelled party through without comment.
+
+## ⛔ A CONTRADICTION INSIDE OUR OWN HARNESS, FOUND AND FIXED
+
+`story_harness.py:15819` read *"talk the guards from (9,3) facing N; **they step onto (9,2)/(10,2)**"*
+— **backwards**, and it contradicted the same file ~120 lines below (*"They stand ON (9,2)/(10,2)
+until spoken to"*). The measurement settles it: they **start** there and **vacate** to (8,2)/(11,2),
+which is what `map.json` lists because `copyobjectxytoperm` writes the post-flag positions back.
+✅ Corrected, with the measurement cited as its warrant.
+
+## ⚠ WHAT THE PROBE ITSELF GOT WRONG FIRST — BOTH CAUGHT BY ITS OWN SAFETY DESIGN
+
+1. **Class confusion.** It read `ObjectEventTemplate`'s API (`local_coordinates`, `kind`) off the
+   **live** `ObjectEvent` (`current_coords`) — two classes in `map.py` with overlapping names
+   (`:1107` live, `:1588` template). Every row returned `AttributeError`.
+   ⭐ **The camera-range guard is what stopped that becoming a false finding:** it reported
+   **UNKNOWN**, not *"no guards visible ⇒ the way is clear"*. An unreadable object and an absent
+   object produced **different verdicts**, which is exactly what that guard was built for.
+2. **A verdict contradicted by its own log.** The first verdict asserted *"the planner will still
+   return a route… WILL STALL"* while the same output printed `REFUSED`. ⇒ the probe now **reports
+   which failure mode occurred** rather than asserting a predicted one, and prints the loud case and
+   the silent case differently.
+3. ✅ Added a **flag-name vacuity guard**: `get_event_flag` returns **False silently** for an unknown
+   name (`memory.py:336-338`), and no row in `event_flags/emerald.txt` carries the `FLAG_` prefix —
+   so `"FLAG_ENTERED_ELITE_FOUR"` would have printed a hardcoded False that looks like a reading.
+
+## ⇒ THE LEG'S ORDERED STEPS, WITH STATUS
+
+| # | step | status |
+|---|---|---|
+| 1 | assert premise: on `LEAGUE_1F`, controllable | ✅ fixture is exactly this |
+| 2 | vacuity-guard the flag name, then read `ENTERED_ELITE_FOUR`; skip 4-6 if already True | ✅ pattern proven |
+| 3 | heal at the nurse — **the last heal before the seal** | ✅ `heal_at_league` exists |
+| 4 | navigate to **(9,3)** — never aim at (9,1)/(9,2) | ⚠ **path from (3,4) UNWALKED**, and exposed to the template-vs-live hazard above |
+| 5 | face Up; bounded A-press loop | ✅ live-verified once |
+| 6 | ⛔ **CONFIRM IT WORKED** — flag True **and** (9,2)/(10,2) empty by live object read | ⛔ **nothing in the tree asserts this today**; `ch24probe` checks only "are we on HALL5", i.e. the consequence two steps later |
+| 7 | step onto (9,1) ⇒ arrive HALL5 — **the commitment point** | ✅ live-verified once |
