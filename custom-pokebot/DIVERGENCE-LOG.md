@@ -3077,3 +3077,88 @@ any of them is responsible.
 CONFOUNDED.** So a number measured in sandbox may NOT be quoted as if it were the custom number, and
 a promotion's verifying drive must be read as *"the leg still passes here"* — which is exactly what
 it is for — and **never** as a re-measurement of sandbox's figures.
+
+
+# 2026-09-24c — THE PHANTOM ITEM NAMES: THREE DEAD ENTRIES IN THE HEALING TABLES
+
+**USER-AUTHORISED** (2026-09-24, verbatim: *"promote then proceed…"*).
+**ROLLBACK TAG:** `pre-promote-2026-09-24c` → `65ce0654` (annotated, pushed; verified on local **and**
+origin by the tool **before** anything was copied).
+**TOOL:** `promote.py --restore-point pre-promote-2026-09-24c --go`
+→ `drift after: 0`, `orphaned after: 0`, **byte-identical 1/1**.
+
+## WHAT MOVED — one file, three dead strings
+
+| file | what it brings |
+|---|---|
+| `modules/story/overworld_items.py` | `"Paralyze Heal"` → **`"Parlyz Heal"`** (×2: `STATUS_ONLY` and the `healing_items` allowlist) and `"Energy Powder"` → **`"Energypowder"`** (×1) |
+
+**None of these items exists under the spelling our code used.** `held.get("Paralyze Heal", 0)` could
+only ever return **0**. And the allowlist's own rule is *"an item not named here is not used"* — so
+the misspelling never failed loudly, it **silently removed a real item from the bot's options.**
+
+‼ **THIS IS THE THIRD INSTANCE OF THE CLASS IN THIS FILE'S HISTORY.** `pokemon_league.py`'s header
+already records *"Repel selected because `parameter > 0`"* and *"an allowlist silently empty because
+`field_use` is an enum"*. Each was a table that looked right and matched nothing. ⇒ **a name that
+resolves to nothing produces a MISSING ACTION, NEVER AN ERROR** — and the gauntlet is the one place
+in the game where a missing heal cannot be retried.
+
+## ⭐ VERIFICATION — A GENUINE RED→GREEN, NOT A COPY CHECK
+
+| check, against `custom` | BEFORE | AFTER |
+|---|---|---|
+| **gate #73** `probe_item_names_resolve.py --build custom` | ⛔ **FAILED**, exit 1 — 3 phantom names at `overworld_items.py:62`, `:152`, `:153` | ✅ **PASS**, exit 0 — 0 phantom names |
+| gates #68 / #69 / #70 / #71 `--build custom` | ✅ | ✅ |
+| `repro_box_counter_move_test`, `repro_pid_identity_key` `--build custom` | ✅ | ✅ |
+
+Evidence: `evidence/2026-09-24-gate73-custom-BEFORE.stdout.txt` and `…-custom-AFTER.stdout.txt`
+(plus the sandbox BEFORE). ‼ The BEFORE reading was captured **before the copy**, because it is
+**unrecoverable afterwards** — a Tier 1 review caught it about to ship as an unsaved paraphrase.
+
+⛔⛔ **WHY THERE IS NO VERIFYING DRIVE HERE, STATED SO NOBODY READS IT AS AN OMISSION.**
+`promote.py`'s own output demands *"verify by DRIVING"*, and that rule is right in general. **It
+cannot apply to this fix.** The corrected names are `Parlyz Heal` and `Energypowder`, and
+`LEAGUE_BASKET` (`victory_road.py:439`) stocks **neither** — so **no drive we can currently run
+touches the corrected lines**. A green drive would prove the bot still works, not that the fix
+landed, and presenting it as proof would repeat the exact error that let the previous defect through:
+**verifying the §Ch24 step-out fix at `floor=21`, a floor that structurally cannot reach Victory Road
+and therefore cannot see the thing under test.**
+⇒ The honest verification is the gate's red→green against custom, which reads the real file in the
+real fork. ✅ **And making gate #73 build-aware was a prerequisite for it** — before that change the
+gate could only ever read the sandbox, and a gate that cannot see the other fork cannot answer the
+only question a promotion asks.
+
+## ⚠ WHAT THIS DOES NOT FIX
+
+* **The cure is still not matched to the status.** `overworld_items.py` picks the first *held*
+  `STATUS_ONLY` item without checking which status the mōn actually has. It is harmless only while
+  `"Full Heal"` is first in the tuple **and** stocked — and `LEAGUE_BASKET` carries 8 of them, which
+  is why this has never bitten. ⇒ once the Full Heals run out mid-gauntlet, a poisoned mōn can be
+  handed an `Awakening`. **Filed, not fixed.**
+* **Neither corrected item is in `LEAGUE_BASKET`**, so this promotion changes **nothing** about the
+  gauntlet as currently stocked. It removes a latent trap, not a live failure.
+
+⭐⭐ **A TIER 1 REVIEW SHARPENED THIS, AND THE SHARPER VERSION IS LESS FLATTERING — SO IT IS THE ONE
+THAT BELONGS HERE. Only ONE of the three corrections is on a live path.**
+Verified by hand: `plan_healing` has **exactly one caller** in the whole tree —
+`pokemon_league.py:293` — and it **always** passes `healing_items=healing`, where `healing` is
+derived from the bag at `:278-279` (`field_use is ItemFieldUse.Healing`). ⇒ the hardcoded fallback
+allowlist at `overworld_items.py:150-154` is **UNREACHABLE IN PRODUCTION TODAY**.
+
+| correction | where | live? |
+|---|---|---|
+| `"Paralyze Heal"` → `"Parlyz Heal"` | `STATUS_ONLY` (`:62`), consumed at `:188` and `:223` | ✅ **LIVE** |
+| `"Paralyze Heal"` → `"Parlyz Heal"` | the fallback allowlist (`:152`) | ⛔ unreachable |
+| `"Energy Powder"` → `"Energypowder"` | the fallback allowlist (`:153`) | ⛔ unreachable |
+
+⇒ **The honest impact is one live dead-entry removed, and two corrections in code nothing currently
+calls.** ‼ The unreachable two are still worth fixing — `plan_healing` is a public function and the
+next caller that omits `healing_items` would inherit the bug silently — but they must not be counted
+as three live fixes.
+
+⚠ **AND ONE SCOPE LIMIT ON THE "NO DRIVE CAN TOUCH THIS" CLAIM.** It was verified against
+`LEAGUE_BASKET`, which is the only stocking mechanism in the tree (`buy_in_shop(` appears only in
+`victory_road.py`). It does **not** exhaustively rule out a correctly-spelled `Parlyz Heal` arriving
+by an overworld pickup before Victory Road, which would reach `STATUS_ONLY` at `:188` outside the
+basket. No such path was found in `modules/story`, so the claim holds as far as it was checked —
+**as far as it was checked** is the accurate qualifier.

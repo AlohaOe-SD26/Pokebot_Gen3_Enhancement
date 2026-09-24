@@ -59,7 +59,7 @@ FULL_RESTORE_PARAMETER = 255
 
 #: Items whose `parameter` is 0 but which are NOT HP items. Named so a reader is never left thinking
 #: `parameter == 0` means "broken" — it means "this item's effect is not measured in HP".
-STATUS_ONLY = ("Full Heal", "Antidote", "Awakening", "Burn Heal", "Ice Heal", "Paralyze Heal")
+STATUS_ONLY = ("Full Heal", "Antidote", "Awakening", "Burn Heal", "Ice Heal", "Parlyz Heal")
 
 #: Actions allowed in one between-rooms healing session. A bound, not a preference (rule 6).
 MAX_ACTIONS_PER_SESSION = 12
@@ -149,8 +149,8 @@ def plan_healing(
     if healing_items is None:
         healing_items = {"Potion", "Super Potion", "Hyper Potion", "Max Potion", "Full Restore",
                          "Revive", "Max Revive", "Full Heal", "Antidote", "Awakening",
-                         "Burn Heal", "Ice Heal", "Paralyze Heal", "Fresh Water", "Soda Pop",
-                         "Lemonade", "Moomoo Milk", "Energy Powder", "Energy Root", "Heal Powder",
+                         "Burn Heal", "Ice Heal", "Parlyz Heal", "Fresh Water", "Soda Pop",
+                         "Lemonade", "Moomoo Milk", "Energypowder", "Energy Root", "Heal Powder",
                          "Revival Herb", "Lava Cookie", "Berry Juice", "Sacred Ash"}
     plan: "list[Action]" = []
     held = dict(bag)  # local copy: planning must not pretend to spend what a later step needs

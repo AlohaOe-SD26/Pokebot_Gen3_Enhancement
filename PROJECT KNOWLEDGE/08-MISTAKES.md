@@ -20767,3 +20767,52 @@ so check it last and fix it first.
 that phrase in the tree sits within N lines of a pointer to the retraction.** That is mechanical, has
 an obvious false-positive arm (the retraction text itself must be allowed to quote the phrase), and
 would have caught **all four** of the surviving statements above.
+
+## 2026-09-24 — THREE ITEM NAMES THAT MATCHED NOTHING, AND THE THIRD TIME THIS FILE HAS DONE IT
+
+*(Filed late: a Tier 1 review noticed this bug shipped its gate and its changelog but never got its
+own `08-MISTAKES` entry. The DoD requires one whenever a bug took real effort — and the rule is
+worth more than the instance.)*
+
+**Symptom.** `modules/story/overworld_items.py` named **`"Paralyze Heal"`** in two places and
+**`"Energy Powder"`** in one. Neither item exists under those spellings — Gen-3 has **`Parlyz Heal`**
+and **`Energypowder`** (one word), which is what `modules/data/items.json` contains. ⇒
+`held.get("Paralyze Heal", 0)` could only ever return **0**.
+
+**Why it never announced itself.** The allowlist's own docstring says *"an item not named here is not
+used"*. ⇒ **a name that resolves to nothing produces a MISSING ACTION, NEVER AN ERROR.** Nothing
+raises, nothing logs, no test goes red. The bot simply declines to use an item it is holding, and
+every observation of that looks like "the planner chose not to".
+
+**Root cause — the names were written from memory, against a data file that was never consulted.**
+Both misspellings are the *plausible English* rendering of the item; both are wrong in the specific
+way Gen-3's 12-character item names are wrong. Nobody checked them against `items.json` because a
+string literal in a tuple does not look like a claim that needs checking.
+
+⛔⛔ **AND THIS IS THE THIRD INSTANCE OF THE CLASS IN THIS ONE FILE'S HISTORY.**
+`pokemon_league.py`'s own header already records the other two — *"Repel selected because
+`parameter > 0`"* and *"an allowlist silently empty because `field_use` is an enum"*. Each was a
+table that looked right and matched nothing. ⇒ **the recurrence is the finding.** Three independent
+instances is no longer carelessness; it is a property of the shape: **a lookup table of external
+identifiers, checked by nothing.**
+
+**The fix that worked, and it was not the obvious one.** The instinct was to correct the strings.
+Instead I wrote **gate #73 (`probe_item_names_resolve.py`)** first — and it immediately found
+`"Energy Powder"`, which nobody knew about. ⇒ **fixing the instance would have left the second bug in
+place.**
+
+⚠ **AND THE HONEST IMPACT IS SMALLER THAN THE FIX COUNT SUGGESTS.** `plan_healing` has exactly one
+caller (`pokemon_league.py:293`) and it always passes `healing_items=healing`, derived from the bag —
+so the fallback allowlist is **unreachable in production today**. ⇒ **one** of the three corrections
+is live (`STATUS_ONLY`), two are in code nothing currently calls. Worth fixing, not worth counting
+as three.
+
+**PREVENTION RULES.**
+1. ⛔ *A table of EXTERNAL IDENTIFIERS — item names, flag names, map names, move names — is a set of
+   CLAIMS, and every one must be checkable against the data file that defines them.* If it cannot be
+   checked mechanically, it will be wrong eventually and silently.
+2. ⭐ *When a bug's shape has recurred, GATE THE CLASS AND RUN THE GATE BEFORE FIXING THE INSTANCE.*
+   The gate finds the siblings you did not know about; the manual fix cannot. This one paid for
+   itself on first run.
+3. ‼ *State the impact by REACHABILITY, not by edit count.* "Three names fixed" invites the reader
+   to infer three live bugs. Trace each site to a caller before claiming it mattered.
