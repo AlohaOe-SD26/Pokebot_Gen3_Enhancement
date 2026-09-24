@@ -20683,3 +20683,87 @@ ground pick *and* as a postcondition at the end of the leg. Placed in the leg ra
    able to proceed" are separate claims; assert the second from the tile actually reached. This is
    the third time `R-ACCEPTGRADE`'s "and the bot can continue" conjunct has caught a leg that
    finished its job in an unusable place.
+
+## 2026-09-24 — I CALLED A CONFIGURATION DIFFERENCE "VARIANCE", AND PUBLISHED IT IN FOUR PLACES
+
+**Symptom.** Two drives of the same pinned fixture with the same driver and floor returned different
+numbers — sandbox `exp_leak_pct = 8.94` over 264 battles, custom `11.38` over 253. I concluded that
+**runs in this tree carry real variance**, that `CLAUDE.md` rule 8's assumption ("identical output
+across runs is a determinism check") was unsafe, and that every single-run percentage should be read
+with error bars. That went into `07-CHANGELOG.md`, `04-HANDOFF.md`, `custom-pokebot/DIVERGENCE-LOG.md`
+and a pushed commit message before it was tested.
+
+**Root cause — the two runs were not the same experiment.** One ran against `sandbox-pokebot`, the
+other against `custom-pokebot`. I had just verified that their `modules/` + `plugins/` Python was
+byte-identical and treated that as "same configuration" — but a fork is more than its Python. The two
+`profiles/repro-ml` directories differ in runtime state (`current_save.sav`, `stats.db`, and a
+`saves/` directory present in only one). ⇒ **I compared two different starting conditions and
+attributed the difference to noise.**
+
+**What the measurement showed.** A same-fork repeat, pre-registered as *"if the harness is
+deterministic within a fork it reproduces `battles=264` and `exp_leak_pct=8.94` exactly"*, reproduced
+it **bit-for-bit** — including every PID's exp. ⇒ the harness is deterministic; rule 8 stands; and the
+sandbox↔custom difference is **configuration-dependent**, not stochastic.
+
+⭐ **The signal was available before the verdict and I nearly missed it:** `STUCK-OW` diagnostics
+numbered **313** in both sandbox runs and **309** in custom. Two identical counts and one different
+one is the shape of *determinism plus a configuration difference* — not the shape of noise.
+
+**Consequences.** P4 was labelled **"SPLIT"**, as though a noisy measurement straddled its threshold.
+That label was wrong and is withdrawn: the leak is **configuration-dependent**. The practical verdict
+happens to be unchanged — P4 is **not established** either way — which is exactly why the error was
+easy to publish without noticing.
+
+**PREVENTION RULES.**
+1. ⛔ **TWO RUNS DIFFERING IS ONLY "VARIANCE" IF THEY ARE THE SAME EXPERIMENT.** Before attributing a
+   difference to noise, name every input that differed. If any did, it is a **confound**, not
+   variance — and the honest word is "confounded", not "variable".
+2. ⛔ **"BYTE-IDENTICAL CODE" IS NOT "IDENTICAL CONFIGURATION."** A fork carries profiles, saves and
+   databases that no source diff reports. `promote.py`'s own scope line says as much — it compares
+   `modules/` + `plugins/`, `*.py` only.
+3. ⭐ **THE CHEAP DECISIVE TEST USUALLY EXISTS — RUN IT BEFORE PUBLISHING THE CONCLUSION, NOT AFTER.**
+   A same-fork repeat cost one background drive and settled in one reading what a paragraph of
+   reasoning got backwards. The pre-registration is what made it decisive: the prediction was written
+   before the run, so the result could only confirm or refute.
+4. ⇒ **A cross-fork drive verifies "the leg still passes here". It NEVER re-measures a sandbox
+   number.** Quoting one fork's figure as the other's is now a known error shape.
+
+## 2026-09-24 — "THE HEADLINE CARRIES THE CAVEAT" FIRED **TWICE IN ONE SESSION**, AND I WROTE ONE OF THE HEADLINES MYSELF
+
+**Symptom.** Two independent Tier 1 reviews, hours apart, each returned the same defect class:
+
+1. **First review:** `2026-09-24-ch24-multirung-GRADED.md` carried the section heading
+   *"THE NUMBER TO WATCH: THE LEAK ROSE 4× AND P4 PASSED BY 1.06 POINTS"* — **23 lines above its own
+   correction** saying P4 was refuted by a second measurement. Also a stale `75 entries` count.
+2. **Second review (KICK-BACK):** after I withdrew the "SPLIT" label, the `➡➡➡` **queue head** — the
+   one line `CLAUDE.md` designates as *"what a cold agent ACTS from"* — still read
+   *"P4 ⚠ SPLIT — refuted by the second run"*, with the retraction four lines below it. And
+   `03-PUNCH-LIST.md` — a CURRENT-STATE file — still asserted *"confirmed by one and REFUTED by the
+   other"* with no pointer at all.
+
+**Root cause, and it is not carelessness about the rule — I was applying it.** In the first round I
+*did* patch the body bullet that said "one deterministic trajectory". I patched the sentence I had
+just been thinking about and left the **heading** and the **summary line** alone. In the second round
+I wrote the words *"P4 ⚠ SPLIT — refuted by the second run"* into the queue head **myself**, then
+withdrew "SPLIT" an hour later and never came back to the line I had authored.
+
+⇒ **The failure is not "I forgot the rule". It is that a retraction has MORE surfaces than the claim
+did.** The original claim was written once, in one place. By the time it is withdrawn it has been
+summarised into a heading, a queue head, a punch-list bullet, a STATE cell and a commit message — and
+the withdrawal instinctively goes to *the place the reasoning lives*, which is the one place a
+skimming reader never reaches.
+
+**PREVENTION RULE.** ⛔ *When you withdraw a claim, `grep` the tree for the claim's own KEY PHRASE
+and re-read every hit — before writing the retraction, not after.* The phrase, not the topic: here it
+was `"SPLIT"`, `"carry real variance"`, `"straddles"`. A retraction that does not begin with that grep
+is incomplete by construction, because you will patch the passage you are thinking in and miss every
+summary of it. ‼ **And the headline is the LAST place to check and the FIRST place that is read** —
+so check it last and fix it first.
+
+⭐ **CANDIDATE GATE (not yet built), because prose has now failed at this twice in one day and
+`CLAUDE.md` rule 6 says anything enforceable belongs in a gate:** let a file that contains a
+`CORRECTION` / `RETRACTED` / `WITHDRAWN` section declare the dead phrase in a machine-readable line
+(e.g. `WITHDRAWN: "carry real variance"`), and have the gate assert that **every earlier occurrence of
+that phrase in the tree sits within N lines of a pointer to the retraction.** That is mechanical, has
+an obvious false-positive arm (the retraction text itself must be allowed to quote the phrase), and
+would have caught **all four** of the surviving statements above.

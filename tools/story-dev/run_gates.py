@@ -886,6 +886,33 @@ GATES: list[tuple[str, bool]] = [
     # each exit 1; `--fault mention` — the FALSE-POSITIVE arm, proving a comment-only key neither
     # satisfies the gate nor trips it — exits 0.
     ("probe_predictions_gradeable.py", False),
+    # --- #73 - EVERY ITEM NAME IN A POLICY TABLE RESOLVES (`probe_item_names_resolve.py`)
+    # ⛔⛔ FOUND 2026-09-24 by a recon agent and VERIFIED against our own `modules/data/items.json`:
+    # `overworld_items.py` named **"Paralyze Heal"** in TWO places (`STATUS_ONLY` and the
+    # `healing_items` fallback allowlist). There is no such item — Gen-3 spells it "Parlyz Heal".
+    # ⇒ `held.get("Paralyze Heal", 0)` could only ever return 0, so the entry was DEAD, and the
+    # allowlist's own rule is "an item not named here is not used" — so the misspelling did not fail
+    # loudly, it SILENTLY REMOVED a real item from the bot's options.
+    # ⭐ AND THE GATE IMMEDIATELY FOUND A SECOND ONE NOBODY KNEW ABOUT: "Energy Powder" (the real
+    # item is "Energypowder", one word). That is the whole argument for gating the CLASS rather
+    # than fixing the instance.
+    # ‼ WHY THIS SHAPE IS DANGEROUS RATHER THAN COSMETIC: a name that resolves to nothing produces a
+    # MISSING ACTION, NEVER AN ERROR. `pokemon_league.py`'s own header already records two earlier
+    # instances of the same class ("Repel selected because `parameter > 0`"; "an allowlist silently
+    # empty because `field_use` is an enum"). The gauntlet is the one place where a missing heal
+    # cannot be retried: five fights, no nurse past the lobby door, no way back.
+    # ⛔ NO EXISTING GATE COVERED IT. `repro_item_noop_detector.py` gates the no-op detector's STATE
+    # MACHINE; `repro_battle_items.py` runs pure-function/static checks over the battle policy.
+    # Neither asks the flat question "is this string an item?".
+    # ⭐ ENFORCING, and the justification is about the INPUT DOMAIN: it asks only whether a literal
+    # appears in `items.json`. That is mechanical, with no interpretation in it.
+    # ‼ SCOPED TO POLICY TABLES, not to every string literal — scanning everything would flag prose,
+    # log text and map names, and a gate with false positives teaches the reader to bypass it.
+    # The trade is deliberate and stated in the docstring: it cannot see a name built at runtime.
+    # FAULT-TESTED 2026-09-24 on a GREEN baseline (the arms are meaningless against a red one, which
+    # is how they were first run): `--fault phantom` (inject a non-item) exits 1; `--fault prose`
+    # (Title-Case text OUTSIDE a policy table) exits 0, proving no false positive.
+    ("probe_item_names_resolve.py", False),
 ]
 
 

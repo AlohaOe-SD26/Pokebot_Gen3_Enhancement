@@ -3021,3 +3021,59 @@ points we have for the same quantity are **8.94 %** and **11.38 %**.
   (~751 battles, 73–94 % of the real work) is barely entered;
 * the **trigger-2 HP-vs-PP mechanism split** (`#24-ppscope`'s remaining half) — uninstrumented;
 * **trainer sight cones** on every approach.
+
+---
+
+# ⛔⛔ CORRECTION 2, 2026-09-24c — **"SINGLE-RUN PERCENTAGES CARRY REAL VARIANCE" WAS WRONG. THE HARNESS IS DETERMINISTIC WITHIN A FORK.**
+
+The correction above concluded, from one sandbox run and one custom run differing, that runs in this
+tree carry real variance and that `CLAUDE.md` rule 8's assumption was unsafe. **That conclusion is
+refuted by measurement.**
+
+**THE TEST, PRE-REGISTERED BEFORE IT RAN:** *"if the harness is deterministic within a fork, a
+sandbox re-run reproduces `battles=264` and `exp_leak_pct=8.94` exactly."*
+
+**THE RESULT — a same-fork repeat of the identical command:**
+
+| reading | v2 (sandbox) | repeat (sandbox) | custom |
+|---|---|---|---|
+| `battles` | 264 | **264** | 253 |
+| `exp_leak_pct` | 8.94 | **8.94** | 11.38 |
+| `pp_predicate_true` | 2 | **2** | 2 |
+| `exp_gained_by_pid` | 531 / 56386 / 679 / 5700 / 13963 | **identical, every PID** | 531 / 57199 / 679 / 8016 / 14673 |
+
+⇒ **THE SAME-FORK REPEAT IS BIT-FOR-BIT.** `CLAUDE.md` rule 8 stands exactly as written: identical
+output across same-fork runs is a **determinism check, never a replication**.
+*(Corroborating signal noticed before the verdict landed: `STUCK-OW` diagnostics numbered **313** in
+both sandbox runs and **309** in custom.)*
+
+## ⇒ WHAT THIS MEANS FOR P4, RESTATED CORRECTLY
+
+**8.94 % and 11.38 % are NOT two samples of one quantity.** They are two *deterministic* outcomes of
+two *different starting conditions*. ⇒ calling P4 **"SPLIT"** — as though the leak were a noisy
+measurement straddling a line — **was the wrong label**, and it is withdrawn.
+
+**The correct statement:** under sandbox conditions the leak is **8.94 %** and P4 holds; under custom
+conditions it is **11.38 %** and P4 fails. ⇒ **the leak is CONFIGURATION-DEPENDENT, and it is not
+bounded below 10 % across the two forks.** P4 is therefore **not established**, which is the same
+practical conclusion — reached for an entirely different and now-correct reason.
+
+## ⛔⛔ AND THIS LEAVES A SHARPER OPEN QUESTION THAN THE ONE IT CLOSED
+
+**Why does the same pinned fixture, driven by byte-identical `modules/` + `plugins/` Python, produce
+a materially different run in the two forks?** 264 vs 253 battles, and one bench mōn taking 5,700 exp
+in one and **8,016** in the other, is not a rounding difference.
+
+What is known:
+* the two profile directories carry **identical `.yml` config** (2 files each, no diff);
+* they differ in **runtime state** — `current_save.sav` and `stats.db` both differ, and
+  `sandbox-pokebot/profiles/repro-ml` additionally has a `saves/` directory custom lacks.
+
+‼ **THE CAUSE IS STILL NOT ASSERTED.** The above is a list of differences, not a demonstration that
+any of them is responsible.
+
+⇒ **THE PRACTICAL RULE THIS EARNS, WHICH IS THE OPPOSITE OF THE ONE WITHDRAWN ABOVE:**
+**a same-fork repeat proves nothing new (it is bit-for-bit), and a cross-fork comparison is
+CONFOUNDED.** So a number measured in sandbox may NOT be quoted as if it were the custom number, and
+a promotion's verifying drive must be read as *"the leg still passes here"* — which is exactly what
+it is for — and **never** as a re-measurement of sandbox's figures.

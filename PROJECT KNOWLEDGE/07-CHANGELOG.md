@@ -33946,3 +33946,77 @@ enforceable belongs in a gate*). Every prediction file dated from 2026-09-24 mus
 `tools/story-dev/run_gates.py`, `tools/story-dev/evidence/2026-09-24b-ch24climb-CUSTOM.stdout.txt`,
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-multirung-{PREDICTIONS,GRADED}.md`,
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+---
+
+## 2026-09-24c — A PRE-REGISTERED TEST REFUTED MY OWN PUBLISHED CONCLUSION, AND A NEW GATE FOUND A BUG NOBODY KNEW ABOUT
+
+### ⛔⛔ THE CORRECTION FIRST: "SINGLE-RUN PERCENTAGES CARRY REAL VARIANCE" WAS WRONG
+
+Hours earlier I published — in `07-CHANGELOG.md`, `04-HANDOFF.md`, `DIVERGENCE-LOG.md` and a commit
+message — that the sandbox (8.94 %) vs custom (11.38 %) `exp_leak_pct` difference showed **run-to-run
+variance**, and that `CLAUDE.md` rule 8's assumption was therefore unsafe.
+
+**A same-fork repeat, pre-registered before it ran, refuted that.**
+
+| reading | v2 (sandbox) | repeat (sandbox) | custom |
+|---|---|---|---|
+| `battles` | 264 | **264** | 253 |
+| `exp_leak_pct` | 8.94 | **8.94** | 11.38 |
+| `exp_gained_by_pid` | 531 / 56386 / 679 / 5700 / 13963 | **identical, every PID** | 531 / 57199 / 679 / 8016 / 14673 |
+
+⇒ **THE HARNESS IS DETERMINISTIC WITHIN A FORK — bit-for-bit. `CLAUDE.md` rule 8 STANDS as written.**
+*(A corroborating signal appeared before the verdict: `STUCK-OW` diagnostics numbered **313** in both
+sandbox runs and **309** in custom.)*
+
+⇒ **P4's "SPLIT" label is WITHDRAWN.** 8.94 % and 11.38 % are not two samples of one quantity; they
+are two **deterministic** outcomes of two **different starting conditions**. The corrected statement:
+**the leak is CONFIGURATION-DEPENDENT and is not bounded below 10 % across the forks.** P4 remains
+**not established** — the same practical conclusion, reached for a now-correct reason.
+
+⛔ **AND IT LEAVES A SHARPER OPEN QUESTION THAN THE ONE IT CLOSED:** why does the same pinned fixture,
+driven by byte-identical `modules/`+`plugins/` Python, produce **264 vs 253 battles** across the two
+forks? The profiles' `.yml` configs are **identical**; `current_save.sav` and `stats.db` differ.
+‼ That is a list of differences, not a demonstration — **the cause is not asserted.**
+⇒ **Practical rule:** never quote a sandbox number as the custom number, and read a promotion's
+verifying drive as *"the leg still passes here"* — never as a re-measurement.
+
+### ⭐ NEW GATE #73 — `probe_item_names_resolve.py`, AND THE TWO REAL BUGS IT CAUGHT
+
+A recon agent claimed `overworld_items.py` named a non-existent item. **Verified against our own
+`modules/data/items.json`:** `"Paralyze Heal"` (×2 — `STATUS_ONLY` and the `healing_items` allowlist)
+is a phantom; Gen-3 spells it **`"Parlyz Heal"`**. ⇒ `held.get("Paralyze Heal", 0)` could only ever
+return **0**, and the allowlist's own rule is *"an item not named here is not used"* — so the
+misspelling never failed loudly, it **silently removed a real item from the bot's options.**
+
+⭐ **Rather than fix the instance, I gated the class — and the gate immediately found a SECOND phantom
+nobody knew about:** `"Energy Powder"` (the real item is **`"Energypowder"`**, one word). All three
+occurrences fixed.
+
+* ⛔ **No existing gate covered this.** `repro_item_noop_detector.py` gates the no-op detector's
+  *state machine*; `repro_battle_items.py` runs pure-function/static checks over the battle policy.
+  Neither asks the flat question *"is this string an item?"*.
+* ‼ **Why the shape is dangerous rather than cosmetic:** a name that resolves to nothing produces a
+  **missing action, never an error**. `pokemon_league.py`'s header already records two earlier
+  instances of the same class. The gauntlet is the one place a missing heal cannot be retried.
+* **Scoped to policy tables**, not every literal — scanning everything would flag prose and map names,
+  and a gate with false positives teaches the reader to bypass it.
+* **FAULT-TESTED on a GREEN baseline:** `--fault phantom` exits 1; `--fault prose` exits 0.
+  ‼ The arms were first run against a RED baseline, where they proved nothing — **a fault arm is only
+  meaningful once the happy path is green.**
+
+⇒ suite is now **77 entries = 73 ENFORCING + 4 ADVISORY** (`--quick` 67).
+
+### 📋 THE §Ch24 GAUNTLET BUILD SPEC IS ON DISK
+
+`ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md`, from a 13-agent workflow (6 recon angles →
+6 adversarial verifiers → 1 synthesis). Filed as a **NOTE, not truth**, with its verified and
+unverified halves separated at the top. Its H5 is the bug above — already verified and fixed. Its
+commitment point `(9,1)`, planner-blindness hazard (H1) and unbounded waits (H4) are **UNMEASURED**;
+the spec's own §5 names the probes that settle them, and those come before any gauntlet code.
+
+**FILES:** `sandbox-pokebot/modules/story/overworld_items.py`,
+`tools/story-dev/probe_item_names_resolve.py` (new), `tools/story-dev/run_gates.py`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (new),
+`…/2026-09-24-ch24-multirung-GRADED.md`, `custom-pokebot/DIVERGENCE-LOG.md`,
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
