@@ -1,0 +1,15 @@
+Running mGBA 0.10.2
+================================================================================================
+TWO SILENT-DEFAULT BUGS IN story_harness.py, FOUND BY WIDENING audit_flag_names.py
+fixture: post_league_lobby.ss1
+================================================================================================
+  BUG 1 BEFORE  get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV') = False   <- no row carries a FLAG_ prefix; memory.py:336-338 returns False SILENTLY
+  BUG 1 AFTER   get_event_flag('ADDED_MATCH_CALL_TO_POKENAV')      = True   <- a real reading
+  BUG 2 BEFORE  get_event_var('VAR_RESULT')                        = -1  <- VAR_RESULT is a SPECIAL var, absent from the table; memory.py:393-395 returns -1 SILENTLY
+  BUG 2 AFTER   read_symbol('gSpecialVar_Result')                  = 1   <- a real reading
+================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_13-48-11.ss1 created!
+Updated `current_state.ss1`!

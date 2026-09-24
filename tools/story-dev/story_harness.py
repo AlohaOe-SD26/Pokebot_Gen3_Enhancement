@@ -86,6 +86,25 @@ if not FRESH:
 logf = open(LOG, "w", encoding="utf-8")
 
 
+
+def _special_var_result() -> int:
+    """`VAR_RESULT` (0x800D), read the only way it CAN be read.
+
+    ⛔⛔ `_special_var_result()` DOES NOT WORK AND NEVER DID. `VAR_RESULT` is a **special**
+    var: it lives in `gSpecialVar_Result`, not in the save-block event-var table that
+    `modules/data/event_vars/emerald.txt` describes — that table has **no row containing "RESULT"**
+    at all. And `memory.py:393-395` returns **-1 SILENTLY** for a name it does not know.
+    ⇒ three diagnostic log lines in this file printed `VAR_RESULT=-1` unconditionally, for every
+    run, and would have sent anyone debugging a multichoice on a long walk. MEASURED 2026-09-24:
+    `read_symbol("gSpecialVar_Result")` returns a real value (1) on the same fixture where
+    `get_event_var` returns -1.
+    ‼ Found by WIDENING `audit_flag_names.py` to cover this file, which it had never scanned.
+    """
+    from modules.memory import read_symbol, unpack_uint16
+
+    return unpack_uint16(read_symbol("gSpecialVar_Result", 0, 2))
+
+
 def log(msg):
     logf.write(msg + "\n")
     logf.flush()
@@ -393,7 +412,7 @@ class PokenavTutMode(BotMode):
 
         def _var():
             try:
-                return get_event_var("VAR_RESULT")
+                return _special_var_result()
             except Exception as e:
                 return f"<err {e}>"
 
@@ -505,7 +524,7 @@ class PokenavClearMode(BotMode):
         def _dump(tag, step):
             gs = get_game_state()
             try:
-                vr = get_event_var("VAR_RESULT")
+                vr = _special_var_result()
             except Exception as e:
                 vr = f"<err {e}>"
             try:
@@ -548,7 +567,7 @@ class PokenavClearMode(BotMode):
         log(f"[clr] phase2: tutorial active? {triggered} â€” advancing intro + selecting POKENAV (index 3)")
         if triggered:
             yield from wait_for_multiple_choice_question(3)
-            log(f"[clr] after multichoice-select: VAR_RESULT={get_event_var('VAR_RESULT')} "
+            log(f"[clr] after multichoice-select: VAR_RESULT={_special_var_result()} "
                 f"gs={get_game_state()} tasks={_tasks()}")
             for i in range(30):
                 step += 1
@@ -589,7 +608,7 @@ class PokenavClearMode(BotMode):
             _dump("walk", step)
             context.emulator.press_button("Down")
             yield
-        log(f"[clr] FINAL flags: MatchCall={get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV')} "
+        log(f"[clr] FINAL flags: MatchCall={get_event_flag('ADDED_MATCH_CALL_TO_POKENAV')} "
             f"RECEIVED_POKENAV={get_event_flag('RECEIVED_POKENAV')}")
         while True:
             context.emulator.press_button("B")

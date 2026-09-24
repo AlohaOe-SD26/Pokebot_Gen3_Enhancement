@@ -20875,3 +20875,61 @@ explicit line that this is **not** by itself "the interior is one-way".
    result arrives labelled "unplanned corroboration", that is the moment to check it hardest.
 4. ⇒ *When this tree already holds a LIVE measurement of a coordinate, the static read does not get a
    vote.* Search `evidence/` and the gates for the coordinate before publishing a static claim about it.
+
+## 2026-09-24 — THE HARNESS HELD MORE FLAG READS THAN ALL OF `modules/story/`, AND NOTHING HAD EVER CHECKED THEM
+
+**Symptom.** `audit_flag_names.py` exists precisely to stop a misspelled flag name becoming a silent
+lie. Its file list was `modules/story/*.py` + `plugins/custom_modes/story_mode.py`. ⇒
+**`tools/story-dev/story_harness.py` was never scanned** — and it holds **~88 `get_event_flag(` call
+sites, more than all of `modules/story/` combined.** Widening the scan found **two live bugs on the
+first run**:
+
+| site | the call | what it returned, always |
+|---|---|---|
+| `story_harness.py:592` | `get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV')` | **`False`** — no row in `event_flags/emerald.txt` carries a `FLAG_` prefix, and `memory.py:336-338` returns False **silently** |
+| ×4 sites | `get_event_var("VAR_RESULT")` | **`-1`** — `VAR_RESULT` is a **special** var (`gSpecialVar_Result`); the save-block table has **no row containing "RESULT"** at all, and `memory.py:393-395` returns -1 **silently** |
+
+⛔⛔ **AND THE FLAG WAS ACTUALLY TRUE.** Measured on `post_league_lobby.ss1`:
+`get_event_flag('FLAG_…')` → **False**, `get_event_flag('ADDED_MATCH_CALL_TO_POKENAV')` → **True**.
+⇒ that diagnostic was not merely uninformative, it **printed the opposite of reality** for every run
+it ever made. `VAR_RESULT` likewise: `-1` where the real value is `1`.
+
+**Why it stayed hidden.** Both APIs **fail soft by design** — they return a plausible default rather
+than raising. A wrong name therefore produces **a reading, not an error**, and a reading is exactly
+what gets copied into a log, a doc, and a conclusion. ‼ This is the same shape as the phantom item
+names found earlier the same day (`"Paralyze Heal"`), and the same shape as the two cases
+`pokemon_league.py`'s header already records. ⇒ **the recurrence is the finding: a lookup of an
+EXTERNAL IDENTIFIER through a fail-soft API is a silent-lie generator unless something checks it.**
+
+**And the audit's own scope was the blind spot.** The gate was doing its job perfectly — on two
+thirds of the code. ⇒ *a gate's FILE LIST is part of its contract, and an unscanned file is not
+"probably fine", it is UNKNOWN.*
+
+**The fix that worked, in the order it had to happen.**
+1. ⭐ **MEASURE THE BLAST RADIUS BEFORE WIDENING.** Ran the resolution offline first: 27 distinct
+   flag names in the harness, **1** unresolved; 14 var names, **1** unresolved. Widening a gate onto
+   88 unknown call sites without that check could have produced a red gate with an unbounded fix
+   list — and the temptation would then be to narrow it again.
+2. Fixed both call sites. `VAR_RESULT` had **no correct caller in our code**, so a real reader was
+   added: `read_symbol("gSpecialVar_Result")`, verified live against the same fixture.
+3. Widened the scan — which then produced **6 false positives**, because the harness *imports* its
+   flag constants and defines others *inside methods* or as *tuples*, none of which the audit's
+   `const_def` regex could see (it anchored at column 0, single assignment only).
+4. ⇒ **RESOLVED THE FALSE POSITIVES RATHER THAN SUPPRESSING THEM:** a cross-file constant map, plus
+   a widened pattern for indented and tuple assignments. **A gate that cries wolf gets bypassed —
+   this audit's own source comment says so, and widening its scope without widening its resolution
+   would have proved that comment right.**
+5. Verified both regexes by **printing the compiled pattern and running positive/negative lists**
+   (project rule R-REGEX: never review a regex by reading it), including a commented-out line as a
+   negative.
+
+**PREVENTION RULES.**
+1. ⛔ *A GATE'S FILE LIST IS PART OF ITS CONTRACT.* When a gate exists for a class of bug, ask what
+   it does **not** scan, and treat that set as UNKNOWN rather than clean. Here the unscanned file
+   held **more** of the risky construct than every scanned file combined.
+2. ⛔ *AN API THAT FAILS SOFT NEEDS A NAME-RESOLUTION GATE, ALWAYS.* `get_event_flag` → False,
+   `get_event_var` → -1, `held.get(name, 0)` → 0. Each converts a typo into a plausible reading.
+   Wherever one exists, something must validate the identifier against its table.
+3. ⭐ *WIDEN A GATE'S SCOPE ONLY AFTER MEASURING WHAT IT WILL FIND* — offline, before editing the
+   gate. A red gate with an unknown-size fix list invites narrowing it back.
+4. ⇒ *WHEN WIDENING PRODUCES FALSE POSITIVES, FIX THE RESOLVER, NOT THE SCOPE.*

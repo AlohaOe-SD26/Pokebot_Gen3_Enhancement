@@ -27,10 +27,42 @@ for line in (ROOT / "modules/data/event_vars/emerald.txt").read_text().splitline
 # a phantom name reads False/0 in silence forever, so an unaudited completion check is a chapter
 # that can never pass and never says why. Found 2026-08-12 while building §Ch19 — the names were
 # all real, but nothing had been checking. A glob cannot go stale as the code moves.
+
+def _rel(path) -> str:
+    """Display path. ‼ The harness lives OUTSIDE `sandbox-pokebot/`, so `relative_to(ROOT)` RAISES
+    for it — which is how the 2026-09-24 widening first failed. Fall back to the repo root, then to
+    the bare name, so a display detail can never take the gate down."""
+    for base in (ROOT, ROOT.parent):
+        try:
+            return path.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    return path.name
+
+
 files = sorted((ROOT / "modules/story").glob("*.py"))
 files += [
     ROOT / "plugins/custom_modes/story_mode.py",
 ]
+# ⛔⛔ WIDENED 2026-09-24 TO COVER THE HARNESS, WHICH HAD NEVER BEEN SCANNED — AND IT FOUND TWO
+# LIVE BUGS ON ITS FIRST RUN. `story_harness.py` holds ~88 `get_event_flag(` call sites, MORE THAN
+# ALL OF `modules/story/` COMBINED, and it is where MEASUREMENTS come from: a silently-wrong name
+# there does not break the bot, it prints a FAKE READING that gets written into a doc.
+#   * `get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV')` — no row in the table carries a `FLAG_`
+#     prefix, and `memory.py:336-338` returns False SILENTLY ⇒ that log printed MatchCall=False
+#     unconditionally, forever.
+#   * `get_event_var("VAR_RESULT")` ×4 — `VAR_RESULT` is a SPECIAL var (`gSpecialVar_Result`), not
+#     in the save-block table at all, and `memory.py:393-395` returns -1 SILENTLY.
+# ⇒ the harness lives OUTSIDE `sandbox-pokebot/`, so the path is built from THIS file's own
+# location rather than from ROOT.
+_HARNESS = pathlib.Path(__file__).resolve().parent / "story_harness.py"
+if _HARNESS.exists():
+    files += [_HARNESS]
+# ⭐ PRE-PASS: every constant defined in ANY scanned file, so a name IMPORTED into another scanned
+# file still resolves. Built once, before the per-file loop.
+_ALL_CONSTS: dict[str, str] = {}
+
+
 flag_call = re.compile(r"get_event_flag\(\s*[\"']([A-Z0-9_]+)[\"']")
 var_call = re.compile(r"get_event_var\(\s*[\"']([A-Z0-9_]+)[\"']")
 done_call = re.compile(r"_done\(\s*[\"']([A-Z0-9_]+)[\"']")
@@ -44,7 +76,25 @@ done_call = re.compile(r"_done\(\s*[\"']([A-Z0-9_]+)[\"']")
 # Resolving `CONST = "LITERAL"` one level is enough for every current call site, and a constant
 # that cannot be resolved is REPORTED rather than skipped — an unresolvable name is unaudited,
 # and unaudited must never look like audited.
-const_def = re.compile(r"^(_?[A-Z][A-Z0-9_]*)\s*(?::\s*str\s*)?=\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
+# ⛔ LEADING WHITESPACE IS ALLOWED, AND TUPLE UNPACKING IS A SECOND SHAPE.
+# The original pattern anchored at column 0, so it saw only MODULE-level constants. The
+# harness defines many of its flag names INSIDE a method (`        DONE = "..."`), and some
+# as a tuple (`        DEC, DEF = "...", "..."`). Both were invisible, which produced
+# UNRESOLVED false positives the moment the harness was scanned (2026-09-24).
+const_def = re.compile(r"^\s*(_?[A-Z][A-Z0-9_]*)\s*(?::\s*str\s*)?=\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
+#: `A, B = "x", "y"` — paired positionally.
+const_def_pair = re.compile(
+    r"^\s*(_?[A-Z][A-Z0-9_]*)\s*,\s*(_?[A-Z][A-Z0-9_]*)\s*=\s*"
+    r"[\"']([A-Za-z0-9_]+)[\"']\s*,\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
+
+
+def _consts_in(text: str) -> dict:
+    """Every `NAME = "LITERAL"` this audit can see, single or paired, at any indentation."""
+    out = {m.group(1): m.group(2) for m in const_def.finditer(text)}
+    for m in const_def_pair.finditer(text):
+        out[m.group(1)] = m.group(3)
+        out[m.group(2)] = m.group(4)
+    return out
 flag_call_const = re.compile(r"get_event_flag\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)")
 var_call_const = re.compile(r"get_event_var\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)")
 
@@ -52,6 +102,14 @@ bad = []
 checked = []          # (path, how many flag/var names that file actually contained)
 total_names = 0
 dynamic = 0           # call sites whose name is a function PARAMETER — unauditable by design
+for _f in files:
+    try:
+        _t = _f.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        continue
+    _ALL_CONSTS.update(_consts_in(_t))
+
+
 for f in files:
     text = f.read_text(encoding="utf-8")
     found = 0
@@ -69,7 +127,17 @@ for f in files:
             bad.append((f.name, "var", m.group(1)))
 
     # --- names reached through a module constant (see `const_def` above) ---
-    consts = {m.group(1): m.group(2) for m in const_def.finditer(text)}
+    # ⛔ RESOLVE ACROSS FILES, NOT JUST LOCALLY. The harness IMPORTS its flag constants from
+    # `modules/story/*` rather than defining them, so a local-only map reported six of them as
+    # UNRESOLVED on the 2026-09-24 widening — false positives every one, because the literal IS
+    # validated at its definition site in a file this audit already scans.
+    # ‼ A gate that cries wolf is a gate that gets ignored, and this audit's own comment below says
+    # so. Widening the scan without widening the resolution would have produced exactly that.
+    # ⚠ LIMITATION, STATED: if two scanned files define the SAME constant name differently, this
+    # takes whichever resolves into the table. That is a deliberate trade — it cannot produce a
+    # false PASS for a name that exists nowhere, which is the failure this gate exists to catch.
+    consts = dict(_ALL_CONSTS)
+    consts.update(_consts_in(text))
     for rx, kind, table in ((flag_call_const, "flag-via-const", flags),
                             (var_call_const, "var-via-const", evars)):
         for m in rx.finditer(text):
@@ -107,7 +175,7 @@ else:
 print(f"(checked {len(files)} files against {len(flags)} flags / {len(evars)} vars; "
       f"{total_names} name(s) resolved, {dynamic} dynamic call site(s) skipped)")
 for f, n in sorted(checked):
-    print(f"  {n:4d} name(s)  {f.relative_to(ROOT).as_posix()}")
+    print(f"  {n:4d} name(s)  {_rel(f)}")
 if total_names == 0:
     print("‼ ZERO flag/var names were found in ANY file — this audit checked nothing. Exit 1.")
     raise SystemExit(1)

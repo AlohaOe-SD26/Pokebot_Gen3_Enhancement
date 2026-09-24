@@ -34169,3 +34169,54 @@ as three live fixes.
 by an overworld pickup before Victory Road, which would reach `STATUS_ONLY` at `:188` outside the
 basket. No such path was found in `modules/story`, so the claim holds as far as it was checked —
 **as far as it was checked** is the accurate qualifier.
+
+---
+
+## 2026-09-24f — THE FLAG AUDIT NEVER SCANNED THE HARNESS, WHICH HELD MORE FLAG READS THAN EVERYTHING IT DID SCAN
+
+`audit_flag_names.py` exists to stop a misspelled flag name becoming a silent lie. Its file list was
+`modules/story/*.py` + `story_mode.py`. ⇒ **`tools/story-dev/story_harness.py` was never scanned**,
+and it holds **~88 `get_event_flag(` call sites — more than all of `modules/story/` combined.** It is
+also where MEASUREMENTS come from: a wrong name there does not break the bot, it prints a **fake
+reading** that gets copied into a log, a doc and a conclusion.
+
+### ⛔⛔ TWO LIVE BUGS, FOUND ON THE FIRST RUN — AND ONE PRINTED THE OPPOSITE OF REALITY
+
+Measured on `post_league_lobby.ss1` (`evidence/2026-09-24-silent-default-bugs.stdout.txt`):
+
+| | before | after |
+|---|---|---|
+| `get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV')` | **False**, always | — |
+| `get_event_flag('ADDED_MATCH_CALL_TO_POKENAV')` | — | **True** |
+| `get_event_var('VAR_RESULT')` ×4 | **-1**, always | — |
+| `read_symbol('gSpecialVar_Result')` | — | **1** |
+
+* No row in `event_flags/emerald.txt` carries a **`FLAG_` prefix**, and `memory.py:336-338` returns
+  False **silently** for an unknown name. ⇒ that log line reported `MatchCall=False` while the flag
+  was **actually True**.
+* `VAR_RESULT` is a **special** var (`gSpecialVar_Result`) — the save-block table has **no row
+  containing "RESULT"**, and `memory.py:393-395` returns **-1 silently**. There was **no correct
+  reader in our code**, so one was added and verified live.
+
+### ⭐ THE ORDER MATTERED MORE THAN THE FIX
+
+1. **Measured the blast radius BEFORE widening** — offline: 27 distinct flag names in the harness,
+   **1** unresolved; 14 var names, **1**. Widening onto 88 unknown call sites without that check
+   risked a red gate with an unbounded fix list, and the temptation to narrow it straight back.
+2. Fixed both call sites, then widened the scan.
+3. ⇒ widening produced **6 false positives**: the harness *imports* its flag constants, and defines
+   others *inside methods* or as *tuple unpacking* — none visible to a `const_def` regex anchored at
+   column 0 for single assignments only.
+4. ⭐ **RESOLVED THEM RATHER THAN SUPPRESSING THEM:** a cross-file constant map plus a widened
+   pattern for indented and paired assignments. **A gate that cries wolf gets bypassed — this
+   audit's own source comment says exactly that**, and widening its scope without widening its
+   resolution would have proved the comment right.
+5. Both regexes verified by **printing the compiled pattern and running positive/negative lists**
+   (R-REGEX: never review a regex by reading it), including a commented-out line as a negative.
+
+⇒ the audit now reports **all names valid** across **27 files**, 294 names resolved, with the harness
+covered for the first time.
+
+**FILES:** `tools/story-dev/audit_flag_names.py`, `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-24-silent-default-bugs.stdout.txt` (new),
+`PROJECT KNOWLEDGE/08-MISTAKES.md`, `07-CHANGELOG.md`.
