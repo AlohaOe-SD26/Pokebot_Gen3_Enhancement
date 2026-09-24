@@ -1,0 +1,27 @@
+PRE-PROMOTION BASELINE — 2026-09-24, captured BEFORE promote.py --go.
+Paired with the AFTER file. A copy is not evidence; a behaviour that changed from FAIL to PASS
+in the OTHER fork is. Both gates below are build-aware precisely so this comparison exists.
+
+### gate #70 (trainee-scoped PP predicate) — CUSTOM
+Traceback (most recent call last):
+  File "C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\probe_lead_pp_scope.py", line 57, in <module>
+    from modules.story.early_game import _team_is_out_of_pp, lead_has_no_damaging_pp
+ImportError: cannot import name 'lead_has_no_damaging_pp' from 'modules.story.early_game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\custom-pokebot\modules\story\early_game.py)
+
+### gate #71 (Ch24 run-latch) — CUSTOM
+====================================================================================================
+GATE: the §Ch24 run-latch settles §Ch23, clears between runs, gates BOTH halves   [build=custom]
+====================================================================================================
+  ✅ ARM A   True  (expected True)
+  ✅ ARM B   False (expected False)
+  ✅ ARM C   True  (expected True)
+  ⛔ ARM D1  False (expected True) — the SKIP half must call `_ch23_settled()`, not the bare predicate.
+  ⛔ ARM D2  False (expected True) — the `_guard` half must ALSO use `_ch23_settled()`. `_guard` is assert-not-skip, so a bare predicate there moves the failure one line down instead of fixing it.
+  ⛔ ARM D3  False (expected True) — `_ch24_owns_run = False` must appear inside `reset_per_run_state()` — that is the ONLY place with per-RUN lifetime.
+  ✅ ARM D4  False (expected False)
+
+⛔ FAIL:
+  • ARM D1: got False, expected True. the SKIP half must call `_ch23_settled()`, not the bare predicate.
+  • ARM D2: got False, expected True. the `_guard` half must ALSO use `_ch23_settled()`. `_guard` is assert-not-skip, so a bare predicate there moves the failure one line down instead of fixing it.
+  • ARM D3: got False, expected True. `_ch24_owns_run = False` must appear inside `reset_per_run_state()` — that is the ONLY place with per-RUN lifetime.
+====================================================================================================
