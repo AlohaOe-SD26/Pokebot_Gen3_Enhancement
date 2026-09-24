@@ -1681,6 +1681,73 @@ def _ch24_level_of(pid: int) -> "int | None":
     return None
 
 
+def _ch24_step_out_if_fly_illegal(report=None) -> Generator:
+    """Leave a Fly-illegal map before a ground is picked. MEASURED DEFECT, not a precaution.
+
+    ⛔⛔ WHAT THE MULTI-RUNG DRIVE FOUND (2026-09-24, `--driver ch24train CH24_TRAIN_FLOOR=40`).
+    The climb worked — six rungs, Zigzagoon L19 → L40 — and ended standing on
+    `VICTORY_ROAD_1F (15,39)`, which is the LAST rung's own ground. Then the leg turned to the
+    second trainee and reported *"no reachable ground Castform out-levels at L36"* and stopped it.
+    ‼ That was not a ladder hole. It was a POSITION problem:
+      * `map_type=Underground` ⇒ `fly_is_legal_from_current_map()` is **False**, so
+        `can_fly_to_anchor` is False and `_training_area_allowed`'s **entire Fly disjunct fails for
+        every ground**;
+      * and walking ≤ `_MAX_TRAINING_TRAVEL_LEGS` hops from inside the cave reaches almost nothing.
+    ⇒ every ground was refused, and the leg correctly-but-uselessly gave up on a mōn it could have
+    trained from one map away. The `floor=21` drives never saw this because they never entered
+    Victory Road.
+
+    ⭐ WHY IT IS FIXED HERE AND NOT IN `_CAVE_EXITS`. `_exit_training_cave_if_inside()` is the
+    obvious home — and it is a no-op inside Victory Road, because `_CAVE_EXITS` knows only Granite
+    Cave and Fiery Path. But that table is read by THREE other call sites (`train_team`'s heal path
+    and two in `story_mode.py`), and adding a row would change when all of them leave a cave. This
+    leg's need is narrower and its own: *be somewhere a ground can be chosen from*. A shared table
+    is the wrong place to encode one caller's precondition.
+
+    NO-OPS WHEREVER FLY IS ALREADY LEGAL, which is every route, town and city — so the common path
+    pays one map-type read.
+    """
+    from modules.console import console
+    from modules.story import victory_road as VR
+    from modules.story.early_game import _yield_bounded_by_frames
+
+    report = report if report is not None else {}
+    try:
+        if fly_is_legal_from_current_map():
+            return
+    except Exception as error:  # noqa: BLE001 - an unreadable map type must not strand the leg
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return
+
+    # ⛔ ONLY VICTORY ROAD IS HANDLED, AND THAT IS DELIBERATE. It is the one Fly-illegal map this
+    # ladder actually trains on (its band 36-40 makes it the L39+ rung). Inventing exits for caves
+    # the leg never visits would be untested code guarding a case that cannot arise.
+    try:
+        if not VR._on_map(VR.VR1F):
+            report.setdefault("fly_illegal_unhandled", []).append(str(VR._where()))
+            console.print("[yellow]§Ch24: Fly is illegal here and this is not Victory Road — "
+                          "cannot step out, so the next ground pick may fail.[/]")
+            return
+    except Exception as error:  # noqa: BLE001 - a map-identity read that fails must not strand the
+        # climb: we are only deciding WHERE we are, and guessing "not Victory Road" costs one refused
+        # ground pick, whereas propagating costs the whole leg. A real abort still re-raises below.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return
+
+    console.print("[cyan]§Ch24: inside Victory Road, where Fly is refused — stepping out to "
+                  "Ever Grande so a training ground can be chosen.[/]")
+    finished = yield from _yield_bounded_by_frames(
+        VR._navigate_riding_out(VR.EG, VR.EG_PC_APRON), 120_000)
+    report["stepped_out"] = bool(finished)
+    if not finished:
+        console.print("[yellow]§Ch24: could not step out of Victory Road within budget — the next "
+                      "ground pick will probably refuse.[/]")
+
+
 def train_one_for_league(pid: int, species: str, report=None, *,
                          floor: int = CH24_LEVEL_FLOOR) -> Generator:
     """Climb ONE mōn to `floor` on the per-trainee Fly ladder, rung by rung.
@@ -1724,6 +1791,12 @@ def train_one_for_league(pid: int, species: str, report=None, *,
     from plugins.custom_modes.story_mode import _training_area_allowed, _training_area_heal_map
 
     heal_map = _training_area_heal_map()
+
+    # ⛔ BEFORE THE FIRST GROUND PICK, NOT AFTER IT. `_training_area_allowed`'s Fly disjunct reads
+    # the CURRENT map, so standing somewhere Fly is refused makes every ground unreachable and the
+    # pick fails for a reason that has nothing to do with the ladder. Measured: the multi-rung
+    # drive gave up on Castform while standing inside Victory Road, one map from a working anchor.
+    yield from _ch24_step_out_if_fly_illegal(report)
 
     for _pass in range(CH24_MAX_RUNGS_PER_TRAINEE):
         level = _ch24_level_of(pid)
@@ -1909,6 +1982,17 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
     # ⇒ the flag now says only what it knows (every trainee got a turn), and the ACTUAL outcome is
     # computed from the party itself, which is the only thing that can answer "is the job done".
     report["all_trainees_visited"] = bool(visited_all)
+
+    # ⛔ END SOMEWHERE THE NEXT LEG CAN START FROM. The last rung of the real ladder is
+    # VICTORY_ROAD_1F, so a finished climb leaves the bot INSIDE a cave where Fly is refused and
+    # `calculate_path` cannot even express the way out (the exit is a door warp). §Ch24's next leg
+    # is the GAUNTLET, reached from Ever Grande.
+    # ‼ MEASURED: the multi-rung drive ended at `VICTORY_ROAD_1F (15,39)` with
+    # `fly_legal_at_end=False` and no computable path to the League anchor — a finished job that
+    # left the bot parked in the one place the chapter cannot continue from.
+    # ⇒ this is a POSTCONDITION of the leg, not a courtesy: "trained the party" and "left it able
+    # to proceed" are different claims, and only the second one is useful to the caller.
+    yield from _ch24_step_out_if_fly_illegal(report)
 
     left = ch24_trainees_below_floor(floor)
     report["floor_reached"] = not left

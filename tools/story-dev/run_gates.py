@@ -862,6 +862,30 @@ GATES: list[tuple[str, bool]] = [
     # path exit 0; with the arm set, exit 1 with every arm depending on "the latch can be unset"
     # red (B and C) and every SOURCE-reading arm green.
     ("probe_ch24_owns_run.py", False),
+    # --- #72 - A PREDICTION IS ONLY PRE-REGISTERED IF THE READING THAT GRADES IT EXISTS
+    # (`probe_predictions_gradeable.py`)
+    # ⛔⛔ MEASURED 2026-09-24. `2026-09-24-ch24-multirung-PREDICTIONS.md` was committed BEFORE its
+    # drive exactly as the story-drive skill requires, and TWO of its seven predictions came back
+    # UNGRADEABLE: P3 (the one that closes `#24-ppscope`) and P4 both state their falsifiers in terms
+    # of an exp split that `ch24train` NEVER RECORDED. The 2.2 % baseline P4 quotes came from a
+    # DIFFERENT driver (`Ch24SwapTriggerMode`), and the instrument was assumed to travel with the
+    # number. ⇒ the file was internally coherent, correctly pre-registered, and partly unfalsifiable
+    # by the run it was written for — which is the exact failure pre-registration exists to prevent,
+    # and it invited "5 of 7 confirmed" over seven predictions of which two were never tested.
+    # ⭐ ENFORCING, and the justification is about the INPUT DOMAIN rather than a judgement call: the
+    # gate asks only whether a named key is WRITTEN somewhere in `story_harness.py`. That is a
+    # mechanical fact with no interpretation in it.
+    # ‼ SCOPED BY DATE (`CONVENTION_START = 2026-09-24`): 29 older prediction files are exempt, so
+    # the gate never reddens history — a gate with false positives teaches the reader to bypass it.
+    # New files are covered automatically and cannot opt out, which a marker-based opt-in could not
+    # promise (the agent who forgets the reading is the agent who forgets the marker).
+    # ⛔ IT CHECKS EXISTENCE, NOT CORRECTNESS — that `exp_leak_pct` exists does not prove it measures
+    # what P4 means by "leak". It closes the measured hole: a falsifier over a quantity NOTHING records.
+    # FAULT-TESTED 2026-09-24, all four arms: `--fault missing-key` (a key no driver writes),
+    # `--fault no-graded-by` (a prediction naming no reading) and `--fault no-driver` (no DRIVER line)
+    # each exit 1; `--fault mention` — the FALSE-POSITIVE arm, proving a comment-only key neither
+    # satisfies the gate nor trips it — exits 0.
+    ("probe_predictions_gradeable.py", False),
 ]
 
 

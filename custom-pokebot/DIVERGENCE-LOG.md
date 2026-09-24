@@ -2936,3 +2936,88 @@ of the machinery turns end to end. It does **not** prove the climb. Undriven in 
   the fix promoted here is **proven as a predicate and unproven in motion**.
 ⇒ The purse sizes come from ONE economics model. **Watch the first long live run** and confirm
 `still_below` comes back empty rather than assuming the arithmetic generalises.
+
+
+# 2026-09-24b — THE §Ch24 STEP-OUT FIX: THE TRAINING LEG CAN TRAIN MORE THAN ONE MŌN
+
+**USER-AUTHORISED** (2026-09-24, verbatim: *"promote then proceed…"*).
+**ROLLBACK TAG:** `pre-promote-2026-09-24b` (annotated, pushed; verified on local **and** origin by the
+tool **before** anything was copied).
+**TOOL:** `promote.py --restore-point pre-promote-2026-09-24b --go`
+→ `drift after: 0`, `orphaned after: 0`, **byte-identical 1/1**.
+
+## WHAT MOVED — one file
+
+| file | what it brings |
+|---|---|
+| `modules/story/pokemon_league.py` | `_ch24_step_out_if_fly_illegal()` + its two call sites, and the `# noqa: BLE001` justification that gate `repro_no_silent_except.py` requires |
+
+## WHY IT MATTERS — TWO DEFECTS THAT TWO EARLIER `ACCEPTANCE: PASS` RUNS HID
+
+**(1) The leg could not train a SECOND mōn.** Finishing a rung inside `VICTORY_ROAD_1F`
+(`map_type=Underground`) makes `fly_is_legal_from_current_map()` False ⇒ `can_fly_to_anchor` False ⇒
+`_training_area_allowed`'s **entire Fly disjunct fails for every candidate ground**, and a ≤ 4-hop walk
+from inside a cave reaches nothing. The leg reported *"no reachable ground Castform out-levels at
+L36"* with ~2 M frames of purse unspent.
+**(2) The leg ENDED inside Victory Road**, where the chapter cannot continue (the exit is a door warp
+`calculate_path` cannot express). The step-out is therefore also a **postcondition**.
+
+⛔ **The earlier promotion (2026-09-24, three files) shipped WITH defect (1) live**, because its
+evidence was a `floor=21` drive — one short rung on ROUTE117. The defect needs a trainee to *finish*
+on a Fly-illegal ground, which first happens at **L39**. ⇒ that promotion's evidence could not have
+seen it.
+
+## VERIFICATION — COPY, GATES, **AND A REAL DRIVE IN THIS FORK**
+
+| check, run against `custom` | result |
+|---|---|
+| `promote.py` copy verify | ✅ drift 0 both directions, byte-identical 1/1 |
+| gates #68 / #69 / #70 / #71 `--build custom` | ✅ all PASS |
+| `repro_box_counter_move_test.py`, `repro_pid_identity_key.py` `--build custom` | ✅ both PASS |
+| **`CH24_TRAIN_FLOOR=40 --driver ch24train --build custom`** | ✅ **`ACCEPTANCE: PASS`** |
+
+⭐ **THE DRIVE WAS RUN AT `floor=40`, DELIBERATELY.** `floor=21` cannot reach Victory Road and
+therefore **cannot exercise the promoted fix at all** — driving at the default would have repeated the
+exact blind spot that let defect (1) through in the first place.
+
+**In CUSTOM:** 7 readings, `missing=[]`, **253 battles, 0 whiteouts**, both trainees at the floor
+(`leg_floor_reached=True`, `leg_still_below=[]`), 8 rungs all `finished: True`, ending on
+`EVER_GRANDE_CITY(27,49)` with `fly_legal_at_end=True` and `path_to_league_anchor=0`.
+
+## ⛔⛔ AND THE DRIVE REFUTED A PREDICTION I HAD ALREADY GRADED AS CONFIRMED
+
+**P4 of `2026-09-24-ch24-multirung-PREDICTIONS.md` asked for an exp leak *below 10 %*.**
+
+| run | fork | battles | `exp_leak_pct` | P4 |
+|---|---|---|---|---|
+| v2 | sandbox | 264 | **8.94 %** | ✅ passes |
+| this one | custom | 253 | **11.38 %** | ⛔ **FAILS** |
+
+⇒ **THE LEAK STRADDLES THE THRESHOLD.** P4 is confirmed by one measurement and refuted by the other.
+Neither run approaches the 25 % refutation bar, so the ladder's premise is not in danger — but
+*"the leak is bounded below 10 %"* is now **measured false**, and the caution written into the
+2026-09-24 changelog (*"do not read 8.94 % as bounded"*) was correct for a reason stronger than
+anticipated. The same bench mōn dominates in both runs: `Wailord#FA51ECF3` took 5,700 of 6,910
+(sandbox) and **8,016** (custom).
+
+## ⚠⚠ A METHODOLOGICAL FINDING THAT OUTLIVES THIS ITEM: THE TWO RUNS ARE NOT IDENTICAL
+
+Same fixture (`post_ch24_atdoor_L75.ss1`, `8b8cd907db09`), same driver, same floor, **same profile**
+(`profiles/repro-ml`), and — after this promotion — byte-identical `modules/` + `plugins/` Python.
+The **rung structure is identical** (same 8 rungs, same grounds, same level transitions), yet
+**battles differ (264 vs 253) and every exp figure differs.**
+
+⛔ `CLAUDE.md` session-discipline rule 8 says *"identical output across runs is a determinism check,
+never a replication"* — written on the assumption that runs **are** identical. These are not.
+‼ **THE CAUSE IS UNKNOWN AND IS NOT ASSERTED HERE.** The forks differ outside the promotion's scope
+(root scripts, `tests/`, `utility/`, `profiles/` contents), so this pair does not isolate it.
+⇒ A same-fork repeat is running to settle whether the harness is non-deterministic *within* a fork.
+**Until that lands, treat any single-run percentage in this tree as carrying real variance** — the two
+points we have for the same quantity are **8.94 %** and **11.38 %**.
+
+## ⚠ WHAT IS STILL NOT PROVEN IN EITHER FORK
+
+* the climb to the **real L65 floor** — both drives stop at **40**; the L39→L65 stretch
+  (~751 battles, 73–94 % of the real work) is barely entered;
+* the **trigger-2 HP-vs-PP mechanism split** (`#24-ppscope`'s remaining half) — uninstrumented;
+* **trainer sight cones** on every approach.

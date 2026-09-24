@@ -33875,3 +33875,74 @@ deterministic run refutes decisively and supports weakly.
 `tools/story-dev/evidence/2026-09-24-ch24climb-v2.stdout.txt` and `…-v2.log`,
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-multirung-GRADED.md`,
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+---
+
+## 2026-09-24b — PROMOTED THE §Ch24 STEP-OUT FIX, AND THE VERIFYING DRIVE REFUTED A PREDICTION I HAD ALREADY GRADED
+
+**USER-AUTHORISED** (*"promote then proceed…"*). `promote.py --restore-point pre-promote-2026-09-24b
+--go` → **drift 0 both directions, orphaned 0, byte-identical 1/1**. The rollback tag was created and
+verified on **local and origin before anything was copied**. One file moved:
+`modules/story/pokemon_league.py`.
+
+### ✅ VERIFIED BY DRIVING IN CUSTOM, AT THE FLOOR THAT CAN ACTUALLY SEE THE FIX
+
+`CH24_TRAIN_FLOOR=40 --driver ch24train --build custom` → **`ACCEPTANCE: PASS`**, 7 readings,
+`missing=[]`, **253 battles, 0 whiteouts**, both trainees at the floor (`leg_floor_reached=True`,
+`leg_still_below=[]`), 8 rungs all `finished: True`, ending `EVER_GRANDE_CITY(27,49)` with
+`fly_legal_at_end=True` and `path_to_league_anchor=0`. All six `--build`-aware gates also pass against
+custom (#68–#71, `repro_box_counter_move_test`, `repro_pid_identity_key`).
+
+⭐ **`floor=40` WAS DELIBERATE.** `floor=21` cannot reach Victory Road and therefore **cannot exercise
+the promoted fix at all** — the default is exactly the blind spot that let the defect through the
+*previous* promotion. Verifying at the default would have repeated the mistake while looking diligent.
+
+### ⛔⛔ AND THE DRIVE REFUTED P4, WHICH I HAD GRADED "CONFIRMED, NARROWLY" HOURS EARLIER
+
+| run | fork | battles | `exp_leak_pct` | P4 (< 10 %) |
+|---|---|---|---|---|
+| v2 | sandbox | 264 | **8.94 %** | ✅ passes |
+| 2026-09-24b | custom | 253 | **11.38 %** | ⛔ **fails** |
+
+⇒ **the leak STRADDLES the threshold.** Neither run approaches the 25 % refutation bar, so the
+ladder's premise stands — but *"the leak is bounded below 10 %"* is **measured false**. `P4` is
+regraded **⚠ SPLIT** in `ai-research-notes/2026-09-24-ch24-multirung-GRADED.md`. The same bench mōn
+dominates both: `Wailord#FA51ECF3` took 5,700 of 6,910 (sandbox) and **8,016** (custom).
+
+### ⚠⚠ A METHODOLOGICAL FINDING THAT OUTLIVES THIS ITEM
+
+Same fixture, driver, floor and profile; byte-identical `modules/`+`plugins/` Python after promotion;
+**identical rung structure** (same 8 rungs, same grounds, same transitions) — and yet **different
+battle counts and different exp figures.** ⛔ `CLAUDE.md` rule 8 (*"identical output across runs is a
+determinism check, never a replication"*) assumes runs **are** identical. These are not.
+⇒ **single-run percentages in this tree carry real variance.** ‼ The cause is **not asserted**: the
+forks still differ outside the promotion's scope, so this pair does not isolate fork-vs-harness. A
+same-fork repeat is running to settle it.
+
+### ⭐ NEW GATE #72 — `probe_predictions_gradeable.py`: A PREDICTION IS ONLY PRE-REGISTERED IF THE READING THAT GRADES IT EXISTS
+
+Turning the 2026-09-24 P3/P4 mistake from prose into enforcement, per CLAUDE.md rule 6 (*anything
+enforceable belongs in a gate*). Every prediction file dated from 2026-09-24 must declare
+`DRIVER: <tag>`, every `### P<n>` must carry `GRADED-BY: <key>`, and every key must be one
+`story_harness.py` actually **writes** (`R[...]`, `report[...]`, `taken.add(...)`).
+
+* **Scoped by date, not opt-in.** 29 older files are exempt so the gate never reddens history — a gate
+  with false positives teaches the reader to bypass it. New files are covered automatically and
+  cannot opt out; a marker-based opt-in would be weaker, because the agent who forgets the reading is
+  the agent who forgets the marker.
+* ⛔ **It checks EXISTENCE, not CORRECTNESS** — that `exp_leak_pct` exists does not prove it measures
+  what P4 meant by "leak". The limit is written into the gate rather than oversold.
+* **FAULT-TESTED, all four arms:** `missing-key`, `no-graded-by`, `no-driver` each exit 1;
+  `mention` — the false-positive arm, proving a comment-only key neither satisfies nor trips the
+  gate — exits 0.
+* ‼ **Two bugs were found in the gate itself before it was trusted:** Windows' case-insensitive
+  `glob` made the two patterns return the same files, double-counting every one, and its docstring
+  carried a stale count.
+
+⇒ suite is now **76 entries = 72 ENFORCING + 4 ADVISORY** (`--quick` 66).
+
+**FILES:** `custom-pokebot/modules/story/pokemon_league.py` (promoted),
+`custom-pokebot/DIVERGENCE-LOG.md`, `tools/story-dev/probe_predictions_gradeable.py` (new),
+`tools/story-dev/run_gates.py`, `tools/story-dev/evidence/2026-09-24b-ch24climb-CUSTOM.stdout.txt`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-multirung-{PREDICTIONS,GRADED}.md`,
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.

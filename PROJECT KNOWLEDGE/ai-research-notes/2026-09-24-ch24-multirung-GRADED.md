@@ -39,7 +39,7 @@ driver* (`Ch24SwapTriggerMode`). The instrument was built before re-driving. See
 | P1 | ≥ 4 distinct grounds, in the picker's predicted order | ✅ **CONFIRMED** | 6 grounds, exactly `ROUTE117 → ROUTE111 → ROUTE115 → ROUTE118 → ROUTE121 → VICTORY_ROAD_1F` |
 | P2 | both **SURF** rungs reached | ✅ **CONFIRMED** | `ROUTE115 25→27` and `ROUTE118 27→28`, both `finished: True` |
 | P3 | PP goes dry; the leg **heals** rather than degrading | ⚠ **PARTIAL — see below** | `pp_predicate_true = 2` of `3365` calls |
-| P4 | exp leak **< 10 %** to non-trainees | ✅ **CONFIRMED, NARROWLY** | `exp_leak_pct = 8.94` (bench 6,910 / total 77,259) |
+| P4 | exp leak **< 10 %** to non-trainees | ⚠ **SPLIT — SEE THE CORRECTION AT THE END OF THIS FILE** | `exp_leak_pct = 8.94` (sandbox) vs **11.38** (custom) — one measurement each side of the line |
 | P5 | `VICTORY_ROAD_1F` entered as a ground at **L39** | ✅ **CONFIRMED** | both trainees, `from: 39` |
 | P6 | no whiteouts | ✅ **CONFIRMED** | `whiteouts=0` |
 | P7 | `floor_reached=True`, `still_below=[]` | ✅ **CONFIRMED** | both, and `leg_all_visited=True` |
@@ -72,7 +72,8 @@ consequence it was meant to predict is measured.
 
 ---
 
-## ⚠ THE NUMBER TO WATCH: THE LEAK ROSE 4× AND P4 PASSED BY 1.06 POINTS
+## ⚠ THE NUMBER TO WATCH: THE LEAK ROSE 4× AND P4 PASSED HERE BY 1.06 POINTS — ⛔ BUT FAILED IN A
+## SECOND RUN. READ THE CORRECTION AT THE END OF THIS FILE BEFORE QUOTING ANYTHING BELOW.
 
 `floor=21` measured **2.2 %** over 14 battles. `floor=40` measures **8.94 %** over 264 — the same
 direction P4's falsifier was pointed at, just short of the 10 % line and well short of the 25 %
@@ -91,4 +92,39 @@ plausibly over 10 %. ⇒ re-measure `exp_leak_pct` on the first long run rather 
   `VICTORY_ROAD_1F` L39→L65, ~751 battles — is barely entered.
 * **The trigger-2 HP/PP mechanism split** (`#24-ppscope`'s remaining half).
 * **Trainer sight cones** on every approach; the planner is structurally blind to them.
-* **One trajectory.** A single deterministic run refutes decisively and supports weakly.
+* **⛔ NOT "one deterministic trajectory" — SEE THE CORRECTION BELOW.** This said a single run *"refutes decisively and supports weakly"*, on the assumption that a repeat would reproduce it exactly. A second drive of the same fixture/driver/floor/profile did **not**: 253 battles vs 264, and `exp_leak_pct` 11.38 vs 8.94. ⇒ single-run percentages here carry real variance.
+
+---
+
+# ⛔⛔ CORRECTION, 2026-09-24b — **P4 IS REFUTED BY A SECOND MEASUREMENT**
+
+The table above grades **P4 (exp leak < 10 %) as CONFIRMED, NARROWLY** on `exp_leak_pct = 8.94`. A
+second drive — the promotion-verification run of the *same fixture, same driver, same floor, same
+profile*, against `--build custom` — returned **`exp_leak_pct = 11.38`**.
+
+| run | fork | battles | `exp_leak_pct` | P4 (< 10 %) |
+|---|---|---|---|---|
+| v2 | sandbox | 264 | **8.94 %** | ✅ passes |
+| 2026-09-24b | custom | 253 | **11.38 %** | ⛔ **fails** |
+
+⇒ **THE LEAK STRADDLES THE THRESHOLD, SO P4 AS STATED IS NOT SAFE.** Neither run approaches the 25 %
+refutation bar, so the ladder's premise stands — but *"the leak is bounded below 10 %"* is now
+**measured false**, and this file should not be read as having established it. The same bench mōn
+dominates both runs: `Wailord#FA51ECF3` took **5,700 of 6,910** (sandbox) and **8,016** (custom).
+
+**Revised verdict: P4 — ⚠ SPLIT. One measurement each side of its own line.**
+
+## ⚠⚠ AND THE REASON THIS IS TWO MEASUREMENTS RATHER THAN ONE REPLAY
+
+The two runs share fixture (`8b8cd907db09`), driver, floor and profile (`profiles/repro-ml`), and
+after the promotion their `modules/` + `plugins/` Python is **byte-identical**. Their **rung structure
+is identical** — same 8 rungs, same grounds, same level transitions. Yet **battles differ (264 vs
+253) and every exp figure differs.**
+
+⛔ `CLAUDE.md` rule 8 says *"identical output across runs is a determinism check, never a
+replication"*. That rule assumes runs **are** identical. These are not, which cuts the other way:
+**single-run percentages in this tree carry real variance and should be quoted with that caveat.**
+
+‼ **THE CAUSE IS NOT ASSERTED HERE.** The two forks still differ outside the promotion's scope (root
+scripts, `tests/`, `utility/`, `profiles/` contents), so this pair does not isolate fork-vs-harness.
+A same-fork repeat was launched to settle it; its result belongs in this file when it lands.

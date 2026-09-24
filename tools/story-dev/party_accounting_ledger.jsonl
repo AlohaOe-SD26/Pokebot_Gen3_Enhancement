@@ -689,3 +689,4 @@
 {"when": "2026-09-24T01:27:28", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 40000, "recomputes": 40001, "scans": 134, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T01:28:13", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 40000, "recomputes": 40001, "scans": 134, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T01:45:58", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 706711, "recomputes": 706711, "scans": 2356, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T07:44:16", "driver": "ch24train", "build": "custom", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 698493, "recomputes": 698493, "scans": 2329, "divergences": {}, "observer_broke": false}
