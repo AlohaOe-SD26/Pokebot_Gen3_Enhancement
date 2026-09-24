@@ -5277,8 +5277,19 @@ class StoryMode(BotMode):
                 f"Story: §Ch24 training ended with mon still below the floor: "
                 f"{_ch24_train_report['still_below']}")
 
-        # END OF BUILT CONTENT. Next build: **THE POKÉMON LEAGUE — Chapter 24**: the Elite Four
-        # gauntlet (Sidney, Phoebe, Glacia, Drake) and Champion Wallace. ⛔ NO NURSE BETWEEN ROOMS —
+        # END OF BUILT CONTENT — ‼ RETARGETED 2026-09-24, BECAUSE §Ch24 NOW BEGINS **ABOVE**
+        # THIS LINE. The §Ch24 TRAINING leg (`train_for_league`) runs a few lines up, so the
+        # old text — *“Next build: the Elite Four gauntlet”* — is no longer the first missing
+        # thing. A stale pointer here misdirects every cold start, which is exactly what P4
+        # exists to catch.
+        # ⇒ WHAT IS ACTUALLY NEXT: **the §Ch24 GAUNTLET** (Sidney, Phoebe, Glacia, Drake,
+        # Champion Wallace). Training is BUILT; the fights are not.
+        # ⛔⛔ AND A FORWARD DEPENDENCY THAT MUST NOT BE FORGOTTEN WHEN THEY ARE WIRED:
+        # `train_for_league` deliberately has **no floor `_guard`** after it — a party can
+        # fall through still BELOW L65 if it runs out of reachable ground or a purse
+        # expires. That is safe ONLY while nothing is wired past this point. The moment the
+        # gauntlet is reachable, an under-levelled party would walk into a ONE-WAY,
+        # NURSE-LESS fight. ⇒ the gauntlet's first act must be a readiness guard. ⛔ NO NURSE BETWEEN ROOMS —
         # the doors seal behind you, so the BAG is the only healing, and items are legal in those
         # battles (decomp-verified). §Ch23 leg 11 already buys the basket for exactly this reason.
         # ✅ §Ch23 IS NOW WIRED (2026-09-05) — the orchestrator dispatches on POSITION because six of
