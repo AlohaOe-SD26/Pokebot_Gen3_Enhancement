@@ -20598,3 +20598,88 @@ repair was to stop requiring `T-LATCH` under a driver, which would have deleted 
 the leg calls the latch at all. ⇒ **when a grade fails, ask whether the CHECK is wrong before
 weakening it — and prefer making the harness meet the contract over lowering the contract.** The
 driver now implements the latch interface and counts the call.
+
+
+## 2026-09-24 — A PRE-REGISTERED PREDICTION WHOSE INSTRUMENT DID NOT EXIST
+
+**Symptom.** `2026-09-24-ch24-multirung-PREDICTIONS.md` was written and committed *before* the drive,
+exactly as `.claude/skills/story-drive` §1 requires. Two of its seven predictions were ungradeable
+when the drive came back:
+
+* **P3** — *"the trainee's PP goes dry and the leg HEALS rather than degrading"* — is the one
+  prediction that closes `#24-ppscope`. Its falsifier is stated as *"if the exp split shows a
+  finisher banking a large share…"*.
+* **P4** — *"the exp leak stays small (< 10 % to non-trainees)"*, quoting **2.2 %** from the
+  `floor=21` run as its baseline.
+
+Both falsifiers are defined in terms of an **exp split that the `ch24train` driver never recorded.**
+
+**Root cause.** The 2.2 % baseline came from a *different driver*. `Ch24SwapTriggerMode`
+(`story_harness.py:20937-20956`) computes `exp_before`/`exp_after` around a single `train_team` call;
+`Ch24TrainMode` — the driver the predictions were actually written for — records
+`leg_rungs`/`leg_still_below`/`leg_floor_reached` and **no exp figures at all**. I carried a number
+across a driver boundary and assumed the instrument came with it.
+
+⇒ The predictions document was internally coherent, correctly pre-registered, and **partly
+unfalsifiable by the run it was written for** — which is the failure mode pre-registration exists to
+prevent. It also silently invited the worst outcome: grading P3/P4 from impression, or quietly
+dropping them and reporting "5 of 7 confirmed" as though seven had been tested.
+
+**The fix that worked.** Added the missing instrument to `Ch24TrainMode` *before* re-driving:
+`exp_to_trainees`, `exp_to_bench`, `exp_leak_pct`, `exp_gained_by_pid`, plus a direct
+`pp_predicate_calls`/`pp_predicate_true` counter that wraps `lead_has_no_damaging_pp` so P3 is graded
+on the term **firing**, not merely on its downstream signature.
+
+⭐ **And the definition had to change with the driver.** In a one-trainee driver, "leak" = *anything
+that is not the lead*. This leg trains **several** mōn, so that definition would score the second
+trainee's own climb as leakage and manufacture a P4 falsification out of correct behaviour. Leak is
+therefore **exp banked by non-trainees** — the L75 bench.
+
+**PREVENTION RULE.** ⛔ *A prediction is only pre-registered if the READING that grades it already
+exists.* When writing the predictions file, name the specific reading key beside each falsifier and
+confirm that key is produced **by the driver this drive will use** — a number quoted from a sibling
+driver proves nothing about this one. If the reading does not exist, build it before the drive, not
+after.
+
+## 2026-09-24 — THE LEG PASSED TWICE, IN TWO FORKS, WITH A DEFECT THAT MADE IT USELESS FOR ITS SECOND TRAINEE
+
+**Symptom.** `train_for_league` graded `ACCEPTANCE: PASS` at `floor=21` in the sandbox, then again in
+`custom-pokebot` after promotion. Driven at `floor=40` it climbed Zigzagoon L19→L40 and then
+announced *"no reachable ground Castform out-levels at L36 — stopping this trainee at L36"*, leaving
+the party below the floor with **~2 M frames of purse unspent**.
+
+**Root cause — a POSITION problem wearing a routing problem's clothes.** The final rung's ground,
+`VICTORY_ROAD_1F`, is `map_type=Underground`. `fly_is_legal_from_current_map()` is therefore False,
+so `can_fly_to_anchor()` is False, so `_training_area_allowed`'s **entire Fly disjunct fails for
+every candidate ground** — and the ≤ 4-hop walk fallback reaches nothing from inside a cave. The
+ladder was fine. The bot was simply standing somewhere no ground could be chosen from.
+
+⛔ **WHY TWO PASSES AND A PROMOTION MISSED IT.** `Ch24TrainMode`'s floor defaulted to **21**, one
+short rung on `ROUTE117`. The defect needs a trainee to *finish* on a Fly-illegal ground, which first
+happens at **L39**, where `VICTORY_ROAD_1F` opens. ⇒ every run before this one stopped 18 levels
+short of the only code path that could expose it — and one of those runs was the evidence that
+authorised a promotion into `custom-pokebot`.
+
+⇒ **The generalisable shape: a parameterised driver run only at its DEFAULT proves the machinery
+turns, not that the feature works.** The default was chosen to be cheap, and cheap meant "never
+crosses the threshold the feature exists for". The `floor=21` runs were not wrong — their ACCEPTANCE
+line even said *"proves ONE rung, NOT the climb"* — but that caveat was read as a coverage note
+rather than as **"the interesting states are all unreached"**.
+
+**A second defect surfaced only once the first was fixed:** with both mōn trained, the run still
+failed `T-CONTINUE`, ending inside Victory Road with no computable path out (door warp). The leg had
+done its job and parked the bot where the chapter cannot continue.
+
+**The fix that worked.** `_ch24_step_out_if_fly_illegal()` — called before each trainee's first
+ground pick *and* as a postcondition at the end of the leg. Placed in the leg rather than in
+`_CAVE_EXITS`, whose three other call sites would all have changed behaviour. Result:
+`floor_reached=True`, `still_below=[]`, `fly_legal_at_end=True`, `path_to_league_anchor=0`.
+
+**PREVENTION RULES.**
+1. ⛔ *When a driver takes a knob, ask which VALUES reach the code paths under test, and run one that
+   does — before citing the run as evidence for a promotion.* A default that never crosses the
+   feature's own threshold is a smoke test, and must be described as one.
+2. ⛔ *A leg's postcondition includes WHERE IT LEAVES THE BOT.* "Did the work" and "left the caller
+   able to proceed" are separate claims; assert the second from the tile actually reached. This is
+   the third time `R-ACCEPTGRADE`'s "and the bot can continue" conjunct has caught a leg that
+   finished its job in an unusable place.

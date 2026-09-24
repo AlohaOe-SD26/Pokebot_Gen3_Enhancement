@@ -33787,3 +33787,91 @@ The ACCEPTANCE line carries that caveat in its own text.
 `tools/story-dev/evidence/2026-09-23-ch24train.stdout.txt` and the NOLATCH arm's,
 `03-PUNCH-LIST.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
 `29-DISABLED-FEATURES-REGISTRY.md`.
+
+---
+
+## 2026-09-24 — ⭐⭐ THE §Ch24 MULTI-RUNG CLIMB DRIVES END TO END, AND IT FOUND TWO REAL DEFECTS
+
+`--driver ch24train CH24_TRAIN_FLOOR=40`, fixture `post_ch24_atdoor_L75.ss1` (`8b8cd907db09`,
+verified PINNED first). **`ACCEPTANCE: PASS`, 7 readings, `missing=[]`, 264 battles, 0 whiteouts.**
+Both trainees reached the floor: **Zigzagoon L19 → L40** across six grounds and **Castform L36 →
+L40** across two. `leg_floor_reached=True`, `leg_still_below=[]`, every one of the 8 rungs
+`finished: True`.
+
+Graded against predictions committed BEFORE the drive
+(`ai-research-notes/2026-09-24-ch24-multirung-PREDICTIONS.md` → `…-GRADED.md`):
+**P1, P2, P5, P6, P7 confirmed; P4 confirmed narrowly; P3 partial.**
+
+### ⛔ DEFECT 1 — AFTER TRAINING A MŌN INSIDE VICTORY ROAD, THE LEG COULD NOT TRAIN THE NEXT ONE
+
+The first drive climbed Zigzagoon to L40 and then reported *"no reachable ground Castform
+out-levels at L36"*. **That was not a ladder hole, it was a POSITION problem.** The last rung's own
+ground, `VICTORY_ROAD_1F`, is `map_type=Underground` ⇒ `fly_is_legal_from_current_map()` is False ⇒
+`can_fly_to_anchor` is False ⇒ `_training_area_allowed`'s **entire Fly disjunct fails for every
+ground**, and walking ≤ 4 hops from inside a cave reaches nothing. Every earlier drive used
+`floor=21` and never entered Victory Road, so nothing had exercised this.
+
+⇒ **`_ch24_step_out_if_fly_illegal()`**, called before each trainee's first ground pick.
+
+⭐ **WHY IT IS NOT IN `_CAVE_EXITS`.** `_exit_training_cave_if_inside()` is the obvious home and is a
+no-op inside Victory Road, because that table knows only Granite Cave and Fiery Path. But the table
+has **three other call sites**, and adding a row would change when all of them leave a cave. A shared
+table is the wrong place to encode one caller's precondition. The helper also handles **only**
+Victory Road, deliberately: inventing exits for caves this ladder never visits would be untested code
+guarding a case that cannot arise.
+
+### ⛔ DEFECT 2 — THE LEG FINISHED BY LEAVING THE BOT WHERE THE CHAPTER CANNOT CONTINUE
+
+With defect 1 fixed, both mōn trained — and the run **still failed `T-CONTINUE`**, ending on
+`VICTORY_ROAD_1F (15,39)` with `fly_legal_at_end=False` and no computable path to the League anchor
+(the exit is a door warp `calculate_path` cannot express). ⇒ the same step-out is now a
+**postcondition** of `train_for_league`.
+
+‼ **THE FIX WENT INTO THE LEG, NOT THE CHECK.** Weakening `T-CONTINUE` to accept a cave was the
+tempting repair and would have deleted the only assertion that the leg leaves the bot able to
+proceed. *"Trained the party"* and *"left it able to proceed"* are different claims. After the fix:
+`end_tile='EVER_GRANDE_CITY(27,49)'`, `fly_legal_at_end=True`, `path_to_league_anchor=0` — zero
+waypoints meaning **already standing on the landing**, the best outcome.
+
+### ⭐ NEW INSTRUMENTATION — BECAUSE TWO PREDICTIONS WERE UNGRADEABLE AS WRITTEN
+
+P3 and P4 define their falsifiers in terms of an exp split **`ch24train` never recorded**; the 2.2 %
+baseline P4 quotes came from a different driver (`Ch24SwapTriggerMode`). Added to `Ch24TrainMode`
+before re-driving:
+
+* `exp_to_trainees` / `exp_to_bench` / `exp_leak_pct` / `exp_gained_by_pid`. ‼ **Leak is exp banked
+  by NON-TRAINEES.** With several trainees, a naive "everything but the lead" split would score the
+  second trainee's own climb as leakage and manufacture a P4 falsification out of correct behaviour.
+* `pp_predicate_calls` / `pp_predicate_true`, wrapping `lead_has_no_damaging_pp` so P3 is graded on
+  the term **firing** rather than on a downstream signature. Restored under `finally` so an aborting
+  leg still leaves a truthful reading.
+
+### ✅ WHAT THE NUMBERS SAY
+
+* **`#24-ppscope`, the half that mattered:** the trainee-scoped PP term fired **True 2 times / 3365
+  calls**. It was promoted *"proven as a predicate, unproven in motion"* — **it has now fired in
+  motion.** ‼ The predicate is evaluated up to twice per heal decision, so that is **one or two**
+  PP-driven heals, an upper bound and not a heal count.
+* ⛔ **The predicted PP-DRY REGIME did not materialise** — 2 firings in 264 battles, because the
+  existing heal cadence keeps PP topped up (already on record at `03-PUNCH-LIST.md:605`). The honest
+  statement is *"a live backstop that fires rarely"*, not *"the dry regime is characterised"*.
+* ⚠ **The exp leak rose 4×: 2.2 % (`floor=21`, 14 battles) → 8.94 % (`floor=40`, 264).** P4 asked for
+  < 10 % and the refutation bar was 25 %, so P4 passes — **by 1.06 points**. One bench mōn took
+  **5,700 of 6,910 (82 % of all leakage)**. ⛔ Do not read this as "bounded below 10 %": the real
+  floor is L65 and `VICTORY_ROAD_1F` carries 73–94 % of that climb, which this run barely enters.
+  The trend across the only two points we have is **upward**. Re-measure on the first long run.
+* ⛔ **Still open in `#24-ppscope`:** the trigger-2 firing rate **split HP-driven vs PP-driven**
+  (`03-PUNCH-LIST.md:613`) lives in `SwapTrainBattleStrategy.decide_turn` and is not instrumented
+  here. The **outcome** that split was wanted for is measured: **91.06 % of exp stayed with the
+  trainees** across the dry point.
+
+### ⚠ SCOPE, STATED SO THE PASS IS NOT OVER-READ
+
+This is `floor=40`, not the real **L65** floor. Undriven: the L39→L65 stretch (~751 battles), the
+trigger-2 mechanism split, and trainer sight cones. And it is **one trajectory** — a single
+deterministic run refutes decisively and supports weakly.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`, `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-24-ch24climb-v2.stdout.txt` and `…-v2.log`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-multirung-GRADED.md`,
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

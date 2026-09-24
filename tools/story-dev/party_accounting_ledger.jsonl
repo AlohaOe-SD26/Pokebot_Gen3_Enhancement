@@ -683,3 +683,9 @@
 {"when": "2026-09-23T21:16:06", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 21093, "recomputes": 21093, "scans": 71, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-23T21:22:55", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 45606, "recomputes": 45606, "scans": 153, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T00:37:05", "driver": "ch24train", "build": "custom", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 45606, "recomputes": 45606, "scans": 153, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T00:44:51", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T00:59:06", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 555051, "recomputes": 555051, "scans": 1851, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T01:17:59", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 729687, "recomputes": 729687, "scans": 2433, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T01:27:28", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 40000, "recomputes": 40001, "scans": 134, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T01:28:13", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 40000, "recomputes": 40001, "scans": 134, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T01:45:58", "driver": "ch24train", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 706711, "recomputes": 706711, "scans": 2356, "divergences": {}, "observer_broke": false}

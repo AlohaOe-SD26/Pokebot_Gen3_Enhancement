@@ -20574,7 +20574,15 @@ class Ch24TrainMode(BotMode):
         from modules.story.training_areas import fly_landing_tile
 
         TAG = "ch24train"
-        FLOOR = 21
+        # THE FLOOR IS A KNOB, NOT A CONSTANT, AND THE GRADE REPORTS IT.
+        # Default 21 = one short rung (the smoke-level proof). `CH24_TRAIN_FLOOR=40`
+        # crosses FIVE grounds (~306 battles), past every untested threshold at once: the
+        # multi-rung loop, both SURF rungs, VICTORY_ROAD_1F as a training ground, and the
+        # ~44-battle PP dry point that `#24-ppscope` exists for.
+        # A CLONED DRIVER WAS THE OBVIOUS ALTERNATIVE AND IS THE WRONG ONE: a copy drifts
+        # from its original the first time either is fixed -- the same transcribed-copy
+        # defect that made `probe_ladder_economics.py` wrong on four of six rungs.
+        FLOOR = int(_os.environ.get("CH24_TRAIN_FLOOR", "21"))
 
         self.whiteouts = getattr(self, "whiteouts", 0)
         self.battles = getattr(self, "battles", 0)
@@ -20628,10 +20636,63 @@ class Ch24TrainMode(BotMode):
                 saved_mode = self.mark_ch24_owns_run
                 self.mark_ch24_owns_run = None
 
+            # ---- EXP ACCOUNTING, FOR P3/P4 OF THE PRE-REGISTERED PREDICTIONS ----------------
+            # WHY THIS LIVES HERE AND NOT IN `Ch24SwapTriggerMode`: that driver measures ONE
+            # `train_team` call against a FIXED ground, so its split is scoped to a single trainee.
+            # This leg trains SEVERAL mon across SEVERAL grounds, and #24-ppscope's question is about
+            # the whole climb.
+            # ‼ THE DEFINITION MATTERS MORE THAN THE NUMBER. "Leak" is exp banked by mon that are
+            # NOT trainees -- the L75 bench. Exp flowing from one trainee to another is the leg doing
+            # its job, so a naive "everything except the current lead" split would report the SECOND
+            # trainee's own climb as leakage and manufacture a P4 falsification out of correct
+            # behaviour.
+            _exp0 = {m.personality_value: m.total_exp for m in get_party() if m is not None}
+            _trainee_pids = {pid for pid, _sp, _lv in before}
+
+            # ⭐ INSTRUMENT THE ACTION, NOT ITS DOWNSTREAM SIGNATURE. The exp split above is only
+            # evidence that the PP term is working; this counts the term actually FIRING.
+            # #24-ppscope's question is whether the trainee-scoped predicate fires IN MOTION, and a
+            # signature can be confounded -- a bench mon banks exp for more than one reason.
+            # ‼ THE PREDICATE IS EVALUATED UP TO TWICE PER HEAL DECISION (`early_game.py:2364` and
+            # `:2371`), so `pp_predicate_true` is an UPPER BOUND on heal events, NOT a count of them.
+            # Said here because a reader would otherwise take it for "N heals".
+            import modules.story.early_game as _EG
+            _pp = {"calls": 0, "true": 0}
+            _orig_pp = _EG.lead_has_no_damaging_pp
+
+            def _counting_pp(party, _o=_orig_pp, _c=_pp):
+                _c["calls"] += 1
+                _r = _o(party)
+                if _r:
+                    _c["true"] += 1
+                return _r
+
+            _EG.lead_has_no_damaging_pp = _counting_pp
+
             leg = {}
-            yield from VR._budgeted(train_for_league(leg, floor=FLOOR), 300_000,
-                                    f"{TAG}: train_for_league(floor={FLOOR})")
+            try:
+                yield from VR._budgeted(train_for_league(leg, floor=FLOOR), 300_000,
+                                        f"{TAG}: train_for_league(floor={FLOOR})")
+            finally:
+                # RESTORE EVEN IF THE LEG RAISES: the outer handler computes a verdict from partial
+                # state, so a leg that aborts must still leave a truthful PP reading behind.
+                _EG.lead_has_no_damaging_pp = _orig_pp
+                R["pp_predicate_calls"] = _pp["calls"]
+                R["pp_predicate_true"] = _pp["true"]
+                log(f"[{TAG}] PP predicate calls={_pp['calls']} true={_pp['true']}")
             taken.add("T-RAN")
+
+            _exp1 = {m.personality_value: m.total_exp for m in get_party() if m is not None}
+            _gained = {pv: _exp1.get(pv, 0) - _exp0.get(pv, 0) for pv in _exp0}
+            _to_trainees = sum(g for pv, g in _gained.items() if pv in _trainee_pids)
+            _to_bench = sum(g for pv, g in _gained.items() if pv not in _trainee_pids)
+            _total = _to_trainees + _to_bench
+            R["exp_to_trainees"] = _to_trainees
+            R["exp_to_bench"] = _to_bench
+            R["exp_leak_pct"] = (round(100.0 * _to_bench / _total, 2) if _total else None)
+            R["exp_gained_by_pid"] = {f"{pv:08X}": g for pv, g in _gained.items() if g}
+            log(f"[{TAG}] EXP trainees={_to_trainees} bench={_to_bench} "
+                f"leak={R['exp_leak_pct']}%")
 
             if no_latch:
                 self.mark_ch24_owns_run = saved_mode
@@ -20702,8 +20763,13 @@ class Ch24TrainMode(BotMode):
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (run the REAL train_for_league: pick "
             f"trainees by PID, latch Ch24, walk at least one rung, LEVEL the trainee, and end able "
-            f"to continue) SCOPE: floor={FLOOR}, so this proves ONE rung of the machinery, NOT the "
-            f"multi-rung climb to L65.")
+            f"to continue) SCOPE: floor={FLOOR} -- "
+            + ("proves ONE rung of the machinery, NOT the multi-rung climb"
+               if FLOOR <= 25 else
+               f"a MULTI-RUNG climb across "
+               f"{len({r['ground'] for r in R.get('leg_rungs', [])})} ground(s); still "
+               f"not the full climb to L65")
+            + ".")
         context.set_manual_mode()
 
 
