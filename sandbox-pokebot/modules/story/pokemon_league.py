@@ -1577,3 +1577,344 @@ def apply_moveset_plan(report=None, plan=MOVESET_PLAN) -> Generator:
     report["final_movesets"] = final
     report["tm_pocket_after"] = {slot.item.name: slot.quantity for slot in get_item_bag().tms_hms}
     _take(report, "R-VERIFIED")
+
+
+# ==================================================================================================
+# PIECE 3 — THE §Ch24 TRAINING LEG (`#24-flyladder`)
+# ==================================================================================================
+
+#: USER RULING (2026-09-19): every party member must sit between L65 and L75, and they need not be
+#: equal. USER RULING 12 (2026-09-23): train ALL SIX — the party is NOT reduced, and Zigzagoon and
+#: Castform are NOT boxed.
+CH24_LEVEL_FLOOR = 65
+
+#: ⛔ THE PURSE IS A BACKSTOP, NOT A SCHEDULER, AND THAT DISTINCTION IS THE WHOLE DESIGN.
+#: An earlier spec had this leg "spend a bounded slice of each run and resume next run". That was
+#: incoherent and is retracted: `MAX_FRAMES_PER_RUN` belongs to `StoryEndlessResetMode`, NOT to
+#: `StoryMode` (which has no cap), and the story bot NEVER SAVES — `save_the_game()` has zero call
+#: sites in `modules/story/` or `plugins/custom_modes/`, so levels live in emulator RAM and do not
+#: survive a run boundary. ⇒ in the mode with the budget nothing persists; in the mode where things
+#: persist there is no budget and no "next run".
+#: ⇒ THEREFORE: train to target in ONE run, and use the purse only to stop a WEDGED grind running
+#: forever — which is exactly what `_yield_bounded_by_frames` was built for (KI-28's 19.9M shape).
+#: ‼ SIZED ABOVE THE WHOLE JOB, DELIBERATELY. The measured solo cost of both trainees is ~21 h
+#: ≈ 4.5M frames (`probe_ladder_economics.py`). A purse BELOW that would abort honest work and look
+#: like a defect; a purse far above it still catches a true wedge. 6M is ~1.3× the measured job.
+CH24_TRAIN_PURSE_FRAMES = 6_000_000
+
+#: Per-rung purse. One rung is at most a few hundred battles (~800 × 2,368 frames ≈ 1.9M for the
+#: Victory Road rung, which carries 73-94 % of the climb). 2.5M gives that headroom while still
+#: bounding a single rung that goes wrong.
+CH24_RUNG_PURSE_FRAMES = 2_500_000
+
+#: ⛔ A SANITY BOUND ON THE RUNG LOOP ITSELF. Each pass must either raise the trainee's level or
+#: stop. This is the "bound every loop" rule: without it a rung that returns immediately without
+#: levelling would spin forever inside the purse.
+CH24_MAX_RUNGS_PER_TRAINEE = 12
+
+
+def ch24_trainees_below_floor(floor: int = CH24_LEVEL_FLOOR) -> list:
+    """[(pid, species, level)] for every non-egg party member under `floor`, WEAKEST FIRST.
+
+    ⛔⛔ THIS DELIBERATELY DOES NOT USE `victory_road.battler_identities()`, AND THE REASON IS NOT
+    STYLE. That helper skips `BENCH_SPECIES = ("Zigzagoon", "Linoone", "Castform")`
+    (`victory_road.py:503`) — which is EXACTLY the two mōn USER RULING 12 names as the trainees.
+    Reusing it would make this leg report "nobody needs training" on turn one, having trained
+    nobody: a check that answers without ever asking.
+    ⛔ AND THE OBVIOUS REPAIR IS WORSE. Widening `BENCH_SPECIES` would change §Ch23 leg 4's gate
+    (`team_is_ready(TRAIN_TARGET=47)`, `victory_road.py:3393`), which fires BEFORE Wally — so §Ch23
+    would start grinding a L19 Zigzagoon to L47. That is KI-28's shape. ⇒ this leg keeps its own
+    membership rule and touches nothing shared.
+
+    ‼ IDENTITY, NEVER POSITION. Returns PIDs. Slot indices are meaningless across the rotations this
+    leg performs (`_rotate_lead_safely` SWAPS), and this project's rule 3 exists because a
+    position-keyed check reads TRUE while the thing it named has moved.
+    """
+    from modules.pokemon_party import get_party
+
+    out = []
+    try:
+        for mon in get_party():
+            if mon is None or getattr(mon, "is_egg", False):
+                continue
+            if mon.level < floor:
+                out.append((mon.personality_value, mon.species.name, mon.level))
+    except Exception as error:  # noqa: BLE001 - an unreadable party is not "nobody needs training"
+        # ⛔ A LAUNDERED ABORT IS WORSE THAN A SWALLOWED ONE (`early_game.py:139-159`). If a
+        # whiteout latched mid-read, returning [] here would report "nobody needs training" and the
+        # leg would exit looking successful.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return []
+    return sorted(out, key=lambda t: t[2])
+
+
+def _ch24_slot_of(pid: int) -> "int | None":
+    """Current slot of a PID, or None. ‼ Re-read every time: rotations move mōn."""
+    from modules.pokemon_party import get_party
+
+    try:
+        for i, mon in enumerate(get_party()):
+            if mon is not None and mon.personality_value == pid:
+                return i
+    except Exception as error:  # noqa: BLE001 - see ch24_trainees_below_floor on laundered aborts
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return None
+    return None
+
+
+def _ch24_level_of(pid: int) -> "int | None":
+    from modules.pokemon_party import get_party
+
+    try:
+        for mon in get_party():
+            if mon is not None and mon.personality_value == pid:
+                return mon.level
+    except Exception as error:  # noqa: BLE001 - see ch24_trainees_below_floor on laundered aborts
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return None
+    return None
+
+
+def train_one_for_league(pid: int, species: str, report=None, *,
+                         floor: int = CH24_LEVEL_FLOOR) -> Generator:
+    """Climb ONE mōn to `floor` on the per-trainee Fly ladder, rung by rung.
+
+    ⛔⛔ WHY THIS IS A RUNG LOOP AND NOT ONE `train_team` CALL. `train_team`'s `grass` is a FIXED
+    parameter: the loop re-navigates to that same tuple every round (`early_game.py`) and never
+    re-picks the ground. ⇒ a single call with `target=floor` would grind the entire climb on the
+    ground chosen for the ENTRY level — for a L19 Zigzagoon that is ROUTE117, whose real band is
+    (13, 14), at ~100 xp/battle all the way to L65. The economics probe says so in its own words:
+    *"THE GRIND IS NOT ONE GROUND — the trainee climbs rungs as it levels, and exp/battle RISES."*
+    ⭐ MEASURED, the rungs matter enormously: VICTORY_ROAD_1F (band 36-40) opens at L39 and carries
+    **751 of Zigzagoon's 1,026 battles**. Pricing the whole climb at the first rung is not a small
+    error.
+
+    ⭐ AND THE GROUND IS CHOSEN BY THE PRODUCTION PICKER, NEVER MODELLED HERE. `best_training_area`
+    with `max_wild_max=level + 1` is the out-level rule (`#24-ladderleak`): it returns only grounds
+    the trainee OUT-LEVELS, which is what stops `SwapTrainBattleStrategy`'s trigger 1 firing and
+    leaking an equal exp share to a L75 finisher.
+    """
+    # ‼ `console` IS NOT A MODULE-LEVEL NAME HERE. `pokemon_league.py` had ZERO `console` uses
+    # before this leg, so there is nothing to inherit — every print below would raise NameError on
+    # a path that only runs mid-grind. This module's siblings import it locally per function and so
+    # does this leg. (Caught by checking, not by running: `early_game.py` cost a run to this exact
+    # shape, and `repro_undefined_names.py` does not scan for it here.)
+    from modules.console import console
+    from modules.story.early_game import (
+        _rotate_lead_safely,
+        _yield_bounded_by_frames,
+        train_team,
+        wait_until_truly_controllable,
+    )
+    from modules.story.training_areas import best_training_area
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    rungs = report.setdefault("rungs", [])
+
+    # ‼ The reachability predicate and the heal map both live in the story-mode plugin. Imported
+    # HERE rather than at module scope: `modules/` must not depend on `plugins/` at import time,
+    # and this leg is only ever reached from that plugin anyway.
+    from plugins.custom_modes.story_mode import _training_area_allowed, _training_area_heal_map
+
+    heal_map = _training_area_heal_map()
+
+    for _pass in range(CH24_MAX_RUNGS_PER_TRAINEE):
+        level = _ch24_level_of(pid)
+        if level is None:
+            raise BotModeError(
+                f"§Ch24 training: {species}#{pid:08X} is no longer in the party. Refusing to "
+                f"continue — a leg that cannot find its own trainee must not keep grinding."
+            )
+        if level >= floor:
+            return
+
+        best = best_training_area(level, max_wild_max=level + 1, allow=_training_area_allowed)
+        if best is None:
+            # ⛔ NOT AN EXCEPTION. "No ground this trainee out-levels is reachable" is a real
+            # answer about the world, and the caller decides what to do with a partially-trained
+            # party. Raising here would turn a survivable shortfall into a dead run.
+            report.setdefault("no_ground", []).append((species, level))
+            console.print(f"[yellow]§Ch24 training: no reachable ground {species} out-levels at "
+                          f"L{level} — stopping this trainee at L{level}.[/]")
+            return
+        ground, tile, (lo, hi) = best
+        heal_center = heal_map.get(ground)
+        if heal_center is None:
+            # ⛔ FAIL CLOSED. Without an anchor `_goto_training_area` cannot fly, and the two
+            # consumers that do `.get(map, cfg["heal"])` would silently substitute the BOSS's
+            # centre — healing somewhere that may be unreachable from the grind tile.
+            report.setdefault("no_anchor", []).append((species, ground.name))
+            console.print(f"[yellow]§Ch24 training: {ground.name} has no heal anchor — skipping "
+                          f"it rather than guessing one.[/]")
+            return
+
+        # ⭐ WHERE THIS RUNG ENDS: ask the picker, do not model it. Step the level until it answers
+        # with a DIFFERENT ground; that way the rung boundary is the bot's, whatever the table says.
+        # ‼ COST MEASURED, BECAUSE THIS LOOP DOES NOT YIELD AND `best_training_area` READS THE
+        # EMULATOR (its `allow` predicate runs a region-reach graph search and reads flags):
+        # **3.45 ms per call, 162 ms for a full 47-level sweep**, and ~3.9 s across the whole leg
+        # at the loop's maximum. That is a brief hitch, not a hang — the no-progress watchdog
+        # counts thousands of frames — so it is left simple deliberately.
+        # ⇒ DO NOT "optimise" this into a cached table: a cache would be a transcribed copy of the
+        # production picker, which is exactly the defect `probe_ladder_economics.py` shipped (four
+        # of six rungs wrong) and had to be fixed by calling the picker instead.
+        stop = floor
+        for probe_level in range(level + 1, floor + 1):
+            nxt = best_training_area(probe_level, max_wild_max=probe_level + 1,
+                                     allow=_training_area_allowed)
+            if nxt is not None and nxt[0] is not ground:
+                stop = probe_level
+                break
+        stop = min(stop, floor)
+
+        # ⛔⛔ ROTATE THE TRAINEE TO SLOT 0 AND VERIFY BY PID. `train_team(slots={i})` with i != 0 is
+        # MEASURED BROKEN (`victory_road.py:2053`): it does ONE spin-batch and returns as if
+        # finished, because `need` is computed from `party[i]` BY INDEX while `_rotate_lead_safely`
+        # performs a SWAP — so on the next iteration `party[i]` is the OLD LEAD. A 900k-frame run
+        # produced 8 battles against an estimate of 306.
+        slot = _ch24_slot_of(pid)
+        if slot is None:
+            raise BotModeError(f"§Ch24 training: lost {species}#{pid:08X} before rotating it.")
+        if slot != 0:
+            yield from _rotate_lead_safely(slot)
+            yield from wait_until_truly_controllable()
+        if _ch24_slot_of(pid) != 0:
+            # ⛔ `_rotate_lead_safely` "gives up gracefully" after 3 attempts — its own docstring
+            # calls the rotation an optimisation. A silent give-up here is NOT cosmetic: the leg
+            # would grind whatever else is in slot 0, level the wrong mōn, and look successful.
+            raise BotModeError(
+                f"§Ch24 training: could not put {species}#{pid:08X} in slot 0 (it is in slot "
+                f"{_ch24_slot_of(pid)}). Refusing to grind — training the wrong mōn reads as "
+                f"success and is the expensive kind of wrong."
+            )
+
+        console.print(f"[cyan]§Ch24 training: {species} L{level} → L{stop} at {ground.name} "
+                      f"(wilds {lo}-{hi}, heal at {heal_center.name}).[/]")
+
+        # ⛔ heal_on_lead_pp=True IS NOT OPTIONAL (`#24-ppscope`). `_team_is_out_of_pp()` is
+        # all-quantified, so on a bench of L75s it is PERMANENTLY False and the PP heal can never
+        # fire for the one mōn swinging. Without this the trainee goes dry at ~44 battles, trigger
+        # 2's PP half fires on EVERY battle thereafter, a L75 finisher enters, and the exp splits
+        # 50/50 — silently, because the bot keeps winning and keeps levelling.
+        finished = yield from _yield_bounded_by_frames(
+            train_team(stop, slots={0}, grass=(ground, tile), heal_center=heal_center,
+                       heal_on_lead_pp=True),
+            CH24_RUNG_PURSE_FRAMES,
+        )
+        after = _ch24_level_of(pid)
+        rungs.append({"species": species, "ground": ground.name, "from": level,
+                      "to": after, "target": stop, "finished": bool(finished)})
+
+        if not finished:
+            console.print(f"[yellow]§Ch24 training: rung purse expired at {ground.name} "
+                          f"({species} L{level} → L{after}).[/]")
+            return
+        # ⛔ ANTI-SPIN: a rung that returns "finished" without raising the level would loop forever
+        # under the outer purse. Progress, or stop.
+        if after is None or after <= level:
+            report.setdefault("no_progress", []).append((species, ground.name, level))
+            console.print(f"[yellow]§Ch24 training: {ground.name} produced no level for {species} "
+                          f"(L{level} → L{after}) — stopping rather than repeating it.[/]")
+            return
+
+    # ⛔ THE RUNG CAP IS AN EXIT TOO, AND IT WAS THE ONLY ONE THAT SAID NOTHING.
+    # Every other stop above records a reason and prints. Falling off the `for` after
+    # CH24_MAX_RUNGS_PER_TRAINEE passes — each of which DID make progress — used to be silent,
+    # indistinguishable from "finished" except via the caller's generic `still_below`.
+    # ‼ Today the ladder needs far fewer than 12 rungs because VICTORY_ROAD_1F absorbs the tail of
+    # the climb in one. That is an emergent property of the CURRENT `TRAINING_GRASS` table, not
+    # something this loop guarantees: promote one of the staged `PENDING_GRASS` bands and a
+    # low-starting mōn could need more. A cap that can be hit must say when it is.
+    final = _ch24_level_of(pid)
+    if final is not None and final < floor:
+        report.setdefault("rung_cap_hit", []).append((species, final))
+        console.print(f"[yellow]§Ch24 training: {species} used all "
+                      f"{CH24_MAX_RUNGS_PER_TRAINEE} rung passes and is still L{final} "
+                      f"(floor {floor}) — stopping. This is the CAP, not a completed climb.[/]")
+
+
+def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator:
+    """§Ch24 LEG 1 — bring every party member to `floor` on the per-trainee Fly ladder.
+
+    ⭐ USER RULING 12 (2026-09-23): train ALL SIX. The party is not reduced and the two stragglers
+    are not boxed. This leg exists to satisfy that ruling.
+
+    ⛔⛔ ITS FIRST ACT IS TO LATCH §Ch24 AS OWNER OF THE RUN, AND THAT IS NOT BOOKKEEPING.
+    `ch23_chapter_done()` is FLAG ∧ POSITION ∧ BAG (`victory_road.py:3315-3322`): it requires
+    `_on_map(EVER_GRANDE)` AND that we are on no Victory Road floor. This leg breaks the position
+    conjunct within seconds by flying to a training ground, and again later by grinding INSIDE
+    Victory Road. Without the latch, the next `_play()` pass finds §Ch23 "unfinished", re-runs
+    `do_victory_road_chapter()` — whose leg 4 is the OCEAN CROSSING — and then `_guard` STOPS the
+    bot. `victory_road.py:3308-3313` predicted this and called it a forward dependency of §Ch24.
+
+    SELF-SKIPS when nobody is below the floor, so it is safe to re-enter after a derail: it re-reads
+    the party each pass and does only what is left.
+    """
+    from modules.console import console      # ‼ not module-level here — see train_one_for_league
+    from modules.context import context
+    from modules.story.early_game import _yield_bounded_by_frames, wait_until_truly_controllable
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    yield from wait_until_truly_controllable()
+
+    trainees = ch24_trainees_below_floor(floor)
+    report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
+    if not trainees:
+        console.print(f"[dim]§Ch24: every party member is already at or above L{floor} — "
+                      f"skipping the training leg.[/]")
+        report["skipped"] = True
+        return
+
+    # ⛔ LATCH FIRST, BEFORE A SINGLE STEP IS TAKEN. The moment the first Fly happens the position
+    # conjunct is broken; latching afterwards would leave a window in which a derail re-enters §Ch23.
+    mode = getattr(context, "bot_mode_instance", None)
+    marker = getattr(mode, "mark_ch24_owns_run", None)
+    if callable(marker):
+        marker()
+        report["latched"] = True
+    else:
+        # ⚠ SAY SO RATHER THAN ASSUME. A harness driver may run this leg without the StoryMode
+        # instance; that is legitimate (nothing re-enters §Ch23 there) but it must be visible,
+        # because in PRODUCTION a missing latch means the ocean crossing every run.
+        report["latched"] = False
+        console.print("[yellow]§Ch24: no StoryMode instance to latch — §Ch23 re-entry is NOT "
+                      "suppressed. Expected under a standalone driver; a defect in production.[/]")
+
+    console.print(f"[bold cyan]§Ch24: training {len(trainees)} mōn to L{floor} — "
+                  f"{', '.join(f'{sp} L{lv}' for _p, sp, lv in trainees)}[/]")
+
+    # ⛔ ONE OUTER PURSE ACROSS THE WHOLE LEG, on top of the per-rung one. The per-rung purse bounds
+    # a single ground; this bounds the leg. Both are BACKSTOPS against a wedge, not schedulers —
+    # the leg is meant to FINISH, and an expired purse is a defect to investigate, not a plan.
+    def _all_trainees():
+        for pid, species, _level in trainees:
+            yield from train_one_for_league(pid, species, report, floor=floor)
+
+    visited_all = yield from _yield_bounded_by_frames(_all_trainees(), CH24_TRAIN_PURSE_FRAMES)
+    # ⛔⛔ THIS FIELD WAS CALLED `purse_finished` AND THAT NAME WAS A LIE — "a candidate is not an
+    # attempt", in its exact classic shape. The outer purse returns True when `_all_trainees()`
+    # raises StopIteration, i.e. when every trainee was *visited*. A trainee whose INNER rung purse
+    # expired simply `return`s — it does not abort the outer generator — so "True" could coexist
+    # with a mōn left far below the floor. A reader seeing `purse_finished=True` would reasonably
+    # conclude the job was done.
+    # ⇒ the flag now says only what it knows (every trainee got a turn), and the ACTUAL outcome is
+    # computed from the party itself, which is the only thing that can answer "is the job done".
+    report["all_trainees_visited"] = bool(visited_all)
+
+    left = ch24_trainees_below_floor(floor)
+    report["floor_reached"] = not left
+    report["still_below"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in left]
+    if left:
+        console.print(f"[yellow]§Ch24 training ended with {len(left)} mōn still below L{floor}: "
+                      f"{', '.join(f'{sp} L{lv}' for _p, sp, lv in left)}[/]")
+    else:
+        console.print(f"[bold green]§Ch24: every party member is now at or above L{floor}.[/]")

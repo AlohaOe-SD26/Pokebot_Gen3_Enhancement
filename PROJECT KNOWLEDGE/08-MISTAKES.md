@@ -20565,3 +20565,36 @@ manoeuvre has this cost: an exemption, a `noqa`, an append-only carve-out, a fac
 Each is sometimes right — this project's own rules require several — but each one **removes a fact
 from maintenance**, and that debt comes due silently. ⇒ when reaching for one, ask what will keep it
 true afterwards, and prefer the option that needs nothing to.
+
+
+## 2026-09-23 — A FAULT ARM THAT BREAKS THE HARNESS PROVES NOTHING, AND IT LOOKS LIKE A PASS-SHAPED SILENCE
+
+**SYMPTOM.** `--driver ch24train`'s NOLATCH fault arm set `context.bot_mode_instance = None` to hide
+the latch interface from the §Ch24 leg. The harness's own main loop reads that attribute: it fell
+back to `ManualBotMode`, raised
+`AttributeError: 'ManualBotMode' object has no attribute 'on_pokenav_call'`, and then sat until
+`HANG CONFIRMED (20000 frames no progress)`. **The run printed no RESULT and no ACCEPTANCE line at
+all.**
+
+**ROOT CAUSE.** I injected the fault into a name the SUBJECT reads — without checking who ELSE reads
+it. `context.bot_mode_instance` is infrastructure; the leg merely borrows it.
+
+⇒ **PREVENTION: INJECT A FAULT INTO THE SUBJECT, NEVER INTO THE INFRASTRUCTURE. Before shadowing a
+name, grep who else reads it.** The corrected arm shadows only `mark_ch24_owns_run` on the instance
+— the leg sees exactly what a `StoryMode` without the latch would look like, and the rig keeps
+running.
+
+**‼ AND THE REASON THIS IS DANGEROUS RATHER THAN MERELY WRONG: THE FAILURE MODE IS SILENCE.** A
+fault arm is *expected* to make the run fail, so "the run ended badly" looks like success. Only the
+absence of the ACCEPTANCE line distinguished "the gate caught the bug" from "the gate never ran".
+⇒ **a fault arm must fail by printing a VERDICT, never by dying.** Grade it by reading the verdict,
+not the exit code: an absent verdict and a FAIL verdict are opposite outcomes that both exit
+non-zero.
+
+**‼ SECOND LESSON FROM THE SAME DRIVE, AND IT IS THE THIRD TIME TODAY.** The FIRST run failed on
+`T-LATCH` because under the harness the mode instance is the DRIVER, not `StoryMode` — so the leg
+correctly reported `latched=False`. **The subject was right and the grade was wrong.** The tempting
+repair was to stop requiring `T-LATCH` under a driver, which would have deleted the only check that
+the leg calls the latch at all. ⇒ **when a grade fails, ask whether the CHECK is wrong before
+weakening it — and prefer making the harness meet the contract over lowering the contract.** The
+driver now implements the latch interface and counts the call.

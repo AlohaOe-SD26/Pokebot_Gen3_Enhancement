@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20487,6 +20487,226 @@ class Ch24Lobby2FMode(BotMode):
 
 
 
+
+class Ch24TrainMode(BotMode):
+    """`#24-flyladder` PIECE 3 - DOES THE Ch24 TRAINING LEG ACTUALLY RUN? (first execution)
+
+    THIS EXISTS BECAUSE THE LEG HAD NEVER BEEN EXECUTED. An adversarial review kicked the build
+    back on exactly that: every "MEASURED" citation in the leg was evidence for a PRIOR bug or
+    estimate, and none was a recorded run of `train_for_league` itself. Correct on paper is not
+    correct.
+
+    WHAT IT DRIVES: the REAL leg, `pokemon_league.train_for_league`, unmodified. Not a
+    reimplementation - a reimplementation would only prove that a copy works.
+
+    IT USES A LOW FLOOR ON PURPOSE. The production floor is L65 and the measured climb is ~21 h;
+    this drive asks a narrower question - does ONE rung of the machinery turn end to end? - so it
+    passes `floor=21`, which for the pinned party means Zigzagoon L19 needs one short rung.
+    THAT IS A SCOPE CHOICE, NOT A WEAKER TEST: every mechanism on the path (trainee selection by
+    PID, the latch, the ground pick, rotate-to-slot-0 verified by PID, the Fly leg, `train_team`
+    with `heal_on_lead_pp=True`, the rung bookkeeping) executes identically at floor 21 and at
+    floor 65. What it does NOT exercise is the multi-rung CLIMB, and the ACCEPTANCE line says so
+    rather than implying coverage it does not have.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor_L75.ss1 --driver ch24train
+            --frames 400000 --log ch24train.log
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_NOLATCH=1` hides the StoryMode instance from the leg, so
+    `report["latched"]` must come back False - proving the latch reading is live, not a foregone
+    tick.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Train"
+
+    def mark_ch24_owns_run(self) -> None:
+        """STAND IN for `StoryMode.mark_ch24_owns_run`, and RECORD that the leg called it.
+
+        The leg latches through `context.bot_mode_instance`. Under the harness that object is THIS
+        driver, not `StoryMode`, so the first run of this drive reported `latched=False` and failed
+        on T-LATCH.
+        THE SUBJECT WAS CORRECT AND THE GRADE WAS WRONG - the leg behaved exactly as its own
+        comment says it should when no StoryMode is present. But WEAKENING the grade ("do not
+        require T-LATCH under a driver") would have deleted the only check that the leg calls the
+        latch at all, and that call is load-bearing: without it, production re-enters Ch23 every
+        run and `_guard` stops the bot.
+        => the driver implements the interface instead. Now the happy path PROVES the call happens,
+        and the NOLATCH fault arm - which hides this object - proves the reading is live rather
+        than a foregone tick.
+        """
+        self.latch_calls = getattr(self, "latch_calls", 0) + 1
+        log(f"[ch24train] LEG CALLED mark_ch24_owns_run() (#{self.latch_calls})")
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24train] WHITEOUT #{self.whiteouts} - abort LATCHED. A whiteout FAILS this run: "
+            f"a trainee that faints did not train, and the leg's readings become unsafe.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from modules.story.early_game import swap_train_active
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy, SwapTrainBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        if swap_train_active() and encounter is not None:
+            return SwapTrainBattleStrategy()
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import calculate_path
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, wait_until_truly_controllable
+        from modules.story.pokemon_league import (
+            ch24_trainees_below_floor,
+            fly_is_legal_from_current_map,
+            train_for_league,
+        )
+        from modules.story.training_areas import fly_landing_tile
+
+        TAG = "ch24train"
+        FLOOR = 21
+
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        # Counted per RUN, not per object: the harness may re-enter `run()`, and a latch count
+        # inherited from a previous pass would make the fault arm pass for the wrong reason.
+        self.latch_calls = 0
+        R = {}
+        taken = set()
+        WANT = {"T-PRE", "T-TRAINEES", "T-RAN", "T-LATCH", "T-RUNG", "T-LEVELUP", "T-CONTINUE"}
+        failure = None
+        no_latch = _os.environ.get("POKEBOT_CH24_FAULT_NOLATCH", "").strip() in ("1", "true", "yes")
+        saved_mode = None
+
+        def _where():
+            try:
+                av = get_player_avatar()
+                return f"{MapRSE(tuple(av.map_group_and_number)).name}{tuple(av.local_coordinates)}"
+            except Exception:  # noqa: BLE001 - an unreadable position is a reading, not a crash
+                return "<unreadable>"
+
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+
+            before = ch24_trainees_below_floor(FLOOR)
+            R["start_at"] = _where()
+            R["trainees_before"] = [f"{sp}#{pid:08X} L{lv}" for pid, sp, lv in before]
+            taken.add("T-PRE")
+            if not before:
+                raise BotModeError(
+                    f"{TAG}: PREMISE FAILED - nobody is below L{FLOOR} on this fixture, so the leg "
+                    f"would self-skip and this run would PASS having executed nothing."
+                )
+            taken.add("T-TRAINEES")
+            log(f"[{TAG}] PRE at={R['start_at']} trainees={R['trainees_before']}")
+            pid0, sp0, lv0 = before[0]
+
+            if no_latch:
+                # INJECT THE FAULT INTO THE SUBJECT, NOT THE INFRASTRUCTURE.
+                # v1 set `context.bot_mode_instance = None`, which is the shape the leg guards
+                # against - but it also broke the HARNESS: the main loop reads that same attribute,
+                # fell back to ManualBotMode, and died with
+                # `AttributeError: 'ManualBotMode' object has no attribute 'on_pokenav_call'`,
+                # then sat until HANG CONFIRMED at 20,000 no-progress frames. The run produced no
+                # verdict at all, which is not a failing test - it is an absent one.
+                # => shadow ONLY the method the leg looks for. The instance stays intact, the
+                # harness keeps working, and the leg sees exactly what a StoryMode without the
+                # latch would look like. A fault arm that breaks the rig proves nothing about the
+                # subject.
+                log(f"[{TAG}] FAULT ARM NOLATCH - shadowing mark_ch24_owns_run on this instance")
+                saved_mode = self.mark_ch24_owns_run
+                self.mark_ch24_owns_run = None
+
+            leg = {}
+            yield from VR._budgeted(train_for_league(leg, floor=FLOOR), 300_000,
+                                    f"{TAG}: train_for_league(floor={FLOOR})")
+            taken.add("T-RAN")
+
+            if no_latch:
+                self.mark_ch24_owns_run = saved_mode
+
+            R["leg_latched"] = leg.get("latched")
+            R["leg_rungs"] = leg.get("rungs", [])
+            R["leg_still_below"] = leg.get("still_below")
+            R["leg_floor_reached"] = leg.get("floor_reached")
+            R["leg_all_visited"] = leg.get("all_trainees_visited")
+
+            # The latch reading is GRADED, not merely printed. Under the fault arm it must be
+            # False; on the happy path True. A reading that is True either way is not a reading.
+            R["latch_calls"] = getattr(self, "latch_calls", 0)
+            if no_latch:
+                # Hidden instance => the leg must report latched=False AND must not have reached
+                # this object. Both, because either alone could be true for the wrong reason.
+                if leg.get("latched") is False and R["latch_calls"] == 0:
+                    taken.add("T-LATCH")
+                    log(f"[{TAG}] FAULT ARM: latched=False and 0 latch calls, as required")
+            elif leg.get("latched") is True and R["latch_calls"] >= 1:
+                taken.add("T-LATCH")
+
+            if R["leg_rungs"]:
+                taken.add("T-RUNG")
+            log(f"[{TAG}] rungs={R['leg_rungs']}")
+
+            after_level = None
+            for mon in get_party():
+                if mon is not None and mon.personality_value == pid0:
+                    after_level = mon.level
+            R["trainee"] = f"{sp0}#{pid0:08X}"
+            R["level_before"] = lv0
+            R["level_after"] = after_level
+            if after_level is not None and after_level > lv0:
+                taken.add("T-LEVELUP")
+                log(f"[{TAG}] {sp0} L{lv0} -> L{after_level}")
+            else:
+                log(f"[{TAG}] {sp0} did NOT level: L{lv0} -> L{after_level}")
+
+            here = tuple(get_player_avatar().map_group_and_number)
+            tile = tuple(get_player_avatar().local_coordinates)
+            R["end_tile"] = f"{MapRSE(here).name}{tile}"
+            fly_ok = fly_is_legal_from_current_map()
+            R["fly_legal_at_end"] = fly_ok
+            try:
+                land = fly_landing_tile(PokemonCenter.EvergrandeCity)
+                R["path_to_league_anchor"] = len(calculate_path((MapRSE(here), tile), land))
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                R["path_to_league_anchor"] = None
+                R["path_error"] = f"{type(error).__name__}: {str(error)[:80]}"
+            if fly_ok:
+                taken.add("T-CONTINUE")
+                log(f"[{TAG}] T-CONTINUE at {R['end_tile']}: Fly legal, "
+                    f"path_to_league_anchor={R['path_to_league_anchor']}")
+            else:
+                log(f"[{TAG}] T-CONTINUE FAILED at {R['end_tile']}: Fly not legal here, so the "
+                    f"next rung cannot start.")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        ok = not missing and failure is None and self.whiteouts == 0
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (run the REAL train_for_league: pick "
+            f"trainees by PID, latch Ch24, walk at least one rung, LEVEL the trainee, and end able "
+            f"to continue) SCOPE: floor={FLOOR}, so this proves ONE rung of the machinery, NOT the "
+            f"multi-rung climb to L65.")
+        context.set_manual_mode()
+
+
 class Ch24SwapTriggerMode(BotMode):
     """`#24-swaptrigger2` — DOES THE SWAP-TRAINER'S **SECOND** TRIGGER FIRE AT A LEVEL-MATCHED GROUND?
 
@@ -23808,6 +24028,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24CaveHealMode()
         elif args.driver == "ch24swaptrigger":
             context.bot_mode_instance = Ch24SwapTriggerMode()
+        elif args.driver == "ch24train":
+            context.bot_mode_instance = Ch24TrainMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

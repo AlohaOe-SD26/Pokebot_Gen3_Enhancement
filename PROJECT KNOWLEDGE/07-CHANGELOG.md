@@ -33733,3 +33733,57 @@ stays open; it must not be closed on gate #70 alone.
 `tools/story-dev/probe_lead_pp_scope.py` (new), `tools/story-dev/run_gates.py` (gate #70),
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`,
 `29-DISABLED-FEATURES-REGISTRY.md`.
+
+
+## 2026-09-23 (late) — ⭐⭐ PIECE 3's LEG IS BUILT, WIRED AND **EXECUTED**: Zigzagoon L19 → L21 ON THE REAL LADDER
+
+**NEW:** `train_for_league` / `train_one_for_league` / `ch24_trainees_below_floor` in
+`modules/story/pokemon_league.py`, wired into `story_mode.py` after the §Ch23 guard, plus
+`--driver ch24train`. `ACCEPTANCE: PASS`, 7 readings, `missing=[]`, **14 battles, 0 whiteouts**.
+
+**WHAT ACTUALLY RAN.** From `EVER_GRANDE_CITY (18,6)` — the League plateau — the leg selected
+**Zigzagoon#33CB74C3 L19 by PID**, called `mark_ch24_owns_run()` (1 latch call, recorded by the
+driver), picked **ROUTE117** through the production picker, flew there, rotated the trainee to slot
+0 **verified by PID**, ran `train_team(..., heal_on_lead_pp=True)`, and took it **L19 → L21**.
+`floor_reached=True`, `still_below=[]`, Fly legal at the end.
+
+**⛔⛔ THE REVIEW THAT FORCED THIS WAS RIGHT, AND ITS FIRST BLOCKER WAS THE WHOLE POINT: "no proof
+this leg ever ran."** Every *MEASURED* citation inside the leg was evidence for a PRIOR bug or
+estimate — none was a recorded execution of the leg itself. ⇒ **correct on paper is not correct**,
+and driving it immediately exposed two defects in my own apparatus that reading never would have.
+
+**THREE BLOCKERS FIXED BEFORE THE DRIVE:**
+1. **The rung cap was the only exit that said nothing.** Every other stop recorded a reason; falling
+   off after 12 passes was silent, indistinguishable from success except via the caller's generic
+   `still_below`. Now records `rung_cap_hit` and says so.
+2. **`report["purse_finished"]` was a lie of exactly the shape this project keeps paying for.** The
+   outer purse returns True when every trainee has been *visited* — a trainee whose inner rung purse
+   expired simply returns, so True could coexist with a mōn far below the floor. Renamed
+   `all_trainees_visited`, with `floor_reached` computed from the **party**, which is the only thing
+   that can answer "is it done".
+3. **Three helpers could launder a whiteout abort** into "nobody needs training". All now call
+   `reraise_if_aborting` first.
+
+**⛔ AND TWO DEFECTS IN THE TEST APPARATUS, BOTH FOUND BY RUNNING IT:**
+* **The first drive FAILED on `T-LATCH`, and the subject was right — my grade was wrong.** Under the
+  harness `context.bot_mode_instance` is the DRIVER, not `StoryMode`, so the leg correctly reported
+  `latched=False`. ‼ The tempting fix — "don't require T-LATCH under a driver" — would have deleted
+  the only check that the leg calls the latch at all, and that call is what stops §Ch23 re-entry in
+  production. ⇒ the driver now **implements the latch interface and counts the call**, so the happy
+  path proves the call happens.
+* **The fault arm broke the harness instead of the subject.** v1 set `context.bot_mode_instance =
+  None`; the main loop reads that same attribute, fell back to `ManualBotMode`, died on
+  `AttributeError: 'ManualBotMode' object has no attribute 'on_pokenav_call'`, and sat until HANG
+  CONFIRMED at 20,000 no-progress frames — producing **no verdict at all**. Not a failing test, an
+  **absent** one. ⇒ it now shadows only the METHOD the leg looks for.
+
+**⚠⚠ SCOPE, STATED SO THE PASS IS NOT OVER-READ.** The drive used `floor=21`, which proves **one
+rung of the machinery**, not the climb. Undriven: the multi-rung ladder, Castform, the
+VICTORY_ROAD_1F rung that carries 73-94 % of the real work, and the PP-dry regime beyond ~44 battles.
+The ACCEPTANCE line carries that caveat in its own text.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`, `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-23-ch24train.stdout.txt` and the NOLATCH arm's,
+`03-PUNCH-LIST.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`.

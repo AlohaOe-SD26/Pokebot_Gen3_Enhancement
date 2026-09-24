@@ -5259,6 +5259,24 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Victory Road already done — skipping.[/]")
         _guard("Victory Road (Ch23)", _ch23_settled)
 
+        # ---- §Ch24 LEG 1 — TRAINING (`#24-flyladder` Piece 3) --------------------------------
+        # ⭐ USER RULING 12 (2026-09-23): train ALL SIX to L65-75; the party is NOT reduced.
+        # ⛔ IT MUST RUN BEFORE ANY GAUNTLET CONTENT: the Elite Four is ONE-WAY (the doors seal,
+        # the bag is the only healing), so arriving under-levelled is unrecoverable.
+        # ‼ The leg SELF-SKIPS when nobody is below the floor, so this is safe to re-enter after a
+        # derail — it re-reads the party each pass and does only what is left. There is therefore
+        # no `_guard` here yet: §Ch24's own completion marker is `#24-markerwinstate`'s work, and
+        # guarding on "everyone is L65" would STOP the bot on a party that simply ran out of
+        # reachable ground — a survivable shortfall, not a derail.
+        from modules.story.pokemon_league import train_for_league
+
+        _ch24_train_report: dict = {}
+        yield from train_for_league(_ch24_train_report)
+        if _ch24_train_report.get("still_below"):
+            _log_story_event(
+                f"Story: §Ch24 training ended with mon still below the floor: "
+                f"{_ch24_train_report['still_below']}")
+
         # END OF BUILT CONTENT. Next build: **THE POKÉMON LEAGUE — Chapter 24**: the Elite Four
         # gauntlet (Sidney, Phoebe, Glacia, Drake) and Champion Wallace. ⛔ NO NURSE BETWEEN ROOMS —
         # the doors seal behind you, so the BAG is the only healing, and items are legal in those
