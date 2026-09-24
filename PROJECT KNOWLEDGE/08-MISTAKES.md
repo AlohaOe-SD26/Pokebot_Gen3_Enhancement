@@ -20816,3 +20816,62 @@ as three.
    itself on first run.
 3. ‼ *State the impact by REACHABILITY, not by edit count.* "Three names fixed" invites the reader
    to infer three live bugs. Trace each site to a caller before claiming it mattered.
+
+## 2026-09-24 — I USED A STALE READING AS *CORROBORATION* OF THE MECHANISM THAT MADE IT STALE
+
+**Symptom.** `probe_league_return_warps.py` read tile behaviour from ROM for League maps the bot was
+not standing on, and concluded: *"6 of 6 backward warp tiles read `Normal` ⇒ the League interior is
+ONE-WAY, CONFIRMED BY DATA."* **Two of those six rows were void.**
+
+**What was actually true.** `elite_four.inc`'s `WalkInCloseDoor` **rewrites Elite Four room tiles at
+runtime** (`setmetatile ..., TRUE`) and re-applies them from `ON_LOAD`. So a ROM read of a room tile
+is the **pre-seal snapshot**. This tree had already measured the truth LIVE, months of work earlier,
+in `probe_e4_entry_seal.py`:
+
+| tile | my ROM read | the LIVE reading already on file |
+|---|---|---|
+| `SIDNEYS_ROOM (6,13)` backward | `Normal`, coll **0** | coll **3** — SEALED |
+| `SIDNEYS_ROOM (6,2)` forward | `Normal`, coll **1** | coll **0** — OPEN |
+
+⛔⛔ **AND THE SECOND ROW IS THE REAL LESSON.** I did not merely include a wrong row — **I singled it
+out as evidence.** I wrote a paragraph headed *"AN UNPLANNED CORROBORATION"*, arguing that
+`(6,2)` reading *"blocked as shipped"* showed the static data independently agreeing with the
+decomp's account of a runtime rewrite. ⇒ **The reading I presented as confirmation of the mechanism
+was an artifact produced by that mechanism.** A wrong row that is merely *present* gets caught by a
+control; a wrong row that is used to **build confidence in the other rows** actively suppresses
+doubt.
+
+‼ **The irony is in the same table.** My own text noted `(6,2)` was "blocked as shipped" — i.e. I had
+*noticed* that shipped-ROM state differed from runtime state for that exact room — and then failed to
+apply that insight to the backward tile printed three lines above it.
+
+**And a standing rule already said so, by name.** `05-KNOWN-ISSUES.md` (KI-74):
+*"ANY League-interior reachability check must read `_live_collision_grid`, never `get_map_data`."*
+My probe was a League-interior reachability check using `get_map_data`. I had even read KI-74's
+sibling warning in the story-drive skill and quoted it in the probe's own docstring — **as a hazard I
+had cleared**, because my controls passed.
+
+⛔ **WHY THE CONTROLS DID NOT CATCH IT, WHICH IS THE GENERALISABLE PART.** All four controls were on
+`POKEMON_LEAGUE_1F` — and the build spec, two sections above, had already established that the lobby
+is *the one map in this dataset with no ROM/live divergence*. ⇒ **I validated the instrument on the
+one surface where it could not fail, and then trusted it on the surfaces where it does.** A control
+only licenses what it exercises.
+
+**The fix that worked.** The probe no longer reads room tiles **at all**. It reads halls and lobby —
+whose `scripts.inc` contain **no `setmetatile`**, only `turnobject`, which is the *stated warrant* for
+trusting ROM there — and **defers the room tiles, by name and in its own printed output**, to
+`probe_e4_entry_seal.py`. The verdict is now scoped: *"the HALL return warps are inert"*, plus an
+explicit line that this is **not** by itself "the interior is one-way".
+
+**PREVENTION RULES.**
+1. ⛔ *A CONTROL ONLY LICENSES THE SURFACE IT EXERCISES.* Before trusting an instrument on map/case B
+   because it passed on case A, ask what makes A and B different — and if A was chosen **because it
+   is well-behaved**, it is the worst possible control.
+2. ⛔ *ASK WHETHER A SCRIPT WRITES THE THING YOU ARE READING STATICALLY.* For Gen-3 maps that means
+   grepping the map's `scripts.inc` for `setmetatile` before quoting a ROM tile. Absence of the write
+   is the warrant; without it, a static read is a snapshot of the cartridge, not of the game.
+3. ⭐ *A ROW THAT SUPPORTS YOUR CONCLUSION DESERVES MORE SUSPICION THAN ONE THAT CONTRADICTS IT* — a
+   contradicting row gets investigated automatically; a corroborating one gets written up. When a
+   result arrives labelled "unplanned corroboration", that is the moment to check it hardest.
+4. ⇒ *When this tree already holds a LIVE measurement of a coordinate, the static read does not get a
+   vote.* Search `evidence/` and the gates for the coordinate before publishing a static claim about it.

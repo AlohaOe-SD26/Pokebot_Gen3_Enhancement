@@ -1,0 +1,55 @@
+Running mGBA 0.10.2
+========================================================================================================
+  §Ch24 M1 (part 2) — ARE THE LEAGUE'S BACKWARD WARPS INERT?  ⛔ NO STEP IS TAKEN.
+  Read from ROM for maps we are NOT standing on, with live-known tiles as controls.
+========================================================================================================
+    what                       map                                         tile  coll  tile_type
+    CONTROL  lobby fwd door    EVER_GRANDE_CITY_POKEMON_LEAGUE_1F        (9, 1)     0  Non-Animated Door
+    CONTROL  lobby fwd door    EVER_GRANDE_CITY_POKEMON_LEAGUE_1F       (10, 1)     0  Non-Animated Door
+    CONTROL  lobby wall        EVER_GRANDE_CITY_POKEMON_LEAGUE_1F        (8, 1)     1  Normal
+    CONTROL  lobby wall        EVER_GRANDE_CITY_POKEMON_LEAGUE_1F       (11, 1)     1  Normal
+    HALL5    back to lobby     EVER_GRANDE_CITY_HALL5                   (4, 12)     0  Normal
+    HALL5    back to lobby     EVER_GRANDE_CITY_HALL5                   (5, 12)     0  Normal
+    HALL5    back to lobby     EVER_GRANDE_CITY_HALL5                   (6, 12)     0  Normal
+    HALL5    fwd to Sidney     EVER_GRANDE_CITY_HALL5                    (5, 2)     0  Non-Animated Door
+    HALL1    back              EVER_GRANDE_CITY_HALL1                   (5, 12)     0  Normal
+    HALL1    fwd               EVER_GRANDE_CITY_HALL1                    (5, 2)     0  Non-Animated Door
+    HALL4    back              EVER_GRANDE_CITY_HALL4                   (5, 33)     0  Normal
+    HALL4    fwd               EVER_GRANDE_CITY_HALL4                    (5, 2)     0  Non-Animated Door
+
+    CONTROL EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (9, 1): expected Non-Animated Door/coll 0, got Non-Animated Door/coll 0  -> OK
+    CONTROL EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (10, 1): expected Non-Animated Door/coll 0, got Non-Animated Door/coll 0  -> OK
+    CONTROL EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (8, 1): expected Normal/coll 1, got Normal/coll 1  -> OK
+    CONTROL EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (11, 1): expected Normal/coll 1, got Normal/coll 1  -> OK
+  ✅ CONTROLS REPRODUCE the 2026-09-24 LIVE measurement — the static reader is trustworthy here.
+
+  backward warp tiles reading `Normal`      : 5 of 5
+  forward  warp tiles reading as a DOOR      : 5 of 5
+
+
+  ⛔ NOT READ HERE — DEFERRED TO THE LIVE GATE `probe_e4_entry_seal.py`:
+     SIDNEYS_ROOM (5..7,12) and (5..7,13)
+        rewritten on entry by `elite_four.inc` WalkInCloseDoor (setmetatile ..., TRUE) and re-applied from ON_LOAD. MEASURED LIVE by probe_e4_entry_seal.py: ROM=0 but LIVE=3 on all six.
+     SIDNEYS_ROOM (6,1) and (6,2)
+        the forward exit, OPENED at runtime by SetAdvanceToNextRoomMetatiles. MEASURED LIVE by probe_e4_entry_seal.py: ROM=1 but LIVE=0. ‼ A ROM read here says 'blocked as shipped' and that is NOT evidence of anything about the running game.
+
+  ✅ VERDICT, SCOPED TO THE HALLS: every HALL backward warp tile reads `Normal`, while
+     forward warps read as DOORS. `MB_NORMAL` is behaviour 0 and every behaviour the
+     warp paths accept is NON-ZERO, so a warp event on such a tile can never fire.
+     ⇒ THE HALL-TO-LOBBY RETURN WARPS ARE INERT. Warrant for trusting ROM here: the
+     halls' `scripts.inc` contain no `setmetatile`, only `turnobject`.
+     ‼ THIS IS NOT, BY ITSELF, 'THE INTERIOR IS ONE-WAY'. The ROOMS are sealed by a
+     RUNTIME rewrite that this reader cannot see; that half is live-confirmed by
+     `probe_e4_entry_seal.py`. The two together make the claim — neither alone does.
+
+  ⛔ WHAT THIS STILL DOES NOT SETTLE: this is the ROM's static view. It is trustworthy here
+     because the controls reproduce a live measurement on the SAME tileset — but the seal
+     INSIDE a room is applied at runtime by `setmetatile` (already live-confirmed by
+     `probe_e4_entry_seal.py`), and a runtime write is invisible to this reader by
+     construction. ⇒ these rows describe the tiles AS SHIPPED, not as a script may leave them.
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_10-23-35.ss1 created!
+Updated `current_state.ss1`!

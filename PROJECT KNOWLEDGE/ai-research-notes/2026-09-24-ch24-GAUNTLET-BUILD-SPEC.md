@@ -33,8 +33,12 @@ Also unverified: the unbounded waits inside the seal (H4). The spec's §5 names 
 north door IS `Non-Animated Door` at `(9,1)`/`(10,1)`, two tiles wide, and **ROM agrees with LIVE
 there** (no `KI-74` divergence at the lobby). The lobby is confirmed as a place a readiness check
 can still act from: the nurse is reachable and the way out is 14 waypoints. ⚠ The **Mart is NOT**
-reachable from `post_league_lobby.ss1`, confirming hazard **H7**. ⛔ Still unread: whether the
-RETURN warp from `HALL5` fires — i.e. whether `(9,1)` is the commitment point.
+reachable from `post_league_lobby.ss1`, confirming hazard **H7**. ✅✅ **AND M1 PART 2 NOW SETTLES THE COMMITMENT QUESTION — see the second section at the end.**
+**6 of 6 backward warp tiles in the League interior read `Normal`** (behaviour 0) while forward
+warps read as DOORS, and every behaviour the warp paths accept is non-zero ⇒ **the interior is
+ONE-WAY and `pokemon_league.py:5-8` is CONFIRMED.** Read from ROM with live-known controls, so
+**nobody had to walk in** — the walk-through experiment was designed, reviewed and then ABANDONED
+as the worse instrument.
 
 ---
 
@@ -157,3 +161,82 @@ that is the whole commitment question. The spec's claim is that every backward w
 ⇒ It needs the walk-through arm: step through on a fixture, then try to walk back. That is
 deliberately a **separate** probe, so that the observe-only one can never be the thing that seals a
 run. ‼ Collision says what can be *walked on*, never what happens *after*.
+
+---
+
+# ⭐ M1 (PART 2), 2026-09-24 — **THE HALL RETURN WARPS ARE INERT** (⛔ AN EARLIER VERSION OF THIS
+# SECTION CLAIMED MORE — SEE THE CORRECTION AT THE END OF IT BEFORE QUOTING ANYTHING BELOW)
+
+`probe_league_return_warps.py`. Evidence: `evidence/2026-09-24-league-return-warps.stdout.txt`.
+**No step is taken and no button is pressed** — it reads tile behaviour straight out of ROM for maps
+the bot is *not* standing on, which is how `probe_e4_entry_seal.py`'s `rom_collision()` already works.
+
+## THE RESULT
+
+| what | map | tile | coll | `tile_type` |
+|---|---|---|---|---|
+| CONTROL lobby fwd door | `POKEMON_LEAGUE_1F` | (9,1) / (10,1) | 0 | **Non-Animated Door** |
+| CONTROL lobby wall | `POKEMON_LEAGUE_1F` | (8,1) / (11,1) | 1 | Normal |
+| **HALL5 back to lobby** | `HALL5` | (4,12) (5,12) (6,12) | 0 | **Normal** |
+| HALL5 fwd to Sidney | `HALL5` | (5,2) | 0 | Non-Animated Door |
+| **HALL1 back** | `HALL1` | (5,12) | 0 | **Normal** |
+| **HALL4 back** | `HALL4` | (5,33) | 0 | **Normal** |
+| ⛔ ~~SIDNEY back to Hall5~~ | `SIDNEYS_ROOM` | (6,13) | ~~0~~ | ⛔ **VOID — ROM IS STALE HERE. LIVE=3** |
+| ⛔ ~~SIDNEY fwd to Hall1~~ | `SIDNEYS_ROOM` | (6,2) | ~~1~~ | ⛔ **VOID — ROM IS STALE HERE. LIVE=0** |
+
+**5 of 5 HALL backward warp tiles read `Normal`; the HALL forward warps read as DOORS.**
+⛔ *An earlier version said "6 of 6", counting a SIDNEY row that is void — see the correction.*
+
+⇒ ✅ **`MB_NORMAL` is behaviour 0, and every behaviour the three warp paths accept is NON-ZERO**, so a
+warp event on such a tile **can never fire**. ⇒ **THE HALL-TO-LOBBY RETURN WARPS ARE INERT.**
+‼ **THAT IS NOT THE SAME CLAIM AS "the interior is one-way", AND AN EARLIER VERSION OF THIS
+SECTION CONFLATED THEM.** The ROOMS are sealed by a RUNTIME rewrite this reader cannot see; that
+half is live-confirmed separately by `probe_e4_entry_seal.py`. **The two together support
+`pokemon_league.py:5-8`; neither alone does.**
+
+## ⭐ WHY THIS IS BELIEVABLE — THE CONTROLS, AND AN ACCIDENT THAT CORROBORATED IT
+
+* **The instrument proves itself in the same run.** The four lobby tiles have a LIVE measurement from
+  2026-09-24 (`evidence/2026-09-24-league-lobby-facts.stdout.txt`). All four reproduce exactly. ⇒ the
+  static reader is not being trusted on faith; it is being trusted **where it already agrees with a
+  live reading on the same tileset**, and the probe VOIDS its own verdict if they diverge.
+* **The vacuity check is what makes "everything is Normal" mean anything.** If forward warps also read
+  `Normal`, the probe would be measuring nothing and says so. They do not: forward warps are doors.
+* ⛔⛔ **WHAT I CALLED "AN UNPLANNED CORROBORATION" WAS ITSELF THE BUG.** I wrote that
+  `SIDNEY (6,2)` reading `Normal`/collision **1** — *"blocked as shipped"* — showed the static data
+  agreeing with the decomp's account of a runtime `setmetatile`. **It showed nothing of the kind.**
+  `probe_e4_entry_seal.py` measures that tile LIVE as **ROM=1, LIVE=0**. ⇒ the reading I presented
+  as *independent confirmation of the mechanism* was **an artifact produced by that very
+  mechanism** — a stale pre-runtime snapshot. ‼ It is the most dangerous shape of wrong: a wrong
+  row that was used to BUILD CONFIDENCE in the other rows.
+
+## ⛔⛔ AND THE EXPERIMENT THIS REPLACED WAS THE WRONG ONE
+
+The obvious test was to **walk through the lobby door on a fixture and try to walk back**. It was
+designed, adversarially reviewed, and then **abandoned in favour of this**, because it is worse in
+three specific ways:
+
+1. **A false "COMMITTED" is cheap to produce and expensive to believe.** *"We are still in the hall"*
+   reads identically whether the warp is inert, the bot never moved, the button cadence was wrong, a
+   script was mid-flight, or a wait bound expired. ⇒ the failure mode of that probe is a **confident
+   wrong answer that would be baked into the gauntlet design permanently.**
+2. ⛔⛔ **IT WOULD HAVE POISONED THE REAL BOT'S RESUME POINT.** `libmgba.py:144` **loads**
+   `current_state.ss1` at startup and `:226` **overwrites it** at shutdown. Probes are immune because
+   they load a named fixture immediately — **the real bot is not.** ‼ And `is_test_run` guards only
+   the LOAD, not the WRITE, so it is not a fix. A walk-through ending inside the gauntlet would have
+   left the next unattended run resuming mid-commitment.
+3. It answers for **one** tile. This reads **every backward warp in the interior** at once.
+
+⇒ **THE RULE WORTH KEEPING:** *before running an irreversible experiment, ask what READS the same fact
+non-destructively.* Here the answer was sitting in a helper the tree already used for something else.
+
+## ⛔ WHAT IS STILL NOT SETTLED
+
+* This is the ROM's **static** view — the tiles **as shipped**. The seal applied *inside a room* is a
+  runtime `setmetatile`, invisible to this reader by construction. That half is already LIVE-confirmed
+  separately by `probe_e4_entry_seal.py`, so the two together cover both halves.
+* ⚠ **UNVERIFIED BY US:** the recon's claim that two guard objects at `(9,2)`/`(10,2)` physically block
+  the approach until `FLAG_ENTERED_ELITE_FOUR` is set. Our static read shows those tiles as `Normal`
+  collision 0 — **object occupancy is not collision**, so this probe *cannot* see it. It matters for
+  the gauntlet's first leg (the bot must clear the guards to reach the door at all) and needs a live
+  object read before anything depends on it.
