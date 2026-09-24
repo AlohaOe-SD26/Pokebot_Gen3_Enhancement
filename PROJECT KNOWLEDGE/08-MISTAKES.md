@@ -20506,3 +20506,62 @@ lands inside its symbol. Both wrong answers were well-formed. I found it by read
 printed change list and noticing it had moved `:2273` (a line I had deliberately set hours earlier)
 to `:2288`. ⇒ **the tool's requirement to READ ITS OUTPUT is not ceremony; it is the only check
 that exists for this class**, and it has now earned its keep twice in one day.
+
+
+## 2026-09-23 — I GRADED A FAULT ARM BY ENUMERATING WHICH ARMS SHOULD FAIL, AND GOT IT WRONG TWICE IN ONE SESSION
+
+**SYMPTOM.** Two new gates (#70 `probe_lead_pp_scope.py`, #71 `probe_ch24_owns_run.py`) each shipped
+a fault arm whose grading said *"arm X must go red and the others must stay green"*. Both **failed
+their own fault tests** on first run — not because the subject was wrong, but because MORE arms went
+red than I had listed.
+
+* #70: the stub returned False for everything, so it broke **both** arms expecting True (A and C),
+  not just A.
+* #71: the fault made the latch permanently set, so the arm testing *"inert when UNSET"* had no
+  unset state to test and failed too.
+
+**ROOT CAUSE.** In both cases I enumerated the expected failures **by intuition**, at exactly the
+moment I was not reasoning carefully — right after writing the fault injection, when its
+consequences felt obvious. They were not obvious: a fault does not break "the arm it targets", it
+breaks **every arm that depends on the invariant it destroys**, and working that set out by hand is
+a small proof I skipped twice.
+
+⇒ **PREVENTION — GRADE A FAULT ARM STRUCTURALLY, NEVER BY A LIST:**
+1. **Did the gate DETECT anything at all?** If nothing went red, the gate cannot see its own bug —
+   that is the only universal failure.
+2. **Did the INDEPENDENT arms survive?** Arms that share no state with the injection (e.g. ones that
+   read the shipping SOURCE rather than a model) must be untouched. If they moved, the **harness**
+   is broken, not the subject.
+Neither question needs the list, and both are stronger than it: (2) catches a fault arm that
+accidentally breaks the test rig, which an enumeration would happily report as success.
+
+**‼ AND THE REASON THIS IS WORTH A RULE RATHER THAN AN APOLOGY.** Getting it wrong is *safe* the
+first time — the fault test fails loudly and you look. But the tempting repair is to widen the
+expected-failure list until it passes, which quietly converts a real check into a rubber stamp. The
+structural form cannot be widened that way: there is nothing to add to it.
+
+
+## 2026-09-23 — I DODGED A GATE BY MOVING A FACT OUT OF GATED FORM, AND IT WENT STALE ONE EDIT LATER
+
+**SYMPTOM.** `fix_citation_drift.py` wanted to re-point `story_mode.py:5517` to `:1730` because the
+identifier `StoryMode` sat in its pairing window — which would have INVERTED my sentence, whose
+whole point was that the constant is **not** `StoryMode`'s. Correct catch, correct refusal. My fix
+was to write the line number in **prose** ("at line 5517 of that file") instead of as a parseable
+`` `file.py:NNNN` `` citation, so the heuristic could not bind it.
+
+**IT WENT STALE ON THE VERY NEXT EDIT.** Inserting the §Ch24 latch moved
+`class StoryEndlessResetMode` from 5471 to 5513 and the constant from 5517 to 5559. The gated class
+citation was re-pointed automatically. **The prose number was not, and no gate could see it** —
+because I had deliberately taken it out of the form gates read.
+
+⇒ **PREVENTION: WHEN A CITATION IS MIS-PAIRED, FIX THE PAIRING — DO NOT SMUGGLE THE FACT OUT OF
+GATED FORM.** Rephrase so the citation binds to the right identifier, or drop the redundant number
+entirely and let a gated citation carry the location. ‼ **Moving a fact out of a checker's reach
+does not make it true; it makes it unmaintained.** The version that survives is the one with NO bare
+number: the class citation is gated, and the constant's exact line adds nothing a reader needs.
+
+**‼ THE GENERAL SHAPE, WHICH IS WORTH MORE THAN THE INSTANCE.** Every "work around the check"
+manoeuvre has this cost: an exemption, a `noqa`, an append-only carve-out, a fact rewritten in prose.
+Each is sometimes right — this project's own rules require several — but each one **removes a fact
+from maintenance**, and that debt comes due silently. ⇒ when reaching for one, ask what will keep it
+true afterwards, and prefer the option that needs nothing to.

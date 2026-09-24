@@ -841,6 +841,27 @@ GATES: list[tuple[str, bool]] = [
     # the arm set, exit 1 with BOTH True-expecting arms (A, C) red and every False-expecting arm
     # still green - which is what a blanket-False stub must do.
     ("probe_lead_pp_scope.py", False),
+    # --- #71 - THE Ch24 RUN-LATCH (`probe_ch24_owns_run.py`)
+    # APPENDED AT THE END, never inserted - the same rule #34-#70 carry.
+    # WHY A GATE: `ch23_chapter_done()` is FLAG AND POSITION AND BAG (victory_road.py:3315-3322).
+    # Ch24 breaks the POSITION conjunct BY DESIGN - its training leg flies to ROUTE117 within
+    # seconds and later grinds INSIDE Victory Road, which trips the other half of the same line.
+    # Without a latch every later run finds Ch23 "unfinished", re-runs do_victory_road_chapter(),
+    # and `_guard` STOPS the bot with a diagnostic. victory_road.py:3308-3313 predicted exactly
+    # this and called it a forward dependency of Ch24.
+    # ARM B IS THE ONE WITH A BODY COUNT: the latch must clear in reset_per_run_state() and NOT in
+    # __init__. StoryEndlessResetMode.run() loops on the SAME object, so __init__ runs once per
+    # BATCH - a latch set there makes run 2 skip Ch23 entirely. That is the `_rival_attempts`
+    # shape (story_mode.py:1849-1872) which killed 16 of 20 P1 runs, 6 of 9 P2, 5 of 8 P3.
+    # ARM D READS THE SHIPPING SOURCE, which is what keeps the other arms honest: A-C exercise a
+    # MODEL of the latch (the real `_ch23_settled` is a closure inside `_play`, unreachable from
+    # outside), so D checks the model has not drifted into a comforting fiction - including that
+    # the `_guard` half is gated too, since `_guard` is assert-not-skip and a bare predicate there
+    # would merely move the failure one line down.
+    # FAULT-TESTED 2026-09-23 (`POKEBOT_CH24OWNS_FAULT=init` = a latch that never clears): happy
+    # path exit 0; with the arm set, exit 1 with every arm depending on "the latch can be unset"
+    # red (B and C) and every SOURCE-reading arm green.
+    ("probe_ch24_owns_run.py", False),
 ]
 
 
