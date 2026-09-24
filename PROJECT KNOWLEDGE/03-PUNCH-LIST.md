@@ -2335,6 +2335,14 @@ byte-identical.
 - [x] ⛔ NOT A LIVE ITEM — it is the ORIGINAL proposal, kept for its rationale, which now
   lives in the archive under its 2026-09-08 banner. **The LIVE `#24-dexhunt` is the re-affirmed and widened section ABOVE this one** — act from that, not from this pointer.
 
+### 🔶 `#25-organicplay` — **USER DIRECTION 2026-09-24: THE BOT SHOULD PLAY LIKE A PERSON.** NOT SCHEDULED; the user asked for a DISCUSSION first and explicitly asked not to derail §Ch24. Recorded so it survives the session.
+  **The ask:** catch organically (battle / HM slave / training / **dex completion**) with **no 4-mon cap**; **use the PC** to swap mōn in and out; and **two dex modes** — opportunistic during the story, **completion-focused post-Elite-Four** while still training. **Observed:** story runs well, but catching stops at 4 party members (~Rustboro) and the PC is never used.
+  ✅ **THE USER'S DIAGNOSIS IS CORRECT AND THE CAUSE IS ALREADY ON FILE — see `#24-catchcap` below:** `_catch_team_target = 4` (`story_mode.py:845`) is a **PARTY-SIZE** target, not a catch count, and `:960` gates on `len(party) >= target` where **party includes the starter** ⇒ starter + 3 catches. Fix already specified in `21-TEAM-POLICY-DESIGN.md` §1.
+  ✅ **THE DEX MACHINERY EXISTS:** `#24-dexhunt`'s catching fence is **built, pure and gated (#50)** — ⛔ do not rebuild — **but its A/B is UNRUN, so efficacy is unproven.** ⇒ that explains the whole observation: real machinery, behind an unraised cap, never demonstrated in a run.
+  ⚠ **THE PC IS NOT REJECTED — IT IS GATED ON EVIDENCE BY THE USER'S OWN RULING:** *"PC deposit — prove it first"*, i.e. a **named-PID round trip** (deposit AND withdraw, identity by PID never slot) in a real drive. ⇒ "never seen it use the PC" is the expected consequence of an unproven capability, not a missing one.
+  ⛔⛔ **AND IT COLLIDES WITH A STANDING RULING — RESOLVE BEFORE BUILDING:** `06-DECISIONS-LOG.md` (USER RULING 2026-09-18, reaffirmed 09-23) says **every team member L65-75, none benched**. Free catching grows a roster; a six-slot party pinned to a narrow band is in direct tension with *"swap in and out as needed"*. **That is a decision, not code.**
+  ⇒ **WHAT IS ACTUALLY MISSING**, once the above is subtracted: (1) raise the cap — *design already written*; (2) prove the fence in motion — *A/B unrun*; (3) PC round-trip drive — *gated on the ruling above*; (4) ⛔ **the two dex MODES — no sign this exists, the genuinely new ask**; (5) ⛔ **reconcile with L65-75/no-bench — unresolved, and it blocks the rest.** ⭐ The §Ch24 Fly ladder already built is the enabler for the training half.
+
 ### `#24-catchcap` — the bot catches only THREE Pokémon (user-observed 2026-07-30, cause CONFIRMED)
 **NOT SCHEDULED — bundle with `#24-dexhunt`.** The user noticed the party never fills.
 **Cause, verified in code:** `self._catch_team_target = 4` (`story_mode.py:845`) is a
