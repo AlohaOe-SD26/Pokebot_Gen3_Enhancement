@@ -1843,6 +1843,32 @@ class StoryMode(BotMode):
         super().__init__()
         self.reset_per_run_state()
 
+    def mark_ch24_owns_run(self) -> None:
+        """Latch: §Ch24 has started, so §Ch23 must not be re-entered for the rest of this run.
+
+        ⛔⛔ WHY A LATCH IS NEEDED AT ALL — `ch23_chapter_done()` IS A POSITION TEST, AND §Ch24
+        BREAKS IT BY DESIGN. That predicate is FLAG ∧ POSITION ∧ BAG
+        (`modules/story/victory_road.py:3315-3322`): it requires `_on_map(EVER_GRANDE)` **and** that
+        we are NOT on any Victory Road floor. §Ch24's training leg flies to ROUTE117 (position
+        conjunct broken within seconds) and later grinds INSIDE Victory Road (broken again, by the
+        other half of the same line). The bag conjunct breaks later still, when the League basket is
+        spent.
+        ⇒ without this latch, EVERY run after training starts would find `ch23_chapter_done()` False,
+        re-run `do_victory_road_chapter()`, and `_guard` would then STOP the bot with a diagnostic.
+        ‼ `victory_road.py:3308-3313` predicted exactly this and called it a forward dependency:
+        *"when §Ch24 is built it MUST set its own progress marker so §Ch23 is not re-entered."*
+
+        ⛔ WHY NOT THE `#24-markerwinstate` MARKER: that one is the GAUNTLET's, and it is a POSITION
+        test too ("standing on a sealed League map") plus an `IS_CHAMPION` disjunct. Both read False
+        on a training route. §Ch24 needs this EARLIER, third term — they are not substitutes.
+
+        ⛔ WHY AN IN-PROCESS LATCH AND NOT AN EVENT FLAG: there is no Gen-3 flag meaning "the bot
+        decided to start training", and inventing a use for an unrelated flag is how `KI-90` was
+        filed. The lifetime we actually need is THE RUN, which is exactly this object's lifetime
+        between resets.
+        """
+        self._ch24_owns_run = True
+
     def reset_per_run_state(self) -> None:
         """Clear every counter whose meaning is scoped to ONE playthrough.
 
@@ -1884,6 +1910,12 @@ class StoryMode(BotMode):
         #: Per-instance and per-run BY DESIGN — a fresh instance (the user's manual flip) and the
         #: endless loop's per-run reset both re-arm it, exactly like `_counter_hunts`.
         self._second_winds: set = set()
+        # ⛔ HERE, NOT IN `__init__` — the whole reason this method exists. `StoryEndlessResetMode.run()`
+        # loops on the SAME mode object, so `__init__` runs once per BATCH. A latch set in
+        # `__init__` would make run 2 of an overnight batch believe §Ch24 had already
+        # started and SKIP §Ch23 entirely — the same shape as the `_rival_attempts` bug
+        # documented below, which killed 16 of 20 P1 runs.
+        self._ch24_owns_run = False
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -5211,14 +5243,53 @@ class StoryMode(BotMode):
         # segment start". Both are correct. Do not collapse them.
         from modules.story.victory_road import ch23_chapter_done, do_victory_road_chapter
 
-        if not ch23_chapter_done():
+        def _ch23_settled() -> bool:
+            """§Ch23 is settled if it finished NORMALLY, or if §Ch24 has taken over the run.
+
+            ⛔⛔ BOTH HALVES BELOW USE THIS, AND THAT IS NOT TIDINESS. `_guard` is
+            ASSERT-not-skip (`:3981` returns on success, `:3991` raises): leaving it on the bare
+            predicate while only the skip became latch-aware would stop the bot with a diagnostic
+            on the very first re-entry — the failure would simply move one line down.
+            """
+            return self._ch24_owns_run or ch23_chapter_done()
+
+        if not _ch23_settled():
             yield from do_victory_road_chapter()
         else:
             console.print("[dim]Story: Victory Road already done — skipping.[/]")
-        _guard("Victory Road (Ch23)", ch23_chapter_done)
+        _guard("Victory Road (Ch23)", _ch23_settled)
 
-        # END OF BUILT CONTENT. Next build: **THE POKÉMON LEAGUE — Chapter 24**: the Elite Four
-        # gauntlet (Sidney, Phoebe, Glacia, Drake) and Champion Wallace. ⛔ NO NURSE BETWEEN ROOMS —
+        # ---- §Ch24 LEG 1 — TRAINING (`#24-flyladder` Piece 3) --------------------------------
+        # ⭐ USER RULING 12 (2026-09-23): train ALL SIX to L65-75; the party is NOT reduced.
+        # ⛔ IT MUST RUN BEFORE ANY GAUNTLET CONTENT: the Elite Four is ONE-WAY (the doors seal,
+        # the bag is the only healing), so arriving under-levelled is unrecoverable.
+        # ‼ The leg SELF-SKIPS when nobody is below the floor, so this is safe to re-enter after a
+        # derail — it re-reads the party each pass and does only what is left. There is therefore
+        # no `_guard` here yet: §Ch24's own completion marker is `#24-markerwinstate`'s work, and
+        # guarding on "everyone is L65" would STOP the bot on a party that simply ran out of
+        # reachable ground — a survivable shortfall, not a derail.
+        from modules.story.pokemon_league import train_for_league
+
+        _ch24_train_report: dict = {}
+        yield from train_for_league(_ch24_train_report)
+        if _ch24_train_report.get("still_below"):
+            _log_story_event(
+                f"Story: §Ch24 training ended with mon still below the floor: "
+                f"{_ch24_train_report['still_below']}")
+
+        # END OF BUILT CONTENT — ‼ RETARGETED 2026-09-24, BECAUSE §Ch24 NOW BEGINS **ABOVE**
+        # THIS LINE. The §Ch24 TRAINING leg (`train_for_league`) runs a few lines up, so the
+        # old text — *“Next build: the Elite Four gauntlet”* — is no longer the first missing
+        # thing. A stale pointer here misdirects every cold start, which is exactly what P4
+        # exists to catch.
+        # ⇒ WHAT IS ACTUALLY NEXT: **the §Ch24 GAUNTLET** (Sidney, Phoebe, Glacia, Drake,
+        # Champion Wallace). Training is BUILT; the fights are not.
+        # ⛔⛔ AND A FORWARD DEPENDENCY THAT MUST NOT BE FORGOTTEN WHEN THEY ARE WIRED:
+        # `train_for_league` deliberately has **no floor `_guard`** after it — a party can
+        # fall through still BELOW L65 if it runs out of reachable ground or a purse
+        # expires. That is safe ONLY while nothing is wired past this point. The moment the
+        # gauntlet is reachable, an under-levelled party would walk into a ONE-WAY,
+        # NURSE-LESS fight. ⇒ the gauntlet's first act must be a readiness guard. ⛔ NO NURSE BETWEEN ROOMS —
         # the doors seal behind you, so the BAG is the only healing, and items are legal in those
         # battles (decomp-verified). §Ch23 leg 11 already buys the basket for exactly this reason.
         # ✅ §Ch23 IS NOW WIRED (2026-09-05) — the orchestrator dispatches on POSITION because six of

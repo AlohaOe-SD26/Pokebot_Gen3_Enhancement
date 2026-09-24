@@ -1,0 +1,50 @@
+POST-PROMOTION VERIFICATION — 2026-09-24
+Paired with 2026-09-24-promotion-BEFORE.stdout.txt.
+
+### gate #70 — CUSTOM   (BEFORE: ImportError, lead_has_no_damaging_pp absent)
+
+  ✅ ARM B     False (expected False)
+  ✅ ARM C     True  (expected True)
+  ✅ ARM D1    False (expected False)
+  ✅ ARM D2    False (expected False)
+  ✅ ARM D3    False (expected False)
+
+  ✅ PASS — the narrow predicate fires exactly where the all-quantified one cannot,
+     and stays quiet on a healthy lead, an egg, and an absent one.
+====================================================================================================
+
+### gate #71 — CUSTOM   (BEFORE: ARM D1/D2/D3 red)
+====================================================================================================
+  ✅ ARM A   True  (expected True)
+  ✅ ARM B   False (expected False)
+  ✅ ARM C   True  (expected True)
+  ✅ ARM D1  True  (expected True)
+  ✅ ARM D2  True  (expected True)
+  ✅ ARM D3  True  (expected True)
+  ✅ ARM D4  False (expected False)
+
+  ✅ PASS — the latch settles §Ch23, clears between runs, is inert unset, and BOTH
+     dispatch halves are gated in the shipping source.
+====================================================================================================
+
+### AND A REAL DRIVE IN THIS FORK — promote.py's standing rule
+[ch24train] rungs=[{'species': 'Zigzagoon', 'ground': 'ROUTE117', 'from': 19, 'to': 21, 'target': 21, 'finished': True}]
+[ch24train] Zigzagoon L19 -> L21
+[ch24train] T-CONTINUE at ROUTE117(31, 16): Fly legal, path_to_league_anchor=1347
+[ch24train] R end_tile = 'ROUTE117(31, 16)'
+[ch24train] R fly_legal_at_end = True
+[ch24train] R latch_calls = 1
+[ch24train] R leg_all_visited = True
+[ch24train] R leg_floor_reached = True
+[ch24train] R leg_latched = True
+[ch24train] R leg_rungs = [{'species': 'Zigzagoon', 'ground': 'ROUTE117', 'from': 19, 'to': 21, 'target': 21, 'finished': True}]
+[ch24train] R leg_still_below = []
+[ch24train] R level_after = 21
+[ch24train] R level_before = 19
+[ch24train] R path_to_league_anchor = 1347
+[ch24train] R start_at = 'EVER_GRANDE_CITY(18, 6)'
+[ch24train] R trainee = 'Zigzagoon#33CB74C3'
+[ch24train] R trainees_before = ['Zigzagoon#33CB74C3 L19']
+[ch24train] RESULT readings=['T-CONTINUE', 'T-LATCH', 'T-LEVELUP', 'T-PRE', 'T-RAN', 'T-RUNG', 'T-TRAINEES'] missing=[]
+[ch24train] RESULT battles=14 whiteouts=0 failure=None
+[ch24train] ACCEPTANCE: PASS (run the REAL train_for_league: pick trainees by PID, latch Ch24, walk at least one rung, LEVEL the trainee, and end able to continue) SCOPE: floor=21, so this proves ONE rung of the machinery, NOT the multi-rung climb to L65.

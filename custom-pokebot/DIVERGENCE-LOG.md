@@ -2854,3 +2854,85 @@ as "the ladder is running".
 DRIVING. The three build-aware gates above prove the promoted **predicates and control flow** behave
 in this fork; **no driver has flown the ladder end to end in either fork.** That is Piece 3's work,
 and it is gated on a user ruling about party composition that has not been given.
+
+
+# 2026-09-24 — §Ch24 BEGINS: THE TRAINING LEG AND ITS TWO PREREQUISITES
+
+**USER-AUTHORISED** (2026-09-24, verbatim: *"promote then proceed…"*).
+**ROLLBACK TAG:** `pre-promote-2026-09-24` (annotated, pushed; local + origin verified by the tool).
+**TOOL:** `promote.py --restore-point pre-promote-2026-09-24 --go`
+→ `drift after: 0`, `orphaned after: 0`, `byte-identical 3/3`.
+
+## WHAT MOVED — three files, one closed set
+
+| file | what it brings |
+|---|---|
+| `modules/story/early_game.py` | `#24-ppscope`: pure `lead_has_no_damaging_pp(party)` + `train_team(..., heal_on_lead_pp=False)` |
+| `plugins/custom_modes/story_mode.py` | `#24-ch24owns`: `mark_ch24_owns_run()`, a run-scoped latch, `_ch23_settled()` on BOTH dispatch halves — **and the call to the new leg** |
+| `modules/story/pokemon_league.py` | `#24-ch24trainleg`: `train_for_league`, `train_one_for_league`, `ch24_trainees_below_floor`, `_ch24_slot_of`, `_ch24_level_of` |
+
+## VERIFICATION — BEFORE, AFTER, **AND A REAL DRIVE IN THIS FORK**
+
+| check, run against `custom` | BEFORE | AFTER |
+|---|---|---|
+| gate #70 — trainee-scoped PP predicate | ⛔ `ImportError: lead_has_no_damaging_pp` | ✅ PASS |
+| gate #71 — §Ch24 run-latch (4 arms) | ⛔ ARM D1/D2/D3 red | ✅ PASS |
+| **`--driver ch24train --build custom`** | *(leg did not exist)* | ✅ **`ACCEPTANCE: PASS`** |
+
+The drive is the part that matters: `promote.py` says in its own output that *"a copy is not evidence
+— verify by DRIVING"*. In THIS fork the leg selected **Zigzagoon#33CB74C3 L19 by PID**, called
+`mark_ch24_owns_run()`, flew from the League plateau to ROUTE117, rotated the trainee to slot 0
+verified by PID, and took it **L19 → L21**. 7 readings, `missing=[]`, 0 whiteouts.
+Evidence: `tools/story-dev/evidence/2026-09-24-promotion-BEFORE.stdout.txt`, `…-AFTER.stdout.txt`,
+`…-ch24train-CUSTOM.stdout.txt`.
+
+## ⛔⛔ THE BLAST RADIUS — THIS CHANGES WHAT "DONE" MEANS FOR THIS FORK
+
+**Before this promotion**, a run that completed §Ch23 reached *"END OF BUILT CONTENT"* and stopped
+advancing. **After it**, that same run automatically begins the §Ch24 training grind — measured at
+**~21 h**, purse-capped at **6,000,000 frames**. That is the intended feature, but it is a material
+behaviour change for anything relying on the old stopping point, and it takes effect immediately.
+
+⚠ **AND IT IS ONLY EVER REACHED AFTER §Ch23 COMPLETES**, so nothing earlier in the game is touched.
+
+## ⛔⛔ A FORWARD DEPENDENCY THAT MUST NOT BE FORGOTTEN
+
+`train_for_league` has **NO floor `_guard`** after it. A party can fall through **still below L65**
+if it runs out of reachable ground, a purse expires, or the rung cap is hit. That is safe **only
+while nothing is wired past this point**.
+⇒ **The moment the Elite Four gauntlet becomes reachable, its FIRST act must be a readiness guard** —
+the gauntlet is one-way and nurse-less, so an under-levelled party entering it cannot retreat.
+✅ This warning is also written into the code, in the retargeted `END OF BUILT CONTENT` banner
+immediately below the call, so the next builder meets it where the work happens.
+
+## ⚠ WHAT SHIPS INERT, AND WHAT DOES NOT
+
+* **INERT:** `heal_on_lead_pp` defaults to **False** and the expression **short-circuits**, so the
+  new predicate is never even *called* for the six existing `train_team` callers
+  (`counter_hunt.py`, `victory_road.py`, `story_mode.py` ×4) — verified: all six pass their
+  arguments by keyword, so the new trailing parameter cannot collide positionally either.
+* **INERT:** `_ch24_owns_run` starts **False**, cleared in `reset_per_run_state()` (never
+  `__init__` — `StoryEndlessResetMode` loops on the same object, and a latch set in `__init__` is
+  the `_rival_attempts` shape that killed 16 of 20 P1 runs).
+* **NOT INERT:** the leg's **call site**. It runs on every post-§Ch23 pass; it self-skips only when
+  nobody is below the floor.
+
+## ⚠ THE LATCH'S ONE ASSUMPTION, DISCLOSED
+
+`mark_ch24_owns_run()` is reached via `context.bot_mode_instance`, set once by `main.py` to the live
+mode and never reassigned mid-run — so it holds under normal play. ⛔ A **standalone driver** that
+drives `StoryMode._play()` without that instance gets **no re-entry protection**: the next pass would
+re-run §Ch23 including the ocean crossing, then `_guard` would stop the bot. The leg says so in its
+own output when it happens rather than failing quietly.
+
+## ⚠⚠ AND THE HONEST LIMIT OF THE EVIDENCE
+
+**The leg has been driven exactly twice — once per fork — both at `floor=21`.** That proves ONE RUNG
+of the machinery turns end to end. It does **not** prove the climb. Undriven in either fork:
+* the **multi-rung ladder** (the real path crosses five grounds);
+* **Castform's** climb (only Zigzagoon has been trained);
+* the **VICTORY_ROAD_1F rung**, which the economics say carries **73-94 %** of the real work;
+* the **PP-dry regime beyond ~44 battles** — which is precisely what `#24-ppscope` exists for, so
+  the fix promoted here is **proven as a predicate and unproven in motion**.
+⇒ The purse sizes come from ONE economics model. **Watch the first long live run** and confirm
+`still_below` comes back empty rather than assuming the arithmetic generalises.
