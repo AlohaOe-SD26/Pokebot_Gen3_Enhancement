@@ -261,6 +261,45 @@ fail.** With this arm set, `E1-GUARDS` MUST fail — that is the proof the check
 
 **Default:** unset ⇒ OFF. The happy path never reads it as set.
 
+## `POKEBOT_CH24TAIL_INSTRUMENT` — §Ch24 P2 observe-only tail instruments (`--driver ch24tailprobe`)
+
+**Added 2026-09-25.** Read in `tools/story-dev/story_harness.py`, class `_Ch24TailInstrument`.
+**Values:** `1` arms the instruments. Anything else (including unset) = **completely inert**, and
+that was verified rather than assumed: an unarmed smoke run emits **zero** P2 output.
+
+⛔⛔ **THIS IS NOT A FAULT ARM — IT IS AN INSTRUMENT, AND IT IS OFF BY DEFAULT FOR THE OPPOSITE
+REASON.** A fault arm exists to BREAK something so a guard can be proven live. This exists to
+**observe** a proven probe without changing it: `Ch24TailProbeMode`'s verdict is load-bearing and
+its drive is IRREVERSIBLE (it clears the game), so an instrument that altered the subject would cost
+the measurement it was added to take.
+
+**What it measures** (all observe-only, all recorded into the probe's `R`, and the premise reads
+also **logged at their take point** so a refusal or a truncated run still shows them):
+* **P2a** — a per-frame `get_game_state()` histogram: does the tail EVER read `OVERWORLD`? Settles
+  whether the completion predicate needs one conjunct or several. The existing evidence samples at
+  1/60, so *"never OVERWORLD"* was an interpolation.
+* **P2b** ⭐ — **production's OWN 5-tuple stall signature** (`story_mode.py:3732-3741`) recomputed
+  every frame, with its `except → None` and a faithful mirror of `_progress_sig`. Reports the max
+  consecutive-identical streak against production's 18,000 threshold ⇒ **would a WINNING run
+  derail?** ‼ Mirroring `_progress_sig` rather than stubbing it is load-bearing: a constant stub
+  changes less often than the real thing and would bias the answer toward *"would derail"*.
+* **P2c** — flag 1615 (Wallace) at the premise and after the battle, with **1614 as a NEGATIVE
+  control**. ⛔ The obvious 1275-vs-`DEFEATED_ELITE_4_SIDNEY` control is **arithmetically circular**
+  (both paths use the same `0x1270 + n//8` formula), so the discriminating control is
+  FALSE-then-TRUE in the same run. Measured on a safe smoke: `1615=False`, **`1614=True`** — the
+  reader discriminates.
+* **P2d** — `LAST_TALKED` at the premise (a stale id under an un-releasable `lockall` is a candidate
+  permanent hang, not a cosmetic defect).
+* **P2e/P2f** — per-move PP `(name, remaining, max)` and HP of every party member at `(5,3)`, the
+  last point either can be fixed. ⇒ makes a first Wallace loss **diagnosable as PP exhaustion**
+  rather than mis-attributed to levels. ⛔ **PP must not become a blocking conjunct on this alone** —
+  a gate that cannot remedy is just a halt, and `(5,3)` is a strand.
+* **P2g** — controllable frames inside `CHAMPIONS_ROOM` after the fight ⇒ is it a latch-only region?
+
+‼ **EVERY METHOD IS TOTALLY DEFENSIVE AND COUNTS ITS OWN FAILURES** (`p2_instrument_errors`). The
+drive is irreversible, so losing it to a typo in a counter would cost the whole measurement — and a
+silent instrument that recorded nothing would otherwise look identical to a clean run.
+
 ## `POKEBOT_CH24ROOM_FAULT` — §Ch24 ROOM-leg fault arms (`--driver ch24room`)
 
 **Added 2026-09-24.** ⛔ Read in **PRODUCTION** — `sandbox-pokebot/modules/story/pokemon_league.py`,

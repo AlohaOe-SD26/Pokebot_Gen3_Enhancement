@@ -21331,3 +21331,31 @@ heredoc — not even a Python one.** Write the script to a file, or use Edit/Wri
 doc edit, *read back the line you changed* — the corruption here was invisible to the line count,
 the marker count, and the script's own exit status, and it would have shipped a queue head with the
 nouns missing to the next cold start.
+
+
+## 2026-09-25 — ⛔ I COMMITTED OVER A RED TIER 0 GATE, BECAUSE A SHELL `for` LOOP ATE ITS EXIT STATUS
+
+**SYMPTOM.** I ran the doc gates and the commit in one chained command:
+`for g in lint_docs.py …; do printf …; py -3.12 "$g" && echo PASS || echo FAIL; done && git add … && git commit`.
+`lint_docs.py` printed **`FAILED — 1 rule violation(s)`** (R6: the new `POKEBOT_CH24TAIL_INSTRUMENT`
+flag was not in `29-DISABLED-FEATURES-REGISTRY.md`) — **and the commit went through anyway.**
+`CLAUDE.md` is explicit that *"committing docs over a red doc gate is the same offense as
+`git add -A`"*.
+
+**ROOT CAUSE — THE GATE RAN, WAS RED, AND COULD NOT STOP ME.** A `for` loop's exit status is the
+status of its **last** iteration, and inside it `… && echo PASS || echo FAIL` **swallows** the
+failure: `echo` succeeds, so the loop's status is 0 and the `&&` chain proceeds to `git commit`. ⇒ I
+had turned a blocking gate into a **printed opinion**. ‼ The output was right there on screen saying
+FAILED; I had already moved on to reading the commit hash.
+
+**THE FIX THAT WORKED.** The loop now sets a `fail=1` flag and prints an explicit
+`TIER0_ALL_GREEN=YES/NO` line, and the commit is a SEPARATE command run after reading it.
+
+⇒ **PREVENTION RULE: never put a gate and a commit in the same shell chain.** Run the gates, READ
+the aggregate, then commit as its own command. A gate whose failure is absorbed by `|| echo` is
+decoration — which is the same class of defect this project already gates against in its own tools
+(*"a gate with false positives teaches the reader to bypass it"*; here I built the bypass myself).
+‼ **COROLLARY, and it is the second instance TODAY of the same shape:** earlier a corrupted heredoc
+printed success while writing broken text. **A success line is not evidence; the thing it claims
+succeeded is.** When a command's output contains the word FAILED anywhere, stop and read it before
+reading anything below it.

@@ -19298,6 +19298,259 @@ class Ch24Hall4Mode(BotMode):
         context.set_manual_mode()
 
 
+class _Ch24TailInstrument:
+    """§Ch24 P2 — THE OBSERVE-ONLY INSTRUMENTS BOLTED TO `Ch24TailProbeMode`.
+
+    ⭐ **IT RE-MEASURES NOTHING.** It is the SAME ~50,000-frame drive with more instruments, and it
+    exists to settle seven questions at once AND to supply the **second trajectory** that
+    `CLAUDE.md` session-discipline #8 requires before any frame budget taken from the 2026-09-17 run
+    may be trusted. *(One trajectory replayed is a determinism check, never a replication.)*
+
+    ⛔⛔ **OFF BY DEFAULT — `POKEBOT_CH24TAIL_INSTRUMENT=1` ARMS IT.** The tail probe is proven and
+    its verdict is load-bearing; an instrument that changes the subject is not an instrument. With
+    the flag unset, not one line of this class runs.
+
+    ⛔⛔ **AND EVERY METHOD IS TOTALLY DEFENSIVE, ON PURPOSE.** A reading that throws must never take
+    the drive down with it: this run is IRREVERSIBLE (it fights the Champion and clears the game),
+    so losing it to a typo in a counter would cost the whole measurement. ⇒ every public method is
+    wrapped, records its own failures, and returns silently. ‼ `self.errors` is itself a reading —
+    a silent instrument that recorded nothing would otherwise look identical to a clean run.
+    """
+
+    #: Frames of identical signature before production derails (`story_mode.py:3744`).
+    PROD_STALL_THRESHOLD = 18_000
+
+    def __init__(self):
+        import os as _os
+
+        self.armed = _os.environ.get("POKEBOT_CH24TAIL_INSTRUMENT", "").strip() == "1"
+        self.errors: dict = {}
+        # P2a — does the tail EVER read OVERWORLD?
+        self.state_hist: dict = {}
+        self.first_overworld = None
+        self.last_overworld = None
+        # P2b — production's OWN stall signature, recomputed every frame.
+        self.prod_sig = None
+        self.prod_streak = 0
+        self.prod_max_streak = 0
+        self.prod_max_at = None
+        self.prod_sig_exceptions = 0
+        self.prod_would_derail = False
+        # P2g — controllable frames inside the Champion's room after the fight.
+        self.post_battle = False
+        self.champ_room_frames = 0
+        self.champ_room_controllable = 0
+
+    # -- internals --------------------------------------------------------------------------------
+    def _note(self, where: str, error: BaseException) -> None:
+        key = f"{where}:{type(error).__name__}"
+        self.errors[key] = self.errors.get(key, 0) + 1
+
+    def _progress_sig_mirror(self):
+        """A byte-faithful mirror of `StoryMode._progress_sig` (`story_mode.py:2038-2055`).
+
+        ⛔⛔ **MIRRORED, NOT STUBBED, AND THE DIFFERENCE DECIDES THE ANSWER.** It is a StoryMode
+        method and this probe is not a StoryMode, so the lazy move is to hardcode a constant — but
+        that would make my 5-tuple change LESS often than production's, inflating every stall streak
+        and biasing P2b toward "production would derail".
+        ‼ And the honest reason it matters here specifically: **no exp is gained during the tail**,
+        so this component is genuinely CONSTANT through it and therefore does NOT break the streak.
+        That is a real property of the tail, and it must come out of a faithful mirror rather than
+        out of my convenience.
+        ⚠ Note its own `except -> None` is reproduced: `None == None` compares EQUAL, so a party read
+        that fails silently KEEPS a stall streak alive rather than resetting it.
+        """
+        try:
+            from modules.pokemon_party import get_party
+
+            party = get_party()
+            lead_level = party[0].level if party else 0
+            total_exp = sum(getattr(p, "total_exp", 0) for p in party)
+            return (len(party), lead_level, total_exp)
+        except Exception:  # noqa: BLE001 - production does exactly this
+            return None
+
+    def _prod_signature(self):
+        """EXACTLY `story_mode.py:3732-3741`'s 5-tuple, including its `except -> None`.
+
+        ⛔ NOT the harness's 6-tuple. The two differ (production adds
+        `get_map_data_for_current_position()` and `context.message`, and drops the controller name
+        and the battle fields), and a stall figure measured under the WRONG tuple is the reason the
+        recon's 12,681-frame number was thrown out.
+        """
+        try:
+            from modules.map import get_map_data_for_current_position
+            from modules.memory import get_game_state as _ggs
+            from modules.player import get_player_avatar as _gpa
+
+            _md = get_map_data_for_current_position()
+            return (
+                (_md.map_group, _md.map_number),
+                tuple(_gpa().local_coordinates),
+                str(_ggs()),
+                self._progress_sig_mirror(),
+                getattr(context, "message", None),
+            )
+        except Exception:  # noqa: BLE001 - production does exactly this, and None is the signal
+            self.prod_sig_exceptions += 1
+            return None
+
+    # -- the per-frame tick -----------------------------------------------------------------------
+    def tick(self, frame) -> None:
+        if not self.armed:
+            return
+        try:
+            from modules.memory import get_game_state
+            from modules.player import player_avatar_is_controllable
+            from modules.story import victory_road as VR
+
+            # ---- P2a: the game-state histogram ---------------------------------------------
+            try:
+                name = str(get_game_state())
+            except Exception as error:  # noqa: BLE001
+                self._note("p2a.state", error)
+                name = "<unreadable>"
+            self.state_hist[name] = self.state_hist.get(name, 0) + 1
+            if "OVERWORLD" in name.upper():
+                if self.first_overworld is None:
+                    self.first_overworld = frame
+                self.last_overworld = frame
+
+            # ---- P2b: production's stall streak --------------------------------------------
+            sig = self._prod_signature()
+            if sig is not None and sig == self.prod_sig:
+                self.prod_streak += 1
+                if self.prod_streak > self.prod_max_streak:
+                    self.prod_max_streak = self.prod_streak
+                    self.prod_max_at = frame
+                if self.prod_streak >= self.PROD_STALL_THRESHOLD:
+                    self.prod_would_derail = True
+            else:
+                # ‼ Production RESETS on an exception too (`_cur is None` falls to the else), so a
+                # throw BREAKS a stall streak rather than extending it. Mirrored exactly.
+                self.prod_streak = 0
+                self.prod_sig = sig
+
+            # ---- P2g: is the Champion's room readable at all after the fight? --------------
+            if self.post_battle:
+                try:
+                    from modules.map_data import MapRSE
+
+                    if VR._on_map(MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM):
+                        self.champ_room_frames += 1
+                        try:
+                            if player_avatar_is_controllable():
+                                self.champ_room_controllable += 1
+                        except Exception as error:  # noqa: BLE001
+                            self._note("p2g.controllable", error)
+                except Exception as error:  # noqa: BLE001
+                    self._note("p2g.onmap", error)
+        except Exception as error:  # noqa: BLE001 - an instrument must never take the drive down
+            self._note("tick", error)
+
+    # -- one-shot reads ---------------------------------------------------------------------------
+    def premise(self, R: dict) -> None:
+        """P2c/P2d/P2e/P2f — everything worth knowing at HALL4 (5,3), before the crossing."""
+        if not self.armed:
+            return
+        try:
+            from modules.memory import get_event_flag_by_number, get_event_var
+            from modules.pokemon_party import get_party
+
+            # P2c — the Wallace flag, with a NEGATIVE control.
+            # ⛔ The proposed 1275-vs-`DEFEATED_ELITE_4_SIDNEY` positive control is ARITHMETICALLY
+            # CIRCULAR — `memory.py` computes `0x1270 + n//8, bit n%8`, and the named table is built
+            # from the identical formula, so the two agree BY CONSTRUCTION and prove nothing.
+            # ⇒ the discriminating control is FALSE-here / TRUE-after, in the SAME run.
+            for label, num in (("wallace_1615", 1615), ("negative_control_1614", 1614)):
+                try:
+                    R[f"p2c_{label}_at_premise"] = bool(get_event_flag_by_number(num))
+                except Exception as error:  # noqa: BLE001
+                    self._note("p2c", error)
+                    R[f"p2c_{label}_at_premise"] = "<unreadable>"
+
+            # P2d — the stale-id candidate hang.
+            try:
+                R["p2d_last_talked"] = get_event_var("LAST_TALKED")
+            except Exception as error:  # noqa: BLE001
+                self._note("p2d", error)
+                R["p2d_last_talked"] = "<unreadable>"
+
+            # P2e/P2f — PP and HP at the last point either can still be fixed.
+            try:
+                pp, hp = [], []
+                for mon in get_party():
+                    if getattr(mon, "is_empty", False):
+                        continue
+                    hp.append((mon.species.name, mon.current_hp, mon.total_hp))
+                    try:
+                        # (name, REMAINING, MAX) — remaining alone is uninterpretable, and the
+                        # whole point of P2e is to make a first Wallace loss diagnosable as PP
+                        # exhaustion rather than mis-attributed to levels.
+                        pp.append((mon.species.name,
+                                   [(m.move.name, m.pp, m.total_pp)
+                                    for m in mon.moves if m is not None]))
+                    except Exception as error:  # noqa: BLE001
+                        self._note("p2e.moves", error)
+                R["p2f_hp_at_premise"] = hp
+                R["p2e_pp_at_premise"] = pp
+            except Exception as error:  # noqa: BLE001
+                self._note("p2ef", error)
+
+            # ⛔⛔ LOG AT THE TAKE POINT, NOT ONLY INTO `R`. MEASURED THE HARD WAY 2026-09-25: `R` is
+            # dumped only at the END of `run()`, and BOTH the premise-refusal path and a
+            # frame-capped truncation `return` before that — so every reading above was INVISIBLE on
+            # exactly the two paths a person uses to check the instrument cheaply. A reading you
+            # cannot see until the run completes is a reading you LOSE whenever the run does not.
+            # ‼ This is the project's own "record readings at their take point" rule; I had stored
+            # them instead, and only noticed when a smoke test could not show me its own output.
+            log(f"[ch24tailprobe] P2-PREMISE 1615={R.get('p2c_wallace_1615_at_premise')!r} "
+                f"ctl1614={R.get('p2c_negative_control_1614_at_premise')!r} "
+                f"last_talked={R.get('p2d_last_talked')!r}")
+            log(f"[ch24tailprobe] P2-PREMISE hp={R.get('p2f_hp_at_premise')!r}")
+            log(f"[ch24tailprobe] P2-PREMISE pp={R.get('p2e_pp_at_premise')!r}")
+        except Exception as error:  # noqa: BLE001
+            self._note("premise", error)
+
+    def on_battle_ended(self, R: dict) -> None:
+        """P2c's second half — the reading that makes the flag non-circular."""
+        self.post_battle = True
+        if not self.armed:
+            return
+        try:
+            from modules.memory import get_event_flag_by_number
+
+            for label, num in (("wallace_1615", 1615), ("negative_control_1614", 1614)):
+                try:
+                    R[f"p2c_{label}_after_battle"] = bool(get_event_flag_by_number(num))
+                except Exception as error:  # noqa: BLE001
+                    self._note("p2c.after", error)
+                    R[f"p2c_{label}_after_battle"] = "<unreadable>"
+        except Exception as error:  # noqa: BLE001
+            self._note("on_battle_ended", error)
+
+    def report(self, R: dict) -> None:
+        if not self.armed:
+            return
+        try:
+            R["p2a_state_histogram"] = dict(sorted(self.state_hist.items(),
+                                                   key=lambda kv: -kv[1]))
+            R["p2a_first_overworld_frame"] = self.first_overworld
+            R["p2a_last_overworld_frame"] = self.last_overworld
+            R["p2a_ever_overworld"] = self.first_overworld is not None
+            R["p2b_prod_max_stall_streak"] = self.prod_max_streak
+            R["p2b_prod_max_stall_ended_at_iter"] = self.prod_max_at
+            R["p2b_prod_sig_exceptions"] = self.prod_sig_exceptions
+            R["p2b_prod_threshold"] = self.PROD_STALL_THRESHOLD
+            R["p2b_WOULD_PRODUCTION_DERAIL"] = self.prod_would_derail
+            R["p2g_champ_room_frames_post_battle"] = self.champ_room_frames
+            R["p2g_champ_room_controllable_frames"] = self.champ_room_controllable
+            R["p2_instrument_errors"] = dict(self.errors) or "(none)"
+        except Exception as error:  # noqa: BLE001
+            self._note("report", error)
+            R["p2_instrument_errors"] = dict(self.errors)
+
+
 class Ch24TailProbeMode(BotMode):
     """§Ch24 LEG B — THE OBSERVE-ONLY TAIL PROBE. **IT MEASURES; IT DECIDES NOTHING.**
 
@@ -19390,6 +19643,11 @@ class Ch24TailProbeMode(BotMode):
         # fight (BattleListener owns the stack) and may never get another frame before the victory
         # script warps the map out from under it. A mode-instance callback fires regardless.
         self.battle_outcome = outcome
+        # ⭐ P2c's SECOND half. The flag read here is what makes the first one non-circular:
+        # FALSE at the premise and TRUE after the fight, in the SAME run.
+        _p2 = getattr(self, "_p2", None)
+        if _p2 is not None:
+            _p2.on_battle_ended(getattr(self, "_p2_R", {}))
         self.battle_ended_frame = _tp_frame()
         log(f"[ch24tailprobe] ⚔ BATTLE ENDED at frame {self.battle_ended_frame} outcome={outcome!r}")
 
@@ -19411,6 +19669,19 @@ class Ch24TailProbeMode(BotMode):
         yield from wait_until_truly_controllable()
 
         # ---- PREMISE ------------------------------------------------------------------------
+        # ⭐ P2 — OBSERVE-ONLY INSTRUMENTS, OFF UNLESS `POKEBOT_CH24TAIL_INSTRUMENT=1`.
+        # ⛔ Constructed here so an instrument failure cannot pre-empt the probe's own premise.
+        # ⛔⛔ SNAPSHOT THE FIXTURE BEFORE A SINGLE FRAME RUNS. This probe CLEARS THE GAME, and
+        # `current_state.ss1` is what the real bot resumes from (`libmgba.py:144` loads it,
+        # `:226` overwrites it at shutdown). Every other §Ch24 driver restores; this one did not.
+        _tail_fixture_bytes = None if FRESH else state_path.read_bytes()
+        _p2 = _Ch24TailInstrument()
+        self._p2 = _p2
+        # ‼ `R` IS A LOCAL OF `run()`, and `on_battle_ended` is a CALLBACK on the mode — so the
+        # flag read there would land in a throwaway dict and vanish. Bind it here, once.
+        self._p2_R = R
+        if _p2.armed:
+            log(f"[{TAG}] ⭐ P2 INSTRUMENTS ARMED — observe-only; the drive is unchanged.")
         R["start"] = _tp_safe(VR._where)
         R["start_champion"] = _tp_flag("IS_CHAMPION")
         R["start_game_clear"] = _tp_flag("SYS_GAME_CLEAR")
@@ -19419,6 +19690,7 @@ class Ch24TailProbeMode(BotMode):
             f"game_clear={R['start_game_clear']} flash_game_clear={R['start_flash_game_clear']}")
         on_hall4 = _tp_safe(lambda: VR._on_map(HALL4))
         here = _tp_safe(VR._here_tile)
+        _p2.premise(R)
         if on_hall4 is not True or tuple(here or ()) != tuple(self.STOP_TILE):
             log(f"[{TAG}] ⛔ PREMISE FAILED — must start on HALL4 {self.STOP_TILE}. Got "
                 f"on_hall4={on_hall4} tile={here}. Refusing; NOTHING was pressed.")
@@ -19483,6 +19755,8 @@ class Ch24TailProbeMode(BotMode):
                 if i % self.SAMPLE_EVERY == 0:
                     log(f"[{TAG}] f{i} sym={sym!r} {_tp_snapshot()} presses={presses}")
 
+                _p2.tick(i)
+
                 # ---- the stop condition ------------------------------------------------------
                 # ⛔⛔ THIS CONDITION IS THE WAY IT IS BECAUSE THE OBVIOUS ONE FAILED, MEASURED.
                 # v1 was `OVERWORLD and controllable and battle_ended`. It fired on the FIRST
@@ -19525,6 +19799,7 @@ class Ch24TailProbeMode(BotMode):
         R["end_flash_game_clear"] = _tp_flash_flag("SYS_GAME_CLEAR")
         R["end_where"] = _tp_safe(VR._where)
         R["battle_outcome"] = repr(self.battle_outcome)
+        _p2.report(R)
         R["battles"] = self.battles
         R["whiteouts"] = self.whiteouts
         for key in sorted(R):
@@ -19541,6 +19816,15 @@ class Ch24TailProbeMode(BotMode):
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} — ⛔ INSTRUMENT HEALTH ONLY (did the "
             f"probe reach a battle outcome and survive its own instrumentation?). It is NOT a bot "
             f"verdict; read the TRANSITION table.")
+        # ⛔ RESTORE LAST — AFTER the verdict, so a restore failure can never suppress a reading.
+        try:
+            if _tail_fixture_bytes:
+                context.emulator.load_save_state(_tail_fixture_bytes)
+                log(f"[{TAG}] TAIL FIXTURE RESTORED — this CLEARED-GAME run will not carry "
+                    f"into `current_state.ss1`.")
+        except Exception as _restore_error:  # noqa: BLE001 - loud, never replaces the verdict
+            log(f"[{TAG}] ⛔⛔ COULD NOT RESTORE THE FIXTURE: {_restore_error} — "
+                f"`current_state.ss1` may now hold a POST-GAME state.")
         context.set_manual_mode()
 
 
