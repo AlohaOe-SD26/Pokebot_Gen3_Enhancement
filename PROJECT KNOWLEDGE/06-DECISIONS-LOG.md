@@ -6962,3 +6962,58 @@ has to solve, and it is cheaper to know now than to discover it in a 21-hour gri
 ⛔ **DO NOT START THIS AS A BUILD.** It is filed so that the gauntlet is not written in a way that
 forecloses it, and so the eventual discussion begins from the type-coverage problem rather than from
 "make the roster random".
+
+
+## 2026-09-25 — ⭐⭐ USER RULING 12: ON LOSING THE ELITE FOUR, THE BOT **RESTOCKS AND RETRIES**
+
+**THE QUESTION PUT TO THE USER** (asked because an adversarial review found no ruling covered it, and
+`06-DECISIONS-LOG.md` was grepped first per SESSION DISCIPLINE #11 — there was none):
+*"When the bot LOSES to the Elite Four, what should it do?"* Three options were offered — stop and
+report; **restock then retry**; or retry immediately with whatever survived.
+
+### ✅ THE RULING: **"Restock, then retry."**
+
+The user chose the most human-like option, consistent with the organic-play direction
+(`#25-organicplay`) — *a human who loses does not quit, and does not walk straight back in with an
+empty bag; they go and re-equip.*
+
+### WHAT THIS DECIDES, AND WHAT IT COSTS
+
+⇒ **§Ch24 owes the tree a RESTOCK LEG OF ITS OWN**, and the re-entry predicate must carry **BAG and
+MONEY conjuncts** — with **restock as the first remedy, not training**. This is exactly the
+requirement the REJECTED re-entry-gate design ended with, and it is now authorised rather than
+merely implied.
+
+**Why the obvious cheap version is not available (all measured, all on file):**
+* `ENTERED_ELITE_FOUR` is **permanent and never cleared**, so after a loss the guards stay vacated
+  and **the door is still open**. ⇒ re-entry itself is nearly free; it is the *equipment* that is not.
+* A whiteout **fully heals the party for free**. ⇒ **a health-based readiness gate would re-pass
+  forever while levels never change** — the gate must be material (bag + money), not health.
+* `ResetEliteFour` runs on the whiteout path too, so post-loss state is **byte-identical to never
+  having tried**. ⇒ any attempt counter must be **our own run-scoped state**; the game will not
+  tell us.
+* The basket costs **₽54,300** against a measured post-shop wallet of **₽1,741**, and a whiteout
+  **halves** what remains. ⇒ a retry that skips restocking is strictly weaker than the attempt that
+  just failed, which is the case option 3 was rejected for.
+* ⛔ The §Ch23 restock route was **closed as a side effect of a correct latch fix**
+  (`train_for_league` now latches on its self-skip path). ⇒ §Ch24 cannot borrow it; it must own one.
+
+### ⛔ THE UNMEASURED PREREQUISITE — SETTLE THIS BEFORE DESIGNING THE LEG
+
+**The League Mart is not reachable as things stand.** `probe_league_lobby_facts.py` measured, from
+`post_league_lobby.ss1`: nurse **0 wp**, south exit **14 wp**, and the **Mart REFUSES**
+(`PathFindingError`) — build-spec hazard **H7**. The clerk appears not to be spawned in that
+fixture. ⇒ **the first work item is a probe, not a leg**: establish where the bot can actually buy
+from, from a position it can actually reach, before any restock code is written.
+‼ And note the money question is separate and unanswered: **where does ₽54,300 come from?** Trainer
+battles pay (Sidney alone paid ₽4,900) while wilds were measured flat at **₽0 over 1,056 grind
+battles** — so a restock economy that assumes grinding for money is already refuted.
+
+### ⛔ DO NOT RE-RAISE THIS QUESTION
+
+The loss path is **decided**: restock, then retry. What remains open is the *implementation* and its
+prerequisite measurement — not the policy. ‼ A future session finding no restock leg should read
+this entry as "authorised and unbuilt", **never** as "undecided".
+*(Composes with USER RULING 6 — losses are acceptable, money is a high priority — which pointed this
+way but did not decide it; and with RULING 11, which defines §Ch24 DONE as the Hall of Fame from a
+real story run at ×1.)*
