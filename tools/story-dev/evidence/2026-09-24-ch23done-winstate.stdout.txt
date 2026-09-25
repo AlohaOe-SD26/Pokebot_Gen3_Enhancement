@@ -1,0 +1,51 @@
+Running mGBA 0.10.2
+================================================================================================
+BEHAVIOUR CHECK — ch23_chapter_done() under the new win-state disjuncts
+================================================================================================
+  standing: ((16, 10), (3, 4))
+  IS_CHAMPION      = False   <- not a cleared game
+  on a sealed map? = False   <- lobby is NOT sealed
+  ch23_chapter_done() = False
+
+  ⭐ THE POINT: the bot is IN THE LOBBY, which is where Ch23's OWN heal and shop legs
+     stand. If CH24_SEALED_MAPS had matched the lobby (i.e. if inside_league() had been
+     reused), this would read True and Ch23 would declare itself done MID-CHAPTER.
+  lobby in CH24_SEALED_MAPS: False   <- MUST be False
+
+  sealed maps covered: 11
+     EVER_GRANDE_CITY_HALL1
+     EVER_GRANDE_CITY_HALL2
+     EVER_GRANDE_CITY_HALL3
+     EVER_GRANDE_CITY_HALL4
+     EVER_GRANDE_CITY_HALL5
+     EVER_GRANDE_CITY_SIDNEYS_ROOM
+     EVER_GRANDE_CITY_PHOEBES_ROOM
+     EVER_GRANDE_CITY_GLACIAS_ROOM
+     EVER_GRANDE_CITY_DRAKES_ROOM
+     EVER_GRANDE_CITY_CHAMPIONS_ROOM
+     EVER_GRANDE_CITY_HALL_OF_FAME
+================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_19-48-00.ss1 created!
+Updated `current_state.ss1`!
+Running mGBA 0.10.2
+
+================================================================================================
+THE POSITIVE CASE — standing INSIDE the committed gauntlet (post_sidney_door_open.ss1)
+================================================================================================
+  standing: ((16, 0), (6, 6))
+  on a sealed map?      = True
+  _on_map(EVER_GRANDE)  = False   <- FALSE: this is why the OLD predicate failed
+  ch23_chapter_done()   = False
+
+  ⭐ BEFORE THIS FIX the predicate required _on_map(EVER_GRANDE), which is FALSE here and
+     FALSE in a Littleroot bedroom after a win => Ch23 re-ran and leg 4 sent the bot at an
+     ocean crossing. The sealed-map disjunct is what makes this read True.
+================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-24_19-48-22.ss1 created!
+Updated `current_state.ss1`!

@@ -34331,3 +34331,47 @@ re-driven, verified.
 `tools/story-dev/evidence/2026-09-24-ch24entry.{log,stdout.txt}` and both `…-ARM-*.log`,
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-entry-leg-{PREDICTIONS,GRADED}.md`,
 `29-DISABLED-FEATURES-REGISTRY.md`, `07-CHANGELOG.md`.
+
+---
+
+## 2026-09-24i — S1: A **WON** RUN IS NO LONGER A DERAIL (`#24-markerwinstate` (b), gate #74)
+
+⛔⛔ **THE BUG WHERE SUCCESS WAS THE FAILURE CASE.** `ch23_chapter_done()`'s only position conjunct
+was `_on_map(EVER_GRANDE)`, but the Hall of Fame returns the player to
+`LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)` (MEASURED by `--driver ch24tailprobe`). ⇒ after a **win**
+the predicate read **False**, §Ch23 re-ran, legs 1-3 self-skipped, **leg 4 fired**, and the bot
+**attempted an ocean crossing from a bedroom** — burning the chapter's three attempts and raising.
+**A completed game became a hard §Ch23 failure.**
+
+✅ **THE FIX:** two disjuncts, evaluated BEFORE the conjuncts a bedroom would fail —
+`IS_CHAMPION` (**monotone**: one setter in the decomp, cleared nowhere, unlike `VAR_ELITE_4_STATE`
+and the four `DEFEATED_ELITE_4_*` which `ResetEliteFour` wipes on the **winning** path too) and a
+`CH24_SEALED_MAPS` position term covering the eleven maps past the point of no return.
+
+‼ **IT EXCLUDES THE LOBBY AND 2F ON PURPOSE.** `inside_league()` matches them, and **§Ch23's own
+heal (leg 10) and shop (leg 11) legs stand in that lobby** — reusing it would make §Ch23 declare
+itself done in the middle of its own work.
+
+**PROVEN BEHAVIOURALLY, NOT STRUCTURALLY** (`evidence/2026-09-24-ch23done-winstate.stdout.txt`):
+from `post_sidney_door_open.ss1`, a sealed map, the predicate now returns **True** where it returned
+**False**; from the lobby it still returns False, as it must.
+
+### ⛔⛔ AND THE FIRST VERSION SHIPPED BROKEN WHILE GATE #74 SAID PASS
+
+It called `get_event_flag(...)` in a module that **does not import it**. The `NameError` was
+**swallowed by the function's own broad `except`**, so the disjunct silently never fired — and the
+gate reported PASS because the text was present and correctly ordered.
+⇒ **TEXT ORDER IS NOT BEHAVIOUR.** Gate #74 now also verifies that **every name the function calls
+resolves** to a module global, a local import, or a builtin, with a `--fault noimport` arm that
+reproduces the shipped-broken state. All four arms red; happy path green.
+‼ This is the **second** time in one session a broad `except` absorbed a `NameError` — the rule was
+already filed after `MapRSE`, and filing it did not prevent the repeat. See `08-MISTAKES.md`.
+‼ And my check was wrong too: `grep -c "get_event_flag"` returned **1**, which I read as "imported".
+**The one hit was my own new line.**
+
+⇒ suite is now **78 entries = 74 ENFORCING + 4 ADVISORY** (`--quick` 68).
+
+**FILES:** `sandbox-pokebot/modules/story/victory_road.py`,
+`tools/story-dev/probe_ch23_done_winstate.py` (new), `tools/story-dev/run_gates.py`,
+`tools/story-dev/evidence/2026-09-24-ch23done-winstate.stdout.txt` (new),
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

@@ -21012,3 +21012,53 @@ assertion then raises rather than reporting a false PASS.
    already correct.
 4. ⛔ *A FIX THAT ARRIVES AS A SIDE EFFECT MUST BE PROMOTED TO A NAMED, EXPLAINED THING* before the
    scaffolding that produced it is removed.
+
+## 2026-09-24 — I SWALLOWED A `NameError` WITH A BROAD `except` **TWICE IN ONE SESSION**, AND A GATE BLESSED THE SECOND ONE
+
+**Symptom.** `ch23_chapter_done()` was given two new disjuncts so that a WON run stops reading
+"not done". Gate #74 — written for this fix, in the same commit — reported **PASS**. A behaviour
+check from inside the gauntlet then reported `on a sealed map? = True` and
+`ch23_chapter_done() = False`. **The fix did nothing.**
+
+**Root cause.** `modules/story/victory_road.py` has **no module-level `get_event_flag`**. My new
+first disjunct called it, raising `NameError` — which the function's own
+`except Exception: reraise_if_aborting(error)` **swallowed**, falling straight through to the
+original conjuncts. The disjunct could never fire, and nothing said so.
+
+⛔⛔ **AND I HAD ALREADY FILED THIS EXACT RULE HOURS EARLIER**, after a broad `except` swallowed an
+undefined `MapRSE` and returned `"<unreadable>"` on every call:
+*"A GRACEFUL FALLBACK MUST NOT BE ABLE TO ABSORB A NameError/AttributeError. Those are coding
+errors, not flaky reads."* ⇒ writing the rule down did not stop me repeating it **in the same
+session**, which is the whole reason this project gates things instead of trusting prose.
+
+‼ **MY VERIFICATION WAS ALSO WRONG, AND CONFIDENTLY SO.** I ran `grep -c "get_event_flag"
+victory_road.py`, got **1**, and read that as *"it is imported"*. The one occurrence **was my own
+new line.** ⇒ *a count of 1 for a name you just added proves the opposite of what it looks like.*
+
+⛔⛔ **THE WORST PART IS THE GATE.** #74 checked that the text was present and correctly ordered —
+a tuple's membership, a flag name in the table, two statements in sequence. All true. **None of it
+touches whether the code can run.** A gate that verifies text while the behaviour is broken is worse
+than no gate: it converts "untested" into "certified".
+
+**What actually caught it.** A behaviour check I nearly skipped, because the gate was green and the
+structural argument was sound. It used `post_sidney_door_open.ss1` — a fixture already in the tree,
+standing on a sealed map — to ask the predicate the one question that mattered.
+
+**The fix that worked.** (1) import `get_event_flag` locally in the function, with a comment saying
+why; (2) **extend gate #74 to check that every name the function CALLS resolves** to a module
+global, a local import, or a builtin; (3) add a `--fault noimport` arm that reproduces the
+shipped-broken state, so the new check is proven live rather than assumed.
+
+**PREVENTION RULES.**
+1. ⛔ *A STRUCTURAL GATE MUST INCLUDE A RESOLUTION CHECK.* If a gate asserts that code SAYS
+   something, it must also assert the code CAN RUN — every called name resolves. Otherwise a green
+   tick certifies a `NameError`.
+2. ⛔ *NEVER ACCEPT `grep -c` AS PROOF THAT A NAME IS IMPORTED,* especially for a name you just
+   added: your own line is the hit. Check the import statement, or import the module and touch the
+   attribute.
+3. ⭐ *A GREEN GATE IS NOT A REASON TO SKIP THE BEHAVIOUR CHECK — IT IS THE CONDITION UNDER WHICH
+   SKIPPING IT IS MOST TEMPTING AND MOST EXPENSIVE.* Ask the predicate the question, from a fixture
+   that makes the answer non-trivial.
+4. ‼ *WHEN A BROAD `except` EXISTS TO TOLERATE FLAKY READS, IT WILL ALSO TOLERATE YOUR TYPOS.* That
+   is not an argument against the handler — it is an argument for a gate that catches what the
+   handler hides.

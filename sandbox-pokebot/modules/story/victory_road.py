@@ -3275,6 +3275,39 @@ VICTORY_ROAD_MAPS = (VR1F, B1F, B2F)
 _PRE_DEPARTURE_MAPS = (CITY, PC_1F, PC_2F, UWS, UW126)
 
 
+#: ⛔⛔ THE MAPS PAST THE POINT OF NO RETURN — §Ch23 HAS NO BUSINESS ON ANY OF THEM.
+#: Standing on one of these means the bot is INSIDE the committed Elite Four run, so §Ch23 is
+#: unambiguously finished no matter what its position/stock conjuncts say.
+#: ‼ THIS IS DELIBERATELY **NOT** `inside_league()`. That helper also matches the LOBBY and 2F —
+#: and §Ch23's OWN heal (leg 10) and shop (leg 11) legs stand in that lobby, so using it would make
+#: §Ch23 declare itself done in the middle of its own work. The distinction is the whole point:
+#: the lobby is BEFORE the commitment, these maps are AFTER it.
+#: ‼ SAFE BY EXHAUSTION, RE-MEASURED AT THE DECOMP: the heal table carries 22 locations over 20
+#: maps and NOT ONE is a League interior (the only indoor heal points in the game are the two
+#: Littleroot bedrooms) ⇒ **no white-out can ever respawn the bot onto one of these tiles**, so the
+#: marker cannot be spoofed by a loss.
+CH24_SEALED_MAPS = (
+    MapRSE.EVER_GRANDE_CITY_HALL1,
+    MapRSE.EVER_GRANDE_CITY_HALL2,
+    MapRSE.EVER_GRANDE_CITY_HALL3,
+    MapRSE.EVER_GRANDE_CITY_HALL4,
+    MapRSE.EVER_GRANDE_CITY_HALL5,
+    MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME,
+)
+
+#: ⛔ THE COMPLETION TERM. Monotone: set in exactly one decomp file (`data/scripts/hall_of_fame.inc`)
+#: and **cleared nowhere** — unlike `VAR_ELITE_4_STATE` and the four `DEFEATED_ELITE_4_*` flags,
+#: which `ResetEliteFour` wipes on the WINNING path as well as the losing one.
+#: ⚠ It is a COMPLETION term, NOT a "the run is usable" term — it is reported ~13,000 frames before
+#: control returns. Do not collapse the two roles (`#24-gameclearflag`).
+CH24_GAME_CLEAR_FLAG = "IS_CHAMPION"
+
+
 def ch23_chapter_done() -> bool:
     """§Ch23 complete: Wally is beaten **AND** the bot is out of Victory Road, in Ever Grande.
 
@@ -3312,6 +3345,31 @@ def ch23_chapter_done() -> bool:
     is now load-bearing. A wasteful re-buy is strictly better than advancing into the gauntlet with a
     wiped, unstocked party.
     """
+    # ⛔⛔ A WINNING RUN MUST NOT READ "NOT DONE" — AND UNTIL 2026-09-24 IT DID (`#24-markerwinstate`).
+    # The Hall of Fame sequence returns the player to `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`
+    # (MEASURED by `--driver ch24tailprobe`), which is not Ever Grande. So every conjunct below was
+    # False after a WIN, §Ch23 ran again, legs 1-3 self-skipped, and **leg 4 fired** — sending the
+    # bot at an OCEAN CROSSING FROM A BEDROOM, burning the chapter's three attempts and raising.
+    # ⇒ a COMPLETED GAME was turned into a hard §Ch23 failure. **Success was the failure case.**
+    # ‼ Both disjuncts come FIRST, before `wally_beaten()`, because each is sufficient on its own:
+    # a cleared game and a sealed-map position are both unambiguously past §Ch23.
+    # ‼ IMPORTED LOCALLY AND DELIBERATELY. This module has no module-level `get_event_flag`,
+    # and the first version of this fix assumed it did — the resulting NameError was SWALLOWED
+    # by the broad `except` below, so the disjunct silently never fired and a sealed-map
+    # position still read "not done". Caught by a BEHAVIOUR check, not by the structural gate,
+    # which had verified the text was present and correctly ordered.
+    from modules.memory import get_event_flag
+
+    try:
+        if get_event_flag(CH24_GAME_CLEAR_FLAG):
+            return True
+        if any(_on_map(m) for m in CH24_SEALED_MAPS):
+            return True
+    except Exception as error:  # noqa: BLE001 - an unreadable flag or position must not make a
+        # FINISHED chapter look unfinished; fall through to the original conjuncts, which are
+        # stricter. Failing back to the old behaviour is the safe direction here.
+        reraise_if_aborting(error)
+
     if not wally_beaten():
         return False
     try:

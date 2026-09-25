@@ -402,3 +402,77 @@ each remedy must be followed by an explicit, asserted re-entry.
   ‼ Gate #27 `probe_abort_swallowing.py` is a **ratchet** at baseline 27 — a new unguarded broad
   `except` around a `yield from` turns it red.
 * The latch is the leg's **first act**, before any button.
+
+---
+
+# ⛔⛔ THE GAUNTLET RE-ENTRY GATE: PROPOSED, ATTACKED, **REJECTED** (2026-09-24)
+
+A re-entry gate was designed and put through a 5-agent review **before a line was written**. It was
+rejected on three counts, each verified against real code. ⇒ **the review is the reason no bad gate
+exists**, and the findings below are the spec for whatever replaces it.
+
+## THE MEASURED LOSS PATH — WHY A RETRY LOOP IS AS TIGHT AS IT COULD POSSIBLY BE
+
+| fact | citation | consequence |
+|---|---|---|
+| respawn is **`EVER_GRANDE_CITY (18,6)`** | [DECOMP] `heal_locations.json:118-122` | **one tile south of the League door.** A retry walks ONE TILE NORTH — no pathing |
+| the lobby holds a **full Poké Centre AND a Mart** | [DECOMP] `PokemonLeague_1F/map.json` object_events | free full heal + restock, without leaving |
+| `copyobjectxytoperm` persists the vacated guards; `ENTERED_ELITE_FOUR` is never cleared | [DECOMP] `PokemonLeague_1F/scripts.inc` | **the door is still open** after a loss |
+| `HealPlayerParty` restores HP, PP and status for every mōn | [DECOMP] `script_pokemon_util.c:30-58` | the party is restored **automatically** — no nurse visit needed |
+| `ResetEliteFour` clears all four DEFEATED flags and `VAR_ELITE_4_STATE` | [DECOMP] `event_scripts.s:628-634` | ⛔⛔ **post-whiteout state is BYTE-IDENTICAL to never having tried** |
+| money: exactly half, once, integer-divided | [DECOMP] `overworld.c:361` | our repo already had this right |
+
+⇒ **THERE IS NO IN-GAME SIGNAL DISTINGUISHING "NEVER TRIED" FROM "TRIED AND LOST".** Any gate must
+therefore come from **our own run-scoped state**; the game will not supply one.
+
+## THE THREE DEFECTS THAT KILLED THE PROPOSAL
+
+**D1 ⛔ THE FALL-THROUGH DOES NOT EXIST, SO THE GATE DEADLOCKS ON ITS FIRST REFUSAL.** The design
+said *"on refusal, fall through to `train_for_league`, which raises levels"*. But `train_for_league`
+**self-skips** when nobody is below the floor. A party satisfying the user's L65-75 ruling has
+`min_level >= 65`, so the remedy does **nothing**, the minimum level never moves, and the predicate
+is false **forever**. ⇒ this is the `_rival_attempts` refuse-without-fighting shape — **worse**,
+because that at least had a cap of 3.
+
+**D2 ⛔ THERE IS NO "NEXT PASS", AND A REFUSAL WOULD BE LOGGED AS A WIN.** `_play()` is
+straight-line: falling through reaches the END-OF-CONTENT block, which sets
+`_reached_end_of_content = True`, and `StoryEndlessResetMode` then records the run as **finished**.
+‼ That is the crime already documented in this tree — *"all 16 P1 'finished' runs in that bundle
+were dead runs… ~80 % success against a true ~20 %"*. ⇒ **a refusal must NEVER return into the
+end-of-content block.** It must loop *inside* the leg (frame-bounded) or `raise BotModeError` so the
+batch records `derailed: <reason>`.
+
+**D3 ⛔ THE GATE PRICES THE WRONG RESOURCE — AND MY OWN LATCH FIX CLOSED THE ONLY REMEDY.**
+A retry is paid for in **items and money**, not levels: the basket costs ₽54,300 against a measured
+post-shop wallet of **₽1,741**, and a whiteout halves what remains. The only restock is §Ch23 leg 11
+`stock_for_the_elite_four`, reachable only through `do_victory_road_chapter()` — which is gated by
+`_ch23_settled()` = `_ch24_owns_run or ch23_chapter_done()`.
+⭐⭐ **AND `train_for_league` NOW LATCHES `_ch24_owns_run` ON EVERY PASS, BECAUSE I MOVED THE LATCH
+ABOVE ITS SELF-SKIP EARLIER TODAY.** That fix was correct for the stranding bug it solved, and it has
+a second-order effect I did not trace: it **permanently disables the re-stock route**, so attempt 2 is
+guaranteed materially weaker than attempt 1 — fewer items, half the money, no way to re-buy — while
+the proposed gate looked only at levels and saw nothing.
+‼ `ch23_chapter_done()` was *deliberately* given a bag conjunct so a wiped bot would re-buy, and its
+docstring says *"when §Ch24 is built it MUST set its own progress marker so §Ch23 is not re-entered"*.
+⇒ **§Ch24 owes the tree a re-stock path of its own**, and the re-entry predicate needs **bag and
+money conjuncts**, with **restock as the first remedy — not training.**
+
+## ⭐⭐ AND THE SEQUENCING FINDING THAT REORDERS EVERYTHING: **SUCCESS IS CURRENTLY THE FAILURE CASE**
+
+Today a **winning** run reads the chapter marker **FALSE** — the Hall of Fame sequence returns the
+player to `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`, which is not a League map, so
+`ch23_chapter_done()` is False ⇒ **§Ch23 re-runs, legs 1-3 self-skip, leg 4 fires, and the bot
+attempts an ocean crossing from a bedroom**, burning the chapter's three attempts and raising.
+⇒ **NOTHING DOWNSTREAM IS WORTH BUILDING UNTIL A WIN CAN BE RECOGNISED.**
+
+## ⇒ THE BUILD ORDER THIS PRODUCES
+
+| step | what | why it is first |
+|---|---|---|
+| **S1** | `#24-markerwinstate` (b): a `CH24_SEALED_MAPS` tuple + an `IS_CHAMPION` disjunct | **a win must stop being a derail.** Pure predicate, no drive, testable offline, with a fault arm proving it can go red |
+| S2 | `fight_one_room()` in production, driven SIDNEY → PHOEBE only | the repeating unit, proven on two rooms before all five |
+| S3 | the re-entry predicate, with **bag + money** conjuncts and a §Ch24-owned restock | only meaningful once a loss can be distinguished from a win |
+
+‼ **F1, load-bearing for S2:** `VAR_ELITE_4_STATE` counts rooms **ENTERED**, not trainers beaten —
+each room's `OnFrame` fires at *exactly* the predecessor value. ⇒ **a room entered out of sequence
+does not seal and does not advance.** It is a depth signal, never a victory signal.

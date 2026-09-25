@@ -913,6 +913,28 @@ GATES: list[tuple[str, bool]] = [
     # is how they were first run): `--fault phantom` (inject a non-item) exits 1; `--fault prose`
     # (Title-Case text OUTSIDE a policy table) exits 0, proving no false positive.
     ("probe_item_names_resolve.py", False),
+    # --- #74 - A WINNING RUN MUST NOT READ "CH23 NOT DONE" (`probe_ch23_done_winstate.py`)
+    # ⛔⛔ THE ONE WHERE **SUCCESS IS THE FAILURE CASE**. `ch23_chapter_done()`'s only position
+    # conjunct was `_on_map(EVER_GRANDE)`, but the Hall of Fame returns the player to
+    # LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (MEASURED by `--driver ch24tailprobe`). So after a WIN the
+    # predicate read False => §Ch23 re-ran, legs 1-3 self-skipped, LEG 4 FIRED, and the bot
+    # attempted AN OCEAN CROSSING FROM A BEDROOM — turning a completed game into a hard §Ch23
+    # failure. Fixed by two disjuncts: `IS_CHAMPION` (monotone: one setter in the decomp, cleared
+    # nowhere) and a `CH24_SEALED_MAPS` position term.
+    # ⭐ ENFORCING, and the justification is about the INPUT DOMAIN: every check is a mechanical
+    # property of the source — a tuple's membership, a name's presence in the flag table, the order
+    # of two statements, and whether a called name resolves. No interpretation.
+    # ‼ IT EXCLUDES THE LOBBY ON PURPOSE. `inside_league()` would have matched LEAGUE_1F/2F, where
+    # §Ch23's OWN heal (leg 10) and shop (leg 11) legs stand — §Ch23 would then declare itself done
+    # in the middle of its own work. The `lobby` arm proves that exclusion is enforced.
+    # ⛔⛔ AND THE `noimport` ARM EXISTS BECAUSE THIS GATE ONCE PASSED OVER A BROKEN PREDICATE. The
+    # first version of the fix called `get_event_flag(...)` in a module that does not import it; the
+    # NameError was SWALLOWED by the function's own broad `except`, the disjunct silently never
+    # fired, and the gate said PASS because the text was present and correctly ordered.
+    # => TEXT ORDER IS NOT BEHAVIOUR. The gate now also checks that every name the function CALLS
+    # actually resolves, and `--fault noimport` reproduces the shipped-broken state.
+    # FAULT-TESTED 2026-09-24, all four arms exit 1: lobby, badflag, order, noimport.
+    ("probe_ch23_done_winstate.py", False),
 ]
 
 
