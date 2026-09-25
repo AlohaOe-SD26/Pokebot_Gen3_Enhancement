@@ -181,6 +181,10 @@ GATES: list[tuple[str, bool]] = [
     # Fault-tested against REALITY, not only synthetics: `--build custom` (the unpromoted tree) FAILS
     # on exactly the bare returns and the discarded result. Self-test: `--self-test` (7 cases).
     ("repro_withdraw_verdict.py", False),
+    # ⭐ The PC-first half of the 2026-09-25 HM directive: a carrier we ALREADY OWN must be
+    # found in the BOX, by PID, without a PC trip. Fault-tested 2026-09-25 (slot-index and
+    # no-learnset-filter breaks both caught; control green).
+    ("repro_boxed_hm_learner.py", False),
     # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
     # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
     # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage

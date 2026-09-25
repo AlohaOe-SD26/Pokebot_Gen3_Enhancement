@@ -4702,6 +4702,67 @@ def hm_learner_slot(item) -> int | None:
     return best
 
 
+
+def boxed_hm_learner_pids(item) -> list[int]:
+    """PIDs of **BOXED** mon that can learn `item`'s move, best candidate FIRST.
+
+    ⭐⭐ WHY THIS EXISTS (user directive 2026-09-25). `hm_learner_slot` searches the PARTY ONLY.
+    A carrier the run already OWNS, sitting in a PC box, is invisible to it — so the bot hunts a
+    new one, or derails with *"no swept training grass hosts a learner species"*. Withdrawing a mon
+    we already have is strictly cheaper than catching one, and it is what a person would do.
+
+    ⛔⛔ **THIS IS A PURE READ AND IT WORKS ANYWHERE — THAT IS THE WHOLE POINT.**
+    `pc_trip.box_views()` reads `get_pokemon_storage()`, i.e. the SAVE BLOCKS, not a PC menu. So the
+    caller may ask *"do I already own a carrier?"* from the middle of a route and travel to a Poké
+    Centre ONLY when the answer is yes. A design that required standing at a PC to find out would
+    make every check cost a journey, and the commonest answer is "no".
+
+    ‼ IDENTITY BY **PID**, NEVER BY BOX SLOT (project rule 3). Slots move the instant anything is
+    deposited or withdrawn, and `withdraw_from_box` takes PIDs for exactly this reason.
+
+    ⚠ ORDERING IS A PREFERENCE, NOT A CONTRACT: a mon that ALREADY KNOWS the move comes first
+    (teaching it again is wasted), then the highest level. The caller may pass the whole list to
+    `withdraw_from_box`, which tries them in order.
+
+    ⛔ RETURNS `[]` ON ANY READ FAILURE, and that is deliberate: `box_views()` already returns
+    `([], [])` on a failed read with the comment *"a box we cannot read is a box we must not act
+    on"*. An empty list here means "do not make a PC trip" — never "the box is empty", and a caller
+    must not report it as the latter.
+    """
+    try:
+        from modules.story.pc_trip import box_views
+    except Exception as error:  # noqa: BLE001 - an unimportable PC module is "no candidates",
+        # never a crash on a path that is only an OPTIMISATION over hunting.
+        reraise_if_aborting(error)
+        return []
+
+    move = item.tm_hm_move()
+    try:
+        _views, mons = box_views()
+    except Exception as error:  # noqa: BLE001 - same reasoning: a box we cannot read is a box we
+        # must not act on, and the caller still has the hunt path.
+        reraise_if_aborting(error)
+        return []
+
+    scored: list[tuple[int, int, int]] = []  # (knows_it, level, pid)
+    for mon in mons or []:
+        if mon is None or getattr(mon, "is_egg", False):
+            continue
+        try:
+            if not mon.species.can_learn_tm_hm(item):
+                continue
+            knows = 1 if (move is not None and any(
+                l is not None and l.move.name == move.name for l in mon.moves)) else 0
+            scored.append((knows, int(mon.level), int(mon.personality_value)))
+        except Exception as error:  # noqa: BLE001 - one unreadable box mon must not hide the
+            # readable ones; skip it and keep scanning.
+            reraise_if_aborting(error)
+            continue
+
+    scored.sort(reverse=True)  # knows-it first, then highest level
+    return [pid for _knows, _level, pid in scored]
+
+
 def whiteout_budget(recoveries, last_key, key, cap=40):
     """PURE. Advance the whiteout budget, resetting it when the run has MOVED ON.
 

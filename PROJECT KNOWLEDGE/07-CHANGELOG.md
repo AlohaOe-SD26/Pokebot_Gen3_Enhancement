@@ -35114,3 +35114,58 @@ unattended playthrough. **The CODE GAP is closed; the PROOF is not.**
 `_ch24_done_probe`), `sandbox-pokebot/plugins/custom_modes/story_mode.py` (the dispatch, the
 retargeted forward-looking comment and the retargeted END-OF-CONTENT banner),
 `ai-research-notes/2026-09-25-ch24-completion-gate-MEASURED.md` (new), two evidence files.
+
+
+## 2026-09-25 (late) — ⭐ THE HM SEARCH CAN NOW SEE THE PC: `boxed_hm_learner_pids()` (pure, gated)
+
+**The user's report:** *"when it needs a pokemon for hm moves, currently it just looks for what it
+already has and if there is nothing that it has in the party that can be taught the move, it
+breaks."* ✅ **The diagnosis is correct and the break is exactly where they said.**
+
+**WHAT WAS ACTUALLY WRONG — two specific things, both confirmed in code:**
+1. `hm_learner_slot()` (`early_game.py`) iterates `get_party()` and nothing else. **A perfectly good
+   carrier sitting in a PC box is invisible**, so the bot hunts a new one, or derails.
+2. `_hm_hunting_grounds()` is already fully data-driven over ROM encounter tables × learnsets — but
+   only across the hand-curated `training_areas.TRAINING_GRASS`, and it RAISES *"no swept training
+   grass hosts a learner species — extend `training_areas.TRAINING_GRASS` first"* when that subset
+   misses. **That raise is the observed break.**
+
+**WHAT SHIPPED (half one, deliberately):** `boxed_hm_learner_pids(item)` — PURE, returns the PIDs of
+BOXED mon that can learn the move, best first (already-knows-it, then highest level).
+⭐⭐ **THE DESIGN POINT THAT MAKES IT CHEAP: the boxes can be READ FROM ANYWHERE.**
+`pc_trip.box_views()` goes through `get_pokemon_storage()` — the SAVE BLOCKS, not a PC menu — so the
+bot can ask *"do I already own a carrier?"* from the middle of a route and walk to a Poké Centre
+**only when the answer is yes.** A design needing the bot to stand at a PC to find out would make
+every check cost a journey, and the commonest answer is "no".
+‼ IDENTITY BY **PID**, never a box slot — slots renumber on every deposit/withdraw.
+
+**GATED AND FAULT-TESTED.** New gate `repro_boxed_hm_learner.py` (8 checks, fully OFFLINE — no
+emulator, `box_views` stubbed): empty/unreadable box → `[]`; a learner found by PID; **non-learners
+→ `[]` (the non-vacuity arm)**; already-knows outranks higher level; eggs skipped; identity is a PID
+not a slot index; one unreadable entry does not hide the rest.
+⭐ **FAULT-TESTED, not merely written:** with the function returning SLOT INDICES, B2/B4/B6/B7 fail;
+with the learnset filter removed, B3/B6/B7 fail; control green and the source restored in the same
+run. A gate never seen to fail is decoration.
+
+**⛔ NOT WIRED YET, ON PURPOSE.** The withdraw itself rides the EXISTING piggyback in
+`heal_in_pokemon_center` (`_hunted_counter_pids` → `withdraw_precedence` → `withdraw_from_box` →
+`withdraw_verdict_report`). That hook is SHARED with the counter hunt, so setting it blindly could
+discard a counter a hunt in flight had already paid a cross-Hoenn journey for. Wiring is its own
+change, with its own arm.
+
+**✅ AND A CORRECTION TO A CLAIM I MADE EARLIER TODAY.** I repeated a subagent's report that
+`withdraw_from_box()` is BROKEN and *"has never fired in a batch"*. **Both are false**, and I
+checked only after writing them into the decisions log:
+`grep -rhaoE "verdict landed=(True|False) code=[a-z_]+" evidence/` returns **3 × `landed=True
+code=landed`**, and the only 2 failures are from a DELIBERATE fault arm
+(`2026-08-17-withdrawverdict-ARMA-faulted`). `2026-08-17-PROMOTION-AFTER-custom-all5.stdout.txt`
+records a real landing via `--driver boxcounter2`: *"Slugma :: verdict landed=True code=landed"*,
+*"Slugma is in the party; party is now 6"*, `ACCEPTANCE: PASS` — verified on BOTH halves.
+⇒ the agent had read a code comment describing a bug **fixed on 2026-08-06** and reported it as
+current. The honest residual is only that the evidence is `--build custom` and six weeks old, so one
+fresh round trip on the current sandbox build is a worthwhile regression check.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py` (`boxed_hm_learner_pids`),
+`tools/story-dev/repro_boxed_hm_learner.py` (new gate), `tools/story-dev/run_gates.py`,
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (four citation line-numbers re-derived
+after the insertion shifted them), `07-CHANGELOG.md`.
