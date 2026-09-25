@@ -21472,7 +21472,14 @@ pressing A until Wallace's fight finished and then reached the Hall of Fame — 
 shipped a leg whose every battle predicate was permanently satisfied before it ran, with a budget
 inflated to hide it. The failure would have moved somewhere else, later, and looked unrelated.
 
-**PREVENTION RULE (one line).** ⛔ **A LATCH THAT SURVIVES ACROSS STAGES MUST BE READ RELATIVE TO A
+**✅✅ PREVENTION RULE — NOW ENFORCED IN CODE (2026-09-25, same day).** `repro_latch_scope.py`
+(gate, registered in `run_gates.py`) parses `modules/story/` with AST and FAILS on any
+mode-level battle latch tested against `None`. ⭐ Fault-tested: reintroducing the absolute test
+FAILS, and a matcher that sees zero latch reads FAILS as BLIND rather than printing green.
+⇒ a future leg cannot re-make this mistake quietly.
+
+**THE RULE IT ENFORCES (kept — the gate covers battle latches; the idea is general).**
+⛔ **A LATCH THAT SURVIVES ACROSS STAGES MUST BE READ RELATIVE TO A
 BASELINE TAKEN AT THE STAGE'S OWN START — never with `is not None`.** If a predicate can be true
 *before* the code that is supposed to make it true has run, it is not a predicate, it is a constant.
 

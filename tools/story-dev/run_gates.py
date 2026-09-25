@@ -190,6 +190,11 @@ GATES: list[tuple[str, bool]] = [
     # RESTORE, nearly leaving a CLEARED-GAME state in what the real bot resumes from.
     # Fault-tested: a bare statement before a restore FAILS, and a blinded matcher FAILS too.
     ("repro_restore_guard.py", False),
+    # ⛔ A PREDICATE THAT CAN BE TRUE BEFORE ITS CODE RUNS IS A CONSTANT. Written 2026-09-25
+    # after the FIRST full-chapter drive won all five fights and still failed: the champion
+    # leg asked `battle_ended_frame is not None`, and FOUR battles had already ended.
+    # Fault-tested: reintroducing the absolute test FAILS; a blind matcher FAILS too.
+    ("repro_latch_scope.py", False),
     # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
     # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
     # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage

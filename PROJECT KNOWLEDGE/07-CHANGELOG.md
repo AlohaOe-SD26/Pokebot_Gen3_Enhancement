@@ -35222,3 +35222,28 @@ five-battle chain rather than only in a standalone champion drive:
 independent instruments agreed on.
 
 **FILES:** `tools/story-dev/evidence/2026-09-25-ch24gauntlet-REGRESSION.stdout.txt` (new).
+
+
+## 2026-09-25 (late) — ⛔ THE SECOND PROSE RULE BECAME A GATE: `repro_latch_scope.py`
+
+**The bug it guards cost the FIRST full-chapter drive.** That run WON ALL FIVE FIGHTS and still
+failed, because `fight_the_champion` asked `battle_ended_frame is not None` — a MODE-level latch that
+**every** battle sets. As the fifth leg, four battles had already ended before it began, so two of
+its stages fell through VACUOUSLY and it hunted the Hall of Fame while Wallace was still on screen.
+
+⭐ **THE GENERAL LESSON, NOW ENFORCED:** *a predicate that can be true BEFORE the code meant to make
+it true has run is not a predicate — it is a constant.* A latch that survives across stages must be
+read RELATIVE to a baseline taken at that stage's own start.
+‼ **AND THE TEMPTING WRONG FIX IS WHY IT IS A GATE:** raising the bound would have "worked", and
+shipped a leg whose every battle predicate was permanently satisfied before it ran, with a budget
+inflated to hide it. The failure would have resurfaced later, looking unrelated.
+
+`repro_latch_scope.py` parses `modules/story/` with **AST** — never grep, because the distinction is
+between an IDENTITY-vs-`None` test and an ORDERING comparison **of the very same two names**, which
+no textual search can see. Today: 25 files, **4 latch reads, none tested against None**.
+⭐ FAULT-TESTED: reintroducing the absolute test FAILS; and if the matcher ever sees zero latch
+reads it FAILS as BLIND rather than printing a green light. Control green, source restored.
+
+**FILES:** `tools/story-dev/repro_latch_scope.py` (new), `tools/story-dev/run_gates.py`
+(82 entries = 78 ENFORCING + 4 ADVISORY; `--quick` 72), `02-ARCHITECTURE.md`, `04-HANDOFF.md`,
+`07-CHANGELOG.md`.

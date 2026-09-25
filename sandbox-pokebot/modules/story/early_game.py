@@ -4720,9 +4720,20 @@ def boxed_hm_learner_pids(item) -> list[int]:
     ‼ IDENTITY BY **PID**, NEVER BY BOX SLOT (project rule 3). Slots move the instant anything is
     deposited or withdrawn, and `withdraw_from_box` takes PIDs for exactly this reason.
 
-    ⚠ ORDERING IS A PREFERENCE, NOT A CONTRACT: a mon that ALREADY KNOWS the move comes first
-    (teaching it again is wasted), then the highest level. The caller may pass the whole list to
-    `withdraw_from_box`, which tries them in order.
+    ⛔⛔ **PASS THE HEAD OF THIS LIST, ONE PID — NEVER THE WHOLE LIST.** An earlier version of this
+    docstring said the caller *"may pass the whole list to `withdraw_from_box`, which tries them in
+    order"*. **THAT WAS FALSE**, and it was the dangerous kind of false: it would have made a caller
+    confident. `withdraw_from_box` resolves its target through `find_in_box(pids)`
+    (`pc_trip.py:397-412`), which iterates **THE BOX** — `for mon in mons: if
+    mon.personality_value in pids: return mon` — and returns the first **BOX-ORDER** match.
+    **Caller order is discarded entirely.** Hand it the full list and it withdraws whichever
+    qualifying mon happens to sit earliest in the box, silently throwing away the ranking below —
+    which would look like it worked.
+    ⇒ the ordering here IS worth computing, but only the CALLER can honour it: take `[:1]`, and
+    fall back to the next PID only if that withdraw does not land.
+
+    ⚠ THE ORDER: a mon that ALREADY KNOWS the move comes first (teaching it again wastes the only
+    copy of some HMs), then the highest level.
 
     ⛔ RETURNS `[]` ON ANY READ FAILURE, and that is deliberate: `box_views()` already returns
     `([], [])` on a failed read with the comment *"a box we cannot read is a box we must not act
