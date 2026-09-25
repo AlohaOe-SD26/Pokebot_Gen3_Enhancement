@@ -413,6 +413,35 @@ def find_in_box(pids):
     return None
 
 
+
+def party_has_room_for_withdraw(party) -> bool:
+    """Is there a free party slot for a withdraw — **by the predicate the WITHDRAW ITSELF USES**?
+
+    ⛔⛔ **EGGS COUNT, AND THAT IS THE ENTIRE POINT (KI-102).** The consumer of this decision is
+    `pc_interaction._do_withdraw_actions`, which refuses with
+    *"Cannot withdraw any Pokémon because the party already contains 6 Pokémon"* when
+    `get_party_size() == 6` — and `get_party_size()` is literally `len(get_party())`
+    (`modules/pokemon_party.py`), which counts an egg like any other slot.
+
+    ‼ **THIS IS THE CALLER'S PREDICATE COPIED VERBATIM, NOT AN EQUIVALENT-LOOKING ONE**, and the
+    distinction is the whole bug. `withdraw_from_box` used to ask `not is_egg`, so a party of
+    **5 mon + 1 egg** read as "room available", no deposit was queued, and the withdraw then RAISED
+    — after the PC journey had already been spent.
+    ⭐ It is the same defect `08-MISTAKES.md` records in `deposit_one_dead_weight`, caught there by
+    adversarial review *before it ever met an egg*: *"'Alive' and 'occupies a slot' differ by
+    exactly one case — an egg — and that case is invisible until it happens."*
+
+    ⚠ **NO `p is not None` FILTER, DELIBERATELY.** `get_party_size()` does not filter either; it is
+    `len(get_party())`. Adding a filter here would make this an *equivalent-looking* predicate again
+    — the exact thing the rule above forbids — and would differ from the consumer on any list that
+    ever did contain a `None`.
+
+    PURE: takes the party list, touches no emulator state, returns a bool. Gated by
+    `repro_withdraw_room.py`.
+    """
+    return len(party or []) < 6
+
+
 def withdraw_from_box(pids) -> Generator:
     """Retrieve a Pokémon from the PC box by PID, making room if the party is full.
 
@@ -478,15 +507,20 @@ def withdraw_from_box(pids) -> Generator:
         from modules.pokemon_storage import get_pokemon_storage
 
         party = get_party()
-        alive = [i for i, p in enumerate(party)
-                 if p is not None and not getattr(p, "is_egg", False)]
+        # ⛔ KI-102: ROOM IS DECIDED BY THE CONSUMER'S PREDICATE, NOT AN EGG-FILTERED LOOKALIKE.
+        # This used to be `alive = [... not is_egg]` and `if len(alive) >= 6`, so a party of
+        # 5 mon + 1 egg read as "room available", no deposit was queued, and
+        # `_do_withdraw_actions` then RAISED "already contains 6" — after the PC journey was
+        # already spent. The egg-filtered list is GONE rather than kept: it had exactly one
+        # reader, and a variable retained "for logging" that nothing logs is how a false comment
+        # gets written. See `party_has_room_for_withdraw`.
 
         actions = []
         # ‼ MAKE ROOM FIRST, AND ONLY IF FULL. A withdraw into a full party silently fails, so
         # the deposit must be part of the SAME PC visit. We free exactly one slot — the worst
         # dead weight — never more: thinning the team is what made `#24-pc` a regression
         # (~1 mon/run, ~19 pts of the last funnel rung; 08-MISTAKES 2026-08-05).
-        if len(alive) >= 6:
+        if not party_has_room_for_withdraw(party):
             from modules.story.team_policy import find_dead_weight, view_from_party
 
             worst = None

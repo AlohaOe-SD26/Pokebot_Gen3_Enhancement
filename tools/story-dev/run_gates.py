@@ -195,6 +195,11 @@ GATES: list[tuple[str, bool]] = [
     # leg asked `battle_ended_frame is not None`, and FOUR battles had already ended.
     # Fault-tested: reintroducing the absolute test FAILS; a blind matcher FAILS too.
     ("repro_latch_scope.py", False),
+    # ⛔ KI-102. The withdraw counted party room EXCLUDING eggs while the consumer that
+    # refuses counts INCLUDING them, so 5 mon + 1 egg queued no deposit and then RAISED —
+    # after the PC journey was already spent. Carries a HISTORICAL CONTROL that pins the old
+    # predicate's disagreement, and a PARITY check that rejects "equivalent-looking" rewrites.
+    ("repro_withdraw_room.py", False),
     # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
     # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
     # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage

@@ -35247,3 +35247,31 @@ reads it FAILS as BLIND rather than printing a green light. Control green, sourc
 **FILES:** `tools/story-dev/repro_latch_scope.py` (new), `tools/story-dev/run_gates.py`
 (82 entries = 78 ENFORCING + 4 ADVISORY; `--quick` 72), `02-ARCHITECTURE.md`, `04-HANDOFF.md`,
 `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ✅ KI-102 FIXED: the PC withdraw and its consumer now agree about EGGS
+
+**Filed hours earlier as NOT FIXED, deliberately** — `pc_trip.py` is a SHARED path and this
+project's rule is *reproduce first*. So it was reproduced first.
+
+**THE REPRO** (offline, both predicates verbatim from the tree): a party of **5 mon + 1 egg** — the
+producer's egg-filtered `alive` counts **5** and queues no deposit; the consumer's
+`get_party_size()` counts **6** and refuses. ⇒ the withdraw raises *"already contains 6"* **after
+the PC journey is already spent.** ⭐ And the CONTROL — 5 mon, no egg — has both agreeing, which is
+what proves the fix touches exactly one case.
+
+**THE FIX:** a pure `party_has_room_for_withdraw(party)` that is the consumer's predicate **copied
+verbatim** (`len(party) < 6`), per the rule from the sibling bug in `deposit_one_dead_weight`:
+*"copy that caller's predicate VERBATIM rather than writing an equivalent-looking one. 'Alive' and
+'occupies a slot' differ by exactly one case — an egg — and that case is invisible until it
+happens."* The egg-filtered list is DELETED, not kept "for logging" — it had one reader.
+
+**GATED** by `repro_withdraw_room.py` (7 checks, offline), with two unusual ones:
+a **HISTORICAL CONTROL** that requires the OLD predicate to DISAGREE (pinning the bug so it cannot
+return under a new name), and a **CONSUMER PARITY** check that fault-testing proved catches an
+*equivalent-looking* rewrite — a `None`-filtering version fails parity while passing everything else.
+⭐ Fault-tested both ways; control green; source restored in the same run.
+
+**FILES:** `sandbox-pokebot/modules/story/pc_trip.py`, `tools/story-dev/repro_withdraw_room.py`
+(new), `tools/story-dev/run_gates.py` (83 entries = 79 ENFORCING + 4 ADVISORY; `--quick` 73),
+`02-ARCHITECTURE.md`, `04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (KI-102 → RESOLVED), `07-CHANGELOG.md`.

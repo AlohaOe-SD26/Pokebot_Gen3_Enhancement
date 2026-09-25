@@ -2808,7 +2808,7 @@ BOTH candidate indices beside a ground truth derived **by PID, never by slot** (
 shows which the menu actually lands on. Only then flip `allow_revive` at the caller.
 
 
-## KI-102 — ⚠ **THE PC WITHDRAW COUNTS PARTY ROOM *EXCLUDING* EGGS; ITS CONSUMER COUNTS *INCLUDING* THEM.** FILED 2026-09-25, **NOT FIXED** — verified by reading, NOT yet reproduced.
+## KI-102 — ✅✅ **RESOLVED 2026-09-25 (same day): THE PC WITHDRAW NOW USES THE CONSUMER'S ROOM PREDICATE.** Reproduced, fixed, gated and fault-tested. *(filed hours earlier as NOT FIXED — verified by reading, not yet reproduced.)*
 
 **THE MISMATCH, both halves read directly:**
 * `modules/story/pc_trip.py:481-482` — `withdraw_from_box` decides whether it must deposit to make
@@ -2854,3 +2854,42 @@ leaves the count UNCHANGED (6→6→6), which is KI-79's exact trap.
 (`ai-research-notes/2026-09-25-dexhunt-design-recon-WORKFLOW.md`), then confirmed by reading both
 call sites. ⛔ It blocks nothing today, but it is **on the critical path of the PC-first HM
 directive**, which will make this withdraw a routine operation rather than a rare one.
+
+
+### ✅ RESOLUTION (2026-09-25, same day) — reproduced FIRST, then fixed
+
+**THE REPRO, with both predicates taken verbatim from the tree** (offline, no emulator):
+
+    party = 5 mon + 1 egg
+      producer (pc_trip, egg-FILTERED)   len(alive)=5 -> makes room? False
+      consumer (pc_interaction, RAW len) len(party)=6 -> refuses?   True
+    => no deposit is queued, then the withdraw RAISES "already contains 6".
+    CONTROL (5 mon, no egg): makes room? False  refuses? False  -> agree
+
+⭐ The control is what makes the fix narrow: **the two predicates differ on exactly one case.**
+
+**THE FIX** — the sibling bug's prevention rule applied literally: a new PURE
+`party_has_room_for_withdraw(party)` (`modules/story/pc_trip.py`) that is the consumer's predicate
+**copied verbatim**, `len(party) < 6`. The egg-filtered `alive` list is **deleted**, not kept: it
+had exactly one reader, and a variable retained "for logging" that nothing logs is how a false
+comment gets written.
+⛔ **NO `p is not None` FILTER, DELIBERATELY** — `get_party_size()` does not filter either. Adding
+one would make it an *equivalent-looking* predicate again, which is the exact thing the rule
+forbids.
+
+**GATED:** `repro_withdraw_room.py` (7 checks, offline). Two are unusual and both earn their place:
+* **W2 HISTORICAL CONTROL** — recomputes the OLD egg-filtered predicate and requires it to
+  **DISAGREE** with the new one on 5 mon + 1 egg. This pins the bug so it cannot return wearing a
+  different name; if W2 ever stops disagreeing, the gate has stopped testing anything.
+* **W7 CONSUMER PARITY** — the function must equal `len(party) < 6` EXACTLY. ⭐ Fault-testing proved
+  this one catches an *"equivalent-looking"* rewrite: a version filtering `None` fails W7 while
+  passing every other check.
+
+**FAULT-TESTED BOTH WAYS:** restoring the egg filter fails W1 **and** W2; the `None`-filtered
+lookalike fails W7; control green and the source restored in the same run.
+
+⚠ **SCOPE, STATED:** this makes the two halves AGREE. It does **not** relitigate which authority is
+right — `get_party_size`'s own docstring says capacity questions belong to
+`party_accounting.game_party_count()`, and also that *"Stage 0 has re-pointed NO call site"*.
+Re-pointing the consumer is that project's job; doing it here would have widened the blast radius of
+a change to a SHARED path (the counter hunt withdraws through this code).
