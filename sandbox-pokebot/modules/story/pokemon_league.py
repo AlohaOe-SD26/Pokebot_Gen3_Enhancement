@@ -2934,3 +2934,393 @@ def enter_the_league(report=None, *, walk_frames: int = 40_000, settle_frames: i
         victory_flag="DEFEATED_ELITE_4_SIDNEY", prefix="E2",
         navigate_frames=navigate_frames, engage_frames=engage_frames,
         battle_frames=battle_frames)
+
+
+#: ⛔⛔ STEP-ON WARP. `(5,2)` on HALL4 IS the Champion fight — arriving is committing.
+CHAMPION_DOOR_TILE = (5, 2)
+#: One tile short of it. `Ch24Hall4Mode` stops here deliberately, and so does the bridge upstream.
+CHAMPION_STAND_TILE = (5, 3)
+
+#: The readings `fight_the_champion` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
+#: (Same contract as `ROOM_READINGS`: a private copy makes a PERFECT run report readings the leg
+#: never took.)
+CHAMPION_READINGS = (
+    "C-PREMISE",   # HALL4 (5,3), IS_CHAMPION False, ELITE_4_STATE == 4, DRAKE flag set
+    "C-HEALED",    # the last bag heal in the game ran (taken UNCONDITIONALLY — see `heal_ready`)
+    "C-CROSSED",   # the map became CHAMPIONS_ROOM after the one irreversible step
+    "C-ENGAGED",   # `on_battle_started` fired — ⛔ NOT our press
+    "C-WON",       # `on_battle_ended` latched BattleOutcome.Won
+    "C-INHOF",     # the map became HALL_OF_FAME, via the SCRIPTED warp
+    "C-CLEARED",   # IS_CHAMPION and SYS_GAME_CLEAR both True
+    "C-REBOOTED",  # an empty party was observed — EWRAM was wiped and reloaded
+    "C-HOME",      # the settle: seven conjuncts, tile (4,2)
+    "C-USABLE",    # all of C-HOME RE-ASSERTED after `wait_until_truly_controllable()`
+)
+
+
+def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: int = 6_000,
+                       battle_frames: int = 150_000, chain_frames: int = 10_000,
+                       endgame_frames: int = 40_000, settle_frames: int = 3_000) -> Generator:
+    """§Ch24 — ROOM 5: CROSS THE CHAMPION'S DOOR, BEAT WALLACE, AND COME OUT THE OTHER SIDE.
+
+    ⛔⛔⛔ **THIS LEG CLEARS THE GAME. IT IS THE MOST IRREVERSIBLE THING IN THE TREE.** From
+    `(5,2)` onward there is a forced battle, a forced SAVE, an unskippable credits roll and an
+    in-game `SoftReset(RESET_ALL)`. There is no retreat, no Fly, no Escape Rope, and `on_whiteout`
+    is the only other exit. ⇒ **every check that matters happens in S1, ABOVE the line, where a
+    refusal is free.**
+
+    ⛔⛔ **IT IS NOT AN INSTANCE OF `fight_one_room`, AND `#24-leg2spec` RULES THAT EXPLICITLY:**
+    *"BUILD ROOMS 1-4 AS THE UNIT, AND BUILD ROOM 5 PLUS ITS TAIL AS A SEPARATE LEG WITH ITS OWN
+    GRADE."* Room 5 has **no defeat flag, no flag guard, no A-press trigger and no door** — its exit
+    is a scripted `warp`. ⇒ `beat_the_trainer_here()`'s locate-the-trainer / stand-beside / face /
+    three-signal-engage steps are **DELETED, NOT PORTED**: the map script `lockall`s and walks the
+    avatar into the fight itself, so `ensure_facing_direction("Up")` would press a direction at a
+    LOCKED avatar, and `trainerbattle_no_intro TRAINER_WALLACE` starts the battle with no press of
+    ours involved.
+
+    ⭐⭐ **EVERY BOUND IS IN EMULATOR FRAMES, READ FROM `get_frame_count()` — NOT IN LOOP
+    ITERATIONS.** This is the correction the room leg paid for: `main.py` advances only the TOP of
+    the controller stack, so while `BattleListener` owns the fight THIS GENERATOR IS SUSPENDED and
+    an iteration counter does not tick at all (`KI-28`; measured at ~0.2 % of frames). A loop that
+    counted its own turns would believe ~300 frames had passed across a 30,000-frame battle.
+    ‼ Frame-count bounds are also what make the numbers below comparable to the measured ledger.
+
+    ⭐ **THE MEASURED LEDGER THE BOUNDS COME FROM** (2026-09-17 and re-measured 2026-09-25; every
+    NON-BATTLE stage reproduced frame-for-frame across both, so these are deterministic):
+    crossing **43** · intro **1,648** · fight **30,908 / 34,795** · post-battle chain **2,690** ·
+    HoF→reset **14,161** · settle **426**. ⛔ The FIGHT is the one row that is NOT deterministic —
+    a 12.6 % swing between two runs from the same fixture and party — which is why its bound is ~5×
+    and must never be tightened toward the measured value.
+    """
+    # ‼ `take_pending_fault` is imported HERE, not at module level: a mode that declares battle
+    # support MUST pop the pending fault every frame it holds control, or a fault sits unclaimed.
+    from modules.battle_fault import take_pending_fault
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag, get_event_var, get_game_state, GameState
+    from modules.pokemon_party import get_party
+    from modules.story import victory_road as VR
+    from modules.story.early_game import (
+        _check_abort,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    CHAMP = MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM
+    HOF = MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME
+    HALL4 = MapRSE.EVER_GRANDE_CITY_HALL4
+    HOME_TILE = (4, 2)
+
+    def _frames() -> int:
+        try:
+            return int(context.emulator.get_frame_count())
+        except Exception:  # noqa: BLE001 - a clock that fails must not decide the run
+            return -1
+
+    def _mode_attr(name, default=None):
+        """Battle facts come from the MODE's callbacks, never from our own presses.
+
+        ⛔ `on_battle_started` / `on_battle_ended` are BotMode callbacks; a generator cannot see a
+        battle it is suspended through. This is the only honest channel.
+        """
+        return getattr(getattr(context, "bot_mode_instance", None), name, default)
+
+    def _press_a_until(predicate, budget: int, label: str, *, forbid_naming_screen: bool = False):
+        """Supply A edges and WATCH. ⛔ Bounded in EMULATOR FRAMES, never in iterations.
+
+        ‼ The whole post-crossing leg is *"press A and observe"* — the game drives itself. Our only
+        jobs are to supply button edges, to consume battle faults, and to STOP when told.
+        """
+        start = _frames()
+        while True:
+            _check_abort()
+            if predicate():
+                return True, _frames() - start
+            if forbid_naming_screen:
+                # ⛔⛔ HARD ABORT, AND STOP PRESSING IMMEDIATELY. If flash carried no save the reboot
+                # lands on NEW GAME; pressing on would begin OVERWRITING one. There is no recovery
+                # worth attempting here — refusing loudly is the only safe act.
+                try:
+                    if get_game_state() is GameState.NAMING_SCREEN:
+                        raise BotModeError(
+                            "§Ch24 champion: the reboot landed on the NAMING SCREEN (NEW GAME). "
+                            "⛔ STOPPED PRESSING IMMEDIATELY — continuing would overwrite a save.")
+                except BotModeError:
+                    raise
+                except Exception as error:  # noqa: BLE001 - a state read must not decide the run
+                    reraise_if_aborting(error)
+            if _frames() - start > budget:
+                return False, _frames() - start
+            try:
+                take_pending_fault()
+            except Exception as error:  # noqa: BLE001 - fault draining is best-effort
+                reraise_if_aborting(error)
+            context.emulator.press_button("A")
+            yield
+
+    # ---- S1: PREMISE + THE LAST HEAL IN THE GAME ------------------------------------------------
+    # ⭐ EVERYTHING THAT MATTERS HAPPENS HERE, because this is the last place a refusal is free.
+    conj = {}
+    try:
+        conj["on_hall4"] = bool(VR._on_map(HALL4))
+        conj["at_stand_tile"] = tuple(VR._here_tile()) == tuple(CHAMPION_STAND_TILE)
+        conj["not_champion_yet"] = get_event_flag("IS_CHAMPION") is False
+        conj["drake_beaten"] = get_event_flag("DEFEATED_ELITE_4_DRAKE") is True
+    except Exception as error:  # noqa: BLE001
+        reraise_if_aborting(error)
+        raise BotModeError(f"§Ch24 champion: premise unreadable: {type(error).__name__}: {error}")
+    try:
+        conj["elite4_state_is_4"] = int(get_event_var("ELITE_4_STATE")) == 4
+    except Exception as error:  # noqa: BLE001 - recorded; the other four carry the premise
+        reraise_if_aborting(error)
+        conj["elite4_state_is_4"] = "<unreadable>"
+    report["premise"] = dict(conj)
+    report["start_at"] = (str(VR._where()), VR._here_tile())
+    if not (conj["on_hall4"] and conj["at_stand_tile"]
+            and conj["not_champion_yet"] and conj["drake_beaten"]):
+        raise BotModeError(
+            f"§Ch24 champion: PREMISE FAILED {conj} at {VR._where()}. ⛔ Refusing ABOVE the "
+            f"irreversible line — nothing was pressed. ‼ `not_champion_yet=False` means this run "
+            f"has ALREADY cleared the game (pointed at its own output?).")
+
+    # ⛔ RECORDED AND NEVER ASSERTED — the things that stop being readable the moment we step.
+    try:
+        report["pp_at_door"] = [
+            (m.species.name, [(x.move.name, x.pp, x.total_pp) for x in m.moves if x is not None])
+            for m in get_party() if not getattr(m, "is_empty", False)]
+        report["hp_at_door"] = [(m.species.name, m.current_hp, m.total_hp)
+                                for m in get_party() if not getattr(m, "is_empty", False)]
+    except Exception as error:  # noqa: BLE001 - telemetry only
+        reraise_if_aborting(error)
+        report["pp_at_door"] = report["hp_at_door"] = "<unreadable>"
+    _take(report, "C-PREMISE")
+
+    # ⛔⛔ THE LAST HEAL IN THE GAME, AND IT NEVER RAISES. Past `(5,2)` there is no nurse, no Mart
+    # and no retreat, so a refusal here strands the run — worse than fighting under-healed.
+    # ‼ `C-HEALED` is taken UNCONDITIONALLY, which is exactly why `heal_ready` must be a SEPARATE
+    # grade conjunct: otherwise a heal that RAN and achieved NOTHING passes (the `HEALNOOP` lesson).
+    # ⚠ And HP is all it can fix: PP is unrestorable anywhere in the League — measured, the Mart
+    # sells no Ether/Elixir/Leppa — so `pp_at_door` above is the diagnostic for a loss, not a gate.
+    heal_report: dict = {}
+    try:
+        yield from _budgeted(heal_party_from_bag(heal_report), 200_000, "§Ch24 champion: last heal")
+    except Exception as error:  # noqa: BLE001 - see above; a sealed zone changes the calculus
+        reraise_if_aborting(error)
+        heal_report["error"] = f"{type(error).__name__}: {error}"
+    report["heal"] = {k: v for k, v in heal_report.items() if k != "readings"}
+    report["heal_ready"] = heal_report.get("heal_ready")
+    _take(report, "C-HEALED")
+
+    # ---- S2: THE CROSSING — the one irreversible act --------------------------------------------
+    # ⛔⛔ EIGHT RAW `Up` PRESSES, AND NOTHING ELSE. `navigate_to`, `_pass_through_door`,
+    # `_navigate_riding_out` and `_goto_warp` are ALL FORBIDDEN here: they treat the warp as a
+    # DESTINATION, which is trap T10 — and `Ch24Hall4Mode` carries a tripwire one tile earlier for
+    # precisely this. `(5,2)` is step-on: ARRIVING IS THE WARP.
+    report["crossed_from"] = (str(VR._where()), VR._here_tile())
+    for _ in range(8):
+        _check_abort()
+        try:
+            take_pending_fault()
+        except Exception as error:  # noqa: BLE001 - draining a fault is BEST-EFFORT and must never
+            # stop the crossing: we are one press from an irreversible step, and a fault-queue read
+            # that fails is not a reason to abandon a run that has already committed to going.
+            reraise_if_aborting(error)
+        context.emulator.press_button("Up")
+        yield
+
+    # ⛔ THE READING IS THE MAP, NOT "we left HALL4". For the first ~32 frames the position still
+    # reads HALL4 (5,2) — a leg that graded on leaving would fire before the warp completed.
+    ok, spent = yield from _press_a_until(lambda: VR._on_map(CHAMP), cross_frames, "cross")
+    report["cross_frames_spent"] = spent
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: pressed Up 8× at {CHAMPION_STAND_TILE} but the map is still "
+            f"{VR._where()} after {spent} frames. The step did not take. ⛔ Do NOT retry blindly — "
+            f"if we ARE across, every warp behind us is inert.")
+    _take(report, "C-CROSSED")
+    # ⛔ CAPTURED HERE, NOT AFTER THE INTRO LOOP. Measured the hard way 2026-09-25: taken
+    # after that loop returns, this clock has already passed THROUGH the whole battle, so
+    # `intro_true` came out at **-34,729** — a NEGATIVE duration, which is the tell that saved it.
+    # ‼ Signed arithmetic that CAN go negative is self-checking; an unsigned or clamped version
+    # of this same bug would have shipped a plausible small number.
+    _cross_end = _frames()
+
+    # ---- S3: THE APPROACH AND THE INTRO — supply edges, act on nothing --------------------------
+    # The map script `lockall`s, walks the avatar (6,12)->(6,6) and prints the intro speech. Our
+    # only job is to give `waitbuttonpress` the JOY_NEW edges it wants.
+    ok, spent = yield from _press_a_until(
+        lambda: _mode_attr("battle_started_frame") is not None, intro_frames, "intro")
+    # ⛔⛔ TWO NUMBERS, AND ONLY ONE OF THEM MEANS "THE INTRO". See the note below: this loop is
+    # suspended through the whole fight, so its own elapsed count swallows the battle.
+    report["intro_wall_frames"] = spent
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: crossed into the Champion's room but no battle started within "
+            f"{spent} frames. ⛔ We are past the point of no return with no fight — this is a "
+            f"STRAND, and there is nothing to retreat to.")
+    # ⭐ FROM THE CALLBACK, NEVER FROM OUR PRESS. `trainerbattle_no_intro TRAINER_WALLACE` starts
+    # this fight from inside the map script; we demonstrably did not cause it.
+    _take(report, "C-ENGAGED")
+
+    # ---- S4: THE FIGHT — hold control, press, observe nothing -----------------------------------
+    ok, spent = yield from _press_a_until(
+        lambda: _mode_attr("battle_ended_frame") is not None, battle_frames, "fight")
+    report["battle_wall_frames"] = spent
+    report["battle_outcome"] = repr(_mode_attr("battle_outcome"))
+    # ⭐⭐ THE HONEST ATTRIBUTION, FROM THE CALLBACKS — WHICH FIRE REGARDLESS OF SUSPENSION.
+    # MEASURED 2026-09-25: the first passing drive reported `intro = 36,457` (against a 6,000 bound
+    # it never got a frame to enforce) and `fight = 0`, because the intro loop was starved from the
+    # moment the battle began until after it ended. ⇒ loop-elapsed time CANNOT attribute a span that
+    # brackets a battle, and a frame budget cannot INTERRUPT a suspension — only notice it later.
+    # ‼ The `*_wall_frames` values are KEPT rather than replaced: the gap between wall and true IS
+    # the measurement of how long this generator was starved, which is a fact worth having.
+    _bs, _be = _mode_attr("battle_started_frame"), _mode_attr("battle_ended_frame")
+    try:
+        report["intro_true_frames"] = (int(_bs) - int(_cross_end)) if _bs is not None else None
+        report["fight_true_frames"] = (int(_be) - int(_bs)) if (_bs is not None
+                                                                and _be is not None) else None
+        report["starved_frames"] = (report["battle_wall_frames"] or 0) + (
+            report["intro_wall_frames"] or 0) - ((report["intro_true_frames"] or 0)
+                                                 + (report["fight_true_frames"] or 0))
+    except Exception as error:  # noqa: BLE001 - an arithmetic slip in TELEMETRY must never fail a
+        # run that has already won the game; the raw latch frames are recorded either way.
+        reraise_if_aborting(error)
+        report["intro_true_frames"] = report["fight_true_frames"] = "<unreadable>"
+    report["battle_started_frame"] = _bs
+    report["battle_ended_frame"] = _be
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: the Wallace fight did not end within {spent} loop-observed frames "
+            f"(bound {battle_frames:,}). ‼ That count EXCLUDES the frames this generator was "
+            f"starved for, so the real elapsed time is larger.")
+    # ⛔ "THE BATTLE ENDED" IS NOT "WE WON" — a whiteout ends it too. `BattleOutcome` is the only
+    # signal that separates them, and `on_whiteout` is an independent second channel.
+    outcome = _mode_attr("battle_outcome")
+    won = getattr(outcome, "name", str(outcome)) == "Won"
+    report["won"] = won
+    if not won:
+        raise BotModeError(
+            f"§Ch24 champion: the fight ended with outcome {outcome!r}, not Won. ‼ THIS IS THE "
+            f"ANSWER, NOT A DEFECT: the party could not beat Wallace as equipped. ⛔ Read "
+            f"`pp_at_door` before blaming levels — the lead has historically arrived with its two "
+            f"main attacks at ZERO PP, and PP is unrestorable past the lobby.")
+    _take(report, "C-WON")
+
+    # ---- S5: THE POST-BATTLE CHAIN AND THE SCRIPTED WARP ----------------------------------------
+    # ~9-10 button-gated stops interleaved with movement blocks no button advances, then the rival
+    # and Birch spawn, the dex is rated, and the script `warp`s us to the Hall of Fame.
+    # ⛔ NOT gated on a text-printer state: that is blind to the raw `waitbuttonpress` in the dex
+    # rating, and the number of prompts moves with dex state. Frames, not presses.
+    ok, spent = yield from _press_a_until(lambda: VR._on_map(HOF), chain_frames, "chain")
+    report["chain_frames_spent"] = spent
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: the post-battle chain did not reach the Hall of Fame within {spent} "
+            f"frames (bound {chain_frames:,}).")
+    report["hof_at"] = (str(VR._where()), VR._here_tile())
+    # ⭐ The arrival tile is the scripted `warp`'s literal argument — proof the bot never walked a
+    # door. ⛔ And we do NOT assert "the exit door is open": vacuous here.
+    _take(report, "C-INHOF")
+
+    # ---- S6: HALL OF FAME -> SAVE -> CREDITS -> SoftReset ---------------------------------------
+    # ⛔ THE CREDITS CANNOT BE FAST-FORWARDED ON A FIRST CLEAR, BY CONSTRUCTION: the B-hold speed-up
+    # is gated on `gHasHallOfFameRecords`, which is FALSE exactly when this is the first clear.
+    # ⭐MEASURED: the probe A-mashed throughout and the credits still cost 10,353 frames.
+    # ⇒ this bound must NOT be tightened toward the measured 14,161: a SECOND clear is materially
+    # shorter, and a first clear is the only path this leg takes. There is no slack to reclaim here,
+    # only risk.
+    def _cleared() -> bool:
+        try:
+            return bool(get_event_flag("IS_CHAMPION")) and bool(get_event_flag("SYS_GAME_CLEAR"))
+        except Exception:  # noqa: BLE001 - FALSE means "not cleared YET", which is the honest answer
+            # to an unreadable flag during the reboot: RAM is genuinely garbage across the
+            # SoftReset, so a failed read here is EXPECTED, not exceptional. ‼ Returning False can
+            # only make the leg wait longer and time out loudly — it can never fake a clear.
+            return False
+
+    def _party_empty() -> bool:
+        try:
+            return len([m for m in get_party() if not getattr(m, "is_empty", False)]) == 0
+        except Exception:  # noqa: BLE001 - the party structure is UNREADABLE by construction while
+            # EWRAM is being wiped, so a throw here is the expected mid-reboot state. ⛔ Returning
+            # False (rather than True) is the SAFE direction: it refuses to claim the reboot
+            # happened on the strength of a failed read, so `C-REBOOTED` can only be earned by an
+            # actual empty-party observation.
+            return False
+
+    seen = {"cleared": False, "rebooted": False}
+
+    def _endgame_done() -> bool:
+        if not seen["cleared"] and _cleared():
+            seen["cleared"] = True
+        # ⭐ AN EMPTY PARTY IS THE ONLY POSITIVE PROOF EWRAM WAS WIPED AND RELOADED. It is ~207
+        # frames wide and unreachable at any earlier point in the leg, which is what makes it a
+        # reading rather than a coincidence.
+        if not seen["rebooted"] and _party_empty():
+            seen["rebooted"] = True
+        return seen["cleared"] and seen["rebooted"]
+
+    ok, spent = yield from _press_a_until(
+        _endgame_done, endgame_frames, "endgame", forbid_naming_screen=True)
+    report["endgame_frames_spent"] = spent
+    report["saw_cleared"] = seen["cleared"]
+    report["saw_rebooted"] = seen["rebooted"]
+    if seen["cleared"]:
+        _take(report, "C-CLEARED")
+    if seen["rebooted"]:
+        _take(report, "C-REBOOTED")
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: the endgame did not complete within {spent} frames "
+            f"(cleared={seen['cleared']} rebooted={seen['rebooted']}, bound {endgame_frames:,}).")
+
+    # ---- S7: THE SETTLE — the only place this leg may return from -------------------------------
+    # ⭐⭐ SEVEN CONJUNCTS, AND `script_idle` IS THE ONE DOING THE WORK. The global script context
+    # reads ACTIVE for ~12,651 frames across the HoF screen and the whole credits roll, because
+    # `releaseall` sits AFTER `special GameClear`, which swaps the main callback before the script
+    # runner reaches it. It therefore covers exactly the `lockall` window that controllability does
+    # NOT. ⛔ Conversely: never WAIT for script-idle earlier — it would block for those 12,651 frames.
+    def _settled() -> bool:
+        try:
+            from modules.player import player_avatar_is_controllable
+            from modules.tasks import get_global_script_context
+
+            if get_game_state() is not GameState.OVERWORLD:
+                return False
+            if not player_avatar_is_controllable():
+                return False
+            if get_global_script_context().is_active:
+                return False
+            if VR._on_map(CHAMP) or VR._on_map(HOF):
+                return False
+            # ⛔ A NON-EMPTY PARTY IS THE POSITIVE PROOF EWRAM CAME BACK. Without it the ~206-frame
+            # post-reload window passes three of the other conjuncts and reads as HOME.
+            if len([m for m in get_party() if not getattr(m, "is_empty", False)]) == 0:
+                return False
+            return tuple(VR._here_tile()) == tuple(HOME_TILE)
+        except Exception:  # noqa: BLE001 - "not settled yet" is the honest answer to a failed read
+            return False
+
+    ok, spent = yield from _press_a_until(_settled, settle_frames, "settle")
+    report["settle_frames_spent"] = spent
+    report["end_at"] = (str(VR._where()), VR._here_tile())
+    if not ok:
+        raise BotModeError(
+            f"§Ch24 champion: the game cleared but never settled to a usable overworld within "
+            f"{spent} frames. end_at={report['end_at']}")
+    _take(report, "C-HOME")
+
+    # ⭐ AND THE SECOND READING, AFTER THE SETTLE — BECAUSE THE FIRST `True` IS UNTRUSTWORTHY.
+    # `player_avatar_is_controllable` debounces `Task_ExitDoor` and `sub_8080B9C` but NOT
+    # `Task_ExitNonDoor`, which is exactly the task present on the first post-CONTINUE overworld
+    # frame. ⇒ re-assert everything after a real settle, or the grade rests on a flicker.
+    yield from wait_until_truly_controllable()
+    if not _settled():
+        raise BotModeError(
+            f"§Ch24 champion: C-HOME held but C-USABLE did not re-assert after "
+            f"`wait_until_truly_controllable()` at {VR._where()} — the first controllable frame "
+            f"was a flicker, which is the exact failure this second reading exists to catch.")
+    report["usable_at"] = (str(VR._where()), VR._here_tile())
+    _take(report, "C-USABLE")

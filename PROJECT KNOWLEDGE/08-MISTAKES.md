@@ -21405,3 +21405,44 @@ you it is broken; a silent lie tells you a number.
 IT.** Both defects here were recoverable — one from a histogram, one from an offline fixture read —
 and that was luck plus one good design choice, not a plan. Making it a plan is cheap: prefer
 distributions to verdicts, and take premise-time readings where they can also be read offline.
+
+
+## 2026-09-25 — ⛔ A FRAME BUDGET CAN *NOTICE* A SUSPENSION AFTERWARDS; IT CANNOT *INTERRUPT* ONE
+
+**SYMPTOM.** The champion leg's first passing drive reported
+`intro_frames_spent = 36,457` **against a 6,000-frame bound, without refusing**, and
+`battle_frames_spent = 0` for a fight that really happened.
+
+**ROOT CAUSE.** The intro loop waits for `battle_started_frame`. A battle pushes `BattleListener`
+above the story generator, so for the whole fight **the loop does not run at all**. Therefore:
+1. it never reached its own `if elapsed > budget` check — **a budget whose loop does not execute
+   cannot fire**; and
+2. when it finally resumed, the battle had already *ended*, so the fight's ~33,846 frames were
+   absorbed into the INTRO's elapsed count and the fight step measured **zero**.
+
+‼ **THIS IS A SHARPER RULE THAN THE ONE I ALREADY HAD.** The existing lesson was *"bound anything
+that can battle in FRAMES, not iterations"* — and frames **were** the right unit here. They still
+could not enforce, because enforcement requires the loop to get a turn. ⇒ the two rules are
+different and both are needed:
+* **FRAMES vs ITERATIONS** decides whether your number is *meaningful*.
+* **WHO IS RUNNING** decides whether your bound can *act*.
+
+⇒ **PREVENTION RULE: a span that BRACKETS a battle cannot be measured or enforced from inside the
+story generator.** Take its endpoints from the `on_battle_started` / `on_battle_ended` **callbacks**,
+which fire regardless of suspension. Keep the loop-elapsed number too — **the gap between wall-clock
+and true IS the measurement of how long the generator was starved**, and that is worth having.
+
+‼ **AND THE DISTINCTION THAT MATTERS MOST HERE:** the **grade was correct** — all ten readings, one
+battle, `BattleOutcome.Won`, nothing mis-graded. Only the **attribution** was wrong. ⇒ **a run can
+be entirely right and its telemetry still misleading**, so "the run passed" is not evidence that
+every number it printed means what its name says.
+
+### ⭐ AND A SECOND, SMALLER ONE — CAUGHT ONLY BECAUSE THE ARITHMETIC COULD GO NEGATIVE
+
+The first fix computed `intro_true = battle_started_frame - cross_end`, but captured `cross_end`
+*after* the intro loop returned — i.e. after the clock had already run through the entire battle.
+Result: **`intro_true_frames = -34,729`**.
+⇒ **A NEGATIVE DURATION IS SELF-EVIDENTLY WRONG, AND THAT IS WHY IT WAS CAUGHT IN SECONDS.** An
+unsigned counter, a `max(0, …)`, or an `abs()` would have shipped a plausible small number instead.
+⇒ **PREVENTION RULE: do not clamp or absolute-value a derived duration.** Let it go negative and let
+it be obviously broken; a quantity that cannot express "impossible" cannot warn you.

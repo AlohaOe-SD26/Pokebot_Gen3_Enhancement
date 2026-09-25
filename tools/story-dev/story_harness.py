@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20975,6 +20975,142 @@ class Ch24RoomMode(BotMode):
 
 
 
+class Ch24ChampionMode(BotMode):
+    """`--driver ch24champion` — §Ch24 ROOM 5: BEAT WALLACE AND CLEAR THE GAME, IN PRODUCTION CODE.
+
+    ⛔⛔⛔ **THIS DRIVE CLEARS THE GAME AND IS THE MOST IRREVERSIBLE THING IN THE TREE.** From
+    `(5,2)` there is a forced battle, a forced SAVE, an unskippable credits roll and an in-game
+    `SoftReset(RESET_ALL)`. ⇒ the `finally` below **RESTORES THE FIXTURE**, because
+    `libmgba.py:144` loads `current_state.ss1` at startup and `:226` overwrites it at shutdown, and
+    **the real bot resumes from that file**.
+    ‼ **GIVE IT A BUDGET IT CAN FINISH IN.** A frame-capped run never resumes the generator, so the
+    `finally` never fires and a CLEARED-GAME state is left behind. The measured cost is ~50,000
+    frames; run it with at least 150,000.
+
+    FIXTURE: `post_hall4_door.ss1` (healed) for the treatment;
+    `post_hall4_door_unhealed.ss1` for the **A4** arm, which is the only fixture on which the
+    `heal_ready` conjunct is non-vacuous (the healed twin is 1214/1214, i.e. nothing to do).
+
+    READINGS — ⛔ IMPORTED FROM THE LEG (`CHAMPION_READINGS`), never a private copy.
+
+    ⭐ **WHY THE BATTLE FACTS COME FROM CALLBACKS AND NOT FROM THE LEG'S PRESSES.** The generator is
+    STARVED for the whole fight — `BattleListener` owns the controller stack — and may never get
+    another frame before the victory script warps the map out from under it. `on_battle_started` /
+    `on_battle_ended` fire regardless, so they are the only honest channel. `pokemon_league.py`
+    states the rule directly: *a leg must NEVER assume its own press caused the battle* — and here
+    it demonstrably did not: `trainerbattle_no_intro TRAINER_WALLACE` starts it from the map script.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "ch24champion"
+
+    @staticmethod
+    def available() -> bool:
+        return True
+
+    def on_whiteout(self) -> bool:
+        # ⛔ MUST return True. Returning False hands the run to Manual and DISCARDS the generator,
+        # so no verdict prints and a genuine LOSS looks like a hang.
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24champion] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ THIS IS THE ANSWER, NOT "
+            f"AN INSTRUMENT FAILURE: the party cannot beat Wallace as equipped. ⛔ Read "
+            f"`pp_at_door` before blaming levels.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        self.battle_started_frame = _tp_frame()
+        log(f"[ch24champion] ⚔ BATTLE #{self.battles} STARTED at frame {self.battle_started_frame}")
+        return StoryItemBattleStrategy()
+
+    def on_battle_ended(self, outcome=None):
+        # ⭐⭐ THE ONLY GUARANTEED LATCH CHANNEL — see the class docstring.
+        self.battle_outcome = outcome
+        self.battle_ended_frame = _tp_frame()
+        log(f"[ch24champion] ⚔ BATTLE ENDED at frame {self.battle_ended_frame} outcome={outcome!r}")
+
+    def run(self):
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.pokemon_league import CHAMPION_READINGS, fight_the_champion
+
+        TAG = "ch24champion"
+        R: dict = {}
+        taken: set = set()
+        failure = None
+        leg: dict = {}
+
+        # ⛔ SNAPSHOT BEFORE A SINGLE FRAME RUNS — the only thing standing between this drive and a
+        # cleared-game `current_state.ss1`.
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        self.battles = getattr(self, "battles", 0)
+        self.battle_started_frame = None
+        self.battle_ended_frame = None
+        self.battle_outcome = None
+
+        try:
+            yield from wait_until_truly_controllable()
+            yield from fight_the_champion(leg)
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            from modules.story.early_game import reraise_if_aborting
+
+            try:
+                reraise_if_aborting(error)
+            except Exception:  # noqa: BLE001 - the abort itself; record it and still print
+                failure = "StoryAbort (whiteout) — the party LOST to Wallace"
+            else:
+                failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            R["leg"] = {k: v for k, v in leg.items() if k != "readings"}
+            for reading in sorted(leg.get("readings", set())):
+                taken.add(reading)
+            R["battles"] = getattr(self, "battles", 0)
+            R["battle_outcome"] = repr(getattr(self, "battle_outcome", None))
+            R["whiteouts"] = getattr(self, "whiteouts", 0)
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — this CLEARED-GAME run will not carry into "
+                        f"`current_state.ss1`.")
+            except Exception as restore_error:  # noqa: BLE001 - loud, never replaces the verdict
+                log(f"[{TAG}] ⛔⛔ COULD NOT RESTORE THE FIXTURE: {restore_error} — "
+                    f"`current_state.ss1` may now hold a CLEARED-GAME state.")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        missing = sorted(set(CHAMPION_READINGS) - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+
+        # ⛔⛔ `heal_ready` IS A SEPARATE CONJUNCT BECAUSE `C-HEALED` IS TAKEN UNCONDITIONALLY.
+        # The heal must never raise past the door, so the reading set ALONE cannot fail on a heal
+        # that RAN and achieved NOTHING. That hole was measured once already (the `HEALNOOP` arm).
+        heal_ready = R.get("leg", {}).get("heal_ready")
+        heal_ok = heal_ready is True
+        if not heal_ok:
+            log(f"[{TAG}] ⛔ GRADE: heal_ready={heal_ready!r} — the party was NOT brought to "
+                f"fighting shape, and THIS WAS THE LAST HEAL IN THE GAME.")
+        one_battle = R["battles"] == 1
+        if not one_battle:
+            log(f"[{TAG}] ⛔ GRADE: battles={R['battles']} — expected EXACTLY 1. More than one "
+                f"means something other than Wallace was fought; zero means no fight happened.")
+        ok = (not missing and failure is None and R["whiteouts"] == 0
+              and heal_ok and one_battle)
+        log(f"[{TAG}] RESULT whiteouts={R['whiteouts']} failure={failure} "
+            f"heal_ready={heal_ready!r} battles={R['battles']}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (heal at the door, CROSS (5,2), beat "
+            f"WALLACE — asserted on BattleOutcome, not on the battle ending — reach the Hall of "
+            f"Fame by the SCRIPTED warp, clear the game, survive the SoftReset, and come back to a "
+            f"USABLE overworld) SCOPE: room 5 + the tail ONLY; the `_play` dispatch is NOT here.")
+        context.set_manual_mode()
+
+
 class Ch24BridgeMode(BotMode):
     """`--driver ch24bridge` — §Ch24 THE BRIDGE: lobby -> (9,1) -> HALL5 -> SIDNEY'S ROOM -> BEAT HIM.
 
@@ -24945,6 +25081,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":
             context.bot_mode_instance = Ch24BridgeMode()
+        elif args.driver == "ch24champion":
+            context.bot_mode_instance = Ch24ChampionMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

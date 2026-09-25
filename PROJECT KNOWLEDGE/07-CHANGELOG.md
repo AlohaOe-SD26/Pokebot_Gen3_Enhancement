@@ -34854,3 +34854,63 @@ conjunct.
 `tools/story-dev/evidence/2026-09-25-ch24hall4-P3-mint.stdout.txt` (new),
 `tools/story-dev/saves/post_hall4_door_unhealed.ss1` (new, PINNED),
 `tools/story-dev/saves/FIXTURES.md5`, `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-25 — ⭐⭐⭐ §Ch24's LAST UNBUILT PIECE: `fight_the_champion()` CLEARS THE GAME, IN PRODUCTION CODE THAT ASSERTS
+
+**THE RUN.** `--driver ch24champion` from `post_hall4_door.ss1` → **`ACCEPTANCE: PASS`, all TEN
+readings**, `missing=[]`, `whiteouts=0`, `failure=None`, `heal_ready=True`, `battles=1`,
+`BattleOutcome.Won`, fixture RESTORED. **Reproduced three times.**
+⭐ Wallace has now been beaten three times — but the first two were by an **observe-only probe whose
+ACCEPTANCE line is instrument health and which asserts nothing.** This is the first time a **graded
+production leg** has cleared the game.
+
+**⛔ IT IS DELIBERATELY NOT AN INSTANCE OF `fight_one_room`** (`#24-leg2spec` rules room 5 out of the
+unit). The locate-trainer / stand-beside / face / three-signal-engage steps are **deleted, not
+ported**: the map script `lockall`s and walks the avatar in, so `ensure_facing_direction("Up")`
+would press a direction at a LOCKED avatar, and `trainerbattle_no_intro TRAINER_WALLACE` starts the
+fight with no press of ours. ⇒ `C-ENGAGED` comes from the `on_battle_started` **callback**, and
+`C-WON` asserts `BattleOutcome` — because "the battle ended" is also what a whiteout looks like.
+
+**⭐ P1 SETTLED A REAL UNKNOWN:** eight raw `Up` presses DO fire the step-on warp (38 frames against
+a measured 43). The leg is forbidden from falling back on `navigate_to`/`_pass_through_door` — those
+make the warp a *destination*, the trap a tripwire guards one tile earlier.
+**⭐ P4's PROOF IS THE ARRIVAL TILE:** `C-INHOF` records **`(16,11) (7,16)`** — the scripted `warp`'s
+literal arguments, which a walked door could not produce.
+
+**⛔⛔ P7 IS REFUTED, AND IT IS THE MOST USEFUL RESULT IN THE DRIVE.** The intro step reported
+**36,457 frames against a 6,000 bound — and did not refuse** — while the fight recorded **0**. The
+loop is suspended for the entire battle, so (a) it never got a turn on which to evaluate its own
+bound — **a budget whose loop does not execute cannot fire** — and (b) when it resumed, the fight
+was over and its frames had been absorbed into the intro's count.
+‼ **This is SHARPER than the rule already on file.** *"Bound in FRAMES, not iterations"* decides
+whether a number is **meaningful**; **who is running** decides whether a bound can **act**. Frames
+were the right unit and still could not enforce. Both rules are needed.
+‼ **AND THE GRADE WAS CORRECT THROUGHOUT** — ten readings, one battle, `Won`. Only the
+*attribution* was wrong ⇒ **a run can be entirely right and its telemetry still misleading.**
+✅ FIXED: `intro_true_frames` / `fight_true_frames` now come from the **callbacks**, which fire
+regardless of suspension; the loop-elapsed values are kept as `*_wall_frames` because the gap
+between them measures the starvation itself.
+⛔ **The first version of that fix was ALSO wrong**, giving `intro_true = -34,729` — caught in
+seconds precisely **because a negative duration is impossible**. An `abs()` or `max(0, …)` would
+have shipped a plausible small number. ⇒ **never clamp a derived duration.**
+
+**⭐⭐ AND AN UNASKED-FOR CORROBORATION:** `starved_frames = 883`, computed purely as *wall − true*.
+The build spec derived **883** from a completely different direction — *"the latch is 883 frames
+early"* relative to the CB2 battle window. **Two independent routes to the same number.**
+
+**THE LEDGER, ACROSS THREE INDEPENDENT RUNS:** crossing **38** (ledger 43) · intro **1,728** (1,648)
+· fight **33,846** (30,908–34,795 band) · chain **2,686** (2,690) · endgame **14,153** (14,161) ·
+settle **451** (426). ⇒ the non-battle tail is deterministic to a handful of frames; the fight
+remains the one variable row and its ~5× bound must not be tightened.
+
+**⛔ STILL OPEN:** the win rate (three wins, one fixture — not a rate);
+`cross_to_the_champions_door()` (the HALL4 approach leg is NOT built); the fault arms; and RULING 11
+— `story_mode.py` still ends at the END-OF-CONTENT banner and **nothing is wired into `_play`**.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`fight_the_champion`,
+`CHAMPION_READINGS`, `CHAMPION_DOOR_TILE`, `CHAMPION_STAND_TILE`),
+`tools/story-dev/story_harness.py` (`Ch24ChampionMode`, registered),
+`ai-research-notes/2026-09-25-ch24-champion-leg-GRADED.md` (new), `03-PUNCH-LIST.md`,
+`04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`, and three evidence files
+`2026-09-25-ch24champion{,-v2,-v3}.stdout.txt`.
