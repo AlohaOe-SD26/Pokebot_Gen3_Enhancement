@@ -21062,3 +21062,85 @@ shipped-broken state, so the new check is proven live rather than assumed.
 4. ‼ *WHEN A BROAD `except` EXISTS TO TOLERATE FLAKY READS, IT WILL ALSO TOLERATE YOUR TYPOS.* That
    is not an argument against the handler — it is an argument for a gate that catches what the
    handler hides.
+
+
+## 2026-09-24 — ⛔⛔ I PRE-REGISTERED A "THIS HAS NEVER BEEN DONE" CLAIM OVER WORK THAT WAS DONE A WEEK EARLIER — AND THE FIXTURE I PICKED WOULD HAVE FAKED THE REFUTATION
+
+Two defects in one piece of work, found before the drive rather than after. Both were caught by
+*checking the tree instead of trusting my own framing*, and neither needed a single emulator frame.
+
+### SYMPTOM 1 — the pre-registration carried a false "never"
+
+Building §Ch24 S2 (`fight_one_room()` in production), I wrote a PREDICTIONS file whose headline read:
+
+> *"⭐⭐ P4 IS THE REAL QUESTION. Whether this party can beat an Elite Four member **has never been
+> driven end to end in this project.**"*
+
+I put the same sentence in `Ch24RoomMode`'s docstring. **Both were false when written.** The tree
+records the opposite in at least five places: commit `188b7af0` *"SIDNEY AND PHOEBE ARE BEATEN AT
+L75"* (2026-09-17), the handoff STATE row *"FOUR OF FIVE ROOMS ARE BEATEN AT L75, WITH THEIR
+FIGHTS"*, and punch-list rows `#24-sidneyL75` / `#24-phoebeL75` / `#24-glaciaL75` / `#24-drakeL75` /
+`#24-tailprobe` — **all `[x]`**. The last of those is the CHAMPION: `IS_CHAMPION=True` and
+`SYS_GAME_CLEAR=True` **in both RAM and flash**. Every one of the five fights was already won.
+
+**ROOT CAUSE.** A session summary described S2 as the next item and I inherited its framing without
+re-deriving it. The claim's *shape* is what should have stopped me: **"X has never been done" is the
+single most checkable class of claim in this repo**, because the punch list, the changelog and the
+commit titles all index exactly that.
+
+**THE FIX THAT WORKED.** `git log --oneline --all | grep -iE "glacia|drake|phoebe|sidney"` plus one
+independent inventory agent — under two minutes, before any code depended on it. Both documents were
+corrected *before* the drive, and the correction is written INTO the pre-registration rather than
+appended after, so the file cannot later read as if it had been right all along.
+
+⇒ **PREVENTION RULE: never write "never" in a pre-registration without grepping the punch list and
+`git log --all` for the thing you are claiming is absent.** A pre-registration is the document a
+future agent trusts MOST — its entire authority is that it was written first — so an unchecked
+"never" there is worth more damage than the same sentence anywhere else.
+‼ This is `CLAUDE.md` SESSION DISCIPLINE #11 (*grep the log before escalating*) generalised: the
+rule was filed for ESCALATIONS, and it did not fire for a PREDICTION. Same shape, different costume.
+
+### SYMPTOM 2 — the default fixture would have produced a FALSE REFUTATION
+
+`Ch24RoomMode` defaulted to `post_sidney_door_open.ss1`, and its docstring justified the choice
+(same map, same tile, Sidney beaten, `ELITE_4_STATE=1`, never crosses the commitment point) — all
+TRUE, and all beside the point. `probe_anchor_inventory.py`, offline:
+
+| fixture | party | HP |
+|---|---|---|
+| `post_sidney_door_open.ss1` | Sceptile **L53**, Swellow L48, Wailord L47, Mightyena L48 | **139/807 (17 %), 5 FAINTED** |
+| ✅ `post_sidney_L75.ss1` | Mightyena/Sceptile/Swellow/Wailord **all L75** | **1171/1211 (97 %), 0 fainted** |
+
+The first is the **pre-climb party**; its own manifest row says *"usable for the DISMISS/DOOR
+question only; heal before using it as the start of anything longer."* A Phoebe fight from five
+faints would very likely be LOST — and because the leg under test was a **new generalization of
+three proven drivers**, I would have read that loss as *"the port dropped a wait"* and gone hunting
+for a bug that did not exist.
+
+**ROOT CAUSE.** The fixture was chosen for the properties the PREMISE needed (position + flags) and
+never checked against the property the OUTCOME needed (a party that can win). Two different
+questions, one fixture, and only one of them was audited.
+
+**THE FIX.** Switched to `post_sidney_L75.ss1` — which is also the fixture the proven
+`Ch24PhoebeMode` ran from, so party, position and save bytes are held constant and
+**production-vs-harness code is the only variable**. Verified the msgbox is parked in BOTH fixtures
+first, so the switch does not quietly make the dismiss prediction vacuous.
+
+⇒ **PREVENTION RULE: audit a fixture against EVERY prediction it has to support, not just the
+premise.** A fixture that satisfies the starting conditions can still make the outcome unreachable —
+and a leg graded on an unreachable outcome fails for a reason that has nothing to do with the code.
+⇒ **COROLLARY, and it is the stronger half: when a new implementation is meant to REPRODUCE a proven
+one, run it on the proven one's OWN fixture.** Changing the code and the starting state together
+answers neither question.
+
+### ⚠ AND ONE SMALLER THING, RECORDED BECAUSE IT CONTRADICTS A DOCSTRING
+
+`Ch24RoomMode`'s docstring promises *"RESTORES THE FIXTURE BEFORE EXIT"* so a drive cannot poison
+`current_state.ss1` (which `libmgba.py:144` loads at startup and `:226` overwrites at shutdown).
+The restore lives in the generator's `finally` — so it fires on a normal or failed finish, but a run
+cut short by the harness's `--frames` cap **never resumes the generator, and the `finally` never
+runs**. Observed on a 300-frame smoke test: no verdict, no `fixture RESTORED` line, and
+`Updated current_state.ss1!` printed anyway. Low blast radius (a test profile), but the docstring
+claims more than the mechanism delivers.
+⇒ **PREVENTION RULE: a cleanup in a generator's `finally` is only as reliable as the caller's
+promise to resume it.** Treat a frame-capped smoke run as a run with NO cleanup.

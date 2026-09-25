@@ -6922,3 +6922,43 @@ killed it, and the reasoning is the record worth keeping:
   `ENTERED_ELITE_FOUR` is **permanent and never cleared**, so after a loss a free nurse heal would
   re-pass any health-based readiness gate forever while levels never change. **Re-entry must be
   gated on something material, not on health.**
+
+
+## 2026-09-24 — ⭐ USER GOAL: **THE TEAM LINEUP SHOULD VARY BETWEEN RUNS** (organic play)
+
+User, verbatim in substance: *"the teams should be somewhat unique for every run… at least that's
+the end goal (as far as team lineup) so it adds more organic gameplay."*
+
+**Recorded as a GOAL, not yet a work item.** It belongs with `#25-organicplay`, which the user has
+deferred until the Elite Four and the Pokédex are done (ordering ruling, same date).
+
+### ⛔⛔ THE TENSION THIS CREATES, STATED NOW SO §Ch24 DOES NOT BAKE IN THE OPPOSITE
+
+§Ch24's preparation is **species-bound**, deliberately and expensively:
+* **Wailord + Ice Beam is the designated DRAKE counter** — Flygon has **Levitate**, so Ice is the
+  only super-effective type reachable on it. Two work items were spent obtaining and teaching it
+  (`#24-icebeamtrip`, `#24-icebeamteach`), plus a ~700,000-frame Abandoned Ship trip.
+* **Mightyena + Crunch is the PHOEBE answer**, and `post_training.ss1`'s row records the binding
+  constraint: **Emerald has NO Dark TM**, so a Mightyena that reached L47 without the level-up learn
+  **could never** answer her Ghosts.
+* The whole `LEAGUE_BASKET` economy is priced against *this* party's HP bands.
+
+⇒ **A run whose team differs may simply LACK THE COVERAGE THE ELITE FOUR REQUIRES**, and no amount
+of training fixes a type hole. ‼ This is not an argument against the goal — it is the thing the goal
+has to solve, and it is cheaper to know now than to discover it in a 21-hour grind.
+
+### ⇒ WHAT THIS CHANGES **TODAY**, AND WHAT IT DOES NOT
+
+* **It does NOT change the room loop.** `fight_one_room()` (S2) must be **species-agnostic** — it
+  walks, engages, fights via the existing generic battle strategy, and asserts the outcome. Nothing
+  in it should name a species or a move. That was already the plan and is now a requirement.
+* **It DOES reshape the readiness question.** Today's implied check is *"does Wailord know Ice
+  Beam?"*. Under this goal it becomes *"does THIS team have an answer to each of the five?"* — a
+  **coverage** predicate over types and movesets, not an identity check.
+* ⚠ **It interacts with the L65-75 / no-bench ruling** (2026-09-18) and with the PC round-trip
+  evidence gate. A varying lineup implies catching, boxing and swapping — the three pieces
+  `#25-organicplay` already lists as blocked on decisions.
+
+⛔ **DO NOT START THIS AS A BUILD.** It is filed so that the gauntlet is not written in a way that
+forecloses it, and so the eventual discussion begins from the type-coverage problem rather than from
+"make the roster random".
