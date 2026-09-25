@@ -7017,3 +7017,124 @@ this entry as "authorised and unbuilt", **never** as "undecided".
 *(Composes with USER RULING 6 — losses are acceptable, money is a high priority — which pointed this
 way but did not decide it; and with RULING 11, which defines §Ch24 DONE as the Hall of Fame from a
 real story run at ×1.)*
+
+
+## 2026-09-25 — ⭐ USER DIRECTION: THE HM-LEARNER SEARCH MUST USE THE **PC** AND THE **WHOLE MAP**
+
+User, verbatim in substance: *"making the bot smarter when it needs a pokemon for hm moves —
+currently it just looks for what it already has and if there is nothing that it has in the party
+that can be taught the move, it breaks. I want the bot to be able to freely use pokemon in the
+pokemon PC (ties in to the catch gate we are reviewing) as well as catch new pokemon (not
+duplicates unless shiny) that it can use to teach it the hm move it needs. This would require
+possibly wiring in the locations of all pokemon, hardening map traversal (also knowledge of what is
+traversable depending on what part of the story its at/chapter its on) as well as knowing how to use
+the pokemon pc (withdraw/deposit) and knowing where all the pokemon pcs are that it can use."*
+
+### ✅ THE DIAGNOSIS IS CORRECT, AND THE BREAK IS EXACTLY WHERE THEY SAY
+`ensure_hm_learner(item)` (`modules/story/early_game.py:4869`) ALREADY catches a compatible wild
+when the party has none. It is crippled in two specific places:
+1. **`_hm_hunting_grounds(item)` searches only hand-curated grass** (`training_areas.TRAINING_GRASS`)
+   and RAISES *"no swept training grass hosts a learner species — extend
+   `training_areas.TRAINING_GRASS` first"* when that curated subset misses. ⇒ **this is the
+   observed break.**
+2. **`hm_learner_slot(item)` looks at the PARTY ONLY.** A usable carrier sitting in a BOX is
+   invisible, so the bot will catch (or derail) rather than withdraw one it already owns.
+`ensure_hm_learner_making_room` deposits ONE dead-weight and retries, but only on the *party-full*
+failure — deliberately, and that restraint is correct and should be kept.
+
+### ⭐⭐ THE ARCHITECTURAL RULING THIS IMPLIES: **ONE HUNTER, TWO PREDICATES**
+The HM hunter and the Pokédex hunter are the SAME MACHINE:
+*find a species satisfying predicate P → locate it in `encounter_index` → route with
+`navigate_to_anywhere()` → catch it.*
+  * `P = "can learn <HM move>"` → HM coverage (this directive)
+  * `P = "not yet owned"`        → dex completion (`#24-dexhunt`)
+⇒ **DO NOT BUILD TWO.** Build the hunter once, parameterised by the predicate and by a
+reachability filter, or the two will drift apart and the second will be built from memory.
+
+### WHAT ALREADY EXISTS (⛔ do not rebuild — audited 2026-09-25)
+* `modules/encounter_index.py` — inverts EVERY map's ROM wild tables into
+  `species -> [{map, method, rate%, level range}]`, cached per-ROM. **The "locations of all
+  pokemon" the user asks for already exists; it is simply not wired into the HM search.**
+* `modules/modes/util/global_navigation.py::navigate_to_anywhere()` — CROSS-MAP routing through a
+  warp graph, re-planned leg by leg. **"Hardening map traversal" starts from a real implementation.**
+* `modules/living_dex.py` — already derives "every species with a wild encounter that I do not own",
+  and reports the rest as `skipped`.
+* `modules/story/pc_trip.py` — `deposit_one_dead_weight()` (built), `box_views()` (built, fixed
+  2026-08-06), `find_in_box(pids)` (built).
+
+### ⛔⛔ WHAT IS MISSING, AND THE ONE THAT IS A LANDMINE
+1. ✅ **PC WITHDRAW IS LARGELY PROVEN — CORRECTED 2026-09-25, SAME DAY.** An audit agent reported
+   it as BROKEN and "never fired in a batch", I wrote that down, and then I checked: **it is wrong.**
+   `grep -rhaoE "verdict landed=(True|False) code=[a-z_]+" evidence/` returns **3 ×
+   `landed=True code=landed`**; the only 2 failures come from
+   `evidence/2026-08-17-withdrawverdict-ARMA-faulted.stdout.txt`, a DELIBERATE fault arm.
+   `evidence/2026-08-17-PROMOTION-AFTER-custom-all5.stdout.txt` records a real landing via
+   `--driver boxcounter2`: *"usable this fight — Slugma :: verdict landed=True code=landed"* and
+   *"Story: PC — Slugma is in the party; party is now 6."*, `ACCEPTANCE: PASS` — **verified on both
+   halves (in the party AND gone from the box).**
+   ⛔ Nor is "returns without acting when the box is empty" a break: that is the documented
+   `(False, "not_in_box", detail)` verdict, and the docstring says *"NOT a failure: most heals have
+   nothing to collect."*
+   ⇒ **THE HONEST RESIDUAL** is narrow: that evidence is `--build custom` and dated 2026-08-17, so
+   a fresh named-PID round trip on the CURRENT sandbox build is worth one drive to prove no
+   regression — but withdrawing a boxed carrier is **not** unproven capability, and must not be
+   planned for as though it were.
+2. **REACHABILITY-AT-STORY-POINT** — the user named it explicitly. `_hm_hunting_grounds` already
+   prefers a REACHABLE ground and records a real case (after Norman the pick was Route 117, across
+   Rusturf Tunnel from Petalburg). Widening to `encounter_index` makes this filter LOAD-BEARING
+   rather than a nicety: the index knows where a species lives, not whether the bot may go there yet.
+3. **WHERE THE POKÉ CENTRES / PCs ARE** — needed for a withdraw trip, as the user says.
+4. **"not duplicates unless shiny"** — matches `decide_dex_catch`'s existing refusals
+   (already-owned / already-in-party, shiny handled separately). ⇒ policy already agrees; it is the
+   SEARCH that is narrow, not the gate.
+
+### ‼ AND IT BEARS DIRECTLY ON AN OPEN, BLOCKING DECISION — FLAGGED, NOT ASSUMED
+The standing ruling (2026-09-18, reaffirmed 09-23) is **"every team member L65-75, none benched"**.
+This directive asks the bot to **freely swap mon in and out of the PC** and to catch HM carriers —
+which is benching, and which grows the roster. `#25-organicplay` already records this collision as
+*"a decision, not code"* and as the thing that BLOCKS the rest.
+⇒ The new directive is strong evidence the user wants the roster/bench reading, **but it was given
+in the HM context specifically and has NOT been put to them as a reconciliation.** ⛔ Do not silently
+treat it as repealing the L65-75 ruling — ask, then record the answer here.
+
+
+## 2026-09-25 — ⭐⭐ USER RULING 13: **THE BATTLE TEAM IS L65-75; THE ROSTER IS FREE**
+
+**Asked because it BLOCKED the rest.** `#25-organicplay` recorded the collision as *"a decision, not
+code"*: the standing ruling of 2026-09-18 (reaffirmed 09-23) said **every team member L65-75, none
+benched**, while Pokédex completion and the 2026-09-25 HM directive both require a GROWING roster
+with mon parked in the PC.
+
+### THE RULING
+**The six mon the bot FIGHTS with stay L65-75. Everything else — HM carriers, dex catches, spares —
+lives in the PC at whatever level, and is swapped in as needed.**
+
+### ✅ WHAT THIS REPEALS
+The "none benched" clause, and the reading that "every team member" meant *every owned mon*. Boxing
+a mon is now NORMAL behaviour, not a failure, and catching beyond six is expected.
+
+### ⛔ WHAT THIS DOES **NOT** REPEAL — AND WHY THE ORIGINAL RULING EXISTED
+The **battle team** level floor is untouched. The reason for the original ruling stands: §Ch24 is a
+ONE-WAY, NURSE-LESS five-fight gauntlet, and arriving under-levelled is unrecoverable. ⇒
+`CH24_LEVEL_FLOOR = 65` and `train_for_league`'s readiness bar are **unchanged**, and
+`prepare_and_open_the_league` still decides readiness OUTSIDE the League.
+‼ A future reader must not cite this ruling to lower the gauntlet's entry bar. It moves the
+BOUNDARY of "team", not the FLOOR.
+
+### ⇒ WHAT IT UNBLOCKS, IMMEDIATELY
+1. `#24-catchcap` — raising `_catch_team_target` and allowing box overflow is no longer in tension
+   with a standing ruling. (⚠ Still subject to the MEASURED runway reservation: the post-gym-1
+   fence holds dex catches below a full party to preserve HM/counter slots, and disturbing it
+   collapsed the finish rate 52.0% → 15.8%. **The ruling permits a bigger roster; it does not
+   licence ignoring that measurement.**)
+2. The 2026-09-25 HM directive — withdrawing a boxed carrier is now the PREFERRED fix, ahead of
+   catching a new one.
+3. `#24-dexhunt` — a completion-focused post-Elite-Four mode may grow the roster freely.
+
+### ⛔ AND IT PUTS ONE THING ON THE CRITICAL PATH
+**A fresh PC round-trip drive — but SMALLER than I first recorded.** ✅ CORRECTED same day:
+withdraw is NOT unproven. `--driver boxcounter2` already landed a named mon box→party with
+`ACCEPTANCE: PASS`, verified on both halves (3 × `landed=True code=landed` across `evidence/`).
+⇒ what remains is a **regression check on the CURRENT sandbox build** (that evidence is
+`--build custom`, 2026-08-17), not a first proof. The user's *"prove it first"* ruling is
+substantially satisfied; one drive re-confirms it.
