@@ -65,14 +65,37 @@ def roamer_outcome_is_fatal(outcome: int | None) -> bool:
     ‼ THREE CONSEQUENCES WORTH STATING, because each contradicts an intuition:
     * **A MUTUAL KO IS FATAL** (`DREW`). So inspecting only the chosen move is not enough — recoil,
       Destiny Bond, Explosion and end-of-turn residual damage can all produce it.
-    * **ROAR AND TELEPORT ARE FATAL** (`PLAYER_TELEPORTED`), and both read as harmless escapes. The
-      decomp labels this a bug in its own comment; it is nonetheless what the retail ROM does.
+    * **OUR OWN TELEPORT IS FATAL** (`PLAYER_TELEPORTED`, 5) — and the decomp's comment gets the
+      ACTOR BACKWARDS. `battle_main.c` says *"when Roar is used by a ROAMER"*, but the setter is
+      `VARIOUS_SET_TELEPORT_OUTCOME`, which branches on `GetBattlerSide(gActiveBattler)`, and its
+      only caller is `BattleScript_EffectTeleport` ending in **`setoutcomeonteleport BS_ATTACKER`**.
+      ⇒ the side is the side of the mon that USED the move: **ours teleporting = 5 = FATAL; theirs
+      teleporting = `MON_TELEPORTED` (10) = SAFE.** A reader trusting the comment over the code
+      concludes our own Teleport is harmless. VERIFIED 2026-09-25 by reading both.
+      ⚠ **ROAR IS UNVERIFIED AND BANNED ANYWAY.** `BattleScript_EffectRoar` does NOT call
+      `setoutcomeonteleport`; it uses `forcerandomswitch`, whose wild-battle path I did not read to
+      the end. The ban costs nothing; claiming it verified would be the error.
       ⇒ the ONLY safe player-chosen exit is `RAN` (4), i.e. `run_away()`.
     * **LOSING IS SAFE** (`LOST` 2). Whiting out does NOT destroy the roamer.
 
-    ⚠ SCOPE: this is the `BATTLE_TYPE_ROAMER` block ONLY. The scripted statics (Rayquaza, the three
-    Regis, Groudon/Kyogre, Sudowoodo) are governed by their own map scripts and must NOT be assumed
-    to follow this table.
+    ⛔⛔ SCOPE — AND THERE ARE **THREE CLASSES WITH DIFFERENT, PARTLY OPPOSITE SAFE SETS.** This
+    function covers CLASS 1 ONLY. A single global "safe outcomes" constant WILL destroy something.
+    *(Classes 2A/2B below are agent-reported from a 12-agent recon and NOT yet verified by me —
+    they are recorded so nobody builds a one-size guard, not as facts to code against.)*
+
+      CLASS 1  ROAMER (this function): safe = {LOST 2, RAN 4, MON_FLED 6, MON_TELEPORTED 10}.
+      CLASS 2A SCRIPTED LEGENDARIES that "fly away" — Rayquaza, the three Regis, Groudon, Kyogre,
+               Southern-Island Lati, Lugia, Ho-Oh, Deoxys, Mew. ⚠ **RAN *and* PLAYER_TELEPORTED are
+               SAFE here** (they respawn) — the OPPOSITE of class 1 for outcome 5.
+               ⭐ And a KO is only EXPENSIVE, not fatal, for Mew / Deoxys / Lugia / Ho-Oh /
+               Southern-Island Lati: the Hall of Fame clears their DEFEATED flags on EVERY Elite
+               Four re-clear. PERMANENT on a KO: Rayquaza, the Regis, Groudon, Kyogre.
+      CLASS 2B STATICS where ANY return kills it — Sudowoodo, the three New Mauville Voltorb,
+               the Route 120 Kecleon. ⛔ **FLEEING IS FATAL HERE.** Only LOST (2) and DREW (3) are
+               safe, i.e. **the correct play against an unbeatable class-2B static is to LOSE ON
+               PURPOSE** — the whiteout discards the script before any flag is written.
+               ‼ AND IT IS INVISIBLE TO `gBattleTypeFlags`, which is literally 0 — byte-identical
+               to an ordinary patch of grass. Species/map, never battle flags.
 
     :param outcome: `gBattleOutcome` as read from memory. `None` means "not readable".
     :return: True if this outcome deactivates the roamer permanently.

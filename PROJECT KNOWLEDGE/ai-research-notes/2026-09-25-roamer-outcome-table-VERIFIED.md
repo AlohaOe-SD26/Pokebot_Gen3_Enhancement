@@ -72,3 +72,57 @@ today and would rot; `outcome & 1` is the code the game actually runs.
 ⚠ **SCOPE: this block is `BATTLE_TYPE_ROAMER` ONLY.** The scripted statics (Rayquaza, the Regis,
 Groudon/Kyogre, Sudowoodo) are governed by their own map scripts, NOT by this code. Their rules are
 a separate question and must not be assumed to follow this table.
+
+
+---
+
+# ⛔⛔ CORRECTION AND EXTENSION (same day, after a 12-agent recon)
+
+## 1. I REPEATED THE DECOMP'S COMMENT, AND THE COMMENT IS WRONG ABOUT **WHO**
+
+Above I quoted `battle_main.c`: *"When Roar is used by a **roamer**, gBattleOutcome is
+B_OUTCOME_PLAYER_TELEPORTED (5)"*. ✅ **VERIFIED BY ME, AND IT IS THE ATTACKER'S SIDE, NOT THE
+ROAMER'S:**
+
+```c
+    case VARIOUS_SET_TELEPORT_OUTCOME:
+        if (GetBattlerSide(gActiveBattler) == B_SIDE_PLAYER)
+            gBattleOutcome = B_OUTCOME_PLAYER_TELEPORTED;   // 5  ODD  -> FATAL
+        else
+            gBattleOutcome = B_OUTCOME_MON_TELEPORTED;      // 10 EVEN -> safe
+```
+
+and its only caller, `BattleScript_EffectTeleport`, ends with **`setoutcomeonteleport BS_ATTACKER`**.
+
+⇒ **OUR mon using Teleport gives 5 and DESTROYS the roamer. THEIR mon using it gives 10 and is
+SAFE.** The danger is our own move, not the wild mon's. ‼ A reader who trusts the comment over the
+code concludes the exact opposite.
+
+⚠ **ROAR: UNVERIFIED.** `BattleScript_EffectRoar` never calls `setoutcomeonteleport` — it uses
+`forcerandomswitch`, which is gated on `BATTLE_TYPE_TRAINER` and whose wild path I did not read to
+the end. It is **banned conservatively**; the ban costs nothing and claiming it verified would be
+the error.
+
+## 2. THERE ARE THREE CLASSES, AND THEIR SAFE SETS PARTLY INVERT
+
+⚠ *Agent-reported (12-agent recon), NOT verified by me. Recorded so nobody builds a one-size
+guard; re-derive before coding against the specifics.*
+
+| class | examples | safe outcomes | notes |
+|---|---|---|---|
+| **1 ROAMER** | roaming Latias/Latios | `{2, 4, 6, 10}` — the EVEN ones | ✅ verified above |
+| **2A "flies away"** | Rayquaza, 3 Regis, Groudon, Kyogre, S.Island Lati, Lugia, Ho-Oh, Deoxys, Mew | `{2, 3, 4, 5}` | ⚠ **RAN *and* TELEPORT are SAFE — opposite of class 1 on 5** |
+| **2B "any return kills"** | Sudowoodo, 3× New Mauville Voltorb, Route 120 Kecleon | **`{2, 3}` only** | ⛔ **FLEEING IS FATAL**; `gBattleTypeFlags == 0` |
+
+⭐ **TWO CONSEQUENCES THAT INVERT INTUITION:**
+* Against an unbeatable **class 2B** static the correct play is to **LOSE ON PURPOSE** — the
+  whiteout discards the script before any flag is written.
+* A KO of **Mew / Deoxys / Lugia / Ho-Oh / Southern-Island Lati** is **EXPENSIVE, NOT FATAL**: the
+  Hall of Fame clears their DEFEATED flags on every Elite Four re-clear. ⇒ **a guard must not be
+  stricter than the truth** — refusing every legendary would strand the bot with no exit from a
+  fight it cannot win, which is its own bug.
+
+## 3. ⚠ `BUGFIX` IS A LIVE SWITCH
+Everything here assumes `include/config.h:48` stays commented out. A BUGFIX build makes the test
+`== WON || == CAUGHT || == DREW`, which makes outcome **5 SAFE** and keeps 3 fatal. Do not hardcode
+the parity without also asserting the ROM revision.
