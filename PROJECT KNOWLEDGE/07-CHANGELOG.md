@@ -34269,3 +34269,65 @@ baseline 27); and the latch is the leg's **first act**.
 `tools/story-dev/evidence/2026-09-24-latch-before-selfskip.stdout.txt` (new),
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md`, `04-HANDOFF.md`,
 `06-DECISIONS-LOG.md` (the user's E4 → Pokédex → organic ordering), `07-CHANGELOG.md`.
+
+---
+
+## 2026-09-24h — §Ch24 LEG 1 IS BUILT, DRIVEN AND PASSING: THE LEAGUE DOOR OPENS, AND THE BOT STOPS AT IT
+
+`prepare_and_open_the_league()` (`modules/story/pokemon_league.py`) + `--driver ch24entry`.
+**`ACCEPTANCE: PASS`, 7 readings, `missing=[]`, `whiteouts=0`.** Graded against predictions committed
+BEFORE the drive: **P1/P2/P3/P4/P6 confirmed, P5 refuted** (see
+`ai-research-notes/2026-09-24-ch24-entry-leg-GRADED.md`).
+
+### ⛔⛔ THE LEG STOPS AT THE DOOR ON PURPOSE — THAT IS THE DESIGN, NOT AN OMISSION
+`(9,1)`/`(10,1)` are step-on doors: arriving IS the warp, and it is the point of no return. A design
+review killed the version that stepped through — the bot would land in `HALL5`, whose only FIRING
+warp is forward, and `story_mode.py`'s next statement sets `_reached_end_of_content = True` ⇒
+**an in-gauntlet strand scored as a genuine completion.** The commitment belongs to the gauntlet leg.
+✅ The bot ends on `(9,3)` facing an open door, in a lobby with a free nurse and a measured
+14-waypoint exit.
+
+### ⭐ THE READING NOTHING IN THIS TREE EVER MADE
+`E1-GUARDS` asserts the **action**: `ENTERED_ELITE_FOUR` is True **and** a live object read shows
+`(9,2)`/`(10,2)` empty. `ch24probe` checked only *"are we on HALL5"* — the consequence two steps
+later, which cannot distinguish *"the guards moved"* from *"we got lucky"*. ‼ The guard-tile reader
+**fails closed**: an unreadable object counts as STILL OCCUPIED, because a phantom clearance would
+send the bot at a shut door.
+
+### ⛔⛔ THE BUG, AND WHY INSTRUMENTATION FOUND IT WHEN ITERATION DID NOT
+Two drives failed with the flag still False while every other reading looked perfect. Two rounds of
+"fix the A-press" changed nothing. Recording the world at the press showed the press and the
+ride-out were **already correct** (`script_active_after_A=True`, `talk_completed=True`). What was
+missing was a **settle**: `wait_for_no_script_to_run("B")` starts pressing B immediately and, called
+straight after the A, races the guard script's own startup.
+‼ The fix first appeared only as a SIDE EFFECT of the diagnostics ⇒ it is now the named constant
+`_GUARD_SCRIPT_SETTLE_FRAMES = 30`, documented in the leg, **so deleting the diagnostics cannot
+silently delete the fix.** ⇒ this extends `victory_road.py:2986-2996` (*"copy the proven SHAPE"*):
+copying the shape was necessary and **not sufficient** — the nurse sequence answers a yes/no prompt
+first, which supplies the settle the guard sequence lacks.
+
+### ✅ BOTH FAULT ARMS FAIL FOR THEIR OWN REASON
+`POKEBOT_CH24_FAULT_SKIPTALK=1` (read in PRODUCTION, so a driver cannot fake it) →
+`missing=['E1-AT-DOOR','E1-GUARDS','T-CONTINUE']` and the leg refuses to walk at a shut door.
+`POKEBOT_CH24ENTRY_FAULT=nolatch` → `missing=['E1-LATCHED']` **only**, `latch_calls=0` — it removes
+exactly one reading and leaves the other six, which is a fault arm that ISOLATES rather than breaks.
+
+### ⚠ P5 WAS REFUTED, AND THE REFUTATION WAS MINE
+I predicted the readiness branch would be a no-op because the fixture is named `…_L75`. It carries
+**Zigzagoon L19 and Castform L36** beside the L75 battlers, so the leg correctly began training
+OUTSIDE — and the first drive burned 400,000 frames doing it. ⇒ **a fixture's NAME is a label, not
+an inventory.** The drive was re-scoped with `CH24_ENTRY_FLOOR=1`, and the ACCEPTANCE line reports
+the floor and says plainly it is not production's 65.
+
+### ⚠ AND ONE PROCESS FAILURE
+I nearly reported a PASS that was not from the run I had launched: an edit script wrote a broken file
+and then failed its own `ast.parse`, so the harness never started and the log I read was the previous
+run's. ⇒ **when an edit step reports an error, the next command's output is suspect.** Logs deleted,
+re-driven, verified.
+
+⛔ **NOT WIRED INTO `_play`.** Harness-only until the gauntlet leg lands with it.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`, `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-24-ch24entry.{log,stdout.txt}` and both `…-ARM-*.log`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-entry-leg-{PREDICTIONS,GRADED}.md`,
+`29-DISABLED-FEATURES-REGISTRY.md`, `07-CHANGELOG.md`.

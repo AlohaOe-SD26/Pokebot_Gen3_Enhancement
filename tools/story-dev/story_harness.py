@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20513,6 +20513,192 @@ class Ch24Lobby2FMode(BotMode):
 
 
 
+class Ch24EntryMode(BotMode):
+    """`--driver ch24entry` — drive §Ch24 LEG 1: get gauntlet-ready, get inside, OPEN THE DOOR, STOP.
+
+    ⛔⛔ WHAT THIS DRIVE MUST NOT DO, AND WHY THE LEG IS BUILT THAT WAY. It does NOT step onto
+    `(9,1)`. That tile is `MB_NON_ANIMATED_DOOR` and step-on: arriving IS the warp, and it is the
+    point of no return (every backward warp in the interior is `MB_NORMAL`, which the warp code
+    rejects — measured). An earlier draft stepped through, and a design review killed it: the bot
+    would land in `HALL5`, whose only FIRING warp is forward into Sidney's room, and
+    `story_mode.py`'s next statement sets `_reached_end_of_content = True` ⇒ an in-gauntlet strand
+    scored as a GENUINE COMPLETION. ⇒ the commitment belongs to the gauntlet leg, which does not
+    exist yet.
+
+    ⭐ THE READING THAT MATTERS IS `E1-GUARDS`, AND IT IS NEW. Nothing in this tree previously
+    asserted that the guards MOVED — `ch24probe` checked only *"are we on HALL5"*, i.e. the
+    consequence two steps later, which cannot distinguish "the guards moved" from "we got lucky".
+    The leg now asserts the ACTION: the flag AND a live object read of `(9,2)`/`(10,2)`.
+
+    READINGS — ⛔ IMPORTED FROM THE LEG, NEVER COPIED. A private copy makes a PERFECT run report
+    `missing=[…]` the moment a label is renamed, and the obvious repair is then to delete a
+    required reading.
+
+    FAULT ARMS
+      `POKEBOT_CH24_FAULT_SKIPTALK=1`  read in PRODUCTION — skips the guard talk. `E1-GUARDS` MUST
+                                       fail. This is what proves the assertion is live rather than
+                                       decoration.
+      `POKEBOT_CH24ENTRY_FAULT=nolatch` hides this object's `mark_ch24_owns_run`, so the leg cannot
+                                       latch. `E1-LATCHED` must fail.
+
+    ‼ SAFETY — THIS DRIVE RESTORES THE FIXTURE BEFORE IT EXITS. `libmgba.py:144` LOADS
+    `current_state.ss1` at startup and `:226` OVERWRITES it at shutdown, and **the real bot resumes
+    from that file**. This leg permanently sets `ENTERED_ELITE_FOUR`, so without the restore a
+    later unattended run would start in a lobby whose door is already open. The restore is in a
+    `finally`, so it happens even when the run raises.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Entry"
+
+    def mark_ch24_owns_run(self) -> None:
+        """STAND IN for `StoryMode.mark_ch24_owns_run`, and RECORD that the leg called it.
+
+        The leg latches through `context.bot_mode_instance`, which under the harness is THIS driver.
+        Implementing the interface (rather than excusing the reading) is what makes `E1-LATCHED`
+        prove the call happened — see `Ch24TrainMode.mark_ch24_owns_run` for the full reasoning.
+        """
+        self.latch_calls = getattr(self, "latch_calls", 0) + 1
+        log(f"[ch24entry] LEG CALLED mark_ch24_owns_run() (#{self.latch_calls})")
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24entry] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, wait_until_truly_controllable
+        from modules.story.pokemon_league import (
+            CH24_ENTERED_FLAG,
+            LEAGUE_ENTRY_READINGS,
+            LEAGUE_GUARD_TALK_TILE,
+            prepare_and_open_the_league,
+        )
+
+        def _where():
+            try:
+                av = get_player_avatar()
+                return f"{MapRSE(tuple(av.map_group_and_number)).name}{tuple(av.local_coordinates)}"
+            except Exception:  # noqa: BLE001 - an unreadable position is a reading, not a crash
+                return "<unreadable>"
+
+        TAG = "ch24entry"
+        R: dict = {}
+        taken: set = set()
+        failure = None
+        fault = _os.environ.get("POKEBOT_CH24ENTRY_FAULT", "")
+        # THE FLOOR IS A KNOB AND THE GRADE REPORTS IT. Default is production's CH24_LEVEL_FLOOR.
+        # `CH24_ENTRY_FLOOR=1` makes the readiness branch a no-op so the TRAVEL + GUARD half can be
+        # driven in minutes instead of paying for a ~20 h grind first. Same shape as ch24train's
+        # CH24_TRAIN_FLOOR; a cloned driver would drift from its original the first time either
+        # is fixed.
+        from modules.story.pokemon_league import CH24_LEVEL_FLOOR as _PROD_FLOOR
+
+        FLOOR = int(_os.environ.get("CH24_ENTRY_FLOOR", str(_PROD_FLOOR)))
+        # ‼ `state_path` is the harness's module-level fixture path (set at `story_harness.py`'s
+        # setup). Read the bytes NOW, before the leg mutates anything, so the restore below is
+        # the state this run STARTED from. `FRESH` means there is no fixture to restore to.
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        if fault == "nolatch":
+            # ‼ INJECT INTO THE SUBJECT, NOT THE HARNESS. Nulling `context.bot_mode_instance` would
+            # kill the run and print NO verdict — a fault arm must fail by PRINTING a verdict.
+            self.mark_ch24_owns_run = None  # type: ignore[assignment]
+            log(f"[{TAG}] FAULT ARM nolatch — the leg cannot latch; E1-LATCHED must be missing.")
+
+        # ⛔ DECLARED OUTSIDE THE `try` AND HARVESTED IN THE `finally`. The leg mutates this
+        # dict IN PLACE, so a run that RAISES still reports which readings it reached and what
+        # it measured. An earlier version harvested only on success, so a failing drive showed
+        # `readings=['T-PREMISE']` and NO leg data — while the leg had already recorded exactly
+        # the diagnostics needed to explain the failure. Losing evidence at the moment of
+        # failure is the worst possible time to lose it.
+        leg: dict = {}
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+
+            # ---- PREMISE / VACUITY ------------------------------------------------------------
+            # ⛔ A drive that starts with the door ALREADY open proves nothing about opening it.
+            # Point this driver at its own OUTPUT fixture and it must refuse.
+            R["start_at"] = (str(_where()), VR._here_tile())
+            pre_flag = bool(get_event_flag(CH24_ENTERED_FLAG))
+            R["flag_at_start"] = pre_flag
+            if pre_flag:
+                raise BotModeError(
+                    f"{TAG}: PREMISE FAILED — {CH24_ENTERED_FLAG} is ALREADY True on this fixture, "
+                    f"so the guards have already moved and this run would PASS having opened "
+                    f"nothing. Start from a state where the door is shut."
+                )
+            taken.add("T-PREMISE")
+
+            # ---- THE LEG ----------------------------------------------------------------------
+            yield from prepare_and_open_the_league(leg, floor=FLOOR)
+
+            R["latch_calls"] = getattr(self, "latch_calls", 0)
+
+            # ---- AND THE BOT CAN CONTINUE -----------------------------------------------------
+            # ⛔ NOT "somewhere reachable" — the NEXT leg is the gauntlet, and it starts by stepping
+            # NORTH from this tile. So the continuation test is: we are on the talk tile, the flag
+            # is set, and the guard tiles are clear. Anything else and the gauntlet cannot start.
+            here = VR._here_tile()
+            R["end_tile"] = (str(_where()), here)
+            R["flag_at_end"] = bool(get_event_flag(CH24_ENTERED_FLAG))
+            R["guard_tiles_clear"] = leg.get("guard_tiles_occupied") == []
+            if (here == LEAGUE_GUARD_TALK_TILE and R["flag_at_end"]
+                    and R["guard_tiles_clear"]):
+                taken.add("T-CONTINUE")
+
+        except Exception as error:  # noqa: BLE001 — a verdict must print even when the run dies;
+            # the readings gathered so far are the evidence, and discarding them would hide WHICH
+            # step failed.
+            # ‼ RE-RAISE AN ABORT FIRST. `on_whiteout` latches, but a whiteout that coincides with a
+            # genuine failure would otherwise be RELABELLED by this handler's message — the
+            # "laundered abort" shape the production rule exists for. This driver sits outside gate
+            # #27's scan list, so nothing would have caught it here.
+            from modules.story.early_game import reraise_if_aborting
+
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            # ‼ RESTORE THE FIXTURE — see the class docstring. Without this, the permanent
+            # ENTERED_ELITE_FOUR and the in-lobby position land in `current_state.ss1`, which the
+            # REAL BOT resumes from.
+            R["leg"] = {k: v for k, v in leg.items() if k != "readings"}
+            for reading in sorted(leg.get("readings", set())):
+                taken.add(reading)
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001 — a failed restore must be LOUD but
+                # must not replace the run's real verdict with a cleanup error.
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        want = set(LEAGUE_ENTRY_READINGS) | {"T-PREMISE", "T-CONTINUE"}
+        missing = sorted(want - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT whiteouts={getattr(self, 'whiteouts', 0)} failure={failure}")
+
+        ok = not missing and failure is None and getattr(self, "whiteouts", 0) == 0
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (latch, get ready OUTSIDE, get inside, "
+            f"ASSERT the guards vacated, and end ON the talk tile with the door open — WITHOUT "
+            f"stepping through) SCOPE: floor={FLOOR}" + ("" if FLOOR == _PROD_FLOOR else f" (NOT production's {_PROD_FLOOR} — the readiness half is SCOPED DOWN)") + "; the commitment step and all five fights are NOT in this leg.")
+        context.set_manual_mode()
+
+
 class Ch24TrainMode(BotMode):
     """`#24-flyladder` PIECE 3 - DOES THE Ch24 TRAINING LEG ACTUALLY RUN? (first execution)
 
@@ -24121,6 +24307,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24SwapTriggerMode()
         elif args.driver == "ch24train":
             context.bot_mode_instance = Ch24TrainMode()
+        elif args.driver == "ch24entry":
+            context.bot_mode_instance = Ch24EntryMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

@@ -20933,3 +20933,82 @@ thirds of the code. ⇒ *a gate's FILE LIST is part of its contract, and an unsc
 3. ⭐ *WIDEN A GATE'S SCOPE ONLY AFTER MEASURING WHAT IT WILL FIND* — offline, before editing the
    gate. A red gate with an unknown-size fix list invites narrowing it back.
 4. ⇒ *WHEN WIDENING PRODUCES FALSE POSITIVES, FIX THE RESOLVER, NOT THE SCOPE.*
+
+## 2026-09-24 — A READING THAT SAID "I COULD NOT READ" SAT IN A PASSING RUN AND I MOVED PAST IT
+
+**Symptom.** The §Ch24 entry-leg drive reported `ACCEPTANCE: PASS`, 7 readings, `missing=[]` — and
+inside that passing output sat `R start_at = ('<unreadable>', (18, 6))` and
+`R end_tile = ('<unreadable>', (9, 3))`. I read both, used the tile halves, and did not ask why the
+map halves were unreadable. Gate `repro_undefined_names.py` then failed the commit with
+`story_harness.py:20590: undefined name 'MapRSE'`.
+
+**Root cause.** My driver's local `_where()` helper referenced `MapRSE` without importing it. Its own
+`except Exception` — written deliberately, with the comment *"an unreadable position is a reading,
+not a crash"* — swallowed the `NameError` and returned the string `"<unreadable>"`. ⇒ **a broad
+handler intended for a flaky memory read silently absorbed a hard coding error instead**, on every
+call, in every run.
+
+⛔⛔ **THE FAILURE IS NOT THE MISSING IMPORT. It is that I accepted `<unreadable>` in a PASSING run.**
+The verdict was green, the readings I cared about were present, and the one field that was
+announcing a defect was the one I did not look at. A green ACCEPTANCE line is exactly the condition
+under which a quiet anomaly gets waved through.
+
+‼ And the fallback made the damage worse than a crash would have been. A `NameError` on the first
+call would have been fixed in seconds. Instead the helper degraded gracefully and produced a
+*plausible-looking* record — `('<unreadable>', (18, 6))` reads like a partial success, not a bug.
+
+**The fix that worked.** Import `MapRSE` in the driver's `run()`. Re-driven: `start_at` now reads
+`EVER_GRANDE_CITY(18, 6)` and `end_tile` reads `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F(9, 3)` — the
+evidence now names the maps it always should have.
+
+**PREVENTION RULES.**
+1. ⛔ *A FIELD WHOSE VALUE IS "I COULD NOT READ THIS" IS A FAILING FIELD, EVEN INSIDE A PASS.* Grep
+   every new evidence file for `<unreadable>`, `ERR:`, `<err`, `None` and `-1` **before** quoting the
+   run as proof. The verdict line does not cover the fields it did not check.
+2. ⛔ *A GRACEFUL FALLBACK MUST NOT BE ABLE TO ABSORB A NameError/AttributeError.* Those are coding
+   errors, not flaky reads. Catch what you meant to catch, or make the fallback string LOUD enough
+   that it cannot be mistaken for data — this tree already lost time to the same shape when a live
+   `ObjectEvent` was read with a template's API and every row came back `AttributeError`.
+3. ⭐ *The gate caught what the passing drive did not.* `repro_undefined_names.py` is pyflakes over
+   the story surface — it is cheap, and it found in 4 seconds what two green drives had carried.
+
+## 2026-09-24 — TWO DRIVES FAILED BECAUSE THE RIDE-OUT STARTED PRESSING B BEFORE THE SCRIPT EXISTED
+
+**Symptom.** §Ch24 leg 1 talked to the League door guards and `ENTERED_ELITE_FOUR` stayed **False**,
+twice — while **every other reading looked perfect**: right tile `(9,3)`, facing `Up`, both guards
+present at `(9,2)`/`(10,2)`, badges all set. The leg's own assertion refused to continue
+(*"the door is shut; do NOT walk at it"*), which was correct, but said nothing about why.
+
+**What did NOT work: two rounds of adjusting the A-press.** I first suspected the button cadence,
+then replaced a duty-cycled mash with the proven nurse sequence from `victory_road.py:2995-3000`
+(*"copy the proven SHAPE, not just the intent"*). Neither changed the outcome.
+
+**Root cause, found by INSTRUMENTING rather than iterating.** Recording the world at the moment of
+the press showed `script_active_after_A = True` and `talk_completed = True` — i.e. **the press and
+the ride-out were both already correct.** What was missing was a **settle**:
+`wait_for_no_script_to_run("B")` begins **pressing B on its first frame**, and called immediately
+after the A it races the guard script's own activation. The conversation never takes hold.
+
+⭐ **The copied shape was necessary and NOT sufficient, for a reason worth keeping.** The nurse
+sequence is `A` → `wait_for_yes_no_question("Yes")` → `wait_for_no_script_to_run("B")`. That middle
+step answers a prompt, and **incidentally supplies the settle**. The guard asks no question, so
+copying the shape minus its yes/no step removed the very thing that made it work.
+
+**The fix that worked.** A named 30-frame settle between the A and the ride-out.
+‼ **It first appeared only as a SIDE EFFECT of adding the diagnostics** — which means a later
+cleanup of "unused" diagnostic code would have silently reintroduced the bug. ⇒ it is now
+`_GUARD_SCRIPT_SETTLE_FRAMES = 30`, a module constant with its reasoning attached.
+✅ And it **fails safe** if ever insufficient: the ride-out returns early, and the flag/tile
+assertion then raises rather than reporting a false PASS.
+
+**PREVENTION RULES.**
+1. ⛔ *NEVER CALL AN UNCONDITIONAL RIDE-OUT GENERATOR IMMEDIATELY AFTER A BUTTON PRESS THAT STARTS A
+   FIELD SCRIPT.* Those helpers press a button every frame from frame 0. Either settle first, or
+   wait for the script to be ACTIVE before waiting for it to be gone.
+2. ⛔ *WHEN COPYING A PROVEN INTERACTION SHAPE, ASK WHAT EACH STEP IS FOR — INCLUDING THE ONE YOU ARE
+   DROPPING.* A step removed as "not applicable" may be carrying timing the rest depends on.
+3. ⭐ *AFTER TWO FAILED FIXES, STOP FIXING AND START MEASURING.* Two iterations produced nothing; one
+   round of instrumentation produced the answer AND proved the parts I had been "fixing" were
+   already correct.
+4. ⛔ *A FIX THAT ARRIVES AS A SIDE EFFECT MUST BE PROMOTED TO A NAMED, EXPLAINED THING* before the
+   scaffolding that produced it is removed.

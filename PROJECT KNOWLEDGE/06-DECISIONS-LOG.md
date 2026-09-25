@@ -6894,3 +6894,31 @@ The §Ch24 entry leg and gauntlet come first. Then dex completion, which needs `
 one-line cause fixed (`_catch_team_target = 4` is a PARTY-SIZE target including the starter) and
 `#24-dexhunt`'s fence proven in motion (its A/B has never been run). ⛔ Do NOT start organic-play
 work ahead of those; the user asked for a discussion first and two of its five pieces are decisions.
+
+
+## 2026-09-24 — ⭐ DESIGN RULING: §Ch24 LEG 1 STOPS **AT** THE LEAGUE DOOR; THE COMMITMENT BELONGS TO THE GAUNTLET LEG
+
+**The choice.** `prepare_and_open_the_league()` gets the party ready, walks into the lobby, talks the
+guards aside, asserts they vacated — and **stops on `(9,3)` facing an open door.** It does **not**
+step onto `(9,1)`.
+
+**THE ALTERNATIVE THAT WAS REJECTED, AND WHY.** The first design stepped through. A 4-agent review
+killed it, and the reasoning is the record worth keeping:
+* `(9,1)`/`(10,1)` are `MB_NON_ANIMATED_DOOR` and **step-on** — arriving IS the warp, and it is the
+  point of no return (every backward warp in the interior is `MB_NORMAL`, which all three warp paths
+  reject — measured, `evidence/2026-09-24-league-return-warps.stdout.txt`).
+* On success the bot would stand in `HALL5`, whose **only firing warp is FORWARD** into Sidney's room.
+* ⛔⛔ And `story_mode.py`'s next executable statement sets `_reached_end_of_content = True` and hands
+  to manual ⇒ **`StoryEndlessResetMode` would score an in-gauntlet strand as a GENUINE COMPLETION**,
+  poisoning every overnight batch, with `HALL5` written into `current_state.ss1` — which the real bot
+  resumes from.
+⇒ **a leg must not cross a one-way threshold when nothing is built on the other side.**
+
+**CONSEQUENCES, ACCEPTED DELIBERATELY.**
+* The leg ends somewhere **safe**: the lobby has a free nurse and a measured 14-waypoint exit.
+* ⛔ It is **NOT wired into `_play`**. Wiring is a separate commit that must land **together with**
+  the gauntlet leg and a retargeted END-OF-CONTENT banner.
+* The gauntlet leg inherits the commitment step **and** the problem that comes with it:
+  `ENTERED_ELITE_FOUR` is **permanent and never cleared**, so after a loss a free nurse heal would
+  re-pass any health-based readiness gate forever while levels never change. **Re-entry must be
+  gated on something material, not on health.**

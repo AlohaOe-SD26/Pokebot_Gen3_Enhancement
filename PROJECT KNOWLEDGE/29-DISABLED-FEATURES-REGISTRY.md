@@ -245,3 +245,39 @@ Rows in section A marked *"not transcribed here yet"* are **deliberately blank r
 guessed**. This project's north star includes producing training material for a future agent, and
 an invented measurement is worse than an absent one. Fill them from `07-CHANGELOG` /
 `08-MISTAKES` when someone next touches the relevant area.
+
+## `POKEBOT_CH24_FAULT_SKIPTALK` — §Ch24 leg 1, skip the League guard conversation
+
+**Added 2026-09-24.** Read inside PRODUCTION code (`modules/story/pokemon_league.py`,
+`prepare_and_open_the_league`) rather than in the driver, so a driver cannot fake it.
+
+**What it does:** `=1` skips the bounded A-press loop that talks the League door guards aside.
+
+**Why it exists:** the leg's next step ASSERTS that the guards actually moved — the flag
+`ENTERED_ELITE_FOUR` is True **and** a live object read shows `(9,2)`/`(10,2)` empty. That assertion
+is the step nothing in this tree did before (`ch24probe` checked only *"are we on HALL5"*, the
+consequence two steps later). ⛔ **A green assertion is indistinguishable from one that can never
+fail.** With this arm set, `E1-GUARDS` MUST fail — that is the proof the check is live.
+
+**Default:** unset ⇒ OFF. The happy path never reads it as set.
+
+## `POKEBOT_CH24ENTRY_FAULT` — §Ch24 leg 1 driver fault arms (`--driver ch24entry`)
+
+**Added 2026-09-24.** Read in `tools/story-dev/story_harness.py`'s `Ch24EntryMode.run`.
+
+**Values:** `nolatch` — hides the driver's own `mark_ch24_owns_run`, so the leg cannot latch.
+
+**Why it exists:** the leg's FIRST act is to latch the run, because `_ch23_settled()` is
+`_ch24_owns_run or ch23_chapter_done()` and `ch23_chapter_done()` requires `_on_map(EVER_GRANDE)` —
+**false the moment the bot is inside the League building**. An unlatched run that resumes in the
+lobby re-enters §Ch23, burns its three attempts and raises. This arm proves `E1-LATCHED` is a REAL
+reading rather than a foregone tick.
+
+**Measured 2026-09-24:** with the arm set, `latch_calls = 0` and `missing = ['E1-LATCHED']` — **only
+that one reading**, with the other six still taken. ⭐ An arm that removes exactly one reading and
+leaves the rest is isolating the thing it targets, which is what makes it evidence.
+
+⛔ **INJECTED INTO THE SUBJECT, NOT THE HARNESS.** Nulling `context.bot_mode_instance` instead would
+kill the run and print NO verdict — and a fault arm must fail by PRINTING a verdict, never by dying.
+
+**Default:** unset ⇒ OFF.
