@@ -3162,3 +3162,60 @@ as three live fixes.
 by an overworld pickup before Victory Road, which would reach `STATUS_ONLY` at `:188` outside the
 basket. No such path was found in `modules/story`, so the claim holds as far as it was checked —
 **as far as it was checked** is the accurate qualifier.
+
+
+# 2026-09-24d — §Ch24 LEG 1 AND THE LATCH FIX: THE LEAGUE DOOR OPENS IN THIS FORK TOO
+
+**USER-AUTHORISED** (2026-09-24, verbatim: *"promote then proceed…"*).
+**ROLLBACK TAG:** `pre-promote-2026-09-24d` → `e7a1524c` (annotated, pushed; verified on local **and**
+origin **before** anything was copied).
+**TOOL:** `promote.py --restore-point pre-promote-2026-09-24d --go`
+→ `drift after: 0`, `orphaned after: 0`, **byte-identical 1/1**.
+
+## WHAT MOVED — one file, two things
+
+| file | what it brings |
+|---|---|
+| `modules/story/pokemon_league.py` | **(1)** `prepare_and_open_the_league()` — §Ch24 leg 1, with `LEAGUE_ENTRY_READINGS`, `CH24_ENTERED_FLAG`, `_GUARD_SCRIPT_SETTLE_FRAMES` and `_ride_out_the_guard_script`. **(2)** the **latch-before-self-skip** fix to `train_for_league`. |
+
+## ⭐ VERIFICATION — A REAL DRIVE IN THIS FORK, PLUS A CLEAN BEFORE/AFTER
+
+| check, against `custom` | BEFORE | AFTER |
+|---|---|---|
+| `prepare_and_open_the_league` defined | ⛔ **False** | ✅ **True** |
+| `_ride_out_the_guard_script` defined | ⛔ **False** | ✅ **True** |
+| `LEAGUE_ENTRY_READINGS` present | ⛔ **False** | ✅ **True** |
+| latch sits above the self-skip | ⛔ **False** | ✅ **True** |
+| **`--driver ch24entry --build custom`** | *(leg did not exist)* | ✅ **`ACCEPTANCE: PASS`** |
+| gates #68/#70/#71/#73 + `repro_pid_identity_key` `--build custom` | ✅ | ✅ |
+
+**In CUSTOM:** 7 readings, `missing=[]`, `whiteouts=0`, `flag_at_end=True`,
+`guard_tiles_clear=True`, `end_tile = EVER_GRANDE_CITY_POKEMON_LEAGUE_1F(9,3)`.
+Evidence: `tools/story-dev/evidence/2026-09-24-ch24entry-CUSTOM.stdout.txt`.
+‼ The BEFORE readings were captured **before the copy**, because they are unrecoverable afterwards —
+a lesson this session already paid for once.
+
+## ⚠⚠ THE BLAST RADIUS IS **ZERO**, AND THAT IS DELIBERATE
+
+⛔ **`prepare_and_open_the_league` IS NOT WIRED INTO `story_mode.py`.** Nothing calls it. It ships
+**inert** in this fork, exactly as in the sandbox.
+⇒ that is not an oversight — it is the design ruling (`06-DECISIONS-LOG.md`, 2026-09-24): the leg
+stops **at** the door, and **wiring is a separate commit that must land together with the gauntlet
+leg and a retargeted END-OF-CONTENT banner.** Wiring it alone would let a run end in the lobby and
+then hit a banner claiming the bot is "out at Ever Grande with the party healed", which is false.
+
+⭐ **THE ONE THING THAT IS NOT INERT** is the `train_for_league` latch fix — it changes behaviour on
+the **self-skip path**: a run whose party is already at the floor now **owns the run** instead of
+silently leaving `_ch24_owns_run` false. That is strictly safer, and it is a prerequisite for ever
+wiring leg 1: `ch23_chapter_done()` requires `_on_map(EVER_GRANDE)`, which is **false** the moment
+the bot is inside the League building.
+
+## ⛔ WHAT THIS PROMOTION DOES **NOT** BRING
+
+* **The gauntlet.** None of the five fights exists, in either fork.
+* **The commitment step.** The leg deliberately stops before `(9,1)`.
+* **A production floor drive.** The custom drive ran at `CH24_ENTRY_FLOOR=1`, so the readiness half
+  is scoped down; at the real `CH24_LEVEL_FLOOR = 65` it would train two mūles for ~20 h first.
+* **Re-entry safety after a loss.** `ENTERED_ELITE_FOUR` is permanent and never cleared ⇒ the future
+  gauntlet leg must gate re-entry on something **material**, not on health, or a free nurse heal
+  re-passes the gate forever while levels never change.

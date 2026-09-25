@@ -1586,6 +1586,12 @@ def apply_moveset_plan(report=None, plan=MOVESET_PLAN) -> Generator:
 #: USER RULING (2026-09-19): every party member must sit between L65 and L75, and they need not be
 #: equal. USER RULING 12 (2026-09-23): train ALL SIX — the party is NOT reduced, and Zigzagoon and
 #: Castform are NOT boxed.
+#: ⛔ BARE NAME, NO `FLAG_` PREFIX. No row in `modules/data/event_flags/emerald.txt`
+#: carries one, and `get_event_flag` returns **False silently** for an unknown name
+#: (`memory.py:336-338`) — so the prefixed spelling reads as a hardcoded False forever.
+#: Two live bugs of exactly this shape were found in the harness on 2026-09-24.
+CH24_ENTERED_FLAG = "ENTERED_ELITE_FOUR"
+
 CH24_LEVEL_FLOOR = 65
 
 #: ⛔ THE PURSE IS A BACKSTOP, NOT A SCHEDULER, AND THAT DISTINCTION IS THE WHOLE DESIGN.
@@ -1939,16 +1945,17 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
 
     yield from wait_until_truly_controllable()
 
-    trainees = ch24_trainees_below_floor(floor)
-    report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
-    if not trainees:
-        console.print(f"[dim]§Ch24: every party member is already at or above L{floor} — "
-                      f"skipping the training leg.[/]")
-        report["skipped"] = True
-        return
-
-    # ⛔ LATCH FIRST, BEFORE A SINGLE STEP IS TAKEN. The moment the first Fly happens the position
-    # conjunct is broken; latching afterwards would leave a window in which a derail re-enters §Ch23.
+    # ⛔⛔ LATCH BEFORE THE SELF-SKIP, NOT AFTER IT — AND THIS ORDER WAS WRONG UNTIL 2026-09-24.
+    # The latch used to sit BELOW the `if not trainees: return` below, so a run whose party was
+    # ALREADY at or above the floor took the self-skip and **never latched at all**. The comment
+    # right here said "latching afterwards would leave a window in which a derail re-enters §Ch23"
+    # — and the code did exactly that on its own skip path.
+    # ‼ BENIGN ONLY WHILE NOTHING RUNS AFTER THIS LEG, which is true today and stops being true the
+    # instant the League-entry leg is wired: `_ch23_settled()` is `_ch24_owns_run or
+    # ch23_chapter_done()`, and `ch23_chapter_done()` requires `_on_map(EVER_GRANDE)` — FALSE in the
+    # League lobby and FALSE in HALL5. An unlatched resumed run would therefore re-enter §Ch23,
+    # burn its three attempts and raise. MEASURED live by `Ch24LobbyMode`, not predicted.
+    # ⇒ the latch is about OWNING THE RUN, which is true whether or not there is training left to do.
     mode = getattr(context, "bot_mode_instance", None)
     marker = getattr(mode, "mark_ch24_owns_run", None)
     if callable(marker):
@@ -1961,6 +1968,14 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
         report["latched"] = False
         console.print("[yellow]§Ch24: no StoryMode instance to latch — §Ch23 re-entry is NOT "
                       "suppressed. Expected under a standalone driver; a defect in production.[/]")
+
+    trainees = ch24_trainees_below_floor(floor)
+    report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
+    if not trainees:
+        console.print(f"[dim]§Ch24: every party member is already at or above L{floor} — "
+                      f"skipping the training leg.[/]")
+        report["skipped"] = True
+        return
 
     console.print(f"[bold cyan]§Ch24: training {len(trainees)} mōn to L{floor} — "
                   f"{', '.join(f'{sp} L{lv}' for _p, sp, lv in trainees)}[/]")
@@ -2002,3 +2017,305 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
                       f"{', '.join(f'{sp} L{lv}' for _p, sp, lv in left)}[/]")
     else:
         console.print(f"[bold green]§Ch24: every party member is now at or above L{floor}.[/]")
+
+
+#: The readings this leg publishes. ⛔ THE DRIVER IMPORTS THIS — it must never keep a private copy.
+#: A renamed label with a private copy makes a PERFECT run report `missing=[…]`, and the obvious
+#: repair is then to delete a required reading. Precedent: `LEG23_READINGS`, `ICEBEAM_READINGS`.
+LEAGUE_ENTRY_READINGS = (
+    "E1-LATCHED",     # the run is OWNED before a single button is pressed
+    "E1-READY",       # the party satisfies the floor, decided OUTSIDE where it can still be fixed
+    "E1-INSIDE",      # we are standing in the League lobby
+    "E1-GUARDS",      # the guards have VACATED (9,2)/(10,2) — asserted, not assumed
+    "E1-AT-DOOR",     # we stand on (9,3), facing the open door, WITHOUT having stepped through
+)
+
+#: Where the guard is talked to. One tile south of the left door tile, facing north.
+LEAGUE_GUARD_TALK_TILE = (9, 3)
+
+#: Frames to let the guard's conversation TAKE HOLD after the A press, before riding it out.
+#: ⛔ LOAD-BEARING — see `prepare_and_open_the_league`. `wait_for_no_script_to_run` presses B
+#: immediately, which races the script's startup if called straight after the A. 30 frames was
+#: the value that worked on the first passing drive; it is a floor, not a tuned optimum.
+_GUARD_SCRIPT_SETTLE_FRAMES = 30
+
+
+
+def _ride_out_the_guard_script() -> Generator:
+    """Wait out the League guard's conversation, then let the avatar settle.
+
+    Split out so the whole sequence sits inside ONE frame bound at the call site — the helpers it
+    uses (`tasks_scripts.py`) contain uncapped waits, including a bare `while True:`.
+    """
+    from modules.modes.util.tasks_scripts import wait_for_no_script_to_run
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_standing_still
+
+    yield from wait_for_no_script_to_run("B")
+    yield from wait_for_player_avatar_to_be_standing_still("B")
+
+
+def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator:
+    """§Ch24 LEG 1 — make the party gauntlet-ready, get inside, and OPEN THE DOOR. Then STOP.
+
+    ⛔⛔ THIS LEG DELIBERATELY DOES NOT STEP ONTO `(9,1)`, AND THAT IS THE WHOLE DESIGN.
+    `(9,1)`/`(10,1)` are `MB_NON_ANIMATED_DOOR` and **step-on**: arriving there IS the warp, and it
+    is the point of no return — every backward warp in the interior sits on `MB_NORMAL`, which the
+    warp code rejects (measured: `evidence/2026-09-24-league-return-warps.stdout.txt`).
+    ‼ An earlier draft of this leg DID step through, and a design review killed it: the bot would
+    have landed in `HALL5`, whose only FIRING warp is forward into Sidney's room, and the very next
+    statement in `story_mode.py` sets `_reached_end_of_content = True` and hands to manual. ⇒
+    **`StoryEndlessResetMode` would have scored an in-gauntlet strand as a GENUINE COMPLETION**, and
+    `HALL5` would have been written into `current_state.ss1` — which the real bot resumes from.
+    ⇒ **the commitment step belongs to the GAUNTLET leg, which does not exist yet.** This leg ends
+    somewhere safe: the lobby has a free nurse and a reachable exit (measured, 14 waypoints).
+
+    ⭐⭐ WHY READINESS IS DECIDED **OUTSIDE**, BEFORE THE BUILDING. All three remedies are
+    non-functional from the lobby, verified one by one:
+      * `heal_at_league` raises on an already-healthy party (its own anti-vacuity guard) **and** on
+        `not _on_map(EG)` — from the lobby it raises either way, and its postcondition is outside;
+      * `stock_for_the_elite_four`'s money guard fires before any map check (`LEAGUE_MIN_MONEY`
+        54,300) and the measured post-basket wallet is ₽1,741 — a second call raises;
+      * `train_for_league` needs **Fly**, and the lobby is `MAP_TYPE_INDOOR`.
+    ⇒ a readiness gate that cannot remedy is just a halt. **Decide it where it can still be fixed.**
+
+    ‼‼ AND THIS LEG DELIBERATELY DOES WHAT §Ch23 FORBIDS. `victory_road.py`'s leg 10 says, in
+    capitals, *"Never press A near the guards at (9,2)/(10,2): it sets `FLAG_ENTERED_ELITE_FOUR`
+    permanently"*. That prohibition is **correct for §Ch23**, whose job is to heal and shop and get
+    out. Opening that door is **this chapter's objective**. ⇒ do not "fix" this leg to respect that
+    rule, and do not relax the §Ch23 rule to match this one.
+
+    IDEMPOTENT: re-entering after a derail re-reads the world and does only what is left.
+    """
+    from modules.console import console
+    from modules.context import context
+    from modules.map import get_map_objects
+    from modules.memory import _event_flags, get_event_flag
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.modes.util.sleep import wait_for_n_frames
+    from modules.story import victory_road as VR
+    from modules.story.early_game import (
+        _yield_bounded_by_frames,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    # ⛔ VACUITY-GUARD THE FLAG NAME BEFORE IT IS EVER READ. `get_event_flag` returns **False
+    # silently** for a name it does not know (`memory.py:336-338`), and NO row in
+    # `event_flags/emerald.txt` carries a `FLAG_` prefix. An unguarded misspelling here would make
+    # every check below a hardcoded False — the leg would talk to guards that had already moved,
+    # forever. (Two live bugs of exactly this shape were found in the harness on 2026-09-24.)
+    if CH24_ENTERED_FLAG not in _event_flags:
+        raise BotModeError(
+            f"§Ch24 leg 1: flag name {CH24_ENTERED_FLAG!r} is NOT in the event-flag table "
+            f"({len(_event_flags)} entries). `get_event_flag` returns False SILENTLY for an unknown "
+            f"name, so every reading in this leg would be a hardcoded False."
+        )
+
+    yield from wait_until_truly_controllable()
+
+    # ---- LATCH FIRST, BEFORE A SINGLE BUTTON ---------------------------------------------------
+    # ⛔ `_ch23_settled()` is `_ch24_owns_run or ch23_chapter_done()`, and `ch23_chapter_done()`
+    # requires `_on_map(EVER_GRANDE)` — FALSE the moment we are inside the building. An unlatched
+    # run that resumes in the lobby re-enters §Ch23, burns its three attempts and raises. Measured
+    # live by `Ch24LobbyMode`, not predicted.
+    mode = getattr(context, "bot_mode_instance", None)
+    marker = getattr(mode, "mark_ch24_owns_run", None)
+    if callable(marker):
+        marker()
+        report["latched"] = True
+        _take(report, "E1-LATCHED")
+    else:
+        report["latched"] = False
+        console.print("[yellow]§Ch24 leg 1: no StoryMode instance to latch — §Ch23 re-entry is NOT "
+                      "suppressed. Expected under a standalone driver; a defect in production.[/]")
+
+    # ---- READINESS, DECIDED OUTSIDE ------------------------------------------------------------
+    # ⛔ THE FLOOR IS A PARAMETER, NOT A CONSTANT — same shape as `train_for_league`.
+    # It lets a drive exercise the TRAVEL + GUARD half without first paying for a ~20 h
+    # grind, and the driver's ACCEPTANCE line reports which floor it ran at so the scope
+    # can never be over-read. Production callers pass nothing and get CH24_LEVEL_FLOOR.
+    below = ch24_trainees_below_floor(floor)
+    report["below_floor_before"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in below]
+    if below:
+        if not VR._on_map(VR.EG):
+            # ⚠ REPORT, DO NOT RAISE. Being unable to train from here is a fact about POSITION, and
+            # the leg can still do its other work; the gauntlet leg is what must refuse to start.
+            report["train_skipped_offmap"] = str(VR._where())
+            console.print("[yellow]§Ch24 leg 1: party is below the floor and we are not on EVER "
+                          "GRANDE, so training cannot run here. Continuing WITHOUT training — the "
+                          "gauntlet leg must refuse to start.[/]")
+        else:
+            console.print(f"[cyan]§Ch24 leg 1: {len(below)} mōn below L{floor} — "
+                          f"training BEFORE entering, while it is still possible.[/]")
+            train_report = {}
+            yield from train_for_league(train_report, floor=floor)
+            report["train"] = train_report
+    left = ch24_trainees_below_floor(floor)
+    report["below_floor_after"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in left]
+    if not left:
+        _take(report, "E1-READY")
+
+    # ---- GET INSIDE ----------------------------------------------------------------------------
+    if not VR._on_map(VR.LEAGUE_1F):
+        if not VR._on_map(VR.EG):
+            raise BotModeError(
+                f"§Ch24 leg 1: must start on EVER_GRANDE_CITY or in the League lobby, but we are at "
+                f"{VR._where()}. This leg does not navigate across the region."
+            )
+        yield from _yield_bounded_by_frames(
+            VR._navigate_riding_out(VR.EG, VR.LEAGUE_DOOR_APRON), 200_000)
+        yield from wait_until_truly_controllable()
+        # ⛔ `from_map` IS THE MAP WE ARE LEAVING, NOT THE DESTINATION. The helper loops
+        # `while _map_group_number() == from_map`, so passing the DESTINATION makes the condition
+        # false on the first test and it returns having pressed NOTHING — silently. Caught on this
+        # leg's first drive by the arrival assertion below, which is exactly what that assertion is
+        # for: a helper that no-ops is indistinguishable from one that worked, until something
+        # re-reads the world.
+        finished = yield from _yield_bounded_by_frames(
+            VR._walk_through_warp("Up", VR.EG.value), 60_000)
+        report["walked_in"] = bool(finished)
+        yield from wait_until_truly_controllable()
+    if not VR._on_map(VR.LEAGUE_1F):
+        raise BotModeError(
+            f"§Ch24 leg 1: tried to enter the League but we are at {VR._where()}, not the lobby.")
+    report["inside_at"] = (str(VR._where()), VR._here_tile())
+    _take(report, "E1-INSIDE")
+
+    # ---- CLEAR THE GUARDS ----------------------------------------------------------------------
+    def _guard_tiles_occupied() -> list:
+        """Guard tiles occupied by a NON-PLAYER object, read LIVE.
+
+        ‼ `get_map_objects()` returns the LIVE `ObjectEvent` (`map.py:1107`), whose coordinate
+        attribute is **`current_coords`** — NOT the static `ObjectEventTemplate`'s
+        `local_coordinates` (`map.py:1588`). Reading the template's API off the live object raises
+        `AttributeError` for every row, which would read as "no guards" unless it is caught.
+        ‼ And the list INCLUDES THE PLAYER, so it must be filtered.
+
+        ⚠ CAMERA-RANGE LIMIT, STATED RATHER THAN GUARDED. `get_map_objects()` is a window, not a
+        census, so "no object on that tile" could in principle mean "out of range". This is safe
+        HERE and nowhere else: the caller stands on (9,3), one tile from both guard tiles, so they
+        cannot be outside the window. ⛔ Do NOT reuse this helper from across the lobby — the
+        sibling `probe_league_guards.py` reports UNKNOWN in that case, and it has to.
+        """
+        out = []
+        for ob in get_map_objects():
+            try:
+                if "isPlayer" in ob.flags:
+                    continue
+                tile = tuple(ob.current_coords)
+            except Exception as error:  # noqa: BLE001 - one unreadable object must not be read as
+                # "the tile is clear"; treat it as STILL OCCUPIED and say so. Failing closed is the
+                # only safe direction: a phantom clearance sends the bot at a door that is shut.
+                reraise_if_aborting(error)
+                out.append(("<unreadable>", type(error).__name__))
+                continue
+            if tile in VR.LEAGUE_GUARD_TILES:
+                out.append(tile)
+        return out
+
+    already = get_event_flag(CH24_ENTERED_FLAG)
+    report["flag_before"] = bool(already)
+
+    # ⛔ FAULT ARM, READ IN PRODUCTION SO IT IS DRIVER-PROOF: `POKEBOT_CH24_FAULT_SKIPTALK=1` skips
+    # the guard conversation entirely. It exists to prove the ASSERTION below is LIVE — with the
+    # talk skipped, `E1-GUARDS` must FAIL. Without an arm like this, a green assertion is
+    # indistinguishable from an assertion that can never fail, and this tree has shipped exactly
+    # that before. Registered in `29-DISABLED-FEATURES-REGISTRY.md` (lint_docs R6).
+    import os as _os
+
+    _skip_talk = _os.environ.get("POKEBOT_CH24_FAULT_SKIPTALK") == "1"
+    if _skip_talk:
+        report["fault_skiptalk"] = True
+        console.print("[magenta]§Ch24 leg 1: FAULT ARM SKIPTALK — not talking to the guards. The "
+                      "assertion below MUST fail; if it passes, the assertion is decoration.[/]")
+
+    if not already and not _skip_talk:
+        yield from _yield_bounded_by_frames(
+            VR._navigate_riding_out(VR.LEAGUE_1F, LEAGUE_GUARD_TALK_TILE), 60_000)
+        yield from wait_until_truly_controllable()
+        yield from ensure_facing_direction("Up")
+        # ⛔⛔ ONE A, THEN RIDE THE SCRIPT OUT. DO NOT MASH.
+        # ‼ MEASURED ON THIS LEG'S FIRST DRIVE, and the lesson was already written down three weeks
+        # earlier at `victory_road.py:2986-2996`: a duty-cycled A-press loop reached (9,3), faced
+        # north correctly, and **opened nothing** — `ENTERED_ELITE_FOUR` stayed False. The guard's
+        # script is `message` / `waitmessage` / `delay 120` / two `applymovement`s / `playfanfare`
+        # and only THEN `setflag`; mashing A drives msgboxes open and shut faster than that can run.
+        # ⇒ *"when a proven helper exists for an interaction, copy its SHAPE, not just its intent —
+        # the shape is where the timing knowledge lives."* This is the nurse sequence from
+        # `victory_road.py:2995-3000`, minus its yes/no step (the guard asks no question).
+        # ⛔ AND IT IS BOUNDED: `wait_for_no_script_to_run` lives in `tasks_scripts.py`, which
+        # carries uncapped wait loops including a bare `while True:`.
+        # ⚠ DIAGNOSTICS AT THE MOMENT OF THE PRESS. Two drives failed here with the flag still
+        # False, and guessing at causes is how this project has burned whole days. Record what is
+        # actually true when A is pressed, so the next failure names its own reason.
+        from modules.player import get_player_avatar as _gpa
+        from modules.tasks import get_global_script_context as _gsc
+
+        try:
+            _av = _gpa()
+            report["talk_tile"] = tuple(_av.local_coordinates)
+            report["talk_facing"] = str(_av.facing_direction)
+        except Exception as error:  # noqa: BLE001 - a diagnostic must not break the leg
+            reraise_if_aborting(error)
+            report["talk_facing"] = f"<unreadable {type(error).__name__}>"
+        report["guards_at_press"] = [tuple(o.current_coords) for o in get_map_objects()
+                                     if "isPlayer" not in o.flags]
+
+        yield
+        context.emulator.press_button("A")
+
+        # ⛔⛔ LET THE SCRIPT START BEFORE RIDING IT OUT. THIS WAIT IS LOAD-BEARING, NOT A COURTESY.
+        # ‼ MEASURED, and it cost two failed drives to find: `wait_for_no_script_to_run("B")` begins
+        # PRESSING B immediately. Called straight after the A, it races the guard script's own
+        # startup — the conversation never takes hold and `ENTERED_ELITE_FOUR` stays False, while
+        # every other reading (tile, facing, guards present) looks perfect.
+        # ⭐ It was found by INSTRUMENTING rather than guessing: two rounds of "fix the A-press"
+        # changed nothing, and the diagnostics then showed `script_active_after_A=True` and
+        # `talk_completed=True` — i.e. the press and the ride were both already fine. The settle
+        # below is what was missing, and it first appeared only as a side effect of adding those
+        # diagnostics. ⇒ it is named and explained HERE so that deleting the diagnostics cannot
+        # silently delete the fix.
+        yield from wait_for_n_frames(_GUARD_SCRIPT_SETTLE_FRAMES)
+
+        try:
+            report["script_active_after_A"] = bool(_gsc().is_active)
+        except Exception as error:  # noqa: BLE001 - same reasoning
+            reraise_if_aborting(error)
+            report["script_active_after_A"] = f"<unreadable {type(error).__name__}>"
+
+        finished_talk = yield from _yield_bounded_by_frames(
+            _ride_out_the_guard_script(), 60_000)
+        report["talk_completed"] = bool(finished_talk)
+        yield from wait_until_truly_controllable()
+
+    # ---- ASSERT IT WORKED. THIS IS THE STEP NOTHING IN THE TREE DID BEFORE. ---------------------
+    # ⛔ `ch24probe` checked only "are we on HALL5" — the CONSEQUENCE two steps later, which cannot
+    # distinguish "the guards moved" from "we got lucky". Assert the ACTION: the flag AND the tiles.
+    flag_now = bool(get_event_flag(CH24_ENTERED_FLAG))
+    still = _guard_tiles_occupied()
+    report["flag_after"] = flag_now
+    report["guard_tiles_occupied"] = still
+    if not flag_now:
+        raise BotModeError(
+            f"§Ch24 leg 1: talked to the guard but {CH24_ENTERED_FLAG} is still False at "
+            f"{VR._where()}{VR._here_tile()}. The door is shut; do NOT walk at it.")
+    if still:
+        raise BotModeError(
+            f"§Ch24 leg 1: {CH24_ENTERED_FLAG} is True but {still} is STILL OCCUPIED. The flag and "
+            f"the objects disagree — refusing to treat the way as clear.")
+    _take(report, "E1-GUARDS")
+
+    # ---- END AT THE DOOR, NOT THROUGH IT -------------------------------------------------------
+    if VR._here_tile() != LEAGUE_GUARD_TALK_TILE:
+        yield from _yield_bounded_by_frames(
+            VR._navigate_riding_out(VR.LEAGUE_1F, LEAGUE_GUARD_TALK_TILE), 40_000)
+        yield from wait_until_truly_controllable()
+    yield from ensure_facing_direction("Up")
+    report["end_at"] = (str(VR._where()), VR._here_tile())
+    _take(report, "E1-AT-DOOR")
+    console.print("[bold green]§Ch24 leg 1: the League door is OPEN and the bot stands at "
+                  f"{VR._here_tile()} facing it. ⛔ STOPPING HERE — stepping onto (9,1) is the point "
+                  f"of no return and belongs to the gauntlet leg.[/]")
