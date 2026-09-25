@@ -399,7 +399,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   — the spin tile already sits one step from the arrow warp, so the no-op costs nothing. **Move the spin
   tile one warp deeper (i.e. B1F) and the heal depends on the very navigation the comment says fails.**
   ⚠ **UNRESOLVED, AND I COULD NOT SETTLE IT STATICALLY.** `heal_in_pokemon_center` uses
-  `navigate_to_anywhere` (`higher_level_actions.py:465`), a warp-chaining graph navigator needing live
+  `navigate_to_anywhere` (`higher_level_actions.py:492`), a warp-chaining graph navigator needing live
   state — **not** `calculate_path`. ⇒ **THE CHEAP DECISIVE EXPERIMENT IS A DRIVE:** park at a B1F
   chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
   ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see

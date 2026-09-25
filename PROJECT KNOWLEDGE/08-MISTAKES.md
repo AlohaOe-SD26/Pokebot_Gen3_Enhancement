@@ -19029,7 +19029,7 @@ it: `calculate_path` from B1F to the Ever Grande Poké Center. **It REFUSED.**
 **The control refused too.** I had included 1F→Poké Center as a known-good control, because 278 real
 heals from 1F are recorded in prior run logs. It refused identically. ⇒ `calculate_path` is simply not
 how cross-map heal navigation is performed — `heal_in_pokemon_center` uses `navigate_to_anywhere`
-(`higher_level_actions.py:465`), a warp-chaining graph navigator. **Wrong instrument.** The probe
+(`higher_level_actions.py:492`), a warp-chaining graph navigator. **Wrong instrument.** The probe
 printed `INCONCLUSIVE` instead of a finding, exactly as designed.
 
 **Why this is worth an entry even though nothing broke.** Without the control I would have filed

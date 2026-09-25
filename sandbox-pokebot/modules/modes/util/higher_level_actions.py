@@ -49,6 +49,33 @@ from ...mart import get_mart_buyable_items, get_mart_buy_menu_scroll_position, g
 from ...pokeblock_feeder import get_active_pokeblock_feeder_for_location
 
 
+
+def withdraw_pid_source(hm_pids, counter_pids) -> "tuple[object, str]":
+    """Which PIDs should this PC visit collect, and on whose behalf? PURE, and therefore GATED.
+
+    Returns `(pids, source)` where source is `"hm-carrier"`, `"counter"` or `"none"`.
+
+    ⛔⛔ **THE HM SET WINS, AND THE REASON IS NOT SYMMETRY.** `_hunted_counter_pids` is
+    **MONOTONIC**: it is created once (`story_mode.py:1974`) and only ever `.add()`ed
+    (`:2563`) — **nothing in the tree ever clears it**. So the intuitive `counter or hm` would
+    mean that from the FIRST counter hunt of a run onward, a boxed HM carrier could never be
+    collected again. ‼ That failure is invisible to any test that does not hunt a counter FIRST,
+    which is precisely why this is a gated function and not an inline `or`.
+
+    ⚠ By contrast `_wanted_hm_learner_pids` is armed for exactly ONE PC trip by
+    `ensure_hm_learner_making_room` and disarmed in its `finally`, so it is empty on every
+    ordinary heal — and this returns the counter set unchanged, exactly as before.
+
+    ⭐ THE SOURCE LABEL EXISTS SO THE RUN LOG NAMES THE ERRAND (CLAUDE.md §7: instrument the
+    ACTION). "Collected a counter" and "collected an HM carrier" used to be the same sentence.
+    """
+    if hm_pids:
+        return hm_pids, "hm-carrier"
+    if counter_pids:
+        return counter_pids, "counter"
+    return counter_pids, "none"
+
+
 def withdraw_precedence(pids, needs_party_slot: bool, fault: bool = False) -> "tuple[bool, str]":
     """Should the counter-withdraw run GIVEN that this visit may have been entered to FREE a slot?
 
@@ -650,7 +677,19 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             from modules.context import context as _ctx
             from modules.story.pc_trip import withdraw_from_box
 
-            _pids = getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
+            # ⛔⛔ TWO SOURCES, AND THE ORDER IS LOAD-BEARING (2026-09-25, the HM directive).
+            # `_wanted_hm_learner_pids` is armed for exactly ONE PC trip by
+            # `ensure_hm_learner_making_room` and disarmed in its `finally`, so it is empty on
+            # every ordinary heal and this reads exactly as before.
+            # ‼ IT MUST COME FIRST. `_hunted_counter_pids` is MONOTONIC — set once at
+            # `story_mode.py:1974` and only ever `.add()`ed at `:2563`, never cleared — so
+            # `counter or hm` would mean that after the FIRST counter hunt of a run the HM
+            # carrier could never be collected again. That bug would be invisible in any test
+            # that did not hunt a counter first.
+            _pids, _pid_source = withdraw_pid_source(
+                getattr(_ctx.bot_mode_instance, "_wanted_hm_learner_pids", None),
+                getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None),
+            )
             # ⛔ #24-pcpingpong — arbitrate against the KI-63 deposit 27 lines above. The
             # decision is a PURE function so every branch is reachable by a test; see its docstring
             # for the 135/135 measurement and why `POKEBOT_PCPINGPONG_FAULT=1` exists.
@@ -663,7 +702,7 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             # hunted counter, so this on screen would be noise — and a noisy diagnostic is one that
             # gets ignored, which puts us right back where we started. In the transcript it is the
             # line that names the failure instantly.
-            _piggyback_report("counter withdraw", _why, console_too=_should_withdraw)
+            _piggyback_report(f"{_pid_source} withdraw", _why, console_too=_should_withdraw)
             if _should_withdraw:
                 # ⛔⛔ INSTRUMENT THE ACTION, NOT ITS INPUT (`CLAUDE.md` §7). `_should_withdraw`
                 # above is the INPUT — a candidate, not an attempt. THIS is the value the caller
@@ -676,7 +715,7 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
                 # instead of only by a live PC trip.
                 _landed, _line = withdraw_verdict_report(_verdict)
                 _piggyback_report(
-                    "counter withdraw result", _line,
+                    f"{_pid_source} withdraw result", _line,
                     # A real collection is worth the screen; the two NO-ATTEMPT codes are the
                     # routine case and stay in the run log. Failures route themselves — the helper
                     # sends anything containing "FAILED" to the console regardless of this flag.

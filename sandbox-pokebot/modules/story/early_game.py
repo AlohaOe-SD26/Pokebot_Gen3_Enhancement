@@ -5047,6 +5047,55 @@ def ensure_hm_learner(item) -> Generator:
     return slot
 
 
+
+def _withdraw_hm_learner(item, pids, heal_centers) -> Generator:
+    """Make ONE Poké Centre trip to collect a boxed HM carrier. Returns its party slot, or None.
+
+    ⛔ THE WITHDRAW RIDES THE EXISTING PIGGYBACK in `heal_in_pokemon_center`, because
+    `withdraw_from_box` must run while we are still INSIDE the centre. Arming
+    `_wanted_hm_learner_pids` is how this errand asks for it; the `finally` disarms it.
+
+    ‼ **NEVER LEAVE THE HOOK ARMED.** It would then fire on every later heal in the run — the
+    measured harm that keeps `POKEBOT_PC_ROTATION` pinned at 0.
+    ‼ **ONE PID, NOT THE WHOLE LIST.** `find_in_box` returns the first **BOX-ORDER** match, so
+    passing the ranked list would silently discard the ranking.
+    ⛔ **DOES NOT SET `_needs_party_slot`** — `withdraw_precedence` DEFERS a withdraw whenever a
+    deposit is also wanted, so setting it would skip this 100% of the time while logging a tidy,
+    plausible sentence. `withdraw_from_box` makes its own room.
+    """
+    from modules.console import console
+    from modules.context import context as _ctx
+    from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+
+    mode = _ctx.bot_mode_instance
+    try:
+        setattr(mode, "_wanted_hm_learner_pids", set(list(pids)[:1]))
+        for centre in heal_centers:
+            _check_abort()
+            try:
+                yield from heal_in_pokemon_center(centre)
+                break
+            except Exception as error:  # noqa: BLE001 - try the next centre, like the hunt path
+                reraise_if_aborting(error)
+                console.print(
+                    f"[yellow]Story: could not reach {getattr(centre, 'name', centre)} to collect "
+                    f"a boxed {item.name} carrier ({error!r}) — trying the next centre.[/]"
+                )
+    finally:
+        setattr(mode, "_wanted_hm_learner_pids", set())
+
+    # ‼ ASSERT IDENTITY, NEVER A COUNT. On the make-room path the party size is UNCHANGED
+    # (6→6→6), so "the party grew" proves nothing — KI-79's exact trap.
+    slot = hm_learner_slot(item)
+    if slot is not None:
+        got = get_party()[slot]
+        console.print(
+            f"[green]Story: withdrew {got.species.name} (pid={got.personality_value:08X}) — it can "
+            f"learn {item.name}; no hunt needed.[/]"
+        )
+    return slot
+
+
 def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
     """`ensure_hm_learner`, but if the ONLY blocker is a FULL PARTY, free one slot and retry once.
 
@@ -5075,6 +5124,25 @@ def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
 
     def _party_size():
         return len([m for m in get_party() if m is not None])
+
+    # ---- PC FIRST — use a carrier we ALREADY OWN before hunting a new one. ---------------------
+    # ⭐ THE USER'S REPORTED BREAK (2026-09-25): the search looked at the PARTY ONLY, so a perfectly
+    # good carrier sitting in a box was invisible and the bot hunted — or derailed with "no swept
+    # training grass hosts a learner species".
+    # ‼ BOTH GUARDS ARE FREE AND BOTH ARE LOAD-BEARING. `hm_learner_slot` is a pure party read, and
+    # `boxed_hm_learner_pids` reads the SAVE BLOCKS, not a PC menu — so asking "do I already own
+    # one?" costs NO journey, and the Poké Centre trip happens only when the answer is yes.
+    # ⛔ `heal_centers` DEFAULTS TO `()`: without this guard the block is a silent no-op, which is
+    # the "built, promoted, and nothing in production ever set the flag" shape KI-63 records.
+    if heal_centers and hm_learner_slot(item) is None:
+        _boxed = boxed_hm_learner_pids(item)
+        if _boxed:
+            _slot = yield from _withdraw_hm_learner(item, _boxed, heal_centers)
+            if _slot is not None:
+                return _slot
+            # ⛔ FALL THROUGH DELIBERATELY. A withdraw that did not land is not a reason to abandon
+            # the errand — the hunt below is still the honest answer, and the piggyback's verdict
+            # line already says which of the five codes happened.
 
     try:
         return (yield from ensure_hm_learner(item))

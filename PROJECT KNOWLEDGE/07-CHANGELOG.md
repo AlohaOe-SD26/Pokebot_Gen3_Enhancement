@@ -35275,3 +35275,51 @@ return under a new name), and a **CONSUMER PARITY** check that fault-testing pro
 **FILES:** `sandbox-pokebot/modules/story/pc_trip.py`, `tools/story-dev/repro_withdraw_room.py`
 (new), `tools/story-dev/run_gates.py` (83 entries = 79 ENFORCING + 4 ADVISORY; `--quick` 73),
 `02-ARCHITECTURE.md`, `04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (KI-102 → RESOLVED), `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ⭐⭐ THE HM SEARCH NOW USES THE PC: a carrier we OWN beats hunting a new one
+
+**THE USER'S REPORTED BREAK, FIXED.** *"when it needs a pokemon for hm moves, currently it just
+looks for what it already has and if there is nothing that it has in the party that can be taught
+the move, it breaks."* ⇒ `ensure_hm_learner_making_room` now checks the **PC** before hunting.
+
+**WHY IT COSTS NOTHING TO ASK.** Both guards are free: `hm_learner_slot` is a pure party read, and
+`boxed_hm_learner_pids` reads the **SAVE BLOCKS**, not a PC menu. So the bot asks *"do I already own
+a carrier?"* from wherever it stands, and makes the Poké Centre trip **only when the answer is yes.**
+
+**⛔⛔ THE SUBTLE PART, AND IT IS NOW A GATE.** The heal's withdraw piggyback has ONE pids slot and
+must now serve TWO errands. The intuitive order — counters first — is **WRONG**:
+`_hunted_counter_pids` is **MONOTONIC** (created once at `story_mode.py:1974`, only ever `.add()`ed
+at `:2563`, **never cleared**), so `counter or hm` would silently disable the HM path **for the rest
+of any run that ever hunted a counter**. ‼ That failure is invisible to any test which does not hunt
+a counter FIRST — which is exactly why it is a PURE, GATED decision (`withdraw_pid_source`) and not
+an inline `or`. The HM set is armed for ONE trip and disarmed in a `finally`, so ordinary heals are
+byte-identical to before.
+
+**⭐ AND THE DECISION RETURNS ITS SOURCE, NOT JUST ITS PIDS** (CLAUDE.md §7 — instrument the ACTION):
+the piggyback's report lines now read `hm-carrier withdraw` / `counter withdraw` instead of leaving
+both errands as the same silent sentence.
+
+**GATED AND FAULT-TESTED:** `repro_withdraw_pid_source.py` (7 checks, offline). Reversing the
+precedence fails **S1**; a label that lies about which set it returned fails **S5**; control green,
+source restored in the same run.
+
+**⛔ FOUR HAZARDS DESIGNED AGAINST, each of which would have made this decoration or worse** (all
+surfaced by the 16-agent design recon before a line was written):
+* the block sits **BEFORE** the `try`, not in the `except` — the 40,000-frame hunt is INSIDE the try,
+  and the *"no swept training grass"* raise (the user's actual break) is re-raised unexamined;
+* it **guards on `heal_centers`**, which defaults to `()` — unguarded it would be a silent no-op,
+  the exact *"built, promoted, and nothing in production ever set the flag"* shape KI-63 records;
+* it passes **ONE PID, not the ranked list** — `find_in_box` returns the first BOX-ORDER match, so
+  the list would silently discard the ranking;
+* it does **NOT** set `_needs_party_slot` — `withdraw_precedence` DEFERS a withdraw whenever a
+  deposit is also wanted, which would skip this 100% of the time while logging a plausible line.
+
+**⚠ NOT YET DRIVEN.** This is built, gated and fault-tested OFFLINE; no live drive has yet collected
+an HM carrier from a box. The gates prove the DECISIONS; a drive would prove the ERRAND.
+
+**FILES:** `sandbox-pokebot/modules/story/early_game.py` (`_withdraw_hm_learner`, the PC-first
+block), `sandbox-pokebot/modules/modes/util/higher_level_actions.py` (`withdraw_pid_source`, the
+report labels), `tools/story-dev/repro_withdraw_pid_source.py` (new),
+`tools/story-dev/run_gates.py` (84 entries = 80 ENFORCING + 4 ADVISORY; `--quick` 74),
+`02-ARCHITECTURE.md`, `04-HANDOFF.md` (drift 5 → 6), `07-CHANGELOG.md`.
