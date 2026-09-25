@@ -1,0 +1,22 @@
+Running mGBA 0.10.2
+========================================================================================================
+  `#24-gameclearflag` — RAM vs FLASH, read from the PINNED FIXTURES. OBSERVE-ONLY.
+  ⛔ A DISAGREEMENT IS THE FINDING: flash TRUE while RAM FALSE means a flash-based gate
+     would report a cleared game on a save that has not beaten the Champion.
+========================================================================================================
+  fixture                           SYS_GAME_CLEAR         IS_CHAMPION         BADGE08_GET      SYS_PC_LANETTE
+  post_hall4_door.ss1               R=False F=True  <DIFFER>      R=False F=True  <DIFFER>       R=True F=True     R=False F=False
+  post_drake_L75.ss1                R=False F=True  <DIFFER>      R=False F=True  <DIFFER>       R=True F=True     R=False F=False
+  post_glacia_L75.ss1               R=False F=True  <DIFFER>      R=False F=True  <DIFFER>       R=True F=True     R=False F=False
+  post_sidney_L75.ss1               R=False F=True  <DIFFER>      R=False F=True  <DIFFER>       R=True F=True     R=False F=False
+  post_ch24_atdoor_L75.ss1          R=False F=True  <DIFFER>      R=False F=True  <DIFFER>       R=True F=True     R=False F=False
+========================================================================================================
+  ⛔ WHAT THIS DOES NOT SETTLE: which read is 'right'. They answer DIFFERENT questions —
+     RAM is the live game, flash is what a reboot would restore. The finding is only that
+     they CAN disagree, so a predicate must say WHICH it means and why.
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-25_08-39-48.ss1 created!
+Updated `current_state.ss1`!

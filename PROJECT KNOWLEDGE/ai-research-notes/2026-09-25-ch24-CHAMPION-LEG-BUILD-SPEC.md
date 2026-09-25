@@ -48,11 +48,27 @@ settles seven questions at once and supplies the second trajectory. See §6.
 
 ## 0. WHAT IS DEAD — claims the recon refuted or overstated, which this spec does NOT build on
 
+> ⛔⛔⛔ **REFUTED BY P2 (2026-09-25) — READ THIS BEFORE THE SECTION BELOW.**
+> The spec's most emphatic and most-repeated design instruction was that the production
+> watchdog is **“trigger-happy on a winning run”**, and that the leg must be engineered against a
+> **spurious derail**. **IT WOULD NOT FIRE.** Measured on the instrumented tail drive, under
+> production's OWN 5-tuple: max consecutive-identical streak **12,680** against its **18,000**
+> threshold — **5,320 frames of margin**, with **0 signature exceptions**
+> (`evidence/2026-09-25-ch24tail-P2.stdout.txt`; graded in `2026-09-25-ch24-P2-MEASURED.md`).
+> ⇒ **D5 IS CLOSED AND ALL THREE OF ITS OPTIONS ARE DEAD.** Do NOT build watchdog mitigation —
+> `context.message` mutation, a per-mode suspension, or a raised threshold — against a threat
+> that does not exist.
+> ‼ AND A NUANCE WORTH KEEPING: the spec declared the earlier 12,681-frame figure **dead** for
+> having been measured under the HARNESS's 6-tuple. Re-measured under production's own tuple it
+> is **12,680** — within ONE frame. **The reasoning for distrusting it was sound; the conclusion
+> was wrong.** Keep the method, drop the verdict.
+
+
 A reviewer will check that none of these leaked back in.
 
 | Dead claim | What is actually true | Was it load-bearing? |
 |---|---|---|
-| "Position reads THROW for thousands of frames on the tail; `_cur` becomes None; the 18,000-frame watchdog is **blind** there." | ⭐MEASURED refutation: the evidence file contains **zero** `<err` strings, and `_tp_safe` (`story_harness.py:19579-19584`) would have emitted one on any exception. Line 536 reads `gs=UNKNOWN where=(16, 11)(7, 5)`; line 539 (post-reset, title screen) reads `gs=TITLE_SCREEN where=(0, 0)(-7, -7)` — **stale garbage, constant, not a throw**. | ⛔ YES, and it inverts the design. The watchdog is **trigger-happy**, not blind. The leg must engineer against a *spurious derail on a winning run*, not against a silent hang. |
+| "Position reads THROW for thousands of frames on the tail; `_cur` becomes None; the 18,000-frame watchdog is **blind** there." | ⭐MEASURED refutation: the evidence file contains **zero** `<err` strings, and `_tp_safe` (`story_harness.py:19579-19584`) would have emitted one on any exception. Line 536 reads `gs=UNKNOWN where=(16, 11)(7, 5)`; line 539 (post-reset, title screen) reads `gs=TITLE_SCREEN where=(0, 0)(-7, -7)` — **stale garbage, constant, not a throw**. | ⛔⛔ **THIS CELL IS ITSELF REFUTED BY P2 — see the banner at the top of §0.** It read: *“⛔ YES, and it inverts the design. The watchdog is **trigger-happy**, not blind.* The leg must engineer against a *spurious derail on a winning run*, not against a silent hang. |
 | "Nobody has measured whether the bot's machinery survives the in-game `SoftReset(RESET_ALL)`." | ⭐MEASURED: frame count **increases** across the reset (`8544521 → 8544533`, evidence :535-537), so `main.py:119`'s `previous > current` never fires; `listeners=14` and the *same* generator object `0x…BCBF8F90` appear on both sides. | YES — frame-denominated budgets stay valid across the reboot; no re-anchoring, no listener rebuild. |
 | "Zero production Python handles a soft reset / title screen / CONTINUE." | REFUTED: `modules/modes/util/soft_reset.py:13-45` *is* that state machine (`case GameState.TITLE_SCREEN` :27, `MAIN_MENU` :31, `OVERWORLD` :35), imported by eight production modes. | YES — its **wait loop** (:24-45) is the shape to reuse. ⛔ Its **line 21** `context.emulator.reset()` is an *emulator* reset that would zero the frame counter; never call the function. |
 | "Winning sets raw flag 1615, which REFUTES the settled line 'Room 5 has no defeat flag'." | OVERSTATED. The ROM mechanism is confirmed at source (`src/battle_setup.c:1245-1250`, `:984-988`, `:1327-1349`; `flags.h:1343`; `opponents.h:339` ⇒ 0x500+335=1615) but **has never been read on our ROM**, and the punch-list sentence's *flag-GUARD* half is correct. | ⛔ NO — and see §3 S4: `on_battle_ended`'s `BattleOutcome` already gives the same WIN/LOSS answer, ⭐MEASURED (`R battle_outcome = '<BattleOutcome.Won: 1>'`). 1615 is demoted to an optional forensic reading behind a probe. |
@@ -71,7 +87,7 @@ A reviewer will check that none of these leaked back in.
 
 ## 1. VERDICT
 
-**The champion leg is buildable now as a harness-driven production function, and it is blocked on exactly one instrumented drive before it can be graded.** Every structural question — where it starts, what it presses, what bounds it, what it must refuse, what it must never reuse — is settled by source reads and by the one measured trajectory, and the shape that survives is not a fight at all but a **bounded observe-and-press tail driver** with a single irreversible act. What is *not* settled is whether its acceptance predicate needs five conjuncts or one (the `OVERWORLD`-during-the-tail question), and whether the production watchdog derails a *winning* run — and both are reads, not experiments, so one instrumented re-run of the existing probe settles them together and simultaneously supplies the second trajectory the project's own rules require. ⛔ Wiring into `_play` is **out of scope for this leg** and must not be attempted in the same commit: it carries five independent co-landing requirements (§8-D1) including a live classifier defect that would file the first ever win as a hang.
+**The champion leg is buildable now as a harness-driven production function, and it is blocked on exactly one instrumented drive before it can be graded.** Every structural question — where it starts, what it presses, what bounds it, what it must refuse, what it must never reuse — is settled by source reads and by the one measured trajectory, and the shape that survives is not a fight at all but a **bounded observe-and-press tail driver** with a single irreversible act. What is *not* settled is whether its acceptance predicate needs five conjuncts or one (the `OVERWORLD`-during-the-tail question), and whether the production watchdog derails a *winning* run — ✅ **ANSWERED BY P2: IT DOES NOT** (12,680 vs 18,000, 0 exceptions), so this clause is settled, not open — and both are reads, not experiments, so one instrumented re-run of the existing probe settles them together and simultaneously supplies the second trajectory the project's own rules require. ⛔ Wiring into `_play` is **out of scope for this leg** and must not be attempted in the same commit: it carries five independent co-landing requirements (§8-D1) including a live classifier defect that would file the first ever win as a hang.
 
 ---
 
@@ -303,7 +319,16 @@ Plus, for this leg, two more forced by the endgame measurement:
 
 ---
 
-### 3.8 The full frame ledger the budgets are derived from (⭐MEASURED, once, sums exactly)
+### 3.8 The full frame ledger the budgets are derived from
+
+> ⚠⚠ **CORRECTED 2026-09-25 — THE CAPTION SAID “⭐MEASURED, once, sums exactly” AND THAT NOW
+> OVERSTATES IT.** A second trajectory (P2) reproduced **every non-battle stage FRAME-FOR-FRAME**
+> — 43, 1648, 9, 9, 2681, 1468, 30, 2292, 6, 10353, 12, 414 — which is a strong determinism
+> result for the tail's scripted portion. **But THE FIGHT ITSELF VARIED: 30,908 → 34,795 frames,
+> a 12.6 % swing from the SAME fixture and party**, purely from battle RNG.
+> ⇒ the S4 bound of 150,000 still has ~4.3× margin and is fine; what is NOT fixed is the TOTAL.
+> **Read the non-battle rows as deterministic and the fight row as a sample of one distribution.**
+
 
 | Stage | Frames | Bound in this spec |
 |---|---:|---:|
@@ -429,7 +454,7 @@ See HC23. Settles whether the banner's literal marker can be relied on at all �
 ⛔ It re-measures nothing; it is the same drive with more instruments — and it supplies the **second trajectory** session-discipline #8 requires before any frame budget in §3 is trusted.
 
 * **P2a — `SAMPLE_EVERY = 1`** (`story_harness.py:19364`) across `8531840 → 8544947`: does `get_game_state()` **ever** read `OVERWORLD` in that 13,107-frame window? *Settles:* whether `C-HOME` is a seven-conjunct predicate or a one-conjunct one. The existing log samples at 1/60 plus transitions, so "never OVERWORLD during the tail" is currently an **interpolation**. Until it is answered, the party-non-empty and not-on-HALL_OF_FAME terms are **load-bearing, not redundancy**.
-* **P2b — the production watchdog, with production's own instrument.** Compute `story_mode.py:3733-3739`'s exact 5-tuple every frame; log `_stall_frames` and the per-frame exception count. *Settles:* whether a winning run derails at 18,000 frames. ⛔ The 12,681-frame figure was taken under the harness's 6-tuple and compares emulator frames to a **mode-driven**-frame threshold (`story_mode.py:3636-3638` says so: *"battles don't count — a listener holds control then"*). Note the asymmetry a designer must account for: `_progress_sig()` (`:2038-2055`) has its **own** try/except returning `None`, and `None == None` compares equal — so that component can fail silently and keep the stall streak alive, while a throw in `get_map_data_for_current_position()` resets it.
+* **P2b — the production watchdog, with production's own instrument.** Compute `story_mode.py:3733-3739`'s exact 5-tuple every frame; log `_stall_frames` and the per-frame exception count. *Settles:* whether a winning run derails at 18,000 frames. ✅ **RUN 2026-09-25 — ANSWER: NO.** Max streak **12,680**, 0 signature exceptions, 5,320 frames of margin. ⛔ The 12,681-frame figure was taken under the harness's 6-tuple and compares emulator frames to a **mode-driven**-frame threshold (`story_mode.py:3636-3638` says so: *"battles don't count — a listener holds control then"*). Note the asymmetry a designer must account for: `_progress_sig()` (`:2038-2055`) has its **own** try/except returning `None`, and `None == None` compares equal — so that component can fail silently and keep the stall streak alive, while a throw in `get_map_data_for_current_position()` resets it.
 * **P2c — flag 1615, with controls.** Read `get_event_flag_by_number(1615)` at the premise (expect False) and inside `on_battle_ended` (expect True), plus a never-fought trainer's number as a negative control. ⛔ **Do not use the proposed 1275-vs-`DEFEATED_ELITE_4_SIDNEY` positive control — it is arithmetically circular:** `memory.py:346-356` computes `0x1270 + n//8, bit n%8`, and the named table is built from the identical formula and the identical constant, so the two paths agree *by construction*. The discriminating control is False-then-True **in the same run**. *Settles:* whether 1615 is a real reading at all. It is **not** load-bearing (see §3 S4), so a null result costs nothing.
 * **P2d — `get_event_var("LAST_TALKED")` at the premise**, one line, observe-only. `trainerbattle_no_intro` does not call `SetMapVarsToTrainer` (`battle_setup.c:1110-1112`, contrast `:1113-1116`), so `EventScript_DoNoIntroTrainerBattle`'s opening `applywaitmovement VAR_LAST_TALKED, Movement_RevealTrainer` runs against a **stale local id**. It is harmless on the canonical route by coincidence (Drake and Wallace are both local id 1) — and a stale id fed to `applywaitmovement`+`waitmovement` under an un-releasable `lockall` is a candidate permanent hang, not a cosmetic defect. *Settles:* whether the fixture the leg is graded from carries the coincidence.
 * **P2e — per-move PP of every party member at (5,3).** Telemetry only. *Settles:* nothing — it makes the **first Wallace loss diagnosable** as PP exhaustion rather than mis-attributed to levels, on a path with 26 opponents and no PP restore past the lobby (`items.py:92-96` `PpRecovery` is a distinct enum value from `Healing`, and `pokemon_league.py:279` filters on `ItemFieldUse.Healing`). ⛔ Do **not** add PP as a blocking conjunct without a measurement: a gate that cannot remedy is just a halt, and (5,3) is a strand.
@@ -478,7 +503,7 @@ These are policy choices, not engineering ones. Options are stated neutrally; wh
 **D1 — Does the champion leg ship harness-only, or wired into `_play`?**
 Harness-only is what every prior §Ch24 leg did (`pokemon_league.py:2805-2809` says so explicitly for `enter_the_league`), and four of the five gauntlet entry points are still unwired (`grep` over `story_mode.py` returns only `train_for_league`, `:5271`/`:5274`). Wiring requires **five things in one commit**: (i) `ch24_chapter_done()`; (ii) a `_guard(...)` between the dispatch and `:5332`; (iii) `:5344` made conditional; (iv) a retargeted banner; (v) the classifier fix from P1. *Options:* (a) harness-only now, wiring as its own item — smaller blast radius, and the leg is provable today; (b) both together — one commit, five coupled changes, and the first ever win at stake.
 
-**D2 — Where does `ch24_chapter_done()` live?**
+**D2 — Where does `ch24_chapter_done()` live?** ⛔⛔ **AND A CONSTRAINT THIS SPEC HAD NO LANGUAGE FOR, MEASURED 2026-09-25:** on **all five** §Ch24 fixtures, `SYS_GAME_CLEAR` and `IS_CHAMPION` read **RAM=False but FLASH=True** (two controls agree on both sides, so the readers discriminate). ⇒ **a predicate reading FLASH alone would report a cleared game on a save that has not beaten the Champion** — including one standing OUTSIDE the League with the door shut. And per P2a the tail reads `OVERWORLD` for **5,634 frames**, so it cannot be a single `OVERWORLD` conjunct either. ⇒ whichever module it lives in, it must say WHICH side it reads and why (`probe_ram_vs_flash_clear.py`). 
 Beside `CH24_GAME_CLEAR_FLAG` / `CH24_SEALED_MAPS` in `victory_road.py:3289-3308` (where the §Ch24 constants already are), or in `pokemon_league.py` (where the legs are). Splitting them risks the "same fact in two functions" drift the module warns about at `:67-70`. *No evidence favours either;* ownership is `#24-gameclearflag` (`03-PUNCH-LIST.md:944`).
 
 **D3 — Does the retargeted banner keep the literal marker, or do all three classifiers move to a new one?**
@@ -487,7 +512,7 @@ Given HC23, "keep the substring" is not an option as written — the substring d
 **D4 — What is the loss posture?**
 A Wallace loss calls the same `ResetEliteFour` as a win, so post-loss and post-win state are **identical** on all four E4 flags and on `VAR_ELITE_4_STATE`; money is halved (`overworld.c:358-366` `DoWhiteOut`), and the ruled remedy `#24-restockleg` (`03-PUNCH-LIST.md:92`, USER RULING 12) is **UNBUILT and blocked on money** (₽54,300 basket vs a measured ₽1,741, halved again per loss). *Options:* (a) terminal for the run — record the loss and hand to Manual with an explicit outcome string; (b) block the champion leg on `#24-restockleg`; (c) something in between (e.g. retry from a pinned fixture in the harness only, never in production).
 
-**D5 — What does the leg do if P2b says the production watchdog fires on a winning run?**
+**D5 — ✅ CLOSED 2026-09-25, NO DECISION REQUIRED. P2b MEASURED THAT IT DOES NOT FIRE** (12,680 vs 18,000). All three options below are DEAD; building any of them would be unrequested architecture against a non-existent threat. *(Superseded question:* **What does the leg do if P2b says the production watchdog fires on a winning run?**
 *Options:* (a) mutate `context.message` on a cadence — cheapest, it is one of the five signature components, but that field is read by two other mechanisms (`story_harness.py:25042`'s hang suppressor and the END-OF-CONTENT classifiers) and the interaction is untested; (b) an explicit per-mode watchdog suspension for the tail — clean, new code in `story_mode.py`; (c) raise the threshold. ⛔ This is architecture, and the project's own measured rule says to grade recon's architecture advice "not at all" — so it waits for P2b.
 
 **D6 — Is `beat_the_trainer_here`'s missing `_event_flags` guard fixed now or filed separately?**

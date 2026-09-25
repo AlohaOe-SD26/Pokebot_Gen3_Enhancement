@@ -34811,3 +34811,46 @@ the drive (`539c774a`).
 `ai-research-notes/2026-09-25-ch24-P2-MEASURED.md` (new),
 `tools/story-dev/evidence/2026-09-25-ch24tail-P2.stdout.txt` (new), `03-PUNCH-LIST.md`,
 `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-25 — §Ch24 P3 (a fault arm stops being vacuous) + ⛔ RAM AND FLASH DISAGREE ON EVERY §Ch24 FIXTURE
+
+**✅ P3 — `post_hall4_door_unhealed.ss1` MINTED AND PINNED** (`281b8c186949`): `HALL4 (5,3)`,
+nothing fought, **HP 852/1214 (70 %) with MIGHTYENA — the lead carrying Crunch — FAINTED**.
+⭐ **WHY:** P2 measured the healed twin at **1214/1214 (100 %)** — every member at or above
+`TOP_UP_BELOW = 0.90` — which makes fault arm **A4** (the `heal_ready` conjunct) **VACUOUS** there.
+An arm that cannot fail tests nothing, and the registry says so in as many words.
+⭐ **MINTED BY REUSING THE EXISTING ARM**, not by writing a new mechanism:
+`POKEBOT_CH24_FAULT_NOROOMHEAL=1 CH24_HALL4_CAPTURE=post_hall4_door_unhealed … --driver ch24hall4`.
+‼ That run's own `ACCEPTANCE` is **FAIL** (`missing=['H-HEAL']`, `heal_ready=None`) and **that is the
+arm working** — the capture guard (`on_hall4` / `at_stop_tile` / `no_battles`) passed independently
+of the grade. ⚠ Its capture log line still reads *"party healed"* — stock driver text, and wrong for
+this fixture; noted in the manifest row so the next reader is not misled.
+
+**⛔⛔ AND A FINDING THAT LANDS SQUARELY IN `#24-gameclearflag`: RAM AND FLASH DISAGREE ON EVERY
+§Ch24 FIXTURE.** P2 threw up `start_flash_game_clear=True` while `start_champion=False`; the new
+`probe_ram_vs_flash_clear.py` (OBSERVE-ONLY) checked all five pinned fixtures:
+
+| flag | reading |
+|---|---|
+| `SYS_GAME_CLEAR` | **RAM=False, FLASH=True** on all five |
+| `IS_CHAMPION` | **RAM=False, FLASH=True** on all five |
+| control `BADGE08_GET` | R=True F=True — **agrees** |
+| control `SYS_PC_LANETTE` | R=False F=False — **agrees** |
+
+⭐ **The controls agreeing is what makes this a finding rather than a reader artifact.** The flash in
+this lineage was written by an EARLIER clear, and the saves were minted from RAM states preceding
+it. ⇒ **a flash-based "is the game cleared" predicate would report §Ch24 DONE on
+`post_ch24_atdoor_L75.ss1` — a save standing OUTSIDE the League with the door SHUT.**
+‼ This refutes `story_harness.py`'s own `_tp_flash_flag` docstring, which calls the flash read
+*"a legitimate precondition gate"* — it is not one on this chain.
+✅ `chapters.py:288` reads **RAM**, so today's readout is unaffected; but any NEW predicate must say
+which side it means and why. ⇒ combined with P2a (the tail reads OVERWORLD for **5,634 frames**),
+`ch24_chapter_done()` can be built on **neither** a bare flash read **nor** a single OVERWORLD
+conjunct.
+
+**FILES:** `tools/story-dev/probe_ram_vs_flash_clear.py` (new),
+`tools/story-dev/evidence/2026-09-25-ram-vs-flash-clear.stdout.txt` (new),
+`tools/story-dev/evidence/2026-09-25-ch24hall4-P3-mint.stdout.txt` (new),
+`tools/story-dev/saves/post_hall4_door_unhealed.ss1` (new, PINNED),
+`tools/story-dev/saves/FIXTURES.md5`, `03-PUNCH-LIST.md`, `07-CHANGELOG.md`.
