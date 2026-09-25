@@ -15,8 +15,28 @@ Graded **2026-09-24** against `2026-09-24-ch24-room-leg-COMPOSITION-PREDICTIONS.
 
 ⇒ **THE UNIT IS A UNIT.** `ROOM_EXIT_DOOR = (6,2)` and `HALL_FAR_DOOR = (5,2)` are genuinely
 uniform, `objects_seen = [(6,5)]` in every room (one object, as the decomp says), and each leg ends
-on exactly the premise the next one requires. **The sequencer can now be a loop over `PAIRS`
-rather than four bespoke branches.**
+on exactly the premise the next one requires.
+
+⛔⛔ **RETRACTION, SAME DAY, BY AN ADVERSARIAL REVIEW — AND THE TREE HAD ALREADY RULED ON IT.** The
+sentence that followed here claimed *"the sequencer can now be a loop over `PAIRS`."* **That
+overstates the result and is withdrawn.** `03-PUNCH-LIST.md`'s OPEN item `#24-leg2spec` says
+verbatim: ***"THE 'REPEATING UNIT × 5' MODEL IS REFUTED — DO NOT BUILD IT."***
+⇒ what this drive establishes is narrower and still worth having: **the ROOM-TO-ROOM MIDDLE of the
+chapter is a loop over `PAIRS`.** Both ends are missing, and one was already rejected:
+* ⛔ **`enter_the_league` and `ch24_chapter_done` have ZERO occurrences in the whole tree** (grep).
+  There is **no bridge** from `prepare_and_open_the_league`'s stopping tile `(9,3)` through the
+  SIDNEY fight into leg 1's premise — and leg 1's premise requires *already having beaten Sidney*.
+  The obvious form of that bridge was designed, adversarially reviewed and **sent back**.
+* ⛔ The CHAMPION room is not "a short bespoke step": it `lockall`s and walks the player into the
+  fight (**no A-press trigger**), has **no defeated-flag guard** (so any re-entry re-fights Wallace
+  at full strength), and the chapter ends in a **console reboot** (`#24-gameclearflag`).
+* ⛔ **PP is absent from the readiness predicate and cannot be restored past the lobby**, and HALL4
+  is 31 tiles — the last heal point in the game.
+‼ I made this mistake in the same shape TWICE today: asserting something the punch list had already
+settled. ⇒ **before writing "X can now be done", grep the punch list for X.**
+
+*(The withdrawn sentence, kept so the retraction above is legible: ~~"The sequencer can now be a
+loop over `PAIRS` rather than four bespoke branches."~~)*
 
 ---
 

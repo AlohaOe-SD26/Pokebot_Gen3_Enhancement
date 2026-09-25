@@ -21228,3 +21228,39 @@ to RUN — and update it FIRST, not last.** A status sentence is read; a command
 covered by P1–P5 except indirectly through P3, and P3 is easy to mark PASS on the STATE-table half
 alone. *(Cost of learning this: zero — a Tier 1 reviewer caught it before the commit. That is the
 tier paying for itself, and the reason it runs BEFORE step 5 rather than after.)*
+
+
+## 2026-09-24 — ⛔⛔ TWICE IN ONE SESSION I ASSERTED SOMETHING THE PUNCH LIST HAD ALREADY SETTLED
+
+**SYMPTOM, INSTANCE 1 (morning).** A pre-registration file led with *"whether this party can beat an
+Elite Four member **has never been driven end to end**"*. Five punch-list items were already `[x]`
+DONE, including the CHAMPION.
+
+**SYMPTOM, INSTANCE 2 (evening).** Having driven all three room pairs, I wrote in FIVE places that
+*"the sequencer can be a loop over `PAIRS`, not four bespoke branches."* `#24-leg2spec` — **open, in
+the punch list, with a STUB MARKER pointing at a 44-flaw refutation document** — says verbatim:
+***"THE 'REPEATING UNIT × 5' MODEL IS REFUTED — DO NOT BUILD IT."*** An adversarial review found it
+in minutes and then verified the killer fact at source: **`enter_the_league` and `ch24_chapter_done`
+have ZERO occurrences in the entire tree**, so the bridge from the lobby door through the Sidney
+fight into leg 1's premise does not exist — and its obvious form had been designed and REJECTED the
+same day. ⇒ **the loop could not have taken its first swing.**
+
+**ROOT CAUSE — THE SAME ONE BOTH TIMES, AND IT IS NOT "I FORGOT TO READ".** Both claims were
+*generalisations drawn from a result I had just produced myself*. A fresh measurement creates a
+strong, specific feeling of knowing the area — and that feeling is exactly what suppresses the
+cheap check. ‼ The existing rule (`SESSION DISCIPLINE #11`) is phrased for **escalations** —
+"grep `06-DECISIONS-LOG.md` before escalating" — so it did not fire for a PREDICTION or for a
+CELEBRATORY SUMMARY, which is how the same shape got through twice in one day.
+
+**WHAT ACTUALLY CAUGHT IT, BOTH TIMES.** Not me, and not a gate: an **independent agent given an
+adversarial brief** ("refute this claim"). Instance 1 was caught by an inventory agent, instance 2
+by a reviewer told explicitly to find how the plan BREAKS. ⇒ the value was in the ADVERSARIAL
+framing, not in a second opinion — a confirmatory agent would have agreed with me.
+
+⇒ **PREVENTION RULE, GENERALISED FROM #11: before writing a claim of the form "X has never been
+done" or "X can now be done", grep `03-PUNCH-LIST.md` AND `06-DECISIONS-LOG.md` for X.** The punch
+list is the half that was missed here, and it is not in the session-start reading set as a
+*searchable* artifact — it gets skimmed once and then written *about* rather than read *from*.
+‼ **COROLLARY: a result you just measured is the WORST moment to generalise from**, because the
+generalisation inherits the result's credibility without inheriting its evidence. State what you
+measured; grep before you state what it MEANS.

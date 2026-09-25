@@ -34524,3 +34524,46 @@ already does not, and that is now measured rather than hoped.
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md` (UPDATE
 section), `07-CHANGELOG.md`, and three new evidence files
 `tools/story-dev/evidence/2026-09-24-ch24room-{sidney,phoebe,glacia}-signal.stdout.txt`.
+
+
+## 2026-09-24 — ⛔⛔ RETRACTION: "THE SEQUENCER IS A LOOP OVER `PAIRS`" — THE TREE HAD ALREADY RULED AGAINST IT
+
+**WHAT WAS CLAIMED.** Two entries above (§Ch24 S2b) and in four other places I wrote that, because
+the three room pairs compose, **"the sequencer can be a loop over `PAIRS`, not four bespoke
+branches."** ⛔ **WITHDRAWN.** This entry is append-only history and does not rewrite those; the
+CURRENT-STATE files (`03`, `04`) and the graded note carry the corrected wording.
+
+**WHY IT IS WRONG.** `03-PUNCH-LIST.md`'s still-OPEN `#24-leg2spec` says verbatim:
+***"THE 'REPEATING UNIT × 5' MODEL IS REFUTED — DO NOT BUILD IT."*** An adversarial review found it
+and then verified, at source, the two facts that make a bare loop unbuildable:
+
+* ⛔⛔ **`enter_the_league` AND `ch24_chapter_done` HAVE ZERO OCCURRENCES IN THE ENTIRE TREE** (grep,
+  re-run by me). `fight_one_room`'s premise requires **already standing in room N having beaten
+  trainer N** — so leg 1 needs the bot to have beaten SIDNEY. Nothing bridges
+  `prepare_and_open_the_league`'s stopping tile `(9,3)` to that state, and the obvious form of that
+  bridge was designed, adversarially reviewed and **SENT BACK** the same day (`GAUNTLET-BUILD-SPEC`).
+  ⇒ **the loop cannot take its first swing.**
+* ⛔ The CHAMPION room is not "a short bespoke step": `lockall` walks the player into the fight, so
+  there is **no A-press trigger and no walk-to-trainer step** (`fight_one_room`'s steps 5-6 do not
+  apply); there is **no defeated-flag guard**, so any re-entry re-fights Wallace at full strength;
+  and the chapter ends in a **console reboot** (`#24-gameclearflag`, open).
+* ⛔ **PP is absent from `party_is_gauntlet_ready` and cannot be restored past the lobby** — no
+  Ether/Elixir/Leppa in the League mart — against ~25 opposing Pokémon on one PP bar. HALL4 is 31
+  tiles and is the LAST heal point in the game.
+* ⚠ The existing generic derail-recovery in `story_mode.py` calls `exit_building_after_whiteout()`
+  and re-runs `_play()` — machinery written for the ESCAPABLE overworld. Fired inside the sealed
+  gauntlet it would plan a retreat the game refuses (a `KI-48`-shape silent hang), and a derail
+  AFTER a victory flag is set re-enters the same pair, hits `fight_one_room`'s own premise guard,
+  and burns the 4-derail budget without advancing.
+
+**WHAT SURVIVES, AND IT IS STILL WORTH HAVING.** The measurement is untouched: three pairs driven,
+all `ACCEPTANCE: PASS`, `(6,2)`/`(5,2)` uniform, each leg ending on the next one's premise. ⇒ **the
+ROOM-TO-ROOM MIDDLE of §Ch24 is a loop over `PAIRS`.** What was over-claimed was the word
+*"sequencer"* — that word covers both ends of the chapter, and both ends are missing.
+
+‼ **SAME MISTAKE SHAPE, TWICE IN ONE SESSION** (the other: pre-registering "this has never been
+driven end to end" over five `[x]` punch-list items). Prevention rule filed in `08-MISTAKES.md`.
+
+**FILES:** `03-PUNCH-LIST.md`, `04-HANDOFF.md` (banner + queue head),
+`ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md`, `07-CHANGELOG.md`,
+`08-MISTAKES.md`.
