@@ -34745,3 +34745,69 @@ directions at an avatar locked under `lockall`.
 `ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (M6 marked DONE),
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md` (`#24-contentendcase` CLOSED, `#24-championleg` FILED),
 `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-25 — ⭐⭐ §Ch24 P2: WALLACE BEATEN A SECOND TIME, AND THE SPEC'S HEADLINE INVERSION IS REFUTED
+
+**THE RUN.** `POKEBOT_CH24TAIL_INSTRUMENT=1 --driver ch24tailprobe` from `post_hall4_door.ss1`:
+`battle_outcome = Won`, `battles=1`, `whiteouts=0`, `end_champion=True`, `game_clear` in **RAM and
+flash**, ending at `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`, **fixture RESTORED**,
+`p2_instrument_errors = (none)`. ⭐ **Wallace has now been beaten TWICE** — the second trajectory
+session-discipline #8 requires. ⚠ Two wins from the same pinned fixture is still **not a win rate**.
+
+**⭐⭐ P2b — THE BUILD SPEC'S MOST DESIGN-RELEVANT FINDING IS REFUTED BY MEASUREMENT.** The
+adversarial pass concluded the production watchdog is *"trigger-happy on a winning run"* and told
+the designer to engineer against a spurious derail. **It would not fire:** max consecutive-identical
+streak of production's OWN 5-tuple is **12,680** against its **18,000** threshold — **5,320 frames
+of margin**, 0 signature exceptions. ⇒ **D5 collapses**; no watchdog-suspension mechanism is needed.
+‼ **And a number the spec declared DEAD turns out to be right.** It discarded the recon's 12,681
+figure for having been measured under the *harness's* 6-tuple; measured under production's own
+signature it is **12,680**, within one frame. ⇒ the tuple choice did not change the answer. **The
+spec's reasoning for discarding it was sound and its conclusion was wrong** — worth separating,
+because the discipline that forced the re-measurement is the part to keep.
+
+**⛔⛔ TWO OF MY OWN INSTRUMENTS WERE SILENT LIES, AND ONE INVERTED ITS CONCLUSION.**
+* **P2a** reported `ever_overworld = False`. **Wrong.** `GameState` is an **`IntEnum`**, so
+  `str(GameState.OVERWORLD)` is `'7'` — my substring test could never match. ⭐ **THE HISTOGRAM
+  SAVED THE RUN:** because the instrument recorded the raw distribution and not just the verdict,
+  the answer was already in the data — **`7` (OVERWORLD) appears 5,634 times**. ⇒ against the
+  pre-registered falsifier, **`ch24_chapter_done()` CANNOT be a single OVERWORLD conjunct**; the
+  extra terms are **LOAD-BEARING**. A one-conjunct predicate would fire mid-tail — the exact shape
+  that made the v1 probe stop before measuring anything. ⇒ **RECORD DISTRIBUTIONS, NOT VERDICTS.**
+* **P2d** reported `last_talked = -1`. **`LAST_TALKED` is not an event var** — `get_event_var`
+  returns -1 *silently* for unknown names, and the Emerald table has 256 vars, none containing
+  "TALK". It is `gSpecialVar_LastTalked`. ‼ **This file was already fixed for this exact bug on
+  2026-09-24** (`VAR_RESULT`), and **`audit_flag_names.py` caught it** — I had simply not run that
+  gate after adding the instrument. ✅ **Re-read OFFLINE from the pinned fixtures**, so the
+  *irreversible* drive did not have to be repeated: **`LastTalked = 0`** at the Champion's door
+  (control `gSpecialVar_Result = 1`), **not** the "coincidental 1" the spec guessed — and the tail
+  has completed twice with it at 0.
+
+**⭐⭐ P2e — THE PARTY REACHES THE CHAMPION WITH ITS LEAD'S MAIN ATTACKS EMPTY:**
+`Mightyena — Strength 7/15, **CRUNCH 0/15**, **TAKE DOWN 0/20**, Bite 12/25`, at **full HP**
+(230/230), because HALL4's heal restores HP and cannot touch PP (the League Mart sells no
+Ether/Elixir/Leppa — measured). ⇒ the win is thinner than any HP-based readiness reading suggests.
+⛔ **Not a blocking conjunct on one trajectory** — a gate that cannot remedy is just a halt, and
+`(5,3)` is a strand. Its value: **a first Wallace loss is now diagnosable as PP exhaustion.**
+
+**OTHER READINGS.** P2c: flag **1615 goes False → True** ⇒ it is the Wallace defeat flag (usable,
+not load-bearing — `BattleOutcome` already answers it). P2f: **all members FULL** ⇒ **P3 is
+REQUIRED**, since fault arm A4 would be vacuous on this fixture. P2g: **97 controllable frames of
+2,686** in the Champion's room post-battle ⇒ not strictly latch-only, but only 3.6 %.
+⚠ Unpredicted: `start_flash_game_clear=True` while `start_champion=False` — **the fixture's flash
+already carries `SYS_GAME_CLEAR`** from an earlier clear in the same profile lineage. Recorded
+because `#24-gameclearflag` is open and a flash-only predicate would report a cleared game on a save
+that has not beaten the Champion.
+
+✅ **AND A SAFETY GAP CLOSED FIRST:** `Ch24TailProbeMode` — the one driver that CLEARS THE GAME — had
+**no fixture restore**, while `current_state.ss1` is what the real bot resumes from. Added (after
+the verdict, so it cannot suppress a reading). Only the `repro-ml` default had limited the blast
+radius, which is luck, not design.
+
+Graded in `ai-research-notes/2026-09-25-ch24-P2-MEASURED.md` against predictions committed before
+the drive (`539c774a`).
+
+**FILES:** `tools/story-dev/story_harness.py` (both instrument defects fixed),
+`ai-research-notes/2026-09-25-ch24-P2-MEASURED.md` (new),
+`tools/story-dev/evidence/2026-09-25-ch24tail-P2.stdout.txt` (new), `03-PUNCH-LIST.md`,
+`04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

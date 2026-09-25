@@ -21359,3 +21359,49 @@ decoration — which is the same class of defect this project already gates agai
 printed success while writing broken text. **A success line is not evidence; the thing it claims
 succeeded is.** When a command's output contains the word FAILED anywhere, stop and read it before
 reading anything below it.
+
+
+## 2026-09-25 — ⛔⛔ I BUILT TWO SILENT LIES INTO AN INSTRUMENT ON AN IRREVERSIBLE RUN — AND THE RAW DATA SAVED ONE OF THEM
+
+**CONTEXT.** The §Ch24 P2 drive is **irreversible** (it fights the Champion and clears the game), so
+a defective instrument costs the whole measurement. Two of its seven sub-probes returned values that
+**looked like readings and were not**.
+
+### ⛔ DEFECT 1 — `str()` ON AN `IntEnum`, AND IT INVERTED THE CONCLUSION
+`p2a_ever_overworld` came back **False**. `GameState` is an **`IntEnum`**, so
+`str(GameState.OVERWORLD)` is `'7'`, and my `"OVERWORLD" in str(state).upper()` test **could never
+match any state at all**. The true answer is the opposite: **5,634 frames of OVERWORLD**.
+⇒ It did not merely lose a reading, it **inverted the design conclusion** — the answer decides
+whether `ch24_chapter_done()` needs one conjunct or several, and False would have licensed a
+one-conjunct predicate that fires *mid-tail*.
+
+⭐⭐ **WHAT SAVED IT: THE INSTRUMENT RECORDED A DISTRIBUTION, NOT JUST A VERDICT.** Alongside the
+boolean it kept a per-state histogram, so the raw counts still contained the truth (`'7': 5634`) and
+the **irreversible drive did not have to be repeated**.
+⇒ **PREVENTION RULE: RECORD THE RAW DISTRIBUTION, NOT ONLY THE DERIVED VERDICT.** A derived boolean
+is a claim and can be wrong; a distribution is data and can be re-derived. On any run you cannot
+cheaply repeat, log the inputs to your conclusion beside the conclusion.
+‼ **AND THE NARROW RULE:** `str()` on an `IntEnum` yields the NUMBER. Compare on `.name`, or on the
+enum member itself — never on a stringified int.
+
+### ⛔ DEFECT 2 — A PHANTOM VAR NAME, IN THE FILE ALREADY FIXED FOR IT
+`p2d_last_talked` came back **-1**, which is what `get_event_var` returns **silently for a name it
+does not know** (`memory.py:393-395`). **`LAST_TALKED` is not an event var** — the Emerald table has
+256 entries, none containing "TALK". It is a SPECIAL var, `gSpecialVar_LastTalked`.
+‼ **`story_harness.py` WAS ALREADY CORRECTED FOR THIS EXACT BUG ON 2026-09-24** (`VAR_RESULT` →
+`read_symbol("gSpecialVar_Result")`), and **the project's own gate caught it**:
+`audit_flag_names.py` → `PHANTOM NAMES: story_harness.py: var LAST_TALKED`.
+⇒ **THE GATE WAS NOT AT FAULT. MY SEQUENCE WAS.** I ran the doc gates and the undefined-names
+ratchet after adding the instrument, and not the flag-name audit — so a gate that existed,
+worked, and was one command away sat unrun while I spent an irreversible drive.
+✅ Recovered **without re-driving**: the value is a premise-time read, so it was re-read **offline**
+from the pinned fixtures (`LastTalked = 0` at the door, control `gSpecialVar_Result = 1`).
+
+⇒ **PREVENTION RULE: ADDING AN INSTRUMENT IS A CODE CHANGE, AND IT RUNS THE SAME GATES AS ONE.**
+Before spending an expensive or irreversible run, run `audit_flag_names.py` and
+`repro_undefined_names.py` — the two that catch *silent* lies, as opposed to crashes. A crash tells
+you it is broken; a silent lie tells you a number.
+‼ **COROLLARY: BEFORE AN IRREVERSIBLE RUN, ASK WHICH READINGS COULD BE RECOVERED WITHOUT REPEATING
+IT.** Both defects here were recoverable — one from a histogram, one from an offline fixture read —
+and that was luck plus one good design choice, not a plan. Making it a plan is cheap: prefer
+distributions to verdicts, and take premise-time readings where they can also be read offline.

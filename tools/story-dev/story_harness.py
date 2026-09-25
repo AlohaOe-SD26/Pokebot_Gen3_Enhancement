@@ -19405,8 +19405,18 @@ class _Ch24TailInstrument:
             from modules.story import victory_road as VR
 
             # ---- P2a: the game-state histogram ---------------------------------------------
+            # ⛔⛔ USE `.name`, NEVER `str()`. `GameState` is an **IntEnum**, so `str(GameState.
+            # OVERWORLD)` is `'7'`, not `'OVERWORLD'` — and a substring test for "OVERWORLD" against
+            # `'7'` can NEVER match. MEASURED THE HARD WAY 2026-09-25: the first P2 drive reported
+            # `p2a_ever_overworld = False` while its own histogram recorded **5,634 frames of state
+            # 7**, which IS overworld. The derived boolean was a SILENT LIE and it inverted the
+            # conclusion the completion predicate depends on.
+            # ⭐ THE HISTOGRAM IS WHY THE RUN WAS NOT WASTED: recording the raw DISTRIBUTION rather
+            # than only the derived verdict meant the correct answer was already in the data and the
+            # irreversible drive did not have to be repeated. Record distributions, not verdicts.
             try:
-                name = str(get_game_state())
+                st = get_game_state()
+                name = getattr(st, "name", None) or str(st)
             except Exception as error:  # noqa: BLE001
                 self._note("p2a.state", error)
                 name = "<unreadable>"
@@ -19470,8 +19480,20 @@ class _Ch24TailInstrument:
                     R[f"p2c_{label}_at_premise"] = "<unreadable>"
 
             # P2d — the stale-id candidate hang.
+            # ⛔⛔ `LAST_TALKED` IS **NOT AN EVENT VAR**, AND ASKING FOR IT RETURNS -1 *SILENTLY*.
+            # MEASURED 2026-09-25: the first P2 drive reported `p2d_last_talked = -1`, which looks
+            # like a reading and is not one — `get_event_var` returns -1 for ANY unknown name
+            # (`memory.py:393-395`), and the Emerald table has 256 vars, **none** containing "TALK".
+            # It is a SPECIAL var (`gSpecialVar_LastTalked`), read through the symbol table.
+            # ‼ THIS IS THE SAME BUG THIS FILE WAS ALREADY FIXED FOR ON 2026-09-24 (`VAR_RESULT` →
+            # `read_symbol("gSpecialVar_Result")`), and `audit_flag_names.py` CAUGHT IT — I simply
+            # had not run that gate after adding the instrument. The gate was not at fault; my
+            # sequence was.
             try:
-                R["p2d_last_talked"] = get_event_var("LAST_TALKED")
+                from modules.memory import read_symbol
+
+                raw = read_symbol("gSpecialVar_LastTalked")
+                R["p2d_last_talked"] = int.from_bytes(raw[:2], byteorder="little")
             except Exception as error:  # noqa: BLE001
                 self._note("p2d", error)
                 R["p2d_last_talked"] = "<unreadable>"
