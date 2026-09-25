@@ -25039,7 +25039,9 @@ for step in range(args.frames):
         # it wastes an investigation, and it made compare_runs.py file a success as a failure.
         _finished = False
         try:
-            _finished = "end of built content" in str(getattr(context, "message", "") or "")
+            # ⛔⛔ CASEFOLD BOTH SIDES — the bot emits a CAPITAL "End of built content.", so this
+            # read False on a GENUINE WIN and the run was reported as a hang. Fixed 2026-09-25.
+            _finished = "end of built content" in str(getattr(context, "message", "") or "").lower()
         except Exception:
             _finished = False
         if _finished:

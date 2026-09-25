@@ -104,13 +104,19 @@ def scrape(log: pathlib.Path) -> tuple[str, str, int]:
         text = log.read_text(encoding="utf-8", errors="replace")
     except Exception:
         return ("?", "unreadable-log", 0)
+    # ⛔⛔ CASE-INSENSITIVE ON **BOTH** SIDES — FIXED 2026-09-25, AND THE OBVIOUS FIX WAS WORSE.
+    # The bot emits "... basket bought. **End** of built content. NEXT (WIP): Ch24 ..." with a CAPITAL E,
+    # while the needle is lowercase, so a GENUINE COMPLETION matched NOTHING and was filed as a failure.
+    # ‼ Lowercasing only the HAYSTACK would have broken TEN working needles in this same file
+    # (HANG CONFIRMED, FEATHER BADGE, BADGE01_GET, Traceback ...). Both sides, or neither.
+    _hay = text.lower()
     depth = "start"
     for label, needle in MILESTONES:
-        if needle in text:
+        if needle.lower() in _hay:
             depth = label
     failure = "clean-finish"
     for label, needle in FAILURE_PATTERNS:
-        if needle in text:
+        if needle.lower() in _hay:
             failure = label
             break
     frames = 0

@@ -935,6 +935,26 @@ GATES: list[tuple[str, bool]] = [
     # actually resolves, and `--fault noimport` reproduces the shipped-broken state.
     # FAULT-TESTED 2026-09-24, all four arms exit 1: lobby, badflag, order, noimport.
     ("probe_ch23_done_winstate.py", False),
+
+    # --- #75 - A GENUINE COMPLETION MUST NOT BE FILED AS A FAILURE
+    #           (`repro_content_end_classifier.py`)
+    # ⛔⛔ THE ONE WHERE **A WIN READS AS A DEFECT.** `story_mode.py` emits, on the ONLY path
+    # that means the bot finished everything built, "... basket bought. **End** of built
+    # content. NEXT (WIP): Ch24 ..." — with a CAPITAL E. All three log classifiers
+    # (`compare_runs.py`, `endless_runs.py`, `story_harness.py`) looked for the LOWERCASE
+    # needle with a CASE-SENSITIVE `in`, so the match was False and the first ever completed
+    # run would have been filed as `HANG CONFIRMED` in every batch report.
+    # ‼ AND THE OBVIOUS FIX WAS WORSE THAN THE BUG: lowercasing only the HAYSTACK repairs
+    # this one needle and breaks TEN others in the same files (HANG CONFIRMED, FEATHER BADGE,
+    # BADGE01_GET, Traceback ...). Both sides are casefolded, or neither.
+    # ⭐ ENFORCING, and cheap: it is pure string logic with no emulator. It reads the literal
+    # FROM `story_mode.py` rather than carrying a copy — a gate holding its own copy of the
+    # thing under test passes forever after someone edits the real one, which is EXACTLY how
+    # this defect survived (three classifiers and a docstring all carried a lowercase copy of
+    # a capitalised fact).
+    # THREE ARMS: C1 the real literal (RED->GREEN demonstrated), C2 every other needle still
+    # matches, C3 a clean log matches nothing. `--self-test` fault-tests the gate itself.
+    ("repro_content_end_classifier.py", False),
 ]
 
 

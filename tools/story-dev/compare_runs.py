@@ -140,8 +140,14 @@ def summarise(path: pathlib.Path, label: str) -> dict:
             frames = int(h.group(1))
 
     depth = "start"
+    # ⛔⛔ CASE-INSENSITIVE ON **BOTH** SIDES — FIXED 2026-09-25, AND THE OBVIOUS FIX WAS WORSE.
+    # The bot emits "... basket bought. **End** of built content. NEXT (WIP): Ch24 ..." with a CAPITAL E,
+    # while the needle is lowercase, so a GENUINE COMPLETION matched NOTHING and was filed as a failure.
+    # ‼ Lowercasing only the HAYSTACK would have broken TEN working needles in this same file
+    # (HANG CONFIRMED, FEATHER BADGE, BADGE01_GET, Traceback ...). Both sides, or neither.
+    _hay = text.lower()
     for name, needle in MILESTONES:
-        if needle in text:
+        if needle.lower() in _hay:
             depth = name
             break
 
@@ -165,13 +171,14 @@ def summarise(path: pathlib.Path, label: str) -> dict:
         fail = "SUCCESS"
     else:
         fail = "clean/unknown"
+        _tail_hay = tail_for_fail.lower()
         for name, needle in FAIL_MARKERS:
-            if needle in tail_for_fail:
+            if needle.lower() in _tail_hay:
                 fail = name
                 break
         else:
             for name, needle in FAIL_MARKERS:
-                if needle in text:
+                if needle.lower() in _hay:
                     fail = f"{name}?earlier"
                     break
 

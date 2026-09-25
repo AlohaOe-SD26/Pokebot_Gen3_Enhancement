@@ -34685,3 +34685,63 @@ leg that skipped the ritual.
 `ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (H7 corrected at all 3 mentions),
 `03-PUNCH-LIST.md` (`#24-marthreachable` CLOSED; `#24-restockleg` blocker narrowed),
 `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-25 — ⛔⛔ A GENUINE WIN WAS BEING FILED AS A FAILURE (gate #75), + the CHAMPION-LEG BUILD SPEC
+
+**⛔⛔ THE DEFECT, AND IT HAD NEVER BEEN HIT BECAUSE NOTHING HAS EVER FINISHED.** `story_mode.py`
+emits, on the ONLY path meaning the bot completed everything built:
+
+> *"... basket bought. **End** of built content. NEXT (WIP): Ch24, THE POKEMON LEAGUE ..."*
+
+with a **capital E**. All three log classifiers — `compare_runs.py:102`, `endless_runs.py:60`,
+`story_harness.py:25042` — matched the **lowercase** needle `"end of built content"` with a
+**case-sensitive** `in`. Match = **False**. ⇒ **the first ever completed run would have been filed
+as `HANG CONFIRMED` / a failure in every batch report** — a WIN recorded as a defect, which is the
+most expensive class of instrument error this project has.
+
+**‼ AND THE OBVIOUS FIX WAS WORSE THAN THE BUG.** Lowercasing only the HAYSTACK repairs this one
+needle and **breaks TEN others in the same files** (`HANG CONFIRMED`, `FEATHER BADGE`,
+`BADGE01_GET`, `Traceback (most recent call last)`, `NavigationStuckError` …). ⇒ **both sides are
+casefolded, or neither.** That was checked before the edit, not after.
+
+✅ **GATE #75 `repro_content_end_classifier.py`** (ENFORCING, no ROM, ~0.0s): **C1** the real
+literal — **RED→GREEN demonstrated** (`case-sensitive: False` → `casefolded: True`); **C2** all nine
+other needles still match; **C3** a clean log matches nothing; `--self-test` fault-tests the gate.
+⭐ **It reads the literal FROM `story_mode.py` rather than carrying a copy** — a gate holding its own
+copy of the thing under test passes forever after someone edits the real one, which is **exactly how
+this defect survived**: three classifiers *and* a docstring all carried a lowercase copy of a
+capitalised fact. Suite is now **79 = 75 ENFORCING + 4 ADVISORY** (`--quick` 69).
+
+**⭐⭐ AND THE CHAMPION-LEG BUILD SPEC** — `ai-research-notes/2026-09-25-ch24-CHAMPION-LEG-BUILD-SPEC.md`,
+produced by a **13-agent workflow**: six independent recon angles, each handed to a **separate
+adversarial verifier** that checked every citation at `file:line`, then one synthesis.
+‼ **THE VERIFICATION PASS KILLED TWELVE RECON CLAIMS**, and its §0 "WHAT IS DEAD" is the most
+valuable section in the file. It also found the recon carried **systematic citation drift of 4-80
+lines**, so every `file:line` in the body was re-derived against the tree at `d202e55c`.
+⭐ **ONE KILLED CLAIM INVERTED A CORE ASSUMPTION:** the production watchdog is **TRIGGER-HAPPY ON A
+WINNING RUN**, not blind ⇒ the leg must engineer against a *spurious derail*, not a silent hang.
+✅ Also settled: the bot's machinery **survives** the in-game `SoftReset` (frame count INCREASES
+across it, same generator object, listeners intact) ⇒ frame-denominated budgets stay valid.
+⛔ And `beat_the_trainer_here()` **must not be ported** — `ensure_facing_direction("Up")` would press
+directions at an avatar locked under `lockall`.
+
+**✅ P0 — THREE DOC DEFECTS CORRECTED** (each would have misdirected whoever writes the code):
+* The 2026-09-24 build spec's **M6** still commanded *"extend `Ch24TailProbeMode` … through (5,2)"*
+  — ordering a **re-spend of a finished ~50,000-frame drive** (the P5 shape). Marked DONE with its
+  evidence path, and the residual named honestly: *measured ONCE*, no win rate.
+* *"25 opposing Pokémon on one PP bar"* → **26** (`trainer_parties.h:4414-4457`); the 4 % error sits
+  entirely in the fight that has **no heal after it**.
+* `#24-gameclearflag`'s HEADER said the flag fires *"~20,000 frames"* early → measured
+  **13,107-14,575** (`victory_road.py:3307` already said ~13,000; the header was the stale half —
+  pair P2, and a heading is the part that gets skimmed).
+
+⚠ **UNMEASURED BY ANY OF THIS: the win rate.** Wallace was beaten **once**.
+
+**FILES:** `tools/story-dev/repro_content_end_classifier.py` (NEW, gate #75),
+`tools/story-dev/run_gates.py`, `tools/story-dev/compare_runs.py`, `tools/story-dev/endless_runs.py`,
+`tools/story-dev/story_harness.py`,
+`ai-research-notes/2026-09-25-ch24-CHAMPION-LEG-BUILD-SPEC.md` (NEW),
+`ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (M6 marked DONE),
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md` (`#24-contentendcase` CLOSED, `#24-championleg` FILED),
+`04-HANDOFF.md`, `07-CHANGELOG.md`.

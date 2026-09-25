@@ -21295,3 +21295,39 @@ where a one-instance repair reliably leaves a hole.
 diligent about X and no more vigilant about its siblings.* Two consecutive items failed the SAME
 pair in DIFFERENT halves. ⇒ **the cheap habit is to grep the item's own slug and re-read every hit
 before calling docs done** — which is already the P5 rule, and would have caught both.
+
+
+## 2026-09-25 — ⛔ AN UNQUOTED HEREDOC SILENTLY DELETED EVERY BACKTICKED NAME, AND THE SCRIPT REPORTED SUCCESS
+
+**SYMPTOM.** Re-pointing the handoff's queue head, I ran a Python repair through
+`py -3.12 - <<PYEOF` — an **unquoted** heredoc. Bash command-substituted every backtick in the
+prose, so the text that landed read:
+
+> *"…A DEFECT THAT WOULD HAVE MISREAD YOUR FIRST WIN:  emits a CAPITAL "End of built content." …
+> a GENUINE COMPLETION read as . ✅ FIXED + **gate #75**  (RED→GREEN shown)…"*
+
+`story_mode.py`, `HANG CONFIRMED` and `repro_content_end_classifier.py` were **deleted**, leaving
+grammatical sentences with the nouns missing. ‼ **And the script printed `queue head re-pointed`,
+the marker count was right, and the line count was right.** Every check I would normally trust said
+success.
+
+**ROOT CAUSE — AND THIS RULE ALREADY EXISTED IN `CLAUDE.md`:** *"⛔ Prose containing backticks must
+NEVER go through a shell string (`bash -c`/heredoc) — use the Write tool."* I had followed it all
+session for commit messages and then broke it for a doc edit, because the edit *felt* like code
+rather than prose. ⇒ **the rule is about the CONTENT, not the intent of the command.** A Python
+script is still a shell string when it arrives via `<<EOF`.
+
+**WHAT MADE IT VISIBLE AT ALL** was bash's own noise on stderr — `story_mode.py: command not found`,
+`HANG: command not found` — sitting *above* a success message. ⇒ **when a command prints errors AND
+then reports success, the success line is not evidence.** (The same shape as the 2026-09-24 stale-log
+near-miss: an edit step errored and the next command's output looked fine.)
+
+**THE FIX THAT WORKED.** Write the repair script to a FILE with the Write tool, then execute the
+file — nothing passes through a shell string. That is now the pattern for any scripted doc edit.
+
+⇒ **PREVENTION RULE: if the text being written contains a backtick, it does not go through a
+heredoc — not even a Python one.** Write the script to a file, or use Edit/Write directly.
+‼ **COROLLARY: a script that reports success is not evidence that it wrote what you meant.** For a
+doc edit, *read back the line you changed* — the corruption here was invisible to the line count,
+the marker count, and the script's own exit status, and it would have shipped a queue head with the
+nouns missing to the next cold start.
