@@ -267,3 +267,69 @@ the same legitimate moves a player would, so you can (a) compare a learned agent
   cursor moves, not absolute "press Down i times from the top".
 - **Route 109 is a dense trainer gauntlet** (a dozen sight-lines) but the pathfinder's
   route dodges most of them; only ~2 battles fired on the validated crossing.
+
+
+---
+
+## 2026-09-25 — ⭐ USER DIRECTION FOR THE AI VERSION (recorded verbatim in substance, NOT evaluated)
+
+Two items the user raised while §Ch24 was being finished. ⛔ **Both are RECORDED, not decided** — the
+user's own framing was *"we can worry about this later when we get to it"*, and the standing ordering
+ruling is that the **Elite Four and the Pokédex come first**.
+
+### A. ⭐ THE FRUIT-FLY CONNECTOME AS A CANDIDATE "PILOT"
+
+> *"I heard that scientists were able to completely map out a Fruit Fly's brain and allow AI Agents
+> to be plugged into it / use it as an AI agent for simple tasks. I am wondering if we could use
+> this in this project to aid / be the pilot to play the game once we reach this point."*
+
+**What is real, as background** — stated so a future session does not have to re-derive it, and
+clearly separated from what is *speculative*:
+* A **complete synaptic connectome of the adult *Drosophila* brain (~140k neurons, ~50M synapses)**
+  was published (the FlyWire consortium, 2024). That part is solid, public and citable.
+* People have built **simulations driven by that wiring** — feed inputs, watch activity propagate.
+  ⚠ A connectome is **connectivity**, not a trained policy: it says which neurons touch which, not
+  what weights, neurotransmitter dynamics or plasticity make behaviour. "Plugging an agent in"
+  is doing a great deal of work in that sentence.
+* ⇒ **the honest read: this is a research direction, not an off-the-shelf pilot.** The gap between
+  *"a simulated fly brain responds to stimuli"* and *"it plays a 40-hour RPG with menus, inventory
+  and multi-step goals"* is enormous — a fly connectome has no obvious substrate for the symbolic,
+  long-horizon planning this game needs.
+
+⭐ **BUT THE INSTINCT UNDERNEATH IT IS WORTH KEEPING, AND IT MAY BE THE MORE USEFUL HALF.** What a
+fly brain *is* extremely good at is **tight sensorimotor loops** — navigation, obstacle avoidance,
+odour/visual servoing, "keep moving toward the thing". That maps onto a real split this project has
+already discovered the hard way:
+* the **low-level loop** — walking, dodging, cadence, "am I stuck" — where our bugs have been
+  *timing and control* bugs (flickering controllability, starved generators, suspended loops); and
+* the **high-level plan** — "go to Mossdeep, teach Dive, beat the Elite Four" — which is symbolic
+  and already served well by the Story bot's explicit chapters.
+⇒ if a biological-substrate pilot is ever tried here, **the defensible experiment is the low-level
+loop, not the campaign.** That is also the half that is cheap to evaluate: it either walks without
+wedging or it does not.
+
+⛔ **DO NOT START THIS AS A BUILD.** Filed so the AI version is not designed in a way that forecloses
+it, and so the eventual discussion starts from the sensorimotor/symbolic split rather than from
+"can a fly play Pokémon".
+
+### B. ⚠ WHERE THE AI VERSION SHOULD LIVE — AN OPEN QUESTION, DELIBERATELY NOT ANSWERED
+
+> *"I am not sure if we should work on it in this project or if we should reference this project in
+> a new project for notes/reference and work on it in a clean environment, we can worry about this
+> later when we get to it."*
+
+Recorded as **OPEN**. The two options, stated neutrally so the later discussion does not start cold:
+* **In-place** — everything is here: the emulator harness, the symbolic RAM readers, the pathfinder,
+  the battle engine, 24 story modules and a large measured corpus. Nothing to port. ⚠ But this repo
+  now carries a substantial, carefully-ratcheted doc-and-gate apparatus built for *this* bot; an AI
+  project inheriting it inherits its constraints too.
+* **A clean repo that REFERENCES this one** — a fresh environment with this project as the notes and
+  reference corpus. ⚠ The cost is that the harness and readers are the genuinely valuable, hard-won
+  parts, and re-creating them would repeat months of measurement.
+⇒ ‼ **A middle path exists and should be on the table when this is discussed:** keep the
+*measurement substrate* (harness, RAM readers, pathfinder, battle math) as the shared asset and put
+only the *agent* in a clean environment. `Pokemon_Emerald_AI_Notes.md` §6 "Integration paths"
+already sketches this.
+
+⛔ **NO DECISION IS RECORDED HERE, AND NONE SHOULD BE INFERRED.** When this is raised, it is a fresh
+discussion — not a settled ruling to look up.
