@@ -2838,17 +2838,24 @@ gift egg, and any egg in the party at the moment an HM-carrier or counter withdr
 triggers it. ⇒ rare, silent until it happens, and it lands on an EXPENSIVE path (a PC journey
 already spent).
 
-**⛔ WHY IT IS FILED AND NOT FIXED.** `pc_trip.py` is SHARED — the counter hunt withdraws through
-the same code. This project's standing rule is *reproduce first, A/B where possible*; a change to a
-shared path justified only by reading is exactly what that rule forbids. **The mechanism is
-verified; the repro is not written.**
+⚠ *(The two paragraphs below are **HISTORY**, kept because the REASONING still matters — they were
+written when this was filed-not-fixed, and were superseded within hours by the RESOLUTION section at
+the end of this entry. Read the header and that section for current state.)*
 
-**✅ THE REPRO IS CHEAP AND OFFLINE-ISH — write it before touching anything:** construct (or capture)
-a party of 5 mon + 1 egg with a known PID in a box, call `withdraw_from_box([that_pid])`, and assert
-the verdict. **Expected today:** it does NOT deposit, and the withdraw raises. **Expected after the
-fix:** `alive` uses the CONSUMER's predicate, so it deposits one and the withdraw lands.
-‼ Grade it on the **verdict tuple** (`landed`, `code`), never on party size — the make-room path
+**⛔ WHY IT WAS FILED AND NOT FIXED (at filing time).** `pc_trip.py` is SHARED — the counter hunt
+withdraws through the same code. This project's standing rule is *reproduce first, A/B where
+possible*; a change to a shared path justified only by reading is exactly what that rule forbids.
+The mechanism was verified by reading; the repro was not yet written. ✅ **It was written, and the
+fix followed it — see the RESOLUTION below.**
+
+**✅ THE REPRO PLAN (written at filing time, and then FOLLOWED):** a party of 5 mon + 1 egg, call the
+room decision, and assert the verdict. **Expected before the fix:** no deposit, and the withdraw
+raises. **Expected after:** the CONSUMER's predicate is used, so it deposits one and the withdraw
+lands. ‼ Grade on the **verdict tuple** (`landed`, `code`), never on party size — the make-room path
 leaves the count UNCHANGED (6→6→6), which is KI-79's exact trap.
+⇒ the delivered gate is `repro_withdraw_room.py`; it tests the PURE room decision offline rather
+than driving a live PC trip, which is a **narrower** instrument than this plan imagined and is said
+so plainly here rather than left to look like the plan was executed verbatim.
 
 **FOUND BY:** an adversarial verifier in the 2026-09-25 design workflow
 (`ai-research-notes/2026-09-25-dexhunt-design-recon-WORKFLOW.md`), then confirmed by reading both
