@@ -21677,3 +21677,48 @@ safety device; every statement you put in front of the restore is a new way for 
 happen. ‼ Corollary: when a driver's `run()` aliases a stdlib import (`import os as _os`), a
 copy-pasted `os.` is a NameError that only fires on the path you added — which is exactly the path
 nobody drives twice.
+
+
+## 2026-09-25 — I COMMITTED OVER A RED SUITE. AGAIN. So it is a hook now.
+
+**SYMPTOM.** `git push` succeeded and the gate output above it read **`FAILED: 1 of 85`**.
+`repro_no_silent_except.py` was OVER its scan-root budget (124/123) because a module I had just
+written added two exception handlers.
+
+**ROOT CAUSE — and it is NOT "I forgot to check".** The command was:
+
+    grep -aE "ALL [0-9]+ ENFORCING|FAIL" /tmp/gatesD.out | tail -2 && git add ... && git commit ...
+
+The status gating the commit was **grep's**, and grep had **SUCCEEDED — at finding the word
+"FAIL"**. The gate's own exit code was consulted by nothing. ‼ And because the read and the commit
+shared ONE tool call, the `FAILED: 1 of 85` line did not exist for me to read until the commit had
+already happened. **I could not have caught it by being more careful within that call.**
+
+**‼ THIS WAS THE SECOND OCCURRENCE.** The first is already in this file: a `for` loop whose
+`&& echo PASS || echo FAIL` swallowed a red Tier 0 and let a docs commit through. The remedy
+recorded then was PROSE — *"read the gate result as its own step"* — and prose did not hold, in the
+same session that wrote it down. CLAUDE.md §6: *a rule already broken twice is evidence that prose
+failed — write the gate instead.*
+
+**THE FIX: `.claude/hooks/block-commit-over-gates.ps1`** — a PreToolUse hook, sibling to the
+`git add -A` blocker, registered as a gate via `selftest_commit_over_gates_hook.py`.
+
+**⭐ AND ITS OWN SELF-TEST REFUTED MY FIRST DESIGN ON THE FIRST RUN.** Version 1 was a BLACKLIST:
+*"block a `git commit` that shares a command with a gate `.py`."* The self-test's very first case —
+the REAL failing command — came back **ALLOW**, because that command runs no gate at all; it greps
+a SAVED log. **The hook would have permitted the exact command it was written to prevent.**
+⇒ Version 2 inverts it into a **WHITELIST**: a `git commit` may share its command only with `git`,
+message-writing (`cat`/`echo`/`printf`/`tee`), `cd`, `true`. Anything else — grep, tail, `py`, a
+for-loop — blocks.
+
+**PREVENTION RULE (one line).** ⛔ **A VERIFICATION READ AND A MUTATING ACTION MUST NOT SHARE A TOOL
+CALL** — otherwise the output cannot be READ before the action, and the action ends up gated by
+whatever exit status happened to be last. ✅ Now ENFORCED, not requested.
+
+**‼ AND THE DEEPER RULE, WHICH IS THE ONE THAT GENERALISES.** ⛔ **A BLACKLIST OF "WAYS TO GET IT
+WRONG" IS WRONG THE MOMENT ONE IS MISSED; PREFER A WHITELIST OF WHAT IS ALLOWED.** My blacklist had
+to enumerate every way of reading a result — grep, tail, head, cat, sed, awk, a `.out` file,
+whatever is invented next. The whitelist asks the opposite, and its list is short and stable.
+*This is the same shape as the roamer-outcome bug found hours earlier: an enumeration of three
+fatal outcomes missed a fourth, while the PARITY property could not.*
+⇒ **Write the PROPERTY, not the enumeration.**

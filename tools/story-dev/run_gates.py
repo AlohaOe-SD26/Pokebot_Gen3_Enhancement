@@ -231,6 +231,11 @@ GATES: list[tuple[str, bool]] = [
     # ‼ APPENDED AT THE END, never inserted — gate ordinals are append-only (2026-08-17: inserting
     # one at position 4 silently renumbered SIX doc citations).
     ("selftest_git_add_hook.py", False),
+    # ⛔ Its sibling. Written 2026-09-25 after a `grep <gate log> && git commit` committed
+    # over a RED suite — grep had SUCCEEDED at finding the word "FAIL", so the commit ran.
+    # SECOND occurrence of that class; CLAUDE.md says committing over a red gate is the same
+    # offence as `git add -A`, and that one has a hook. Now so does this.
+    ("selftest_commit_over_gates_hook.py", False),
     # #30 — `#24-loopheadabort`. Nav retry loops must `_check_abort()` at the LOOP HEAD (outside the
     # try — `StoryAbort` subclasses `BotModeError`, so a check inside would be swallowed by the
     # ⛔ §1 gates the ORDERING that makes those checks safe: `StoryMode.run` must clear the

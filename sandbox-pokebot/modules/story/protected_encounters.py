@@ -77,24 +77,22 @@ def roamer_outcome_is_fatal(outcome: int | None) -> bool:
     :param outcome: `gBattleOutcome` as read from memory. `None` means "not readable".
     :return: True if this outcome deactivates the roamer permanently.
     """
-    if outcome is None:
-        # ⛔ AN UNREADABLE OUTCOME IS NOT "SAFE". Returning False here would let a caller conclude
-        # the encounter survived when it cannot know that. The conservative reading of "I could not
-        # tell" is "assume the worst", because the loss being guarded against is IRREVERSIBLE.
+    # ⛔ AN UNREADABLE OUTCOME IS NOT "SAFE". Reporting False here would let a caller conclude the
+    # encounter survived when it cannot know that. The conservative reading of "I could not tell"
+    # is "assume the worst", because the loss being guarded against is IRREVERSIBLE.
+    # ‼ ASKED WITH `isinstance`, NOT `try/int()/except`: this is a TYPE question, and answering it
+    # by exception would also swallow a genuine caller bug (an object with a broken `__int__`) into
+    # the same branch as "the value was None". `bool` is excluded deliberately — `True & 1` is 1,
+    # so a stray boolean would read as a FATAL outcome rather than as unreadable.
+    if not isinstance(outcome, int) or isinstance(outcome, bool):
         return True
-    try:
-        return bool(int(outcome) & B_OUTCOME_WON)
-    except (TypeError, ValueError):
-        # Same reasoning as above: a value we cannot interpret is not evidence of safety.
-        return True
+    return bool(outcome & B_OUTCOME_WON)
 
 
 def outcome_name(outcome: int | None) -> str:
     """`5` -> `"PLAYER_TELEPORTED (5)"`. For logs — a bare integer is a fact nobody can act on."""
     if outcome is None:
         return "<unreadable>"
-    try:
-        value = int(outcome)
-    except (TypeError, ValueError):
+    if not isinstance(outcome, int) or isinstance(outcome, bool):
         return f"<uninterpretable {outcome!r}>"
-    return f"{B_OUTCOME_NAMES.get(value, 'UNKNOWN')} ({value})"
+    return f"{B_OUTCOME_NAMES.get(outcome, 'UNKNOWN')} ({outcome})"

@@ -35378,3 +35378,55 @@ this table — a 12-agent recon on exactly that question is in flight.
 (85 entries = 81 ENFORCING + 4 ADVISORY; `--quick` 75),
 `ai-research-notes/2026-09-25-roamer-outcome-table-VERIFIED.md` (new),
 `02-ARCHITECTURE.md`, `04-HANDOFF.md` (drift 6 → 7), `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ⛔ A RED SUITE GOT COMMITTED OVER. It is a HOOK now, not a rule.
+
+**WHAT HAPPENED.** `grep <gate log> | tail && git add ... && git commit ...` committed while the
+suite read **`FAILED: 1 of 85`**. The commit was gated by **grep's** exit status, and grep had
+SUCCEEDED at finding the word "FAIL". ‼ Because the read and the commit shared ONE call, the FAILED
+line did not exist to be read until after the commit — *being more careful inside that call could
+not have helped.*
+**SECOND OCCURRENCE.** The first is in `08-MISTAKES.md`; its remedy was prose, and prose did not
+hold. CLAUDE.md: committing over a red gate is the same offence as `git add -A` — and that has a
+hook.
+
+**THE FIX.** `.claude/hooks/block-commit-over-gates.ps1`, wired in `settings.json` beside the
+`git add -A` blocker and registered as a gate (`selftest_commit_over_gates_hook.py`, 12 cases).
+
+**⭐ ITS SELF-TEST REFUTED MY FIRST DESIGN IMMEDIATELY.** Version 1 blocked "a gate `.py` in the
+same command" — a BLACKLIST — and the real failing command runs NO gate; it greps a saved log. The
+first case came back ALLOW: **the hook would have permitted the very command it was written to
+prevent.** Version 2 is a WHITELIST — a commit may share its call only with `git`, message-writing
+(`cat`/`echo`/`printf`/`tee`), `cd`, `true`.
+⇒ **A blacklist is wrong the moment one entry is missed. Write the PROPERTY, not the enumeration.**
+*(The same shape as the roamer bug found hours earlier: three named fatal outcomes missed a fourth;
+the parity property could not.)*
+
+**FALSE POSITIVES WERE THE HARD HALF** — this repo's commit messages name gates constantly. Quoted
+text and heredoc bodies are masked as DATA before any matching, so `git commit -F` with a message
+naming `run_gates.py` is allowed, and the ordinary `git add && git commit && git push` is untouched.
+
+**⭐⭐ AND IT BLOCKED ITS OWN INTRODUCING COMMIT — A REAL FALSE POSITIVE, CAUGHT IMMEDIATELY.**
+Version 2 split on `|` as well as `&&`, so the habitual
+`git commit -F m | tail -3 && git push 2>&1 | tail -2` produced a `tail` segment and was refused.
+Those `tail`s are OUTPUT FILTERS; they gate nothing.
+⇒ **the property is a statement's PIPELINE HEAD**, because that is whose exit status the next `&&`
+actually consults: `grep X log | tail -2 && git commit` has head `grep` (fatal), while
+`git commit | tail -3 && git push` has head `git` (harmless). Version 3 splits on `&&`/`||`/`;`
+only and judges the head. Three cases were added — including the exact command that was refused —
+and the suite is 15/15.
+‼ This is the second time in one hour a self-test refuted the design it was written to confirm.
+*A hook firing on its author is the strongest evidence it is live; a hook that is merely written is
+not yet a hook.*
+
+**ALSO FIXED IN THIS COMMIT:** the red gate itself — `modules/story` was 124/123 on
+`repro_no_silent_except`, from two handlers in the new `protected_encounters.py`. **The baseline was
+NOT raised**; the handlers were removed by asking the type question with `isinstance` instead of
+`try/int()/except`, which is clearer anyway and stops a broken `__int__` being silently classed as
+"unreadable". Back to 123/123.
+
+**FILES:** `.claude/hooks/block-commit-over-gates.ps1` (new), `.claude/settings.json`,
+`tools/story-dev/selftest_commit_over_gates_hook.py` (new gate),
+`sandbox-pokebot/modules/story/protected_encounters.py`, `tools/story-dev/run_gates.py`,
+`02-ARCHITECTURE.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
