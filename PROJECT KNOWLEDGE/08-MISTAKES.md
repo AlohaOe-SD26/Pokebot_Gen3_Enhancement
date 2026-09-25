@@ -21722,3 +21722,39 @@ whatever is invented next. The whitelist asks the opposite, and its list is shor
 *This is the same shape as the roamer-outcome bug found hours earlier: an enumeration of three
 fatal outcomes missed a fourth, while the PARITY property could not.*
 ⇒ **Write the PROPERTY, not the enumeration.**
+
+
+## 2026-09-25 — A BLOCKED COMMAND RUNS **NOTHING** — including the harmless part before it
+
+**SYMPTOM.** Commit `fb4aea94` was pushed with a message consisting solely of a POSTSCRIPT
+paragraph. Its subject line reads *"POSTSCRIPT — THE HOOK BLOCKED ITS OWN INTRODUCING COMMIT…"*.
+The actual rationale, the file list and the `Co-Authored-By` trailer are all absent.
+
+**ROOT CAUSE.** The first attempt at that commit was one command:
+
+    cat > /tmp/cm14.txt <<'EOF' … EOF ; git add … && git commit -F /tmp/cm14.txt …
+
+and a PreToolUse hook **denied the whole call**. I then reasoned about the block, fixed the hook,
+and re-issued the commit with `cat >> /tmp/cm14.txt` — **appending the postscript to a file I
+believed already held the message.** It did not: the `cat >` that would have written it was INSIDE
+the denied command, so it never ran. `>>` created the file fresh, containing only the postscript.
+
+**‼ THE MENTAL MODEL THAT WAS WRONG.** I treated the denial as *"the commit was refused"* — i.e. as
+if the earlier, innocuous parts of the chain had still executed. A denial is **all-or-nothing**:
+nothing in the call ran, not the `cd`, not the `cat`, not the heredoc. The block message even says
+so implicitly by naming the whole command, and I read it as being about the commit alone.
+
+**THE FIX THAT WORKED.** History is not rewritten here, so the missing rationale is supplied by a
+follow-up commit that names `fb4aea94` explicitly. ⇒ the information lives in `07-CHANGELOG.md`
+(which already carried the full story) and in that follow-up; only `git log --oneline` is thin, and
+it now has a neighbour that explains why.
+
+**PREVENTION RULE (one line).** ⛔ **AFTER A DENIED TOOL CALL, ASSUME NOTHING IN IT HAPPENED — and
+re-create side effects with `>` , never `>>`.** An append presumes a predecessor; a denial
+guarantees there was none.
+
+**‼ AND THE SECOND-ORDER RULE, which is the more useful one.** ⛔ **BUILD THE COMMIT MESSAGE IN ITS
+OWN TOOL CALL, BEFORE THE COMMIT CALL.** Bundling message-authoring with the commit means any
+refusal of the commit silently discards the message — and the retry then looks like it has one.
+*(This is the same family as the rule that produced the hook in the first place: a READ and an
+ACTION, or here an AUTHORING step and an ACTION, must not share a call.)*
