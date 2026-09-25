@@ -34637,3 +34637,51 @@ Predictions pre-registered BEFORE the drive (`1c0dc794`); graded in
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, and evidence
 `2026-09-25-ch24bridge.stdout.txt`, `2026-09-25-ch24bridge-ARM-vacuity.stdout.txt`,
 `2026-09-25-ch24room-{sidney,phoebe,glacia}-REFACTOR.stdout.txt`.
+
+
+## 2026-09-25 — ⭐⭐ `#24-marthreachable` ANSWERED: THE LEAGUE MART **IS** REACHABLE, AND H7 WAS A WRONG COORDINATE
+
+**WHY IT MATTERED.** USER RULING 12 authorises a restock-and-retry loss path, and `#24-restockleg`
+was blocked on build-spec hazard **H7**: *"the Mart REFUSES (`PathFindingError`)… the clerk appears
+not to be spawned."* **Both halves are refuted by measurement.**
+
+| recorded claim | measured (OBSERVE-ONLY probe, no button pressed) |
+|---|---|
+| "the clerk is not spawned" | ⛔ **REFUTED** — the lobby has **4 ROM-defined objects**, one at **`(16,2)`** |
+| "the Mart REFUSES" | ⛔ **REFUTED of the right tile** — `(16,3)` is **the counter, a WALL**; **`(16,4)` routes in 13 wp** |
+
+**⭐ WHY THE ORIGINAL READING WENT WRONG, AND THE GENERALISABLE PART.** A Gen-3 shop/centre NPC
+stands **behind a solid counter and is talked to ACROSS it**. The proof was on the same map all
+along: the NURSE object `(3,2)` has **all four neighbours WALL**, yet `LEAGUE_NURSE_STAND = (3,4)`
+works. ⇒ "adjacent" was never the right model, so a single hardcoded "approach tile" could not
+distinguish *"unreachable"* from *"you guessed the wrong tile"*.
+‼ **The camera-window trap was live too:** `get_map_objects()` listed 4 live objects and none near
+`(16,2)` — which is ~13 tiles away, outside the ~7-9 tile window. Concluding "not spawned" from that
+list is the documented misread. ⇒ the new probe prints **ROM templates beside live objects** and
+**refuses to conclude absence from the live list**, and it sweeps every ROM object at BOTH adjacency
+and counter distance.
+
+**✅ AND THE SHOP IS REAL — CONFIRMED IN THE DECOMP, NOT INFERRED.**
+`EverGrandeCity_PokemonLeague_1F_EventScript_Clerk:: pokemart …` with stock:
+**Ultra Ball · Hyper Potion · Max Potion · Full Restore · Full Heal · REVIVE · Max Repel.**
+⇒ ✅ **REVIVES ARE BUYABLE** — the item the gauntlet actually runs out of — and the whole healing
+basket can be rebuilt **at the League itself, without leaving Ever Grande**.
+⇒ ⛔⛔ **NO ETHER, NO ELIXIR, NO LEPPA ⇒ PP CANNOT BE RESTORED ANYWHERE IN THE LEAGUE, NOW MEASURED
+RATHER THAN ARGUED** (`#24-leg2spec` O3). A restock leg fixes HP, status and faints; **it cannot fix
+PP**, against ~25 opposing Pokémon on one PP bar.
+
+**⛔ WHAT IS STILL BLOCKING `#24-restockleg`:** the MONEY (₽54,300 basket vs a measured ₽1,741,
+halved again per loss, and wilds measured at **₽0 over 1,056 battles**), a **BUY-MENU DRIVER** which
+does not exist, and the walk-in route from the post-whiteout respawn `EVER_GRANDE_CITY (18,6)` to
+`(16,4)`, which is not yet measured end to end.
+
+⚠ **NO PREDICTIONS WERE PRE-REGISTERED** — this is an OBSERVE-ONLY fact-finding probe with no
+acceptance verdict to game, so `story-drive` §1 does not bite. Stated so it is not later read as a
+leg that skipped the ritual.
+
+**FILES:** `tools/story-dev/probe_mart_reachable.py` (NEW),
+`tools/story-dev/evidence/2026-09-25-marthreachable.stdout.txt` (NEW),
+`ai-research-notes/2026-09-25-marthreachable-MEASURED.md` (NEW),
+`ai-research-notes/2026-09-24-ch24-GAUNTLET-BUILD-SPEC.md` (H7 corrected at all 3 mentions),
+`03-PUNCH-LIST.md` (`#24-marthreachable` CLOSED; `#24-restockleg` blocker narrowed),
+`04-HANDOFF.md`, `07-CHANGELOG.md`.

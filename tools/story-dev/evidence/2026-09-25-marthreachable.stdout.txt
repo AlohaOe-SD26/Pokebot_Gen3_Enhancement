@@ -1,0 +1,55 @@
+Running mGBA 0.10.2
+====================================================================================================
+  `#24-marthreachable` — WHERE CAN THE BOT ACTUALLY BUY?  ⛔ OBSERVE-ONLY:
+  no button is pressed, no step is taken, nothing is bought.
+  ⇒ It blocks `#24-restockleg`, which USER RULING 12 authorises but which must not be
+    written against a shop the planner refuses to route to.
+====================================================================================================
+====================================================================================================
+  FIXTURE post_league_lobby.ss1   standing: EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+====================================================================================================
+  ✅ CONTROL: path to adjacent (3, 5) = 1 waypoint(s) — the planner works from
+     this position, so a REFUSAL below is a property of the DESTINATION, not the instrument.
+
+  ROM TEMPLATE objects on this map: 4
+    template @     (3, 2)   normal
+    template @    (16, 2)   normal
+    template @     (8, 2)   normal
+    template @    (11, 2)   normal
+
+  LIVE objects loaded right now: 4  (⛔ CAMERA-RANGE WINDOW — an empty/short list is NOT proof of absence)
+    live     @     (3, 4)   <- PLAYER
+    live     @     (3, 2)   
+    live     @     (9, 2)   
+    live     @    (10, 2)   
+
+  ROUTING TO THE CLAIMED LANDMARKS:
+    nurse stand (victory_road.py:391)            -> 0 waypoint(s)  (0 = already standing on it)
+    MART clerk approach (the H7 claim)           -> REFUSED — PathFindingError: Could not find a path from (3/4 @ EVER_GRANDE_CITY_POKEMON_L
+    lobby south exit (toward Ever Grande)        -> 14 waypoint(s)
+
+  ⭐ NEIGHBOUR SWEEP — for each ROM-defined object, can we stand next to it?
+     (a counter NPC is talked to from an adjacent tile; the object's OWN tile is solid)
+    object @     (3, 2)  ->  (3, 3)=WALL  (3, 1)=WALL  (4, 2)=WALL  (2, 2)=WALL
+                counter-distance (2):  (3, 4)=0wp  (3, 0)=WALL  (5, 2)=WALL  (1, 2)=WALL
+    object @    (16, 2)  ->  (16, 3)=WALL  (16, 1)=WALL  (17, 2)=REFUSED(PathFindingError)  (15, 2)=REFUSED(PathFindingError)
+                counter-distance (2):  (16, 4)=13wp  (16, 0)=WALL  (18, 2)=REFUSED(PathFindingError)  (14, 2)=WALL
+    object @     (8, 2)  ->  (8, 3)=6wp  (8, 1)=WALL  (9, 2)=REFUSED(PathFindingError)  (7, 2)=6wp
+                counter-distance (2):  (8, 4)=5wp  (8, 0)=WALL  (10, 2)=REFUSED(PathFindingError)  (6, 2)=5wp
+    object @    (11, 2)  ->  (11, 3)=9wp  (11, 1)=WALL  (12, 2)=11wp  (10, 2)=REFUSED(PathFindingError)
+                counter-distance (2):  (11, 4)=8wp  (11, 0)=WALL  (13, 2)=12wp  (9, 2)=REFUSED(PathFindingError)
+====================================================================================================
+
+  ⛔ WHAT THIS PROBE DOES **NOT** SETTLE, STATED SO NOTHING OVER-READS IT:
+     * Whether the clerk would SELL to us, or what the shop STOCKS. Routing to a tile is
+       not a transaction, and `#24-restockleg` needs prices, not just reachability.
+     * Whether the money exists. The basket is ₽54,300 against a measured ₽1,741, and a
+       whiteout HALVES what remains — reachability does not touch that problem.
+     * Whether a clerk absent from the LIVE list is really absent. Read the ROM template
+       count beside it; an empty camera window is not an absence.
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-25_07-09-43.ss1 created!
+Updated `current_state.ss1`!
