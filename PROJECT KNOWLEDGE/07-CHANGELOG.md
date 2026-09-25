@@ -35169,3 +35169,37 @@ fresh round trip on the current sandbox build is a worthwhile regression check.
 `tools/story-dev/repro_boxed_hm_learner.py` (new gate), `tools/story-dev/run_gates.py`,
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (four citation line-numbers re-derived
 after the insertion shifted them), `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ⛔ A PROSE RULE BECAME A GATE: `repro_restore_guard.py`
+
+**Earlier today a one-line CONVENIENCE disabled a SAFETY on its first run.** A fixture-CAPTURE added
+directly above the fixture RESTORE, inside the same `try`, raised a `NameError` (`os` vs `_os`) —
+and did not merely skip the capture: **it skipped the restore**, logging
+*"⛔⛔ COULD NOT RESTORE THE FIXTURE … `current_state.ss1` may now hold a CLEARED-GAME state."*
+No damage that time (every pinned fixture verified OK, no tracked save dirty, the user's own profiles
+last written in July) — but the blast radius was measured AFTERWARDS, which is the wrong order.
+
+⭐ **CLAUDE.md §6 says an enforceable lesson belongs in a GATE, not in prose.** So it is one now.
+`repro_restore_guard.py` parses `story_harness.py` with **AST** (never grep — a textual search cannot
+tell a guarded statement from a bare one, which IS the distinction) and FAILS if any statement that
+is not itself a `try` stands between a guarding `try` and its `load_save_state`.
+Today: **6 restore sites, all clean.**
+
+**⭐ FAULT-TESTED BOTH WAYS, because a gate never seen to fail is decoration:**
+* re-insert a bare statement before a restore → `FAIL`, naming `story_harness.py:20945` exactly;
+* rename the restore call so the matcher sees nothing → **the NON-VACUITY arm fires**: *"NO RESTORE
+  SITES FOUND AT ALL — this gate is measuring nothing."* A gate that finds nothing to guard is
+  BLIND, not passing, and it must say so.
+* control green, original restored in the same run.
+
+**⚠ ITS LIMIT IS STATED, NOT HIDDEN.** It checks only inside the restore's own guarding `try`.
+Statements earlier in the enclosing `finally` (19 today) could also strand a restore — reported as
+an INFO count, not failed, because they are almost all `getattr`/dict writes and failing them would
+make the gate noisy. A noisy gate teaches the reader to bypass it, which is strictly worse than no
+gate. If one ever does strand a restore, tighten it and take the noise.
+
+**FILES:** `tools/story-dev/repro_restore_guard.py` (new), `tools/story-dev/run_gates.py`
+(suite 80 → 81 entries = 77 ENFORCING + 4 ADVISORY; `--quick` 70 → 71), `02-ARCHITECTURE.md` and
+`04-HANDOFF.md` (the runnable gate-count comments — a runnable command line gets no supersede
+marker), `08-MISTAKES.md` (the rule now names its gate), `07-CHANGELOG.md`.

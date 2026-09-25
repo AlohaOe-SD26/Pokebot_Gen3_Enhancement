@@ -185,6 +185,11 @@ GATES: list[tuple[str, bool]] = [
     # found in the BOX, by PID, without a PC trip. Fault-tested 2026-09-25 (slot-index and
     # no-learnset-filter breaks both caught; control green).
     ("repro_boxed_hm_learner.py", False),
+    # ⛔ A CONVENIENCE MUST NEVER DISABLE A SAFETY. Written 2026-09-25 after a one-line
+    # fixture-CAPTURE added inside the restore's own `try` raised a NameError and SKIPPED THE
+    # RESTORE, nearly leaving a CLEARED-GAME state in what the real bot resumes from.
+    # Fault-tested: a bare statement before a restore FAILS, and a blinded matcher FAILS too.
+    ("repro_restore_guard.py", False),
     # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
     # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
     # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage

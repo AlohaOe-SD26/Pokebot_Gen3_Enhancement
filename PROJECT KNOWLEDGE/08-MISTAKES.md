@@ -21649,8 +21649,23 @@ were touched. ‼ Checking that was not optional — "probably fine" is not a bl
 **THE FIX THAT WORKED.** Correct the name, and give the capture **its own `try/except`** so that no
 future error in it can prevent the restore, with a loud non-fatal log line if it fails.
 
-**PREVENTION RULE (one line).** ⛔ **NEVER ADD CODE INSIDE THE `try`/`finally` THAT PROTECTS AN
-IRREVERSIBLE ACTION — give the addition its own handler.** A `finally` that restores state is a
+**✅✅ PREVENTION RULE — NOW ENFORCED IN CODE, NOT PROSE (same day).** This is no longer
+something a future agent has to remember: **`repro_restore_guard.py`** (gate, registered in
+`run_gates.py`) parses `story_harness.py` with **AST** and FAILS if any statement that is not
+itself a `try` stands between a guarding `try` and the `load_save_state` restore inside it.
+⭐ FAULT-TESTED BOTH WAYS: re-inserting a bare statement before a restore fails and names the
+line; blinding the matcher (renaming the restore call) trips a NON-VACUITY arm, because a gate
+that finds zero restore sites is BLIND, not passing. Control green, source restored.
+⚠ KNOWN, DELIBERATE LIMIT, stated rather than hidden: it checks only inside the restore's OWN
+guarding `try`. Statements EARLIER in the enclosing `finally` (19 of them today) could also
+strand a restore; they are reported as an INFO count, not failed, because they are almost all
+`getattr`/dict writes and failing them would make the gate noisy — and a noisy gate teaches
+the reader to bypass it, which is strictly worse than no gate. If one ever DOES strand a
+restore, tighten the gate and accept the noise.
+
+**THE RULE IT ENFORCES (kept, because the gate covers one file and the idea is general).**
+⛔ **NEVER ADD CODE INSIDE THE `try`/`finally` THAT PROTECTS AN IRREVERSIBLE ACTION — give the
+addition its own handler.** A `finally` that restores state is a
 safety device; every statement you put in front of the restore is a new way for the restore not to
 happen. ‼ Corollary: when a driver's `run()` aliases a stdlib import (`import os as _os`), a
 copy-pasted `os.` is a NameError that only fires on the path you added — which is exactly the path
