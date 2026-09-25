@@ -34433,3 +34433,54 @@ second drive, and its pre-written falsifier called the first drive's meaning cor
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-room-leg-GRADED.md` (new),
 `29-DISABLED-FEATURES-REGISTRY.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`,
 `08-MISTAKES.md`, and five new evidence files under `tools/story-dev/evidence/`.
+
+
+## 2026-09-24 — ⭐⭐ §Ch24 S2b: THE ROOM LEG **COMPOSES** — ALL THREE PAIRS DRIVEN AND PASSING
+
+**WHAT THIS ANSWERS.** `fight_one_room()` hardcodes two coordinates — `ROOM_EXIT_DOOR = (6,2)` and
+`HALL_FAR_DOOR = (5,2)` — on a claim inherited from the harness drivers that they are identical in
+every room and hall. The production leg had run in **one** room, which cannot distinguish *"the
+constants are universal"* from *"they happen to match Sidney's room"*. **They are universal.**
+
+| pair | fixture | result | end tile |
+|---|---|---|---|
+| `sidney` | `post_sidney_L75` | ✅ PASS, 9 readings | `PHOEBES_ROOM (6,6)` |
+| `phoebe` | `post_phoebe_L75` | ✅ PASS, 9 readings | `GLACIAS_ROOM (6,6)` |
+| `glacia` | `post_glacia_L75` | ✅ PASS, 9 readings | `DRAKES_ROOM (6,6)` |
+
+All three: `missing=[]`, `whiteouts=0`, `failure=None`, `heal_ready=True`,
+`exit_door_live={(6,1):0,(6,2):0}`, `objects_seen=[(6,5)]`. Each ends on exactly the premise the
+next needs ⇒ **the sequencer can be a loop over `PAIRS`, not four bespoke branches.**
+
+**⭐⭐ THE HARD CASE WORKED.** `post_glacia_L75.ss1` starts **64 % with Mightyena FAINTED** (the Drake
+commit's *"a party the previous room broke"*). The production heal planned:
+`Revive` Mightyena → `Hyper Potion` Mightyena (*"just revived, returns at half HP"*) →
+`Full Restore` Wailord. `heal_actions=3`, `heal_ready` flipped **False → True**.
+‼ It knows a Revive returns a mōn at HALF HP and tops it up in the SAME plan.
+
+**⭐ AND THE PREDICTION WRITTEN TO CATCH MY OWN NEW CODE HELD.** The `heal_ready` conjunct added in
+`272c226f` fails a heal that achieved nothing — so the obvious way for it to be WRONG is a party
+needing nothing. From the 99 % Phoebe fixture: `heal_plan=[]`, `heal_actions=0`, **`heal_ready=True`**
+(via `heal_party_from_bag`'s early-out). ⇒ the conjunct separates *"nothing to do"* from *"could not
+do it"* and is **not** too strict.
+
+**⭐ UNPREDICTED, AND IT JUSTIFIES THE REDUNDANCY:** the two drives left the engage loop by
+DIFFERENT signals. `phoebe`'s 26,770-frame battle was caught by the SUSPENSION detector
+(`engage_suspension_frames=26772`); `glacia`'s 18,758-frame battle was **not** — that key is absent
+from an untruncated line, so the break came from `battle_is_active() or get_event_flag(...)`.
+⚠ **The log cannot say which of those two**, because they share one condition — not asserted, and
+filed as a cheap improvement: split the `or` so the reading records the signal.
+
+**⛔ WHAT THIS IS NOT.** Three independent legs from three pinned fixtures, **not one four-fight
+gauntlet**: each started with its own bag, so "the heal coped" must NOT be read as "the basket
+survives the gauntlet". The Champion room is deliberately NOT in `PAIRS` (forced battle on entry,
+no `WalkInCloseDoor` seal). No sequencer, no `_play` dispatch; `story_mode.py:5280` unchanged.
+
+Predictions pre-registered BEFORE the drives (`015ae88b`); graded in
+`ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md` — **P1–P5 all CONFIRMED**.
+
+**FILES:** `PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md`
+(new), `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`,
+`tools/story-dev/evidence/2026-09-24-ch24room-PHOEBE.stdout.txt` (new),
+`tools/story-dev/evidence/2026-09-24-ch24room-GLACIA.stdout.txt` (new),
+`tools/story-dev/party_accounting_ledger.jsonl`.

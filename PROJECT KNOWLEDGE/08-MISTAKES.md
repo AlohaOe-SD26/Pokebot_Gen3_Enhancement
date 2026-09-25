@@ -21197,3 +21197,34 @@ fixed FIRST. Had the drive still been running from `post_sidney_door_open.ss1` (
 this same FAIL would have arrived wearing a plausible wrong explanation — *"of course it lost"* —
 and a structural defect would have been filed as a party-strength problem.
 ⇒ **Removing a confound does not just improve a result, it protects the DIAGNOSIS of a failure.**
+
+
+## 2026-09-24 — ⚠ I UPDATED FIVE PLACES AND MISSED THE SIXTH — AND THE SIXTH WAS THE ONLY ONE A COLD SESSION *RUNS*
+
+**SYMPTOM.** Having driven the other two §Ch24 room pairs, I updated the handoff BANNER, the QUEUE
+HEAD, the STATE table row, the PUNCH-LIST item and the CHANGELOG — five halves, all agreeing that
+all three pairs are driven and passing. A Tier 1 reviewer **KICKED IT BACK**: the `HOW TO RUN` block
+for `--driver ch24room` still read *"Pairs: `sidney` | `phoebe` | `glacia` (⚠ **only `sidney` has
+been driven through the PRODUCTION leg**)"*, and it named only ONE fixture, so it was not even
+self-sufficient for the two new legs.
+
+**ROOT CAUSE, AND IT IS SHARPER THAN THE RULE I ALREADY HAD.** `08-MISTAKES`/`CLAUDE.md` already
+says *"a checklist protects exactly what it enumerates"* (P5's origin). This instance adds the part
+that makes it bite: **the five places I updated were all NARRATIVE — prose asserting a status. The
+one I missed was the only OPERATIONAL one — the block a resuming session COPIES COMMANDS FROM.**
+Pair checks P1–P5 are, by construction, mostly narrative-to-narrative, so a narrative-only sweep can
+satisfy every named pair while leaving the runnable half stale. ⇒ the stale text was not merely
+wrong, it was **the wrong text in the highest-consequence position**: a cold session reading it
+would have believed two of the three pairs still needed driving and re-done finished work.
+
+**THE FIX.** The block now carries a three-row table (env value ↔ fixture ↔ destination room) and
+states plainly that all three are driven, plus the "three independent legs, not one gauntlet"
+caution. Re-reviewed afterwards for an off-by-one in the rows, because a MISMATCHED row would be
+worse than the original staleness — it would send a session to run a pair that must refuse.
+
+⇒ **PREVENTION RULE: when an item changes what is TRUE, grep for the place that tells someone what
+to RUN — and update it FIRST, not last.** A status sentence is read; a command block is executed.
+‼ **COROLLARY: after finishing an item, re-read the HOW TO RUN section specifically.** It is not
+covered by P1–P5 except indirectly through P3, and P3 is easy to mark PASS on the STATE-table half
+alone. *(Cost of learning this: zero — a Tier 1 reviewer caught it before the commit. That is the
+tier paying for itself, and the reason it runs BEFORE step 5 rather than after.)*

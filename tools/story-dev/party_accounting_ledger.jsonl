@@ -711,3 +711,5 @@
 {"when": "2026-09-24T21:03:46", "driver": "ch24room", "build": "sandbox", "state": "post_sidney_L75.ss1", "frames_run": 27231, "recomputes": 27232, "scans": 91, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T21:09:45", "driver": "ch24room", "build": "sandbox", "state": "post_sidney_L75.ss1", "frames_run": 36871, "recomputes": 36872, "scans": 123, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T21:15:03", "driver": "ch24room", "build": "sandbox", "state": "post_sidney_L75.ss1", "frames_run": 20000, "recomputes": 20002, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T21:41:06", "driver": "ch24room", "build": "sandbox", "state": "post_phoebe_L75.ss1", "frames_run": 52152, "recomputes": 52153, "scans": 174, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T21:47:11", "driver": "ch24room", "build": "sandbox", "state": "post_glacia_L75.ss1", "frames_run": 45516, "recomputes": 45517, "scans": 152, "divergences": {}, "observer_broke": false}
