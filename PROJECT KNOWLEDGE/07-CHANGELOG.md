@@ -35049,3 +35049,68 @@ egress, the fault arm), `PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md`,
 `ai-research-notes/2026-09-25-ch24-egress-{PREDICTIONS,GRADED}.md` (new),
 `ai-research-notes/2026-09-25-post-hof-littleroot-MEASURED.md` (new — carries TWO forward traps for
 the dex-hunt chapter), and four evidence files `evidence/2026-09-25-ch24egress-*`.
+
+
+## 2026-09-25 (evening) — ⭐⭐ §Ch24 IS WIRED INTO `_play`: `ch24_chapter_done()` + DISPATCH + BANNER
+
+**All three landed together, as `#24-championleg` required.** §Ch24 is no longer harness-only: a
+story run now reaches the Elite Four through `_play`.
+
+**⛔⛔ THE GATE IS NOT THE TWO FLAGS, AND A DRIVE PROVES IT.** `setflag FLAG_IS_CHAMPION` lives
+INSIDE the Hall of Fame script and `FLAG_SYS_GAME_CLEAR` is set moments later — both BEFORE the
+credits and BEFORE the `SoftReset` (read straight from the decomp). One instrumented drive evaluated
+both candidate predicates at two instants:
+`flags_only=True, gated=False` **in `EVER_GRANDE_CITY_HALL_OF_FAME`**, and `True/True` at the end in
+the bedroom. ⇒ a flags-only gate would declare the chapter finished with the bot still standing in
+the Hall of Fame. ‼ That is §Ch23's lesson verbatim ("the flag is set at LEG 5 OF 11").
+⭐ `ch24_chapter_done()` = `IS_CHAMPION ∧ SYS_GAME_CLEAR ∧ not-on-endgame-maps ∧ non-empty
+party`, RAM-only (RAM and flash disagree on all five §Ch24 fixtures — measured).
+
+**⛔ AND A CONJUNCT WAS REMOVED AFTER IT WAS WRITTEN — `GameState.OVERWORLD`.** It has NO
+discriminating power here (the conjunct that separates cleared from mid-Hall-of-Fame is
+`not-on-endgame-maps`) and it opens a FALSE-NEGATIVE: the post-game bot is in battle
+constantly while dex hunting, so the dispatch would read "chapter NOT done" on a CLEARED
+save. A TIER 1 reviewer independently found the same window via `normalize_to_overworld()`'s
+silent 3,600-frame timeout on a cold resume. ‼ And my own comment defended it with a
+FALSEHOOD — *"FALSE is the safe direction: it re-runs a leg that self-skips"* — when
+`train_for_league` self-skips only if nobody is below the floor; on this party it GRINDS FOR
+HOURS. The comment contradicted the feature it sat beside.
+
+**⭐⭐ AND THE DISPATCH IS NOW *DRIVEN*, NOT MERELY WRITTEN — the Tier 1 blocker, closed.**
+A reviewer correctly refused the first submission: every evidence file proved the PREDICATE
+(via the `ch24champion` driver) and none executed the new `if/else` + `_guard` inside
+production `_play()`. So a CLEARED-GAME fixture was minted (`post_hof_cleared.ss1`, the
+repo's first) and `--driver storyresume` — which runs a real `StoryMode()` on the loaded
+save — was pointed at it. Raw output:
+`Story: Victory Road already done — skipping.` / `Story: §Ch24 already done — the game is
+CLEARED. Skipping.` / `Story: THE GAME IS CLEARED (Ch24) ... NEXT (WIP): POKEDEX HUNTING`,
+with **zero** tracebacks or `BotModeError`s. ⇒ the short-circuit, the `_guard` (it did not
+raise — we reached the banner) and the retargeted banner all execute in PRODUCTION.
+✅ A risk I had flagged did NOT materialise: `_play` resuming from a cleared game **in
+Littleroot** did not mistake it for the story start — every earlier segment self-skipped.
+
+**⚠ THE FIRST VERSION OF THAT ARM WAS MIS-PLACED AND THE READING EXPOSED IT.** It sat beside
+`_take(..., "C-CLEARED")`, which runs AFTER the reboot (the endgame loop waits for BOTH cleared and
+rebooted) — it sampled mid-EWRAM-reload and printed `at: ((0,0), (-7,-7))`, an impossible
+coordinate, with no disagreement. ⇒ for a while the claim was unproven and the drive passed anyway.
+**Print derived values that cannot be**; that is twice this session an impossible number caught a
+mis-placed instrument.
+
+**⛔ AND MY JUSTIFICATION FOR THE SHORT-CIRCUIT WAS REFUTED BY AN ADVERSARIAL REVIEW.** I claimed it
+was needed so §Ch23 would not re-buy the Elite Four basket. `ch23_chapter_done()` has returned True
+forever on `IS_CHAMPION` since 2026-09-24 (`#24-markerwinstate`). The REAL reason, verified: nothing
+stops `train_for_league()` re-running on a cleared save, and the party carries mon under the L65
+floor ⇒ a finished game would GRIND FOR HOURS, then re-enter a gauntlet it had won.
+
+**‼ NO `floor=` OVERRIDE AT THE CALL SITE** — it inherits `CH24_LEVEL_FLOOR` (65). Every test drive
+used a low floor via env; copying one here would have silently lowered the readiness bar for a
+one-way, nurse-less chapter.
+
+**⛔⛔ WHAT THIS IS NOT: USER RULING 11 IS STILL UNMET.** Everything proven is a harness driver from
+a pinned fixture. Ruling 11 is the Hall of Fame from a REAL story run, no fixture, at ×1 — a full
+unattended playthrough. **The CODE GAP is closed; the PROOF is not.**
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`ch24_chapter_done`,
+`_ch24_done_probe`), `sandbox-pokebot/plugins/custom_modes/story_mode.py` (the dispatch, the
+retargeted forward-looking comment and the retargeted END-OF-CONTENT banner),
+`ai-research-notes/2026-09-25-ch24-completion-gate-MEASURED.md` (new), two evidence files.

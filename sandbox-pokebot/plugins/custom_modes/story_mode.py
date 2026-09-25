@@ -5268,22 +5268,65 @@ class StoryMode(BotMode):
         # no `_guard` here yet: §Ch24's own completion marker is `#24-markerwinstate`'s work, and
         # guarding on "everyone is L65" would STOP the bot on a party that simply ran out of
         # reachable ground — a survivable shortfall, not a derail.
-        from modules.story.pokemon_league import train_for_league
+        from modules.story.pokemon_league import (
+            ch24_chapter_done,
+            run_the_gauntlet,
+            train_for_league,
+        )
 
-        _ch24_train_report: dict = {}
-        yield from train_for_league(_ch24_train_report)
-        if _ch24_train_report.get("still_below"):
+        # ⛔⛔ THE SHORT-CIRCUIT, AND ITS PREMISE IS **NOT** THE ONE I FIRST WROTE DOWN.
+        # I originally justified this as "otherwise §Ch23 re-runs and re-buys the Elite Four
+        # basket". THAT IS REFUTED: `ch23_chapter_done()` already returns True forever once
+        # `IS_CHAMPION` is set (`victory_road.py`, fixed 2026-09-24 under `#24-markerwinstate` —
+        # "Success was the failure case"). The basket problem was solved before I got here.
+        # ⇒ THE REAL REASON, verified in the tree: nothing stops `train_for_league()` from running
+        # again on a CLEARED save, and the §Ch24 party carries mon UNDER the L65 floor
+        # (`Zigzagoon L19`, `Castform L36` in the pinned fixture). Without this gate a FINISHED game
+        # re-entering `_play` would start GRINDING FOR HOURS and then walk into a gauntlet it had
+        # already won. ‼ A cleared game is exactly the state that must do nothing at all.
+        if ch24_chapter_done():
+            console.print("[dim]Story: §Ch24 already done — the game is CLEARED. Skipping.[/]")
+        else:
+            _ch24_train_report: dict = {}
+            yield from train_for_league(_ch24_train_report)
+            if _ch24_train_report.get("still_below"):
+                _log_story_event(
+                    f"Story: §Ch24 training ended with mon still below the floor: "
+                    f"{_ch24_train_report['still_below']}")
+
+            # ⭐ THE GAUNTLET — lobby → Sidney → Phoebe/Glacia/Drake → HALL4 → Wallace → cleared.
+            # ‼‼ **NO `floor=` OVERRIDE.** It defaults to `CH24_LEVEL_FLOOR` (65). Every proven drive
+            # used a LOW floor through `CH24_ENTRY_FLOOR`, and copying a test invocation to here
+            # would quietly lower the readiness bar for a ONE-WAY, NURSE-LESS chapter with no error
+            # raised anywhere. The readiness guard the comment below demands IS step 1 of this call.
+            # ⛔ It does not catch, retry or recover: from the moment it crosses `(9,1)` the zone is
+            # SEALED, so every failure propagates loudly rather than leaving the bot in a corridor
+            # it cannot leave. Re-entry after a loss is `#24-restockleg` (USER RULING 12), UNBUILT.
+            _ch24_report: dict = {}
+            yield from run_the_gauntlet(_ch24_report)
             _log_story_event(
-                f"Story: §Ch24 training ended with mon still below the floor: "
-                f"{_ch24_train_report['still_below']}")
+                f"Story: §Ch24 COMPLETE — the game is cleared. "
+                f"end_at={_ch24_report.get('end_at')} pairs={_ch24_report.get('pairs')}")
+
+        # ‼ ASSERT, DO NOT ASSUME — the same shape as §Ch23's `_guard` above. If the gauntlet
+        # returned without the chapter actually being done, stop HERE with a diagnostic rather than
+        # printing a completion banner over a run that did not finish.
+        _guard("The Pokémon League (Ch24)", ch24_chapter_done)
 
         # END OF BUILT CONTENT — ‼ RETARGETED 2026-09-24, BECAUSE §Ch24 NOW BEGINS **ABOVE**
         # THIS LINE. The §Ch24 TRAINING leg (`train_for_league`) runs a few lines up, so the
         # old text — *“Next build: the Elite Four gauntlet”* — is no longer the first missing
         # thing. A stale pointer here misdirects every cold start, which is exactly what P4
         # exists to catch.
-        # ⇒ WHAT IS ACTUALLY NEXT: **the §Ch24 GAUNTLET** (Sidney, Phoebe, Glacia, Drake,
-        # Champion Wallace). Training is BUILT; the fights are not.
+        # ✅ RETARGETED 2026-09-25 — **THE §Ch24 GAUNTLET IS NOW BUILT AND WIRED ABOVE.**
+        # (superseded: "WHAT IS ACTUALLY NEXT: the §Ch24 GAUNTLET — Training is BUILT; the
+        # fights are not.") Sidney, Phoebe, Glacia, Drake and Champion Wallace are all
+        # fought by `run_the_gauntlet`, driven end to end and evidenced.
+        # ⇒ WHAT IS ACTUALLY NEXT: **POKÉDEX HUNTING** (`#24-dexhunt`) — the post-game.
+        # ⚠ The forward dependency below is now SATISFIED, not pending: the gauntlet's
+        # first act IS a readiness guard (`prepare_and_open_the_league` decides readiness
+        # OUTSIDE the League, because all three remedies are measured non-functional from
+        # inside the lobby). The text is kept because the HAZARD it describes is permanent.
         # ⛔⛔ AND A FORWARD DEPENDENCY THAT MUST NOT BE FORGOTTEN WHEN THEY ARE WIRED:
         # `train_for_league` deliberately has **no floor `_guard`** after it — a party can
         # fall through still BELOW L65 if it runs out of reachable ground or a purse
@@ -5329,11 +5372,14 @@ class StoryMode(BotMode):
         # set BEFORE a forced warp to ROUTE128 (38,22) that starts a SECOND lockall cutscene, and
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
+        # ⭐⭐ RETARGETED 2026-09-25, IN THE SAME COMMIT AS THE DISPATCH ABOVE — because this
+        # banner is a CLAIM ABOUT EVERY CLAUSE UNDER IT, and the old text said Ch24 was "NEXT
+        # (WIP)" on a run that has just cleared the game. It has been wrong twice before.
         context.message = (
-            "Story: VICTORY ROAD IS DONE (Ch23) - Wally is beaten, the B1F/B2F interlock is "
-            "cleared, and the bot is out at EVER GRANDE with the party healed and the Elite Four "
-            "basket bought. End of built content. NEXT (WIP): Ch24, THE POKEMON LEAGUE - a FIVE "
-            "FIGHT GAUNTLET with NO NURSE between rooms. Handing to manual."
+            "Story: THE GAME IS CLEARED (Ch24) - the Elite Four (Sidney, Phoebe, Glacia, Drake) "
+            "and Champion Wallace are beaten, the Hall of Fame is recorded, and the bot is back "
+            "in control. End of built content. NEXT (WIP): POKEDEX HUNTING - catching to fill "
+            "the dex. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

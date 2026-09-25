@@ -2941,6 +2941,36 @@ CHAMPION_DOOR_TILE = (5, 2)
 #: One tile short of it. `Ch24Hall4Mode` stops here deliberately, and so does the bridge upstream.
 CHAMPION_STAND_TILE = (5, 3)
 
+
+def _ch24_done_probe(label: str) -> dict:
+    """Both completion predicates, side by side, at one instant. TELEMETRY ONLY — nothing branches
+    on this; it exists so a single drive can show whether the extra conjuncts do any work."""
+    from modules.memory import get_event_flag
+    from modules.story import victory_road as VR
+    from modules.story.early_game import reraise_if_aborting
+
+    out = {"where": label}
+    try:
+        out["flags_only"] = bool(get_event_flag("IS_CHAMPION")) and bool(
+            get_event_flag("SYS_GAME_CLEAR"))
+    except Exception as error:  # noqa: BLE001 - telemetry must not fail a run that WON, but a
+        # latched abort means the run did NOT win, and laundering it into "<unreadable>" would
+        # hide a whiteout behind a diagnostic string.
+        reraise_if_aborting(error)
+        out["flags_only"] = "<unreadable>"
+    try:
+        out["gated"] = bool(ch24_chapter_done())
+    except Exception as error:  # noqa: BLE001 - same reasoning as above
+        reraise_if_aborting(error)
+        out["gated"] = "<unreadable>"
+    try:
+        out["at"] = (str(VR._where()), VR._here_tile())
+    except Exception as error:  # noqa: BLE001 - same reasoning as above
+        reraise_if_aborting(error)
+        out["at"] = "<unreadable>"
+    return out
+
+
 #: The readings `fight_the_champion` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
 #: (Same contract as `ROOM_READINGS`: a private copy makes a PERFECT run report readings the leg
 #: never took.)
@@ -3309,6 +3339,15 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
     def _endgame_done() -> bool:
         if not seen["cleared"] and _cleared():
             seen["cleared"] = True
+            # ⭐⭐ THE DISCRIMINATOR, SAMPLED ON THE FRAME THE FLAGS FLIP — which is MID-CHAPTER:
+            # the credits have not rolled and the SoftReset has not happened. A flags-only gate
+            # would declare §Ch24 finished HERE. If `gated` is also True at this instant, my extra
+            # conjuncts are decoration and should be deleted — that is a RESULT, not a failure.
+            # ‼ An earlier version of this probe sat next to `_take(..., "C-CLEARED")`, which is
+            # AFTER this loop exits (the loop also waits for the reboot) — it sampled mid-EWRAM
+            # -reload and reported `at: ((0,0), (-7,-7))`, a nonsense coordinate. Wrong instant,
+            # real reading; the coordinate is what exposed it.
+            report["_done_probe_at_cleared"] = _ch24_done_probe("the INSTANT the flags flip")
         # ⭐ AN EMPTY PARTY IS THE ONLY POSITIVE PROOF EWRAM WAS WIPED AND RELOADED. It is ~207
         # frames wide and unreachable at any earlier point in the leg, which is what makes it a
         # reading rather than a coincidence.
@@ -3450,6 +3489,99 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
             f"STRANDED while passing their own tests. refusals={refusals}")
     _take(report, "C-CANCONTINUE")
 
+    # ⭐ THE DISCRIMINATOR, POINT 2: the chapter is genuinely finished. Compare with point 1 — if
+    # `gated` is False there and True here while `flags_only` is True at BOTH, the extra conjuncts
+    # are load-bearing and the simpler predicate would have mis-fired mid-chapter.
+    report["_done_probe_at_end"] = _ch24_done_probe("at the end (chapter complete)")
+
+
+
+def ch24_chapter_done() -> bool:
+    """§Ch24 complete: the game is CLEARED **and the bot is out the other side**.
+
+    ⛔⛔ **THE TWO FLAGS ALONE WOULD BE WRONG, AND THE DECOMP SAYS SO.** `setflag FLAG_IS_CHAMPION`
+    is in `EverGrandeCity_HallOfFame_EventScript_SetGameClearFlags` and `FLAG_SYS_GAME_CLEAR` is set
+    by `special GameClear` a few instructions later — **both inside the Hall of Fame script, BEFORE
+    the credits and BEFORE the `SoftReset`** (verified 2026-09-25 by reading
+    `data/scripts/hall_of_fame.inc` and `src/post_battle_event_funcs.c` directly).
+    ⇒ a flags-only gate reads True for the whole HoF cutscene, the save, ~12,651 frames of credits,
+    the reset AND the CONTINUE menu — a window in which the bot is mid-chapter and un-resumable.
+    ‼ **THAT IS EXACTLY §Ch23's LESSON** (`victory_road.py`): *"the flag is set at LEG 5 OF 11 …
+    grading the GATE on it would hand §Ch24 a run buried two floors underground."*
+    ⇒ the READOUT answers *"which chapter is this run in"*; the GATE answers *"may the next segment
+    start"*. Both are correct. Do not collapse them.
+
+    THE CONJUNCTS:
+      1. `IS_CHAMPION`     — RAM.
+      2. `SYS_GAME_CLEAR`  — RAM.
+      3. NOT standing on the Champion's room or the Hall of Fame — this is the conjunct that
+         excludes the mid-chapter window above.
+      4. A NON-EMPTY PARTY — the ~207-frame EWRAM wipe-and-reload window satisfies 1-3 and is not
+         a finished chapter. Cheap, and it closes the one gap the others leave.
+
+    ⛔⛔ **THERE IS DELIBERATELY NO `GameState.OVERWORLD` CONJUNCT, AND THAT IS A REVERSAL.** The
+    first cut had one. It has NO discriminating power here and it opens a FALSE-NEGATIVE path: the
+    post-game bot spends much of its life IN BATTLE (dex hunting), where `GameState` is not
+    OVERWORLD — so the dispatch would read "chapter NOT done" on a CLEARED save.
+    ‼ **AND A FALSE `False` IS THE EXPENSIVE DIRECTION HERE, NOT THE SAFE ONE.** `train_for_league`
+    does NOT self-skip on a cleared game — only when nobody is below the floor — and the §Ch24 party
+    carries mon under L65, so a false `False` GRINDS FOR HOURS and then re-enters a gauntlet the run
+    has already won. That is precisely the hazard the dispatch's short-circuit exists to prevent.
+    ⭐ The standing ruling was *"neither a bare flash read nor a SINGLE OVERWORLD conjunct"* — which
+    forbids relying on OVERWORLD ALONE; it never required including it. The conjunct that actually
+    discriminates is (3), and the arm proved it: at the instant the flags flip the bot is ON
+    `EVER_GRANDE_CITY_HALL_OF_FAME`.
+    ⚠ What OVERWORLD would have covered is already covered: the credits window is excluded by (3)
+    (the bot is on the Hall of Fame map), and the SoftReset window is excluded because the FLAGS
+    THEMSELVES read False mid-EWRAM-wipe — measured, accidentally, by a mis-placed probe.
+
+    ⛔ **RAM, NEVER FLASH.** MEASURED on all five §Ch24 fixtures: RAM and flash DISAGREE
+    (`SYS_GAME_CLEAR`/`IS_CHAMPION` RAM=False FLASH=True, with controls that agree), because the
+    cartridge's save file carries a PREVIOUS cleared playthrough. A flash-backed gate would declare
+    the chapter finished on a save that has never entered the League.
+
+    ⚠ **DELIBERATELY NO POSITION CONJUNCT BEYOND (3).** §Ch23's predicate requires a POSITION and a
+    BAG ITEM because both are its work product. §Ch24's end position is the player's BEDROOM and is
+    **TRANSIENT** — the bot walks out of it into the post-game immediately ⇒ a "must be in the
+    bedroom" conjunct would flip back to False the moment the next chapter took a step, re-entering
+    a finished, unrepeatable chapter. The work product here is the CLEARED GAME itself, which is
+    permanent (no `clearflag` for either flag exists anywhere in the decomp).
+    """
+    # ‼ ALL LOCAL. This module has no module-level `MapRSE` or `reraise_if_aborting`, and
+    # `repro_undefined_names.py` caught both on the first pass — the same shape `victory_road.py`
+    # records, where a missing module-level import became a NameError SWALLOWED by a broad except.
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag
+    from modules.pokemon_party import get_party
+    from modules.story import victory_road as VR
+    from modules.story.early_game import reraise_if_aborting
+
+    #: The maps §Ch24 is still INSIDE. Standing on one means the chapter is RUNNING, whatever the
+    #: flags say — both are reached AFTER `IS_CHAMPION` has already been set.
+    endgame_maps = (
+        MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM,
+        MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME,
+    )
+
+    try:
+        if not get_event_flag("IS_CHAMPION"):
+            return False
+        if not get_event_flag("SYS_GAME_CLEAR"):
+            return False
+        # (3) the conjunct that excludes the pre-reboot window the flags are already True in
+        if any(VR._on_map(m) for m in endgame_maps):
+            return False
+        # (4) the EWRAM reload window
+        if not [m for m in get_party() if m is not None and not getattr(m, "is_empty", False)]:
+            return False
+        return True
+    except Exception as error:  # noqa: BLE001 - an unreadable state is NOT a finished chapter
+        # ⚠ FALSE here is the CONSERVATIVE answer, not a free one: it re-enters §Ch24, and
+        # `train_for_league` will GRIND any mon under the floor. It is still the right default for
+        # an UNREADABLE state — claiming a cleared game on a failed read would skip the one chapter
+        # in the tree that cannot be repeated — but do not write this off as harmless.
+        reraise_if_aborting(error)
+        return False
 
 #: The readings `cross_to_the_champions_door` publishes. ⛔ THE DRIVER IMPORTS THIS.
 CROSS_READINGS = (

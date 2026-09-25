@@ -21559,3 +21559,99 @@ carries no heal-location data. A Tier 1 reviewer fetched the decomp, and I repea
 FACTS; what remains open is only that no girl profile has ever been DRIVEN. Keep those two apart —
 "verified by reading the source" and "exercised by a run" are different claims, and collapsing them
 is how a reasoned-not-asserted bug gets written up as solved.
+
+
+## 2026-09-25 — THREE FROM THE §Ch24 DISPATCH, ALL CAUGHT BEFORE IT SHIPPED
+
+### (a) I PUT THE DISCRIMINATOR IN THE WRONG PLACE, AND IT PASSED ANYWAY
+
+**SYMPTOM.** To prove `ch24_chapter_done()` needed more than its two flags, I instrumented
+`fight_the_champion` to evaluate a flags-only predicate and the gated one at "the moment the flags
+flip". The drive passed and reported **no disagreement** — which, read naively, said my extra
+conjuncts were decoration.
+
+**ROOT CAUSE.** The probe sat beside `_take(report, "C-CLEARED")`. That is NOT the moment the flags
+flip: `_endgame_done` waits for `cleared` **AND** `rebooted`, so the loop — and everything after it —
+runs *after* the SoftReset. The probe sampled mid-EWRAM-reload, where RAM is garbage by
+construction, and read `flags_only: False` at `at: ((0, 0), (-7, -7))`.
+
+**HOW IT WAS CAUGHT.** ⭐ **The impossible coordinate.** `(-7,-7)` is not a tile. Moving the probe
+inside `_endgame_done`, on the frame `seen["cleared"]` first flips, produced the real result:
+`flags_only=True, gated=False` in `EVER_GRANDE_CITY_HALL_OF_FAME`.
+
+**PREVENTION RULE.** ⛔ **AN ARM THAT SHOWS "NO DIFFERENCE" MUST FIRST PROVE IT SAMPLED THE RIGHT
+INSTANT.** Print the position/time of every probe beside its verdict — a "no difference" result is
+indistinguishable from a probe that never reached the condition. *This is the second time in one
+session an impossible derived value (a negative duration, then a negative coordinate) exposed a
+broken instrument: **print derived values that cannot be**, and never clamp them.*
+
+### (b) MY JUSTIFICATION FOR THE SHORT-CIRCUIT WAS REFUTED BY THE CURRENT TREE
+
+**SYMPTOM.** I designed `_play`'s "skip §Ch24 when already done" branch and justified it as:
+*"otherwise `ch23_chapter_done()` goes False (§Ch24 consumes the Elite Four basket) and the dispatch
+re-enters §Ch23 to re-buy one."*
+
+**ROOT CAUSE.** That bug was fixed on 2026-09-24 under `#24-markerwinstate`. `ch23_chapter_done()`
+already returns True forever once `IS_CHAMPION` is set. I was reasoning from a docstring's
+*forward-dependency note* ("when §Ch24 is built it MUST set its own progress marker") rather than
+from the code beneath it — the note described a hazard that had since been closed.
+
+**THE FIX.** The short-circuit is still correct, on a **different and verified** premise: nothing
+stops `train_for_league()` re-running on a cleared save, and the §Ch24 party carries mon under the
+L65 floor (`Zigzagoon L19`, `Castform L36`) ⇒ a finished game would **grind for hours** and then
+re-enter a gauntlet it had already won.
+
+**PREVENTION RULE.** ⛔ **A DOCSTRING'S "FORWARD DEPENDENCY" NOTE IS A CLAIM WITH AN EXPIRY DATE —
+RE-READ THE CODE UNDER IT BEFORE BUILDING ON IT.** A note saying "when X is built, beware Y" may
+have been satisfied by whoever built half of X. ‼ And a correct feature resting on a refuted reason
+is still a defect: the next person will "simplify" it away.
+
+### (c) A CONJUNCT THAT COULD ONLY MAKE THE ANSWER WRONG
+
+**SYMPTOM.** `ch24_chapter_done()`'s first cut required `GameState.OVERWORLD`.
+
+**ROOT CAUSE.** I carried it over from the champion leg's `_settled()`, where it belongs (that code
+is waiting for a specific settled frame). As a **gate** it has no discriminating power — the
+conjunct that separates "cleared" from "mid-Hall-of-Fame" is `not-on-endgame-maps` — and it opens a
+false-negative: the post-game bot is in battle constantly (dex hunting), where `GameState` is not
+OVERWORLD. A TIER 1 reviewer independently found the same window via `normalize_to_overworld()`'s
+silent 3,600-frame timeout on a cold resume.
+
+**‼ AND MY OWN COMMENT DEFENDED IT WITH A FALSEHOOD** — *"FALSE is the safe direction: it re-runs a
+leg that self-skips."* `train_for_league` self-skips only when nobody is below the floor; on this
+party it GRINDS. The comment contradicted the very feature it sat next to.
+
+**PREVENTION RULE.** ⛔ **BEFORE ADDING A CONJUNCT, NAME THE CASE IT EXCLUDES THAT THE OTHERS DO
+NOT — AND NAME THE COST WHEN IT IS WRONG.** A conjunct that excludes nothing new is pure
+false-negative surface. ‼ And "this direction is safe" is a CLAIM about what the code does next:
+check that the code you would re-enter actually self-skips before calling a failure cheap.
+
+
+## 2026-09-25 — I ADDED A CONVENIENCE INSIDE A SAFETY, AND THE CONVENIENCE BROKE THE SAFETY
+
+**SYMPTOM.** `[ch24champion] ⛔⛔ COULD NOT RESTORE THE FIXTURE: name 'os' is not defined —
+`current_state.ss1` may now hold a CLEARED-GAME state.` A run that clears the game ended without
+restoring its fixture.
+
+**ROOT CAUSE, TWO LAYERS.**
+1. The trivial one: I wrote `os.environ.get(...)` in a driver whose `run()` does `import os as _os`.
+   A NameError.
+2. ⛔ **The one that matters: I put that line INSIDE the `try` whose entire job is to RESTORE THE
+   FIXTURE after a game-clearing run.** So the NameError did not merely skip my new capture — it
+   skipped the restore. A block added for CONVENIENCE (minting a fixture) disabled a SAFETY (not
+   leaving a cleared game behind), and it did so on the very first run.
+
+**BLAST RADIUS, MEASURED NOT ASSUMED.** No damage: all seven §Ch24 fixtures verify OK and PINNED,
+`git status` shows zero dirty `.ss1`, and the user's own `Nick - Emerald` profiles were last written
+in JULY. Only the harness scratch profiles (`repro-ml`, the `--profile` default, and `repro-fresh`)
+were touched. ‼ Checking that was not optional — "probably fine" is not a blast radius.
+
+**THE FIX THAT WORKED.** Correct the name, and give the capture **its own `try/except`** so that no
+future error in it can prevent the restore, with a loud non-fatal log line if it fails.
+
+**PREVENTION RULE (one line).** ⛔ **NEVER ADD CODE INSIDE THE `try`/`finally` THAT PROTECTS AN
+IRREVERSIBLE ACTION — give the addition its own handler.** A `finally` that restores state is a
+safety device; every statement you put in front of the restore is a new way for the restore not to
+happen. ‼ Corollary: when a driver's `run()` aliases a stdlib import (`import os as _os`), a
+copy-pasted `os.` is a NameError that only fires on the path you added — which is exactly the path
+nobody drives twice.

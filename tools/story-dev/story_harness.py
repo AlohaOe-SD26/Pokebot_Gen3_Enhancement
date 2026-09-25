@@ -21236,6 +21236,25 @@ class Ch24ChampionMode(BotMode):
             R["battle_outcome"] = repr(getattr(self, "battle_outcome", None))
             R["whiteouts"] = getattr(self, "whiteouts", 0)
             try:
+                # ⭐ OPTIONAL CAPTURE, **BEFORE** THE RESTORE — the only way to mint a CLEARED-GAME
+                # fixture, which is what driving the production `_play` dispatch requires.
+                # ‼ Captured HERE, at the END of the leg (bedroom, chapter complete) and NEVER at the
+                # Hall-of-Fame save point: `continueGameWarp` is consumed EXACTLY ONCE, so a fixture
+                # taken at that save would resume somewhere else on its SECOND load (decomp-verified).
+                # ‼ ITS OWN try/except, DELIBERATELY. The first version of this block sat bare
+                # inside the restore's `try` and raised a NameError (`os` vs `_os` — this driver
+                # imports `os as _os`), which did not merely skip the capture: **it skipped the
+                # RESTORE**, leaving a CLEARED-GAME state behind. A convenience must never be able
+                # to disable a safety.
+                try:
+                    _cap = _os.environ.get("CH24_CHAMP_CAPTURE", "").strip()
+                    if _cap:
+                        _out = SAVES / f"{_cap}.ss1"
+                        _out.write_bytes(context.emulator.get_save_state())
+                        log(f"[{TAG}] captured CLEARED-GAME anchor -> {_out}")
+                except Exception as _cap_error:  # noqa: BLE001 - loud, and NEVER fatal: the restore
+                    # below is the thing that matters and must run regardless.
+                    log(f"[{TAG}] ⚠ capture failed (the RESTORE still runs): {_cap_error}")
                 if _fixture_bytes:
                     context.emulator.load_save_state(_fixture_bytes)
                     log(f"[{TAG}] fixture RESTORED — this CLEARED-GAME run will not carry into "

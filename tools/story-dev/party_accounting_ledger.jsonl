@@ -738,3 +738,8 @@
 {"when": "2026-09-25T10:54:11", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-25T10:56:20", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-25T11:02:37", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-25T11:36:26", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-25T11:38:35", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-25T12:01:36", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69896, "scans": 233, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-25T12:09:52", "driver": "ch24champion", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 69896, "recomputes": 69897, "scans": 233, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-25T12:16:06", "driver": "storyresume", "build": "sandbox", "state": "post_hof_cleared.ss1", "frames_run": 20016, "recomputes": 20016, "scans": 67, "divergences": {}, "observer_broke": false}
