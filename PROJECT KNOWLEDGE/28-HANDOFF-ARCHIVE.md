@@ -12521,3 +12521,39 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_hall4_door.ss1 --driver ch24tailprob
 #   THE WARP CHAIN, measured from the ROM warp table (endpoints, not labels), HALL1 as the control:
 PYTHONUTF8=1 py -3.12 probe_e4_warp_chain.py
 ```
+
+
+## §Ch24 — the KI-74 recon recipes (archived 2026-09-25 from `04-HANDOFF.md`, R3 budget)
+
+⛔ **SUPERSEDED BY PRODUCTION LEGS.** Kept verbatim because they are still the way to RE-MEASURE KI-74
+(ROM says the Sidney exit at `(6,1)`/`(6,2)` is BLOCKED; the live grid says OPEN). Nothing here was
+deleted — it was moved so the handoff could carry the `--driver ch24gauntlet` recipe within its budget.
+
+```
+# --- §Ch24 THE ELITE FOUR — **THE CURRENT FRONTIER** (2026-09-16). `post_ch24_atdoor.ss1` = the door apron + prepared party; `post_sidney_door_open.ss1`/`_b.ss1` = AFTER the win (exit door OPEN, victory msgbox STILL parked at `WaitForButton`).
+#     The first two commands are OFFLINE — `KI-74` (ROM says the exit at (6,1)/(6,2) is BLOCKED, the live grid says OPEN) is fully measurable from a pinned save, so measure BEFORE you drive.
+#     ⛔ On the drive read `ACCEPTANCE:`, NEVER the last line — every probe ends `HANG CONFIRMED` once it drops to Manual, and that is the watchdog, not a bot defect. ‼ The REAL defect hits first: it sits 1,800 frames in `wait_until_truly_controllable`, which presses NOTHING by design, while that msgbox waits for a button, then returns SILENTLY on timeout. Leg 1 meets this before it meets the door — `#24-e4postbattlestall`. ---
+PYTHONUTF8=1 py -3.12 probe_e4_door_rom_view.py     # ROM door view, all five rooms
+PYTHONUTF8=1 py -3.12 probe_live_mapgrid.py saves/post_sidney_door_open.ss1 EVER_GRANDE_CITY_SIDNEYS_ROOM
+PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor.ss1 --driver ch24probe --frames 120000
+PYTHONUTF8=1 py -3.12 story_harness.py post_sidney_door_open.ss1 --driver e4dismiss --frames 4000
+PYTHONUTF8=1 py -3.12 story_harness.py post_sidney_door_open.ss1 --driver e4exit --frames 8000
+```
+
+
+## §Ch24 — the “lobby window” legs, the cave-heal measurement, and the two one-time fixture
+captures (archived 2026-09-25 from `04-HANDOFF.md`, R3 budget)
+
+⛔ These legs FIGHT NOTHING and were the safe way to inspect §Ch23/§Ch24 state inside the League. The two
+CAPTURE commands were one-time: `post_league_lobby.ss1` and `post_league_2f.ss1` are now captured and
+PINNED in `saves/FIXTURES.md5`, so re-running them is only needed to RE-capture. Nothing was deleted.
+
+```
+# --- §Ch24 THE “LOBBY WINDOW” — BOTH MAPS, READ 2026-09-18. ⛔ THESE LEGS FIGHT NOTHING and are the safe way to inspect §Ch23/§Ch24 state INSIDE the League: each refuses to walk a route crossing a gauntlet door, and SELF-TESTS that refusal before trusting it (`#24-pathguardblind`). Omit the CAPTURE var to re-read without minting. ‼ Read `ACCEPTANCE:`, never the last line. ⭐ Two OFFLINE probes take no arguments and drive no emulator: `probe_ch23_leg_guards.py` (which §Ch23 legs would fire at each of FIVE pinned positions) and `probe_ch23_lobby_resume.py` (CALLS `do_victory_road_chapter()` inside the League and shows it RAISE in 0 frames).
+#     ⭐ CAN A VICTORY-ROAD GRIND HEAL AND GET BACK? (`#24-cavehealblind`) — measured PASS: route
+#     VR1F -> EVER_GRANDE -> POKEMON_CENTER_1F -> EVER_GRANDE -> back in; HP and **PP** both restored.
+#     ⚠ ONE heal, not a grind, and it parks on the EXIT APRON — the deeper-tile question is MOOT, not answered.
+PYTHONUTF8=1 py -3.12 story_harness.py grind_stall_ppzero.ss1 --driver ch24caveheal --frames 120000 --log caveheal.log
+CH24_LOBBY_CAPTURE=post_league_lobby PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor_L75.ss1 --driver ch24lobby --frames 6000
+CH24_2F_CAPTURE=post_league_2f PYTHONUTF8=1 py -3.12 story_harness.py post_league_lobby.ss1 --driver ch24lobby2f --frames 12000
+```

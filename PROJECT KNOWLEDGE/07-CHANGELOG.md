@@ -34959,3 +34959,54 @@ three different fixtures — still not a rate).
 `CROSS_READINGS`), `tools/story-dev/story_harness.py` (`CH24_CHAMP_FROM` knob; the want-set grows
 with scope), `tools/story-dev/evidence/2026-09-25-ch24champion-SEAM.stdout.txt` (new),
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (later) — ⭐⭐⭐ THE BOT BEATS THE ELITE FOUR AND THE CHAMPION IN ONE RUN
+
+**`run_the_gauntlet()` is built and it PASSES.** One trajectory, from outside the League to a
+cleared game: `ACCEPTANCE: PASS`, **all seven chapter readings**, `missing=[]`, `whiteouts=0`,
+`failure=None`, `heal_ready=True`, and **`battles=5` — Sidney, Phoebe, Glacia, Drake and Wallace,
+every one `BattleOutcome.Won`.** The champion leg took **all ten** of its own readings inside that
+same run (`C-PREMISE` → `C-HEALED` → `C-CROSSED` → `C-ENGAGED` → `C-WON` → `C-INHOF` → `C-CLEARED`
+→ `C-REBOOTED` → `C-HOME` → `C-USABLE`), and each of the three room pairs took all eight of theirs.
+
+⭐ **THIS IS WHAT THE CHAIN TEST WAS FOR, AND IT EARNED ITS KEEP ON THE FIRST DRIVE.** Every one of
+the five legs was already independently green and every seam had been proven PAIRWISE — and the
+chain still failed, for a defect that **no amount of re-driving any leg alone could ever surface**.
+
+**⛔⛔ THE DEFECT: THE CHAMPION LEG'S BATTLE LATCHES WERE NOT RUN-SCOPED.** It asked
+`battle_started_frame is not None` and `battle_ended_frame is not None`. Those are **MODE-level**
+latches, set by EVERY battle. Driven alone the leg sees exactly one battle and the question is
+sound; driven as the FIFTH leg, **four battles have already ended before it starts**, so both
+latches were pre-set, S3 and S4 fell through **vacuously**, and S5 began pressing for the Hall of
+Fame *while Wallace was still being fought* — blowing its 10,000-frame bound at **34,362**.
+‼ **The fighting was never the problem.** That same failing run logged five battles, all `Won`. The
+defect was purely in **how the leg asked** — an ABSOLUTE test where a RELATIVE one was needed.
+⇒ **THE FIX:** baseline the counters at the leg's own start (`_battles_at_start`) and ask relative
+questions — `battles > baseline` for the start, and for the end `battle_ended_frame >=
+battle_started_frame`, so a stale end-latch from battle #4 cannot satisfy battle #5.
+⛔ **The bound was NOT raised.** A 12.8× departure from three deterministic prior measurements
+(2,686 frames, standalone) was a state difference, never a mis-sized budget — and the re-drive
+confirms it: with the latches scoped, the chain passes against the SAME 10,000-frame bound.
+
+**⚠ AND A PHANTOM SECOND DEFECT THAT WAS NOT ONE.** The failing run's grade printed
+`⛔ heal_ready=None at the Champion's door`, which reads like the S1 heal never happened. It did.
+The exception propagated out of `fight_the_champion`, so the `_merge(champ, "champion")` and the
+`report["heal_ready"] = ...` lines *below* the `yield from` never ran. ‼ A failing stage is exactly
+when its readings matter MOST — and that shape throws them away. Filed as a follow-up.
+
+**⚠ MEASURED IN PASSING:** one `[PARTY-ACCT] INVALID` sighting (slot 0 of `gPlayerPartyCount=6`,
+neither decodable nor empty) during the Hall-of-Fame **EWRAM wipe-and-reload** — the same ~207-frame
+window the leg reads as `C-REBOOTED`. Stage 0 is OBSERVING ONLY, so nothing acted on it; recorded
+because a party-accounting alarm at a known reboot is an EXPECTED sighting, not a new bug.
+
+**⛔ WHAT THIS STILL IS NOT.** A harness driver from a pinned fixture at `floor=1`. Against USER
+RULING 11 — Hall of Fame from a real story run, no fixture, at ×1 — the remaining gap is
+`ch24_chapter_done()` and the `_play` dispatch. The WIN RATE is also still unmeasured (five wins
+now, but from pinned fixtures, which is not a rate).
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`run_the_gauntlet`, `GAUNTLET_PAIRS`,
+`GAUNTLET_READINGS`; run-scoped latches in `fight_the_champion`), `tools/story-dev/story_harness.py`
+(`Ch24GauntletMode`), `tools/story-dev/evidence/2026-09-25-ch24gauntlet-PASS.txt` (new),
+`tools/story-dev/evidence/2026-09-25-ch24gauntlet-LATCHBUG-FAIL.stdout.txt` (new — the defect),
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

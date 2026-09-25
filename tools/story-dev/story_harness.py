@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20975,6 +20975,143 @@ class Ch24RoomMode(BotMode):
 
 
 
+class Ch24GauntletMode(BotMode):
+    """`--driver ch24gauntlet` — ⭐⭐ THE WHOLE OF §Ch24 IN ONE RUN: outside the League → a cleared game.
+
+    ⭐ **THIS IS THE DRIVE THAT MEANS "THE BOT COMPLETES THE ELITE FOUR".** Five production legs
+    existed and every seam had been proven PAIRWISE — but *"each piece works"* is not *"the chain
+    works"*. Nothing before this ever ran lobby → SIDNEY → three pairs → WALLACE as one trajectory.
+
+    FIXTURE: `post_ch24_atdoor_L75.ss1` — the door apron on `EVER_GRANDE_CITY`, **outside**, with the
+    door SHUT and nothing beaten. `CH24_ENTRY_FLOOR=1` makes the readiness branch a no-op so the
+    CHAIN is what is on test; the training half is proven separately by `--driver ch24train`.
+
+    ⛔⛔⛔ **IT CLEARS THE GAME AND IT CROSSES THE POINT OF NO RETURN TWICE** — `(9,1)` into the
+    gauntlet and `(5,2)` into the Champion. ⇒ the `finally` **RESTORES THE FIXTURE**, because
+    `current_state.ss1` is what the real bot resumes from. ‼ **GIVE IT A BUDGET IT CAN FINISH IN** —
+    a frame-capped run never resumes the generator, so the restore would not fire.
+
+    ⛔ **FIVE BATTLES, AND THE GRADE SAYS SO.** `battles == 5` is a conjunct: four Elite Four members
+    plus the Champion. Fewer means a fight was skipped; more means something else was fought.
+
+    READINGS — ⛔ IMPORTED FROM THE LEG (`GAUNTLET_READINGS`), never a private copy.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "ch24gauntlet"
+
+    @staticmethod
+    def available() -> bool:
+        return True
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24gauntlet] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ THIS IS A RESULT: the "
+            f"party lost somewhere in the gauntlet. ⛔ Read which readings were taken to see WHERE, "
+            f"and read `pp_at_door` before blaming levels.")
+        return True
+
+    def mark_ch24_owns_run(self) -> None:
+        """`enter_the_league`'s latch target — counted so the reading is real, not a foregone tick."""
+        self.latch_calls = getattr(self, "latch_calls", 0) + 1
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        self.battle_started_frame = _tp_frame()
+        log(f"[ch24gauntlet] ⚔ BATTLE #{self.battles} STARTED at frame {self.battle_started_frame}")
+        return StoryItemBattleStrategy()
+
+    def on_battle_ended(self, outcome=None):
+        # ⭐ THE ONLY GUARANTEED LATCH CHANNEL — the generator is starved for every fight.
+        self.battle_outcome = outcome
+        self.battle_ended_frame = _tp_frame()
+        log(f"[ch24gauntlet] ⚔ BATTLE #{getattr(self, 'battles', 0)} ENDED at frame "
+            f"{self.battle_ended_frame} outcome={outcome!r}")
+
+    def run(self):
+        import os as _os
+
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.pokemon_league import GAUNTLET_READINGS, run_the_gauntlet
+
+        TAG = "ch24gauntlet"
+        _PROD_FLOOR = 65
+        FLOOR = int(_os.environ.get("CH24_ENTRY_FLOOR", "1"))
+
+        R: dict = {}
+        taken: set = set()
+        failure = None
+        leg: dict = {}
+
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        self.battles = getattr(self, "battles", 0)
+        self.battle_started_frame = None
+        self.battle_ended_frame = None
+        self.battle_outcome = None
+
+        try:
+            yield from wait_until_truly_controllable()
+            yield from run_the_gauntlet(leg, floor=FLOOR)
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            from modules.story.early_game import reraise_if_aborting
+
+            try:
+                reraise_if_aborting(error)
+            except Exception:  # noqa: BLE001 - the abort itself; record it and still print
+                failure = "StoryAbort (whiteout) — the party LOST somewhere in the gauntlet"
+            else:
+                failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            R["leg"] = {k: v for k, v in leg.items() if k not in ("readings", "sub_readings")}
+            R["sub_readings"] = leg.get("sub_readings", {})
+            for reading in sorted(leg.get("readings", set())):
+                taken.add(reading)
+            R["battles"] = getattr(self, "battles", 0)
+            R["whiteouts"] = getattr(self, "whiteouts", 0)
+            R["latch_calls"] = getattr(self, "latch_calls", 0)
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — this CLEARED-GAME run will not carry into "
+                        f"`current_state.ss1`.")
+            except Exception as restore_error:  # noqa: BLE001 - loud, never replaces the verdict
+                log(f"[{TAG}] ⛔⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        missing = sorted(set(GAUNTLET_READINGS) - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+
+        heal_ready = R.get("leg", {}).get("heal_ready")
+        heal_ok = heal_ready is True
+        # ⛔ FIVE BATTLES: Sidney, Phoebe, Glacia, Drake, Wallace. A count is the cheapest possible
+        # check that no fight was skipped — and `fight_one_room` has already shown that a room can
+        # be ENTERED without our press causing the battle, so counting them matters.
+        five = R["battles"] == 5
+        if not five:
+            log(f"[{TAG}] ⛔ GRADE: battles={R['battles']} — expected EXACTLY 5 (four Elite Four "
+                f"members plus the Champion).")
+        if not heal_ok:
+            log(f"[{TAG}] ⛔ GRADE: heal_ready={heal_ready!r} at the Champion's door.")
+        ok = (not missing and failure is None and R["whiteouts"] == 0 and heal_ok and five)
+        log(f"[{TAG}] RESULT whiteouts={R['whiteouts']} failure={failure} "
+            f"heal_ready={heal_ready!r} battles={R['battles']} latch_calls={R['latch_calls']}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (from OUTSIDE the League: get ready, "
+            f"open the door, cross (9,1), beat SIDNEY, then PHOEBE, GLACIA and DRAKE through the "
+            f"room loop, walk HALL4, cross (5,2), beat WALLACE, clear the game and come back to a "
+            f"USABLE overworld) FLOOR={FLOOR} (⚠ production is {_PROD_FLOOR}); SCOPE: the chapter's "
+            f"CHAIN — the `_play` dispatch is NOT here.")
+        context.set_manual_mode()
+
+
 class Ch24ChampionMode(BotMode):
     """`--driver ch24champion` — §Ch24 ROOM 5: BEAT WALLACE AND CLEAR THE GAME, IN PRODUCTION CODE.
 
@@ -25110,6 +25247,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24BridgeMode()
         elif args.driver == "ch24champion":
             context.bot_mode_instance = Ch24ChampionMode()
+        elif args.driver == "ch24gauntlet":
+            context.bot_mode_instance = Ch24GauntletMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

@@ -3106,6 +3106,16 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
     except Exception as error:  # noqa: BLE001 - telemetry only
         reraise_if_aborting(error)
         report["pp_at_door"] = report["hp_at_door"] = "<unreadable>"
+    # ⛔⛔ BASELINE THE BATTLE COUNTERS **BEFORE ANY PRESS**, AND ASK RELATIVE QUESTIONS AFTER.
+    # `battle_started_frame` / `battle_ended_frame` are MODE-level latches set by EVERY battle.
+    # Driven alone this leg sees one battle and `is not None` is sound; driven as the FIFTH leg
+    # of the gauntlet, FOUR fights have already ended before it starts, so both latches are
+    # pre-set and S3/S4 would fall through VACUOUSLY — the leg would believe the Champion fight
+    # was over before it began. MEASURED 2026-09-25 on the first full-chain drive.
+    # ‼ The fighting was never the problem: that same run logged five battles, all Won. The
+    # defect was HOW THE LEG ASKED — an ABSOLUTE test where a RELATIVE one was needed.
+    _battles_at_start = _mode_attr("battles", 0) or 0
+    report["battles_before_leg"] = _battles_at_start
     _take(report, "C-PREMISE")
 
     # ⛔⛔ THE LAST HEAL IN THE GAME, AND IT NEVER RAISES. Past `(5,2)` there is no nurse, no Mart
@@ -3162,7 +3172,7 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
     # The map script `lockall`s, walks the avatar (6,12)->(6,6) and prints the intro speech. Our
     # only job is to give `waitbuttonpress` the JOY_NEW edges it wants.
     ok, spent = yield from _press_a_until(
-        lambda: _mode_attr("battle_started_frame") is not None, intro_frames, "intro")
+        lambda: (_mode_attr("battles", 0) or 0) > _battles_at_start, intro_frames, "intro")
     # ⛔⛔ TWO NUMBERS, AND ONLY ONE OF THEM MEANS "THE INTRO". See the note below: this loop is
     # suspended through the whole fight, so its own elapsed count swallows the battle.
     report["intro_wall_frames"] = spent
@@ -3176,8 +3186,19 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
     _take(report, "C-ENGAGED")
 
     # ---- S4: THE FIGHT — hold control, press, observe nothing -----------------------------------
-    ok, spent = yield from _press_a_until(
-        lambda: _mode_attr("battle_ended_frame") is not None, battle_frames, "fight")
+    def _this_fight_over() -> bool:
+        # ‼ NOT "an end latch exists" — four of them already did. The end must be NEWER than the
+        # START of the battle this leg is actually in.
+        _bs, _be = _mode_attr("battle_started_frame"), _mode_attr("battle_ended_frame")
+        if _bs is None or _be is None:
+            return False
+        try:
+            return int(_be) >= int(_bs)
+        except Exception:  # noqa: BLE001 - an unreadable latch means "not yet", never "done": the
+            # safe direction is to keep waiting inside a bound, not to claim a fight ended.
+            return False
+
+    ok, spent = yield from _press_a_until(_this_fight_over, battle_frames, "fight")
     report["battle_wall_frames"] = spent
     report["battle_outcome"] = repr(_mode_attr("battle_outcome"))
     # ⭐⭐ THE HONEST ATTRIBUTION, FROM THE CALLBACKS — WHICH FIRE REGARDLESS OF SUSPENSION.
@@ -3473,3 +3494,142 @@ def cross_to_the_champions_door(report=None, *, dismiss_budget: int = 3_000,
             f"committed to the Champion fight and this refusal is far too late — read it as a bug "
             f"in the approach, not as a recoverable state.")
     _take(report, "X-ATDOOR")
+
+
+#: ⭐ THE ROOM PAIRS, IN PRODUCTION — `(from_room, hall, to_room, victory_flag)`.
+#: ⛔ THIS TABLE LIVED IN THE HARNESS DRIVER UNTIL 2026-09-25, WHICH MEANT THE ORDER OF THE ELITE
+#: FOUR WAS A TEST-ONLY FACT. A sequencer cannot import its own route from a test file.
+#: ‼ THREE ENTRIES, NOT FOUR: the fourth fight (Drake) is won by the THIRD pair, and ROOM 5 IS NOT
+#: IN HERE AT ALL — `#24-leg2spec` rules that the Champion is a separate leg with its own grade.
+GAUNTLET_PAIRS = (
+    ("sidney", "EVER_GRANDE_CITY_SIDNEYS_ROOM", "EVER_GRANDE_CITY_HALL1",
+     "EVER_GRANDE_CITY_PHOEBES_ROOM", "DEFEATED_ELITE_4_PHOEBE"),
+    ("phoebe", "EVER_GRANDE_CITY_PHOEBES_ROOM", "EVER_GRANDE_CITY_HALL2",
+     "EVER_GRANDE_CITY_GLACIAS_ROOM", "DEFEATED_ELITE_4_GLACIA"),
+    ("glacia", "EVER_GRANDE_CITY_GLACIAS_ROOM", "EVER_GRANDE_CITY_HALL3",
+     "EVER_GRANDE_CITY_DRAKES_ROOM", "DEFEATED_ELITE_4_DRAKE"),
+)
+
+#: The readings `run_the_gauntlet` publishes. ⛔ THE DRIVER IMPORTS THIS.
+GAUNTLET_READINGS = (
+    "G-PREPARED",  # ready OUTSIDE, inside the lobby, guards moved, standing on (9,3)
+    "G-ENTERED",   # crossed (9,1), beat SIDNEY, standing in his room post-victory
+    "G-PAIR1",     # SIDNEY -> PHOEBE
+    "G-PAIR2",     # PHOEBE -> GLACIA
+    "G-PAIR3",     # GLACIA -> DRAKE
+    "G-ATDOOR",    # HALL4 (5,3), one tile short of the Champion
+    "G-CLEARED",   # WALLACE beaten, the game cleared, and the bot is usable again
+)
+
+
+def run_the_gauntlet(report=None, *, floor: int = CH24_LEVEL_FLOOR,
+                     skip_prepare: bool = False) -> Generator:
+    """§Ch24 — THE WHOLE CHAPTER: from outside the League to a cleared game, in ONE run.
+
+    ⭐⭐ **THIS IS WHAT "THE BOT COMPLETES THE ELITE FOUR" ACTUALLY MEANS.** Five legs existed and
+    every seam between them had been proven pairwise — but *"each piece works"* is not *"the chain
+    works"*, and this project has been burned before by exactly that distinction. Nothing before
+    this function ever ran lobby → Sidney → three pairs → Champion as a single trajectory.
+
+    THE CHAIN, and each step's own leg owns its premise, its bounds and its refusal:
+      1. `prepare_and_open_the_league(floor=)` — get ready **OUTSIDE**, walk in, talk the guards
+         aside, stop on `(9,3)`. ⛔ Readiness is decided out here because all three remedies are
+         MEASURED non-functional from inside the lobby.
+      2. `enter_the_league()` — cross `(9,1)` (**the point of no return**) and beat SIDNEY.
+      3. `fight_one_room()` ×3 over `GAUNTLET_PAIRS` — Phoebe, Glacia, Drake.
+      4. `cross_to_the_champions_door()` — the 31-tile HALL4 walk, stopping one tile short.
+      5. `fight_the_champion()` — Wallace, the Hall of Fame, the save, the credits, the reboot.
+
+    ⛔⛔ **IT DOES NOT CATCH, RETRY OR RECOVER, AND THAT IS DELIBERATE.** From step 2 onward the zone
+    is SEALED: every backward warp is inert, there is no Fly, no Escape Rope and no nurse. A
+    sequencer that swallowed a leg's failure would convert a clean, named refusal into a bot
+    standing still in a corridor it cannot leave. ⇒ **every failure propagates**, and the only
+    recovery worth having is the one that happens BEFORE step 2.
+    ‼ Re-entry after a loss is `#24-restockleg`'s job (USER RULING 12: restock, then retry) and it
+    is UNBUILT — so today a loss ends the run, loudly.
+
+    ⚠ **`floor` IS THE READINESS BAR, AND AT PRODUCTION'S 65 STEP 1 CAN TRAIN FOR HOURS.** Drive it
+    at a low floor to test the CHAIN; the training half is proven separately by `--driver ch24train`.
+    """
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag
+    from modules.story import victory_road as VR
+    from modules.story.early_game import _check_abort, reraise_if_aborting
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    report["pairs"] = []
+
+    def _merge(sub: dict, key: str) -> None:
+        """Keep every sub-leg's readings, but NEVER let them collide.
+
+        ⛔ `fight_one_room` publishes `R1-*` and runs THREE times, so a flat merge would show one
+        `R1-WON` whether one pair ran or all three — a set cannot count. ⇒ the sub-readings are
+        stored PER STAGE under `key`, and only the stage's own `G-*` reading is taken.
+        """
+        report[key] = {k: v for k, v in sub.items() if k != "readings"}
+        report.setdefault("sub_readings", {})[key] = sorted(sub.get("readings", set()))
+
+    # ---- 1. READY OUTSIDE, THEN INTO THE LOBBY --------------------------------------------------
+    if not skip_prepare:
+        _check_abort()
+        prep: dict = {}
+        yield from prepare_and_open_the_league(prep, floor=floor)
+        _merge(prep, "prepare")
+    _take(report, "G-PREPARED")
+
+    # ---- 2. THE POINT OF NO RETURN, AND SIDNEY --------------------------------------------------
+    _check_abort()
+    bridge: dict = {}
+    yield from enter_the_league(bridge)
+    _merge(bridge, "bridge")
+    _take(report, "G-ENTERED")
+
+    # ---- 3. THE ROOM LOOP — THREE PAIRS ---------------------------------------------------------
+    # ⭐ A LOOP, NOT THREE BESPOKE BRANCHES: `(6,2)` and `(5,2)` are MEASURED uniform across every
+    # room and hall, and all three pairs have been driven through this same function.
+    for index, (name, from_room, hall, to_room, flag) in enumerate(GAUNTLET_PAIRS, start=1):
+        _check_abort()
+        pair: dict = {}
+        yield from fight_one_room(
+            pair,
+            from_room=getattr(MapRSE, from_room),
+            hall=getattr(MapRSE, hall),
+            to_room=getattr(MapRSE, to_room),
+            victory_flag=flag,
+        )
+        _merge(pair, f"pair{index}_{name}")
+        report["pairs"].append({"name": name, "flag": flag,
+                                "won": pair.get("end_flag"), "at": pair.get("end_at")})
+        _take(report, f"G-PAIR{index}")
+
+    # ---- 4. THE APPROACH -------------------------------------------------------------------------
+    _check_abort()
+    cross: dict = {}
+    yield from cross_to_the_champions_door(cross)
+    _merge(cross, "cross")
+    _take(report, "G-ATDOOR")
+
+    # ---- 5. WALLACE, AND THE END OF THE GAME -----------------------------------------------------
+    _check_abort()
+    champ: dict = {}
+    yield from fight_the_champion(champ)
+    _merge(champ, "champion")
+    report["heal_ready"] = champ.get("heal_ready")
+
+    # ⛔ THE FINAL ASSERTION IS ON THE FLAGS, NOT ON "the champion leg returned". That leg already
+    # asserts its own ten readings — but this one is the CHAPTER's claim, and a chapter that says
+    # "done" while `IS_CHAMPION` is False would poison every downstream predicate.
+    try:
+        cleared = bool(get_event_flag("IS_CHAMPION")) and bool(get_event_flag("SYS_GAME_CLEAR"))
+    except Exception as error:  # noqa: BLE001 - an unreadable flag is NOT a licence to claim a win
+        reraise_if_aborting(error)
+        cleared = False
+    report["cleared"] = cleared
+    report["end_at"] = (str(VR._where()), VR._here_tile())
+    if not cleared:
+        raise BotModeError(
+            f"§Ch24 gauntlet: the champion leg returned but IS_CHAMPION/SYS_GAME_CLEAR do not both "
+            f"read True at {VR._where()}. ⛔ Refusing to report a cleared chapter on flags that say "
+            f"otherwise.")
+    _take(report, "G-CLEARED")

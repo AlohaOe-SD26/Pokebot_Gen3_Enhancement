@@ -21446,3 +21446,86 @@ Result: **`intro_true_frames = -34,729`**.
 unsigned counter, a `max(0, …)`, or an `abs()` would have shipped a plausible small number instead.
 ⇒ **PREVENTION RULE: do not clamp or absolute-value a derived duration.** Let it go negative and let
 it be obviously broken; a quantity that cannot express "impossible" cannot warn you.
+
+
+## 2026-09-25 — A LATCH THAT IS TRUE BEFORE YOU START: the absolute/relative bug the chain test caught
+
+**SYMPTOM.** The first full-chapter drive won all five fights (`battles=5`, five `BattleOutcome.Won`)
+and then failed with *"the post-battle chain did not reach the Hall of Fame within 34362 frames
+(bound 10,000)"* — against three standalone drives that had each measured **2,686** frames on that
+same loop against that same bound. A 12.8× departure from a deterministic prior measurement.
+
+**ROOT CAUSE.** `fight_the_champion` decided "the fight started" and "the fight ended" by asking
+`battle_started_frame is not None` / `battle_ended_frame is not None`. Those are **MODE-level**
+latches set by **every** battle. Driven alone, the leg sees exactly one battle and the question is
+sound. Driven as the FIFTH leg of a chain, **four battles have already ended before it begins**, so
+both latches were already set: S3 and S4 returned immediately and **vacuously**, and S5 began
+pressing for the Hall of Fame while Wallace was still being fought.
+
+**THE FIX THAT WORKED.** Baseline the counters at the leg's own start and ask **relative** questions:
+`battles > _battles_at_start` for the start, and `battle_ended_frame >= battle_started_frame` for the
+end, so a stale end-latch from battle #4 cannot satisfy battle #5. The chain then passed against the
+**same** 10,000-frame bound — which is the proof that the bound was never the problem.
+
+**⛔ WHAT I ALMOST DID INSTEAD.** Raise the bound. It would have "worked" — S5 would have kept
+pressing A until Wallace's fight finished and then reached the Hall of Fame — and it would have
+shipped a leg whose every battle predicate was permanently satisfied before it ran, with a budget
+inflated to hide it. The failure would have moved somewhere else, later, and looked unrelated.
+
+**PREVENTION RULE (one line).** ⛔ **A LATCH THAT SURVIVES ACROSS STAGES MUST BE READ RELATIVE TO A
+BASELINE TAKEN AT THE STAGE'S OWN START — never with `is not None`.** If a predicate can be true
+*before* the code that is supposed to make it true has run, it is not a predicate, it is a constant.
+
+**SECOND PREVENTION RULE, from the same failure.** ⛔ **MERGE A SUB-STAGE'S REPORT IN A `finally`,
+never on the line after the `yield from`.** The grade printed `heal_ready=None`, which reads like a
+second defect in the heal; there was none — the exception propagated and the merge line below it
+never ran. *A failing stage is exactly when its readings matter most, and that shape discards them.*
+
+**THIRD, ON METHOD — the one worth the most.** ⭐ **PAIRWISE-PROVEN SEAMS DO NOT PROVE A CHAIN.** All
+five legs were independently green and every adjacent pair had been driven together; the bug lived
+*only* in the five-deep composition, and no amount of re-driving any leg — or any pair — could have
+surfaced it. When N stages share mutable mode state, the N-deep run is a DISTINCT test, not a
+formality after the pairs pass.
+
+**FOURTH, ON EVIDENCE CAPTURE.** Stopping a harness externally loses the tail of a block-buffered
+`.stdout.txt` — and the tail is exactly where the verdict lives (the harness ends in
+`set_manual_mode()`, so it never exits and never flushes). ⇒ **run it with `py -3.12 -u`.**
+‼ And the honest follow-up: an audit of all **227** committed `.stdout.txt` files found **zero**
+others affected, so this was a consequence of how that one run was stopped — *not* the repo-wide
+evidence defect I first suspected out loud. **Re-derive the blast radius before naming one.**
+
+
+## 2026-09-25 — I DESTROYED `04-HANDOFF.md` WITH A NON-ATOMIC WRITE (and a surrogate pair)
+
+**SYMPTOM.** A doc-edit script died with `UnicodeEncodeError: surrogates not allowed`, and
+`04-HANDOFF.md` — 900 lines, the file a cold session resumes from — was left at **ZERO BYTES**.
+
+**ROOT CAUSE, TWO LAYERS.**
+1. **The trigger:** I spelled 📦 in Python source as `"\ud83d\udce6"`. Python does NOT recombine
+   those into one astral character — it holds two **lone surrogates**, which UTF-8 cannot encode.
+   ⇒ In a Python string literal, an astral character is `\U0001F4E6` (capital-U, 8 hex digits) or
+   the literal character. A surrogate pair is a UTF-16 artifact and has no business in source.
+2. **The real defect, which is the one that did the damage:** `io.open(path, "w")` **TRUNCATES THE
+   FILE THE INSTANT IT IS OPENED**, before a single byte is written. So the encode error — raised
+   *during* `.write()` — happened when the original content was **already gone**. A script that
+   merely *failed* destroyed a file it never intended to change.
+
+**THE FIX THAT WORKED.** Recovered the blob with `git show HEAD:<path>` (note: `git checkout --` is
+correctly blocked here) and re-applied the session's two edits. Then made every doc write **atomic**:
+
+    def write_atomic(path, text):
+        data = text.encode("utf-8")   # <- raises HERE, before anything is touched
+        tmp = path + ".tmp-write"
+        with open(tmp, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+
+**PREVENTION RULE (one line).** ⛔ **NEVER `open(path, "w")` ON A FILE THAT ALREADY HAS CONTENT YOU
+CANNOT REGENERATE — encode to bytes first, write a temp file, `os.replace` last.** The window
+between "truncate" and "write" is where whole files go to die, and any exception widens it to
+forever.
+
+**⚠ AND THE HONEST PART.** This was recoverable **only** because the file was committed. The two
+edits I lost were the ones made *this session and not yet committed* — I had to re-apply them from
+the script that produced them. ⇒ a second, cheaper rule: **when a doc edit is scripted, keep the
+script**; it is the only backup an uncommitted edit has.

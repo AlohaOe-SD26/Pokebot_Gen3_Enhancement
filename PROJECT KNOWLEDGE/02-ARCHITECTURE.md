@@ -470,10 +470,13 @@ done
   `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned
   fixture (`post_badge8` → … → `post_league_shop`). ⛔ DO NOT REBUILD.
 
-* **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ⛔⛔ **NO SEQUENCER AND NO SEGMENT
-  24 DISPATCH — BUT NO LONGER "PREP ONLY" (corrected 2026-09-24).** `story_mode.py:5130` is the last
-  `_guard` and `:5132` is the END-OF-BUILT-CONTENT banner; the League is what comes after it, and
-  **nothing in this module is wired into `_play` yet.** ⇒ the gap is the CALLER, not the legs.
+* **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ✅⭐ **THE SEQUENCER EXISTS AND
+  PASSES (corrected 2026-09-25): `run_the_gauntlet()` chains all five legs in ONE run** — lobby →
+  Sidney → Phoebe/Glacia/Drake → HALL4 → Wallace → a cleared game (`ACCEPTANCE: PASS`, `battles=5`,
+  all `Won`). ⛔⛔ **WHAT IS STILL MISSING IS THE SEGMENT 24 DISPATCH: nothing here is wired into
+  `_play` yet**, so the chapter runs only under `--driver ch24gauntlet`. ⇒ the gap is the CALLER,
+  not the legs — which was already true on 2026-09-24 and is the half that did NOT change.
+  *(superseded: "NO SEQUENCER AND NO SEGMENT 24 DISPATCH — but no longer PREP ONLY".)*
   ✅ **THREE REAL LEGS NOW SHIP HERE, ALL DRIVEN AND PASSING, ALL HARNESS-ONLY ON PURPOSE**, plus the shared
   `beat_the_trainer_here()` that two of them call (extracted from `fight_one_room` 2026-09-25 and proven
   behaviour-preserving by re-driving all three room pairs BIT-IDENTICAL). ⭐ **`enter_the_league()`**
