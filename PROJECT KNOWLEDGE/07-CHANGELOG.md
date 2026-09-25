@@ -35203,3 +35203,22 @@ gate. If one ever does strand a restore, tighten it and take the noise.
 (suite 80 → 81 entries = 77 ENFORCING + 4 ADVISORY; `--quick` 70 → 71), `02-ARCHITECTURE.md` and
 `04-HANDOFF.md` (the runnable gate-count comments — a runnable command line gets no supersede
 marker), `08-MISTAKES.md` (the rule now names its gate), `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ✅ REGRESSION CHECK: THE WHOLE CHAPTER STILL PASSES, *WITH* TODAY'S ADDITIONS
+
+‼ **WHY THIS WAS RUN.** The full-chain gauntlet PASS earlier today predates three changes that all
+touch the chapter: the run-scoped battle latches, the `C-CANCONTINUE` egress proof, and
+`ch24_chapter_done()` + its `_ch24_done_probe` instrumentation. The CHAMPION leg had been re-driven
+four times since — **the five-battle CHAPTER had not.** "Each leg still passes" is not "the chain
+still passes"; that distinction is the entire reason `run_the_gauntlet` exists.
+
+**RESULT:** `ACCEPTANCE: PASS` — all seven chapter readings, `missing=[]`, `whiteouts=0`,
+`failure=None`, `heal_ready=True`, **`battles=5`**, `latch_calls=2` (correct at `CH24_ENTRY_FLOOR=1`).
+
+⭐ **AND IT IS A STRONGER RESULT THAN THE ORIGINAL**, because the egress proof now runs INSIDE the
+five-battle chain rather than only in a standalone champion drive:
+`egress_reached: (7, 1)`, `egress_waypoints: 4`, `egress_refusals: []` — the same 4-step route three
+independent instruments agreed on.
+
+**FILES:** `tools/story-dev/evidence/2026-09-25-ch24gauntlet-REGRESSION.stdout.txt` (new).
