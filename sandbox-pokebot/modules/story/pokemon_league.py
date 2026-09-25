@@ -3335,3 +3335,141 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
             f"was a flicker, which is the exact failure this second reading exists to catch.")
     report["usable_at"] = (str(VR._where()), VR._here_tile())
     _take(report, "C-USABLE")
+
+
+#: The readings `cross_to_the_champions_door` publishes. ⛔ THE DRIVER IMPORTS THIS.
+CROSS_READINGS = (
+    "X-PREMISE",    # in DRAKE'S ROOM, Drake beaten, not yet Champion
+    "X-DISMISSED",  # the parked victory msgbox is cleared and we are controllable
+    "X-INHALL4",    # through Drake's exit door onto HALL4
+    "X-ATDOOR",     # standing on (5,3) — ONE TILE SHORT of the Champion's door
+)
+
+
+def cross_to_the_champions_door(report=None, *, dismiss_budget: int = 3_000,
+                                walk_frames: int = 40_000,
+                                approach_frames: int = 60_000) -> Generator:
+    """§Ch24 — DRAKE'S ROOM → HALL4 `(5,3)`: the last leg that can still be undone.
+
+    ⭐ **IT ENDS ONE TILE SHORT OF THE POINT OF NO RETURN, AND THAT IS THE WHOLE DESIGN.**
+    `fight_one_room` leaves the bot in DRAKE'S ROOM post-victory; `fight_the_champion` begins at
+    HALL4 `(5,3)`. This is the join, and it deliberately stops where a refusal is still free.
+
+    ⛔⛔ **IT DOES NOT HEAL.** The last heal in the game belongs to `fight_the_champion`'s S1, at the
+    door, because that is the latest possible moment — healing here would waste the window on
+    whatever the 31-tile walk costs. ‼ One heal, one place, and the champion leg owns it.
+
+    ⛔ **TWO DIFFERENT MOVEMENT PRIMITIVES, AND THE DIFFERENCE IS LOAD-BEARING:**
+    * Drake's exit door is crossed with `_pass_through_door` — that door is one we WANT to cross,
+      and the helper works by making the warp the navigation TARGET.
+    * The approach to `(5,3)` uses `navigate_to`, which is MEASURED at 30 waypoints ending
+      `is_warp=False` and whose own docstring states that warps will not be used as intermediate
+      steps. ⇒ it cannot wander onto `(5,2)`.
+    ‼ Using `_pass_through_door` for the second hop would make the CHAMPION'S DOOR a destination —
+    the exact trap the tripwire below exists for.
+
+    ⚠ HALL4 is **31 tiles**, roughly 3× every other hall, which is why the approach budget is large.
+    """
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag
+    from modules.modes.util.walking import navigate_to
+    from modules.player import player_avatar_is_controllable
+    from modules.story import victory_road as VR
+    from modules.story.early_game import (
+        _check_abort,
+        _pass_through_door,
+        _yield_bounded_by_frames,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    DRAKE = MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM
+    HALL4 = MapRSE.EVER_GRANDE_CITY_HALL4
+
+    # ---- STEP 0: THE TRIPWIRE -------------------------------------------------------------------
+    # ⛔⛔ A CONSTANT-EDIT GUARD, PORTED FROM `Ch24Hall4Mode`. If someone ever "simplifies" the two
+    # tiles into one, this leg would walk the bot straight through the point of no return with
+    # nothing built to catch it. The check is free; the failure it prevents is unrecoverable.
+    if tuple(CHAMPION_STAND_TILE) == tuple(CHAMPION_DOOR_TILE):
+        raise BotModeError(
+            f"§Ch24 cross: CHAMPION_STAND_TILE {CHAMPION_STAND_TILE} has been set equal to "
+            f"CHAMPION_DOOR_TILE {CHAMPION_DOOR_TILE}. ⛔ Stepping there starts an unavoidable, "
+            f"un-fleeable Champion fight. Refusing before a single button.")
+
+    # ---- STEP 1: PREMISE ------------------------------------------------------------------------
+    # ‼ THREE CONJUNCTS. `not IS_CHAMPION` is what makes this non-vacuous: pointed at a run that has
+    # already cleared the game it must REFUSE rather than claim a crossing it did not make.
+    conj = {}
+    try:
+        conj["in_drakes_room"] = bool(VR._on_map(DRAKE))
+        conj["drake_beaten"] = get_event_flag("DEFEATED_ELITE_4_DRAKE") is True
+        conj["not_champion_yet"] = get_event_flag("IS_CHAMPION") is False
+    except Exception as error:  # noqa: BLE001 - an unreadable premise is a refusal, not a guess
+        reraise_if_aborting(error)
+        raise BotModeError(f"§Ch24 cross: premise unreadable: {type(error).__name__}: {error}")
+    report["premise"] = dict(conj)
+    report["start_at"] = (str(VR._where()), VR._here_tile())
+    if not all(conj.values()):
+        raise BotModeError(
+            f"§Ch24 cross: PREMISE FAILED {conj} at {VR._where()}. This leg joins "
+            f"`fight_one_room`'s end state to `fight_the_champion`'s premise; it does not navigate "
+            f"into the gauntlet.")
+    _take(report, "X-PREMISE")
+
+    # ---- STEP 2: DISMISS DRAKE'S PARKED VICTORY MSGBOX ------------------------------------------
+    # ⛔ **B, NOT A** — the defeat speech is a plain msgbox chain and A can re-open the interaction.
+    # On a DUTY CYCLE, because holding a button every frame never produces the JOY_NEW edge a Gen-3
+    # `waitbuttonpress` needs.
+    dismissed = False
+    for frame in range(dismiss_budget):
+        _check_abort()
+        try:
+            controllable = bool(player_avatar_is_controllable())
+        except Exception as error:  # noqa: BLE001 - a raise mid-transition IS the "not yet" answer
+            reraise_if_aborting(error)
+            controllable = False
+        if get_game_state() is GameState.OVERWORLD and controllable:
+            dismissed = True
+            break
+        if frame % 6 == 0:
+            context.emulator.press_button("B")
+        yield
+    report["dismissed"] = dismissed
+    if not dismissed:
+        raise BotModeError(
+            f"§Ch24 cross: Drake's victory msgbox did not clear within {dismiss_budget} frames at "
+            f"{VR._where()}. Walking while a script holds input presses into a locked overworld.")
+    # ‼ THE SETTLE IS LOAD-BEARING. The loop above exits on a SINGLE controllable reading, which
+    # FLICKERS through a transition — and the very next step drives a door.
+    yield from wait_until_truly_controllable()
+    _take(report, "X-DISMISSED")
+
+    # ---- STEP 3: DRAKE'S ROOM -> HALL4 ----------------------------------------------------------
+    yield from _yield_bounded_by_frames(
+        _pass_through_door(ROOM_EXIT_DOOR, tuple(DRAKE.value)), walk_frames)
+    yield from wait_until_truly_controllable()
+    if not VR._on_map(HALL4):
+        raise BotModeError(
+            f"§Ch24 cross: tried to leave DRAKE'S ROOM but we are at {VR._where()}, not HALL4. "
+            f"⛔ Do NOT retry backward — every return warp in the interior is inert.")
+    report["hall4_landing"] = (str(VR._where()), VR._here_tile())
+    _take(report, "X-INHALL4")
+
+    # ---- STEP 4: THE 31-TILE APPROACH, STOPPING ONE TILE SHORT ----------------------------------
+    yield from _yield_bounded_by_frames(
+        navigate_to(HALL4, tuple(CHAMPION_STAND_TILE)), approach_frames)
+    yield from wait_until_truly_controllable()
+    # ‼ ASSERT BOTH HALVES. "On HALL4" alone would pass while standing anywhere in a 31-tile hall,
+    # including — catastrophically — on `(5,2)`. The TILE is the half that matters.
+    here = tuple(VR._here_tile())
+    report["end_at"] = (str(VR._where()), here)
+    if not VR._on_map(HALL4) or here != tuple(CHAMPION_STAND_TILE):
+        raise BotModeError(
+            f"§Ch24 cross: meant to stop on HALL4 {CHAMPION_STAND_TILE} but we are at "
+            f"{VR._where()} {here}. ⛔ If that tile is {CHAMPION_DOOR_TILE} the run has ALREADY "
+            f"committed to the Champion fight and this refusal is far too late — read it as a bug "
+            f"in the approach, not as a recoverable state.")
+    _take(report, "X-ATDOOR")

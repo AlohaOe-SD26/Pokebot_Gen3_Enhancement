@@ -34914,3 +34914,48 @@ remains the one variable row and its ~5× bound must not be tightened.
 `ai-research-notes/2026-09-25-ch24-champion-leg-GRADED.md` (new), `03-PUNCH-LIST.md`,
 `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`, and three evidence files
 `2026-09-25-ch24champion{,-v2,-v3}.stdout.txt`.
+
+
+## 2026-09-25 — ⭐⭐ THE SEAM: DRAKE'S ROOM → HALL4 → THE CHAMPION → A CLEARED GAME, IN ONE RUN
+
+**`cross_to_the_champions_door()` is built**, and with it **every one of §Ch24's five fights is now
+covered by a production leg.** It is the join between `fight_one_room`'s end state and
+`fight_the_champion`'s premise, and it deliberately stops **one tile short** of the point of no
+return, where a refusal is still free.
+
+**THE DRIVE:** `CH24_CHAMP_FROM=drake --driver ch24champion` from `post_drake_L75.ss1` →
+**`ACCEPTANCE: PASS` with ALL FOURTEEN readings** (10 champion + 4 cross), `missing=[]`,
+`whiteouts=0`, `heal_ready=True`, `battles=1`, `BattleOutcome.Won`, fixture RESTORED.
+
+⭐ **THE SEAM IS THE POINT, NOT THE LEGS.** Two separately-green legs prove nothing about the join
+between them, so the driver gained a `CH24_CHAMP_FROM` knob that chains them in ONE run — and the
+grade's want-set **grows with the scope**, so a chained run cannot skip the join and still pass.
+The readings land exactly where they should:
+`start_at (16,3)(6,6)` — **`fight_one_room`'s documented end tile** — then `hall4_landing (5,33)`
+→ `end_at (5,3)`, a 30-tile walk matching the measured 31-tile hall.
+
+**⛔ TWO MOVEMENT PRIMITIVES, AND THE DIFFERENCE IS LOAD-BEARING.** Drake's exit door is crossed
+with `_pass_through_door` (a door we WANT to cross, and the helper makes the warp the target); the
+approach to `(5,3)` uses `navigate_to`, measured at 30 waypoints ending `is_warp=False`, whose
+docstring states warps are never used as intermediate steps ⇒ it cannot wander onto `(5,2)`.
+‼ Using the door helper for the second hop would make the CHAMPION'S DOOR a destination — which is
+why the leg also ports `Ch24Hall4Mode`'s **constant-edit tripwire**: if `CHAMPION_STAND_TILE` is
+ever set equal to `CHAMPION_DOOR_TILE`, the leg refuses before a single button.
+**⛔ AND IT DOES NOT HEAL** — the last heal in the game belongs to `fight_the_champion`'s S1, at the
+door, because that is the latest possible moment. One heal, one place, one owner.
+
+**⚠ AND A NUMBER THAT MOVED MORE THAN EXPECTED:** `fight_true_frames = 25,116`, against 30,908 /
+34,795 / 33,846 on the three earlier runs. ⇒ the observed spread is now **25,116–34,795 (~38 %)**,
+far wider than the 12.6 % recorded yesterday. This run reached Wallace through the cross leg rather
+than from the pinned healed fixture, so it arrived with **different party state** ⇒ the fight length
+is **party-dependent, not purely battle RNG**. The 150,000-frame bound keeps ~6× margin and must
+still not be tightened. ‼ Recorded as a correction to the earlier "12.6 % swing" framing.
+
+**⛔ STILL OPEN:** the SEQUENCER (no single run yet chains lobby → Sidney → 3 pairs → Champion);
+`ch24_chapter_done()`; the `_play` dispatch; the fault arms; and the WIN RATE (four wins, but from
+three different fixtures — still not a rate).
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`cross_to_the_champions_door`,
+`CROSS_READINGS`), `tools/story-dev/story_harness.py` (`CH24_CHAMP_FROM` knob; the want-set grows
+with scope), `tools/story-dev/evidence/2026-09-25-ch24champion-SEAM.stdout.txt` (new),
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.

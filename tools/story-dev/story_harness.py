@@ -21036,8 +21036,15 @@ class Ch24ChampionMode(BotMode):
         log(f"[ch24champion] ⚔ BATTLE ENDED at frame {self.battle_ended_frame} outcome={outcome!r}")
 
     def run(self):
+        import os as _os
+
         from modules.story.early_game import wait_until_truly_controllable
-        from modules.story.pokemon_league import CHAMPION_READINGS, fight_the_champion
+        from modules.story.pokemon_league import (
+            CHAMPION_READINGS,
+            CROSS_READINGS,
+            cross_to_the_champions_door,
+            fight_the_champion,
+        )
 
         TAG = "ch24champion"
         R: dict = {}
@@ -21054,8 +21061,23 @@ class Ch24ChampionMode(BotMode):
         self.battle_ended_frame = None
         self.battle_outcome = None
 
+        # ⭐⭐ `CH24_CHAMP_FROM=drake` CHAINS THE SEAM, AND THAT IS THE MORE VALUABLE TEST.
+        # Default (`door`) starts at HALL4 (5,3) from `post_hall4_door.ss1` and drives the champion
+        # leg alone. `drake` starts from `post_drake_L75.ss1` in DRAKE'S ROOM and runs
+        # `cross_to_the_champions_door` FIRST — which is exactly where `fight_one_room` leaves the
+        # bot, so it proves the JOIN between the room loop and the champion leg rather than testing
+        # two separately-green legs and assuming they meet.
+        FROM = _os.environ.get("CH24_CHAMP_FROM", "door").strip().lower()
+        if FROM not in ("door", "drake"):
+            raise BotModeError(f"{TAG}: CH24_CHAMP_FROM={FROM!r} is not 'door' or 'drake'")
+        R["from"] = FROM
+        cross: dict = {}
         try:
             yield from wait_until_truly_controllable()
+            if FROM == "drake":
+                log(f"[{TAG}] ⭐ CHAINING THE SEAM — cross_to_the_champions_door() first.")
+                yield from cross_to_the_champions_door(cross)
+                R["cross"] = {k: v for k, v in cross.items() if k != "readings"}
             yield from fight_the_champion(leg)
         except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
             from modules.story.early_game import reraise_if_aborting
@@ -21071,6 +21093,8 @@ class Ch24ChampionMode(BotMode):
             R["leg"] = {k: v for k, v in leg.items() if k != "readings"}
             for reading in sorted(leg.get("readings", set())):
                 taken.add(reading)
+            for reading in sorted(cross.get("readings", set())):
+                taken.add(reading)
             R["battles"] = getattr(self, "battles", 0)
             R["battle_outcome"] = repr(getattr(self, "battle_outcome", None))
             R["whiteouts"] = getattr(self, "whiteouts", 0)
@@ -21085,7 +21109,10 @@ class Ch24ChampionMode(BotMode):
 
         for key in sorted(R):
             log(f"[{TAG}] R {key} = {R[key]!r}")
-        missing = sorted(set(CHAMPION_READINGS) - taken)
+        # ‼ THE WANT SET GROWS WITH THE SCOPE. Chaining the seam means the CROSS readings are
+        # required too — otherwise a chained run could skip the join entirely and still PASS.
+        _want = set(CHAMPION_READINGS) | (set(CROSS_READINGS) if FROM == "drake" else set())
+        missing = sorted(_want - taken)
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
 
         # ⛔⛔ `heal_ready` IS A SEPARATE CONJUNCT BECAUSE `C-HEALED` IS TAKEN UNCONDITIONALLY.
