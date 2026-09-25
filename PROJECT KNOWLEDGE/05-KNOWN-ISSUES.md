@@ -2806,3 +2806,51 @@ not disable two behaviours") and the fault arm reds when it is violated.
 **To close:** an observe-only probe on a staged battle with a fainted non-slot-0 member that prints
 BOTH candidate indices beside a ground truth derived **by PID, never by slot** (discipline #3), and
 shows which the menu actually lands on. Only then flip `allow_revive` at the caller.
+
+
+## KI-102 — ⚠ **THE PC WITHDRAW COUNTS PARTY ROOM *EXCLUDING* EGGS; ITS CONSUMER COUNTS *INCLUDING* THEM.** FILED 2026-09-25, **NOT FIXED** — verified by reading, NOT yet reproduced.
+
+**THE MISMATCH, both halves read directly:**
+* `modules/story/pc_trip.py:481-482` — `withdraw_from_box` decides whether it must deposit to make
+  room with `alive = [i for i, p in enumerate(party) if p is not None and not
+  getattr(p, "is_egg", False)]` — **eggs EXCLUDED**.
+* `modules/modes/util/pc_interaction.py:418-419` — the withdraw it then performs refuses outright:
+  `if get_party_size() == 6: raise BotModeError("Cannot withdraw any Pokémon because the party
+  already contains 6 Pokémon.")` — and `get_party_size()` is *"how many party Pokémon this bot can
+  actually READ"* (`modules/pokemon_party.py:184`), which **includes an egg**.
+
+⇒ **A PARTY OF 5 MON + 1 EGG:** `alive == 5`, so `withdraw_from_box` concludes there is room and
+skips its make-room deposit; then the withdraw raises *"already contains 6"*. The withdraw fails on
+a party the caller believes has space, and the BotModeError surfaces from a PC trip that was made
+on purpose.
+
+**‼ THIS IS NOT A NEW SHAPE — IT IS THE SIBLING OF A BUG ALREADY CAUGHT HERE.** `08-MISTAKES.md`
+records the identical defect in `deposit_one_dead_weight`, caught by adversarial review *before it
+ever met an egg*: *"A party of 5 mons + 1 egg is FULL by the caller's test, but the new function
+would report 'already has room' … the exact silent-no-op shape it was written to replace,
+reintroduced inside the replacement."* Its prevention rule is the fix for THIS too:
+> *When a function exists to satisfy ONE specific caller's precondition, copy that caller's
+> predicate VERBATIM rather than writing an equivalent-looking one. "Alive" and "occupies a slot"
+> differ by exactly one case — an egg — and that case is invisible until it happens.*
+
+**⚠ HOW LIKELY IS IT?** Low today and NOT ZERO: this bot does not breed, but Emerald hands out a
+gift egg, and any egg in the party at the moment an HM-carrier or counter withdraw is attempted
+triggers it. ⇒ rare, silent until it happens, and it lands on an EXPENSIVE path (a PC journey
+already spent).
+
+**⛔ WHY IT IS FILED AND NOT FIXED.** `pc_trip.py` is SHARED — the counter hunt withdraws through
+the same code. This project's standing rule is *reproduce first, A/B where possible*; a change to a
+shared path justified only by reading is exactly what that rule forbids. **The mechanism is
+verified; the repro is not written.**
+
+**✅ THE REPRO IS CHEAP AND OFFLINE-ISH — write it before touching anything:** construct (or capture)
+a party of 5 mon + 1 egg with a known PID in a box, call `withdraw_from_box([that_pid])`, and assert
+the verdict. **Expected today:** it does NOT deposit, and the withdraw raises. **Expected after the
+fix:** `alive` uses the CONSUMER's predicate, so it deposits one and the withdraw lands.
+‼ Grade it on the **verdict tuple** (`landed`, `code`), never on party size — the make-room path
+leaves the count UNCHANGED (6→6→6), which is KI-79's exact trap.
+
+**FOUND BY:** an adversarial verifier in the 2026-09-25 design workflow
+(`ai-research-notes/2026-09-25-dexhunt-design-recon-WORKFLOW.md`), then confirmed by reading both
+call sites. ⛔ It blocks nothing today, but it is **on the critical path of the PC-first HM
+directive**, which will make this withdraw a routine operation rather than a rare one.
