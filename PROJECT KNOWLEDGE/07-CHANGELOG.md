@@ -34484,3 +34484,43 @@ Predictions pre-registered BEFORE the drives (`015ae88b`); graded in
 `tools/story-dev/evidence/2026-09-24-ch24room-PHOEBE.stdout.txt` (new),
 `tools/story-dev/evidence/2026-09-24-ch24room-GLACIA.stdout.txt` (new),
 `tools/story-dev/party_accounting_ledger.jsonl`.
+
+
+## 2026-09-24 — ⭐ THE ENGAGE SIGNAL NOW NAMES ITSELF, AND IT IMMEDIATELY FOUND THAT THE ROOMS DIFFER
+
+**WHY.** The previous entry had to leave a question open: `phoebe` reported
+`engage_suspension_frames` and `glacia` did not, so `glacia` broke on ONE OF the other two
+conditions — and `battle_is_active() or get_event_flag(victory_flag)` shared a single `if`, so
+**nothing recorded which.** ⇒ an instrument that cannot name which of its own conjuncts fired will
+eventually make you guess, and a guess in a write-up is how a wrong fact is born.
+
+**THE CHANGE.** The `or` is split; each of the four exits records `engage_signal`
+(`suspension-on-first-press` | `suspension` | `battle_is_active` | `victory_flag`). All three pairs
+re-driven, **all still `ACCEPTANCE: PASS`**, 9 readings, `missing=[]`, `whiteouts=0`:
+
+| pair | `engage_signal` | frames |
+|---|---|---|
+| `sidney` → PHOEBE | `suspension` | 9,864 |
+| `phoebe` → GLACIA | `suspension` | 26,772 |
+| ⭐ `glacia` → DRAKE | **`victory_flag`** | — |
+
+**⭐⭐ THE FINDING: THE ENGAGE MECHANISM IS NOT UNIFORM ACROSS ROOMS, THOUGH THE GEOMETRY IS.** In
+DRAKE's room the loop's FIRST reading already found the defeat flag set ⇒ **the battle began and
+ended before the press loop ran at all**, so our A-press did not cause it.
+⛔ **MEASURED:** the signal is neither suspension variant, and those are the only two ways this
+instrument can report a battle spanning one of its own `yield`s — a deduction from exhaustive cases.
+⚠ **INFERRED, NOT ASSERTED:** *why*. Likely the trainer's SIGHT LINE during the 5-tile approach
+`(6,11)`→`(6,6)` with Drake at `(6,5)`, firing inside `_navigate_riding_out` (frame-bounded, so its
+frames never reach the engage loop). **Not verified** — that needs a probe recording the frame at
+each `_take`.
+
+**⇒ ALL THREE SIGNALS ARE LOAD-BEARING, MEASURED RATHER THAN ARGUED:** `battle_is_active()` alone
+fails all three rooms (drive 1 proved it); the suspension detector alone fails DRAKE's; the victory
+flag alone cannot separate "won" from "never fought" in the other two. **Each room needed a
+different one.** ⇒ a room leg must NEVER assume its own press caused the battle — `fight_one_room`
+already does not, and that is now measured rather than hoped.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md` (UPDATE
+section), `07-CHANGELOG.md`, and three new evidence files
+`tools/story-dev/evidence/2026-09-24-ch24room-{sidney,phoebe,glacia}-signal.stdout.txt`.

@@ -67,11 +67,49 @@ The two drives broke out of the engage loop by **different** mechanisms:
 | `phoebe` | f3580 → f30350 = **26,770 frames** | the SUSPENSION detector — `engage_suspension_frames = 26772` (within 2 frames) |
 | `glacia` | f5020 → f23778 = **18,758 frames** | **NOT** the suspension detector — the key is absent from a log line that is **not** truncated (it ends with its closing brace, checked) ⇒ the break came from `battle_is_active() or get_event_flag(victory_flag)`. ⚠ **The log does not distinguish WHICH of those two**, because they share one condition. Not asserted.
 
-⇒ Keeping all three signals was not belt-and-braces padding: **each of the two runs would have
-needed a different one.** A 26,770-frame battle is utterly invisible to a poll, and the suspension
-detector alone would not have fired in the run where the poll happened to catch the transition.
-‼ **A cheap improvement for a future session:** split that `or` so the reading records which signal
-fired. Right now the instrument cannot answer a question I just had to leave open.
+---
+
+## ✅ UPDATE, SAME DAY — THE OPEN QUESTION ABOVE IS NOW ANSWERED, AND THE ANSWER IS BETTER THAN THE QUESTION
+
+The `or` was split so each signal records itself in `engage_signal`, and all three pairs re-driven
+(evidence `…-{sidney,phoebe,glacia}-signal.stdout.txt`; all three still `ACCEPTANCE: PASS`):
+
+| pair | `engage_signal` | frames |
+|---|---|---|
+| `sidney` → PHOEBE | `suspension` | 9,864 |
+| `phoebe` → GLACIA | `suspension` | 26,772 |
+| ⭐ `glacia` → DRAKE | **`victory_flag`** | — |
+
+⭐⭐ **THE ENGAGE MECHANISM IS NOT UNIFORM ACROSS ROOMS, EVEN THOUGH THE GEOMETRY IS.** In two rooms
+our A-press starts the fight. In DRAKE's room it does not: `engage_signal = victory_flag` means the
+loop's FIRST reading already found the defeat flag set, so **the battle began and ENDED before the
+press loop ran at all.**
+
+⛔ **WHAT IS MEASURED vs WHAT IS INFERRED — stated separately on purpose.**
+* **MEASURED:** the signal is neither `suspension-on-first-press` nor `suspension`, which are the
+  only two ways this instrument can report a battle that spanned one of its own `yield`s. ⇒ the
+  fight happened **before the engage loop's first iteration**. That is a deduction from the
+  instrument's own exhaustive cases, not a guess.
+* **INFERRED, NOT ASSERTED:** *why*. The likely mechanism is the trainer's SIGHT LINE during the
+  5-tile approach from the room's entry tile `(6,11)` to `(6,6)`, with Drake at `(6,5)` facing down
+  the corridor — the battle would then fire inside `_navigate_riding_out`, which is wrapped in
+  `_yield_bounded_by_frames`, so its frames are absorbed there and never reach the engage loop.
+  ⛔ **NOT VERIFIED.** Confirming it needs a probe that records the frame at each `_take`.
+
+### ⇒ THE THREE SIGNALS ARE ALL LOAD-BEARING — MEASURED, NOT ARGUED
+
+| if the leg had shipped ONLY… | what happens |
+|---|---|
+| `battle_is_active()` | **all three rooms fail** — drive 1 proved it directly |
+| the suspension detector | **DRAKE's room fails** — the battle is absorbed by the navigate's budget, so no jump is ever seen in the engage loop |
+| the victory flag | **SIDNEY's and PHOEBE's rooms cannot distinguish "won" from "never fought"** — the premise guard would have to carry the whole grade |
+
+‼ This is the rare case where redundancy was not defensive padding: **each room genuinely needed a
+different one of the three.** Had I kept the single `or`, the leg would still work — but the
+write-up would have had to guess, and a guess in a write-up is how a wrong fact is born.
+
+⇒ **CONSEQUENCE FOR THE SEQUENCER:** a room leg must NEVER assume its own press caused the battle.
+`fight_one_room` already does not, and that is now measured rather than hoped.
 
 ---
 

@@ -713,3 +713,6 @@
 {"when": "2026-09-24T21:15:03", "driver": "ch24room", "build": "sandbox", "state": "post_sidney_L75.ss1", "frames_run": 20000, "recomputes": 20002, "scans": 67, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T21:41:06", "driver": "ch24room", "build": "sandbox", "state": "post_phoebe_L75.ss1", "frames_run": 52152, "recomputes": 52153, "scans": 174, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-24T21:47:11", "driver": "ch24room", "build": "sandbox", "state": "post_glacia_L75.ss1", "frames_run": 45516, "recomputes": 45517, "scans": 152, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T22:09:34", "driver": "ch24room", "build": "sandbox", "state": "post_glacia_L75.ss1", "frames_run": 45516, "recomputes": 45517, "scans": 152, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T22:16:23", "driver": "ch24room", "build": "sandbox", "state": "post_sidney_L75.ss1", "frames_run": 35614, "recomputes": 35615, "scans": 119, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-24T22:26:43", "driver": "ch24room", "build": "sandbox", "state": "post_phoebe_L75.ss1", "frames_run": 52152, "recomputes": 52153, "scans": 174, "divergences": {}, "observer_broke": false}

@@ -2606,6 +2606,11 @@ def fight_one_room(report=None, *, from_room, hall, to_room, victory_flag,
     #   * a normal `yield` advances the emulator by ~1 frame;
     #   * a `yield` that a pushed controller ran through advances it by thousands.
     # Plus the victory FLAG, which is set by the time we resume from a won fight.
+    # ‼ EACH SIGNAL RECORDS ITSELF IN `engage_signal`. They were one `or` until 2026-09-24, and the
+    # very first pair of drives produced a question the log could not answer: `phoebe` reported
+    # `engage_suspension_frames` and `glacia` did not, so the second run broke on *one of* the other
+    # two — and nothing said which. ⇒ an instrument that cannot name which of its own conjuncts
+    # fired will eventually make you guess, and a guess in a write-up is how a wrong fact is born.
     _SUSPENDED = 60  # one second — far above any ordinary hiccup, far below a battle.
     engaged = False
     if not _noengage:
@@ -2616,13 +2621,21 @@ def fight_one_room(report=None, *, from_room, hall, to_room, victory_flag,
         # whole battle could elapse before the loop below takes its first reading.
         if context.emulator.get_frame_count() - _before > _SUSPENDED:
             engaged = True
+            report["engage_signal"] = "suspension-on-first-press"
             report["engage_suspension_frames"] = context.emulator.get_frame_count() - _before
     for frame in range(engage_frames):
         if engaged:
             break
         _check_abort()
-        if battle_is_active() or get_event_flag(victory_flag):
+        if battle_is_active():
             engaged = True
+            report["engage_signal"] = "battle_is_active"
+            break
+        if get_event_flag(victory_flag):
+            # The fight is already over and WON — we resumed after the battle without ever
+            # observing it. Recorded distinctly, because it means the press loop never saw a battle.
+            engaged = True
+            report["engage_signal"] = "victory_flag"
             break
         before = context.emulator.get_frame_count()
         if not _noengage:
@@ -2631,6 +2644,7 @@ def fight_one_room(report=None, *, from_room, hall, to_room, victory_flag,
         jumped = context.emulator.get_frame_count() - before
         if jumped > _SUSPENDED:
             engaged = True
+            report["engage_signal"] = "suspension"
             report["engage_suspension_frames"] = jumped
     report["engaged"] = engaged
     if not engaged:
