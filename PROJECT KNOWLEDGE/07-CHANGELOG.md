@@ -34567,3 +34567,73 @@ driven end to end" over five `[x]` punch-list items). Prevention rule filed in `
 **FILES:** `03-PUNCH-LIST.md`, `04-HANDOFF.md` (banner + queue head),
 `ai-research-notes/2026-09-24-ch24-room-leg-COMPOSITION-GRADED.md`, `07-CHANGELOG.md`,
 `08-MISTAKES.md`.
+
+
+## 2026-09-25 — ⭐⭐⭐ §Ch24 THE BRIDGE: THE GAUNTLET CAN NOW TAKE ITS FIRST SWING
+
+**THE GAP.** `prepare_and_open_the_league()` stopped ON `(9,3)`; `fight_one_room()` begins *already
+in room N having beaten trainer N*. **Nothing connected them** — `enter_the_league` and
+`ch24_chapter_done` had **ZERO occurrences in the tree** — which is why "the sequencer is a loop
+over `PAIRS`" was retracted: the loop could not take its first swing.
+
+✅ **`enter_the_league()` CLOSES IT.** `--driver ch24bridge` from `post_ch24_atdoor_L75.ss1` with
+`CH24_ENTRY_FLOOR=1` — **`ACCEPTANCE: PASS`, all 9 readings, `missing=[]`, `whiteouts=0`,
+`failure=None`**, driving **BOTH production legs in one run** because the SEAM was the thing on test:
+
+```
+start_at            = EVER_GRANDE_CITY(18,6)      <- outside, door SHUT, Sidney UNBEATEN
+hall5_at            = HALL5 (5,12)                 <- the commitment step fired
+room_at             = SIDNEYS_ROOM (6,7)           <- the cutscene's TRUE end tile
+end_at              = SIDNEYS_ROOM (6,6)
+sidney_flag_at_end  = True    phoebe_flag_at_end = False
+next_leg_premise_ok = True    latch_calls = 2      fixture RESTORED
+```
+
+**⭐ FIRST, A REFACTOR THAT MADE IT SAFE TO BUILD.** `fight_one_room`'s steps 5-7 were extracted to
+`beat_the_trainer_here()` — **MOVED BY SCRIPT, NOT RETYPED**, because re-typing them would have
+re-typed the three-signal engage discriminator that cost a failed drive. ✅ **PROVEN
+BEHAVIOUR-PRESERVING:** all three room pairs re-driven **BIT-IDENTICAL** (`suspension`/9,864 ·
+`suspension`/26,772 · `victory_flag`) — this harness is deterministic within a fork, so identical
+is the proof.
+
+**✅ P2 CLOSED A REAL OPEN QUESTION.** The 2026-09-17 probe reached HALL5 via
+`_navigate_riding_out`; this leg uses `_pass_through_door` — different helpers, and only the former
+had driven that door. The build spec's M2 slot was commissioned to settle it and never ran.
+⇒ **`_pass_through_door` DOES drive a step-on `MB_NON_ANIMATED_DOOR`.**
+
+**⭐ P3 — THE VAR SETTLE FIXED A BUG THE OLD PROBE SHIPPED WITH.** `room_at = (6,7)`, not the
+`(6,11)` the 2026-09-17 probe recorded. `(6,11)` was a **mid-`lockall` sample** —
+`wait_until_truly_controllable` reads True under `lockall` and returns silently on timeout.
+`Common_Movement_WalkUp6` ends on `(6,7)`, which this leg measured by settling on
+`VAR_ELITE_4_STATE >= 1` instead. ⇒ the discriminator choice was load-bearing, not stylistic.
+
+**⛔ P7 REFUTED, AND IT CHANGES THE COUNT.** I predicted Sidney would engage via our A-press
+(`suspension`), because the tree records him as an INTERACTION trainer. Measured:
+**`engage_signal = victory_flag`** — the fight began and ENDED before the press loop's first
+reading. ⇒ **TWO of four measured rooms fire before the engage loop** (Sidney's and Drake's), not
+one. ⚠ And it narrows an existing tree claim: *"Sidney is an interaction trainer"* came from a probe
+sampling `(6,11)`, two tiles further back than where the cutscene actually ends — from `(6,7)` the
+approach is shorter and the geometry differs. ⇒ read it as *"a press from (6,11) started his
+script"*. **MEASURED** = the fight preceded the loop; **INFERRED, NOT ASSERTED** = a sight line.
+⇒ the rule is unchanged and better evidenced: **a leg must NEVER assume its own press caused the
+battle.**
+
+**VACUITY ARM:** pointed at its own output (`post_sidney_L75.ss1`) it **REFUSES with
+`readings=[]`** — *"PREMISE FAILED — ENTERED_ELITE_FOUR=True, DEFEATED_ELITE_4_SIDNEY=True"*.
+
+**⛔ HARNESS-ONLY, AND THAT IS NOT A TODO.** It crosses the point of no return, and the statement
+after the gauntlet in `_play` is still the END-OF-CONTENT banner — a strand in HALL5 would be
+**scored as having finished the game**, and there is no wild encounter there to even white out of.
+The driver restores the fixture in a `finally` because `current_state.ss1` is what the real bot
+resumes from. ⇒ wiring waits for the CHAMPION leg + a retargeted banner.
+
+Predictions pre-registered BEFORE the drive (`1c0dc794`); graded in
+`ai-research-notes/2026-09-25-ch24-bridge-GRADED.md` — **P1-P6 CONFIRMED, P7 REFUTED.**
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`beat_the_trainer_here` extracted;
+`enter_the_league` + `BRIDGE_READINGS` + `LEAGUE_ENTRY_DOOR` + `HALL5_FAR_DOOR` new),
+`tools/story-dev/story_harness.py` (`Ch24BridgeMode`, registered),
+`ai-research-notes/2026-09-25-ch24-bridge-GRADED.md` (new), `02-ARCHITECTURE.md`,
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, and evidence
+`2026-09-25-ch24bridge.stdout.txt`, `2026-09-25-ch24bridge-ARM-vacuity.stdout.txt`,
+`2026-09-25-ch24room-{sidney,phoebe,glacia}-REFACTOR.stdout.txt`.

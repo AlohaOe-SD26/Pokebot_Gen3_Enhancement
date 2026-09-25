@@ -12502,3 +12502,22 @@ POKEBOT_CH24_FAULT_NOENGAGE=1 PYTHONUTF8=1 py -3.12 story_harness.py post_phoebe
 #     is sampled AFTER and it comes back byte-identical to `hp_after_<room>`. Not a before/after pair.
 ```
 
+
+
+## §Ch24 — the endgame-tail and warp-chain recipes (ARCHIVED 2026-09-25 from `04-HANDOFF.md`)
+
+⚠ **Moved for the R3 line budget, NOT because anything changed.** ⛔ LEG B is IRREVERSIBLE (it steps
+onto `(5,2)` and fights the Champion) and OBSERVE-ONLY — its ACCEPTANCE line is INSTRUMENT HEALTH, not
+a bot verdict. ⭐ **Read this before building the CHAMPION leg**: it is the only end-to-end measurement
+of the tail (~49,873 frames, ending at Brendan's house with `IS_CHAMPION`/`SYS_GAME_CLEAR` set in RAM
+AND flash). Verbatim:
+
+```
+#   LEG B — THE ENDGAME TAIL. ⛔⛔ IRREVERSIBLE: it steps onto (5,2) and fights the Champion.
+#   OBSERVE-ONLY — it asserts nothing and its ACCEPTANCE line is INSTRUMENT HEALTH, not a verdict.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hall4_door.ss1 --driver ch24tailprobe --frames 400000 --log tail.log
+#   Expect ~50,000 frames (~50s). READ THE `TRANSITION` LINES, not the last line — the trailing
+#   `HANG CONFIRMED` is the post-ACCEPTANCE artifact every probe produces (`ctrl='<none>'`). ‼ IT PRESSES A ONLY AND NEVER A DIRECTION — **the main-menu cursor must not move** (traps T16/T19).
+#   THE WARP CHAIN, measured from the ROM warp table (endpoints, not labels), HALL1 as the control:
+PYTHONUTF8=1 py -3.12 probe_e4_warp_chain.py
+```

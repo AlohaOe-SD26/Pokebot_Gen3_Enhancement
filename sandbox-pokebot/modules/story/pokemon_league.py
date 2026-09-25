@@ -2352,6 +2352,221 @@ ROOM_EXIT_DOOR = (6, 2)
 HALL_FAR_DOOR = (5, 2)
 
 
+def beat_the_trainer_here(report, *, to_room, victory_flag, prefix: str = "R1",
+                          navigate_frames: int = 20_000, engage_frames: int = 4_000,
+                          battle_frames: int = 120_000) -> Generator:
+    """§Ch24 — STAND BESIDE THE TRAINER IN THIS ROOM, BEAT THEM, AND PROVE WE CAN LEAVE.
+
+    ⭐ **EXTRACTED FROM `fight_one_room` 2026-09-25, VERBATIM AND BEHAVIOUR-PRESERVING**, because a
+    SECOND caller needs exactly this and *"the same fact in two functions"* is the shape this module
+    already calls out as drift (see the delegating shims at the top of this file).
+    ⇒ The second caller is the LEAGUE-ENTRY BRIDGE: it arrives in SIDNEY'S ROOM having never fought
+    him, which is a different PREMISE but an identical FIGHT. Duplicating this block would have
+    duplicated the three-signal engage discriminator below — knowledge that cost a failed drive.
+
+    ⛔⛔ **THE ENGAGE DISCRIMINATOR IS THE LOAD-BEARING PART, AND ALL THREE SIGNALS ARE NEEDED —
+    MEASURED, NOT ARGUED (2026-09-24):**
+      * `battle_is_active()` ALONE fails in EVERY room. A battle pushes `BattleListener` ABOVE the
+        story generator, so across ~9,862 battle frames this loop ran **zero iterations** and raised
+        *"no battle started"* while the log showed the battle being WON.
+      * The SUSPENSION detector alone fails in DRAKE's room, where the fight begins during the
+        approach and its frames are absorbed by `_navigate_riding_out`'s own budget.
+      * The VICTORY FLAG alone cannot separate *"won"* from *"never fought"* in SIDNEY's and
+        PHOEBE's rooms.
+      ⇒ `engage_signal` records WHICH fired. ‼ A room leg must NEVER assume its own press caused
+      the battle.
+
+    `prefix` names the readings (`<prefix>-ENGAGED` / `-WON` / `-CONTINUE`) so each caller's grade
+    can say which leg produced them.
+    """
+    from modules.map import get_map_objects
+    from modules.memory import get_event_flag
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.story import victory_road as VR
+    from modules.battle_state import battle_is_active
+    from modules.player import player_avatar_is_controllable  # noqa: F401 - parity with the caller
+    from modules.story.early_game import (
+        _check_abort,
+        _yield_bounded_by_frames,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    # ---- STEP 5: FIND THE TRAINER **LIVE**, THEN ENGAGE -----------------------------------------
+    # ⛔ NEVER A HARDCODED TRAINER TILE. `map.json` puts every Elite Four member at (6,5), but the
+    # entry cutscene moves the PLAYER, so the relationship between us and them is what matters.
+    # Pick the visible object north of us and stand one tile south of it.
+    yield from wait_until_truly_controllable()
+    here = VR._here_tile()
+    others = [tuple(o.current_coords) for o in get_map_objects()
+              if "isPlayer" not in o.flags and tuple(o.current_coords) != here]
+    report["objects_seen"] = others
+    # ⭐ THE `others[0]` FALLBACK IS SAFE FOR A DOCUMENTED REASON, NOT BY LUCK: each Elite Four room
+    # contains exactly ONE `object_event` — the member — at (6,5), `MOVEMENT_TYPE_FACE_DOWN`,
+    # `movement_range 0/0`, and they never despawn (decomp `EverGrandeCity_<X>sRoom/map.json`; the
+    # same fact is cited by `Ch24GlaciaMode`, `story_harness.py:18303-18306`). ⇒ "the first object
+    # north of us" CANNOT pick the wrong NPC, because there is no other NPC to pick.
+    # ‼ If a future room ever holds two objects, this fallback becomes a coin flip — re-derive it
+    # rather than trusting this comment.
+    target = next((t for t in others if t[1] < here[1]), others[0] if others else None)
+    if target is None:
+        raise BotModeError(
+            f"§Ch24 room leg: no trainer object visible from {here} in {to_room.name}. "
+            f"⛔ `get_map_objects()` is a camera-range window — an empty list is NOT proof of "
+            f"absence, so this is reported rather than treated as 'nobody here'.")
+    stand = (target[0], target[1] + 1)
+    report["trainer_at"] = target
+    report["stand_at"] = stand
+    if VR._here_tile() != stand:
+        # ‼ ITS OWN BUDGET, NOT `walk_frames`. The proven drivers use a separate 20,000 here
+        # (`story_harness.py:18326`) — this is a few tiles inside one room, not a door transition.
+        yield from _yield_bounded_by_frames(
+            VR._navigate_riding_out(to_room, stand), navigate_frames)
+        yield from wait_until_truly_controllable()
+    report["stood_at"] = VR._here_tile()
+    yield from ensure_facing_direction("Up")
+
+    # ⛔⛔ THE PRESS IS UNGATED **ON PURPOSE** — AND THIS IS *NOT* THE SAME CASE AS THE LEAGUE GUARD.
+    # `prepare_and_open_the_league` says "ONE A, then ride the script out. DO NOT MASH", and that is
+    # correct THERE: the guard is a scripted conversation whose tail MOVES AN NPC, so mashing races
+    # its startup (the `_GUARD_SCRIPT_SETTLE_FRAMES` bug). An Elite Four member is an INTERACTION
+    # TRAINER — the A-press starts a battle and the battle owns input immediately afterwards.
+    # The cadence below is copied VERBATIM from `Ch24GlaciaMode` (`story_harness.py:18350-18356`),
+    # which took it from `Ch24PhoebeMode` → `Ch24ProbeMode` → `_talk_to_the_stair_grunt`
+    # (`space_center.py`), and it has now won three Elite Four fights.
+    # ‼ THE STANDALONE `A` BEFORE THE LOOP IS PART OF THE PROVEN SHAPE — do not fold it into the
+    # modulo. ⛔ And the hazard an ungated-press rule exists to stop cannot happen here: the loop is
+    # BOUNDED, breaks the instant a battle is live, and raises with both tiles named otherwise.
+    # ⭐ FAULT ARM `noengage` — walks the ENTIRE unit and then presses NOTHING. It must FAIL with
+    # `R1-ENGAGED` and `R1-WON` missing. That is what proves those two readings are earned by
+    # FIGHTING, and not satisfied by merely arriving in the room.
+    _noengage = _ch24room_fault() == "noengage"
+    report["engage_skipped"] = _noengage
+
+    # ⛔⛔⛔ THE DISCRIMINATOR — AND `battle_is_active()` ALONE IS **STRUCTURALLY UNOBSERVABLE** HERE.
+    # MEASURED 2026-09-24, and it cost this leg its first drive: the battle began at frame 3,950 and
+    # ran to 13,812, and across those 9,862 frames THIS GENERATOR EXECUTED ZERO ITERATIONS, because
+    # `main.py` advances only the TOP of the controller stack and `BattleListener` sits above us.
+    # ⇒ the only frames on which this loop can poll are the frames a battle is NOT running. The run
+    # fought Phoebe, won exp, and then raised *"4,000 frames without starting a battle"*.
+    # ‼ The three proven drivers do not hit this because `self.battles` is set by the
+    # `on_battle_started` CALLBACK — a push notification that survives the suspension. Production
+    # `StoryMode` has the hook (`story_mode.py:3318`) but keeps NO counter, so the leg cannot borrow
+    # it. ⇒ we detect the SUSPENSION ITSELF, which needs nothing registered:
+    #   * a normal `yield` advances the emulator by ~1 frame;
+    #   * a `yield` that a pushed controller ran through advances it by thousands.
+    # Plus the victory FLAG, which is set by the time we resume from a won fight.
+    # ‼ EACH SIGNAL RECORDS ITSELF IN `engage_signal`. They were one `or` until 2026-09-24, and the
+    # very first pair of drives produced a question the log could not answer: `phoebe` reported
+    # `engage_suspension_frames` and `glacia` did not, so the second run broke on *one of* the other
+    # two — and nothing said which. ⇒ an instrument that cannot name which of its own conjuncts
+    # fired will eventually make you guess, and a guess in a write-up is how a wrong fact is born.
+    _SUSPENDED = 60  # one second — far above any ordinary hiccup, far below a battle.
+    engaged = False
+    if not _noengage:
+        _before = context.emulator.get_frame_count()
+        context.emulator.press_button("A")
+        yield
+        # ⚠ The very first press can start the fight, so this yield is measured too — otherwise the
+        # whole battle could elapse before the loop below takes its first reading.
+        if context.emulator.get_frame_count() - _before > _SUSPENDED:
+            engaged = True
+            report["engage_signal"] = "suspension-on-first-press"
+            report["engage_suspension_frames"] = context.emulator.get_frame_count() - _before
+    for frame in range(engage_frames):
+        if engaged:
+            break
+        _check_abort()
+        if battle_is_active():
+            engaged = True
+            report["engage_signal"] = "battle_is_active"
+            break
+        if get_event_flag(victory_flag):
+            # The fight is already over and WON — we resumed after the battle without ever
+            # observing it. Recorded distinctly, because it means the press loop never saw a battle.
+            engaged = True
+            report["engage_signal"] = "victory_flag"
+            break
+        before = context.emulator.get_frame_count()
+        if not _noengage:
+            context.emulator.press_button("B" if frame % 3 else "A")
+        yield
+        jumped = context.emulator.get_frame_count() - before
+        if jumped > _SUSPENDED:
+            engaged = True
+            report["engage_signal"] = "suspension"
+            report["engage_suspension_frames"] = jumped
+    report["engaged"] = engaged
+    if not engaged:
+        raise BotModeError(
+            f"§Ch24 room leg: stood at {stand} facing {target} in {to_room.name} for "
+            f"{engage_frames:,} frames without starting a battle. The trainer was located LIVE, so "
+            f"this is not a stale-coordinate failure.")
+    _take(report, f"{prefix}-ENGAGED")
+
+    # ---- STEP 6: FIGHT, THEN ASSERT THE **FLAG**, NOT THE SILENCE -------------------------------
+    # ⛔ "the battle ended" is not "we won" — a whiteout also ends the battle. The defeat FLAG is the
+    # only signal that distinguishes them, and it is what the grade rests on.
+    #
+    # ⚠⚠ HONEST ACCOUNT OF WHAT THIS LOOP DOES **NOT** PROTECT AGAINST — an earlier comment here
+    # claimed it was "bounded by FRAMES because what follows is a BATTLE", and that OVERSTATED it.
+    # `main.py` advances only the TOP of the controller stack, so while the battle controller is
+    # pushed this generator is SUSPENDED and these iterations do not tick at all (`KI-28`'s shape).
+    # ⇒ this loop bounds the time we spend waiting *outside* the fight, NOT the fight itself. The
+    # real backstop against an in-battle hang lives in `battle_handler.py`'s own bounded loops.
+    # ‼ Kept anyway, and at the PROVEN 120,000: it is the identical shape the three drivers used to
+    # beat Sidney, Phoebe, Glacia and Drake. What is fixed here is the CLAIM, not the code.
+    for _ in range(battle_frames):
+        _check_abort()
+        if not battle_is_active():
+            break
+        yield
+    yield from wait_until_truly_controllable()
+    won = bool(get_event_flag(victory_flag))
+    report["end_flag"] = won
+    report["end_at"] = (str(VR._where()), VR._here_tile())
+    if not won:
+        raise BotModeError(
+            f"§Ch24 room leg: the battle in {to_room.name} ended but {victory_flag} is still False "
+            f"at {VR._where()}. ⛔ A battle ending is not a win — this is what a LOSS looks like.")
+    _take(report, f"{prefix}-WON")
+
+    # ---- STEP 7: ⛔ "AND THE BOT CAN CONTINUE" ---------------------------------------------------
+    # A win is not a continuable state. ‼ §Ch15 ended four floors underground, §Ch18 on an
+    # eleven-tile island and §Ch19 in a living room — **ALL THREE PASSED THEIR OWN TESTS.** This leg
+    # is a LOOP UNIT: the next call's first move is to walk out through `ROOM_EXIT_DOOR`, so if the
+    # victory script did not open it, the failure would surface much later as a baffling walk
+    # timeout inside the NEXT room's Step 3 instead of here, where it is one line to diagnose.
+    #
+    # ⛔⛔ IT READS THE **LIVE** GRID, NEVER `get_map_data`. `KI-74`: the exit door is ROM-blocked and
+    # runtime-OPENED (`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` writes
+    # impassable=FALSE), while the entry tiles are ROM-open and runtime-SEALED by `WalkInCloseDoor`.
+    # A static read would report the door SHUT on a perfect run.
+    #
+    # ⚠ SCOPE, so this is not over-read: `OnLoad` also calls `ResetAdvanceToNextRoom` whenever the
+    # room's DEFEATED flag is already set, so merely RELOADING a post-victory save re-opens the
+    # door. ⇒ this reading is meaningful DURING a run and would be VACUOUS on a reloaded fixture.
+    #
+    # ⛔ RECORDED, NOT RAISED. The zone is sealed behind us; raising here strands the bot exactly as
+    # surely as continuing does, and the caller needs the reading to decide. The reading is simply
+    # NOT TAKEN when the door is shut, which is what makes a grade able to fail on it.
+    try:
+        from modules.story.sootopolis import _live_collision_grid
+
+        grid = _live_collision_grid(to_room)
+        report["exit_door_live"] = {t: grid.get(t) for t in ((6, 1), ROOM_EXIT_DOOR)}
+        door_open = all(grid.get(t) == 0 for t in ((6, 1), ROOM_EXIT_DOOR))
+        report["exit_door_open_live"] = door_open
+        if door_open:
+            _take(report, f"{prefix}-CONTINUE")
+    except Exception as error:  # noqa: BLE001 - a reading that fails must SAY so, never lie
+        reraise_if_aborting(error)
+        report["continue_error"] = f"{type(error).__name__}: {error}"
+
+
 def fight_one_room(report=None, *, from_room, hall, to_room, victory_flag,
                    dismiss_budget: int = 3_000, walk_frames: int = 40_000,
                    navigate_frames: int = 20_000, engage_frames: int = 4_000,
@@ -2542,173 +2757,180 @@ def fight_one_room(report=None, *, from_room, hall, to_room, victory_flag,
         report["room_elite4_state"] = "<unreadable>"
     _take(report, "R1-INROOM")
 
-    # ---- STEP 5: FIND THE TRAINER **LIVE**, THEN ENGAGE -----------------------------------------
-    # ⛔ NEVER A HARDCODED TRAINER TILE. `map.json` puts every Elite Four member at (6,5), but the
-    # entry cutscene moves the PLAYER, so the relationship between us and them is what matters.
-    # Pick the visible object north of us and stand one tile south of it.
-    yield from wait_until_truly_controllable()
+    # ---- STEPS 5-7: LOCATE, ENGAGE, WIN, AND PROVE WE CAN LEAVE ---------------------------------
+    # ⭐ EXTRACTED 2026-09-25 into `beat_the_trainer_here` so the LEAGUE-ENTRY BRIDGE can reuse it.
+    # ⛔ MOVED VERBATIM — the three-signal engage discriminator in there cost a failed drive to
+    # learn, and duplicating it would have duplicated the bug it fixes.
+    yield from beat_the_trainer_here(
+        report, to_room=to_room, victory_flag=victory_flag, prefix="R1",
+        navigate_frames=navigate_frames, engage_frames=engage_frames,
+        battle_frames=battle_frames)
+
+
+#: ⛔⛔ **STEP-ON `MB_NON_ANIMATED_DOOR`. ARRIVING *IS* THE WARP — THERE IS NO "WALK UP AND CHECK".**
+#: Two tiles wide (`(10,1)` is the twin); `(8,1)`/`(11,1)` are walls. Measured ROM == LIVE at the
+#: lobby, so this is the one League door with no `KI-74` divergence.
+LEAGUE_ENTRY_DOOR = (9, 1)
+
+#: HALL5's far door into SIDNEY'S ROOM — the same `(5,2)` every hall uses (measured uniform).
+HALL5_FAR_DOOR = (5, 2)
+
+#: The readings `enter_the_league` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
+BRIDGE_READINGS = (
+    "E2-LATCHED",    # the run is owned before a single button is pressed
+    "E2-PREMISE",    # in the lobby, door already open, and SIDNEY NOT YET BEATEN
+    "E2-COMMITTED",  # we are on HALL5 — the point of no return is now BEHIND us
+    "E2-INROOM",     # SIDNEY'S ROOM, entry cutscene settled
+    "E2-ENGAGED",    # a battle actually happened (see the three signals in the helper)
+    "E2-WON",        # DEFEATED_ELITE_4_SIDNEY is set
+    "E2-CONTINUE",   # and the exit door is OPEN in the LIVE grid
+)
+
+
+def enter_the_league(report=None, *, walk_frames: int = 40_000, settle_frames: int = 3_000,
+                     navigate_frames: int = 20_000, engage_frames: int = 4_000,
+                     battle_frames: int = 120_000) -> Generator:
+    """§Ch24 — THE BRIDGE: cross the point of no return, and beat SIDNEY.
+
+    ⭐ **WHY THIS FUNCTION EXISTS AT ALL.** `prepare_and_open_the_league()` stops ON `(9,3)` with the
+    door open and deliberately does NOT step through. `fight_one_room()`'s premise is *already
+    standing in room N having beaten trainer N*. ⇒ **nothing connected the two**, and a sequencer
+    written as "just loop over `PAIRS`" could not have taken its first swing. This is that missing
+    step, and it ends EXACTLY on `fight_one_room(from_room=SIDNEYS_ROOM, ...)`'s premise.
+
+    ⛔⛔⛔ **THIS LEG CROSSES THE POINT OF NO RETURN, AND IT IS HARNESS-ONLY FOR THAT REASON.**
+    Stepping onto `(9,1)` sets `ENTERED_ELITE_FOUR`, which is **PERMANENT AND NEVER CLEARED**. Every
+    backward warp in the interior sits on `MB_NORMAL`, which the warp code REJECTS — so there is no
+    walking back, no Fly (all 11 maps are `MAP_TYPE_INDOOR`), and no Escape Rope
+    (`allow_escaping: false`). ‼ **DO NOT WIRE THIS INTO `_play`** until the CHAMPION leg and a
+    retargeted END-OF-CONTENT banner land with it: today the statement after the gauntlet is the
+    banner, which sets `_reached_end_of_content = True` — so a bot stranded in the corridor would be
+    **scored as having finished the game**, and there is no wild encounter and no trainer in HALL5,
+    so it cannot even white out of it.
+
+    ⛔ **NO READINESS CHECK HERE, ON PURPOSE.** A 4-agent review MEASURED all three remedies to be
+    non-functional from inside the building (`heal_at_league` raises either way; the Mart needs
+    ₽54,300 against a measured ₽1,741; `train_for_league` needs Fly and the lobby is INDOOR).
+    ⇒ readiness is `prepare_and_open_the_league`'s job, decided OUTSIDE on `EVER_GRANDE`.
+    **A gate that cannot remedy is just a halt**, and a halt on this tile is a strand.
+
+    ‼ **WHAT IS ALREADY MEASURED, so this is not a leap in the dark:** the whole route ran green
+    once, on 2026-09-17 (`evidence/2026-09-17-ch24probe-SIDNEY-L75.txt`, `ACCEPTANCE: PASS`):
+    `(9,3)` → `hall5_at=(5,12)` → `room_landing=(6,11)` → Sidney beaten → `elite4_state_after=1`.
+    The pinned fixture `post_sidney_L75.ss1` was captured FROM that run. What did not exist until
+    now is a production-shaped, instrumented, fault-armed version of it.
+    """
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag, get_event_var
+    from modules.story import victory_road as VR
+    from modules.story.early_game import (
+        _check_abort,
+        _pass_through_door,
+        _yield_bounded_by_frames,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    # ---- STEP 0: LATCH, BEFORE ANY BUTTON -------------------------------------------------------
+    # ⛔ THE LEG'S FIRST ACT. `_ch23_settled()` is `_ch24_owns_run or ch23_chapter_done()`, and
+    # `ch23_chapter_done()` requires `_on_map(EVER_GRANDE)` — FALSE in the lobby and FALSE on every
+    # map beyond it. An unlatched run that resumes in here re-enters §Ch23 and burns its attempts.
+    mode = getattr(context, "bot_mode_instance", None)
+    marker = getattr(mode, "mark_ch24_owns_run", None)
+    if callable(marker):
+        marker()
+        report["latched"] = True
+    _take(report, "E2-LATCHED")
+
+    # ---- STEP 1: PREMISE — AND IT MUST REFUSE WHEN POINTED AT ITS OWN OUTPUT --------------------
+    # ‼ THREE CONJUNCTS. The FLAG half is what makes this non-vacuous: point this leg at
+    # `post_sidney_L75.ss1` (its own output) and it MUST refuse, because reporting a win it did not
+    # cause is the failure mode a premise exists to prevent.
+    already_won = bool(get_event_flag("DEFEATED_ELITE_4_SIDNEY"))
+    report["sidney_flag_at_start"] = already_won
+    if already_won:
+        raise BotModeError(
+            "§Ch24 bridge: PREMISE FAILED — DEFEATED_ELITE_4_SIDNEY is ALREADY set, so this leg "
+            "would report a win it did not cause. (Pointed at its own output fixture?)")
+    if not VR._on_map(VR.LEAGUE_1F):
+        raise BotModeError(
+            f"§Ch24 bridge: must start in the League LOBBY on {LEAGUE_GUARD_TALK_TILE}, but we are "
+            f"at {VR._where()}. ⛔ This leg does not navigate to the League — that is "
+            f"`prepare_and_open_the_league`'s job, and it also decides READINESS (outside).")
+    door_open = bool(get_event_flag(CH24_ENTERED_FLAG))
+    report["door_open_at_start"] = door_open
+    if not door_open:
+        raise BotModeError(
+            f"§Ch24 bridge: {CH24_ENTERED_FLAG} is False — the GUARDS HAVE NOT MOVED, and they "
+            f"stand on (9,2)/(10,2), the ONLY two approach tiles to a two-tile door. Walking at it "
+            f"now is the silent-stall shape. Run `prepare_and_open_the_league` first.")
     here = VR._here_tile()
-    others = [tuple(o.current_coords) for o in get_map_objects()
-              if "isPlayer" not in o.flags and tuple(o.current_coords) != here]
-    report["objects_seen"] = others
-    # ⭐ THE `others[0]` FALLBACK IS SAFE FOR A DOCUMENTED REASON, NOT BY LUCK: each Elite Four room
-    # contains exactly ONE `object_event` — the member — at (6,5), `MOVEMENT_TYPE_FACE_DOWN`,
-    # `movement_range 0/0`, and they never despawn (decomp `EverGrandeCity_<X>sRoom/map.json`; the
-    # same fact is cited by `Ch24GlaciaMode`, `story_harness.py:18303-18306`). ⇒ "the first object
-    # north of us" CANNOT pick the wrong NPC, because there is no other NPC to pick.
-    # ‼ If a future room ever holds two objects, this fallback becomes a coin flip — re-derive it
-    # rather than trusting this comment.
-    target = next((t for t in others if t[1] < here[1]), others[0] if others else None)
-    if target is None:
-        raise BotModeError(
-            f"§Ch24 room leg: no trainer object visible from {here} in {to_room.name}. "
-            f"⛔ `get_map_objects()` is a camera-range window — an empty list is NOT proof of "
-            f"absence, so this is reported rather than treated as 'nobody here'.")
-    stand = (target[0], target[1] + 1)
-    report["trainer_at"] = target
-    report["stand_at"] = stand
-    if VR._here_tile() != stand:
-        # ‼ ITS OWN BUDGET, NOT `walk_frames`. The proven drivers use a separate 20,000 here
-        # (`story_harness.py:18326`) — this is a few tiles inside one room, not a door transition.
-        yield from _yield_bounded_by_frames(
-            VR._navigate_riding_out(to_room, stand), navigate_frames)
-        yield from wait_until_truly_controllable()
-    report["stood_at"] = VR._here_tile()
-    yield from ensure_facing_direction("Up")
+    report["start_at"] = (str(VR._where()), here)
+    if here != LEAGUE_GUARD_TALK_TILE:
+        # Recorded, not fatal: the door is open, so any standable lobby tile can still reach it.
+        report["start_off_talk_tile"] = here
+    _take(report, "E2-PREMISE")
 
-    # ⛔⛔ THE PRESS IS UNGATED **ON PURPOSE** — AND THIS IS *NOT* THE SAME CASE AS THE LEAGUE GUARD.
-    # `prepare_and_open_the_league` says "ONE A, then ride the script out. DO NOT MASH", and that is
-    # correct THERE: the guard is a scripted conversation whose tail MOVES AN NPC, so mashing races
-    # its startup (the `_GUARD_SCRIPT_SETTLE_FRAMES` bug). An Elite Four member is an INTERACTION
-    # TRAINER — the A-press starts a battle and the battle owns input immediately afterwards.
-    # The cadence below is copied VERBATIM from `Ch24GlaciaMode` (`story_harness.py:18350-18356`),
-    # which took it from `Ch24PhoebeMode` → `Ch24ProbeMode` → `_talk_to_the_stair_grunt`
-    # (`space_center.py`), and it has now won three Elite Four fights.
-    # ‼ THE STANDALONE `A` BEFORE THE LOOP IS PART OF THE PROVEN SHAPE — do not fold it into the
-    # modulo. ⛔ And the hazard an ungated-press rule exists to stop cannot happen here: the loop is
-    # BOUNDED, breaks the instant a battle is live, and raises with both tiles named otherwise.
-    # ⭐ FAULT ARM `noengage` — walks the ENTIRE unit and then presses NOTHING. It must FAIL with
-    # `R1-ENGAGED` and `R1-WON` missing. That is what proves those two readings are earned by
-    # FIGHTING, and not satisfied by merely arriving in the room.
-    _noengage = _ch24room_fault() == "noengage"
-    report["engage_skipped"] = _noengage
-
-    # ⛔⛔⛔ THE DISCRIMINATOR — AND `battle_is_active()` ALONE IS **STRUCTURALLY UNOBSERVABLE** HERE.
-    # MEASURED 2026-09-24, and it cost this leg its first drive: the battle began at frame 3,950 and
-    # ran to 13,812, and across those 9,862 frames THIS GENERATOR EXECUTED ZERO ITERATIONS, because
-    # `main.py` advances only the TOP of the controller stack and `BattleListener` sits above us.
-    # ⇒ the only frames on which this loop can poll are the frames a battle is NOT running. The run
-    # fought Phoebe, won exp, and then raised *"4,000 frames without starting a battle"*.
-    # ‼ The three proven drivers do not hit this because `self.battles` is set by the
-    # `on_battle_started` CALLBACK — a push notification that survives the suspension. Production
-    # `StoryMode` has the hook (`story_mode.py:3318`) but keeps NO counter, so the leg cannot borrow
-    # it. ⇒ we detect the SUSPENSION ITSELF, which needs nothing registered:
-    #   * a normal `yield` advances the emulator by ~1 frame;
-    #   * a `yield` that a pushed controller ran through advances it by thousands.
-    # Plus the victory FLAG, which is set by the time we resume from a won fight.
-    # ‼ EACH SIGNAL RECORDS ITSELF IN `engage_signal`. They were one `or` until 2026-09-24, and the
-    # very first pair of drives produced a question the log could not answer: `phoebe` reported
-    # `engage_suspension_frames` and `glacia` did not, so the second run broke on *one of* the other
-    # two — and nothing said which. ⇒ an instrument that cannot name which of its own conjuncts
-    # fired will eventually make you guess, and a guess in a write-up is how a wrong fact is born.
-    _SUSPENDED = 60  # one second — far above any ordinary hiccup, far below a battle.
-    engaged = False
-    if not _noengage:
-        _before = context.emulator.get_frame_count()
-        context.emulator.press_button("A")
-        yield
-        # ⚠ The very first press can start the fight, so this yield is measured too — otherwise the
-        # whole battle could elapse before the loop below takes its first reading.
-        if context.emulator.get_frame_count() - _before > _SUSPENDED:
-            engaged = True
-            report["engage_signal"] = "suspension-on-first-press"
-            report["engage_suspension_frames"] = context.emulator.get_frame_count() - _before
-    for frame in range(engage_frames):
-        if engaged:
-            break
-        _check_abort()
-        if battle_is_active():
-            engaged = True
-            report["engage_signal"] = "battle_is_active"
-            break
-        if get_event_flag(victory_flag):
-            # The fight is already over and WON — we resumed after the battle without ever
-            # observing it. Recorded distinctly, because it means the press loop never saw a battle.
-            engaged = True
-            report["engage_signal"] = "victory_flag"
-            break
-        before = context.emulator.get_frame_count()
-        if not _noengage:
-            context.emulator.press_button("B" if frame % 3 else "A")
-        yield
-        jumped = context.emulator.get_frame_count() - before
-        if jumped > _SUSPENDED:
-            engaged = True
-            report["engage_signal"] = "suspension"
-            report["engage_suspension_frames"] = jumped
-    report["engaged"] = engaged
-    if not engaged:
-        raise BotModeError(
-            f"§Ch24 room leg: stood at {stand} facing {target} in {to_room.name} for "
-            f"{engage_frames:,} frames without starting a battle. The trainer was located LIVE, so "
-            f"this is not a stale-coordinate failure.")
-    _take(report, "R1-ENGAGED")
-
-    # ---- STEP 6: FIGHT, THEN ASSERT THE **FLAG**, NOT THE SILENCE -------------------------------
-    # ⛔ "the battle ended" is not "we won" — a whiteout also ends the battle. The defeat FLAG is the
-    # only signal that distinguishes them, and it is what the grade rests on.
-    #
-    # ⚠⚠ HONEST ACCOUNT OF WHAT THIS LOOP DOES **NOT** PROTECT AGAINST — an earlier comment here
-    # claimed it was "bounded by FRAMES because what follows is a BATTLE", and that OVERSTATED it.
-    # `main.py` advances only the TOP of the controller stack, so while the battle controller is
-    # pushed this generator is SUSPENDED and these iterations do not tick at all (`KI-28`'s shape).
-    # ⇒ this loop bounds the time we spend waiting *outside* the fight, NOT the fight itself. The
-    # real backstop against an in-battle hang lives in `battle_handler.py`'s own bounded loops.
-    # ‼ Kept anyway, and at the PROVEN 120,000: it is the identical shape the three drivers used to
-    # beat Sidney, Phoebe, Glacia and Drake. What is fixed here is the CLAIM, not the code.
-    for _ in range(battle_frames):
-        _check_abort()
-        if not battle_is_active():
-            break
-        yield
+    # ---- STEP 2: ⛔⛔ THE COMMITMENT STEP — IRREVERSIBLE FROM HERE -------------------------------
+    # ‼ `(9,1)` is STEP-ON: arriving IS the warp, so there is no "walk up to it and re-check".
+    # Every check that matters happened above this line, which is the only place it CAN happen.
+    yield from _yield_bounded_by_frames(
+        _pass_through_door(LEAGUE_ENTRY_DOOR, tuple(VR.LEAGUE_1F.value)), walk_frames)
     yield from wait_until_truly_controllable()
-    won = bool(get_event_flag(victory_flag))
-    report["end_flag"] = won
-    report["end_at"] = (str(VR._where()), VR._here_tile())
-    if not won:
+    if not VR._on_map(MapRSE.EVER_GRANDE_CITY_HALL5):
         raise BotModeError(
-            f"§Ch24 room leg: the battle in {to_room.name} ended but {victory_flag} is still False "
-            f"at {VR._where()}. ⛔ A battle ending is not a win — this is what a LOSS looks like.")
-    _take(report, "R1-WON")
+            f"§Ch24 bridge: stepped at {LEAGUE_ENTRY_DOOR} but we are at {VR._where()}, not HALL5. "
+            f"⛔ Do NOT retry backward — if we ARE past the door, every return warp behind us is "
+            f"inert and a 'recovery' walks at a tile that never fires.")
+    report["hall5_at"] = (str(VR._where()), VR._here_tile())
+    _take(report, "E2-COMMITTED")
 
-    # ---- STEP 7: ⛔ "AND THE BOT CAN CONTINUE" ---------------------------------------------------
-    # A win is not a continuable state. ‼ §Ch15 ended four floors underground, §Ch18 on an
-    # eleven-tile island and §Ch19 in a living room — **ALL THREE PASSED THEIR OWN TESTS.** This leg
-    # is a LOOP UNIT: the next call's first move is to walk out through `ROOM_EXIT_DOOR`, so if the
-    # victory script did not open it, the failure would surface much later as a baffling walk
-    # timeout inside the NEXT room's Step 3 instead of here, where it is one line to diagnose.
-    #
-    # ⛔⛔ IT READS THE **LIVE** GRID, NEVER `get_map_data`. `KI-74`: the exit door is ROM-blocked and
-    # runtime-OPENED (`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` writes
-    # impassable=FALSE), while the entry tiles are ROM-open and runtime-SEALED by `WalkInCloseDoor`.
-    # A static read would report the door SHUT on a perfect run.
-    #
-    # ⚠ SCOPE, so this is not over-read: `OnLoad` also calls `ResetAdvanceToNextRoom` whenever the
-    # room's DEFEATED flag is already set, so merely RELOADING a post-victory save re-opens the
-    # door. ⇒ this reading is meaningful DURING a run and would be VACUOUS on a reloaded fixture.
-    #
-    # ⛔ RECORDED, NOT RAISED. The zone is sealed behind us; raising here strands the bot exactly as
-    # surely as continuing does, and the caller needs the reading to decide. The reading is simply
-    # NOT TAKEN when the door is shut, which is what makes a grade able to fail on it.
+    # ---- STEP 3: HALL5 -> SIDNEY'S ROOM, AND LET THE ENTRY CUTSCENE FINISH ----------------------
+    yield from _yield_bounded_by_frames(
+        _pass_through_door(HALL5_FAR_DOOR, tuple(MapRSE.EVER_GRANDE_CITY_HALL5.value)), walk_frames)
+    yield from wait_until_truly_controllable()
+    if not VR._on_map(MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM):
+        raise BotModeError(
+            f"§Ch24 bridge: tried to enter SIDNEY'S ROOM but we are at {VR._where()}.")
+
+    # ⛔⛔ **SETTLE ON THE VAR, NEVER ON A TILE.** The room's `OnFrame` script `lockall`s and walks
+    # the player north (`Common_Movement_WalkUp6`), and `wait_until_truly_controllable` reads True
+    # UNDER `lockall` and returns silently on timeout — which is exactly how a 2026-09-17 probe
+    # sampled `(6,11)` mid-walk and recorded a tile that is not where the cutscene ends.
+    # ⭐ `setvar VAR_ELITE_4_STATE, 1` runs only AFTER `WalkInCloseDoor` returns, so the VAR is the
+    # honest discriminator. ‼ RECORDED, NOT ASSERTED: `VAR_ELITE_4_STATE` counts rooms ENTERED at
+    # exactly the predecessor value, and a room entered out of sequence neither seals nor advances —
+    # so a leg that RAISED on it would be branching on a number that legitimately lags.
+    settled = False
+    for _ in range(settle_frames):
+        _check_abort()
+        try:
+            if int(get_event_var("ELITE_4_STATE")) >= 1:
+                settled = True
+                break
+        except Exception as error:  # noqa: BLE001 - a telemetry read must never decide the run
+            reraise_if_aborting(error)
+        yield
+    report["cutscene_settled"] = settled
     try:
-        from modules.story.sootopolis import _live_collision_grid
-
-        grid = _live_collision_grid(to_room)
-        report["exit_door_live"] = {t: grid.get(t) for t in ((6, 1), ROOM_EXIT_DOOR)}
-        door_open = all(grid.get(t) == 0 for t in ((6, 1), ROOM_EXIT_DOOR))
-        report["exit_door_open_live"] = door_open
-        if door_open:
-            _take(report, "R1-CONTINUE")
-    except Exception as error:  # noqa: BLE001 - a reading that fails must SAY so, never lie
+        report["elite4_state_in_room"] = get_event_var("ELITE_4_STATE")
+    except Exception as error:  # noqa: BLE001 - telemetry only
         reraise_if_aborting(error)
-        report["continue_error"] = f"{type(error).__name__}: {error}"
+        report["elite4_state_in_room"] = "<unreadable>"
+    report["room_at"] = (str(VR._where()), VR._here_tile())
+    _take(report, "E2-INROOM")
+
+    # ---- STEP 4: BEAT SIDNEY — THE SAME PROVEN FIGHT THE ROOM LEG USES --------------------------
+    # ⭐ `beat_the_trainer_here` was EXTRACTED from `fight_one_room` for this caller. Re-typing it
+    # would have re-typed the three-signal engage discriminator, and ⛔ SIDNEY is exactly the room
+    # where getting that wrong is invisible: he is an INTERACTION trainer (measured), so the press
+    # matters here — but DRAKE's room proved the press is NOT always what starts the fight, and a
+    # leg must never assume its own press caused the battle.
+    yield from beat_the_trainer_here(
+        report, to_room=MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM,
+        victory_flag="DEFEATED_ELITE_4_SIDNEY", prefix="E2",
+        navigate_frames=navigate_frames, engage_frames=engage_frames,
+        battle_frames=battle_frames)

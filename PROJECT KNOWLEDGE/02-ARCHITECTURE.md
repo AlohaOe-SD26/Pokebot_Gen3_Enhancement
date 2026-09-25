@@ -89,7 +89,7 @@ Pokebot_Gen3_Enhancement/
     │                              #   obstacle_clearing, pc_trip, battle_items,
     │                              #   seafloor_cavern (§Ch20), sootopolis (§Ch21),
     │                              #   sootopolis_gym (§Ch22), victory_road (§Ch23),
-    │                              #   pokemon_league (§Ch24 — 2 legs, NOT wired; see below),
+    │                              #   pokemon_league (§Ch24 — 3 legs, NOT wired; see below),
     │                              #   counter_hunt, overworld_items
 ```
 ‼ **CORRECTED 2026-08-12 — there is no "sandbox-only modules" list any more, and there was not one
@@ -474,7 +474,14 @@ done
   24 DISPATCH — BUT NO LONGER "PREP ONLY" (corrected 2026-09-24).** `story_mode.py:5130` is the last
   `_guard` and `:5132` is the END-OF-BUILT-CONTENT banner; the League is what comes after it, and
   **nothing in this module is wired into `_play` yet.** ⇒ the gap is the CALLER, not the legs.
-  ✅ **TWO REAL LEGS NOW SHIP HERE, BOTH DRIVEN AND PASSING, BOTH HARNESS-ONLY ON PURPOSE:**
+  ✅ **THREE REAL LEGS NOW SHIP HERE, ALL DRIVEN AND PASSING, ALL HARNESS-ONLY ON PURPOSE**, plus the shared
+  `beat_the_trainer_here()` that two of them call (extracted from `fight_one_room` 2026-09-25 and proven
+  behaviour-preserving by re-driving all three room pairs BIT-IDENTICAL). ⭐ **`enter_the_league()`**
+  (`--driver ch24bridge`) is THE BRIDGE: it latches, checks a three-conjunct premise, crosses `(9,1)` — the
+  POINT OF NO RETURN — reaches HALL5, enters SIDNEY'S ROOM, settles on `VAR_ELITE_4_STATE` rather than a
+  hardcoded tile, beats Sidney, and ends EXACTLY on `fight_one_room`'s premise for the first pair.
+  ⛔ It is what makes a room loop possible at all: before it, nothing connected the lobby door to that premise.
+  And:
   `prepare_and_open_the_league()` (`--driver ch24entry`) gets the party ready OUTSIDE, walks in,
   talks the guards aside, ASSERTS they vacated, and stops on `(9,3)` **without** stepping onto the
   point of no return; and `fight_one_room(from_room, hall, to_room, victory_flag)`

@@ -21264,3 +21264,34 @@ list is the half that was missed here, and it is not in the session-start readin
 ‼ **COROLLARY: a result you just measured is the WORST moment to generalise from**, because the
 generalisation inherits the result's credibility without inheriting its evidence. State what you
 measured; grep before you state what it MEANS.
+
+
+## 2026-09-25 — ⚠ I FIXED THE EXACT HALF I HAD JUST BEEN BURNED BY, AND MISSED A DIFFERENT HALF OF THE SAME PAIR
+
+**SYMPTOM.** On the previous item a Tier 1 reviewer kicked back because `HOW TO RUN` was the one
+stale half of pair **P3**. I filed the lesson, and on the very next item I **pre-emptively** wrote
+the `--driver ch24bridge` recipe into `HOW TO RUN` before the reviewer could look at it. The
+reviewer confirmed that half was clean — **and kicked the item back anyway**, because P3's *other*
+half, the **STATE table row**, still read *"UPDATED 2026-09-24"* with no mention of the bridge. I
+had updated the banner, the queue head, HOW TO RUN, the punch list, the architecture doc and the
+changelog. Six places. Not the seventh.
+
+**ROOT CAUSE — AND IT IS NOT "I FORGOT AGAIN".** The fix I applied was **instance-shaped, not
+class-shaped**. I learned *"remember HOW TO RUN"* and dutifully remembered HOW TO RUN, which is a
+strictly weaker rule than the one that was actually needed: **P3 names TWO artefacts on its left
+side — the STATE table AND HOW TO RUN — and a pair with two left-hand halves fails if EITHER is
+stale.** Having repaired one, I felt the pair was handled, and that feeling is what stopped the
+check. ‼ This is the same shape as the P5 lesson (*"a checklist protects exactly what it
+enumerates"*), one level up: **a REMEDY protects exactly what it enumerates too.**
+
+**THE FIX.** The STATE row now carries the bridge, dated 2026-09-25, with the superseded text kept
+quoted.
+
+⇒ **PREVENTION RULE: when a pair check kicks you back, re-read the PAIR'S DEFINITION, not just the
+half that failed — and fix every artefact it names.** P3's left side is *"STATE table **+** HOW TO
+RUN"*; P2's is *"every KI header **and** every section heading"*. A pair with a compound side is
+where a one-instance repair reliably leaves a hole.
+‼ **AND THE META-LESSON, WHICH IS THE EXPENSIVE ONE:** *having just been burned by X makes you
+diligent about X and no more vigilant about its siblings.* Two consecutive items failed the SAME
+pair in DIFFERENT halves. ⇒ **the cheap habit is to grep the item's own slug and re-read every hit
+before calling docs done** — which is already the P5 rule, and would have caught both.
