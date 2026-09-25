@@ -35010,3 +35010,42 @@ now, but from pinned fixtures, which is not a rate).
 (`Ch24GauntletMode`), `tools/story-dev/evidence/2026-09-25-ch24gauntlet-PASS.txt` (new),
 `tools/story-dev/evidence/2026-09-25-ch24gauntlet-LATCHBUG-FAIL.stdout.txt` (new — the defect),
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-25 (later still) — ⭐ §Ch24 NOW PROVES THE BOT CAN *LEAVE* — `C-CANCONTINUE`
+
+**The chapter ends in the player's BEDROOM** (`LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`, measured),
+and `C-HOME`/`C-USABLE` asserted seven conjuncts — **none of which was "can the bot get out"**.
+‼ §Ch15 ended four floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room:
+**all three PASSED THEIR OWN TESTS.** The standing `R-ACCEPTGRADE` rule exists because of them, and
+this chapter was about to be wired into `_play` without it.
+
+**WHAT LANDED:** a new reading **`C-CANCONTINUE`** — a REAL `calculate_path` from the end tile to an
+exit **derived from the live map's warp table**; a POSITIVE map-identity conjunct in `_settled()`
+(`not CHAMP and not HOF` is a negative identity that holds on ~400 other maps); and the fault arm
+`POKEBOT_CH24_FAULT_NOEGRESS=1`, read IN PRODUCTION so it is driver-proof.
+
+**FOUR ARMS, ALL AS PRE-REGISTERED** (predictions filed BEFORE the drives): both happy arms
+`ACCEPTANCE: PASS` with `egress_waypoints: 4`; both fault arms `ACCEPTANCE: FAIL` with
+`missing=['C-CANCONTINUE']` and `C-USABLE` STILL TAKEN — so the arm perturbs the probe and nothing
+else. ⭐ **A guard that has been seen to fail is not decoration.**
+
+**⭐⭐ THREE INDEPENDENT INSTRUMENTS AGREE:** our own `early_game.py:75` constant, the decomp's
+`map.json` (one warp event, at `(7,1)`, and a 4-step route decoded from the map binary), and the
+LIVE ROM warp table at runtime (`egress_exits: [(7, 1)]`, `egress_waypoints: 4`).
+
+**⛔ A LATENT BUG CAUGHT BEFORE IT SHIPPED.** The first cut hardcoded Brendan's bedroom. **Gender is
+CONFIGURABLE** and a GIRL save resumes in `MAYS_HOUSE_2F` `(1,3)` — the assert would have timed out
+a run that had just cleared the game. Every profile is `boy` today, so it was latent. ⇒ the target
+is DERIVED from the live map now, per this project's own rule about hardcoded coordinates.
+
+**⛔ CORRECTION TO AN EARLIER GUESS OF MINE, MEASURED:** closing the `floor=65` chain gap is NOT
+cheap. `post_ch24_atdoor_L75.ss1` carries `Zigzagoon L19` and `Castform L36`, so a floor-65 run
+would GRIND them to 65 — hours. The cheap seam test is `CH24_ENTRY_FLOOR=20` (only Zigzagoon is
+below it), which proves the readiness branch RUNS AND HANDS OFF — the seam, not the magnitude.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py` (`C-CANCONTINUE`, `HOME_MAPS`, derived
+egress, the fault arm), `PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md`,
+`ai-research-notes/2026-09-25-ch24-egress-{PREDICTIONS,GRADED}.md` (new),
+`ai-research-notes/2026-09-25-post-hof-littleroot-MEASURED.md` (new — carries TWO forward traps for
+the dex-hunt chapter), and four evidence files `evidence/2026-09-25-ch24egress-*`.

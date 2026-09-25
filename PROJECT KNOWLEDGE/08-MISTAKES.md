@@ -21529,3 +21529,33 @@ forever.
 edits I lost were the ones made *this session and not yet committed* — I had to re-apply them from
 the script that produced them. ⇒ a second, cheaper rule: **when a doc edit is scripted, keep the
 script**; it is the only backup an uncommitted edit has.
+
+
+## 2026-09-25 — A CONFIG OPTION MADE MY CONSTANT WRONG (caught pre-ship, worth the entry anyway)
+
+**SYMPTOM.** None in production — this never shipped. Writing §Ch24's new egress proof I hardcoded
+`HOME_MAP = LITTLEROOT_TOWN_BRENDANS_HOUSE_2F` and `HOME_STAIRS = (7,1)`, and both live drives
+passed, because every profile in this repo is `gender: boy`.
+
+**ROOT CAUSE.** `profiles/*/story.yml` documents `gender: "boy" or "girl"` and `story_mode.py`
+passes `cfg.gender` straight to `run_intro`. A girl save resumes in `MAYS_HOUSE_2F` — a DIFFERENT
+map. The positive map assert would have made `_settled()` never return True, **timing out a run
+that had just cleared the game**, at the single most expensive point in the tree.
+‼ Two passing drives said nothing about it: the fixture could not exercise the other branch.
+
+**THE FIX THAT WORKED.** Accept both bedrooms, and **derive the egress target from the live map's
+warp table** instead of naming a tile. That is the project's existing standing rule — *"a liveness
+check must derive its target from the state the run ACTUALLY reached, and must hardcode no
+coordinates"* — so no NEW rule was discovered; the rule was simply not applied on the first pass.
+
+**PREVENTION RULE (one line).** ⛔ **BEFORE HARDCODING A MAP, TILE OR SPECIES, GREP THE PROFILE
+SCHEMA (`story.yml`) FOR A SETTING THAT CHANGES IT.** A constant is only constant across the
+configurations that actually exist — and "every profile in the repo happens to be X" is a fact
+about today's fixtures, not about the code.
+
+**⚠ AND THE HONEST TAIL.** I first filed May's `(4,2)` landing as UNVERIFIED, because this repo
+carries no heal-location data. A Tier 1 reviewer fetched the decomp, and I repeated the fetch:
+`src/data/heal_locations.json` puts BOTH bedrooms at `x:4, y:2`. ⇒ the caveat is closed on the
+FACTS; what remains open is only that no girl profile has ever been DRIVEN. Keep those two apart —
+"verified by reading the source" and "exercised by a run" are different claims, and collapsing them
+is how a reasoned-not-asserted bug gets written up as solved.

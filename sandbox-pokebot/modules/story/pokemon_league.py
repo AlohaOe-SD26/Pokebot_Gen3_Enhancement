@@ -2955,6 +2955,8 @@ CHAMPION_READINGS = (
     "C-REBOOTED",  # an empty party was observed — EWRAM was wiped and reloaded
     "C-HOME",      # the settle: seven conjuncts, tile (4,2)
     "C-USABLE",    # all of C-HOME RE-ASSERTED after `wait_until_truly_controllable()`
+    "C-CANCONTINUE",  # ⭐ a REAL `calculate_path` from the end tile to an exit DERIVED from
+    #                 #   the live map's warp table — never a hardcoded tile
 )
 
 
@@ -3011,7 +3013,27 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
     CHAMP = MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM
     HOF = MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME
     HALL4 = MapRSE.EVER_GRANDE_CITY_HALL4
+    # ‼ THE POST-GAME LANDING, MEASURED (not assumed): the Hall of Fame reboots the game and
+    # returns the player to their own BEDROOM. Asserted POSITIVELY below — `not CHAMP and not
+    # HOF` is a negative identity and would hold on any of ~400 other maps.
+    # ‼ BOTH BEDROOMS, BECAUSE GENDER IS CONFIGURABLE. `story.yml` documents `gender: boy|girl`
+    # and a GIRL save resumes in MAYS_HOUSE_2F (group 1 number 3), NOT Brendan's. Naming only
+    # one would make `_settled()` never return True on a girl profile and TIME OUT a run that
+    # had just cleared the game. Every profile in the repo is `boy` today — a latent bug is
+    # still a bug, and this is the kind that ships.
+    HOME_MAPS = (MapRSE.LITTLEROOT_TOWN_BRENDANS_HOUSE_2F, MapRSE.LITTLEROOT_TOWN_MAYS_HOUSE_2F)
+    # ✅ (4,2) HOLDS FOR **BOTH** BEDROOMS — VERIFIED 2026-09-25 by reading the decomp directly
+    # (`gh api repos/pret/pokeemerald/contents/src/data/heal_locations.json`): the entries
+    # HEAL_LOCATION_LITTLEROOT_TOWN_BRENDANS_HOUSE_2F and ..._MAYS_HOUSE_2F BOTH read x=4, y=2.
+    # It is also MEASURED LIVE for Brendan's, twice. ⇒ this conjunct is safe on either gender.
+    # ⚠ WHAT IS STILL UNPROVEN is only the LIVE DRIVE: no `gender: girl` profile exists, so the
+    # girl path rests on derived+decomp reasoning, never on a run. The egress TARGET is read
+    # from the live warp table, so May's stairs never needed verifying at all.
     HOME_TILE = (4, 2)
+    # ⭐ CROSS-CHECK ONLY, NEVER THE TARGET. The decomp puts Brendan's stairs at (7,1) and the
+    # live pathfinder returned exactly 4 waypoints to it — two independent methods agreeing.
+    # The TARGET is derived from the live map below, so this number can never strand a run.
+    HOME_STAIRS_EXPECTED_MALE = (7, 1)
 
     def _frames() -> int:
         try:
@@ -3327,6 +3349,9 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
                 return False
             if VR._on_map(CHAMP) or VR._on_map(HOF):
                 return False
+            # ‼ POSITIVE identity. The two lines above only say where we are NOT.
+            if not any(VR._on_map(m) for m in HOME_MAPS):
+                return False
             # ⛔ A NON-EMPTY PARTY IS THE POSITIVE PROOF EWRAM CAME BACK. Without it the ~206-frame
             # post-reload window passes three of the other conjuncts and reads as HOME.
             if len([m for m in get_party() if not getattr(m, "is_empty", False)]) == 0:
@@ -3356,6 +3381,74 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
             f"was a flicker, which is the exact failure this second reading exists to catch.")
     report["usable_at"] = (str(VR._where()), VR._here_tile())
     _take(report, "C-USABLE")
+
+    # ---- S8: AND THE BOT CAN CONTINUE ------------------------------------------------------------
+    # ⭐⭐ THE READING THAT THREE SHIPPED CHAPTERS DID NOT HAVE. §Ch15 ended four floors
+    # underground, §Ch18 on an eleven-tile island and §Ch19 in a living room — ALL THREE PASSED
+    # THEIR OWN TESTS, because "controllable" is not "can go somewhere". This chapter ends in a
+    # BEDROOM, which is the same shape, so the proof is a real path to the only exit.
+    # ⛔ NOT a four-neighbour probe (what `R-CONTINUE` does on the Fly landing): in a bedroom every
+    # neighbour is floor, so it would pass while the bot was sealed in. The STAIRS are the question.
+    import os as _os
+
+    from modules.map import get_map_data_for_current_position
+    from modules.map_path import PathFindingError, calculate_path
+
+    here = tuple(VR._here_tile())
+    # ⛔⛔ DERIVE THE TARGET FROM THE MAP THE RUN ACTUALLY REACHED — NEVER A HARDCODED TILE.
+    # The project's own rule, and it has teeth here: a GIRL save lands in a DIFFERENT bedroom, whose
+    # stairs I have not measured. Reading the warp table off the live map is correct on both, and on
+    # any future map this leg is ever pointed at.
+    try:
+        _md = get_map_data_for_current_position()
+        _here_map = _md.map_group_and_number
+        exits = [tuple(w.local_coordinates) for w in (_md.warps or [])]
+    except Exception as error:  # noqa: BLE001 - an unreadable map is a refusal, never a pass
+        reraise_if_aborting(error)
+        raise BotModeError(
+            f"§Ch24 champion: the game is CLEARED but the map at {VR._where()} could not be read to "
+            f"find its exits: {type(error).__name__}: {error}")
+    # ⛔ FAULT ARM — read IN PRODUCTION so it is DRIVER-PROOF. Replaces the real exits with a tile
+    # that cannot be reached, proving this check can actually FAIL. A guard never seen to fail is
+    # decoration, and this one guards the shape that shipped THREE chapters stranded.
+    if _os.environ.get("POKEBOT_CH24_FAULT_NOEGRESS") == "1":
+        exits = [(0, 0)]  # the map's top-left corner — solid wall, and never a warp
+        report["egress_fault_armed"] = True
+    report["egress_exits"] = exits
+    report["egress_expected_male_stairs"] = tuple(HOME_STAIRS_EXPECTED_MALE)
+    if not exits:
+        raise BotModeError(
+            f"§Ch24 champion: the game is CLEARED and the bot stands on {here} in {VR._where()}, "
+            f"but the map declares NO WARPS AT ALL — there is no way out of this room.")
+
+    reached, waypoints, refusals = None, None, []
+    for tile in exits:
+        try:
+            # ‼ `calculate_path` will not route THROUGH a warp, but the DESTINATION may BE one and
+            # it follows it (`map_path.py`) — which is exactly an exit tile.
+            path = calculate_path((_here_map, here), (_here_map, tile))
+        except PathFindingError as error:
+            # ⛔ CAUGHT BY NAME. `PathFindingError` is a bare `RuntimeError`, so an unguarded call
+            # would escape every `except BotModeError` handler as a raw traceback.
+            refusals.append((tile, f"{type(error).__name__}: {str(error)[:60]}"))
+            continue
+        reached = tile
+        try:
+            waypoints = len(path)
+        except TypeError:  # an unsized path object is still a PATH — the absence of a raise is the
+            # reading; the length is only telemetry.
+            waypoints = "<unsized>"
+        break
+    report["egress_reached"] = reached
+    report["egress_waypoints"] = waypoints
+    report["egress_refusals"] = refusals
+    if reached is None:
+        raise BotModeError(
+            f"§Ch24 champion: the game is CLEARED and the bot stands on {here} in {VR._where()}, "
+            f"but NONE of the map's {len(exits)} exit(s) {exits} can be reached — it cannot leave "
+            f"the room. ‼ That is a landing, not an arrival: §Ch15, §Ch18 and §Ch19 all shipped "
+            f"STRANDED while passing their own tests. refusals={refusals}")
+    _take(report, "C-CANCONTINUE")
 
 
 #: The readings `cross_to_the_champions_door` publishes. ⛔ THE DRIVER IMPORTS THIS.
