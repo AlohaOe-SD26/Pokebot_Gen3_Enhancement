@@ -35323,3 +35323,58 @@ block), `sandbox-pokebot/modules/modes/util/higher_level_actions.py` (`withdraw_
 report labels), `tools/story-dev/repro_withdraw_pid_source.py` (new),
 `tools/story-dev/run_gates.py` (84 entries = 80 ENFORCING + 4 ADVISORY; `--quick` 74),
 `02-ARCHITECTURE.md`, `04-HANDOFF.md` (drift 5 → 6), `07-CHANGELOG.md`.
+
+
+## 2026-09-25 (late) — ⛔⛔ WINNING CAN BE LOSING: the roamer outcome table, VERIFIED AND GATED
+
+**Our bot fights to WIN. In Emerald that permanently destroys some Pokédex entries** — no reload, no
+respawn — and nothing in the battle strategy knows it. This is the first, verified piece of the
+never-KO guard.
+
+**✅ VERIFIED BY ME, FROM THE DECOMP, NOT FROM A REPORT.** `src/battle_main.c`:
+
+    #ifndef BUGFIX
+        // Bug: When Roar is used by a roamer, gBattleOutcome is B_OUTCOME_PLAYER_TELEPORTED (5),
+        // which deactivates the roamer.
+        if ((gBattleOutcome & B_OUTCOME_WON) || gBattleOutcome == B_OUTCOME_CAUGHT)
+    #else   ... == WON || == CAUGHT || == DREW
+        SetRoamerInactive();
+
+‼ **IT IS `#ifndef`, AND I MISREAD IT AS `#ifdef` ON FIRST GLANCE** — briefly concluding the
+opposite. `include/config.h:48` has `//#define BUGFIX` **commented out**, so `#ifndef` is TRUE and
+**the BITWISE branch is live**. With `B_OUTCOME_WON == 1`, the test is simply **"is the outcome
+ODD?"**.
+
+| | value | roamer destroyed |
+|---|---|---|
+| `WON` | 1 | **YES** |
+| `LOST` | 2 | no — **whiting out is SAFE** |
+| `DREW` | 3 | **YES** — a mutual KO counts |
+| **`RAN`** | **4** | **no — the ONLY safe player-chosen exit** |
+| `PLAYER_TELEPORTED` | 5 | **YES** — Roar/Teleport, which *read* as harmless escapes |
+| `MON_FLED` | 6 | no |
+| `CAUGHT` | 7 | yes (the goal) |
+| `FORFEITED` | 9 | **YES** |
+
+**⛔ THE FINDING THAT JUSTIFIES A GATE RATHER THAN A COMMENT.** An earlier research pass gave the
+rule as *"WON / DREW / PLAYER_TELEPORTED"* — and **missed `FORFEITED` (9)**. A three-name list is
+wrong today and would rot further. ⇒ the code encodes the **PARITY** (`outcome & 1`), which is the
+expression the ROM itself evaluates, and `repro_roamer_outcome.py` carries an **ANTI-ENUMERATION
+ARM** whose whole job is to fail any rewrite back into a list of names.
+⭐ Fault-tested with exactly that degradation: the three-name list fails R1 with the two omissions
+`(7, False, True), (9, False, True)`, and R2/R2b fire. A second arm proves an UNREADABLE outcome
+reads as FATAL — because the loss is irreversible, *"I could not tell"* must never be optimistic.
+
+**⚠ UNWIRED, ON PURPOSE.** `modules/story/protected_encounters.py` holds FACTS and decides no
+behaviour. Wiring a guard into move selection is a separate change with its own evidence: a guard
+that refuses the WRONG battles is its own bug, and the over-strictness failure is as real as the
+under-strictness one.
+⚠ **SCOPE:** this is the `BATTLE_TYPE_ROAMER` block ONLY. The scripted statics (Rayquaza, the three
+Regis, Groudon/Kyogre, Sudowoodo) live in their own map scripts and must NOT be assumed to follow
+this table — a 12-agent recon on exactly that question is in flight.
+
+**FILES:** `sandbox-pokebot/modules/story/protected_encounters.py` (new, unwired),
+`tools/story-dev/repro_roamer_outcome.py` (new gate), `tools/story-dev/run_gates.py`
+(85 entries = 81 ENFORCING + 4 ADVISORY; `--quick` 75),
+`ai-research-notes/2026-09-25-roamer-outcome-table-VERIFIED.md` (new),
+`02-ARCHITECTURE.md`, `04-HANDOFF.md` (drift 6 → 7), `07-CHANGELOG.md`.

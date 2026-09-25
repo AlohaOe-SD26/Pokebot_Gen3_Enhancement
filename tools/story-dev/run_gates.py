@@ -205,6 +205,12 @@ GATES: list[tuple[str, bool]] = [
     # silently disables the HM path for the rest of any run that ever hunted a counter — and
     # that failure is invisible to any test which does not hunt a counter FIRST.
     ("repro_withdraw_pid_source.py", False),
+    # ⛔ Winning a roamer battle destroys Latias/Latios FOREVER. The retail ROM decides it
+    # with `gBattleOutcome & B_OUTCOME_WON` (B_OUTCOME_WON == 1), i.e. ANY ODD outcome — so
+    # DREW, PLAYER_TELEPORTED (Roar/Teleport!) and FORFEITED are all fatal, and RAN is the
+    # only safe player-chosen exit. This gate pins the PARITY, and its anti-enumeration arm
+    # fails any rewrite back into a list of names (which is how FORFEITED got missed once).
+    ("repro_roamer_outcome.py", False),
     # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
     # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
     # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage
