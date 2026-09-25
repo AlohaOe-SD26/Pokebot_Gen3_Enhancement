@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20513,6 +20513,162 @@ class Ch24Lobby2FMode(BotMode):
 
 
 
+class Ch24RoomMode(BotMode):
+    """`--driver ch24room` — drive §Ch24's REPEATING UNIT: room N (post-victory) → room N+1 (won).
+
+    Defaults to **SIDNEY → PHOEBE**. ⛔⛔ **RUN IT FROM `post_sidney_L75.ss1`, NEVER FROM
+    `post_sidney_door_open.ss1`.** Both stand on `SIDNEYS_ROOM (6,6)` with `DEFEATED_ELITE_4_SIDNEY`
+    set and `ELITE_4_STATE = 1`, and they are NOT interchangeable — measured with
+    `probe_anchor_inventory.py` on 2026-09-24:
+      * `post_sidney_door_open.ss1` — the PRE-CLIMB party (L47-L53), **HP 139/807 (17 %), 5 FAINTED**.
+        Its own manifest row says *"usable for the DISMISS/DOOR question only"*. A fight from here
+        would very likely be LOST, and the loss would be misread as a defect in this leg.
+      * ✅ `post_sidney_L75.ss1` — Mightyena/Sceptile/Swellow/Wailord all **L75**, HP **1171/1211**,
+        zero faints. It is also the fixture the PROVEN `Ch24PhoebeMode` ran from.
+    ⇒ **this drive never crosses the commitment point**; the fixture is already past it, so nothing
+    here can seal a run that was not already sealed.
+
+    ⭐ WHAT IT IS ACTUALLY FOR — **PORT FIDELITY, NOT "CAN WE WIN".** ⛔ An earlier version of this
+    docstring claimed *"whether our party can beat an Elite Four member at all has never been driven
+    end to end"*. **THAT WAS FALSE.** All five fights — Sidney, Phoebe, Glacia, Drake **and the
+    CHAMPION** — are already won in the harness (`#24-sidneyL75` … `#24-tailprobe`, all `[x]`, with
+    `IS_CHAMPION=True` and `SYS_GAME_CLEAR=True` in RAM and flash). What is NOT done is the WIRING:
+    those wins belong to bespoke harness drivers, and USER RULING 11 defines §Ch24 DONE as the Hall
+    of Fame reached **from the real story mode, no fixture, at ×1**. This drive asks whether the
+    species-agnostic PRODUCTION `fight_one_room()` reproduces what `Ch24PhoebeMode` already did —
+    so a failure here means **the generalization dropped something**, not that the party is weak.
+
+    READINGS — ⛔ IMPORTED FROM THE LEG (`ROOM_READINGS`), never a private copy.
+
+    ‼ SAFETY — RESTORES THE FIXTURE BEFORE EXIT. `libmgba.py:144` loads `current_state.ss1` at
+    startup and `:226` overwrites it at shutdown, and **the real bot resumes from that file**. A
+    drive that ends deeper in the gauntlet must not become the next unattended run's start state.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Room"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24room] WHITEOUT #{self.whiteouts} — abort LATCHED. ⛔ A whiteout here is not a "
+            f"driver failure, it is THE ANSWER: this party cannot beat this trainer as equipped.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        # The same strategy production uses — item-aware, species-agnostic.
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, wait_until_truly_controllable
+        from modules.story.pokemon_league import ROOM_READINGS, fight_one_room
+
+        def _where():
+            try:
+                av = get_player_avatar()
+                return f"{MapRSE(tuple(av.map_group_and_number)).name}{tuple(av.local_coordinates)}"
+            except Exception:  # noqa: BLE001 - an unreadable position is a reading, not a crash
+                return "<unreadable>"
+
+        TAG = "ch24room"
+        R: dict = {}
+        taken: set = set()
+        failure = None
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        # ⛔ THE ROOM PAIR IS A KNOB, AND THE GRADE REPORTS IT. Default Sidney -> Phoebe.
+        PAIRS = {
+            "sidney": (MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM, MapRSE.EVER_GRANDE_CITY_HALL1,
+                       MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM, "DEFEATED_ELITE_4_PHOEBE"),
+            "phoebe": (MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM, MapRSE.EVER_GRANDE_CITY_HALL2,
+                       MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM, "DEFEATED_ELITE_4_GLACIA"),
+            "glacia": (MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM, MapRSE.EVER_GRANDE_CITY_HALL3,
+                       MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM, "DEFEATED_ELITE_4_DRAKE"),
+        }
+        which = _os.environ.get("CH24_ROOM_FROM", "sidney")
+        if which not in PAIRS:
+            raise BotModeError(f"{TAG}: CH24_ROOM_FROM={which!r} is not one of {sorted(PAIRS)}")
+        from_room, hall, to_room, victory_flag = PAIRS[which]
+
+        leg: dict = {}
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+            R["start_at"] = (_where(), VR._here_tile())
+            R["pair"] = f"{from_room.name} -> {to_room.name} ({victory_flag})"
+            R["elite4_state_at_start"] = get_event_var("ELITE_4_STATE")
+
+            yield from fight_one_room(leg, from_room=from_room, hall=hall, to_room=to_room,
+                                      victory_flag=victory_flag)
+
+            R["end_at"] = (_where(), VR._here_tile())
+            R["victory_flag_set"] = bool(get_event_flag(victory_flag))
+            # ⛔ "AND THE BOT CAN CONTINUE": the NEXT unit starts in THIS room, post-victory. So the
+            # continuation test is that we are standing in `to_room` with its flag set — anything
+            # else and the next room leg's own premise would refuse.
+            if VR._on_map(to_room) and R["victory_flag_set"]:
+                taken.add("T-CONTINUE")
+
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies.
+            from modules.story.early_game import reraise_if_aborting
+
+            # ‼ Re-raise an abort FIRST so a whiteout is not RELABELLED by this handler's message.
+            try:
+                reraise_if_aborting(error)
+            except Exception:  # noqa: BLE001 - the abort itself; record it and still print a verdict
+                failure = "StoryAbort (whiteout) — see the whiteout count"
+            else:
+                failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            R["leg"] = {k: v for k, v in leg.items() if k != "readings"}
+            for reading in sorted(leg.get("readings", set())):
+                taken.add(reading)
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001 - loud, but never replaces the verdict
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        want = set(ROOM_READINGS) | {"T-CONTINUE"}
+        missing = sorted(want - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT whiteouts={getattr(self, 'whiteouts', 0)} failure={failure}")
+        # ⛔⛔ THE `heal_ready` CONJUNCT — PORTED FROM `Ch24DrakeMode` (`:18970`), WHICH
+        # `04-HANDOFF.md:812-813` CALLS "THE CURRENT TEMPLATE", AND MY FIRST VERSION OMITTED IT.
+        # `R1-HEALED` is taken UNCONDITIONALLY, because a heal that raises inside a SEALED zone must
+        # not strand the run — so the reading set alone CANNOT fail on a heal that did nothing.
+        # Drake's `POKEBOT_CH24_FAULT_HEALNOOP=1` arm (`:18541`) measured precisely that hole:
+        # `heal_ready=False, missing=[], failure=None` read `ACCEPTANCE: PASS`. This conjunct is the
+        # SOLE thing that makes that arm fail, and it was found by an adversarial review, not a drive.
+        heal_ready = R.get("leg", {}).get("heal_ready")
+        heal_ok = heal_ready is True
+        if not heal_ok:
+            log(f"[{TAG}] ⛔ GRADE: heal_ready={heal_ready!r} — the party was NOT brought to a "
+                f"gauntlet-ready state. A heal that RAN and accomplished NOTHING must not pass.")
+        ok = not missing and failure is None and getattr(self, "whiteouts", 0) == 0 and heal_ok
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (dismiss, heal, cross the hall, locate "
+            f"the trainer LIVE, engage, WIN — asserted on the defeat FLAG, not on the battle ending "
+            f"— and leave the exit door OPEN in the LIVE grid; heal_ready={heal_ready!r}) "
+            f"SCOPE: {which} pair only; the other rooms and the commitment step are NOT here.")
+        context.set_manual_mode()
+
+
+
 class Ch24EntryMode(BotMode):
     """`--driver ch24entry` — drive §Ch24 LEG 1: get gauntlet-ready, get inside, OPEN THE DOOR, STOP.
 
@@ -24309,6 +24465,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24TrainMode()
         elif args.driver == "ch24entry":
             context.bot_mode_instance = Ch24EntryMode()
+        elif args.driver == "ch24room":
+            context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

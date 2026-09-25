@@ -34375,3 +34375,61 @@ already filed after `MapRSE`, and filing it did not prevent the repeat. See `08-
 `tools/story-dev/probe_ch23_done_winstate.py` (new), `tools/story-dev/run_gates.py`,
 `tools/story-dev/evidence/2026-09-24-ch23done-winstate.stdout.txt` (new),
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-24 — ⭐⭐ §Ch24 S2: `fight_one_room()` IS PRODUCTION CODE, DRIVEN AND PASSING (SIDNEY → PHOEBE)
+
+**WHAT SHIPPED.** The gauntlet's repeating unit now exists in `modules/story/pokemon_league.py` —
+not as a harness driver. `fight_one_room(from_room, hall, to_room, victory_flag)` dismisses the
+parked victory msgbox, heals from the bag, crosses room → hall → next room, locates the trainer
+**LIVE**, engages, wins, and proves the exit door is open before returning. Driven by
+`--driver ch24room` (`CH24_ROOM_FROM`, pairs `sidney`/`phoebe`/`glacia`).
+
+**RESULT:** from **`post_sidney_L75.ss1`** — `ACCEPTANCE: PASS`, **all 9 readings**, `missing=[]`,
+`whiteouts=0`, `failure=None`, `victory_flag_set=True`, `heal_ready=True`, ending on
+`PHOEBES_ROOM (6,6)` — exactly the premise the next unit requires.
+⭐ **PORT FIDELITY CONFIRMED NUMBER FOR NUMBER** against the 2026-09-17 harness run:
+`heal_plan [(0, 'Super Potion', 'Mightyena at 187/227')]` → `227/227`, `heal_actions = 1`.
+
+**⛔ WHY THIS IS NOT "THE BOT BEAT PHOEBE".** All five fights — the CHAMPION included
+(`IS_CHAMPION=True`, `SYS_GAME_CLEAR=True` in RAM and flash) — were already won in the harness on
+2026-09-17. USER RULING 11 defines DONE as the Hall of Fame from the **real story mode, no fixture,
+at ×1**, so the open item was always the WIRING. This is one step of it: the CODE is production, the
+CALLER is not. `fight_one_room` is **NOT wired into `_play`**, and `story_mode.py:5280` is still the
+END OF BUILT CONTENT banner.
+
+**⛔⛔ THE STRUCTURAL DEFECT THE FIRST DRIVE FOUND.** Drive 1 raised *"4,000 frames without starting
+a battle"* **while the same log showed the battle being won**. `battle_is_active()` is unobservable
+from inside that loop: a battle pushes `BattleListener` above the story generator, so across frames
+3,950 → 13,812 the loop executed ZERO iterations. ✅ Fixed by detecting the **suspension**
+(`get_frame_count()` jumping by thousands across one `yield`; threshold 60) — measured
+`engage_suspension_frames = 9864` on the passing re-drive. Full account in `08-MISTAKES.md`.
+
+**⛔ AND TWO REVIEWS SENT THE LEG BACK BEFORE IT EVER RAN**, every finding verified at `file:line`
+first: two dropped `wait_until_truly_controllable()` settles (after the dismiss and after the heal —
+present in all three proven drivers), `dismiss_budget` 600 → **3,000**, engage budget 400 →
+**4,000**, the standalone `A` before the modulo loop, the **`heal_ready` grade conjunct**, and the
+**live-grid CONTINUE check** (`_live_collision_grid`, never `get_map_data` — `KI-74`).
+
+**THREE FAULT ARMS, EACH FAILING FOR ITS OWN REASON** (`POKEBOT_CH24ROOM_FAULT`, read in
+PRODUCTION so the arms are driver-proof; registered in `29-DISABLED-FEATURES-REGISTRY.md`):
+* `noengage` — walks the whole unit, presses nothing ⇒ `R1-ENGAGED`/`R1-WON` missing.
+* ⭐⭐ `healnoop` — runs the REAL heal with `max_actions=0` ⇒ **`missing=[]`, `failure=None`, the
+  fight WON, and `ACCEPTANCE: FAIL` on `heal_ready=False` ALONE.** Without the conjunct this run
+  reads PASS with a heal that did nothing.
+* premise/vacuity (`CH24_ROOM_FROM=phoebe` from the wrong room) ⇒ refuses with `readings=[]`.
+
+**⛔ A FIXTURE TRAP WAS CAUGHT BEFORE THE DRIVE.** The driver defaulted to
+`post_sidney_door_open.ss1` — the PRE-CLIMB party at **17 % HP with 5 FAINTED**. A loss from there
+would have been misread as a port defect. Switched to `post_sidney_L75.ss1`, which is also the
+fixture the proven `Ch24PhoebeMode` ran from, holding party/position/save constant so
+production-vs-harness code is the only variable.
+
+Predictions pre-registered BEFORE the drive (`30a001fc`), graded in
+`ai-research-notes/2026-09-24-ch24-room-leg-GRADED.md` — **P1–P8 all CONFIRMED**, P4 only on the
+second drive, and its pre-written falsifier called the first drive's meaning correctly.
+
+**FILES:** `sandbox-pokebot/modules/story/pokemon_league.py`, `tools/story-dev/story_harness.py`,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-24-ch24-room-leg-GRADED.md` (new),
+`29-DISABLED-FEATURES-REGISTRY.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`,
+`08-MISTAKES.md`, and five new evidence files under `tools/story-dev/evidence/`.

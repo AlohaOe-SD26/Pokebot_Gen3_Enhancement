@@ -21144,3 +21144,56 @@ runs**. Observed on a 300-frame smoke test: no verdict, no `fixture RESTORED` li
 claims more than the mechanism delivers.
 ⇒ **PREVENTION RULE: a cleanup in a generator's `finally` is only as reliable as the caller's
 promise to resume it.** Treat a frame-capped smoke run as a run with NO cleanup.
+
+
+## 2026-09-24 — ⛔⛔ THE LEG RAISED "NO BATTLE STARTED" *WHILE WINNING THE BATTLE* — A POLL THAT IS STRUCTURALLY UNOBSERVABLE FROM WHERE IT WAS POLLED
+
+**SYMPTOM.** `fight_one_room()`'s first drive ended `ACCEPTANCE: FAIL` with
+*"stood at (6,6) facing (6,5) in EVER_GRANDE_CITY_PHOEBES_ROOM for 4,000 frames **without starting
+a battle**"* — while **the same log** showed `ctrl=BattleListener.fight state=BATTLE` and
+Mightyena's exp climbing 430,545 → 437,193. The leg fought Phoebe, won, and reported that no fight
+had occurred.
+
+**ROOT CAUSE — NOT A FLAKY READER AND NOT A SHORT BUDGET.** The engage loop broke on
+`battle_is_active()`. `main.py` advances only the **TOP** of the controller stack, and a battle
+pushes `BattleListener` above the story generator. Measured from the frame trace:
+
+| frame | event |
+|---|---|
+| 3,950 | `CONTROLLER -> BattleListener.fight (state=BATTLE)` |
+| 3,950 → 13,812 | the fight runs **9,862 frames**; this generator executes **ZERO iterations** |
+| 13,812 | we resume — and `battle_is_active()` is already False again |
+
+⇒ **the only frames on which the loop could poll were the frames on which a battle was not
+running.** ‼ **No budget would ever have fixed this.** Raising the engage budget makes the loop
+press longer into an empty room; lowering it fails faster. The quantity was never the problem.
+
+**WHY THE THREE PROVEN DRIVERS NEVER HIT IT.** They break on `self.battles`, set by the
+`on_battle_started` **callback** — a push notification that survives the suspension. Their own
+comment states the premise plainly (`story_harness.py:18371`): *"a driver's generator is not resumed
+until the fight ENDS, so 0 is the only value a healthy run can produce."* ⭐ **The knowledge was
+written down, in the file I was porting FROM, and I still substituted a poll for a callback** —
+because the substitution looked like a neutral simplification (a plain generator has no hooks) and
+the comment that would have warned me was attached to a *different* variable.
+
+**THE FIX THAT WORKED — DETECT THE SUSPENSION ITSELF.** A normal `yield` advances
+`context.emulator.get_frame_count()` by ~1; a `yield` that a pushed controller ran through advances
+it by thousands. Threshold 60 frames. Measured on the passing re-drive:
+`engage_suspension_frames = **9864**` — within 2 frames of the interval drive 1 was blind to. It
+requires nothing registered anywhere, so it works from a plain generator. The victory FLAG is a
+second signal and `battle_is_active()` is kept as a third.
+
+⇒ **PREVENTION RULE: before polling for a condition, ask WHO IS RUNNING while that condition is
+true.** If the answer is "a controller above me", the poll can never see it and the signal must be a
+callback, a persistent flag, or evidence that time passed. ⛔ A poll that is only scheduled while its
+subject is false is not unreliable — **it is guaranteed wrong**, and it fails with a confident,
+specific, entirely false error message.
+‼ **COROLLARY, and it is the cheap tell:** when an error message contradicts another line in its own
+log, believe the log. The contradiction — *"no battle started"* beside `state=BATTLE` — was visible
+in the first 20 lines and named the defect immediately; the frame trace only confirmed it.
+
+⭐ **AND THE THING THAT MADE THIS CHEAP:** the two fixture/framing mistakes recorded above were
+fixed FIRST. Had the drive still been running from `post_sidney_door_open.ss1` (17 % HP, 5 fainted),
+this same FAIL would have arrived wearing a plausible wrong explanation — *"of course it lost"* —
+and a structural defect would have been filed as a party-strength problem.
+⇒ **Removing a confound does not just improve a result, it protects the DIAGNOSIS of a failure.**

@@ -261,6 +261,38 @@ fail.** With this arm set, `E1-GUARDS` MUST fail — that is the proof the check
 
 **Default:** unset ⇒ OFF. The happy path never reads it as set.
 
+## `POKEBOT_CH24ROOM_FAULT` — §Ch24 ROOM-leg fault arms (`--driver ch24room`)
+
+**Added 2026-09-24.** ⛔ Read in **PRODUCTION** — `sandbox-pokebot/modules/story/pokemon_league.py`,
+helper `_ch24room_fault()`, consumed inside `fight_one_room()`. It is deliberately NOT read in the
+driver: an arm that lives in the harness proves only the harness, while `fight_one_room` is the code
+the real bot will run.
+
+**Values:**
+* `healnoop` — calls the REAL `heal_party_from_bag` with the REAL bag and **`max_actions=0`**, so
+  the heal EXECUTES and accomplishes NOTHING.
+* `noengage` — walks the ENTIRE unit (dismiss, heal, both doors, locate the trainer LIVE, face Up)
+  and then presses **nothing**.
+
+**Why `healnoop` exists, and why a "skip the heal" arm would NOT do:** `R1-HEALED` is taken
+**unconditionally**, because a heal that raises inside the sealed gauntlet must never strand the
+run. ⇒ the reading set ALONE cannot fail on a heal that ran and achieved nothing. An arm that SKIPS
+the heal fails on `missing=['R1-HEALED']` with or without the grade conjunct, so it tests nothing.
+This arm produces the case the conjunct exists for: **`R1-HEALED` taken, `missing` EMPTY, and only
+`heal_ready` able to fail the run.** ⭐ It fakes nothing — `plan_healing` breaks at
+`len(plan) >= max_actions`, so the plan is empty and `heal_ready = party_is_gauntlet_ready(before)`.
+‼ **NON-VACUOUS ON `post_sidney_L75.ss1`, AND THAT WAS CHECKED RATHER THAN ASSUMED:** Mightyena is
+187/227 = **82.4 %** against `TOP_UP_BELOW = 0.90` (`overworld_items.py:55`), so unhealed the party
+genuinely is below the bar. (Shape ported from `POKEBOT_CH24_FAULT_HEALNOOP`, which proved the same
+conjunct for `--driver ch24drake`.)
+
+**Why `noengage` exists:** it separates *arriving in the next room* from *beating the trainer in
+it*. With it set, `R1-ENGAGED` and `R1-WON` must both be missing while every earlier reading is
+still taken — if the run were to PASS, the grade would be satisfied by something other than fighting.
+
+⛔ Both arms fail by **printing a verdict**, never by dying: the driver computes its verdict from
+partial state inside a top-level `try/except`.
+
 ## `POKEBOT_CH24ENTRY_FAULT` — §Ch24 leg 1 driver fault arms (`--driver ch24entry`)
 
 **Added 2026-09-24.** Read in `tools/story-dev/story_harness.py`'s `Ch24EntryMode.run`.

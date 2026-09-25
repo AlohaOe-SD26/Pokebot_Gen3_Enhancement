@@ -89,7 +89,7 @@ Pokebot_Gen3_Enhancement/
     │                              #   obstacle_clearing, pc_trip, battle_items,
     │                              #   seafloor_cavern (§Ch20), sootopolis (§Ch21),
     │                              #   sootopolis_gym (§Ch22), victory_road (§Ch23),
-    │                              #   pokemon_league (§Ch24 — PREP ONLY, see below),
+    │                              #   pokemon_league (§Ch24 — 2 legs, NOT wired; see below),
     │                              #   counter_hunt, overworld_items
 ```
 ‼ **CORRECTED 2026-08-12 — there is no "sandbox-only modules" list any more, and there was not one
@@ -470,12 +470,26 @@ done
   `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned
   fixture (`post_badge8` → … → `post_league_shop`). ⛔ DO NOT REBUILD.
 
-* **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ⛔⛔ **PREP ONLY — THERE IS NO
-  SEQUENCER AND NO SEGMENT 24 DISPATCH.** `story_mode.py:5130` is the last `_guard`, and `:5132`
-  is the END-OF-BUILT-CONTENT banner; the League is what comes after it. What this module DOES ship,
-  built and driven: `heal_party_from_bag` (`#24-e4healing`, `--driver ch24heal`, the only healing the
-  gauntlet can ever have), `use_item_on_party_member`, `teach_move_from_bag` / `scroll_to_tm_verified`
-  (the Ice Beam trip for Drake), and the Ever Grande routing constants.
+* **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ⛔⛔ **NO SEQUENCER AND NO SEGMENT
+  24 DISPATCH — BUT NO LONGER "PREP ONLY" (corrected 2026-09-24).** `story_mode.py:5130` is the last
+  `_guard` and `:5132` is the END-OF-BUILT-CONTENT banner; the League is what comes after it, and
+  **nothing in this module is wired into `_play` yet.** ⇒ the gap is the CALLER, not the legs.
+  ✅ **TWO REAL LEGS NOW SHIP HERE, BOTH DRIVEN AND PASSING, BOTH HARNESS-ONLY ON PURPOSE:**
+  `prepare_and_open_the_league()` (`--driver ch24entry`) gets the party ready OUTSIDE, walks in,
+  talks the guards aside, ASSERTS they vacated, and stops on `(9,3)` **without** stepping onto the
+  point of no return; and `fight_one_room(from_room, hall, to_room, victory_flag)`
+  (`--driver ch24room`) — the gauntlet's **species-agnostic repeating unit**: dismiss the parked
+  victory msgbox → bag heal → room → hall → next room → locate the trainer **LIVE** → engage → win
+  (asserted on the defeat FLAG) → prove the exit door is open in the **live** collision grid.
+  ‼ `fight_one_room` names no Pokémon, move or type — deliberately, because the user's goal is that
+  the team lineup VARY between runs (`06-DECISIONS-LOG.md`, 2026-09-24).
+  ⛔ Its engage loop must NOT poll `battle_is_active()`: a battle pushes a controller above the story
+  generator, so that poll is only ever scheduled while it is false. It detects the SUSPENSION
+  instead (a frame-count jump across one `yield`). See `08-MISTAKES.md` 2026-09-24.
+  What this module also ships, built and driven: `heal_party_from_bag` (`#24-e4healing`,
+  `--driver ch24heal`, the only healing the gauntlet can ever have), `use_item_on_party_member`,
+  `teach_move_from_bag` / `scroll_to_tm_verified` (the Ice Beam trip for Drake), and the Ever Grande
+  routing constants.
   ‼ **WHAT MAKES THIS CHAPTER UNLIKE EVERY CHAPTER BEFORE IT:** five consecutive fights, ~25
   opposing Pokémon, **no reachable nurse and no way back** — every backward warp in the League
   interior sits on an `MB_NORMAL` tile and all three warp paths in `src/field_control_avatar.c`
