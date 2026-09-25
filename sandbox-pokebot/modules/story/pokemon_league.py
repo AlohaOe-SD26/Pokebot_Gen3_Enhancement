@@ -3034,6 +3034,17 @@ def fight_the_champion(report=None, *, cross_frames: int = 600, intro_frames: in
         jobs are to supply button edges, to consume battle faults, and to STOP when told.
         """
         start = _frames()
+        # ⛔⛔ A BOUNDED `while True`, AND THE BOUND'S LIMIT IS MEASURED, NOT ASSUMED.
+        # It exits on the predicate or on `_frames() - start > budget` — a FRAME bound, because
+        # iterations are meaningless here (`KI-28`: this generator is starved while a battle owns
+        # the controller stack).
+        # ‼ BUT MEASURED 2026-09-25: **THAT BOUND CANNOT FIRE WHILE WE ARE STARVED.** The intro call
+        # blew a 6,000-frame budget to 36,457 without refusing, because it never got a turn on which
+        # to evaluate the check. ⇒ this bound protects against a loop that IS RUNNING and getting
+        # nowhere; it CANNOT protect against a controller above us that never yields. That case is
+        # the harness/production no-progress watchdog's job, not this loop's.
+        # ⇒ therefore any span that BRACKETS a battle is attributed from the on_battle_* CALLBACKS
+        # (see below), never from this loop's elapsed time.
         while True:
             _check_abort()
             if predicate():
