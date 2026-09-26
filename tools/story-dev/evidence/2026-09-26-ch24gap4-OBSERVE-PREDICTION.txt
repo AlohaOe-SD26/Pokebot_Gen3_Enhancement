@@ -1,0 +1,9 @@
+2026-09-26 ~13:25 — OBSERVE-ONLY recon for #26-ch24organic gap 4, written BEFORE the run.
+Run: --driver ch24train, post_league_shop.ss1 (no Fly knower), CH24_TRAIN_FLOOR=50, HARNESS_EXIT_ON_MANUAL=1.
+Trainees below 50: Zigzagoon L19, Castform L36, Wailord L47, Swellow L48, Mightyena L48 (Sceptile L53 is not).
+Prediction: Zigzagoon + Castform -> no_ground (nothing walkable they out-level). Wailord/Swellow/Mightyena (L47-48)
+qualify for VICTORY_ROAD_1F (36-40) by walking (region reach via the (18,27) door) -> the bot walks into the
+EXIT half of VR1F; train_team cannot reach the grind tile (15,39) in the ENTRANCE half -> an
+UnreachableDestinationError/PathFindingError propagates out of train_for_league (a crash, not a named refusal).
+Falsifier: it trains successfully (then the exit half connects to (15,39) and gap 4's premise is wrong), or it
+refuses VR1F up front.

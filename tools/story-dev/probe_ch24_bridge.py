@@ -131,9 +131,53 @@ def b5(src, sink=None):
     check("RETURN_BRIDGE_READINGS" in seen, "B5 RETURN_BRIDGE_READINGS exists", sink)
 
 
+def _load_rule(src):
+    """Exec ONLY the pure `_plateau_walkoff_refused` out of the module source — no imports, no emulator."""
+    fn = next(n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name == "_plateau_walkoff_refused")
+    ns: dict = {}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), "<rule>", "exec"), ns)  # noqa: S102 - our own source
+    return ns["_plateau_walkoff_refused"]
+
+
+def b6_rule(pred, sink=None):
+    """GAP 4's pure rule: ONLY Victory Road, ONLY on the plateau, ONLY without Fly. (A general warp-blind
+    reachability check refused Granite Cave / Fiery Path too — the code review's KICK-BACK; this is its test.)"""
+    check(pred("VICTORY_ROAD_1F", on_plateau=True, can_fly=False) is True,
+          "B6 VICTORY_ROAD_1F, on the plateau, no Fly ⇒ refused (the measured crash)", sink)
+    check(pred("GRANITE_CAVE_1F", on_plateau=True, can_fly=False) is False,
+          "B6 GRANITE_CAVE_1F is NOT refused (warp-gated but walkable — the review's control)", sink)
+    check(pred("FIERY_PATH", on_plateau=False, can_fly=False) is False, "B6 FIERY_PATH is NOT refused", sink)
+    check(pred("VICTORY_ROAD_1F", on_plateau=False, can_fly=False) is False,
+          "B6 VICTORY_ROAD_1F from OFF the plateau (the south half: its entrance) is NOT refused", sink)
+    check(pred("VICTORY_ROAD_1F", on_plateau=True, can_fly=True) is False, "B6 with Fly nothing is refused", sink)
+
+
+def b6(src, sink=None):
+    """GAP 4 — the return ticket: in `train_one_for_league`, a block gated on `can_fly_to_anchor` asks the pure
+    `_plateau_walkoff_refused` (never a warp-blind `calculate_path` to the ground), precedes `train_team`, and ends
+    in a named `no_ground` + return."""
+    fn = next(n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name == "train_one_for_league")
+    guard = next((n for n in ast.walk(fn) if isinstance(n, ast.If)
+                  and "can_fly_to_anchor" in (ast.get_source_segment(src, n.test) or "")), None)
+    check(guard is not None, "B6 a `can_fly_to_anchor`-gated block exists in train_one_for_league", sink)
+    if guard is None:
+        return
+    seg = ast.get_source_segment(src, guard) or ""
+    train = [c.lineno for c in _calls(fn, "train_team")]
+    check("_plateau_walkoff_refused(" in seg and "unwalkable" in seg and "return" in seg,
+          "B6 the block asks the pure rule and, on True, records `unwalkable` and returns", sink)
+    check("calculate_path(" not in _strip_comments(seg),
+          "B6 the block does NOT gate on a warp-blind calculate_path to the ground (KI-24 / code review)", sink)
+    check(bool(train) and guard.lineno < min(train),
+          f"B6 the guard (line {guard.lineno}) precedes train_team (line {min(train) if train else None})", sink)
+    seg_fn = _strip_comments(ast.get_source_segment(src, fn) or "")
+    check('"POKEBOT_CH24_FAULT_NOWALKCHECK") != "1"' in seg_fn and "`POKEBOT_CH24_FAULT_NOWALKCHECK`" in
+          REGISTRY.read_text(encoding="utf-8"), "B6 the NOWALKCHECK arm is read in code and registered", sink)
+
+
 def main() -> int:
     print("=" * 92)
-    print("GATE — §Ch24 return bridge (`#26-ch24organic` gap 2)")
+    print("GATE — §Ch24 return bridge (`#26-ch24organic` gap 2) + the no-Fly walk-off guard (gap 4)")
     print("=" * 92)
     src = LEAGUE_SRC.read_text(encoding="utf-8")
     print("\n== B1 where the bridge sits ==")
@@ -144,6 +188,9 @@ def main() -> int:
     b4(src)
     print("\n== B5 no shadowed *_READINGS ==")
     b5(src)
+    print("\n== B6 the no-Fly walk-off guard (gap 4) ==")
+    b6(src)
+    b6_rule(_load_rule(src))
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     anchor = "    # ---- THE RETURN BRIDGE (`#26-ch24organic` gap 2)"
@@ -156,6 +203,11 @@ def main() -> int:
         ("the tile assertion renamed away FAILS B2", src.replace(ASSERT_MARKER, "§Ch24 bridge: somewhere"), b2_b3),
         ("a SECOND `RETURN_BRIDGE_READINGS` assignment FAILS B5",
          src + "\nRETURN_BRIDGE_READINGS = ()\n", b5),
+        ("the return-ticket call removed from the guard FAILS B6",
+         src.replace("            if _plateau_walkoff_refused(ground.name, on_plateau=on_plateau, can_fly=False):",
+                     "            if False:"), b6),
+        ("an OVER-EAGER rule (any warp-gated ground refused — the reviewed defect) FAILS B6",
+         src.replace('str(ground_name).startswith("VICTORY_ROAD")', "True"), lambda s, k: b6_rule(_load_rule(s), k)),
         ("an UNBOUNDED flight FAILS B3",
          src.replace("report[\"fly_finished\"] = bool((yield from _yield_bounded_by_frames(\n            " + fly_bounded,
                      "report[\"fly_finished\"] = bool((yield from fly_to_destination(destination, fly)))"), b2_b3),

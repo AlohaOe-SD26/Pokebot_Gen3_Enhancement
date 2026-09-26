@@ -35762,3 +35762,28 @@ built-in fault arms turn it red.
 Manual throttles to ×1, so a drive that graded at f1,340 of a 200,000-frame budget used to idle ~55 minutes.
 **LIMITS:** one trajectory per arm; indoor starts only refused by name (not driven); organic parties still
 lack Fly (gaps 3 and 5) — for them the bridge refuses by name unless they end on the north plateau.
+
+## 2026-09-26 (late) — `#26-ch24organic` GAPS 3 + 4: PRODUCTION TEACHES FLY; A NO-FLY PARTY NO LONGER WALKS OFF THE PLATEAU — AND THE FIRST ORGANIC-SHAPED §Ch24 HAND-OFF, END TO END (branch `wt/ch24organic`)
+
+**GAP 3.** Production never taught Fly, so §Ch24's Fly ladder offered only walkable ground (from the plateau:
+Victory Road 1F, band 36-40) and the return bridge could not fly home. `ensure_fly_learner()` now teaches HM02 in
+`StoryMode._play` right after `self.mark_ch24_owns_run()` and before `train_for_league`; learner + slot come from the
+pure `_fly_teach_plan` (highest-level COMPATIBLE mon that can give up a slot WITHOUT losing its last USABLE attack —
+battle ban list respected: empty → status → banned → weakest usable only if another remains), handed to
+`teach_hm_move` explicitly; verified BY PID; a missing learner/HM02 is REPORTED, never raised. Arm
+`POKEBOT_CH24_FAULT_NOFLYTEACH`. New `--driver ch24handoff` runs `_play`'s order.
+**GAP 4.** Measured first (prediction filed before the run): a no-Fly party with a L47 trainee walked through the
+(18,27) door into VICTORY_ROAD_1F's EXIT half and `train_team` crashed on the grind tile (15,39). In
+`train_one_for_league`, a RETURN TICKET now applies when nobody can Fly: standing on the League plateau, a
+`VICTORY_ROAD_*` rung is a named `no_ground` (+ `unwalkable`) — pure `_plateau_walkoff_refused`, narrow on purpose
+(a first, general `calculate_path` pre-check was WARP-BLIND and was rejected by review). Arm
+`POKEBOT_CH24_FAULT_NOWALKCHECK`.
+**PROOF** (predictions `e491d8c0` + addendum `adcae1fb`; `ai-research-notes/2026-09-26-ch24-{flyteach,walkoff}-GRADED.md`):
+**H1 — Swellow learned Fly (lost Peck), Zigzagoon 19 → 21 on ROUTE117 reached by Fly, the bridge flew back, R1 passed,
+the door opened**; H0 (teach skipped): `no_ground`, R1 refused; K (Fly known): PASS; **G4: no walk, all five
+`no_ground`, R1 refused at (18,6)**; G4-SKIP: the old crash at (39,5) ⇒ both fixes load-bearing.
+**REVIEW:** KICK-BACK — the slot rule could strip a flyer's last USABLE attack (ban list) → `_fly_teach_plan`; the
+H1/K first run was VOID (the new driver had no `on_battle_started`, the harness fled every battle) → fixed + gated.
+**GATES:** `probe_ch24_flyteach.py` (NEW; F1 `_play` order, F2/F2b the driver's order + battle hook, F3 the plan on
+synthetic parties incl. the review's shape, F4 the arm, F5 EVERY training driver has a battle hook) and
+`probe_ch24_bridge.py` B6 (the walk-off guard); fault arms turn each red.

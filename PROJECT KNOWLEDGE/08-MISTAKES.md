@@ -22143,3 +22143,38 @@ ALTERNATION, so the pattern matched the bare word `BRIDGE` on every run line (`C
 **Fix:** rewrote the runner with the Write tool; re-ran (all eight as predicted). Cost: one ~3-minute batch.
 **Prevention rule:** ⛔ **EDIT A SCRIPT BY REWRITING IT (Write) OR AN EXACT-STRING REPLACE, NEVER A REGEX `sed`
 WHOSE PATTERN CONTAINS `\|`.** Then `bash -n` it and eyeball the diff before running.
+
+## 2026-09-26 — ⛔ A NEW TRAINING DRIVER WITHOUT `on_battle_started` — THE HARNESS FLED EVERY BATTLE FOR ~500k FRAMES
+
+**Symptom:** the first H1/K hand-off drives sat on ROUTE117 with Zigzagoon still L19 and 0 EXP after ~500k
+frames; stdout showed `BattleListener.run_away_from_battle` 753 times.
+**Root cause:** `Ch24HandoffMode` was written from scratch; the proven `Ch24TrainMode` it should have copied
+installs production's `SwapTrainBattleStrategy`/`StoryItemBattleStrategy` in `on_battle_started`. Without that hook
+the harness defaults to FLEEING. Production code was not involved.
+**Fix:** the hook, copied (`8eab44b9`); `probe_ch24_flyteach.py` F2b and **F5** (every harness driver that calls a
+`train_*` leg must define `on_battle_started`; fault-tested).
+**Prevention rule:** ⛔ **A NEW DRIVER MUST COPY THE PROVEN SIBLING'S HOOKS, NOT JUST ITS `run()`.** When a grind shows
+no level-up, READ THE EXP in the heartbeat before waiting longer.
+
+## 2026-09-26 — ⛔ "WEAKEST MOVE GOES" IGNORED THE BATTLE BAN LIST (caught by review, fixed before any organic run)
+
+**Symptom:** none measured — the adversarial review of the Fly teach showed that `teach_hm_move`'s slot rule (0-power
+first, else weakest) could strip a flyer's LAST USABLE attack: `battle.yml` bans Dig, Solar Beam, Sky Attack, Fake
+Out, Wrap, Counter …, so [Peck, Dig, Solar Beam, Sky Attack] would lose Peck and keep three moves the bot never uses.
+**Fix:** `_fly_teach_plan` chooses the slot with the ban list in hand (status → banned → weakest usable only if
+another usable remains) and skips a learner that would end with none; gate F3 carries the shape.
+**Prevention rule:** ⛔ **"CAN THIS MON STILL FIGHT?" MEANS base_power > 0 AND NOT BANNED** — the same test
+`ch23_swap_finisher_exists` uses. Any picker that removes a move must apply it.
+
+## 2026-09-26 — ⛔ I REACHED FOR THE ORACLE A USER DECISION HAD ALREADY REJECTED (warp-blind `calculate_path` as a reachability gate)
+
+**Symptom:** none at runtime — gap 4's first guard passed its drive. The adversarial review showed WHY it passed:
+`calculate_path` "is not able to use warps" (`map_path.py`), so it refused VICTORY_ROAD_1F for the wrong reason and
+would have refused EVERY warp-gated ground (Granite Cave, Fiery Path) the same way.
+**Root cause:** I picked the nearest familiar check without asking what the codebase had already decided about it —
+`_training_area_allowed`'s own docstring records the KI-24 user decision: *"A wrong NO from `calculate_path` is
+INVISIBLE and costs a whole run"*.
+**Fix:** the guard is now exactly the measured case (`_plateau_walkoff_refused`); gate B6 unit-tests the controls
+(Granite Cave / Fiery Path / off-plateau / with Fly NOT refused) and fails an over-eager rule.
+**Prevention rule:** ⛔ **BEFORE USING AN ORACLE AS A GATE, READ WHAT IT CANNOT SEE (its docstring) AND GREP 06/05 FOR IT**
+— and a drive where the guard fires proves nothing about grounds where it must NOT fire; test those too.

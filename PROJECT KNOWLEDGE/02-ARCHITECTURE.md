@@ -504,8 +504,10 @@ done
   preconditions BY NAME, fly to the Pokémon League and ASSERT THE TILE (`fly_to_destination` accepts any
   landing that moved). Gate `probe_ch24_bridge.py`; arms `POKEBOT_CH24_FAULT_NOBRIDGE` / `…_BRIDGEDEST`.
   ⭐ **`ensure_fly_learner` (gap 3)** teaches HM02 in `_play` after the §Ch24 latch and before
-  `train_for_league` (learner = compatible AND a non-HM slot, `_fly_learner_slot`; verified by PID; never
-  raises for a missing learner); gate `probe_ch24_flyteach.py`, driver `--driver ch24handoff`; and `fight_one_room(from_room, hall, to_room, victory_flag)`
+  `train_for_league` (learner + slot = `_fly_teach_plan`: never strips the last USABLE attack; verified by PID;
+  never raises for a missing learner); gate `probe_ch24_flyteach.py`, driver `--driver ch24handoff`. ⭐ **Gap 4:**
+  `train_one_for_league`'s return ticket — no Fly + on the League plateau + a `VICTORY_ROAD_*` rung ⇒ a named
+  `no_ground`, never a walk into Victory Road's exit half (pure `_plateau_walkoff_refused`, gate B6); and `fight_one_room(from_room, hall, to_room, victory_flag)`
   (`--driver ch24room`) — the gauntlet's **species-agnostic repeating unit**: dismiss the parked
   victory msgbox → bag heal → room → hall → next room → locate the trainer **LIVE** → engage → win
   (asserted on the defeat FLAG) → prove the exit door is open in the **live** collision grid.

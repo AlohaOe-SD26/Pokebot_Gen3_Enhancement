@@ -7335,3 +7335,15 @@ kept all five proven R1 arms valid unchanged.
 "no Fly" before their real problem, readiness, was named); (b) a second bridge BEFORE the leg's own training
 retry, so a party could re-train from (18,6) — the retry rarely helps (a `no_ground` stays `no_ground`) and the
 `_play` derail re-entry already re-runs `train_for_league`.
+
+## 2026-09-26 — `ensure_fly_learner` REPORTS A MISSING LEARNER, IT NEVER RAISES; THE WALK-OFF GUARD RUNS ONLY WITHOUT FLY
+
+**DECISION 1.** A party that cannot be taught Fly (no compatible member, every candidate would lose its last usable
+attack, or no HM02) continues WITHOUT Fly. **WHY:** R1 refuses an under-levelled party BY NAME and the return bridge
+refuses a party stranded off the plateau BY NAME, so a raise here would add nothing but an earlier, less specific
+stop. **REJECTED:** raising (it would end runs that are already at the door and need no training).
+**DECISION 2.** Gap 4 is a NARROW, MEASURED return ticket — `_plateau_walkoff_refused`: no Fly + standing on the
+League plateau + a `VICTORY_ROAD_*` ground ⇒ named `no_ground`. **WHY:** that is exactly the measured crash; nothing
+else is touched. **REJECTED (by code review, before merge):** a general `calculate_path(here → ground)` pre-check —
+`calculate_path` is WARP-BLIND, so it would refuse every warp-gated ground (Granite Cave, Fiery Path …); the KI-24
+user decision (2026-07-25) already chose `region_reach` over it for training picks because its wrong NO is invisible.

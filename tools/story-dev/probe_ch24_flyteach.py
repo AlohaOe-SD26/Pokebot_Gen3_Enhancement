@@ -11,9 +11,12 @@ bridge could not fly home. `ensure_fly_learner` now teaches HM02 in `_play` — 
       drive that proves the chain cannot silently drift from production.
   F2b ...and it installs production's battle strategies in `on_battle_started` (SwapTrain / StoryItem). Without
       that hook the harness FLEES every wild battle — the first H1/K drives banked 0 EXP in ~500k frames.
-  F3  `_fly_learner_slot` (PURE) picks the highest-level COMPATIBLE mon that still holds a non-HM slot — never a
+  F3  `_fly_teach_plan` (PURE) picks the highest-level COMPATIBLE mon that can give up a slot WITHOUT losing its
+      last USABLE attack (battle ban list respected; status first, then banned, then weakest usable) — never a
       saturated four-HM mon (`hm_learner_slot`'s level-only rule picks exactly that), never an egg, None if nobody.
   F4  `POKEBOT_CH24_FAULT_NOFLYTEACH` is read in `ensure_fly_learner` (comments stripped) and registered.
+  F5  GENERAL: EVERY driver class in `story_harness.py` that trains (`train_team` / `train_for_league` /
+      `train_for_victory_road` / `train_one_for_league`) defines `on_battle_started` — itself or an ancestor.
 
 FAULT ARMS (run every time): a level-only picker FAILS F3; a `_play` that teaches AFTER training FAILS F1.
 
@@ -59,9 +62,16 @@ def check(cond, msg, sink=None):
 HM02 = object()
 
 
+POWER = {"Surf": 95, "Strength": 80, "Rock Smash": 40, "Dive": 80, "Flash": 0, "Peck": 35, "Aerial Ace": 60,
+         "Wing Attack": 60, "Quick Attack": 40, "Growl": 0, "Dig": 60, "Solar Beam": 120, "Sky Attack": 140}
+#: The shape of `battle.yml`'s ban list that matters here (the real list is longer).
+BANNED = ["None", "Dive", "Fly", "Dig", "Solar Beam", "Sky Attack"]
+
+
 def _learned(name: str, hm: bool):
     return types.SimpleNamespace(move=types.SimpleNamespace(
-        name=name, tm_hm=types.SimpleNamespace(name="HM05" if hm else "TM40") if hm else None))
+        name=name, base_power=POWER[name],
+        tm_hm=types.SimpleNamespace(name="HM05" if hm else "TM40") if hm else None))
 
 
 def mon(level: int, compat: bool, moves, egg: bool = False):
@@ -73,16 +83,39 @@ FOUR_HM = [_learned("Surf", True), _learned("Strength", True), _learned("Rock Sm
 FREE = [_learned("Peck", False), _learned("Aerial Ace", False), None, None]
 FULL_BATTLER = [_learned("Peck", False), _learned("Wing Attack", False), _learned("Aerial Ace", False),
                 _learned("Quick Attack", False)]
+#: The code review's shape: the weakest move is the ONLY one the bot will ever click.
+LAST_USABLE_IS_WEAKEST = [_learned("Peck", False), _learned("Dig", False), _learned("Solar Beam", False),
+                          _learned("Sky Attack", False)]
+#: Its only spendable slot is its only usable attack (Flash 0, Dive banned, Rock Smash HM but see BANNED_RS).
+ONLY_SLOT_IS_LAST_ATTACK = [_learned("Peck", False), _learned("Flash", True), _learned("Dive", True),
+                            _learned("Rock Smash", True)]
+WITH_STATUS = [_learned("Growl", False), _learned("Peck", False), _learned("Wing Attack", False),
+               _learned("Aerial Ace", False)]
 
 
-def f3(pick, sink=None):
-    check(pick([mon(50, True, FOUR_HM), mon(40, True, FREE)], HM02) == 1,
+def f3(plan, sink=None):
+    """`plan(party, item, banned) -> (index, replace_slot) | None` — `_fly_teach_plan`'s contract."""
+    def idx(party, banned=BANNED):
+        p = plan(party, HM02, banned)
+        return None if p is None else p[0]
+
+    check(idx([mon(50, True, FOUR_HM), mon(40, True, FREE)]) == 1,
           "F3 a L50 four-HM mon is SKIPPED for a L40 with a slot to spend", sink)
-    check(pick([mon(50, True, FULL_BATTLER), mon(40, True, FREE)], HM02) == 0,
-          "F3 highest level wins among spendable learners (four battle moves ARE spendable)", sink)
-    check(pick([mon(60, False, FREE), mon(30, True, FOUR_HM)], HM02) is None,
+    check(plan([mon(40, True, FREE)], HM02, BANNED) == (0, None), "F3 an EMPTY move slot is used (no replace)", sink)
+    check(plan([mon(50, True, FULL_BATTLER), mon(40, True, FREE)], HM02, BANNED) == (0, 0),
+          "F3 highest level wins; four usable attacks ⇒ the weakest (Peck, slot 0) goes — H1's measured choice", sink)
+    check(idx([mon(60, False, FREE), mon(30, True, FOUR_HM)]) is None,
           "F3 incompatible + saturated ⇒ None (report, never a doomed teach)", sink)
-    check(pick([None, mon(70, True, FREE, egg=True)], HM02) is None, "F3 an empty slot and an egg ⇒ None", sink)
+    check(idx([None, mon(70, True, FREE, egg=True)]) is None, "F3 an empty slot and an egg ⇒ None", sink)
+    check(plan([mon(55, True, WITH_STATUS)], HM02, BANNED) == (0, 0), "F3 a 0-power status move goes FIRST", sink)
+    check(plan([mon(55, True, LAST_USABLE_IS_WEAKEST)], HM02, BANNED) == (0, 1),
+          "F3 [Peck, Dig, Solar Beam, Sky Attack]: a BANNED move (Dig, slot 1) goes — never Peck, the last usable "
+          "attack (the code review's shape)", sink)
+    banned_rs = BANNED + ["Rock Smash"]   # synthetic: make its HM attack unusable too
+    check(idx([mon(55, True, ONLY_SLOT_IS_LAST_ATTACK)], banned_rs) is None,
+          "F3 a mon whose only spendable slot is its last usable attack is SKIPPED ⇒ None", sink)
+    check(idx([mon(55, True, ONLY_SLOT_IS_LAST_ATTACK), mon(30, True, FREE)], banned_rs) == 1,
+          "F3 ...and the next compatible learner is taken instead", sink)
 
 
 def _calls(fn, attr):
@@ -129,6 +162,31 @@ def f2(src, sink=None):
           "F2b the hand-off driver installs production's battle strategies (else the harness flees)", sink)
 
 
+TRAIN_CALLS = {"train_team", "train_for_league", "train_for_victory_road", "train_one_for_league"}
+
+
+def f5(src, sink=None):
+    """GENERAL: every harness driver class that TRAINS must define `on_battle_started` (itself or an in-file
+    ancestor). Written because the new hand-off driver lacked it and the harness silently fled every battle."""
+    classes = {n.name: n for n in ast.parse(src).body if isinstance(n, ast.ClassDef)}
+
+    def has_hook(c, seen=()):
+        if any(isinstance(m, ast.FunctionDef) and m.name == "on_battle_started" for m in c.body):
+            return True
+        return any(getattr(b, "id", None) in classes and getattr(b, "id") not in seen
+                   and has_hook(classes[b.id], seen + (b.id,)) for b in c.bases)
+
+    trainers, missing = [], []
+    for name, c in classes.items():
+        calls = {getattr(n.func, "attr", getattr(n.func, "id", None)) for n in ast.walk(c) if isinstance(n, ast.Call)}
+        if calls & TRAIN_CALLS:
+            trainers.append(name)
+            if not has_hook(c):
+                missing.append(name)
+    check(bool(trainers) and not missing,
+          f"F5 every training driver defines on_battle_started ({len(trainers)} trainers; missing {missing})", sink)
+
+
 def _strip_comments(src: str) -> str:
     return tokenize.untokenize(t for t in tokenize.generate_tokens(io.StringIO(src).readline)
                                if t.type != tokenize.COMMENT)
@@ -146,32 +204,58 @@ def main() -> int:
     f1(story)
     print("\n== F2 the hand-off driver mirrors it ==")
     f2(harness)
+    print("\n== F5 every training driver has a battle hook ==")
+    f5(harness)
     print("\n== F3 the learner rule (pure) ==")
-    f3(PL._fly_learner_slot)
+    f3(PL._fly_teach_plan)
     print("\n== F4 the arm ==")
     fn = next(n for n in ast.parse(league).body if isinstance(n, ast.FunctionDef) and n.name == "ensure_fly_learner")
     seg = _strip_comments(ast.get_source_segment(league, fn) or "")
     check('"POKEBOT_CH24_FAULT_NOFLYTEACH") == "1"' in seg, "F4 NOFLYTEACH is READ in ensure_fly_learner")
     check("`POKEBOT_CH24_FAULT_NOFLYTEACH`" in REGISTRY.read_text(encoding="utf-8"), "F4 NOFLYTEACH is registered")
-    check("_fly_learner_slot(" in seg, "F4 ensure_fly_learner uses the gated picker, not a private copy")
+    check("_fly_teach_plan(" in seg and "replace_slot=replace_slot" in seg,
+          "F4 ensure_fly_learner uses the gated plan AND hands its slot to teach_hm_move (not teach_hm_move's own rule)")
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     sink: list = []
 
-    def level_only(party, item):
+    def level_only(party, item, banned):
         best, lv = None, -1
         for i, m in enumerate(party):
             if m is not None and not m.is_egg and m.species.can_learn_tm_hm(item) and m.level > lv:
                 best, lv = i, m.level
-        return best
+        return None if best is None else (best, None)
     f3(level_only, sink)
     check(bool(sink), f"FAULT a level-only picker (hm_learner_slot's rule) FAILS F3 ({len(sink)} caught)")
+
+    def teach_hm_moves_own_rule(party, item, banned):
+        """The pre-review behaviour: learner = compatible with a non-HM slot, slot = 0-power else WEAKEST."""
+        best, lv = None, -1
+        for i, m in enumerate(party):
+            if m is None or m.is_egg or not m.species.can_learn_tm_hm(item):
+                continue
+            if any(l is None or l.move.tm_hm is None for l in m.moves) and m.level > lv:
+                best, lv = i, m.level
+        if best is None:
+            return None
+        moves = party[best].moves
+        if any(l is None for l in moves):
+            return best, None
+        elig = [s for s, l in enumerate(moves) if l.move.tm_hm is None]
+        zero = [s for s in elig if moves[s].move.base_power == 0]
+        return best, (zero[0] if zero else min(elig, key=lambda s: moves[s].move.base_power))
+    sink = []
+    f3(teach_hm_moves_own_rule, sink)
+    check(bool(sink), f"FAULT the pre-review slot rule (weakest move, ban list ignored) FAILS F3 ({len(sink)} caught)")
 
     hook_def = "    def on_battle_started(self, encounter):\n        \"\"\"⛔⛔ THE PRODUCTION STRATEGIES"
     assert harness.count(hook_def) == 1, "hook anchor moved — update the gate"
     sink = []
     f2(harness.replace(hook_def, hook_def.replace("on_battle_started", "_no_hook")), sink)
     check(bool(sink), f"FAULT a hand-off driver WITHOUT on_battle_started FAILS F2b ({len(sink)} caught)")
+    sink = []
+    f5(harness.replace(hook_def, hook_def.replace("on_battle_started", "_no_hook")), sink)
+    check(bool(sink), f"FAULT a training driver WITHOUT on_battle_started FAILS F5 ({len(sink)} caught)")
 
     anchor_teach = "            yield from ensure_fly_learner(_ch24_fly_report)\n"
     anchor_train = "            yield from train_for_league(_ch24_train_report)\n"

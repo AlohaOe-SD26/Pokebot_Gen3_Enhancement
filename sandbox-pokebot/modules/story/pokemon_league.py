@@ -1779,6 +1779,37 @@ def _ch24_step_out_if_fly_illegal(report=None) -> Generator:
                       "ground pick will probably refuse.[/]")
 
 
+def _plateau_walkoff_refused(ground_name: str, *, on_plateau: bool, can_fly: bool) -> bool:
+    """PURE — `#26-ch24organic` gap 4's return ticket. True ⇔ training this rung would WALK a no-Fly party off
+    the League plateau into Victory Road, whose plateau-side (EXIT) half does not reach the grind tile (measured
+    2026-09-26). ⛔ Deliberately narrow: every other ground (Granite Cave, Fiery Path, any route) is untouched —
+    a general warp-blind reachability check refused them all and was rejected by review (see the call site)."""
+    return (not can_fly) and on_plateau and str(ground_name).startswith("VICTORY_ROAD")
+
+
+def _on_league_plateau() -> bool:
+    """In the League lobby, or on EVER_GRANDE_CITY with a SAME-MAP walk to the door apron (18,6).
+    ‼ Same-map `calculate_path` is reliable (no warps involved) — it is the exact check §Ch23 leg 10 makes
+    (`heal_at_league`). Unreadable ⇒ False (the rule then does not fire; the walk proceeds as before)."""
+    from modules.map_path import calculate_path
+    from modules.story import victory_road as VR
+    from modules.story.early_game import reraise_if_aborting
+
+    try:
+        if VR._on_map(VR.LEAGUE_1F):
+            return True
+        if not VR._on_map(VR.EG):
+            return False
+        if VR._here_tile() == VR.LEAGUE_DOOR_APRON:
+            return True
+        calculate_path((VR.EG, VR._here_tile()), (VR.EG, VR.LEAGUE_DOOR_APRON))
+        return True
+    except Exception as error:  # noqa: BLE001 - "no path" means the SOUTH half: not the plateau; an unreadable
+        # position must not invent a refusal either, so both read as False
+        reraise_if_aborting(error)
+        return False
+
+
 def train_one_for_league(pid: int, species: str, report=None, *,
                          floor: int = CH24_LEVEL_FLOOR) -> Generator:
     """Climb ONE mōn to `floor` on the per-trainee Fly ladder, rung by rung.
@@ -1858,6 +1889,35 @@ def train_one_for_league(pid: int, species: str, report=None, *,
             console.print(f"[yellow]§Ch24 training: {ground.name} has no heal anchor — skipping "
                           f"it rather than guessing one.[/]")
             return
+
+        # ---- `#26-ch24organic` GAP 4 — THE RETURN TICKET (no Fly ⇒ never walk off the plateau into Victory Road)
+        # ⛔⛔ MEASURED 2026-09-26 (`evidence/2026-09-26-ch24gap4-OBSERVE-NOFLY-FLOOR50.txt`): a party with NO
+        # Fly knower, on the League plateau, with a L47 trainee — the ground picker's oracle (`region_reach`,
+        # MAP-level) calls VICTORY_ROAD_1F one hop away, which it is: through the (18,27) door into the cave's
+        # EXIT half. `train_team` walked in, landed at (39,5) and raised `UnreachableDestinationError: Could not
+        # reach (15, 39)` — the grind tile is in the ENTRANCE half. An unnamed crash, inside a cave, that every
+        # derail re-entry repeats.
+        # ⛔⛔ AND THE FIRST FIX WAS WRONG, CAUGHT BY REVIEW: it asked `calculate_path(here → (ground, tile))`,
+        # which is WARP-BLIND ("not able to use warps", `map_path.py`) — it would have refused EVERY warp-gated
+        # ground (Granite Cave, Fiery Path…) and it is the "invisible wrong NO" oracle the KI-24 user decision
+        # (2026-07-25) already rejected for training picks. It was right on VR1F only by coincidence.
+        # ⇒ THE RULE IS NOW EXACTLY WHAT WAS MEASURED (`_plateau_walkoff_refused`, pure, gated): no Fly + standing
+        # on the League plateau + a VICTORY_ROAD_* ground ⇒ a named `no_ground`. Nothing else is touched.
+        # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOWALKCHECK=1` (skip-the-fix; registered in `29-…REGISTRY.md`).
+        import os as _os
+
+        from modules.story.training_areas import can_fly_to_anchor
+
+        if _os.environ.get("POKEBOT_CH24_FAULT_NOWALKCHECK") != "1" and not can_fly_to_anchor(heal_center):
+            on_plateau = _on_league_plateau()
+            if _plateau_walkoff_refused(ground.name, on_plateau=on_plateau, can_fly=False):
+                report.setdefault("no_ground", []).append((species, level))
+                report.setdefault("unwalkable", []).append((species, ground.name, tuple(tile), "plateau-no-fly"))
+                console.print(f"[yellow]§Ch24 training: nobody can Fly and we stand on the League plateau — "
+                              f"{ground.name} {tuple(tile)} is only reachable from here through Victory Road's EXIT "
+                              f"half, which does not connect to that tile (measured). Not walking {species} off the "
+                              f"plateau; stopping this trainee at L{level}.[/]")
+                return
 
         # ⭐ WHERE THIS RUNG ENDS: ask the picker, do not model it. Step the level until it answers
         # with a DIFFERENT ground; that way the rung boundary is the bot's, whatever the table says.
@@ -2063,10 +2123,22 @@ FLY_TEACH_READINGS = (
 )
 
 
-def _fly_learner_slot(party, item) -> "int | None":
-    """PURE: the party index `ensure_fly_learner` teaches — COMPATIBLE and holding a non-HM slot to spend,
-    highest level first; None if nobody qualifies. ⛔ NOT `hm_learner_slot`, which ranks by level alone and
-    so picks a SATURATED four-HM mon (5 of 6 measured 8-badge parties, `ensure_waterfall_learner`)."""
+def _fly_teach_plan(party, item, banned) -> "tuple[int, int | None] | None":
+    """PURE: `(party_index, replace_slot)` for teaching `item` (HM02), or None if nobody qualifies.
+    `replace_slot=None` means an EMPTY move slot (the game learns without asking).
+
+    THE LEARNER: highest level first, COMPATIBLE, and able to give up a slot WITHOUT LOSING ITS LAST USABLE
+    ATTACK. ⛔ NOT `hm_learner_slot` (level alone ⇒ picks a saturated four-HM mon — 5 of 6 measured 8-badge
+    parties) and ⛔ NOT `teach_hm_move`'s own slot rule alone (0-power first, else weakest): the battle ban
+    list (`battle.yml` — Dig, Solar Beam, Sky Attack, Fake Out, Wrap, Counter …) means the WEAKEST move can be
+    the only one the bot will ever click. [Peck, Dig, Solar Beam, Sky Attack] would lose Peck and keep three
+    moves it refuses to use — a battler that cannot deal damage in a nurse-less chapter (code review, 2026-09-26).
+
+    THE SLOT, in order: (1) an empty slot; (2) a 0-power status move; (3) a BANNED damaging move (unusable
+    anyway), weakest first; (4) the weakest USABLE damaging move — only if another usable one remains (HM
+    attacks such as Surf/Strength count; HM slots are never replaced — Gen 3 cannot forget them).
+    A mon with NO usable attack before the teach may still learn (nothing is lost by it).
+    """
     def _is_hm(learned) -> bool:
         try:
             m = learned.move
@@ -2074,13 +2146,41 @@ def _fly_learner_slot(party, item) -> "int | None":
         except Exception:  # noqa: BLE001 - unreadable => NOT provably spendable (ensure_waterfall_learner)
             return True
 
-    best, best_level = None, -1
+    def _usable(learned) -> bool:
+        try:
+            return learned is not None and learned.move.base_power > 0 and learned.move.name not in banned
+        except Exception:  # noqa: BLE001 - unreadable => do not count it as an attack we can rely on
+            return False
+
+    candidates = []
     for i, mon in enumerate(party):
         if mon is None or getattr(mon, "is_egg", False) or not mon.species.can_learn_tm_hm(item):
             continue
-        if any(l is None or not _is_hm(l) for l in mon.moves) and mon.level > best_level:
-            best, best_level = i, mon.level
-    return best
+        candidates.append((mon.level, -i, i, mon))
+    for _lv, _neg, i, mon in sorted(candidates, reverse=True):
+        moves = list(mon.moves)
+        if any(l is None for l in moves):
+            return i, None
+        eligible = [s for s, l in enumerate(moves) if l is not None and not _is_hm(l)]
+        if not eligible:
+            continue
+        usable_before = sum(1 for l in moves if _usable(l))
+
+        def _power(s):
+            try:
+                return moves[s].move.base_power
+            except Exception:  # noqa: BLE001 - unreadable power sorts as a status move (first to go), and
+                # `_usable` independently reads it as NOT an attack, so it can never be the "last usable" kept
+                return 0
+
+        status = [s for s in eligible if _power(s) == 0]
+        banned_dmg = sorted((s for s in eligible if _power(s) > 0 and not _usable(moves[s])), key=_power)
+        usable_dmg = sorted((s for s in eligible if _usable(moves[s])), key=_power)
+        for slot in status + banned_dmg + usable_dmg:
+            usable_after = usable_before - (1 if _usable(moves[slot]) else 0)
+            if usable_before == 0 or usable_after >= 1:
+                return i, slot
+    return None
 
 
 def ensure_fly_learner(report=None) -> Generator:
@@ -2133,19 +2233,31 @@ def ensure_fly_learner(report=None) -> Generator:
         console.print("[yellow]§Ch24: HM02 (Fly) is not in the bag — cannot teach Fly.[/]")
         return
 
-    best = _fly_learner_slot(get_party(), hm02)
+    try:
+        banned = list(context.config.battle.banned_moves)
+    except Exception as error:  # noqa: BLE001 - without the ban list we cannot prove an attack survives
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        banned = ["Fly", "Dive", "Dig", "Bounce", "Sky Attack", "Razor Wind", "Solar Beam"]
+    plan = _fly_teach_plan(get_party(), hm02, banned)
+    best, replace_slot = plan if plan is not None else (None, None)
     if best is None:
         report["fly_teach"] = "no_learner"
-        console.print("[yellow]§Ch24: nobody in the party can learn Fly (or every compatible member holds four "
-                      "HM moves) — continuing WITHOUT Fly. Flyer acquisition is `#26-ch24organic` gap 5.[/]")
+        console.print("[yellow]§Ch24: nobody in the party can learn Fly without losing its last usable attack "
+                      "(or every compatible member holds four HM moves) — continuing WITHOUT Fly. Flyer "
+                      "acquisition is `#26-ch24organic` gap 5.[/]")
         return
 
     learner = get_party()[best]
     pid = learner.personality_value
     before = [l.move.name for l in learner.moves if l is not None]
     report["fly_learner"] = f"{learner.species.name}#{pid:08X}"
+    report["fly_replace_slot"] = replace_slot
     console.print(f"[cyan]§Ch24: teaching Fly to {learner.species.name} (slot {best})…[/]")
-    yield from teach_hm_move(hm02, best)
+    # ⛔ THE SLOT IS OURS, NOT `teach_hm_move`'s: its own rule (0-power, else weakest) can strip the last
+    # usable attack. `None` (an empty slot) keeps its no-replace path; never an HM slot (the plan excludes them).
+    yield from teach_hm_move(hm02, best, replace_slot=replace_slot)
 
     # ‼ VERIFY BY PID, FROM THE WORLD — never "slot `best` knows Fly" (rule 3: identity, not position).
     after_mon = next((m for m in get_party() if m is not None and m.personality_value == pid), None)

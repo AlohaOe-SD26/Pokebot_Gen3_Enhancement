@@ -1,0 +1,60 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\hoev\K-KNOWN.log
+[setup] created profile hoK-KNOWN
+[setup] loaded save state post_ch24ready.ss1; build=sandbox
+[run] starting faithful loop for up to 900000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+[ch24handoff] PRE at=((0, 8), (27, 49)) below=['Zigzagoon#33CB74C3 L19'] floor=21
+[ch24handoff] FLY {'fly_teach': 'already', 'fly_knower': 'Swellow#0B30A747'}
+f183: PARTY CHANGE [Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f255: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=Ch24HandoffMode.run bt='SCEPTILE gained 465 EXP. Points!' scripts=[] party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1103: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f1779: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='SCEPTILE gained 465 EXP. Points!' scripts=[] party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1780: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f2000: heartbeat mode=Story ctrl=Ch24HandoffMode.run state=OVERWORLD party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2275: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2276: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f2904: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2916: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.run_away_from_battle bt='Got away safely!' scripts=[] party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2942: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f3141: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f3142: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f3772: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f3810: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f4000: heartbeat mode=Story ctrl=Ch24HandoffMode.run state=BATTLE_STARTING party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4010: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4011: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f4641: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4679: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f4859: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4860: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f5490: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f5528: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f5728: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f5729: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f6000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6390: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6428: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f6618: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6619: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f7268: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f7305: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f7535: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f7536: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f8000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8166: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8204: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f8434: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8435: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f9134: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f9172: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f9522: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f9523: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f10000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f10184: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f10222: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f10442: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f10443: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f11073: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f11111: CONTROLLER -> Ch24HandoffMode.run   (state=OVERWORLD)
+f11291: battle_is_active -> True  party=[Zigzagoon:L19:exp7672|Sceptile:L53:exp146770|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]

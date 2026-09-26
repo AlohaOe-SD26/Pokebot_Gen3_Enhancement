@@ -1,0 +1,50 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\gap4obs.log
+[setup] created profile gap4obs
+Running mGBA 0.10.2
+[setup] loaded save state post_league_shop.ss1; build=sandbox
+[run] starting faithful loop for up to 600000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24TrainMode.run   (state=OVERWORLD)
+[ch24train] PRE at=EVER_GRANDE_CITY(18, 6) trainees=['Zigzagoon#33CB74C3 L19', 'Castform#C978D14E L36', 'Wailord#FA51ECF3 L47', 'Swellow#0B30A747 L48', 'Mightyena#5C96EA9B L48']
+[ch24train] LEG CALLED mark_ch24_owns_run() (#1)
+§Ch24: training 5 mōn to L50 — Zigzagoon L19, Castform L36, Wailord L47, 
+Swellow L48, Mightyena L48
+§Ch24 training: no reachable ground Zigzagoon out-levels at L19 — stopping this
+trainee at L19.
+§Ch24 training: no reachable ground Castform out-levels at L36 — stopping this 
+trainee at L36.
+f193: PARTY CHANGE [Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Sceptile:L53:exp145272|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f273: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=Ch24TrainMode.run bt='NICK got $4128 for winning!' scripts=[] party=[Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Sceptile:L53:exp145272|Mightyena:L48:exp113010|Castform:L36:exp50128]
+§Ch24 training: Wailord L47 → L50 at VICTORY_ROAD_1F (wilds 36-40, heal at 
+EvergrandeCity).
+f356: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f1004: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='NICK got $4128 for winning!' scripts=[] party=[Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Sceptile:L53:exp145272|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1005: CONTROLLER -> Ch24TrainMode.run   (state=OVERWORLD)
+f1391: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonDoor'] ctrl=Ch24TrainMode.run bt='NICK got $4128 for winning!' scripts=[] party=[Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Sceptile:L53:exp145272|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24train] PP predicate calls=0 true=0
+[ch24train] FAILURE UnreachableDestinationError: Could not reach (15, 39) on MapRSE.VICTORY_ROAD_1F: the field is idle and we are still at (39, 5), so retrying cannot change the result (Could not find a path from (39/5 @ VICTORY_ROAD_1F) to (15/39 @ VICTORY_ROAD_1F).).
+[ch24train] R pp_predicate_calls = 0
+[ch24train] R pp_predicate_true = 0
+[ch24train] R start_at = 'EVER_GRANDE_CITY(18, 6)'
+[ch24train] R trainees_before = ['Zigzagoon#33CB74C3 L19', 'Castform#C978D14E L36', 'Wailord#FA51ECF3 L47', 'Swellow#0B30A747 L48', 'Mightyena#5C96EA9B L48']
+[ch24train] RESULT readings=['T-PRE', 'T-TRAINEES'] missing=['T-CONTINUE', 'T-LATCH', 'T-LEVELUP', 'T-RAN', 'T-RUNG']
+[ch24train] RESULT battles=0 whiteouts=0 failure=UnreachableDestinationError: Could not reach (15, 39) on MapRSE.VICTORY_ROAD_1F: the field is idle and we are still at (39, 5), so retrying cannot change the result (Could not find a path from (39/5 @ VICTORY_ROAD_1F) to (15/39 @ VICTORY_ROAD_1F).).
+[ch24train] ACCEPTANCE: FAIL (run the REAL train_for_league: pick trainees by PID, latch Ch24, walk at least one rung, LEVEL the trainee, and end able to continue) SCOPE: floor=50 -- a MULTI-RUNG climb across 0 ground(s); still not the full climb to L65.
+f1672: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f1672 — ending the loop at f1792
+[done] ran 1793 frames; final mode=Manual party=[Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Sceptile:L53:exp145272|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 1793 get_party() recomputes, 6 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24train 1793 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\gap4obs\states\2026-09-26_13-
+18-41.ss1 created!
+Updated `current_state.ss1`!
