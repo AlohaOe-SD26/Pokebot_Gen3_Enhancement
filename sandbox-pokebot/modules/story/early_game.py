@@ -5096,6 +5096,23 @@ def _withdraw_hm_learner(item, pids, heal_centers) -> Generator:
     return slot
 
 
+
+#: ⛔ SYNTHETIC FAULT ARM — `POKEBOT_HMPCFIRST_FAULT=skipfix` DISABLES the PC-first block below.
+#: Registered in `29-DISABLED-FEATURES-REGISTRY.md`.
+#:
+#: ⭐ WHY IT EXISTS. `--driver hmpcfirst` proves a boxed carrier IS withdrawn. It cannot, by itself,
+#: prove the PC-FIRST BLOCK is the reason — the same mon could in principle have arrived through the
+#: pre-existing counter-hunt withdraw. Running the identical fixture and injection with this armed
+#: must produce NO withdraw; that is what makes the block demonstrably load-bearing rather than
+#: merely present. (Project rule: *"a claim of the form 'without X the bug survives' is a CLAIM',
+#: and the only currency this project accepts for it is an arm with X removed."*)
+#:
+#: ⚠ It is read HERE, in production, not in the driver. A driver-side switch would prove only that
+#: the driver can skip its own call.
+def _hm_pcfirst_disarmed() -> bool:
+    return os.environ.get("POKEBOT_HMPCFIRST_FAULT", "").strip().lower() == "skipfix"
+
+
 def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
     """`ensure_hm_learner`, but if the ONLY blocker is a FULL PARTY, free one slot and retry once.
 
@@ -5134,7 +5151,7 @@ def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
     # one?" costs NO journey, and the Poké Centre trip happens only when the answer is yes.
     # ⛔ `heal_centers` DEFAULTS TO `()`: without this guard the block is a silent no-op, which is
     # the "built, promoted, and nothing in production ever set the flag" shape KI-63 records.
-    if heal_centers and hm_learner_slot(item) is None:
+    if heal_centers and hm_learner_slot(item) is None and not _hm_pcfirst_disarmed():
         _boxed = boxed_hm_learner_pids(item)
         if _boxed:
             _slot = yield from _withdraw_hm_learner(item, _boxed, heal_centers)

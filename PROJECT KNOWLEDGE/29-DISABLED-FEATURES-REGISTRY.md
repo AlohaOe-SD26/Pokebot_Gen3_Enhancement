@@ -353,3 +353,40 @@ leaves the rest is isolating the thing it targets, which is what makes it eviden
 kill the run and print NO verdict — and a fault arm must fail by PRINTING a verdict, never by dying.
 
 **Default:** unset ⇒ OFF.
+
+## `POKEBOT_HMPCFIRST_FAULT` — PC-first HM-carrier arms (`--driver hmpcfirst`)
+
+**Added 2026-09-25.** Read in TWO places, deliberately: `skipfix` is read **inside production
+code** (`modules/story/early_game.py`'s `_hm_pcfirst_disarmed`), `nobox` in the driver
+(`tools/story-dev/story_harness.py`'s `HmPcFirstMode.run`).
+
+**Values:**
+* `nobox` — skip the box injection. `boxed_hm_learner_pids` must then return `[]` and the PC-first
+  branch cannot fire. ⚠ The arm **stops there** rather than calling the full errand: the hunt
+  behind it spins a 40,000-frame deadline and the arm's subject is the GUARD, not the hunt.
+* `skipfix` — **disarm the PC-first block itself**, in production, and require that the carrier is
+  NOT withdrawn.
+
+**Why `skipfix` exists, when `nobox` already passes.** `nobox` proves only that the guard's
+CONDITION is false when the box is empty. It cannot show that the PC-first BLOCK is *why* the
+default run withdrew anything — a reader could reasonably believe the carrier arrived through the
+pre-existing counter-hunt withdraw. ⭐ And the negative is the stronger claim precisely because
+`boxed_hm_learner_pids` is the READER while the disarm sits in the CONSUMER: under this arm
+`H-BOXFOUND` still takes, so the carrier is *provably findable* and *still* not withdrawn.
+(Project rule: *"a claim of the form 'without X the bug survives' is a CLAIM, and the only currency
+this project accepts for it is an arm with X removed."*)
+
+**Measured 2026-09-25** (`evidence/2026-09-25-hmpcfirst-ARM-skipfix.txt`):
+`boxed_hm_learner_pids=['7DBC0999']` (⚠ random per run), `skipfix_carrier_still_boxed=True`,
+`skipfix_carrier_in_party=False`, and `skipfix_party_after` is **five** mon — Skitty was still
+deposited to make room. ⇒ the errand genuinely RAN and simply never used the carrier it already
+owned. That is the user's originally reported break, reproduced on demand.
+
+⛔ **THE FIRST `skipfix` RUN PRINTED NO VERDICT AT ALL** — unbounded, it burned 120,000 frames
+still fleeing wild battles with the errand generator suspended, so neither the grade nor the
+`finally` ever ran. It is now wrapped in `_yield_bounded_by_frames(errand, 30000)`. **An arm whose
+evidence a human must reconstruct from a 12,000-line log is not a graded arm.**
+
+⭐ **A THIRD, UNARMED CHECK belongs beside these two:** run the driver with NO flag on `post_hof_cleared.ss1` (party holds Wailord L75) and it must REFUSE on its premise — measured 2026-09-25, zero readings taken, `ACCEPTANCE: FAIL`, evidence `evidence/2026-09-25-hmpcfirst-VACUITY-REFUSED.txt`. It needs no env flag because the *fixture* is the fault injection.
+
+**Default:** unset ⇒ OFF (both readers).

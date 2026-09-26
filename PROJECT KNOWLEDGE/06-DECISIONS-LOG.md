@@ -7138,3 +7138,43 @@ withdraw is NOT unproven. `--driver boxcounter2` already landed a named mon box�
 ⇒ what remains is a **regression check on the CURRENT sandbox build** (that evidence is
 `--build custom`, 2026-08-17), not a first proof. The user's *"prove it first"* ruling is
 substantially satisfied; one drive re-confirms it.
+
+## 2026-09-25 (later still) — prove the PC-first HM block LOAD-BEARING from PRODUCTION, not from the driver
+
+**Decision:** the `skipfix` fault arm reads its env flag **inside production code**
+(`_hm_pcfirst_disarmed`, `modules/story/early_game.py`), and the PC-first block's condition consults
+it. The driver does not skip its own call.
+
+**Why.** A driver-side switch proves only that *the driver can skip its own call* — it says nothing
+about what production does. The claim being made is *"without this block, the bot fails to use a
+carrier it already owns"*, and this project's standing rule is that such a claim is only payable in
+**an arm with X removed**.
+
+**Rejected alternative — rely on the `nobox` arm alone.** It proves the guard's CONDITION is false
+on an empty box, which is a *different and weaker* statement: it leaves open that the carrier in the
+default run arrived via the pre-existing counter-hunt withdraw. ⭐ The decisive property is that the
+READER (`boxed_hm_learner_pids`) is untouched by the disarm while the CONSUMER is disarmed — so
+under `skipfix` the `H-BOXFOUND` reading **still takes**, and the grade then requires that a
+*provably findable* carrier was *still* not withdrawn.
+
+**Rejected alternative — a git-stash A/B against the pre-fix code.** It would prove the same thing
+once and be unrepeatable, and it cannot be run by a gate or by a future agent. An env arm is
+permanent, cheap and self-documenting.
+
+**Cost accepted:** one conditional in a production hot-ish path, and a registry entry.
+
+---
+
+## 2026-09-25 (later still) — test the HM path with WATERFALL, never SURF
+
+**Decision:** `--driver hmpcfirst` uses **HM07 (Waterfall)** on `fortree_gym_wedge.ss1`.
+
+**Why.** The anchor's value is that **no** party member can learn the HM, making the PC-first branch
+the only route to success — a REAL precondition instead of a fault hook. Surf, the obvious choice,
+**breaks that**: Zigzagoon L3 learns Surf, so `hm_learner_slot` returns a party slot, the block is
+never reached, and the run still prints `PASS`. ⇒ the test would have been **vacuous and green**,
+the worst combination.
+
+**Consequences recorded where they will be read:** the `FIXTURES.md5` entry states that the anchor's
+worth is a property of its PARTY and forbids re-capturing it with a Water-type; the driver asserts
+the premise at runtime and refuses to run if it does not hold.

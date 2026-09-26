@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20975,6 +20975,274 @@ class Ch24RoomMode(BotMode):
 
 
 
+
+class _SkipfixArmDone(Exception):
+    """Clean, non-failure exit for `--driver hmpcfirst`'s `skipfix` arm.
+
+    ⛔ A SENTINEL, NOT AN ERROR. The arm proves a NEGATIVE, so once it has proved it there is
+    nothing further to run — and falling through to the default path's identity checks would fail
+    them BY DESIGN, reporting a defect where the arm actually succeeded."""
+
+
+class HmPcFirstMode(BotMode):
+    """`--driver hmpcfirst` — ⭐ the PC-FIRST HM path, DRIVEN. Built + gated 2026-09-25; never RUN.
+
+    THE USER'S REPORTED BREAK: *"when it needs a pokemon for hm moves, currently it just looks for
+    what it already has and if there is nothing that it has in the party that can be taught the
+    move, it breaks."* The fix makes `ensure_hm_learner_making_room` check the PC first. This drives
+    it.
+
+    ⭐⭐ **THE PRECONDITION IS REAL, NOT MANUFACTURED.** `fortree_gym_wedge.ss1`'s party — Mightyena,
+    Sceptile, Swellow, Skitty, Zigzagoon, Castform — can learn **NO WATERFALL (HM07)**, and the leg
+    asserts that as a PREMISE rather than assuming it. Inject a WAILMER (which can) into a box and
+    the PC-first path is the ONLY way this errand can succeed. ⇒ no fault hook creates the
+    situation, so the run cannot be accused of proving a scenario it invented.
+
+    ⛔ **EVERY CLAIM IS AN IDENTITY.** `boxcounter2` records why: *"on a successful withdraw every
+    count is unchanged, because the make-room deposit cancels the withdraw."* A party that is 6
+    before and 6 after proves NOTHING. The graded claim is that **the injected PID** is in the
+    PARTY and **gone from the BOX**. Counts are printed, never graded.
+
+    ‼ **SNAPSHOT BEFORE INJECTING.** Reading `before_box_pids` after the injection would make the
+    test lie about what it put there.
+
+    ARM: `POKEBOT_HMPCFIRST_FAULT=nobox` — skip the injection. `boxed_hm_learner_pids` must then
+    return `[]` and the PC-first branch must NOT fire. ⚠ The arm STOPS THERE rather than calling
+    the full function, because the hunt behind it spins a 40,000-frame deadline and the arm's
+    subject is the GUARD, not the hunt.
+
+    Run:  PYTHONUTF8=1 py -3.12 -u story_harness.py fortree_gym_wedge.ss1 \\
+              --driver hmpcfirst --frames 400000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "hmpcfirst"
+
+    @staticmethod
+    def available() -> bool:
+        return True
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[hmpcfirst] WHITEOUT #{self.whiteouts} — abort LATCHED.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
+        from modules.items import get_item_by_name
+        from modules.map_data import PokemonCenter
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import (
+            _yield_bounded_by_frames,   # private ON PURPOSE: the arm must bound a REAL errand
+            boxed_hm_learner_pids,
+            ensure_hm_learner_making_room,
+            hm_learner_slot,
+            wait_until_truly_controllable,
+        )
+        from modules.story.pc_trip import box_views
+
+        TAG = "hmpcfirst"
+        FAULT = _os.environ.get("POKEBOT_HMPCFIRST_FAULT", "").strip().lower()
+        R: dict = {}
+        taken: set = set()
+        failure = None
+
+        WANT = ("H-PREMISE", "H-INJECTED", "H-BOXFOUND", "H-WITHDRAWN", "H-SLOT")
+
+        def _box_pids():
+            try:
+                _views, mons = box_views()
+                return {int(m.personality_value) for m in (mons or []) if m is not None}
+            except Exception:  # noqa: BLE001 - an unreadable box is reported, never guessed
+                return set()
+
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        try:
+            yield from wait_until_truly_controllable()
+            item = get_item_by_name("HM07")   # Waterfall
+
+            # ---- PREMISE: the party genuinely cannot learn it, and the box starts empty --------
+            # ‼ SNAPSHOT BEFORE INJECTING — after would describe our own injection as pre-existing.
+            before = _box_pids()
+            party_slot = hm_learner_slot(item)
+            R["hm"] = item.name
+            R["before_box_pids"] = sorted(format(p, "08X") for p in before)
+            R["party_learner_slot_before"] = party_slot
+            R["party"] = [f"{m.species.name} L{m.level}" for m in get_party() if m is not None]
+            if party_slot is not None:
+                raise BotModeError(
+                    f"§hmpcfirst: PREMISE FAILED — party slot {party_slot} can already learn "
+                    f"{item.name}, so the PC-first path would never be reached and this run would "
+                    f"prove nothing. Pick an HM this party cannot learn.")
+            if before:
+                raise BotModeError(
+                    f"§hmpcfirst: PREMISE FAILED — the box is NOT empty before injection "
+                    f"({len(before)} mon). This anchor is documented as having empty boxes; a "
+                    f"pre-existing occupant would make the identity claim ambiguous.")
+            _take_r(R, taken, "H-PREMISE")
+
+            # ---- INJECT a carrier the party cannot match --------------------------------------
+            injected_pid = None
+            if FAULT != "nobox":
+                mon = debug_create_pokemon(species=get_species_by_name("Wailmer"), level=20)
+                where = debug_write_box_slot(mon)
+                yield from wait_for_n_frames(2)   # storage is cached per frame
+                after_inject = _box_pids() - before
+                if len(after_inject) != 1:
+                    raise BotModeError(
+                        f"§hmpcfirst: injection did not put EXACTLY one new mon in the box "
+                        f"(delta={len(after_inject)}, where={where!r}).")
+                injected_pid = next(iter(after_inject))
+                R["injected_pid"] = format(injected_pid, "08X")
+                R["injected_where"] = repr(where)
+                _take_r(R, taken, "H-INJECTED")
+            else:
+                log(f"[{TAG}] ARM nobox — injection SKIPPED on purpose.")
+
+            # ---- THE GUARD SEES IT (or, in the arm, does not) --------------------------------
+            found = boxed_hm_learner_pids(item)
+            R["boxed_hm_learner_pids"] = [format(p, "08X") for p in found]
+            if FAULT == "nobox":
+                if found:
+                    raise BotModeError(
+                        f"§hmpcfirst ARM nobox: with an EMPTY box the guard still returned "
+                        f"{R['boxed_hm_learner_pids']} — it is not reading the box it claims to.")
+                log(f"[{TAG}] ARM nobox: boxed_hm_learner_pids=[] as required; the PC-first branch "
+                    f"cannot fire. ⛔ STOPPING HERE — the hunt behind it spins a 40,000-frame "
+                    f"deadline and is NOT this arm's subject.")
+                _take_r(R, taken, "H-BOXFOUND")
+            else:
+                if injected_pid not in set(found):
+                    raise BotModeError(
+                        f"§hmpcfirst: the guard did not find the injected carrier. "
+                        f"injected={R['injected_pid']} found={R['boxed_hm_learner_pids']}")
+                _take_r(R, taken, "H-BOXFOUND")
+
+                # ---- ARM skipfix: BOUND IT, AND GRADE THE NEGATIVE --------------------------
+                # ⭐ The reader is untouched by the disarm — H-BOXFOUND above already proved the
+                # carrier is FINDABLE. So the only thing left to show is that the errand did not
+                # USE it. ⛔ Bounded, because with the block removed the hunt does not terminate:
+                # the unbounded first run burned 120,000 frames and printed no verdict at all.
+                if FAULT == "skipfix":
+                    _errand = ensure_hm_learner_making_room(
+                        item, (PokemonCenter.FortreeCity,))
+                    _finished = yield from _yield_bounded_by_frames(_errand, 30000)
+                    _box_sf = _box_pids()
+                    _party_sf = {int(m.personality_value)
+                                 for m in get_party() if m is not None}
+                    R["skipfix_errand_finished"] = _finished
+                    R["skipfix_carrier_still_boxed"] = injected_pid in _box_sf
+                    R["skipfix_carrier_in_party"] = injected_pid in _party_sf
+                    R["skipfix_party_after"] = [
+                        f"{m.species.name} L{m.level}" for m in get_party() if m is not None]
+                    if injected_pid in _party_sf or injected_pid not in _box_sf:
+                        raise BotModeError(
+                            f"\u00a7hmpcfirst ARM skipfix: the carrier moved ANYWAY with the "
+                            f"PC-first block disarmed \u21d2 the block is NOT what withdrew it, and "
+                            f"the default run's PASS is attributable to some other path. "
+                            f"in_party={injected_pid in _party_sf} "
+                            f"still_boxed={injected_pid in _box_sf}")
+                    log(f"[{TAG}] ARM skipfix: the carrier is FINDABLE (H-BOXFOUND took) and was "
+                        f"still NOT withdrawn in 30,000 frames \u21d2 the PC-first block is "
+                        f"LOAD-BEARING, not merely present.")
+                    _take_r(R, taken, "H-SKIPFIX-NOWITHDRAW")
+                    raise _SkipfixArmDone()
+
+                # ---- DRIVE THE REAL ERRAND ---------------------------------------------------
+                slot = yield from ensure_hm_learner_making_room(
+                    item, (PokemonCenter.FortreeCity,))
+                R["returned_slot"] = slot
+
+                # ⛔ IDENTITY, NOT COUNT. The make-room deposit cancels the withdraw, so party size
+                # is 6 before and 6 after on a SUCCESS. Only the PID proves anything.
+                party_now = {int(m.personality_value): m for m in get_party() if m is not None}
+                box_now = _box_pids()
+                R["party_pids_after"] = sorted(format(p, "08X") for p in party_now)
+                R["box_pids_after"] = sorted(format(p, "08X") for p in box_now)
+                R["party_size_after"] = len(party_now)   # reported, NEVER graded
+                in_party = injected_pid in party_now
+                gone_from_box = injected_pid not in box_now
+                R["carrier_in_party"] = in_party
+                R["carrier_gone_from_box"] = gone_from_box
+                if not (in_party and gone_from_box):
+                    raise BotModeError(
+                        f"§hmpcfirst: the carrier did not move BOX→PARTY. in_party={in_party} "
+                        f"gone_from_box={gone_from_box} injected={R['injected_pid']}. ‼ Both halves "
+                        f"are required: present in the party AND absent from the box.")
+                _take_r(R, taken, "H-WITHDRAWN")
+
+                if slot is None or party_now.get(injected_pid) is not get_party()[slot]:
+                    raise BotModeError(
+                        f"§hmpcfirst: the returned slot {slot!r} does not point at the withdrawn "
+                        f"carrier. A slot that names a different mon would be taught the HM.")
+                _take_r(R, taken, "H-SLOT")
+        except _SkipfixArmDone:
+            # ⚠ NOT a failure: the arm finished everything it set out to prove and must not fall
+            # through into the default path's identity checks, which it would fail BY DESIGN.
+            log(f"[{TAG}] ARM skipfix complete.")
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            from modules.story.early_game import reraise_if_aborting
+
+            try:
+                reraise_if_aborting(error)
+            except Exception:  # noqa: BLE001 - the abort itself
+                failure = "StoryAbort (whiteout)"
+            else:
+                failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — the injected mon does not persist.")
+            except Exception as restore_error:  # noqa: BLE001 - loud, never replaces the verdict
+                log(f"[{TAG}] ⛔⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        want = {
+            "nobox": ("H-PREMISE", "H-BOXFOUND"),
+            "skipfix": ("H-PREMISE", "H-INJECTED", "H-BOXFOUND", "H-SKIPFIX-NOWITHDRAW"),
+        }.get(FAULT, WANT)
+        missing = sorted(set(want) - taken)
+        ok = (not missing) and failure is None and getattr(self, "whiteouts", 0) == 0
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing} failure={failure}")
+        # ⛔ THE CLAIM IS PER-ARM. One arm-independent sentence here printed "...is found
+        # in the box and withdrawn" under `skipfix`, whose entire point is that NOTHING is.
+        _claim = {
+            "nobox": ("with an EMPTY box the guard returns [] and the PC-first branch CANNOT "
+                      "fire — the branch is conditional on genuinely owning a carrier"),
+            "skipfix": ("the carrier is FINDABLE yet stays BOXED once the PC-first block is "
+                        "disarmed — so that block is LOAD-BEARING, not merely present"),
+        }.get(FAULT,
+              ("a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, "
+               "PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only "
+               "identity shows it happened"))
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(ARM={FAULT or 'default'}; {_claim})")
+        context.set_manual_mode()
+
+
+
+
+def _take_r(report: dict, taken: set, name: str) -> None:
+    """Record a reading AT ITS TAKE POINT, and keep the ORDER — a set cannot tell you which
+    reading came first, and 'got the carrier, then proved it' is not the same claim as the
+    reverse."""
+    taken.add(name)
+    report.setdefault("reading_order", []).append(name)
+
+
+
 class Ch24GauntletMode(BotMode):
     """`--driver ch24gauntlet` — ⭐⭐ THE WHOLE OF §Ch24 IN ONE RUN: outside the League → a cleared game.
 
@@ -25266,6 +25534,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24BridgeMode()
         elif args.driver == "ch24champion":
             context.bot_mode_instance = Ch24ChampionMode()
+        elif args.driver == "hmpcfirst":
+            context.bot_mode_instance = HmPcFirstMode()
         elif args.driver == "ch24gauntlet":
             context.bot_mode_instance = Ch24GauntletMode()
         elif args.driver == "ch24icebeam":

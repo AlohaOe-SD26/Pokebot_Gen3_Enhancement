@@ -21758,3 +21758,88 @@ OWN TOOL CALL, BEFORE THE COMMIT CALL.** Bundling message-authoring with the com
 refusal of the commit silently discards the message — and the retry then looks like it has one.
 *(This is the same family as the rule that produced the hook in the first place: a READ and an
 ACTION, or here an AUTHORING step and an ACTION, must not share a call.)*
+
+## 2026-09-25 (later still) — five mistakes from driving the PC-first HM path, all in the INSTRUMENT
+
+‼ The subject under test was correct on its first run. **Every defect below was in the test or the
+edit tooling** — which is the shape this file keeps recording, and the reason it keeps recording it.
+
+### 1. ⛔ THE ACCEPTANCE BANNER LIED UNDER TWO OF THREE ARMS
+**Symptom:** all three arms printed *"a carrier we ALREADY OWN is found in the box and withdrawn"*.
+**Root cause:** the claim sentence was arm-independent prose in a single `log()`. Under `nobox`
+nothing was injected; under `skipfix` the carrier is deliberately NOT withdrawn — that is the entire
+point of the arm.
+**Why it matters more than it looks:** grepping the committed evidence for `ACCEPTANCE: PASS` would
+have returned three lines all asserting a withdraw, and **the two that did not withdraw are exactly
+the two that make the first one mean anything.**
+**Fix:** `_claim` is now a per-arm dict; each arm states its own, different claim.
+**Prevention rule:** ⛔ **A VERDICT LINE IS A HEADLINE, AND A FAULT ARM'S HEADLINE IS NOT THE HAPPY
+PATH'S.** If a driver has arms, its acceptance sentence must be arm-dependent or it is false for
+every arm but one.
+
+### 2. ⛔ AN UNBOUNDED FAULT ARM PRINTED **NO VERDICT AT ALL**
+**Symptom:** the first `skipfix` run exited 0 and logged nothing from the driver.
+**Root cause:** with the block disarmed the errand does not terminate — it hunts. The harness frame
+budget (120,000) expired while the generator was still suspended, so neither the grade nor the
+`finally` (and so not the fixture restore) ever ran. Its evidence existed only as a party roster
+buried in a 12,000-line log.
+**Fix:** `_yield_bounded_by_frames(errand, 30000)`, then grade the NEGATIVE explicitly.
+**Prevention rule:** ⛔ **AN ARM WHOSE EVIDENCE A HUMAN MUST RECONSTRUCT FROM A LOG IS NOT A GRADED
+ARM.** A skip-the-fix arm removes the thing that makes the errand terminate — so it must be bounded
+by construction, never by the harness budget.
+**‼ AND IT HAS A SECOND ROUTE, FOUND BY THE TIER 1 REVIEWER ON THIS SAME ITEM:** having bounded the
+INNER loop, I then wrote a handoff recipe printing ONE command at `--frames 30000` while naming
+`skipfix` in the same sentence — and that arm prints its verdict at **f30426**, so the copied command
+dies on the harness's OUTER cap with no verdict. ⇒ **BOUNDING ONE LOOP AND DOCUMENTING THE OTHER IS
+NOT THE SAME AS MAKING THE ARM REPRODUCIBLE.** Every arm gets its OWN complete command; a per-arm
+frame ceiling mentioned in parentheses is not a runnable instruction.
+
+### 3. ⛔ `str.replace(old, new, 1)` WITH NO ASSERT — A SILENT NO-OP
+**Symptom:** `--driver hmpcfirst` was rejected by argparse: *"invalid choice"*.
+**Root cause:** the registration line was `s.replace('"ch24gauntlet",', ...)` but the choices list
+ends `"ch24gauntlet"])` — **no trailing comma**. `replace` matched nothing and returned the string
+unchanged. Every OTHER edit in that same script asserted its anchor count; this one line did not.
+**Prevention rule:** ⛔ **EVERY ANCHORED EDIT ASSERTS ITS MATCH COUNT — NO EXCEPTIONS, INCLUDING THE
+ONE-LINERS.** A patch script without an assert does not fail; it succeeds at doing nothing, and the
+failure surfaces somewhere unrelated.
+
+### 4. ⛔ AN ANCHOR THAT MATCHED **83 TIMES**, AIMED AT ONE DRIVER
+**Symptom:** fixing mistake 1, the anchor `log(f"[{TAG}] ACCEPTANCE: ` scored **83** — every driver
+in `story_harness.py` logs that line. Unscoped, the edit would have rewritten **a different
+driver's verdict line**, leaving both wrong and the wrong one silent.
+**Also, the attempt before it scored 0** — it quoted a backslash-escaped `\u2014` while the file
+holds the real em-dash.
+**Fix:** slice the region between `class HmPcFirstMode` and the next top-level `def`, and assert
+uniqueness THERE.
+**Prevention rule:** ⛔ **IN A 25,000-LINE FILE OF NEAR-IDENTICAL DRIVERS, SCOPE THE ANCHOR TO ITS
+CLASS BEFORE MATCHING, AND ASSERT UNIQUENESS INSIDE THAT SCOPE.** A global-unique assert is what
+turned a silent cross-driver corruption into a loud, cheap failure — it is the only reason this is
+a note here rather than a defect in another driver.
+
+### 5. ⛔ THE DOCS QUOTED A PID THAT WAS NOT IN THE COMMITTED EVIDENCE
+**Symptom:** `07-CHANGELOG.md` and `29-DISABLED-FEATURES-REGISTRY.md` cited
+`boxed_hm_learner_pids = ['EA0300DF']` and `['37D27792']`. The committed evidence files hold
+`F12C7BDE` and `7DBC0999`. **Zero overlap.**
+**Root cause:** the numbers were transcribed from the FIRST runs. Mistake 1 above then forced all
+three arms to be re-run, which overwrote the evidence files — and `debug_create_pokemon` rolls a
+**fresh random personality value every run**, so every PID changed. The prose was never re-read
+against the file it now shipped beside.
+**How it was caught:** the story-drive rule *"grep the committed file for the line your claim rests
+on"*. It earned its keep on its first application here — a reader grepping the evidence for the
+quoted PID would have found nothing and reasonably concluded the claim was invented.
+**Fix:** both values corrected, AND the prose now states that the PID is random per run and that
+the durable claim is the IDENTITY RELATION, never the literal value.
+**Prevention rule:** ⛔⛔ **RE-RUNNING AN ARM INVALIDATES EVERY NUMBER ALREADY WRITTEN ABOUT IT.**
+After any re-run, re-grep the evidence for every literal quoted in the docs. ⭐ And prefer to quote
+the RELATION (*"the PID we injected is the one that moved"*) over the VALUE — a value regenerated
+by the fixture tooling is not a fact about the system, and writing it as though it were creates a
+citation that rots on the next run.
+
+### ⭐ AND ONE NEAR-MISS THAT COST NOTHING, BECAUSE IT WAS CHECKED OFFLINE FIRST
+**Surf was the obvious HM to test with, and it would have made the whole drive VACUOUS** —
+Zigzagoon L3 learns Surf, so `hm_learner_slot` returns a party slot and the PC-first block is never
+reached, while the run still prints PASS. Caught by resolving the learnsets against
+`modules/data/species.json` (Waterfall = move 127) **before spending a frame**.
+**Prevention rule:** ⭐ **WHEN A TEST'S VALIDITY RESTS ON A DATA FACT, RESOLVE THAT FACT OFFLINE
+AGAINST THE DATA FILE BEFORE RUNNING — and have the driver ASSERT it at runtime as well.** The
+offline check is cheap; the runtime assert is what protects the test after the fixture drifts.

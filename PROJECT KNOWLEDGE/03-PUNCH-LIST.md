@@ -3526,18 +3526,24 @@ region, where "train near the gym" is actively wrong.
       the exact tiles from validated-run debug logs), wait bounded (~1 lap) for
       the NPC to transit adjacent, face-tap+A; on one failure fall back to the
       full observe-then-park. Keeps the proven adaptive path as the safety net.
-- [ ] #24-hm-slaves — HM CARRIER ARCHITECTURE (user directive 2026-07-22 night):
-      HMs are infinite-use but unremovable without the Lilycove MOVE DELETER
-      (free; the Heart Scale is for Fallarbor''s Move RELEARNER — different NPC).
-      Near-term policy: Marshtomp carries Rock Smash + later Strength (learns
-      both; physical-type moves suit its Attack — a working mule, not a dead
-      slot). Longer-term: dedicated HM slave(s) (Zigzagoon: Cut/Rock Smash/
-      Strength/Surf) parked in the POKEMON PC — which requires PC deposit/
-      withdraw MACHINERY (party-slot management UI flow) built BEFORE the
-      Surf-era chapters (~Ch13+, Route 118 gate). Also: some moves are
-      overworld-usable from the party menu (Dig, Teleport, Flash, Sweet Scent)
-      — useful shortcuts (Teleport-to-PC, Dig-out-of-caves) worth wiring into
-      travel logic once carriers exist.
+- [~] #24-hm-slaves / `#24-hmpcfirst` — HM CARRIER ARCHITECTURE — ⚠ **MIXED: the WITHDRAW half
+      SHIPPED 2026-09-25; the CATCH half and centre-CHOICE are OPEN.** *(User 2026-07-22 night,
+      widened 2026-09-25: "freely use pokemon in the pokemon PC ... as well as catch new pokemon".)*
+      - [x] ✅⭐ **PC-FIRST WITHDRAW — BUILT, DRIVEN AND ARMED.** This item's OWN prerequisite
+        ("requires PC deposit/withdraw MACHINERY ... BEFORE the Surf-era chapters") is met:
+        `ensure_hm_learner_making_room` checks `boxed_hm_learner_pids` before hunting.
+        `--driver hmpcfirst` on `fortree_gym_wedge.ss1` (PINNED), 3 arms PASS, evidence
+        `tools/story-dev/evidence/2026-09-25-hmpcfirst-*.txt`. ⛔ Graded on **PID identity
+        only** — party 6→6 and box 1→1, so every COUNT is unchanged.
+      - [ ] ⭐ **CATCH A NEW CARRIER when the PC holds none** — the 2026-09-25 directive's other half; `POKEBOT_HMPCFIRST_FAULT=skipfix` shows the path still derails. Recon: `ai-research-notes/2026-09-25-hm-catch-half-RECON.md` — the hunt EXISTS
+        (`ensure_hm_learner`); widen the curated TABLE, never the INDEX (index rows carry NO tile). ⚠ **ANSWER ONE QUESTION FIRST:** `story_mode.py:3368`'s `not is_shiny` makes the HM branch DEFER on a shiny — prove where that shiny GOES, or *"not duplicates unless shiny"* silently breaks.
+      - [ ] **CHOOSE A REACHABLE CENTRE.** `heal_centers` is a hand-written tuple per call site
+        whose own docstring admits the order is *"a judgement call ... not a measured distance"*.
+        ⭐⭐ **DO NOT BUILD A REACHABILITY ENGINE — ONE EXISTS AND IS WIRED**: `region_reach`'s
+        `is_map_reachable(map, max_hops=, **caps)` (capability-gated, fail-safe False) at
+        `story_mode.py:1269`; the gap is only that centre selection ignores it. The 27 centres
+        (13 story-used) are listed in `ai-research-notes/2026-09-25-pokecenter-inventory.md`.
+      - [ ] From 2026-07-22: overworld party moves (Dig/Teleport/Flash/Sweet Scent) as travel shortcuts; removing an HM needs the Lilycove MOVE DELETER (free).
 - [ ] #24-knowledge-base — DEEP GAME KNOWLEDGE BASE (user directive 2026-07-22
       night): per-chapter, during mapping: route items (visible + HIDDEN, both
       in decomp map.jsons), puzzles, secrets, legendary unlock chains + catch
@@ -3546,18 +3552,14 @@ region, where "train near the gym" is actively wrong.
       full species/moves/learnsets/TM-compat — the MOVE-PRIORITY SYSTEM v2
       (#24-movelock: STAB + type coverage + Gen3 physical/special-BY-TYPE
       stat-matching + utility ranking) should QUERY it, not hand-author lists.
-- [ ] #24-event-pokemon — EVENT LEGENDARIES, endgame (user directive 2026-07-22
-      night): Deoxys (Birth Island via AURORATICKET), Mew (Faraway Island via
-      OLD SEA MAP), Jirachi (external event), Latios/Latias roamer choice + the
-      EON TICKET (Southern Island second Lati). These need event-only items that
-      vanilla distributed via Mystery Gift / e-Reader — the bot must obtain them
-      in a way that LOOKS earned and stays quasi-canon (user framing): candidate
-      mechanisms to discuss LATER — Mystery Gift spoofing (emulating the
-      distribution the game natively supports — most authentic), a scripted
-      "delivery man" trigger, or a direct bag write (last resort). Same
-      plan/map/test loop as story chapters + a design discussion with the user
-      on the acquisition theater BEFORE building. Endgame content — schedule
-      after the main story skeleton reaches the Elite Four.
+- [ ] #24-event-pokemon — EVENT LEGENDARIES, endgame (user directive 2026-07-22 night):
+      Deoxys (Birth Island), Mew (Faraway Island), Lugia/Ho-Oh (Navel Rock), Southern-Island Lati,
+      Jirachi. ✅ **VERIFIED 2026-09-25, ENCODED with citations** in
+      `modules/story/protected_encounters.py` (`UNREACHABLE_EVENT_ISLAND`): each is gated on an
+      event-only ticket from `cable_club.inc`'s Mystery-Gift scripts, so **none is reachable on one
+      cartridge** — which is also why the Hall-of-Fame flag-reset tier is MOOT here. ⇒ acquisition
+      needs a DESIGN DISCUSSION WITH THE USER FIRST (Mystery-Gift emulation is the most quasi-canon
+      candidate; a direct bag write is the last resort). ⚠ The roaming Lati is a SEPARATE case.
 - [ ] #24-provisions — HEALING-ITEM PROVISIONING + STRATEGIC HEALING (user
       directive 2026-07-23): alongside Poké Balls, buy POTIONS (the best tier
       available at the local mart — Potion→Super→Hyper→Full Restore as the

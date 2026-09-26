@@ -1,0 +1,70 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\vac.log
+Running mGBA 0.10.2
+[setup] loaded save state post_hof_cleared.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> HmPcFirstMode.run   (state=OVERWORLD)
+[hmpcfirst] FAILURE BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] fixture RESTORED — the injected mon does not persist.
+[hmpcfirst] R before_box_pids = []
+[hmpcfirst] R hm = 'HM07'
+[hmpcfirst] R party = ['Mightyena L77', 'Zigzagoon L19', 'Sceptile L75', 'Swellow L75', 'Wailord L75', 'Castform L36']
+[hmpcfirst] R party_learner_slot_before = 4
+[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] ACCEPTANCE: FAIL (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='                                                                                                                                                                                                                                                                                                            ')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (4, 2)) instr= cb= ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='                                                                                                                                                                                                                                                                                                            ' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (4, 2)) instr= cb= ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='                                                                                                                                                                                                                                                                                                            ' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L77: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6002 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += hmpcfirst 6002 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-25_21-18-32.ss1 created!
+Updated `current_state.ss1`!
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\vac.log
+[setup] loaded save state post_hof_cleared.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> HmPcFirstMode.run   (state=OVERWORLD)
+[hmpcfirst] FAILURE BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] fixture RESTORED — the injected mon does not persist.
+[hmpcfirst] R before_box_pids = []
+[hmpcfirst] R hm = 'HM07'
+[hmpcfirst] R party = ['Mightyena L77', 'Zigzagoon L19', 'Sceptile L75', 'Swellow L75', 'Wailord L75', 'Castform L36']
+[hmpcfirst] R party_learner_slot_before = 4
+[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] ACCEPTANCE: FAIL (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='                                                                                                                                                                                                                                                                                                            ')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (4, 2)) instr= cb= ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='                                                                                                                                                                                                                                                                                                            ' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (4, 2)) instr= cb= ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='                                                                                                                                                                                                                                                                                                            ' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L77:exp457241|Zigzagoon:L19:exp7672|Sceptile:L75:exp441152|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L77: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6002 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += hmpcfirst 6002 recomputes (party_accounting_ledger.jsonl)

@@ -35430,3 +35430,65 @@ NOT raised**; the handlers were removed by asking the type question with `isinst
 `tools/story-dev/selftest_commit_over_gates_hook.py` (new gate),
 `sandbox-pokebot/modules/story/protected_encounters.py`, `tools/story-dev/run_gates.py`,
 `02-ARCHITECTURE.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+## 2026-09-25 (later still) — ⭐⭐ THE PC-FIRST HM PATH IS **DRIVEN**, WITH A LOAD-BEARING ARM (`#24-hmpcfirst`)
+
+**The user's report, verbatim (2026-09-25):** *"currently it just looks for what it already has and
+if there is nothing that it has in the party that can be taught the move, it breaks. I want the bot
+to be able to freely use pokemon in the pokemon PC."*
+
+The fix — a PC-first block in `ensure_hm_learner_making_room` — was built, gated and fault-tested
+OFFLINE earlier today. ⛔ **It had never been RUN.** It has now been driven end to end.
+
+**New: `--driver hmpcfirst`** (`tools/story-dev/story_harness.py`), on the newly-pinned anchor
+`fortree_gym_wedge.ss1`. Three arms, all `ACCEPTANCE: PASS`, evidence committed under
+`tools/story-dev/evidence/2026-09-25-hmpcfirst-ARM-{default,nobox,skipfix}.txt`.
+
+⭐⭐ **THE PRECONDITION IS REAL, NOT MANUFACTURED — that is the point of this anchor.** Its party
+(Mightyena / Sceptile / Swellow / Skitty / Zigzagoon / Castform) can learn **NO WATERFALL (HM07)**,
+and all 14 PC boxes are empty. Inject one Wailmer and the PC-first branch is the ONLY way the
+errand can succeed. ⇒ **no env hook creates the situation**, so the run cannot be accused of proving
+a scenario it invented. The driver asserts both halves of that premise and REFUSES to run otherwise.
+
+‼ **AND THE OBVIOUS HM WOULD HAVE BEEN VACUOUS.** Surf was the natural pick — and **Zigzagoon L3
+learns Surf**, so `hm_learner_slot` would have returned a party slot, the PC-first block would never
+have been reached, and the run would still have printed PASS. Caught OFFLINE against
+`modules/data/species.json` (Waterfall = move 127) before a single frame was spent.
+
+**MEASURED, default arm:**
+* `party_learner_slot_before = None` — the party genuinely cannot learn HM07;
+* `boxed_hm_learner_pids = ['F12C7BDE']` — the injected carrier is found in the box. ⚠ **THE PID IS RANDOM PER RUN** (`debug_create_pokemon` rolls a fresh personality value), so the durable claim is the IDENTITY RELATION — *the PID we injected is the one found and moved* — never this literal value;
+* `carrier_in_party = True` **and** `carrier_gone_from_box = True` — it moved BOX -> PARTY;
+* `returned_slot = 5`, asserted by **object identity** against `get_party()[slot]`;
+* log: *"Story: withdrew Wailmer (pid=F12C7BDE) — it can learn HM07; no hunt needed."*
+* and *"hm-carrier withdraw: starting for 1 hunted PID(s)"* — confirming the `[:1]` discipline
+  (`find_in_box` returns the first BOX-ORDER match, so passing the whole list discards the ranking).
+
+⛔⛔ **EVERY COUNT IS UNCHANGED, AND THAT IS THE WHOLE LESSON.** Party **6 -> 6** (Skitty deposited
+to make room, Wailmer withdrawn) and box **1 -> 1**. A count-based grade reads TRUE when nothing
+happened; `boxcounter2` recorded this trap and this run is its textbook case. **Only PID identity
+shows the event.**
+
+**New fault arms** (`POKEBOT_HMPCFIRST_FAULT`, registered in `29-DISABLED-FEATURES-REGISTRY.md`):
+* `nobox` — no injection; the guard must return `[]` and the branch cannot fire.
+* `skipfix` — **disarms the PC-first block IN PRODUCTION** (`_hm_pcfirst_disarmed`,
+  `modules/story/early_game.py`). MEASURED: `boxed_hm_learner_pids=['7DBC0999']` (still findable),
+  `skipfix_carrier_still_boxed=True`, `skipfix_carrier_in_party=False`, and the party is down to
+  **five** — Skitty was *still* deposited. ⇒ the errand genuinely ran and never used the carrier it
+  already owned. **That is the user's reported break, reproduced on demand.**
+
+⭐ **WHY `skipfix` HAD TO EXIST.** `nobox` proves only that the guard's CONDITION is false on an
+empty box. It cannot show the BLOCK is *why* the default run withdrew anything. And the negative is
+the stronger claim precisely because the reader (`boxed_hm_learner_pids`) is untouched by the
+disarm, which sits in the CONSUMER: under `skipfix`, `H-BOXFOUND` **still takes** — the carrier is
+provably findable and *still* not withdrawn.
+
+⭐⭐ **AND THE PREMISE CONJUNCT WAS TESTED MECHANICALLY, NOT MERELY WRITTEN.** The skill's rule is *"point the driver at its own OUTPUT fixture — if it passes, the grade is measuring nothing"*. This driver restores its fixture, so the equivalent and sharper test was used: point it at an anchor whose party CAN already learn the HM. On `post_hof_cleared.ss1` (**Wailord L75**) it printed `party_learner_slot_before = 4`, took **ZERO readings**, and refused with `ACCEPTANCE: FAIL` — *"PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing"* — while still restoring the fixture. Evidence: `tools/story-dev/evidence/2026-09-25-hmpcfirst-VACUITY-REFUSED.txt`. ⇒ the premise guard is **live code**, so a future fixture drift turns this test RED rather than silently vacuous.
+
+**Also pinned:** `fortree_gym_wedge.ss1` = `87d390d744741511ea6c6aee483f2214`, unpinned since it was
+captured. Its value is a PROPERTY OF ITS PARTY, so drift would be silent and would turn the test
+vacuous rather than red. The manifest entry says so, and says not to re-capture it with a Water-type.
+
+**Not done, and deliberately so:** the rest of the 2026-09-25 HM directive — catching a NEW carrier
+when the PC holds none, knowing where every Poké Center is, and per-chapter traversal knowledge —
+remains OPEN under `#24-hmpcfirst`. Only the *withdraw-what-we-own* half shipped.
