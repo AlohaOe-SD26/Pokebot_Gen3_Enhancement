@@ -1,0 +1,20 @@
+[setup] created profile ch23stageFULL
+[ch23stage] PRE arm=FIX full=True offsets=0..41 step=13 budget=400,000 at=((0, 41), (45, 66))
+[backup] backed up 'ch23stageFULL' (3 files, 1 KB, reason: auto)
+f6511: SAVED stall state #1 to stalls/ch23stageFULL-f6511.ss1 (bt='TYPE/NORMAL')
+f14196: SAVED stall state #2 to stalls/ch23stageFULL-f14196.ss1 (bt='Got away safely!')
+[ch23stage] ROW {'k': 0, 'outcome': 'leg-complete', 'frames': 14930, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': None, 'occupied_by': None, 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+f19930: SAVED stall state #3 to stalls/ch23stageFULL-f19930.ss1 (bt='TYPE/NORMAL')
+f27200: SAVED stall state #4 to stalls/ch23stageFULL-f27200.ss1 (bt='NICK got $560 for winning!')
+[ch23stage] ROW {'k': 10, 'outcome': 'leg-complete', 'frames': 12844, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+f34594: SAVED stall state #5 to stalls/ch23stageFULL-f34594.ss1 (bt='TYPE/NORMAL')
+f42391: SAVED stall state #6 to stalls/ch23stageFULL-f42391.ss1 (bt='Got away safely!')
+[ch23stage] ROW {'k': 14, 'outcome': 'leg-complete', 'frames': 14979, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+[ch23stage] ROW {'k': 18, 'outcome': 'leg-complete', 'frames': 20427, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+[ch23stage] ROW {'k': 25, 'outcome': 'leg-complete', 'frames': 17130, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+[ch23stage] ROW {'k': 28, 'outcome': 'leg-complete', 'frames': 18776, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+[ch23stage] ROW {'k': 41, 'outcome': 'leg-complete', 'frames': 18506, 'end': ((0, 8), (18, 42)), 'reached_r128': True, 'stage_reading': True, 'accepted_at': (101, 25), 'occupied_by': [(9, (101, 26))], 'objects': {}, 'signature': False, 'grade': {'ended_above': True, 'on_apron': True, 'armed4': True, 'can_continue': True}}
+[ch23stage] fixture RESTORED
+[ch23stage] SUMMARY arm=FIX attempts=7 reached_r128=7 signature_k=[] accepted_k=[10, 14, 18, 25, 28, 41] other_raise_k=[] whiteouts=0
+[ch23stage] SUMMARY full_leg_pass_k=[0, 10, 14, 18, 25, 28, 41]
+[ch23stage] PREMISE OK

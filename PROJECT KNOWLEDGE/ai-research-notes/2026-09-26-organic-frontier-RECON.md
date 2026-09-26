@@ -46,7 +46,7 @@ says 30 at Victory Road — false).
     not re-try: Marill into `BENCH_SPECIES` (benching = not trained, still fielded — `04-HANDOFF`);
     training in steps (69 battles, no gain — `08-MISTAKES` 2026-09-08); raising the ceiling (it stands
     in for "can this mon survive that grass").
-* **9 runs — Route 128 `CHANNEL_STAGE (101,26)` unreachable.** `Could not reach (101, 26) on ROUTE128 …
+* ✅ **FIXED 2026-09-26 (`#26-carleestage`; reproduced and A/B-proven, see `2026-09-26-ch23-carleestage-GRADED.md`) — the mechanism below is now MEASURED, not plausible.** **9 runs — Route 128 `CHANNEL_STAGE (101,26)` unreachable.** `Could not reach (101, 26) on ROUTE128 …
   still at (101, 25)`, right after `Route128_EventScript_Carlee`. Decomp mechanism (verifier, PLAUSIBLE —
   Carlee's live position was NEVER READ): Carlee sits at (101,29) `WALK_UP_AND_DOWN` range_y 3, sight 4;
   a trainer that walks up to the player stops and is re-typed to face-direction (`trainer_see.c`

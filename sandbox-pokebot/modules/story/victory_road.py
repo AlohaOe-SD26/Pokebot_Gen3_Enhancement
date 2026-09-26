@@ -68,6 +68,7 @@ from modules.pokemon_party import get_party
 from modules.story.seafloor_cavern import _at, _flag, _on_map, _var, _where
 from modules.story.early_game import (
     StoryAbort,
+    UnreachableDestinationError,
     _check_abort,
     _navigate_riding_out,
     _walk_through_warp,
@@ -594,6 +595,10 @@ FAULT_ARMS = {
     "NOHEAL10": "POKEBOT_CH23_FAULT_NOHEAL10",
     #: leg 11 — skip the purchase, so the "is the basket actually IN the bag?" guard must fire
     "NOBUY": "POKEBOT_CH23_FAULT_NOBUY",
+    #: leg 4 — do NOT accept the tile beside `CHANNEL_STAGE` when a trainer who walked up to us is
+    #: standing on the stage (`#26-carleestage`). The skip-the-fix arm: it must reproduce the organic
+    #: `Could not reach (101, 26)` death on the offsets where the double battle happens.
+    "NOSTAGEFIX": "POKEBOT_CH23_FAULT_NOSTAGEFIX",
 }
 
 
@@ -1426,6 +1431,47 @@ def at_ever_grande_top() -> bool:
     return _on_map(EG) and _here_tile()[1] <= EG_LANDING[1]
 
 
+def _stage_held_by_npc_beside_us(report) -> bool:
+    """True when the channel stage is unreachable ONLY because a trainer who walked up to us is
+    standing on it — the one shape in which "we are beside the stage" is as good as "on it".
+
+    ⛔⛔ WHY THIS EXISTS (`#26-carleestage`, 9 of the 39 badge-8 runs of the 2026-09-15 corpus).
+    Approaching the stage from the north, the bot reaches (101,25), which BOTH Harrison (patrols
+    x=101 y19-25, sight 4) and Carlee (x=101 y26-32, sight 4) can see — the organic log shows a
+    DOUBLE battle there. A trainer who spots the player walks up, STOPS ADJACENT and is re-typed to
+    face-direction (`trainer_see.c`), so Carlee ends ON `CHANNEL_STAGE` and stays until the map
+    reloads. The planner refuses a path to an occupied tile, and `_navigate_riding_out` then
+    fail-fasts ("the field is idle … retrying cannot change the result") — correctly for the
+    world as it reads it, fatally for the run.
+    ✅ The bot is NOT boxed in: the decomp layout has open water x=97..105 on row y=25, and phase 3
+    aims at the waterfall base, which no NPC can stand on. The stage exists only to split the
+    crossing into two diagnosable halves, so the tile BESIDE it serves exactly as well.
+
+    ⛔ DELIBERATELY NARROW: on ROUTE128, Manhattan distance EXACTLY 1 from the stage, and a live
+    object event of this map standing ON the stage. Anything else — a stage refused for any other
+    reason, or from further away — still raises, loudly, as before.
+    """
+    if _fault("NOSTAGEFIX") or not _on_map(R128):
+        return False
+    here = _here_tile()
+    if abs(here[0] - CHANNEL_STAGE[0]) + abs(here[1] - CHANNEL_STAGE[1]) != 1:
+        return False
+    from modules.map import get_map_objects
+
+    occupants = [
+        (o.local_id, tuple(o.current_coords))
+        for o in get_map_objects()
+        if o.local_id != 255                                   # 255 = the player's own object
+        and tuple(o.map_group_and_number) == tuple(R128.value)
+        and tuple(o.current_coords) == CHANNEL_STAGE
+    ]
+    if not occupants:
+        return False
+    report["stage_occupied_by"] = occupants
+    report["stage_accepted_at"] = here
+    return True
+
+
 def cross_to_ever_grande(report=None) -> Generator:
     """LEG 4 — ROUTE126 → 127 → 128 → Ever Grande, climb the waterfall, heal, reach the VR apron.
 
@@ -1496,9 +1542,16 @@ def cross_to_ever_grande(report=None) -> Generator:
     # ⚠ `avoid_encounters=False` on the ocean: it adds +1000 per WATER tile, which on an all-water
     # crossing avoids nothing and only inflates the search.
     if not _on_map(EG):
-        yield from _sampling(
-            _navigate_riding_out(R128, CHANNEL_STAGE, avoid_encounters=False), report)
-        if not _at(R128, CHANNEL_STAGE):
+        try:
+            yield from _sampling(
+                _navigate_riding_out(R128, CHANNEL_STAGE, avoid_encounters=False), report)
+        except UnreachableDestinationError as error:
+            reraise_if_aborting(error)
+            # ⛔ ONLY the measured shape is excused (see `_stage_held_by_npc_beside_us`); every
+            # other refusal propagates exactly as before.
+            if not _stage_held_by_npc_beside_us(report):
+                raise
+        if not _at(R128, CHANNEL_STAGE) and not report.get("stage_accepted_at"):
             raise BotModeError(
                 f"Ch23 leg 4: aimed at the ROUTE128 channel mouth {CHANNEL_STAGE} and ended on "
                 f"{_where()}. maps_seen={sorted(report.get('maps_seen', ()))}"

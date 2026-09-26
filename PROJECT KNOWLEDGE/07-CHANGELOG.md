@@ -35563,3 +35563,61 @@ what the batch will measure.
 `04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (KI-35), `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`,
 `08-MISTAKES.md`, `28-HANDOFF-ARCHIVE.md` (`#24-league2f` archived verbatim, R3 budget),
 `40cakes repo/UPDATE-LOG.md` (upstream now 3 commits ahead; user ruling: stay parked).
+
+
+## 2026-09-26 (later) — ✅✅ `#26-carleestage`: THE ROUTE 128 STAGE DEATH IS REPRODUCED, FIXED AND A/B-PROVEN — ALL SIX PRE-REGISTERED PREDICTIONS CONFIRMED
+
+**THE DEFECT.** 9 of the 39 badge-8 organic runs of 2026-09-15 died in §Ch23 leg 4 with
+`UnreachableDestinationError: Could not reach (101, 26) on ROUTE128 … still at (101, 25)`, five derails
+in a row, then the endless reset. The organic log shows a DOUBLE battle at (101,25)
+(`UseMoveAgainstRightSideOpponent`).
+**THE MECHANISM (now MEASURED):** approaching `CHANNEL_STAGE (101,26)` along row y=25, the bot enters
+(101,25), which BOTH Harrison (local 10, patrols x=101 y19-25, sight 4) and Carlee (local 9, x=101 y26-32,
+sight 4) can see. Both walk up and stop ADJACENT — Harrison (101,24), Carlee (101,26) — and stay until the
+map reloads. The planner refuses a path to an occupied tile; `_navigate_riding_out` fail-fasts. ✅ The bot is
+NOT boxed in (decomp layout: row y=25 is open water x=97..105); only its exact target is occupied.
+
+**THE FIX** (`sandbox-pokebot/modules/story/victory_road.py`): phase 2 of `cross_to_ever_grande` catches
+`UnreachableDestinationError` (after `reraise_if_aborting`) and accepts the current tile as the stage only
+via `_stage_held_by_npc_beside_us` — on ROUTE128, Manhattan distance EXACTLY 1 from the stage, and a live
+ROUTE128 object (not the player) standing ON it. Everything else still raises. Skip-the-fix arm:
+`POKEBOT_CH23_FAULT_NOSTAGEFIX=1` (registered in `29`).
+
+**THE PROOF** (`--driver ch23stage`, NEW — replays PRODUCTION's leg 4 from `post_depart_sootopolis.ss1`
+over idle offsets k·13 frames; predictions committed first in `71f68287`):
+* NOFIX, 48 offsets: the organic signature on **k=10,14,18,25,28,41** (6/48), Carlee on (101,26) and
+  Harrison on (101,24) every time.
+* FIX, same 48: those same 6 **accepted at (101,25)** (occupant local 9); **the other 42 BIT-IDENTICAL**
+  across arms (outcome, end tile, frame count, object positions) ⇒ inert on the ordinary path.
+* FULL leg on the 6 + control k=0: all **complete to `VR_APRON (18,42)`** with ended-above, on-apron,
+  respawn-armed and a non-zero continuation path; 0 whiteouts; 12,844-20,427 frames.
+Evidence: `tools/story-dev/evidence/2026-09-26-ch23stage-{NOFIX,FIX,FULL}.txt` + `.stdout-excerpt.txt`.
+Graded: `ai-research-notes/2026-09-26-ch23-carleestage-GRADED.md`.
+
+**LIMITS.** 12.5 % is one fixture/one party replayed — a MECHANISM test, not an organic rate (rule 8).
+Five of the nine organic cases carried Marill L13 ⇒ until `#24-ch23training` is fixed, most of these runs
+will now die one leg later, at the training refusal. Sandbox only, not promoted.
+
+**FILES:** `sandbox-pokebot/modules/story/victory_road.py`, `tools/story-dev/story_harness.py`
+(`Ch23StageMode`; its `on_whiteout` now latches the story abort and the sweep clears it per attempt — review finding, no whiteout occurred in any evidence run), `tools/story-dev/evidence/2026-09-26-ch23stage-*`
+(6 files), `PROJECT KNOWLEDGE/ai-research-notes/2026-09-26-ch23-carleestage-GRADED.md`, `03`, `04`, `07`, `08`,
+`29`, the recon note.
+
+
+## 2026-09-26 (later) — `#24-ch23training` (STILL OPEN): a 9-agent DESIGN PANEL, and the ONE arm that gates it, pre-registered
+
+**WHY.** 30 of the 39 badge-8 organic runs of 2026-09-15 died on this refusal; seven fixes had been refuted
+over three weeks, and one refutation (stepping) was later withdrawn. A panel was run before any code:
+four read-only researchers (history re-checked at HEAD, code map, decomp sizing, user rulings), three
+independent designers (minimal / structural / risk-first), two adversarial judges.
+**RESULT (a NOTE, not truth — `ai-research-notes/2026-09-26-ch23training-DESIGN.md`):** both judges picked
+**CHUNKED training** (bounded chunks, each ≤250k estimated, each inside a real-frame purse) over a
+Fly-ladder-first design (≤17/30, ~500 lines) and a core-of-four bench (the refuted bench in a new form).
+⛔ **GATED ON ONE UNMEASURED FACT:** does PRODUCTION swap-training bank EXP for a L13 mule against L36-40
+wilds (+27; never observed above +6)? Predictions for that probe are pre-registered in
+`ai-research-notes/2026-09-26-ch23-swapprobe-PREDICTIONS.md` (S0-S5, incl. a no-swap control).
+⭐ Also established: a perfect §Ch23 fix still strands 27 of 30 runs at §Ch24 without a PRODUCTION Fly
+teach (their bench mons below L39 have no Fly-free ground) ⇒ a Fly recon is running as the next item.
+⚠ Two user-ruling tensions are recorded in the note (the 2026-09-18 money REVERSAL; the 2026-09-19
+level-appropriate-ground ruling) and go to the user once the probe says whether the design is viable.
+**FILES:** the two notes above, the `#24-ch23training` stub in `03`, the handoff first action in `04`.

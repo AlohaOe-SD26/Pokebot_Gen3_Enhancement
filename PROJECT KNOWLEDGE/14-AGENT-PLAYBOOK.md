@@ -438,6 +438,20 @@ seen red is a gate nobody has tested.
 
 ---
 
+### 3c. ‼ A RARE ORGANIC FAILURE: SWEEP TIMING FROM ONE FIXTURE, DO NOT WAIT FOR IT (added 2026-09-26)
+
+When a failure shows up in some organic runs but never in the fixture drive that "proved" the leg,
+the difference is usually **NPC phase / RNG at arrival**, not code. ⇒ Reload the SAME fixture per
+offset k, idle `k·step` frames (every idle frame shifts RNG and every patrol), then drive the
+PRODUCTION leg and log where the actors end up. `--driver ch23stage` is the template
+(`Ch23StageMode`): per-offset `load_save_state` + `state_cache.reset()`, the leg stepped by hand so it
+can stop at the reading that matters, a per-attempt frame budget, and one `ROW` line per offset.
+Measured payoff: `#26-carleestage` (9 of 39 organic runs) reproduced on **6 of 48** offsets in minutes.
+⭐ Run the skip-the-fix arm over the SAME offsets: the reproducing offsets must flip, and **every other
+offset must be BIT-IDENTICAL** (outcome, end tile, frame count, object positions) — that is the
+ordinary-case A/B for free. ⛔ The hit rate is ONE party on ONE approach replayed — a MECHANISM test,
+never an organic frequency (CLAUDE.md rule 8).
+
 ## 4. Story-mapping method (how to build a new chapter)
 
 **MAP FIRST, then build, then validate.** (Hard-won: Rustboro cost us dearly by building

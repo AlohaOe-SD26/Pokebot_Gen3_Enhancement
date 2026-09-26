@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13263,6 +13263,151 @@ class Ch23CrossMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23StageMode(BotMode):
+    """`#26-carleestage` — REPLAY §Ch23 leg 4's channel STAGING over a sweep of idle offsets.
+
+    WHY A SWEEP, NOT ONE DRIVE. 9 of the 39 badge-8 organic runs of 2026-09-15 died at
+    `Could not reach (101, 26) on ROUTE128 … still at (101, 25)` after a DOUBLE battle with Carlee
+    (local 9) and Harrison (local 10), who both patrol the x=101 column. Whether the bot meets them
+    together depends on their patrol PHASE when it arrives, i.e. on RNG and timing. ⇒ reload the SAME
+    fixture per offset k, idle `k*STEP` frames (shifting RNG and the patrols), then drive
+    PRODUCTION's `cross_to_ever_grande` — not a copy — and read where everyone ends up.
+
+    Pre-registered: `ai-research-notes/2026-09-26-ch23-carleestage-PREDICTIONS.md`.
+    Skip-the-fix arm (production-side): `POKEBOT_CH23_FAULT_NOSTAGEFIX=1`.
+
+    Env: `CH23STAGE_OFFSETS` "a-b" inclusive and/or a comma list, e.g. "10,14,18" (default 0-23) · `CH23STAGE_STEP` idle frames per k
+    (default 13) · `CH23STAGE_FULL=1` runs the WHOLE leg instead of stopping at `R4-STAGE` ·
+    `CH23STAGE_BUDGET` frames per attempt (default 40,000 staging / 400,000 full).
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_depart_sootopolis.ss1 --driver ch23stage --frames 1500000
+    """
+
+    CARLEE, HARRISON = 9, 10
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Stage"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ Defaults to False, WHICH DROPS THE BOT and discards the generator — so no verdict prints.
+        # ⛔ AND LATCH THE STORY ABORT, as `StoryMode.on_whiteout` does, so the production generator
+        # UNWINDS at its next `_check_abort()` instead of being stepped on after a respawn (review
+        # 2026-09-26). ‼ Never a one-way door: `run()` clears the latch before every attempt and at
+        # the end (`StoryWhiteoutRecoveryMixin`'s docstring explains why a latch nobody clears is
+        # worse than none). A whiteout therefore ENDS that offset's attempt — which is a reading.
+        from modules.story.early_game import set_story_abort
+
+        set_story_abort(True)
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23stage] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def run(self):
+        from modules.map import get_map_objects
+        from modules.story import victory_road as VR
+        from modules.story.early_game import set_story_abort, wait_until_truly_controllable
+
+        TAG = "ch23stage"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        full = _os.environ.get("CH23STAGE_FULL") == "1"
+        offsets = []
+        for part in _os.environ.get("CH23STAGE_OFFSETS", "0-23").split(","):   # "0-23" or "10,14,18"
+            lo, _, hi = part.strip().partition("-")
+            offsets.extend(range(int(lo), int(hi or lo) + 1))
+        step = int(_os.environ.get("CH23STAGE_STEP", "13"))
+        budget = int(_os.environ.get("CH23STAGE_BUDGET", "400000" if full else "40000"))
+        arm = "NOSTAGEFIX" if _os.environ.get("POKEBOT_CH23_FAULT_NOSTAGEFIX") == "1" else "FIX"
+        fixture = None if FRESH else state_path.read_bytes()
+        log(f"[{TAG}] PRE arm={arm} full={full} offsets={offsets[0]}..{offsets[-1]} step={step} "
+            f"budget={budget:,} at={VR._where()}")
+
+        def _channel_objects():
+            out = {}
+            try:
+                for o in get_map_objects():
+                    x, y = tuple(o.current_coords)
+                    if (o.local_id != 255 and tuple(o.map_group_and_number) == tuple(VR.R128.value)
+                            and 95 <= x <= 107 and 16 <= y <= 34):
+                        out[o.local_id] = (x, y)
+            except Exception as error:  # noqa: BLE001 - an unreadable object table is a reading
+                out["error"] = str(error)
+            return out
+
+        rows = []
+        for k in offsets:
+            row = {"k": k}
+            report: dict = {"readings": set(), "trace": []}
+            start = None
+            set_story_abort(False)        # a previous attempt's whiteout must not abort this one
+            try:
+                if fixture:
+                    context.emulator.load_save_state(fixture)
+                    state_cache.reset()   # ⛔ never read a previous attempt's cached party/map
+                yield from wait_until_truly_controllable()
+                for _ in range(k * step):
+                    yield
+                start = context.emulator.get_frame_count()
+                gen = VR.cross_to_ever_grande(report)
+                outcome = None
+                try:
+                    while True:
+                        try:
+                            next(gen)
+                        except StopIteration:
+                            outcome = "leg-complete"
+                            break
+                        yield
+                        if not full and "R4-STAGE" in report["readings"]:
+                            outcome = "staged"
+                            break
+                        if context.emulator.get_frame_count() - start > budget:
+                            outcome = "budget"
+                            break
+                finally:
+                    gen.close()
+                row["outcome"] = outcome
+            except Exception as error:  # noqa: BLE001 - a raise IS the reading for this attempt
+                row["outcome"] = f"raised {type(error).__name__}: {str(error)[:170]}"
+            row["frames"] = (context.emulator.get_frame_count() - start) if start is not None else None
+            row["end"] = VR._where()
+            row["reached_r128"] = VR.R128.value in set(report.get("maps_seen", ()))
+            row["stage_reading"] = "R4-STAGE" in report.get("readings", set())
+            row["accepted_at"] = report.get("stage_accepted_at")
+            row["occupied_by"] = report.get("stage_occupied_by")
+            row["objects"] = _channel_objects()
+            row["signature"] = ("Could not reach (101, 26)" in str(row["outcome"]))
+            if full and row["outcome"] == "leg-complete":
+                cont = report.get("continue_wp4")
+                row["grade"] = {"ended_above": VR.at_ever_grande_top(),
+                                "on_apron": VR._at(VR.EG, VR.VR_APRON),
+                                "armed4": report.get("respawn_after4") == VR.EG.value,
+                                "can_continue": isinstance(cont, int) and cont > 0}
+            log(f"[{TAG}] ROW {row}")
+            rows.append(row)
+
+        set_story_abort(False)            # ⛔ never leave the process-global latch set on the way out
+        try:
+            if fixture:
+                context.emulator.load_save_state(fixture)
+                log(f"[{TAG}] fixture RESTORED")
+        except Exception as error:  # noqa: BLE001 - loud, never replaces the verdict
+            log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {error}")
+
+        reached = [r for r in rows if r["reached_r128"]]
+        sig = [r["k"] for r in rows if r["signature"]]
+        accepted = [r["k"] for r in rows if r["accepted_at"]]
+        other = [r["k"] for r in rows if str(r["outcome"]).startswith("raised") and not r["signature"]]
+        log(f"[{TAG}] SUMMARY arm={arm} attempts={len(rows)} reached_r128={len(reached)} "
+            f"signature_k={sig} accepted_k={accepted} other_raise_k={other} whiteouts={self.whiteouts}")
+        if full:
+            done = [r["k"] for r in rows if r.get("grade") and all(r["grade"].values())]
+            log(f"[{TAG}] SUMMARY full_leg_pass_k={done}")
+        # ⛔ PREMISE: a sweep that never reached ROUTE128 measured nothing about the stage.
+        log(f"[{TAG}] PREMISE {'OK' if reached else 'VACUOUS — no attempt reached ROUTE128'}")
+        context.set_manual_mode()
+
+
 class Ch23RoadMode(BotMode):
     """§Ch23 LEG 5 — enter Victory Road 1F, beat Wally, park at the B1F ladder apron.
 
@@ -25248,6 +25393,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23DepartMode()
         elif args.driver == "ch23cross":
             context.bot_mode_instance = Ch23CrossMode()
+        elif args.driver == "ch23stage":
+            context.bot_mode_instance = Ch23StageMode()
         elif args.driver == "ch23road":
             context.bot_mode_instance = Ch23RoadMode()
         elif args.driver == "ch23train":

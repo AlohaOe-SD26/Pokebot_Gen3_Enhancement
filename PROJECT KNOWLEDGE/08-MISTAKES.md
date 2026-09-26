@@ -22023,3 +22023,25 @@ the gate was extended (with a fault arm) and registered. See `07-CHANGELOG.md` 2
   ask why before clamping — the same cause usually produces plausible-looking wrong values too.
 * ⛔ **A REPRO IS NOT A GATE UNTIL `run_gates.py` NAMES IT.** Before writing "gated", `grep` the
   filename in `run_gates.py`.
+
+
+## 2026-09-26 — A NAVIGATION TARGET CHOSEN INSIDE A TRAINER'S PATROL, FROM ONE INSTANT'S "IT'S FREE" (`#26-carleestage`)
+
+**Symptom:** 9 of 39 badge-8 organic runs died at `Could not reach (101, 26) on ROUTE128 … still at (101, 25)`.
+**Root cause:** on 2026-09-03 `CHANNEL_STAGE = (101,26)` was chosen because `calculate_path` returned a
+path to it (32 wp) — a reading taken at ONE instant. The tile lies inside Carlee's patrol (x=101, y26-32)
+and is exactly where she stops when she walks up to a bot at (101,25). ‼ **The code already knew half of
+this:** the same function's comment says `_navigate_riding_out`'s fail-fast "assumes nothing can differ
+between attempts, which is false against a WALKING NPC" — and then aimed it at a tile a walking NPC can
+occupy permanently.
+**Fix:** accept the adjacent tile when (and only when) a live object stands on the stage; A/B-proven with
+a 48-offset sweep (`#26-carleestage`, `07-CHANGELOG.md` 2026-09-26).
+**Prevention rules:**
+* ⛔ **A TILE MEASURED FREE IS FREE AT ONE INSTANT.** Before hardcoding a navigation target, check it
+  against every NPC's MOVEMENT RANGE (`movement_range_x/y` in the map's object events) and against the
+  tile a trainer STOPS ON when it approaches (the tile adjacent to the player along its sight line). If the
+  target can be occupied, the arrival check must tolerate an occupant, or the target must move.
+* ⛔ **A RARE ORGANIC FAILURE IS REPRODUCIBLE BY SWEEPING TIMING, NOT BY WAITING FOR IT.** One fixture
+  replayed over idle offsets reproduced the death on 6 of 48 trajectories in minutes. The 2026-09-03 drive
+  that proved leg 4 ran that fixture with NO offset — on today's code, offset 0 is one of the 42 that never
+  meet it (an inference about 09-03's code, which has changed since, but the lesson does not depend on it).
