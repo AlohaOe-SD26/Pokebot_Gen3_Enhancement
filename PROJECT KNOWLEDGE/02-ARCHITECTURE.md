@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 90 entries = 86 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 91 entries = 87 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -498,7 +498,14 @@ done
   walk to the door when, after training, anyone is below `floor` or a `LEAGUE_BASKET` line is short
   (pure decision `ch24_readiness_shortfall`; gate `probe_ch24_r1_refusal.py`; arms
   `POKEBOT_CH24_FAULT_NOTRAIN` / `POKEBOT_CH24_FAULT_NOREADY`) — until then it only recorded the
-  shortfall and walked in anyway; and `fight_one_room(from_room, hall, to_room, victory_flag)`
+  shortfall and walked in anyway. ⭐ **Then its RETURN BRIDGE (`return_to_league_door`, gap 2)** gets a ready
+  party from wherever training ended back to EVER_GRANDE_CITY (18,6): no-op in the lobby / on (18,6); WALK
+  when the plateau connects (avoiding the (18,27) return trap); else step out of Victory Road, check Fly's
+  preconditions BY NAME, fly to the Pokémon League and ASSERT THE TILE (`fly_to_destination` accepts any
+  landing that moved). Gate `probe_ch24_bridge.py`; arms `POKEBOT_CH24_FAULT_NOBRIDGE` / `…_BRIDGEDEST`.
+  ⭐ **`ensure_fly_learner` (gap 3)** teaches HM02 in `_play` after the §Ch24 latch and before
+  `train_for_league` (learner = compatible AND a non-HM slot, `_fly_learner_slot`; verified by PID; never
+  raises for a missing learner); gate `probe_ch24_flyteach.py`, driver `--driver ch24handoff`; and `fight_one_room(from_room, hall, to_room, victory_flag)`
   (`--driver ch24room`) — the gauntlet's **species-agnostic repeating unit**: dismiss the parked
   victory msgbox → bag heal → room → hall → next room → locate the trainer **LIVE** → engage → win
   (asserted on the defeat FLAG) → prove the exit door is open in the **live** collision grid.

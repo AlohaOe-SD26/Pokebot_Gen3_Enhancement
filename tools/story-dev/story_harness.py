@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22204,7 +22204,9 @@ class Ch24EntryMode(BotMode):
         bridge_rep = leg.get("bridge") or {}
         if EXPECT == "enter" and EXPECT_BRIDGE:
             got_mode = bridge_rep.get("mode")
-            positioned = "B-POSITIONED" in (bridge_rep.get("readings") or set())
+            from modules.story.pokemon_league import RETURN_BRIDGE_READINGS
+
+            positioned = set(RETURN_BRIDGE_READINGS) <= set(bridge_rep.get("readings") or ())
             log(f"[{TAG}] BRIDGE mode={got_mode!r} (expected {EXPECT_BRIDGE!r}) positioned={positioned} "
                 f"start={bridge_rep.get('start')} end={bridge_rep.get('end')} fly={bridge_rep.get('fly', {}).get('arrived')}")
             ok = ok and got_mode == EXPECT_BRIDGE and positioned
@@ -22257,6 +22259,138 @@ class Ch24EntryMode(BotMode):
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (latch, get ready OUTSIDE, get inside, "
             f"ASSERT the guards vacated, and end ON the talk tile with the door open — WITHOUT "
             f"stepping through) SCOPE: floor={FLOOR}" + ("" if FLOOR == _PROD_FLOOR else f" (NOT production's {_PROD_FLOOR} — the readiness half is SCOPED DOWN)") + "; the commitment step and all five fights are NOT in this leg.")
+        context.set_manual_mode()
+
+
+class Ch24HandoffMode(BotMode):
+    """`--driver ch24handoff` — §Ch24's ORGANIC HAND-OFF, in `_play`'s order, stopping at the open door.
+
+    ⭐ WHAT IT DRIVES (`#26-ch24organic` gap 3 + the chain): latch → `ensure_fly_learner` →
+    `train_for_league(floor)` → `prepare_and_open_the_league(floor)` (R1 → the return bridge → the door).
+    That is `story_mode._play`'s §Ch24 sequence minus `run_the_gauntlet`'s commitment step — and
+    `probe_ch24_flyteach.py` pins `_play`'s order (latch < teach < train), so this driver cannot silently
+    drift from production.
+
+    GRADES (`CH24_HANDOFF_EXPECT`):
+      `door`   (default) — Fly known or taught (by PID), every trainee at the floor, the bridge put us on
+               (18,6), R1 passed, and the door is open with the bot on (9,3) — `ACCEPTANCE: PASS`.
+      `refuse` — R1 refused (the control arm with `POKEBOT_CH24_FAULT_NOFLYTEACH=1`): the door stays shut.
+    ‼ Restores the fixture in a `finally` (the entry leg sets `ENTERED_ELITE_FOUR` permanently).
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Handoff"
+
+    def mark_ch24_owns_run(self) -> None:
+        self.latch_calls = getattr(self, "latch_calls", 0) + 1
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24handoff] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.memory import get_event_flag
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, reraise_if_aborting, wait_until_truly_controllable
+        from modules.story.pokemon_league import (
+            CH24_ENTERED_FLAG,
+            RETURN_BRIDGE_READINGS,
+            ch24_trainees_below_floor,
+            ensure_fly_learner,
+            prepare_and_open_the_league,
+            train_for_league,
+        )
+
+        TAG = "ch24handoff"
+        FLOOR = int(_os.environ.get("CH24_HANDOFF_FLOOR", "21"))
+        EXPECT = _os.environ.get("CH24_HANDOFF_EXPECT", "door")
+        if EXPECT not in ("door", "refuse"):
+            raise BotModeError(f"{TAG}: CH24_HANDOFF_EXPECT={EXPECT!r} is not door|refuse")
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        R: dict = {}
+        fly: dict = {}
+        train: dict = {}
+        prep: dict = {}
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+            R["start_at"] = VR._where()
+            R["flag_at_start"] = bool(get_event_flag(CH24_ENTERED_FLAG))
+            below0 = ch24_trainees_below_floor(FLOOR)
+            R["below_before"] = [f"{sp}#{pid:08X} L{lv}" for pid, sp, lv in below0]
+            if R["flag_at_start"] or not below0:
+                raise BotModeError(f"{TAG}: PREMISE FAILED — the door is already open or nobody is below "
+                                   f"L{FLOOR}; this run would pass having done nothing.")
+            log(f"[{TAG}] PRE at={R['start_at']} below={R['below_before']} floor={FLOOR}")
+
+            # ---- _play's order: latch → teach → train → (run_the_gauntlet's) prepare --------------------
+            self.mark_ch24_owns_run()
+            yield from ensure_fly_learner(fly)
+            log(f"[{TAG}] FLY {({k: v for k, v in fly.items() if k != 'readings'})}")
+            yield from VR._budgeted(train_for_league(train, floor=FLOOR), 600_000,
+                                    f"{TAG}: train_for_league(floor={FLOOR})")
+            log(f"[{TAG}] TRAIN rungs={train.get('rungs')} no_ground={train.get('no_ground')} "
+                f"still_below={train.get('still_below')} end={VR._where()}")
+            yield from prepare_and_open_the_league(prep, floor=FLOOR)
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            try:
+                R["flag_final"] = bool(get_event_flag(CH24_ENTERED_FLAG))
+                R["final_at"] = VR._where()
+                R["final_in_lobby"] = bool(VR._on_map(VR.LEAGUE_1F))
+                R["fly_knower"] = next((f"{m.species.name}#{m.personality_value:08X}" for m in get_party()
+                                        if m is not None and any(l is not None and l.move.name == "Fly"
+                                                                 for l in m.moves)), None)
+                R["below_after"] = [f"{sp}#{pid:08X} L{lv}" for pid, sp, lv in ch24_trainees_below_floor(FLOOR)]
+            except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                reraise_if_aborting(read_error)
+                R["flag_final"] = f"<unreadable {type(read_error).__name__}>"
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        prep_readings = prep.get("readings", set())
+        bridge = prep.get("bridge") or {}
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        log(f"[{TAG}] BRIDGE mode={bridge.get('mode')!r} R1 reasons={prep.get('readiness_refusal')} "
+            f"prep_readings={sorted(prep_readings)}")
+        if EXPECT == "door":
+            conj = {
+                "fly_known": fly.get("fly_teach") in ("already", "taught") and R.get("fly_knower") is not None,
+                "trained_to_floor": R.get("below_after") == [],
+                "bridge_positioned": set(RETURN_BRIDGE_READINGS) <= set(bridge.get("readings") or ()),
+                "r1_passed": "E1-READY" in prep_readings,
+                "door_open": R.get("flag_final") is True and "E1-AT-DOOR" in prep_readings,
+                "no_failure": failure is None,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+            }
+        else:
+            conj = {
+                "r1_refused": failure is not None and "§Ch24 R1: REFUSING" in failure,
+                "door_still_shut": R.get("flag_final") is False,
+                "never_inside": "E1-INSIDE" not in prep_readings,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+            }
+        ok = all(conj.values())
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}: teach → train → bridge → R1 → door) "
+            f"SCOPE: floor={FLOOR}; the gauntlet is NOT in this drive.")
         context.set_manual_mode()
 
 
@@ -26049,6 +26183,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24TrainMode()
         elif args.driver == "ch24entry":
             context.bot_mode_instance = Ch24EntryMode()
+        elif args.driver == "ch24handoff":
+            context.bot_mode_instance = Ch24HandoffMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

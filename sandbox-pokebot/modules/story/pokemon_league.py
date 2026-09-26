@@ -2056,8 +2056,115 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
         console.print(f"[bold green]§Ch24: every party member is now at or above L{floor}.[/]")
 
 
+#: The readings `ensure_fly_learner` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
+FLY_TEACH_READINGS = (
+    "F-KNOWN",    # someone already knew Fly — nothing taught (idempotent re-entry)
+    "F-TAUGHT",   # HM02 taught, VERIFIED by PID from the world
+)
+
+
+def _fly_learner_slot(party, item) -> "int | None":
+    """PURE: the party index `ensure_fly_learner` teaches — COMPATIBLE and holding a non-HM slot to spend,
+    highest level first; None if nobody qualifies. ⛔ NOT `hm_learner_slot`, which ranks by level alone and
+    so picks a SATURATED four-HM mon (5 of 6 measured 8-badge parties, `ensure_waterfall_learner`)."""
+    def _is_hm(learned) -> bool:
+        try:
+            m = learned.move
+            return m.tm_hm is not None and m.tm_hm.name.startswith("HM")
+        except Exception:  # noqa: BLE001 - unreadable => NOT provably spendable (ensure_waterfall_learner)
+            return True
+
+    best, best_level = None, -1
+    for i, mon in enumerate(party):
+        if mon is None or getattr(mon, "is_egg", False) or not mon.species.can_learn_tm_hm(item):
+            continue
+        if any(l is None or not _is_hm(l) for l in mon.moves) and mon.level > best_level:
+            best, best_level = i, mon.level
+    return best
+
+
+def ensure_fly_learner(report=None) -> Generator:
+    """`#26-ch24organic` GAP 3 — teach HM02 Fly from the bag if nobody in the party knows it.
+
+    ⛔⛔ WHY IT EXISTS. Production never taught Fly (all six recon agents agreed, code-cited:
+    `ai-research-notes/2026-09-26-ch24-production-fly-RECON.md`). HM02 is in every organic bag from the
+    Route 119 rival on, yet with no knower `can_fly_to_anchor` is always False, so §Ch24's per-trainee Fly
+    ladder could offer only WALKABLE ground — and from the League plateau that is Victory Road 1F alone
+    (band 36-40), leaving every trainee under L39 `no_ground` and the return bridge unable to fly home.
+    ⭐ PLACEMENT (the recon's, adopted): `_play` Segment 24, AFTER the §Ch24 latch and just before
+    `train_for_league`. Teaching earlier would switch the Fly shortcut on for every MID-GAME training pick —
+    a change to ground selection nothing here has measured.
+
+    THE LEARNER — `ensure_waterfall_learner`'s rule, NOT `hm_learner_slot`'s: COMPATIBLE **and** holding a
+    non-HM slot to spend (HMs cannot be forgotten in Gen 3, so a four-HM mon cannot learn anything),
+    highest level first. `teach_hm_move(replace_slot=None)` then picks the slot: a 0-power move first,
+    else the lowest base power, NEVER an HM (its own guard). Verified from the WORLD, BY PID.
+
+    ⚠ NEVER RAISES FOR A MISSING LEARNER OR A MISSING HM02 — it reports and returns. Training can still use
+    walkable ground, R1 refuses an under-levelled party by name, and the return bridge refuses by name if
+    the party ends up off the plateau. Flyer ACQUISITION is gap 5.
+    """
+    import os as _os
+
+    from modules.console import console
+    from modules.items import get_item_bag
+    from modules.story.early_game import teach_hm_move
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    knower = get_party().first_pokemon_with_move("Fly")
+    if knower is not None:
+        report["fly_teach"] = "already"
+        report["fly_knower"] = f"{knower.species.name}#{knower.personality_value:08X}"
+        _take(report, "F-KNOWN")
+        return
+
+    # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOFLYTEACH=1` (registered in `29-…REGISTRY.md`) — the SKIP-THE-FIX
+    # arm: production before 2026-09-26, which never taught Fly.
+    if _os.environ.get("POKEBOT_CH24_FAULT_NOFLYTEACH") == "1":
+        report["fly_teach"] = "fault_skipped"
+        console.print("[magenta]§Ch24: FAULT ARM NOFLYTEACH — not teaching Fly.[/]")
+        return
+
+    hm02 = next((s.item for s in get_item_bag().tms_hms if s.item.name == "HM02" and s.quantity > 0), None)
+    if hm02 is None:
+        report["fly_teach"] = "no_hm02"
+        console.print("[yellow]§Ch24: HM02 (Fly) is not in the bag — cannot teach Fly.[/]")
+        return
+
+    best = _fly_learner_slot(get_party(), hm02)
+    if best is None:
+        report["fly_teach"] = "no_learner"
+        console.print("[yellow]§Ch24: nobody in the party can learn Fly (or every compatible member holds four "
+                      "HM moves) — continuing WITHOUT Fly. Flyer acquisition is `#26-ch24organic` gap 5.[/]")
+        return
+
+    learner = get_party()[best]
+    pid = learner.personality_value
+    before = [l.move.name for l in learner.moves if l is not None]
+    report["fly_learner"] = f"{learner.species.name}#{pid:08X}"
+    console.print(f"[cyan]§Ch24: teaching Fly to {learner.species.name} (slot {best})…[/]")
+    yield from teach_hm_move(hm02, best)
+
+    # ‼ VERIFY BY PID, FROM THE WORLD — never "slot `best` knows Fly" (rule 3: identity, not position).
+    after_mon = next((m for m in get_party() if m is not None and m.personality_value == pid), None)
+    after = [l.move.name for l in after_mon.moves if l is not None] if after_mon is not None else []
+    report["fly_lost"] = [n for n in before if n not in after]
+    if "Fly" not in after:
+        raise BotModeError(f"§Ch24: taught HM02 to {report['fly_learner']} but it does not know Fly afterwards "
+                           f"(moves now {after}).")
+    report["fly_teach"] = "taught"
+    _take(report, "F-TAUGHT")
+    console.print(f"[green]§Ch24: {learner.species.name} learned Fly"
+                  + (f" (lost {', '.join(report['fly_lost'])})" if report["fly_lost"] else "") + "[/]")
+
+
 #: The reading `return_to_league_door` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
-BRIDGE_READINGS = (
+#: ⛔⛔ NOT `BRIDGE_READINGS`: that name already belongs to `enter_the_league` (the E2-* tuple further down),
+#: and a second module-level assignment is SILENTLY SHADOWED by the later one — the code review caught this
+#: constant dead on arrival (2026-09-26). `probe_ch24_bridge.py` B5 now refuses any duplicate `*_READINGS`.
+RETURN_BRIDGE_READINGS = (
     "B-POSITIONED",   # standing on EVER_GRANDE_CITY (18,6) — ASSERTED by tile — or already in the lobby
 )
 
@@ -2092,6 +2199,9 @@ def return_to_league_door(report=None) -> Generator:
     ⇒ ONE flight fixes every off-plateau case: `fly_to_destination(PokemonLeague)` lands at (18,6)
     (measured from (27,49) and from (18,42)). ⛔ But that leg asserts only that the bot MOVED, so the
     TILE is asserted here — a flight that lands anywhere else must not be followed by a walk at a door.
+    ⚠ INDOORS (a Poké Center, League 2F) is NOT walked out of: `_ch24_step_out_if_fly_illegal` handles
+    Victory Road 1F only, so indoors ends in the named refusal "Fly is illegal on this map" — bounded and
+    loud, but not a recovery (code review, 2026-09-26; undriven).
 
     IN ORDER: already in the lobby or on (18,6) ⇒ no-op; on Ever Grande with a real path to (18,6) that
     avoids the Victory Road return trap (18,27) ⇒ WALK; otherwise step out of Victory Road if inside it,

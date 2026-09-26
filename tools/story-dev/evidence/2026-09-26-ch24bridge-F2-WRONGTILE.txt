@@ -1,0 +1,33 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\brev\F2-WRONGTILE.log
+[setup] loaded save state post_ch24ready.ss1; build=sandbox
+[run] starting faithful loop for up to 120000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24EntryMode.run   (state=OVERWORLD)
+[ch24entry] LEG CALLED mark_ch24_owns_run() (#1)
+f348: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_UseFly'] ctrl=Ch24EntryMode.run bt='SCEPTILE gained 465 EXP. Points!' scripts=[] party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24entry] FAILURE BotModeError: §Ch24 bridge: expected to stand on EVER_GRANDE_CITY (18, 6) (the League door apron) after the fly, but we are at LILYCOVE_CITY (24, 15). ⛔ Refusing to walk at a door from the wrong place.
+[ch24entry] fixture RESTORED — current_state.ss1 will not carry this run.
+[ch24entry] R final_at = ('LILYCOVE_CITY(24, 15)', (24, 15))
+[ch24entry] R final_in_lobby = False
+[ch24entry] R final_on_eg = False
+[ch24entry] R flag_at_start = False
+[ch24entry] R flag_final = False
+[ch24entry] R leg = {'latched': True, 'below_floor_before': [], 'below_floor_after': [], 'readiness_refusal': [], 'bridge': {'readings': set(), 'start': ((0, 8), (27, 49)), 'walk_refused': 'PathFindingError: Could not find a path from (27/49 @ EVER_GRANDE_CITY) to (18/6 @ EVER_GRANDE_CITY).', 'fly_missing': [], 'fault_bridgedest': True, 'mode': 'fly', 'fly': {'readings': {'R-FLOWN', 'R-CONTINUE', 'R-FLYABLE'}, 'fly_knower': ('Swellow', 2), 'badge06': True, 'destination_available': True, 'map_type': 'City', 'origin': ((0, 8), (27, 49)), 'arrived': ((0, 5), (24, 15)), 'moved': True, 'party_pids_stable': True, 'neighbours_reachable': 4}, 'fly_finished': True, 'end': ((0, 5), (24, 15))}}
+[ch24entry] R start_at = ('EVER_GRANDE_CITY(27, 49)', (27, 49))
+[ch24entry] RESULT readings=['E1-LATCHED', 'E1-READY', 'T-PREMISE'] missing=['E1-AT-DOOR', 'E1-GUARDS', 'E1-INSIDE', 'T-CONTINUE']
+[ch24entry] RESULT whiteouts=0 failure=BotModeError: §Ch24 bridge: expected to stand on EVER_GRANDE_CITY (18, 6) (the League door apron) after the fly, but we are at LILYCOVE_CITY (24, 15). ⛔ Refusing to walk at a door from the wrong place.
+[ch24entry] BRIDGE conjuncts = {'premise': True, 'raised_bridge': True, 'reason_matches': True, 'r1_not_the_refuser': True, 'door_still_shut': True, 'never_inside': True, 'no_whiteout': True}  bridge={'start': ((0, 8), (27, 49)), 'walk_refused': 'PathFindingError: Could not find a path from (27/49 @ EVER_GRANDE_CITY) to (18/6 @ EVER_GRANDE_CITY).', 'fly_missing': [], 'fault_bridgedest': True, 'mode': 'fly', 'fly': {'readings': {'R-FLOWN', 'R-CONTINUE', 'R-FLYABLE'}, 'fly_knower': ('Swellow', 2), 'badge06': True, 'destination_available': True, 'map_type': 'City', 'origin': ((0, 8), (27, 49)), 'arrived': ((0, 5), (24, 15)), 'moved': True, 'party_pids_stable': True, 'neighbours_reachable': 4}, 'fly_finished': True, 'end': ((0, 5), (24, 15))}
+[ch24entry] ACCEPTANCE: PASS (the return bridge REFUSED for wrongtile; door still shut; never inside) SCOPE: floor=19
+f773: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f773 — ending the loop at f893
+[done] ran 894 frames; final mode=Manual party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Swellow L48: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Ice Beam, Waterfall
+[moveset] Mightyena L48: Strength, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 895 get_party() recomputes, 3 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24entry 895 recomputes (party_accounting_ledger.jsonl)

@@ -22121,3 +22121,25 @@ through the `repro-ml` profile. Nothing was wrong with the change under test.
 `profiles/repro-ml/` into the worktree's (not the 262 MB of logs); all six then PASS.
 **Prevention rule:** ⛔ **READ THE FAILING GATE'S TRACEBACK BEFORE COUNTING IT** — an environment error is not a
 regression. When developing in a worktree, seed `profiles/repro-ml/` first.
+
+## 2026-09-26 — ⛔ A NEW MODULE CONSTANT WAS SILENTLY SHADOWED BY AN OLDER ONE OF THE SAME NAME (caught by review)
+
+**Symptom:** none at runtime — every drive graded correctly. The adversarial code review found that my new
+`BRIDGE_READINGS = ("B-POSITIONED",)` in `pokemon_league.py` was assigned ~950 lines ABOVE `enter_the_league`'s
+existing `BRIDGE_READINGS = ("E2-…",)`, so the later assignment won and mine was dead; my driver hardcoded the
+string (the "private copy" the comment above the constant forbids).
+**Why no drive could show it:** the grades read the leg's own report dict, never the constant.
+**Fix:** renamed `RETURN_BRIDGE_READINGS`, imported by both drivers; `probe_ch24_bridge.py` **B5** fails on any
+module-level `*_READINGS` assigned twice (fault-tested).
+**Prevention rule:** ⛔ **BEFORE NAMING A MODULE CONSTANT, GREP THE MODULE FOR `^NAME =`.** A second top-level
+assignment is not an error in Python — it is a silent overwrite. (Now gated for `*_READINGS` in `pokemon_league.py`.)
+
+## 2026-09-26 — ⛔ A REGEX `sed` ON A SHELL SCRIPT REWROTE EVERY LINE THAT MATCHED ONE ALTERNATIVE
+
+**Symptom:** 7 of 8 re-run drives exited 127; one arm had been renamed `NB-NOgrep`.
+**Root cause:** to change ONE grep line I ran `sed 's/grep -a "ACCEPTANCE\|BRIDGE\|…"/…/'` — in a BRE, `\|` is
+ALTERNATION, so the pattern matched the bare word `BRIDGE` on every run line (`CH24_ENTRY_EXPECT_BRIDGE`,
+`NB-NOBRIDGE`, `…BRIDGEDEST`) and pasted the replacement into each.
+**Fix:** rewrote the runner with the Write tool; re-ran (all eight as predicted). Cost: one ~3-minute batch.
+**Prevention rule:** ⛔ **EDIT A SCRIPT BY REWRITING IT (Write) OR AN EXACT-STRING REPLACE, NEVER A REGEX `sed`
+WHOSE PATTERN CONTAINS `\|`.** Then `bash -n` it and eyeball the diff before running.

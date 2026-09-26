@@ -5281,6 +5281,7 @@ class StoryMode(BotMode):
         # reachable ground — a survivable shortfall, not a derail.
         from modules.story.pokemon_league import (
             ch24_chapter_done,
+            ensure_fly_learner,
             run_the_gauntlet,
             train_for_league,
         )
@@ -5298,6 +5299,18 @@ class StoryMode(BotMode):
         if ch24_chapter_done():
             console.print("[dim]Story: §Ch24 already done — the game is CLEARED. Skipping.[/]")
         else:
+            # ⭐ `#26-ch24organic` GAP 3 — LATCH, THEN TEACH FLY, THEN TRAIN (the recon's placement).
+            # Without a Fly knower the per-trainee ladder offers only WALKABLE ground (from the League
+            # plateau: Victory Road 1F, band 36-40) and the return bridge cannot fly home.
+            # ⛔ LATCH FIRST: owning the run is what keeps a derail from re-entering §Ch23; the teach is a
+            # menu flow that may raise, and `train_for_league` would only latch after it.
+            self.mark_ch24_owns_run()
+            _ch24_fly_report: dict = {}
+            yield from ensure_fly_learner(_ch24_fly_report)
+            if _ch24_fly_report.get("fly_teach") not in ("already", "taught"):
+                _log_story_event(
+                    f"Story: §Ch24 continues WITHOUT Fly ({_ch24_fly_report.get('fly_teach')}) — only "
+                    f"walkable ground can train, and the return bridge will refuse by name off the plateau.")
             _ch24_train_report: dict = {}
             yield from train_for_league(_ch24_train_report)
             if _ch24_train_report.get("still_below"):

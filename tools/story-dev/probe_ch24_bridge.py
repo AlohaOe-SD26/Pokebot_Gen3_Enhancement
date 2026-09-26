@@ -16,6 +16,9 @@ when it must, and ASSERTS THE TILE, because `fly_to_destination` accepts any lan
       is an argument of `_yield_bounded_by_frames`.
   B4  Its arms are read in production (`NOBRIDGE` in `prepare_and_open_the_league`, `BRIDGEDEST` in
       `return_to_league_door`), comments stripped, and registered.
+  B5  NO `*_READINGS` NAME IS ASSIGNED TWICE at module scope in `pokemon_league.py` — a second assignment
+      is silently shadowed by the later one. (Added after the code review found this gate's own subject,
+      then called `BRIDGE_READINGS`, dead on arrival behind `enter_the_league`'s constant of that name.)
 
 FAULT ARMS (run every time): a door walk inserted before the bridge FAILS B1; the tile assertion renamed
 away FAILS B2; an unbounded flight FAILS B3.
@@ -116,6 +119,18 @@ def b4(src):
         check(f"`{arm}`" in REGISTRY.read_text(encoding="utf-8"), f"B4 {arm} is registered")
 
 
+def b5(src, sink=None):
+    seen: dict = {}
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id.endswith("_READINGS"):
+                    seen.setdefault(t.id, []).append(node.lineno)
+    dupes = {k: v for k, v in seen.items() if len(v) > 1}
+    check(not dupes, f"B5 every module-level *_READINGS name is assigned once ({len(seen)} names; dupes {dupes})", sink)
+    check("RETURN_BRIDGE_READINGS" in seen, "B5 RETURN_BRIDGE_READINGS exists", sink)
+
+
 def main() -> int:
     print("=" * 92)
     print("GATE — §Ch24 return bridge (`#26-ch24organic` gap 2)")
@@ -127,6 +142,8 @@ def main() -> int:
     b2_b3(src)
     print("\n== B4 the arms ==")
     b4(src)
+    print("\n== B5 no shadowed *_READINGS ==")
+    b5(src)
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     anchor = "    # ---- THE RETURN BRIDGE (`#26-ch24organic` gap 2)"
@@ -137,6 +154,8 @@ def main() -> int:
         ("a door walk inserted BEFORE the bridge FAILS B1",
          src.replace(anchor, "    VR._navigate_riding_out(VR.EG, VR.LEAGUE_DOOR_APRON)\n" + anchor), b1),
         ("the tile assertion renamed away FAILS B2", src.replace(ASSERT_MARKER, "§Ch24 bridge: somewhere"), b2_b3),
+        ("a SECOND `RETURN_BRIDGE_READINGS` assignment FAILS B5",
+         src + "\nRETURN_BRIDGE_READINGS = ()\n", b5),
         ("an UNBOUNDED flight FAILS B3",
          src.replace("report[\"fly_finished\"] = bool((yield from _yield_bounded_by_frames(\n            " + fly_bounded,
                      "report[\"fly_finished\"] = bool((yield from fly_to_destination(destination, fly)))"), b2_b3),

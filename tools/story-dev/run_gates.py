@@ -216,6 +216,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-ch24organic` gap 2 — the return bridge: after R1 and before the first door walk, a TILE
     # assertion after every walk/flight, both bounded, both arms read in production. Fault arms built in.
     ("probe_ch24_bridge.py", False),
+    # ⛔ `#26-ch24organic` gap 3 — teach Fly in production: `_play` latches, teaches, THEN trains; the
+    # hand-off driver mirrors that order; the learner rule skips four-HM mons. Fault arms built in.
+    ("probe_ch24_flyteach.py", False),
     # ⛔ KI-102. The withdraw counted party room EXCLUDING eggs while the consumer that
     # refuses counts INCLUDING them, so 5 mon + 1 egg queued no deposit and then RAISED —
     # after the PC journey was already spent. Carries a HISTORICAL CONTROL that pins the old

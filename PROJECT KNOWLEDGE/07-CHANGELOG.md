@@ -35735,3 +35735,30 @@ fault arms turn it red. Also new: `probe_ch24_readiness_inputs.py` (observe-only
 **LIMITS:** one trajectory per arm; organic parties mostly never get back to (18,6) yet (bridge, Fly teach,
 plateau walk-off, flyer acquisition remain); ⚠ POLICY flagged to the user — at L65 R1 would refuse the only
 party ever to win the gauntlet (4×L75 + L19 + L36) if training cannot lift the stragglers.
+
+
+## 2026-09-26 (late) — `#26-ch24organic` GAP 2: THE RETURN BRIDGE TO THE LEAGUE DOOR (branch `wt/ch24organic`)
+
+**WHAT CHANGED.** §Ch24 training ends wherever its last rung ended — a route, EVER_GRANDE_CITY (27,49) after
+the Victory Road step-out (the SOUTH half: no path to the door, measured both ways), or indoors — and
+`prepare_and_open_the_league` walked at the door from there regardless (from (27,49): `UnreachableDestinationError`
+at GET INSIDE). New `return_to_league_door()` runs AFTER R1 and BEFORE GET INSIDE: no-op in the lobby / on
+(18,6); WALK when `calculate_path` reaches (18,6) without the (18,27) return trap; otherwise step out of
+Victory Road, check Fly's preconditions BY NAME (knower, BADGE06, `LANDMARK_POKEMON_LEAGUE`, map type) —
+refusing `§Ch24 bridge: …` if any fails — fly to the Pokémon League (bounded) and ASSERT THE TILE.
+Arms `POKEBOT_CH24_FAULT_NOBRIDGE` (skip-the-fix), `POKEBOT_CH24_FAULT_BRIDGEDEST` (fly to Lilycove).
+**PROOF** (predictions `7cb5a759`, all seven as predicted — `ai-research-notes/2026-09-26-ch24-bridge-GRADED.md`):
+T1 flew (27,49) → (18,6) and the entry completed; T2 stepped out of VR1F (15,39) then flew; V (already at the
+door) spent nothing; F1 (no flyer, League unvisited) refused naming both; **F2 landed in Lilycove with
+`moved=True` and ONLY the tile assert caught it**; **NB (bridge off) died at GET INSIDE from (27,49)** ⇒
+load-bearing; W walked 36 waypoints from (18,28).
+**REVIEW:** adversarial `reviewer` — KICK-BACK: the new `BRIDGE_READINGS` was SHADOWED by `enter_the_league`'s
+constant of the same name (dead on arrival; the harness hardcoded the string) → renamed `RETURN_BRIDGE_READINGS`,
+imported; and the proven chain was not re-driven → arm RG (`--driver ch24bridge`, L75): PASS, Sidney beaten.
+**GATE:** `probe_ch24_bridge.py` (NEW, registered; suite 90): R1 < bridge < first door move; a TILE assertion
+after every walk/flight; both bounded; both arms read + registered; B5 no `*_READINGS` assigned twice; four
+built-in fault arms turn it red.
+**HARNESS:** opt-in `HARNESS_EXIT_ON_MANUAL=1` ends the frame loop 120 frames after a driver hands to Manual —
+Manual throttles to ×1, so a drive that graded at f1,340 of a 200,000-frame budget used to idle ~55 minutes.
+**LIMITS:** one trajectory per arm; indoor starts only refused by name (not driven); organic parties still
+lack Fly (gaps 3 and 5) — for them the bridge refuses by name unless they end on the north plateau.

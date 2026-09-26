@@ -7323,3 +7323,15 @@ time a run reaches them, so a mid-batch edit would put two builds in one batch. 
 files (03/04) are made on `main` (docs are never imported by a lane) and merged into the branch; append-only logs
 (06/07/08) are `merge=union` in `.gitattributes`, so both sides may append.
 **REJECTED:** pausing development for 12 hours; editing `main`'s sandbox anyway.
+
+
+## 2026-09-26 — THE RETURN BRIDGE RUNS AFTER R1, AND ONLY ONCE (`#26-ch24organic` gap 2)
+
+**DECISION.** `return_to_league_door` is called once in `prepare_and_open_the_league`, AFTER the R1 readiness
+refusal and BEFORE GET INSIDE. **WHY:** readiness (levels, basket) does not depend on position, so an unready
+party is refused for READINESS wherever it stands, and only a ready party pays for the trip home — which also
+kept all five proven R1 arms valid unchanged.
+**REJECTED:** (a) the recon's order train → bridge → R1 (it would have made F1-shaped parties refuse on
+"no Fly" before their real problem, readiness, was named); (b) a second bridge BEFORE the leg's own training
+retry, so a party could re-train from (18,6) — the retry rarely helps (a `no_ground` stays `no_ground`) and the
+`_play` derail re-entry already re-runs `train_for_league`.
