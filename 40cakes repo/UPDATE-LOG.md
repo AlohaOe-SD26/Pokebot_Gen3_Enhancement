@@ -8,6 +8,13 @@
 > 1. Snapshot the current docs: copy `DOCUMENTATION/*.md` into
 >    `DOCUMENTATION/_history/<YYYY-MM-DD>-<old-commit>/`.
 > 2. Pull: `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`
+>    ⛔⛔ **ASK THE USER BEFORE RUNNING THIS STEP.** It fetches *and MERGES*, writing a merge
+>    commit onto `main`; force-push and history rewriting are BANNED in this project, so it is
+>    **not trivially undoable once pushed** (CLAUDE.md: ask before any destructive git
+>    operation). And the WORKING TREE MUST BE CLEAN — `git subtree pull` runs `ensure_clean()`
+>    and dies `fatal: working tree has modifications`. *(Added 2026-09-26: a cold-start audit
+>    found this step carried NO approval note, while three separate pointers told a fresh agent
+>    to "just run the 5 steps" — a safety caveat is worthless in 1 of 4 places.)*
 > 3. Read the upstream diff, update the DOCUMENTATION/ files to match.
 > 4. Append an entry here (date, old → new commit, summary of upstream
 >    changes, which docs changed).
@@ -20,7 +27,11 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-09-17** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+- ⛔⛔ **UPSTREAM HAS MOVED — FIRST TIME SINCE THE MIRROR WAS CREATED. THE SYNC IS *NOT* DONE; IT IS PARKED.** Daily check **2026-09-26**: `git fetch upstream-pokebot` ⇒ `upstream-pokebot/main` = **`84c6064c`**, i.e. **2 commits ahead** of the mirrored `5dd898f8`:
+  * `7ee780d4` — *"Don't require Tk to run in headless mode"*
+  * `84c6064c` — merge of upstream PR **#824** (`iqno/headless-without-tkinter`)
+  ‼ **NOTHING WAS PULLED AND NO DOCS WERE TOUCHED.** The 5-step procedure at the top of this file includes a `git subtree pull --squash` (a MERGE INTO `main`) and a documentation pass; the session was ending, so it was parked rather than half-done. ✅ The mirror is therefore still *correctly described* by the entry below — it really is at `5dd898f8`. ⇒ **NEXT SESSION: run the 5 steps from the top of this file**, and remember step 5 — do NOT auto-apply anything to `custom-pokebot/`; list it for the user. ⚠ The change looks small and low-risk for us (headless Tk import), but "looks small" is not a reason to skip the docs step.
+- Prior daily check: **2026-09-17** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
   `5dd898f8`, unchanged; tree hash RE-DERIVED both sides this date and equal at
   `fa3504a285eb62fa` — mirror `HEAD:40cakes repo/pokebot-gen3` vs `upstream-pokebot/main^{tree}`;
   nothing to pull, nothing appended per the standing directive).

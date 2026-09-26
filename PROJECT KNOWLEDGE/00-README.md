@@ -74,8 +74,8 @@ Full version: see the managed block in the project root's `CLAUDE.md`.
 
 ‼ **The two gate steps are NOT optional and were missing from this summary until
 2026-08-14** — a session orienting from this file alone would have committed over
-an unrun gate. From `tools/story-dev/`, all three must exit 0 before ANY commit
-touching `PROJECT KNOWLEDGE/`:
+an unrun gate. From `tools/story-dev/`, these must exit 0 before ANY commit
+touching `PROJECT KNOWLEDGE/`. ‼ **IT SAID "ALL THREE" OVER *FOUR* COMMANDS AND NAMED NO SUBSET** (fixed 2026-09-26, found by a Tier 2 cold start) — so: a **DOC-ONLY** commit needs the last three (CLAUDE.md's Tier 0 is `lint_docs` + `audit_doc_consistency`; `audit_encoding` is cheap and catches mojibake). `run_gates.py` is required before any commit touching **CODE** — it takes ~130 s to 15 min, which is why the distinction matters:
 
 ```
 PYTHONUTF8=1 py -3.12 run_gates.py              # THE STANDING SUITE — required before any CODE commit

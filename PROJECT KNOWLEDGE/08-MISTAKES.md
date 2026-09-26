@@ -21885,3 +21885,117 @@ reached, while the run still prints PASS. Caught by resolving the learnsets agai
 **Prevention rule:** ⭐ **WHEN A TEST'S VALIDITY RESTS ON A DATA FACT, RESOLVE THAT FACT OFFLINE
 AGAINST THE DATA FILE BEFORE RUNNING — and have the driver ASSERT it at runtime as well.** The
 offline check is cheap; the runtime assert is what protects the test after the fixture drifts.
+
+## 2026-09-26 — the WRAP-UP's own SEVEN mistakes: the P5 failure verbatim, then its own rule recurring
+
+Context: the session was ending at the user's request. Nothing was in flight; the only work was
+recording that the daily upstream check had found the mirror 2 commits behind, and parking the sync.
+A Tier 2 cold-start audit returned **FAIL** on that two-file change.
+
+### 1. ⛔⛔ THE FACT LIVED IN THREE PLACES AND I UPDATED TWO — SO THE PAIR CHECK PASSED
+**Symptom:** the handoff banner and the `NEXT ACTIONS` queue head both said *"upstream moved to
+`84c6064c`, the mirror is 2 commits behind"*. The STATE table's `upstream` row still read
+*"checked **2026-09-02**, still `5dd898f8` — no change"*.
+**Root cause:** I checked P1 (banner ↔ queue head), both halves agreed, and I stopped. The STATE row
+is a THIRD copy of the same fact and nothing in my check looked at it.
+**‼ THIS IS NOT A NEW LESSON. CLAUDE.md ALREADY SAYS IT, VERBATIM:** *"A CHECKLIST PROTECTS EXACTLY
+WHAT IT ENUMERATES — when a fact lives in THREE places, updating the two that are named is the most
+dangerous state of all, because the pair check then returns PASS."* I reproduced the documented
+defect **inside the commit whose entire purpose was to leave the tree safe for a cold start**, and
+on the exact subject of the first action I had just written.
+**Fix:** the row now carries the moved state, the tree-hash verification, the one-file diff, and an
+explicit note that it is the third home of this fact and must move with the other two.
+**Prevention rule:** ⛔⛔ **BEFORE CLAIMING A PAIR CHECK PASSED, `grep` THE FILE FOR THE FACT ITSELF
+— not for the two locations you already know about.** For a date or a commit hash that is literally
+`grep -n "5dd898f8" 04-HANDOFF.md`, which takes one second and would have found this. ⭐ The general
+form: **P1–P5 name LOCATIONS, but staleness attaches to FACTS.** Enumerate the fact's homes by
+searching, then check the pairs.
+
+### 2. ⛔ THE STATE TABLE COMMANDED WORK THAT HAD SHIPPED THE DAY BEFORE
+**Symptom:** the §Ch24 STATE row said *"the remaining gap is `ch24_chapter_done()` + the `_play`
+dispatch + the retargeted END-OF-CONTENT banner, which MUST land together"*. All three landed
+2026-09-25 (`pokemon_league.py:3499`, `story_mode.py:5287`/`:5306`/`:5314`, banner `:5316-5325`).
+**Root cause:** the previous session updated the banner, the queue and the punch list — P1 and P5 —
+and not the STATE table, which is a fourth home for the same claim.
+**Why it is the expensive kind:** the STATE table is what a cold agent reads to answer *"what is
+left?"*. The Tier 2 auditor read it exactly that way and reported it as an instruction.
+**Prevention rule:** ⛔ **THE STATE TABLE IS A CLAIM ABOUT WHAT REMAINS, SO IT IS A PAIR-HALF FOR
+EVERY SHIPPED ITEM.** When an item ships, `grep` the STATE table for its symbols before saying the
+docs are updated.
+
+### 3. ⛔ A SPLICE DUPLICATED A SENTENCE VERBATIM, CONSECUTIVELY
+**Symptom:** the queue head contained *"✅⭐ **JUST SHIPPED, DO NOT REBUILD: the PC-FIRST HM PATH IS
+DRIVEN** (`#24-hm-slaves`, the WITHDRAW half)."* **twice in a row.**
+**Root cause:** I anchored on the queue head's opening and re-emitted the following sentence as part
+of my replacement, while the original copy was still there. The anchor assert passed — it was
+unique — and asserted nothing about what followed it.
+**Prevention rule:** ⛔ **AN ANCHOR ASSERT PROVES THE MATCH IS UNIQUE, NEVER THAT THE RESULT READS
+CORRECTLY.** When a splice re-emits ANY text that already exists after the anchor, re-read the
+spliced line. On a 14,000-character line that means grepping it for the re-emitted sentence and
+counting — `grep -o "<sentence>" | wc -l` must return 1.
+
+### 4. ⛔⛔ THE DOCS SENT A COLD AGENT TO RUN A MERGE ONTO `main` WITHOUT SAYING SO
+**Symptom:** the first action said *"run the 5-step procedure"*, of which step 2 is
+`git subtree pull --prefix=... --squash`. **Neither cold-start file said that this fetches AND
+MERGES onto `main`**, that force-push is banned here so it is not trivially undoable once pushed,
+that CLAUDE.md requires asking the user before a git operation of that shape, or that
+`git subtree pull` runs `ensure_clean()` and dies `fatal: working tree has modifications` on a dirty
+tree. Only a THIRD file (`40cakes repo/UPDATE-LOG.md`) mentioned the merge.
+**Why this is the most serious of the four:** the other three misdescribe state; this one would have
+caused an unapproved, hard-to-undo write to `main`. ‼ And the audit found the tree was dirty at that
+moment, so the printed command would have died anyway — the instruction was both unsafe and
+unrunnable.
+**Fix:** the safety gate is stated **at the point of instruction** — ask the user first, take the
+restore point, require a clean tree — plus the two facts the docs withheld (the snapshot dir is
+dated for the OUTGOING commit, `2026-07-17-5dd898f8`; the upstream diff is one file,
+`modules/gui/__init__.py` ⇒ `04-interfaces-gui-web-streaming.md`).
+**Prevention rule:** ⛔⛔ **A SAFETY CONSTRAINT MUST LIVE WHERE THE ACTION IS COMMANDED, NOT IN THE
+FILE THAT EXPLAINS THE PROCEDURE.** A cold agent reads the instruction and runs it; a warning one
+pointer away is a warning that arrives after the merge commit exists. ⭐ And when an instruction's
+first step is a git write to a shared branch, the instruction itself must name the approval gate.
+
+### 5. ⛔⛔ I FIXED #4 BY PUTTING THE SAFETY CAVEAT IN **1 OF 4 PLACES** — #1's RULE, RECURRING WITHIN THE HOUR
+**Symptom:** the Tier 2 re-run PASSED and then reported that the *"this is a MERGE onto `main`, ASK
+THE USER"* caveat existed only in the queue head, while the SAME imperative was issued caveat-free
+in three other spots: the banner (*"Run the 5 steps"* — the first thing read), the if-stopped cell
+(*"so no reconciliation is needed — **just run the 5 steps**"*, which actively DOWNPLAYS it), and
+`40cakes repo/UPDATE-LOG.md`'s step 2 itself — the procedure all three pointers resolve to — a bare
+`git subtree pull --squash` with no approval note.
+**Root cause:** mistake #1 in this same entry, with a SAFETY RULE as the payload instead of a commit
+hash. I had written its prevention rule (*"grep for the FACT, not the locations"*) minutes earlier
+and did not apply it, because I did not think of an INSTRUCTION as a "fact" with multiple homes.
+**‼ AND THE GREP I EVENTUALLY RAN UNDER-COUNTED:** `grep -c "5 steps"` returned 2, not 3, because
+the queue head says *"5-**step** procedure"*. Only `grep -n "5 steps\|5-step\|subtree pull"` found
+all of them.
+**Fix:** all four homes now carry it, and in `UPDATE-LOG.md` it sits DIRECTLY UNDER the command.
+**Prevention rule:** ⛔⛔ **AN INSTRUCTION IS A FACT WITH HOMES, AND A SAFETY CAVEAT MUST LIVE IN
+EVERY ONE OF THEM.** A caveat in 1 of 4 places is not a partial safeguard — it is a safeguard that
+fails for any reader who enters by one of the other three doors. ⭐ And when you grep for an
+instruction, **grep for two or three PHRASINGS, never one**: prose paraphrases itself ("5 steps" vs
+"5-step procedure") and a single-phrasing grep reports a clean result over the copies it missed.
+
+### 6. ⛔ I WROTE A HARDCODED LINE COUNT INTO THE FILE THAT EXPLICITLY FORBIDS IT
+**Symptom:** I added *"This file is at **900/900** lines (R3 goes RED at 901)"* to `04-HANDOFF.md`,
+whose own `:142` reads *"⛔ **NO COUNT *AND NO LIMIT* IS QUOTED HERE ON PURPOSE**"* and whose `:432`
+records a Tier 1 reviewer catching this very anti-pattern: *"A LINE-COUNT WRITTEN INTO THE FILE IT
+COUNTS IS STALE THE MOMENT IT IS WRITTEN."*
+**Root cause:** I was trying to warn a cold agent that there is no headroom — a real and useful
+warning — and reached for the number instead of the tool.
+**Fix:** *"little or no line headroom — run `lint_docs.py` for the real figure"*, plus a note that a
+number was briefly quoted and why that is wrong.
+**Prevention rule:** ⛔ **WHEN THE USEFUL WARNING IS "THIS IS NEAR A LIMIT", NAME THE TOOL, NEVER
+THE NUMBER.** A measured value copied into prose is a citation that rots on the next edit; the
+measurement command stays true forever.
+
+### 7. ⛔ MY CITATION LANDED ON A COMMENT BLOCK ~55 LINES FROM THE THING IT NAMED
+**Symptom:** I cited the retargeted end-of-content banner as `story_mode.py:5316-5325`. VERIFIED:
+that range is a `#` comment *about* the retargeting. The banner is `context.message = (` at
+**`:5378-5384`**.
+**Root cause:** I grepped for the retargeting text, found the comment that explains it first, and
+cited the hit without checking it was the CODE rather than the commentary about the code.
+**Fix:** the repair now cites **symbols** (`ch24_chapter_done`, the `_play` dispatch, the `_guard`,
+the `context.message` banner) and names the **fork** — these exist only in `sandbox-pokebot/`, and
+`custom-pokebot/story_mode.py:5287` is something else entirely.
+**Prevention rule:** ⛔ **A GREP HIT ON DESCRIPTIVE TEXT IS USUALLY THE COMMENT, NOT THE CODE — the
+comment is where the words live.** Cite the SYMBOL (the file's own standing rule), and when a repo
+has two forks of the same file, **name the fork or the citation is ambiguous by construction.**
