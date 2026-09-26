@@ -22009,6 +22009,15 @@ class Ch24EntryMode(BotMode):
                                        decoration.
       `POKEBOT_CH24ENTRY_FAULT=nolatch` hides this object's `mark_ch24_owns_run`, so the leg cannot
                                        latch. `E1-LATCHED` must fail.
+      `POKEBOT_CH24_FAULT_NOTRAIN=1`   read in PRODUCTION (`train_for_league`) — training is skipped, so
+                                       R1 can be driven at the PRODUCTION floor in minutes.
+      `POKEBOT_CH24_FAULT_NOREADY=1`   read in PRODUCTION — R1 disarmed (the skip-the-fix arm): a
+                                       below-floor party must then walk in and open the door.
+
+    ⭐ `CH24_ENTRY_EXPECT=refuse:floor|refuse:basket` (`#26-ch24organic` R1, 2026-09-26) flips the
+    grade: PASS iff the leg RAISED the R1 refusal, for THAT reason only, outside, before a guard was
+    talked to — `ENTERED_ELITE_FOUR` still False and `E1-INSIDE` never taken. ⛔ Read AT THE END of
+    the run (before the restore), not from the leg's own report: the claim is about the world.
 
     ‼ SAFETY — THIS DRIVE RESTORES THE FIXTURE BEFORE IT EXITS. `libmgba.py:144` LOADS
     `current_state.ss1` at startup and `:226` OVERWRITES it at shutdown, and **the real bot resumes
@@ -22074,6 +22083,9 @@ class Ch24EntryMode(BotMode):
         from modules.story.pokemon_league import CH24_LEVEL_FLOOR as _PROD_FLOOR
 
         FLOOR = int(_os.environ.get("CH24_ENTRY_FLOOR", str(_PROD_FLOOR)))
+        EXPECT = _os.environ.get("CH24_ENTRY_EXPECT", "enter")
+        if EXPECT not in ("enter", "refuse:floor", "refuse:basket"):
+            raise BotModeError(f"{TAG}: CH24_ENTRY_EXPECT={EXPECT!r} is not enter|refuse:floor|refuse:basket")
         # ‼ `state_path` is the harness's module-level fixture path (set at `story_harness.py`'s
         # setup). Read the bytes NOW, before the leg mutates anything, so the restore below is
         # the state this run STARTED from. `FRESH` means there is no fixture to restore to.
@@ -22146,6 +22158,12 @@ class Ch24EntryMode(BotMode):
             R["leg"] = {k: v for k, v in leg.items() if k != "readings"}
             for reading in sorted(leg.get("readings", set())):
                 taken.add(reading)
+            # ⛔ THE WORLD AT THE END, READ BEFORE THE RESTORE WIPES IT — the R1 grade rests on these.
+            try:
+                R["flag_final"] = bool(get_event_flag(CH24_ENTERED_FLAG))
+                R["final_at"] = (str(_where()), VR._here_tile())
+            except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                R["flag_final"] = f"<unreadable {type(read_error).__name__}>"
             try:
                 if _fixture_bytes:
                     context.emulator.load_save_state(_fixture_bytes)
@@ -22162,6 +22180,30 @@ class Ch24EntryMode(BotMode):
         log(f"[{TAG}] RESULT whiteouts={getattr(self, 'whiteouts', 0)} failure={failure}")
 
         ok = not missing and failure is None and getattr(self, "whiteouts", 0) == 0
+        if EXPECT.startswith("refuse:"):
+            # ⭐ THE R1 GRADE. Every conjunct is a claim a no-op or a disarmed guard cannot satisfy:
+            # a leg that never raised has `failure=None`; a disarmed R1 opens the door (flag True);
+            # a refusal for the WRONG reason fails the reason conjunct.
+            reasons = leg.get("readiness_refusal") or []
+            want_floor = EXPECT == "refuse:floor"
+            has_floor = any("below the L" in r for r in reasons)
+            has_basket = any("basket short" in r for r in reasons)
+            refused_at = leg.get("refused_at")
+            conj = {
+                "premise": "T-PREMISE" in taken,
+                "raised_R1": failure is not None and "§Ch24 R1: REFUSING" in failure,
+                "reason_matches": (has_floor and not has_basket) if want_floor else (has_basket and not has_floor),
+                "outside": bool(refused_at) and "EVER_GRANDE_CITY" in str(refused_at[0]) and "LEAGUE" not in str(refused_at[0]),
+                "door_still_shut": R.get("flag_final") is False,
+                "never_inside": "E1-INSIDE" not in taken and "E1-READY" not in taken,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+            }
+            log(f"[{TAG}] R1 conjuncts = {conj}")
+            ok = all(conj.values())
+            log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (R1 REFUSED for {EXPECT.split(':')[1]} "
+                f"only, OUTSIDE, before the guards; door still shut) SCOPE: floor={FLOOR}")
+            context.set_manual_mode()
+            return
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (latch, get ready OUTSIDE, get inside, "
             f"ASSERT the guards vacated, and end ON the talk tile with the door open — WITHOUT "
             f"stepping through) SCOPE: floor={FLOOR}" + ("" if FLOOR == _PROD_FLOOR else f" (NOT production's {_PROD_FLOOR} — the readiness half is SCOPED DOWN)") + "; the commitment step and all five fights are NOT in this leg.")

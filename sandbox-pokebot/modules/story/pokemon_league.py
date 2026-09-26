@@ -1656,6 +1656,31 @@ def ch24_trainees_below_floor(floor: int = CH24_LEVEL_FLOOR) -> list:
     return sorted(out, key=lambda t: t[2])
 
 
+def ch24_readiness_shortfall(below: list, stock: dict, *, floor: int = CH24_LEVEL_FLOOR,
+                             basket=None) -> list:
+    """`#26-ch24organic` R1 — the NAMED reasons the party may not enter the Elite Four; [] = it may.
+
+    PURE (no emulator reads) so `probe_ch24_readiness.py` can test every branch on synthetic inputs;
+    the caller supplies `below` (from `ch24_trainees_below_floor(floor)`) and `stock` (from
+    `victory_road.bag_healing_stock()`).
+
+    ⛔ TWO CONJUNCTS, BOTH MATERIAL, NEITHER ABOUT HEALTH. A whiteout heals the party for free, so a
+    health-based gate would re-pass forever while nothing changed (06, 2026-09-25, RULING 12-b). The
+    levels are USER RULING 12's floor (train all six to L65-75); the basket is the only healing in a
+    nurse-less, one-way zone (`LEAGUE_BASKET`, bought by §Ch23 leg 11).
+    """
+    if basket is None:
+        from modules.story.victory_road import LEAGUE_BASKET as basket
+    reasons = []
+    if below:
+        reasons.append(f"{len(below)} mōn below the L{floor} floor: "
+                       + ", ".join(f"{sp}#{pid:08X} L{lv}" for pid, sp, lv in below))
+    short = [f"{name} {stock.get(name, 0)}/{qty}" for name, qty in basket if stock.get(name, 0) < qty]
+    if short:
+        reasons.append("League basket short: " + ", ".join(short))
+    return reasons
+
+
 def _ch24_slot_of(pid: int) -> "int | None":
     """Current slot of a PID, or None. ‼ Re-read every time: rotations move mōn."""
     from modules.pokemon_party import get_party
@@ -1969,6 +1994,18 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
         console.print("[yellow]§Ch24: no StoryMode instance to latch — §Ch23 re-entry is NOT "
                       "suppressed. Expected under a standalone driver; a defect in production.[/]")
 
+    # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOTRAIN=1` (registered in `29-DISABLED-FEATURES-REGISTRY.md`),
+    # read HERE so it covers BOTH call sites (`story_mode._play` and `prepare_and_open_the_league`).
+    # It exists so the R1 readiness refusal can be driven at the PRODUCTION floor without paying for
+    # a multi-hour grind first. AFTER the latch on purpose: owning the run is not training.
+    import os as _os
+
+    if _os.environ.get("POKEBOT_CH24_FAULT_NOTRAIN") == "1":
+        report["fault_notrain"] = True
+        console.print("[magenta]§Ch24: FAULT ARM NOTRAIN — training skipped; the party is left "
+                      "exactly as it arrived.[/]")
+        return
+
     trainees = ch24_trainees_below_floor(floor)
     report["trainees"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in trainees]
     if not trainees:
@@ -2024,7 +2061,7 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
 #: repair is then to delete a required reading. Precedent: `LEG23_READINGS`, `ICEBEAM_READINGS`.
 LEAGUE_ENTRY_READINGS = (
     "E1-LATCHED",     # the run is OWNED before a single button is pressed
-    "E1-READY",       # the party satisfies the floor, decided OUTSIDE where it can still be fixed
+    "E1-READY",       # R1 PASSED: floor AND League basket, decided OUTSIDE where it can still be fixed
     "E1-INSIDE",      # we are standing in the League lobby
     "E1-GUARDS",      # the guards have VACATED (9,2)/(10,2) — asserted, not assumed
     "E1-AT-DOOR",     # we stand on (9,3), facing the open door, WITHOUT having stepped through
@@ -2155,7 +2192,44 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
             report["train"] = train_report
     left = ch24_trainees_below_floor(floor)
     report["below_floor_after"] = [(f"{sp}#{pid:08X}", lv) for pid, sp, lv in left]
-    if not left:
+
+    # ---- R1: THE READINESS REFUSAL (`#26-ch24organic`) ------------------------------------------
+    # ⛔⛔ UNTIL 2026-09-26 THIS WAS A READING, NOT A GATE: a below-floor party took no `E1-READY`
+    # and walked in anyway. Nothing between here and `(9,1)` refused it (`enter_the_league` says "NO
+    # READINESS CHECK HERE, ON PURPOSE" because it expects THIS leg to have decided), so an organic
+    # party whose training fell short — every party with no Fly knower today — would have opened the
+    # door and taken on a one-way, nurse-less gauntlet under-levelled.
+    # ⇒ REFUSE HERE, OUTSIDE (or in the lobby on a resume — which has a nurse and an exit, so a stop
+    # there strands nothing), BEFORE A GUARD IS TALKED TO: `ENTERED_ELITE_FOUR` is permanent.
+    # ‼ FAILS CLOSED: an unreadable bag is a refusal. The expensive direction is walking in.
+    # ⚠ At `floor=` below production (the harness's `CH24_ENTRY_FLOOR`) the LEVEL half is scoped
+    # down with it; the BASKET half is not, and every pinned §Ch24 fixture holds a full basket.
+    try:
+        stock = VR.bag_healing_stock()
+    except Exception as error:  # noqa: BLE001 - see the fail-closed note above
+        reraise_if_aborting(error)
+        stock = None
+    if stock is None:
+        reasons = ["the bag could not be read, so the League basket is unverified"]
+    else:
+        reasons = ch24_readiness_shortfall(left, stock, floor=floor)
+    report["readiness_refusal"] = reasons
+    import os as _os
+
+    # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOREADY=1` — the SKIP-THE-FIX arm: R1 is disarmed, so a
+    # below-floor party must walk in and open the door. Proves R1 is what stops it.
+    if reasons and _os.environ.get("POKEBOT_CH24_FAULT_NOREADY") == "1":
+        report["fault_noready"] = True
+        console.print("[magenta]§Ch24 leg 1: FAULT ARM NOREADY — R1 disarmed; continuing despite: "
+                      f"{'; '.join(reasons)}[/]")
+    elif reasons:
+        report["refused_at"] = (str(VR._where()), VR._here_tile())
+        raise BotModeError(
+            f"§Ch24 R1: REFUSING to enter the Elite Four at {VR._where()}{VR._here_tile()} — "
+            f"{'; '.join(reasons)}. The gauntlet is one-way with no nurse, so this is decided "
+            f"BEFORE the guards are talked to ({CH24_ENTERED_FLAG} is still "
+            f"{bool(get_event_flag(CH24_ENTERED_FLAG))}).")
+    else:
         _take(report, "E1-READY")
 
     # ---- GET INSIDE ----------------------------------------------------------------------------

@@ -5309,7 +5309,8 @@ class StoryMode(BotMode):
             # ‼‼ **NO `floor=` OVERRIDE.** It defaults to `CH24_LEVEL_FLOOR` (65). Every proven drive
             # used a LOW floor through `CH24_ENTRY_FLOOR`, and copying a test invocation to here
             # would quietly lower the readiness bar for a ONE-WAY, NURSE-LESS chapter with no error
-            # raised anywhere. The readiness guard the comment below demands IS step 1 of this call.
+            # raised anywhere. The readiness guard the comment below demands IS step 1 of this call —
+        # R1 in `prepare_and_open_the_league` (`#26-ch24organic`; until 2026-09-26 it was a reading only).
             # ⛔ It does not catch, retry or recover: from the moment it crosses `(9,1)` the zone is
             # SEALED, so every failure propagates loudly rather than leaving the bot in a corridor
             # it cannot leave. Re-entry after a loss is `#24-restockleg` (USER RULING 12), UNBUILT.
