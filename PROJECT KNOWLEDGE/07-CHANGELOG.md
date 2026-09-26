@@ -35708,3 +35708,30 @@ status pair (P1, P3, P5), and found three things:
    names an observe-only probe of `post_league_shop.ss1` / `post_ch24ready.ss1` as the first concrete step.
 4. **A re-run of Tier 2 (the rule: check WHERE a fix landed)** confirmed 1-3 land where a cold reader looks, and found one more: a banner line ABOVE the handoff's own "everything below is HISTORY" divider still read *"THE LIVE WORK IS THE §Ch24 GAUNTLET"* — shipped 2026-09-25. Marked as history, pointing at the marker.
 **FILES:** `00-README.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+
+## 2026-09-26 (late) — `#26-ch24organic` R1: THE READINESS REFUSAL BEFORE THE ONE-WAY ELITE FOUR (branch `wt/ch24organic`)
+
+**WHAT CHANGED.** `pokemon_league.prepare_and_open_the_league` used to RECORD a below-floor party
+(`below_floor_after`, no `E1-READY`) and walk into the League anyway — nothing between Ever Grande and the
+point-of-no-return tile `(9,1)` refused an under-levelled or under-stocked party. It now RAISES
+`§Ch24 R1: REFUSING to enter the Elite Four at <map> <tile> — <reasons>` AFTER its training call and BEFORE
+the walk to the door or any guard talk (`ENTERED_ELITE_FOUR` is permanent), when anyone is below `floor` or a
+`LEAGUE_BASKET` line is short. The decision is the pure `ch24_readiness_shortfall()`; an unreadable bag
+refuses (fail closed). Two production fault arms: `POKEBOT_CH24_FAULT_NOTRAIN` (training skipped, so R1 can
+be driven at the production floor in minutes) and `POKEBOT_CH24_FAULT_NOREADY` (R1 disarmed — skip-the-fix).
+Harness `--driver ch24entry` gained `CH24_ENTRY_EXPECT=refuse:floor|refuse:basket[@lobby]`. Built on branch `wt/ch24organic` (merged to `main` after the batch parks).
+**PROOF** (predictions `e78960ad` + addendum `b459fcd1`, all five CONFIRMED — `ai-research-notes/2026-09-26-ch24-r1-GRADED.md`):
+A refused on levels only at EVER_GRANDE_CITY (18,6), door shut; **B (R1 disarmed) talked the guards aside and
+stood at the open door with all six under L65** ⇒ R1 is load-bearing; C (floor 19) PASS end-to-end; D refused on
+the empty basket only; **E (added after the code review) refused on a resume INSIDE the lobby at (3,4), no guard
+talked to** — all five re-run on the final driver (run 3). ⚠ Run 1 failed its OWN grade on a driver check (`VR._where()` is a tuple, not a map
+name) — the subject was right, the check wrong; fixed and re-run.
+**REVIEW:** adversarial `reviewer` — KICK-BACK (docs not yet current; the driver's end-state `except` lacked
+`reraise_if_aborting`) → both fixed; its missing-evidence ask became arm E.
+**GATE:** `probe_ch24_r1_refusal.py` (NEW, registered; suite 89): the decision, R1 AFTER training and BEFORE
+the first door walk / guard press, no `yield` in the R1 block, both arms read in production; four built-in
+fault arms turn it red. Also new: `probe_ch24_readiness_inputs.py` (observe-only inputs per fixture).
+**LIMITS:** one trajectory per arm; organic parties mostly never get back to (18,6) yet (bridge, Fly teach,
+plateau walk-off, flyer acquisition remain); ⚠ POLICY flagged to the user — at L65 R1 would refuse the only
+party ever to win the gauntlet (4×L75 + L19 + L36) if training cannot lift the stragglers.

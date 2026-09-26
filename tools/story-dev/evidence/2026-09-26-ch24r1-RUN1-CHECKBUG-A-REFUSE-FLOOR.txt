@@ -1,0 +1,37 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\r1ev\A-REFUSE-FLOOR.log
+[setup] created profile r1A-REFUSE-FLOOR
+[setup] loaded save state post_league_shop.ss1; build=sandbox
+[run] starting faithful loop for up to 40000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24EntryMode.run   (state=OVERWORLD)
+[ch24entry] LEG CALLED mark_ch24_owns_run() (#1)
+[ch24entry] LEG CALLED mark_ch24_owns_run() (#2)
+[ch24entry] FAILURE BotModeError: §Ch24 R1: REFUSING to enter the Elite Four at ((0, 8), (18, 6))(18, 6) — 6 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36, Wailord#FA51ECF3 L47, Swellow#0B30A747 L48, Mightyena#5C96EA9B L48, Sceptile#863B0917 L53. The gauntlet is one-way with no nurse, so this is decided BEFORE the guards are talked to (ENTERED_ELITE_FOUR is still False).
+[ch24entry] fixture RESTORED — current_state.ss1 will not carry this run.
+[ch24entry] R final_at = ('EVER_GRANDE_CITY(18, 6)', (18, 6))
+[ch24entry] R flag_at_start = False
+[ch24entry] R flag_final = False
+[ch24entry] R leg = {'latched': True, 'below_floor_before': [('Zigzagoon#33CB74C3', 19), ('Castform#C978D14E', 36), ('Wailord#FA51ECF3', 47), ('Swellow#0B30A747', 48), ('Mightyena#5C96EA9B', 48), ('Sceptile#863B0917', 53)], 'train': {'readings': set(), 'latched': True, 'fault_notrain': True}, 'below_floor_after': [('Zigzagoon#33CB74C3', 19), ('Castform#C978D14E', 36), ('Wailord#FA51ECF3', 47), ('Swellow#0B30A747', 48), ('Mightyena#5C96EA9B', 48), ('Sceptile#863B0917', 53)], 'readiness_refusal': ['6 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36, Wailord#FA51ECF3 L47, Swellow#0B30A747 L48, Mightyena#5C96EA9B L48, Sceptile#863B0917 L53'], 'refused_at': ('((0, 8), (18, 6))', (18, 6))}
+[ch24entry] R start_at = ('EVER_GRANDE_CITY(18, 6)', (18, 6))
+[ch24entry] RESULT readings=['E1-LATCHED', 'T-PREMISE'] missing=['E1-AT-DOOR', 'E1-GUARDS', 'E1-INSIDE', 'E1-READY', 'T-CONTINUE']
+[ch24entry] RESULT whiteouts=0 failure=BotModeError: §Ch24 R1: REFUSING to enter the Elite Four at ((0, 8), (18, 6))(18, 6) — 6 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36, Wailord#FA51ECF3 L47, Swellow#0B30A747 L48, Mightyena#5C96EA9B L48, Sceptile#863B0917 L53. The gauntlet is one-way with no nurse, so this is decided BEFORE the guards are talked to (ENTERED_ELITE_FOUR is still False).
+[ch24entry] R1 conjuncts = {'premise': True, 'raised_R1': True, 'reason_matches': True, 'outside': False, 'door_still_shut': True, 'never_inside': True, 'no_whiteout': True}
+[ch24entry] ACCEPTANCE: FAIL (R1 REFUSED for floor only, OUTSIDE, before the guards; door still shut) SCOPE: floor=65
+f91: CONTROLLER -> <none>   (state=OVERWORLD)
+f991: SAVED stall state #1 to stalls/r1A-REFUSE-FLOOR-f991.ss1 (bt='NICK got $4128 for winning!')
+f1291: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f1291:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f3091: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f3091:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8091: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f8091:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f15091: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f15091:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]

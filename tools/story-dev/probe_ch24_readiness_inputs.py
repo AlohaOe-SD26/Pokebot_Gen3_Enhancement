@@ -53,7 +53,7 @@ SAVES = REPO / "tools" / "story-dev" / "saves"
 DEFAULT = ["post_league_shop.ss1", "post_ch24ready.ss1", "post_ch24_atdoor.ss1", "post_fly.ss1",
            "post_moveset.ss1", "post_ever_grande.ss1"]
 FLAGS = ["LANDMARK_POKEMON_LEAGUE", "RECEIVED_HM_FLY", "BADGE06_GET", "BADGE08_GET",
-         "IS_CHAMPION", "SYS_GAME_CLEAR"]
+         "IS_CHAMPION", "SYS_GAME_CLEAR", "ENTERED_ELITE_FOUR"]
 
 
 def flag(name: str):

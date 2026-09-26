@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 88 entries = 84 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 89 entries = 85 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -494,7 +494,11 @@ done
   And:
   `prepare_and_open_the_league()` (`--driver ch24entry`) gets the party ready OUTSIDE, walks in,
   talks the guards aside, ASSERTS they vacated, and stops on `(9,3)` **without** stepping onto the
-  point of no return; and `fight_one_room(from_room, hall, to_room, victory_flag)`
+  point of no return. ⛔ **Its R1 READINESS REFUSAL (`#26-ch24organic`, 2026-09-26)** raises BEFORE the
+  walk to the door when, after training, anyone is below `floor` or a `LEAGUE_BASKET` line is short
+  (pure decision `ch24_readiness_shortfall`; gate `probe_ch24_r1_refusal.py`; arms
+  `POKEBOT_CH24_FAULT_NOTRAIN` / `POKEBOT_CH24_FAULT_NOREADY`) — until then it only recorded the
+  shortfall and walked in anyway; and `fight_one_room(from_room, hall, to_room, victory_flag)`
   (`--driver ch24room`) — the gauntlet's **species-agnostic repeating unit**: dismiss the parked
   victory msgbox → bag heal → room → hall → next room → locate the trainer **LIVE** → engage → win
   (asserted on the defeat FLAG) → prove the exit door is open in the **live** collision grid.

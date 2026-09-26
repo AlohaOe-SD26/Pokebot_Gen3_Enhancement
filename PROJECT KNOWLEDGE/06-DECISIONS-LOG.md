@@ -7296,3 +7296,30 @@ rule as the §Ch24 extension earlier today: a run cap must not pre-empt a leg's 
 **ALTERNATIVES REJECTED.** Raising the base cap again (loosens early-game livelock protection for every run);
 leaving it (turns the batch that measures this fix into a measurement of the cap). **REOPEN IF** a batch shows
 §Ch23 training runs killed by the cap while still banking EXP.
+
+## 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAGGED
+
+**DECISION.** R1 (`prepare_and_open_the_league`) refuses to enter the Elite Four unless EVERY party member is at
+`CH24_LEVEL_FLOOR` (65) and the full `LEAGUE_BASKET` is in the bag. Grepped first (rule 11): RULING 12 (2026-09-23)
+sets the L65-75 target for all six and says the party is not reduced; RULING 12-b (2026-09-25) says a LOSS is
+answered by restock-and-retry. **No ruling says whether an under-levelled party should enter anyway.**
+**WHY STRICT, FOR NOW:** it is the literal reading of the only ruling on levels; it is cheap to relax (one predicate,
+`ch24_readiness_shortfall`); a refusal is named, bounded and strands nothing (arm E), while a loss today ends the
+run too (the restock leg `#24-restockleg` is unbuilt), so strict costs nothing that entering would have saved —
+EXCEPT the chance that an under-levelled party wins.
+**⚠ THE FACT THAT MAKES THIS THE USER'S CALL:** the only party ever to WIN the gauntlet (`post_ch24_atdoor_L75`,
+`evidence/2026-09-25-ch24gauntlet-PASS.txt`, driven at `CH24_ENTRY_FLOOR=1`) was **4×L75 + Zigzagoon L19 + Castform
+L36** — R1 at L65 would refuse it if training could not lift the two stragglers. Put to the user in the session
+report; record the answer here.
+**REJECTED:** (a) a "top four ≥ L65" rule — invented from ONE winning trajectory (rule 8); (b) basket-only (enter at
+any level) — contradicts RULING 12's target without a ruling.
+
+## 2026-09-26 — `#26-ch24organic` IS BUILT ON A WORKTREE BRANCH WHILE THE USER'S BATCH RUNS
+
+**DECISION.** Code for `#26-ch24organic` is developed on branch `wt/ch24organic` (git worktree
+`C:/Remote Projects/pokebot-wt-ch24`) and merged to `main` only after `#26-batch0926` is parked.
+**WHY:** endless lanes import late-chapter modules (`pokemon_league.py`) from `main`'s `sandbox-pokebot/` the first
+time a run reaches them, so a mid-batch edit would put two builds in one batch. **Doc edits** to the current-state
+files (03/04) are made on `main` (docs are never imported by a lane) and merged into the branch; append-only logs
+(06/07/08) are `merge=union` in `.gitattributes`, so both sides may append.
+**REJECTED:** pausing development for 12 hours; editing `main`'s sandbox anyway.

@@ -2223,9 +2223,18 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
         console.print("[magenta]§Ch24 leg 1: FAULT ARM NOREADY — R1 disarmed; continuing despite: "
                       f"{'; '.join(reasons)}[/]")
     elif reasons:
-        report["refused_at"] = (str(VR._where()), VR._here_tile())
+        # ‼ `VR._where()` is `((group, number), (x, y))` — a TUPLE, not a map name (seafloor_cavern's
+        # transcription rule A). Record it as-is for identity checks; name the map only for humans.
+        report["refused_at"] = VR._where()
+        try:
+            from modules.map_data import MapRSE
+
+            _here = f"{MapRSE(tuple(VR._where()[0])).name} {VR._here_tile()}"
+        except Exception as error:  # noqa: BLE001 - a map NAME is cosmetic; never lose the refusal to it
+            reraise_if_aborting(error)
+            _here = str(VR._where())
         raise BotModeError(
-            f"§Ch24 R1: REFUSING to enter the Elite Four at {VR._where()}{VR._here_tile()} — "
+            f"§Ch24 R1: REFUSING to enter the Elite Four at {_here} — "
             f"{'; '.join(reasons)}. The gauntlet is one-way with no nurse, so this is decided "
             f"BEFORE the guards are talked to ({CH24_ENTERED_FLAG} is still "
             f"{bool(get_event_flag(CH24_ENTERED_FLAG))}).")

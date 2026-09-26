@@ -1,0 +1,36 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\r1ev\E-REFUSE-LOBBY.log
+[setup] created profile r1E-REFUSE-LOBBY
+[setup] loaded save state post_league_lobby.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24EntryMode.run   (state=OVERWORLD)
+[ch24entry] LEG CALLED mark_ch24_owns_run() (#1)
+[ch24entry] FAILURE BotModeError: §Ch24 R1: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4) — 2 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36. The gauntlet is one-way with no nurse, so this is decided BEFORE the guards are talked to (ENTERED_ELITE_FOUR is still False).
+[ch24entry] fixture RESTORED — current_state.ss1 will not carry this run.
+[ch24entry] R final_at = ('EVER_GRANDE_CITY_POKEMON_LEAGUE_1F(3, 4)', (3, 4))
+[ch24entry] R final_in_lobby = True
+[ch24entry] R final_on_eg = False
+[ch24entry] R flag_at_start = False
+[ch24entry] R flag_final = False
+[ch24entry] R leg = {'latched': True, 'below_floor_before': [('Zigzagoon#33CB74C3', 19), ('Castform#C978D14E', 36)], 'train_skipped_offmap': '((16, 10), (3, 4))', 'below_floor_after': [('Zigzagoon#33CB74C3', 19), ('Castform#C978D14E', 36)], 'readiness_refusal': ['2 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36'], 'refused_at': ((16, 10), (3, 4))}
+[ch24entry] R start_at = ('EVER_GRANDE_CITY_POKEMON_LEAGUE_1F(3, 4)', (3, 4))
+[ch24entry] RESULT readings=['E1-LATCHED', 'T-PREMISE'] missing=['E1-AT-DOOR', 'E1-GUARDS', 'E1-INSIDE', 'E1-READY', 'T-CONTINUE']
+[ch24entry] RESULT whiteouts=0 failure=BotModeError: §Ch24 R1: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4) — 2 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36. The gauntlet is one-way with no nurse, so this is decided BEFORE the guards are talked to (ENTERED_ELITE_FOUR is still False).
+[ch24entry] R1 conjuncts = {'premise': True, 'raised_R1': True, 'reason_matches': True, 'where_expected': True, 'door_still_shut': True, 'never_inside': True, 'no_whiteout': True}
+[ch24entry] ACCEPTANCE: PASS (R1 REFUSED for floor@lobby only, IN THE LOBBY, before the guards; door still shut) SCOPE: floor=65
+f61: CONTROLLER -> <none>   (state=OVERWORLD)
+f961: SAVED stall state #1 to stalls/r1E-REFUSE-LOBBY-f961.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1261: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (3, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f1261:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[done] ran 3000 frames; final mode=Manual party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L75: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 3002 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24entry 3002 recomputes (party_accounting_ledger.jsonl)

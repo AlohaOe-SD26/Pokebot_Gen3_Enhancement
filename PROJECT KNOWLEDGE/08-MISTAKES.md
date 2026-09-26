@@ -22090,3 +22090,34 @@ new start, and a RANGE citation's `-END` was left behind — exactly the cause t
 ("a bulk re-point after lines were inserted"). The gate was doing its job; my tool was not.
 **Prevention rule:** ⛔ **A RE-POINT SHIFTS BOTH ENDS BY THE SAME OFFSET** (here +109: `2009-2021`), and a
 re-point script must match `file.py:A(-B)?` as ONE token, never the start alone.
+
+
+## 2026-09-26 — ⛔ I RE-COMMITTED A DOCUMENTED MISTAKE: MATCHED A MAP *NAME* AGAINST `str()` OF A `(group, number)` TUPLE
+
+**Symptom:** the first R1 drive printed `ACCEPTANCE: FAIL` on arms A and D with every conjunct True except
+`outside`. The refusal text read `at ((0, 8), (18, 6))(18, 6)`.
+**Root cause:** my new driver conjunct tested `"EVER_GRANDE_CITY" in str(refused_at[0])`, and production's
+message printed `{VR._where()}{VR._here_tile()}`. `VR._where` is `seafloor_cavern._where()`, which returns
+`((group, number), (x, y))` — so the check could never be True, and the tile printed twice. **This exact shape
+is written down as "transcription rule A" in `seafloor_cavern.py`'s `_on_map` docstring** ("a verbatim copy
+of a harness comparison is silently ALWAYS FALSE"). I assumed a return type from a function's NAME.
+**Fix:** the driver reads `VR._on_map(VR.EG)` / `VR._on_map(VR.LEAGUE_1F)` at the end of the run (enum-VALUE
+identity); production stores `refused_at` as the raw tuple and names the map with `MapRSE(...).name` only for
+humans. All four arms re-run green (`ai-research-notes/2026-09-26-ch24-r1-GRADED.md`).
+**Why it was cheap:** the conjunct failed CLOSED (a FAIL, not a silent PASS) — and I read the failing line
+before touching R1 (rule 4): the subject was right, the check was wrong.
+**Prevention rule:** ⛔ **COMPARE MAPS BY IDENTITY (`_on_map(enum)`), NEVER BY A SUBSTRING OF `str(...)`.**
+Before using any `_where()`-style helper in a check, read its RETURN line — this module family has two
+`_where`s with different return types (the harness's returns a name string).
+
+## 2026-09-26 — NEAR-MISS: A GIT WORKTREE HAS NO EMULATOR PROFILES, SO 6 ROM GATES "FAIL" THERE FOR NO CODE REASON
+
+**Symptom:** `run_gates.py` on the `wt/ch24organic` worktree reported `FAILED: 6 of 89` — `repro_gym_whiteout_guard`,
+`probe_chapter_order`, `probe_slot_free_plan`, `repro_impassable_dirs`, `probe_e4_entry_seal`,
+`probe_learn_hm_coverage`, every one `RuntimeError: Path is not a valid profile directory` (`repro-ml`).
+**Root cause:** `sandbox-pokebot/profiles/*` is gitignored, so a fresh worktree has none; those gates load a ROM
+through the `repro-ml` profile. Nothing was wrong with the change under test.
+**Fix:** copy `metadata.yml`, `current_save.sav`, `current_state.ss1`, `story.yml` from the main tree's
+`profiles/repro-ml/` into the worktree's (not the 262 MB of logs); all six then PASS.
+**Prevention rule:** ⛔ **READ THE FAILING GATE'S TRACEBACK BEFORE COUNTING IT** — an environment error is not a
+regression. When developing in a worktree, seed `profiles/repro-ml/` first.
