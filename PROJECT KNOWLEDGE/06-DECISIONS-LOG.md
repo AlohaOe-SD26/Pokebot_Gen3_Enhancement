@@ -7231,3 +7231,19 @@ unchanged mechanism is not a question. 12 hours of four lanes would re-measure i
   every run header loses its build commit). Possible later, not free.
 **REOPEN WHEN:** both §Ch23 fixes ship ⇒ signal the user that the batch is ready, on a build that can
 see past Victory Road.
+
+
+## 2026-09-26 — THE ENDLESS ANALYZER KEYS END-GAME MILESTONES ON NAME ∧ (GROUP, NUMBER) ∧ ≥2 SIGHTINGS, AND READS `debug-logs/` + `Old/`
+
+**DECISION.** End-game milestones (`ever_grande (0,8)`, `victory_road (24,43-45)`, `league_lobby`, `elite_four`,
+`champion`, `hall_of_fame`) require the map-section NAME **and** the id **and** `MIN_ID_SIGHTINGS = 2`; towns
+stay name-only. The analyzer reads a lane's `debug-logs/*.log` and `debug-logs/Old/*.log`, deduplicated by
+file name (a run's log is in one place or the other; `Old/` wins a collision).
+**WHY.** Name alone cannot see the League (every room is `EVER GRANDE CITY`); id alone false-fires on
+mid-warp mis-reads (`ROUTE 102(16,0)` is in the 2026-09-15 corpus — the logger reads name and id from two
+memory sources); name ∧ id on ONE frame can still transiently mis-pair, and a genuine visit is always logged
+more than once. Reading both folders means a PARKED batch whose last run has not rotated into `Old/` is still
+counted.
+**ALTERNATIVES REJECTED.** Id alone (false positives, measured); a per-map name table (the logger cannot print
+room names — the section IS the name); ≥3 sightings (would risk missing the Hall of Fame's short credits
+window for no measured gain). **REOPEN IF** a real League visit is ever logged fewer than twice.

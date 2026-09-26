@@ -35621,3 +35621,21 @@ teach (their bench mons below L39 have no Fly-free ground) ⇒ a Fly recon is ru
 ⚠ Two user-ruling tensions are recorded in the note (the 2026-09-18 money REVERSAL; the 2026-09-19
 level-appropriate-ground ruling) and go to the user once the probe says whether the design is viable.
 **FILES:** the two notes above, the `#24-ch23training` stub in `03`, the handoff first action in `04`.
+
+
+## 2026-09-26 (later) — `analyze_endless_batch.py` CAN NOW SEE THE END GAME (it could never see the League; its milestones were mis-ordered)
+
+Its League check could
+never fire (every League room logs as `EVER GRANDE CITY(16,N)`; its self-test used a string no log can
+contain), its milestones stopped at Ever Grande, and they were mis-ordered (Victory Road before Ever
+Grande). Now: milestones key on name ∧ (group, number) — `ever_grande (0,8)`, `victory_road`,
+`league_lobby`, `elite_four`, `champion`, `hall_of_fame` — plus a `cleared` count from the
+`§Ch24 COMPLETE` story line; it reads `debug-logs/` as well as `Old/`; the self-test feeds REAL line
+shapes (incl. the Poké Center (16,12) and a mid-warp `ROUTE 102(16,0)` mis-read as decoys) through the
+real parser, and was fault-tested both ways (PC-counts and id-only each turn it red). Re-run on the
+2026-09-15 corpus it reproduces 30 Ever Grande / 0 Victory Road / 0 League.
+
+**AND TWO HARDENINGS FROM ITS ADVERSARIAL REVIEW (code approved; docs kick-back addressed here):** (1) an id-keyed milestone now needs `MIN_ID_SIGHTINGS = 2` — the logger reads the NAME from the map header and the (group, number) from SaveBlock1, so one mid-warp frame could pair the right name with a League id; a real visit logs a load plus heartbeats. Fault-tested: at 1 the self-test's single-frame `EVER GRANDE CITY(16,0)` decoy turns it red. (2) a self-test arm proves the `cleared` marker matches the real completion line and not a §Ch24 failure line. Corpus re-run unchanged: 30 / 0 / 0.
+
+**WHY IT MATTERS NOW:** `#26-batch0926` (the user's held 12-hour batch) is meant to measure how far organic runs get past §Ch23; with the old analyzer a League or Hall-of-Fame run would have been invisible. ⚠ Historical 'no League interior' readings from this tool proved nothing (the arm could not fire).
+**FILES:** `tools/story-dev/analyze_endless_batch.py`, `PROJECT KNOWLEDGE/07-CHANGELOG.md`.

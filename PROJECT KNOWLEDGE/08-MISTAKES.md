@@ -22045,3 +22045,18 @@ a 48-offset sweep (`#26-carleestage`, `07-CHANGELOG.md` 2026-09-26).
   replayed over idle offsets reproduced the death on 6 of 48 trajectories in minutes. The 2026-09-03 drive
   that proved leg 4 ran that fixture with NO offset — on today's code, offset 0 is one of the 42 that never
   meet it (an inference about 09-03's code, which has changed since, but the lesson does not depend on it).
+
+
+## 2026-09-26 — A DETECTOR WHOSE SELF-TEST FED IT A STRING NO LOG CAN CONTAIN (`analyze_endless_batch.py`)
+
+**Symptom:** the endless analyzer's "did ANY run enter a League interior?" falsification arm could never fire,
+and its `--self-test` passed anyway. Its "none" was quoted in `07-CHANGELOG.md` as evidence.
+**Root cause:** the arm matched names like `POKEMON LEAGUE` / `HALL OF FAME`, but the logger prints the
+REGION-MAP SECTION name, and every League room is `MAPSEC_EVER_GRANDE_CITY` ⇒ `EVER GRANDE CITY(16,N)`. The
+self-test checked the synthetic string `"EVER GRANDE CITY POKEMON LEAGUE"` — which no log line contains — so the
+test verified the matcher against its own assumption, not against the instrument's real output.
+**Fix:** name AND (group, number), ≥2 sightings; the self-test now pushes REAL captured line shapes (and real
+decoys: the Poké Center, a mid-warp mis-read) through the SAME parser the report uses.
+**Prevention rule:** ⛔ **A SELF-TEST MUST FEED THE DETECTOR A LINE COPIED FROM A REAL LOG, THROUGH THE SAME
+PARSER THE REPORT USES.** A hand-typed "example" encodes the author's belief about the format, which is exactly
+the thing under test. Grep the corpus for the shape first, then paste it.
