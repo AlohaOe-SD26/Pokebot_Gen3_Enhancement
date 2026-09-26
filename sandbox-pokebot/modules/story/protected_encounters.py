@@ -119,3 +119,74 @@ def outcome_name(outcome: int | None) -> str:
     if not isinstance(outcome, int) or isinstance(outcome, bool):
         return f"<uninterpretable {outcome!r}>"
     return f"{B_OUTCOME_NAMES.get(outcome, 'UNKNOWN')} ({outcome})"
+
+
+# =================================================================================================
+# THE THREE ENCOUNTER CLASSES, AND WHY ONE TABLE CANNOT SERVE THEM
+# =================================================================================================
+# ✅ ALL THREE READ FROM THE DECOMP DIRECTLY (2026-09-25), not taken from a report.
+#
+# ⛔⛔ THE SETS ARE NOT NESTED AND NOT ORDERABLE. `RAN` (4) **destroys** a Sudowoodo-class static
+# and **preserves** a Rayquaza-class one. `MON_FLED` (6) is **safe** for a roamer and **fatal** for
+# BOTH statics. ⇒ any single "safe outcomes" constant destroys something, and a guard that picks
+# the strictest set strands the bot with no legal exit from a fight it cannot win.
+#
+# ‼ AND THE DETAIL THAT CATCHES PEOPLE: **BOTH static scripts FALL THROUGH TO `setflag`.** Only the
+# outcomes with an explicit `goto_if_eq` escape it. So an outcome nobody thought about — `MON_FLED`,
+# `MON_TELEPORTED` — is FATAL by default, not ignored. Read the fall-through, not just the branches.
+
+#: CLASS 1 — ROAMER (`BATTLE_TYPE_ROAMER`): roaming Latias/Latios.
+#: `battle_main.c` deactivates on `(outcome & B_OUTCOME_WON) || outcome == B_OUTCOME_CAUGHT`,
+#: i.e. every ODD outcome. Loss is UNRECOVERABLE — nothing re-activates a roamer.
+ROAMER_SAFE_OUTCOMES = frozenset({2, 4, 6, 10})          # LOST, RAN, MON_FLED, MON_TELEPORTED
+
+#: CLASS 2A — "FLIES AWAY" statics. VERIFIED on `data/maps/SkyPillar_Top/scripts.inc`:
+#:     goto_if_eq WON               -> DefeatedRayquaza   (setflag + removeobject)
+#:     goto_if_eq RAN               -> RanFromRayquaza    (NO flag — it respawns)
+#:     goto_if_eq PLAYER_TELEPORTED -> RanFromRayquaza    (NO flag)
+#:     setflag FLAG_DEFEATED_RAYQUAZA                     <- FALL-THROUGH
+#: ⭐ So RAN and PLAYER_TELEPORTED are SAFE here — the OPPOSITE of class 1 on outcome 5.
+#: ⚠ Membership beyond Rayquaza (the Regis, Groudon/Kyogre, Mew, Deoxys, Lugia, Ho-Oh,
+#:   Southern-Island Lati) is AGENT-REPORTED and NOT yet verified script-by-script.
+FLIES_AWAY_SAFE_OUTCOMES = frozenset({2, 3, 4, 5})       # LOST, DREW, RAN, PLAYER_TELEPORTED
+
+#: CLASS 2B — "ANY RETURN KILLS IT". VERIFIED on
+#: `data/maps/BattleFrontier_OutsideEast/scripts.inc` (Sudowoodo, level 40):
+#:     goto_if_eq WON               -> DefeatedSudowoodo
+#:     goto_if_eq RAN               -> DefeatedSudowoodo   ⛔ FLEEING IS FATAL
+#:     goto_if_eq PLAYER_TELEPORTED -> DefeatedSudowoodo
+#:     setflag FLAG_DEFEATED_SUDOWOODO                     <- FALL-THROUGH
+#: ⇒ EVERY outcome that reaches the script sets the flag. The only escape is an outcome where the
+#: script NEVER RESUMES — a whiteout. **The correct play against an unbeatable class-2B static is
+#: to LOSE ON PURPOSE.**
+#: ⚠ Membership beyond Sudowoodo (New Mauville Voltorb, Route 120 Kecleon) is AGENT-REPORTED.
+#: ‼ And this class is INVISIBLE to `gBattleTypeFlags` (it is 0 — an ordinary wild battle), so it
+#:   must be recognised by map/species, never by battle flags.
+ANY_RETURN_KILLS_SAFE_OUTCOMES = frozenset({2, 3})       # LOST, DREW — whiteouts only
+
+#: The class names this module understands. A caller must NAME its class; there is no default,
+#: because every possible default is wrong for one of the three.
+ENCOUNTER_CLASSES = {
+    "roamer": ROAMER_SAFE_OUTCOMES,
+    "flies_away": FLIES_AWAY_SAFE_OUTCOMES,
+    "any_return_kills": ANY_RETURN_KILLS_SAFE_OUTCOMES,
+}
+
+
+def outcome_is_safe_for(encounter_class: str, outcome: int | None) -> bool:
+    """Is `outcome` non-destroying for this class of protected encounter?
+
+    ⛔ THERE IS NO DEFAULT CLASS, DELIBERATELY. Every candidate default is WRONG for one of the
+    three — `RAN` preserves a Rayquaza and destroys a Sudowoodo. A caller that does not know which
+    class it is in must not be handed a guess; an unknown class returns **False** (treat as unsafe),
+    which is the direction that cannot cause an irreversible loss.
+
+    ⚠ `False` here means *"do not let the battle end this way"*, NOT *"the encounter is already
+    destroyed"*. It is a pre-commitment test, not a post-mortem.
+    """
+    safe = ENCOUNTER_CLASSES.get(encounter_class)
+    if safe is None:
+        return False
+    if not isinstance(outcome, int) or isinstance(outcome, bool):
+        return False
+    return outcome in safe

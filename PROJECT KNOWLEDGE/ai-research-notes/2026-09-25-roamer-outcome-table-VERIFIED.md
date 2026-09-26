@@ -105,8 +105,41 @@ the error.
 
 ## 2. THERE ARE THREE CLASSES, AND THEIR SAFE SETS PARTLY INVERT
 
-⚠ *Agent-reported (12-agent recon), NOT verified by me. Recorded so nobody builds a one-size
-guard; re-derive before coding against the specifics.*
+✅ **BOTH CLASS EXEMPLARS ARE NOW VERIFIED BY ME** (2026-09-25, read directly). What remains
+agent-reported is only the MEMBERSHIP of each class beyond its exemplar.
+
+**CLASS 2B — `data/maps/BattleFrontier_OutsideEast/scripts.inc` (Sudowoodo, L40):**
+```
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_WON,               ..._DefeatedSudowoodo
+	goto_if_eq VAR_RESULT, B_OUTCOME_RAN,               ..._DefeatedSudowoodo   ⛔ FLEEING
+	goto_if_eq VAR_RESULT, B_OUTCOME_PLAYER_TELEPORTED, ..._DefeatedSudowoodo
+	setflag FLAG_DEFEATED_SUDOWOODO                     ⛔ THE FALL-THROUGH SETS IT TOO
+```
+⇒ **EVERY outcome that reaches this script sets the flag.** The only escape is one where the script
+NEVER RESUMES — a whiteout. **Losing on purpose is the only play against an unbeatable class-2B.**
+
+**CLASS 2A — `data/maps/SkyPillar_Top/scripts.inc` (Rayquaza, L70):**
+```
+	goto_if_eq VAR_RESULT, B_OUTCOME_WON,               ..._DefeatedRayquaza  (setflag + removeobject)
+	goto_if_eq VAR_RESULT, B_OUTCOME_RAN,               ..._RanFromRayquaza   ✅ NO flag — respawns
+	goto_if_eq VAR_RESULT, B_OUTCOME_PLAYER_TELEPORTED, ..._RanFromRayquaza   ✅ NO flag
+	setflag FLAG_DEFEATED_RAYQUAZA                      ⛔ fall-through
+```
+and its removal hook is `goto_if_ne VAR_RESULT, B_OUTCOME_CAUGHT, Common_EventScript_NopReturn` —
+**removed ONLY if CAUGHT.**
+
+⭐⭐ **THE INVERSION, PROVEN BY PUTTING THE TWO SIDE BY SIDE: `RAN` DESTROYS A SUDOWOODO AND
+PRESERVES A RAYQUAZA.** A single global "RAN is safe" rule loses Sudowoodo; a single global "RAN is
+fatal" rule strands the bot at Rayquaza with no legal exit. Both are bugs.
+
+‼ **AND THE FALL-THROUGH IS THE HALF PEOPLE MISS.** Both scripts `setflag` for any outcome WITHOUT
+an explicit branch — so `MON_FLED` (6) and `MON_TELEPORTED` (10) are **FATAL for both statics**,
+while `MON_FLED` is **SAFE for a roamer**. Read the fall-through, not only the branches.
+
+⚠ STILL AGENT-REPORTED (re-derive before relying on it): that the other Regis/Groudon/Kyogre/Mew/
+Deoxys/Lugia/Ho-Oh/Southern-Island Lati follow the 2A shape; that the New Mauville Voltorb and the
+Route 120 Kecleon follow 2B; and the Hall-of-Fame flag-clearing recoverability tier.
 
 | class | examples | safe outcomes | notes |
 |---|---|---|---|

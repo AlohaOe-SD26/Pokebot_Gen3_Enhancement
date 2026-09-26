@@ -104,11 +104,64 @@ def run() -> int:
           "PLAYER_TELEPORTED" in outcome_name(5) and "<unreadable>" == outcome_name(None),
           f"outcome_name(5)={outcome_name(5)!r} outcome_name(None)={outcome_name(None)!r}")
 
+    # ---------------------------------------------------------------------------------------
+    # THE THREE CLASSES. ⭐ The checks that matter are the INVERSIONS: they are what a single
+    # "safe outcomes" table would get wrong, and getting them wrong is an irreversible loss.
+    # ---------------------------------------------------------------------------------------
+    try:
+        from modules.story.protected_encounters import (
+            ANY_RETURN_KILLS_SAFE_OUTCOMES,
+            FLIES_AWAY_SAFE_OUTCOMES,
+            ROAMER_SAFE_OUTCOMES,
+            outcome_is_safe_for as safe,
+        )
+    except Exception as error:  # noqa: BLE001
+        check("C0 the three class tables import", False, repr(error))
+        print("=" * 96)
+        print(f"RESULT: FAIL — {len(FAILURES)} check(s): {', '.join(FAILURES)}")
+        return 1
+
+    # C1 — having three tables is only meaningful if they DIFFER
+    check("C1 the three safe-sets are genuinely distinct",
+          len({ROAMER_SAFE_OUTCOMES, FLIES_AWAY_SAFE_OUTCOMES, ANY_RETURN_KILLS_SAFE_OUTCOMES}) == 3,
+          "if any two are equal, one table is redundant and the split is theatre")
+
+    # C2 — ⭐ THE INVERSION ON `RAN` (4): verified on SkyPillar_Top vs BattleFrontier_OutsideEast
+    check("C2 INVERSION: RAN(4) is SAFE for flies_away but FATAL for any_return_kills",
+          safe("flies_away", 4) is True and safe("any_return_kills", 4) is False,
+          f'flies_away={safe("flies_away", 4)} any_return_kills={safe("any_return_kills", 4)}')
+
+    # C3 — ⭐ THE INVERSION ON `PLAYER_TELEPORTED` (5): fatal to a roamer, safe to a flies_away
+    check("C3 INVERSION: PLAYER_TELEPORTED(5) is FATAL for roamer but SAFE for flies_away",
+          safe("roamer", 5) is False and safe("flies_away", 5) is True,
+          f'roamer={safe("roamer", 5)} flies_away={safe("flies_away", 5)}')
+
+    # C4 — ⭐ THE FALL-THROUGH TRAP: MON_FLED is safe for a roamer and fatal for BOTH statics,
+    #      because both scripts fall through to `setflag` for any outcome without an explicit branch.
+    check("C4 FALL-THROUGH: MON_FLED(6) SAFE for roamer, FATAL for both statics",
+          safe("roamer", 6) is True and safe("flies_away", 6) is False
+          and safe("any_return_kills", 6) is False,
+          f'roamer={safe("roamer", 6)} flies={safe("flies_away", 6)} any={safe("any_return_kills", 6)}')
+
+    # C5 — the one universal escape
+    check("C5 LOST(2) is safe for ALL THREE — a whiteout discards the script",
+          all(safe(c, 2) for c in ("roamer", "flies_away", "any_return_kills")))
+
+    # C6 — ⛔ NO DEFAULT CLASS. Every candidate default is wrong for one of the three.
+    check("C6 an UNKNOWN class is unsafe, never a guess", safe("mystery", 4) is False)
+    check("C6b an unreadable outcome is unsafe for every class",
+          not any(safe(c, None) for c in ("roamer", "flies_away", "any_return_kills")))
+
+    # C7 — losing on purpose really is the ONLY play against an unbeatable class-2B static
+    check("C7 any_return_kills is safe ONLY on the two whiteout outcomes",
+          ANY_RETURN_KILLS_SAFE_OUTCOMES == frozenset({2, 3}),
+          f"got {sorted(ANY_RETURN_KILLS_SAFE_OUTCOMES)}")
+
     print("=" * 96)
     if FAILURES:
         print(f"RESULT: FAIL — {len(FAILURES)} check(s): {', '.join(FAILURES)}")
         return 1
-    print("RESULT: ALL PASS — parity rule intact, including the two a name list would miss.")
+    print("RESULT: ALL PASS — parity intact, and the three classes still INVERT where they must.")
     return 0
 
 
