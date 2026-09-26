@@ -1656,7 +1656,13 @@ def ch24_trainees_below_floor(floor: int = CH24_LEVEL_FLOOR) -> list:
     return sorted(out, key=lambda t: t[2])
 
 
-def ch24_readiness_shortfall(below: list, stock: dict, *, floor: int = CH24_LEVEL_FLOOR,
+#: ⭐ USER RULING 15 (2026-09-26): R1 lets the party into the Elite Four once AT LEAST this many members are at the
+#: floor ("Enter if 4+ are L65"); stragglers ride along. Evidence the user was shown: the only party ever to win the
+#: gauntlet was 4×L75 + Zigzagoon L19 + Castform L36. A party smaller than this needs every member at the floor.
+CH24_MIN_AT_FLOOR = 4
+
+
+def ch24_readiness_shortfall(below: list, stock: dict, *, party_size: int, floor: int = CH24_LEVEL_FLOOR,
                              basket=None) -> list:
     """`#26-ch24organic` R1 — the NAMED reasons the party may not enter the Elite Four; [] = it may.
 
@@ -1666,14 +1672,18 @@ def ch24_readiness_shortfall(below: list, stock: dict, *, floor: int = CH24_LEVE
 
     ⛔ TWO CONJUNCTS, BOTH MATERIAL, NEITHER ABOUT HEALTH. A whiteout heals the party for free, so a
     health-based gate would re-pass forever while nothing changed (06, 2026-09-25, RULING 12-b). The
-    levels are USER RULING 12's floor (train all six to L65-75); the basket is the only healing in a
+    levels: ⭐ USER RULING 15 — at least `min(CH24_MIN_AT_FLOOR, party_size)` members at the floor (RULING 12's
+    "train all six" remains the TRAINING target; this is only the entry gate); the basket is the only healing in a
     nurse-less, one-way zone (`LEAGUE_BASKET`, bought by §Ch23 leg 11).
     """
     if basket is None:
         from modules.story.victory_road import LEAGUE_BASKET as basket
     reasons = []
-    if below:
-        reasons.append(f"{len(below)} mōn below the L{floor} floor: "
+    need = min(CH24_MIN_AT_FLOOR, party_size)
+    at_floor = party_size - len(below)
+    if at_floor < need:
+        reasons.append(f"{len(below)} mōn below the L{floor} floor — only {at_floor} of {party_size} at it, "
+                       f"RULING 15 needs {need}: "
                        + ", ".join(f"{sp}#{pid:08X} L{lv}" for pid, sp, lv in below))
     short = [f"{name} {stock.get(name, 0)}/{qty}" for name, qty in basket if stock.get(name, 0) < qty]
     if short:
@@ -2475,8 +2485,8 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
     non-functional from the lobby, verified one by one:
       * `heal_at_league` raises on an already-healthy party (its own anti-vacuity guard) **and** on
         `not _on_map(EG)` — from the lobby it raises either way, and its postcondition is outside;
-      * `stock_for_the_elite_four`'s money guard fires before any map check (`LEAGUE_MIN_MONEY`
-        54,300) and the measured post-basket wallet is ₽1,741 — a second call raises;
+      * `stock_for_the_elite_four`'s money guard fires before any map check and the measured post-basket
+        wallet is ₽1,741 — a second call can only top up what is MISSING (USER RULING 16), never re-buy;
       * `train_for_league` needs **Fly**, and the lobby is `MAP_TYPE_INDOOR`.
     ⇒ a readiness gate that cannot remedy is just a halt. **Decide it where it can still be fixed.**
 
@@ -2576,8 +2586,18 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
         stock = None
     if stock is None:
         reasons = ["the bag could not be read, so the League basket is unverified"]
+        report["r1_party_size"] = None
     else:
-        reasons = ch24_readiness_shortfall(left, stock, floor=floor)
+        try:
+            party_size = sum(1 for m in get_party() if m is not None and not getattr(m, "is_egg", False))
+        except Exception as error:  # noqa: BLE001 - an unreadable party must REFUSE (fail closed), never pass
+            reraise_if_aborting(error)
+            party_size = None
+        if party_size is None:
+            reasons = ["the party could not be read, so R1 cannot count who is at the floor"]
+        else:
+            reasons = ch24_readiness_shortfall(left, stock, party_size=party_size, floor=floor)
+        report["r1_party_size"] = party_size
     report["readiness_refusal"] = reasons
     import os as _os
 

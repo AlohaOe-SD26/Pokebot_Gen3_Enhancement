@@ -47,7 +47,47 @@ def run_audit() -> "tuple[int, str]":
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
+def repoint(line: str, path: str, old: str, start: str) -> "tuple[str, int]":
+    """Re-point ONE `path:old` or `path:old-END` citation on `line` to `start`, shifting a RANGE's END by the
+    same offset. Returns `(new_line, matches)`; the line is changed only when there is exactly one match.
+    ⛔ 2026-09-26: this tool used to replace the bare `path:old` token, so `victory_road.py:2014-2026` became
+    `2017-2026` — the exact defect `08-MISTAKES.md` names ("A RE-POINT SHIFTS BOTH ENDS BY THE SAME OFFSET"),
+    committed by the repairer itself. `probe_citation_ranges.py` only catches an INVERTED range, not a stale end."""
+    pat = re.compile(re.escape(f"{path}:{old}") + r"(?:-(\d+))?(?!\d)")
+    matches = pat.findall(line)
+    if len(matches) != 1:
+        return line, len(matches)
+    delta = int(start) - int(old)
+
+    def _sub(m):
+        end = m.group(1)
+        return f"{path}:{start}" + (f"-{int(end) + delta}" if end else "")
+    return pat.sub(_sub, line, count=1), 1
+
+
+def _selftest() -> int:
+    cases = [
+        ("see `victory_road.py:2014-2026` here", "victory_road.py", "2014", "2017", "see `victory_road.py:2017-2029` here"),
+        ("see `story_mode.py:2081`,", "story_mode.py", "2081", "2093", "see `story_mode.py:2093`,"),
+        ("`a.py:12` and `a.py:120`", "a.py", "12", "15", "`a.py:15` and `a.py:120`"),
+    ]
+    bad = 0
+    for line, path, old, start, want in cases:
+        got, n = repoint(line, path, old, start)
+        ok = got == want and n == 1
+        bad += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} {line!r} -> {got!r}")
+    got, n = repoint("`a.py:12` twice `a.py:12`", "a.py", "12", "15")
+    ok = n == 2 and got == "`a.py:12` twice `a.py:12`"
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} two identical citations are left alone (n={n})")
+    print("SELFTEST PASS" if not bad else f"SELFTEST FAIL ({bad})")
+    return 1 if bad else 0
+
+
 def main() -> int:
+    if "--selftest" in sys.argv:
+        return _selftest()
     dry = "--dry-run" in sys.argv
     code, out = run_audit()
     if code == 0:
@@ -81,13 +121,13 @@ def main() -> int:
             if not (0 <= i < len(lines)):
                 print(f"  SKIP  {doc}:{f['line']} — line out of range")
                 continue
-            n = lines[i].count(old_tok)
+            new_line, n = repoint(lines[i], f["path"], f["old"], f["start"])
             if n != 1:
                 # ⛔ Ambiguity is REPORTED, never guessed at. Two identical citations on one line
                 # cannot be told apart, and picking one would be a coin flip recorded as a repair.
                 print(f"  SKIP  {doc}:{f['line']} — {old_tok!r} appears {n}× (need exactly 1)")
                 continue
-            lines[i] = lines[i].replace(old_tok, new_tok)
+            lines[i] = new_line
             print(f"  FIX   {doc}:{f['line']}  {old_tok} -> {new_tok}  "
                   f"({f['path'].rsplit('/', 1)[-1]} def line, span {f['start']}-{f['end']})")
             touched = True

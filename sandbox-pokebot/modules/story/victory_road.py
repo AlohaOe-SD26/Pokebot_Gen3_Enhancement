@@ -713,6 +713,9 @@ FAULT_ARMS = {
     #: Exercises the one designed-for path no drive had reached (review 2026-09-26): settle after expiry,
     #: re-resolve by PID, partial EXP must NOT raise, and the per-mon chunk cap must end it LOUDLY.
     "TINYPURSE": "POKEBOT_CH23_FAULT_TINYPURSE",
+    #: §Ch23 leg 11 — restore the pre-RULING-16 purchase: buy (and price) the WHOLE `LEAGUE_BASKET` even when
+    #: some of it is already in the bag. The skip-the-fix arm for "buy only what's missing" (2026-09-26).
+    "FULLBASKET": "POKEBOT_CH23_FAULT_FULLBASKET",
 }
 
 
@@ -3297,6 +3300,22 @@ def bag_healing_stock() -> dict:
     return {slot.item.name: slot.quantity for slot in get_item_bag().items}
 
 
+def basket_to_buy(stock: dict) -> list:
+    """⭐ USER RULING 16 (2026-09-26): the MISSING quantities of `LEAGUE_BASKET`, as `[(name, qty), …]`, in
+    `LEAGUE_BASKET`'s own order (the largest line first — the shop's quantity cap is recomputed from current money
+    on every transaction). PURE. The bag ends with exactly the same basket BY ITEM NAME, so this is NOT a thinner
+    basket (that 2026-09-05 ruling stands); it only stops paying again for items already carried."""
+    return [(name, qty - stock.get(name, 0)) for name, qty in LEAGUE_BASKET if stock.get(name, 0) < qty]
+
+
+def basket_cost(lines) -> int:
+    """₽ for `[(name, qty), …]` at the item data's prices (the full basket prices to exactly `LEAGUE_MIN_MONEY`,
+    ₽54,300 — gated by `probe_ch23_basket_buy.py`)."""
+    from modules.items import get_item_by_name
+
+    return sum(get_item_by_name(name).price * qty for name, qty in lines)
+
+
 def bag_sellable_plan(needed: int) -> tuple[int, list]:
     """`(value, [(name, qty), …])` — what we may sell to close a shortfall of `needed`.
 
@@ -3349,6 +3368,15 @@ def stock_for_the_elite_four(report=None) -> Generator:
     yield from wait_until_truly_controllable()
     report["money_before"] = getattr(get_player(), "money", None)
     report["bag_before"] = bag_healing_stock()
+    # ⭐ USER RULING 16: price and buy only what is MISSING. The end state is still the whole basket (verified
+    # below, unchanged); only the double payment for items already carried goes away.
+    to_buy = basket_to_buy(report["bag_before"])
+    if _fault("FULLBASKET"):
+        to_buy = list(LEAGUE_BASKET)
+        context.message = "Ch23 FAULT FULLBASKET: buying the whole basket regardless of the bag"
+    need_money = basket_cost(to_buy)
+    report["to_buy"] = to_buy
+    report["need_money"] = need_money
 
     # ⛔ REFUSE RATHER THAN UNDER-BUY. The basket is sized to the gauntlet, not to the wallet; if we
     # cannot afford it the right move is to say so loudly, not to quietly buy a thinner one that
@@ -3359,16 +3387,17 @@ def stock_for_the_elite_four(report=None) -> Generator:
     # `Task_ShopMenu` is up. ⇒ this keeps the "fail early and loudly" property for the genuinely
     # unaffordable case, without failing a case we can fix in one menu.
     report["sell_plan"] = []
-    if report["money_before"] is None or report["money_before"] < LEAGUE_MIN_MONEY:
+    if report["money_before"] is None or report["money_before"] < need_money:
         have = report["money_before"] or 0
-        gap = LEAGUE_MIN_MONEY - have
+        gap = need_money - have
         sellable, plan = bag_sellable_plan(gap)
         if _fault("NOSELL"):
             context.message = "Ch23 FAULT NOSELL: not selling to cover the basket shortfall"
             sellable, plan = 0, []
         if sellable < gap:
             raise BotModeError(
-                f"Ch23 leg 11: the basket costs ₽{LEAGUE_MIN_MONEY:,} but we hold ₽{have:,} — short "
+                f"Ch23 leg 11: the missing basket lines {to_buy} cost ₽{need_money:,} (the full basket is "
+                f"₽{LEAGUE_MIN_MONEY:,}) but we hold ₽{have:,} — short "
                 f"by ₽{gap:,}, and the sellable items in the bag would only raise ₽{sellable:,} "
                 f"({plan or 'nothing sellable'}). ⛔ Refusing to buy a thinner basket silently — the "
                 f"Elite Four has no other healing, so an under-stocked bag is a run that fails five "
@@ -3410,6 +3439,13 @@ def stock_for_the_elite_four(report=None) -> Generator:
     report["clerk_stand"] = _here_tile()
     if _fault("NOBUY"):
         context.message = "Ch23 FAULT NOBUY: skipping the purchase"
+        _take(report, "R11-MENU")
+        _take(report, "R11-BOUGHT")
+    elif not to_buy:
+        # ⭐ RULING 16: the whole basket is already carried ⇒ never open the Mart menu (nothing to buy, nothing to
+        # sell — `need_money` is 0). The walk in and out and every reading stay, so the leg's shape is unchanged.
+        context.message = "Ch23 leg 11: the whole basket is already in the bag — nothing to buy (RULING 16)"
+        report["nothing_to_buy"] = True
         _take(report, "R11-MENU")
         _take(report, "R11-BOUGHT")
     else:
@@ -3473,10 +3509,10 @@ def stock_for_the_elite_four(report=None) -> Generator:
             report["money_after_sale"] = money_after_sale
             report["bag_after_sale"] = bag_healing_stock()
             _take(report, "R11-SOLD")
-            if money_after_sale is None or money_after_sale < LEAGUE_MIN_MONEY:
+            if money_after_sale is None or money_after_sale < need_money:
                 raise BotModeError(
                     f"Ch23 leg 11: sold {report['sell_plan']} to cover the basket but the wallet "
-                    f"reads ₽{money_after_sale} — still short of ₽{LEAGUE_MIN_MONEY:,}. ⛔ The sale "
+                    f"reads ₽{money_after_sale} — still short of ₽{need_money:,}. ⛔ The sale "
                     f"did not raise what it should have (expected +₽{report['sell_value']:,} from "
                     f"₽{report['money_before']:,}). ‼ `sell_in_shop` had NO caller anywhere in this "
                     f"repo before this leg, so treat a silent no-op as the likely cause and check "
@@ -3484,8 +3520,8 @@ def stock_for_the_elite_four(report=None) -> Generator:
                 )
 
         yield from _budgeted(
-            buy_in_shop([(get_item_by_name(name), qty) for name, qty in LEAGUE_BASKET]),
-            LEAGUE_SHOP_BUDGET, "buy the Elite Four basket",
+            buy_in_shop([(get_item_by_name(name), qty) for name, qty in to_buy]),
+            LEAGUE_SHOP_BUDGET, "buy the missing Elite Four basket lines",
         )
         yield from wait_until_truly_controllable()
         _take(report, "R11-BOUGHT")

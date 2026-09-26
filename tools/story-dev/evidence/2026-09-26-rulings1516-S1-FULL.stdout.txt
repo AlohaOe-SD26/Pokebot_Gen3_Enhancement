@@ -1,0 +1,59 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\r1516ev\S1-FULL.log
+[setup] created profile rrS1-FULL
+Running mGBA 0.10.2
+[setup] loaded save state post_league_heal.ss1; build=sandbox
+[run] starting faithful loop for up to 150000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch23shop] PRE at=((0, 8), (18, 6))
+[ch23shop] PRE bag={'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1}
+f1: CONTROLLER -> Ch23ShopMode.run   (state=OVERWORLD)
+f69: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_AnimateDoor', 'Task_DoDoorWarp'] ctrl=Ch23ShopMode.run bt='NICK got $4128 for winning!' scripts=[] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1525: SAVED stall state #1 to stalls/rrS1-FULL-f1525.ss1 (bt='NICK got $4128 for winning!')
+f1832: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_ContinueTaskAfterMessagePrints'] ctrl=Ch23ShopMode.run bt='NICK got $4128 for winning!' scripts=['EverGrandeCity_PokemonLeague_1F_EventScript_Clerk'] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2000: heartbeat mode=Story ctrl=Ch23ShopMode.run state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2004: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_ShopMenu'] ctrl=Ch23ShopMode.run bt='NICK got $4128 for winning!' scripts=['EverGrandeCity_PokemonLeague_1F_EventScript_Clerk'] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2675: SAVED stall state #2 to stalls/rrS1-FULL-f2675.ss1 (bt='NICK got $4128 for winning!')
+f2975: !!! NO-PROGRESS x1200 sig=('Ch23ShopMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (16, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_ShopMenu'] scripts=['EverGrandeCity_PokemonLeague_1F_EventScript_Clerk'] bt='NICK got $4128 for winning!' bot_mode=Story
+f2975:     gen -> Ch23ShopMode.run  @ story_harness.py:15426
+f2975:     gen -> stock_for_the_elite_four  @ victory_road.py:3526
+f2975:     gen -> wait_until_truly_controllable  @ early_game.py:1280
+[backup] backed up 'rrS1-FULL' (3 files, 1 KB, reason: auto)
+f4000: heartbeat mode=Story ctrl=Ch23ShopMode.run state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4407: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_DrawFieldMessage'] ctrl=Ch23ShopMode.run bt='NICK got $4128 for winning!' scripts=['EverGrandeCity_PokemonLeague_1F_EventScript_Clerk', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4444: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] ctrl=Ch23ShopMode.run bt='NICK got $4128 for winning!' scripts=['EverGrandeCity_PokemonLeague_1F_EventScript_Clerk', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch23shop] R money_before = 56041
+[ch23shop] R bag_before = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1}
+[ch23shop] R to_buy = [('Hyper Potion', 30), ('Full Restore', 3), ('Full Heal', 8), ('Revive', 3)]
+[ch23shop] R need_money = 54300
+[ch23shop] R clerk_stand = (16, 4)
+[ch23shop] R bag_after = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 30, 'Full Restore': 3, 'Full Heal': 8, 'Revive': 3}
+[ch23shop] R money_after = 1741
+[ch23shop] R basket_shortfall = {}
+[ch23shop] R back_outside = ((0, 8), (18, 6))
+[ch23shop] R out = True
+[ch23shop] RESULT readings=['R11-BOUGHT', 'R11-INSIDE', 'R11-MENU', 'R11-OUT', 'R11-VERIFIED'] missing=[]
+[ch23shop] RESULT battles=0 whiteouts=0
+[ch23shop] POST bag={'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 30, 'Full Restore': 3, 'Full Heal': 8, 'Revive': 3}
+[ch23shop] POST basket_shortfall={}
+[ch23shop] GRADE premise_ok=True shortfall={} missing=[] whiteouts=0 failure=None
+[ch23shop] FINAL position=((0, 8), (18, 6))
+[ch23shop] ACCEPTANCE: PASS
+f4914: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f4914 — ending the loop at f5034
+[done] ran 5035 frames; final mode=Manual party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 5035 get_party() recomputes, 17 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23shop 5035 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\rrS1-FULL\states\2026-09-26_1
+4-58-18.ss1 created!
+Updated `current_state.ss1`!
+exit=0

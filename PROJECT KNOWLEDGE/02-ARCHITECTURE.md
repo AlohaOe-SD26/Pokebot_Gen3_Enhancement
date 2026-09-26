@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 92 entries = 88 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 94 entries = 90 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 9 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -495,7 +495,8 @@ done
   `prepare_and_open_the_league()` (`--driver ch24entry`) gets the party ready OUTSIDE, walks in,
   talks the guards aside, ASSERTS they vacated, and stops on `(9,3)` **without** stepping onto the
   point of no return. ⛔ **Its R1 READINESS REFUSAL (`#26-ch24organic`, 2026-09-26)** raises BEFORE the
-  walk to the door when, after training, anyone is below `floor` or a `LEAGUE_BASKET` line is short
+  walk to the door when, after training, fewer than `min(4, party size)` members are at `floor` (USER RULING 15)
+  or a `LEAGUE_BASKET` line is short
   (pure decision `ch24_readiness_shortfall`; gate `probe_ch24_r1_refusal.py`; arms
   `POKEBOT_CH24_FAULT_NOTRAIN` / `POKEBOT_CH24_FAULT_NOREADY`) — until then it only recorded the
   shortfall and walked in anyway. ⭐ **Then its RETURN BRIDGE (`return_to_league_door`, gap 2)** gets a ready

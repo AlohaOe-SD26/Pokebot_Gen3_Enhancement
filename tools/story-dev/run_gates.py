@@ -223,6 +223,12 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-ch24organic` gap 3 — teach Fly in production: `_play` latches, teaches, THEN trains; the
     # hand-off driver mirrors that order; the learner rule skips four-HM mons. Fault arms built in.
     ("probe_ch24_flyteach.py", False),
+    # ⛔ USER RULING 16 — §Ch23 leg 11 buys only the MISSING basket quantities (same end state; not a thinner
+    # basket): the pure `basket_to_buy`, the prices, the leg's money check and purchase, the FULLBASKET arm.
+    ("probe_ch23_basket_buy.py", False),
+    # ⛔ The citation REPAIRER must shift a range citation's BOTH ends (it shifted only the start, 2026-09-26 —
+    # the 08 rule it existed to honour). Self-test; the old logic fails it.
+    ("repro_fix_doc_citations.py", False),
     # ⛔ KI-102. The withdraw counted party room EXCLUDING eggs while the consumer that
     # refuses counts INCLUDING them, so 5 mon + 1 egg queued no deposit and then RAISED —
     # after the PC journey was already spent. Carries a HISTORICAL CONTROL that pins the old

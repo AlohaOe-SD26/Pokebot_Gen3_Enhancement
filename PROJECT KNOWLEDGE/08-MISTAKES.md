@@ -22178,3 +22178,16 @@ INVISIBLE and costs a whole run"*.
 (Granite Cave / Fiery Path / off-plateau / with Fly NOT refused) and fails an over-eager rule.
 **Prevention rule:** ⛔ **BEFORE USING AN ORACLE AS A GATE, READ WHAT IT CANNOT SEE (its docstring) AND GREP 06/05 FOR IT**
 — and a drive where the guard fires proves nothing about grounds where it must NOT fire; test those too.
+
+## 2026-09-26 — ⛔ THE CITATION REPAIRER ITSELF SHIFTED ONLY A RANGE'S START (the rule I wrote down earlier the same day)
+
+**Symptom:** after `fix_doc_citations.py` ran, `03:830` read `victory_road.py:2017-2026` — the start re-pointed by +3,
+the end not. `probe_citation_ranges.py` PASSED (the range was not inverted, only stale).
+**Root cause:** the tool replaced the bare `path:old` token, so the `-END` was left behind — the same defect this file
+records for my own bulk re-point script earlier on 2026-09-26 ("A RE-POINT SHIFTS BOTH ENDS BY THE SAME OFFSET"). The
+rule lived in prose; the tool that runs most re-points never implemented it. It could also have matched `a.py:12`
+inside `a.py:120`.
+**Fix:** `repoint()` matches `path:A(-B)?(?!\d)` as one token and shifts both ends; `repro_fix_doc_citations.py` (gate)
+runs its self-test — the old logic, swapped back in, fails 2 of 4 cases.
+**Prevention rule:** ⛔ **A RULE ABOUT A TOOL'S OUTPUT BELONGS IN THE TOOL'S TEST, NOT IN 08 ALONE.** When you record a
+mistake a script made, grep for every OTHER script that does the same job.

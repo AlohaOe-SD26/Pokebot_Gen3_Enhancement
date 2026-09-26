@@ -35809,3 +35809,22 @@ recon's prerequisite for every other money fix (`ai-research-notes/2026-09-26-ch
 (`post_league_shop` ₽1,741, `post_ever_grande` ₽38,893), logs EXACTLY the memory value; with telemetry off it writes
 nothing and raises nothing. `repro_heartbeat_emits.py` now REQUIRES `money=` (its field-drop fault arm still bites).
 Suite 92. ⚠ Sandbox↔custom drift is now 8 on the branch (+`debug_logger.py`).
+
+## 2026-09-26 (late) — USER RULINGS 15 + 16 BUILT: R1 ENTERS WITH 4+ AT THE FLOOR; §Ch23 LEG 11 BUYS ONLY WHAT IS MISSING (branch `wt/ch24organic`)
+
+**WHY.** The user ruled (06, 2026-09-26) after seeing the evidence: the only party ever to win the gauntlet was
+4×L75 + L19 + L36, and 3 of 3 organic runs reaching the League were refused on money.
+**RULING 15.** `ch24_readiness_shortfall(..., party_size=)`: the level conjunct refuses only when fewer than
+`min(CH24_MIN_AT_FLOOR=4, party size)` members are at the floor; an unreadable party refuses. Training still aims at
+everyone.
+**RULING 16.** `victory_road.basket_to_buy` / `basket_cost`: leg 11 prices and buys only the MISSING quantities
+(largest line first), never opens the Mart menu when nothing is missing, and still verifies the WHOLE basket. Arm
+`POKEBOT_CH23_FAULT_FULLBASKET` restores the old full purchase.
+**PROOF** (predictions `7585cb76`, all seven as predicted — `ai-research-notes/2026-09-26-rulings15-16-GRADED.md`):
+the L75 winning party now passes R1 at floor 65; the boundary is exact on one fixture (floor 48: 3 of 6 ⇒ refuse;
+floor 47: 4 of 6 ⇒ enter); an empty bag still buys everything (₽56,041 → ₽1,741, as 2026-09-04); a stocked bag buys
+nothing and keeps its money; the old behaviour refuses that stocked party on money. **GATES:** `probe_ch24_r1_refusal.py`
+G1 (the strict all-six rule is now a fault arm) and NEW `probe_ch23_basket_buy.py`; and NEW
+`repro_fix_doc_citations.py` — the citation REPAIRER shifted only a range's START (`2014-2026` → `2017-2026`), the
+exact 08 rule it exists to honour; it now shifts both ends and never matches a longer number's prefix (suite 94).
+**LIMIT:** a PARTIAL basket is gate-tested only (no fixture carries one).

@@ -65,20 +65,30 @@ ZIG = (0x33CB74C3, "Zigzagoon", 19)
 CAST = (0xC978D14E, "Castform", 36)
 
 
+WAIL = (0xFA51ECF3, "Wailord", 47)
+
+
 def g1(decide, sink=None) -> None:
-    check(decide([], dict(FULL)) == [], "G1 nobody below + exact basket ⇒ [] (enter)", sink)
-    check(decide([], {**FULL, "Potion": 1, "Nugget": 2}) == [], "G1 extra bag items change nothing", sink)
-    r = decide([ZIG, CAST], dict(FULL))
-    check(len(r) == 1 and "below the L65 floor" in r[0] and "Zigzagoon#33CB74C3 L19" in r[0]
-          and "Castform#C978D14E L36" in r[0], f"G1 two below ⇒ ONE level reason naming both PIDs: {r}", sink)
-    r = decide([], {**FULL, "Hyper Potion": 29})
+    """`decide(below, stock, *, party_size, floor=65)` — USER RULING 15: enter once min(4, size) are at the floor."""
+    check(decide([], dict(FULL), party_size=6) == [], "G1 nobody below + exact basket ⇒ [] (enter)", sink)
+    check(decide([], {**FULL, "Potion": 1, "Nugget": 2}, party_size=6) == [], "G1 extra bag items change nothing", sink)
+    r = decide([ZIG, CAST], dict(FULL), party_size=6)
+    check(r == [], f"G1 RULING 15: two below, FOUR at the floor ⇒ [] (the proven-winning shape enters): {r}", sink)
+    r = decide([ZIG, CAST, WAIL], dict(FULL), party_size=6)
+    check(len(r) == 1 and "below the L65 floor" in r[0] and "only 3 of 6" in r[0] and "needs 4" in r[0]
+          and "Zigzagoon#33CB74C3 L19" in r[0] and "Wailord#FA51ECF3 L47" in r[0],
+          f"G1 RULING 15: three below, only THREE at the floor ⇒ ONE level reason naming the PIDs: {r}", sink)
+    r = decide([ZIG], dict(FULL), party_size=3)
+    check(len(r) == 1 and "only 2 of 3" in r[0] and "needs 3" in r[0],
+          f"G1 a 3-mon party needs all three (min(4, size)): {r}", sink)
+    r = decide([], {**FULL, "Hyper Potion": 29}, party_size=6)
     check(r == ["League basket short: Hyper Potion 29/30"], f"G1 one short line ⇒ exactly it: {r}", sink)
-    r = decide([], {k: v for k, v in FULL.items() if k != "Revive"})
+    r = decide([], {k: v for k, v in FULL.items() if k != "Revive"}, party_size=6)
     check(r == ["League basket short: Revive 0/3"], f"G1 a MISSING line reads as 0/need: {r}", sink)
-    r = decide([ZIG], {})
+    r = decide([ZIG, CAST, WAIL], {}, party_size=6)
     check(len(r) == 2 and "below" in r[0] and r[1].startswith("League basket short:"),
           f"G1 both conjuncts fail ⇒ two reasons, levels first: {r}", sink)
-    r = decide([ZIG], dict(FULL), floor=40)
+    r = decide([ZIG, CAST, WAIL], dict(FULL), party_size=6, floor=40)
     check(len(r) == 1 and "below the L40 floor" in r[0], f"G1 the floor PARAMETER is what the reason names: {r}",
           sink)
 
@@ -163,9 +173,18 @@ def main() -> int:
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     sink: list = []
-    g1(lambda below, stock, floor=65, basket=None: PL.ch24_readiness_shortfall(below, dict(FULL), floor=floor),
-       sink)
+    g1(lambda below, stock, party_size, floor=65, basket=None:
+       PL.ch24_readiness_shortfall(below, dict(FULL), party_size=party_size, floor=floor), sink)
     check(bool(sink), f"FAULT a decision that ignores the basket FAILS G1 ({len(sink)} case(s) caught)")
+
+    def strict_all_six(below, stock, party_size, floor=65, basket=None):
+        """The pre-RULING-15 rule: any member below the floor refuses."""
+        r = [] if not below else [f"{len(below)} mōn below the L{floor} floor — only {party_size - len(below)} of "
+                                  f"{party_size} at it, RULING 15 needs 4: x"]
+        return r + [x for x in PL.ch24_readiness_shortfall([], stock, party_size=party_size, floor=floor)]
+    sink = []
+    g1(strict_all_six, sink)
+    check(bool(sink), f"FAULT the pre-RULING-15 strict all-six rule FAILS G1 ({len(sink)} case(s) caught)")
 
     anchor = "    # ---- R1: THE READINESS REFUSAL"
     assert src.count(anchor) == 1, "mutation anchor moved — update the gate"

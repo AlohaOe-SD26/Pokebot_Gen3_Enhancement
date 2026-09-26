@@ -15430,8 +15430,8 @@ class Ch23ShopMode(BotMode):
 
         taken = report.get("readings", set())
         missing = [r for r in VR.LEG11_READINGS if r not in taken]
-        for key in ("money_before", "bag_before", "clerk_stand", "bag_after", "money_after",
-                    "basket_shortfall", "back_outside", "out"):
+        for key in ("money_before", "bag_before", "to_buy", "need_money", "nothing_to_buy", "clerk_stand",
+                    "bag_after", "money_after", "basket_shortfall", "back_outside", "out"):
             if key in report:
                 log(f"[{TAG}] R {key} = {report[key]!r}")
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
