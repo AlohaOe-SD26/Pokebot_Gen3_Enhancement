@@ -12557,3 +12557,43 @@ PYTHONUTF8=1 py -3.12 story_harness.py grind_stall_ppzero.ss1 --driver ch24caveh
 CH24_LOBBY_CAPTURE=post_league_lobby PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor_L75.ss1 --driver ch24lobby --frames 6000
 CH24_2F_CAPTURE=post_league_2f PYTHONUTF8=1 py -3.12 story_harness.py post_league_lobby.ss1 --driver ch24lobby2f --frames 12000
 ```
+
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+Closed 2026-09-18 and superseded by the whole §Ch24 build (the gauntlet now runs end to end); kept verbatim for its measurements (delivered (1,6) vs resting (2,6); the 2F escalator returns to LEAGUE_1F (1,7)).
+
+- [x] ✅✅ `#24-league2f` — **NEW AND DONE 2026-09-18. THE LOBBY WINDOW'S SECOND MAP IS READ, THE REPO'S FIRST 2F FIXTURE IS MINTED, AND THE ESCALATOR ROUND TRIP IS MEASURED IN BOTH DIRECTIONS.**
+  **WHY:** `#24-lobbyfixture` closed with *“the window is TWO maps and this measures ONE”*. This is
+  the other one. `--driver ch24lobby2f`, predictions committed first (`265b7d40`), four arms.
+  ⭐ **THE ARTIFACT:** `saves/post_league_2f.ss1`, pinned `d3c09e7af34922d28dacbf927fb7b6bc` — the
+  repo's FIRST fixture on `EVER_GRANDE_CITY_POKEMON_LEAGUE_2F`. **Rests on (2,6)**, L75 party,
+  **0 battles**, `ENTERED_ELITE_FOUR` **still False**; re-verified by RELOAD in
+  `probe_ch23_leg_guards.py`, which now reads FIVE positions.
+  ‼‼ **(1,6) IS THE DELIVERED TILE; (2,6) IS THE RESTING TILE — DO NOT CONFUSE THEM.** The escalator
+  delivers to **(1,6)** (✅ the decomp's reciprocal warp, measured here for the first time) and the
+  avatar then AUTO-COMPLETES A STEP to (2,6).
+  ⭐⭐ **THE ROUND TRIP IS CLOSED AND THAT SENTENCE IS NOW EXECUTED.** `victory_road.py:410-411` has
+  called the escalator *“benign (2F warps straight back)”* since it was written and **nothing in this
+  repo had ever run it.** Measured: `(3,4)→(1,7)` warps up; stepping from (2,6) back onto (1,6)
+  returns to `LEAGUE_1F (1,7)`; the leg walks home to (3,4). ⇒ a stray step on the escalator is
+  **recoverable**. ⚠ 2F is still `"allow_escaping": false` — no Dig/Teleport/Escape Rope; the
+  escalator is the ONLY way out, it simply works.
+  ⭐ **AND §Ch23 RAISES ON 2F TOO** — all ten call sites False, `ch23_chapter_done()` False, and a
+  guarded call gives `BotModeError … failed after 3 attempts`, `frames=0`, `moved=False`.
+  ⇒ `#24-ch23lobbyresume`'s **LEAGUE-WIDE** scope is confirmed on a THIRD map.
+  ✅ **ARMS:** TREATMENT `missing=[]` · VACUITY refused at the premise with zero readings ·
+  `NORETURN` → `missing=['L2-RETURN']` alone · `BLINDGUARD2F` → the guard's self-test fires and the
+  leg walks NOTHING, going blind to exactly the sealed-room and second-warp synthetics while still
+  catching the same-map one.
+  ⛔ **TWO DRIVER BUGS, BOTH OF WHICH WOULD HAVE BLAMED THE GAME — see the graded note.** (1) a
+  CROSS-MAP `calculate_path` request returned *“not on connected maps (warps don't count)”*, which my
+  own predictions file said would mean *“2F is a one-way pocket”*; it meant the request was malformed.
+  (2) after a settle was added, the return aimed at the SETTLED tile instead of the DELIVERED one and
+  raised a message accusing `victory_road.py` of being wrong.
+  ⚠ **A DESIGN DEVIATION IS DECLARED IN THE GRADED NOTE, NOT BURIED:** prediction P3 was pre-registered as *“vet a route to a SEALED map (or unreachable)”*; the implementation injects **SYNTHETIC** waypoints instead, because a sealed route IS unreachable from the lobby and that arm would have passed **for the wrong reason** on every run — the exact shape `#24-pathguardblind` was about. ⇒ P3 is graded ✅ against the SYNTHETIC test, and the change is stated rather than scored around.
+  ⚠ **STILL OWED:** a **post-talk** sibling fixture. The metatile behaviour of (1,6) is NOT measured
+  (only that the return works), and the FREQUENCY of a stray escalator step is untouched.
+  Graded predictions + the two reusable facts: `ai-research-notes/2026-09-18-ch24-league2f-PREDICTIONS.md`
+

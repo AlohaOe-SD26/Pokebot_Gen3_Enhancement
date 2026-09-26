@@ -730,6 +730,10 @@ touching `handle_fainted_pokemon` again.
   dump after 18,000 frames, so the cap is no longer the only thing that NOTICES a hang, just
   the thing that ENDS one — a wedge is now diagnosed ~270x sooner than the cap fires.
   Expect to raise it again as content grows; re-derive from the deepest COMPLETED run.
+- **⭐ RAISED AGAIN 2026-09-26: 5M → 7M, PLUS A §Ch24 EXTENSION (`#26-endlesscap`).** All six budget kills in the
+  2026-09-15 corpus were mid-to-late game, and the §Ch24 league grind (~4.5M frames) made a Hall of Fame
+  impossible in this mode; `_frame_cap_for_this_run()` now adds the 6M training purse + 1M once §Ch24 latches.
+  ⚠ Still derived from KILL points — no endless run has COMPLETED the game yet; re-derive when one does.
 
 
 ## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed — ✅ **FIXED 2026-07-30.** ⚠ A follow-up remains; see the archived body. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted).

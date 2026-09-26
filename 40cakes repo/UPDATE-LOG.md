@@ -27,6 +27,7 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
+- ⏸ **2026-09-26 (later) — UPSTREAM MOVED AGAIN, AND THE USER RULED “NOT NOW, KEEP IT PARKED”.** Re-fetched: `upstream-pokebot/main` = **`f0a14cad`**, i.e. **3** commits ahead of the mirrored `5dd898f8` — the two below plus `f0a14cad` *“Reduce usage of global state (#826)”*, which makes the diff **28 files** (`modules/game.py` +266 the largest), no longer the one Tk file. Asked with those facts; answer recorded in `PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` 2026-09-26. ⇒ **still nothing pulled, no docs touched; the mirror is still correctly `5dd898f8`.** Keep doing the daily check; do NOT run step 2 without asking again (“not now” is not “never” — re-offer it).
 - ⛔⛔ **UPSTREAM HAS MOVED — FIRST TIME SINCE THE MIRROR WAS CREATED. THE SYNC IS *NOT* DONE; IT IS PARKED.** Daily check **2026-09-26**: `git fetch upstream-pokebot` ⇒ `upstream-pokebot/main` = **`84c6064c`**, i.e. **2 commits ahead** of the mirrored `5dd898f8`:
   * `7ee780d4` — *"Don't require Tk to run in headless mode"*
   * `84c6064c` — merge of upstream PR **#824** (`iqno/headless-without-tkinter`)

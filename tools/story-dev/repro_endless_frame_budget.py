@@ -163,13 +163,107 @@ next(gen)
 gen.close()
 check(closed["yes"], "closing the wrapper closes the story generator")
 
+print("\n== ⭐ 2026-09-26: the REPORTED run length is the run's, not 'this end minus last end' ==")
+# Every endless run hard-resets INSIDE the run, so `start_frame` belongs to the previous
+# emulator session. The old outcome line printed `now - start_frame`: e.g. a §Ch23 derail
+# logged at "(187,804 frames)", impossible from a NEW GAME. The wrapper now publishes the
+# same re-based count it enforces.
+emu = ResettingEmulator()                      # previous session ended at 900k, then reset
+steps, err = drive(finite_run(3000), 900_000, emu)
+since_reset = emu.frame                        # counter restarted at 0 on the reset
+check(err is None, "a finite run across the mid-run reset completes")
+reported = getattr(mode, "_run_elapsed_frames", None)   # absent on the pre-fix code => FAIL, not crash
+check(reported == since_reset,
+      f"reported = frames since the RESET ({reported!r} == {since_reset:,})")
+check(reported is not None and reported != max(0, emu.frame - 900_000),
+      "and NOT the old 'this end minus the previous session's end' figure")
+
+print("\n== ⭐ 2026-09-26: once §Ch24 OWNS the run, the cap extends to cover the league grind ==")
+from modules.story import pokemon_league  # noqa: E402
+
+PURSE = pokemon_league.CH24_TRAIN_PURSE_FRAMES
+ALLOW = getattr(mode, "CH24_GAUNTLET_ALLOWANCE_FRAMES", 0)
+if not hasattr(mode, "_frame_cap_for_this_run"):   # the pre-fix code: report, then test the RUN anyway
+    check(False, "`_frame_cap_for_this_run` exists (the §Ch24-aware cap)")
+    mode._frame_cap_for_this_run = lambda: mode.MAX_FRAMES_PER_RUN
+mode.BUDGET_CHECK_INTERVAL = 64                # instance override: 64k-frame granularity below
+GRAN = 1000 * mode.BUDGET_CHECK_INTERVAL
+check(PURSE >= 4_500_000,
+      f"the purse still covers the measured ~4.5M-frame grind (CH24_TRAIN_PURSE_FRAMES={PURSE:,})")
+mode._ch24_owns_run = False
+check(mode._frame_cap_for_this_run() == CAP, "unlatched: the cap is the base cap")
+mode._ch24_owns_run = True
+check(mode._frame_cap_for_this_run() == CAP + PURSE + ALLOW,
+      f"latched: base + purse + allowance ({mode._frame_cap_for_this_run():,})")
+
+
+def latching_run(latch_at_step):
+    """A hung run that §Ch24 latches part-way through, as `train_for_league()` does."""
+    n = 0
+    while True:
+        n += 1
+        if n == latch_at_step:
+            mode._ch24_owns_run = True
+        yield
+
+
+def run_latched(latch_at_step):
+    mode._ch24_owns_run = False
+    emu = FakeEmulator(start=0, per_yield=1000)
+    _steps, err = drive(latching_run(latch_at_step), 0, emu, max_steps=100_000)
+    return emu.frame, err
+
+
+LATCH_STEP = 4_000                             # latch at ~4M frames: under the base cap
+stop_at, err = run_latched(LATCH_STEP)
+check(isinstance(err, BotModeError), "a latched run that wedges is STILL stopped (the extension is finite)")
+check(stop_at > CAP + GRAN,
+      f"it is NOT stopped at the base cap ({stop_at:,} > {CAP + GRAN:,}) — the grind survives")
+check(stop_at <= CAP + PURSE + ALLOW + GRAN,
+      f"and it stops at base + purse + allowance ({stop_at:,} <= {CAP + PURSE + ALLOW + GRAN:,})")
+
+print("\n== FAULT ARM: the discriminator really discriminates (extension removed => base cap) ==")
+_real_cap = mode._frame_cap_for_this_run
+mode._frame_cap_for_this_run = lambda: CAP     # the pre-2026-09-26 behaviour
+fault_stop, fault_err = run_latched(LATCH_STEP)
+mode._frame_cap_for_this_run = _real_cap
+check(isinstance(fault_err, BotModeError) and fault_stop <= CAP + GRAN,
+      f"with the extension disabled the SAME run dies at the base cap ({fault_stop:,})")
+check(fault_stop < stop_at, "so the two arms differ — the latched check above is not vacuous")
+
+print("\n== an UNLATCHED livelock is still ended at the base cap (early game is not loosened) ==")
+mode._ch24_owns_run = False
+emu = FakeEmulator(start=0, per_yield=1000)
+steps, err = drive(livelock_run(), 0, emu, max_steps=100_000)
+check(isinstance(err, BotModeError) and emu.frame <= CAP + GRAN,
+      f"unlatched livelock stopped at the base cap ({emu.frame:,})")
+del mode.BUDGET_CHECK_INTERVAL                 # restore the class value for the source checks
+
 print("\n== the budget is enforced DURING the run, not after it returns ==")
-src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8")
+import io  # noqa: E402
+import tokenize  # noqa: E402
+
+
+def _code_only(text: str) -> str:
+    """The source with every COMMENT token removed. ⛔ A gate must not fire on a MENTION: the fix's
+    own comment quotes the old `get_frame_count() - start_frame` expression, and a textual check
+    that sees it would teach the reader to bypass the gate (CLAUDE.md session discipline #6)."""
+    toks = [t for t in tokenize.generate_tokens(io.StringIO(text).readline)
+            if t.type != tokenize.COMMENT]
+    return tokenize.untokenize(toks)
+
+
+src = _code_only((SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8"))
 loop = src[src.index("class StoryEndlessResetMode"):]
 check("yield from self._run_with_frame_budget(super().run()" in loop,
       "the endless loop drives the story through the budget wrapper")
 check(loop.index("_run_with_frame_budget") < loop.index("outcome = f\"frame-cap"),
       "the in-run budget exists alongside the post-hoc report, not instead of it")
+post_hoc = loop[loop.index("def run(self)"):]
+check("_run_elapsed_frames" in post_hoc and "get_frame_count() - start_frame" not in post_hoc,
+      "the outcome line reports the wrapper's re-based count, not `now - start_frame`")
+check("self._frame_cap_for_this_run()" in post_hoc,
+      "the post-hoc 'frame-cap' label uses the SAME effective cap the wrapper enforced")
 
 print()
 if failures:

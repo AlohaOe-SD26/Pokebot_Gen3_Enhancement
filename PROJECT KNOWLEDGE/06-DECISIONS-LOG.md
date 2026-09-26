@@ -7178,3 +7178,56 @@ the worst combination.
 **Consequences recorded where they will be read:** the `FIXTURES.md5` entry states that the anchor's
 worth is a property of its PARTY and forbids re-capturing it with a Water-type; the driver asserts
 the premise at runtime and refuses to run if it does not hold.
+
+
+## 2026-09-26 — ENDLESS-RESET CAP: RAISE THE BASE TO 7M, AND EXTEND IT ONLY ONCE §Ch24 OWNS THE RUN (`#26-endlesscap`)
+
+**DECISION.** `StoryEndlessResetMode.MAX_FRAMES_PER_RUN` 5M → 7M, and `_frame_cap_for_this_run()`
+adds `CH24_TRAIN_PURSE_FRAMES` + a 1M gauntlet allowance once `_ch24_owns_run` is latched.
+**WHY.** In this mode every run starts from a NEW GAME, the §Ch24 grind alone is ~4.5M frames, and
+the 2026-09-15 corpus shows 5M being reached mid-to-late game ⇒ a Hall of Fame was impossible in
+the batch mode and any run reaching the League would have been killed mid-grind. Full evidence:
+`07-CHANGELOG.md` 2026-09-26.
+**ALTERNATIVES REJECTED.**
+* **Keep 5M** — the user's 12-hour batch could then never observe a League run; it would measure
+  only up to the kill point.
+* **A flat ~14M cap** — loosens protection against the early-game LIVELOCKS that cost half a batch
+  in July (19.9M-frame Route 103, 13.4M Route 116); a livelock would burn 2.8× the old budget
+  before reset. The latch-keyed extension keeps early game at the base cap.
+* **An env-var knob** — adds a flag to the registry and makes the batch's key variable invisible in
+  its own logs unless separately printed; the cap is a property of the mode, not of an experiment.
+* **Extend by badge count / chapter** — more states to get wrong. The §Ch24 latch already exists and
+  marks exactly the moment the training PURSE (the designed wedge backstop) takes over.
+**REOPEN IF:** a completed run exists (re-derive the base from its length, per the constant's own
+rule), or a batch shows runs killed at 7M while still progressing.
+
+## 2026-09-26 — USER RULING: THE UPSTREAM SYNC STAYS PARKED ("Not now, keep it parked")
+
+Asked (with the facts: now **3** commits ahead at `f0a14cad`, including upstream #826 *"Reduce usage
+of global state"* — a **28-file** refactor, no longer the 1-file Tk change; step 2 is a
+`git subtree pull --squash` merge onto `main`; the mirror folder only, never `custom-pokebot/`).
+Answer: **"Not now, keep it parked."**
+⇒ Keep performing the daily CHECK and recording it in `40cakes repo/UPDATE-LOG.md`. **Do not run
+step 2 without asking again.** ⚠ This is a "not now", not a "never": re-offer it at a quiet moment,
+and do not treat this entry as a standing refusal.
+
+## 2026-09-26 — HOLD THE USER'S OFFERED 12-HOUR x4 BATCH UNTIL THE TWO §Ch23 KILLERS ARE FIXED (`#26-batch0926`)
+
+**DECISION.** The user offered to run a 12-hour ENDLESS LOOP x4 batch as the next step toward RULING 11.
+I recommended HOLDING it (the user had asked *"if you think this is a good idea"*), shipped the cap fix it
+would need anyway (`#26-endlesscap`), and queued the two §Ch23 fixes first.
+**WHY.** A 5-angle recon with an adversarial verifier per angle
+(`ai-research-notes/2026-09-26-organic-frontier-RECON.md`) found that **all 39 badge-8 runs** of the
+previous 99-run corpus died INSIDE §Ch23 on two causes that are **unfixed at HEAD** — 30 on the training
+refusal (`#24-ch23training`), 9 on a Route 128 staging tile occupied by a trainer (`#26-carleestage`).
+CLAUDE.md rule 9: batches answer FREQUENCY questions, and a frequency already measured at 30/30 on an
+unchanged mechanism is not a question. 12 hours of four lanes would re-measure it and could not see past it.
+**ALTERNATIVES REJECTED.**
+* **Run it now anyway** — the only new information would be early/mid-game frequencies on a build with few
+  changes to those paths; and it would freeze `sandbox-pokebot/` for 12 hours (lanes import late-chapter
+  modules from disk), blocking the very fixes it would be waiting on.
+* **Run it from a frozen git worktree** so development continues — the recipe does not work as written
+  (the `mgba/` bindings and `.last-requirements-check` are gitignored; `.git` is a FILE in a worktree, so
+  every run header loses its build commit). Possible later, not free.
+**REOPEN WHEN:** both §Ch23 fixes ship ⇒ signal the user that the batch is ready, on a build that can
+see past Victory Road.

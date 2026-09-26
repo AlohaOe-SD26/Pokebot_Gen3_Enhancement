@@ -5631,7 +5631,53 @@ class StoryEndlessResetMode(StoryDebugResetMode):
     #: produces a STUCK dump (with the generator stack) after 18,000 frames, so the frame cap is
     #: no longer the only thing that notices a hang — it is just the thing that ENDS one. A
     #: wedge is diagnosed ~270x sooner than the cap fires.
-    MAX_FRAMES_PER_RUN = 5_000_000
+    #:
+    #: ‼ RAISED 5M -> 7M on 2026-09-26, AGAIN BECAUSE IT WAS KILLING RUNS SHORT OF THE CONTENT.
+    #: In the 99-run endless corpus of 2026-09-15, all SIX `per-run frame budget exhausted` runs
+    #: were MID-TO-LATE GAME when the cap fired — the Mossdeep Space Center (§Ch19), Tate & Liza
+    #: twice, Juan twice, Sootopolis (§Ch21 leg 5) — i.e. 5M was being reached BEFORE §Ch23, and §Ch23 + §Ch24
+    #: lie beyond that point. 7M is ~1.4x the frame count at which those runs were still
+    #: progressing. ⛔ It is still a guess from a KILL point, not from a completed run; re-derive
+    #: it from the deepest COMPLETED run as soon as one exists (the rule above still stands).
+    #: ⚠ The §Ch24 league grind is NOT covered by this number — see
+    #: `_frame_cap_for_this_run`, which extends the cap only once §Ch24 owns the run.
+    MAX_FRAMES_PER_RUN = 7_000_000
+
+    #: Extra budget, on top of `pokemon_league.CH24_TRAIN_PURSE_FRAMES`, for everything §Ch24 does
+    #: AFTER training: the step-out, the League entry, five fights, HALL4, the credits and the
+    #: SoftReset. MEASURED: the proven chain (`evidence/2026-09-25-ch24gauntlet-PASS.txt`) spent
+    #: ~114k frames from Sidney's first battle to Wallace's end, inside a 600k driver budget.
+    #: 1M is ~6x the fights and deliberately loose — this is a wedge backstop, not a scheduler.
+    CH24_GAUNTLET_ALLOWANCE_FRAMES = 1_000_000
+
+    def _frame_cap_for_this_run(self) -> int:
+        """The per-run frame cap in force RIGHT NOW: the base cap, extended once §Ch24 owns the run.
+
+        ⛔⛔ WHY THE BASE CAP ALONE MADE A HALL OF FAME STRUCTURALLY IMPOSSIBLE IN THIS MODE.
+        This mode starts every run from a NEW GAME, so nothing earned in one run survives into the
+        next (`pokemon_league.py` documents it: the story bot never saves). The §Ch24 league grind
+        alone is measured at ~4.5M frames (`probe_ladder_economics.py`, 22.3 h for the two
+        stragglers) and its purse is sized at 6M — on top of the millions a run has already spent
+        reaching Ever Grande. Under a flat cap every run that got as far as the League would be
+        KILLED MID-GRIND and logged as "wedged", which is the worst possible outcome for the one
+        run a batch exists to observe.
+        ⇒ The extension is granted ONLY after `mark_ch24_owns_run()` — the first act of
+        `train_for_league()` — so early-game livelocks (the 13-27M-frame shapes documented on
+        `_run_with_frame_budget`) are still ended at the base cap. From the latch on, the
+        training purse is the designed backstop, and this cap must not pre-empt the FIRST purse.
+        ⚠ It CAN pre-empt a SECOND one, deliberately: `prepare_and_open_the_league` calls
+        `train_for_league` again when anyone is still below the floor, so two full purses (12M) are
+        possible in principle. A run that spends one whole purse without reaching the floor is not
+        one worth another 6M frames of an unattended batch; ending it here is the intended outcome.
+        """
+        cap = self.MAX_FRAMES_PER_RUN
+        if getattr(self, "_ch24_owns_run", False):
+            try:
+                from modules.story.pokemon_league import CH24_TRAIN_PURSE_FRAMES
+            except Exception:  # noqa: BLE001 — a budget read must never end a batch
+                return cap
+            cap += CH24_TRAIN_PURSE_FRAMES + self.CH24_GAUNTLET_ALLOWANCE_FRAMES
+        return cap
 
     @staticmethod
     def name() -> str:
@@ -5671,6 +5717,25 @@ class StoryEndlessResetMode(StoryDebugResetMode):
 
         budget_base = start_frame
         ticks = 0
+        # ⭐ THE RUN'S TRUE LENGTH, published for the outcome line. It is the SAME re-based count
+        # the budget enforces, so the report and the enforcement can no longer disagree.
+        self._run_elapsed_frames = 0
+
+        def _elapsed() -> int | None:
+            nonlocal budget_base
+            try:
+                now = context.emulator.get_frame_count()
+            except Exception:
+                return None
+            # The hard reset happens INSIDE the run, and `get_frame_count()` restarts
+            # with the emulator — so the counter legitimately goes backwards early on.
+            # Re-base instead of measuring a negative elapsed (the same trap that made
+            # the old post-hoc cap silently unenforceable after a mid-run reset).
+            if now < budget_base:
+                budget_base = 0
+            self._run_elapsed_frames = now - budget_base
+            return self._run_elapsed_frames
+
         try:
             while True:
                 try:
@@ -5681,24 +5746,18 @@ class StoryEndlessResetMode(StoryDebugResetMode):
                 ticks += 1
                 if ticks % self.BUDGET_CHECK_INTERVAL:
                     continue
-                try:
-                    now = context.emulator.get_frame_count()
-                except Exception:
+                elapsed = _elapsed()
+                if elapsed is None:
                     continue
-                # The hard reset happens INSIDE the run, and `get_frame_count()` restarts
-                # with the emulator — so the counter legitimately goes backwards early on.
-                # Re-base instead of measuring a negative elapsed (the same trap that made
-                # the old post-hoc cap silently unenforceable after a mid-run reset).
-                if now < budget_base:
-                    budget_base = 0
-                elapsed = now - budget_base
-                if elapsed > self.MAX_FRAMES_PER_RUN:
+                cap = self._frame_cap_for_this_run()
+                if elapsed > cap:
                     raise BotModeError(
                         f"per-run frame budget exhausted ({elapsed:,} > "
-                        f"{self.MAX_FRAMES_PER_RUN:,}) — the run is wedged or looping; "
+                        f"{cap:,}) — the run is wedged or looping; "
                         "resetting to the next run"
                     )
         finally:
+            _elapsed()  # the final reading, on EVERY exit path (finish, derail, park)
             try:
                 inner.close()
             except Exception:  # noqa: BLE001
@@ -5843,15 +5902,20 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             # subtraction goes negative — the user's 2026-07-26 20:18 bundle recorded
             # "finished (-959,198 frames)". A negative value also silently disabled the
             # MAX_FRAMES_PER_RUN wedge guard below, since nothing is ever > the cap.
-            raw_frames = context.emulator.get_frame_count() - start_frame
-            frames = raw_frames if raw_frames >= 0 else 0
-            if raw_frames < 0:
-                console.print(
-                    "[yellow]=== ENDLESS RESET: the emulator reset mid-run, so this run's "
-                    "frame count is unknown (reported as 0). ===[/]"
-                )
-            if frames > self.MAX_FRAMES_PER_RUN:
-                outcome = f"frame-cap ({frames:,} > {self.MAX_FRAMES_PER_RUN:,})"
+            # ⛔⛔ AND THE CLAMP WAS NOT ENOUGH — FIXED 2026-09-26. The hard reset happens inside
+            # EVERY run of this mode, so `start_frame` (read BEFORE it) belongs to the PREVIOUS
+            # emulator session. From run 2 on, `get_frame_count() - start_frame` was therefore
+            # "this run's end minus the last run's end": negative (clamped to 0) or a small
+            # meaningless positive. MEASURED in the 2026-09-15 corpus: `derailed: Ch23 (Victory
+            # Road) failed ... (187,804 frames)` — impossible from a NEW GAME, which cannot reach
+            # §Ch23 in 188k frames. Every per-run frame figure after run 1 in every endless batch
+            # before this date is that difference, NOT a run length. ⇒ Report the budget wrapper's
+            # own re-based count instead: the number that is ENFORCED is now the number that is
+            # REPORTED, so the two can no longer disagree.
+            frames = int(getattr(self, "_run_elapsed_frames", 0) or 0)
+            run_cap = self._frame_cap_for_this_run()
+            if frames > run_cap:
+                outcome = f"frame-cap ({frames:,} > {run_cap:,})"
             outcomes.append(f"run {completed}: {outcome} ({frames:,} frames)")
             ENDLESS_RESET_COMPLETED = completed
             console.print(f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]")

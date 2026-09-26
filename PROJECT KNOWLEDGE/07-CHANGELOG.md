@@ -35504,3 +35504,62 @@ vacuous rather than red. The manifest entry says so, and says not to re-capture 
 **Not done, and deliberately so:** the rest of the 2026-09-25 HM directive — catching a NEW carrier
 when the PC holds none, knowing where every Poké Center is, and per-chapter traversal knowledge —
 remains OPEN under `#24-hmpcfirst`. Only the *withdraw-what-we-own* half shipped.
+
+
+## 2026-09-26 — ⭐ `#26-endlesscap`: IN ENDLESS-RESET MODE A HALL OF FAME WAS *STRUCTURALLY IMPOSSIBLE* — FIXED BEFORE THE USER'S 12-HOUR x4 BATCH, PLUS A TWO-MONTH-OLD REPORTING BUG
+
+**WHY NOW.** The user offered to run a 12-hour ENDLESS LOOP x4 batch as the next step toward USER
+RULING 11 (Hall of Fame from a real run). Before saying yes I checked whether a run in that mode
+could reach the Hall of Fame AT ALL. It could not:
+* `StoryEndlessResetMode` starts every run from a NEW GAME (an in-run hard reset) — nothing carries
+  over between runs (the story bot never saves; `pokemon_league.py` documents this).
+* `MAX_FRAMES_PER_RUN` was **5M**. The §Ch24 league grind ALONE is ~4.5M frames
+  (`probe_ladder_economics.py`; `CH24_TRAIN_PURSE_FRAMES` is sized 6M).
+* ⭐ MEASURED in the 2026-09-15 99-run endless corpus: all **six** `per-run frame budget exhausted`
+  runs were MID-TO-LATE GAME when the cap fired — the Mossdeep Space Center (§Ch19 2F grunts),
+  Tate & Liza ×2, Juan ×2 (a Water/Dragon lead choice), §Ch21 leg 5 (Sootopolis dive tile) — read
+  from the story lines immediately before each of the six kills (lanes P1 r14/r18, P2 r18, P3 r8/r9,
+  P4 r2 of `*stdout-20260915*`). ⇒ 5M
+  bites BEFORE §Ch23 for slower runs, and §Ch24's grind sits on top of that.
+⇒ a run that reached the League would have been KILLED MID-GRIND and logged as "wedged" — the worst
+outcome for the one run a batch exists to observe.
+
+**WHAT CHANGED** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`, `StoryEndlessResetMode`):
+1. `MAX_FRAMES_PER_RUN` **5M → 7M** (≈1.4× the kill points above; ⚠ still derived from KILL points,
+   not from a completed run — re-derive from the deepest completed run once one exists).
+2. NEW `_frame_cap_for_this_run()`: the base cap, plus `CH24_TRAIN_PURSE_FRAMES` (6M) +
+   `CH24_GAUNTLET_ALLOWANCE_FRAMES` (1M ≈ 6× the measured ~114k-frame span from Sidney's first
+   battle to Wallace's end, `evidence/2026-09-25-ch24gauntlet-PASS.txt`) **only once
+   `_ch24_owns_run` is latched** — the first act of `train_for_league()`. Early-game livelocks (the
+   13-27M-frame shapes on `_run_with_frame_budget`) are still ended at the base cap; from the latch
+   on, the training purse is the designed backstop and the run cap must never pre-empt it.
+3. ⛔ **INSTRUMENT FIX — THE REPORTED PER-RUN FRAME COUNT WAS WRONG FROM RUN 2 ON.** The outcome
+   line printed `get_frame_count() - start_frame`, with `start_frame` read BEFORE the in-run hard
+   reset restarts the counter ⇒ "this run's end minus the previous session's end". Example from the
+   corpus: `derailed: Ch23 (Victory Road) failed ... (187,804 frames)` — a NEW GAME cannot reach
+   §Ch23 in 188k frames. The 2026-07-26 clamp handled only the NEGATIVE half. The wrapper now
+   publishes `_run_elapsed_frames` — the SAME re-based count it enforces — and the outcome line and
+   the post-hoc `frame-cap` label both use it and the effective cap.
+   ⚠ **CONSEQUENCE FOR OLD DATA:** every per-run frame figure after run 1 on an ENDLESS RESET
+   outcome line before this date is NOT a run length. (Heartbeat-derived totals such as the review
+   note's 338.5M are a different instrument and were not re-checked here.)
+
+**GATE.** `tools/story-dev/repro_endless_frame_budget.py` extended — reported length across the
+reset, latched extension, a latch arriving MID-run, a **FAULT ARM** proving the latched check
+discriminates (extension removed ⇒ the same run dies at the base cap), and an unlatched livelock
+still capped — and ‼ **REGISTERED in `run_gates.py`**: it was written 2026-07-27 and had never been
+in the suite. Fault-tested against HEAD's `story_mode.py`: **8 named FAILs**. Its source checks strip
+COMMENT tokens, so the fix's own comment quoting the old expression does not fire it.
+
+**⏸ AND THE BATCH ITSELF IS HELD.** A 5-angle recon run the same hour (`ai-research-notes/2026-09-26-organic-frontier-RECON.md`) found all 39 badge-8 runs of the previous corpus dying INSIDE §Ch23 on two causes that are unfixed at HEAD (`#24-ch23training` 30, `#26-carleestage` 9) ⇒ a batch now would re-measure a known blocker. The cap fix ships anyway: any batch that is meant to see the League needs it.
+
+**NOT DONE / LIMITS.** Not promoted to `custom-pokebot/` (the user's call; the batch runs the
+sandbox). Not emulator-driven: the change lives entirely in the budget wrapper, and the gate drives
+that REAL wrapper against a fake frame counter. Whether a real run now reaches the League is exactly
+what the batch will measure.
+
+**FILES:** `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
+`tools/story-dev/repro_endless_frame_budget.py`, `tools/story-dev/run_gates.py`, `03-PUNCH-LIST.md`,
+`04-HANDOFF.md`, `05-KNOWN-ISSUES.md` (KI-35), `06-DECISIONS-LOG.md`, `07-CHANGELOG.md`,
+`08-MISTAKES.md`, `28-HANDOFF-ARCHIVE.md` (`#24-league2f` archived verbatim, R3 budget),
+`40cakes repo/UPDATE-LOG.md` (upstream now 3 commits ahead; user ruling: stay parked).

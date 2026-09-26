@@ -21999,3 +21999,27 @@ the `context.message` banner) and names the **fork** — these exist only in `sa
 **Prevention rule:** ⛔ **A GREP HIT ON DESCRIPTIVE TEXT IS USUALLY THE COMMENT, NOT THE CODE — the
 comment is where the words live.** Cite the SYMBOL (the file's own standing rule), and when a repo
 has two forks of the same file, **name the fork or the citation is ambiguous by construction.**
+
+
+## 2026-09-26 — THE ENDLESS BATCH'S "RUN LENGTH" WAS *THIS END MINUS THE LAST END* FOR TWO MONTHS — and the gate that guarded it was never in the suite
+
+**Symptom:** the 2026-09-15 endless corpus logs `derailed: Ch23 (Victory Road) failed ... (187,804
+frames)`. A NEW GAME cannot reach §Ch23 in 188k frames.
+**Root cause:** `StoryEndlessResetMode.run()` reads `start_frame` BEFORE `super().run()` hard-resets
+the emulator, and `get_frame_count()` restarts on reset. So from run 2 on, `now - start_frame` was
+"this run's end minus the previous session's end". The 2026-07-26 fix saw only the NEGATIVE half
+(`finished (-959,198 frames)`), CLAMPED it to 0 and printed a warning — the positive-but-wrong half
+printed silently. ‼ **And the budget wrapper right above had already solved the identical problem**
+(re-base to 0 when the counter goes backwards): two code paths measured one quantity two ways, and
+only the ENFORCED one was right.
+**Second defect, same file:** `repro_endless_frame_budget.py` has existed since 2026-07-27 and was
+**never registered in `run_gates.py`** — so it protected nothing for two months.
+**Fix:** the outcome line reports the wrapper's own enforced, re-based count (`_run_elapsed_frames`);
+the gate was extended (with a fault arm) and registered. See `07-CHANGELOG.md` 2026-09-26.
+**Prevention rules:**
+* ⛔ **WHEN TWO CODE PATHS MEASURE THE SAME QUANTITY, THE REPORTED VALUE MUST BE DERIVED FROM THE
+  ENFORCED ONE** — never recompute it separately.
+* ⛔ **A CLAMP HIDES THE HALF OF A BUG YOU COULD NOT SEE.** When a value can go impossible (negative),
+  ask why before clamping — the same cause usually produces plausible-looking wrong values too.
+* ⛔ **A REPRO IS NOT A GATE UNTIL `run_gates.py` NAMES IT.** Before writing "gated", `grep` the
+  filename in `run_gates.py`.

@@ -195,6 +195,14 @@ GATES: list[tuple[str, bool]] = [
     # leg asked `battle_ended_frame is not None`, and FOUR battles had already ended.
     # Fault-tested: reintroducing the absolute test FAILS; a blind matcher FAILS too.
     ("repro_latch_scope.py", False),
+    # ⛔ ENDLESS-RESET RUN BUDGET (written 2026-07-27, REGISTERED 2026-09-26 — it had never been in
+    # this suite). 2026-09-26 additions: the cap EXTENDS once §Ch24 owns the run (the league grind
+    # is ~4.5M frames, so under a flat cap every run reaching the League was killed mid-grind and a
+    # Hall of Fame was structurally impossible in this mode), and the outcome line reports the
+    # enforced re-based count instead of `now - start_frame` (which, after the in-run hard reset,
+    # was "this end minus the previous session's end"). Fault-tested against the HEAD code:
+    # 8 named FAILs; a comment quoting the old expression does NOT fire it.
+    ("repro_endless_frame_budget.py", False),
     # ⛔ KI-102. The withdraw counted party room EXCLUDING eggs while the consumer that
     # refuses counts INCLUDING them, so 5 mon + 1 egg queued no deposit and then RAISED —
     # after the PC journey was already spent. Carries a HISTORICAL CONTROL that pins the old
