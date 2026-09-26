@@ -202,3 +202,70 @@ def outcome_is_safe_for(encounter_class: str, outcome: int | None) -> bool:
     if not isinstance(outcome, int) or isinstance(outcome, bool):
         return False
     return outcome in safe
+
+
+# =================================================================================================
+# MEMBERSHIP — and the split that makes this list SHORT
+# =================================================================================================
+# ✅ Every entry below was read from its own decomp script (2026-09-25). ⚠ marks the two I have
+# NOT opened myself; they are listed so the guard is not silently missing them, and flagged so
+# nobody mistakes them for verified.
+#
+# ⭐⭐ THE SPLIT THAT MATTERS: most of the famous legendaries are on EVENT ISLANDS this bot can
+# never reach (see the MOOT note above — Eon/Mystic/Aurora tickets and the Old Sea Map all come
+# from `cable_club.inc`'s Mystery-Gift distribution). ⇒ the guard only ever has to be RIGHT about
+# the reachable set, which is small.
+
+#: ✅ VERIFIED, REACHABLE, and "flies away" (RAN and PLAYER_TELEPORTED are SAFE; a WIN is PERMANENT
+#: because none of these flags is in the Hall of Fame reset list).
+#: Each branches its RAN/TELEPORT case to `Common_EventScript_LegendaryFlewAway`
+#: (`data/event_scripts.s:995-1002`), which I opened: it removes the object from the CURRENT map
+#: instance and **sets no flag**, so `call_if_unset FLAG_DEFEATED_*` re-shows it on re-entry.
+REACHABLE_FLIES_AWAY = {
+    "RAYQUAZA":   "data/maps/SkyPillar_Top/scripts.inc",
+    "REGIROCK":   "data/maps/DesertRuins/scripts.inc",
+    "REGICE":     "data/maps/IslandCave/scripts.inc",
+    "REGISTEEL":  "data/maps/AncientTomb/scripts.inc",
+    "GROUDON":    "data/maps/TerraCave_End/scripts.inc",
+    "KYOGRE":     "data/maps/MarineCave_End/scripts.inc",
+}
+
+#: ⛔⛔ GROUDON AND KYOGRE CARRY A **NON-FLAG** CONSEQUENCE, and it is the kind a flag-focused
+#: reading misses entirely. VERIFIED at `TerraCave_End/scripts.inc`:
+#:     goto_if_eq RAN / PLAYER_TELEPORTED -> RanFromGroudon   (no flag, NO weather var)
+#:     setvar VAR_SHOULD_END_ABNORMAL_WEATHER, 1              <- fall-through
+#:     setflag FLAG_DEFEATED_GROUDON
+#: and WON sets the same var. Its consumer clears `VAR_ABNORMAL_WEATHER_LOCATION`, which
+#: **despawns the roaming cave itself**. ⇒ a bad outcome costs the LOCATION as well as the mon,
+#: while fleeing preserves both — a clean retry loop.
+#: ‼ The lesson generalises: *a script can destroy an encounter without setting a DEFEATED flag.*
+WEATHER_CAVE_SPECIES = frozenset({"GROUDON", "KYOGRE"})
+
+#: ✅ VERIFIED, REACHABLE, "any return kills it" — RAN is FATAL; only a whiteout preserves it.
+REACHABLE_ANY_RETURN_KILLS = {
+    "SUDOWOODO": "data/maps/BattleFrontier_OutsideEast/scripts.inc",
+}
+
+#: ⚠ REPORTED as "any return kills it" but NOT opened by me. Treated as that class because the
+#: conservative direction here is free — the bot has no reason to flee them — while being wrong
+#: the other way is permanent.
+UNVERIFIED_ANY_RETURN_KILLS = {
+    "VOLTORB (New Mauville, x3)": "data/maps/NewMauville_Inside/scripts.inc",
+    "KECLEON (Route 120)":        "data/maps/Route120/scripts.inc",
+}
+
+#: ⛔ UNREACHABLE for this bot — event islands only. Listed so a future reader does not "discover"
+#: them and wire a guard for encounters that cannot occur, and so the Hall-of-Fame reset tier is
+#: never mistaken for something that matters here.
+UNREACHABLE_EVENT_ISLAND = frozenset({
+    "MEW",                      # Faraway Island  — OLD SEA MAP
+    "DEOXYS",                   # Birth Island    — AURORA TICKET
+    "LUGIA", "HO_OH",           # Navel Rock      — MYSTIC TICKET
+    "LATIAS_OR_LATIOS_SOUTHERN",  # Southern Island — EON TICKET
+})
+
+#: ⚠ `B_OUTCOME_MON_FLED` (6) IS IN NO STATIC'S SAFE SET, and that is deliberate — but it is
+#: also REPORTED to be UNREACHABLE for a non-roamer (wild Pokémon do not flee on their own in
+#: Gen 3; only roamers do). ⇒ the conservative encoding never binds in practice, so it costs
+#: nothing and is kept. Do NOT "simplify" it away on the strength of the unreachability claim,
+#: which I have not verified.

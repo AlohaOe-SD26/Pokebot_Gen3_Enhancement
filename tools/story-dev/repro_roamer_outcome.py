@@ -157,11 +157,58 @@ def run() -> int:
           ANY_RETURN_KILLS_SAFE_OUTCOMES == frozenset({2, 3}),
           f"got {sorted(ANY_RETURN_KILLS_SAFE_OUTCOMES)}")
 
+    # ---------------------------------------------------------------------------------------
+    # MEMBERSHIP. A species in the WRONG bucket is an irreversible loss; a species in TWO
+    # buckets is a contradiction the guard would resolve arbitrarily.
+    # ---------------------------------------------------------------------------------------
+    try:
+        from modules.story.protected_encounters import (
+            REACHABLE_ANY_RETURN_KILLS,
+            REACHABLE_FLIES_AWAY,
+            UNREACHABLE_EVENT_ISLAND,
+            UNVERIFIED_ANY_RETURN_KILLS,
+            WEATHER_CAVE_SPECIES,
+        )
+    except Exception as error:  # noqa: BLE001
+        check("M0 the membership tables import", False, repr(error))
+        print("=" * 96)
+        print(f"RESULT: FAIL — {len(FAILURES)} check(s): {', '.join(FAILURES)}")
+        return 1
+
+    flies = set(REACHABLE_FLIES_AWAY)
+    kills = set(REACHABLE_ANY_RETURN_KILLS)
+
+    # M1 — a species must not be in two classes at once
+    check("M1 flies_away and any_return_kills are DISJOINT", not (flies & kills),
+          f"both: {sorted(flies & kills)}")
+
+    # M2 — ⭐ the moot-tier guard: no event-island species may appear in a REACHABLE table.
+    #      If one ever does, someone has wired a guard for a battle that cannot occur — and,
+    #      worse, may have imported the Hall-of-Fame "recoverable" reasoning with it.
+    leaked = (flies | kills | set(UNVERIFIED_ANY_RETURN_KILLS)) & UNREACHABLE_EVENT_ISLAND
+    check("M2 no EVENT-ISLAND species leaked into a reachable table", not leaked,
+          f"leaked: {sorted(leaked)}")
+
+    # M3 — the weather-cave species are a SUBSET of flies_away (they are legendaries that flee)
+    check("M3 WEATHER_CAVE_SPECIES is a subset of REACHABLE_FLIES_AWAY",
+          WEATHER_CAVE_SPECIES <= flies, f"stray: {sorted(WEATHER_CAVE_SPECIES - flies)}")
+
+    # M4 — non-vacuity: the tables must not be empty, or every membership check above passes
+    #      trivially while guarding nothing.
+    check("M4 NON-VACUITY: every membership table has entries",
+          bool(flies) and bool(kills) and bool(UNREACHABLE_EVENT_ISLAND),
+          f"flies={len(flies)} kills={len(kills)} unreachable={len(UNREACHABLE_EVENT_ISLAND)}")
+
+    # M5 — the verified exemplars must still be present and in the right bucket
+    check("M5 the two VERIFIED exemplars are in their verified buckets",
+          "RAYQUAZA" in flies and "SUDOWOODO" in kills,
+          f"RAYQUAZA in flies={'RAYQUAZA' in flies} SUDOWOODO in kills={'SUDOWOODO' in kills}")
+
     print("=" * 96)
     if FAILURES:
         print(f"RESULT: FAIL — {len(FAILURES)} check(s): {', '.join(FAILURES)}")
         return 1
-    print("RESULT: ALL PASS — parity intact, and the three classes still INVERT where they must.")
+    print("RESULT: ALL PASS — parity, the three inversions, and the membership split all intact.")
     return 0
 
 
