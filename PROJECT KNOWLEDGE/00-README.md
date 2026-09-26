@@ -6,7 +6,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 ## Reading order
 | # | File | What it tells you | Type |
 |---|------|-------------------|------|
-| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next | current-state |
+| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next — ⚠ **start at the single `➡➡➡ START HERE` marker** (`grep -n '^>    ➡➡➡' 04-HANDOFF.md`); the file's opening lines are a stack of dated banners, most of them history | current-state |
 | 2 | `14-AGENT-PLAYBOOK.md` | **HOW to work on this excellently** — tools, debugging method, story-mapping method, faithfulness rules, bug patterns | reference |
 | 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
 | 4 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |

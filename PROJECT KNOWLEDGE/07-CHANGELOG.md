@@ -35692,3 +35692,19 @@ next blocker is `#26-ch24organic` (production Fly, the return bridge, the readin
 **ALSO (docs):** the production-Fly recon note (`ai-research-notes/2026-09-26-ch24-production-fly-RECON.md`),
 `#26-ch24organic` filed, and `02-ARCHITECTURE.md`'s §Ch24 paragraph corrected (it still said "not wired into
 `_play`" a day after it was).
+
+
+## 2026-09-26 (late) — SESSION-END TIER 2: THREE DOC DEFECTS A COLD START FOUND, FIXED
+
+A fresh cold-start agent given only `04-HANDOFF.md` + `00-README.md` agreed on the first action and on every
+status pair (P1, P3, P5), and found three things:
+1. **P2** — the handoff's "60-SECOND VERSION" still said *"ONLY §Ch24 (THE ELITE FOUR) REMAINS"*: stale by the
+   whole §Ch24 build. Now: all 24 rungs exist; what remains is ORGANIC (§Ch23's killers fixed today;
+   `#26-ch24organic` next).
+2. **P4** — `00-README.md` described the handoff as "where we are RIGHT NOW" while its opening lines are dated
+   history banners. The row now says to start at the single `➡➡➡ START HERE` marker and gives the grep.
+3. **Startability** — a cold agent could not BEGIN `#26-ch24organic` R1: the recon never read the candidate
+   fixtures' party levels, so the discriminator was unproven, and no "training off" fault arm exists. The item now
+   names an observe-only probe of `post_league_shop.ss1` / `post_ch24ready.ss1` as the first concrete step.
+4. **A re-run of Tier 2 (the rule: check WHERE a fix landed)** confirmed 1-3 land where a cold reader looks, and found one more: a banner line ABOVE the handoff's own "everything below is HISTORY" divider still read *"THE LIVE WORK IS THE §Ch24 GAUNTLET"* — shipped 2026-09-25. Marked as history, pointing at the marker.
+**FILES:** `00-README.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
