@@ -50,3 +50,22 @@ the suite).
   because none was carried; the Glacia arms prove the mechanism, not its value.
 * A bag with too few free ITEMS slots (the shop's "no more room" branch) — no fixture; the bag-delta check reports it
   as `partial` rather than claiming success.
+
+## ADDENDUM 1 — E1 FAILED as its pre-registered falsifier said; fix filed BEFORE the re-drive
+
+**E1 (as first built): `ACCEPTANCE: FAIL`** — `failed open: UnreachableDestinationError: Could not reach (3, 3) on
+SOOTOPOLIS_CITY_MART … still at (43, 32) … Could not find a path from (43/32 @ SOOTOPOLIS_CITY)`. Nothing bought,
+nothing lost: re-healed, entered the gym, `no_failure True` — the fail-open design held. The falsifier "the crater
+crossing fails to plan" fired, but NOT for the layout reason I named: the pin reported the same blockdata before and
+after.
+**Diagnosis (observe-only probe, fresh process, `post_hm07`):** `(31,34)→(17,29)` OK 23, `(43,32)→(17,30)` OK 40 —
+because the probe starts at (31,34), where only objects 7 and 18 are live. `calculate_path` (`map_path.py:806-852`)
+blocks the TEMPLATE tile of any object it cannot currently see; `get_map_objects()` is a camera window. Object 7's
+template is **(20,36), on the path's land bridge west**, but a script moved it to (29,33). From (31,34) it is in view
+(template ignored); from (43,32) it is not (bridge "blocked") ⇒ no path.
+**Fix:** walk to `SOOTOPOLIS_MART_WAYPOINT = (31,34)` first (the fixture's own start tile; proven reachable from the PC
+in the same run), then to the Mart.
+
+| arm | predicted | falsifier |
+|---|---|---|
+| **E1' BUY (re-drive)** | as E1 was predicted: PASS, delta {Revive 3, Full Heal 8, Hyper Potion 30}, ₽67,466 → ₽22,166, `waypoint_reached` ((0,7),(31,34)), re-healed, gym 1F | still no path from (31,34) (then object visibility is not the cause) |
