@@ -35499,6 +35499,8 @@ provably findable and *still* not withdrawn.
 captured. Its value is a PROPERTY OF ITS PARTY, so drift would be silent and would turn the test
 vacuous rather than red. The manifest entry says so, and says not to re-capture it with a Water-type.
 
+✅⭐ **AND ONE OPEN QUESTION WAS CLOSED BY REFUTATION, NOT BY BUILDING.** A recon agent filed the HM catch branch's missing duplicate filter as a GAP *"appearing to contradict"* the user's *"not duplicates unless shiny"*. I read the code: the SHINY BRANCH RUNS FIRST and **returns** (`story_mode.py:3334-3352`), catching a shiny *even if it is a duplicate and even at a full party* (→ PC box), so `:3368`'s `not is_shiny` is *refusing to catch it TWICE* — `:1665` says exactly that. ⇒ **the requirement is already satisfied and there is nothing to build.** The recon had the line number right and the meaning inverted, which is the second time today a recon's NAMES were excellent and its INTERPRETATION was not — the measured rule from the Gemini rounds, reproduced by a Claude agent.
+
 **Not done, and deliberately so:** the rest of the 2026-09-25 HM directive — catching a NEW carrier
 when the PC holds none, knowing where every Poké Center is, and per-chapter traversal knowledge —
 remains OPEN under `#24-hmpcfirst`. Only the *withdraw-what-we-own* half shipped.

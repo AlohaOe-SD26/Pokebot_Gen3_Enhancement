@@ -3536,7 +3536,7 @@ region, where "train near the gym" is actively wrong.
         `tools/story-dev/evidence/2026-09-25-hmpcfirst-*.txt`. ⛔ Graded on **PID identity
         only** — party 6→6 and box 1→1, so every COUNT is unchanged.
       - [ ] ⭐ **CATCH A NEW CARRIER when the PC holds none** — the 2026-09-25 directive's other half; `POKEBOT_HMPCFIRST_FAULT=skipfix` shows the path still derails. Recon: `ai-research-notes/2026-09-25-hm-catch-half-RECON.md` — the hunt EXISTS
-        (`ensure_hm_learner`); widen the curated TABLE, never the INDEX (index rows carry NO tile). ⚠ **ANSWER ONE QUESTION FIRST:** `story_mode.py:3368`'s `not is_shiny` makes the HM branch DEFER on a shiny — prove where that shiny GOES, or *"not duplicates unless shiny"* silently breaks.
+        (`ensure_hm_learner`); widen the curated TABLE, never the INDEX (index rows carry NO tile). ✅ **THE SHINY QUESTION IS CLOSED 2026-09-25 — REFUTED, NOTHING TO BUILD:** the shiny branch runs FIRST and `return`s (`story_mode.py:3334-3352`), catching even a duplicate and even at a full party (→ PC box), so `:3368`'s `not is_shiny` refuses to catch it TWICE rather than refusing to catch it (`:1665` says so). The recon's "contradicts the user" was a FALSE ALARM.
       - [ ] **CHOOSE A REACHABLE CENTRE.** `heal_centers` is a hand-written tuple per call site
         whose own docstring admits the order is *"a judgement call ... not a measured distance"*.
         ⭐⭐ **DO NOT BUILD A REACHABILITY ENGINE — ONE EXISTS AND IS WIRED**: `region_reach`'s

@@ -48,24 +48,51 @@ if _eg.HM_CATCH_TARGET_DEX and encounter is not None and not getattr(encounter, 
 ⛔ **DO NOT READ THIS AS "SHINIES ARE REJECTED FOR HM LEARNERS"**, which is how the recon reported
 it, nor as contradicting the user's directive. `not is_shiny` makes the HM branch **DEFER** on a
 shiny — it declines to consume a shiny as a disposable HM mule and leaves it to whatever handles
-shiny encounters. That is very probably the *desired* behaviour.
+shiny encounters. ✅ And the paragraph below settles WHERE — it is the desired behaviour, verified, not merely probable.
 
-⚠ **BUT THE CONSEQUENCE IS UNVERIFIED AND IT MATTERS:** I have **not** checked that any other
-branch actually catches that shiny. If none does, a shiny encountered mid-HM-hunt is silently
-skipped — which WOULD violate the user's *"not duplicates unless shiny"*. ⇒ **first task of the
-catch half: prove where a shiny goes during an armed HM hunt.** Do not assume either answer.
+✅✅ **RESOLVED THE SAME DAY — AND THE ANSWER IS THAT THERE IS NOTHING TO FIX.** VERIFIED BY ME:
 
-**Duplicates:** the HM branch is reported to gate only on *species ∈ target dex*, *party < 6*, and
-*spare balls > 1* (`:3373-3377`) — **no duplicate filter**. The reported general predicate is
-`should_catch_for_story` (`:1672`). ⚠ Whether the absence matters depends on whether the HM branch
-can fire on a species we already own, which is exactly the case the WITHDRAW half now intercepts —
-so this may already be moot. **Check, do not assume.**
+* `:3322-3332` states the intent outright — *"a wild shiny is a rare collectible and is ALWAYS worth
+  a catch attempt — **even an already-caught species, even with a full party (→ PC box)**, at any
+  story stage. **This check runs FIRST** so it pre-empts swap-training and ordinary team-catching."*
+* `:3334` `if encounter is not None and encounter.is_shiny:` … `:3352` **`return
+  StoryShinyCatchStrategy()`** — it **RETURNS**, so `:3368` is never reached for a shiny.
+* `:3356-3359` — with no usable ball, or in the scripted Tutorial battle, it fights through. It
+  never stops the bot.
+* `:1662-1665` — *"Pre-empted upstream by `StoryShinyCatchStrategy` … Returning False here is not a
+  refusal to catch shinies — it is **refusing to catch them TWICE**."*
+
+⇒ the user's *"not duplicates unless shiny"* is **ALREADY SATISFIED**: a shiny is caught regardless
+of duplication, and the HM branch correctly declines to burn one as a disposable mule.
+⚠ Because the shiny branch RETURNS, `:3368`'s `not is_shiny` is redundant-but-harmless — defensive
+depth, not a second policy. Do not "simplify" it away; two independent statements of the same rule
+is what makes the rule survive a refactor of either branch.
+
+⭐⭐ **AND THE RECON WAS WRONG ABOUT THIS, CONFIDENTLY** — it filed the absence of a duplicate
+filter as a GAP that *"appears to contradict the user's requirement"*. It had the line number right
+and the meaning inverted. **That is the whole reason an agent's output is a NOTE and never truth**,
+and it is the second time today a recon's *names* were excellent while its *interpretation* was
+not.
+
+**Duplicates (the NON-shiny case — still genuinely open):** the HM branch is reported to gate only
+on *species ∈ target dex*, *party < 6*, *spare balls > 1* (`:3373-3377`) — **no duplicate filter** —
+while the general predicate is `should_catch_for_story` (`:1672`). ⚠ UNVERIFIED and NOT closed by the
+shiny finding above, which is a different question. Whether it matters turns on whether the HM
+branch can fire for a species we already own — precisely the case the WITHDRAW half now intercepts
+first, so it may be moot in practice. **Check before building; do not assume either way.**
 
 ---
 
 ## ⛔ WHAT THIS NOTE DOES NOT SAY
 
 No design, no recommendation — the standing rule is that agent **architecture advice** is graded
-not at all and its **names** graded highly. Established here: the hunt exists, the grounds table is
-the narrow part, the index cannot supply tiles, and there is one genuinely open question (where a
-shiny goes during an armed hunt) that must be answered by measurement before anything is built.
+not at all and its **names** graded highly. Established here: the hunt EXISTS; the grounds table is
+the narrow part; the index cannot supply tiles.
+
+✅ **CLOSED:** *where does a shiny go during an armed HM hunt?* — the shiny branch runs first and
+returns, catching duplicates and overflowing to the PC box. Nothing to build.
+⚠ **STILL OPEN:** the NON-shiny duplicate gate, and which ground(s) to add to `TRAINING_GRASS`.
+
+⛔ **THIS SECTION ONCE SAID THE SHINY QUESTION *"must be answered by measurement before anything is
+built"* — three paragraphs after the body had answered it.** Appending a resolution is HALF the
+edit: when you resolve something, grep the document for every sentence that called it open.
