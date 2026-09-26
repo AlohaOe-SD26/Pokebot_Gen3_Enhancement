@@ -243,15 +243,37 @@ WEATHER_CAVE_SPECIES = frozenset({"GROUDON", "KYOGRE"})
 
 #: ✅ VERIFIED, REACHABLE, "any return kills it" — RAN is FATAL; only a whiteout preserves it.
 REACHABLE_ANY_RETURN_KILLS = {
-    "SUDOWOODO": "data/maps/BattleFrontier_OutsideEast/scripts.inc",
+    "SUDOWOODO":   "data/maps/BattleFrontier_OutsideEast/scripts.inc",
+    # ✅ VERIFIED 2026-09-25 — THREE separate scripts, each with its OWN flag, all the same shape:
+    #     goto_if_eq WON / RAN / PLAYER_TELEPORTED -> ..._DefeatedVoltorbN
+    #     setflag FLAG_DEFEATED_VOLTORB_N_NEW_MAUVILLE          <- fall-through
+    # and visibility is gated by `call_if_unset FLAG_DEFEATED_VOLTORB_N_NEW_MAUVILLE`.
+    "VOLTORB_1_NEW_MAUVILLE": "data/maps/NewMauville_Inside/scripts.inc",
+    "VOLTORB_2_NEW_MAUVILLE": "data/maps/NewMauville_Inside/scripts.inc",
+    "VOLTORB_3_NEW_MAUVILLE": "data/maps/NewMauville_Inside/scripts.inc",
 }
 
-#: ⚠ REPORTED as "any return kills it" but NOT opened by me. Treated as that class because the
-#: conservative direction here is free — the bot has no reason to flee them — while being wrong
-#: the other way is permanent.
-UNVERIFIED_ANY_RETURN_KILLS = {
-    "VOLTORB (New Mauville, x3)": "data/maps/NewMauville_Inside/scripts.inc",
-    "KECLEON (Route 120)":        "data/maps/Route120/scripts.inc",
+#: ⛔⛔ **DELIBERATELY EMPTY, AND IT MUST STAY THAT WAY UNLESS SOMETHING IS ACTUALLY UNVERIFIED.**
+#: Both former entries have now been opened. Kept as a named, empty table rather than deleted so
+#: that "we have not checked this one" remains a thing the code can SAY, instead of an absence.
+UNVERIFIED_ANY_RETURN_KILLS: dict[str, str] = {}
+
+#: ⛔⛔ **NOT PROTECTED — AND LISTING IT WOULD DEADLOCK THE STORY.** This table exists because the
+#: DANGEROUS direction here is not missing a protected encounter; it is PROTECTING ONE THAT IS NOT.
+#:
+#: The Route 120 BRIDGE KECLEON *looks* exactly like a class-2B static — `setwildbattle`,
+#: `FLAG_SYS_CTRL_OBJ_DELETE`, and a `GetBattleOutcome` branch on WON / RAN / PLAYER_TELEPORTED.
+#: ✅ But I opened it (`data/maps/Route120/scripts.inc`), and:
+#:   * **there is NO `setflag FLAG_DEFEATED_*` anywhere** — not in a branch, not in the fall-through;
+#:   * every branch AND the fall-through converge on `Route120_EventScript_StevenGiveDeconScope`,
+#:     which hands the player the **DEVON SCOPE**.
+#: ⇒ it is a STORY GATE, not a protected encounter. Nothing is permanently lost; the only
+#: difference between outcomes is whether the object is removed from the bridge.
+#: ‼ A guard that treated it as protected would refuse to engage it, and the bot would never get
+#: the Devon Scope — **the over-strictness failure, in concrete form.** A guard that is too strict
+#: is not "the safe default"; it is a different bug.
+KNOWN_NOT_PROTECTED = {
+    "KECLEON (Route 120 bridge)": "data/maps/Route120/scripts.inc",
 }
 
 #: ⛔ UNREACHABLE for this bot — event islands only. Listed so a future reader does not "discover"

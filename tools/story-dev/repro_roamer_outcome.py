@@ -165,6 +165,7 @@ def run() -> int:
         from modules.story.protected_encounters import (
             REACHABLE_ANY_RETURN_KILLS,
             REACHABLE_FLIES_AWAY,
+            KNOWN_NOT_PROTECTED,
             UNREACHABLE_EVENT_ISLAND,
             UNVERIFIED_ANY_RETURN_KILLS,
             WEATHER_CAVE_SPECIES,
@@ -204,11 +205,23 @@ def run() -> int:
           "RAYQUAZA" in flies and "SUDOWOODO" in kills,
           f"RAYQUAZA in flies={'RAYQUAZA' in flies} SUDOWOODO in kills={'SUDOWOODO' in kills}")
 
+    # M6 — ⭐ THE NEGATIVE ASSERTION. The dangerous direction here is not missing a protected
+    #      encounter; it is PROTECTING ONE THAT IS NOT. The Route 120 bridge Kecleon looks exactly
+    #      like a class-2B static (setwildbattle + FLAG_SYS_CTRL_OBJ_DELETE + an outcome branch)
+    #      but sets NO DEFEATED flag and every path hands over the DEVON SCOPE. A guard that
+    #      refused to engage it would never get the Scope and would DEADLOCK THE STORY.
+    not_protected = set(KNOWN_NOT_PROTECTED)
+    wrongly = not_protected & (flies | kills | set(UNVERIFIED_ANY_RETURN_KILLS))
+    check("M6 NEGATIVE: a known-NOT-protected encounter is in no protected table",
+          not wrongly, f"wrongly protected: {sorted(wrongly)} — this would deadlock the story")
+    check("M6b KNOWN_NOT_PROTECTED is non-empty (else M6 guards nothing)",
+          bool(not_protected))
+
     print("=" * 96)
     if FAILURES:
         print(f"RESULT: FAIL — {len(FAILURES)} check(s): {', '.join(FAILURES)}")
         return 1
-    print("RESULT: ALL PASS — parity, the three inversions, and the membership split all intact.")
+    print("RESULT: ALL PASS — parity, the inversions, the membership split, and the negative case.")
     return 0
 
 
