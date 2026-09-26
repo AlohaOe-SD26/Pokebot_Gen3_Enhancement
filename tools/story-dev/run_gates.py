@@ -151,6 +151,10 @@ GATES: list[tuple[str, bool]] = [
     ("repro_multi_battle_partner.py", False),
     ("repro_whiteout_abort.py", False),
     ("repro_gym_whiteout_guard.py", True),
+    # ⛔ `#26-ch23money` F0 — the wallet reaches the debug log after every battle, EQUAL to memory on two saves with
+    # different wallets, and the hook is a silent no-op with telemetry off. (Money was never logged; the first three
+    # organic League arrivals had to be reconstructed.) Boots a ROM.
+    ("probe_money_telemetry.py", True),
     ("probe_chapter_order.py", True),
     ("probe_dive_learner.py", True),
     ("probe_slot_free_plan.py", True),

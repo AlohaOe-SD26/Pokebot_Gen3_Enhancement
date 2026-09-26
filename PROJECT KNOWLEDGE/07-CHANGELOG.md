@@ -35796,3 +35796,16 @@ the wallet; P1 run 1: 33 whiteouts, one ₽6,000 purchase), found that money is 
 (F0 logging; F1 Amulet Coin; F2-F4 need user rulings) and listed what is already settled. Verified by me: the three
 wallets, the 33 whiteouts, and the Amulet Coin rule (`battle_util.c:3294-3296` — the HOLDER must switch in), which
 corrects a claim in `#24-amuletcoin`. No code changed (the batch is running).
+
+## 2026-09-26 (late) — `#26-ch23money` F0: THE WALLET IS NOW LOGGED (branch `wt/ch24organic`)
+
+**WHY.** The first three organic League arrivals were all refused at §Ch23 leg 11 on money, and their wallets had to
+be RECONSTRUCTED from prize texts: money was never logged (`money_gained` is computed and never read). F0 is the
+recon's prerequisite for every other money fix (`ai-research-notes/2026-09-26-ch23money-RECON.md`).
+**WHAT.** `money=` in every debug heartbeat (`debug_logger`, one read per heartbeat — a level, not an edge, as
+`balls=`), and a `[MONEY] after <outcome> at map <key>: money=₽N` line after every battle
+(`StoryMode.on_battle_ended`, a pure read inside a try that can never affect the battle). Reads only — no frames.
+**PROOF.** New ROM gate `probe_money_telemetry.py`: the real hook, on two saves with different wallets
+(`post_league_shop` ₽1,741, `post_ever_grande` ₽38,893), logs EXACTLY the memory value; with telemetry off it writes
+nothing and raises nothing. `repro_heartbeat_emits.py` now REQUIRES `money=` (its field-drop fault arm still bites).
+Suite 92. ⚠ Sandbox↔custom drift is now 8 on the branch (+`debug_logger.py`).

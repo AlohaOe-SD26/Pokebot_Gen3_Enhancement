@@ -422,6 +422,10 @@ def on_frame(frame_info=None) -> None:
             # an hour emits nothing and reads identical to a run sitting at 30.
             # ⇒ a CONDITION THE GRADER MUST TEST NEEDS A LEVEL, NOT ONLY AN EDGE.
             f"balls={st.get('balls')} "
+            # ‼ `#26-ch23money` F0 (2026-09-26): the wallet was NEVER logged, so the first three organic
+            # League arrivals' money (all refused at §Ch23 leg 11) had to be RECONSTRUCTED from prize texts.
+            # A level, not only an edge — the same lesson as `balls=` above. One read per heartbeat.
+            f"money={_safe(_money, None)} "
             f"msg={st.get('message')!r}",
         )
 
@@ -611,6 +615,13 @@ def _party_exp():
     from modules.pokemon_party import get_party
 
     return sum(getattr(p, "total_exp", 0) for p in get_party())
+
+
+def _money():
+    """The player's money (one save-block read). `#26-ch23money` F0."""
+    from modules.player import get_player
+
+    return get_player().money
 
 
 def _owned_dex():

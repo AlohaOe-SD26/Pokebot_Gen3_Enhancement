@@ -1995,6 +1995,18 @@ class StoryMode(BotMode):
     def on_battle_ended(self, outcome) -> None:
         from modules.battle_state import BattleOutcome
 
+        # ‼ `#26-ch23money` F0 (2026-09-26): the wallet after EVERY battle, so a run's money trajectory —
+        # payouts, and (via the next heartbeat) whiteout halvings — is MEASURED, never reconstructed.
+        # A pure read; it can never affect the battle or the story.
+        try:
+            from modules import debug_logger
+            from modules.player import get_player
+
+            debug_logger.event(f"after {getattr(outcome, 'name', outcome)} at map {self._location_key()}: "
+                               f"money=₽{get_player().money:,}", category="MONEY")
+        except Exception:  # noqa: BLE001 - telemetry must never break a battle hook; a missed line is visible
+            pass
+
         if outcome is BattleOutcome.Lost:
             key = self._location_key()
             self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
