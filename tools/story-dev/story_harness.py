@@ -21045,6 +21045,7 @@ class HmPcFirstMode(BotMode):
             boxed_hm_learner_pids,
             ensure_hm_learner_making_room,
             hm_learner_slot,
+            reraise_if_aborting,   # ⛔ an abort must NEVER be converted into a BotModeError
             wait_until_truly_controllable,
         )
         from modules.story.pc_trip import box_views
@@ -21062,7 +21063,10 @@ class HmPcFirstMode(BotMode):
             try:
                 _views, mons = box_views()
                 return {int(m.personality_value) for m in (mons or []) if m is not None}
-            except Exception:  # noqa: BLE001 - an unreadable box is reported, never guessed
+            except Exception as _be:  # noqa: BLE001 - unreadable box is reported, never guessed
+                # ‼ THIS FEEDS THE GRADED IDENTITY CLAIM, not just telemetry — swallowing an abort
+                # here would turn a whiteout into a quiet "the carrier is not in the box".
+                reraise_if_aborting(_be)
                 return set()
 
         _fixture_bytes = None if FRESH else state_path.read_bytes()
@@ -21204,6 +21208,9 @@ class HmPcFirstMode(BotMode):
                     _here_map = _md.map_group_and_number
                     _exits = [tuple(w.local_coordinates) for w in (_md.warps or [])]
                 except Exception as _err:  # noqa: BLE001 - unreadable map is a REFUSAL, not a pass
+                    # ⛔ THE LINE THE PORT DROPPED. Without it a whiteout's StoryAbort becomes a
+                    # BotModeError, the verdict blames the map read, and `whiteouts` stays 0.
+                    reraise_if_aborting(_err)
                     raise BotModeError(
                         f"§hmpcfirst: the carrier was withdrawn, but the map at {_here} could not "
                         f"be read to find its exits: {type(_err).__name__}: {_err}")

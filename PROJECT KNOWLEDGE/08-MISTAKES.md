@@ -21759,7 +21759,7 @@ refusal of the commit silently discards the message — and the retry then looks
 *(This is the same family as the rule that produced the hook in the first place: a READ and an
 ACTION, or here an AUTHORING step and an ACTION, must not share a call.)*
 
-## 2026-09-25 (later still) — six mistakes from driving the PC-first HM path, all in the INSTRUMENT
+## 2026-09-25 (later still) — seven mistakes from driving the PC-first HM path, all in the INSTRUMENT
 
 ‼ The subject under test was correct on its first run. **Every defect below was in the test or the
 edit tooling** — which is the shape this file keeps recording, and the reason it keeps recording it.
@@ -21856,6 +21856,26 @@ a proven check, ask what was true of the ORIGINAL situation that made it suffici
 that premise for the new one. ⭐ And for egress specifically: **an exit ADJACENT to where you stand
 cannot distinguish "can continue" from "is standing next to a door"** — exclude it, and prefer a
 stated property (non-adjacency) over a threshold on waypoint count.
+
+### 7. ⛔ THE SAME PORT DROPPED `reraise_if_aborting` — SO A WHITEOUT WOULD HAVE BEEN MASKED
+**Symptom:** none visible. The diff-triggered advisory (`R-EXCEPT`) flagged the new handler on the
+commit that introduced it.
+**Root cause:** `pokemon_league.py:3445-3449` is
+`except Exception as error:` / **`reraise_if_aborting(error)`** / `raise BotModeError(...)`. My port
+kept the comment, the shape and the message and dropped **line 3446**. ⇒ a `StoryAbort` raised
+during the map read — which is exactly what a whiteout latches — would be converted into a
+`BotModeError`, the verdict would blame the map read, and `whiteouts` would stay **0**.
+**Also fixed in the same pass:** `_box_pids`'s bare `except Exception: return set()`. That helper
+feeds the GRADED identity claim, not just telemetry, so a swallowed abort there becomes a quiet
+*"the carrier is not in the box"*.
+**‼ THIS IS MISTAKE #6 AGAIN, ONE COMMIT LATER.** #6 was *"a pattern carries its original map's
+assumptions with it"*; #7 is the same porting failure in its other form — **a port also LOSES the
+lines you did not consciously copy**, and those are precisely the lines that exist because something
+once went wrong without them.
+**Prevention rule:** ⛔⛔ **PORTING IS NOT TRANSCRIPTION — DIFF THE PORT AGAINST THE ORIGINAL.**
+Read the source once and retype it and you will reproduce its *shape* while dropping its *scars*.
+Every line in a hardened block is load-bearing; if you cannot say why a line is there, that is the
+line to check, not the line to skip.
 
 ### ⭐ AND ONE NEAR-MISS THAT COST NOTHING, BECAUSE IT WAS CHECKED OFFLINE FIRST
 **Surf was the obvious HM to test with, and it would have made the whole drive VACUOUS** —

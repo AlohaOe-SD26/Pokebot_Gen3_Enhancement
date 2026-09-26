@@ -1,4 +1,4 @@
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c4.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\d3.log
 Running mGBA 0.10.2
 [setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
 [run] starting faithful loop for up to 12000 frames
@@ -44,9 +44,9 @@ f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:e
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--09-25_21-54-17.ss1 created!
+-09-25_22-26-43.ss1 created!
 Updated `current_state.ss1`!
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c4.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\d3.log
 [setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
 [run] starting faithful loop for up to 12000 frames
 f0: CONTROLLER -> <none>   (state=OVERWORLD)
