@@ -7347,3 +7347,24 @@ League plateau + a `VICTORY_ROAD_*` ground ⇒ named `no_ground`. **WHY:** that 
 else is touched. **REJECTED (by code review, before merge):** a general `calculate_path(here → ground)` pre-check —
 `calculate_path` is WARP-BLIND, so it would refuse every warp-gated ground (Granite Cave, Fiery Path …); the KI-24
 user decision (2026-07-25) already chose `region_reach` over it for training picks because its wrong NO is invisible.
+## 2026-09-26 — ⭐⭐ USER RULINGS 15-18: §Ch24 READINESS AND THE LEAGUE-BASKET MONEY (asked with evidence; `06` grepped first — none was ruled)
+
+Asked after the live batch showed 3 of 3 organic League arrivals refused on money (`#26-ch23money`,
+`ai-research-notes/2026-09-26-ch23money-RECON.md`) and R1 was built strict (see the R1 entry above, "⚠ RELAXATION IS THE
+USER'S CALL"). The user's answers, verbatim choices:
+
+* **RULING 15 — R1: "Enter if 4+ are L65".** R1 refuses the Elite Four only if FEWER THAN FOUR party members are at the
+  floor; stragglers ride along. (Evidence given: the only party ever to win the gauntlet was 4×L75 + L19 + L36.) The
+  basket conjunct is unchanged. ⇒ supersedes the "all six at L65" reading of RULING 12 **for the gauntlet-entry gate
+  only**; training still aims to lift everyone (RULING 12's training target is untouched).
+* **RULING 16 — "Buy only what's missing".** §Ch23 leg 11 buys only the MISSING quantities of `LEAGUE_BASKET` so the bag
+  ends with exactly the same basket by item name — explicitly NOT a thinner basket (that ruling stands).
+* **RULING 17 — Amulet Coin: "Yes, fetch it after badge 5".** Mom in Littleroot (two talks, `FLAG_BADGE05_GET`); a
+  battler that actually enters battles holds it (decomp: the ×2 is set only when the HOLDER switches in).
+  Supersedes `#24-amuletcoin`'s "then decide whether to fetch it".
+* **RULING 18 — Buy early: "Yes, buy early with a reserve lock".** Part of the basket (Hyper Potion / Full Heal /
+  Revive — Mossdeep and Sootopolis sell them; Full Restore only at the League) is bought BEFORE the Juan attempts,
+  locked so gym battles cannot spend it. Items survive a whiteout; money does not.
+**RECOMMENDATIONS THE USER DECLINED:** "keep all-six-at-65" (R1) and "not yet — measure first" (buy early).
+**BUILD ORDER (mine):** 15 and 16 first (small, gated), then 17 and 18 (story errand / purchase + lock), each
+pre-registered and driven on branch `wt/ch24organic`.
