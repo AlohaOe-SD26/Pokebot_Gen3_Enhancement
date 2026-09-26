@@ -22014,6 +22014,13 @@ class Ch24EntryMode(BotMode):
       `POKEBOT_CH24_FAULT_NOREADY=1`   read in PRODUCTION — R1 disarmed (the skip-the-fix arm): a
                                        below-floor party must then walk in and open the door.
 
+    ⭐ `CH24_ENTRY_EXPECT=refuse-bridge:noflyer|refuse-bridge:wrongtile` (`#26-ch24organic` gap 2):
+    PASS iff the RETURN BRIDGE refused for that reason, the door still shut, `E1-INSIDE` never taken.
+    `CH24_ENTRY_EXPECT_BRIDGE=already|walk|fly|in_lobby` adds a conjunct to the `enter` grade: the
+    bridge's `mode` must be exactly that (a flight that was not needed, or not taken, is a FAIL).
+    Arms read in PRODUCTION: `POKEBOT_CH24_FAULT_NOBRIDGE=1` (skip the bridge — the pre-fix walk from
+    wherever training ended), `POKEBOT_CH24_FAULT_BRIDGEDEST=1` (fly to Lilycove — the tile assert fires).
+
     ⭐ `CH24_ENTRY_EXPECT=refuse:floor|refuse:basket` (`#26-ch24organic` R1, 2026-09-26) flips the
     grade: PASS iff the leg RAISED the R1 refusal, for THAT reason only, outside, before a guard was
     talked to — `ENTERED_ELITE_FOUR` still False and `E1-INSIDE` never taken. ⛔ Read AT THE END of
@@ -22086,8 +22093,11 @@ class Ch24EntryMode(BotMode):
         EXPECT = _os.environ.get("CH24_ENTRY_EXPECT", "enter")
         # `@lobby` = the run STARTS inside the League lobby (a resume), so R1 must refuse THERE — still
         # before any guard talk — instead of on Ever Grande.
-        if EXPECT not in ("enter", "refuse:floor", "refuse:basket", "refuse:floor@lobby", "refuse:basket@lobby"):
-            raise BotModeError(f"{TAG}: CH24_ENTRY_EXPECT={EXPECT!r} is not enter|refuse:floor|refuse:basket[@lobby]")
+        if EXPECT not in ("enter", "refuse:floor", "refuse:basket", "refuse:floor@lobby", "refuse:basket@lobby",
+                          "refuse-bridge:noflyer", "refuse-bridge:wrongtile"):
+            raise BotModeError(f"{TAG}: CH24_ENTRY_EXPECT={EXPECT!r} is not enter|refuse:floor|refuse:basket[@lobby]"
+                               f"|refuse-bridge:noflyer|refuse-bridge:wrongtile")
+        EXPECT_BRIDGE = _os.environ.get("CH24_ENTRY_EXPECT_BRIDGE", "")
         # ‼ `state_path` is the harness's module-level fixture path (set at `story_harness.py`'s
         # setup). Read the bytes NOW, before the leg mutates anything, so the restore below is
         # the state this run STARTED from. `FRESH` means there is no fixture to restore to.
@@ -22191,6 +22201,31 @@ class Ch24EntryMode(BotMode):
         log(f"[{TAG}] RESULT whiteouts={getattr(self, 'whiteouts', 0)} failure={failure}")
 
         ok = not missing and failure is None and getattr(self, "whiteouts", 0) == 0
+        bridge_rep = leg.get("bridge") or {}
+        if EXPECT == "enter" and EXPECT_BRIDGE:
+            got_mode = bridge_rep.get("mode")
+            positioned = "B-POSITIONED" in (bridge_rep.get("readings") or set())
+            log(f"[{TAG}] BRIDGE mode={got_mode!r} (expected {EXPECT_BRIDGE!r}) positioned={positioned} "
+                f"start={bridge_rep.get('start')} end={bridge_rep.get('end')} fly={bridge_rep.get('fly', {}).get('arrived')}")
+            ok = ok and got_mode == EXPECT_BRIDGE and positioned
+        if EXPECT.startswith("refuse-bridge:"):
+            why = EXPECT.split(":")[1]
+            needle = {"noflyer": "no party member knows Fly", "wrongtile": "expected to stand on"}[why]
+            conj = {
+                "premise": "T-PREMISE" in taken,
+                "raised_bridge": failure is not None and "§Ch24 bridge:" in failure,
+                "reason_matches": failure is not None and needle in failure,
+                "r1_not_the_refuser": failure is None or "§Ch24 R1:" not in failure,
+                "door_still_shut": R.get("flag_final") is False,
+                "never_inside": "E1-INSIDE" not in taken,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+            }
+            log(f"[{TAG}] BRIDGE conjuncts = {conj}  bridge={ {k: v for k, v in bridge_rep.items() if k != 'readings'} }")
+            ok = all(conj.values())
+            log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (the return bridge REFUSED for {why}; door "
+                f"still shut; never inside) SCOPE: floor={FLOOR}")
+            context.set_manual_mode()
+            return
         if EXPECT.startswith("refuse:"):
             # ⭐ THE R1 GRADE. Every conjunct is a claim a no-op or a disarmed guard cannot satisfy:
             # a leg that never raised has `failure=None`; a disarmed R1 opens the door (flag True);
@@ -25386,8 +25421,21 @@ _saved_post_rival = False
 _rival_stable = 0
 _CKPT_STATE: dict = {}  # SAVE_CHECKPOINT hook state (stable counter + saved flag)
 _WANT_POST_RIVAL_SAVE = bool(_os_hook.environ.get("SAVE_POST_RIVAL"))
+# ⏱ OPT-IN `HARNESS_EXIT_ON_MANUAL=1` (2026-09-26): end the loop 120 frames after the driver hands to
+# Manual. Manual THROTTLES TO ×1 (`context.set_manual_mode` sets `emulation_speed = 1`), so a driver that
+# graded at f1,340 of a 200,000-frame budget otherwise idles ~55 minutes — measured on the R1 drives.
+# Default OFF: some drivers are meant to keep observing after the hand-off.
+_EXIT_ON_MANUAL = _os_hook.environ.get("HARNESS_EXIT_ON_MANUAL") == "1"
+_manual_since = None
 for step in range(args.frames):
     context.frame = step
+    if _EXIT_ON_MANUAL and step > 1 and context.bot_mode == "Manual":
+        _manual_since = step if _manual_since is None else _manual_since
+        if step - _manual_since >= 120:
+            log(f"[run] HARNESS_EXIT_ON_MANUAL: Manual since f{_manual_since} — ending the loop at f{step}")
+            break
+    else:
+        _manual_since = None
 
     # Capture the post-rival save once the rival is defeated â€” ONLY when explicitly asked
     # (SAVE_POST_RIVAL=1), else it would clobber an existing post_rival.ss1 during other

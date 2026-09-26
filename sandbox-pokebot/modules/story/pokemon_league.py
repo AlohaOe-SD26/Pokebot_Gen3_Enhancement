@@ -2056,6 +2056,149 @@ def train_for_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -> Generator
         console.print(f"[bold green]§Ch24: every party member is now at or above L{floor}.[/]")
 
 
+#: The reading `return_to_league_door` publishes. ⛔ THE DRIVER IMPORTS THIS — never a private copy.
+BRIDGE_READINGS = (
+    "B-POSITIONED",   # standing on EVER_GRANDE_CITY (18,6) — ASSERTED by tile — or already in the lobby
+)
+
+#: Frame bounds for the bridge's two ways home. Both are BACKSTOPS: a walk across the north plateau is a
+#: few hundred frames and a flight a few thousand (menu + animation), so hitting either is a wedge.
+BRIDGE_WALK_FRAMES = 60_000
+BRIDGE_FLY_FRAMES = 60_000
+
+
+def _where_name() -> str:
+    """`MAP_NAME (x, y)` for humans. ‼ `_where()` is `((group, number), (x, y))` — a TUPLE, not a name
+    (seafloor_cavern's transcription rule A; it cost the first R1 drive its grade)."""
+    try:
+        from modules.map_data import MapRSE
+
+        return f"{MapRSE(tuple(_where()[0])).name} {_here_tile()}"
+    except Exception as error:  # noqa: BLE001 - a map NAME is cosmetic; never lose a refusal to it
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        return str(_where())
+
+
+def return_to_league_door(report=None) -> Generator:
+    """`#26-ch24organic` GAP 2 — get back to the League door apron EVER_GRANDE_CITY (18,6), or REFUSE.
+
+    ⛔⛔ WHY IT EXISTS. §Ch24 training ends wherever its last rung ended: a route grind tile (a Fly-anchored
+    ground), EVER_GRANDE_CITY (27,49) after the Victory Road step-out — the SOUTH half, from which (18,6) is
+    **NO PATH, measured in both directions** (KI-94 2026-09-06; `2026-09-18-vr-heal-roundtrip`) — or indoors
+    if a purse expired mid-heal. `prepare_and_open_the_league` then simply WALKED at the door apron with
+    the result ignored, and from (27,49) held Up — straight into the Poké Center door at (27,48).
+    ⇒ ONE flight fixes every off-plateau case: `fly_to_destination(PokemonLeague)` lands at (18,6)
+    (measured from (27,49) and from (18,42)). ⛔ But that leg asserts only that the bot MOVED, so the
+    TILE is asserted here — a flight that lands anywhere else must not be followed by a walk at a door.
+
+    IN ORDER: already in the lobby or on (18,6) ⇒ no-op; on Ever Grande with a real path to (18,6) that
+    avoids the Victory Road return trap (18,27) ⇒ WALK; otherwise step out of Victory Road if inside it,
+    then FLY — refusing BY NAME if there is no Fly knower, no Feather Badge, the League was never visited,
+    or Fly is illegal where we stand. ASSERT the tile last, whichever way we came.
+    ⭐ It never trains, heals or buys: its only job is position, so a refusal here is about getting home.
+    """
+    import os as _os
+
+    from modules.console import console
+    from modules.map_path import calculate_path
+    from modules.memory import get_event_flag
+    from modules.region_map import FlyDestinationRSE
+    from modules.story import victory_road as VR
+    from modules.story.early_game import (
+        _yield_bounded_by_frames,
+        reraise_if_aborting,
+        wait_until_truly_controllable,
+    )
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+    report["start"] = _where()
+
+    if VR._on_map(VR.LEAGUE_1F):
+        report["mode"] = "in_lobby"
+        _take(report, "B-POSITIONED")
+        return
+    if VR._on_map(VR.EG) and VR._here_tile() == VR.LEAGUE_DOOR_APRON:
+        report["mode"] = "already"
+        _take(report, "B-POSITIONED")
+        return
+
+    # ---- 1. ON FOOT, if the north plateau connects us to the apron ------------------------------
+    walked = False
+    if VR._on_map(VR.EG):
+        crossed = None
+        try:
+            plan = calculate_path((VR.EG, VR._here_tile()), (VR.EG, VR.LEAGUE_DOOR_APRON))
+            crossed = [tuple(getattr(wp, "coordinates", ())) for wp in plan]
+        except Exception as error:  # noqa: BLE001 - "no path" is the EXPECTED answer from the south half
+            reraise_if_aborting(error)
+            report["walk_refused"] = f"{type(error).__name__}: {error}"[:200]
+        if crossed is not None and VR.EG_VICTORY_ROAD_RETURN_TRAP in crossed:
+            # Same trap guard as §Ch23 leg 10: (18,27) is a WALKABLE door straight back into Victory Road.
+            report["walk_refused"] = f"the plan crosses the Victory Road return trap {VR.EG_VICTORY_ROAD_RETURN_TRAP}"
+            crossed = None
+        if crossed is not None:
+            report["mode"] = "walk"
+            report["plan_wp"] = len(crossed)
+            report["walk_finished"] = bool((yield from _yield_bounded_by_frames(
+                VR._navigate_riding_out(VR.EG, VR.LEAGUE_DOOR_APRON), BRIDGE_WALK_FRAMES)))
+            yield from wait_until_truly_controllable()
+            walked = True
+
+    # ---- 2. BY AIR ------------------------------------------------------------------------------
+    if not walked:
+        yield from _ch24_step_out_if_fly_illegal(report)
+        destination = FlyDestinationRSE.PokemonLeague
+        missing = []
+        try:
+            if get_party().first_pokemon_with_move("Fly") is None:
+                missing.append("no party member knows Fly")
+            if not get_event_flag("BADGE06_GET"):
+                missing.append("the Feather Badge (BADGE06) is not held")
+            if not get_event_flag(destination.get_flag_name()):
+                missing.append(f"the Pokémon League was never visited ({destination.get_flag_name()} is unset)")
+            if not fly_is_legal_from_current_map():
+                missing.append("Fly is illegal on this map")
+        except Exception as error:  # noqa: BLE001 - an unreadable precondition is a refusal, never a "yes"
+            reraise_if_aborting(error)
+            missing.append(f"a Fly precondition could not be read ({type(error).__name__})")
+        report["fly_missing"] = missing
+        if missing:
+            raise BotModeError(
+                f"§Ch24 bridge: cannot return to the League door from {_where_name()} — "
+                f"{VR.LEAGUE_DOOR_APRON} is not reachable on foot from here "
+                f"({report.get('walk_refused', 'not on Ever Grande')}), and flying back is impossible: "
+                f"{'; '.join(missing)}.")
+        # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_BRIDGEDEST=1` (registered in `29-…REGISTRY.md`): fly somewhere
+        # ELSE, so the tile assertion below must fire — proving it is live, because `fly_to_destination`
+        # itself would accept any landing that is not the origin.
+        if _os.environ.get("POKEBOT_CH24_FAULT_BRIDGEDEST") == "1":
+            destination = FlyDestinationRSE.LilycoveCity
+            report["fault_bridgedest"] = True
+            console.print("[magenta]§Ch24 bridge: FAULT ARM BRIDGEDEST — flying to Lilycove instead; the "
+                          "tile assertion MUST fire.[/]")
+        report["mode"] = "fly"
+        fly: dict = {}
+        report["fly"] = fly
+        report["fly_finished"] = bool((yield from _yield_bounded_by_frames(
+            fly_to_destination(destination, fly), BRIDGE_FLY_FRAMES)))
+        yield from wait_until_truly_controllable()
+
+    # ---- 3. ASSERT THE TILE, whichever way we came -----------------------------------------------
+    report["end"] = _where()
+    if not (VR._on_map(VR.EG) and VR._here_tile() == VR.LEAGUE_DOOR_APRON):
+        raise BotModeError(
+            f"§Ch24 bridge: expected to stand on EVER_GRANDE_CITY {VR.LEAGUE_DOOR_APRON} (the League door "
+            f"apron) after the {report.get('mode')}, but we are at {_where_name()}. ⛔ Refusing to walk at a "
+            f"door from the wrong place.")
+    _take(report, "B-POSITIONED")
+    console.print(f"[cyan]§Ch24 bridge: at the League door apron {VR.LEAGUE_DOOR_APRON} "
+                  f"(by {report['mode']}).[/]")
+
+
 #: The readings this leg publishes. ⛔ THE DRIVER IMPORTS THIS — it must never keep a private copy.
 #: A renamed label with a private copy makes a PERFECT run report `missing=[…]`, and the obvious
 #: repair is then to delete a required reading. Precedent: `LEG23_READINGS`, `ICEBEAM_READINGS`.
@@ -2240,6 +2383,19 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
             f"{bool(get_event_flag(CH24_ENTERED_FLAG))}).")
     else:
         _take(report, "E1-READY")
+
+    # ---- THE RETURN BRIDGE (`#26-ch24organic` gap 2) --------------------------------------------
+    # ⛔ AFTER R1, ON PURPOSE: readiness does not depend on position, so a party that must be refused is
+    # refused for READINESS wherever it stands — and only a ready party pays for the trip home.
+    # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOBRIDGE=1` (skip-the-fix): the pre-2026-09-26 behaviour — walk at
+    # the door from wherever training ended.
+    if _os.environ.get("POKEBOT_CH24_FAULT_NOBRIDGE") == "1":
+        report["fault_nobridge"] = True
+        console.print("[magenta]§Ch24 leg 1: FAULT ARM NOBRIDGE — not returning to the door apron.[/]")
+    else:
+        bridge: dict = {}
+        report["bridge"] = bridge
+        yield from return_to_league_door(bridge)
 
     # ---- GET INSIDE ----------------------------------------------------------------------------
     if not VR._on_map(VR.LEAGUE_1F):
