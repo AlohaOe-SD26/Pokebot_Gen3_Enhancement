@@ -35787,3 +35787,12 @@ H1/K first run was VOID (the new driver had no `on_battle_started`, the harness 
 **GATES:** `probe_ch24_flyteach.py` (NEW; F1 `_play` order, F2/F2b the driver's order + battle hook, F3 the plan on
 synthetic parties incl. the review's shape, F4 the arm, F5 EVERY training driver has a battle hook) and
 `probe_ch24_bridge.py` B6 (the walk-off guard); fault arms turn each red.
+## 2026-09-26 (late) — `#26-ch23money`: 3 OF 3 ORGANIC RUNS THAT REACHED THE LEAGUE WERE REFUSED ON MONEY — RECON FILED (docs only)
+
+The user's live batch (`#26-batch0926`) produced the first organic arrivals at §Ch23 leg 11 since the §Ch23 killers were
+fixed — and all three were refused: P1 ₽21,940, P2 ₽33,492, P4 ₽41,412 against the ₽54,300 basket (verified in the
+logs). A 6-agent recon (`ai-research-notes/2026-09-26-ch23money-RECON.md`, a NOTE) traced it to WHITEOUTS (each halves
+the wallet; P1 run 1: 33 whiteouts, one ₽6,000 purchase), found that money is never logged, ranked candidate fixes
+(F0 logging; F1 Amulet Coin; F2-F4 need user rulings) and listed what is already settled. Verified by me: the three
+wallets, the 33 whiteouts, and the Amulet Coin rule (`battle_util.c:3294-3296` — the HOLDER must switch in), which
+corrects a claim in `#24-amuletcoin`. No code changed (the batch is running).
