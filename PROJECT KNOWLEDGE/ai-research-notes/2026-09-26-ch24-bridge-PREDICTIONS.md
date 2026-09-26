@@ -39,3 +39,14 @@ fault arms turn it red. ✅ Already PASS on the unrun code (static).
 ## WHAT THIS WILL NOT SETTLE
 * Whether ORGANIC parties have a flyer (13 of 30 did not — gaps 3 and 5) or walk off the plateau with none (gap 4).
 * The WALK branch is exercised only from (18,28) (arm W) — one plateau start, with R1 disarmed.
+
+## ADDENDUM (after the code review's KICK-BACK, BEFORE the re-run) — the regression arm it asked for
+
+The review found `BRIDGE_READINGS` SHADOWED by `enter_the_league`'s constant of the same name (renamed
+`RETURN_BRIDGE_READINGS`, imported by the harness; gate B5 now refuses any duplicate `*_READINGS`), and that no arm
+re-drove the PROVEN chain that also calls `prepare_and_open_the_league`. All seven arms above are re-run on the
+fixed code, plus:
+
+| arm | fixture · env | prediction | falsifier |
+|---|---|---|---|
+| **RG** REGRESSION — `--driver ch24bridge` (leg 1 → `enter_the_league` → beat SIDNEY) | `post_ch24_atdoor_L75.ss1` (`8b8cd907db09`) · its default `CH24_ENTRY_FLOOR=1` | `ACCEPTANCE: PASS` exactly as on 2026-09-25; the entry leg's new `bridge` sub-report reads `mode='already'` (the fixture stands on (18,6)); R1 passes (L75×4 + L19/L36 ≥ floor 1; basket 37/3/18/3) | any FAIL; the bridge flying or walking; R1 refusing |
