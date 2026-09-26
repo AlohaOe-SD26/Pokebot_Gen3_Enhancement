@@ -35,3 +35,12 @@ Surf guard and Segment 13a and guards only when it ran; the driver's Petalburg m
 * Whether the coin **pays enough** — that is the batch's `[MONEY]` lines (F0), measured over organic runs.
 * Mom as the **female** player (May's house, door (14,8)) — no fixture; the door comes from the recon's map read.
 * A holder that already carries an item (the switch yes/no) — Blaziken holds nothing, so that branch is unexercised.
+
+## ADDENDUM — filed after A1-A5 were graded, BEFORE A6 was driven
+
+A5's end state (coin received, in the bag, nobody holds it) makes `amulet_coin_pending()` True again, so the next
+`_play` pass re-enters Segment 12d with `need_coin` False. That path (no walk, no talk, GIVE only) had never run.
+
+| arm | how | predicted reading | falsifier |
+|---|---|---|---|
+| **A6 REGIVE** | re-drive A5 with `AMULET_SAVE_END` (one trajectory, replayed — not a replication), then its end state with `AMULET_EXPECT=regive` | PASS: order exactly `AC-GIVEN, AC-BACK`, no talks, Blaziken#341D550A holds it, bag coins 0, < 3,000 frames, still in Petalburg | any walk south, any talk, or the coin left in the bag |
