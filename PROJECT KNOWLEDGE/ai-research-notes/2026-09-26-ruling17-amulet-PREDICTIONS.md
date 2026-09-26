@@ -44,3 +44,16 @@ A5's end state (coin received, in the bag, nobody holds it) makes `amulet_coin_p
 | arm | how | predicted reading | falsifier |
 |---|---|---|---|
 | **A6 REGIVE** | re-drive A5 with `AMULET_SAVE_END` (one trajectory, replayed — not a replication), then its end state with `AMULET_EXPECT=regive` | PASS: order exactly `AC-GIVEN, AC-BACK`, no talks, Blaziken#341D550A holds it, bag coins 0, < 3,000 frames, still in Petalburg | any walk south, any talk, or the coin left in the bag |
+
+## ADDENDUM 2 — the adversarial review's risk #3, filed BEFORE B1/B2 were driven
+
+The review (KICK-BACK on docs only) traced one reachable-in-principle shape: the 40k budget expiring while the bag /
+party menu is open closes the errand from OUTSIDE, skipping its own `_leave_menus()`. Built: `run_ch12d` now closes any
+menu (bounded, 3,000 frames) when `finished` is False, BEFORE the fallback walk; `POKEBOT_AMULET_FAULT_BUDGET=<frames>`
+shrinks the budget to drive it. Neither recovery step (menu close, fallback walk) had ever run. Measured on the happy
+path (observe run, same trajectory as A1): the give starts **2,695 frames** into the errand and lasts ~500.
+
+| arm | how | predicted reading | falsifier |
+|---|---|---|---|
+| **B1 BUDGET-WALK** | `norman_done`, `POKEBOT_AMULET_FAULT_BUDGET=800`, `AMULET_EXPECT=budget AMULET_BUDGET_AT=walk` | PASS: `finished False`, no `AC-HOUSE`, no talks, `retry_return True`, ends in PETALBURG_CITY, OVERWORLD, no menu task, path east OK | ends off Petalburg (the fallback walk is wrong) — the `_play` guard would then derail a real run |
+| **B2 BUDGET-GIVE** | same, `POKEBOT_AMULET_FAULT_BUDGET=3050`, `AMULET_BUDGET_AT=give` | PASS: expiry INSIDE the give (`give_context_task` recorded, no `give_finished`), then the menu is closed and the bot walks back: OVERWORLD, no menu task, in Petalburg | a menu task still active at the end, or not in Petalburg. ⚠ If the expiry lands just outside the give (placement is estimated from one measured trajectory), `expired_during_give` fails while the recovery conjuncts pass — that is a PLACEMENT miss, to be re-aimed and re-driven, not a build failure |
