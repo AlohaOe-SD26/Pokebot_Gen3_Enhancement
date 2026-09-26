@@ -22084,8 +22084,10 @@ class Ch24EntryMode(BotMode):
 
         FLOOR = int(_os.environ.get("CH24_ENTRY_FLOOR", str(_PROD_FLOOR)))
         EXPECT = _os.environ.get("CH24_ENTRY_EXPECT", "enter")
-        if EXPECT not in ("enter", "refuse:floor", "refuse:basket"):
-            raise BotModeError(f"{TAG}: CH24_ENTRY_EXPECT={EXPECT!r} is not enter|refuse:floor|refuse:basket")
+        # `@lobby` = the run STARTS inside the League lobby (a resume), so R1 must refuse THERE — still
+        # before any guard talk — instead of on Ever Grande.
+        if EXPECT not in ("enter", "refuse:floor", "refuse:basket", "refuse:floor@lobby", "refuse:basket@lobby"):
+            raise BotModeError(f"{TAG}: CH24_ENTRY_EXPECT={EXPECT!r} is not enter|refuse:floor|refuse:basket[@lobby]")
         # ‼ `state_path` is the harness's module-level fixture path (set at `story_harness.py`'s
         # setup). Read the bytes NOW, before the leg mutates anything, so the restore below is
         # the state this run STARTED from. `FRESH` means there is no fixture to restore to.
@@ -22162,7 +22164,16 @@ class Ch24EntryMode(BotMode):
             try:
                 R["flag_final"] = bool(get_event_flag(CH24_ENTERED_FLAG))
                 R["final_at"] = (str(_where()), VR._here_tile())
+                # ⛔ IDENTITY, by the module's own enum-VALUE comparison. The first R1 drive compared a
+                # map NAME against `str(VR._where())`, which is `((0, 8), (18, 6))` — always False.
+                R["final_on_eg"] = bool(VR._on_map(VR.EG))
+                R["final_in_lobby"] = bool(VR._on_map(VR.LEAGUE_1F))
             except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                # ⛔ FIRST STATEMENT: a whiteout unwinding through here must not be relabelled as an
+                # "unreadable end state" (the laundered-abort shape; reviewer blocker, 2026-09-26).
+                from modules.story.early_game import reraise_if_aborting
+
+                reraise_if_aborting(read_error)
                 R["flag_final"] = f"<unreadable {type(read_error).__name__}>"
             try:
                 if _fixture_bytes:
@@ -22185,15 +22196,18 @@ class Ch24EntryMode(BotMode):
             # a leg that never raised has `failure=None`; a disarmed R1 opens the door (flag True);
             # a refusal for the WRONG reason fails the reason conjunct.
             reasons = leg.get("readiness_refusal") or []
-            want_floor = EXPECT == "refuse:floor"
+            want_floor = EXPECT.split("@")[0] == "refuse:floor"
+            at_lobby = EXPECT.endswith("@lobby")
             has_floor = any("below the L" in r for r in reasons)
             has_basket = any("basket short" in r for r in reasons)
-            refused_at = leg.get("refused_at")
             conj = {
                 "premise": "T-PREMISE" in taken,
                 "raised_R1": failure is not None and "§Ch24 R1: REFUSING" in failure,
                 "reason_matches": (has_floor and not has_basket) if want_floor else (has_basket and not has_floor),
-                "outside": bool(refused_at) and "EVER_GRANDE_CITY" in str(refused_at[0]) and "LEAGUE" not in str(refused_at[0]),
+                "where_expected": ((R.get("final_in_lobby") is True and R.get("final_on_eg") is False)
+                                   if at_lobby else
+                                   (R.get("final_on_eg") is True and R.get("final_in_lobby") is False))
+                                  and bool(leg.get("refused_at")),
                 "door_still_shut": R.get("flag_final") is False,
                 "never_inside": "E1-INSIDE" not in taken and "E1-READY" not in taken,
                 "no_whiteout": getattr(self, "whiteouts", 0) == 0,
@@ -22201,7 +22215,8 @@ class Ch24EntryMode(BotMode):
             log(f"[{TAG}] R1 conjuncts = {conj}")
             ok = all(conj.values())
             log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (R1 REFUSED for {EXPECT.split(':')[1]} "
-                f"only, OUTSIDE, before the guards; door still shut) SCOPE: floor={FLOOR}")
+                f"only, {'IN THE LOBBY' if at_lobby else 'OUTSIDE'}, before the guards; door still shut) "
+                f"SCOPE: floor={FLOOR}")
             context.set_manual_mode()
             return
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (latch, get ready OUTSIDE, get inside, "

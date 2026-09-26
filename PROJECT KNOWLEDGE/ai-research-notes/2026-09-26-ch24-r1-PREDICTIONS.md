@@ -41,3 +41,17 @@ door walk must FAIL.
 * ⚠ POLICY, flagged to the user: at the production floor R1 would refuse the very party that WON the
   gauntlet (`post_ch24_atdoor_L75`: 4×L75 + Zigzagoon L19 + Castform L36) if training could not lift the
   two stragglers. That is USER RULING 12's floor applied literally; relaxing it is the user's call.
+
+## ADDENDUM (written after run 2, BEFORE arm E is driven) — the LOBBY-RESUME arm the code review asked for
+
+The adversarial review (KICK-BACK, 2026-09-26) found no arm proving R1 is safe when a run RESUMES inside the
+League lobby (a derail after walking in). Discriminator, measured by `probe_ch24_readiness_inputs.py`:
+`post_league_lobby.ss1` (`5a75ea37ed5c`) stands at `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3,4)`,
+`ENTERED_ELITE_FOUR` False, below L65 = **Zigzagoon L19, Castform L36**, basket 37/3/18/3 (**not short**).
+The driver's conjunct `outside` is renamed `where_expected` (EG by default; the lobby under `@lobby`), and every
+arm is re-run on the final driver (run 3).
+
+| arm | fixture · env | prediction | falsifier |
+|---|---|---|---|
+| **E** REFUSE-IN-LOBBY | `post_league_lobby` · floor 65 · `EXPECT=refuse:floor@lobby` (no NOTRAIN: off Ever Grande the leg already skips training) | `ACCEPTANCE: PASS`; reason `2 mōn below the L65 floor: Zigzagoon#33CB74C3 L19, Castform#C978D14E L36`, no basket reason; the leg report carries `train_skipped_offmap`; `final_in_lobby=True`, `flag_final=False` (no guard was talked to); `E1-INSIDE`/`E1-GUARDS` absent | a guard talk (flag True); a raise other than R1; a walk out of the lobby before the raise |
+| A–D | as above | unchanged verdicts on the final driver | any verdict flips |
