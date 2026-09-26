@@ -69,3 +69,21 @@ in the same run), then to the Mart.
 | arm | predicted | falsifier |
 |---|---|---|
 | **E1' BUY (re-drive)** | as E1 was predicted: PASS, delta {Revive 3, Full Heal 8, Hyper Potion 30}, ₽67,466 → ₽22,166, `waypoint_reached` ((0,7),(31,34)), re-healed, gym 1F | still no path from (31,34) (then object visibility is not the cause) |
+
+## ADDENDUM 2 — E1' half-worked; the second half of the same defect; fix filed BEFORE the next drive
+
+**E1' (waypoint only): `ACCEPTANCE: FAIL`, but the PURCHASE LANDED exactly as predicted** — bag delta {Revive 3,
+Full Heal 8, Hyper Potion 30}, ₽67,466 → **₽22,166**. It then failed on the way BACK: the re-heal raised
+`HealWalkFailedError: … the walk to SootopolisCity is BLOCKED` from the Mart. The same camera-window blocker, in
+reverse: from the Mart side object 7 is out of view, so the planner blocks the bridge and finds no path east.
+⚠ **This is the dangerous half:** a bot on the Mart side with no plannable way back fails every attempt's pre-gym heal
+— a stranded run. My first fix covered one direction of a symmetric problem.
+**Fix:** at the waypoint (where the planner sees the object) plan BOTH legs before crossing — if either fails, do not
+cross; after shopping, walk back along the path PLANNED FROM THE PC SIDE (`return_across_from_the_mart`: resumes from
+wherever on the stored path we stand, bounded; the planner only as an off-path last resort); the walk back runs
+OUTSIDE the shop's try (a shop error or a partial purchase still returns), and an expired budget triggers one more
+bounded walk back. Gate `probe_league_reserve.py` R7 pins all of it (two new fault arms).
+
+| arm | predicted | falsifier |
+|---|---|---|
+| **E1'' BUY** | PASS: `EB-PLANNED, EB-MART, EB-BOUGHT`; delta {Revive 3, Full Heal 8, Hyper Potion 30}; ₽67,466 → ₽22,166; `returned True` via the stored path (no `return_errors`); re-healed; gym 1F | the stored path times out and cannot resume, or the re-heal still reports BLOCKED from (31,34) |
