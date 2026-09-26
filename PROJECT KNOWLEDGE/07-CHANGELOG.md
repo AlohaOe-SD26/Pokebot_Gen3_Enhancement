@@ -35656,3 +35656,39 @@ judges' must-fixes (PID-only identity — Marill evolves at L18 —, state norma
 money check, the F2 no-finisher refusal).
 **FILES:** `tools/story-dev/story_harness.py` (`Ch23SwapProbeMode`), `tools/story-dev/evidence/2026-09-26-ch23swapprobe-*`
 (4), the graded note, `03`, `04`, `06`, `07`, the ledger.
+
+
+## 2026-09-26 (late) — ✅✅ `#24-ch23training` IS FIXED: §Ch23 TRAINS AN OVER-CEILING CLIMB IN BOUNDED CHUNKS INSTEAD OF REFUSING — the refusal that ended 30 of 39 organic badge-8 runs
+
+**WHAT CHANGED** (`sandbox-pokebot/modules/story/victory_road.py`, `train_for_victory_road`; USER RULING 14):
+* The "X alone needs N frames, over the 250,000 per-call ceiling" RAISE is gone from the normal path (kept
+  verbatim only behind the skip-the-fix arm `POKEBOT_CH23_FAULT_NOCHUNK`).
+* An over-ceiling climb is trained in CHUNKS: `ch23_chunk_target` picks the highest level whose estimate stays
+  ≤ 250k AND whose planned real cost (×5.2 in the swap regime, ×1.65 solo — measured factors) fits 700k; each
+  chunk runs production `train_team(sub, slots={0}, …)` inside a 1M-frame `_yield_bounded_by_frames` purse
+  (HEAD's §Ch23 grind had NO real-frame bound); a 6M leg purse and 8 chunks per mon bound the loop; a chunk
+  that banks 0 EXP raises; after a purse expiry the state is settled before anything reads the party.
+* Trainees are re-resolved by **PID only** (`_trainee_by_pid`): Marill evolves at L18 INSIDE chunk 1.
+* A loud **pre-spend refusal** only for the genuinely impossible plan: a swap-regime trainee with no team-mate
+  ≥ L40 holding a damaging, non-banned move (`ch23_swap_finisher_exists`).
+* Money is recorded around every chunk; a drop (= a whiteout) is reported, leg 11 stays the gate (the money
+  clause recorded earlier today was WRONG — corrected in `06`; see `08`).
+* `story_mode.py`: `grant_ch23_training_allowance` adds the leg's purse to the endless-batch run cap.
+* Harness `Ch23TrainMode` now installs `SwapTrainBattleStrategy` exactly as production does (its old
+  `StoryItemBattleStrategy` is why the 2026-09-08 stepping drive "refuted" a fix that works) and latches/clears
+  the story abort.
+
+**PROOF** (predictions `878dbb3d`, all five CONFIRMED — `ai-research-notes/2026-09-26-ch23-chunktrain-GRADED.md`):
+E0a/E0b/E0c estimate-only (control not chunked · mule planned 13→32 · NOCHUNK reproduces the organic refusal
+verbatim); **E1 full: R-READY, Marill L13 → Azumarill L47 in 3 chunks (480k real frames), 257 battles, 0
+whiteouts**; **E2: HEAD vs new on the control party BIT-IDENTICAL** (same md5 over every battle-start frame,
+both end f371647) ⇒ the ordinary path is untouched.
+**AND THE ONE UNDRIVEN PATH, DRIVEN (after the code review named it):** fault arm `POKEBOT_CH23_FAULT_TINYPURSE` (30k-frame chunk purse) — all 8 chunks expired mid-`train_team`, each banked EXP and did NOT raise, the same Marill was re-resolved by PID through its evolution every time (13→34), and the per-mon cap ended it LOUDLY (`reached only L34 of L47 after 8 chunks`), 0 whiteouts. Predictions `da78c3c9`, graded in the same note.
+**GATES:** `probe_ch23_chunk_plan.py` (NEW, registered; every refused corpus species planned, ordinary party one
+chunk, PID across evolution incl. Nincada/Shedinja, the finisher refusal, the NOCHUNK arm; built-in fault arms
+turn it red) and `repro_endless_frame_budget.py` (the allowance: granted, never stacks, composes with §Ch24).
+**LIMITS:** one fixture/party/trajectory per arm; the organic frequency is `#26-batch0926`'s question, and the
+next blocker is `#26-ch24organic` (production Fly, the return bridge, the readiness refusal).
+**ALSO (docs):** the production-Fly recon note (`ai-research-notes/2026-09-26-ch24-production-fly-RECON.md`),
+`#26-ch24organic` filed, and `02-ARCHITECTURE.md`'s §Ch24 paragraph corrected (it still said "not wired into
+`_play`" a day after it was).

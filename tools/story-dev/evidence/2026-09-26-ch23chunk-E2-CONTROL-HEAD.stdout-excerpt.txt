@@ -1,0 +1,25 @@
+[ch23train] PRE at=((0, 8), (18, 42)) ready=False
+[ch23train] PRE reasons=['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] PRE party={(2252015895, 'Sceptile'): (142, 142, 'Healthy'), (868971715, 'Zigzagoon'): (48, 48, 'Healthy'), (187737927, 'Swellow'): (118, 118, 'Healthy'), (4199673075, 'Wailmer'): (160, 160, 'Healthy'), (1553394331, 'Mightyena'): (130, 130, 'Healthy'), (3380138318, 'Castform'): (103, 103, 'Healthy')}
+[ch23train] PRE battlers={(2252015895, 'Sceptile'): (0, 51), (187737927, 'Swellow'): (2, 42), (4199673075, 'Wailmer'): (3, 40), (1553394331, 'Mightyena'): (4, 44)}  (benched: ('Zigzagoon', 'Linoone', 'Castform'))
+[ch23train] RESULT readings=['R-ESTIMATE', 'R-READY', 'R-TRAINCONTINUE', 'R-TRAINED', 'R-TRAINPRE'] missing=[]
+[ch23train] R train_pre = {'Sceptile#863B0917': 51, 'Swellow#0B30A747': 42, 'Wailmer#FA51ECF3': 40, 'Mightyena#5C96EA9B': 44}
+[ch23train] R train_reasons = ['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] R train_estimates = {'Swellow#0B30A747': 144733, 'Wailmer#FA51ECF3': 217816, 'Mightyena#5C96EA9B': 75949}
+[ch23train] R train_estimate_total = 438498
+[ch23train] R train_worst = None
+[ch23train] R train_chunked = None
+[ch23train] R train_plan = None
+[ch23train] R train_chunks = None
+[ch23train] R train_money_start = None
+[ch23train] R train_money_dropped = None
+[ch23train] R trained = None
+[ch23train] R train_post = {'Sceptile#863B0917': 51, 'Swellow#0B30A747': 47, 'Wailord#FA51ECF3': 47, 'Mightyena#5C96EA9B': 47}
+[ch23train] R train_reasons_after = []
+[ch23train] R continue_after_training = {'from': (15, 39), 'to': (9, 15), 'wp': 44}
+[ch23train] RESULT battles=118 swap_battles=118 whiteouts=0
+[ch23train] ⭐ COST: ~438,498 frames ≈ 306 wild battles ≈ 121.8 minutes of emulator at 60fps (ceiling is 250,000)
+[ch23train] GRADE premise_ok=True ready=True reasons=[] missing=[] battles=118 whiteouts=0 failure=None
+[ch23train] FINAL position=((24, 43), (15, 39))
+[ch23train] ACCEPTANCE: PASS
+[PARTY-ACCT] ledger += ch23train 391685 recomputes (party_accounting_ledger.jsonl)

@@ -13676,24 +13676,45 @@ class Ch23TrainMode(BotMode):
         return "Ch23Train"
 
     def on_whiteout(self) -> bool:
+        # ⛔ LATCH THE ABORT AS `StoryMode.on_whiteout` DOES (2026-09-26, `#24-ch23training`): the leg's
+        # `_check_abort()` then unwinds it and the verdict records the whiteout. `run()` clears the
+        # latch at its start and in a `finally` — a latch nobody clears is a one-way door.
+        from modules.story.early_game import set_story_abort
+
+        set_story_abort(True)
         self.whiteouts = getattr(self, "whiteouts", 0) + 1
         log(f"[ch23train] WHITEOUT #{self.whiteouts} — respawn is EVER_GRANDE (leg 4 armed it).")
         return True
 
     def on_battle_started(self, encounter):
         # ⛔ THE STRATEGY PROVIDER, not a notification — returning None here broke leg 5's battles.
-        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+        # ⛔⛔ AND IT MUST MIRROR PRODUCTION'S CHOICE (fixed 2026-09-26, `#24-ch23training`).
+        # `StoryMode.on_battle_started` returns `SwapTrainBattleStrategy` when `swap_train_active()`
+        # and the battle is wild; this driver returned `StoryItemBattleStrategy` ALWAYS, so every §Ch23
+        # training drive on it measured a path production never takes — MEASURED: that shape gives a
+        # L13 mule +0 EXP and 56 faints in 62 battles, while production's gives L13→17 in 5 battles
+        # (`ai-research-notes/2026-09-26-ch23-swapprobe-GRADED.md`). It is why the 2026-09-08 stepping
+        # drive "refuted" a fix that works.
+        from modules.story.early_game import swap_train_active
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy, SwapTrainBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
+        if swap_train_active() and encounter is not None:
+            self.swap_battles = getattr(self, "swap_battles", 0) + 1
+            return SwapTrainBattleStrategy()
         return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
 
+        from modules.story.early_game import set_story_abort
+
         TAG = "ch23train"
         self.whiteouts = getattr(self, "whiteouts", 0)
         self.battles = getattr(self, "battles", 0)
+        self.swap_battles = getattr(self, "swap_battles", 0)
         report: dict = {"readings": set(), "trace": []}
+        set_story_abort(False)
 
         # ⛔ GRADE AGAINST THE TARGET THIS RUN ACTUALLY ASKED FOR. Defaulting to TRAIN_TARGET here
         # while the leg trains toward an overridden target would grade a different experiment than
@@ -13715,15 +13736,19 @@ class Ch23TrainMode(BotMode):
         except Exception as error:  # noqa: BLE001 - a refusal IS the reading
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            set_story_abort(False)   # ⛔ never leave the process-global latch set on the way out
 
         taken = report.get("readings", set())
         missing = [r for r in VR.TRAIN_READINGS if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         for key in ("train_pre", "train_reasons", "train_estimates", "train_estimate_total",
+                    "train_worst", "train_chunked", "train_plan", "train_chunks",
+                    "train_money_start", "train_money_dropped",
                     "trained", "train_post", "train_reasons_after",
                     "continue_after_training"):
             log(f"[{TAG}] R {key} = {report.get(key)!r}")
-        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT battles={self.battles} swap_battles={self.swap_battles} whiteouts={self.whiteouts}")
 
         est = report.get("train_estimate_total")
         if isinstance(est, int):

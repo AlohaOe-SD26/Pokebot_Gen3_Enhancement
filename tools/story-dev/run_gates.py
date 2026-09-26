@@ -203,6 +203,12 @@ GATES: list[tuple[str, bool]] = [
     # was "this end minus the previous session's end"). Fault-tested against the HEAD code:
     # 8 named FAILs; a comment quoting the old expression does NOT fire it.
     ("repro_endless_frame_budget.py", False),
+    # ⭐ `#24-ch23training` (USER RULING 14, 2026-09-26): §Ch23 trains an over-ceiling climb in bounded
+    # CHUNKS instead of refusing (30 of 39 organic badge-8 deaths). Checks the planner on every refused
+    # corpus species, that the ordinary party still plans ONE chunk, identity-by-PID across evolution,
+    # the impossible-case refusal, and the NOCHUNK arm. Fault arms built in: a non-chunking planner and a
+    # (pid, species) lookup each turn it red.
+    ("probe_ch23_chunk_plan.py", False),
     # ⛔ KI-102. The withdraw counted party room EXCLUDING eggs while the consumer that
     # refuses counts INCLUDING them, so 5 mon + 1 egg queued no deposit and then RAISED —
     # after the PC journey was already spent. Carries a HISTORICAL CONTROL that pins the old

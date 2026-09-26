@@ -7268,3 +7268,31 @@ BEFORE the first chunk and AFTER every chunk, and raises LOUDLY on a shortfall r
 League under-supplied. No re-earning (the MONEY ruling forbids re-raising it). **Why acceptable:** in
 swap-training the strong finisher does the fighting (0 whiteouts in the probe), and the loud stop turns the
 residual risk into a visible, diagnosable outcome.
+
+
+## 2026-09-26 — ⛔ CORRECTION TO RULING 14's MONEY CLAUSE (same day, caught BEFORE any code used it)
+
+The RULING 14 entry above says the chunk loop *"checks money against the basket BEFORE the first chunk and
+AFTER every chunk, and raises LOUDLY on a shortfall"*. ⛔ **That clause would have refused EVERY organic run:**
+`victory_road.py` records the pre-Victory-Road wallet at ~₽38,893 — already BELOW the ₽54,300 basket — and the
+₽56,041 measured at leg 11 includes ~₽17k of Victory Road trainer payouts earned AFTER training. An absolute
+check here tests the wrong moment.
+**THE DECISION THAT SHIPS:** training never SPENDS money (Poké Center heals are free), so a drop can only be a
+whiteout. The chunk loop records money before and after every chunk and, on a DROP, records
+`train_money_dropped` and says so on `context.message`; **leg 11's existing sell-or-refuse guard stays the single
+money GATE** (it already refuses loudly, with a sell plan, when the basket is unaffordable). The user's approval
+(swap-train on VR1F in bounded chunks) is unaffected. ‼ The rule this teaches: *a threshold is a claim about a
+MOMENT — check the quantity where it is spent, not where it happens to be convenient to read.*
+
+## 2026-09-26 — §Ch23's CHUNKED TRAINING GRANTS ITS PURSE TO THE BATCH RUN CAP (`_ch23_training_allowance`)
+
+**DECISION.** When `train_for_victory_road` starts training, it calls `grant_ch23_training_allowance(
+CH23_TRAIN_PURSE_FRAMES)` on the mode; `StoryEndlessResetMode._frame_cap_for_this_run` adds it (reset per run,
+idempotent on retry, composes with the §Ch24 extension; gated in `repro_endless_frame_budget.py`).
+**WHY.** The 2026-09-15 corpus reaches §Ch23 at a median 3.93M frames; a chunked climb can take several
+million more (the judges modelled ~14/30 runs overrunning the 7M base once legs 5-11 are counted). Under the
+flat cap those runs would read as "wedged" mid-training — a false refusal of exactly the fix under test. Same
+rule as the §Ch24 extension earlier today: a run cap must not pre-empt a leg's own designed backstop.
+**ALTERNATIVES REJECTED.** Raising the base cap again (loosens early-game livelock protection for every run);
+leaving it (turns the batch that measures this fix into a measurement of the cap). **REOPEN IF** a batch shows
+§Ch23 training runs killed by the cap while still banking EXP.

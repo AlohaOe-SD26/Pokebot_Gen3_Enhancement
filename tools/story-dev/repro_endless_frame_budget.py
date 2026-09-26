@@ -191,6 +191,7 @@ GRAN = 1000 * mode.BUDGET_CHECK_INTERVAL
 check(PURSE >= 4_500_000,
       f"the purse still covers the measured ~4.5M-frame grind (CH24_TRAIN_PURSE_FRAMES={PURSE:,})")
 mode._ch24_owns_run = False
+mode._ch23_training_allowance = 0
 check(mode._frame_cap_for_this_run() == CAP, "unlatched: the cap is the base cap")
 mode._ch24_owns_run = True
 check(mode._frame_cap_for_this_run() == CAP + PURSE + ALLOW,
@@ -230,6 +231,20 @@ mode._frame_cap_for_this_run = _real_cap
 check(isinstance(fault_err, BotModeError) and fault_stop <= CAP + GRAN,
       f"with the extension disabled the SAME run dies at the base cap ({fault_stop:,})")
 check(fault_stop < stop_at, "so the two arms differ — the latched check above is not vacuous")
+
+print("\n== ⭐ `#24-ch23training`: §Ch23's chunked training GRANTS its purse to the run cap ==")
+mode._ch24_owns_run = False
+mode._ch23_training_allowance = 0
+check(mode._frame_cap_for_this_run() == CAP, "no allowance granted: the base cap")
+story_mode.StoryMode.grant_ch23_training_allowance(mode, 6_000_000)
+check(mode._frame_cap_for_this_run() == CAP + 6_000_000, "granted: base + the §Ch23 purse")
+story_mode.StoryMode.grant_ch23_training_allowance(mode, 6_000_000)
+check(mode._frame_cap_for_this_run() == CAP + 6_000_000, "a retried attempt re-grants, never STACKS")
+mode._ch24_owns_run = True
+check(mode._frame_cap_for_this_run() == CAP + 6_000_000 + PURSE + ALLOW,
+      "the §Ch23 allowance and the §Ch24 extension compose")
+mode._ch24_owns_run = False
+mode._ch23_training_allowance = 0
 
 print("\n== an UNLATCHED livelock is still ended at the base cap (early game is not loosened) ==")
 mode._ch24_owns_run = False

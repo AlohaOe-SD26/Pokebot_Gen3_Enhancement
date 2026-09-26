@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 87 entries = 83 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 88 entries = 84 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -469,12 +469,19 @@ done
   ✅ **A FULL CHAPTER, DISPATCHED AS SEGMENT 23** (2026-09-05) via `do_victory_road_chapter()` /
   `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned
   fixture (`post_badge8` → … → `post_league_shop`). ⛔ DO NOT REBUILD.
+  ⭐ **2026-09-26: its training leg (`train_for_victory_road`) no longer REFUSES an over-ceiling climb —
+  it trains it in bounded CHUNKS** (`ch23_chunk_target`, each ≤250k estimated and inside a real-frame
+  purse; trainees resolved by PID across evolution; a loud refusal only when no team-mate can finish for a
+  swap-trainee). That refusal ended 30 of 39 organic badge-8 runs. USER RULING 14; skip-the-fix arm
+  `POKEBOT_CH23_FAULT_NOCHUNK`; offline gate `probe_ch23_chunk_plan.py`.
 
 * **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ✅⭐ **THE SEQUENCER EXISTS AND
   PASSES (corrected 2026-09-25): `run_the_gauntlet()` chains all five legs in ONE run** — lobby →
   Sidney → Phoebe/Glacia/Drake → HALL4 → Wallace → a cleared game (`ACCEPTANCE: PASS`, `battles=5`,
-  all `Won`). ⛔⛔ **WHAT IS STILL MISSING IS THE SEGMENT 24 DISPATCH: nothing here is wired into
-  `_play` yet**, so the chapter runs only under `--driver ch24gauntlet`. ⇒ the gap is the CALLER,
+  all `Won`). ✅ **AND IT IS WIRED INTO `_play` AS SEGMENT 24 (2026-09-25 evening)** —
+  `ch24_chapter_done()` + the dispatch + the retargeted end-of-content banner. *(This paragraph said
+  "nothing here is wired into `_play` yet" until 2026-09-26 — stale for a day, found while documenting
+  §Ch23.)* ⚠ The ORGANIC hand-off into it is undriven and has known gaps: `#26-ch24organic`. ⇒ the gap is the CALLER,
   not the legs — which was already true on 2026-09-24 and is the half that did NOT change.
   *(superseded: "NO SEQUENCER AND NO SEGMENT 24 DISPATCH — but no longer PREP ONLY".)*
   ✅ **THREE REAL LEGS NOW SHIP HERE, ALL DRIVEN AND PASSING, ALL HARNESS-ONLY ON PURPOSE**, plus the shared

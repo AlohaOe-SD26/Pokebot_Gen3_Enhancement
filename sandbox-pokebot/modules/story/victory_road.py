@@ -508,6 +508,112 @@ BENCH_SPECIES = ("Zigzagoon", "Linoone", "Castform")
 #: KI-28 burned 19.9M frames on a target the local grass could not deliver.
 MAX_TRAINING_FRAMES = 250_000
 
+# ============================================================================================
+# ⭐ CHUNKED TRAINING — `#24-ch23training`, USER RULING 14 (2026-09-26)
+# ============================================================================================
+#: ⛔⛔ WHY THE LEG NO LONGER REFUSES "X ALONE NEEDS N FRAMES". That refusal ended **30 of the 39**
+#: badge-8 organic runs of 2026-09-15 (`ai-research-notes/2026-09-26-organic-frontier-RECON.md`) — every
+#: one standing at the Victory Road apron with a low-level HM carrier (Marill L13 ×11) or a L26-37 team
+#: member over the per-call ceiling. It was the RIGHT ceiling applied to the WRONG unit: KI-28's
+#: 19.9M-frame livelock was ONE unbounded call, so the ceiling bounds a CALL — and a long climb split
+#: into bounded calls is a different thing. ⇒ a climb over the ceiling is now trained in CHUNKS, each
+#: estimated at ≤ `MAX_TRAINING_FRAMES` AND run inside a REAL-frame purse (which HEAD never had here).
+#: ✅ PROVEN BEFORE BUILDING (`…-ch23-swapprobe-GRADED.md`): production swap-training took a L13
+#: Marill to L17 in 5 battles on VR1F, rotated out 5/5, 0 faints; the no-swap control gained +0 with
+#: 56 faints. The user approved swap-training carriers here (RULING 14, `06-DECISIONS-LOG.md`).
+#: Design panel + the judges' must-fixes: `ai-research-notes/2026-09-26-ch23training-DESIGN.md`.
+
+#: A single chunk's REAL-frame purse. A chunk is PLANNED to fit `CH23_CHUNK_PLAN_FRAMES`; the purse is
+#: the backstop above that plan, and an expiry that still banked EXP just re-plans the next chunk.
+CH23_CHUNK_PURSE_FRAMES = 1_000_000
+#: What a chunk is PLANNED to cost in real frames (≈70 % of the purse, so a noisy chunk still fits).
+CH23_CHUNK_PLAN_FRAMES = 700_000
+#: The whole leg's backstop across every trainee and chunk — the same role `CH24_TRAIN_PURSE_FRAMES`
+#: plays for §Ch24. Sized above the worst modelled 2026-09-15 party (~4.2M real frames).
+CH23_TRAIN_PURSE_FRAMES = 6_000_000
+#: The "bound every loop" rule for one trainee. The corpus plans ≤4 chunks per mon (Slugma L15, Nincada
+#: L18, Dustox L14 — `probe_ch23_chunk_plan.py`); 8 is 2× headroom. (Said "≤3" until a review ran the gate.)
+CH23_MAX_CHUNKS_PER_MON = 8
+
+#: ⚠ REAL-FRAME FACTORS OVER `estimate_frames_to_level` (which assumes FULL EXP at 1,433 frames per
+#: battle). MEASURED, n small — re-derive when a longer drive exists:
+#:   * SWAP regime (trainee.level + UNDERLEVEL_MARGIN ≤ foe, i.e. ≤ L38 on L40 wilds): the trainee takes
+#:     ~half the EXP (0.501 measured 2026-09-09) and a swap battle costs ~3,708 frames (probe: 18,539 / 5)
+#:     ⇒ ×2 × 2.59 ≈ **5.2**.
+#:   * SOLO regime (above L38): the ladder's measured frames-per-win correction, **1.65**.
+CH23_SWAP_FRAME_FACTOR = 5.2
+CH23_SOLO_FRAME_FACTOR = 1.65
+#: `SwapTrainBattleStrategy.UNDERLEVEL_MARGIN` — kept LOCAL (plugins/ is not importable from here
+#: without a cycle); `probe_ch23_chunk_plan.py` asserts the two stay equal.
+CH23_UNDERLEVEL_MARGIN = 2
+
+
+def ch23_chunk_target(mon, target: int, wild_max: int) -> int:
+    """The level this mon's NEXT chunk should train to: the highest L ≤ `target` whose estimate stays
+    ≤ `MAX_TRAINING_FRAMES` AND whose planned REAL cost fits `CH23_CHUNK_PLAN_FRAMES`. Never below
+    `level + 1`, so a chunk always asks for progress. Pure: reads only `mon` and the estimator."""
+    from modules.story.training_areas import estimate_frames_to_level
+
+    level = mon.level
+    if level >= target:
+        return target
+    factor = (CH23_SWAP_FRAME_FACTOR if level + CH23_UNDERLEVEL_MARGIN <= wild_max
+              else CH23_SOLO_FRAME_FACTOR)
+    best = level + 1
+    for lv in range(level + 1, target + 1):
+        est = estimate_frames_to_level(mon, lv, wild_max)
+        if est is None:
+            break
+        if est > MAX_TRAINING_FRAMES or est * factor > CH23_CHUNK_PLAN_FRAMES:
+            break
+        best = lv
+    return best
+
+
+def ch23_swap_finisher_exists(trainee_pid: int, wild_max: int) -> bool:
+    """Can a trainee that must swap (level + margin ≤ `wild_max`) be swap-trained at all?
+
+    ⛔ Mirrors, at PLAN time, what `SwapTrainBattleStrategy._capable_finisher` needs IN battle: another
+    non-egg team-mate at or above the foe's level with a damaging move (`get_potential_rotation_targets`).
+    HP is not tested — `train_team` heals before and between battles. With no such mate the trainee
+    would lead every battle alone, 27 levels under the wilds, and bank nothing: that is a genuinely
+    IMPOSSIBLE plan, so the caller refuses it loudly BEFORE spending a frame.
+    """
+    for mon in get_party():
+        if mon is None or mon.is_egg or mon.personality_value == trainee_pid:
+            continue
+        if mon.level < wild_max:
+            continue
+        banned = context.config.battle.banned_moves
+        # ⛔ THE CANONICAL "damaging move" TEST (`modules/pokemon.py`), banned moves excluded.
+        if any(m is not None and m.move.base_power > 0 and m.move.name not in banned for m in mon.moves):
+            return True
+    return False
+
+
+def _trainee_by_pid(pid: int, original_species: str):
+    """The party mon with this PID — surviving EVOLUTION (Marill → Azumarill at L18 happens INSIDE the
+    first chunk). ⛔ Never `(pid, species)`: that key breaks the moment the trainee evolves.
+    ‼ Nincada's evolution creates a Shedinja with the SAME PID, so several matches prefer the original
+    species, then any non-Shedinja line member (the one we were training evolved; Shedinja is new)."""
+    matches = [m for m in get_party()
+               if m is not None and not m.is_egg and m.personality_value == pid]
+    if len(matches) <= 1:
+        return matches[0] if matches else None
+    same = [m for m in matches if m.species.name == original_species]
+    if same:
+        return same[0]
+    evolved = [m for m in matches if m.species.name != "Shedinja"]
+    return (evolved or matches)[0]
+
+
+def _slot_of_pid(pid: int, mon) -> "int | None":
+    for i, m in enumerate(get_party()):
+        if m is mon or (m is not None and mon is not None and m.personality_value == pid
+                        and m.species.name == mon.species.name):
+            return i
+    return None
+
 TRAIN_READINGS = ("R-TRAINPRE", "R-ESTIMATE", "R-TRAINED", "R-READY", "R-TRAINCONTINUE")
 
 #: ⛔ A NAMED-BAD DENYLIST, NOT AN ALLOWLIST. The tile type at UW126 (45,66) has NEVER been read;
@@ -599,6 +705,14 @@ FAULT_ARMS = {
     #: standing on the stage (`#26-carleestage`). The skip-the-fix arm: it must reproduce the organic
     #: `Could not reach (101, 26)` death on the offsets where the double battle happens.
     "NOSTAGEFIX": "POKEBOT_CH23_FAULT_NOSTAGEFIX",
+    #: §Ch23 training — RESTORE the pre-2026-09-26 per-mon refusal ("X alone needs N frames, over the
+    #: 250,000 per-call ceiling") instead of chunking (`#24-ch23training`). The skip-the-fix arm: it must
+    #: reproduce the exact organic refusal on `--inject-hmmule`.
+    "NOCHUNK": "POKEBOT_CH23_FAULT_NOCHUNK",
+    #: §Ch23 training — shrink each chunk's real-frame purse to 30,000 so a chunk EXPIRES mid-`train_team`.
+    #: Exercises the one designed-for path no drive had reached (review 2026-09-26): settle after expiry,
+    #: re-resolve by PID, partial EXP must NOT raise, and the per-mon chunk cap must end it LOUDLY.
+    "TINYPURSE": "POKEBOT_CH23_FAULT_TINYPURSE",
 }
 
 
@@ -2058,10 +2172,14 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
     _take(report, "R-ESTIMATE")
     # ⭐ ESTIMATE-ONLY MODE. The whole point of estimating first is to be able to REPORT the cost
     # before spending it — a grind is the one kind of work where "just run it and see" is the
-    # expensive option. `POKEBOT_CH23_ESTIMATE_ONLY=1` stops here with the numbers taken.
-    if _os_environ_flag("POKEBOT_CH23_ESTIMATE_ONLY"):
-        report["trained"] = "ESTIMATE ONLY — no frames spent"
-        return
+    # expensive option. `POKEBOT_CH23_ESTIMATE_ONLY=1` stops BEFORE guard 2, with the plan, the chunk classification and the impossible-case check taken.
+    # (ESTIMATE-ONLY now returns further down, AFTER the plan, the chunk classification and the
+    #  impossible-case check — all three spend no frames, and an estimate-only run that stopped before
+    #  them could not show the difference between "planned" and "refused" — 2026-09-26.)
+    report["train_plan"] = {
+        f"{sp}#{pid:08X}": ch23_chunk_target(get_party()[sl], target, WILD_MAX)
+        for (pid, sp), (sl, lv) in battler_identities().items() if lv < target
+    }
     # ⛔⛔ THE CEILING IS PER-CALL, NOT PER-TOTAL, AND THE DISTINCTION IS THE WHOLE POINT.
     # KI-28's 19.9M-frame livelock was ONE `train_team` call chasing a level the local grass could
     # never deliver — an unbounded call, not a large sum of bounded ones. This leg makes a SEPARATE
@@ -2071,17 +2189,54 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
     # ⇒ refuse any SINGLE mon whose grind is unaffordable; REPORT the total, because the total is
     # the user's time and that is a decision for them, not a safety property.
     worst = max(estimates.items(), key=lambda kv: kv[1], default=(None, 0))
-    if worst[1] > MAX_TRAINING_FRAMES:
+    if _fault("NOCHUNK") and worst[1] > MAX_TRAINING_FRAMES:
+        # ⛔ THE PRE-2026-09-26 REFUSAL, VERBATIM IN SUBSTANCE — kept ONLY behind the skip-the-fix arm so
+        # the A/B can reproduce the organic death on demand. (Its old advice, "train on B1F AFTER
+        # Wally", is dropped: B1F is ruled out by USER RULING 2.)
         raise BotModeError(
             f"Ch23 training: {worst[0]} alone needs {worst[1]:,} frames, over the "
             f"{MAX_TRAINING_FRAMES:,} per-call ceiling every other caller respects. "
-            f"Per-mon: {estimates}. ⇒ lower the target for that mon, or train on B1F AFTER Wally "
-            f"(950.8 EXP/battle vs 1F's 775.6) — do NOT raise the ceiling to make the run start."
+            f"Per-mon: {estimates}. [FAULT NOCHUNK: the pre-2026-09-26 refusal]"
         )
+    # ⭐ THE PLAN IS REPORTED BEFORE A FRAME IS SPENT — what the refusal used to stop is now a
+    # bounded multi-chunk climb (see `CH23_CHUNK_PURSE_FRAMES`). The reading lets `ESTIMATE_ONLY`
+    # show, in seconds, that a mule is PLANNED rather than refused.
+    report["train_worst"] = worst
+    report["train_chunked"] = sorted(k for k, v in estimates.items() if v > MAX_TRAINING_FRAMES)
+    # ⛔ THE GENUINELY IMPOSSIBLE CASE STILL REFUSES, LOUDLY AND BEFORE SPENDING: a trainee that must
+    # swap (level + margin ≤ L40) with NO team-mate able to finish for it would lead every battle
+    # alone, far under the wilds, and bank nothing.
+    for (pid, species), (_slot, level) in battler_identities().items():
+        if level >= target or level + CH23_UNDERLEVEL_MARGIN > WILD_MAX:
+            continue
+        if not ch23_swap_finisher_exists(pid, WILD_MAX):
+            raise BotModeError(
+                f"Ch23 training: {species}#{pid:08X} (L{level}) must be SWAP-trained on L{WILD_MAX} "
+                f"wilds, but no other party member is ≥ L{WILD_MAX} with a damaging move to finish "
+                f"for it — it would lead every battle alone and bank nothing. ⛔ Refusing before "
+                f"spending a frame. Party: {sorted(party_identities())}."
+            )
+
+    if _os_environ_flag("POKEBOT_CH23_ESTIMATE_ONLY"):
+        report["trained"] = "ESTIMATE ONLY — no frames spent"
+        return
 
     # ---- guard 2: we restore the lead, because `train_team` will not on an abort ---------------
+    from modules.player import get_player
     from modules.story.early_game import (
-        _lead_strongest_battler, _rotate_lead_safely, train_team)
+        _lead_strongest_battler, _rotate_lead_safely, _yield_bounded_by_frames, train_team)
+
+    # ⭐ IN THE BATCH MODE, THE RUN'S FRAME CAP GROWS BY THIS LEG'S OWN PURSE (`#24-ch23training`).
+    # `StoryEndlessResetMode` caps a run; a chunked climb is bounded by `CH23_TRAIN_PURSE_FRAMES`, and the
+    # run cap must not pre-empt the leg's designed backstop — the same reasoning as §Ch24's latch.
+    _mode = getattr(context, "bot_mode_instance", None)
+    _grant = getattr(_mode, "grant_ch23_training_allowance", None)
+    if callable(_grant):
+        _grant(CH23_TRAIN_PURSE_FRAMES)
+    leg_start = context.emulator.get_frame_count()
+    money_start = getattr(get_player(), "money", None)
+    report["train_money_start"] = money_start
+    chunks = report.setdefault("train_chunks", [])
 
     try:
         for (pid, species), (_slot, level) in sorted(
@@ -2089,70 +2244,120 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
         ):
             if level >= target:
                 continue
-            _check_abort()
-            # ⛔ RE-RESOLVE THE SLOT IMMEDIATELY BEFORE THE CALL. A previous round's rotation has
-            # already moved this mon; the index captured above is stale by construction.
-            here = battler_identities().get((pid, species))
-            if here is None:
-                raise BotModeError(
-                    f"Ch23 training: {species}#{pid:08X} vanished from the battler set mid-grind. "
-                    f"Roster now: {sorted(party_identities())}."
-                )
-            slot_now, level_now = here
-            if level_now >= target:
-                continue
-
-            # ---- ⛔⛔ ROTATE TO SLOT 0 OURSELVES, THEN TRAIN `slots={0}` ------------------------
-            # ‼ MEASURED 2026-09-04: `train_team(slots={i})` with i != 0 does exactly ONE spin-batch
-            # and then RETURNS AS IF FINISHED. A 900k-frame run produced **8 battles** and moved
-            # Wailmer 40->41, Mightyena 44->45, Swellow **+0**, against an estimate of 306 battles.
-            # ⇒ WHY: `early_game.py:2021` computes `need` from `party[i]` BY INDEX; `:2034` then
-            # calls `_rotate_lead_safely(target_slot)`, which drives the party menu's SWITCH option
-            # (`higher_level_actions.py:500`) — a **SWAP**. On the next iteration `party[i]` is the
-            # OLD LEAD (Sceptile L51 >= target), so `need` is empty and the loop breaks.
-            # ⇒ This is THIS PROJECT'S OWN RULE #3 — "assert IDENTITY, never position" — violated
-            # inside shared code. Filed separately; NOT fixed here, because `train_team(slots=...)`
-            # is also the gym-prep path and changing it would move every gym's levels at once.
-            # ⭐ THE COROLLARY IS THE FIX: with the mon ALREADY at slot 0, `target_slot == 0`, no
-            # rotation happens, `party[0]` stays the same mon, and the loop converges correctly.
-            # So we do the rotation, and hand `train_team` only the case it gets right.
-            if slot_now != 0:
-                yield from _rotate_lead_safely(slot_now)
-                # ⛔ VERIFY BY PID THAT IT LANDED. `_rotate_lead_safely` "gives up gracefully" after
-                # 3 attempts (its own docstring: "the rotation is an optimization") — and a silent
-                # give-up here is NOT cosmetic: it would grind whatever else is in slot 0, burning
-                # the entire budget on the wrong Pokémon while every level readout looked plausible.
-                lead = get_party()[0]
-                if lead is None or lead.personality_value != pid:
-                    # ⛔ BUILD THE DESCRIPTION FIRST. A ternary at the end of an implicit string
-                    # concatenation binds to the WHOLE concatenation, not the last fragment — the
-                    # same fused-literal trap that silently produced "ch23roadch23train" from a
-                    # missing comma earlier in this chapter. Keep the conditional out of the f-string.
-                    holder = "nothing"
-                    if lead is not None:
-                        holder = f"{lead.species.name}#{lead.personality_value:08X}"
+            for _chunk in range(CH23_MAX_CHUNKS_PER_MON):
+                _check_abort()
+                # ⛔ RE-RESOLVE BY PID IMMEDIATELY BEFORE EVERY CHUNK — never `(pid, species)`: Marill
+                # evolves at L18 INSIDE the first chunk, and a species-keyed lookup would then report a
+                # perfectly healthy trainee as "vanished" (a judge caught this before it shipped).
+                mon = _trainee_by_pid(pid, species)
+                if mon is None:
                     raise BotModeError(
-                        f"Ch23 training: tried to rotate {species}#{pid:08X} from slot {slot_now} "
-                        f"to the lead, but slot 0 holds {holder}. ⛔ `_rotate_lead_safely` gives up "
-                        f"gracefully after 3 attempts, and training the wrong Pokémon would burn "
-                        f"the whole budget while every level readout still looked plausible."
+                        f"Ch23 training: {species}#{pid:08X} vanished from the party mid-grind. "
+                        f"Roster now: {sorted(party_identities())}."
                     )
-            yield from train_team(
-                target, slots={0}, grass=TRAIN_SPOT_1F,
-                heal_center=PokemonCenter.EvergrandeCity,
-            )
-            assert_carriers_survived(f"training {species}#{pid:08X}")
+                level_now = mon.level
+                if level_now >= target:
+                    break
+                spent = context.emulator.get_frame_count() - leg_start
+                if spent > CH23_TRAIN_PURSE_FRAMES:
+                    raise BotModeError(
+                        f"Ch23 training: the leg's purse is spent ({spent:,} > "
+                        f"{CH23_TRAIN_PURSE_FRAMES:,} real frames) with {mon.species.name}#{pid:08X} "
+                        f"still L{level_now} of L{target}. Chunks so far: {chunks}."
+                    )
+                sub = ch23_chunk_target(mon, target, WILD_MAX)
+                slot_now = _slot_of_pid(pid, mon)
+                if slot_now is None:
+                    raise BotModeError(f"Ch23 training: cannot find {mon.species.name}#{pid:08X}'s slot.")
 
-            # ⛔ AND PROVE THE CALL ACTUALLY MOVED THE MON. `train_team` returning is not evidence
-            # it trained — that is exactly how the index bug above stayed invisible. Re-resolve by
-            # PID and refuse to spin on a call that achieved nothing.
-            after = battler_identities().get((pid, species))
-            if after is not None and after[1] <= level_now and after[1] < target:
-                raise BotModeError(
-                    f"Ch23 training: `train_team` returned without raising {species}#{pid:08X} "
-                    f"past L{level_now} (still L{after[1]}, target L{target}). ⛔ Refusing to loop "
-                    f"— a call that trains nothing would spin the budget away silently."
+                # ---- ⛔⛔ ROTATE TO SLOT 0 OURSELVES, THEN TRAIN `slots={0}` ------------------------
+                # ‼ MEASURED 2026-09-04: `train_team(slots={i})` with i != 0 does exactly ONE spin-batch
+                # and then RETURNS AS IF FINISHED. A 900k-frame run produced **8 battles** and moved
+                # Wailmer 40->41, Mightyena 44->45, Swellow **+0**, against an estimate of 306 battles.
+                # ⇒ WHY: `early_game.py:2021` computes `need` from `party[i]` BY INDEX; `:2034` then
+                # calls `_rotate_lead_safely(target_slot)`, which drives the party menu's SWITCH option
+                # (`higher_level_actions.py:500`) — a **SWAP**. On the next iteration `party[i]` is the
+                # OLD LEAD (Sceptile L51 >= target), so `need` is empty and the loop breaks.
+                # ⇒ This is THIS PROJECT'S OWN RULE #3 — "assert IDENTITY, never position" — violated
+                # inside shared code. Filed separately; NOT fixed here, because `train_team(slots=...)`
+                # is also the gym-prep path and changing it would move every gym's levels at once.
+                # ⭐ THE COROLLARY IS THE FIX: with the mon ALREADY at slot 0, `target_slot == 0`, no
+                # rotation happens, `party[0]` stays the same mon, and the loop converges correctly.
+                # So we do the rotation, and hand `train_team` only the case it gets right.
+                if slot_now != 0:
+                    yield from _rotate_lead_safely(slot_now)
+                    # ⛔ VERIFY BY PID THAT IT LANDED. `_rotate_lead_safely` "gives up gracefully" after
+                    # 3 attempts (its own docstring: "the rotation is an optimization") — and a silent
+                    # give-up here is NOT cosmetic: it would grind whatever else is in slot 0, burning
+                    # the entire budget on the wrong Pokémon while every level readout looked plausible.
+                    lead = get_party()[0]
+                    if lead is None or lead.personality_value != pid:
+                        # ⛔ BUILD THE DESCRIPTION FIRST. A ternary at the end of an implicit string
+                        # concatenation binds to the WHOLE concatenation, not the last fragment — the
+                        # same fused-literal trap that silently produced "ch23roadch23train" from a
+                        # missing comma earlier in this chapter. Keep the conditional out of the f-string.
+                        holder = "nothing"
+                        if lead is not None:
+                            holder = f"{lead.species.name}#{lead.personality_value:08X}"
+                        raise BotModeError(
+                            f"Ch23 training: tried to rotate {species}#{pid:08X} from slot {slot_now} "
+                            f"to the lead, but slot 0 holds {holder}. ⛔ `_rotate_lead_safely` gives up "
+                            f"gracefully after 3 attempts, and training the wrong Pokémon would burn "
+                            f"the whole budget while every level readout still looked plausible."
+                        )
+                exp_before = mon.total_exp
+                chunk_start = context.emulator.get_frame_count()
+                finished = yield from _yield_bounded_by_frames(
+                    train_team(
+                        sub, slots={0}, grass=TRAIN_SPOT_1F,
+                        heal_center=PokemonCenter.EvergrandeCity,
+                    ),
+                    30_000 if _fault("TINYPURSE") else CH23_CHUNK_PURSE_FRAMES,
                 )
+                if not finished:
+                    # ⛔ A PURSE CAN CLOSE `train_team` MID-WALK OR MID-HEAL. Settle back to a
+                    # controllable overworld before anything reads the party or rotates the lead
+                    # (a judge's must-fix: "normalise state after any purse expiry").
+                    yield from wait_until_truly_controllable()
+                assert_carriers_survived(f"training {species}#{pid:08X}")
+
+                # ⛔ AND PROVE THE CHUNK ACTUALLY MOVED THE MON — by EXP, which moves every battle,
+                # where a level may not. A chunk that banks NOTHING is the only failure that stops
+                # the loop: an expiry that still banked EXP simply re-plans the next chunk.
+                after = _trainee_by_pid(pid, species)
+                exp_after = None if after is None else after.total_exp
+                money_now = getattr(get_player(), "money", None)
+                chunks.append({
+                    "mon": f"{species}#{pid:08X}", "from": level_now, "sub": sub,
+                    "to": None if after is None else after.level,
+                    "species_now": None if after is None else after.species.name,
+                    "exp": None if exp_after is None else exp_after - exp_before,
+                    "frames": context.emulator.get_frame_count() - chunk_start,
+                    "finished": bool(finished), "money": money_now,
+                })
+                if exp_after is None or exp_after <= exp_before:
+                    raise BotModeError(
+                        f"Ch23 training: a chunk banked NO EXP for {species}#{pid:08X} "
+                        f"(L{level_now} → sub-target L{sub}; finished={finished}). ⛔ Refusing to "
+                        f"loop — a chunk that trains nothing would spin the purse away silently. "
+                        f"Chunks: {chunks}."
+                    )
+                # ⚠ MONEY: training never SPENDS money (Poké Center heals are free), so a drop means a
+                # WHITEOUT halved it — and leg 11's ₽{LEAGUE_MIN_MONEY:,} basket is bought AFTER this.
+                # Warn loudly; leg 11's sell-or-refuse guard stays the single money GATE (a pre-VR
+                # wallet is measured ~₽38,893 — below the basket BEFORE Victory Road's payouts — so an
+                # absolute check here would refuse every run; corrected in `06` 2026-09-26).
+                if money_start is not None and money_now is not None and money_now < money_start:
+                    report["train_money_dropped"] = (money_start, money_now)
+                    context.message = (f"Ch23 training: money fell ₽{money_start:,} → ₽{money_now:,} "
+                                       f"(a whiteout?) — the League basket is ₽{LEAGUE_MIN_MONEY:,}")
+            else:
+                last = _trainee_by_pid(pid, species)
+                if last is not None and last.level < target:
+                    raise BotModeError(
+                        f"Ch23 training: {species}#{pid:08X} reached only L{last.level} of L{target} "
+                        f"after {CH23_MAX_CHUNKS_PER_MON} chunks. Chunks: {chunks}."
+                    )
     except GeneratorExit:
         # ⛔⛔ CORRECTED 2026-09-11 — THIS WAS A `finally` AND THAT IS UNSAFE IN A GENERATOR.
         # The old comment read *"IN A `finally` ON PURPOSE — this is the guard `train_team` does not

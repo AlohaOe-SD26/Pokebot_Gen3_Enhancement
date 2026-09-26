@@ -1843,6 +1843,14 @@ class StoryMode(BotMode):
         super().__init__()
         self.reset_per_run_state()
 
+    def grant_ch23_training_allowance(self, frames: int) -> None:
+        """§Ch23's chunked training leg announces its purse, so a batch run's frame cap cannot pre-empt
+        the leg's own designed backstop (`#24-ch23training`, 2026-09-26). Idempotent (a retried
+        attempt re-grants the same purse, never a second one). ⚠ Reset per RUN in
+        `reset_per_run_state`, never here — the endless loop reuses this object across runs."""
+        self._ch23_training_allowance = max(int(getattr(self, "_ch23_training_allowance", 0) or 0),
+                                            int(frames))
+
     def mark_ch24_owns_run(self) -> None:
         """Latch: §Ch24 has started, so §Ch23 must not be re-entered for the rest of this run.
 
@@ -1916,6 +1924,9 @@ class StoryMode(BotMode):
         # started and SKIP §Ch23 entirely — the same shape as the `_rival_attempts` bug
         # documented below, which killed 16 of 20 P1 runs.
         self._ch24_owns_run = False
+        #: `#24-ch23training`: extra per-run frames granted by §Ch23's chunked training leg (its own
+        #: purse). Read ONLY by `StoryEndlessResetMode._frame_cap_for_this_run`; 0 until granted.
+        self._ch23_training_allowance = 0
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -5671,6 +5682,10 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         one worth another 6M frames of an unattended batch; ending it here is the intended outcome.
         """
         cap = self.MAX_FRAMES_PER_RUN
+        # ⭐ §Ch23's chunked training leg grants its own purse once it starts (`#24-ch23training`):
+        # the 2026-09-15 corpus arrives at §Ch23 at a median 3.93M frames and a chunked climb can take
+        # several million more — the same "never pre-empt a leg's designed backstop" rule as §Ch24.
+        cap += int(getattr(self, "_ch23_training_allowance", 0) or 0)
         if getattr(self, "_ch24_owns_run", False):
             try:
                 from modules.story.pokemon_league import CH24_TRAIN_PURSE_FRAMES

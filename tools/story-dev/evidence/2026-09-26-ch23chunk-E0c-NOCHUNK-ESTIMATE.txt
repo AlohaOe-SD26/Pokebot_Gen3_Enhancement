@@ -1,0 +1,51 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\ev\E0c2.log
+[setup] loaded save state post_ever_grande.ss1; build=sandbox
+[run] starting faithful loop for up to 4000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch23train] PRE at=((0, 8), (18, 42)) ready=False
+[ch23train] PRE reasons=['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] PRE party={(2252015895, 'Sceptile'): (142, 142, 'Healthy'), (868971715, 'Zigzagoon'): (48, 48, 'Healthy'), (187737927, 'Swellow'): (118, 118, 'Healthy'), (4199673075, 'Wailmer'): (160, 160, 'Healthy'), (1553394331, 'Mightyena'): (130, 130, 'Healthy'), (3380138318, 'Castform'): (103, 103, 'Healthy')}
+[ch23train] PRE battlers={(2252015895, 'Sceptile'): (0, 51), (187737927, 'Swellow'): (2, 42), (4199673075, 'Wailmer'): (3, 40), (1553394331, 'Mightyena'): (4, 44)}  (benched: ('Zigzagoon', 'Linoone', 'Castform'))
+f1: CONTROLLER -> Ch23TrainMode.run   (state=OVERWORLD)
+[inject] hmmule: Marill L13 (Surf) added — party was ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'], DISPLACED Castform:L36 (party was full) -> ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+f9: PARTY CHANGE [Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Castform:L36:exp47020] -> [Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Marill:L13:exp1757]
+[ch23train] FAILURE BotModeError: Ch23 training: Marill#A1B7ECF5 alone needs 406,972 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Swellow#0B30A747': 144733, 'Wailmer#FA51ECF3': 217816, 'Mightyena#5C96EA9B': 75949, 'Marill#A1B7ECF5': 406972}. [FAULT NOCHUNK: the pre-2026-09-26 refusal]
+[ch23train] RESULT readings=['R-ESTIMATE', 'R-TRAINPRE'] missing=['R-TRAINED', 'R-READY', 'R-TRAINCONTINUE']
+[ch23train] R train_pre = {'Sceptile#863B0917': 51, 'Swellow#0B30A747': 42, 'Wailmer#FA51ECF3': 40, 'Mightyena#5C96EA9B': 44, 'Marill#A1B7ECF5': 13}
+[ch23train] R train_reasons = ['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Marill#A1B7ECF5 is L13 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] R train_estimates = {'Swellow#0B30A747': 144733, 'Wailmer#FA51ECF3': 217816, 'Mightyena#5C96EA9B': 75949, 'Marill#A1B7ECF5': 406972}
+[ch23train] R train_estimate_total = 845470
+[ch23train] R train_worst = None
+[ch23train] R train_chunked = None
+[ch23train] R train_plan = {'Swellow#0B30A747': 47, 'Wailmer#FA51ECF3': 47, 'Mightyena#5C96EA9B': 47, 'Marill#A1B7ECF5': 32}
+[ch23train] R train_chunks = None
+[ch23train] R train_money_start = None
+[ch23train] R train_money_dropped = None
+[ch23train] R trained = None
+[ch23train] R train_post = None
+[ch23train] R train_reasons_after = None
+[ch23train] R continue_after_training = None
+[ch23train] RESULT battles=0 swap_battles=0 whiteouts=0
+[ch23train] ⭐ COST: ~845,470 frames ≈ 590 wild battles ≈ 234.9 minutes of emulator at 60fps (ceiling is 250,000)
+[ch23train] GRADE (ESTIMATE-ONLY) premise_ok=True estimate=845470 failure=BotModeError: Ch23 training: Marill#A1B7ECF5 alone needs 406,972 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Swellow#0B30A747': 144733, 'Wailmer#FA51ECF3': 217816, 'Mightyena#5C96EA9B': 75949, 'Marill#A1B7ECF5': 406972}. [FAULT NOCHUNK: the pre-2026-09-26 refusal]
+[ch23train] FINAL position=((0, 8), (18, 42))
+[ch23train] ACCEPTANCE: FAIL
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/ctE0c-f931.ss1 (bt='Got away safely!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Marill:L13:exp1757', (18, 42)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Marill:L13:exp1757]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Marill:L13:exp1757', (18, 42)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 4000 frames; final mode=Manual party=[Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L42:exp67143|Wailmer:L40:exp70692|Mightyena:L44:exp88688|Marill:L13:exp1757]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L51: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L42: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Waterfall
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Marill L13: Surf, Water Gun, Tackle, Defense Curl
+[PARTY-ACCT] STAGE 0 SUMMARY — 4001 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23train 4001 recomputes (party_accounting_ledger.jsonl)

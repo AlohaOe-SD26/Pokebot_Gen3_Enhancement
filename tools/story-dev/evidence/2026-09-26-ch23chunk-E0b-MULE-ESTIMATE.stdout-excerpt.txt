@@ -1,0 +1,27 @@
+[ch23train] PRE at=((0, 8), (18, 42)) ready=False
+[ch23train] PRE reasons=['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] PRE party={(2252015895, 'Sceptile'): (142, 142, 'Healthy'), (868971715, 'Zigzagoon'): (48, 48, 'Healthy'), (187737927, 'Swellow'): (118, 118, 'Healthy'), (4199673075, 'Wailmer'): (160, 160, 'Healthy'), (1553394331, 'Mightyena'): (130, 130, 'Healthy'), (3380138318, 'Castform'): (103, 103, 'Healthy')}
+[ch23train] PRE battlers={(2252015895, 'Sceptile'): (0, 51), (187737927, 'Swellow'): (2, 42), (4199673075, 'Wailmer'): (3, 40), (1553394331, 'Mightyena'): (4, 44)}  (benched: ('Zigzagoon', 'Linoone', 'Castform'))
+[inject] hmmule: Marill L13 (Surf) added — party was ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'], DISPLACED Castform:L36 (party was full) -> ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+[ch23train] RESULT readings=['R-ESTIMATE', 'R-TRAINPRE'] missing=['R-TRAINED', 'R-READY', 'R-TRAINCONTINUE']
+[ch23train] R train_pre = {'Sceptile#863B0917': 51, 'Swellow#0B30A747': 42, 'Wailmer#FA51ECF3': 40, 'Mightyena#5C96EA9B': 44, 'Marill#A81C33C6': 13}
+[ch23train] R train_reasons = ['Swellow#0B30A747 is L42 < 47', 'Wailmer#FA51ECF3 is L40 < 47', 'Mightyena#5C96EA9B is L44 < 47', 'Marill#A81C33C6 is L13 < 47', 'Mightyena L44 has no Crunch (learns it at L47)']
+[ch23train] R train_estimates = {'Swellow#0B30A747': 144733, 'Wailmer#FA51ECF3': 217816, 'Mightyena#5C96EA9B': 75949, 'Marill#A81C33C6': 406972}
+[ch23train] R train_estimate_total = 845470
+[ch23train] R train_worst = ('Marill#A81C33C6', 406972)
+[ch23train] R train_chunked = ['Marill#A81C33C6']
+[ch23train] R train_plan = {'Swellow#0B30A747': 47, 'Wailmer#FA51ECF3': 47, 'Mightyena#5C96EA9B': 47, 'Marill#A81C33C6': 32}
+[ch23train] R train_chunks = None
+[ch23train] R train_money_start = None
+[ch23train] R train_money_dropped = None
+[ch23train] R trained = 'ESTIMATE ONLY — no frames spent'
+[ch23train] R train_post = None
+[ch23train] R train_reasons_after = None
+[ch23train] R continue_after_training = None
+[ch23train] RESULT battles=0 swap_battles=0 whiteouts=0
+[ch23train] ⭐ COST: ~845,470 frames ≈ 590 wild battles ≈ 234.9 minutes of emulator at 60fps (ceiling is 250,000)
+[ch23train] GRADE (ESTIMATE-ONLY) premise_ok=True estimate=845470 failure=None
+[ch23train] FINAL position=((0, 8), (18, 42))
+[ch23train] ACCEPTANCE: PASS
+[PARTY-ACCT] ledger += ch23train 4001 recomputes (party_accounting_ledger.jsonl)

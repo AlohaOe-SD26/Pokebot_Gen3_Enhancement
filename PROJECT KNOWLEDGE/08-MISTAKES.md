@@ -22060,3 +22060,33 @@ decoys: the Poké Center, a mid-warp mis-read) through the SAME parser the repor
 **Prevention rule:** ⛔ **A SELF-TEST MUST FEED THE DETECTOR A LINE COPIED FROM A REAL LOG, THROUGH THE SAME
 PARSER THE REPORT USES.** A hand-typed "example" encodes the author's belief about the format, which is exactly
 the thing under test. Grep the corpus for the shape first, then paste it.
+
+
+## 2026-09-26 — TWO NEAR-MISSES WHILE BUILDING CHUNKED TRAINING (both caught before any drive)
+
+### 1. ⛔ A SPLICE THAT PARSES CAN STILL RE-NEST THE CODE
+**Symptom:** after replacing the head of `train_for_victory_road`'s per-mon loop with a new inner
+`for _chunk` loop, `ast.parse` succeeded — but the ORIGINAL rotation block below the splice kept its old
+indentation. That silently ENDED the new chunk loop early and nested the `train_team` call INSIDE
+`if slot_now != 0:` — the grind would have run only when a rotation happened, and outside the chunk bound.
+**Caught by:** reading the spliced region back, then an AST query listing the chunk loop's direct body
+(`train_team` and `_yield_bounded_by_frames` must be inside it).
+**Prevention rule:** ⛔ **WHEN A SPLICE CHANGES NESTING DEPTH, "IT PARSES" PROVES NOTHING.** Re-indent every
+line you did not rewrite that now lives one level deeper, and verify STRUCTURE with an AST query (which
+statements are the direct body of which block), never with a syntax check.
+
+### 2. ⛔ A MONEY THRESHOLD CHECKED AT THE WRONG MOMENT
+**Symptom:** the decision recorded for RULING 14 said to refuse training when money is below the ₽54,300
+basket. The pre-Victory-Road wallet is measured at ~₽38,893 — it only reaches ~₽56k after Victory Road's
+trainer payouts ⇒ that check would have refused every organic run.
+**Prevention rule:** ⛔ **A THRESHOLD IS A CLAIM ABOUT A MOMENT.** Before comparing a quantity to a budget,
+find where the quantity is SPENT and read it there; a pre-check elsewhere must model everything that changes
+it in between (here: payouts), or it tests nothing. Corrected in `06` the same day.
+
+### 3. ⛔ MY BULK CITATION RE-POINT MOVED A RANGE'S START AND LEFT ITS END
+**Symptom:** `probe_citation_ranges.py` (gate) failed on `victory_road.py:2009-1912` — an inverted range.
+**Root cause:** the script I wrote to re-point drifted citations replaced `file.py:START` with the symbol's
+new start, and a RANGE citation's `-END` was left behind — exactly the cause the gate's own message names
+("a bulk re-point after lines were inserted"). The gate was doing its job; my tool was not.
+**Prevention rule:** ⛔ **A RE-POINT SHIFTS BOTH ENDS BY THE SAME OFFSET** (here +109: `2009-2021`), and a
+re-point script must match `file.py:A(-B)?` as ONE token, never the start alone.
