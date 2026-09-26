@@ -22,3 +22,14 @@ L48 `canLearnFly=True` (the only compatible member), moves Peck 35 / Wing Attack
 | **H1** HAND-OFF (teach) | floor 21 | Swellow#0B30A747 learns Fly and loses **Peck** (lowest base power, not an HM); Zigzagoon L19 → ≥ L21 on a ground reached BY FLY (a `rungs` entry with `finished=True`); the bridge FLIES back to EVER_GRANDE_CITY (18,6) (`mode='fly'`); R1 passes (`E1-READY`); the door opens (`E1-AT-DOOR`) — `ACCEPTANCE: PASS`, 0 whiteouts | no teach; a different learner or lost move; `no_ground`; the bridge walks or refuses; any missing reading |
 | **H0** CONTROL (`NOFLYTEACH=1`) | floor 21 | no teach; Zigzagoon `no_ground` (nothing walkable from the plateau that a L19 out-levels — Victory Road 1F's band 36-40 is excluded by `max_wild_max = level + 1`); the bot never leaves (18,6); **R1 REFUSES**: `1 mōn below the L21 floor: Zigzagoon#33CB74C3 L19`; door shut ⇒ **the teach is what makes the climb possible** | Zigzagoon trains anyway (then walkable ground exists and gap 3 is not the blocker for this party) |
 | **K** ALREADY-KNOWN (vacuity) | `post_ch24ready` (`cf383b5b2567`; Swellow knows Fly; (27,49)) · floor 21 | `fly_teach='already'`, no teach menu; the rest as H1 (it starts at (27,49), so the bridge flies) | a teach attempted on a party that already flies |
+
+## ADDENDUM (after the code review's KICK-BACK, BEFORE the re-run)
+
+The review found that the learner/slot rule could strip a flyer's LAST USABLE attack (the battle ban list —
+Dig, Solar Beam, Sky Attack, Fake Out … — makes the weakest move possibly the only one the bot will click).
+`_fly_learner_slot` → `_fly_teach_plan(party, item, banned)`: status moves first, then banned moves, then the
+weakest usable move only if another usable attack remains; a candidate that would end with none is skipped; the
+chosen slot is handed to `teach_hm_move` explicitly. Gate F3 carries the review's shape (fault arm: the pre-review
+rule fails it). **H1, H0 and K are re-run on this code with the SAME predictions** — for Swellow [Peck 35, Wing
+Attack 60, Aerial Ace 60, Quick Attack 40] (no status, no banned move) the plan still gives up **Peck**
+(`fly_replace_slot=0`). Falsifier: any other lost move, or any change in H0/K.
