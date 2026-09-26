@@ -35708,3 +35708,13 @@ status pair (P1, P3, P5), and found three things:
    names an observe-only probe of `post_league_shop.ss1` / `post_ch24ready.ss1` as the first concrete step.
 4. **A re-run of Tier 2 (the rule: check WHERE a fix landed)** confirmed 1-3 land where a cold reader looks, and found one more: a banner line ABOVE the handoff's own "everything below is HISTORY" divider still read *"THE LIVE WORK IS THE §Ch24 GAUNTLET"* — shipped 2026-09-25. Marked as history, pointing at the marker.
 **FILES:** `00-README.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+
+## 2026-09-26 (late) — `#26-ch23money`: 3 OF 3 ORGANIC RUNS THAT REACHED THE LEAGUE WERE REFUSED ON MONEY — RECON FILED (docs only)
+
+The user's live batch (`#26-batch0926`) produced the first organic arrivals at §Ch23 leg 11 since the §Ch23 killers were
+fixed — and all three were refused: P1 ₽21,940, P2 ₽33,492, P4 ₽41,412 against the ₽54,300 basket (verified in the
+logs). A 6-agent recon (`ai-research-notes/2026-09-26-ch23money-RECON.md`, a NOTE) traced it to WHITEOUTS (each halves
+the wallet; P1 run 1: 33 whiteouts, one ₽6,000 purchase), found that money is never logged, ranked candidate fixes
+(F0 logging; F1 Amulet Coin; F2-F4 need user rulings) and listed what is already settled. Verified by me: the three
+wallets, the 33 whiteouts, and the Amulet Coin rule (`battle_util.c:3294-3296` — the HOLDER must switch in), which
+corrects a claim in `#24-amuletcoin`. No code changed (the batch is running).
