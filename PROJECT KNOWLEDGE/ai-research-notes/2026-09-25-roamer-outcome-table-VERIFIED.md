@@ -159,3 +159,34 @@ Route 120 Kecleon follow 2B; and the Hall-of-Fame flag-clearing recoverability t
 Everything here assumes `include/config.h:48` stays commented out. A BUGFIX build makes the test
 `== WON || == CAUGHT || == DREW`, which makes outcome **5 SAFE** and keeps 3 fatal. Do not hardcode
 the parity without also asserting the ROM revision.
+
+
+---
+
+# ✅⭐ THE "RECOVERABLE" TIER IS **MOOT FOR THIS BOT** — verified 2026-09-25
+
+A recon reported a comforting middle tier: *"a KO of Mew / Deoxys / Lugia / Ho-Oh /
+Southern-Island Lati is EXPENSIVE, not fatal, because the Hall of Fame clears their DEFEATED
+flags on every Elite Four re-clear."* ✅ **The flag-clearing half is TRUE** —
+`EverGrandeCity_HallOfFame_EventScript_ResetDefeatedEventLegendaries` clears exactly:
+
+    FLAG_DEFEATED_MEW, FLAG_DEFEATED_LATIAS_OR_LATIOS, FLAG_DEFEATED_DEOXYS,
+    FLAG_DEFEATED_LUGIA, FLAG_DEFEATED_HO_OH
+
+⛔⛔ **BUT ALL FIVE LIVE ON EVENT ISLANDS THIS BOT CAN NEVER REACH.** Southern Island needs the
+EON TICKET; Navel Rock the MYSTIC TICKET; Birth Island the AURORA TICKET; Faraway Island the
+OLD SEA MAP. Every one is handed out by `data/scripts/cable_club.inc`'s
+`CableClub_EventScript_Distribute*` scripts, whose text constants are literally
+`MysteryGift_Text_*` and which are gated on `VAR_DISTRIBUTE_*` — i.e. **Mystery Gift or record
+mixing, both of which require a second cartridge and a link.** Our standing constraint is one
+cartridge, no trading, no events.
+
+⇒ **THE TIER IS EMPTY IN PRACTICE.** For every protected encounter the bot can actually meet —
+the ROAMER, **Rayquaza, Regirock, Regice, Registeel, Groudon, Kyogre**, Sudowoodo, the New Mauville
+Voltorb, Kecleon — **a fatal outcome is PERMANENT.**
+
+⭐ **WHY THIS IS GOOD NEWS FOR THE GUARD:** it removes an entire branch of reasoning. There is no
+"is this one recoverable?" question to get wrong, and no tier whose mis-assignment would make the
+guard too lax. ‼ It does NOT remove the over-strictness concern, which is separate and still live:
+`RAN` is genuinely SAFE for the Rayquaza-class, and a guard that forbids it would strand the bot in
+a fight it cannot win.

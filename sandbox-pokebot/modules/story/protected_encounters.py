@@ -164,6 +164,18 @@ FLIES_AWAY_SAFE_OUTCOMES = frozenset({2, 3, 4, 5})       # LOST, DREW, RAN, PLAY
 #:   must be recognised by map/species, never by battle flags.
 ANY_RETURN_KILLS_SAFE_OUTCOMES = frozenset({2, 3})       # LOST, DREW — whiteouts only
 
+#: ✅ THE "RECOVERABLE AFTER A RE-CLEAR" TIER IS **MOOT FOR THIS BOT** — verified 2026-09-25.
+#: The Hall of Fame really does clear FLAG_DEFEATED_{MEW, LATIAS_OR_LATIOS, DEOXYS, LUGIA, HO_OH}
+#: on every Elite Four clear — but all five live on EVENT ISLANDS reached only with the EON /
+#: MYSTIC / AURORA tickets or the OLD SEA MAP, every one of which is handed out by
+#: `cable_club.inc`'s `MysteryGift_Text_*` distribution scripts (Mystery Gift or record mixing —
+#: a second cartridge and a link). This bot runs ONE cartridge, no trading, no events.
+#: ⇒ **for every protected encounter this bot can reach, a fatal outcome is PERMANENT.** There is
+#: deliberately NO "recoverable" class here: an empty tier that a future reader might populate by
+#: guessing is worse than no tier at all.
+#: ‼ This does NOT license over-strictness. `RAN` is genuinely SAFE for the flies-away class, and
+#: forbidding it would strand the bot in a fight it cannot win — a different bug, equally real.
+
 #: The class names this module understands. A caller must NAME its class; there is no default,
 #: because every possible default is wrong for one of the three.
 ENCOUNTER_CLASSES = {
