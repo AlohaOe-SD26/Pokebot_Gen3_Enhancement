@@ -9,6 +9,8 @@ bridge could not fly home. `ensure_fly_learner` now teaches HM02 in `_play` — 
   F1  `StoryMode._play`: `self.mark_ch24_owns_run()` < `ensure_fly_learner(...)` < the next `train_for_league(...)`.
   F2  `--driver ch24handoff` runs the SAME order (latch < teach < train < `prepare_and_open_the_league`), so the
       drive that proves the chain cannot silently drift from production.
+  F2b ...and it installs production's battle strategies in `on_battle_started` (SwapTrain / StoryItem). Without
+      that hook the harness FLEES every wild battle — the first H1/K drives banked 0 EXP in ~500k frames.
   F3  `_fly_learner_slot` (PURE) picks the highest-level COMPATIBLE mon that still holds a non-HM slot — never a
       saturated four-HM mon (`hm_learner_slot`'s level-only rule picks exactly that), never an egg, None if nobody.
   F4  `POKEBOT_CH24_FAULT_NOFLYTEACH` is read in `ensure_fly_learner` (comments stripped) and registered.
@@ -120,6 +122,11 @@ def f2(src, sink=None):
     firsts = [v[0] if v else None for v in lines.values()]
     check(None not in firsts and firsts == sorted(firsts),
           f"F2 the driver mirrors _play: latch < teach < train < prepare ({firsts})", sink)
+    cls = next(n for n in ast.parse(src).body if isinstance(n, ast.ClassDef) and n.name == "Ch24HandoffMode")
+    hook = next((n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "on_battle_started"), None)
+    seg = ast.get_source_segment(src, hook) if hook else ""
+    check(hook is not None and "SwapTrainBattleStrategy()" in seg and "StoryItemBattleStrategy()" in seg,
+          "F2b the hand-off driver installs production's battle strategies (else the harness flees)", sink)
 
 
 def _strip_comments(src: str) -> str:
@@ -159,6 +166,12 @@ def main() -> int:
         return best
     f3(level_only, sink)
     check(bool(sink), f"FAULT a level-only picker (hm_learner_slot's rule) FAILS F3 ({len(sink)} caught)")
+
+    hook_def = "    def on_battle_started(self, encounter):\n        \"\"\"⛔⛔ THE PRODUCTION STRATEGIES"
+    assert harness.count(hook_def) == 1, "hook anchor moved — update the gate"
+    sink = []
+    f2(harness.replace(hook_def, hook_def.replace("on_battle_started", "_no_hook")), sink)
+    check(bool(sink), f"FAULT a hand-off driver WITHOUT on_battle_started FAILS F2b ({len(sink)} caught)")
 
     anchor_teach = "            yield from ensure_fly_learner(_ch24_fly_report)\n"
     anchor_train = "            yield from train_for_league(_ch24_train_report)\n"

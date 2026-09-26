@@ -22285,6 +22285,19 @@ class Ch24HandoffMode(BotMode):
     def mark_ch24_owns_run(self) -> None:
         self.latch_calls = getattr(self, "latch_calls", 0) + 1
 
+    def on_battle_started(self, encounter):
+        """⛔⛔ THE PRODUCTION STRATEGIES, exactly as `Ch24TrainMode` (proven) installs them. WITHOUT THIS
+        HOOK THE HARNESS FLEES EVERY WILD BATTLE — the first H1/K drives trained Zigzagoon for ~500k frames
+        and banked 0 EXP (`BattleListener.run_away_from_battle`); `probe_ch24_flyteach.py` F2b now fails a
+        hand-off driver that lacks it."""
+        from modules.story.early_game import swap_train_active
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy, SwapTrainBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        if swap_train_active() and encounter is not None:
+            return SwapTrainBattleStrategy()
+        return StoryItemBattleStrategy()
+
     def on_whiteout(self) -> bool:
         from modules.story.early_game import set_story_abort
 
