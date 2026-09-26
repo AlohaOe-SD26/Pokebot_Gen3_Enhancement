@@ -1,0 +1,50 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\final_A2-VACUITY-OWN-OUTPUT.log
+Running mGBA 0.10.2
+[setup] loaded save state amulet_end.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> AmuletCoinMode.run   (state=OVERWORLD)
+[amuletcoin] PRE {'start_at': ((0, 0), (20, 18)), 'frame_start': 2980229, 'badge05': True, 'badge06': False, 'received_at_start': True, 'pending_at_start': False, 'at_petalburg_start': True, 'party_start': ['Shedinja#42207D6F L29 held=None', 'Blaziken#341D550A L36 held=Amulet Coin', 'Mightyena#3BDA9D98 L33 held=None', 'Ninjask#42207D6F L29 held=None', 'Loudred#B2768B68 L30 held=None'], 'top_level': 36}
+[amuletcoin] FAILURE BotModeError: amuletcoin: PREMISE FAILED for expect=given (in_era=False, received=True, bag coins=0) — this run would pass having done nothing.
+[amuletcoin] fixture RESTORED — current_state.ss1 will not carry this run.
+[amuletcoin] R at_petalburg_end = True
+[amuletcoin] R at_petalburg_start = True
+[amuletcoin] R badge05 = True
+[amuletcoin] R badge06 = False
+[amuletcoin] R bag_coins_end = 0
+[amuletcoin] R bag_coins_start = 0
+[amuletcoin] R continue_path = 'OK len=29'
+[amuletcoin] R final_at = ((0, 0), (20, 18))
+[amuletcoin] R frame_start = 2980229
+[amuletcoin] R frames = 0
+[amuletcoin] R holder_end = 'Blaziken#341D550A'
+[amuletcoin] R holder_level = 36
+[amuletcoin] R menus_open_end = []
+[amuletcoin] R party_start = ['Shedinja#42207D6F L29 held=None', 'Blaziken#341D550A L36 held=Amulet Coin', 'Mightyena#3BDA9D98 L33 held=None', 'Ninjask#42207D6F L29 held=None', 'Loudred#B2768B68 L30 held=None']
+[amuletcoin] R pending_at_start = False
+[amuletcoin] R received_at_start = True
+[amuletcoin] R received_end = True
+[amuletcoin] R registered_end = True
+[amuletcoin] R start_at = ((0, 0), (20, 18))
+[amuletcoin] R state_end = 'OVERWORLD'
+[amuletcoin] R top_level = 36
+[amuletcoin] ORDER [] TALKS []
+[amuletcoin] conjuncts = {'ran': False, 'readings_in_order': False, 'talks_register_then_coin': False, 'planned_holder_holds': False, 'holder_is_top_level': True, 'no_spare_coin_in_bag': True, 'back_in_petalburg': True, 'can_continue_east': True, 'no_failure': False, 'no_whiteout': True}
+[amuletcoin] ACCEPTANCE: FAIL (expect=given) SCOPE: Segment 12d only — whether the coin PAYS is measured by the batch's [MONEY] lines, not here.
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f31 — ending the loop at f151
+[done] ran 152 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 153 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += amuletcoin 153 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-26_16
+-20-20.ss1 created!
+Updated `current_state.ss1`!

@@ -7368,3 +7368,18 @@ USER'S CALL"). The user's answers, verbatim choices:
 **RECOMMENDATIONS THE USER DECLINED:** "keep all-six-at-65" (R1) and "not yet — measure first" (buy early).
 **BUILD ORDER (mine):** 15 and 16 first (small, gated), then 17 and 18 (story errand / purchase + lock), each
 pre-registered and driven on branch `wt/ch24organic`.
+
+## 2026-09-26 — RULING 17 IMPLEMENTATION CHOICES: SEGMENT 12d, FAIL SOFT, TOP-LEVEL HOLDER (v1)
+
+**CHOSEN.** (1) Run the errand right after the Surf teach (Segment 12d), gated to `not BADGE06` ∧ on a Petalburg map —
+the bot is 2 routes from Littleroot there, and a post-Fortree re-entry can never walk back south (KI-97's shape).
+(2) FAIL SOFT for every coin problem (named reason, `AMULET_COIN` debug event); hard-guard only the END POSITION,
+because Segment 13a starts in Petalburg. (3) Holder = the highest-level party member (ties → an empty held slot; never
+an egg), identified by PID + species. (4) Give from the bag with a NEW sibling function, not an edit of
+`use_item_on_party_member` (its USE wait is a measured-fragile line, `#24-itemcontextplural`).
+**WHY.** A coin is money, not a run: a failure here must never cost a run that would have reached Fortree. The recon
+replay put the top-level mon in 55 % of won battles and 47/58 bosses (vs 27 % for the badge-5 lead).
+**ALTERNATIVES REJECTED.** Fetching later (after Fortree/Lilycove — a much longer detour, and Fly is not guaranteed);
+a hard guard on receiving the coin (converts an optional income boost into a derail); giving it to the current lead
+(sent out less often). **REOPEN IF** the batch's `[MONEY]` lines show the static holder is rarely sent out — then
+"move the coin to the entrant" (recon D1) becomes its own item.

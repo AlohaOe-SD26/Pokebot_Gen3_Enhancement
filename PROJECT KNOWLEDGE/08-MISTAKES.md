@@ -22191,3 +22191,14 @@ inside `a.py:120`.
 runs its self-test — the old logic, swapped back in, fails 2 of 4 cases.
 **Prevention rule:** ⛔ **A RULE ABOUT A TOOL'S OUTPUT BELONGS IN THE TOOL'S TEST, NOT IN 08 ALONE.** When you record a
 mistake a script made, grep for every OTHER script that does the same job.
+
+## 2026-09-26 — ⛔ A GATE'S "NO FALSE POSITIVE" ARM TESTED A MENTION THE STRIPPER NEVER SAW
+
+**Symptom:** `probe_amulet_coin.py`'s no-false-positive arm FAILED on correct code: a commented-out copy of the call
+counted as a second call site.
+**Root cause:** the arm appended `# <call>` to `_play`'s source AFTER comments had already been stripped, so the
+"comment" reached the checker as live text. The arm tested the checker on an input production can never produce, and
+its failure would have taught the reader to distrust a correct gate.
+**Fix:** inject the mention into the RAW source (inside `_play`), then run the same strip-and-extract path.
+**Prevention rule:** ⛔ **A NO-FALSE-POSITIVE ARM MUST FEED THE MENTION THROUGH THE SAME PIPELINE AS THE REAL SOURCE** —
+inject upstream of every normalisation step, never downstream of it.

@@ -226,6 +226,10 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 16 — §Ch23 leg 11 buys only the MISSING basket quantities (same end state; not a thinner
     # basket): the pure `basket_to_buy`, the prices, the leg's money check and purchase, the FULLBASKET arm.
     ("probe_ch23_basket_buy.py", False),
+    # ⛔ USER RULING 17 — Mom's Amulet Coin (Segment 12d): `_play` runs `run_ch12d` between the Surf guard and
+    # 13a, the driver drives that same function with `_play`'s Petalburg map set, `pick_holder`, the post-game
+    # house-state refusal, and both fault arms read + registered. Six built-in fault arms turn it red.
+    ("probe_amulet_coin.py", False),
     # ⛔ The citation REPAIRER must shift a range citation's BOTH ends (it shifted only the start, 2026-09-26 —
     # the 08 rule it existed to honour). Self-test; the old logic fails it.
     ("repro_fix_doc_citations.py", False),

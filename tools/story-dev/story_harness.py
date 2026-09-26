@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22262,6 +22262,243 @@ class Ch24EntryMode(BotMode):
         context.set_manual_mode()
 
 
+class AmuletCoinMode(BotMode):
+    """`--driver amuletcoin` — USER RULING 17: `_play`'s Segment 12d (`amulet_coin.run_ch12d`), exactly.
+
+    ⭐ Calls the SAME function `_play` calls (`probe_amulet_coin.py` pins that), with `_play`'s own
+    `_at_petalburg` map set, so the gate, the budget, the fallback walk and the telemetry are production's.
+
+    GRADES (`AMULET_EXPECT`):
+      `given`   (default) — the premise holds (badge 5, no coin, in Petalburg); the five `AMULET_COIN_READINGS`
+                land IN ORDER; the talks go register → coin; the PLANNED holder (PID + species) holds the coin and
+                is the highest-level member; the bag holds no spare coin; we end in Petalburg, controllable, with a
+                real `calculate_path` east to Route 102 — where Segment 13a's walk goes next.
+      `skip`    — the vacuity arm: on a fixture outside the era the segment does NOTHING (`ran` False, no move).
+      `onetalk` — with `POKEBOT_AMULET_FAULT_ONETALK=1`: registered, NOT received, a named soft failure, and
+                STILL back in Petalburg (a recovery arm — the run must continue).
+      `nogive`  — with `POKEBOT_AMULET_FAULT_NOGIVE=1`: received, NOT given (the coin sits in the bag), still
+                back in Petalburg — proves AC-GIVEN is read from the party, not assumed.
+      `regive`  — from a `nogive` END STATE (coin received, in the bag, nobody holds it): the next `_play` pass
+                must skip the walk and the talks and ONLY give it — order exactly `AC-GIVEN, AC-BACK`.
+      `budget`  — with `POKEBOT_AMULET_FAULT_BUDGET=<frames>`: the errand's budget EXPIRES (`finished` False) at the
+                point `AMULET_BUDGET_AT` names (`walk` = before the house; `give` = inside the bag/party menu), and
+                `run_ch12d`'s recovery still leaves the bot in Petalburg's OVERWORLD, out of every menu.
+    """
+
+    PETALBURG_MAPS = ("PETALBURG_CITY", "PETALBURG_CITY_GYM", "PETALBURG_CITY_POKEMON_CENTER_1F",
+                      "PETALBURG_CITY_WALLYS_HOUSE", "PETALBURG_CITY_MART")
+
+    @staticmethod
+    def name() -> str:
+        return "AmuletCoin"
+
+    def on_battle_started(self, encounter):
+        """The production strategy — without a hook the harness FLEES (`probe_ch24_flyteach.py` F5's lesson)."""
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[amuletcoin] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.amulet_coin import (
+            AMULET_COIN_READINGS,
+            _bag_coins,
+            amulet_coin_pending,
+            coin_holder,
+            run_ch12d,
+        )
+        from modules.story.early_game import (
+            PETALBURG_TRAINING_GRASS,
+            _check_abort,
+            reraise_if_aborting,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "amuletcoin"
+        EXPECT = _os.environ.get("AMULET_EXPECT", "given")
+        if EXPECT not in ("given", "skip", "onetalk", "nogive", "regive", "budget"):
+            raise BotModeError(f"{TAG}: AMULET_EXPECT={EXPECT!r} is not given|skip|onetalk|nogive|regive|budget")
+        BUDGET_AT = _os.environ.get("AMULET_BUDGET_AT", "walk")
+        at_petalburg = lambda: any(VR._on_map(getattr(MapRSE, m)) for m in self.PETALBURG_MAPS)  # noqa: E731
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        R: dict = {}
+        rep: dict = {}
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+            R["start_at"] = VR._where()
+            R["frame_start"] = context.emulator.get_frame_count()
+            R["badge05"] = bool(get_event_flag("BADGE05_GET"))
+            R["badge06"] = bool(get_event_flag("BADGE06_GET"))
+            R["received_at_start"] = bool(get_event_flag("RECEIVED_AMULET_COIN"))
+            R["pending_at_start"] = amulet_coin_pending()
+            R["at_petalburg_start"] = at_petalburg()
+            party0 = [m for m in get_party() if m is not None and not m.is_egg]
+            R["party_start"] = [f"{m.species.name}#{m.personality_value:08X} L{m.level} "
+                                f"held={getattr(getattr(m, 'held_item', None), 'name', None)}" for m in party0]
+            R["top_level"] = max((m.level for m in party0), default=None)
+            log(f"[{TAG}] PRE {R}")
+            R["bag_coins_start"] = _bag_coins()
+            in_era = R["pending_at_start"] and R["at_petalburg_start"] and not R["badge06"]
+            if EXPECT == "regive":
+                premise = in_era and R["received_at_start"] and R["bag_coins_start"] > 0 and coin_holder() is None
+            elif EXPECT == "budget":
+                premise = in_era and not R["received_at_start"] and bool(_os.environ.get("POKEBOT_AMULET_FAULT_BUDGET"))
+            else:
+                premise = EXPECT == "skip" or (in_era and not R["received_at_start"])
+            if not premise:
+                raise BotModeError(f"{TAG}: PREMISE FAILED for expect={EXPECT} (in_era={in_era}, received="
+                                   f"{R['received_at_start']}, bag coins={R['bag_coins_start']}) — this run would "
+                                   f"pass having done nothing.")
+            yield from run_ch12d(rep, at_petalburg, badge06=R["badge06"])
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            try:
+                R["frames"] = context.emulator.get_frame_count() - R.get("frame_start", 0)
+                R["final_at"] = VR._where()
+                R["at_petalburg_end"] = at_petalburg()
+                R["received_end"] = bool(get_event_flag("RECEIVED_AMULET_COIN"))
+                R["registered_end"] = bool(get_event_flag("ENABLE_MOM_MATCH_CALL"))
+                from modules.memory import get_game_state as _gs
+                from modules.menuing import is_fade_active as _fade
+                from modules.tasks import task_is_active as _task
+
+                R["state_end"] = _gs().name
+                R["menus_open_end"] = [t for t in ("Task_ShowStartMenu", "Task_HandleChooseMonInput",
+                                                   "Task_ItemContext_MultipleRows") if _task(t)] or ([] if not _fade()
+                                                                                                    else ["<fade>"])
+                R["bag_coins_end"] = _bag_coins()
+                h = coin_holder()
+                R["holder_end"] = None if h is None else f"{h[1]}#{h[0]:08X}"
+                holder_mon = None if h is None else next(
+                    (m for m in get_party() if m is not None and (m.personality_value, m.species.name) == h), None)
+                R["holder_level"] = None if holder_mon is None else holder_mon.level
+                try:
+                    here = get_player_avatar().map_location
+                    path = calculate_path(here, PETALBURG_TRAINING_GRASS)
+                    R["continue_path"] = f"OK len={len(path)}"
+                except PathFindingError as path_error:
+                    R["continue_path"] = f"NO-PATH {path_error}"
+            except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                reraise_if_aborting(read_error)
+                R["read_error"] = f"<unreadable {type(read_error).__name__}: {read_error}>"
+            _save_end = _os.environ.get("AMULET_SAVE_END")
+            if _save_end:
+                # The vacuity test's input: point this driver at its OWN output and it must refuse (given) / skip.
+                try:
+                    Path(_save_end).write_bytes(context.emulator.get_save_state())
+                    log(f"[{TAG}] END STATE SAVED to {_save_end}")
+                except Exception as save_error:  # noqa: BLE001 - reported; the vacuity arm then has no input
+                    log(f"[{TAG}] ⛔ COULD NOT SAVE THE END STATE: {save_error}")
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        for key in sorted(k for k in rep if k != "readings"):
+            log(f"[{TAG}] REPORT {key} = {rep[key]!r}")
+        order = rep.get("order") or []
+        # ⛔ Named from the module's tuple — the driver spells no reading itself (`probe_amulet_coin.py` G4).
+        _HOUSE, REGISTERED, RECEIVED, GIVEN, BACK = AMULET_COIN_READINGS
+        predicted = [t.get("predicted") for t in rep.get("talks", [])]
+        common = {
+            "no_failure": failure is None and "read_error" not in R,
+            "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+        }
+        if EXPECT == "given":
+            conj = {
+                "ran": rep.get("ran") is True,
+                "readings_in_order": order == list(AMULET_COIN_READINGS),
+                "talks_register_then_coin": predicted[:2] == ["register", "coin"] and len(predicted) <= 4,
+                "planned_holder_holds": R.get("holder_end") is not None
+                                        and R.get("holder_end") == (rep.get("holder_planned") or {}).get("mon"),
+                "holder_is_top_level": R.get("holder_level") is not None and R.get("holder_level") == R.get("top_level"),
+                "no_spare_coin_in_bag": R.get("bag_coins_end") == 0,
+                "back_in_petalburg": R.get("at_petalburg_end") is True,
+                "can_continue_east": str(R.get("continue_path", "")).startswith("OK"),
+            }
+        elif EXPECT == "skip":
+            conj = {
+                "did_not_run": rep.get("ran") is False,
+                "named_reason": rep.get("amulet_coin") in ("out of era", "not in Petalburg", "nothing pending"),
+                "did_not_move": R.get("final_at") == R.get("start_at"),
+                "cheap": (R.get("frames") or 0) < 2_000,
+            }
+        elif EXPECT == "onetalk":
+            conj = {
+                "ran": rep.get("ran") is True,
+                "fault_bit": predicted == ["register"],
+                "registered": R.get("registered_end") is True and REGISTERED in order,
+                "not_received": R.get("received_end") is False and RECEIVED not in order,
+                "named_soft_failure": str(rep.get("amulet_coin", "")).startswith("Mom did not hand over"),
+                "recovered_to_petalburg": R.get("at_petalburg_end") is True and BACK in order,
+            }
+        elif EXPECT == "budget":
+            where = ({"walk": _HOUSE not in order and not rep.get("talks"),
+                      "give": "give_context_task" in rep and "give_finished" not in rep}).get(BUDGET_AT, False)
+            conj = {
+                "ran": rep.get("ran") is True,
+                "budget_expired": rep.get("finished") is False and rep.get("budget_expired") is True,
+                f"expired_during_{BUDGET_AT}": where,
+                "back_in_petalburg": R.get("at_petalburg_end") is True,
+                "overworld_no_menu": R.get("state_end") == "OVERWORLD" and R.get("menus_open_end") == [],
+                "can_continue_east": str(R.get("continue_path", "")).startswith("OK"),
+            }
+        elif EXPECT == "regive":
+            conj = {
+                "ran": rep.get("ran") is True,
+                "give_only": order == [GIVEN, BACK] and predicted == [],
+                "planned_holder_holds": R.get("holder_end") is not None
+                                        and R.get("holder_end") == (rep.get("holder_planned") or {}).get("mon"),
+                "holder_is_top_level": R.get("holder_level") is not None and R.get("holder_level") == R.get("top_level"),
+                "no_spare_coin_in_bag": R.get("bag_coins_end") == 0,
+                "back_in_petalburg": R.get("at_petalburg_end") is True,
+                "can_continue_east": str(R.get("continue_path", "")).startswith("OK"),
+                "no_walk": (R.get("frames") or 0) < 3_000,
+            }
+        else:  # nogive
+            conj = {
+                "ran": rep.get("ran") is True,
+                "fault_bit": rep.get("fault_nogive") is True,
+                "received": R.get("received_end") is True and RECEIVED in order,
+                "not_given": R.get("holder_end") is None and GIVEN not in order,
+                "coin_in_bag": R.get("bag_coins_end") == 1,
+                "named_soft_failure": str(rep.get("amulet_coin", "")).startswith("the give did not land"),
+                "recovered_to_petalburg": R.get("at_petalburg_end") is True and BACK in order,
+            }
+        conj.update(common)
+        ok = all(conj.values())
+        log(f"[{TAG}] ORDER {order} TALKS {predicted}")
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}) SCOPE: Segment 12d only — "
+            f"whether the coin PAYS is measured by the batch's [MONEY] lines, not here.")
+        context.set_manual_mode()
+
+
 class Ch24HandoffMode(BotMode):
     """`--driver ch24handoff` — §Ch24's ORGANIC HAND-OFF, in `_play`'s order, stopping at the open door.
 
@@ -26198,6 +26435,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24EntryMode()
         elif args.driver == "ch24handoff":
             context.bot_mode_instance = Ch24HandoffMode()
+        elif args.driver == "amuletcoin":
+            context.bot_mode_instance = AmuletCoinMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

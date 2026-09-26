@@ -1,0 +1,46 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\final_A3-ERA-GATE.log
+[setup] loaded save state post_mtpyre.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> AmuletCoinMode.run   (state=OVERWORLD)
+[amuletcoin] PRE {'start_at': ((24, 22), (23, 7)), 'frame_start': 3143370, 'badge05': True, 'badge06': True, 'received_at_start': False, 'pending_at_start': True, 'at_petalburg_start': False, 'party_start': ['Mightyena#5C96EA9B L42 held=None', 'Sceptile#863B0917 L42 held=None', 'Swellow#0B30A747 L39 held=None', 'Skitty#5CCCD8BE L17 held=None', 'Zigzagoon#33CB74C3 L3 held=None', 'Castform#C978D14E L35 held=Mystic Water'], 'top_level': 42}
+[amuletcoin] fixture RESTORED — current_state.ss1 will not carry this run.
+[amuletcoin] R at_petalburg_end = False
+[amuletcoin] R at_petalburg_start = False
+[amuletcoin] R badge05 = True
+[amuletcoin] R badge06 = True
+[amuletcoin] R bag_coins_end = 0
+[amuletcoin] R bag_coins_start = 0
+[amuletcoin] R continue_path = "NO-PATH Source (23/7 @ MT_PYRE_SUMMIT) and destination (9/2 @ ROUTE102) are not on connected maps (note that warps don't count.)"
+[amuletcoin] R final_at = ((24, 22), (23, 7))
+[amuletcoin] R frame_start = 3143370
+[amuletcoin] R frames = 0
+[amuletcoin] R holder_end = None
+[amuletcoin] R holder_level = None
+[amuletcoin] R menus_open_end = []
+[amuletcoin] R party_start = ['Mightyena#5C96EA9B L42 held=None', 'Sceptile#863B0917 L42 held=None', 'Swellow#0B30A747 L39 held=None', 'Skitty#5CCCD8BE L17 held=None', 'Zigzagoon#33CB74C3 L3 held=None', 'Castform#C978D14E L35 held=Mystic Water']
+[amuletcoin] R pending_at_start = True
+[amuletcoin] R received_at_start = False
+[amuletcoin] R received_end = False
+[amuletcoin] R registered_end = False
+[amuletcoin] R start_at = ((24, 22), (23, 7))
+[amuletcoin] R state_end = 'OVERWORLD'
+[amuletcoin] R top_level = 42
+[amuletcoin] REPORT amulet_coin = 'out of era'
+[amuletcoin] REPORT ran = False
+[amuletcoin] ORDER [] TALKS []
+[amuletcoin] conjuncts = {'did_not_run': True, 'named_reason': True, 'did_not_move': True, 'cheap': True, 'no_failure': True, 'no_whiteout': True}
+[amuletcoin] ACCEPTANCE: PASS (expect=skip) SCOPE: Segment 12d only — whether the coin PAYS is measured by the batch's [MONEY] lines, not here.
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f31 — ending the loop at f151
+[done] ran 152 frames; final mode=Manual party=[Mightyena:L42:exp78383|Sceptile:L42:exp71324|Swellow:L39:exp55164|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L42: Tackle, Taunt, Take Down, Bite
+[moveset] Sceptile L42: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Swellow L39: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L35: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 153 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += amuletcoin 153 recomputes (party_accounting_ledger.jsonl)

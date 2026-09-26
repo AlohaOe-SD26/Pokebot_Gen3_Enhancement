@@ -35828,3 +35828,28 @@ G1 (the strict all-six rule is now a fault arm) and NEW `probe_ch23_basket_buy.p
 `repro_fix_doc_citations.py` — the citation REPAIRER shifted only a range's START (`2014-2026` → `2017-2026`), the
 exact 08 rule it exists to honour; it now shifts both ends and never matches a longer number's prefix (suite 94).
 **LIMIT:** a PARTIAL basket is gate-tested only (no fixture carries one).
+
+## 2026-09-26 (late) — USER RULING 17 BUILT: MOM'S AMULET COIN AFTER BADGE 5, HELD BY THE TOP BATTLER (branch `wt/ch24organic`)
+
+**WHY.** 3 of 3 organic runs that reached §Ch23 leg 11 were refused on money (`#26-ch23money`); the user ruled "fetch
+it after badge 5" (`06`, RULING 17). The coin doubles trainer prize money whenever its HOLDER is sent out
+(`battle_util.c:3294-3296`).
+**WHAT.** New `modules/story/amulet_coin.py`, run by `_play` as **Segment 12d** right after the Surf teach, gated to
+the Petalburg era (no badge 6, on a Petalburg map). Walk south per leg → Brendan's/May's house by gender → talk to
+Mom until `RECEIVED_AMULET_COIN` (decomp: talk 1 only registers her in Match Call) → GIVE it from the bag to the
+highest-level member (PID + species; a new sibling of `use_item_on_party_member`, with a verified bag cursor) →
+walk back to Petalburg. Every coin problem FAILS SOFT with a named reason and an `AMULET_COIN` debug event; only the
+end position is hard-guarded (13a starts in Petalburg). Refuses the post-game house states (3 = the S.S.-Ticket
+scene's B-proof multichoice). If the 40k budget expires, `run_ch12d` closes any open menu (bounded) and walks back
+before `_play`'s guard judges the position. Fault arms `POKEBOT_AMULET_FAULT_ONETALK` / `_NOGIVE` / `_BUDGET`
+(registered in 29).
+**PROOF** (predictions `76ba5bbd` + addenda `2497a2a2`, `b4e9ced6`; all nine arms as predicted, captured on the final code —
+`ai-research-notes/2026-09-26-ruling17-amulet-GRADED.md`): A1 on `norman_done` (pinned today) — registered, received,
+Blaziken#341D550A holds it, back in Petalburg with a path east, 5,927 frames; the driver FAILS on its own output
+(vacuity) and SKIPS it; `post_mtpyre` (badge 6, `pending()` True) skips "out of era"; ONETALK and NOGIVE fail soft and
+recover to Petalburg; from NOGIVE's end state the next pass only GIVES (580 frames); a budget expiring mid-walk (B1)
+or inside the party menu (B2) still ends in Petalburg's overworld with no menu open. New gate `probe_amulet_coin.py`
+(wiring, the driver's map set == `_play`'s, `pick_holder`, the house-state refusal, arms read + registered; six
+built-in fault arms). Adversarial review: KICK-BACK on docs only (they were held for its outcome and land in these commits); its risk #3 — a budget expiring with a menu open skips the errand's own cleanup — is FIXED and DRIVEN (B1/B2). Suite 95 (91 enforcing + 4 advisory); drift 9.
+**NOT SETTLED:** whether the coin pays ENOUGH (the batch's `[MONEY]` lines will say); the female house; a holder
+already carrying an item (the switch branch).

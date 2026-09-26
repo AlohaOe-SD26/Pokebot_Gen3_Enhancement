@@ -4774,6 +4774,20 @@ class StoryMode(BotMode):
             console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")
         _guard("Teach Surf (Ch12c)", _party_knows_surf)
 
+        # --- Segment 12d: USER RULING 17 (2026-09-26) — Mom's AMULET COIN (badge 5), held by a battler.
+        #     WHY: 3 of 3 organic League arrivals were refused on money that day; the coin doubles every
+        #     later trainer prize. `modules/story/amulet_coin.py` has the decomp mechanics.
+        # ⛔ FAILS SOFT — a coin is money, not a run: every coin problem is a named `AMULET_COIN` event.
+        #   Only the END POSITION is guarded, because 13a's walk starts from Petalburg.
+        # ⛔ GATED TO THE PETALBURG ERA (`not BADGE06` ∧ in Petalburg) — a post-Fortree re-entry must never
+        #   walk back south; that is KI-97's shape.
+        from modules.story.amulet_coin import run_ch12d
+
+        _ac_report: dict = {}
+        yield from run_ch12d(_ac_report, _at_petalburg, badge06=_done("BADGE06_GET"))
+        if _ac_report.get("ran"):
+            _guard("Amulet Coin errand ends in Petalburg (Ch12d)", _at_petalburg)
+
         # --- Segment 13a: the Surf arc — Mauville → Route 118 (Surf) → Route 119 →
         #     Weather Institute → rival (HM02 Fly) → Fortree (§Ch13 spec, flags
         #     audited; ⚠ SKELETON built 2026-07-24 overnight — the Surf crossing and
