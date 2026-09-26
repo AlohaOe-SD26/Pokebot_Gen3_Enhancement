@@ -366,6 +366,12 @@ code** (`modules/story/early_game.py`'s `_hm_pcfirst_disarmed`), `nobox` in the 
   behind it spins a 40,000-frame deadline and the arm's subject is the GUARD, not the hunt.
 * `skipfix` — **disarm the PC-first block itself**, in production, and require that the carrier is
   NOT withdrawn.
+* `noegress` — aim the `H-CANCONTINUE` egress proof at `(0, 0)`, the map's top-left corner: solid
+  wall, and never a warp. MEASURED 2026-09-25: `ACCEPTANCE: FAIL`, `PathFindingError` caught BY
+  NAME, and `missing=['H-CANCONTINUE']` — **exactly one reading removed, the other five still
+  taken.** ⛔ It exists because the FIRST version of that check passed by pathing ONE waypoint to
+  the Poké Centre door the errand had just walked out of; an arm proves a guard can fail, and
+  this guard now also requires a NON-ADJACENT exit.
 
 **Why `skipfix` exists, when `nobox` already passes.** `nobox` proves only that the guard's
 CONDITION is false when the box is empty. It cannot show that the PC-first BLOCK is *why* the
@@ -377,7 +383,7 @@ pre-existing counter-hunt withdraw. ⭐ And the negative is the stronger claim p
 this project accepts for it is an arm with X removed."*)
 
 **Measured 2026-09-25** (`evidence/2026-09-25-hmpcfirst-ARM-skipfix.txt`):
-`boxed_hm_learner_pids=['7DBC0999']` (⚠ random per run), `skipfix_carrier_still_boxed=True`,
+`boxed_hm_learner_pids` still returns the injected PID (⛔ no literal quoted — it is random per run and went stale twice; see `08-MISTAKES.md` #5), `skipfix_carrier_still_boxed=True`,
 `skipfix_carrier_in_party=False`, and `skipfix_party_after` is **five** mon — Skitty was still
 deposited to make room. ⇒ the errand genuinely RAN and simply never used the carrier it already
 owned. That is the user's originally reported break, reproduced on demand.

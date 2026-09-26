@@ -35457,10 +35457,10 @@ have been reached, and the run would still have printed PASS. Caught OFFLINE aga
 
 **MEASURED, default arm:**
 * `party_learner_slot_before = None` — the party genuinely cannot learn HM07;
-* `boxed_hm_learner_pids = ['F12C7BDE']` — the injected carrier is found in the box. ⚠ **THE PID IS RANDOM PER RUN** (`debug_create_pokemon` rolls a fresh personality value), so the durable claim is the IDENTITY RELATION — *the PID we injected is the one found and moved* — never this literal value;
+* `boxed_hm_learner_pids` returns **exactly the PID that was injected**. ⛔ **NO LITERAL PID IS QUOTED HERE, DELIBERATELY** — `debug_create_pokemon` rolls a fresh personality value every run, so a transcribed value is stale the next time any arm is re-run (it went stale TWICE while this entry was being written, see `08-MISTAKES.md`). The durable claim is the IDENTITY RELATION: *the PID we injected is the one found, and the one that moved*;
 * `carrier_in_party = True` **and** `carrier_gone_from_box = True` — it moved BOX -> PARTY;
 * `returned_slot = 5`, asserted by **object identity** against `get_party()[slot]`;
-* log: *"Story: withdrew Wailmer (pid=F12C7BDE) — it can learn HM07; no hunt needed."*
+* log: *"Story: withdrew Wailmer (pid=…) — it can learn HM07; **no hunt needed**."*
 * and *"hm-carrier withdraw: starting for 1 hunted PID(s)"* — confirming the `[:1]` discipline
   (`find_in_box` returns the first BOX-ORDER match, so passing the whole list discards the ranking).
 
@@ -35472,7 +35472,7 @@ shows the event.**
 **New fault arms** (`POKEBOT_HMPCFIRST_FAULT`, registered in `29-DISABLED-FEATURES-REGISTRY.md`):
 * `nobox` — no injection; the guard must return `[]` and the branch cannot fire.
 * `skipfix` — **disarms the PC-first block IN PRODUCTION** (`_hm_pcfirst_disarmed`,
-  `modules/story/early_game.py`). MEASURED: `boxed_hm_learner_pids=['7DBC0999']` (still findable),
+  `modules/story/early_game.py`). MEASURED: `boxed_hm_learner_pids` still returns the injected PID (the carrier is findable),
   `skipfix_carrier_still_boxed=True`, `skipfix_carrier_in_party=False`, and the party is down to
   **five** — Skitty was *still* deposited. ⇒ the errand genuinely ran and never used the carrier it
   already owned. **That is the user's reported break, reproduced on demand.**
@@ -35482,6 +35482,12 @@ empty box. It cannot show the BLOCK is *why* the default run withdrew anything. 
 the stronger claim precisely because the reader (`boxed_hm_learner_pids`) is untouched by the
 disarm, which sits in the CONSUMER: under `skipfix`, `H-BOXFOUND` **still takes** — the carrier is
 provably findable and *still* not withdrawn.
+
+⭐⭐ **AND THE GRADE NOW PROVES "THE BOT CAN CONTINUE" — `H-CANCONTINUE`, ADDED AFTER THE COMMIT'S OWN DIFF ADVISORY CAUGHT ITS ABSENCE** (`R-ACCEPTGRADE`). The original grade proved a carrier moved and stopped there; §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and §Ch19 in a living room, and **all three passed their own tests**. ‼ The committed evidence could not even answer the question — the driver never recorded where the errand left the bot.
+
+⛔⛔ **AND THE FIRST VERSION OF THAT CHECK WAS SATISFIED BY THE DOOR IT HAD JUST WALKED OUT OF.** The errand ends on `(5, 7)`; the map's warp list begins `(5, 6)` — the Poké Centre door directly above. Taking the first warp that paths, it "proved egress" in **ONE waypoint**, i.e. it proved the bot could step back INSIDE the building it had just left. The advisory that prompted the check had *already warned of exactly this* (*"walking to a DOOR tile ends you INSIDE the building, which skips that check"*) — the pattern was ported faithfully from `pokemon_league.py`, where the bot stands in a BEDROOM whose only warp IS the stairs. ⭐ **A PATTERN CARRIES ITS ORIGINAL MAP'S ASSUMPTIONS WITH IT.** Now EVERY warp is tried (no early break) and at least one **non-adjacent** exit is required — Chebyshev > 1, which states the rule's *"tile in FRONT of the door"* as a property rather than a magic number. MEASURED: all **9** Fortree warps reachable, **8 non-adjacent** at 11–46 waypoints, zero refusals.
+
+**New arm `noegress`** aims the proof at `(0, 0)` — the map's top-left corner, solid wall and never a warp. MEASURED: `ACCEPTANCE: FAIL`, `PathFindingError` caught BY NAME, and `missing=['H-CANCONTINUE']` — **exactly one reading removed, the other five still taken.** An arm that isolates precisely its own target is what makes it evidence.
 
 ⭐⭐ **AND THE PREMISE CONJUNCT WAS TESTED MECHANICALLY, NOT MERELY WRITTEN.** The skill's rule is *"point the driver at its own OUTPUT fixture — if it passes, the grade is measuring nothing"*. This driver restores its fixture, so the equivalent and sharper test was used: point it at an anchor whose party CAN already learn the HM. On `post_hof_cleared.ss1` (**Wailord L75**) it printed `party_learner_slot_before = 4`, took **ZERO readings**, and refused with `ACCEPTANCE: FAIL` — *"PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing"* — while still restoring the fixture. Evidence: `tools/story-dev/evidence/2026-09-25-hmpcfirst-VACUITY-REFUSED.txt`. ⇒ the premise guard is **live code**, so a future fixture drift turns this test RED rather than silently vacuous.
 

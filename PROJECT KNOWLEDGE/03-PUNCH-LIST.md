@@ -3532,7 +3532,7 @@ region, where "train near the gym" is actively wrong.
       - [x] ✅⭐ **PC-FIRST WITHDRAW — BUILT, DRIVEN AND ARMED.** This item's OWN prerequisite
         ("requires PC deposit/withdraw MACHINERY ... BEFORE the Surf-era chapters") is met:
         `ensure_hm_learner_making_room` checks `boxed_hm_learner_pids` before hunting.
-        `--driver hmpcfirst` on `fortree_gym_wedge.ss1` (PINNED), 3 arms PASS, evidence
+        `--driver hmpcfirst` on `fortree_gym_wedge.ss1` (PINNED): 5 arms — 3 PASS, 2 FAIL BY DESIGN (`noegress`, vacuity) — evidence
         `tools/story-dev/evidence/2026-09-25-hmpcfirst-*.txt`. ⛔ Graded on **PID identity
         only** — party 6→6 and box 1→1, so every COUNT is unchanged.
       - [ ] ⭐ **CATCH A NEW CARRIER when the PC holds none** — the 2026-09-25 directive's other half; `POKEBOT_HMPCFIRST_FAULT=skipfix` shows the path still derails. Recon: `ai-research-notes/2026-09-25-hm-catch-half-RECON.md` — the hunt EXISTS

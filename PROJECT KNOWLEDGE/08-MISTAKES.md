@@ -21759,7 +21759,7 @@ refusal of the commit silently discards the message — and the retry then looks
 *(This is the same family as the rule that produced the hook in the first place: a READ and an
 ACTION, or here an AUTHORING step and an ACTION, must not share a call.)*
 
-## 2026-09-25 (later still) — five mistakes from driving the PC-first HM path, all in the INSTRUMENT
+## 2026-09-25 (later still) — six mistakes from driving the PC-first HM path, all in the INSTRUMENT
 
 ‼ The subject under test was correct on its first run. **Every defect below was in the test or the
 edit tooling** — which is the shape this file keeps recording, and the reason it keeps recording it.
@@ -21829,11 +21829,33 @@ on"*. It earned its keep on its first application here — a reader grepping the
 quoted PID would have found nothing and reasonably concluded the claim was invented.
 **Fix:** both values corrected, AND the prose now states that the PID is random per run and that
 the durable claim is the IDENTITY RELATION, never the literal value.
+**‼ AND IT RECURRED THE SAME DAY, WHICH IS WHY THE RULE IS NOT "BE MORE CAREFUL".** Adding `H-CANCONTINUE` forced ANOTHER re-run of every arm, and the corrected pair (`F12C7BDE`/`7DBC0999`) went stale exactly as the first pair had. ⇒ the second fix was not to re-transcribe a third set of values but to **DELETE THE LITERALS** from every live claim and state the RELATION instead. A doc that needs re-editing after every run is a doc that will eventually ship wrong.
 **Prevention rule:** ⛔⛔ **RE-RUNNING AN ARM INVALIDATES EVERY NUMBER ALREADY WRITTEN ABOUT IT.**
 After any re-run, re-grep the evidence for every literal quoted in the docs. ⭐ And prefer to quote
 the RELATION (*"the PID we injected is the one that moved"*) over the VALUE — a value regenerated
 by the fixture tooling is not a fact about the system, and writing it as though it were creates a
 citation that rots on the next run.
+
+### 6. ⛔⛔ MY OWN "CAN THE BOT CONTINUE" PROOF WAS SATISFIED BY THE DOOR IT HAD JUST WALKED OUT OF
+**Symptom:** `H-CANCONTINUE` recorded a PASS having pathed **one waypoint**.
+**Root cause:** the errand ends on `(5, 7)`; the live map's warp list begins `(5, 6)` — the Poké
+Centre door directly above. The check took the FIRST warp that pathed and broke out of the loop. ⇒
+it proved the bot could step back INSIDE the building it had just left, which is the opposite of
+egress.
+**‼ THE RULE HAD ALREADY WARNED OF THIS, IN THE VERY ADVISORY THAT PROMPTED THE CHECK:** *"Walking
+to a DOOR tile ends you INSIDE the building, which skips that check — target the tile in FRONT of
+the door."* I read it, added the check, and walked into it anyway.
+**Why faithful porting was not enough:** the pattern came from `pokemon_league.py`'s
+`C-CANCONTINUE`, where the bot stands in a **BEDROOM whose only warp IS the stairs** — there,
+first-warp-that-paths genuinely IS egress. On an open city map with nine warps, one of them under
+your feet, it is not.
+**Fix:** try EVERY warp (no early break) and require at least one exit at Chebyshev distance > 1.
+Measured after: 9 of 9 reachable, 8 non-adjacent, 11–46 waypoints.
+**Prevention rule:** ⛔⛔ **A PATTERN CARRIES ITS ORIGINAL MAP'S ASSUMPTIONS WITH IT.** When porting
+a proven check, ask what was true of the ORIGINAL situation that made it sufficient — and re-derive
+that premise for the new one. ⭐ And for egress specifically: **an exit ADJACENT to where you stand
+cannot distinguish "can continue" from "is standing next to a door"** — exclude it, and prefer a
+stated property (non-adjacency) over a threshold on waypoint count.
 
 ### ⭐ AND ONE NEAR-MISS THAT COST NOTHING, BECAUSE IT WAS CHECKED OFFLINE FIRST
 **Surf was the obvious HM to test with, and it would have made the whole drive VACUOUS** —

@@ -21055,7 +21055,8 @@ class HmPcFirstMode(BotMode):
         taken: set = set()
         failure = None
 
-        WANT = ("H-PREMISE", "H-INJECTED", "H-BOXFOUND", "H-WITHDRAWN", "H-SLOT")
+        WANT = ("H-PREMISE", "H-INJECTED", "H-BOXFOUND", "H-WITHDRAWN", "H-SLOT",
+            "H-CANCONTINUE")
 
         def _box_pids():
             try:
@@ -21185,6 +21186,75 @@ class HmPcFirstMode(BotMode):
                         f"§hmpcfirst: the returned slot {slot!r} does not point at the withdrawn "
                         f"carrier. A slot that names a different mon would be taught the HM.")
                 _take_r(R, taken, "H-SLOT")
+
+                # ---- AND THE BOT CAN CONTINUE -----------------------------------------------
+                # ⛔ THE GRADE ABOVE PROVES A CARRIER MOVED. IT DOES NOT PROVE THE BOT CAN GO
+                # ANYWHERE. §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and
+                # §Ch19 in a living room — ALL THREE PASSED THEIR OWN TESTS. An errand that ends
+                # sealed inside a Poké Centre would derail the real run while printing PASS here.
+                from modules.map import get_map_data_for_current_position
+                from modules.map_path import PathFindingError, calculate_path
+                from modules.player import get_player_avatar
+
+                _av = get_player_avatar()
+                _here = tuple(_av.local_coordinates)
+                R["end_tile"] = _here
+                try:
+                    _md = get_map_data_for_current_position()
+                    _here_map = _md.map_group_and_number
+                    _exits = [tuple(w.local_coordinates) for w in (_md.warps or [])]
+                except Exception as _err:  # noqa: BLE001 - unreadable map is a REFUSAL, not a pass
+                    raise BotModeError(
+                        f"§hmpcfirst: the carrier was withdrawn, but the map at {_here} could not "
+                        f"be read to find its exits: {type(_err).__name__}: {_err}")
+                R["end_map"] = str(_here_map)
+                # ⛔ FAULT ARM — (0,0) is the map's top-left corner: solid wall, never a warp. It
+                # proves this check CAN fail; a guard never seen to fail is decoration.
+                if FAULT == "noegress":
+                    _exits = [(0, 0)]
+                    R["egress_fault_armed"] = True
+                R["egress_exits"] = _exits
+                if not _exits:
+                    raise BotModeError(
+                        f"§hmpcfirst: the carrier was withdrawn and the bot stands on {_here}, but "
+                        f"the map declares NO WARPS AT ALL — there is no way out of this room.")
+                # ⛔⛔ EVERY WARP IS TRIED — **DO NOT BREAK ON THE FIRST ONE THAT PATHS.** The
+                # first version of this check did, and it PASSED by reaching `(5, 6)` in ONE
+                # waypoint: the Poké Centre door directly above the tile the errand ends on. It
+                # proved the bot could step back INSIDE the building it had just left.
+                _reached, _refusals = [], []
+                for _tile in _exits:
+                    try:
+                        # ‼ `calculate_path` will not route THROUGH a warp, but the DESTINATION may
+                        # BE one and it follows it — which is exactly an exit tile.
+                        _path = calculate_path((_here_map, _here), (_here_map, _tile))
+                    except PathFindingError as _pe:
+                        # ⛔ CAUGHT BY NAME. `PathFindingError` is a bare `RuntimeError`, so an
+                        # unguarded call escapes every `except BotModeError` as a raw traceback.
+                        _refusals.append((_tile, f"{type(_pe).__name__}: {str(_pe)[:60]}"))
+                        continue
+                    try:
+                        _wp = len(_path)
+                    except TypeError:   # an unsized path is still a PATH — the absence of a raise
+                        _wp = "<unsized>"   # is the reading; the length is only telemetry
+                    _reached.append((_tile, _wp))
+                # ⭐ "NOT THE DOOR YOU CAME OUT OF", AS A PROPERTY RATHER THAN A MAGIC NUMBER: an
+                # exit ADJACENT to where we stand cannot distinguish "can continue" from "is stood
+                # next to a door". Chebyshev > 1 is exactly the rule's *"target the tile in FRONT
+                # of the door"*, and it stays correct on any map this is pointed at.
+                _far = [(t, w) for (t, w) in _reached
+                        if max(abs(t[0] - _here[0]), abs(t[1] - _here[1])) > 1]
+                R["egress_reached"] = _reached
+                R["egress_reached_non_adjacent"] = _far
+                R["egress_refusals"] = _refusals
+                if not _far:
+                    raise BotModeError(
+                        f"§hmpcfirst: the carrier was withdrawn but the bot cannot reach ANY "
+                        f"non-adjacent exit from {_here}. reached={_reached} (adjacent exits do "
+                        f"not count — stepping back through the door you just used is not egress) "
+                        f"refusals={_refusals}. ‼ That is a landing, not an arrival: §Ch15, §Ch18 "
+                        f"and §Ch19 all shipped STRANDED while passing their own tests.")
+                _take_r(R, taken, "H-CANCONTINUE")
         except _SkipfixArmDone:
             # ⚠ NOT a failure: the arm finished everything it set out to prove and must not fall
             # through into the default path's identity checks, which it would fail BY DESIGN.
@@ -21223,6 +21293,9 @@ class HmPcFirstMode(BotMode):
                       "fire — the branch is conditional on genuinely owning a carrier"),
             "skipfix": ("the carrier is FINDABLE yet stays BOXED once the PC-first block is "
                         "disarmed — so that block is LOAD-BEARING, not merely present"),
+            "noegress": ("the egress proof was aimed at (0,0) — solid wall, never a warp — and "
+                         "MUST therefore FAIL; a PASS here would mean the continuation check "
+                         "cannot fail at all, i.e. it is decoration"),
         }.get(FAULT,
               ("a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, "
                "PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only "

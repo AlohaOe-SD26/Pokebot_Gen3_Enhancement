@@ -1,4 +1,4 @@
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\a_default.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c2.log
 Running mGBA 0.10.2
 [setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
 [run] starting faithful loop for up to 30000 frames
@@ -9,7 +9,7 @@ f377: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely t
 f2000: heartbeat mode=Story ctrl=HmPcFirstMode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
 f2002: SAVED stall state #1 to stalls/repro-ml-f2002.ss1 (bt='Got away safely!')
 f2302: !!! NO-PROGRESS x1200 sig=('HmPcFirstMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
-f2302:     gen -> HmPcFirstMode.run  @ story_harness.py:21161
+f2302:     gen -> HmPcFirstMode.run  @ story_harness.py:21162
 f2302:     gen -> ensure_hm_learner_making_room  @ early_game.py:5157
 f2302:     gen -> _withdraw_hm_learner  @ early_game.py:5076
 f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
@@ -33,23 +33,29 @@ f3215: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely 
 Story: PC — Wailmer is in the party; party is now 6.
 Story: PC — hm-carrier withdraw result: landed — the counter is in the party 
 and usable this fight — Wailmer :: verdict landed=True code=landed
-Story: withdrew Wailmer (pid=F12C7BDE) — it can learn HM07; no hunt needed.
+Story: withdrew Wailmer (pid=49736DD5) — it can learn HM07; no hunt needed.
 [hmpcfirst] fixture RESTORED — the injected mon does not persist.
 [hmpcfirst] R before_box_pids = []
 [hmpcfirst] R box_pids_after = ['5CCCD8BE']
-[hmpcfirst] R boxed_hm_learner_pids = ['F12C7BDE']
+[hmpcfirst] R boxed_hm_learner_pids = ['49736DD5']
 [hmpcfirst] R carrier_gone_from_box = True
 [hmpcfirst] R carrier_in_party = True
+[hmpcfirst] R egress_exits = [(5, 6), (10, 3), (22, 11), (4, 14), (17, 3), (25, 3), (32, 2), (12, 13), (37, 13)]
+[hmpcfirst] R egress_reached = [((5, 6), 1), ((10, 3), 11), ((22, 11), 37), ((4, 14), 14), ((17, 3), 18), ((25, 3), 26), ((32, 2), 34), ((12, 13), 21), ((37, 13), 46)]
+[hmpcfirst] R egress_reached_non_adjacent = [((10, 3), 11), ((22, 11), 37), ((4, 14), 14), ((17, 3), 18), ((25, 3), 26), ((32, 2), 34), ((12, 13), 21), ((37, 13), 46)]
+[hmpcfirst] R egress_refusals = []
+[hmpcfirst] R end_map = '(0, 4)'
+[hmpcfirst] R end_tile = (5, 7)
 [hmpcfirst] R hm = 'HM07'
-[hmpcfirst] R injected_pid = 'F12C7BDE'
+[hmpcfirst] R injected_pid = '49736DD5'
 [hmpcfirst] R injected_where = '(0, 0)'
 [hmpcfirst] R party = ['Mightyena L38', 'Sceptile L39', 'Swellow L33', 'Skitty L17', 'Zigzagoon L3', 'Castform L25']
 [hmpcfirst] R party_learner_slot_before = None
-[hmpcfirst] R party_pids_after = ['0B30A747', '33CB74C3', '5C96EA9B', '863B0917', 'C978D14E', 'F12C7BDE']
+[hmpcfirst] R party_pids_after = ['0B30A747', '33CB74C3', '49736DD5', '5C96EA9B', '863B0917', 'C978D14E']
 [hmpcfirst] R party_size_after = 6
-[hmpcfirst] R reading_order = ['H-PREMISE', 'H-INJECTED', 'H-BOXFOUND', 'H-WITHDRAWN', 'H-SLOT']
+[hmpcfirst] R reading_order = ['H-PREMISE', 'H-INJECTED', 'H-BOXFOUND', 'H-WITHDRAWN', 'H-SLOT', 'H-CANCONTINUE']
 [hmpcfirst] R returned_slot = 5
-[hmpcfirst] RESULT readings=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] missing=[] failure=None
+[hmpcfirst] RESULT readings=['H-BOXFOUND', 'H-CANCONTINUE', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] missing=[] failure=None
 [hmpcfirst] ACCEPTANCE: PASS (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
 f3564: CONTROLLER -> <none>   (state=OVERWORLD)
 f3564: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Wailmer:L20:exp5440] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
@@ -87,9 +93,9 @@ f23564: HANG CONFIRMED (20000 frames no progress). Stopping.
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--09-25_20-40-01.ss1 created!
+-09-25_21-44-36.ss1 created!
 Updated `current_state.ss1`!
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\a_default.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c2.log
 [setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
 [run] starting faithful loop for up to 30000 frames
 f0: CONTROLLER -> <none>   (state=OVERWORLD)
@@ -99,7 +105,7 @@ f377: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely t
 f2000: heartbeat mode=Story ctrl=HmPcFirstMode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
 f2002: SAVED stall state #1 to stalls/repro-ml-f2002.ss1 (bt='Got away safely!')
 f2302: !!! NO-PROGRESS x1200 sig=('HmPcFirstMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
-f2302:     gen -> HmPcFirstMode.run  @ story_harness.py:21161
+f2302:     gen -> HmPcFirstMode.run  @ story_harness.py:21162
 f2302:     gen -> ensure_hm_learner_making_room  @ early_game.py:5157
 f2302:     gen -> _withdraw_hm_learner  @ early_game.py:5076
 f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
@@ -116,19 +122,25 @@ f3215: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely 
 [hmpcfirst] fixture RESTORED — the injected mon does not persist.
 [hmpcfirst] R before_box_pids = []
 [hmpcfirst] R box_pids_after = ['5CCCD8BE']
-[hmpcfirst] R boxed_hm_learner_pids = ['F12C7BDE']
+[hmpcfirst] R boxed_hm_learner_pids = ['49736DD5']
 [hmpcfirst] R carrier_gone_from_box = True
 [hmpcfirst] R carrier_in_party = True
+[hmpcfirst] R egress_exits = [(5, 6), (10, 3), (22, 11), (4, 14), (17, 3), (25, 3), (32, 2), (12, 13), (37, 13)]
+[hmpcfirst] R egress_reached = [((5, 6), 1), ((10, 3), 11), ((22, 11), 37), ((4, 14), 14), ((17, 3), 18), ((25, 3), 26), ((32, 2), 34), ((12, 13), 21), ((37, 13), 46)]
+[hmpcfirst] R egress_reached_non_adjacent = [((10, 3), 11), ((22, 11), 37), ((4, 14), 14), ((17, 3), 18), ((25, 3), 26), ((32, 2), 34), ((12, 13), 21), ((37, 13), 46)]
+[hmpcfirst] R egress_refusals = []
+[hmpcfirst] R end_map = '(0, 4)'
+[hmpcfirst] R end_tile = (5, 7)
 [hmpcfirst] R hm = 'HM07'
-[hmpcfirst] R injected_pid = 'F12C7BDE'
+[hmpcfirst] R injected_pid = '49736DD5'
 [hmpcfirst] R injected_where = '(0, 0)'
 [hmpcfirst] R party = ['Mightyena L38', 'Sceptile L39', 'Swellow L33', 'Skitty L17', 'Zigzagoon L3', 'Castform L25']
 [hmpcfirst] R party_learner_slot_before = None
-[hmpcfirst] R party_pids_after = ['0B30A747', '33CB74C3', '5C96EA9B', '863B0917', 'C978D14E', 'F12C7BDE']
+[hmpcfirst] R party_pids_after = ['0B30A747', '33CB74C3', '49736DD5', '5C96EA9B', '863B0917', 'C978D14E']
 [hmpcfirst] R party_size_after = 6
-[hmpcfirst] R reading_order = ['H-PREMISE', 'H-INJECTED', 'H-BOXFOUND', 'H-WITHDRAWN', 'H-SLOT']
+[hmpcfirst] R reading_order = ['H-PREMISE', 'H-INJECTED', 'H-BOXFOUND', 'H-WITHDRAWN', 'H-SLOT', 'H-CANCONTINUE']
 [hmpcfirst] R returned_slot = 5
-[hmpcfirst] RESULT readings=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] missing=[] failure=None
+[hmpcfirst] RESULT readings=['H-BOXFOUND', 'H-CANCONTINUE', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] missing=[] failure=None
 [hmpcfirst] ACCEPTANCE: PASS (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
 f3564: CONTROLLER -> <none>   (state=OVERWORLD)
 f3564: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Wailmer:L20:exp5440] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]

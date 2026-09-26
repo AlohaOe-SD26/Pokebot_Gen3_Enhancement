@@ -1,4 +1,4 @@
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\vac.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c6.log
 Running mGBA 0.10.2
 [setup] loaded save state post_hof_cleared.ss1; build=sandbox
 [run] starting faithful loop for up to 6000 frames
@@ -10,7 +10,7 @@ f1: CONTROLLER -> HmPcFirstMode.run   (state=OVERWORLD)
 [hmpcfirst] R hm = 'HM07'
 [hmpcfirst] R party = ['Mightyena L77', 'Zigzagoon L19', 'Sceptile L75', 'Swellow L75', 'Wailord L75', 'Castform L36']
 [hmpcfirst] R party_learner_slot_before = 4
-[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-CANCONTINUE', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
 [hmpcfirst] ACCEPTANCE: FAIL (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
 f31: CONTROLLER -> <none>   (state=OVERWORLD)
 f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='                                                                                                                                                                                                                                                                                                            ')
@@ -34,9 +34,9 @@ f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L77:ex
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--09-25_21-18-32.ss1 created!
+-09-25_22-00-50.ss1 created!
 Updated `current_state.ss1`!
-[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\vac.log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\c6.log
 [setup] loaded save state post_hof_cleared.ss1; build=sandbox
 [run] starting faithful loop for up to 6000 frames
 f0: CONTROLLER -> <none>   (state=OVERWORLD)
@@ -47,7 +47,7 @@ f1: CONTROLLER -> HmPcFirstMode.run   (state=OVERWORLD)
 [hmpcfirst] R hm = 'HM07'
 [hmpcfirst] R party = ['Mightyena L77', 'Zigzagoon L19', 'Sceptile L75', 'Swellow L75', 'Wailord L75', 'Castform L36']
 [hmpcfirst] R party_learner_slot_before = 4
-[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
+[hmpcfirst] RESULT readings=[] missing=['H-BOXFOUND', 'H-CANCONTINUE', 'H-INJECTED', 'H-PREMISE', 'H-SLOT', 'H-WITHDRAWN'] failure=BotModeError: §hmpcfirst: PREMISE FAILED — party slot 4 can already learn HM07, so the PC-first path would never be reached and this run would prove nothing. Pick an HM this party cannot learn.
 [hmpcfirst] ACCEPTANCE: FAIL (ARM=default; a carrier we ALREADY OWN is found in the box and WITHDRAWN into the party, PROVEN BY PID — party 6→6 and box 1→1, so every COUNT is unchanged and only identity shows it happened)
 f31: CONTROLLER -> <none>   (state=OVERWORLD)
 f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='                                                                                                                                                                                                                                                                                                            ')
