@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -24830,6 +24830,168 @@ except Exception as _e:
     _dbglog = None
 
 
+class Ch23SwapProbeMode(BotMode):
+    """`#24-ch23training` S-ARM — does PRODUCTION swap-training bank EXP for a L13 mule on VR1F?
+
+    The decisive arm both judges of the 2026-09-26 design panel named before chunked training may be
+    built (`ai-research-notes/2026-09-26-ch23training-DESIGN.md`; predictions pre-registered in
+    `…-ch23-swapprobe-PREDICTIONS.md`). The refusal in `train_for_victory_road` fires BEFORE
+    `train_team`, so production has never been SEEN swap-training a +27 mule; this measures it.
+
+    ⛔ IT CALLS PRODUCTION, NOT A COPY: `_rotate_lead_safely` (PID-verified) then the exact
+    `train_team(target, slots={0}, grass=TRAIN_SPOT_1F, heal_center=EvergrandeCity)` call §Ch23 makes,
+    inside `_yield_bounded_by_frames`. ⛔ AND IT INSTALLS SWAP-TRAINING EXACTLY AS PRODUCTION DOES —
+    `SwapTrainBattleStrategy` iff `swap_train_active() and encounter is not None` — because
+    `Ch23TrainMode` returns `StoryItemBattleStrategy`, which is why the 2026-09-08 stepping drive
+    measured nothing (withdrawn 2026-09-09). Every `decide_turn` is COUNTED (rule 7: the action, not the
+    candidate).
+
+    Target = MULE level + `CH23SWAP_GAIN` (default 4 ⇒ L17), BELOW Marill's L18 evolution, so a species
+    change cannot confound the EXP reading.
+
+    Run:     PYTHONUTF8=1 py -3.12 story_harness.py post_ever_grande.ss1 --inject-hmmule --driver ch23swapprobe --frames 450000
+    Control: CH23SWAP_CONTROL=1 (always `StoryItemBattleStrategy` — the 2026-09-08 shape)
+    Env:     CH23SWAP_GAIN (default 4) · CH23SWAP_PURSE (default 350000 real frames)
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23SwapProbe"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ Defaults to False, WHICH DROPS THE BOT and discards the generator — no verdict would print.
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23swapprobe] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from modules.story.early_game import swap_train_active
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy, SwapTrainBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        control = _os.environ.get("CH23SWAP_CONTROL") == "1"
+        use_swap = (not control) and swap_train_active() and encounter is not None
+        base = SwapTrainBattleStrategy if use_swap else StoryItemBattleStrategy
+        mode = self
+
+        class _Counting(base):
+            def decide_turn(self, battle_state):
+                action = super().decide_turn(battle_state)
+                try:
+                    kind = action[0].name if isinstance(action, tuple) else str(action)
+                    lead = get_party()[0]
+                    active_is_mule = lead is not None and lead.personality_value == mode.mule_pid
+                    mode.decisions.append((mode.battles, kind, active_is_mule))
+                except Exception as error:  # noqa: BLE001 - counting must never change a battle
+                    mode.decisions.append((mode.battles, f"uncounted:{error}", None))
+                return action
+
+        self.strategies.append(base.__name__)
+        return _Counting()
+
+    def on_battle_ended(self, outcome):
+        try:
+            mule = self._mule()
+            self.mule_hp_at_end.append(None if mule is None else mule.current_hp)
+        except Exception:  # noqa: BLE001
+            self.mule_hp_at_end.append(None)
+
+    def _mule(self):
+        for m in get_party():
+            if m is not None and m.personality_value == self.mule_pid:
+                return m
+        return None
+
+    def run(self):
+        from modules.map_data import PokemonCenter
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _rotate_lead_safely,
+            _yield_bounded_by_frames,
+            train_team,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "ch23swapprobe"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = 0
+        self.decisions = []
+        self.strategies = []
+        self.mule_hp_at_end = []
+        self.mule_pid = None
+        control = _os.environ.get("CH23SWAP_CONTROL") == "1"
+        gain = int(_os.environ.get("CH23SWAP_GAIN", "4"))
+        purse = int(_os.environ.get("CH23SWAP_PURSE", "350000"))
+        fixture = None if FRESH else state_path.read_bytes()
+        R: dict = {"arm": "CONTROL" if control else "SWAP"}
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            party = [m for m in get_party() if m is not None]
+            mules = [m for m in party if m.nickname == "MULE"]
+            R["party_pre"] = [f"{m.species.name}#{m.personality_value:08X}:L{m.level}" for m in party]
+            if not mules:
+                raise BotModeError(f"{TAG}: no MULE in the party — run with --inject-hmmule")
+            mule = mules[0]
+            self.mule_pid = mule.personality_value
+            R["mule"] = f"{mule.species.name}#{self.mule_pid:08X}"
+            R["mule_level_pre"], R["mule_exp_pre"] = mule.level, mule.total_exp
+            R["finisher_max_level"] = max(m.level for m in party if m.personality_value != self.mule_pid)
+            slot = [i for i, m in enumerate(get_party()) if m is not None and m.personality_value == self.mule_pid][0]
+            if slot != 0:
+                yield from _rotate_lead_safely(slot)
+            lead = get_party()[0]
+            R["premise_ok"] = bool(lead is not None and lead.personality_value == self.mule_pid
+                                   and R["finisher_max_level"] >= 40)
+            if not R["premise_ok"]:
+                raise BotModeError(f"{TAG}: PREMISE FAILED — lead={lead} finisher_max={R['finisher_max_level']}")
+            target = mule.level + gain
+            R["target"] = target
+            start = context.emulator.get_frame_count()
+            R["purse_finished"] = yield from _yield_bounded_by_frames(
+                train_team(target, slots={0}, grass=VR.TRAIN_SPOT_1F,
+                           heal_center=PokemonCenter.EvergrandeCity),
+                purse)
+            R["frames"] = context.emulator.get_frame_count() - start
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            mule = self._mule() if self.mule_pid is not None else None
+            R["mule_level_post"] = None if mule is None else mule.level
+            R["mule_exp_post"] = None if mule is None else mule.total_exp
+            R["mule_species_post"] = None if mule is None else mule.species.name
+            try:
+                if fixture:
+                    context.emulator.load_save_state(fixture)
+                    log(f"[{TAG}] fixture RESTORED")
+            except Exception as error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {error}")
+
+        mule_led = sorted({b for b, _k, is_mule in self.decisions if is_mule})
+        rot_mule = sorted({b for b, k, is_mule in self.decisions if is_mule and k == "RotateLead"})
+        kinds = {}
+        for _b, k, _m in self.decisions:
+            kinds[k] = kinds.get(k, 0) + 1
+        exp_gain = (R.get("mule_exp_post") or 0) - (R.get("mule_exp_pre") or 0)
+        faints = sum(1 for hp in self.mule_hp_at_end if hp == 0)
+        R.update({"battles": self.battles, "strategies": sorted(set(self.strategies)),
+                  "decision_kinds": kinds, "battles_mule_led": len(mule_led),
+                  "battles_mule_rotated": len(rot_mule), "mule_exp_gain": exp_gain,
+                  "mule_faints_at_battle_end": faints, "whiteouts": self.whiteouts,
+                  "exp_per_battle": round(exp_gain / self.battles, 1) if self.battles else None})
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        swap_ok = (R.get("premise_ok") and failure is None and exp_gain > 0 and faints == 0
+                   and self.whiteouts == 0 and len(rot_mule) >= 1
+                   and (R.get("mule_level_post") or 0) >= R.get("target", 999))
+        log(f"[{TAG}] RESULT arm={R['arm']} failure={failure}")
+        log(f"[{TAG}] VERDICT {'SWAP BANKS EXP FOR THE MULE' if swap_ok else 'NOT SHOWN'} "
+            f"(exp_gain={exp_gain}, rotated={len(rot_mule)}/{len(mule_led)} mule-led battles, "
+            f"faints={faints}, whiteouts={self.whiteouts})")
+        context.set_manual_mode()
+
+
 def inject_treecko():
     from modules.debug_utilities import debug_create_pokemon, debug_write_party
     from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove
@@ -25395,6 +25557,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23CrossMode()
         elif args.driver == "ch23stage":
             context.bot_mode_instance = Ch23StageMode()
+        elif args.driver == "ch23swapprobe":
+            context.bot_mode_instance = Ch23SwapProbeMode()
         elif args.driver == "ch23road":
             context.bot_mode_instance = Ch23RoadMode()
         elif args.driver == "ch23train":

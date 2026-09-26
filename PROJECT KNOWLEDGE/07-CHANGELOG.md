@@ -35639,3 +35639,20 @@ real parser, and was fault-tested both ways (PC-counts and id-only each turn it 
 
 **WHY IT MATTERS NOW:** `#26-batch0926` (the user's held 12-hour batch) is meant to measure how far organic runs get past §Ch23; with the old analyzer a League or Hall-of-Fame run would have been invisible. ⚠ Historical 'no League interior' readings from this tool proved nothing (the arm could not fire).
 **FILES:** `tools/story-dev/analyze_endless_batch.py`, `PROJECT KNOWLEDGE/07-CHANGELOG.md`.
+
+
+## 2026-09-26 (later) — ✅ `#24-ch23training`'s DECISIVE ARM PASSED: PRODUCTION SWAP-TRAINING BANKS EXP FOR A L13 MULE AT +27 — AND THE USER APPROVED BUILDING ON IT (RULING 14)
+
+`--driver ch23swapprobe` (NEW) from `post_ever_grande.ss1 --inject-hmmule`, production `train_team` in a purse:
+* **SWAP** (`SwapTrainBattleStrategy`, as production installs it): 5 battles, the mule rotated out of **5/5**,
+  **+2,275 EXP, L13→17, 0 faints, 0 whiteouts, 18,539 frames.**
+* **CONTROL** (`StoryItemBattleStrategy`, the 2026-09-08 driver's shape): 62 battles, **0 rotations, +0 EXP,
+  56 mule faints**, purse exhausted at 350,411 frames ⇒ the old "stepping is refuted" drive is now a MEASURED
+  artifact of that driver, not merely a withdrawn verdict.
+All six pre-registered predictions graded (S0-S4 CONFIRMED; S5 455 EXP/battle on n=5 — near half a solo share,
+not precisely measured): `ai-research-notes/2026-09-26-ch23-swapprobe-GRADED.md`. ⚠ One party, one trajectory
+per arm. ⇒ The user ruled the design may be built (`06` RULING 14). **NEXT: build chunked training** with the
+judges' must-fixes (PID-only identity — Marill evolves at L18 —, state normalisation after a purse expiry, the
+money check, the F2 no-finisher refusal).
+**FILES:** `tools/story-dev/story_harness.py` (`Ch23SwapProbeMode`), `tools/story-dev/evidence/2026-09-26-ch23swapprobe-*`
+(4), the graded note, `03`, `04`, `06`, `07`, the ledger.

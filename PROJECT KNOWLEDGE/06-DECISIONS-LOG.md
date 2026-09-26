@@ -7247,3 +7247,24 @@ counted.
 **ALTERNATIVES REJECTED.** Id alone (false positives, measured); a per-map name table (the logger cannot print
 room names — the section IS the name); ≥3 sightings (would risk missing the Hall of Fame's short credits
 window for no measured gain). **REOPEN IF** a real League visit is ever logged fewer than twice.
+
+
+## 2026-09-26 — ⭐ USER RULING 14: LOW-LEVEL HM CARRIERS MAY BE SWAP-TRAINED ON VICTORY ROAD 1F INSIDE §Ch23, IN BOUNDED CHUNKS
+
+**THE QUESTION, AS ASKED (with the data):** the §Ch23 refusal ends 30 of 39 badge-8 organic runs because a
+low-level HM carrier (usually Marill L13) cannot reach L47 inside one 250k call. Measured the same day
+(`ai-research-notes/2026-09-26-ch23-swapprobe-GRADED.md`): with production swap-training the Marill leads,
+switches out on turn 1, never takes a hit and went L13→17 in 5 battles; without swapping it fainted 56 times
+and gained nothing. Given the 2026-09-19 ruling (*"a level appropriate area … so it can actually fight or be
+swap trained"*), is it OK to swap-train such carriers on Victory Road 1F (L36-40) before the Elite Four, in
+bounded chunks? **ANSWER: "Yes, swap-train there."**
+⇒ **Build CHUNKED training** (`ai-research-notes/2026-09-26-ch23training-DESIGN.md`, Design 1 + the judges'
+grafts). ✅ This SETTLES the tension with the 2026-09-19 ruling for §Ch23 — its "or be swap trained" clause
+covers it. It does NOT change §Ch24's per-trainee Fly ladder (still the L65 mechanism), nor RULING 2 (1F,
+never B1F), nor RULING 5 (the L65 grind stays after Victory Road).
+**THE MONEY HAZARD (2026-09-18 REVERSAL) — DECIDED HERE, NOT ASKED:** the grind runs before leg 11's
+₽54,300 basket (₽1,741 slack) and a whiteout halves money. ⇒ the chunk loop checks money against the basket
+BEFORE the first chunk and AFTER every chunk, and raises LOUDLY on a shortfall rather than walking into the
+League under-supplied. No re-earning (the MONEY ruling forbids re-raising it). **Why acceptable:** in
+swap-training the strong finisher does the fighting (0 whiteouts in the probe), and the loud stop turns the
+residual risk into a visible, diagnosable outcome.

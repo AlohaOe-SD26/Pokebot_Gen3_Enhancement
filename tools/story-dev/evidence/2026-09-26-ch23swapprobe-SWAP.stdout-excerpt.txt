@@ -1,0 +1,28 @@
+[inject] hmmule: Marill L13 (Surf) added — party was ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'], DISPLACED Castform:L36 (party was full) -> ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+[ch23swapprobe] fixture RESTORED
+[ch23swapprobe] R arm = 'SWAP'
+[ch23swapprobe] R battles = 5
+[ch23swapprobe] R battles_mule_led = 5
+[ch23swapprobe] R battles_mule_rotated = 5
+[ch23swapprobe] R decision_kinds = {'RotateLead': 6, 'UseMove': 7}
+[ch23swapprobe] R exp_per_battle = 455.0
+[ch23swapprobe] R finisher_max_level = 51
+[ch23swapprobe] R frames = 18539
+[ch23swapprobe] R mule = 'Marill#B6B9FAE4'
+[ch23swapprobe] R mule_exp_gain = 2275
+[ch23swapprobe] R mule_exp_post = 4032
+[ch23swapprobe] R mule_exp_pre = 1757
+[ch23swapprobe] R mule_faints_at_battle_end = 0
+[ch23swapprobe] R mule_level_post = 17
+[ch23swapprobe] R mule_level_pre = 13
+[ch23swapprobe] R mule_species_post = 'Marill'
+[ch23swapprobe] R party_pre = ['Sceptile#863B0917:L51', 'Zigzagoon#33CB74C3:L19', 'Swellow#0B30A747:L42', 'Wailmer#FA51ECF3:L40', 'Mightyena#5C96EA9B:L44', 'Marill#B6B9FAE4:L13']
+[ch23swapprobe] R premise_ok = True
+[ch23swapprobe] R purse_finished = True
+[ch23swapprobe] R strategies = ['SwapTrainBattleStrategy']
+[ch23swapprobe] R target = 17
+[ch23swapprobe] R whiteouts = 0
+[ch23swapprobe] RESULT arm=SWAP failure=None
+[ch23swapprobe] VERDICT SWAP BANKS EXP FOR THE MULE (exp_gain=2275, rotated=5/5 mule-led battles, faints=0, whiteouts=0)
+[PARTY-ACCT] ledger += ch23swapprobe 38828 recomputes (party_accounting_ledger.jsonl)

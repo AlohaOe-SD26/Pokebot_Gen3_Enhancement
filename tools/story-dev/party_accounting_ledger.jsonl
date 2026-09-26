@@ -770,3 +770,6 @@
 {"when": "2026-09-26T08:02:08", "driver": "ch23stage", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 350297, "recomputes": 350345, "scans": 1168, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-26T08:04:52", "driver": "ch23stage", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 139572, "recomputes": 139579, "scans": 466, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-26T08:17:11", "driver": "ch23stage", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 29941, "recomputes": 29942, "scans": 100, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-26T08:28:06", "driver": "ch23swapprobe", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-26T08:34:10", "driver": "ch23swapprobe", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 38827, "recomputes": 38828, "scans": 130, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-26T08:39:39", "driver": "ch23swapprobe", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 370699, "recomputes": 370700, "scans": 1236, "divergences": {}, "observer_broke": false}

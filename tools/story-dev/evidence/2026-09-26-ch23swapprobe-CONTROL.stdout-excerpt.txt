@@ -1,0 +1,27 @@
+[inject] hmmule: Marill L13 (Surf) added — party was ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'], DISPLACED Castform:L36 (party was full) -> ['Sceptile:L51', 'Zigzagoon:L19', 'Swellow:L42', 'Wailmer:L40', 'Mightyena:L44', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+[ch23swapprobe] fixture RESTORED
+[ch23swapprobe] R arm = 'CONTROL'
+[ch23swapprobe] R battles = 62
+[ch23swapprobe] R battles_mule_led = 61
+[ch23swapprobe] R battles_mule_rotated = 0
+[ch23swapprobe] R decision_kinds = {'UseMove': 209, 'RunAway': 2}
+[ch23swapprobe] R exp_per_battle = 0.0
+[ch23swapprobe] R finisher_max_level = 51
+[ch23swapprobe] R frames = 350411
+[ch23swapprobe] R mule = 'Marill#6AB6778A'
+[ch23swapprobe] R mule_exp_gain = 0
+[ch23swapprobe] R mule_exp_post = 1757
+[ch23swapprobe] R mule_exp_pre = 1757
+[ch23swapprobe] R mule_faints_at_battle_end = 56
+[ch23swapprobe] R mule_level_post = 13
+[ch23swapprobe] R mule_level_pre = 13
+[ch23swapprobe] R mule_species_post = 'Marill'
+[ch23swapprobe] R party_pre = ['Sceptile#863B0917:L51', 'Zigzagoon#33CB74C3:L19', 'Swellow#0B30A747:L42', 'Wailmer#FA51ECF3:L40', 'Mightyena#5C96EA9B:L44', 'Marill#6AB6778A:L13']
+[ch23swapprobe] R premise_ok = True
+[ch23swapprobe] R purse_finished = False
+[ch23swapprobe] R strategies = ['StoryItemBattleStrategy']
+[ch23swapprobe] R target = 17
+[ch23swapprobe] R whiteouts = 0
+[ch23swapprobe] RESULT arm=CONTROL failure=None
+[ch23swapprobe] VERDICT NOT SHOWN (exp_gain=0, rotated=0/61 mule-led battles, faints=56, whiteouts=0)
