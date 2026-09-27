@@ -2904,3 +2904,21 @@ right — `get_party_size`'s own docstring says capacity questions belong to
 `party_accounting.game_party_count()`, and also that *"Stage 0 has re-pointed NO call site"*.
 Re-pointing the consumer is that project's job; doing it here would have widened the blast radius of
 a change to a SHARED path (the counter hunt withdraws through this code).
+
+## KI-103 — ⚠ OPEN (the one known case is WORKED AROUND on branch `wt/ch24organic`): the planner blocks the ROM TEMPLATE tile of an out-of-view object even when a script has PERMANENTLY moved it — here, Sootopolis's only bridge west (2026-09-26, MEASURED)
+
+**What.** `calculate_path` (`map_path.py:806-852`) treats the TEMPLATE tile of any object it cannot currently see as a
+wall, and `get_map_objects()` is a camera window (`KI-77`). `KI-77` calls that rule fail-safe because a pushed boulder
+respawns on its template. **An object moved with `setobjectxyperm` never returns there:** the RAM template
+(`gSaveBlock1Ptr->objectEventTemplates`) is rewritten, but our map data reads the ROM template, so the over-block is
+PERMANENT for as long as the object is out of view.
+**Measured (USER RULING 18's purchase drives, `post_hm07`):** after the crisis `SootopolisCity/scripts.inc:116` does
+`setobjectxyperm LOCALID_SOOTOPOLIS_STEVEN, 29, 33`; Steven's ROM template is **(20,36), on the only land bridge
+west**. From (31,34) he is in view ⇒ PC side → Mart OK (23 steps). From the PC front (43,32) ⇒ NO PATH; from the Mart
+side back east ⇒ NO PATH (`BLOCKED`) — which stranded a drive after it had bought everything. Evidence:
+`tools/story-dev/evidence/2026-09-26-earlybasket-{E1-FAILED-NOPATH,E1b-STRANDED,E1c-BUY}.txt` (on the branch until the merge).
+**Workaround shipped (branch):** `league_reserve.py` plans BOTH legs from (31,34) and walks back along the stored path;
+gate `probe_league_reserve.py` R7.
+**Real fix — NOT BUILT (a shared-path change; needs an A/B on ordinary navigation):** read object positions from the
+RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide
+the same latent over-block; Sootopolis's own script moves several (`:57-60`, `:104-117`).
