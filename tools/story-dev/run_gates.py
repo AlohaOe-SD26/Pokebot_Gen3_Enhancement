@@ -230,6 +230,10 @@ GATES: list[tuple[str, bool]] = [
     # 13a, the driver drives that same function with `_play`'s Petalburg map set, `pick_holder`, the post-game
     # house-state refusal, and both fault arms read + registered. Six built-in fault arms turn it red.
     ("probe_amulet_coin.py", False),
+    # ⛔ USER RULING 18 — the early League basket + its reserve: the reserve filters ONLY the battle strategy's
+    # medicine list (before the policy, fail-unlocked), no bag reader sees it, arming is state-derived, the
+    # purchase plan is pure, §Ch22 L1 heals → buys → re-heals → gym. Six built-in fault arms turn it red.
+    ("probe_league_reserve.py", False),
     # ⛔ The citation REPAIRER must shift a range citation's BOTH ends (it shifted only the start, 2026-09-26 —
     # the 08 rule it existed to honour). Self-test; the old logic fails it.
     ("repro_fix_doc_citations.py", False),

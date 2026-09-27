@@ -35853,3 +35853,27 @@ or inside the party menu (B2) still ends in Petalburg's overworld with no menu o
 built-in fault arms). Adversarial review: KICK-BACK on docs only (they were held for its outcome and land in these commits); its risk #3 — a budget expiring with a menu open skips the errand's own cleanup — is FIXED and DRIVEN (B1/B2). Suite 95 (91 enforcing + 4 advisory); drift 9.
 **NOT SETTLED:** whether the coin pays ENOUGH (the batch's `[MONEY]` lines will say); the female house; a holder
 already carrying an item (the switch branch).
+
+## 2026-09-26 (late) — USER RULING 18 BUILT: THE LEAGUE BASKET BOUGHT EARLY AT SOOTOPOLIS, AND RESERVED UNTIL THE ELITE FOUR (branch `wt/ch24organic`)
+
+**WHY.** Whiteouts halve the wallet and never touch the bag (`overworld.c:361`), and 3 of 3 organic League arrivals
+were refused on money. The user ruled "buy early with a reserve lock" (`06`, RULING 18).
+**WHAT.** New `modules/story/league_reserve.py`. (1) §Ch22 L1 is now `heal_and_stock_before_the_gym`: heal → buy the
+MISSING Revive/Full Heal/Hyper Potion lines of `LEAGUE_BASKET` at the Sootopolis Mart (cheapest-to-leak first, ₽1,000
+floor, verified by bag delta, FAILS OPEN) → re-heal if the trip walked → enter the gym; it re-runs on every Juan
+attempt. (2) The reserve: one guarded call in `_maybe_use_item` hides the basket quantities from in-battle use while
+armed — state-derived (the Juan-era flag → `ENTERED_ELITE_FOUR` / `IS_CHAMPION` / a sealed §Ch24 map), fails
+UNLOCKED, never seen by a bag reader. ⚠ SCOPE READING (mine, flagged): the ruling said "gym battles"; the reserve holds
+for every trainer battle until the Elite Four, because the bot spent 0 items on Juan in every log.
+**PROOF** (predictions `d9287d39` + addenda `f871f5a6`, `fde2c439`; `ai-research-notes/2026-09-26-ruling18-reserve-GRADED.md`):
+the first two purchase drives FAILED as pre-registered — no path from the PC, then a stranded run on the Mart side —
+because the planner blocks Steven's ROM template tile (20,36) on the only bridge whenever he is out of view (`KI-103`);
+fixed by planning both legs at (31,34) and walking back along the stored path. Then E1'' bought 3/8/30 for ₽45,300
+(₽67,466 → ₽22,166) and returned in one attempt; the driver fails on its own output and skips it; badge 8 skips; a
+raised floor buys exactly Revive 3 + Full Heal 4; NOBUY leaves L1 unchanged; a budget expiring before crossing (B1) or
+inside the Mart menu (B2) still ends re-healed at the gym (B2: menus closed, walked back along the stored path; a bot
+still stranded would fail by name). Fault arms: six (registered in 29). Reserve on the Glacia fight: baseline
+spends 4 Hyper Potions, NOLOCK and RAISE identical (release + fail-unlocked), FORCEON spends 0. New gate
+`probe_league_reserve.py` (R1-R7, eight fault arms). Adversarial review: KICK-BACK — "never strand the bot" was proven only statically (an expired budget skips the in-function walk back); FIXED (menus closed first, off-path fallback, a named error if still stranded, `POKEBOT_RESERVE_FAULT_BUDGET`) and DRIVEN (B1 before crossing, B2 inside the Mart). Suite 96 (92 enforcing + 4 advisory); drift 12.
+**NOT SETTLED:** whether early buying leaves enough for leg 11's Full Restores (the batch will say); the reserve's value in
+Juan / Victory Road fights (they never had Hyper Potions to spend); a bag with no free slot.

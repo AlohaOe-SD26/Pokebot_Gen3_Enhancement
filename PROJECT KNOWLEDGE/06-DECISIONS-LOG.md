@@ -7383,3 +7383,23 @@ replay put the top-level mon in 55 % of won battles and 47/58 bosses (vs 27 % fo
 a hard guard on receiving the coin (converts an optional income boost into a derail); giving it to the current lead
 (sent out less often). **REOPEN IF** the batch's `[MONEY]` lines show the static holder is rarely sent out — then
 "move the coin to the entrant" (recon D1) becomes its own item.
+
+## 2026-09-26 — RULING 18 IMPLEMENTATION CHOICES: SOOTOPOLIS IN §Ch22 L1, RESERVE UNTIL THE ELITE FOUR, STATE-DERIVED
+
+**CHOSEN.** (1) Buy at the SOOTOPOLIS Mart inside §Ch22 L1, after the Poké Center heal (the only point that guarantees
+Sootopolis), re-running on every Juan attempt (only the missing lines), cheapest-to-leak first (Revive, Full Heal, then
+Hyper Potion), ₽1,000 kept for Poké Balls, fail-open. (2) The reserve holds `LEAGUE_BASKET` quantities out of IN-BATTLE
+use only, from the Juan-era flag until `ENTERED_ELITE_FOUR` / `IS_CHAMPION` / a sealed §Ch24 map — derived from game
+state every call, never a latch. (3) SCOPE READING (mine): the ruling's text said "gym battles"; the reserve holds for
+every trainer battle until the Elite Four.
+**WHY.** (1) After the heal the bot is guaranteed in Sootopolis and the wallet is still whole; items survive the Juan
+whiteouts that halve cash. (2) A reserve anywhere else starves leg 11, R1 and the Elite Four's healing (the adversarial
+recon's top scenario); state-derived arming survives restarts, cannot leak into the next ENDLESS run, and releases for
+every Elite Four battle even after a whiteout (the Elite-Four progress vars reset; the entry flag does not). (3) The
+bot spent 0 items on Juan in every log, so a gym-only lock would protect nothing; today's bot carries no Hyper Potions
+past Sootopolis, so the wider lock reproduces today's fights exactly.
+**ALTERNATIVES REJECTED.** Mossdeep (earlier and a simpler walk, but before the Dive teach's possible ball purchase, and
+it would not convert the cash left after each Juan whiteout); a veto of the policy's pick (loses the Super-Potion
+fallback); an in-memory latch (lost on restart, leaks into the next run); a gym-only lock (protects nothing measured).
+**REOPEN IF** the next batch shows runs short of the Full Restores at leg 11 after buying early, or Victory Road losses
+that a held Hyper Potion would have prevented — then the scope or the floor is the user's call again.

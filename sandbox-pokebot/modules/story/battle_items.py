@@ -30,6 +30,9 @@ THE POLICY, and the reasoning behind each rule — this is the "strategically" h
      is an infinite battle — the KI-34 shape that once burned 23.9M frames. `max_uses` caps it.
   5. **Never spend the last of an item on a trivial margin** is deliberately NOT a rule: the bot
      restocks, and a lost run costs more than a potion.
+     ⭐ USER RULING 18 (2026-09-26) adds a RESERVE, and it is NOT this policy's business: the caller
+     (`story_mode._maybe_use_item`) passes `quantity − reserved` for the League basket while the
+     reserve is armed (`modules/story/league_reserve.py`). This module still sees plain quantities.
 
 This module is PURE — no emulator, no game state, no I/O — so `repro_battle_items.py` can test the
 policy exhaustively in milliseconds. The integration that reads the bag and the battle lives in

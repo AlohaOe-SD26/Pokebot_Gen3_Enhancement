@@ -1,0 +1,37 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\fin_E2-VACUITY-OWN-OUTPUT.log
+[setup] loaded save state eb_after.ss1; build=sandbox
+[run] starting faithful loop for up to 80000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> EarlyBasketMode.run   (state=OVERWORLD)
+[earlybasket] PRE {'start_at': ((0, 7), (43, 32)), 'frame_start': 3708572, 'money_start': 22166, 'stock_start': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': []}
+[earlybasket] FAILURE BotModeError: earlybasket: PREMISE FAILED for expect=buy (in_era=True, in_sootopolis=True, plan=[]) — this run would pass having done nothing.
+[earlybasket] fixture RESTORED — current_state.ss1 will not carry this run.
+[earlybasket] R final_at = ((0, 7), (43, 32))
+[earlybasket] R frame_start = 3708572
+[earlybasket] R frames = 0
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 22166
+[earlybasket] R on_gym_1f = False
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = []
+[earlybasket] R start_at = ((0, 7), (43, 32))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] ORDER [] PLAN [] DELTA {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} COST 0
+[earlybasket] conjuncts = {'readings_in_order': False, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': False, 'floor_kept': True, 'walked_and_reheald': False, 'walked_back_across': False, 'on_gym_1f': False, 'no_failure': False, 'no_whiteout': True}
+[earlybasket] ACCEPTANCE: FAIL (expect=buy) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f31 — ending the loop at f151
+[done] ran 152 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 153 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += earlybasket 153 recomputes (party_accounting_ledger.jsonl)

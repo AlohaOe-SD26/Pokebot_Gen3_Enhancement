@@ -869,7 +869,7 @@ def do_sootopolis_gym_chapter(report: dict | None = None) -> Generator:
 
             # --- L1 HEAL (skipped once inside; there is no Poké Center in the gym) -------------
             if not on_1f and not on_b1f and not badge:
-                yield from _heal_before_the_gym(report)
+                yield from heal_and_stock_before_the_gym(report)
                 yield from enter_gym()
                 on_1f = True
 
@@ -940,6 +940,24 @@ def do_sootopolis_gym_chapter(report: dict | None = None) -> Generator:
     raise BotModeError(
         "Ch22 (Gym 8 — Juan) failed after 3 attempts. " + " | ".join(attempts)
     )
+
+
+def heal_and_stock_before_the_gym(report: dict) -> Generator:
+    """§Ch22 L1: heal, buy the League basket's Sootopolis lines (USER RULING 18), re-heal if the Mart trip walked.
+
+    ⭐ ONE FUNCTION SO THE DRIVER DRIVES PRODUCTION: the chapter's L1 and `--driver earlybasket` both call this.
+    WHY HERE: the wallet is whole now and every Juan whiteout halves it, while items survive. AFTER the heal — the only
+    point that guarantees we are in Sootopolis — and the purchase FAILS OPEN. The Mart is across the crater (Surf;
+    Magikarp encounters), so a trip that walked is followed by a second heal: `_heal_before_the_gym` asserts full HP.
+    Runs on every attempt, so a whiteout's leftover cash is converted on the next one.
+    """
+    from modules.story.league_reserve import stock_basket_early
+
+    yield from _heal_before_the_gym(report)
+    early = report.setdefault("early_basket", {})
+    yield from stock_basket_early(early)
+    if early.get("walked"):
+        yield from _heal_before_the_gym(report)
 
 
 def _heal_before_the_gym(report: dict | None = None) -> Generator:

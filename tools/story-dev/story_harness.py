@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22499,6 +22499,201 @@ class AmuletCoinMode(BotMode):
         context.set_manual_mode()
 
 
+class EarlyBasketMode(BotMode):
+    """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
+    `enter_gym`), the same two calls the Juan chapter makes.
+
+    GRADES (`EB_EXPECT`):
+      `buy`     (default) — premise: Juan era, in Sootopolis, a non-empty plan. The three `EARLY_BASKET_READINGS` land
+                IN ORDER; the bag delta equals the plan line by line; money drops by exactly the plan's cost and stays
+                >= the floor; the trip walked, the party was re-healed, and we end on the gym's 1F (the next thing L2
+                needs).
+      `nothing` — premise: the basket's Sootopolis lines already held. No walk, no spend, "nothing missing", gym 1F.
+      `partial` — with `POKEBOT_RESERVE_FAULT_FLOOR=<₽>`: the plan is the cheapest-to-leak PREFIX (Revive, then Full
+                Heal, then Hyper Potion), bought exactly, money stays >= the raised floor.
+      `nobuy`   — with `POKEBOT_RESERVE_FAULT_NOBUY=1`: the skip-the-fix arm — nothing bought, no walk, and the chapter's
+                L1 still heals and enters the gym exactly as before RULING 18.
+      `skip`    — the vacuity/era arm: `stock_basket_early` alone does NOTHING (named reason, no move).
+      `budget`  — with `POKEBOT_RESERVE_FAULT_BUDGET=<frames>` the purchase's budget EXPIRES where `EB_BUDGET_AT` says:
+                `before` = before crossing to the Mart side (nothing to walk back); `shop` = after crossing, inside the
+                Mart — the outer retry must walk back along the stored path. Either way the chapter must still heal
+                and enter the gym (the adversarial review's kick-back, 2026-09-26).
+    `EB_SAVE_AFTER=<path>` saves the state after the purchase + re-heal (before the gym) — the own-output input.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "EarlyBasket"
+
+    def on_battle_started(self, encounter):
+        """The production strategy — without a hook the harness FLEES (`probe_ch24_flyteach.py` F5's lesson)."""
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[earlybasket] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.items import get_item_by_name
+        from modules.map_data import MapRSE
+        from modules.player import get_player
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, reraise_if_aborting, wait_until_truly_controllable
+        from modules.story.league_reserve import (
+            BUY_ORDER,
+            CASH_FLOOR,
+            EARLY_BASKET_READINGS,
+            _stock_by_name,
+            early_basket_plan,
+            in_early_basket_era,
+            stock_basket_early,
+        )
+        from modules.story.sootopolis_gym import GYM_1F, enter_gym, heal_and_stock_before_the_gym
+
+        TAG = "earlybasket"
+        EXPECT = _os.environ.get("EB_EXPECT", "buy")
+        if EXPECT not in ("buy", "nothing", "partial", "nobuy", "skip", "budget"):
+            raise BotModeError(f"{TAG}: EB_EXPECT={EXPECT!r} is not buy|nothing|partial|nobuy|skip|budget")
+        BUDGET_AT = _os.environ.get("EB_BUDGET_AT", "before")
+        PLANNED, AT_MART, BOUGHT = EARLY_BASKET_READINGS
+        floor = int(_os.environ.get("POKEBOT_RESERVE_FAULT_FLOOR") or CASH_FLOOR)
+        prices = {n: get_item_by_name(n).price for n in BUY_ORDER}
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        R: dict = {}
+        rep: dict = {}
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            _check_abort()
+            R["start_at"] = VR._where()
+            R["frame_start"] = context.emulator.get_frame_count()
+            R["money_start"] = get_player().money
+            R["stock_start"] = _stock_by_name(list(BUY_ORDER))
+            R["in_era"] = in_early_basket_era()
+            R["in_sootopolis"] = VR._on_map(MapRSE.SOOTOPOLIS_CITY) or VR._on_map(
+                MapRSE.SOOTOPOLIS_CITY_POKEMON_CENTER_1F)
+            R["plan_predicted"] = early_basket_plan(R["stock_start"], R["money_start"], prices, floor=floor)
+            log(f"[{TAG}] PRE {R}")
+            if EXPECT in ("buy", "partial", "budget"):
+                premise = R["in_era"] and R["in_sootopolis"] and bool(R["plan_predicted"])
+            elif EXPECT in ("nothing", "nobuy"):
+                premise = R["in_era"] and R["in_sootopolis"] and (EXPECT == "nobuy" or not R["plan_predicted"])
+            else:
+                premise = True
+            if not premise:
+                raise BotModeError(f"{TAG}: PREMISE FAILED for expect={EXPECT} (in_era={R['in_era']}, in_sootopolis="
+                                   f"{R['in_sootopolis']}, plan={R['plan_predicted']}) — this run would pass having "
+                                   f"done nothing.")
+            if EXPECT == "skip":
+                rep = {}
+                yield from stock_basket_early(rep)
+            else:
+                ch22: dict = {}
+                yield from heal_and_stock_before_the_gym(ch22)
+                rep = ch22.get("early_basket", {})
+                R["party_after_heal"] = ch22.get("party_after_heal")
+                save_to = _os.environ.get("EB_SAVE_AFTER")
+                if save_to:
+                    Path(save_to).write_bytes(context.emulator.get_save_state())
+                    log(f"[{TAG}] STATE AFTER THE PURCHASE SAVED to {save_to}")
+                yield from enter_gym()
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            try:
+                R["frames"] = context.emulator.get_frame_count() - R.get("frame_start", 0)
+                R["final_at"] = VR._where()
+                R["on_gym_1f"] = VR._on_map(GYM_1F)
+                R["money_end"] = get_player().money
+                R["stock_end"] = _stock_by_name(list(BUY_ORDER))
+                R["party_full_end"] = all(m.current_hp == m.total_hp for m in get_party() if m is not None)
+            except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                reraise_if_aborting(read_error)
+                R["read_error"] = f"<unreadable {type(read_error).__name__}: {read_error}>"
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        for key in sorted(k for k in rep if k not in ("readings", "route_back")):
+            log(f"[{TAG}] REPORT {key} = {rep[key]!r}")
+        order = rep.get("order") or []
+        plan = rep.get("plan") or []
+        delta = {n: R.get("stock_end", {}).get(n, 0) - R.get("stock_start", {}).get(n, 0) for n in BUY_ORDER}
+        cost = sum(prices[n] * q for n, q in plan)
+        common = {"no_failure": failure is None and "read_error" not in R,
+                  "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if EXPECT in ("buy", "partial"):
+            conj = {
+                "readings_in_order": order == list(EARLY_BASKET_READINGS),
+                "plan_as_predicted": plan == R.get("plan_predicted"),
+                "bag_delta_equals_plan": {n: q for n, q in delta.items() if q} == dict(plan),
+                "money_drop_equals_cost": R.get("money_start", 0) - R.get("money_end", 0) == cost > 0,
+                "floor_kept": R.get("money_end", -1) >= floor,
+                "walked_and_reheald": rep.get("walked") is True and R.get("party_full_end") is True,
+                "walked_back_across": rep.get("returned") is True,
+                "on_gym_1f": R.get("on_gym_1f") is True,
+            }
+            if EXPECT == "partial":
+                names = [n for n, _q in plan]
+                conj["cheapest_to_leak_prefix"] = names == list(BUY_ORDER)[:len(names)] and len(names) < len(BUY_ORDER)
+        elif EXPECT == "budget":
+            conj = {
+                "budget_expired": rep.get("finished") is False,
+                f"expired_{BUDGET_AT}": (rep.get("crossed") is not True if BUDGET_AT == "before"
+                                         else rep.get("crossed") is True and "frames_at_shop_open" in rep),
+                "retry_walked_back": (True if BUDGET_AT == "before"
+                                      else rep.get("retry_return") is True and rep.get("returned") is True),
+                "not_stranded": rep.get("stranded") is not True,
+                "healed_and_entered": R.get("party_full_end") is True and R.get("on_gym_1f") is True,
+            }
+        elif EXPECT == "nothing":
+            conj = {
+                "named_nothing": rep.get("early_basket") == "nothing missing",
+                "no_walk": rep.get("walked") is False and AT_MART not in order,
+                "no_spend": R.get("money_end") == R.get("money_start"),
+                "on_gym_1f": R.get("on_gym_1f") is True,
+            }
+        elif EXPECT == "nobuy":
+            conj = {
+                "fault_bit": rep.get("early_basket") == "fault NOBUY",
+                "no_walk": rep.get("walked") is False and PLANNED not in order,
+                "no_spend": R.get("money_end") == R.get("money_start"),
+                "still_heals_and_enters": R.get("party_full_end") is True and R.get("on_gym_1f") is True,
+            }
+        else:  # skip
+            conj = {
+                "named_reason": str(rep.get("early_basket", "")).startswith(("out of era", "not in Sootopolis",
+                                                                             "fault NOBUY")),
+                "no_walk": rep.get("walked") is False and PLANNED not in order,
+                "did_not_move": R.get("final_at") == R.get("start_at"),
+                "no_spend": R.get("money_end") == R.get("money_start"),
+            }
+        conj.update(common)
+        ok = all(conj.values())
+        log(f"[{TAG}] ORDER {order} PLAN {plan} DELTA {delta} COST {cost}")
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}) SCOPE: §Ch22 L1 (heal, buy, re-heal, "
+            f"enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.")
+        context.set_manual_mode()
+
+
 class Ch24HandoffMode(BotMode):
     """`--driver ch24handoff` — §Ch24's ORGANIC HAND-OFF, in `_play`'s order, stopping at the open door.
 
@@ -26437,6 +26632,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24HandoffMode()
         elif args.driver == "amuletcoin":
             context.bot_mode_instance = AmuletCoinMode()
+        elif args.driver == "earlybasket":
+            context.bot_mode_instance = EarlyBasketMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

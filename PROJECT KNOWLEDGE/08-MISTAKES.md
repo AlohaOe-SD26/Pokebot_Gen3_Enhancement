@@ -22202,3 +22202,17 @@ its failure would have taught the reader to distrust a correct gate.
 **Fix:** inject the mention into the RAW source (inside `_play`), then run the same strip-and-extract path.
 **Prevention rule:** ⛔ **A NO-FALSE-POSITIVE ARM MUST FEED THE MENTION THROUGH THE SAME PIPELINE AS THE REAL SOURCE** —
 inject upstream of every normalisation step, never downstream of it.
+
+## 2026-09-26 — ⛔ I FIXED ONE DIRECTION OF A SYMMETRIC PATH BLOCKER, AND THE SECOND DRIVE BOUGHT EVERYTHING AND STRANDED THE BOT
+
+**Symptom:** RULING 18's first drive found no path from the Sootopolis PC to the Mart. I diagnosed an unseen-object
+blocker on the only bridge and added a waypoint on the PC side. The second drive bought the whole basket — then the
+pre-gym heal could not plan BACK from the Mart side: a stranded run (every Juan attempt's heal would fail).
+**Root cause:** the planner blocks the ROM template tile of any object out of camera view (`KI-103`); Steven's template
+(20,36) is on the bridge but a `setobjectxyperm` moved him to (29,33). The blocker exists from EVERY position that
+cannot see him — both sides of the bridge — and I fixed only the side I had measured.
+**Fix:** plan BOTH legs from the one position that sees him, refuse to cross if either fails, and walk back along the
+stored path (never re-plan blind from the far side); gate R7 pins it with two fault arms.
+**Prevention rule:** ⛔ **A PATH BLOCKER CAUSED BY WHAT THE PLANNER CANNOT SEE IS SYMMETRIC — before crossing a choke,
+PLAN THE WAY BACK from the side that can see it.** A one-way trip that can fail on the return is a stranding, not a
+fail-open.

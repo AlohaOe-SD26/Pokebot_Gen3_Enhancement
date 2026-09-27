@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 95 entries = 91 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 96 entries = 92 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 9 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -472,6 +472,15 @@ done
   registers her in Match Call), GIVEs the coin from the bag to the top-level battler (`give_item_to_party_member`,
   a sibling of `use_item_on_party_member`), and walks back. It FAILS SOFT (named reason); only the end position is
   hard-guarded. Gate `probe_amulet_coin.py`; inputs probe `probe_amulet_inputs.py`.
+* **`modules/story/league_reserve.py`** — USER RULING 18 (2026-09-26), two independent parts.
+  (1) THE EARLY PURCHASE `stock_basket_early`: §Ch22 L1 is now `sootopolis_gym.heal_and_stock_before_the_gym`
+  (heal → buy → re-heal if the trip walked → `enter_gym`). Buys the MISSING Revive/Full Heal/Hyper Potion lines of
+  `LEAGUE_BASKET` at the Sootopolis Mart, cheapest-to-leak first, keeping ₽1,000; FAILS OPEN; verified by bag delta.
+  ⛔ The Mart walk goes via (31,34) and plans BOTH legs there before crossing, then walks back along the stored path —
+  from elsewhere the planner cannot see the bridge (`KI-103`). (2) THE RESERVE `filter_medicine_for_reserve`: one
+  guarded call in `StoryItemBattleStrategy._maybe_use_item` hides `LEAGUE_BASKET` quantities from in-battle use while
+  armed (state-derived: Juan era → entering the Elite Four / champion / a sealed §Ch24 map); fails UNLOCKED; no bag
+  reader sees it. Driver `--driver earlybasket`; gate `probe_league_reserve.py`; inputs `probe_reserve_inputs.py`.
 * **`modules/story/victory_road.py`** — §Ch23 (Victory Road, and the League-approach shop/heal).
   ✅ **A FULL CHAPTER, DISPATCHED AS SEGMENT 23** (2026-09-05) via `do_victory_road_chapter()` /
   `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned

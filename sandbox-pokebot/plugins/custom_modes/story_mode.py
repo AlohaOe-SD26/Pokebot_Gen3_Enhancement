@@ -881,6 +881,19 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             for slot in get_item_bag().items
             if slot.item.battle_use is ItemBattleUse.Healing
         ]
+        # ⛔ USER RULING 18 — THE LEAGUE RESERVE. Both policies below see `quantity − reserved` for every
+        # `LEAGUE_BASKET` line while the reserve is armed (Juan era → entering the Elite Four; state-derived, see
+        # `modules/story/league_reserve.py`). FILTERED HERE, BEFORE the policy — never a veto of its pick, which would
+        # lose today's fallback to a Super Potion. ⛔ ONLY here: the bag readers (leg 11, R1, the Elite Four's
+        # between-room heal) must keep reading the RAW bag. ⛔ FAILS UNLOCKED — even an import error leaves
+        # `medicine` untouched, because `decide_turn` swallows exceptions from this method and a crash here once
+        # disabled ALL item use with every gate green.
+        try:
+            from modules.story.league_reserve import filter_medicine_for_reserve as _league_reserve_filter
+
+            medicine = _league_reserve_filter(medicine)
+        except Exception:  # noqa: BLE001 - fail UNLOCKED: a broken reserve must never disable item use
+            pass
         options = [opt for opt in medicine if opt[2] > 0]
         # ---- `#24-e4healing` step 4 — the A/B KNOB for `HEAL_AT_FRACTION`. --------------------
         # ⛔ DEFAULT UNCHANGED. Unset -> `heal_at_fraction` is not passed at all and the module

@@ -1,0 +1,96 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\fin_B2-BUDGET-SHOP.log
+Running mGBA 0.10.2
+[setup] loaded save state post_hm07.ss1; build=sandbox
+[run] starting faithful loop for up to 80000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> EarlyBasketMode.run   (state=OVERWORLD)
+[earlybasket] PRE {'start_at': ((0, 7), (31, 34)), 'frame_start': 3699006, 'money_start': 67466, 'stock_start': {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]}
+f244: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect'] ctrl=EarlyBasketMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f1645: SAVED stall state #1 to stalls/repro-ml-f1645.ss1 (bt='Got away safely!')
+f1945: !!! NO-PROGRESS x1200 sig=('EarlyBasketMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['SootopolisCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f1945:     gen -> EarlyBasketMode.run  @ story_harness.py:22602
+f1945:     gen -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:956
+f1945:     gen -> _heal_before_the_gym  @ sootopolis_gym.py:983
+f1945:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1945:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f1945:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1945:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+f2000: heartbeat mode=Story ctrl=EarlyBasketMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+Story: RULING 18 — buying [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 
+30)] at the Sootopolis Mart (₽67,466, floor ₽1,000).
+f3897: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_ContinueTaskAfterMessagePrints'] ctrl=EarlyBasketMode.run bt='Got away safely!' scripts=['SootopolisCity_Mart_EventScript_Clerk'] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4000: heartbeat mode=Story ctrl=EarlyBasketMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4065: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_ShopMenu'] ctrl=EarlyBasketMode.run bt='Got away safely!' scripts=['SootopolisCity_Mart_EventScript_Clerk'] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4070: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=EarlyBasketMode.run bt='Got away safely!' scripts=['SootopolisCity_Mart_EventScript_Clerk', 'Std_MsgboxDefault'] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4141: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=EarlyBasketMode.run bt='Got away safely!' scripts=['SootopolisCity_Mart_EventScript_Clerk', 'Std_MsgboxDefault'] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6000: heartbeat mode=Story ctrl=EarlyBasketMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6584: SAVED stall state #2 to stalls/repro-ml-f6584.ss1 (bt='Got away safely!')
+f6884: !!! NO-PROGRESS x1200 sig=('EarlyBasketMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['SootopolisCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f6884:     gen -> EarlyBasketMode.run  @ story_harness.py:22602
+f6884:     gen -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:960
+f6884:     gen -> _heal_before_the_gym  @ sootopolis_gym.py:983
+f6884:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f6884:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f6884:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f6884:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[earlybasket] fixture RESTORED — current_state.ss1 will not carry this run.
+[earlybasket] R final_at = ((15, 0), (8, 25))
+[earlybasket] R frame_start = 3699006
+[earlybasket] R frames = 7902
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R money_end = 67466
+[earlybasket] R money_start = 67466
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_after_heal = {187737927: ('Swellow', 115, 115), 868971715: ('Zigzagoon', 48, 48), 2252015895: ('Sceptile', 138, 138), 4199673075: ('Wailmer', 160, 160), 1553394331: ('Mightyena', 130, 130), 3380138318: ('Castform', 103, 103)}
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] R start_at = ((0, 7), (31, 34))
+[earlybasket] R stock_end = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] R stock_start = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT budget = 1470
+[earlybasket] REPORT close_presses = 41
+[earlybasket] REPORT crossed = True
+[earlybasket] REPORT finished = False
+[earlybasket] REPORT floor = 1000
+[earlybasket] REPORT frame_start = 3701177
+[earlybasket] REPORT frames_at_cross = 535
+[earlybasket] REPORT frames_at_shop_open = 1390
+[earlybasket] REPORT layout_pin = 'SOOTOPOLIS_CITY: planner blockdata 0x083E6A04 -> 0x083E6A04 (pinned to the LIVE header)'
+[earlybasket] REPORT money_before = 67466
+[earlybasket] REPORT order = ['EB-PLANNED', 'EB-MART']
+[earlybasket] REPORT plan = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] REPORT retry_return = True
+[earlybasket] REPORT return_at = ((0, 7), (31, 34))
+[earlybasket] REPORT return_attempts = [{'from': (17, 30), 'remaining': 22}]
+[earlybasket] REPORT returned = True
+[earlybasket] REPORT route_back_len = 22
+[earlybasket] REPORT route_out_len = 23
+[earlybasket] REPORT shop_menu_open = True
+[earlybasket] REPORT sold_here = ['Full Heal', 'Hyper Potion', 'Max Potion', 'Max Repel', 'Revive', 'Shadow Mail', 'Ultra Ball', 'X Attack', 'X Defend']
+[earlybasket] REPORT stock_before = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT stranded = False
+[earlybasket] REPORT walked = True
+[earlybasket] REPORT waypoint_reached = ((0, 7), (31, 34))
+[earlybasket] ORDER ['EB-PLANNED', 'EB-MART'] PLAN [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] DELTA {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} COST 45300
+[earlybasket] conjuncts = {'budget_expired': True, 'expired_shop': True, 'retry_walked_back': True, 'not_stranded': True, 'healed_and_entered': True, 'no_failure': True, 'no_whiteout': True}
+[earlybasket] ACCEPTANCE: PASS (expect=budget) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+f7933: CONTROLLER -> <none>   (state=OVERWORLD)
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f7933 — ending the loop at f8053
+[done] ran 8054 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 8055 get_party() recomputes, 27 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += earlybasket 8055 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-26_17
+-03-33.ss1 created!
+Updated `current_state.ss1`!
