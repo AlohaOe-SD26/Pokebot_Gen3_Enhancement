@@ -71,3 +71,15 @@ estimate (`MIN_SHARE` 0.5), a credible-answer test (2x AND power), a banned-move
 | Q4 | `budget` (`POKEBOT_GYMTM_FAULT_BUDGET=600`), devon_scope_got, Skarmory×2 | `finished` False; most likely not taught (TM50 still 1); the teach-aware close leaves OVERWORLD, no menu; a path to the gym | a menu left open; a TM spent without the move |
 | Q5 | `noplan`, fortree_gym_wedge, Skarmory×2 | `no plan`; reasons include "Sceptile would never be fielded against Skarmory"; nothing changes; < 2,000 frames | any teach |
 | Q6 | `taught` pointed at Q1's OWN END STATE | **FAIL** — Loudred now has Overheat (a credible 2x answer) ⇒ `no plan` | a PASS |
+
+## ADDENDUM 2 (filed ~20:45, BEFORE the drive) — the adversarial review KICKED BACK: the recorder was dead code
+
+The reviewer found the design-4 recorder read `_what` two lines BEFORE its assignment inside the [TURN]
+instrumentation's try: an `UnboundLocalError` on every decision, swallowed — so the log never received an entry, no wall
+could ever be named in real play, AND the pre-existing `[TURN]` event stopped for every battle. None of Q1-Q6 could see
+it: they seed `_loss_foe_history`. Fixed (the recorder now sits below `_what`); gate G1c now RUNS the real try-body and
+its fault arm (the shipped order) fails. The drive below fights for real.
+
+| # | Drive | Prediction | Falsifier |
+|---|---|---|---|
+| R1 | `--driver gymtmbattle`, `fortree_gym_wedge.ss1` (production `do_fortree_gym()`, battle hooks delegated to a real `StoryMode`) | ≥1 gym-trainer battle; EVERY trainer battle records ≥1 decision; ≥1 `[TURN` event; every gym trainer named `None`, Winona named `Winona` if reached; a lost trainer battle is never filed; a lost Winona battle is filed with non-empty roster-only faints. REPORTED, not predicted with confidence: the team probably reaches Winona; win or lose ≈ a coin flip (the day's Treecko teams lost to her often) | any trainer battle with 0 decisions; zero `[TURN` events; a trainer named Winona; a trainer loss filed |
