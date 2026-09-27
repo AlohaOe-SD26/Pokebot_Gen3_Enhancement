@@ -35893,3 +35893,20 @@ leg 5 must fire there. `probe_ch23_leg_guards.py` now reads the predicate (the h
 (18, 42) … still at (18, 6)` ×3. New ROM gate `probe_ch23_leg5_reentry.py`: three plateau fixtures skip, the arm fires
 there, and both south controls — including `ki90_whiteout_at_evergrande` (Wally beaten, south PC) — still fire.
 Adversarial review: KICK-BACK — a plain RuntimeError from `get_player_location()` (documented mid map change) would have escaped the guard as a crash; FIXED (any unreadable position fails toward the old guard — leg 5 fires) and DRIVEN (gate C5, arm `POKEBOT_CH23_FAULT_PLATEAUREAD`). The live batch shows the defect in all five money-refused runs (derails #2-#5). Suite 97 (93 enforcing + 4 advisory; `--quick` 85).
+
+## 2026-09-26 (late) — A POST-GYM-1 POKÉDEX CATCH NOW STOPS AT THE BALL RESERVE AND ON A FAINT (`#24-dexcatch-battlebail`; RULING 20 Phase 0; branch `wt/ch24organic`)
+
+**WHY.** The dex-catch fence guards only ENTRY (spare balls > 10, a healthy party); a catch battle never fights back and
+throws until caught or empty. MEASURED (agent log forensics): one Absol took 23 balls in 26,615 frames and the run later
+died "Cannot hunt a Dive learner: no Poké Balls and no money". USER RULING 20 wants catching always on — this is the
+guardrail it needs first (`ai-research-notes/2026-09-26-rulings19-20-PLAN.md`, Phase 0).
+**WHAT.** A dex-ONLY `StoryDexCatchStrategy`, returned only by the fence's call site and only after gym 1 (pre-gym-1
+team building, the shiny strategy and the mandatory HM/counter catches keep `StoryCatchStrategy`). Pure rule
+`dex_catch_bail_reason`: flee at spare balls ≤ `DEX_CATCH_BALL_RESERVE` (10) or after any faint — via the best escape
+method; TRAPPED (Shadow Tag, Arena Trap, Mean Look, Wrap) ⇒ keep throwing; trapped with NO ball left ⇒ FIGHT with the
+strongest move (the parent would pick an impossible Run). An unreadable bag keeps the old behaviour. Arm
+`POKEBOT_DEXCATCH_FAULT_NOBAIL`. `[DEXCATCH-BAIL]` events name each bail.
+**PROOF.** New gate `probe_dexcatch_bail.py` (pure rule incl. the exact reserve boundary; wiring; stubbed behaviour incl.
+three trapped cases; the arm; three built-in fault arms); `probe_dex_catch_fence.py` still 20/20. ⚠ NO live drive — the
+item asked for a probe first; live evidence is the next batch's `[DEXCATCH-BAIL]` lines. Adversarial review: KICK-BACK first (the diff I sent predated the trap handling; the reviewer found a trapped-and-empty Run hole) — the hole is closed (fight out) and the re-review on a diff verified byte-identical to the tree is APPROVE-WITH-RISKS (residuals recorded in `06`).
+Suite 98 (94 enforcing + 4 advisory; `--quick` 86).

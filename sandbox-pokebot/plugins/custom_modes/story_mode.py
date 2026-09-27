@@ -92,6 +92,113 @@ class StoryCatchStrategy(CatchStrategy):
         return super().decide_turn(battle_state)
 
 
+def dex_catch_bail_reason(spare_balls: int, reserve: int, fainted_this_battle: bool) -> "str | None":
+    """PURE: why a DISCRETIONARY (post-gym-1 Pokédex) catch should stop NOW, or None to keep throwing.
+
+    `#24-dexcatch-battlebail` + USER RULING 20's Phase 0 (`ai-research-notes/2026-09-26-rulings19-20-PLAN.md`):
+    the fence guards only ENTRY (`spare_balls > DEX_CATCH_BALL_RESERVE`, a healthy party), while a catch battle never
+    fights back and throws until caught or empty — MEASURED: one Absol took 23 balls in 26,615 frames and the run later
+    died "Cannot hunt a Dive learner: no Poké Balls and no money". ⇒ stop at the reserve (the mandatory hunts' balls),
+    and stop the moment a team member faints (the wild attacks for free).
+    """
+    if fainted_this_battle:
+        return "a team member fainted"
+    if spare_balls <= reserve:
+        return f"only {spare_balls} spare balls left — the rest are the mandatory hunts' reserve ({reserve})"
+    return None
+
+
+class StoryDexCatchStrategy(StoryCatchStrategy):
+    """The DISCRETIONARY Pokédex catch after gym 1 — a dex-ONLY subclass, exactly as `#24-dexcatch-battlebail` specified.
+
+    ⛔ NOT an edit of `StoryCatchStrategy`: `StoryShinyCatchStrategy` inherits it (the shiny rule — attempt until success,
+    whiteout or out of balls — is a user directive), and the HM-learner and counter catches are MANDATORY. Only the
+    fence's post-gym-1 call site returns this class; pre-gym-1 team building stays byte-identical.
+    Bails (flees) on `dex_catch_bail_reason`: a faint this battle, or spare balls at the reserve. A reserve read that
+    FAILS keeps the old behaviour (throw) — never a silent bail. `POKEBOT_DEXCATCH_FAULT_NOBAIL=1` restores the old
+    behaviour entirely (the skip-the-fix arm, registered in 29).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._fainted_this_battle = False
+        self.bail_reason = None
+
+    def should_flee_after_faint(self, battle_state) -> bool:
+        import os as _os_bail
+
+        if _os_bail.environ.get("POKEBOT_DEXCATCH_FAULT_NOBAIL") == "1":
+            return super().should_flee_after_faint(battle_state)
+        self._fainted_this_battle = True
+        # ⛔ Only when escape is POSSIBLE: trapped (Shadow Tag, Arena Trap — Trapinch is a Route 111 catch — Mean Look,
+        # Wrap), "No" to "use next Pokémon?" cannot escape; keep the parent's answer (send the next mon, keep throwing).
+        if self._escape(battle_state) is None:
+            return super().should_flee_after_faint(battle_state)
+        self._announce_bail("a team member fainted")
+        return True
+
+    @staticmethod
+    def _escape(battle_state):
+        """The best way out, or None when escaping is IMPOSSIBLE. An unreadable state falls back to Run (the plain
+        strategy's own out-of-balls answer)."""
+        try:
+            from modules.battle_strategies import BattleStrategyUtil as _BSU_bail
+
+            return _BSU_bail(battle_state).get_best_escape_method()
+        except Exception:  # noqa: BLE001 - unreadable ⇒ Run, exactly what StoryCatchStrategy does at 0 balls
+            return TurnAction.run_away()
+
+    def _announce_bail(self, reason: str) -> None:
+        if self.bail_reason is not None:
+            return
+        self.bail_reason = reason
+        context.message = f"Story: abandoning this Pokédex catch — {reason}."
+        try:
+            _log_story_event(f"[DEXCATCH-BAIL] {reason}", "DEXCATCH")
+        except Exception:  # noqa: BLE001 - telemetry must never break a battle; the flee itself still happens
+            pass
+
+    def decide_turn(self, battle_state):
+        import os as _os_bail
+
+        if _os_bail.environ.get("POKEBOT_DEXCATCH_FAULT_NOBAIL") != "1":
+            try:
+                from modules.items import get_item_bag as _bag_bail
+
+                reason = dex_catch_bail_reason(_bag_bail().number_of_balls_except_master_ball,
+                                               DEX_CATCH_BALL_RESERVE, self._fainted_this_battle)
+            except Exception:  # noqa: BLE001 - an unreadable bag keeps the OLD behaviour (throw), never a silent bail
+                reason = None
+            if reason is not None:
+                escape = self._escape(battle_state)
+                if escape is not None:
+                    self._announce_bail(reason)
+                    return escape
+                # ⛔ TRAPPED: choosing Run every turn would never leave — keep the old behaviour (throw) instead…
+                fight = self._fight_if_trapped_and_empty(battle_state)
+                if fight is not None:
+                    return fight
+        return super().decide_turn(battle_state)
+
+    def _fight_if_trapped_and_empty(self, battle_state):
+        """…and when NO ball is left to throw, the parent would pick Run, which a trapped battler can never do (review
+        2026-09-26: Trapinch's Arena Trap on Route 111) — the wild would then attack for free until a whiteout. FIGHT
+        instead: the strongest move ends the battle. None ⇒ no usable move (or unreadable): the parent decides."""
+        try:
+            if self._get_best_poke_ball(battle_state) is not None:
+                return None
+            from modules.battle_strategies import BattleStrategyUtil as _BSU_fight
+
+            move = _BSU_fight(battle_state).get_strongest_move_against(
+                battle_state.own_side.active_battler, battle_state.opponent.active_battler)
+        except Exception:  # noqa: BLE001 - unreadable ⇒ the parent's turn, exactly the pre-change behaviour
+            return None
+        if move is None:
+            return None
+        self._announce_bail("trapped with no Poké Ball left — fighting out")
+        return TurnAction.use_move(move)
+
+
 class StoryShinyCatchStrategy(StoryCatchStrategy):
     """Catch strategy for a WILD SHINY in Story mode (user directive 2026-07-22: shinies
     are rare collectibles — a real run's debug log showed a Shiny Poochyena being FOUGHT
@@ -3614,7 +3721,19 @@ class StoryMode(BotMode):
                 )
                 # Use the story catch strategy (flees when out of balls instead of
                 # dropping to Manual — see StoryCatchStrategy).
-                return StoryCatchStrategy()
+                # ⭐ AFTER GYM 1 the catch is DISCRETIONARY (the fence regime): the dex-only subclass bails at the
+                # ball reserve or on a faint (`#24-dexcatch-battlebail`, RULING 20 Phase 0). Pre-gym-1 team building
+                # keeps the plain strategy, byte-identical.
+                try:
+                    # ⛔ ALIASED local import: `get_event_flag` is not a module-level name here, and an UN-aliased local
+                    # import would make it function-local for this whole method (UnboundLocalError elsewhere, swallowed
+                    # by an `except` — the silent-failure shape recorded in 08 more than once).
+                    from modules.memory import get_event_flag as _gef_dexbail
+
+                    _post_badge = bool(_gef_dexbail("BADGE01_GET"))
+                except Exception:  # noqa: BLE001 - unreadable ⇒ the plain strategy, exactly the pre-change behaviour
+                    _post_badge = False
+                return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
         except Exception:
             pass
         # SWAP-TRAINING: while train_team is running, use the swap strategy so an

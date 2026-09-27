@@ -234,6 +234,9 @@ GATES: list[tuple[str, bool]] = [
     # medicine list (before the policy, fail-unlocked), no bag reader sees it, arming is state-derived, the
     # purchase plan is pure, §Ch22 L1 heals → buys → re-heals → gym. Six built-in fault arms turn it red.
     ("probe_league_reserve.py", False),
+    # ⛔ `#24-dexcatch-battlebail` / RULING 20 Phase 0 — a post-gym-1 Pokédex catch bails at the ball reserve and on
+    # a faint (a dex-only subclass; the shiny, HM and counter catches untouched). Three built-in fault arms.
+    ("probe_dexcatch_bail.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

@@ -7450,3 +7450,16 @@ or a catch policy for flyers.
   2026-09-25. It was driven and wired 2026-08-13 (`KI-63`), with the ping-pong fix 2026-09-07; only the PC-FIRST HM
   withdraw is from 2026-09-25. The risk statement is unchanged: `#24-partycap` was measured before either path existed.
   Build plan: `ai-research-notes/2026-09-26-rulings19-20-PLAN.md`.
+
+## 2026-09-26 — THE DEX-CATCH BAIL: STOP AT THE RESERVE; WHEN TRAPPED, THROW; TRAPPED AND EMPTY, FIGHT
+
+**CHOSEN.** A post-gym-1 Pokédex catch flees (by the best escape method) at spare balls ≤ 10 or after any faint. When
+escape is IMPOSSIBLE it keeps throwing — spending into the reserve is the lesser harm than a Run that loops until a
+whiteout — and when no ball is left it fights with its strongest move. Only the dex-only subclass behaves this way.
+**WHY.** The reserve exists for the MANDATORY hunts (HM learners, counters); a discretionary catch that drains it has
+ended a run. A trapped battler has no legal escape in Gen 3, so the only choices are throw or fight.
+**NOT CHANGED, STATED:** the plain `StoryCatchStrategy` still picks Run at 0 balls without a trap check. The shiny
+strategy inherits it and its rule is a user directive (attempt until success, whiteout or out of balls), and the HM /
+counter catches are mandatory — a trapped-and-empty mandatory catch still ends in a whiteout (pre-existing, rare).
+**REOPEN IF** the batch shows `[DEXCATCH-BAIL]` never firing (then the wiring is wrong), or dex catches ending in
+whiteouts anyway.

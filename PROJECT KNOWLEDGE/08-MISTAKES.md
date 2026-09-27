@@ -22240,3 +22240,14 @@ new guard could END a run where the old one (flags and position only) could neve
 aborts re-raise; a printed line. Driven by `POKEBOT_CH23_FAULT_PLATEAUREAD` (gate C5).
 **Prevention rule:** ⛔ **A GUARD THAT ADDS A LIVE READ MUST CATCH EVERYTHING ITS CALLEES DOCUMENT AND FAIL TOWARD THE
 BEHAVIOUR IT REPLACES** — a guard must never be able to crash where the guard it tightened could not.
+
+## 2026-09-26 — ⛔ I HANDED A REVIEWER A DIFF OLDER THAN THE CODE
+
+**Symptom:** the adversarial review of the dex-catch bail came back KICK-BACK on a hazard (an unconditional Run that can
+never succeed against a trapping wild) that the working tree had ALREADY fixed — I generated the review diff, then kept
+editing while the review ran.
+**Root cause:** the diff was a snapshot taken before the last edit; the self-report described the snapshot.
+**Fix:** regenerated with `git diff HEAD -- <paths>` right before sending, with fresh gate output, and re-reviewed on the
+exact bundle that ships.
+**Prevention rule:** ⛔ **FREEZE THE CODE WHILE A REVIEW RUNS — or regenerate the diff from HEAD and re-send it after the
+last edit.** A reviewer must judge the bytes that ship, not a draft of them.
