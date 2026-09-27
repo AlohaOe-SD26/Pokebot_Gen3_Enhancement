@@ -1,0 +1,109 @@
+[setup] LOG -> evidence\2026-09-26-ki104-K1-oldslot.log
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> TeachFullMode.run   (state=OVERWORLD)
+[teachfull] HANDOFF-STATE controllable=True cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems
+[teachfull] HANDOFF-STATE message_task_active=False tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain']
+[teachfull] item=HM04 teaches Strength
+[teachfull] bag holds 1x HM04
+[teachfull] party — ['0:Shedinja moves=4 compat=False knows=False', '1:Blaziken moves=4 compat=True knows=False', '2:Mightyena moves=4 compat=True knows=False', '3:Ninjask moves=4 compat=False knows=False', '4:Loudred moves=4 compat=True knows=False']
+[teachfull] selection: min_moves=4 want_slot=None
+[teachfull] target=slot 1 Blaziken L36 moves=['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']
+f1093: === MOVE-LEARN/EVO WINDOW OPEN === party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+  f1093 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1094 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1095 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1096 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1097 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1098 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1099 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1100 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1101 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1102 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1103 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1104 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1105 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+f1105: === window closed === party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f1285: === MOVE-LEARN/EVO WINDOW OPEN === party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+  f1285 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1286 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1287 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1288 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1289 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1290 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1291 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1292 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1293 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1294 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1295 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1296 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1297 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1298 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1299 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1300 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1301 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1302 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1303 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1304 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1305 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1306 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1307 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1308 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1309 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1310 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1311 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1312 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1313 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1314 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1315 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1316 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1317 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1318 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1319 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1320 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1321 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1322 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1323 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1324 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1325 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1326 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1327 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1328 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1329 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1330 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1331 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1332 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1333 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1334 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1335 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1336 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1337 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1338 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1339 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1340 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1341 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1342 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1343 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1344 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1345 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1346 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+  f1347 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='TeachFullMode.run' bt='BLAZIKEN learned BLAZE KICK!'
+f1347: === window closed === party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f1828: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=TeachFullMode.run bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[teachfull] teach_hm_move returned without raising
+[teachfull] RESULT learned=True target=Blaziken replaced=['Double Kick'] before=['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash'] after=['Scratch', 'Blaze Kick', 'Strength', 'Rock Smash']
+[teachfull] ‼ Read the `TEACH EXIT` / `TEACH OK` lines in the debug log for the exit reason, ride_frames and stall_peak.
+f1886: CONTROLLER -> <none>   (state=OVERWORLD)
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f1886 — ending the loop at f2006
+[done] ran 2007 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Strength, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 2007 get_party() recomputes, 7 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += teachfull 2007 recomputes (party_accounting_ledger.jsonl)

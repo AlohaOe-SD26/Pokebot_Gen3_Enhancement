@@ -22318,7 +22318,7 @@ error can produce the right verdict for the wrong reason.
 **Symptom:** at the 100th gate, `audit_doc_consistency.py` flagged "100 entries = 96 ENFORCING" as a claim of 96, and its
 self-test failed 10 cases — every stale count from then on would have been invisible.
 **Root cause:** `\d{1,2}` in every count pattern, justified by a comment ("keeps `~130s` out") that credited the width
-with work the trailing `` was doing. The ceiling was invisible until the quantity grew past it.
+with work the trailing `\b` was doing. The ceiling was invisible until the quantity grew past it.
 **Fix:** `\d{1,3}`; self-tests with a literal 3-digit count.
 **Prevention rule:** ⛔ **A gate's pattern must not cap the size of the thing it counts** — and when a comment explains why a
 limit is safe, test the explanation (here, a D1g-style case already proved the boundary, not the width, did the work).
@@ -22334,3 +22334,15 @@ pocket when the bag opens, and the helper counts the unsorted stored order.
 **Fix:** `teach_hm_move` uses the verified scroll; A/B on `norman_done.ss1` (whose stored pocket is unsorted).
 **Prevention rule:** ⛔ **When a shared helper is proven broken, GREP EVERY CALLER the same day** — fixing the caller you
 were debugging leaves the others shipping the bug.
+
+## 2026-09-26 — ⛔ A MOVESET READ AFTER THE ATTEMPT WAS FILED AS THE STATE BEFORE IT (KI-104's first filing)
+
+**Symptom:** KI-104 was first filed with "7 hard-capped teaches logged an HM as the slot to replace". A recon found the
+opposite: the picker never chose an HM; the `moves=` field of the `TEACH EXIT` line is read AFTER the attempt, so it
+showed the Rock Smash the WRONG-ITEM teach (KI-105) had just written into a correctly chosen slot.
+**Root cause:** a log field's TIMING was assumed, not checked — the same line carried a pre-attempt field (`replace_slot`)
+beside a post-attempt one (`moves=`).
+**Fix:** KI-104 corrected in place; KI-105 filed; both fixed and A/B-proven.
+**Prevention rule:** ⛔ **Before reading two fields of one log line together, find WHEN each is read** (here
+`_teach_exit` reads the moveset after the attempt). ⛔ And Tier 0 includes `probe_doc_control_chars.py`: a `\b` passed
+through a shell heredoc reached `08` as a BACKSPACE byte in a committed entry (repaired 2026-09-26; it renders as nothing).

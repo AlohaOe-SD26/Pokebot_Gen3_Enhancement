@@ -12986,8 +12986,9 @@ class Ch23TeachMode(BotMode):
             f"whiteouts={self.whiteouts} frames={total}")
         log(f"[{TAG}] LEARNER MOVES {pre_moves} -> {post_moves}")
         log(f"[{TAG}] ⭐ GAINED {gained}   LOST {lost}   "
-            f"(PREDICTED: gained Waterfall, lost Rollout — slot 3, the deepest forget-menu scroll "
-            f"this bot has ever driven)")
+            f"(PREDICTED since the KI-104 picker, 2026-09-26: gained Waterfall, lost WATER GUN — slot 2, dominated by "
+            f"Surf; the 2026-09-03 prediction 'lost Rollout, slot 3' was the OLD raw-power rule. Not graded — the grade "
+            f"is Waterfall known + Dive and Surf kept)")
         log(f"[{TAG}] ⭐⭐ SAFETY keeps_dive={keeps_dive} keeps_surf={keeps_surf} — ⛔ DIVE IS THE "
             f"ONLY WAY OUT OF THE SOOTOPOLIS CRATER AND WAILMER IS ITS SOLE CARRIER; losing it "
             f"strands the run on a map with no land connections and no escaping.")

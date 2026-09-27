@@ -10,6 +10,7 @@ is almost entirely scripted. Verified against a save state parked in the truck.
 
 from __future__ import annotations
 
+import collections
 import os
 import random
 from typing import Generator
@@ -5214,6 +5215,76 @@ def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
     return (yield from ensure_hm_learner(item))
 
 
+#: One move slot as the HM slot picker sees it — plain data, so `choose_hm_slot` is testable offline.
+HmSlotMove = collections.namedtuple("HmSlotMove", "name type power effect is_hm priority")
+
+
+def _hm_effective_power(m) -> float:
+    """What a move is worth when deciding what to forget: a multi-hit move is worth its hits (Double Kick 30 x 2), and a
+    move stored with power 1 (Low Kick, Seismic Toss, Night Shade, Return, Frustration, Hidden Power, Flail — variable or
+    fixed damage) gets a middling stand-in of 60 instead of reading as the weakest move in the game."""
+    if m.power == 1:
+        return 60.0
+    if m.effect == "DOUBLE_HIT":
+        return m.power * 2.0
+    if m.effect == "MULTI_HIT":
+        return m.power * 3.0
+    return float(m.power)
+
+
+def choose_hm_slot(moves, mon_types, incoming, banned=()) -> int:
+    """PURE and TOTAL (KI-104, 2026-09-26). The slot an HM teach overwrites: an int 0-3 for ANY learner that has an empty
+    or non-HM slot — never None, never 4 ("decline" is not an option: the HM is needed for field use). Raises ValueError
+    only when every slot is an HM (the caller's existing refusal, before the bag opens).
+
+    Tiers, the first non-empty wins (ties: the lower effective power, a non-priority move before a priority one, then the
+    lower slot): (0) a STATUS move; (1) a BANNED move (`battle.banned_moves` — the strategy never selects it); (2) a move
+    strictly DOMINATED by another kept move OR by the incoming HM — same type, at least its effective power (Surf beside
+    Muddy Water, Strength beside Scratch); (3) the weakest non-STAB move; (4) only then a STAB move. HM slots are excluded
+    FIRST, before any tier.
+    ⛔ WHY NOT THE OLD RULE ("the lowest raw base power"): measured in the live batch it deleted Combusken's Double Kick
+    (30, but it hits twice) for Rock Smash, Swampert's Earthquake, Marshtomp's Mud Shot (keeping the weaker Muddy Water)
+    and Machoke's Low Kick (stored as power 1).
+    ⛔ WHY NOT `which_move_should_be_replaced` (the level-up policy): it DECLINES — Fly/Dive (banned), Flash (status with
+    no status slot) and this very Double Kick case — and a declined HM teach cancels and derails.
+    ⛔ AN HM DOMINATES ONLY A WEAKER SAME-TYPE MOVE. Counting an HM as mere type COVERAGE would make Double Kick
+    "redundant" beside Rock Smash (20) and re-create the bug."""
+    slots = list(moves)[:4]
+    slots += [None] * (4 - len(slots))
+    for i, m in enumerate(slots):
+        if m is None:
+            return i
+    eligible = [i for i, m in enumerate(slots) if not m.is_hm]
+    if not eligible:
+        raise ValueError("every slot is an HM move")
+    others = [m for m in slots if m.power > 0] + ([incoming] if incoming is not None and incoming.power > 0 else [])
+
+    def key(i):
+        m = slots[i]
+        ep = _hm_effective_power(m)
+        tie = (ep, m.priority > 0, i)
+        if m.power == 0:
+            return (0,) + tie
+        if m.name in banned:
+            return (1,) + tie
+        if any(o is not m and o.type == m.type and _hm_effective_power(o) >= ep for o in others):
+            return (2,) + tie
+        if m.type not in mon_types:
+            return (3,) + tie
+        return (4,) + tie
+
+    return min(eligible, key=key)
+
+
+def _hm_slot_view(learned) -> "HmSlotMove | None":
+    if learned is None or getattr(learned, "move", None) is None:
+        return None
+    m = learned.move
+    return HmSlotMove(name=m.name, type=m.type.name, power=int(m.base_power), effect=str(getattr(m, "effect", "")),
+                      is_hm=bool(m.tm_hm is not None and m.tm_hm.name.startswith("HM")),
+                      priority=int(getattr(m, "priority", 0)))
+
+
 def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Generator:
     """Teach an HM (or TM) from the bag to a party mon — the OVERWORLD flow, state-
     driven off the live-probed task chain (2026-07-22): open bag → item context (USE is
@@ -5284,13 +5355,32 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
                 f"forgotten, so {target_move.name} cannot be taught to it. "
                 f"Pick a different learner."
             )
-        else:
+        elif os.environ.get("POKEBOT_HMTEACH_FAULT_OLDSLOT") == "1":
+            # The pre-2026-09-26 rule, kept ONLY as the skip-the-fix arm (registered in 29): zero-power first, then the
+            # lowest RAW base power — which deleted a mon's only move of a type (KI-104).
             zero = [i for i in eligible if moves[i].move.base_power == 0]
             if zero:
                 replace_slot = zero[0]
             else:
                 replace_slot = min(eligible, key=lambda i: moves[i].move.base_power)
+        else:
+            # KI-104 (2026-09-26): the TOTAL, type-aware picker. Never None, never 4, never an HM.
+            try:
+                _banned = tuple(context.config.battle.banned_moves)
+            except Exception:  # noqa: BLE001 - an unreadable config just means "no banned tier"
+                _banned = ()
+            replace_slot = choose_hm_slot(
+                [_hm_slot_view(l) for l in moves], tuple(t.name for t in _mon().species.types),
+                _hm_slot_view(type("_L", (), {"move": target_move})()), _banned)
 
+    if not isinstance(replace_slot, int) or not 0 <= replace_slot <= 3:
+        raise BotModeError(f"teach_hm_move: replace_slot {replace_slot!r} is not a slot 0-3 — refusing before the bag opens.")
+    _chosen = _mon().moves[replace_slot] if replace_slot < len(_mon().moves) else None
+    _chosen_view = _hm_slot_view(_chosen)
+    if _chosen_view is not None and _chosen_view.is_hm:
+        raise BotModeError(
+            f"teach_hm_move: slot {replace_slot} holds {_chosen_view.name}, an HM move — the game refuses to forget it "
+            f"(and the cursor then wraps onto another move). Refusing before the bag opens.")
     context.message = f"Story: teaching {target_move.name} to {_mon().species.name}..."
     # ‼ NORMALIZE FIRST (user's Surf report + ch13_run1 f9931): the caller may hand us a
     # state with a dialogue STILL OPEN — most often `ensure_hm_learner`, which returns the

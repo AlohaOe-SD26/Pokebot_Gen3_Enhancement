@@ -35982,3 +35982,22 @@ distinct error if the bag will not close (this function's own menus-closed guara
 **Adversarial review:** KICK-BACK (the docs were not yet on the branch; KI-89 still called the HM teach an unmeasured caller; the refusal close was weaker than this function's own menus-closed guarantee) → docs on both trees, KI-89 updated with the found mechanism, the close now settles and raises a distinct error, and H2c re-drove the final code (identical) → re-review **APPROVE** (it re-ran the gate and the doc gates itself). ⚠ The refusal branch's proof is STATIC — gated and fault-tested, never live-fired (no fixture forces the verified scroll to refuse).
 ⚠ The same drive shows KI-104 live (Strength replaced Blaziken's Double Kick) — the slot rule is a separate, OPEN item.
 Suite 101 (97 enforcing + 4 advisory; `--quick` 89).
+
+## 2026-09-26 (night) — THE HM TEACH NO LONGER DELETES A MON'S ONLY MOVE OF A TYPE (KI-104; branch `wt/ch24organic`)
+
+**WHY.** `early_game.teach_hm_move` overwrote "zero power, else the lowest RAW base power" — measured in the live batch
+deleting Combusken's Double Kick (30, but it hits twice) for Rock Smash 5 times, Swampert's Earthquake, Marshtomp's Mud
+Shot (keeping the weaker Muddy Water) and Machoke's Low Kick (stored as power 1); the level-up policy then locks the
+type out for good.
+**WHAT.** A pure, TOTAL picker `choose_hm_slot`: an int 0-3 whenever a non-HM slot exists (never None, never 4 — an HM
+teach cannot "decline"); HMs excluded first; then status > banned > strictly dominated by a kept move or the incoming HM
+(same type, at least its effective power) > weakest non-STAB > STAB; multi-hit ×2/×3, power-1 moves valued 60. An
+explicit HM `replace_slot` is refused before the bag opens. NOT the level-up policy (it DECLINES Fly/Dive/Flash and this
+very case). Arm `POKEBOT_HMTEACH_FAULT_OLDSLOT`.
+**PROOF.** Gate `probe_hmslot_rule.py` (the five live shapes, an HM in every position, 500 seeded movesets, banned tier,
+wiring; three fault arms). A/B with predictions filed first, `norman_done.ss1`, Strength onto Blaziken [Scratch, Blaze
+Kick, Double Kick, Rock Smash]: the OLD rule lost Double Kick, the NEW rule lost Scratch (dominated by Strength) — both
+exactly as predicted. The §Ch23 Waterfall teach re-driven under the new rule (K3): PASS, Wailmer now
+loses Water Gun (dominated by Surf) instead of Rollout.
+**Adversarial review:** KICK-BACK (the docs were not yet applied, and the §Ch23 Waterfall teach — a PASS on the OLD rule — changes outcome under the new one and had not been re-driven) → docs on both trees + a 06 entry; K3 re-drove `ch23teach` on `post_badge8.ss1` with its prediction filed first: PASS, Waterfall learned, **lost Water Gun** (dominated by Surf), Rollout, Dive and Surf kept → re-review **APPROVE-WITH-RISKS** (it re-read the raw K3 evidence and re-ran the doc gates itself; its one new finding — the drift figure 14 had become 15 through this item's own comment fix in `battle_move_replacing.py` — fixed before this commit).
+Suite 102 (98 enforcing + 4 advisory; `--quick` 90).

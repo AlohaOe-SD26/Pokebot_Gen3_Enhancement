@@ -453,11 +453,13 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                             # ‼ RE-PICK, DON'T JUST DECLINE (2026-07-24, user's design). The
                             # first cut of this veto turned an HM pick into DECLINE, which is
                             # safe but stunts the team — the mon keeps a weak move forever. HM
-                            # slots are simply INELIGIBLE; among what remains, apply the same
-                            # expendability ranking used by `teach_hm_move` (a zero-power move
-                            # first, else the weakest) so the mon still gives up its least
-                            # useful REAL move. Only when every slot is an HM is declining the
-                            # correct — and only possible — answer.
+                            # slots are simply INELIGIBLE; among what remains, apply an
+                            # expendability ranking (a zero-power move first, else the weakest)
+                            # so the mon still gives up its least useful REAL move. Only when
+                            # every slot is an HM is declining the correct — and only possible —
+                            # answer. ⚠ This USED to say "the same ranking as `teach_hm_move`";
+                            # since 2026-09-26 (KI-104) the HM teach uses the type-aware
+                            # `early_game.choose_hm_slot` — this level-up re-pick is unchanged.
                             _elig = [i for i in range(len(_mv)) if _mv[i] is not None and not _is_hm(i)]
                             _zero = [i for i in _elig if _mv[i].move.base_power == 0]
                             _pick = (

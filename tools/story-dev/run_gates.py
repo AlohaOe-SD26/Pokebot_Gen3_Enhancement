@@ -247,6 +247,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-hmwrongitem` — the story's HM teach must PROVE the bag cursor is on the HM before pressing A (the game sorts
     # the TM/HM pocket when the bag opens; 9 of 87 live teaches used HM06). A/B-proven on `norman_done.ss1`.
     ("probe_hmteach_itemverify.py", False),
+    # ⛔ KI-104 — the HM teach's slot picker is TOTAL (never None / 4 / an HM) and keeps what the mon was trained on
+    # (the live shapes: Double Kick, Mud Shot, Low Kick). A/B-proven on `norman_done.ss1`. Three built-in fault arms.
+    ("probe_hmslot_rule.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

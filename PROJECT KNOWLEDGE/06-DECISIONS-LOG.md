@@ -7502,3 +7502,20 @@ re-derive the number. **REJECTED:** a per-species blacklist (not organic, drifts
 bail already bounds that; this stops the start). **REOPEN IF** the batch's DEXFENCE lines show most post-gym-1 new
 species refused on the estimate, refusals of species a human would call easy, or discretionary catches still draining
 the reserve (then the threshold, the simplifications, or Phase 1's ball restock is wrong).
+
+## 2026-09-26 — KI-104: THE HM TEACH'S SLOT PICKER IS TOTAL, AND TYPE PROTECTION IS A PREFERENCE, NEVER A REFUSAL
+
+**CHOSEN.** `choose_hm_slot`: HMs excluded first; then status > banned > strictly dominated (same type, at least its
+effective power — by a kept move OR the incoming HM) > weakest non-STAB > STAB as the last resort. Always an int 0-3 when
+a non-HM slot exists. Multi-hit moves valued ×2/×3; power-1 (variable/fixed damage) moves valued 60.
+**WHY.** The HM teach gates story progress, and every caller pre-selects its learner assuming any non-HM slot is
+spendable — so the picker may PREFER to keep a mon's trained moves but may never REFUSE (a refusal stalls the story at a
+field obstacle; None/4 crash or cancel inside the open summary screen — adversarial recon).
+**REJECTED.** Reusing the level-up policy `which_move_should_be_replaced` (it DECLINES Fly, Dive, Flash and the Double
+Kick case itself); counting an HM as type COVERAGE (it makes Double Kick "redundant" beside a 20-power Rock Smash — the
+original bug); a hard "never delete the only move of a type" rule (Swampert with three HMs has only one spendable slot);
+`gym_tm_teach.choose_slot` as is (it returns None when only STAB remains).
+**STATED TRADE.** The 60 stand-in for power-1 moves is a judgment (Low Kick / Seismic Toss are real attacks at this
+stage); the §Ch23 Waterfall teach now gives up Water Gun (dominated by Surf) instead of Rollout — re-driven.
+**REOPEN IF** a batch shows `learned <HM> (lost <X>)` where X was a mon's only move of a type while a dominated or off-type
+move was available.
