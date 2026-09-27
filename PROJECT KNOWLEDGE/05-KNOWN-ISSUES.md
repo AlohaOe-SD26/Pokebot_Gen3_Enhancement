@@ -3005,3 +3005,23 @@ held input.
 **Source log (gitignored):**
 `sandbox-pokebot/profiles/endless-P1-torchic/debug-logs/Old/P1-Story_(ENDLESS_RESET)-debug-20260926-212850.log`,
 from line 34060 to its end; P1 stdout L1059285–L1059497.
+
+## KI-107 — ⚠ OPEN (n=1, mechanism a HYPOTHESIS): after a faint-chooser freeze the story began a whiteout recovery with two party members ALIVE, then waited with no bound; a run idled 6.27M frames to the frame cap (batch `#27-batch0927`, run P1r2; `#27-falsewhiteout`)
+
+**Measured** (the interim read, `ai-research-notes/2026-09-27-batch0927-INTERIM.md`, a NOTE; re-derived by a second agent):
+- `P1-…-085423.log:4584` (f736,300): `[orders DIVERGE]` on a 4-member party (`[1, 2] -> [3, 5]`).
+- `:4586` (f739,234): `WHITEOUT recovery #1` while Combusken 75/75 and Poochyena 37/37 were alive and the battle was
+  still active (no `outcome=Lost` line).
+- `:4799` (f796,276): a KI-36 `[STALL] handing a recoverable derail to the mode`. That wording is printed only when
+  `request_mode_recovery()` returns True, yet no DERAIL followed. In P3r3 the same `[STALL]` was acted on in the same
+  frame.
+- The next 1,740 heartbeats all read `state=3` at ROUTE 117 (8,8), with every dump at `BattleScript_FaintedMonTryChoose`.
+  The run ended on the per-run frame cap, 7,001,875.
+
+**Hypothesis (UNVERIFIED):** the false whiteout took the story into "recovered from the whiteout — re-orienting",
+followed by `wait_for_player_avatar_to_be_controllable()` (`walking.py`), a bare `while not controllable: yield` with
+no bound and no fault check. The last console line of P1r2 is exactly that print. Why the whiteout was believed, and
+why the accepted `[STALL]` did nothing, are both unmeasured.
+
+**Next:** a correctness question, so a DRIVER: reproduce the false whiteout, log the value the recovery ACTS on (rule
+7), then bound the wait. Do not fix from this reading alone.
