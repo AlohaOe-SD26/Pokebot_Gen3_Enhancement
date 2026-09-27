@@ -2924,7 +2924,7 @@ gate `probe_league_reserve.py` R7.
 RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide
 the same latent over-block; Sootopolis's own script moves several (`:57-60`, `:104-117`).
 
-## KI-104 — ⚠ OPEN, NOW VERIFIED (2026-09-26 night): the production HM teach's "weakest raw power" slot rule deletes a mon's ONLY non-HM move of a type — the "hard caps with an HM at replace_slot" half of the first filing was a MISREADING, split out as KI-105
+## KI-104 — ✅ FIXED ON BRANCH `wt/ch24organic` (2026-09-26 night), A/B-PROVEN: the production HM teach's "weakest raw power" slot rule deleted a mon's ONLY non-HM move of a type — the "hard caps with an HM at replace_slot" half of the first filing was a MISREADING, split out as KI-105
 
 **What (re-verified by a 3-agent recon of the day's batch logs, and seen LIVE in a drive):** `early_game.teach_hm_move`
 with `replace_slot=None` skips HM slots, then takes an empty slot, a 0-power move, else the LOWEST raw `base_power` — no
@@ -2944,6 +2944,7 @@ this very case); HM slots excluded FIRST; type protection as SOFT tiers, never a
 assuming any non-HM slot is spendable); the INCOMING HM counts as a dominator (Surf dominates Muddy Water); an HM must
 never make a non-HM move of its type expendable (counting Rock Smash as Fighting coverage re-creates this bug); special-
 case power-1 and multi-hit moves. Gate rows from the live shapes; then a driven A/B.
+✅ **FIXED on the branch (2026-09-26 night):** `early_game.choose_hm_slot` — TOTAL (0-3 whenever a non-HM slot exists; ValueError only for all-HM, which the caller already refuses before the bag), tiers status > banned > strictly dominated by a kept move or the incoming HM > weakest non-STAB > STAB, effective power for multi-hit and power-1 moves; an explicit HM `replace_slot` is refused before the bag. Gate `probe_hmslot_rule.py` (the live shapes, 500 seeded movesets, three fault arms). A/B on `norman_done.ss1` (Strength onto Blaziken): old rule → Double Kick lost; new → Scratch lost (dominated by Strength). Merges with the branch.
 
 ## KI-105 — ✅ FIXED ON BRANCH `wt/ch24organic` (2026-09-26 night), A/B-PROVEN: the HM teach used the WRONG HM — the game SORTS the TM/HM pocket when the bag opens, and the upstream scroll counted the unsorted order (`#26-hmwrongitem`)
 
