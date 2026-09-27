@@ -1,0 +1,302 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\k7\evgp-regression.log
+Running mGBA 0.10.2
+[setup] loaded save state post_training.ss1; build=sandbox
+[run] starting faithful loop for up to 400000 frames
+[evgp] debug_logger.event is recorded from f0 (production lines, read as they are written)
+[evgp] MAP (24, 43) pos=(15, 39) at f4206784
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+Story Mode — resuming (detected 23: Victory Road); skipping what's already 
+done.
+Story: already have the Pokédex — skipping the intro chapters.
+Story: Petalburg / Wally tutorial already done — skipping.
+Story: already in Rustboro — skipping the Woods travel.
+Story: Stone Badge already earned — Gym 1 skipped.
+Story: Devon Goods already recovered — skipping.
+Story: PokéNav already received — skipping the Devon Corp errand.
+Story: Rustboro rival already resolved (beaten, or met-and-lost — vanilla 
+offers no rematch) — skipping.
+Story: Steven's Letter already delivered — skipping Granite Cave.
+Story: Knuckle Badge already earned — Gym 2 skipped.
+Story: not on the Dewford side — Slateport sail skipped.
+Story: Devon Goods already delivered — museum skipped.
+Story: Route 110 rival already beaten — skipping.
+Story: Wally already beaten at Mauville — skipping.
+Story: Dynamo Badge already earned — Gym 3 skipped.
+Story: HM06 Rock Smash already received — skipping.
+Story: someone already knows Rock Smash — teach skipped.
+Story: Fallarbor travel not applicable from here — skipped.
+Story: Meteor Falls scene already done — skipping.
+Story: Mt. Chimney already cleared — skipping.
+Story: already at Lavaridge — Jagged descent skipped.
+Story: Heat Badge already earned — Gym 4 skipped.
+Story: already Petalburg-side (or Surf in hand) — travel skipped.
+Story: Surf already received — Gym 5 skipped.
+Story: someone already knows Surf — teach skipped.
+Story: Fortree arc already complete (BADGE06) — Ch13a skipped.
+Story: Devon Scope in the bag and the Kecleon already flushed.
+Story: Feather Badge already earned — Gym 6 skipped.
+Story: Mt. Pyre summit already done — skipping.
+Story: Magma Hideout already done — skipping.
+Story: Slateport Harbor theft already done — skipping.
+Story: Aqua Hideout already done — skipping.
+Story: Mossdeep Gym already done — skipping.
+Story: Mossdeep Space Center already done — skipping.
+Story: someone already knows Dive — teach skipped.
+Story: Seafloor Cavern already done — skipping.
+Story: Sootopolis / Rayquaza already done — skipping.
+Story: Sootopolis Gym / Juan already done — skipping.
+Story: someone already knows Waterfall — teach skipped.
+f262: battle_is_active -> True  party=[Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f263: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌────────────────── Aron♀ encountered at Victory Road (1F) ───────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ D847112D        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 36              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  4  │  4  │ 3↑  │  6  │ 2… │ 10  │ 48 │ │
+│ │       Nature │ Lax             │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Rock Head       │                                          │
+│ │ Hidden Power │ Fire (47)       │Moves: Roar, Take Down, Iron Tail,        │
+│ │  Shiny Value │ 18,631          │Protect                                   │
+│ └──────────────┴─────────────────┘EV Yield: 1 Defence                       │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Aron   │  48 /  │   1,687 /   │     4 │ 12.12% │     0 │      4 │   N/A │ │
+│ │        │  121   │   18,631    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     1 │  3.03% │     0 │      1 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  9.09% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Pooch… │  58 /  │  26,598 /   │     1 │  3.03% │     0 │      1 │   N/A │ │
+│ │        │   58   │   26,598    │       │        │       │        │       │ │
+│ │ Taill… │ 112 /  │  62,400 /   │     4 │ 12.12% │     0 │      4 │   N/A │ │
+│ │        │  112   │   62,400    │       │        │       │        │       │ │
+│ │ Whism… │ 107 /  │  48,083 /   │     8 │ 24.24% │     0 │      8 │   N/A │ │
+│ │        │  143   │   51,279    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │  22,625 /   │     8 │ 24.24% │     0 │      8 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │ 12.12% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Total  │  48 /  │   1,687 /   │    33 │   100% │     0 │     33 │   N/A │ │
+│ │        │  143   │   65,081    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2224: PARTY CHANGE [Sceptile:L51:exp127205|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2288: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2299: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='SCEPTILE gained 493 EXP. Points!' scripts=[] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2325: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+f2663: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2665: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2698: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2700: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2778: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2780: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2890: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2892: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2986: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f2988: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3058: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3060: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3194: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3196: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3234: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=StoryMode.run bt='SCEPTILE gained 493 EXP. Points!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3408: battle_is_active -> True  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f3409: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f8271: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Wailord:L47:exp115139|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f8293: PARTY CHANGE [Wailord:L47:exp115139|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f10000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f10606: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp115139|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f12000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f12339: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Wailord:L47:exp117795|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f12403: PARTY CHANGE [Wailord:L47:exp117795|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Mightyena:L47:exp104530|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Castform:L36:exp47997]
+f12425: PARTY CHANGE [Mightyena:L47:exp104530|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp104530|Castform:L36:exp47997]
+f13622: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp104530|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp105944|Castform:L36:exp47997]
+f14000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp105944|Castform:L36:exp47997]
+f16000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp105944|Castform:L36:exp47997]
+f18000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp105944|Castform:L36:exp47997]
+f19591: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp105944|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp107214|Castform:L36:exp47997]
+f20000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp107214|Castform:L36:exp47997]
+f21684: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp107214|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f22000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f23713: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997] -> [Mightyena:L47:exp109219|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Castform:L36:exp47997]
+f23975: PARTY CHANGE [Mightyena:L47:exp109219|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Castform:L36:exp47997] -> [Castform:L36:exp47997|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219]
+f23997: PARTY CHANGE [Castform:L36:exp47997|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f24000: heartbeat mode=Story ctrl=BattleListener.fight state=UNKNOWN party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f26000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f28000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f28405: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997] -> [Castform:L36:exp47997|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219]
+f28465: PARTY CHANGE [Castform:L36:exp47997|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219] -> [Swellow:L47:exp96915|Zigzagoon:L19:exp7672|Castform:L36:exp47997|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219]
+f28487: PARTY CHANGE [Swellow:L47:exp96915|Zigzagoon:L19:exp7672|Castform:L36:exp47997|Sceptile:L51:exp127698|Wailord:L47:exp117795|Mightyena:L47:exp109219] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29373: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp96915|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29762: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29773: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['EventScript_DoNoIntroTrainerBattle'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29798: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29932: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29934: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.Scrolling tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29943: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29976: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=BattleListener.fight bt='NICK got $2700 for winning!' scripts=['VictoryRoad_1F_EventScript_WallyEntranceBattle', 'Std_MsgboxDefault'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f29983: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+f30000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+[evgp] STAGED at f4236795 on (24, 43) (2, 23): kept slot 1 at 1 HP, the rest 0 -> [('Sceptile', 51, 0), ('Zigzagoon', 19, 1), ('Swellow', 47, 0), ('Wailord', 47, 0), ('Mightyena', 47, 0), ('Castform', 36, 0)]
+f30097: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f30217: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_EndTrainerApproach'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $2700 for winning!' scripts=['EventScript_TrainerApproach'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f30219: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $2700 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f30361: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $2700 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f30560: battle_is_active -> True  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f30561: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f31340: PARTY CHANGE [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997] -> [Zigzagoon:L19:exp7672|Sceptile:L51:exp127698|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f31520: PARTY CHANGE [Zigzagoon:L19:exp7672|Sceptile:L51:exp127698|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997] -> [Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f32000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+[evgp] WHITEOUT screen at f4239283; held mask on the whiteout screen = 0x0000
+f32499: battle_is_active -> False  outcome=BattleOutcome.Lost  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+Story: lost a battle at map (24, 43) (defeat #1 here; KO'd 0 of theirs first; 
+last foe Roselia).
+f32500: CONTROLLER -> WhiteoutListener.handle_whiteout_dialogue   (state=WHITEOUT)
+[evgp] MAP (0, 8) pos=(27, 49) at f4239412
+f32628: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonDoor'] ctrl=WhiteoutListener.handle_whiteout_dialogue bt='NICK whited out!' scripts=[] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+Story: whited out — recovering (navigating the respawn and resuming from where 
+I left off; no save-state reload).
+f32654: CONTROLLER -> plugin_battle_ended   (state=OVERWORLD)
+f32655: CONTROLLER -> BattleListener.fight   (state=OVERWORLD)
+f32777: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=BattleListener.fight bt='NICK whited out!' scripts=[] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f32804: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f32805: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+Story: recovered from the whiteout — re-orienting at the respawn point and 
+resuming.
+Story Mode — resuming (detected 24: Elite Four + Champion); skipping what's 
+already done.
+Story: already have the Pokédex — skipping the intro chapters.
+Story: Petalburg / Wally tutorial already done — skipping.
+Story: already in Rustboro — skipping the Woods travel.
+Story: Stone Badge already earned — Gym 1 skipped.
+Story: Devon Goods already recovered — skipping.
+Story: PokéNav already received — skipping the Devon Corp errand.
+Story: Rustboro rival already resolved (beaten, or met-and-lost — vanilla 
+offers no rematch) — skipping.
+Story: Steven's Letter already delivered — skipping Granite Cave.
+Story: Knuckle Badge already earned — Gym 2 skipped.
+Story: not on the Dewford side — Slateport sail skipped.
+Story: Devon Goods already delivered — museum skipped.
+Story: Route 110 rival already beaten — skipping.
+Story: Wally already beaten at Mauville — skipping.
+Story: Dynamo Badge already earned — Gym 3 skipped.
+Story: HM06 Rock Smash already received — skipping.
+Story: someone already knows Rock Smash — teach skipped.
+Story: Fallarbor travel not applicable from here — skipped.
+Story: Meteor Falls scene already done — skipping.
+Story: Mt. Chimney already cleared — skipping.
+Story: already at Lavaridge — Jagged descent skipped.
+Story: Heat Badge already earned — Gym 4 skipped.
+Story: already Petalburg-side (or Surf in hand) — travel skipped.
+Story: Surf already received — Gym 5 skipped.
+Story: someone already knows Surf — teach skipped.
+Story: Fortree arc already complete (BADGE06) — Ch13a skipped.
+Story: Devon Scope in the bag and the Kecleon already flushed.
+Story: Feather Badge already earned — Gym 6 skipped.
+Story: Mt. Pyre summit already done — skipping.
+Story: Magma Hideout already done — skipping.
+Story: Slateport Harbor theft already done — skipping.
+Story: Aqua Hideout already done — skipping.
+Story: Mossdeep Gym already done — skipping.
+Story: Mossdeep Space Center already done — skipping.
+Story: someone already knows Dive — teach skipped.
+Story: Seafloor Cavern already done — skipping.
+Story: Sootopolis / Rayquaza already done — skipping.
+Story: Sootopolis Gym / Juan already done — skipping.
+Story: someone already knows Waterfall — teach skipped.
+[evgp] MAP (24, 43) pos=(15, 40) at f4239931
+f33147: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonDoor'] ctrl=StoryMode.run bt='NICK whited out!' scripts=[] party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+f33404: battle_is_active -> True  party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+Story: catching a new Lairon into the PC box!
+f33405: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────── Lairon♀ encountered at Victory Road (1F) ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 8DB6AA5B        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 40              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 23  │  9  │  8  │ 0↑  │ 3… │  9  │ 79 │ │
+│ │       Nature │ Rash            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Rock Head       │                                          │
+│ │ Hidden Power │ Poison (50)     │Moves: Roar, Take Down, Iron Tail,        │
+│ │  Shiny Value │ 42,560          │Protect                                   │
+│ └──────────────┴─────────────────┘EV Yield: 2 Defence                       │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Aron   │  48 /  │   1,687 /   │     4 │ 11.76% │     0 │      4 │   N/A │ │
+│ │        │  121   │   18,631    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     2 │  5.88% │     0 │      2 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  8.82% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Pooch… │  58 /  │  26,598 /   │     1 │  2.94% │     0 │      1 │   N/A │ │
+│ │        │   58   │   26,598    │       │        │       │        │       │ │
+│ │ Taill… │ 112 /  │  62,400 /   │     4 │ 11.76% │     0 │      4 │   N/A │ │
+│ │        │  112   │   62,400    │       │        │       │        │       │ │
+│ │ Whism… │ 107 /  │  48,083 /   │     8 │ 23.53% │     0 │      8 │   N/A │ │
+│ │        │  143   │   51,279    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │  22,625 /   │     8 │ 23.53% │     0 │      8 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │ 11.76% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Total  │  48 /  │   1,687 /   │    34 │   100% │     0 │     34 │   N/A │ │
+│ │        │  143   │   65,081    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[evgp] STOP at f4240532: VICTORY_ROAD_1F reloaded after the whiteout (f4239931)
+[done] ran 33749 frames; final mode=Story party=[Sceptile:L51:exp127698|Zigzagoon:L19:exp7672|Swellow:L47:exp98347|Wailord:L47:exp117795|Mightyena:L47:exp109219|Castform:L36:exp47997]
+[evgp] EVENT f4237975: [ITEM] using Potion on Zigzagoon 1/48 (use 1, worst hit 0)
+[evgp] EVENT f4237975: [TURN 0] Zigzagoon L19 1/48 -> UseItem  vs Roselia L45 105/105
+[evgp] EVENT f4237975: [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Potion
+[evgp] EVENT f4238009: [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Potion
+[evgp] EVENT f4238016: [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Potion
+[evgp] EVENT f4238096: [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Potion
+[evgp] EVENT f4238101: [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Potion
+[evgp] EVENT f4238149: [ITEM-FLOW] party-menu target=1 -> menu slot 0 (KI-101 remap after 48 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Potion
+[evgp] EVENT f4238172: [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Potion
+[evgp] EVENT f4238337: [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Potion
+[evgp] EVENT f4239283: after Lost at map (24, 43): money=₽41,593
+[evgp] EVENT f4239589: RECOVERY-HELD: released leaked held inputs 0x0042 at the start of whiteout recovery — KI-106
+[evgp] EVENT f4239589: WHITEOUT recovery #1 at (0, 8)
+[evgp] EVENT f4240188: CATCH #305 Lairon — dex catch #305 (goes to the PC box)
+[evgp] EVENT f4240188: [DEXCATCH] attempt #1 on Lairon (#305) -> box
+[evgp] ARM=FIX
+[evgp] P0 staged=True (f4236795)
+[evgp] P1 whiteout=4239283 first_map_after=((0, 8), (27, 49)) -> True
+[evgp] P2 PREMISE recovery-held events=['RECOVERY-HELD: released leaked held inputs 0x0042 at the start of whiteout recovery — KI-106'] -> True
+[evgp] P3 (informational, NOT graded) south PC (16,12) loaded after the whiteout: False (fNone)
+[evgp] P4 'could not face' derails: 0 of 0 derails
+[evgp] P5 CONTINUE — VICTORY_ROAD_1F reloaded after the whiteout: True (f4239931)
+[evgp] maps after the whiteout: [(4239412, (0, 8), (27, 49)), (4239931, (24, 43), (15, 40))]
+[evgp] ACCEPTANCE: PASS — arm FIX (expected P4=0, P5 yes)
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L51: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L47: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L47: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 33750 get_party() recomputes, 113 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += evgpcwedge 33750 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-27_15
+-41-30.ss1 created!
+Updated `current_state.ss1`!

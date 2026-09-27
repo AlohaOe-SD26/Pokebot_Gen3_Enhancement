@@ -1281,6 +1281,36 @@ def wait_until_truly_controllable(*, stable_frames: int = 30, timeout_frames: in
         yield
 
 
+#: KI-107 (2026-09-27): the whiteout recovery's "wait until controllable" is BOUNDED by this many frames. A normal
+#: respawn is controllable within a few hundred frames; this is a backstop, not a timing.
+KI107_RECOVERY_WAIT_FRAMES = 20_000
+
+
+def wait_controllable_bounded(timeout_frames: int, what: str) -> Generator:
+    """Wait, pressing nothing, until the player is controllable; raise a NAMED `BotModeError` after `timeout_frames`.
+
+    ⛔ WHY (KI-107, batch `#27-batch0927` run P1r2). The whiteout recovery waited with the UNBOUNDED
+    `wait_for_player_avatar_to_be_controllable()`. A stale whiteout flag sent a battle fault into that branch while a
+    faint-chooser menu was up (a PARTY_MENU state, never controllable), and the run idled 6,265,575 frames to the per-run
+    frame cap. Bounding it turns that into a named end in `timeout_frames`. It does NOT fix why the flag was stale (F1 in
+    `ai-research-notes/2026-09-27-ki107-RECON.md`). `POKEBOT_KI107_FAULT_UNBOUNDED=1` restores the unbounded wait.
+    """
+    if os.environ.get("POKEBOT_KI107_FAULT_UNBOUNDED") == "1":
+        from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+        yield from wait_for_player_avatar_to_be_controllable()
+        return
+    waited = 0
+    while not player_avatar_is_controllable():
+        waited += 1
+        if waited > timeout_frames:
+            raise BotModeError(
+                f"{what}: the player never became controllable in {timeout_frames} frames — KI-107 (a battle menu left "
+                f"up under a whiteout recovery?). Ending here instead of idling to the per-run frame cap."
+            )
+        yield
+
+
 def train_lead_to_level(target_level: int) -> Generator:
     """Grind wild battles on Route 103 until the lead reaches ``target_level``,
     healing at the nearest Poké Center (Oldale) whenever HP drops near the

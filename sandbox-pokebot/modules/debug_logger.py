@@ -822,7 +822,9 @@ def _generator_stack() -> list:
                 # A generator DRIVEN via next() (not yield-from) breaks the chain —
                 # StoryMode.run's global watchdog drives _play that way. Hop into the
                 # driven generator via the frame's local so dumps stay deep.
-                for local_name in ("_play_gen", "gen", "generator"):
+                # KI-107 (2026-09-27): + "inner", the name `_run_with_frame_budget` gives its driven generator. Without it
+                # all 2,194 dumps of run P1r2 stopped at that wrapper and never showed where the story was parked.
+                for local_name in ("_play_gen", "gen", "generator", "inner"):
                     cand = fr.f_locals.get(local_name)
                     if cand is not None and getattr(cand, "gi_frame", None) is not None:
                         nxt = cand

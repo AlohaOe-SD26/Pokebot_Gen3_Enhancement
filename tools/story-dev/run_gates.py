@@ -283,6 +283,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 1 (B), Fly + RULING 21 — box-first Fly at the League lobby PC (stand tile (6,2)), the carrier
     # left out of training and R1, and the swap-back checked by (PID, species) before the guards. 5 fault arms.
     ("probe_r20_flybox.py", False),
+    # ⛔ KI-107 F3+F4 — the whiteout recovery's waits are BOUNDED (a stale whiteout flag + a battle menu idled a run 6.27M
+    # frames), the KI-47 park is logged, and dumps follow the `inner` generator. 3 fault arms.
+    ("probe_ki107_bounded.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

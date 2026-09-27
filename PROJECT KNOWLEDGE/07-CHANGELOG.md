@@ -36342,3 +36342,21 @@ PASS, run AFTER the review fixes).
   would no-op before the Elite Four. The record is now written inside the lobby errand, right after the withdraw
   (`_record_fly_swap`). Gate F5 has a raise-on-leave case, and a fault arm rebuilds the old order and must fail.
   B1 (swap) and B3 (wrongtile) were re-run on the fixed code: PASS.
+
+## 2026-09-27 — KI-107 MITIGATED (F3 + F4): THE WHITEOUT RECOVERY'S WAITS ARE BOUNDED; THE KI-47 PARK AND THE PARKED GENERATOR ARE NOW VISIBLE (branch `wt/r20fly`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** Run P1r2 idled 6,265,575 frames (`ai-research-notes/2026-09-27-ki107-RECON.md`). A stale whiteout flag sent a
+battle fault into the whiteout recovery while a faint-chooser menu was up, and the recovery waited with the UNBOUNDED
+`wait_for_player_avatar_to_be_controllable()`. The KI-47 park that began it left no log line, and every dump stopped at
+the `inner` wrapper.
+
+**WHAT.**
+- `early_game.wait_controllable_bounded(timeout, what)` + `KI107_RECOVERY_WAIT_FRAMES = 20_000`: a named raise on
+  timeout. Both waits in `StoryMode.run`'s whiteout recovery use it. Arm `POKEBOT_KI107_FAULT_UNBOUNDED`.
+- `battle_handler` logs `KI-47 PARK: …` when it parks a recoverable fault.
+- `debug_logger`'s dump walker follows `inner`.
+
+**PROOF.** Gate `probe_ki107_bounded.py` (3 fault arms): returns when controllable; raises by name at the bound;
+unbounded under the arm; the recovery block has no unbounded wait. The real whiteout-recovery path still passes
+(`--driver evgpcwedge` on `post_training.ss1`: PASS, 33,749 frames, the same count as the pre-change run on the same fixture (evidence `2026-09-27-ki107-evgp-regression.txt`)). ⚠ The ROOT CAUSE (F1, the stale flag) is NOT fixed.
+Suite 114 (110 enforcing + 4 advisory; `--quick` 101).

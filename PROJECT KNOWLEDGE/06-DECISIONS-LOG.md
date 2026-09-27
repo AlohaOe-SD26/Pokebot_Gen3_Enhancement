@@ -7784,3 +7784,14 @@ Increment B's box-first for Strength, Waterfall and Fly is the planned cover.
 - Swapping back before R1: needs the lobby PC from wherever training ended, which may be off the plateau.
 - Letting `withdraw_from_box`'s make-room choose the swap-back victim: it picks by rule, not the carrier.
   `swap_party_box` names both mons.
+
+## 2026-09-27 — KI-107: bound the whiteout recovery's waits NOW; leave the root cause (F1) for a driven fix
+
+**Decision:** ship F3 (bounded recovery waits, a named raise after 20,000 frames) and F4 (log the KI-47 park; dumps
+follow the `inner` generator) from `ai-research-notes/2026-09-27-ki107-RECON.md`. F1 (unwind a pending whiteout at once
+in `run()`'s per-frame loop) waits for a driver that reproduces the stale flag.
+**Why:** F3/F4 change nothing on the ordinary path. A normal respawn is controllable in a few hundred frames, and the
+real recovery path was re-driven (`--driver evgpcwedge`). They also cap a measured 79-lane-minute loss. F1 changes the
+core loop every run goes through, and this project does not ship a core-loop change on a forensic reading alone.
+**Rejected:** a silent timeout (the derail branch's `wait_until_truly_controllable` returns silently). The run would
+continue into a battle menu and fail later under another name, which is how KI-107 hid in the first place.

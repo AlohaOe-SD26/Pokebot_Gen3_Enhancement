@@ -306,6 +306,11 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
                     from modules.modes import BotModeError
 
                     if request_mode_recovery(reason):
+                        # KI-107 (2026-09-27): SAY it. This park left no line at all in run P1r2, so a 6.27M-frame idle
+                        # had to be reconstructed from timing. `event` is a no-op when debug logging is off.
+                        from modules import debug_logger as _dl_park
+
+                        _dl_park.event(f"KI-47 PARK: {reason} — handed to the mode as a recoverable fault")
                         return None
                     raise BotModeError(reason)
             else:

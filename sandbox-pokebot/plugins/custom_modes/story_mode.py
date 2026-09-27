@@ -4336,8 +4336,12 @@ class StoryMode(BotMode):
                     "respawn point and resuming.[/]"
                 )
 
+                # ⛔ KI-107 (2026-09-27): both waits below are BOUNDED. Unbounded, a stale whiteout flag plus a battle menu
+                # left up (never controllable) idled a run 6,265,575 frames to the per-run cap; bounded, it ends by name.
+                from modules.story.early_game import KI107_RECOVERY_WAIT_FRAMES, wait_controllable_bounded
+
                 try:
-                    yield from wait_for_player_avatar_to_be_controllable()
+                    yield from wait_controllable_bounded(KI107_RECOVERY_WAIT_FRAMES, "Story: whiteout recovery")
                     # Respawn lands us INSIDE the Poké Center — step out to the town
                     # so the segmented resume's map checks work (else it backtracks).
                     yield from exit_building_after_whiteout()
@@ -4351,7 +4355,7 @@ class StoryMode(BotMode):
                     ):
                         settle += 1
                         yield
-                    yield from wait_for_player_avatar_to_be_controllable()
+                    yield from wait_controllable_bounded(KI107_RECOVERY_WAIT_FRAMES, "Story: whiteout recovery (after exit)")
                 # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): AN ABORT CANNOT REACH THE BROAD HANDLER.
                 # `except BotModeError: raise` is FIRST, and `StoryAbort` IS a `BotModeError` (KI-67) —
                 # Python takes the first matching clause, so an abort re-raises here and never reaches the
