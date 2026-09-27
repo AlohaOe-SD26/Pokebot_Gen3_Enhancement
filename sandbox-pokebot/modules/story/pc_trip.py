@@ -37,6 +37,95 @@ PC_STAND_TILE = (10, 2)
 PC_FACING = "Up"
 
 
+# ---- USER RULING 20, Phase 1, increment A (2026-09-27) — ONE deposit-victim rule for every LIVE make-room path -------
+# Design: `ai-research-notes/2026-09-27-ruling20-phase1-DESIGN.md`. With catching always on the party fills to 6, and
+# `#24-partycap` showed what that costs when the bot then cannot free a slot for a REQUIRED errand: 10 of its 16 lost runs
+# had no Surf learner and no free slot. Two defects in today's make-room paths make that worse:
+#   (1) the only path that honoured the "protected" set was the ROTATION deposit, which is off (`POKEBOT_PC_ROTATION=0`);
+#       the two LIVE paths (`deposit_one_dead_weight`, the make-room inside `withdraw_from_box`) could box a counter hunted
+#       for the very next boss — while `story_mode` printed "protected from PC deposit";
+#   (2) when no member is "dead weight" (a strong, level-even team) both live paths gave up — the HM errand then raised
+#       "party is full" and derailed.
+
+def badge_count() -> int:
+    """The number of gym badges earned (the BADGE01..08 flags)."""
+    from modules.memory import get_event_flag
+
+    return sum(1 for k in range(1, 9) if get_event_flag(f"BADGE0{k}_GET"))
+
+
+def deposit_protected_pids(mode=None) -> set:
+    """PIDs no live make-room deposit may box: the hunted counters still OWED to their boss.
+
+    A counter is hunted for the NEXT gym, so it is registered while the badge count is N (`_hunted_counter_badges`) and
+    protected until the count passes N — the badge it was hunted for. After that it is ordinary. A PID with no recorded
+    count (registered before this existed) stays protected; an unreadable badge count protects everything (a read failure
+    must never box a counter). Gym-TM recipients are NOT protected here: the user did not select "protect answers from
+    deposit" under RULING 19 (`06`, 2026-09-26 and 2026-09-27).
+    Arms: `POKEBOT_R20_FAULT_NOPROTECT=1` ⇒ nothing protected (the old live paths); `POKEBOT_R20_FAULT_NOEXPIRE=1` ⇒ every
+    hunted counter, forever (the old, unexpiring set)."""
+    import os as _os_dp
+
+    if _os_dp.environ.get("POKEBOT_R20_FAULT_NOPROTECT") == "1":
+        return set()
+    if mode is None:
+        try:
+            from modules.context import context
+
+            mode = context.bot_mode_instance
+        except Exception:  # noqa: BLE001 - no mode instance (a gate) ⇒ nothing registered
+            return set()
+    pids = set(getattr(mode, "_hunted_counter_pids", ()) or ())
+    if not pids or _os_dp.environ.get("POKEBOT_R20_FAULT_NOEXPIRE") == "1":
+        return pids
+    owed = getattr(mode, "_hunted_counter_badges", None) or {}
+    try:
+        now = badge_count()
+    except Exception:  # noqa: BLE001 - unknown ⇒ protect every counter
+        return pids
+    return {p for p in pids if owed.get(p) is None or owed[p] >= now}
+
+
+def make_room_victim(party, *, exclude_pids=(), required=False, protected=()) -> "tuple | None":
+    """PURE. The party member a make-room deposit boxes, as `(pokemon, reason)` — or None when nobody may go.
+
+    1. DEAD WEIGHT first, worst (lowest level) first — today's rule, unchanged — skipping `protected` and `exclude_pids`
+       (the mons this very visit came to collect).
+    2. Only when the errand is REQUIRED (an HM learner or a counter must come in) and step 1 found nobody: the
+       lowest-level remaining member that is not an egg, not protected or excluded, not the party's sole carrier of an HM,
+       and not the last living battler (the game refuses that deposit).
+    None ⇒ everyone left is protected: the caller declines or raises, and says why.
+    Arm `POKEBOT_R20_FAULT_NOREQUIRED=1` disables step 2 (the old behaviour: a level-even team had no victim)."""
+    import os as _os_mv
+
+    from modules.story.team_policy import _only_hm_carrier, find_dead_weight, view_from_party
+
+    mons = [p for p in party if p is not None]
+    views = view_from_party(mons)  # aligned with `mons` (no None slots)
+    skip = set(exclude_pids or ()) | set(protected or ())
+
+    def _pid(m):
+        return getattr(m, "personality_value", None)
+
+    # The game refuses to box the last living battler — in EITHER step (a fainted team at a PC is rare right after a
+    # heal, but the old dead-weight pick could still choose that deposit and have it refused).
+    living = [i for i, m in enumerate(mons) if not views[i].is_egg and getattr(m, "current_hp", 1) > 0]
+    for i, why in find_dead_weight(views):
+        if i < len(mons) and _pid(mons[i]) not in skip and living != [i]:
+            return mons[i], why
+    if not required or _os_mv.environ.get("POKEBOT_R20_FAULT_NOREQUIRED") == "1":
+        return None
+    candidates = [
+        i for i, m in enumerate(mons)
+        if not views[i].is_egg and _pid(m) not in skip and not _only_hm_carrier(views, i) and living != [i]
+    ]
+    if not candidates:
+        return None
+    i = min(candidates, key=lambda j: (views[j].level, j))
+    return mons[i], (f"a REQUIRED errand and no dead weight — the lowest-level unprotected member "
+                     f"(L{views[i].level}; RULING 20 Phase 1)")
+
+
 #: ‼ ONLY ROTATE WHEN THE PARTY IS FULL — added 2026-08-02 after this module CAUSED a
 #: catastrophic regression in batch6 (`x4-runs/20260802-160603`): **2 of 37 runs finished,
 #: down from 16 of 34**. The rotation ran on EVERY heal, and `MIN_PARTY_AFTER_ROTATION = 3`
@@ -221,8 +310,11 @@ def deposit_dead_weight_if_worth_it() -> Generator:
         )
 
 
-def deposit_one_dead_weight() -> Generator:
+def deposit_one_dead_weight(required: bool = False) -> Generator:
     """Free EXACTLY ONE party slot at the Poké Centre PC. Assumes we are INSIDE a centre.
+
+    `required=True` (RULING 20 Phase 1): the slot is for a REQUIRED errand (an HM learner), so when nobody is dead weight
+    the lowest-level unprotected member goes — `make_room_victim` step 2 — instead of the old "nothing is safe" decline.
 
     ‼‼ WHY THIS HAS TO EXIST WHEN TWO DEPOSIT PATHS ALREADY DO (measured 2026-08-13).
     **Neither of them can free a slot BEFORE a catch**, which is exactly what
@@ -280,25 +372,22 @@ def deposit_one_dead_weight() -> Generator:
         console.print("[green]Story: PC — the party already has room; no deposit needed.[/]")
         return True
 
-    from modules.story.team_policy import find_dead_weight, view_from_party
-
+    # RULING 20 Phase 1 (2026-09-27): the ONE victim rule — dead weight first, never a counter still owed to its boss,
+    # and for a REQUIRED errand the lowest-level unprotected member when nobody is dead weight (`make_room_victim`).
     try:
-        dead = find_dead_weight(view_from_party(party))  # worst-first; exempts sole HM carriers
+        found = make_room_victim(party, required=required, protected=deposit_protected_pids())
     except Exception as error:  # noqa: BLE001 - a scoring failure must not wedge the caller
         console.print(f"[yellow]Story: PC — could not score dead weight ({error!r}).[/]")
         return False
 
-    victim, reason = None, ""
-    for index, why in dead:
-        if index < len(party) and party[index] is not None:
-            victim, reason = party[index], why
-            break
+    victim, reason = found if found is not None else (None, "")
     if victim is None:
         # ‼ SAY WHY, and say it as the FINDING it is. Every party member being worth keeping is
         # a legitimate answer, not an error — but the caller must not read it as "deposited".
         console.print(
-            "[yellow]Story: PC — nothing is safe to deposit (every slot is either a sole HM "
-            "carrier, a favourite, or not dead weight). The party stays full.[/]"
+            "[yellow]Story: PC — nothing is safe to deposit (every slot is a sole HM carrier, a counter still owed to "
+            f"its boss, or not dead weight{'' if required else ' — and the errand is not a required one'}). "
+            "The party stays full.[/]"
         )
         return False
 
@@ -526,17 +615,14 @@ def withdraw_from_box(pids) -> Generator:
         # dead weight — never more: thinning the team is what made `#24-pc` a regression
         # (~1 mon/run, ~19 pts of the last funnel rung; 08-MISTAKES 2026-08-05).
         if not party_has_room_for_withdraw(party):
-            from modules.story.team_policy import find_dead_weight, view_from_party
-
+            # RULING 20 Phase 1 (2026-09-27): the ONE victim rule. A withdraw is always a REQUIRED errand (an HM carrier
+            # or a hunted counter — `withdraw_pid_source`), so a level-even team still yields a victim; a counter still
+            # owed to its boss is never boxed; the mons this visit came to collect are excluded.
             worst = None
             try:
-                dead = find_dead_weight(view_from_party(party))  # worst-first
-                for i, _reason in dead:
-                    if i < len(party) and party[i] is not None:
-                        if party[i].personality_value in (pids or ()):
-                            continue  # never deposit the very mon we came to collect
-                        worst = party[i]
-                        break
+                found = make_room_victim(party, exclude_pids=pids or (), required=True,
+                                         protected=deposit_protected_pids())
+                worst = found[0] if found is not None else None
             except Exception:  # noqa: BLE001
                 worst = None
             if worst is None:

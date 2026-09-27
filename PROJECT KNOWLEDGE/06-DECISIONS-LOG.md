@@ -7684,3 +7684,21 @@ evolution, and that it consumes the ball.
 - **Protect gym-TM recipients from deposit?** NO special protection. RULING 19's record says the user did not select
   "protect answers from deposit". Hunted counters stay protected until their badge; that is a design default, not a
   ruling, so it is open to change.
+
+## 2026-09-27 — RULING 20 Phase 1, increment A: the REQUIRED-errand victim is the lowest-level unprotected member; counters expire at their badge
+
+**Decisions** (design: `ai-research-notes/2026-09-27-ruling20-phase1-DESIGN.md`):
+- (a) **One victim rule for both live make-room paths** (`pc_trip.make_room_victim`). Dead weight comes first, as today.
+  Then, ONLY for a required errand (an HM learner, or a withdraw), the lowest-level member that is not protected or
+  excluded, not an egg, not a sole HM carrier, and not the last living battler.
+- (b) **A hunted counter is protected only while OWED**: from registration at badge count N until the count passes N.
+  The mapping is generic, with no per-boss table.
+- (c) **Gym-TM recipients get no protection** (RULING 19's recorded non-selection).
+
+**Rejected:**
+- A per-boss badge table: a table to maintain, and the generic count is the same thing for gym counters.
+- Never falling back for required errands: that is `#24-partycap`'s dominant failure, "no free slot for a Surf learner".
+- Falling back for ANY make-room: thinning the team without a required reason is what made `#24-pc` a regression.
+
+**Known gap, stated:** the design's protection of the only compatible learner of a still-required HM is NOT built.
+Increment B's box-first for Strength, Waterfall and Fly is the planned cover.

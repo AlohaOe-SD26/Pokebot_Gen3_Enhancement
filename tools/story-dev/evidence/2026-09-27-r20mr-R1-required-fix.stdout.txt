@@ -1,0 +1,53 @@
+[setup] LOG -> evidence\2026-09-27-r20mr-R1-required-fix.log
+Running mGBA 0.10.2
+[setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 80000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f1: CONTROLLER -> R20MakeRoomMode.run   (state=OVERWORLD)
+[r20mr] PRE case=required expect=fix party=[('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)] dead=['Skitty', 'Castform'] badges=5
+[r20mr] OWED ['Skitty', 'Castform'] expected_fix=0B30A747 expected_fault=None
+f375: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitDoor'] ctrl=R20MakeRoomMode.run bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2000: SAVED stall state #1 to stalls/repro-ml-f2000.ss1 (bt='Got away safely!')
+f2000: heartbeat mode=Story ctrl=R20MakeRoomMode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2300: !!! NO-PROGRESS x1200 sig=('R20MakeRoomMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2300:     gen -> R20MakeRoomMode.run  @ story_harness.py:23386
+f2300:     gen -> _yield_bounded_by_frames  @ early_game.py:1773
+f2300:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2300:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f2300:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2300:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+Story: PC — depositing ONE mon to free a slot: Swellow L33 (a REQUIRED errand 
+and no dead weight — the lowest-level unprotected member (L33; RULING 20 Phase 
+1)).
+f2790: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[PARTY-ACCT] HOLE — slot 5 of gPlayerPartyCount=6: counted by the game but 
+(near-)all zero, so it is skipped — B is now < A and every later Pokémon's list
+position no longer equals its physical slot (first sighting; Stage 0 is 
+OBSERVING ONLY)
+f2792: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2837: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=R20MakeRoomMode.run bt='Got away safely!' scripts=['EventScript_AccessPokemonStorage'] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2894: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_DrawFieldMessage'] ctrl=R20MakeRoomMode.run bt='Got away safely!' scripts=['EventScript_PCMainMenu'] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2951: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] ctrl=R20MakeRoomMode.run bt='Got away safely!' scripts=['EventScript_PCMainMenu'] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+Story: PC — party is now 5; room for a catch: True.
+[r20mr] CONSULTED [(True, [1556928702, 3380138318], 187737927)]
+[r20mr] DEPOSITS [('0B30A747', 'Swellow', 33)] party_after=5 failure=None
+[r20mr] conjuncts = {'dead_weight_is_skitty_then_castform': True, 'the_rule_was_consulted': True, 'no_failure': True, 'no_whiteout': True, 'deposited_the_expected_pid': True, 'exactly_one_deposit': True, 'owed_counters_still_in_party': True}
+[r20mr] ACCEPTANCE: PASS (case=required expect=fix)
+f3298: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3298 — ending the loop at f3418
+[done] ran 3419 frames; final mode=Manual party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L38: Tackle, Swagger, Take Down, Bite
+[moveset] Sceptile L39: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L25: Powder Snow, Rain Dance, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 3419 get_party() recomputes, 12 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT]   HOLE:slot 5 of gPlayerPartyCount=6: counted by the game but (near-)all zero, so it is skipped — B is now < A and every later Pokémon's list position no longer equals its physical slot  x29
+[PARTY-ACCT] ledger += r20makeroom 3419 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-27_09
+-42-41.ss1 created!
+Updated `current_state.ss1`!

@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -23288,6 +23288,128 @@ class PetaHealMode(BotMode):
         context.set_manual_mode()
 
 
+class R20MakeRoomMode(BotMode):
+    """`--driver r20makeroom` — USER RULING 20 Phase 1, increment A: the ONE deposit-victim rule, driven through production
+    `heal_in_pokemon_center`'s `_needs_party_slot` piggyback on `fortree_gym_wedge.ss1` (dead weight: Skitty, then
+    Castform; Sceptile and Zigzagoon are sole HM carriers).
+
+    `R20MR_CASE=protect`: Skitty is registered as a counter still OWED to its boss ⇒ the fix boxes Castform; with
+    `POKEBOT_R20_FAULT_NOPROTECT=1`, Skitty. `R20MR_CASE=required`: Skitty and Castform both owed ⇒ the fix boxes the
+    lowest remaining non-HM-carrier; with `POKEBOT_R20_FAULT_NOREQUIRED=1`, nobody. Every `PCAction.deposit_pokemon_to_box`
+    call is recorded (the ACTION, by PID); the expected victim is computed here WITHOUT the code under test.
+    `R20MR_EXPECT` = `fix` (default) | `fault`. Predictions: `ai-research-notes/2026-09-27-r20makeroom-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "R20MakeRoom"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[r20mr] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import PokemonCenter
+        from modules.modes.util import pc_interaction as _pci
+        from modules.pokemon_party import get_party
+        from modules.story import pc_trip as _pt
+        from modules.story.early_game import (
+            _yield_bounded_by_frames,
+            heal_in_pokemon_center,
+            reraise_if_aborting,
+            wait_until_truly_controllable,
+        )
+        from modules.story.team_policy import find_dead_weight, view_from_party
+
+        TAG = "r20mr"
+        CASE = _os.environ.get("R20MR_CASE", "protect")
+        EXPECT = _os.environ.get("R20MR_EXPECT", "fix")
+        deposits: list = []
+        consulted: list = []
+        failure = None
+        real_deposit = _pci.PCAction.deposit_pokemon_to_box
+        real_rule = _pt.make_room_victim
+
+        def _rec_deposit(pokemon, target_box=None):
+            deposits.append((pokemon.personality_value, pokemon.species.name, pokemon.level))
+            return real_deposit(pokemon, target_box)
+
+        def _rec_rule(party, **kw):
+            out = real_rule(party, **kw)
+            consulted.append((kw.get("required"), sorted(kw.get("protected") or ()),
+                              None if out is None else out[0].personality_value))
+            return out
+
+        try:
+            yield from wait_until_truly_controllable()
+            party = [p for p in get_party() if p is not None]
+            dead = [party[i] for i, _r in find_dead_weight(view_from_party(party))]
+            dead_names = [m.species.name for m in dead]
+            log(f"[{TAG}] PRE case={CASE} expect={EXPECT} party="
+                f"{[(f'{m.personality_value:08X}', m.species.name, m.level) for m in party]} dead={dead_names} "
+                f"badges={_pt.badge_count()}")
+            owed = dead[:1] if CASE == "protect" else dead[:2]
+            self._hunted_counter_pids = {m.personality_value for m in owed}
+            self._hunted_counter_badges = {m.personality_value: _pt.badge_count() for m in owed}
+            # The expected victim, computed WITHOUT make_room_victim: dead weight not owed; else (required) the
+            # lowest-level member that is not owed, not an egg, and does not hold an HM move nobody else holds.
+            hm = {"Cut", "Fly", "Surf", "Strength", "Flash", "Rock Smash", "Waterfall", "Dive"}
+            mv = {m.personality_value: {lm.move.name for lm in m.moves if lm and lm.move} for m in party}
+            owed_pids = {m.personality_value for m in owed}
+            free_dead = [m for m in dead if m.personality_value not in owed_pids]
+            if free_dead:
+                expected_fix = free_dead[0].personality_value
+            else:
+                def _sole_hm(m):
+                    mine = mv[m.personality_value] & hm
+                    others = set().union(*(mv[o.personality_value] for o in party if o is not m)) & hm
+                    return bool(mine - others)
+                pool = [m for m in party if m.personality_value not in owed_pids and not m.is_egg and not _sole_hm(m)]
+                expected_fix = min(pool, key=lambda m: m.level).personality_value if pool else None
+            expected_fault = owed[0].personality_value if CASE == "protect" else None
+            log(f"[{TAG}] OWED {[m.species.name for m in owed]} expected_fix="
+                f"{None if expected_fix is None else f'{expected_fix:08X}'} expected_fault="
+                f"{None if expected_fault is None else f'{expected_fault:08X}'}")
+            _pci.PCAction.deposit_pokemon_to_box = _rec_deposit
+            _pt.make_room_victim = _rec_rule
+            self._needs_party_slot = True
+            yield from _yield_bounded_by_frames(heal_in_pokemon_center(PokemonCenter.FortreeCity), 40_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _pci.PCAction.deposit_pokemon_to_box = real_deposit
+            _pt.make_room_victim = real_rule
+            self._needs_party_slot = False
+        after = [p.personality_value for p in get_party() if p is not None]
+        got = deposits[0][0] if deposits else None
+        log(f"[{TAG}] CONSULTED {consulted}")
+        log(f"[{TAG}] DEPOSITS {[(f'{p:08X}', s, lv) for p, s, lv in deposits]} party_after={len(after)} failure={failure}")
+        premise = {"dead_weight_is_skitty_then_castform": dead_names[:2] == ["Skitty", "Castform"],
+                   "the_rule_was_consulted": bool(consulted), "no_failure": failure is None,
+                   "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if EXPECT == "fix":
+            conj = {**premise, "deposited_the_expected_pid": got == expected_fix and expected_fix is not None,
+                    "exactly_one_deposit": len(deposits) == 1,
+                    "owed_counters_still_in_party": all(p in after for p in owed_pids)}
+        else:
+            conj = {**premise, "fault_behaviour": (got == expected_fault) if CASE == "protect"
+                    else (not deposits and len(after) == 6)}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE} expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27571,6 +27693,8 @@ for step in range(args.frames):
             context.bot_mode_instance = LavaHealMode()
         elif args.driver == "petaheal":
             context.bot_mode_instance = PetaHealMode()
+        elif args.driver == "r20makeroom":
+            context.bot_mode_instance = R20MakeRoomMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

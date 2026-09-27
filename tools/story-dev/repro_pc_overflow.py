@@ -86,10 +86,11 @@ wd = ast.parse((SANDBOX / "modules" / "story" / "pc_trip.py").read_text(
     encoding="utf-8", errors="replace"))
 src_wd = next((ast.unparse(n) for n in ast.walk(wd)
                if isinstance(n, ast.FunctionDef) and n.name == "withdraw_from_box"), "")
-check("it only deposits when the party is full", "len(alive) >= 6" in src_wd)
-check("it breaks after ONE deposit rather than looping", src_wd.count("break") >= 1)
-check("it skips the mon it came to collect",
-      "personality_value in (pids" in src_wd or "continue" in src_wd)
+# ⚠ Updated 2026-09-27 (RULING 20 Phase 1, increment A): the victim choice moved into `pc_trip.make_room_victim`, and
+# the first check below had already been stale on `main` ("len(alive) >= 6" — the gate is `party_has_room_for_withdraw`).
+check("it only deposits when the party is full", "if not party_has_room_for_withdraw(party)" in src_wd)
+check("it deposits exactly ONE (a single victim, no loop)", src_wd.count("deposit_pokemon_to_box") == 1)
+check("it skips the mon it came to collect", "exclude_pids=pids" in src_wd)
 check("it gives up cleanly when nothing is safe to deposit", "leaving it boxed" in src_wd)
 
 print("6. everything degrades with no emulator")

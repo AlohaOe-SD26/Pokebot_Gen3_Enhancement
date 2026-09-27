@@ -2222,6 +2222,9 @@ class StoryMode(BotMode):
         #: per-run state was never reset and one batch produced almost no usable data.
         #: ‼ PIDs, never slots: `#24-pc` now deposits mid-run, so a slot index goes stale.
         self._hunted_counter_pids: set = set()
+        #: RULING 20 Phase 1 (2026-09-27): the badge count when each counter was registered. A counter is protected from
+        #: live make-room deposits only while it is still OWED to its boss (`pc_trip.deposit_protected_pids`).
+        self._hunted_counter_badges: dict = {}
         # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
         # catch-on-sight targets armed for the rest of the run.
         try:
@@ -2860,10 +2863,16 @@ class StoryMode(BotMode):
             # `hunt()` itself rather than being re-derived here.
             if pid is not None:
                 self._hunted_counter_pids.add(pid)
+                try:
+                    from modules.story.pc_trip import badge_count
+
+                    self._hunted_counter_badges[pid] = badge_count()
+                except Exception as _bc_err:  # noqa: BLE001 - no count recorded ⇒ protected until the run ends
+                    console.print(f"[yellow]Story: badge count unreadable at counter registration ({_bc_err!r}).[/]")
                 where = "party" if slot is not None else "PC box"
                 console.print(
                     f"[dim]Story: counter registered (pid={pid:08X}, in the {where}); "
-                    f"it will lead this boss and is protected from PC deposit.[/]"
+                    f"it will lead this boss and is protected from PC deposit until its badge.[/]"
                 )
             else:
                 console.print("[yellow]Story: counter caught but its PID was unreadable — "

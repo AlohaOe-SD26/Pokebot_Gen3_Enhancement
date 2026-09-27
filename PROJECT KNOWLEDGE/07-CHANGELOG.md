@@ -36170,3 +36170,35 @@ Gate `probe_petaheal.py` checks the wiring, the road set against the road's own 
 behaviour on 4 paths; 3 fault arms, one of them a fallback without the held-input release. Suite 107 (103 enforcing +
 4 advisory; `--quick` 94).
 **REMAINING:** the 1 Meteor Falls bounce (from Route 114, a map off the road, so the fallback re-raises as before) and the Fortree family (8). Route 117's 9 origins are covered by the road's own ranking but were not driven.
+
+## 2026-09-27 — RULING 20 PHASE 1, INCREMENT A: ONE DEPOSIT-VICTIM RULE FOR EVERY LIVE MAKE-ROOM PATH (branch `wt/r20phase1`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** The Phase 1 design (`ai-research-notes/2026-09-27-ruling20-phase1-DESIGN.md`, a NOTE) found two defects on the
+LIVE make-room paths, `deposit_one_dead_weight` and the make-room inside `withdraw_from_box`:
+- (1) they could box a counter hunted for the very next boss. Only the OFF rotation path read the protected set, while
+  `story_mode` printed "protected from PC deposit";
+- (2) on a team with no dead weight they declined, so a required HM errand raised "party is full". That was
+  `#24-partycap`'s dominant failure, 10 of 16.
+
+**WHAT.**
+- `pc_trip.make_room_victim` is PURE: dead weight first; never a protected or excluded PID; for a REQUIRED errand, the
+  lowest unprotected non-HM-carrier; never an egg or the last living battler.
+- `pc_trip.deposit_protected_pids`: hunted counters, until their badge. `story_mode` records `_hunted_counter_badges`.
+- Both live paths ask the one rule. The `_needs_party_slot` piggyback passes `required=True`.
+- Arms `POKEBOT_R20_FAULT_{NOREQUIRED,NOPROTECT,NOEXPIRE}`.
+
+**PROOF** (predictions `b2bcc55a`, filed first; `ai-research-notes/2026-09-27-r20makeroom-GRADED.md`).
+`--driver r20makeroom` on `fortree_gym_wedge.ss1`, graded on the recorded `PCAction.deposit_pokemon_to_box`, by PID:
+
+| Arm | Boxed |
+|---|---|
+| protect / FIX | Castform, the owed Skitty kept |
+| protect / NOPROTECT | Skitty |
+| required / FIX | Swellow |
+| required / NOREQUIRED | nobody (party 6) |
+
+Gate `probe_r20_makeroom.py` covers the rule, the expiry and the wiring; 4 fault arms. Suite 108 (104 enforcing + 4
+advisory; `--quick` 95). The non-gated `repro_pc_overflow.py` section 5 was updated to the new structure; its first
+check had already been stale on `main`.
+⚠ **Known gap:** the only learner of a still-required HM is not protected. The fallback boxed a future Fly learner in
+the drive. Increment B is the cover.

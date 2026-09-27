@@ -650,7 +650,8 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             from modules.story.pc_trip import deposit_one_dead_weight
 
             if getattr(_ctx.bot_mode_instance, "_needs_party_slot", False):
-                yield from deposit_one_dead_weight()
+                # `required=True` (RULING 20 Phase 1): the only setter is the HM make-room path — a REQUIRED errand.
+                yield from deposit_one_dead_weight(required=True)
         except Exception as error:  # noqa: BLE001 - same contract as the block above: the heal
             # survives, but the failure is announced rather than swallowed.
             # ⛔ KI-81 — a WHITEOUT is not a "PC hiccup": the run is over and the player has

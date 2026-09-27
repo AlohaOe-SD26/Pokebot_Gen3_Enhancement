@@ -1,0 +1,43 @@
+[setup] LOG -> evidence\2026-09-27-r20mr-R2-required-norequired.log
+Running mGBA 0.10.2
+[setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 80000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f1: CONTROLLER -> R20MakeRoomMode.run   (state=OVERWORLD)
+[r20mr] PRE case=required expect=fault party=[('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)] dead=['Skitty', 'Castform'] badges=5
+[r20mr] OWED ['Skitty', 'Castform'] expected_fix=0B30A747 expected_fault=None
+f375: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitDoor'] ctrl=R20MakeRoomMode.run bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2000: SAVED stall state #1 to stalls/repro-ml-f2000.ss1 (bt='Got away safely!')
+f2000: heartbeat mode=Story ctrl=R20MakeRoomMode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2300: !!! NO-PROGRESS x1200 sig=('R20MakeRoomMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2300:     gen -> R20MakeRoomMode.run  @ story_harness.py:23386
+f2300:     gen -> _yield_bounded_by_frames  @ early_game.py:1773
+f2300:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2300:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f2300:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2300:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+Story: PC — nothing is safe to deposit (every slot is a sole HM carrier, a 
+counter still owed to its boss, or not dead weight). The party stays full.
+[r20mr] CONSULTED [(True, [1556928702, 3380138318], None)]
+[r20mr] DEPOSITS [] party_after=6 failure=None
+[r20mr] conjuncts = {'dead_weight_is_skitty_then_castform': True, 'the_rule_was_consulted': True, 'no_failure': True, 'no_whiteout': True, 'fault_behaviour': True}
+[r20mr] ACCEPTANCE: PASS (case=required expect=fault)
+f2556: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f2556 — ending the loop at f2676
+[done] ran 2677 frames; final mode=Manual party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L38: Tackle, Swagger, Take Down, Bite
+[moveset] Sceptile L39: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Swellow L33: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L25: Powder Snow, Rain Dance, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 2677 get_party() recomputes, 9 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += r20makeroom 2677 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-27_09
+-42-50.ss1 created!
+Updated `current_state.ss1`!

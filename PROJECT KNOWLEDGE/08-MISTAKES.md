@@ -22502,3 +22502,22 @@ arms PASS, frame-identical.
 **Prevention rule:** ⛔ **A staging write must be checked against the mon it lands on, not assumed.** Species with
 fixed or tiny stats (Shedinja's 1 HP) turn "half" into "full". Pick the target by a property the stage needs, and log
 the before/after reading that the premise conjunct grades.
+
+## 2026-09-27 — ⛔ A PROTECTION PRINTED ON THE CONSOLE THAT ONLY A SWITCHED-OFF PATH IMPLEMENTED
+
+**Symptom:** `story_mode` printed "it will lead this boss and is protected from PC deposit" for every hunted counter. The
+live make-room deposit could box that counter anyway: `--driver r20makeroom` with the fix disabled boxed Skitty, the
+owed counter.
+
+**Root cause:**
+- The protected set was read ONLY by `plan_deposits` (the rotation deposit), which has been pinned OFF since it was
+  measured harmful.
+- The two LIVE paths each had their own victim choice, and neither consulted it.
+- The gym-TM gate (G8) only checked that a substring appeared in `pc_trip`, so it passed on the dead path.
+
+**Fix:** one victim rule, `make_room_victim`, asked by both live paths with `deposit_protected_pids()`. A behavioural gate
+checks it.
+
+**Prevention rule:** ⛔ **When a message or comment promises a protection, find EVERY path that can violate it and check
+that each one asks.** A protection implemented in one of three deposit paths, and that one switched off, is a false
+statement.

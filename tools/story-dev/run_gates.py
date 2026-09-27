@@ -265,6 +265,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-healmap-lavaridge` (Petalburg family) — the Norman heal falls back to the story's own road when the
     # generic walk bounces from the Rustboro side (53 of 53 derailed in the batch), releasing held input first.
     ("probe_petaheal.py", False),
+    # ⛔ USER RULING 20 Phase 1 (A) — ONE deposit-victim rule for every LIVE make-room path: never box a counter still
+    # owed to its boss, and for a REQUIRED errand always find a victim on a level-even team. Pure + wiring; 4 fault arms.
+    ("probe_r20_makeroom.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),
