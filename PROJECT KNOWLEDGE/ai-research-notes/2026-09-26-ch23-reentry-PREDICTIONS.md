@@ -21,3 +21,11 @@ basket empty, ₽56,041)
 |---|---|---|
 | **A1 FIX** | `ACCEPTANCE: PASS` — legs 1-10 skip, leg 11 buys the whole basket (₽56,041 → ₽1,741, as the 2026-09-04 capture and RULING 16's S1 arm), `ch23_chapter_done()` True, no `enter_victory_road` call, a few thousand frames | leg 5 fires anyway, or the chapter fails |
 | **A2 REENTRY (old guard)** | `ACCEPTANCE: FAIL` — leg 5 fires and aims at (18,42): `Could not reach (18, 42)` / `UnreachableDestinationError`; the basket is NOT bought | A2 passes (then the defect never existed on this fixture) |
+
+## ADDENDUM — the adversarial review's KICK-BACK, filed BEFORE C5 was run
+The review: `on_league_plateau()` caught only `PathFindingError`, but `get_player_location()` documents a plain
+`RuntimeError` on a corrupt read mid map change — it would escape the attempt loop (which catches `BotModeError`) and
+`StoryMode.run()`: a guard turned into a crash. Built: any other exception returns False ("not proven on the plateau" ⇒
+leg 5 fires, the pre-fix behaviour), story aborts re-raised, a printed line; arm `POKEBOT_CH23_FAULT_PLATEAUREAD`.
+**C5 prediction:** on each plateau fixture with the arm set, `(on_league_plateau(), leg5_should_fire()) == (False, True)`
+and nothing escapes. **Falsifier:** an exception reaching the gate, or leg 5 skipped on an unreadable position.
