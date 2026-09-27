@@ -87,3 +87,19 @@ bounded walk back. Gate `probe_league_reserve.py` R7 pins all of it (two new fau
 | arm | predicted | falsifier |
 |---|---|---|
 | **E1'' BUY** | PASS: `EB-PLANNED, EB-MART, EB-BOUGHT`; delta {Revive 3, Full Heal 8, Hyper Potion 30}; ₽67,466 → ₽22,166; `returned True` via the stored path (no `return_errors`); re-healed; gym 1F | the stored path times out and cannot resume, or the re-heal still reports BLOCKED from (31,34) |
+
+## ADDENDUM 3 — the adversarial review's KICK-BACK, filed BEFORE B1/B2 were driven
+
+The review (KICK-BACK): "never strand the bot" was proven only STATICALLY. An expired budget `.close()`s the leg with
+`GeneratorExit` (a BaseException), skipping the in-function walk back; the outer retry had never run, would have waited
+for control with the Mart menu possibly still open, and fell back to the very planner call that fails from the far
+side. Built: `POKEBOT_RESERVE_FAULT_BUDGET`; the walk back first CLOSES any open shop menu / dialog (B on a duty cycle,
+bounded); off the stored path it tries the waypoint and then the Mart FRONT (a west-side plan) so the stored path
+applies; a bot still stranded after the retry now fails BY NAME after its telemetry line. Gate R7 +2 checks, R2 now
+asserts Full Restore. Measured on the final code (observe run): crossing starts at **535** frames into the leg, the shop
+menu opens at **1,390**.
+
+| arm | how | predicted | falsifier |
+|---|---|---|---|
+| **B1 BUDGET-BEFORE** | `post_hm07`, `POKEBOT_RESERVE_FAULT_BUDGET=300`, `EB_EXPECT=budget EB_BUDGET_AT=before` | PASS: `finished False`, never crossed, nothing to walk back, re-healed, gym 1F, money unchanged | it crosses anyway, or L1 fails |
+| **B2 BUDGET-SHOP** | same, `=1470`, `EB_BUDGET_AT=shop` | PASS: `finished False`, `crossed True`, `frames_at_shop_open` recorded, `retry_return True` → `returned True` (menu closed, stored path), not stranded, re-healed, gym 1F. The purchase itself may or may not have completed (the cut lands inside `buy_in_shop`) — recorded, not graded | `stranded True` / the named STRANDED error, or a menu still open when the walk starts |
