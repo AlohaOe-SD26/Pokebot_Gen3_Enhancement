@@ -22431,3 +22431,21 @@ sight 4). All three docs are corrected.
 **Prevention rule:** ⛔ **An agent's descriptive detail about an event (wild or trainer, which leg) is a claim like any
 other.** When a KI is filed from a report, check the one line that would distinguish it: a wild battle ALWAYS logs
 `Encountered <species>`.
+
+## 2026-09-27 — ⛔ A COST ESTIMATE MODELLED THE ACTOR'S BEST CASE, NOT WHAT IT ACTUALLY DOES — AND THE GATE PINNED THE BEST CASE
+
+**Symptom:** the post-gym-1 catch-rate skip admitted catches the ball bag could not afford. With 1 Great Ball + 29 Poké
+Balls, a rate-60 species read 8.1 expected throws; the true figure is about 11.8.
+
+**Root cause:**
+- The adapter took `max()` over the balls held: the thrower's best case, as if every throw used the best ball.
+- The gate's R3 then asserted exactly that figure. The test encoded the defect, and it passed.
+- (The same adapter's first version had already been kicked back once for ignoring the allowlist. Same class: modelling
+  a ball the thrower would not throw.)
+
+**Fix:** `dex_catch_expected_throws_seq` models the thrower's own sequence, best stack first, by quantity. R3 now
+asserts the sequence figure, and R7 pins it. The shipped adapter is kept as a fault arm.
+
+**Prevention rule:** ⛔ **When a guard ESTIMATES what an actor will do, model the actor's actual policy (its order, its
+quantities, its filters) and write one gate case where the best case and the real sequence DIVERGE.** A gate whose
+fixture cannot tell them apart will happily pin the wrong one.

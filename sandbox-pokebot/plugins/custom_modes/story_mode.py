@@ -1641,8 +1641,8 @@ DEX_CATCH_BALL_RESERVE = 10
 #: draining the ball pool, which is precisely the resource the mandatory hunts share. 2 is one retry.
 DEX_CATCH_MAX_ATTEMPTS = 2
 
-#: USER RULING 20 Phase 0 (2026-09-26): a post-gym-1 Pokédex catch is not STARTED when a full-HP throw with our best
-#: ball is expected to take more than this many balls. ⚠ A JUDGEMENT, not a measurement — sized so the 30-ball Rustboro
+#: USER RULING 20 Phase 0 (2026-09-26): a post-gym-1 Pokédex catch is not STARTED when a full-HP catch, thrown in the
+#: order the thrower spends our balls (best stack first), is expected to take more than this many balls. ⚠ A JUDGEMENT, not a measurement — sized so the 30-ball Rustboro
 #: purchase covers ~3 hard catches, and logged per refusal so a batch can re-derive it. MEASURED motivation: one Absol
 #: (catch rate 30) took 23 balls; this formula predicts ~25 for it.
 DEX_CATCH_MAX_EXPECTED_THROWS = 10
@@ -1663,7 +1663,7 @@ def dex_fence_log_line(logged: set, dex, name: str, catch: bool, reason: str) ->
 
 
 def _expected_throws_for(species, bag, allowed=None) -> "float | None":
-    """ADAPTER for `dex_catch_expected_throws`: the species' catch rate and the best ball the THROWER may use — held,
+    """ADAPTER for `dex_catch_expected_throws_seq`: the species' catch rate and EVERY stack the THROWER may use — held,
     never the Master Ball, and in the user's `catch_balls.yml` allowlist (`modules.catch_balls.allowed_ball_names()`,
     exactly the filter `CatchStrategy._get_best_poke_ball` applies; `allowed` is injectable for the gate). A special
     ball counts as a Poké Ball (its bonus is conditional — conservative). None when unreadable or ball-less — the fence
@@ -1678,14 +1678,39 @@ def _expected_throws_for(species, bag, allowed=None) -> "float | None":
                 allowed = allowed_ball_names()
             except Exception:  # noqa: BLE001 - the thrower's own fallback: every ball except the Master Ball
                 allowed = None
-        best = max((_BALL_BONUS_X10.get(slot.item.name, 10) for slot in bag.poke_balls
-                    if slot.quantity > 0 and slot.item.name != "Master Ball"
-                    and (allowed is None or slot.item.name in allowed)), default=None)
-        if best is None or species is None:
+        # ⛔ THE WHOLE BAG, NOT ITS BEST BALL (2026-09-27). The first version scored the best ball HELD, whatever its
+        # quantity: one Great Ball made a rate-60 catch read 8.1 throws (admitted), while the thrower spends that one
+        # ball and continues with Poké Balls at 12.4 each — ~11.9 in all, above the cap (the #26-organiccatch recon).
+        balls = [(_BALL_BONUS_X10.get(slot.item.name, 10), slot.quantity) for slot in bag.poke_balls
+                 if slot.quantity > 0 and slot.item.name != "Master Ball"
+                 and (allowed is None or slot.item.name in allowed)]
+        if not balls or species is None:
             return None
-        return dex_catch_expected_throws(int(species.catch_rate), best)
+        return dex_catch_expected_throws_seq(int(species.catch_rate), balls)
     except Exception:  # noqa: BLE001 - unknown ⇒ None ⇒ the fence ignores it (never a silent refusal)
         return None
+
+
+def dex_catch_expected_throws_seq(catch_rate: int, balls: "list[tuple[int, int]]") -> float:
+    """PURE. Expected balls to catch a full-HP, status-free target when the THROWER spends its best ball first and
+    moves down the bag stack by stack — the order `CatchStrategy._get_best_poke_ball` picks, one throw per turn — and,
+    past the last ball held, keeps throwing the WORST one (the supply is the ball reserve's business, not this
+    estimate's). `balls` = [(bonus_x10, quantity), …]. With ONE ball type this IS `dex_catch_expected_throws` exactly
+    in theory (the gate pins it to 1e-9): sum_{k<q} (1-p)^k + (1-p)^q / p = 1/p. A special ball counts as a Poké Ball
+    here, and the thrower may throw it earlier when its condition applies — that only LOWERS the true figure."""
+    seq = sorted(((bonus, qty) for bonus, qty in balls if qty > 0), key=lambda t: -t[0])
+    if not seq:
+        return float("inf")
+    expected, survive = 0.0, 1.0
+    for bonus, qty in seq:
+        e = dex_catch_expected_throws(catch_rate, bonus)
+        p = 0.0 if e == float("inf") else 1.0 / e
+        for _ in range(min(qty, 999)):
+            expected += survive
+            survive *= 1.0 - p
+            if survive <= 0.0:
+                return expected
+    return expected + survive * dex_catch_expected_throws(catch_rate, seq[-1][0])
 
 
 def dex_catch_expected_throws(catch_rate: int, ball_bonus_x10: int) -> float:
@@ -1918,7 +1943,7 @@ def decide_dex_catch(
 
     if (expected_throws is not None and expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS
             and _os_rate.environ.get("POKEBOT_DEXCATCH_FAULT_NORATE") != "1"):
-        return False, (f"#{species_dex}: ~{expected_throws:.0f} expected throws at full HP with our best ball — above "
+        return False, (f"#{species_dex}: ~{expected_throws:.0f} expected throws at full HP with the balls we hold — above "
                        f"{DEX_CATCH_MAX_EXPECTED_THROWS}")
     return True, f"dex catch #{species_dex} (goes to the PC box)"
 

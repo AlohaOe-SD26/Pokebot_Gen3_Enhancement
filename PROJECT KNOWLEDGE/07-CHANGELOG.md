@@ -36072,3 +36072,26 @@ Draw is not the cause.
 - FIX walked straight back into Victory Road, with 0 derails.
 
 Suite: 104 (100 enforcing + 4 advisory; `--quick` 91). Playbook: §3d, plus a §7 row.
+
+## 2026-09-27 — THE CATCH-RATE SKIP NOW MODELS THE THROWER'S WHOLE BALL SEQUENCE; THE PRE-GYM-1 ATTEMPT CAP IS DEFERRED BY MEASUREMENT (`#26-organiccatch`)
+
+**WHY.** A four-agent recon of RULING 20 Phase 0's last piece (`ai-research-notes/2026-09-27-pregym1-cap-RECON.md`, a
+NOTE) found two things:
+- The cap is inert at today's pre-gym-1 target of 4. Deferred: see `06`.
+- A defect in last night's POST-gym-1 catch-rate skip. `_expected_throws_for` scored the BEST ball held, whatever its
+  quantity, so one Great Ball made a rate-60 catch read 8.1 throws (admitted). The thrower spends that ball and continues
+  with Poké Balls, at about 11.8 in all, above the cap of 10.
+
+**WHAT.**
+- A new PURE `dex_catch_expected_throws_seq(rate, [(bonus, qty), …])`. It walks the bag best-first, the order
+  `CatchStrategy._get_best_poke_ball` throws in, then continues at the worst ball's rate.
+- With one ball type it IS the old figure (to 1e-15). The change can only RAISE the estimate, so it only turns a
+  borderline admit into a skip.
+- The adapter feeds it every allowed, non-Master stack. The fence's reason says "with the balls we hold".
+
+**PROOF.** Gate `probe_dexcatch_rate.py`:
+- R3's first case had ENCODED the defect by asserting the best-ball figure. It now asserts the sequence: 14.68 against
+  the old 10.79, for rate 45 with 3 Great + 10 Poké.
+- New R7: the identity; rate 60 with 1 Great + 29 Poké gives 11.84 (refused) and 30 Great gives 8.11 (admitted);
+  monotonicity; the wiring.
+- A new built-in fault arm, the shipped adapter, FAILS R3/R7.

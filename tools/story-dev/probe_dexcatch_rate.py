@@ -9,8 +9,8 @@ stops a catch at the reserve; this stops a hopeless one from starting.
       better ball / higher rate never needs MORE throws.
   R2  THE FENCE: post-gym-1, above `DEX_CATCH_MAX_EXPECTED_THROWS` ⇒ refused and the reason NAMES the estimate; at the
       threshold ⇒ caught; `None` (unknown) ⇒ no effect; PRE-gym-1 ⇒ unchanged (still team building).
-  R3  THE ADAPTER `_expected_throws_for`: the best ball the THROWER may use (a Great Ball ⇒ x15), NEVER the Master
-      Ball, NEVER a ball outside the user's `catch_balls.yml` allowlist (the thrower's own filter — a held-but-disallowed
+  R3  THE ADAPTER `_expected_throws_for`: EVERY stack the THROWER may use, best first (2026-09-27; it was the best ball
+      held, whatever its quantity), NEVER the Master Ball, NEVER a ball outside the user's `catch_balls.yml` allowlist (the thrower's own filter — a held-but-disallowed
       Ultra Ball must not make a hopeless catch look cheap); a ball-less / unreadable bag ⇒ None.
   R4  WIRING: `_should_catch` passes `expected_throws=_expected_throws_for(species, bag)` to `decide_dex_catch`.
   R5  the skip-the-fix arm `POKEBOT_DEXCATCH_FAULT_NORATE` restores the old behaviour, is read in production and is
@@ -18,8 +18,12 @@ stops a catch at the reserve; this stops a hopeless one from starting.
   R6  PER-SPECIES VERDICT LOGGING (`dex_fence_log_line`): two species with the SAME reason ⇒ two lines (the old log
       reported only when the global reason string CHANGED — transitions, not species); the same (species, reason) ⇒
       one line per run; "already owned" / trainer battles ⇒ never; the adapter uses it and the set is per-run.
+  R7  THE SEQUENCE (`dex_catch_expected_throws_seq`, PURE): one ball type ⇒ exactly the single-ball figure (to 1e-9);
+      the motivating case — rate 60 with 1 Great Ball + 29 Poké Balls ⇒ ABOVE the cap (~11.9), while 30 Great Balls
+      ⇒ ~8.1 (admitted); a better ball added never raises the figure; and the adapter returns the sequence figure.
 FAULT ARMS (built in): a formula without the full-HP `/ 3` (R1); a rate check that also fires PRE-gym-1 (R2); an adapter
-that counts the Master Ball, and one that ignores the allowlist (R3); the old change-only logger (R6).
+that counts the Master Ball, and one that ignores the allowlist (R3); the old change-only logger (R6); the old
+best-ball-only adapter (R3 + R7).
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dexcatch_rate.py
 """
@@ -94,13 +98,17 @@ class _Slot:
 def r3(adapter, sink=None):
     sp = types.SimpleNamespace(catch_rate=45)
     bag = types.SimpleNamespace(poke_balls=[_Slot("Poké Ball", 10), _Slot("Great Ball", 3), _Slot("Master Ball", 1)])
-    check(adapter(sp, bag) == SM.dex_catch_expected_throws(45, 15),
-          "R3 the best ORDINARY ball held counts (a Great Ball ⇒ x15), never the Master Ball", sink)
+    want = SM.dex_catch_expected_throws_seq(45, [(15, 3), (10, 10)])
+    got = adapter(sp, bag)
+    check(got is not None and abs(got - want) < 1e-9 and got > SM.dex_catch_expected_throws(45, 15) + 1,
+          f"R3 the thrower's SEQUENCE counts — 3 Great Balls, then Poké Balls ({want:.2f}; the best-ball figure "
+          f"{SM.dex_catch_expected_throws(45, 15):.2f} understated it) — never the Master Ball", sink)
     check(adapter(sp, types.SimpleNamespace(poke_balls=[_Slot("Master Ball", 1)])) is None,
           "R3 only a Master Ball ⇒ None (a discretionary catch must never plan on it)", sink)
     check(adapter(None, bag) is None, "R3 an unreadable species ⇒ None", sink)
     held_ultra = types.SimpleNamespace(poke_balls=[_Slot("Poké Ball", 10), _Slot("Ultra Ball", 1)])
-    check(adapter(sp, held_ultra, allowed={"Poké Ball", "Great Ball"}) == SM.dex_catch_expected_throws(45, 10),
+    _hu = adapter(sp, held_ultra, allowed={"Poké Ball", "Great Ball"})
+    check(_hu is not None and abs(_hu - SM.dex_catch_expected_throws(45, 10)) < 1e-9,
           "R3 a held Ultra Ball OUTSIDE the allowlist is ignored — the estimate uses the ball the thrower may throw", sink)
     check(adapter(sp, held_ultra, allowed={"Premier Ball"}) is None,
           "R3 no allowed ball held ⇒ None (the fence ignores it; the thrower has nothing to throw)", sink)
@@ -111,6 +119,24 @@ def r3(adapter, sink=None):
             raise RuntimeError("bag unreadable")
 
     check(adapter(sp, _Broken()) is None, "R3 an unreadable bag ⇒ None (the fence then ignores it)", sink)
+
+
+def r7(seq, adapter, sink=None):
+    single = SM.dex_catch_expected_throws
+    worst = max(abs(seq(r, [(b, q)]) - single(r, b)) / single(r, b)
+                for r in (3, 30, 45, 60, 90, 120, 190, 255) for b in (10, 15, 20) for q in (1, 5, 30)
+                if single(r, b) != float("inf"))
+    check(worst < 1e-9, f"R7 one ball type => exactly the single-ball figure (worst relative error {worst:.1e})", sink)
+    mixed, greats = seq(60, [(15, 1), (10, 29)]), seq(60, [(15, 30)])
+    M = SM.DEX_CATCH_MAX_EXPECTED_THROWS
+    check(mixed > M >= greats, f"R7 rate 60: 1 Great + 29 Poke => {mixed:.2f} (> {M}, refused); 30 Great => "
+          f"{greats:.2f} (admitted)", sink)
+    check(all(seq(r, [(20, 1), (10, 20)]) <= seq(r, [(10, 21)]) + 1e-9 for r in (30, 45, 60, 120)),
+          "R7 swapping a Poke Ball for an Ultra Ball never raises the figure", sink)
+    sp = types.SimpleNamespace(catch_rate=60)
+    got = adapter(sp, types.SimpleNamespace(poke_balls=[_Slot("Great Ball", 1), _Slot("Poké Ball", 29)]),
+                  allowed={"Poké Ball", "Great Ball"})
+    check(got is not None and got > M, f"R7 the adapter refuses that bag through the fence's cap (got {got})", sink)
 
 
 def r6(fn, code, sink=None):
@@ -159,6 +185,8 @@ def main() -> int:
 
     print("\n== R6 per-species verdict logging ==")
     r6(SM.dex_fence_log_line, code)
+    print("\n== R7 the thrower's sequence ==")
+    r7(SM.dex_catch_expected_throws_seq, SM._expected_throws_for)
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     sink: list = []
@@ -214,6 +242,20 @@ def main() -> int:
 
     r6(change_only, None, sink)
     check(bool(sink), f"FAULT the old change-only logger FAILS R6 ({len(sink)} caught)")
+    sink = []
+
+    def best_ball_only(species, bag, allowed=None):  # the adapter as it shipped on 2026-09-26, try/except included
+        try:
+            best = max((SM._BALL_BONUS_X10.get(s.item.name, 10) for s in bag.poke_balls
+                        if s.quantity > 0 and s.item.name != "Master Ball"
+                        and (allowed is None or s.item.name in allowed)), default=None)
+            return None if best is None or species is None else SM.dex_catch_expected_throws(species.catch_rate, best)
+        except Exception:  # noqa: BLE001 - as shipped: unknown ⇒ None
+            return None
+
+    r3(best_ball_only, sink)
+    r7(SM.dex_catch_expected_throws_seq, best_ball_only, sink)
+    check(bool(sink), f"FAULT the old best-ball-only adapter FAILS R3/R7 ({len(sink)} caught)")
 
     print()
     if failures:

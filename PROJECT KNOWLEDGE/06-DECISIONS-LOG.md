@@ -7542,3 +7542,31 @@ whiteout or the derail recovery, and announces the mask (`RECOVERY-HELD`). Arm: 
   routes; the navigator's own next frame is the other.
 - (c) **Clearing held D-pad bits inside `ensure_facing_direction` / `follow_waypoints`.** That is also upstream-shared,
   and it sits on the per-frame path navigation depends on. `#24-truckleak` warns against exactly that.
+
+## 2026-09-27 — RULING 20 Phase 0: the pre-gym-1 attempt cap is DEFERRED to Phase 2, and the full-HP pre-gym-1 health check is REJECTED
+
+**Decision:**
+- Build no pre-gym-1 per-species attempt cap now.
+- Do not port the post-gym-1 full-HP entry check (`party_healthy`) to before gym 1.
+- Both questions move to Phase 2, where the pre-gym-1 team target of 4 changes. There the cap is built and measured
+  TOGETHER with the target change, under the constraints in `ai-research-notes/2026-09-27-pregym1-cap-RECON.md`.
+
+**Rationale (measured by a four-agent recon, a NOTE):**
+- **The cap.** At target 4, a cap of 2 refuses nothing: 0 of 140 attempts in the parked batch, and 3 of 3,196 (all Abra)
+  in the 872-run H corpus. So an A/B of it would show no difference by construction. A cap of 1 would refuse 134
+  "out of balls, then caught on retry" successes.
+- **The full-HP check.** It would refuse about 79% of team-building catches, with no measured whiteout benefit (0.55%
+  either way).
+- **The real pre-gym-1 risk** is an in-battle loss, mostly Whismur's Uproar. Its fix is a first-faint bail, which a
+  Phase 2 build should carry, since more pre-gym-1 catching means more such battles.
+
+**Rejected:**
+- (a) **Shipping a cap of 2 anyway, "for safety".** It is a guard with no measurable effect, and this project deletes
+  those (CLAUDE.md rule 8).
+- (b) **A cap of 1.** Measured harmful.
+- (c) **Porting `party_healthy`.** Measured harmful.
+- (d) **Lowering the expected-throws cap to about 5, to exclude Silcoon and Cascoon.** That is species targeting in
+  disguise, and the 2026-09-26 decision rejected a per-species blacklist.
+
+**Reopen if:** Phase 2 raises the pre-gym-1 target, or a batch shows pre-gym-1 catch-battle losses again. The H corpus
+had 19; the last two batches had 0.
