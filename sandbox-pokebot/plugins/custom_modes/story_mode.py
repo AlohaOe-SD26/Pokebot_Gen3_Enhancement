@@ -2809,13 +2809,14 @@ class StoryMode(BotMode):
             if self._training_blocked(map_enum, tile):
                 attempts.append(f"{candidate['species_name']}@{map_enum.name}: known-unreachable")
                 continue
+            _hunt_origin = self._here_map()  # the map this pick was checked from — the key (see the note)
             try:
                 caught = yield from counter_hunt.hunt(candidate, needed)
             except UnreachableDestinationError as error:
                 # ‼ A NAVIGATION failure is CHEAP (255 frames, fail-fast) and specific to
                 # ONE place, so it earns a fallback rather than ending the ladder. Record
                 # it so nothing re-walks it later this run.
-                self._note_training_unreachable(map_enum, tile)
+                self._note_training_unreachable(map_enum, tile, origin=_hunt_origin)
                 attempts.append(f"{candidate['species_name']}@{map_enum.name}: unreachable")
                 console.print(
                     f"[yellow]Story: {map_enum.name} is not reachable from here "
@@ -2897,15 +2898,33 @@ class StoryMode(BotMode):
         except Exception:
             return None
 
-    def _note_training_unreachable(self, map_enum, tile) -> None:
-        """Record that `tile` on `map_enum` could NOT be reached from where we stand."""
-        here = self._here_map()
-        if here is None:
+    def _note_training_unreachable(self, map_enum, tile, origin=None) -> None:
+        """Record that `tile` on `map_enum` could NOT be reached — from where the walk DIED and from `origin`, the map
+        the ground was CHOSEN from.
+
+        ⛔⛔ BOTH KEYS (2026-09-27, `#26-healmap-lavaridge` recon). `_training_blocked` is checked wherever the NEXT pick
+        happens, and that is one of two places:
+        - after a RAISE (the relocation path re-raises into the derail recovery, which does not move the bot) the
+          re-pick is where the walk DIED — the only key this method used to write;
+        - after an ABANDON (MAINTAIN, a counter hunt) the story walks on, and the next pick comes from the ORIGIN.
+          Keyed only by the death map, that memory never matched: batch `#26-batch0926` abandoned ROUTE111 (25,55) 45
+          times (Go-Goggles-gated before Flannery) — recorded from ROUTE111, re-picked from Lavaridge — and run P1r7
+          re-walked it 19 times, each cycle then derailing on the heal, until the run ended.
+        Callers that know the origin pass it; `origin=None` writes the death key only, as before. Arm
+        `POKEBOT_TRAINBLOCK_FAULT_DIEDKEY=1` drops the origin key (the old behaviour)."""
+        import os as _os_tb
+
+        died = self._here_map()
+        keys = {k for k in (died, origin) if k is not None}
+        if _os_tb.environ.get("POKEBOT_TRAINBLOCK_FAULT_DIEDKEY") == "1":
+            keys = {died} if died is not None else set()
+        if not keys:
             return  # can't key it safely — better to retry later than to blacklist wrongly
-        self._training_unreachable.add((here, tuple(map_enum.value), tuple(tile)))
+        for here in keys:
+            self._training_unreachable.add((here, tuple(map_enum.value), tuple(tile)))
         console.print(
-            f"[yellow]Story: {map_enum.name} {tuple(tile)} is not reachable from here — "
-            f"dropping it as a training option for the rest of this run.[/]"
+            f"[yellow]Story: {map_enum.name} {tuple(tile)} is not reachable from map(s) {sorted(keys)} — "
+            f"dropping it as a training option from there for the rest of this run.[/]"
         )
 
     def _training_blocked(self, map_enum, tile) -> bool:
@@ -3052,6 +3071,7 @@ class StoryMode(BotMode):
         pid, name, level = mon.personality_value, mon.species.name, mon.level
         # ‼ THE SAME predicate the decision just used — see `_maint_ground` above.
         _ground = _maint_ground(level)
+        _maint_origin = self._here_map()  # the map this pick was filtered from — the unreachable key
         if _ground is None:
             # ⛔ Cannot happen while the predicate is deterministic within one tick (the decision
             # only returned a slot because this same call answered non-None). Guarded anyway: the
@@ -3190,7 +3210,7 @@ class StoryMode(BotMode):
             # pick, and `decide_maintenance` then answers a clean "no ground serves that level"
             # instead of walking into the same wall. Without the memory this is the deterministic
             # death loop the relocation path documents.
-            self._note_training_unreachable(grass_map, grass_tile)
+            self._note_training_unreachable(grass_map, grass_tile, origin=_maint_origin)
             yield from _lead_strongest_battler()
             _log_story_event(
                 f"ABANDONED pid={pid:08X} — {grass_map.name}{grass_tile} unreachable from here "
@@ -3608,6 +3628,7 @@ class StoryMode(BotMode):
                     f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
                     f"in {grass_map.name} (fresh low catches left to level organically).[/]"
                 )
+                _reloc_origin = self._here_map()  # the map this ground was picked from — an unreachable key
                 try:
                     yield from train_team(
                         target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
@@ -3619,7 +3640,7 @@ class StoryMode(BotMode):
                     # re-running `_play` re-picks the identical unreachable tile every
                     # derail until the budget drops the run to Manual (2/5 runs, batch
                     # 20260725-194810, Route 111 (25,55) from Mauville).
-                    self._note_training_unreachable(grass_map, grass_tile)
+                    self._note_training_unreachable(grass_map, grass_tile, origin=_reloc_origin)
                     raise
 
     def on_battle_started(self, encounter):

@@ -36095,3 +36095,29 @@ NOTE) found two things:
 - New R7: the identity; rate 60 with 1 Great + 29 Poké gives 11.84 (refused) and 30 Great gives 8.11 (admitted);
   monotonicity; the wiring.
 - A new built-in fault arm, the shipped adapter, FAILS R3/R7.
+
+## 2026-09-27 — THE HEAL-WALK "BLOCKED" RECON, AND THE RUN-ENDING LOOP FIXED: AN UNREACHABLE TRAINING GROUND IS NOW REMEMBERED FROM WHERE IT WAS CHOSEN (`#26-healmap-lavaridge`)
+
+**RECON** (`ai-research-notes/2026-09-27-healwalk-RECON.md`, 4 agents, a NOTE). The batch had 115 BLOCKED derails, all
+from the gym segments' hardcoded heals (Flannery 54, Norman 53, Winona 8).
+- **103 are one bounce.** A lateral pick into a zero-progress building, then a successful exit through an arrow-warp
+  mat that the step-off check misreads as failure.
+- **For Lavaridge the generic navigator has no route at all before Flannery.** Only the scripted cable car and
+  Jagged Pass lead there. So a navigator fix alone would only change the message; the fix that removes those derails
+  is F4, the segment calling the working recovery directly. Not built yet.
+
+**THE LOOP THAT ENDED P1r7.** The Flannery prep's training top-up picked ROUTE111 (25,55), which is Go-Goggles-gated
+before Flannery. It was abandoned 45 times in the batch. The "unreachable" memory was written under the map where the
+walk DIED and read from the map of the next pick (Lavaridge), so it never matched, and P1r7 re-walked it 19 times.
+
+**FIX.** `_note_training_unreachable(..., origin=)` writes both keys, and each of its 3 callers passes the map of its
+pick. Arm `POKEBOT_TRAINBLOCK_FAULT_DIEDKEY`.
+
+**PROOF.** Gate `probe_trainblock_origin.py`:
+- the real methods with the map stubbed: both keys, and the death key only without an origin;
+- **the P1r7 loop replayed:** first pick allowed, the re-pick from Lavaridge REFUSED;
+- AST wiring: every call passes an origin assigned from `_here_map()` earlier in its function;
+- the arm and a call without `origin=` each FAIL it.
+
+Not live-driven. The next batch should show at most one ROUTE111 (25,55) abandon per origin per run.
+Suite 105 (101 enforcing + 4 advisory; `--quick` 92).

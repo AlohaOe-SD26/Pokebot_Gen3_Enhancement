@@ -22449,3 +22449,19 @@ asserts the sequence figure, and R7 pins it. The shipped adapter is kept as a fa
 **Prevention rule:** ⛔ **When a guard ESTIMATES what an actor will do, model the actor's actual policy (its order, its
 quantities, its filters) and write one gate case where the best case and the real sequence DIVERGE.** A gate whose
 fixture cannot tell them apart will happily pin the wrong one.
+
+## 2026-09-27 — ⛔ A "DON'T RETRY THIS" MEMORY WAS WRITTEN UNDER ONE KEY AND READ UNDER ANOTHER, SO IT NEVER FIRED
+
+**Symptom:** P1r7 walked to the same unreachable training ground (ROUTE111 (25,55)) 19 times, and the batch did so 45
+times. Each cycle then derailed on the heal, until five derails in a row ended the run.
+
+**Root cause:** `_note_training_unreachable` keyed the memory by the map the bot stood on when the walk FAILED.
+`_training_blocked` read it from the map of the NEXT pick. After an abandon those differ, since the walk moved the bot
+before failing. The comment beside the write ("refuses this ground … FROM THIS MAP") assumed they were the same place.
+
+**Fix:** write the origin key too. It is captured at each pick, and gated by `probe_trainblock_origin.py`, which
+replays the loop.
+
+**Prevention rule:** ⛔ **A memory is only as good as the key its READER computes.** When one site writes a cache or
+blacklist and another reads it, derive both keys from the same event, here the pick, and write one test that performs a
+write followed by the real read from the next caller's position. A write-only test proves nothing.

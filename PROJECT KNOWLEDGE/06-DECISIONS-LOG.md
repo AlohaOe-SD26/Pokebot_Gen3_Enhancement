@@ -7570,3 +7570,23 @@ whiteout or the derail recovery, and announces the mask (`RECOVERY-HELD`). Arm: 
 
 **Reopen if:** Phase 2 raises the pre-gym-1 target, or a batch shows pre-gym-1 catch-battle losses again. The H corpus
 had 19; the last two batches had 0.
+
+## 2026-09-27 — an unreachable training ground is remembered from BOTH the map where the walk died and the map it was chosen from
+
+**Decision:** `_note_training_unreachable` writes two keys: the death map, which it always wrote, and the ORIGIN, the map
+the ground was chosen from. Each of its three callers (counter hunt, MAINTAIN, relocation) captures `_here_map()` at its
+pick. Arm: `POKEBOT_TRAINBLOCK_FAULT_DIEDKEY`.
+
+**Rationale:** `_training_blocked` is read wherever the NEXT pick happens.
+- After a RAISE (the relocation path) that is the death map: the derail recovery does not move the bot.
+- After an ABANDON (MAINTAIN, a counter hunt) it is the origin.
+- Only the death key was written, so the MAINTAIN memory never matched. ROUTE111 (25,55) was re-walked 19 times in
+  P1r7, and each cycle ended in a heal derail, until the run ended.
+
+**Rejected:**
+- (a) **Origin only.** It breaks the relocation path, the one site where the old key worked; its comment records the
+  deterministic death loop the memory was added to stop.
+- (b) **Keying by the ground alone, from anywhere.** It breaks the deliberate "reachability depends on direction"
+  intent: a ground unreachable from Lavaridge can be fine from Fallarbor.
+- (c) **Turning on `AREA_ITEM_PREREQ`** so ROUTE111 is never picked before Go-Goggles. It is off by default by an
+  earlier deliberate choice, and it fixes one ground, not the class.
