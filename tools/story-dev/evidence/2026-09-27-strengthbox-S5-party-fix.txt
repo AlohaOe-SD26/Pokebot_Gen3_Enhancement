@@ -1,0 +1,140 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sb\S5-party-fix.log
+[setup] loaded save state strength_boxfirst_mauville.ss1; build=sandbox
+[run] starting faithful loop for up to 15000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> StrengthBoxMode.run   (state=OVERWORLD)
+[strengthbox] PRE case=party expect=fix {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True} party=[('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('5C96EA9B', 'Mightyena', 44), ('C978D14E', 'Castform', 35)]
+f33: PARTY CHANGE [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949] -> [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+[strengthbox] INJECTED {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True, 'box_injected': ['21A43BD6'], 'party_injected': [('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35)], 'land_slot': 0, 'boxed_order': ['21A43BD6'], 'expected_head': None, 'expected_deposit': None}
+f1137: === MOVE-LEARN/EVO WINDOW OPEN === party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+  f1137 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1138 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1139 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1140 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1141 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1142 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1143 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1144 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1145 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1146 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1147 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1148 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1149 st=PARTY_MENU instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+f1149: === window closed === party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+f1330: === MOVE-LEARN/EVO WINDOW OPEN === party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+  f1330 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1331 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1332 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1333 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1334 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1335 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1336 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1337 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1338 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1339 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1340 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1341 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1342 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1343 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1344 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1345 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1346 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1347 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1348 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1349 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1350 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1351 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1352 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1353 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1354 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1355 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1356 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1357 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1358 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1359 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1360 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1361 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1362 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1363 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1364 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1365 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1366 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1367 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1368 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1369 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1370 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1371 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1372 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1373 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1374 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1375 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1376 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1377 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1378 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1379 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1380 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1381 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1382 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1383 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1384 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1385 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1386 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1387 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1388 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1389 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1390 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1391 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1392 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1393 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1394 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1395 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1396 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1397 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1398 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1399 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+  f1400 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='StrengthBoxMode.run' bt='NICK whited out!'
+f1400: === window closed === party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+f1873: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=StrengthBoxMode.run bt='NICK whited out!' scripts=[] party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+[strengthbox] fixture RESTORED — the injection does not persist.
+[strengthbox] R badges = 6
+[strengthbox] R box_before = []
+[strengthbox] R box_end = ['21A43BD6']
+[strengthbox] R box_injected = ['21A43BD6']
+[strengthbox] R boxed_order = ['21A43BD6']
+[strengthbox] R egress_non_adjacent = [(8, 5), (35, 5), (23, 14), (32, 14)]
+[strengthbox] R end = ('(0, 2)', (22, 6))
+[strengthbox] R expected_deposit = None
+[strengthbox] R expected_head = None
+[strengthbox] R finished = True
+[strengthbox] R hm04_in_bag = True
+[strengthbox] R land_slot = 0
+[strengthbox] R mightyena_knows_strength = True
+[strengthbox] R party_end = [('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35)]
+[strengthbox] R party_injected = [('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35)]
+[strengthbox] R start = ('(0, 2)', (22, 6))
+[strengthbox] R strength_knowers = ['863B0917']
+[strengthbox] ACTIONS withdraw_calls=[] teaches=['863B0917'] deposits=[] failure=None
+[strengthbox] conjuncts = {'injected': True, 'no_whiteout': True, 'party_learner_before': True, 'no_failure': True, 'no_withdraw': True, 'no_deposit': True, 'sceptile_taught': True, 'sceptile_knows': True, 'swampert_still_boxed': True}
+[strengthbox] ACCEPTANCE: PASS (case=party expect=fix)
+f1930: CONTROLLER -> <none>   (state=OVERWORLD)
+f1930: PARTY CHANGE [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949] -> [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f2422: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='NICK whited out!' scripts=[] party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f5432: SAVED stall state #1 to stalls/repro-ml-f5432.ss1 (bt='NICK whited out!')
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+[done] ran 15000 frames; final mode=Manual party=[Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L44: Rock Smash, Pursuit, Leaf Blade, Slam
+[moveset] Zigzagoon L7: Tackle, Growl, Surf, Tail Whip
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Mightyena L44: Tackle, Strength, Take Down, Bite
+[moveset] Castform L35: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 15002 get_party() recomputes, 51 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += strengthbox 15002 recomputes (party_accounting_ledger.jsonl)

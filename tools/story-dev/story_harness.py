@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -176,6 +176,12 @@ class ManualBotMode:
 
     def run(self):
         yield
+
+    def on_pokenav_call(self) -> None:
+        """The production BotMode hook this stub lacked (2026-09-27). After a driver hands off to Manual, a Match Call
+        on the restored fixture made `PokenavListener` raise AttributeError EVERY FRAME, and the post-verdict spam
+        filled two evidence logs to 8 MB each. Production's `ManualBotMode` inherits the hook from `BotMode`."""
+        return None
 
 
 from modules.modes import BotMode
@@ -23410,6 +23416,237 @@ class R20MakeRoomMode(BotMode):
         context.set_manual_mode()
 
 
+class StrengthBoxMode(BotMode):
+    """`--driver strengthbox` — RULING 20 Phase 1, increment B (Strength): production `ensure_strength_learner` with a
+    BOXED learner, from `strength_boxfirst_mauville.ss1` (PINNED; MAUVILLE_CITY (22,6), the chapter's second heal stop).
+
+    `SB_CASE`:
+      `teach` (default) — box [Swampert L50 (created; can learn HM04 AND HM07), Sceptile]; party = the four
+                non-learners + two Wingull L20 (Mightyena, the Strength knower, is dropped). A FULL party, so the
+                withdraw must make room. Fix: Sceptile (the HM07-incapable learner) is withdrawn and taught; the one
+                deposit is the make-room victim computed BEFORE the run; Swampert stays boxed.
+                `SB_EXPECT=nopref` + `POKEBOT_R20_FAULT_NOLANDPREF=1`: Swampert instead.
+                `SB_EXPECT=skipfix` + `POKEBOT_HMPCFIRST_FAULT=skipfix`: a refusal; nothing moves; no trip.
+      `knower`  — box [Mightyena (knows Strength), Sceptile]; party = the four non-learners. Mightyena withdrawn, NO teach.
+      `party`   — box [Swampert]; party = the fixture minus Mightyena. Sceptile taught from the PARTY; no withdraw.
+      `sitetwo` — the `teach` injection, `ensure_strength_learner()` with NO centres: a refusal naming both boxed PIDs.
+    Graded by PID: `teach_hm_move`, `_withdraw_hm_learner` and `PCAction.deposit_pokemon_to_box` are recorded (the
+    ACTIONS). Predictions: `ai-research-notes/2026-09-27-r20strengthbox-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "StrengthBox"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[strengthbox] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot, debug_write_party
+        from modules.items import get_item_bag, get_item_by_name
+        from modules.map import get_map_data_for_current_position
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.modes.util import pc_interaction as _pci
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+        from modules.story import pc_trip as _pt
+
+        TAG = "strengthbox"
+        CASE = _os.environ.get("SB_CASE", "teach")
+        EXPECT = _os.environ.get("SB_EXPECT", "fix")
+        if CASE not in ("teach", "knower", "party", "sitetwo") or EXPECT not in ("fix", "nopref", "skipfix"):
+            raise BotModeError(f"{TAG}: SB_CASE={CASE!r} / SB_EXPECT={EXPECT!r} not recognised")
+        MIGHTYENA, SCEPTILE = 0x5C96EA9B, 0x863B0917
+        deposits: list = []
+        teaches: list = []
+        withdraw_calls: list = []
+        R: dict = {}
+        failure = None
+        real_deposit = _pci.PCAction.deposit_pokemon_to_box
+        real_teach = EG.teach_hm_move
+        real_withdraw = EG._withdraw_hm_learner
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        def _rec_deposit(pokemon, target_box=None):
+            deposits.append(pokemon.personality_value)
+            return real_deposit(pokemon, target_box)
+
+        def _rec_teach(item, party_index, replace_slot=None):
+            teaches.append(get_party()[party_index].personality_value)
+            return (yield from real_teach(item, party_index, replace_slot))
+
+        def _rec_withdraw(item, pids, heal_centers):
+            withdraw_calls.append([int(p) for p in pids])
+            return (yield from real_withdraw(item, pids, heal_centers))
+
+        def _box():
+            return [int(m.personality_value) for m in (_pt.box_views()[1] or []) if m is not None]
+
+        def _where():
+            av = get_player_avatar()
+            return (str(av.map_group_and_number), tuple(av.local_coordinates))
+
+        try:
+            yield from EG.wait_until_truly_controllable()
+            hm04, hm07 = get_item_by_name("HM04"), get_item_by_name("HM07")
+            party = [m for m in get_party() if m is not None]
+            by_pid = {m.personality_value: m for m in party}
+            R["start"] = _where()
+            R["badges"] = _pt.badge_count()
+            R["hm04_in_bag"] = any(s.item.name == "HM04" for s in get_item_bag().tms_hms)
+            R["box_before"] = _box()
+            R["mightyena_knows_strength"] = MIGHTYENA in by_pid and any(
+                l is not None and l.move.name == "Strength" for l in by_pid[MIGHTYENA].moves)
+            premise = (R["start"][0] == str(MapRSE.MAUVILLE_CITY.value) and R["badges"] == 6 and R["hm04_in_bag"]
+                       and R["box_before"] == [] and SCEPTILE in by_pid and R["mightyena_knows_strength"])
+            log(f"[{TAG}] PRE case={CASE} expect={EXPECT} {R} party="
+                f"{[(f'{m.personality_value:08X}', m.species.name, m.level) for m in party]}")
+            if not premise:
+                raise BotModeError(f"{TAG}: FIXTURE PREMISE FAILED ({R}) — this is not the pinned Mauville heal stop.")
+
+            # ---- INJECT (slot indices explicit: two writes in one frame lose a mon — the recon's measured trap) -----
+            swampert = debug_create_pokemon(species=get_species_by_name("Swampert"), level=50)
+            non_learners = [m for m in party if m.personality_value not in (MIGHTYENA, SCEPTILE)]
+            if CASE in ("teach", "sitetwo"):
+                boxed_objs = [swampert, by_pid[SCEPTILE]]
+                new_party = non_learners + [debug_create_pokemon(species=get_species_by_name("Wingull"), level=20)
+                                            for _ in range(6 - len(non_learners))]
+            elif CASE == "knower":
+                boxed_objs = [by_pid[MIGHTYENA], by_pid[SCEPTILE]]
+                new_party = non_learners
+            else:
+                boxed_objs = [swampert]
+                new_party = [m for m in party if m.personality_value != MIGHTYENA]
+            for i, m in enumerate(boxed_objs):
+                debug_write_box_slot(m, slot_index=i)
+                yield from wait_for_n_frames(2)
+            debug_write_party(new_party)
+            yield from wait_for_n_frames(2)
+            R["box_injected"] = [format(p, "08X") for p in _box()]
+            R["party_injected"] = [(f"{m.personality_value:08X}", m.species.name, m.level)
+                                   for m in get_party() if m is not None]
+            R["land_slot"] = EG.land_hm_learner_slot(hm04)
+            R["boxed_order"] = [format(p, "08X") for p in EG.boxed_hm_learner_pids(hm04, avoid=hm07)]
+            if len(R["box_injected"]) != len(boxed_objs):
+                raise BotModeError(f"{TAG}: INJECTION FAILED — box holds {R['box_injected']}, wanted "
+                                   f"{len(boxed_objs)} mon.")
+            head = {"teach": SCEPTILE, "sitetwo": SCEPTILE, "knower": MIGHTYENA, "party": None}[CASE]
+            if EXPECT == "nopref":
+                head = swampert.personality_value
+            R["expected_head"] = None if head is None else format(head, "08X")
+            now = [m for m in get_party() if m is not None]
+            if head is not None and len(now) >= 6:
+                v = _pt.make_room_victim(now, exclude_pids=[head], required=True, protected=_pt.deposit_protected_pids())
+                R["expected_deposit"] = None if v is None else format(v[0].personality_value, "08X")
+            else:
+                R["expected_deposit"] = None
+            log(f"[{TAG}] INJECTED {R}")
+
+            _pci.PCAction.deposit_pokemon_to_box = _rec_deposit
+            EG.teach_hm_move = _rec_teach
+            EG._withdraw_hm_learner = _rec_withdraw
+            centres = () if CASE == "sitetwo" else (PokemonCenter.MauvilleCity,)
+            R["finished"] = yield from EG._yield_bounded_by_frames(
+                EG.ensure_strength_learner(heal_centers=centres), 60_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            EG.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _pci.PCAction.deposit_pokemon_to_box = real_deposit
+            EG.teach_hm_move = real_teach
+            EG._withdraw_hm_learner = real_withdraw
+
+        # ---- READ THE END STATE, then the continue check (a non-adjacent exit of the end map must path) ----------
+        try:
+            party_end = {m.personality_value: m for m in get_party() if m is not None}
+            R["party_end"] = [(f"{p:08X}", m.species.name, m.level) for p, m in party_end.items()]
+            R["box_end"] = [format(p, "08X") for p in _box()]
+            R["strength_knowers"] = [f"{p:08X}" for p, m in party_end.items()
+                                     if any(l is not None and l.move.name == "Strength" for l in m.moves)]
+            R["end"] = _where()
+            md = get_map_data_for_current_position()
+            here = tuple(get_player_avatar().local_coordinates)
+            far = []
+            for w in (md.warps or []):
+                t = tuple(w.local_coordinates)
+                if max(abs(t[0] - here[0]), abs(t[1] - here[1])) <= 1:
+                    continue
+                try:
+                    calculate_path((md.map_group_and_number, here), (md.map_group_and_number, t))
+                    far.append(t)
+                except PathFindingError:
+                    continue
+            R["egress_non_adjacent"] = far[:4]
+        except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+            EG.reraise_if_aborting(read_error)
+            R["read_error"] = f"{type(read_error).__name__}: {read_error}"
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — the injection does not persist.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        log(f"[{TAG}] ACTIONS withdraw_calls={[[format(p, '08X') for p in c] for c in withdraw_calls]} "
+            f"teaches={[format(p, '08X') for p in teaches]} deposits={[format(p, '08X') for p in deposits]} "
+            f"failure={failure}")
+        hx = R.get("expected_head")
+        sw = format(swampert.personality_value, "08X") if "box_injected" in R else None
+        base = {"injected": "box_injected" in R and "read_error" not in R,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if CASE == "party":
+            conj = {**base, "party_learner_before": R.get("land_slot") is not None, "no_failure": failure is None,
+                    "no_withdraw": withdraw_calls == [], "no_deposit": deposits == [],
+                    "sceptile_taught": [format(p, "08X") for p in teaches] == [format(SCEPTILE, "08X")],
+                    "sceptile_knows": format(SCEPTILE, "08X") in R.get("strength_knowers", []),
+                    "swampert_still_boxed": R.get("box_end") == [sw]}
+        elif CASE == "sitetwo" or EXPECT == "skipfix":
+            conj = {**base, "no_party_learner_before": R.get("land_slot") is None,
+                    "refused": failure is not None and "no party member can learn HM04" in failure,
+                    "refusal_names_head": failure is not None and format(SCEPTILE, "08X") in failure,
+                    "no_withdraw": withdraw_calls == [], "no_deposit": deposits == [], "no_teach": teaches == [],
+                    "no_trip": R.get("end") == R.get("start"),
+                    "box_unchanged": sorted(R.get("box_end", [])) == sorted(R.get("box_injected", [None]))}
+        else:
+            conj = {**base, "no_party_learner_before": R.get("land_slot") is None, "no_failure": failure is None,
+                    "finished": R.get("finished") is True,
+                    "withdrew_the_head_only": [[format(p, "08X") for p in c] for c in withdraw_calls] == [[hx]],
+                    "head_in_party_and_gone_from_box": hx in [p for p, _s, _l in R.get("party_end", [])]
+                    and hx not in R.get("box_end", []),
+                    "head_knows_strength": hx in R.get("strength_knowers", []),
+                    "deposit_as_predicted": [format(p, "08X") for p in deposits]
+                    == ([R["expected_deposit"]] if R.get("expected_deposit") else []),
+                    "can_continue": bool(R.get("egress_non_adjacent"))}
+            if CASE == "knower":
+                conj["no_teach"] = teaches == []
+                conj["sceptile_still_boxed"] = format(SCEPTILE, "08X") in R.get("box_end", [])
+            else:
+                conj["taught_the_head"] = [format(p, "08X") for p in teaches] == [hx]
+                other = sw if EXPECT == "fix" else format(SCEPTILE, "08X")
+                conj["the_other_learner_still_boxed"] = other in R.get("box_end", [])
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE} expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27695,6 +27932,8 @@ for step in range(args.frames):
             context.bot_mode_instance = PetaHealMode()
         elif args.driver == "r20makeroom":
             context.bot_mode_instance = R20MakeRoomMode()
+        elif args.driver == "strengthbox":
+            context.bot_mode_instance = StrengthBoxMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

@@ -1,0 +1,61 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sb\S4-knower-fix.log
+Running mGBA 0.10.2
+[setup] loaded save state strength_boxfirst_mauville.ss1; build=sandbox
+[run] starting faithful loop for up to 15000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> StrengthBoxMode.run   (state=OVERWORLD)
+[strengthbox] PRE case=knower expect=fix {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True} party=[('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('5C96EA9B', 'Mightyena', 44), ('C978D14E', 'Castform', 35)]
+f35: PARTY CHANGE [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949] -> [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+[strengthbox] INJECTED {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True, 'box_injected': ['5C96EA9B', '863B0917'], 'party_injected': [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35)], 'land_slot': None, 'boxed_order': ['5C96EA9B', '863B0917'], 'expected_head': '5C96EA9B', 'expected_deposit': None}
+Story: no party member can learn Strength; collecting the boxed learner 
+pid=5C96EA9B from the PC...
+f81: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=StrengthBoxMode.run bt='NICK whited out!' scripts=[] party=[Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949]
+f1150: SAVED stall state #1 to stalls/repro-ml-f1150.ss1 (bt='NICK whited out!')
+Story: PC — hm-carrier withdraw: starting for 1 hunted PID(s)
+Story: PC — withdrawing Mightyena from the box.
+f1971: PARTY CHANGE [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949] -> [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090]
+f1987: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=StrengthBoxMode.run bt='NICK whited out!' scripts=['EventScript_AccessPokemonStorage'] party=[Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090]
+f2000: heartbeat mode=Story ctrl=StrengthBoxMode.run state=OVERWORLD party=[Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090]
+f2044: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_DrawFieldMessage'] ctrl=StrengthBoxMode.run bt='NICK whited out!' scripts=['EventScript_PCMainMenu'] party=[Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090]
+f2101: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] ctrl=StrengthBoxMode.run bt='NICK whited out!' scripts=['EventScript_PCMainMenu'] party=[Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090]
+Story: PC — Mightyena is in the party; party is now 5.
+Story: PC — hm-carrier withdraw result: landed — the counter is in the party 
+and usable this fight — Mightyena :: verdict landed=True code=landed
+Story: withdrew Mightyena (pid=5C96EA9B) — it can learn HM04; no hunt needed.
+Story: withdrew pid=5C96EA9B, which already knows Strength - no teach.
+[strengthbox] fixture RESTORED — the injection does not persist.
+[strengthbox] R badges = 6
+[strengthbox] R box_before = []
+[strengthbox] R box_end = ['863B0917']
+[strengthbox] R box_injected = ['5C96EA9B', '863B0917']
+[strengthbox] R boxed_order = ['5C96EA9B', '863B0917']
+[strengthbox] R egress_non_adjacent = [(8, 5), (35, 5), (23, 14), (32, 14)]
+[strengthbox] R end = ('(0, 2)', (22, 6))
+[strengthbox] R expected_deposit = None
+[strengthbox] R expected_head = '5C96EA9B'
+[strengthbox] R finished = True
+[strengthbox] R hm04_in_bag = True
+[strengthbox] R land_slot = None
+[strengthbox] R mightyena_knows_strength = True
+[strengthbox] R party_end = [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35), ('5C96EA9B', 'Mightyena', 44)]
+[strengthbox] R party_injected = [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35)]
+[strengthbox] R start = ('(0, 2)', (22, 6))
+[strengthbox] R strength_knowers = ['5C96EA9B']
+[strengthbox] ACTIONS withdraw_calls=[['5C96EA9B']] teaches=[] deposits=[] failure=None
+[strengthbox] conjuncts = {'injected': True, 'no_whiteout': True, 'no_party_learner_before': True, 'no_failure': True, 'finished': True, 'withdrew_the_head_only': True, 'head_in_party_and_gone_from_box': True, 'head_knows_strength': True, 'deposit_as_predicted': True, 'can_continue': True, 'no_teach': True, 'sceptile_still_boxed': True}
+[strengthbox] ACCEPTANCE: PASS (case=knower expect=fix)
+f2453: CONTROLLER -> <none>   (state=OVERWORLD)
+f2453: PARTY CHANGE [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Mightyena:L44:exp86090] -> [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f2534: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 28194, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 384, in handle_frame
+    bot_mode.on_pokenav_call()
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+
+f2535: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+Traceback (most recent call last):
+
+[TRUNCATED 2026-09-27 by the session: 112212 further lines, all the same post-verdict harness exception (ManualBotMode lacked on_pokenav_call; fixed in story_harness.py). Everything up to and including the verdict is above.]

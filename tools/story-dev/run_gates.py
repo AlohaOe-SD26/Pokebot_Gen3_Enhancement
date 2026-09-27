@@ -268,6 +268,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 1 (A) — ONE deposit-victim rule for every LIVE make-room path: never box a counter still
     # owed to its boss, and for a REQUIRED errand always find a victim on a level-even team. Pure + wiring; 4 fault arms.
     ("probe_r20_makeroom.py", False),
+    # ⛔ USER RULING 20 Phase 1 (B), Strength — a BOXED HM04 learner is collected at the Magma haul's heal stops (the
+    # HM07-incapable one first); the in-hideout caller stays party-only. Behaviour with stubs + wiring; 4 fault arms.
+    ("probe_r20_strengthbox.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

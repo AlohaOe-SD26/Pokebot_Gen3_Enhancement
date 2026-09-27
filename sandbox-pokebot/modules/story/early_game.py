@@ -4704,8 +4704,13 @@ def hm_learner_slot(item) -> int | None:
 
 
 
-def boxed_hm_learner_pids(item) -> list[int]:
+def boxed_hm_learner_pids(item, avoid=None) -> list[int]:
     """PIDs of **BOXED** mon that can learn `item`'s move, best candidate FIRST.
+
+    `avoid` (RULING 20 Phase 1, increment B, 2026-09-27): an Item whose learners rank AFTER the
+    rest, e.g. HM07 for a land HM (`#24-hm07funnel`'s preference, which `pick_land_hm_slot` applies
+    to the party). It is a preference only; a mon that already knows the move still ranks first.
+    `None` (the default) leaves the order exactly as before.
 
     ⭐⭐ WHY THIS EXISTS (user directive 2026-09-25). `hm_learner_slot` searches the PARTY ONLY.
     A carrier the run already OWNS, sitting in a PC box, is invisible to it — so the bot hunts a
@@ -4756,7 +4761,7 @@ def boxed_hm_learner_pids(item) -> list[int]:
         reraise_if_aborting(error)
         return []
 
-    scored: list[tuple[int, int, int]] = []  # (knows_it, level, pid)
+    scored: list[tuple[int, int, int, int]] = []  # (knows_it, not_avoided, level, pid)
     for mon in mons or []:
         if mon is None or getattr(mon, "is_egg", False):
             continue
@@ -4765,14 +4770,15 @@ def boxed_hm_learner_pids(item) -> list[int]:
                 continue
             knows = 1 if (move is not None and any(
                 l is not None and l.move.name == move.name for l in mon.moves)) else 0
-            scored.append((knows, int(mon.level), int(mon.personality_value)))
+            spared = 0 if (avoid is not None and mon.species.can_learn_tm_hm(avoid)) else 1
+            scored.append((knows, spared, int(mon.level), int(mon.personality_value)))
         except Exception as error:  # noqa: BLE001 - one unreadable box mon must not hide the
             # readable ones; skip it and keep scanning.
             reraise_if_aborting(error)
             continue
 
-    scored.sort(reverse=True)  # knows-it first, then highest level
-    return [pid for _knows, _level, pid in scored]
+    scored.sort(reverse=True)  # knows-it first, then not an `avoid` learner, then highest level
+    return [pid for _knows, _spared, _level, pid in scored]
 
 
 def whiteout_budget(recoveries, last_key, key, cap=40):
@@ -8305,8 +8311,10 @@ def travel_to_magma_hideout_door() -> Generator:
                 # ‼ It never raises: a failed teach here must not destroy a heal that worked,
                 # and `open_magma_hideout_1f` calls `ensure_strength_learner()` again anyway.
                 # This is a DODGE, not a fix — `#24-teachmsgstall` is still the real blocker.
+                # ⭐ RULING 20 increment B: `(center,)` lets a BOXED learner be collected here, at the
+                # centre we are standing next to. This is the only Strength site that may do so.
                 try:
-                    yield from ensure_strength_learner()
+                    yield from ensure_strength_learner(heal_centers=(center,))
                 except BotModeError as error:
                     # ⛔ KI-81 / `#24-abortswallow`. ‼ WEAKER THAN THE OTHER SEVEN, AND SAY SO:
                     # neither `ensure_strength_learner` nor `teach_hm_move` contains a
@@ -8716,8 +8724,20 @@ def _party_knows_strength() -> bool:
     )
 
 
-def ensure_strength_learner() -> Generator:
+def ensure_strength_learner(heal_centers=()) -> Generator:
     """Make sure SOMEBODY in the party knows Strength, teaching HM04 from the bag if not.
+
+    ⭐ BOX-FIRST (RULING 20 Phase 1, increment B, 2026-09-27). When no PARTY member can learn HM04
+    but a BOXED one can, collect it on one Poké Centre visit (`_withdraw_hm_learner`) and teach it,
+    instead of raising. Before this, the only HM04 learner being in the PC ended the chapter, and
+    since increment A the required make-room can box that learner.
+    - `heal_centers` are the centres the CALLER is standing next to. The empty default means
+      party-only, and that is deliberate for the in-hideout caller: a Poké Centre trip from
+      MAGMA_HIDEOUT_1F cannot come back (Jagged Pass is one-way; recon note
+      `2026-09-27-ruling20-incB-RECON.md`).
+    - The box order prefers a learner that cannot carry HM07 (`#24-hm07funnel`), unless
+      `POKEBOT_R20_FAULT_NOLANDPREF=1`. `POKEBOT_HMPCFIRST_FAULT=skipfix` disables the withdraw.
+    - Identity is asserted by PID: the head PID must be in the party afterwards.
 
     ‼ MEASURED, AND IT IS NOT THE CHEAP TEACH IT FIRST LOOKED LIKE (2026-08-10, on
     `saves/magma_door.ss1`). HM04 is already in the bag and BADGE04 is held, so no fetch quest —
@@ -8742,10 +8762,43 @@ def ensure_strength_learner() -> Generator:
     # ⭐ `#24-hm07funnel` — prefer a learner that cannot carry HM07. Preference only; falls
     # back to `hm_learner_slot` when no such mon exists, so no party is left worse off.
     slot = land_hm_learner_slot(hm04)
+    boxed: list[int] = []
+    if slot is None:
+        # A pure save-block read: naming a boxed learner in the refusal costs no journey.
+        from modules.items import get_item_by_name
+
+        _prefer = os.environ.get("POKEBOT_R20_FAULT_NOLANDPREF") != "1"
+        try:
+            _hm07 = get_item_by_name("HM07") if _prefer else None
+        except Exception:  # noqa: BLE001 - unresolvable HM07 means plain level order, as before
+            _hm07 = None
+        boxed = boxed_hm_learner_pids(hm04, avoid=_hm07)
+    if slot is None and boxed and heal_centers and not _hm_pcfirst_disarmed():
+        head = boxed[0]
+        _ch14_say(f"Story: no party member can learn Strength; collecting the boxed learner "
+                  f"pid={head:08X} from the PC...")
+        yield from _withdraw_hm_learner(hm04, [head], heal_centers)
+        landed = any(m is not None and m.personality_value == head for m in get_party())
+        if not landed:
+            _ch14_say(f"Story: the boxed Strength learner pid={head:08X} did NOT arrive.")
+        elif _party_knows_strength():
+            _ch14_say(f"Story: withdrew pid={head:08X}, which already knows Strength - no teach.")
+            return
+        else:
+            slot = land_hm_learner_slot(hm04)
+            if slot is not None and get_party()[slot].personality_value != head:
+                # Only the withdrawn mon can be the learner here (the party had none before).
+                raise BotModeError(
+                    f"Strength: withdrew pid={head:08X} but the learner picked is "
+                    f"pid={get_party()[slot].personality_value:08X} - refusing to teach the wrong mon."
+                )
     if slot is None:
         raise BotModeError(
             "Strength: no party member can learn HM04. ‼ Note Zigzagoon CANNOT (measured) - "
             "the usual HM slave is not an option for this one."
+            + (f" Boxed learners: {[format(p, '08X') for p in boxed]}"
+               + ("" if heal_centers else " (no Poké Centre offered here, so not withdrawn)")
+               if boxed else "")
         )
 
     learner = get_party()[slot]
@@ -9007,6 +9060,9 @@ def open_magma_hideout_1f() -> Generator:
     if _route_open():
         return  # resume-safe: a previous visit already cleared it
 
+    # ⛔ PARTY-ONLY ON PURPOSE (no `heal_centers`): a Poké Centre trip from inside the hideout
+    # cannot come back up the one-way Jagged Pass. The heal stops before the haul are the box-first
+    # site; the refusal here still names any boxed learner.
     yield from ensure_strength_learner()
 
     for approach_tile, face_dir in MAGMA_HIDEOUT_1F_PUSHES:

@@ -1,0 +1,44 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sb\S6-sitetwo-fix.log
+Running mGBA 0.10.2
+[setup] loaded save state strength_boxfirst_mauville.ss1; build=sandbox
+[run] starting faithful loop for up to 15000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> StrengthBoxMode.run   (state=OVERWORLD)
+[strengthbox] PRE case=sitetwo expect=fix {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True} party=[('863B0917', 'Sceptile', 44), ('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('5C96EA9B', 'Mightyena', 44), ('C978D14E', 'Castform', 35)]
+f35: PARTY CHANGE [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949] -> [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Wingull:L20:exp8000|Wingull:L20:exp8000]
+[strengthbox] INJECTED {'start': ('(0, 2)', (22, 6)), 'badges': 6, 'hm04_in_bag': True, 'box_before': [], 'mightyena_knows_strength': True, 'box_injected': ['0902B0B2', '863B0917'], 'party_injected': [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35), ('2342F3E7', 'Wingull', 20), ('BCD3FD99', 'Wingull', 20)], 'land_slot': None, 'boxed_order': ['863B0917', '0902B0B2'], 'expected_head': '863B0917', 'expected_deposit': '5CCCD8BE'}
+[strengthbox] fixture RESTORED — the injection does not persist.
+[strengthbox] R badges = 6
+[strengthbox] R box_before = []
+[strengthbox] R box_end = ['0902B0B2', '863B0917']
+[strengthbox] R box_injected = ['0902B0B2', '863B0917']
+[strengthbox] R boxed_order = ['863B0917', '0902B0B2']
+[strengthbox] R egress_non_adjacent = [(8, 5), (35, 5), (23, 14), (32, 14)]
+[strengthbox] R end = ('(0, 2)', (22, 6))
+[strengthbox] R expected_deposit = '5CCCD8BE'
+[strengthbox] R expected_head = '863B0917'
+[strengthbox] R hm04_in_bag = True
+[strengthbox] R land_slot = None
+[strengthbox] R mightyena_knows_strength = True
+[strengthbox] R party_end = [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35), ('2342F3E7', 'Wingull', 20), ('BCD3FD99', 'Wingull', 20)]
+[strengthbox] R party_injected = [('33CB74C3', 'Zigzagoon', 7), ('0B30A747', 'Swellow', 41), ('5CCCD8BE', 'Skitty', 17), ('C978D14E', 'Castform', 35), ('2342F3E7', 'Wingull', 20), ('BCD3FD99', 'Wingull', 20)]
+[strengthbox] R start = ('(0, 2)', (22, 6))
+[strengthbox] R strength_knowers = []
+[strengthbox] ACTIONS withdraw_calls=[] teaches=[] deposits=[] failure=BotModeError: Strength: no party member can learn HM04. ‼ Note Zigzagoon CANNOT (measured) - the usual HM slave is not an option for this one. Boxed learners: ['863B0917', '0902B0B2'] (no Poké Centre offered here, so not withdrawn)
+[strengthbox] conjuncts = {'injected': True, 'no_whiteout': True, 'no_party_learner_before': True, 'refused': True, 'refusal_names_head': True, 'no_withdraw': True, 'no_deposit': True, 'no_teach': True, 'no_trip': True, 'box_unchanged': True}
+[strengthbox] ACCEPTANCE: PASS (case=sitetwo expect=fix)
+f37: CONTROLLER -> <none>   (state=OVERWORLD)
+f37: PARTY CHANGE [Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Castform:L35:exp43949|Wingull:L20:exp8000|Wingull:L20:exp8000] -> [Sceptile:L44:exp78517|Zigzagoon:L7:exp466|Swellow:L41:exp64123|Skitty:L17:exp4598|Mightyena:L44:exp86090|Castform:L35:exp43949]
+f240: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 28194, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 384, in handle_frame
+    bot_mode.on_pokenav_call()
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+
+f241: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_pokenav_call'
+Traceback (most recent call last):
+
+[TRUNCATED 2026-09-27 by the session: 132859 further lines, all the same post-verdict harness exception (ManualBotMode lacked on_pokenav_call; fixed in story_harness.py). Everything up to and including the verdict is above.]

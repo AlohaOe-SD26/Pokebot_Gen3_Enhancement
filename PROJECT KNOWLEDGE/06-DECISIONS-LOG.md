@@ -7702,3 +7702,21 @@ evolution, and that it consumes the ball.
 
 **Known gap, stated:** the design's protection of the only compatible learner of a still-required HM is NOT built.
 Increment B's box-first for Strength, Waterfall and Fly is the planned cover.
+
+## 2026-09-27 — RULING 20 Phase 1, increment B (Strength): box-first only where a centre trip can come back; the boxed pick prefers a learner that cannot carry HM07
+
+**Decisions** (recon: `ai-research-notes/2026-09-27-ruling20-incB-RECON.md`, a NOTE):
+- (a) `ensure_strength_learner` gains `heal_centers=()`. Only the heal-stop caller in `travel_to_magma_hideout_door`
+  offers a centre: `(center,)`, the one it stands next to (Lilycove, then Mauville).
+- (b) The in-hideout caller (`open_magma_hideout_1f`) stays party-only. Its refusal now names any boxed learner.
+- (c) The boxed pick is `boxed_hm_learner_pids(HM04, avoid=HM07)`: a mon that already knows Strength first, then one
+  that cannot learn Waterfall, then level. That is `#24-hm07funnel`'s party rule applied to the box.
+- (d) `POKEBOT_HMPCFIRST_FAULT=skipfix` (already registered) also disarms this site; `POKEBOT_R20_FAULT_NOLANDPREF`
+  is new.
+
+**Rejected:**
+- Box-first at the in-hideout caller: the nearest centre is Lavaridge, reachable down the one-way Jagged Pass but not
+  back up without the cable car, and the next step (`strength_push`) only walks the hideout map. Measured statically
+  in the recon.
+- Plain level order for the boxed pick: it would withdraw a Swampert/Marshtomp and spend a slot on the mon that must
+  later carry Waterfall.

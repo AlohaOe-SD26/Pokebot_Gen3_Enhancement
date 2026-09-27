@@ -22521,3 +22521,23 @@ checks it.
 **Prevention rule:** ⛔ **When a message or comment promises a protection, find EVERY path that can violate it and check
 that each one asks.** A protection implemented in one of three deposit paths, and that one switched off, is a false
 statement.
+
+## 2026-09-27 — ⛔ STOPPING A BACKGROUND RUNNER SCRIPT DID NOT STOP ITS LOOP: TWO RUNNERS WROTE THE SAME EVIDENCE LOG
+
+**Symptom:** after stopping a background `bash run_all.sh` (a sequential loop over driver arms) and starting a second
+one, two harness processes ran the same arm at once, both with `--log /tmp/sb/S2-teach-nopref.log`. An unexplained
+process with a start time matching no arm was the first sign.
+
+**Root cause:**
+- On Git Bash, stopping the background task ended the tracked wrapper, but the runner's `bash` loop survived and went on
+  to the next arm.
+- Editing the script with `sed -i` did not affect it either: `sed -i` writes a new file, and the running `bash` kept
+  reading the old one.
+
+**Fix:** killed both runner shells by PID (`ps -ef` parent chain), then only the harness processes started after the
+batch (the batch's own processes, started 8:15-8:17, were checked and left alone). All arms were re-run by ONE runner
+that exits when `/tmp/sb/STOP` exists.
+
+**Prevention rule:** ⛔ **A multi-arm runner must check a STOP file before each arm, and must be stopped by that file,
+never by killing its task.** Before killing any process on a machine running a batch, list start times and kill only
+what started after the batch.

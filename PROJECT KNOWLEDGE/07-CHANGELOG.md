@@ -36202,3 +36202,35 @@ advisory; `--quick` 95). The non-gated `repro_pc_overflow.py` section 5 was upda
 check had already been stale on `main`.
 ⚠ **Known gap:** the only learner of a still-required HM is not protected. The fallback boxed a future Fly learner in
 the drive. Increment B is the cover.
+
+## 2026-09-27 — RULING 20 PHASE 1, INCREMENT B (STRENGTH): BOX-FIRST FOR `ensure_strength_learner` (branch `wt/r20phase1`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** `ensure_strength_learner` searched the PARTY only. With the only HM04 learner in the PC it raised "no party
+member can learn HM04", and the Magma Hideout chapter could not open 1F although the run owned a learner. Since
+increment A the required make-room can box that learner.
+
+**WHAT.**
+- `ensure_strength_learner(heal_centers=())`: no party learner + a boxed one + centres offered ⇒ one Poké Centre visit
+  (`_withdraw_hm_learner`), the head PID asserted in the party, then the teach (none if it already knows Strength).
+- The heal-stop caller offers `(center,)`; the in-hideout caller stays party-only; the refusal names boxed learners.
+- `boxed_hm_learner_pids(item, avoid=None)`: `avoid` ranks its learners after the rest (HM07 here). `None` keeps the
+  old order, so the generic PC-first path is unchanged.
+- New arm `POKEBOT_R20_FAULT_NOLANDPREF`; `POKEBOT_HMPCFIRST_FAULT=skipfix` also disarms this site.
+
+**PROOF** (predictions `8edcedb2`, filed first; `ai-research-notes/2026-09-27-r20strengthbox-GRADED.md`). `--driver strengthbox` on the new PINNED
+`strength_boxfirst_mauville.ss1` (MAUVILLE_CITY (22,6), the haul's second heal stop), graded on the recorded
+withdraw / teach / deposit actions, by PID:
+
+| Arm | Result |
+|---|---|
+| teach / fix | Sceptile withdrawn and taught, Skitty deposited, Swampert still boxed |
+| teach / NOLANDPREF | Swampert withdrawn and taught, Sceptile still boxed |
+| teach / skipfix | the refusal naming Sceptile; nothing moved |
+| knower | Mightyena withdrawn, no teach, no deposit |
+| party (the ordinary case) | Sceptile taught from the party, no withdraw |
+| sitetwo (no centres) | the refusal naming both boxed learners; nothing moved |
+
+Harness: its `ManualBotMode` stub gained the `on_pokenav_call` hook (post-verdict Match Calls raised every frame
+and filled two evidence logs to 8 MB; those were truncated after the verdict, with a marker).
+Gate `probe_r20_strengthbox.py` (behaviour with stubs, the box order, the wiring; 4 fault arms). Suite 109 (105
+enforcing + 4 advisory; `--quick` 96).
