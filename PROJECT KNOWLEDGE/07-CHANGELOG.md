@@ -36283,3 +36283,26 @@ the branch had just introduced.
 **PROOF.** A planted inverted citation in the worktree now makes `probe_citation_ranges` exit 1, and removing it makes
 it exit 0. Full suite from the worktree (the first time these 22 read the branch): 110 of 110 PASS after the worktree was given its own `repro-fresh` profile (the one FAIL, `probe_fly_disjunct`, was that missing gitignored profile, not code); no regression was hiding behind the 22. Suite 111 (107
 enforcing + 4 advisory; `--quick` 98).
+
+## 2026-09-27 — RULING 20 PHASE 1, INCREMENT B (COUNTERS): BOX-FIRST BEFORE THE HUNT + THE HEAL WITHDRAWS ONLY OWED COUNTERS (branch `wt/r20phase1`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.**
+- A counter the run already owned in the PC was invisible to the counter ladder, which hunted a new one (a
+  120,000-frame spin) or stopped honestly.
+- The heal's counter withdraw read the never-cleared hunted registry. After increment A lets make-room box an EXPIRED
+  counter, the next heal would collect it again, and by box order ahead of the counter owed now (recon hazard H1).
+
+**WHAT.**
+- `counter_hunt.box_counter_choice` (NEW; strict and ranked, see `06`), asked by `_counter_ladder` after its
+  once-per-boss mark and before the planner. The shared `StoryMode._register_counter` is used by the hunt path too.
+- `pc_trip.owed_counter_pids` (NEW): the heal's counter-withdraw source. `deposit_protected_pids` delegates to it.
+- Arms `POKEBOT_R20_FAULT_NOBOXCOUNTER`, `POKEBOT_R20_FAULT_ALLCOUNTERS`.
+
+**PROOF** (predictions `548af179`, filed first; `ai-research-notes/2026-09-27-r20counterbox-GRADED.md`). `--driver counterbox` on `fortree_gym_wedge.ss1`, by PID:
+- box-first: no planner, no hunt, Slugma registered and withdrawn, Skitty deposited;
+- NOBOXCOUNTER and the control: the planner and the hunt ran, nothing withdrawn;
+- expired/fix: the owed Slugma withdrawn;
+- expired/ALLCOUNTERS: the expired Machop withdrawn instead (H1 reproduced).
+
+Gate `probe_r20_counterbox.py` (4 fault arms). `repro_box_counter_move_test.py` still passes. Suite 112 (108 enforcing
++ 4 advisory; `--quick` 99).

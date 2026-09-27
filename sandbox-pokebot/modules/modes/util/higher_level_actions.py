@@ -687,9 +687,18 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             # `counter or hm` would mean that after the FIRST counter hunt of a run the HM
             # carrier could never be collected again. That bug would be invisible in any test
             # that did not hunt a counter first.
+            # ⭐ RULING 20 increment B (recon H1): only the counters still OWED to their boss. The registry is
+            # never cleared, so the full set would re-collect an EXPIRED counter that make-room boxed, and
+            # `find_in_box`'s box order could collect it instead of the one owed now.
+            # `POKEBOT_R20_FAULT_ALLCOUNTERS=1` restores the full set.
+            from modules.story.pc_trip import owed_counter_pids as _owed_counters
+
+            _counter_src = (getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
+                            if _os_hla.environ.get("POKEBOT_R20_FAULT_ALLCOUNTERS") == "1"
+                            else _owed_counters(_ctx.bot_mode_instance))
             _pids, _pid_source = withdraw_pid_source(
                 getattr(_ctx.bot_mode_instance, "_wanted_hm_learner_pids", None),
-                getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None),
+                _counter_src,
             )
             # ⛔ #24-pcpingpong — arbitrate against the KI-63 deposit 27 lines above. The
             # decision is a PURE function so every branch is reachable by a test; see its docstring

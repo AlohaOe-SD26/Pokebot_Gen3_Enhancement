@@ -22576,3 +22576,18 @@ from `main`'s metadata.yml, current_save.sav and stats.db).
 
 **Prevention rule:** ⛔ **A gate must locate what it grades from ITSELF, never from an absolute path.** When a gate
 passes on a change you just made, check that it can fail on that change: plant the defect and watch it go red.
+
+## 2026-09-27 — ⛔ A WITHDRAW SOURCE READ A REGISTRY THAT IS NEVER CLEARED, SO A RULE THAT MADE ENTRIES EXPIRE MADE THEM COME BACK
+
+**Symptom** (found by recon before any run hit it, then reproduced on demand by `--driver counterbox` C5): with an
+expired counter (Machop, registered at badge 4) earlier in the box than the counter owed now (Slugma, badge 5), the
+heal withdrew the Machop, and the verdict still read as a successful withdraw.
+
+**Root cause:** `_hunted_counter_pids` only ever grows. The DEPOSIT side learned (increment A) that a counter expires
+at its badge, but the WITHDRAW side kept reading the whole registry. `find_in_box` then takes the first box-order match.
+
+**Fix:** one owed set (`pc_trip.owed_counter_pids`) for both sides.
+
+**Prevention rule:** ⛔ **When a rule changes what a registry MEANS (here: "owed" instead of "ever hunted"), find every
+READER of that registry and move them together.** One side changed and the other did not; that is how an expiry turns
+into a round trip.

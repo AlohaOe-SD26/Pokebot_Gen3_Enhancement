@@ -54,6 +54,39 @@ def badge_count() -> int:
     return sum(1 for k in range(1, 9) if get_event_flag(f"BADGE0{k}_GET"))
 
 
+def _mode_or_context(mode):
+    if mode is not None:
+        return mode
+    try:
+        from modules.context import context
+
+        return context.bot_mode_instance
+    except Exception:  # noqa: BLE001 - no mode instance (a gate) ⇒ nothing registered
+        return None
+
+
+def owed_counter_pids(mode=None) -> set:
+    """The hunted counters still OWED to their boss: registered at badge count N, owed while the count is N.
+
+    A PID with no recorded count stays owed; an unreadable badge count makes every counter owed (a read failure must
+    never box or strand a counter). NO fault arms here, on purpose: this is also the heal's counter-WITHDRAW source
+    (RULING 20 increment B, recon hazard H1), and `NOPROTECT` must not switch withdraws off.
+    ⛔ WHY THE WITHDRAW NEEDS IT: `_hunted_counter_pids` is never cleared. Once increment A lets make-room box an
+    EXPIRED counter, the old full-set withdraw would collect it again at the next heal (boxing someone else to make
+    room), and `find_in_box` takes the first BOX-ORDER match, so an expired counter could be collected instead of
+    the one owed now, while the verdict still read "landed"."""
+    mode = _mode_or_context(mode)
+    pids = set(getattr(mode, "_hunted_counter_pids", ()) or ())
+    if not pids:
+        return pids
+    owed = getattr(mode, "_hunted_counter_badges", None) or {}
+    try:
+        now = badge_count()
+    except Exception:  # noqa: BLE001 - unknown ⇒ every counter is owed
+        return pids
+    return {p for p in pids if owed.get(p) is None or owed[p] >= now}
+
+
 def deposit_protected_pids(mode=None) -> set:
     """PIDs no live make-room deposit may box: the hunted counters still OWED to their boss.
 
@@ -68,22 +101,9 @@ def deposit_protected_pids(mode=None) -> set:
 
     if _os_dp.environ.get("POKEBOT_R20_FAULT_NOPROTECT") == "1":
         return set()
-    if mode is None:
-        try:
-            from modules.context import context
-
-            mode = context.bot_mode_instance
-        except Exception:  # noqa: BLE001 - no mode instance (a gate) ⇒ nothing registered
-            return set()
-    pids = set(getattr(mode, "_hunted_counter_pids", ()) or ())
-    if not pids or _os_dp.environ.get("POKEBOT_R20_FAULT_NOEXPIRE") == "1":
-        return pids
-    owed = getattr(mode, "_hunted_counter_badges", None) or {}
-    try:
-        now = badge_count()
-    except Exception:  # noqa: BLE001 - unknown ⇒ protect every counter
-        return pids
-    return {p for p in pids if owed.get(p) is None or owed[p] >= now}
+    if _os_dp.environ.get("POKEBOT_R20_FAULT_NOEXPIRE") == "1":
+        return set(getattr(_mode_or_context(mode), "_hunted_counter_pids", ()) or ())
+    return owed_counter_pids(mode)
 
 
 def make_room_victim(party, *, exclude_pids=(), required=False, protected=()) -> "tuple | None":

@@ -2771,6 +2771,36 @@ class StoryMode(BotMode):
         # without this the "once per run" bound would never be written down.
         self._counter_hunts[key] = "started"
 
+        # ⭐ RULING 20 Phase 1, increment B — BOX-FIRST. A counter the run already OWNS in the PC is collected at this
+        # boss segment's own heal (the heal withdraws OWED counters) instead of being hunted again.
+        # ‼ AFTER the "started" mark, so the once-per-boss bound covers it; BEFORE the planner and the ball check, because
+        # a withdraw needs no ball and a planner failure must not hide an owned counter. `box_counter_choice` is stricter
+        # than `box_counter_pid` and ranked (recon `ai-research-notes/2026-09-27-ruling20-incB-RECON.md`, site "counter").
+        # ⚠ The counter arrives at the level it was boxed at; nothing trains it before the 12-loss plateau (recon H3),
+        # the same as today's box-catch path. `POKEBOT_R20_FAULT_NOBOXCOUNTER=1` skips this block.
+        import os as _os_bf
+
+        if _os_bf.environ.get("POKEBOT_R20_FAULT_NOBOXCOUNTER") != "1":
+            from modules.pokemon_party import get_party as _gp_bf
+            from modules.story.early_game import reraise_if_aborting as _rra_bf
+
+            try:
+                _party_pids = frozenset(m.personality_value for m in _gp_bf() if m is not None)
+            except Exception as _pp_err:  # noqa: BLE001 - unreadable party: skip box-first, hunt as before
+                _rra_bf(_pp_err)
+                _party_pids = None
+            _pick = None if _party_pids is None else counter_hunt.box_counter_choice(
+                needed, exclude_pids=_party_pids, taught=getattr(self, "_gym_tm_taught_moves", None) or {})
+            if _pick is not None:
+                _pid, _species, _level, _why = _pick
+                self._register_counter(_pid, "PC box (box-first)")
+                self._counter_hunts[key] = f"box-first {_species} L{_level} pid={_pid:08X} ({_why})"
+                console.print(
+                    f"[cyan]Story: a counter for {cfg.get('name', 'this boss')} is already in the PC: {_species} "
+                    f"L{_level} ({_why}). It is collected at the next heal instead of hunting a new one.[/]"
+                )
+                return True
+
         try:
             candidates = counter_plan.find_counter_candidates(
                 needed, allow=_counter_area_allowed, max_results=10
@@ -2862,18 +2892,7 @@ class StoryMode(BotMode):
             # `hunted_pids=0` on all 684 lead decisions. That is why the PID now comes from
             # `hunt()` itself rather than being re-derived here.
             if pid is not None:
-                self._hunted_counter_pids.add(pid)
-                try:
-                    from modules.story.pc_trip import badge_count
-
-                    self._hunted_counter_badges[pid] = badge_count()
-                except Exception as _bc_err:  # noqa: BLE001 - no count recorded ⇒ protected until the run ends
-                    console.print(f"[yellow]Story: badge count unreadable at counter registration ({_bc_err!r}).[/]")
-                where = "party" if slot is not None else "PC box"
-                console.print(
-                    f"[dim]Story: counter registered (pid={pid:08X}, in the {where}); "
-                    f"it will lead this boss and is protected from PC deposit until its badge.[/]"
-                )
+                self._register_counter(pid, "party" if slot is not None else "PC box")
             else:
                 console.print("[yellow]Story: counter caught but its PID was unreadable — "
                               "it will not be preferred as lead.[/]")
@@ -2897,6 +2916,23 @@ class StoryMode(BotMode):
             f"— stopping honestly.[/]"
         )
         return False
+
+    def _register_counter(self, pid: int, where: str) -> None:
+        """Register a counter by PID: the lead picker fields it, the heal withdraws it while it is OWED, and make-room
+        will not box it before its badge (`pc_trip.owed_counter_pids`). Shared by the hunt and box-first paths.
+        ⛔ The badge count is OVERWRITTEN, never `setdefault`: a counter registered again for a later boss must become
+        owed to THAT boss (RULING 20 increment B)."""
+        self._hunted_counter_pids.add(pid)
+        try:
+            from modules.story.pc_trip import badge_count
+
+            self._hunted_counter_badges[pid] = badge_count()
+        except Exception as _bc_err:  # noqa: BLE001 - no count recorded ⇒ protected until the run ends
+            console.print(f"[yellow]Story: badge count unreadable at counter registration ({_bc_err!r}).[/]")
+        console.print(
+            f"[dim]Story: counter registered (pid={pid:08X}, in the {where}); "
+            f"it will lead this boss and is protected from PC deposit until its badge.[/]"
+        )
 
     def _here_map(self):
         """The map we are standing on, as a (group, number) tuple — None if unreadable."""

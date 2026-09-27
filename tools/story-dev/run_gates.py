@@ -277,6 +277,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#27-gaterepo` — no live tool script may hardcode the MAIN checkout's path: 22 did, and from a worktree they
     # graded (and imported) `main` while printing PASS. AST scan; docstrings/comments exempt; 5 fault arms.
     ("probe_no_hardcoded_repo.py", False),
+    # ⛔ USER RULING 20 Phase 1 (B), counters — box-first before the hunt (a stricter, ranked box pick), and the heal
+    # withdraws only counters still OWED (an expired one could be re-collected, and by box order). 4 fault arms.
+    ("probe_r20_counterbox.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

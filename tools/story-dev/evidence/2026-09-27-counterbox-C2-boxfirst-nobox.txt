@@ -1,0 +1,87 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\cb\C2-boxfirst-nobox.log
+[setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 45000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f1: CONTROLLER -> CounterBoxMode.run   (state=OVERWORLD)
+[counterbox] PRE case=boxfirst expect=nobox {'start': ('(12, 1)', (4, 19)), 'badges': 5, 'box_before': [], 'party': [('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)]}
+[counterbox] INJECTED {'start': ('(12, 1)', (4, 19)), 'badges': 5, 'box_before': [], 'party': [('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)], 'box_injected': ['6B9FE780'], 'slugma_moves': ['Yawn', 'Smog', 'Ember', 'Rock Throw'], 'choice_before': (1805641600, 'Slugma', 15, 'Rock Throw scores 100')}
+[counterbox] LADDER {'start': ('(12, 1)', (4, 19)), 'badges': 5, 'box_before': [], 'party': [('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)], 'box_injected': ['6B9FE780'], 'slugma_moves': ['Yawn', 'Smog', 'Ember', 'Rock Throw'], 'choice_before': (1805641600, 'Slugma', 15, 'Rock Throw scores 100'), 'ladder_returned': False, 'registry': [], 'badges_map': {}, 'counter_hunts': {'(12, 1)': 'Slugma@FIERY_PATH: none found'}, 'owed': [], 'expected_withdraw': None, 'expected_deposit': None}
+f377: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitDoor'] ctrl=CounterBoxMode.run bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2000: heartbeat mode=Story ctrl=CounterBoxMode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2002: SAVED stall state #1 to stalls/repro-ml-f2002.ss1 (bt='Got away safely!')
+f2302: !!! NO-PROGRESS x1200 sig=('CounterBoxMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2302:     gen -> CounterBoxMode.run  @ story_harness.py:24037
+f2302:     gen -> _yield_bounded_by_frames  @ early_game.py:1773
+f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2302:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2302:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[counterbox] fixture RESTORED — the injection does not persist.
+[counterbox] R badges = 5
+[counterbox] R badges_map = {}
+[counterbox] R box_before = []
+[counterbox] R box_end = ['6B9FE780']
+[counterbox] R box_injected = ['6B9FE780']
+[counterbox] R choice_before = (1805641600, 'Slugma', 15, 'Rock Throw scores 100')
+[counterbox] R counter_hunts = {'(12, 1)': 'Slugma@FIERY_PATH: none found'}
+[counterbox] R expected_deposit = None
+[counterbox] R expected_withdraw = None
+[counterbox] R heal_finished = True
+[counterbox] R ladder_returned = False
+[counterbox] R owed = []
+[counterbox] R party = [('5C96EA9B', 'Mightyena', 38), ('863B0917', 'Sceptile', 39), ('0B30A747', 'Swellow', 33), ('5CCCD8BE', 'Skitty', 17), ('33CB74C3', 'Zigzagoon', 3), ('C978D14E', 'Castform', 25)]
+[counterbox] R party_end = ['0B30A747', '33CB74C3', '5C96EA9B', '5CCCD8BE', '863B0917', 'C978D14E']
+[counterbox] R registry = []
+[counterbox] R slugma_moves = ['Yawn', 'Smog', 'Ember', 'Rock Throw']
+[counterbox] R start = ('(12, 1)', (4, 19))
+[counterbox] ACTIONS planner_calls=1 hunt_calls=['Slugma@FIERY_PATH'] withdraws=[] deposits=[] failure=None
+[counterbox] conjuncts = {'no_failure': True, 'heal_finished': True, 'no_whiteout': True, 'planner_entered': True, 'hunt_stand_in_called': True, 'ladder_false': True, 'nothing_registered': True, 'no_withdraw': True, 'slugma_still_boxed': True}
+[counterbox] ACCEPTANCE: PASS (case=boxfirst expect=nobox)
+f2558: CONTROLLER -> <none>   (state=OVERWORLD)
+f2619: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f18709: SAVED stall state #2 to stalls/repro-ml-f18709.ss1 (bt='Got away safely!')
+f19009: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (3, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] scripts=['FortreeCity_House3_EventScript_SchoolKidM', 'Std_MsgboxNPC'] bt='Got away safely!' bot_mode=Manual
+f19009:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f26000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f30000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f32000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f32334: SAVED stall state #3 to stalls/repro-ml-f32334.ss1 (bt='Got away safely!')
+f32634: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (25, 10)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f32634:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f34000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f35099: SAVED stall state #4 to stalls/repro-ml-f35099.ss1 (bt='Got away safely!')
+f35399: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (26, 11)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f35399:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f38000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f38344: SAVED stall state #5 to stalls/repro-ml-f38344.ss1 (bt='Got away safely!')
+f38644: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (18, 10)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f38644:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f40000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f41174: SAVED stall state #6 to stalls/repro-ml-f41174.ss1 (bt='Got away safely!')
+f42000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f44000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[done] ran 45000 frames; final mode=Manual party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L38: Tackle, Swagger, Take Down, Bite
+[moveset] Sceptile L39: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Swellow L33: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L25: Powder Snow, Rain Dance, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 45002 get_party() recomputes, 151 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += counterbox 45002 recomputes (party_accounting_ledger.jsonl)

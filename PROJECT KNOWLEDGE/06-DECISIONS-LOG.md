@@ -7737,3 +7737,27 @@ Increment B's box-first for Strength, Waterfall and Fly is the planned cover.
   generic path would never fire where it matters.
 - Mossdeep or Ever Grande as centres: the planner refuses both from the crater, and Ever Grande's centre is above the
   waterfall (circular).
+
+## 2026-09-27 — RULING 20 Phase 1, increment B (counters): box-first before the hunt with a NEW strict picker; the heal withdraws only OWED counters
+
+**Decisions** (recon: `ai-research-notes/2026-09-27-ruling20-incB-RECON.md`, site "counter", a NOTE):
+- (a) `_counter_ladder` asks `counter_hunt.box_counter_choice` AFTER its once-per-boss "started" mark (so the bound
+  covers it) and BEFORE the planner and the ball check (a withdraw needs no ball; a planner failure must not hide an
+  owned counter). On a pick it registers the PID through the shared `_register_counter`, which OVERWRITES the badge
+  count, and returns True; the boss segment's own heal collects it.
+- (b) `box_counter_choice` is NEW. It accepts an own-type match, or a damaging needed-type move with base power × 2 ×
+  STAB ≥ 75. It ignores gym-TM-taught pairs (RULING 19) and party PIDs, and it ranks the candidates.
+  `box_counter_pid` is left as it is, because a parity gate pins it to `party_counter_slot`.
+- (c) The heal's counter withdraw collects `pc_trip.owed_counter_pids` only; `deposit_protected_pids` delegates to the
+  same set, and its fault arms stay on the deposit side.
+- (d) Recon H3 (the box-first counter arrives untrained) is NOT addressed: same as today's box-catch path.
+- (e) Recon H2 is ACCEPTED, and it is a real behaviour change (review, 2026-09-27): every segment picks its lead
+  BEFORE its heal, so a box-first counter is ALWAYS still boxed when the lead is chosen and first leads on the
+  attempt after its collection. A party-caught hunted counter usually leads at once.
+
+**Rejected:**
+- Reusing `box_counter_pid`: lenient (a Rock Smash or Mud-Slap carrier qualifies) and first-in-box-order; it would spend
+  the ladder's one action for the boss on a non-answer.
+- Keeping the full-registry withdraw: after increment A, make-room may box an EXPIRED counter, and the next heal would
+  collect it again (the C5 arm reproduces this).
+- Training a box-first counter before its first attempt: a larger change to `_prepare_for_fight`; left for a design pass.

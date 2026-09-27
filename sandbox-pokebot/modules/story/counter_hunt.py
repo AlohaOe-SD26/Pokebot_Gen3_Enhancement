@@ -326,6 +326,76 @@ def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None"
     return None
 
 
+#: The planner's credible floor (`counter_plan._CREDIBLE_ANSWER_POWER`, itself mirroring
+#: `StoryMode.CREDIBLE_ANSWER_POWER`): base power × 2 (super effective) × STAB must reach it.
+_BOX_CHOICE_CREDIBLE = 75
+
+
+def box_counter_choice(needed_type_names, exclude_pids=frozenset(), taught=None, mons=None):
+    """The BEST boxed answer to a boss as `(pid, species_name, level, why)`, or None. PURE apart from the box read.
+
+    ⭐ RULING 20 Phase 1, increment B (box-first counters, 2026-09-27). The counter ladder asks this BEFORE it plans a
+    hunt: a counter the run already owns is collected at the segment's own heal instead of being hunted again.
+
+    ⛔ WHY NOT `box_counter_pid`. That twin is deliberately LENIENT (any damaging move of a needed type, whatever its
+    power) and returns the FIRST box-order match; its behaviour is pinned to `party_counter_slot` by
+    `repro_box_counter_move_test.py`, so it is left unchanged. Used here it would spend the ladder's ONE action for
+    this boss on a Rock Smash (20 power) or Mud-Slap carrier (recon H4: after boxing Slugma, Geodude, Snorunt and
+    Bagon it still returned Slugma).
+
+    Accepts a mon if EITHER:
+    - its own type is a needed type (the planner's type rule; Ground counters for Wattson score 0-3 on moves, because
+      Magnitude and Low Kick have base power 1 in the data, so type must stay enough); or
+    - it knows a damaging move of a needed type with base power × 2 × STAB >= 75 (the planner's move rule).
+    A `(pid, move)` pair in `taught` (the gym-TM teaches, RULING 19) is not evidence of an answer.
+    Ranked by: a credible move, then that move's score, then a type match, then level.
+    `mons` is for tests; None reads the save blocks via `pc_trip.box_views()` (works anywhere, no PC menu).
+    ‼ Returns None on any read failure: a box we cannot read is a box we must not act on, and the hunt still runs.
+    """
+    needed = {str(n) for n in (needed_type_names or []) if n}
+    if not needed:
+        return None
+    if mons is None:
+        try:
+            from modules.story.pc_trip import box_views
+
+            mons = box_views()[1]
+        except Exception:  # noqa: BLE001 - see the docstring
+            return None
+    taught_pairs = set(taught or ())
+    best = None
+    for mon in mons or []:
+        try:
+            if mon is None or getattr(mon, "is_egg", False):
+                continue
+            pid = int(mon.personality_value)
+            if pid in exclude_pids:
+                continue
+            own = {str(t.name) for t in mon.species.types}
+            type_hit = bool(own & needed)
+            score, answer = 0.0, None
+            for learned in (getattr(mon, "moves", None) or ()):
+                move = getattr(learned, "move", None) if learned is not None else None
+                if move is None or move.base_power <= 0 or str(move.type.name) not in needed:
+                    continue
+                if (pid, move.name) in taught_pairs:
+                    continue
+                s = move.base_power * 2.0 * (1.5 if str(move.type.name) in own else 1.0)
+                if s > score:
+                    score, answer = s, move.name
+            credible = score >= _BOX_CHOICE_CREDIBLE
+            if not (type_hit or credible):
+                continue
+            key = (1 if credible else 0, score, 1 if type_hit else 0, int(mon.level))
+            why = (f"{answer} scores {score:.0f}" if credible else "") + (
+                (", " if credible else "") + "own type" if type_hit else "")
+            if best is None or key > best[0]:
+                best = (key, (pid, mon.species.name, int(mon.level), why))
+        except Exception:  # noqa: BLE001 - one unreadable mon must not hide the readable ones
+            continue
+    return None if best is None else best[1]
+
+
 def catch_confirmed(*, party_count_now, party_count_before, party_pids_now, before_party_pids,
                     box_count_now, box_count_before, box_pids_now, before_box_pids) -> bool:
     """Did THIS hunt actually catch something? A COUNT is the trigger; an IDENTITY is the verdict.

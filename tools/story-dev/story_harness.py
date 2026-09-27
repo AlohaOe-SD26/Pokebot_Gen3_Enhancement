@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -23870,6 +23870,225 @@ class WfBoxFirstMode(BotMode):
         context.set_manual_mode()
 
 
+class CounterBoxMode(BotMode):
+    """`--driver counterbox` — RULING 20 Phase 1, increment B (counters): production `StoryMode._counter_ladder` on
+    `fortree_gym_wedge.ss1` (PINNED; inside FORTREE_CITY_GYM; 5 badges; box empty), called DIRECTLY with Winona's key,
+    `losses=8`, needed = [Rock, Ice, Dragon], then production `heal_in_pokemon_center(FortreeCity)`.
+
+    ⛔ WHY A DIRECT CALL (recon): a `_prepare_for_fight` drive is vacuous here: Castform's Powder Snow makes the verdict
+    "not hopeless", and the save is inside the gym, where the Winona segment skips prep.
+
+    `CB_CASE`:
+      `boxfirst` (default) — a created Slugma L15 (Rock Throw) in box slot 0. Fix: the planner is NOT entered, the ladder
+                returns True, Slugma is registered owed to badge 5, `_counter_hunts` says "box-first"; the heal withdraws
+                Slugma and deposits the make-room victim computed BEFORE the run.
+                `CB_EXPECT=nobox` + `POKEBOT_R20_FAULT_NOBOXCOUNTER=1`: the planner IS entered and the hunt stand-in is
+                called; nothing registered; the heal withdraws nothing.
+      `control` — nothing injected: the planner IS entered (box-first found nothing), the hunt stand-in is called.
+      `expired` — a created Machop L15 registered as a counter owed to badge 4 (expired at 5) in box slot 0, Slugma in
+                slot 1. Fix: the heal withdraws SLUGMA (owed only). `CB_EXPECT=allcounters` +
+                `POKEBOT_R20_FAULT_ALLCOUNTERS=1`: the heal withdraws MACHOP, the first box-order match (recon H1).
+    The hunt is replaced by a recording stand-in that returns None without travelling (the hunt is not the subject).
+    Registration lands on a production `StoryMode()`; the driver copies it onto itself before the heal, because the heal
+    reads `context.bot_mode_instance` (the boxcounter2 pattern). Graded by PID on the recorded withdraw
+    (`PCAction.withdraw_pokemon_from_box`) and deposit actions.
+    Predictions: `ai-research-notes/2026-09-27-r20counterbox-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "CounterBox"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[counterbox] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.modes.util import pc_interaction as _pci
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story import counter_hunt as _ch
+        from modules.story import counter_plan as _cp
+        from modules.story import early_game as EG
+        from modules.story import pc_trip as _pt
+        from plugins.custom_modes import story_mode as _sm
+
+        TAG = "counterbox"
+        CASE = _os.environ.get("CB_CASE", "boxfirst")
+        EXPECT = _os.environ.get("CB_EXPECT", "fix")
+        if CASE not in ("boxfirst", "control", "expired") or EXPECT not in ("fix", "nobox", "allcounters"):
+            raise BotModeError(f"{TAG}: CB_CASE={CASE!r} / CB_EXPECT={EXPECT!r} not recognised")
+        NEEDED = ["Rock", "Ice", "Dragon"]
+        planner_calls: list = []
+        hunt_calls: list = []
+        withdraws: list = []
+        deposits: list = []
+        R: dict = {}
+        failure = None
+        real_planner = _cp.find_counter_candidates
+        real_hunt = _ch.hunt
+        real_withdraw = _pci.PCAction.withdraw_pokemon_from_box
+        real_deposit = _pci.PCAction.deposit_pokemon_to_box
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        slugma_pid = machop_pid = None
+
+        def _rec_planner(*a, **k):
+            planner_calls.append(True)
+            return real_planner(*a, **k)
+
+        def _stub_hunt(candidate, needed):
+            hunt_calls.append(f"{candidate.get('species_name')}@{getattr(candidate.get('map_enum'), 'name', '?')}")
+            return None
+            yield  # a generator, like the real hunt
+
+        def _rec_withdraw(pokemon):
+            withdraws.append(pokemon.personality_value)
+            return real_withdraw(pokemon)
+
+        def _rec_deposit(pokemon, target_box=None):
+            deposits.append(pokemon.personality_value)
+            return real_deposit(pokemon, target_box)
+
+        def _box():
+            return [int(m.personality_value) for m in (_pt.box_views()[1] or []) if m is not None]
+
+        mode = None
+        try:
+            yield from EG.wait_until_truly_controllable()
+            av = get_player_avatar()
+            R["start"] = (str(av.map_group_and_number), tuple(av.local_coordinates))
+            R["badges"] = _pt.badge_count()
+            R["box_before"] = _box()
+            party = [m for m in get_party() if m is not None]
+            R["party"] = [(f"{m.personality_value:08X}", m.species.name, m.level) for m in party]
+            premise = (R["start"][0] == str(MapRSE.FORTREE_CITY_GYM.value) and R["badges"] == 5
+                       and R["box_before"] == [] and len(party) == 6)
+            log(f"[{TAG}] PRE case={CASE} expect={EXPECT} {R}")
+            if not premise:
+                raise BotModeError(f"{TAG}: FIXTURE PREMISE FAILED ({R}) — this is not fortree_gym_wedge.")
+
+            mode = _sm.StoryMode()
+            if CASE in ("boxfirst", "expired"):
+                slot = 0
+                if CASE == "expired":
+                    machop = debug_create_pokemon(species=get_species_by_name("Machop"), level=15)
+                    debug_write_box_slot(machop, slot_index=slot)
+                    yield from wait_for_n_frames(2)
+                    machop_pid = machop.personality_value
+                    mode._hunted_counter_pids.add(machop_pid)
+                    mode._hunted_counter_badges[machop_pid] = 4
+                    slot = 1
+                slugma = debug_create_pokemon(species=get_species_by_name("Slugma"), level=15)
+                debug_write_box_slot(slugma, slot_index=slot)
+                yield from wait_for_n_frames(2)
+                slugma_pid = slugma.personality_value
+            R["box_injected"] = [format(p, "08X") for p in _box()]
+            R["slugma_moves"] = None
+            for m in (_pt.box_views()[1] or []):
+                if m is not None and m.personality_value == slugma_pid:
+                    R["slugma_moves"] = [l.move.name for l in m.moves if l is not None]
+            R["choice_before"] = _ch.box_counter_choice(NEEDED, exclude_pids=frozenset(
+                m.personality_value for m in party))
+            if CASE != "control" and (R["choice_before"] or (None,))[0] != slugma_pid:
+                raise BotModeError(f"{TAG}: PREMISE — box_counter_choice does not return the injected Slugma "
+                                   f"({R['choice_before']}); the arm would not test box-first.")
+            log(f"[{TAG}] INJECTED {R}")
+
+            _cp.find_counter_candidates = _rec_planner
+            _ch.hunt = _stub_hunt
+            key = MapRSE.FORTREE_CITY_GYM.value
+            cfg = {"keys": [key], "name": "Winona"}
+            R["ladder_returned"] = yield from mode._counter_ladder(cfg, 8, NEEDED)
+            R["registry"] = sorted(format(p, "08X") for p in mode._hunted_counter_pids)
+            R["badges_map"] = {format(p, "08X"): b for p, b in mode._hunted_counter_badges.items()}
+            R["counter_hunts"] = {str(k): v for k, v in mode._counter_hunts.items()}
+            R["owed"] = sorted(format(p, "08X") for p in _pt.owed_counter_pids(mode))
+            # The heal reads context.bot_mode_instance: copy production's registration onto the driver.
+            self._hunted_counter_pids = set(mode._hunted_counter_pids)
+            self._hunted_counter_badges = dict(mode._hunted_counter_badges)
+            now = [m for m in get_party() if m is not None]
+            expected_wd = None
+            if CASE in ("boxfirst", "expired") and EXPECT != "nobox":
+                expected_wd = machop_pid if EXPECT == "allcounters" else slugma_pid
+            R["expected_withdraw"] = None if expected_wd is None else format(expected_wd, "08X")
+            if expected_wd is not None:
+                v = _pt.make_room_victim(now, exclude_pids=[p for p in self._hunted_counter_pids], required=True,
+                                         protected=_pt.deposit_protected_pids(self))
+                R["expected_deposit"] = None if v is None else format(v[0].personality_value, "08X")
+            else:
+                R["expected_deposit"] = None
+            log(f"[{TAG}] LADDER {R}")
+            _pci.PCAction.withdraw_pokemon_from_box = _rec_withdraw
+            _pci.PCAction.deposit_pokemon_to_box = _rec_deposit
+            R["heal_finished"] = yield from EG._yield_bounded_by_frames(
+                EG.heal_in_pokemon_center(PokemonCenter.FortreeCity), 40_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            EG.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _cp.find_counter_candidates = real_planner
+            _ch.hunt = real_hunt
+            _pci.PCAction.withdraw_pokemon_from_box = real_withdraw
+            _pci.PCAction.deposit_pokemon_to_box = real_deposit
+
+        try:
+            R["party_end"] = sorted(format(m.personality_value, "08X") for m in get_party() if m is not None)
+            R["box_end"] = sorted(format(p, "08X") for p in _box())
+        except Exception as read_error:  # noqa: BLE001
+            EG.reraise_if_aborting(read_error)
+            R["read_error"] = f"{type(read_error).__name__}: {read_error}"
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — the injection does not persist.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        hx = lambda ps: [format(p, "08X") for p in ps]  # noqa: E731
+        log(f"[{TAG}] ACTIONS planner_calls={len(planner_calls)} hunt_calls={hunt_calls} withdraws={hx(withdraws)} "
+            f"deposits={hx(deposits)} failure={failure}")
+        sl = None if slugma_pid is None else format(slugma_pid, "08X")
+        base = {"no_failure": failure is None and "read_error" not in R, "heal_finished": R.get("heal_finished") is True,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if CASE == "control" or EXPECT == "nobox":
+            conj = {**base, "planner_entered": len(planner_calls) >= 1, "hunt_stand_in_called": len(hunt_calls) >= 1,
+                    "ladder_false": R.get("ladder_returned") is False,
+                    "nothing_registered": R.get("registry") == [], "no_withdraw": withdraws == []}
+            if sl:
+                conj["slugma_still_boxed"] = sl in R.get("box_end", [])
+        else:
+            conj = {**base, "planner_not_entered": planner_calls == [], "hunt_not_called": hunt_calls == [],
+                    "ladder_true": R.get("ladder_returned") is True,
+                    "slugma_registered_owed_to_5": R.get("badges_map", {}).get(sl) == 5 and sl in R.get("owed", []),
+                    "counter_hunts_says_boxfirst": any(str(v).startswith("box-first")
+                                                       for v in R.get("counter_hunts", {}).values()),
+                    "withdrew_the_expected_pid": hx(withdraws) == [R.get("expected_withdraw")],
+                    "deposit_as_predicted": hx(deposits) == ([R["expected_deposit"]] if R.get("expected_deposit")
+                                                             else []),
+                    "expected_mon_in_party_gone_from_box": R.get("expected_withdraw") in R.get("party_end", [])
+                    and R.get("expected_withdraw") not in R.get("box_end", [])}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE} expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -28159,6 +28378,8 @@ for step in range(args.frames):
             context.bot_mode_instance = StrengthBoxMode()
         elif args.driver == "wfboxfirst":
             context.bot_mode_instance = WfBoxFirstMode()
+        elif args.driver == "counterbox":
+            context.bot_mode_instance = CounterBoxMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":
