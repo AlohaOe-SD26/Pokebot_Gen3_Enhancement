@@ -1,0 +1,28 @@
+[setup] LOG -> evidence\2026-09-27-lavaheal-G1-generic.log
+[setup] loaded save state lavaridge.ss1; build=sandbox
+[run] starting faithful loop for up to 150000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> LavaHealMode.run   (state=OVERWORLD)
+[lavaheal] PRE at=((0, 12), (9, 7)) badges1-4=[True, True, True, False] expect=blocked arm=1
+f56: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f672: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='NICK got $320 for winning!' scripts=[] party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+f673: CONTROLLER -> LavaHealMode.run   (state=OVERWORLD)
+[lavaheal] POSITIONED=True at=((0, 26), (4, 70))
+[lavaheal] STAGED lead Marshtomp 45/90
+f1852: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_ExitNonDoor'] ctrl=LavaHealMode.run bt='NICK got $320 for winning!' scripts=[] party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+[lavaheal] MAPS ['ROUTE111', 'ROUTE112', 'ROUTE112_CABLE_CAR_STATION', 'ROUTE112']
+[lavaheal] END at=((0, 27), (28, 28)) finished=None lead_after=(45, 90) continue=no: Could not find a path from (28/28 @ ROUTE112) to (5/16 @ LAVARIDGE_TOWN). failure=HealWalkFailedError: heal_in_pokemon_center: the walk to LavaridgeTown is BLOCKED, not interrupted — not retrying, because riding out a scene cannot change map geometry. Underlying error: Source (28/28 @ ROUTE112) and destination (6/11 @ ROUTE112_CABLE_CAR_STATION) are not on connected maps (note that warps don't count.)
+[lavaheal] conjuncts = {'positioned_on_route111': True, 'lead_staged_below_full': True, 'raised_blocked': True, 'names_the_cable_car_station': True, 'not_in_lavaridge': True}
+[lavaheal] ACCEPTANCE: PASS (expect=blocked)
+f1939: CONTROLLER -> <none>   (state=OVERWORLD)
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f1939 — ending the loop at f2059
+[done] ran 2060 frames; final mode=Manual party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Marshtomp L29: Tackle, Rock Smash, Mud-slap, Water Gun
+[moveset] Swellow L28: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Mightyena L23: Tackle, Odor Sleuth, Sand-attack, Bite
+[moveset] Dustox L22: Tackle, Confusion, Moonlight, Gust
+[PARTY-ACCT] STAGE 0 SUMMARY — 2062 get_party() recomputes, 7 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += lavaheal 2062 recomputes (party_accounting_ledger.jsonl)

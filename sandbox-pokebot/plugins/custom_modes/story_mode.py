@@ -5036,7 +5036,7 @@ class StoryMode(BotMode):
             from modules.story.early_game import (
                 _lead_best_matchup,
                 do_lavaridge_gym,
-                heal_in_pokemon_center,
+                heal_at_lavaridge,
             )
 
             # ‼ `#24-whiteoutloop` PART 1 (2026-08-07). This segment had NO
@@ -5066,7 +5066,10 @@ class StoryMode(BotMode):
             }
             yield from self._prepare_for_fight(flannery_fight)
             yield from _lead_best_matchup(["Fire"], hunted_pids=self._hunted_counter_pids)
-            yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+            # ⛔ NOT the generic heal: the prep above may have walked us BELOW Lavaridge (a training top-up on Route 111,
+            # a Fiery Path counter hunt), where the generic walk cannot route back — 54 of 54 such heals derailed in
+            # batch #26-batch0926 (`heal_at_lavaridge`'s docstring).
+            yield from heal_at_lavaridge()
             yield from do_lavaridge_gym()
         else:
             console.print("[dim]Story: Heat Badge already earned — Gym 4 skipped.[/]")

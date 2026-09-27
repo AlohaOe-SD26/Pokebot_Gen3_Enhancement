@@ -1,0 +1,31 @@
+[setup] LOG -> evidence\2026-09-27-lavaheal-F1-fix.log
+[setup] loaded save state lavaridge.ss1; build=sandbox
+[run] starting faithful loop for up to 150000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> LavaHealMode.run   (state=OVERWORLD)
+[lavaheal] PRE at=((0, 12), (9, 7)) badges1-4=[True, True, True, False] expect=arrive arm=unset
+f56: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f672: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='NICK got $320 for winning!' scripts=[] party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+f673: CONTROLLER -> LavaHealMode.run   (state=OVERWORLD)
+[lavaheal] POSITIONED=True at=((0, 26), (4, 70))
+[lavaheal] STAGED lead Marshtomp 45/90
+f1929: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_ExitNonDoor'] ctrl=LavaHealMode.run bt='NICK got $320 for winning!' scripts=[] party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+f2000: heartbeat mode=Story ctrl=LavaHealMode.run state=OVERWORLD party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+f4000: heartbeat mode=Story ctrl=LavaHealMode.run state=OVERWORLD party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+f5461: SAVED stall state #1 to stalls/repro-ml-f5461.ss1 (bt='NICK got $320 for winning!')
+[lavaheal] MAPS ['ROUTE111', 'ROUTE112', 'ROUTE112_CABLE_CAR_STATION', 'MT_CHIMNEY_CABLE_CAR_STATION', 'MT_CHIMNEY', 'JAGGED_PASS', 'ROUTE112', 'LAVARIDGE_TOWN', 'LAVARIDGE_TOWN_POKEMON_CENTER_1F', 'LAVARIDGE_TOWN']
+[lavaheal] END at=((0, 12), (9, 7)) finished=True lead_after=(90, 90) continue=True failure=None
+[lavaheal] conjuncts = {'positioned_on_route111': True, 'lead_staged_below_full': True, 'no_failure': True, 'finished': True, 'rode_the_cable_car': True, 'descended_jagged_pass': True, 'ends_in_lavaridge': True, 'lead_healed': True, 'can_continue_to_the_gym_walk': True, 'no_whiteout': True}
+[lavaheal] ACCEPTANCE: PASS (expect=arrive)
+f5968: CONTROLLER -> <none>   (state=OVERWORLD)
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f5968 — ending the loop at f6088
+[done] ran 6089 frames; final mode=Manual party=[Marshtomp:L29:exp21598|Swellow:L28:exp18976|Mightyena:L23:exp12936|Dustox:L22:exp12029]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Marshtomp L29: Tackle, Rock Smash, Mud-slap, Water Gun
+[moveset] Swellow L28: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Mightyena L23: Tackle, Odor Sleuth, Sand-attack, Bite
+[moveset] Dustox L22: Tackle, Confusion, Moonlight, Gust
+[PARTY-ACCT] STAGE 0 SUMMARY — 6091 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += lavaheal 6091 recomputes (party_accounting_ledger.jsonl)

@@ -22465,3 +22465,25 @@ replays the loop.
 **Prevention rule:** ⛔ **A memory is only as good as the key its READER computes.** When one site writes a cache or
 blacklist and another reads it, derive both keys from the same event, here the pick, and write one test that performs a
 write followed by the real read from the next caller's position. A write-only test proves nothing.
+
+## 2026-09-27 — ⛔ A SEGMENT HARD-CODED A HEAL INTO A TOWN ITS OWN PREP COULD LEAVE US UNABLE TO WALK BACK TO
+
+**Symptom:** 54 of 54 Flannery heals that started below Lavaridge derailed "BLOCKED" (batch `#26-batch0926`); the 54th
+ended run P1r7.
+
+**Root cause:**
+- The Flannery segment called the generic `heal_in_pokemon_center(LavaridgeTown)` right after `_prepare_for_fight`.
+- That prep's training top-up or counter hunt can walk the bot to Route 111/117 or the Fiery Path exit.
+- From there, before Flannery, no walkable route leads back. Route 112's one-way ledges leave only the scripted cable
+  car and the one-way Jagged Pass, and the warp graph (which counts Route 112 → Lavaridge as one hop) cannot express
+  either.
+- The derail recovery hid it: `do_jagged_descent` got back 53 times, so every failure looked "recovered".
+
+**Fix:** `early_game.heal_at_lavaridge()` runs `do_jagged_descent()` from outside the explicit `LAVARIDGE_MAPS`, and
+the plain heal inside. A/B-proven (`ai-research-notes/2026-09-27-lavaheal-GRADED.md`) and gated
+(`probe_lavaheal.py`).
+
+**Prevention rule:** ⛔ **A hard-coded `heal_in_pokemon_center(Town)` after an errand that can move the bot must be
+checked against every place the errand can LEAVE it,** and one-way or scripted connectivity (ledges, cable cars,
+Jagged Pass) does not show up in the warp graph. And ⛔ **a derail that "always recovers" is still a defect.** Count
+how often the recovery is the normal path: here it was 54 of 54.

@@ -36121,3 +36121,26 @@ pick. Arm `POKEBOT_TRAINBLOCK_FAULT_DIEDKEY`.
 
 Not live-driven. The next batch should show at most one ROUTE111 (25,55) abandon per origin per run.
 Suite 105 (101 enforcing + 4 advisory; `--quick` 92).
+
+## 2026-09-27 — THE FLANNERY HEAL TAKES THE CABLE CAR FROM BELOW LAVARIDGE (`#26-healmap-lavaridge` F4, A/B-proven)
+
+**WHY.** 54 of 54 Flannery heals that started below Lavaridge derailed "BLOCKED" in batch `#26-batch0926`. The prep's
+training top-up or a counter hunt had walked the bot to Route 111, Route 117 or the Fiery Path exit, and the generic
+heal walk has no route back before Flannery: Route 112's one-way ledges leave only the scripted cable car and the
+one-way Jagged Pass. The derail's recovery (`do_jagged_descent`) worked 53 times; the 54th ended run P1r7.
+
+**WHAT.** `early_game.heal_at_lavaridge()`:
+- outside `LAVARIDGE_MAPS` (the town plus its 7 interiors, an explicit set) it runs `do_jagged_descent()`, which ends
+  healed at the Lavaridge Poké Center;
+- inside it is the plain heal.
+The Flannery segment calls it in place of `heal_in_pokemon_center(LavaridgeTown)`. Arm `POKEBOT_LAVAHEAL_FAULT_GENERIC`.
+
+**PROOF** (predictions `8ceb4929`, filed first; `ai-research-notes/2026-09-27-lavaheal-GRADED.md`).
+`--driver lavaheal` from `lavaridge.ss1`, positioned on ROUTE111 (4,70), with the lead staged to 45/90:
+- **GENERIC** raised the batch's error word for word: `… Source (28/28 @ ROUTE112) and destination (6/11 @
+  ROUTE112_CABLE_CAR_STATION) are not on connected maps`.
+- **FIX** rode the cable car, descended Jagged Pass and ended in Lavaridge with the lead at 90/90, and it can path to the
+  gym walk's first tile.
+Gate `probe_lavaheal.py` checks the wiring, the set's completeness against MapRSE, and the stubbed behaviour; 3 fault
+arms. Suite 106 (102 enforcing + 4 advisory; `--quick` 93).
+**REMAINING:** the Petalburg (53) and Fortree (8) BLOCKED families.

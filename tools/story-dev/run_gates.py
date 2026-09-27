@@ -259,6 +259,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),
+    # ⛔ `#26-healmap-lavaridge` F4 — the Flannery heal takes the cable car + Jagged Pass from below Lavaridge (the
+    # generic heal walk has no route there before Flannery: 54 of 54 derailed in the batch). Static + stubbed.
+    ("probe_lavaheal.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

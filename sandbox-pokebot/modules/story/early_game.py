@@ -6419,6 +6419,37 @@ def do_jagged_descent() -> Generator:
     yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
 
 
+#: Lavaridge Town and every map inside it. ⛔ AN EXPLICIT SET, NEVER a name-prefix match (the same rule as the League's
+#: interior set in `victory_road.py`): `do_jagged_descent` returns early only on the TOWN map, so a caller standing in the
+#: Poké Center or the Gym must be recognised as "already in Lavaridge" here, or it would ride the cable car back up.
+LAVARIDGE_MAPS = frozenset({
+    MapRSE.LAVARIDGE_TOWN.value, MapRSE.LAVARIDGE_TOWN_HERB_SHOP.value, MapRSE.LAVARIDGE_TOWN_GYM_1F.value,
+    MapRSE.LAVARIDGE_TOWN_GYM_B1F.value, MapRSE.LAVARIDGE_TOWN_HOUSE.value, MapRSE.LAVARIDGE_TOWN_MART.value,
+    MapRSE.LAVARIDGE_TOWN_POKEMON_CENTER_1F.value, MapRSE.LAVARIDGE_TOWN_POKEMON_CENTER_2F.value,
+})
+
+
+def heal_at_lavaridge() -> Generator:
+    """The Flannery segment's heal (§Ch11d), from wherever the boss prep left us.
+
+    ⛔⛔ THE GENERIC HEAL WALK CANNOT REACH LAVARIDGE FROM BELOW (2026-09-27, `ai-research-notes/2026-09-27-healwalk-RECON.md`).
+    Before Flannery, Route 112 is split by one-way ledges: from Route 111/117, Mauville or the Fiery Path exit, the ONLY
+    way into Lavaridge is the scripted cable car and the one-way Jagged Pass descent — which the warp graph cannot
+    express. MEASURED in batch `#26-batch0926`: 54 of 54 Flannery heals started below (the prep's training top-up or a
+    counter hunt had walked us there) derailed "BLOCKED"; the derail's recovery then ran `do_jagged_descent` and reached
+    Lavaridge 53 times — the 54th ended run P1r7. ⇒ run that recovery HERE, without spending a derail slot.
+    Inside Lavaridge (any of `LAVARIDGE_MAPS`) it is the plain heal, exactly as before. Arm
+    `POKEBOT_LAVAHEAL_FAULT_GENERIC=1` always takes the generic heal (the old behaviour)."""
+    import os as _os_lh
+
+    if (_map_group_number() not in LAVARIDGE_MAPS
+            and _os_lh.environ.get("POKEBOT_LAVAHEAL_FAULT_GENERIC") != "1"):
+        context.message = "Story: below Lavaridge — taking the cable car and Jagged Pass back down to heal..."
+        yield from do_jagged_descent()  # ends healed at the Lavaridge Poké Center
+        return
+    yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+
+
 def do_lavaridge_gym() -> Generator:
     """Chapter 11d — the Lavaridge trapdoor gym: fall through the right holes to
     Flannery, win the Heat Badge (BADGE04).

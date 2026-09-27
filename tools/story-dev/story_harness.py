@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22993,6 +22993,142 @@ class WoodsLegMode(BotMode):
         context.set_manual_mode()
 
 
+class LavaHealMode(BotMode):
+    """`--driver lavaheal` — `#26-healmap-lavaridge` F4: production `early_game.heal_at_lavaridge()` from BELOW Lavaridge.
+
+    From `lavaridge.ss1` (Lavaridge, badges 1-3): walk (production `_navigate_riding_out`) to ROUTE111 (4,70) — where
+    run P1r7's heal walk began — stage the lead to 50% HP (test-only, so a heal is observable), then run the heal.
+    GRADES (`LAVAHEAL_EXPECT`): `arrive` (default) — no raise; the cable car station AND Jagged Pass entered; ends in
+    `LAVARIDGE_MAPS` with the lead at full HP; and a real `calculate_path` from the end tile reaches LAVARIDGE_TOWN
+    (5,16), where `do_lavaridge_gym` walks next. `blocked` — with `POKEBOT_LAVAHEAL_FAULT_GENERIC=1`: the generic heal
+    raises "BLOCKED" naming the cable car station (the batch's shape). A whiteout FAILS the run (latched).
+    Predictions: `ai-research-notes/2026-09-27-lavaheal-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "LavaHeal"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[lavaheal] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.memory import get_event_flag, read_symbol, write_symbol
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.state_cache import state_cache
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            LAVARIDGE_MAPS,
+            _navigate_riding_out,
+            _yield_bounded_by_frames,
+            heal_at_lavaridge,
+            reraise_if_aborting,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "lavaheal"
+        EXPECT = _os.environ.get("LAVAHEAL_EXPECT", "arrive")
+        maps: list = []
+        failure = None
+        finished = None
+        positioned = staged = False
+        lead_before = None
+
+        def _map_now():
+            try:
+                return tuple(get_player_avatar().map_group_and_number)
+            except Exception:  # noqa: BLE001 - an unreadable map is simply not recorded
+                return None
+
+        def _watch():
+            gen = heal_at_lavaridge()
+            while True:
+                try:
+                    next(gen)
+                except StopIteration:
+                    return
+                here = _map_now()
+                if here and (not maps or maps[-1] != here):
+                    maps.append(here)
+                yield
+
+        try:
+            yield from wait_until_truly_controllable()
+            log(f"[{TAG}] PRE at={VR._where()} badges1-4="
+                f"{[bool(get_event_flag(f'BADGE0{k}_GET')) for k in range(1, 5)]} expect={EXPECT} "
+                f"arm={_os.environ.get('POKEBOT_LAVAHEAL_FAULT_GENERIC', 'unset')}")
+            yield from _yield_bounded_by_frames(_navigate_riding_out(MapRSE.ROUTE111, (4, 70)), 30_000)
+            yield from wait_until_truly_controllable()
+            positioned = _map_now() == MapRSE.ROUTE111.value
+            log(f"[{TAG}] POSITIONED={positioned} at={VR._where()}")
+            # Stage the lead to 50% HP (test-only): a heal must be OBSERVABLE, or "healed" grades nothing.
+            party = get_party()
+            lead = party[0]
+            raw = bytearray(read_symbol("gPlayerParty"))
+            hp = max(1, lead.total_hp // 2)
+            raw[86:88] = hp.to_bytes(2, "little")
+            write_symbol("gPlayerParty", bytes(raw))
+            state_cache.reset()
+            lead_before = (get_party()[0].current_hp, get_party()[0].total_hp)
+            staged = lead_before[0] < lead_before[1]
+            log(f"[{TAG}] STAGED lead {lead.species.name} {lead_before[0]}/{lead_before[1]}")
+            finished = yield from _yield_bounded_by_frames(_watch(), 60_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print (the GENERIC arm is EXPECTED to raise)
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        at = VR._where()
+        end_map = _map_now()
+        try:
+            state_cache.reset()
+            lead_after = (get_party()[0].current_hp, get_party()[0].total_hp)
+        except Exception:  # noqa: BLE001 - unreadable ⇒ not healed
+            lead_after = None
+        cont = None
+        if end_map is not None:
+            try:
+                calculate_path(get_map_data(MapRSE(end_map), tuple(get_player_avatar().local_coordinates)),
+                               (MapRSE.LAVARIDGE_TOWN, (5, 16)))
+                cont = True
+            except PathFindingError as error:
+                cont = f"no: {error}"
+            except Exception as error:  # noqa: BLE001 - recorded, graded as a failure
+                cont = f"err: {type(error).__name__}: {error}"
+        names = [MapRSE(m).name if m in {x.value for x in MapRSE} else str(m) for m in maps]
+        log(f"[{TAG}] MAPS {names}")
+        log(f"[{TAG}] END at={at} finished={finished} lead_after={lead_after} continue={cont} failure={failure}")
+        premise = {"positioned_on_route111": positioned, "lead_staged_below_full": staged}
+        if EXPECT == "arrive":
+            conj = {**premise, "no_failure": failure is None, "finished": finished is True,
+                    "rode_the_cable_car": "ROUTE112_CABLE_CAR_STATION" in names,
+                    "descended_jagged_pass": "JAGGED_PASS" in names,
+                    "ends_in_lavaridge": end_map in LAVARIDGE_MAPS,
+                    "lead_healed": bool(lead_after) and lead_after[0] == lead_after[1],
+                    "can_continue_to_the_gym_walk": cont is True,
+                    "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        else:
+            conj = {**premise, "raised_blocked": failure is not None and "BLOCKED" in failure,
+                    "names_the_cable_car_station": failure is not None and "CABLE_CAR_STATION" in failure,
+                    "not_in_lavaridge": end_map not in LAVARIDGE_MAPS}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27272,6 +27408,8 @@ for step in range(args.frames):
             context.bot_mode_instance = GymTmBattleMode()
         elif args.driver == "woodsleg":
             context.bot_mode_instance = WoodsLegMode()
+        elif args.driver == "lavaheal":
+            context.bot_mode_instance = LavaHealMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

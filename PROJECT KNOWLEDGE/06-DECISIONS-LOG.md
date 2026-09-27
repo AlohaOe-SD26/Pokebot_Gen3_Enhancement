@@ -7590,3 +7590,26 @@ pick. Arm: `POKEBOT_TRAINBLOCK_FAULT_DIEDKEY`.
   intent: a ground unreachable from Lavaridge can be fine from Fallarbor.
 - (c) **Turning on `AREA_ITEM_PREREQ`** so ROUTE111 is never picked before Go-Goggles. It is off by default by an
   earlier deliberate choice, and it fixes one ground, not the class.
+
+## 2026-09-27 — the Lavaridge heal is fixed AT THE SEGMENT (F4), not in the navigator
+
+**Decision:** the Flannery segment's heal is `early_game.heal_at_lavaridge()`. Outside the explicit `LAVARIDGE_MAPS` it
+runs `do_jagged_descent()` (cable car up, Jagged Pass down, ending healed); inside it is the plain heal. Arm:
+`POKEBOT_LAVAHEAL_FAULT_GENERIC`.
+
+**Rationale** (`ai-research-notes/2026-09-27-healwalk-RECON.md`, a NOTE, plus the drive in
+`2026-09-27-lavaheal-GRADED.md`):
+- Before Flannery the generic navigator has NO route into Lavaridge from below. The cable car is a script, and Jagged
+  Pass is one-way. So no navigator change can make the generic heal succeed.
+- `do_jagged_descent` is the recovery the derail already ran, 53 of 54 times. Calling it directly is local: one call
+  site, and the shared navigator is untouched.
+
+**Rejected:**
+- (F1) **Fix the step-off false failure.** It relabels the bounce as "Cannot reach", and it changes every navigator
+  user.
+- (F2) **Filter dead-end buildings.** It saves frames, not derail slots. The naive test is wrong both ways (it bans
+  Petalburg Woods and Fiery Path, and misses Flat1).
+- (F3) **Model split maps in the warp graph.** The largest regression surface, and it still cannot express the cable
+  car.
+- (F6) **Heal at a nearer centre.** `do_lavaridge_gym` next walks to Lavaridge with the same navigator, so the failure
+  just moves.
