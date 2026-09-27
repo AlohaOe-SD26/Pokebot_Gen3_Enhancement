@@ -7346,3 +7346,8 @@ or a catch policy for flyers.
   replacement, and A/B it on a batch before promotion.
 * **RULING 21 — the Fly swap: "Yes, swap briefly".** During §Ch24 Fly training one fighter may sit in the PC while a
   Fly carrier trains; the same six fighters are restored and checked by PID before R1 (answers gap-5 decision U1).
+
+* **CORRECTION (appended 2026-09-26, same day):** the RULING 20 entry above says the make-room deposit was proven
+  2026-09-25. It was driven and wired 2026-08-13 (`KI-63`), with the ping-pong fix 2026-09-07; only the PC-FIRST HM
+  withdraw is from 2026-09-25. The risk statement is unchanged: `#24-partycap` was measured before either path existed.
+  Build plan: `ai-research-notes/2026-09-26-rulings19-20-PLAN.md`.
