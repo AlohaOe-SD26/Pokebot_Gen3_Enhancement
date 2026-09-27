@@ -22346,3 +22346,26 @@ beside a post-attempt one (`moves=`).
 **Prevention rule:** ⛔ **Before reading two fields of one log line together, find WHEN each is read** (here
 `_teach_exit` reads the moveset after the attempt). ⛔ And Tier 0 includes `probe_doc_control_chars.py`: a `\b` passed
 through a shell heredoc reached `08` as a BACKSPACE byte in a committed entry (repaired 2026-09-26; it renders as nothing).
+
+## 2026-09-26 — ⛔ A TRAVEL-LEG DESTINATION WAS WIRED IN WITHOUT EVER BEING CHECKED — AND IT WAS A TREE
+
+**Symptom:** 67 of 67 §Ch12 legs derailed at `Could not reach (26, 5) on MapRSE.PETALBURG_WOODS` (live batch, agent
+forensics); each recovered only because the derail re-ran the function from inside the Woods.
+**Root cause:** the coordinate arrived in an unwired WIP draft (commit `f9fe80f8`, whose own message lists "validated
+Mauville->Petalburg tiles" as work still to do) and shipped unvalidated; `calculate_path` does not check that a destination
+is passable, it searches and fails.
+**Fix:** aim at (14, 6); ROM gate `probe_woods_dest.py` (the planner on the pinned fixture, with (26, 5) as the control).
+**Prevention rule:** ⛔ **A hardcoded travel tile ships with a planner-reachability check** (walkable AND `calculate_path`
+from where the bot will actually stand) — `#26-destreachability`'s thesis, one member at a time.
+
+## 2026-09-26 — ⛔ THREE DRIVER CHECKS FAILED TODAY WHERE THE SUBJECT WAS RIGHT
+
+**Symptom:** `--driver gymtm` P1 (`get_map_data` called without its argument), Q1/Q2 (a continue target on a pathfinder
+island) and `--driver woodsleg` W1/W2 (a map NAME compared with `_where()`'s numeric id) all printed ACCEPTANCE: FAIL on
+runs whose subjects did exactly what the predictions said.
+**Root cause:** each new driver's grading code ran for the first time on the real drive — the check had never been
+exercised against a known answer.
+**Fix:** each fixed and re-run; the predictions files record the failed grades as driver bugs, not results.
+**Prevention rule:** ⛔ **Before the first graded drive, run a new driver's grading code once against a state whose answer
+you KNOW** (e.g. `_where()` on the fixture itself, the continue probe from the start tile). A grade is code; untested code
+fails where it is least convenient — on the evidence.

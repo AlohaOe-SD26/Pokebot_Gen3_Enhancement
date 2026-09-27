@@ -36001,3 +36001,20 @@ exactly as predicted. The §Ch23 Waterfall teach re-driven under the new rule (K
 loses Water Gun (dominated by Surf) instead of Rollout.
 **Adversarial review:** KICK-BACK (the docs were not yet applied, and the §Ch23 Waterfall teach — a PASS on the OLD rule — changes outcome under the new one and had not been re-driven) → docs on both trees + a 06 entry; K3 re-drove `ch23teach` on `post_badge8.ss1` with its prediction filed first: PASS, Waterfall learned, **lost Water Gun** (dominated by Surf), Rollout, Dive and Surf kept → re-review **APPROVE-WITH-RISKS** (it re-read the raw K3 evidence and re-ran the doc gates itself; its one new finding — the drift figure 14 had become 15 through this item's own comment fix in `battle_move_replacing.py` — fixed before this commit).
 Suite 102 (98 enforcing + 4 advisory; `--quick` 90).
+
+## 2026-09-26 (night) — THE PETALBURG WOODS LEG NO LONGER AIMS AT A TREE (`#26-destreachability`, Woods member; branch `wt/ch24organic`)
+
+**WHY.** Agent forensics of the live batch (a note, `ai-research-notes/2026-09-26-batch0926-FORENSICS.md`): the §Ch12
+leg `travel_lavaridge_to_petalburg` aimed at PETALBURG_WOODS (26, 5) — a SOLID TREE, in a pocket sealed by Cut trees and
+one-way ledges. 67 of 67 legs derailed there, each spending one of the five consecutive derails a run is allowed, and
+recovered only because the derail re-ran the function from INSIDE the Woods.
+**WHAT.** The step aims at (14, 6), the first tile inside the north door; the leg's existing south-east exit block does the
+rest. Arm `POKEBOT_WOODS_FAULT_OLDTILE`. ROM gate `probe_woods_dest.py` (wiring; the bot's own planner: (14, 6)
+walkable, reachable, and onward to (36, 38); CONTROL: (26, 5) unreachable). New driver `--driver woodsleg`.
+**PROOF (predictions filed first).** Production's WHOLE leg from `flannery_done.ss1` (Lavaridge): the old tile raised
+`UnreachableDestinationError` naming (26, 5) inside the Woods (the batch's derail, reproduced); the fix went Lavaridge →
+… → Rustboro → Route 104 → PETALBURG_WOODS → Route 104 → PETALBURG_CITY with no failure (38,438 frames). ⚠ The first pair's
+GRADE failed on the driver's own check (it compared map NAMES with `_where()`'s numeric ids) while both subjects behaved as
+predicted — fixed, re-run (W1b/W2b PASS).
+**Adversarial review:** KICK-BACK only for the docs (not yet applied at review time); it re-ran the ROM gate itself (PASS), confirmed from the W2b evidence that the Devon-goods scene cannot re-fire at this chapter and that no other code pairs the Woods with (26, 5) → docs applied → re-review **APPROVE** (the code re-verified: the ROM gate re-run PASS; it notes `04-HANDOFF.md` now sits at its 900-line budget).
+Suite 103 (99 enforcing + 4 advisory; `--quick` 90).

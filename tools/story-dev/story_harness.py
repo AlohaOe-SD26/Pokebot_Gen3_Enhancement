@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22903,6 +22903,96 @@ class GymTmBattleMode(BotMode):
         context.set_manual_mode()
 
 
+class WoodsLegMode(BotMode):
+    """`--driver woodsleg` — `#26-destreachability`'s Petalburg Woods member: production's WHOLE Chapter-12 travel leg
+    `early_game.travel_lavaridge_to_petalburg()`, from a fixture at its start (`flannery_done.ss1`, Lavaridge).
+
+    GRADES (`WOODS_EXPECT`): `arrive` (default) — the leg returns without raising, passed THROUGH PETALBURG_WOODS, and
+    ends in PETALBURG_CITY, controllable; `derail` — with `POKEBOT_WOODS_FAULT_OLDTILE=1` the leg raises
+    `UnreachableDestinationError` naming (26, 5) inside the Woods (the live batch's 67/67 derail, reproduced).
+    A whiteout FAILS the run (latched)."""
+
+    @staticmethod
+    def name() -> str:
+        return "WoodsLeg"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[woodsleg] WHITEOUT #{self.whiteouts} — abort LATCHED.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _yield_bounded_by_frames,
+            reraise_if_aborting,
+            travel_lavaridge_to_petalburg,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "woodsleg"
+        EXPECT = _os.environ.get("WOODS_EXPECT", "arrive")
+        maps: list = []
+        failure = None
+        finished = None
+        start = context.emulator.get_frame_count()
+
+        def _watch():
+            gen = travel_lavaridge_to_petalburg()
+            while True:
+                try:
+                    next(gen)
+                except StopIteration:
+                    return
+                try:
+                    here = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
+                except Exception:  # noqa: BLE001 - an unreadable map is simply not recorded
+                    here = None
+                if here and (not maps or maps[-1] != here):
+                    maps.append(here)
+                yield
+
+        try:
+            yield from wait_until_truly_controllable()
+            log(f"[{TAG}] PRE at={VR._where()} expect={EXPECT} "
+                f"arm={_os.environ.get('POKEBOT_WOODS_FAULT_OLDTILE', 'unset')}")
+            finished = yield from _yield_bounded_by_frames(_watch(), 200_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print (the old arm is EXPECTED to raise)
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        at = VR._where()
+        log(f"[{TAG}] MAPS {maps}")
+        log(f"[{TAG}] END at={at} finished={finished} frames={context.emulator.get_frame_count() - start} "
+            f"failure={failure}")
+        through_woods = "PETALBURG_WOODS" in maps
+        if EXPECT == "arrive":
+            conj = {"no_failure": failure is None, "finished": finished is True,
+                    "through_petalburg_woods": through_woods,
+                    # ⛔ `_where()` returns the NUMERIC map id — the first drive compared a NAME against it and failed
+                    # a correct arrival (W2, 2026-09-26). Compare ids.
+                    "ends_in_petalburg_city": bool(at) and tuple(at[0]) == MapRSE.PETALBURG_CITY.value,
+                    "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        else:
+            conj = {"raised_unreachable": failure is not None and "UnreachableDestinationError" in failure,
+                    "names_the_wall_tile": failure is not None and "(26, 5)" in failure,
+                    "inside_the_woods": bool(at) and tuple(at[0]) == MapRSE.PETALBURG_WOODS.value}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27042,6 +27132,8 @@ for step in range(args.frames):
             context.bot_mode_instance = GymTmTeachMode()
         elif args.driver == "gymtmbattle":
             context.bot_mode_instance = GymTmBattleMode()
+        elif args.driver == "woodsleg":
+            context.bot_mode_instance = WoodsLegMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

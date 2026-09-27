@@ -6899,7 +6899,14 @@ def travel_lavaridge_to_petalburg() -> Generator:
         and get_player_avatar().local_coordinates[1] < 38
     ):
         context.message = "Story: to Petalburg — through Petalburg Woods..."
-        yield from _navigate_riding_out(MapRSE.PETALBURG_WOODS, (26, 5), tries=8)
+        # ⛔ `#26-destreachability` (2026-09-26): this used to aim at (26, 5) — a SOLID TREE (decomp `PetalburgWoods/map.bin`
+        # collision 1; the tile below it sits in a pocket sealed by the Cut trees at (19,10)/(19,11) and one-way ledges).
+        # MEASURED in the live batch: 67 of 67 legs derailed here and recovered only because the derail re-ran this function
+        # from INSIDE the Woods, where the SE-exit block below does the real work. The step's only job is to get INTO the
+        # Woods, so aim at the first tile inside the north door (planner-probed reachable) and let the SE block exit.
+        # Skip-the-fix arm `POKEBOT_WOODS_FAULT_OLDTILE=1` (registered in 29).
+        _woods_tile = (26, 5) if os.environ.get("POKEBOT_WOODS_FAULT_OLDTILE") == "1" else (14, 6)
+        yield from _navigate_riding_out(MapRSE.PETALBURG_WOODS, _woods_tile, tries=8)
         yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.PETALBURG_WOODS.value:
         # ‼ Exit via the SOUTH-EAST door (36,38) EXPLICITLY (ch12_run2): the warp

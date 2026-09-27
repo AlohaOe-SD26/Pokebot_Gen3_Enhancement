@@ -250,6 +250,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ KI-104 — the HM teach's slot picker is TOTAL (never None / 4 / an HM) and keeps what the mon was trained on
     # (the live shapes: Double Kick, Mud Shot, Low Kick). A/B-proven on `norman_done.ss1`. Three built-in fault arms.
     ("probe_hmslot_rule.py", False),
+    # ⛔ `#26-destreachability` (Petalburg Woods) — the Ch12 leg aims at a REACHABLE tile (the old (26, 5) is a solid tree;
+    # 67/67 live legs derailed there). ROM: the bot's own planner on the pinned `norman_done.ss1`, with a control.
+    ("probe_woods_dest.py", True),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),
