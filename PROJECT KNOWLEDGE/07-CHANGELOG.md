@@ -35937,3 +35937,28 @@ first close left PARTY_MENU — fixed and Q4c passes. Gate `probe_gymtm_teach.py
 **Adversarial review:** KICK-BACK (the design-4 recorder read `_what` before assigning it — an `UnboundLocalError` swallowed by the [TURN] try, so the log never filled AND `[TURN]` telemetry died for every battle; every drive had seeded the history) → fixed, gate G1c now EXECUTES the try-body, and a REAL gym run (`--driver gymtmbattle`, R1 and a final-code replay R1b — one trajectory replayed, not a replication) filed a real Winona loss → re-review APPROVE-WITH-RISKS (it re-ran the gate and read the raw logs itself); the reach filter's known limit is logged in `06`.
 ⚠ NOT shown: a drive that TEACHES and then FIGHTS — whether the taught move is USED against the wall is for the next batch (`[GYM_TM]`, `[TURN]`).
 Suite 99 (95 enforcing + 4 advisory; `--quick` 87).
+
+## 2026-09-26 (night) — RULING 20 PHASE 0: A HOPELESS POKÉDEX CATCH IS NOT STARTED; THE FENCE LOGS PER SPECIES (`#26-organiccatch`; branch `wt/ch24organic`)
+
+**WHY.** Before the fence opens (RULING 20: catching always on), a catch must not start when the balls cannot afford it —
+MEASURED: one Absol took 23 balls and its run later died with no balls for the Dive hunt. And the fence's log fired only
+when its global reason string CHANGED, so a batch could count transitions, never species.
+**WHAT.** (1) `dex_catch_expected_throws` reproduces Gen 3's own catch arithmetic (`Cmd_handleballthrow`, read from the
+decomp) at full HP with the best ordinary ball held (never the Master Ball); `decide_dex_catch` refuses a POST-gym-1 catch
+above `DEX_CATCH_MAX_EXPECTED_THROWS` (10, a stated judgment) and names the estimate; pre-gym-1 is untouched; unknown ⇒
+no effect. Arm `POKEBOT_DEXCATCH_FAULT_NORATE`. (2) `dex_fence_log_line` logs each (species, reason) once per run,
+naming the species; "already owned" and trainer battles never.
+**PROOF.** Gate `probe_dexcatch_rate.py` (R1-R6, four built-in fault arms); `probe_dex_catch_fence.py` still 20/20.
+**LIVE (observe-only, the REAL adapter on real fixtures):** on `fortree_gym_wedge.ss1` an Absol (rate 30) is refused at
+"~23 expected throws" — the formula predicts the measured 23 — while Zangoose / Linoone (90) and Wingull (190) are
+caught and an owned control is refused without a line (`evidence/2026-09-26-dexcatch-rate-live.txt`).
+**Adversarial review:** KICK-BACK (the estimate ignored the user's `catch_balls.yml` allowlist — a held-but-disallowed Ultra Ball would have made a rate-45 catch read 8 throws while the thrower threw Poké Balls at 16; and the docs were not yet written) → fixed (the adapter applies the thrower's own filter; a gate case + fault arm) → the re-review independently re-ran both gates, recomputed the suite counts and confirmed both blockers fixed, and ESCALATED one doc lag (the branch's own `03` copy still said "still to build" until main's edit merged in) — applied to both copies.
+Suite 100 (96 enforcing + 4 advisory; `--quick` 88).
+
+## 2026-09-26 (night) — THE DOC-CONSISTENCY GATE WAS BLIND TO A THREE-DIGIT SUITE; FIXED AT 100 GATES (`audit_doc_consistency.py`)
+
+**WHY.** Registering the 100th gate made `audit_doc_consistency.py` read "96" out of "100 entries = 96 ENFORCING" (a false
+alarm) — and its own `--self-test` then failed 10 cases: every count pattern was `\d{1,2}`, so every stale THREE-digit
+count would have passed unseen from now on. **WHAT.** The command-comment and prose count patterns take `\d{1,3}`; the
+trailing word boundary (not the width) is what keeps a timing like `~130s` out, and D1g still pins that. New self-test
+cases D2g/D2h use a literal 3-digit count. **PROOF.** `--self-test` 0 deviations; the audit exits 0 on the branch.

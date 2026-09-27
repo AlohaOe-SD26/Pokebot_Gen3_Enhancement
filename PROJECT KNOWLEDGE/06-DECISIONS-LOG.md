@@ -7485,3 +7485,20 @@ FIRST against the wall (the ruled key's defensive term), but a long fight cycles
 teach (never misdirect one), so it errs toward "no plan"; the positive case (a best-resisting recipient taught, then SEEN
 using the move vs the wall) is for the batch. **REOPEN IF** `[GYM_TM]` shows `taught` but no `[TURN] UseMove:<move> … vs <wall>` in
 the same run (the reach predictor is wrong), or `deals only` refusals dominate on teams that go on to lose (MIN_SHARE).
+
+## 2026-09-26 — RULING 20 PHASE 0: DO NOT START A POKÉDEX CATCH EXPECTED TO COST MORE THAN 10 BALLS
+
+**CHOSEN.** The fence estimates the expected balls with Gen 3's exact integer arithmetic at FULL HP (the catch strategy
+never damages, so this is an upper bound) and the best ordinary ball held, and refuses a post-gym-1 catch above 10.
+**SIMPLIFICATIONS, STATED (all bias toward REFUSING, the safe side):** full HP and no status (the catch strategy may
+add a status when its odds are low — x1.5/x2); every special ball (Net, Dive, Nest, Repeat, Timer, Luxury, Premier)
+counted as a Poké Ball although the thrower gives Net/Dive/Repeat/Timer their conditional bonus (a Net Ball on a
+Water/Bug target is x3). The ball is the best one the THROWER may use (held, not Master, in `catch_balls.yml`).
+**WHY 10.** A JUDGEMENT, not a measurement: the one 30-ball Rustboro purchase then covers ~3 hard catches before the
+ball reserve (10) bites; with Poké Balls it refuses catch rate ≤ 60 (Absol 23, rate-45 species 16, rate-60 12.4) and
+admits rate ≥ 75 (9.4); with a Great Ball it refuses rate 45 (10.8) and admits rate 60 (8.1). Most early Hoenn wilds
+are rate 120-255; the refused ones are the Sableye / Mawile / Absol / Bagon / Pelipper / Lunatone class. Every refusal logs its estimate, so a batch can
+re-derive the number. **REJECTED:** a per-species blacklist (not organic, drifts), throwing until the reserve (the dex
+bail already bounds that; this stops the start). **REOPEN IF** the batch's DEXFENCE lines show most post-gym-1 new
+species refused on the estimate, refusals of species a human would call easy, or discretionary catches still draining
+the reserve (then the threshold, the simplifications, or Phase 1's ball restock is wrong).

@@ -1641,6 +1641,71 @@ DEX_CATCH_BALL_RESERVE = 10
 #: draining the ball pool, which is precisely the resource the mandatory hunts share. 2 is one retry.
 DEX_CATCH_MAX_ATTEMPTS = 2
 
+#: USER RULING 20 Phase 0 (2026-09-26): a post-gym-1 Pokédex catch is not STARTED when a full-HP throw with our best
+#: ball is expected to take more than this many balls. ⚠ A JUDGEMENT, not a measurement — sized so the 30-ball Rustboro
+#: purchase covers ~3 hard catches, and logged per refusal so a batch can re-derive it. MEASURED motivation: one Absol
+#: (catch rate 30) took 23 balls; this formula predicts ~25 for it.
+DEX_CATCH_MAX_EXPECTED_THROWS = 10
+
+#: `sBallCatchBonuses` (`src/battle_script_commands.c:841`): the multiplier each ordinary ball applies, x10.
+_BALL_BONUS_X10 = {"Ultra Ball": 20, "Great Ball": 15, "Poké Ball": 10, "Safari Ball": 15}
+
+
+def dex_fence_log_line(logged: set, dex, name: str, catch: bool, reason: str) -> "str | None":
+    """PURE (mutates only `logged`). The DEXFENCE line for this verdict, or None: each (species, reason) once per run;
+    "already owned" and trainer battles are never logged (a route full of owned mons must not spam the log)."""
+    if (dex, reason) in logged:
+        return None
+    logged.add((dex, reason))
+    if reason.endswith("already owned") or reason == "trainer battle":
+        return None
+    return f"{'CATCH' if catch else 'skip'} #{dex} {name} — {reason}"
+
+
+def _expected_throws_for(species, bag, allowed=None) -> "float | None":
+    """ADAPTER for `dex_catch_expected_throws`: the species' catch rate and the best ball the THROWER may use — held,
+    never the Master Ball, and in the user's `catch_balls.yml` allowlist (`modules.catch_balls.allowed_ball_names()`,
+    exactly the filter `CatchStrategy._get_best_poke_ball` applies; `allowed` is injectable for the gate). A special
+    ball counts as a Poké Ball (its bonus is conditional — conservative). None when unreadable or ball-less — the fence
+    then ignores it (the ball reserve check already refuses an empty bag).
+    ⛔ The first version skipped the allowlist: a held-but-disallowed Ultra Ball made a rate-45 catch read 8.1 throws
+    (admitted) while the thrower, barred from it, would throw Poké Balls at 16 (adversarial review, 2026-09-26)."""
+    try:
+        if allowed is None:
+            try:
+                from modules.catch_balls import allowed_ball_names
+
+                allowed = allowed_ball_names()
+            except Exception:  # noqa: BLE001 - the thrower's own fallback: every ball except the Master Ball
+                allowed = None
+        best = max((_BALL_BONUS_X10.get(slot.item.name, 10) for slot in bag.poke_balls
+                    if slot.quantity > 0 and slot.item.name != "Master Ball"
+                    and (allowed is None or slot.item.name in allowed)), default=None)
+        if best is None or species is None:
+            return None
+        return dex_catch_expected_throws(int(species.catch_rate), best)
+    except Exception:  # noqa: BLE001 - unknown ⇒ None ⇒ the fence ignores it (never a silent refusal)
+        return None
+
+
+def dex_catch_expected_throws(catch_rate: int, ball_bonus_x10: int) -> float:
+    """PURE. Expected balls to catch a FULL-HP, status-free target — Gen 3's own arithmetic, integer steps included
+    (`Cmd_handleballthrow`, `src/battle_script_commands.c`): `odds = (rate * bonus / 10) * (3*maxHP - 2*HP) /
+    (3*maxHP)` (at full HP: `/ 3`); `odds > 254` ⇒ certain; else `b = 1048560 / Sqrt(Sqrt(16711680 / odds))` and all
+    four shake checks `Random() < b` must pass, so p = (b / 65536)^4 and the expectation is 1 / p.
+    ⚠ An UPPER bound for this bot: the catch strategy never damages, but may add a status (x1.5 / x2), which only
+    lowers it. `odds == 0` (a rate so low the integer steps reach 0) returns infinity — never caught."""
+    from math import isqrt
+
+    odds = (catch_rate * ball_bonus_x10 // 10) // 3
+    if odds > 254:
+        return 1.0
+    if odds <= 0:
+        return float("inf")
+    b = 1048560 // isqrt(isqrt(16711680 // odds))
+    p = min(1.0, (b / 65536) ** 4)
+    return 1.0 / p if p > 0 else float("inf")
+
 #: Gen 3's party size. Named rather than inlined as `6` because this file already carries FOUR
 #: separate hand-written `< 6` party tests and the fence's whole correctness rests on meaning the
 #: same thing they do.
@@ -1738,6 +1803,7 @@ def decide_dex_catch(
     owned_dex: "frozenset[int]",
     party_dex: "frozenset[int]",
     attempts: int,
+    expected_throws: "float | None" = None,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1844,6 +1910,16 @@ def decide_dex_catch(
         return False, "party is not at full strength"
     if attempts >= DEX_CATCH_MAX_ATTEMPTS:
         return False, f"already attempted #{species_dex} {attempts}x this run"
+    # USER RULING 20 Phase 0: do not START a catch the balls cannot afford. POST-gym-1 only — the pre-gym-1 branch
+    # above returned already and stays byte-identical (`#24-partycap`). None = unknown ⇒ no effect (never a silent
+    # refusal on a read failure). The skip-the-fix arm `POKEBOT_DEXCATCH_FAULT_NORATE` restores the old behaviour.
+    import os as _os_rate  # ⛔ LOCAL: this module has no module-level `os`; a bare `os` here was a NameError that
+    #                         the adapter's `except` would have filed as "fence errored" (caught before it shipped).
+
+    if (expected_throws is not None and expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS
+            and _os_rate.environ.get("POKEBOT_DEXCATCH_FAULT_NORATE") != "1"):
+        return False, (f"#{species_dex}: ~{expected_throws:.0f} expected throws at full HP with our best ball — above "
+                       f"{DEX_CATCH_MAX_EXPECTED_THROWS}")
     return True, f"dex catch #{species_dex} (goes to the PC box)"
 
 
@@ -2098,8 +2174,12 @@ class StoryMode(BotMode):
         # in this codebase remembers — without this dict the fence's only stopping condition is
         # draining the ball pool the MANDATORY hunts share.
         self._dex_catch_attempts: dict[int, int] = {}
-        #: Last fence verdict string, so the log reports a CHANGE rather than every encounter.
+        #: Last fence verdict string (kept for readers of the adapter's last answer).
         self._dex_catch_last_reason = ""
+        #: USER RULING 20 Phase 0 (2026-09-26): (species dex, reason) pairs already LOGGED this run. The log used to
+        #: report only when the reason CHANGED — one global string, so a batch could count TRANSITIONS, not species.
+        #: Now every species' verdict is logged once per distinct reason per run: countable per species.
+        self._dex_catch_logged: set = set()
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
@@ -2267,6 +2347,7 @@ class StoryMode(BotMode):
         invented `counter_hunt.hunt_active()` fail silently forever. It now SAYS so.
         """
         reason = "unevaluated"
+        dex, species = None, None
         try:
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
@@ -2313,18 +2394,23 @@ class StoryMode(BotMode):
                 owned_dex=frozenset(s.national_dex_number for s in get_pokedex().owned_species),
                 party_dex=frozenset(p.species.national_dex_number for p in battlers),
                 attempts=self._dex_catch_attempts.get(dex, 0),
+                expected_throws=_expected_throws_for(species, bag),
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
             reason = f"fence errored ({type(error).__name__}: {error})"
             catch = False
 
-        # Report only when the answer CHANGES for this species, so a route full of owned mons does
-        # not spam the log while a genuine refusal is still visible exactly once.
-        if self._dex_catch_last_reason != reason:
-            self._dex_catch_last_reason = reason
-            if not (reason.endswith("already owned") or reason == "trainer battle"):
-                _log_story_event(f"{'CATCH' if catch else 'skip'} — {reason}", "DEXFENCE")
+        # Report each SPECIES' verdict once per distinct reason per run (RULING 20 Phase 0) — countable per species,
+        # while a route full of owned mons still does not spam the log. `getattr` so a stand-in instance without the
+        # per-run reset cannot turn a log line into a crash in the battle hook.
+        self._dex_catch_last_reason = reason
+        logged = getattr(self, "_dex_catch_logged", None)
+        if logged is None:
+            logged = self._dex_catch_logged = set()
+        line = dex_fence_log_line(logged, dex, getattr(species, "name", "?"), catch, reason)
+        if line:
+            _log_story_event(line, "DEXFENCE")
         return catch
 
     # ------------------------------------------------------------------

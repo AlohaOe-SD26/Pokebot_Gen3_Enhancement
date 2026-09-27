@@ -1,0 +1,45 @@
+Running mGBA 0.10.2
+
+--- post_winona.ss1 ---
+  party 6: ['Mightyena', 'Sceptile', 'Swellow', 'Skitty', 'Zigzagoon', 'Castform']  balls: [('Poké Ball', 16), ('Premier Ball', 1)]
+  Absol     rate=30  expected=22.9   catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #359 Absol — party is not at full strength
+  Zangoose  rate=90  expected=8.1    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #335 Zangoose — party is not at full strength
+  Linoone   rate=90  expected=8.1    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #264 Linoone — party is not at full strength
+  Wingull   rate=190 expected=3.6    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #278 Wingull — party is not at full strength
+  CONTROL Treecko   rate=45  expected=16.0   catch=False reason='#252 already owned'
+           logged: (no line)
+
+--- post_mtpyre.ss1 ---
+  party 6: ['Mightyena', 'Sceptile', 'Swellow', 'Skitty', 'Zigzagoon', 'Castform']  balls: [('Poké Ball', 16), ('Premier Ball', 1)]
+  Absol     rate=30  expected=22.9   catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #359 Absol — party is not at full strength
+  Zangoose  rate=90  expected=8.1    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #335 Zangoose — party is not at full strength
+  Linoone   rate=90  expected=8.1    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #264 Linoone — party is not at full strength
+  Wingull   rate=190 expected=3.6    catch=False reason='party is not at full strength'
+           logged: [DEXFENCE] skip #278 Wingull — party is not at full strength
+  CONTROL Treecko   rate=45  expected=16.0   catch=False reason='#252 already owned'
+           logged: (no line)
+
+--- fortree_gym_wedge.ss1 ---
+  party 6: ['Mightyena', 'Sceptile', 'Swellow', 'Skitty', 'Zigzagoon', 'Castform']  balls: [('Poké Ball', 16), ('Premier Ball', 1)]
+  Absol     rate=30  expected=22.9   catch=False reason='#359: ~23 expected throws at full HP with our best ball — above 10'
+           logged: [DEXFENCE] skip #359 Absol — #359: ~23 expected throws at full HP with our best ball — above 10
+  Zangoose  rate=90  expected=8.1    catch=True  reason='dex catch #335 (goes to the PC box)'
+           logged: [DEXFENCE] CATCH #335 Zangoose — dex catch #335 (goes to the PC box)
+  Linoone   rate=90  expected=8.1    catch=True  reason='dex catch #264 (goes to the PC box)'
+           logged: [DEXFENCE] CATCH #264 Linoone — dex catch #264 (goes to the PC box)
+  Wingull   rate=190 expected=3.6    catch=True  reason='dex catch #278 (goes to the PC box)'
+           logged: [DEXFENCE] CATCH #278 Wingull — dex catch #278 (goes to the PC box)
+  CONTROL Treecko   rate=45  expected=16.0   catch=False reason='#252 already owned'
+           logged: (no line)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\gymtmprobe\states\2026-09-26_
+20-43-45.ss1 created!
+Updated `current_state.ss1`!

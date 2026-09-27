@@ -22300,3 +22300,25 @@ planner reaches only two tiles, with or without the teach.
 before and after, with a positive control".
 **Prevention rule:** ⛔ **Take the continue probe BEFORE the act as well as after.** A target that is NO-PATH before the act
 cannot discriminate anything after it.
+
+## 2026-09-26 — ⛔ WITHIN THE HOUR, THE SAME CLASS AGAIN: A BARE `os` WHERE A BROAD `except` WOULD HAVE HIDDEN IT
+
+**Symptom (caught before shipping):** the catch-rate refusal read `os.environ` inside `decide_dex_catch`; `story_mode.py`
+has NO module-level `os` (its siblings import it locally as `_os_bail`). Any refusal above the threshold would have
+raised `NameError`, the adapter's `except` would have filed it as "fence errored", and the catch would still have been
+refused — so the behaviour would even have LOOKED right while the reason lied.
+**Root cause:** copying a pattern (`os.environ.get(arm)`) without its import, in a file whose convention differs.
+**Fix:** a local `import os as _os_rate`; the gate calls the pure fence DIRECTLY with a value above the threshold and
+checks the REASON text — which the adapter's `except` cannot mask.
+**Prevention rule:** ⛔ **Test the pure function directly, and assert the REASON, not only the verdict** — a swallowed
+error can produce the right verdict for the wrong reason.
+
+## 2026-09-26 — ⛔ A GATE WITH A HIDDEN CEILING: THE DOC AUDIT COULD NOT READ A NUMBER ABOVE 99
+
+**Symptom:** at the 100th gate, `audit_doc_consistency.py` flagged "100 entries = 96 ENFORCING" as a claim of 96, and its
+self-test failed 10 cases — every stale count from then on would have been invisible.
+**Root cause:** `\d{1,2}` in every count pattern, justified by a comment ("keeps `~130s` out") that credited the width
+with work the trailing `` was doing. The ceiling was invisible until the quantity grew past it.
+**Fix:** `\d{1,3}`; self-tests with a literal 3-digit count.
+**Prevention rule:** ⛔ **A gate's pattern must not cap the size of the thing it counts** — and when a comment explains why a
+limit is safe, test the explanation (here, a D1g-style case already proved the boundary, not the width, did the work).

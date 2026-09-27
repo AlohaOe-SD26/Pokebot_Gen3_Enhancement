@@ -241,6 +241,9 @@ GATES: list[tuple[str, bool]] = [
     # the LEADER'S battles only; a recipient the ruled order actually fields; a duel estimate; the slot rule; a taught
     # move never switches off the counter ladder / honest stop. Six built-in fault arms.
     ("probe_gymtm_teach.py", False),
+    # ⛔ USER RULING 20 Phase 0 — a post-gym-1 Pokédex catch is not STARTED above ~10 expected throws (Gen 3's own catch
+    # arithmetic, from the decomp), and the fence logs each SPECIES' verdict once per reason. Four built-in fault arms.
+    ("probe_dexcatch_rate.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

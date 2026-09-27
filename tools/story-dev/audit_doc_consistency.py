@@ -220,8 +220,11 @@ _RUNGATES_INVOKE = re.compile(
 #: A comment-only continuation line — this file wraps long command comments onto them constantly.
 _COMMENT_ONLY_LINE = re.compile(r"^[ \t]*#")
 
-#: The count inside a comment. `\d{1,2}` keeps timings like `~130s` out of the capture.
-_COUNT_IN_COMMENT = re.compile(r"#[^\n]*?\b(?:all[ \t]+)?(\d{1,2})\b")
+#: The count inside a comment. ‼ `\d{1,3}` SINCE 2026-09-26: the suite reached 100 and `\d{1,2}` went BLIND — it
+#: skipped "100" and read the "96" beside it (a false alarm), while every stale 3-digit count passed unseen (10
+#: self-test deviations). The old comment credited `\d{1,2}` with keeping `~130s` out; it is the trailing `\b` that
+#: does that (no word boundary between "130" and "s"), so the width can grow safely — D1g still pins it.
+_COUNT_IN_COMMENT = re.compile(r"#[^\n]*?\b(?:all[ \t]+)?(\d{1,3})\b")
 
 
 def check_gate_count_in_commands(files: dict[str, str]) -> list[str]:
@@ -286,27 +289,29 @@ def check_gate_count_in_commands(files: dict[str, str]) -> list[str]:
 def check_gate_counts(files: dict[str, str]) -> list[str]:
     total, fast = real_gate_counts()
     # ‼‼ MARKDOWN EMPHASIS BETWEEN THE WORD AND THE NUMBER, ADDED 2026-08-17. `all **25** gates PASS`
-    # was invisible to `\ball\s+(\d{1,2})\s+gates?` because `**` sits between `all ` and the digits —
+    # was invisible to `\ball\s+(\d{1,3})\s+gates?` because `**` sits between `all ` and the digits —
     # and a Tier 2 cold-start audit found THREE such sites, one of them in the first paragraph of the
     # orientation block, in a file that four lines lower records "25" as an already-caught defect.
     # ⇒ Every number in this check now tolerates the `**`/`__` the docs bold their figures with.
     B = r"[*_]{0,2}"
+    # ‼ `\d{1,3}` SINCE 2026-09-26 (was `\d{1,2}`): at a 100-gate suite every claim below went blind — see
+    # `_COUNT_IN_COMMENT`. Self-tests D2g/D2h pin a 3-digit claim.
     claims = re.compile(
-        rf"{B}(\d{{1,2}}){B}\s*/\s*{B}(\d{{1,2}}){B}\s+gates?\b"
-        r"|\bsuite\s+is\s+now\s+(\d{1,2})\b"
+        rf"{B}(\d{{1,3}}){B}\s*/\s*{B}(\d{{1,3}}){B}\s+gates?\b"
+        r"|\bsuite\s+is\s+now\s+(\d{1,3})\b"
         # ‼ ADDED 2026-08-17 — THE SAME CLAIM-SHAPE BLIND SPOT THE DRIFT RULE HAD, in the check
         # right next to it. The rule above demands the word "now", so `the suite is 25 gates`
         # sailed straight through; a Tier 1 reviewer found it FOUR LINES above a correct
         # `26/26 gates PASS` in the same file. ⇒ A count claim does not need "now" to be a claim.
-        rf"|\bsuite\s+is\s+{B}(\d{{1,2}}){B}\s+gates?\b"
+        rf"|\bsuite\s+is\s+{B}(\d{{1,3}}){B}\s+gates?\b"
         # `it has said 17, 18 … on its way to **25**` — a claim about the CURRENT total dressed up
         # as a history. The trailing figure is the one actually being asserted, and it went stale
         # while the very same file carried a correct `26/26` 480 lines away.
-        r"|\bon its way to\s+\*{0,2}(\d{1,2})\b"
-        rf"|\bALL\s+{B}(\d{{1,2}}){B}\s+GATES\b"
-        rf"|\b{B}(\d{{1,2}}){B}[- ]gate\s+suite\b"
-        r"|STANDING\s+SUITE\s*[—-]+\s*(?:all\s+)?(\d{1,2})\s+gates?"
-        rf"|\ball\s+{B}(\d{{1,2}}){B}\s+gates?\s+PASS\b"
+        r"|\bon its way to\s+\*{0,2}(\d{1,3})\b"
+        rf"|\bALL\s+{B}(\d{{1,3}}){B}\s+GATES\b"
+        rf"|\b{B}(\d{{1,3}}){B}[- ]gate\s+suite\b"
+        r"|STANDING\s+SUITE\s*[—-]+\s*(?:all\s+)?(\d{1,3})\s+gates?"
+        rf"|\ball\s+{B}(\d{{1,3}}){B}\s+gates?\s+PASS\b"
         # ‼ ADDED 2026-08-22 — a SEVENTH phrasing, found by a Tier 1 reviewer, not by this gate.
         # `04-HANDOFF.md:51` read "**both must exit 0; the suite is 28 gates**" and stayed stale
         # while line 57 — SIX LINES BELOW IT — was correctly updated to 29 in the same commit. Every
@@ -314,8 +319,8 @@ def check_gate_counts(files: dict[str, str]) -> list[str]:
         # you change a count, the honest assumption is that this regex does not yet know your
         # sentence. *(Prior stale-phrasing incidents: a NOUN between subject and verb; digits
         # wrapped in markdown bold; "0 as of"; the word "zero" spelled out.)*
-        rf"|\bthe\s+suite\s+is\s+{B}(\d{{1,2}}){B}\s+gates?\b", re.I)
-    fastc = re.compile(r"\bthe\s+(\d{1,2})\s+needing\s+no\s+ROM\b", re.I)
+        rf"|\bthe\s+suite\s+is\s+{B}(\d{{1,3}}){B}\s+gates?\b", re.I)
+    fastc = re.compile(r"\bthe\s+(\d{1,3})\s+needing\s+no\s+ROM\b", re.I)
     gated = re.compile(r"(?:gated\s+by|GATED\s+as|new\s+gate)\s+`?([a-z0-9_]+\.py)`?", re.I)
     out = []
     for name, text in files.items():
@@ -1233,6 +1238,15 @@ def self_test() -> int:
     total, fast = real_gate_counts()
     expect("D1 wrong gate count", check_gate_counts({"T": f"the {total + 1}-gate suite\n"}), True)
     expect("D2 right gate count", check_gate_counts({"T": f"the {total}-gate suite\n"}), False)
+    # D2g/D2h — ‼ A THREE-DIGIT COUNT (added 2026-09-26, when the suite reached 100 and `\d{1,2}` went blind). Literal
+    # numbers, so this stays a 3-digit test whatever the live total is: a wrong one must fire, and the command check
+    # must read the whole number rather than the two-digit figure next to it.
+    _wrong3 = 999 if total != 999 else 998
+    expect("D2g a stale THREE-digit count fires (prose)",
+           check_gate_counts({"T": f"the {_wrong3}-gate suite\n"}), True)
+    expect("D2h a stale THREE-digit count fires (command comment) — not the 2-digit figure beside it",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py   # THE STANDING SUITE — {_wrong3} entries = {total} ENFORCING\n"}), True)
     # D1b-D1e: the COMMAND-COMMENT check. Both real 2026-08-14 shapes, plus the two controls that
     # keep it from becoming noise — a correct count, and a bare mention with no invocation.
     expect("D1b stale command count (comma form, no 'gates' word)",
