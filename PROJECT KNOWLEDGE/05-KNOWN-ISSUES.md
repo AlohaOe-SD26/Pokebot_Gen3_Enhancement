@@ -2906,7 +2906,7 @@ right — `get_party_size`'s own docstring says capacity questions belong to
 Re-pointing the consumer is that project's job; doing it here would have widened the blast radius of
 a change to a SHARED path (the counter hunt withdraws through this code).
 
-## KI-103 — ⚠ OPEN (the one known case is WORKED AROUND on branch `wt/ch24organic`): the planner blocks the ROM TEMPLATE tile of an out-of-view object even when a script has PERMANENTLY moved it — here, Sootopolis's only bridge west (2026-09-26, MEASURED)
+## KI-103 — ⚠ OPEN (the one known case is WORKED AROUND — merged to `main` 2026-09-27): the planner blocks the ROM TEMPLATE tile of an out-of-view object even when a script has PERMANENTLY moved it — here, Sootopolis's only bridge west (2026-09-26, MEASURED)
 
 **What.** `calculate_path` (`map_path.py:806-852`) treats the TEMPLATE tile of any object it cannot currently see as a
 wall, and `get_map_objects()` is a camera window (`KI-77`). `KI-77` calls that rule fail-safe because a pushed boulder
@@ -2917,14 +2917,14 @@ PERMANENT for as long as the object is out of view.
 `setobjectxyperm LOCALID_SOOTOPOLIS_STEVEN, 29, 33`; Steven's ROM template is **(20,36), on the only land bridge
 west**. From (31,34) he is in view ⇒ PC side → Mart OK (23 steps). From the PC front (43,32) ⇒ NO PATH; from the Mart
 side back east ⇒ NO PATH (`BLOCKED`) — which stranded a drive after it had bought everything. Evidence:
-`tools/story-dev/evidence/2026-09-26-earlybasket-{E1-FAILED-NOPATH,E1b-STRANDED,E1c-BUY}.txt` (on the branch until the merge).
-**Workaround shipped (branch):** `league_reserve.py` plans BOTH legs from (31,34) and walks back along the stored path;
+`tools/story-dev/evidence/2026-09-26-earlybasket-{E1-FAILED-NOPATH,E1b-STRANDED,E1c-BUY}.txt`.
+**Workaround shipped (merged to `main` 2026-09-27):** `league_reserve.py` plans BOTH legs from (31,34) and walks back along the stored path;
 gate `probe_league_reserve.py` R7.
 **Real fix — NOT BUILT (a shared-path change; needs an A/B on ordinary navigation):** read object positions from the
 RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide
 the same latent over-block; Sootopolis's own script moves several (`:57-60`, `:104-117`).
 
-## KI-104 — ✅ FIXED ON BRANCH `wt/ch24organic` (2026-09-26 night), A/B-PROVEN: the production HM teach's "weakest raw power" slot rule deleted a mon's ONLY non-HM move of a type — the "hard caps with an HM at replace_slot" half of the first filing was a MISREADING, split out as KI-105
+## KI-104 — ✅ FIXED (2026-09-26 night; merged to `main` 2026-09-27), A/B-PROVEN: the production HM teach's "weakest raw power" slot rule deleted a mon's ONLY non-HM move of a type — the "hard caps with an HM at replace_slot" half of the first filing was a MISREADING, split out as KI-105
 
 **What (re-verified by a 3-agent recon of the day's batch logs, and seen LIVE in a drive):** `early_game.teach_hm_move`
 with `replace_slot=None` skips HM slots, then takes an empty slot, a 0-power move, else the LOWEST raw `base_power` — no
@@ -2944,9 +2944,9 @@ this very case); HM slots excluded FIRST; type protection as SOFT tiers, never a
 assuming any non-HM slot is spendable); the INCOMING HM counts as a dominator (Surf dominates Muddy Water); an HM must
 never make a non-HM move of its type expendable (counting Rock Smash as Fighting coverage re-creates this bug); special-
 case power-1 and multi-hit moves. Gate rows from the live shapes; then a driven A/B.
-✅ **FIXED on the branch (2026-09-26 night):** `early_game.choose_hm_slot` — TOTAL (0-3 whenever a non-HM slot exists; ValueError only for all-HM, which the caller already refuses before the bag), tiers status > banned > strictly dominated by a kept move or the incoming HM > weakest non-STAB > STAB, effective power for multi-hit and power-1 moves; an explicit HM `replace_slot` is refused before the bag. Gate `probe_hmslot_rule.py` (the live shapes, 500 seeded movesets, three fault arms). A/B on `norman_done.ss1` (Strength onto Blaziken): old rule → Double Kick lost; new → Scratch lost (dominated by Strength). Merges with the branch.
+✅ **FIXED (2026-09-26 night; merged to `main` 2026-09-27):** `early_game.choose_hm_slot` — TOTAL (0-3 whenever a non-HM slot exists; ValueError only for all-HM, which the caller already refuses before the bag), tiers status > banned > strictly dominated by a kept move or the incoming HM > weakest non-STAB > STAB, effective power for multi-hit and power-1 moves; an explicit HM `replace_slot` is refused before the bag. Gate `probe_hmslot_rule.py` (the live shapes, 500 seeded movesets, three fault arms). A/B on `norman_done.ss1` (Strength onto Blaziken): old rule → Double Kick lost; new → Scratch lost (dominated by Strength). Merges with the branch.
 
-## KI-105 — ✅ FIXED ON BRANCH `wt/ch24organic` (2026-09-26 night), A/B-PROVEN: the HM teach used the WRONG HM — the game SORTS the TM/HM pocket when the bag opens, and the upstream scroll counted the unsorted order (`#26-hmwrongitem`)
+## KI-105 — ✅ FIXED (2026-09-26 night; merged to `main` 2026-09-27), A/B-PROVEN: the HM teach used the WRONG HM — the game SORTS the TM/HM pocket when the bag opens, and the upstream scroll counted the unsorted order (`#26-hmwrongitem`)
 
 **What:** 9 of 87 live HM teaches taught **HM06 Rock Smash** to a Surf/Waterfall target — a permanent, unforgettable slot,
 a 9,000-frame hard cap and a derail each (`Teach flow finished but Marshtomp does not know Surf`, 7 runs); the retry then
@@ -2955,5 +2955,25 @@ the pocket AS STORED; right after an HM is received that pocket is unsorted, and
 **Proof (a pinned fixture whose stored pocket is unsorted):** `norman_done.ss1`, HM04: the old scroll landed on HM03 —
 nothing learned; the fix printed `upstream left the cursor on slot 6 (HM03); correcting to slot 7 (HM04)` and taught
 Strength. The fix is the verified scroll the Ice Beam teach already used (`scroll_to_tm_verified`); a refusal closes the
-bag and re-raises. **Remaining:** merges with the branch; the batch after the merge should show 0 `does not know Surf`
-derails from this cause.
+bag and re-raises. **Remaining:** (merged 2026-09-27) the next batch should show 0 `does not know Surf`
+derails from this cause. The parked batch (which ran the OLD code) had 18 such derails in 16 runs (Surf 15, Waterfall 3; none ended a run).
+HM07 goes through the same `teach_hm_move` (`victory_road.py:1063`), so Waterfall is covered by construction — read from the code, not measured.
+
+## KI-106 — ⚠ OPEN (n = 1, mechanism UNVERIFIED): after a Victory Road whiteout the §Ch23 re-entry wedged INSIDE the south Ever Grande Poké Center — every step failed `ensure_facing_direction: could not face Down after 1801 pressing frames` (2026-09-27, batch `#26-batch0926`, run P1r8; `#27-evgpcwedge`)
+
+**What (read directly in the committed excerpt `tools/story-dev/evidence/2026-09-27-batch0926-P1r8-evgpcwedge.txt`):**
+during §Ch23 training in Victory Road, Azumarill L47 at 3/177 HP used Double-Edge on a wild Roselia L45; the battle ended
+`outcome=BattleOutcome.Draw` (f6034799) and the party whited out — `WHITEOUT recovery #1 at (0, 8)` (f6034957), then
+`EVER GRANDE CITY(0,8) -> EVER GRANDE CITY(16,12)`, the south Poké Center; the park report (a NOTE) found it the batch's
+only whiteout there. The bot then stood at (7, 4) facing Up until f6108988 (≈74k frames). All five derails fail with the
+facing error: #1 aims at `(9, 15) on VICTORY_ROAD_1F`, #2–#5 at leg 4's `(101, 26) on ROUTE128`. All 25 dumps there show
+`held_buttons=['B', 'Up']`, `controllable=True`, `scripts=[]`, a stale message `Encountered Makuhita`, and
+`controllers=['StoryEndlessResetMode.run']`.
+**Hypothesis (UNVERIFIED):** an input held across the whiteout warp. Per the park report, `held_buttons=['B','Up']` is in
+26 of 22,693 run dumps in the batch — 25 here, 1 in P1r9.
+**Not covered by any merged fix:** the §Ch23 leg-5 re-entry fix (`377c9c1a`) is scoped to the League plateau on purpose,
+and its commit says a south-Center whiteout must still fire leg 5 — here leg 5 fired and could not leave the building.
+**Source log (gitignored):** `sandbox-pokebot/profiles/endless-P1-torchic/debug-logs/Old/P1-Story_(ENDLESS_RESET)-debug-20260926-212850.log`
+from line 34060 to its end; P1 stdout L1059285–L1059497.
+**Next (`#27-evgpcwedge`):** reproduce with a driver before fixing — a correctness question — and log the held buttons the
+facing code actually acts on.

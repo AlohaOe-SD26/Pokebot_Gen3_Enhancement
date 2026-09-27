@@ -3,7 +3,7 @@
 > ⚠ **AI RESEARCH NOTE — NOT A SOURCE OF TRUTH.** Four read-only Claude agents over the LIVE batch's logs (the batch was
 > still running; counts are a ~22:00 snapshot), the code on `main` (the build the batch runs) and the decomp. Nothing was
 > driven; every mechanism below is a hypothesis until a drive reproduces it. The interim read is
-> `2026-09-26-batch0926-INTERIM.md`; the final park numbers supersede this.
+> `2026-09-26-batch0926-INTERIM.md`; the final park numbers supersede this — `2026-09-26-batch0926-FINAL.md`, which reproduces this note's 27 runs exactly and corrects two of its claims (the hard-plateau split is 6 of 14 boss stops; the build header).
 
 ## THE FUNNEL (for the park report)
 

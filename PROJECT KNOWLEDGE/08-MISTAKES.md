@@ -22369,3 +22369,30 @@ exercised against a known answer.
 **Prevention rule:** ⛔ **Before the first graded drive, run a new driver's grading code once against a state whose answer
 you KNOW** (e.g. `_where()` on the fixture itself, the continue probe from the start tile). A grade is code; untested code
 fails where it is least convenient — on the evidence.
+
+## 2026-09-27 — ⛔ TWO BATCH INSTRUMENTS MISREPORT THE BATCH: THE LOG'S `build:` HEADER, AND THE ANALYZER'S LOBBY COUNT
+
+**Symptom:**
+- The ~22:00 snapshot of `#26-batch0926` said `1a31c3e427ad` is in the "run header of every debug log". The parked
+  batch's logs carry **15 different** `build:` hashes.
+- `analyze_endless_batch.py` said 12 runs reached the League lobby. **15** did: every run that reached §Ch23 leg 11 had
+  loaded it.
+
+**Root cause:**
+- (1) The `build:` header records the checkout's HEAD when each log OPENS. During a batch, docs commits keep moving HEAD,
+  so the header drifts while the code does not. The CODE that ran is settled by
+  `git diff <first-hash> <last-hash> -- sandbox-pokebot`, which was EMPTY here.
+- (2) The analyzer needs `MIN_ID_SIGHTINGS = 2` sightings of a map before it counts one. A run that loads the lobby once
+  and then wedges there, with a STUCK dump but no heartbeat, is ranked one milestone lower.
+
+**Fix:** the final report (`ai-research-notes/2026-09-26-batch0926-FINAL.md`) did two things:
+- It settled which code ran by the sandbox tree diff and `git merge-base --is-ancestor` on every fix commit.
+- It counted lobby reach from the raw `[MAP] … -> EVER GRANDE CITY(16,10)` loads.
+
+Both corrections came from the adversarial reconciler, not from either counting agent.
+
+**Prevention rules:**
+- ⛔ **"Which build did a batch run?" is answered by the `sandbox-pokebot` tree diff across the logs' header hashes —
+  never by the header.**
+- ⛔ **A milestone count from the analyzer is a FLOOR.** When a milestone gates a conclusion, re-count it from the raw map
+  loads.

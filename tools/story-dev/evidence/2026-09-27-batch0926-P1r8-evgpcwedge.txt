@@ -1,0 +1,467 @@
+# 2026-09-27 — batch #26-batch0926, run P1r8: excerpt of
+#   sandbox-pokebot/profiles/endless-P1-torchic/debug-logs/Old/P1-Story_(ENDLESS_RESET)-debug-20260926-212850.log
+#   lines 34060-34522 (the log's end), copied verbatim for KI-106 / #27-evgpcwedge. Profile logs are gitignored.
+
+f6018172 [BATTLE] [TURN 12] Mightyena L50 61/145 [Sleep] -> UseMove:Take Down(pp18)  vs Delcatty L43 58/120
+f6018891 [BATTLE] [TURN 13] Mightyena L50 54/145 [Sleep] -> UseMove:Take Down(pp18)  vs Delcatty L43 58/120
+f6019201 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=VICTORY ROAD(24,43) pos=(3, 23) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp125521', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp83748'] owned=13 balls=7 msg='Encountered Hariyama ♂.\n\nNature:\xa0Adamant | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa0112 | SV:\xa09,542'
+f6019699 [BATTLE] [TURN 14] Mightyena L50 21/145 [Sleep] -> UseMove:Take Down(pp18)  vs Delcatty L43 58/120
+f6020974 [BATTLE] [TURN 15] Mightyena L50 7/145 -> UseMove:Take Down(pp17)  vs Roselia L44 105/105
+f6020993 [BATTLE] [TURN 15] Mightyena L50 7/145 -> UseMove:Take Down(pp17)  vs Roselia L44 105/105
+f6021575 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 4 metric=damage estimates_ok=7 estimates_failed=0 key=(0, 1.0, -16.0, -1.0, -29)
+f6021602 [PARTY] slot0 Swellow:L63 -> Mightyena:L50
+f6021602 [PARTY] slot1 Mightyena:L50 -> Blaziken:L47
+f6021602 [PARTY] slot2 Blaziken:L47 -> Swellow:L63
+f6021655 [BATTLE] [FAINT-CHOOSER] alive_slots=[3, 4, 5] on_field=[0] party=[(0, 'Mightyena', 0), (1, 'Blaziken', 0), (2, 'Swellow', 0), (3, 'Zigzagoon', 24), (4, 'Castform', 80), (5, 'Azumarill', 177)]
+f6021655 [BATTLE] [FAINT-CHOOSER] index spaces: alive_slots=[3, 4, 5](party-order) -> [1, 4, 5](menu-order) on_field=[0](party-order)  [orders DIVERGE]
+f6021672 [PARTY] slot0 Mightyena:L50 -> Castform:L29
+f6021672 [PARTY] slot4 Castform:L29 -> Mightyena:L50
+f6021694 [PARTY] slot0 Castform:L29 -> Swellow:L63
+f6021694 [PARTY] slot1 Blaziken:L47 -> Mightyena:L50
+f6021694 [PARTY] slot2 Swellow:L63 -> Blaziken:L47
+f6021694 [PARTY] slot4 Mightyena:L50 -> Castform:L29
+f6021695 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 4 metric=damage estimates_ok=7 estimates_failed=0 key=(0, 1.0, -16.0, -1.0, -29)
+f6021987 [BATTLE] [TURN 16] Castform L29 80/80 -> UseMove:Powder Snow(pp25)  vs Roselia L44 12/105
+f6022801 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=VICTORY ROAD(24,43) pos=(3, 23) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp83748'] owned=13 balls=7 msg='Encountered Hariyama ♂.\n\nNature:\xa0Adamant | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa0112 | SV:\xa09,542'
+f6022987 [BATTLE] [TURN 17] Castform L29 80/80 -> UseMove:Powder Snow(pp24)  vs Roselia L44 92/105
+f6023006 [BATTLE] [TURN 17] Castform L29 80/80 -> UseMove:Powder Snow(pp24)  vs Roselia L44 92/105
+f6024425 [BATTLE] [TURN 18] Castform L29 70/80 [LeechSeeded] -> UseMove:Powder Snow(pp23)  vs Roselia L44 70/105
+f6024444 [BATTLE] [TURN 18] Castform L29 70/80 [LeechSeeded] -> UseMove:Powder Snow(pp23)  vs Roselia L44 70/105
+f6025971 [BATTLE] [TURN 19] Castform L29 1/80 [LeechSeeded] -> UseMove:Powder Snow(pp22)  vs Roselia L44 96/105
+f6025990 [BATTLE] [TURN 19] Castform L29 1/80 [LeechSeeded] -> UseMove:Powder Snow(pp22)  vs Roselia L44 96/105
+f6026401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=VICTORY ROAD(24,43) pos=(3, 23) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp83748'] owned=13 balls=7 msg='Encountered Hariyama ♂.\n\nNature:\xa0Adamant | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa0112 | SV:\xa09,542'
+f6026615 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 3 metric=damage estimates_ok=6 estimates_failed=0 key=(0, 1.0, -4.0, -1.0, -8)
+f6026642 [PARTY] slot0 Swellow:L63 -> Castform:L29
+f6026642 [PARTY] slot1 Mightyena:L50 -> Blaziken:L47
+f6026642 [PARTY] slot2 Blaziken:L47 -> Swellow:L63
+f6026642 [PARTY] slot4 Castform:L29 -> Mightyena:L50
+f6026695 [BATTLE] [FAINT-CHOOSER] alive_slots=[3, 5] on_field=[0] party=[(0, 'Castform', 0), (1, 'Blaziken', 0), (2, 'Swellow', 0), (3, 'Zigzagoon', 24), (4, 'Mightyena', 0), (5, 'Azumarill', 177)]
+f6026695 [BATTLE] [FAINT-CHOOSER] index spaces: alive_slots=[3, 5](party-order) -> [3, 5](menu-order) on_field=[0](party-order)  [orders agree]
+f6026704 [PARTY] slot0 Castform:L29 -> Zigzagoon:L8
+f6026704 [PARTY] slot3 Zigzagoon:L8 -> Castform:L29
+f6026726 [PARTY] slot0 Zigzagoon:L8 -> Swellow:L63
+f6026726 [PARTY] slot1 Blaziken:L47 -> Mightyena:L50
+f6026726 [PARTY] slot2 Swellow:L63 -> Blaziken:L47
+f6026726 [PARTY] slot3 Castform:L29 -> Zigzagoon:L8
+f6026726 [PARTY] slot4 Mightyena:L50 -> Castform:L29
+f6026727 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 3 metric=damage estimates_ok=6 estimates_failed=0 key=(0, 1.0, -4.0, -1.0, -8)
+f6026942 [BATTLE] [TURN 20] Zigzagoon L8 24/24 -> UseMove:Tackle(pp35)  vs Roselia L44 97/105
+f6026961 [BATTLE] [TURN 20] Zigzagoon L8 24/24 -> UseMove:Tackle(pp35)  vs Roselia L44 97/105
+f6027453 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 5 metric=damage estimates_ok=4 estimates_failed=0 key=(0, 2.0, -115.0, -1.0, -47)
+f6027480 [PARTY] slot0 Swellow:L63 -> Zigzagoon:L8
+f6027480 [PARTY] slot1 Mightyena:L50 -> Blaziken:L47
+f6027480 [PARTY] slot2 Blaziken:L47 -> Swellow:L63
+f6027480 [PARTY] slot3 Zigzagoon:L8 -> Castform:L29
+f6027480 [PARTY] slot4 Castform:L29 -> Mightyena:L50
+f6027537 [BATTLE] [FAINT-CHOOSER] alive_slots=[5] on_field=[0] party=[(0, 'Zigzagoon', 0), (1, 'Blaziken', 0), (2, 'Swellow', 0), (3, 'Castform', 0), (4, 'Mightyena', 0), (5, 'Azumarill', 177)]
+f6027537 [BATTLE] [FAINT-CHOOSER] index spaces: alive_slots=[5](party-order) -> [5](menu-order) on_field=[0](party-order)  [orders agree]
+f6027546 [PARTY] slot0 Zigzagoon:L8 -> Azumarill:L47
+f6027546 [PARTY] slot5 Azumarill:L47 -> Zigzagoon:L8
+f6027568 [PARTY] slot0 Azumarill:L47 -> Swellow:L63
+f6027568 [PARTY] slot1 Blaziken:L47 -> Mightyena:L50
+f6027568 [PARTY] slot2 Swellow:L63 -> Blaziken:L47
+f6027568 [PARTY] slot3 Castform:L29 -> Zigzagoon:L8
+f6027568 [PARTY] slot4 Mightyena:L50 -> Castform:L29
+f6027568 [PARTY] slot5 Zigzagoon:L8 -> Azumarill:L47
+f6027569 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 5 metric=damage estimates_ok=4 estimates_failed=0 key=(0, 2.0, -115.0, -1.0, -47)
+f6027838 [BATTLE] [TURN 21] Azumarill L47 177/177 -> UseMove:Double-edge(pp15)  vs Roselia L44 97/105
+f6027857 [BATTLE] [TURN 21] Azumarill L47 177/177 -> UseMove:Double-edge(pp15)  vs Roselia L44 97/105
+f6029019 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47']
+f6029019 [RESUMED] after 371 frames with no progress
+f6029644 [BATTLE] started hp=[('Swellow', 0, 161), ('Mightyena', 0, 145), ('Blaziken', 0, 144), ('Zigzagoon', 0, 24), ('Castform', 0, 80), ('Azumarill', 145, 177)]
+f6029644 [DEXFENCE] skip — only 6 spare balls — below the dex reserve of 10
+f6029975 [STEP] 'Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6030001 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=VICTORY ROAD(24,43) pos=(2, 18) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85180'] owned=13 balls=7 msg='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6030210 [BATTLE] [TURN 0] Azumarill L47 145/177 -> UseMove:Double-edge(pp14)  vs Makuhita L36 102/102
+f6030572 [BATTLE] [TURN 1] Azumarill L47 137/177 -> UseMove:Double-edge(pp14)  vs Makuhita L36 102/102
+f6031406 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47']
+f6031873 [BATTLE] started hp=[('Swellow', 0, 161), ('Mightyena', 0, 145), ('Blaziken', 0, 144), ('Zigzagoon', 0, 24), ('Castform', 0, 80), ('Azumarill', 103, 177)]
+f6032558 [BATTLE] [TURN 0] Azumarill L47 103/177 -> UseMove:Double-edge(pp13)  vs Roselia L45 105/105
+f6033601 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=VICTORY ROAD(24,43) pos=(2, 15) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6033805 [BATTLE] [TURN 1] Azumarill L47 3/177 -> UseMove:Double-edge(pp12)  vs Roselia L45 36/105
+f6034799 [BATTLE] ended (outcome=BattleOutcome.Draw) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47']
+f6034799 [RESUMED] after 2925 frames with no progress
+f6034921 [MAP] VICTORY ROAD(24,43) -> EVER GRANDE CITY(0,8) pos=(2, 15)
+f6034923 [MAP] EVER GRANDE CITY(0,8) -> EVER GRANDE CITY(24,43) pos=(2, 15)
+f6034924 [MAP] EVER GRANDE CITY(24,43) -> EVER GRANDE CITY(0,8) pos=(27, 49)
+f6034957 [STORY] WHITEOUT recovery #1 at (0, 8) (moved on since the last whiteout — budget reset)
+f6035050 [MAP] EVER GRANDE CITY(0,8) -> EVER GRANDE CITY(16,12) pos=(27, 48)
+f6035465 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6037201 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6038465 ===== DUMP [STUCK — 3300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6040801 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6041465 ===== DUMP [STUCK — 6300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6044401 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+f6044465 ===== DUMP [STUCK — 9300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Encountered Makuhita ♀.\n\nNature:\xa0Careful | Ability:\xa0Thick Fat | Item:\xa0- | IV\xa0sum:\xa082 | SV:\xa023,314'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6046772 [STORY] DERAIL #1: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (9, 15) on MapRSE.VICTORY_ROAD_1F: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing  | attempt 2: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 3: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame
+f6047058 [STEP] 'Story: stepping out of the Poké Center after the whiteout…'
+f6047058 [RESUMED] after 11892 frames with no progress
+f6047358 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6048001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6050358 ===== DUMP [STUCK — 3300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6051601 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6053358 ===== DUMP [STUCK — 6300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6055201 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6056358 ===== DUMP [STUCK — 9300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6058801 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6059358 ===== DUMP [STUCK — 12300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6062326 [STORY] DERAIL #2: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 2: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 3: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame
+f6062358 ===== DUMP [STUCK — 15300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6062401 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6065358 ===== DUMP [STUCK — 18300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6066001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6068358 ===== DUMP [STUCK — 21300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6069601 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6071358 ===== DUMP [STUCK — 24300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6073201 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6074358 ===== DUMP [STUCK — 27300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6076801 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6077358 ===== DUMP [STUCK — 30300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6077880 [STORY] DERAIL #3: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 2: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 3: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame
+f6080358 ===== DUMP [STUCK — 33300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6080401 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6083358 ===== DUMP [STUCK — 36300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6084001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6086358 ===== DUMP [STUCK — 39300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6087601 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6089358 ===== DUMP [STUCK — 42300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6091201 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6092358 ===== DUMP [STUCK — 45300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6093434 [STORY] DERAIL #4: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 2: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 3: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame
+f6094801 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6095358 ===== DUMP [STUCK — 48300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6098358 ===== DUMP [STUCK — 51300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6098401 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6101358 ===== DUMP [STUCK — 54300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6102001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6104358 ===== DUMP [STUCK — 57300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6105601 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=EVER GRANDE CITY(16,12) pos=(7, 4) party=['Swellow:L63', 'Mightyena:L50', 'Blaziken:L47', 'Zigzagoon:L8', 'Castform:L29', 'Azumarill:L47'] ids=['Swellow#93B0E035:L63:exp253463', 'Mightyena#60E57F79:L50:exp126791', 'Blaziken#1CEDAAEE:L47:exp97655', 'Zigzagoon#6A15CB10:L8:exp658', 'Castform#9C0C1807:L29:exp25497', 'Azumarill#B6B1C7C1:L47:exp85627'] owned=13 balls=7 msg='Story: stepping out of the Poké Center after the whiteout…'
+f6107358 ===== DUMP [STUCK — 60300 frames no progress] =====
+    mode=Story (ENDLESS RESET)  message='Story: stepping out of the Poké Center after the whiteout…'
+    game_state=7  controllable=True
+    map=EVER GRANDE CITY(16,12)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_LocalBattleLostEnd
+    battle_text='P1 whited out!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L63 161/161', 'Mightyena L50 145/145', 'Blaziken L47 144/144', 'Zigzagoon L8 24/24', 'Castform L29 80/80', 'Azumarill L47 177/177']
+    held_buttons=['B', 'Up']
+    controllers=['StoryEndlessResetMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryEndlessResetMode.run  @ story_mode.py:5885
+      -> StoryEndlessResetMode._run_with_frame_budget  @ story_mode.py:5760
+f6108988 [STORY] DERAIL #5: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 2: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame | attempt 3: UnreachableDestinationError: Could not reach (101, 26) on MapRSE.ROUTE128: the field is idle and we are still at (7, 4), so retrying cannot change the result (ensure_facing_direction: could not face Down after 1801 pressing frame
+f6108988 [STORY] Story: training-relocation rule = xp_rate (default, ratio 2.0x)
+=== DEBUG LOG END ===

@@ -36018,3 +36018,29 @@ GRADE failed on the driver's own check (it compared map NAMES with `_where()`'s 
 predicted — fixed, re-run (W1b/W2b PASS).
 **Adversarial review:** KICK-BACK only for the docs (not yet applied at review time); it re-ran the ROM gate itself (PASS), confirmed from the W2b evidence that the Devon-goods scene cannot re-fire at this chapter and that no other code pairs the Woods with (26, 5) → docs applied → re-review **APPROVE** (the code re-verified: the ROM gate re-run PASS; it notes `04-HANDOFF.md` now sits at its 900-line budget).
 Suite 103 (99 enforcing + 4 advisory; `--quick` 90).
+
+## 2026-09-27 — THE BATCH IS PARKED, REPORTED, AND BRANCH `wt/ch24organic` IS MERGED TO `main` (`#26-batch0926`; KI-106 filed)
+
+**WHAT.** The user parked `#26-batch0926` at 2026-09-27 03:29:07, after ≈15.7 h on four lanes. `main` was then
+fast-forwarded to `8601bea4`: 59 commits, 13 sandbox files, clean. `run_gates.py` on the merge passed 102 of 103; the
+103rd, preflight, failed only because `main` was ahead of the remote and exits 0 after the push.
+**THE REPORT** (`ai-research-notes/2026-09-26-batch0926-FINAL.md`, a NOTE). Two read-only agents counted the batch
+independently, and a third re-counted every contested number and ruled on it.
+- 38 runs started, 34 ended (every one by five derails), 4 were in progress at the park.
+- Badges: 16 runs reached 8 badges.
+- 15 runs reached §Ch23 leg 11. 12 of them were **refused on money**, the #1 run-ender. The other 3 passed, and all 3 died
+  at the §Ch24 plateau walk-off.
+- **0 entered the Elite Four.**
+- ⚠ **Every run executed `1a31c3e4`'s sandbox code.** The logs' `build:` header drifts across 15 hashes, but only docs
+  changed between them. So none of the fixes merged today was measured.
+- The §Ch23 training per-call-ceiling refusal, which killed 30 runs of the 2026-09-15 corpus, appeared **0** times.
+- Two of the ~22:00 snapshot's claims are corrected:
+  - the hard-plateau split is 6 of 14 boss stops;
+  - P1r2's plateau print was at Tate & Liza, a gym it then beat.
+**NEW: KI-106 / `#27-evgpcwedge`** (n = 1, mechanism unverified). After a Victory Road whiteout, the §Ch23 re-entry
+wedged INSIDE the south Ever Grande Poké Center, with `held_buttons=['B', 'Up']` in all 25 dumps. The core lines were
+re-read directly and committed as `tools/story-dev/evidence/2026-09-27-batch0926-P1r8-evgpcwedge.txt`.
+**DOCS.** A status sweep of 03/04/05 changed every "on the branch / not yet on `main` / merge after the park" sentence
+to MERGED. `#26-batch0926` is marked done. The `#26-ch23money` head now carries the final money numbers, with a caveat:
+whiteout counts do NOT separate refusers from passers. START HERE's first action now points at the report, and the
+next batch is the user's call.
