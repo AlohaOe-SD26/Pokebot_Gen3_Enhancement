@@ -7651,3 +7651,36 @@ we would need it to enter the desert cave random event to get a fossil (randomly
 - The referent is probably Mirage Tower on Route 111 (Root Fossil or Claw Fossil). The mechanics are UNVERIFIED; recon
   against the decomp comes first.
 - ⛔ Do not re-ask the user what they meant: the intent is recorded here.
+
+## 2026-09-27 — ⭐ USER RULING 22: A DEDICATED SHEDINJA SEQUENCE — THE ONLY DUPLICATE-CATCH EXCEPTION BESIDES RARE/SHINY; and two RULING 20 design points settled from the log (not re-asked)
+
+**Asked because** the RULING 20 Phase 1 design (`ai-research-notes/2026-09-27-ruling20-phase1-DESIGN.md`) found that
+with catching always on the party fills to 6 early, and a full party means Nincada's evolution produces no Shedinja.
+Shedinja won about 39% of Norman fights in past runs.
+
+**The user's answer (verbatim, typos as typed):** *"Make a specific shedinja hunting sequence when able to, either from
+first nirvana or when doing another sweep after beating the elite 4, the goal is to catch all pokemon including shedinja
+and shedinja will be the only exception to catching a duplicate outside of a rare/shiny in the event that the bot catches
+a ninja dancing, evilces it to ninjas with no free pokemon slot, allow the duplicate catch and a specific nutcase training
+sequence with an empty slot to get a shedinja. Does this make sense?"*
+
+**Read as** (autocorrect: "nirvana" / "ninja dancing" / "nutcase" = Nincada, "evilces it to ninjas" = evolves it to
+Ninjask):
+1. A dedicated Shedinja sequence, run when able: at the first Nincada, or on a post-Elite-Four sweep. The goal is
+   catching every species, Shedinja included.
+2. Shedinja is the ONLY exception to "no duplicate catches", besides rare and shiny.
+3. If a Nincada evolves into Ninjask with no free party slot, allow a duplicate Nincada catch and train it with an empty
+   slot so Shedinja appears.
+
+Confirmed back to the user in those terms. Filed as `#27-shedinjahunt`.
+
+⚠ **To verify in the decomp before building:** that Shedinja needs a free party slot AND a Poké Ball in the bag at the
+evolution, and that it consumes the ball.
+
+**Two further design questions were settled FROM THIS LOG, not re-asked** (CLAUDE.md rule 11):
+- **Do catches join the team?** YES. RULING 20's own words: "allowed a full team, catching along the way". Catches fill
+  the party up to 6; the game boxes everything after that. RULING 13 (the L65-75 battle team, the roster is free) is
+  the late-game rule and does not conflict.
+- **Protect gym-TM recipients from deposit?** NO special protection. RULING 19's record says the user did not select
+  "protect answers from deposit". Hunted counters stay protected until their badge; that is a design default, not a
+  ruling, so it is open to change.
