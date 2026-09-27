@@ -2225,6 +2225,9 @@ class StoryMode(BotMode):
         #: RULING 20 Phase 1 (2026-09-27): the badge count when each counter was registered. A counter is protected from
         #: live make-room deposits only while it is still OWED to its boss (`pc_trip.deposit_protected_pids`).
         self._hunted_counter_badges: dict = {}
+        # USER RULING 21 (2026-09-27): the Fly swap record — the fighters before a box-first Fly withdraw, the carrier,
+        # and the fighter make-room boxed. `pokemon_league.restore_ch24_fighters` swaps them back before the guards.
+        self._ch24_fly_swap = None
         # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
         # catch-on-sight targets armed for the rest of the run.
         try:

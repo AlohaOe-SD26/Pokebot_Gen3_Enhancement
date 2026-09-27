@@ -36306,3 +36306,39 @@ enforcing + 4 advisory; `--quick` 98).
 
 Gate `probe_r20_counterbox.py` (4 fault arms). `repro_box_counter_move_test.py` still passes. Suite 112 (108 enforcing
 + 4 advisory; `--quick` 99).
+
+## 2026-09-27 — RULING 20 PHASE 1, INCREMENT B (FLY) + USER RULING 21: BOX-FIRST FLY AT THE LEAGUE LOBBY PC, AND THE SWAP-BACK BEFORE THE GUARDS (branch `wt/r20fly`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** The interim read of `#27-batch0927`: the one run that reached §Ch24 (P2r1) ended because nobody in the party
+could learn Fly, while a Wingull sat in its PC. From the plateau, the only reachable PC is the League lobby's, at (6,1).
+
+**WHAT.**
+- `pc_trip.pc_stand_for` (per-map PC stand tiles; the lobby is (6,2)/Up); all PC walks use it.
+  `pc_trip.swap_party_box` (NEW): one visit, named deposit + named withdraw, verified by (PID, species).
+- `pokemon_league`:
+  - `_boxed_fly_learners`; `_in_league_lobby` (enter from the apron, run an errand, optionally walk back out; refuses
+    a route through the return trap).
+  - Box-first in `ensure_fly_learner`, recording RULING 21's swap on the mode (`_ch24_fly_swap`).
+  - The carrier is left out of `ch24_trainees_below_floor` and of R1's head-count.
+  - `restore_ch24_fighters`, called in `prepare_and_open_the_league` after `E1-INSIDE` and before the guard talk.
+- Arms `POKEBOT_R20_FAULT_NOFLYBOX`, `…_LOBBYSTAND`, `…_NOSWAPBACK`.
+
+**PROOF** (predictions `30de3936`, filed first; `ai-research-notes/2026-09-27-r20flybox-GRADED.md`). `--driver flybox` on `post_moveset.ss1`, graded by
+(PID, species) on the recorded PC actions:
+- swap: [deposit Zigzagoon, withdraw Swellow] in the lobby, Fly taught back on (18,6); then the restore
+  [deposit Swellow, withdraw Zigzagoon], and the party equals the six fighters;
+- nofly: no PC action, `no_learner`;
+- wrongtile: the lobby withdraw at (10,2) fails, `no_learner`;
+- noswap: the restore refuses by name;
+- ordinary: taught from the party, no PC action.
+`--driver hmpcfirst` still PASSES (every PC walk now goes through `pc_stand_for`).
+Gate `probe_r20_flybox.py` (6 fault arms). Suite 113 (109 enforcing + 4 advisory; `--quick` 100: all 98 enforcing
+PASS, run AFTER the review fixes).
+**Review: adversarial KICK-BACK, both fixed:**
+- (1) a silent `except TypeError` in `pc_stand_for` broke the silent-except ratchet (`repro_no_silent_except`,
+  124 > 123) while this entry already claimed the suite. The handler was removed; the caller's PC handler reports.
+- (2) the swap record was written AFTER the walk out of the lobby, which can raise (`_navigate_riding_out` gives
+  up after its retries). A fighter would then sit in the box with nothing recorded, and `restore_ch24_fighters`
+  would no-op before the Elite Four. The record is now written inside the lobby errand, right after the withdraw
+  (`_record_fly_swap`). Gate F5 has a raise-on-leave case, and a fault arm rebuilds the old order and must fail.
+  B1 (swap) and B3 (wrongtile) were re-run on the fixed code: PASS.

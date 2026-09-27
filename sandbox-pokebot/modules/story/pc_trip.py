@@ -36,6 +36,28 @@ PC_TILE = (10, 1)
 PC_STAND_TILE = (10, 2)
 PC_FACING = "Up"
 
+#: ⭐ RULING 20 Phase 1, increment B (Fly site, 2026-09-27): PCs that are NOT at the standard Poké Centre tile, keyed by
+#: `map_group_and_number`. The League lobby (EVER_GRANDE_CITY_POKEMON_LEAGUE_1F, (16, 10)) has its only PC tile at
+#: (6, 1); (6, 2) below it is walkable. The default (10, 2) there is a GUARD's tile (no path while the guards stand)
+#: and sits under the step-on door to HALL5 once they move (recon `2026-09-27-ruling20-incB-RECON.md`, site "fly").
+PC_STAND_BY_MAP = {(16, 10): ((6, 2), "Up")}
+
+
+def pc_stand_for(map_group_and_number) -> tuple:
+    """`(stand_tile, facing)` for the PC on this map; the standard Poké Centre `(10, 2)`/`Up` elsewhere.
+
+    `POKEBOT_R20_FAULT_LOBBYSTAND=1` ignores the table (the old behaviour: (10, 2) everywhere) — the arm that proves the
+    table is what makes a League-lobby withdraw work."""
+    import os as _os_st
+
+    if _os_st.environ.get("POKEBOT_R20_FAULT_LOBBYSTAND") != "1":
+        # No local except: an unreadable map raises into the caller's own PC-errand handler, which REPORTS it
+        # (review, 2026-09-27: a silent `except TypeError` here was the one handler that broke the silent-except budget).
+        hit = PC_STAND_BY_MAP.get(tuple(map_group_and_number))
+        if hit is not None:
+            return hit
+    return PC_STAND_TILE, PC_FACING
+
 
 # ---- USER RULING 20, Phase 1, increment A (2026-09-27) — ONE deposit-victim rule for every LIVE make-room path -------
 # Design: `ai-research-notes/2026-09-27-ruling20-phase1-DESIGN.md`. With catching always on the party fills to 6, and
@@ -297,8 +319,9 @@ def deposit_dead_weight_if_worth_it() -> Generator:
         from modules.modes.util.walking import ensure_facing_direction, navigate_to
 
         here = get_player_avatar().map_group_and_number
-        yield from navigate_to(here, PC_STAND_TILE)
-        yield from ensure_facing_direction(PC_FACING)
+        _stand, _facing = pc_stand_for(here)
+        yield from navigate_to(here, _stand)
+        yield from ensure_facing_direction(_facing)
 
         # ‼ Resolve the Pokemon OBJECTS before the first deposit. Depositing shifts every
         # later party index down by one, so a list of indices computed up front goes stale
@@ -419,8 +442,9 @@ def deposit_one_dead_weight(required: bool = False) -> Generator:
         from modules.modes.util.walking import ensure_facing_direction, navigate_to
 
         here = get_player_avatar().map_group_and_number
-        yield from navigate_to(here, PC_STAND_TILE)
-        yield from ensure_facing_direction(PC_FACING)
+        _stand, _facing = pc_stand_for(here)
+        yield from navigate_to(here, _stand)
+        yield from ensure_facing_direction(_facing)
         # ‼ Pass the OBJECT, never an index. A deposit shifts every later party index down by
         # one, which is the classic way this kind of code boxes the wrong Pokémon.
         yield from interact_with_pc([PCAction.deposit_pokemon_to_box(victim)])
@@ -663,8 +687,9 @@ def withdraw_from_box(pids) -> Generator:
         actions.append(PCAction.withdraw_pokemon_from_box(target))
 
         here = get_player_avatar().map_group_and_number
-        yield from navigate_to(here, PC_STAND_TILE)
-        yield from ensure_facing_direction(PC_FACING)
+        _stand, _facing = pc_stand_for(here)
+        yield from navigate_to(here, _stand)
+        yield from ensure_facing_direction(_facing)
 
         # ⛔ FAULT INJECTION (KI-79, permanent hook — never edit code to inject a fault).
         # `POKEBOT_PCWITHDRAW_FAULT=1` SKIPS the PC interaction entirely, so the withdraw
@@ -740,4 +765,53 @@ def withdraw_from_box(pids) -> Generator:
         )
         # ⛔ Reached ONLY for a genuine PC hiccup: `reraise_if_aborting` above has already let a
         # whiteout through, and a dead run gets no verdict at all (KI-81).
+        return False, "error", repr(error)
+
+
+def swap_party_box(out_pid: int, in_pid: int) -> Generator:
+    """ONE PC visit: deposit the party mon `out_pid`, withdraw the boxed mon `in_pid`. Returns `(ok, code, detail)`.
+
+    ⭐ RULING 21 (the Fly swap, "Yes, swap briefly"): before the Elite Four the boxed fighter comes back and the Fly
+    carrier goes into the box. ⛔ NOT `withdraw_from_box`: its make-room picks a victim by RULE (dead weight, then the
+    lowest level), which need not be the carrier. This swap names both mons.
+    Identity is `(PID, species)` on both sides (KI-78: a Shedinja shares its Ninjask's PID).
+    Assumes we are inside a building whose PC `pc_stand_for` knows. Never raises for a PC hiccup; a whiteout propagates.
+    Codes: `landed`; `not_in_party` / `not_in_box` (no attempt); `did_not_land` / `error` (attempted).
+    """
+    from modules.console import console
+    from modules.player import get_player_avatar
+    from modules.pokemon_party import get_party
+
+    out_mon = next((m for m in get_party() if m is not None and m.personality_value == out_pid), None)
+    if out_mon is None:
+        return False, "not_in_party", f"{out_pid:08X} is not in the party"
+    in_mon = find_in_box([in_pid])
+    if in_mon is None:
+        return False, "not_in_box", f"{in_pid:08X} is not in the box"
+    out_key = (out_mon.personality_value, getattr(out_mon.species, "name", None))
+    in_key = (in_mon.personality_value, getattr(in_mon.species, "name", None))
+    try:
+        from modules.modes.util import wait_for_n_frames
+        from modules.modes.util.pc_interaction import PCAction, interact_with_pc
+        from modules.modes.util.walking import ensure_facing_direction, navigate_to
+        from modules.pokemon_storage import get_pokemon_storage
+
+        here = get_player_avatar().map_group_and_number
+        _stand, _facing = pc_stand_for(here)
+        yield from navigate_to(here, _stand)
+        yield from ensure_facing_direction(_facing)
+        console.print(f"[cyan]Story: PC — swapping {out_key[1]} out and {in_key[1]} back in.[/]")
+        yield from interact_with_pc([PCAction.deposit_pokemon_to_box(out_mon), PCAction.withdraw_pokemon_from_box(in_mon)])
+        yield from wait_for_n_frames(2)
+        party_keys = {(p.personality_value, getattr(p.species, "name", None)) for p in get_party() if p is not None}
+        storage = get_pokemon_storage()
+        ok = (in_key in party_keys and out_key not in party_keys and not storage.contains_pokemon(in_mon)
+              and storage.contains_pokemon(out_mon))
+        if ok:
+            return True, "landed", f"out {out_key[1]} in {in_key[1]}"
+        return False, "did_not_land", f"in_party={sorted(k[1] for k in party_keys)}"
+    except Exception as error:  # noqa: BLE001 - a PC hiccup must not raise; a whiteout must (KI-81)
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
         return False, "error", repr(error)

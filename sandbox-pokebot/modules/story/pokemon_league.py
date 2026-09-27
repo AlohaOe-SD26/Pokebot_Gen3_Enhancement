@@ -1638,10 +1638,15 @@ def ch24_trainees_below_floor(floor: int = CH24_LEVEL_FLOOR) -> list:
     """
     from modules.pokemon_party import get_party
 
+    # ⭐ RULING 21 (2026-09-27): a Fly carrier that box-first withdrew is NOT a fighter. It flies; it is not ground to
+    # the floor, and it is not counted by R1 (`_ch24_carrier_key`).
+    carrier = _ch24_carrier_key()
     out = []
     try:
         for mon in get_party():
             if mon is None or getattr(mon, "is_egg", False):
+                continue
+            if carrier is not None and (mon.personality_value, mon.species.name) == carrier:
                 continue
             if mon.level < floor:
                 out.append((mon.personality_value, mon.species.name, mon.level))
@@ -2193,6 +2198,155 @@ def _fly_teach_plan(party, item, banned) -> "tuple[int, int | None] | None":
     return None
 
 
+def _ch24_fly_swap() -> "dict | None":
+    """RULING 21's swap record on the running mode, or None.
+    Keys: `fighters` [(pid, species)] (the party before the swap), `carrier` (pid, species), `boxed` (pid, species) or
+    None (no fighter was boxed: the party had room)."""
+    mode = getattr(context, "bot_mode_instance", None)
+    return getattr(mode, "_ch24_fly_swap", None)
+
+
+def _ch24_carrier_key() -> "tuple | None":
+    """(pid, species) of a Fly carrier withdrawn by box-first that is NOT one of the recorded fighters; else None."""
+    sw = _ch24_fly_swap()
+    if not sw or not sw.get("carrier"):
+        return None
+    carrier = tuple(sw["carrier"])
+    return None if carrier in {tuple(f) for f in sw.get("fighters") or ()} else carrier
+
+
+def _record_fly_swap(before_keys: list, head: int) -> "dict | None":
+    """Write RULING 21's swap record on the running mode IF the carrier `head` is now in the party: the fighters before,
+    the carrier, and the fighter that left (by (PID, species); None when the party had room). Returns the record.
+    ⛔ Called INSIDE the lobby errand, right after the withdraw, so no later fallible step can lose it."""
+    carrier = next((m for m in get_party() if m is not None and m.personality_value == head), None)
+    if carrier is None:
+        return None
+    after_keys = {(m.personality_value, m.species.name) for m in get_party()
+                  if m is not None and not getattr(m, "is_egg", False)}
+    left = [k for k in before_keys if k not in after_keys]
+    swap = {"fighters": list(before_keys), "carrier": (head, carrier.species.name), "boxed": left[0] if left else None}
+    mode = getattr(context, "bot_mode_instance", None)
+    if mode is not None:
+        mode._ch24_fly_swap = swap
+    return swap
+
+
+def _boxed_fly_learners(hm02, banned) -> list:
+    """PIDs of BOXED mon that can take Fly NOW: one that knows it, or one `_fly_teach_plan([mon])` finds a slot on.
+    Order: `boxed_hm_learner_pids` (knows it first, then level). A pure save-block read. `[]` on any read failure: a box
+    we cannot read is a box we must not act on."""
+    from modules.story.early_game import boxed_hm_learner_pids, reraise_if_aborting
+    from modules.story.pc_trip import box_views
+
+    try:
+        order = boxed_hm_learner_pids(hm02)
+        by_pid = {int(m.personality_value): m for m in (box_views()[1] or []) if m is not None}
+    except Exception as error:  # noqa: BLE001 - see the docstring
+        reraise_if_aborting(error)
+        return []
+    out = []
+    for pid in order:
+        mon = by_pid.get(pid)
+        if mon is None:
+            continue
+        try:
+            knows = any(l is not None and l.move.name == "Fly" for l in mon.moves)
+            if knows or _fly_teach_plan([mon], hm02, banned) is not None:
+                out.append(pid)
+        except Exception as error:  # noqa: BLE001 - one unreadable mon must not hide the others
+            reraise_if_aborting(error)
+            continue
+    return out
+
+
+def _in_league_lobby(errand_factory, *, leave: bool) -> Generator:
+    """Run `errand_factory()` (a generator) standing in the League lobby. Returns `(ok, detail, errand_result)`.
+
+    Enters from EVER_GRANDE_CITY if needed (the apron (18,6), then a HELD Up into the door, as `heal_at_league` does);
+    when `leave`, walks back out onto EVER_GRANDE_CITY afterwards (Fly is illegal indoors, so a caller that trains next
+    must be outside). ⛔ Refuses, without walking, when the planned route to the apron crosses the Victory Road return
+    trap (18,27), or when we are on neither map. Every walk is bounded in real frames.
+    """
+    from modules.map_path import calculate_path
+    from modules.story import victory_road as VR
+    from modules.story.early_game import _yield_bounded_by_frames
+
+    if not VR._on_map(VR.LEAGUE_1F):
+        if not VR._on_map(VR.EG):
+            return False, f"not on EVER_GRANDE_CITY or in the lobby ({VR._where()})", None
+        if VR._here_tile() != VR.LEAGUE_DOOR_APRON:
+            try:
+                crossed = [tuple(getattr(wp, "coordinates", ()))
+                           for wp in calculate_path((VR.EG, VR._here_tile()), (VR.EG, VR.LEAGUE_DOOR_APRON))]
+            except Exception as error:  # noqa: BLE001 - no plan is a refusal, never a blind walk
+                from modules.story.early_game import reraise_if_aborting
+
+                reraise_if_aborting(error)
+                return False, f"no path to the League door apron from {VR._here_tile()}: {error}", None
+            if VR.EG_VICTORY_ROAD_RETURN_TRAP in crossed:
+                return False, f"the route to the apron crosses the return trap {VR.EG_VICTORY_ROAD_RETURN_TRAP}", None
+            yield from _yield_bounded_by_frames(VR._navigate_riding_out(VR.EG, VR.LEAGUE_DOOR_APRON), 200_000)
+            yield from wait_until_truly_controllable()
+        yield from _yield_bounded_by_frames(VR._walk_through_warp("Up", VR.EG.value), 60_000)
+        yield from wait_until_truly_controllable()
+        if not VR._on_map(VR.LEAGUE_1F):
+            return False, f"tried to enter the lobby but we are at {VR._where()}", None
+    result = yield from errand_factory()
+    if leave:
+        yield from _yield_bounded_by_frames(VR._navigate_riding_out(VR.LEAGUE_1F, VR.LEAGUE_EXIT_TILE), 60_000)
+        yield from wait_until_truly_controllable()
+        yield from _yield_bounded_by_frames(VR._walk_through_warp("Down", VR.LEAGUE_1F.value), 60_000)
+        yield from wait_until_truly_controllable()
+        if not VR._on_map(VR.EG):
+            return False, f"left the lobby but we are at {VR._where()}", result
+    return True, "ok", result
+
+
+def restore_ch24_fighters(report=None) -> Generator:
+    """USER RULING 21 ("Yes, swap briefly"): the six fighters are restored and CHECKED BY PID before the Elite Four.
+
+    If box-first withdrew a Fly carrier and boxed a fighter (`_ch24_fly_swap`), swap them back at the League lobby PC:
+    the carrier into the box, the fighter out. Then the party's non-egg `(pid, species)` set must EQUAL the recorded
+    fighters, or this REFUSES by name: the Elite Four is one-way, and entering without the fighters is what the ruling
+    forbids. No swap recorded ⇒ nothing to do. Production calls it in the lobby, after `E1-INSIDE` and before the guards
+    are talked to (talking sets `ENTERED_ELITE_FOUR` permanently).
+    `POKEBOT_R20_FAULT_NOSWAPBACK=1` skips the swap: the identity check must then refuse (it proves the check is live).
+    """
+    import os as _os
+
+    from modules.console import console
+    from modules.story.pc_trip import swap_party_box
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    sw = _ch24_fly_swap()
+    if not sw or not sw.get("boxed"):
+        report["swapback"] = "none_needed"
+        return
+    carrier, boxed = tuple(sw["carrier"]), tuple(sw["boxed"])
+    if _os.environ.get("POKEBOT_R20_FAULT_NOSWAPBACK") == "1":
+        report["swapback"] = "fault_skipped"
+        console.print("[magenta]§Ch24: FAULT ARM NOSWAPBACK — not swapping; the identity check below must refuse.[/]")
+    else:
+        ok, detail, verdict = yield from _in_league_lobby(lambda: swap_party_box(carrier[0], boxed[0]), leave=False)
+        report["swapback"] = {"ok": ok, "detail": detail, "verdict": list(verdict) if verdict else None}
+    party_keys = sorted((m.personality_value, m.species.name) for m in get_party()
+                        if m is not None and not getattr(m, "is_egg", False))
+    fighters = sorted(tuple(f) for f in sw.get("fighters") or ())
+    report["swapback_party"] = [f"{sp}#{pid:08X}" for pid, sp in party_keys]
+    if party_keys != fighters:
+        raise BotModeError(
+            "§Ch24 RULING 21: the party is not the six recorded fighters before the Elite Four — party "
+            f"{[f'{sp}#{pid:08X}' for pid, sp in party_keys]} vs fighters {[f'{sp}#{pid:08X}' for pid, sp in fighters]}"
+            f" (swap-back: {report.get('swapback')}). Refusing to talk to the guards.")
+    mode = getattr(context, "bot_mode_instance", None)
+    if mode is not None:
+        mode._ch24_fly_swap = None
+    _take(report, "F-RESTORED")
+    console.print(f"[green]§Ch24: RULING 21 — {boxed[1]} is back and {carrier[1]} is boxed; the six fighters are in.[/]")
+
+
 def ensure_fly_learner(report=None) -> Generator:
     """`#26-ch24organic` GAP 3 — teach HM02 Fly from the bag if nobody in the party knows it.
 
@@ -2251,6 +2405,56 @@ def ensure_fly_learner(report=None) -> Generator:
         reraise_if_aborting(error)
         banned = ["Fly", "Dive", "Dig", "Bounce", "Sky Attack", "Razor Wind", "Solar Beam"]
     plan = _fly_teach_plan(get_party(), hm02, banned)
+    # ⭐ BOX-FIRST (RULING 20 Phase 1, increment B, 2026-09-27; recon `2026-09-27-ruling20-incB-RECON.md`, site "fly").
+    # No party member can take Fly, but a BOXED one can: collect it at the League lobby PC (the only PC reachable from the
+    # plateau without Fly), then teach it. make-room boxes one fighter (increment A's rule), and USER RULING 21 swaps it
+    # back before the Elite Four (`restore_ch24_fighters`); until then the carrier is not trained and R1 does not count
+    # it (`_ch24_carrier_key`). `POKEBOT_R20_FAULT_NOFLYBOX=1` skips this block.
+    if plan is None and _os.environ.get("POKEBOT_R20_FAULT_NOFLYBOX") != "1":
+        boxed = _boxed_fly_learners(hm02, banned)
+        report["fly_boxed"] = [f"{p:08X}" for p in boxed]
+        if boxed:
+            from modules.story.pc_trip import withdraw_from_box
+
+            head = boxed[0]
+            before_keys = [(m.personality_value, m.species.name) for m in get_party()
+                           if m is not None and not getattr(m, "is_egg", False)]
+            console.print(f"[cyan]§Ch24: no party member can take Fly; collecting the boxed learner pid={head:08X} at "
+                          f"the League lobby PC...[/]")
+            def _collect():
+                # ⛔ THE SWAP IS RECORDED HERE, RIGHT AFTER THE WITHDRAW, INSIDE THE LOBBY — never after the walk out
+                # (review, 2026-09-27). The walk out can RAISE (`_navigate_riding_out` gives up after its retries), and
+                # a record written after it would be lost while a fighter already sits in the box: a later re-entry
+                # finds the carrier in the party, box-first never re-runs, and `restore_ch24_fighters` no-ops.
+                verdict = yield from withdraw_from_box([head])
+                _record_fly_swap(before_keys, head)
+                return verdict
+
+            ok, detail, verdict = yield from _in_league_lobby(_collect, leave=True)
+            report["fly_box"] = {"ok": ok, "detail": detail, "verdict": list(verdict) if verdict else None}
+            carrier = next((m for m in get_party() if m is not None and m.personality_value == head), None)
+            swap = _ch24_fly_swap()
+            if carrier is None or not swap or tuple(swap.get("carrier") or ())[:1] != (head,):
+                console.print(f"[yellow]§Ch24: the boxed Fly learner pid={head:08X} did NOT arrive ({detail}; "
+                              f"{report['fly_box']['verdict']}).[/]")
+            else:
+                report["fly_swap"] = {"carrier": f"{carrier.species.name}#{head:08X}",
+                                      "boxed_fighter": (f"{swap['boxed'][1]}#{swap['boxed'][0]:08X}"
+                                                        if swap["boxed"] else None)}
+                _take(report, "F-BOXWITHDRAWN")
+                if any(l is not None and l.move.name == "Fly" for l in carrier.moves):
+                    report["fly_teach"] = "already"
+                    report["fly_source"] = "box"
+                    report["fly_knower"] = f"{carrier.species.name}#{head:08X}"
+                    _take(report, "F-KNOWN")
+                    console.print(f"[green]§Ch24: withdrew {carrier.species.name}, which already knows Fly.[/]")
+                    return
+                plan = _fly_teach_plan(get_party(), hm02, banned)
+                if plan is not None and get_party()[plan[0]].personality_value != head:
+                    # Only the withdrawn mon can qualify here: nobody in the party did before.
+                    raise BotModeError(
+                        f"§Ch24: withdrew pid={head:08X} but the Fly plan picked "
+                        f"pid={get_party()[plan[0]].personality_value:08X} — refusing to teach the wrong mon.")
     best, replace_slot = plan if plan is not None else (None, None)
     if best is None:
         report["fly_teach"] = "no_learner"
@@ -2589,7 +2793,9 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
         report["r1_party_size"] = None
     else:
         try:
-            party_size = sum(1 for m in get_party() if m is not None and not getattr(m, "is_egg", False))
+            _carrier = _ch24_carrier_key()   # RULING 21: the Fly carrier is not one of the fighters R1 counts
+            party_size = sum(1 for m in get_party() if m is not None and not getattr(m, "is_egg", False)
+                             and (m.personality_value, m.species.name) != _carrier)
         except Exception as error:  # noqa: BLE001 - an unreadable party must REFUSE (fail closed), never pass
             reraise_if_aborting(error)
             party_size = None
@@ -2664,6 +2870,14 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
             f"§Ch24 leg 1: tried to enter the League but we are at {VR._where()}, not the lobby.")
     report["inside_at"] = (str(VR._where()), VR._here_tile())
     _take(report, "E1-INSIDE")
+
+    # ---- USER RULING 21: THE SIX FIGHTERS BACK, CHECKED BY PID, BEFORE THE GUARDS -------------------------------------
+    # ⛔ HERE, and not before R1: R1 is decided wherever training ended (possibly off the plateau), and only the lobby
+    # has a PC reachable without Fly. R1 already counts only fighters (`_ch24_carrier_key`), and talking to the guards
+    # sets `ENTERED_ELITE_FOUR` permanently, so this is the last point the swap can happen. No swap recorded ⇒ no-op.
+    swapback: dict = {}
+    report["swapback"] = swapback
+    yield from restore_ch24_fighters(swapback)
 
     # ---- CLEAR THE GUARDS ----------------------------------------------------------------------
     def _guard_tiles_occupied() -> list:

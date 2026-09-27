@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -24089,6 +24089,220 @@ class CounterBoxMode(BotMode):
         context.set_manual_mode()
 
 
+class FlyBoxMode(BotMode):
+    """`--driver flybox` — RULING 20 Phase 1, increment B (Fly site) + USER RULING 21 (the Fly swap), on `post_moveset.ss1`
+    (PINNED; EVER_GRANDE_CITY (18,6), §Ch24's production first-entry tile; HM02 in the bag; only Swellow can learn Fly).
+
+    `FB_CASE`:
+      `swap` (default) — Swellow boxed, the party the other five + a Machop L50 filler (6, full). Production
+               `ensure_fly_learner`: into the lobby, Swellow withdrawn at (6,2), the make-room victim (computed BEFORE the
+               run) deposited, back out, Fly taught; the swap recorded. Then production `restore_ch24_fighters`: in the
+               lobby, Swellow boxed and the victim back; the party equals the recorded fighters by (PID, species).
+      `nofly`   — the same injection with `POKEBOT_R20_FAULT_NOFLYBOX=1`: `no_learner`, no PC action, Swellow still boxed.
+      `wrongtile` — the same injection with `POKEBOT_R20_FAULT_LOBBYSTAND=1`: the lobby withdraw aims at (10,2) and fails;
+               `no_learner`; Swellow still boxed; back on EVER_GRANDE_CITY.
+      `noswap`  — `swap`, then `restore_ch24_fighters` with `POKEBOT_R20_FAULT_NOSWAPBACK=1`: it must REFUSE by name.
+      `ordinary` — the untouched fixture: Swellow taught from the party, no PC action, nothing recorded, restore no-op.
+    Graded by (PID, species) on the recorded PC ACTIONS (`PCAction.deposit_pokemon_to_box` / `withdraw_pokemon_from_box`).
+    Predictions: `ai-research-notes/2026-09-27-r20flybox-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "FlyBox"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[flybox] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot, debug_write_party
+        from modules.items import get_item_bag
+        from modules.map_data import MapRSE
+        from modules.modes.util import pc_interaction as _pci
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+        from modules.story import pc_trip as _pt
+        from modules.story import pokemon_league as PL
+
+        TAG = "flybox"
+        CASE = _os.environ.get("FB_CASE", "swap")
+        if CASE not in ("swap", "nofly", "wrongtile", "noswap", "ordinary"):
+            raise BotModeError(f"{TAG}: FB_CASE={CASE!r} not recognised")
+        SWELLOW = 0x0B30A747
+        actions: list = []
+        R: dict = {}
+        failure = None
+        restore_error = None
+        self._ch24_fly_swap = None
+        self._hunted_counter_pids, self._hunted_counter_badges = set(), {}
+        real_dep, real_wd = _pci.PCAction.deposit_pokemon_to_box, _pci.PCAction.withdraw_pokemon_from_box
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        def _rec_dep(pokemon, target_box=None):
+            actions.append(("deposit", pokemon.personality_value, pokemon.species.name))
+            return real_dep(pokemon, target_box)
+
+        def _rec_wd(pokemon):
+            actions.append(("withdraw", pokemon.personality_value, pokemon.species.name))
+            return real_wd(pokemon)
+
+        def _where():
+            av = get_player_avatar()
+            return (str(av.map_group_and_number), tuple(av.local_coordinates))
+
+        def _keys():
+            return sorted((m.personality_value, m.species.name) for m in get_party() if m is not None and not m.is_egg)
+
+        def _box():
+            return [(int(m.personality_value), m.species.name) for m in (_pt.box_views()[1] or []) if m is not None]
+
+        def _hx(keys):
+            return [f"{sp}#{pid:08X}" for pid, sp in keys]
+
+        try:
+            yield from EG.wait_until_truly_controllable()
+            hm02 = next((s.item for s in get_item_bag().tms_hms if s.item.name == "HM02"), None)
+            party = [m for m in get_party() if m is not None]
+            R["start"] = _where()
+            R["box_before"] = _box()
+            R["fly_compatible"] = [f"{m.species.name}#{m.personality_value:08X}" for m in party
+                                   if hm02 is not None and m.species.can_learn_tm_hm(hm02)]
+            premise = (R["start"] == (str(MapRSE.EVER_GRANDE_CITY.value), (18, 6)) and hm02 is not None
+                       and R["box_before"] == [] and len(party) == 6
+                       and R["fly_compatible"] == [f"Swellow#{SWELLOW:08X}"]
+                       and not any(l is not None and l.move.name == "Fly" for m in party for l in m.moves))
+            log(f"[{TAG}] PRE case={CASE} {R} party={_hx(_keys())}")
+            if not premise:
+                raise BotModeError(f"{TAG}: FIXTURE PREMISE FAILED ({R}) — this is not post_moveset.ss1.")
+            if CASE != "ordinary":
+                swellow = next(m for m in party if m.personality_value == SWELLOW)
+                debug_write_box_slot(swellow, slot_index=0)
+                yield from wait_for_n_frames(2)
+                filler = debug_create_pokemon(species=get_species_by_name("Machop"), level=50)
+                debug_write_party([m for m in party if m.personality_value != SWELLOW] + [filler])
+                yield from wait_for_n_frames(2)
+            R["party_injected"] = _hx(_keys())
+            R["box_injected"] = _hx(_box())
+            now = [m for m in get_party() if m is not None]
+            if CASE != "ordinary":
+                v = _pt.make_room_victim(now, exclude_pids=[SWELLOW], required=True,
+                                         protected=_pt.deposit_protected_pids(self))
+                R["expected_victim"] = None if v is None else f"{v[0].species.name}#{v[0].personality_value:08X}"
+                R["boxed_learners"] = [f"{p:08X}" for p in PL._boxed_fly_learners(hm02, [])]
+            log(f"[{TAG}] INJECTED {R}")
+            fighters_before = _keys()
+
+            _pci.PCAction.deposit_pokemon_to_box, _pci.PCAction.withdraw_pokemon_from_box = _rec_dep, _rec_wd
+            fly_report: dict = {}
+            finished = yield from EG._yield_bounded_by_frames(PL.ensure_fly_learner(fly_report), 40_000)
+            R["fly_finished"] = finished
+            R["fly_teach"] = fly_report.get("fly_teach")
+            R["fly_swap_report"] = fly_report.get("fly_swap")
+            R["fly_box"] = fly_report.get("fly_box")
+            R["after_fly_at"] = _where()
+            R["after_fly_party"] = _hx(_keys())
+            R["swellow_knows_fly"] = any(m is not None and m.personality_value == SWELLOW
+                                         and any(l is not None and l.move.name == "Fly" for l in m.moves)
+                                         for m in get_party())
+            R["swap_state"] = None if not self._ch24_fly_swap else {
+                "fighters": _hx(self._ch24_fly_swap["fighters"]), "carrier": _hx([self._ch24_fly_swap["carrier"]])[0],
+                "boxed": _hx([self._ch24_fly_swap["boxed"]])[0] if self._ch24_fly_swap.get("boxed") else None}
+            R["actions_fly"] = [f"{a} {sp}#{pid:08X}" for a, pid, sp in actions]
+            R["fighters_before"] = _hx(fighters_before)
+            actions.clear()
+            if CASE in ("swap", "noswap", "ordinary"):
+                if CASE == "noswap":
+                    _os.environ["POKEBOT_R20_FAULT_NOSWAPBACK"] = "1"
+                rest: dict = {}
+                try:
+                    R["restore_finished"] = yield from EG._yield_bounded_by_frames(PL.restore_ch24_fighters(rest), 40_000)
+                except BotModeError as error:
+                    EG.reraise_if_aborting(error)
+                    restore_error = str(error)
+                finally:
+                    _os.environ.pop("POKEBOT_R20_FAULT_NOSWAPBACK", None)
+                R["restore_readings"] = sorted(rest.get("readings", set()))
+                R["restore_swapback"] = rest.get("swapback")
+                R["after_restore_at"] = _where()
+                R["after_restore_party"] = _hx(_keys())
+                R["actions_restore"] = [f"{a} {sp}#{pid:08X}" for a, pid, sp in actions]
+                R["restore_error"] = restore_error
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            EG.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _pci.PCAction.deposit_pokemon_to_box, _pci.PCAction.withdraw_pokemon_from_box = real_dep, real_wd
+        try:
+            R["box_end"] = _hx(_box())
+        except Exception as read_error:  # noqa: BLE001
+            EG.reraise_if_aborting(read_error)
+            R["read_error"] = repr(read_error)
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — the injection does not persist.")
+            except Exception as restore_err:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_err}")
+
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        log(f"[{TAG}] failure={failure}")
+        sw_tag = f"Swellow#{SWELLOW:08X}"
+        eg = str(MapRSE.EVER_GRANDE_CITY.value)
+        lobby = str(MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F.value)
+        base = {"no_failure": failure is None and "read_error" not in R, "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if CASE == "ordinary":
+            conj = {**base, "taught": R.get("fly_teach") == "taught" and R.get("swellow_knows_fly") is True,
+                    "no_pc_action": R.get("actions_fly") == [] and R.get("actions_restore") == [],
+                    "nothing_recorded": R.get("swap_state") is None and R.get("restore_swapback") == "none_needed",
+                    "still_on_eg": (R.get("after_fly_at") or ("",))[0] == eg}
+        elif CASE in ("nofly", "wrongtile"):
+            conj = {**base, "no_learner": R.get("fly_teach") == "no_learner",
+                    "swellow_still_boxed": sw_tag in R.get("box_end", []),
+                    "no_swellow_in_party": sw_tag not in (R.get("after_fly_party") or []),
+                    "on_eg_after": (R.get("after_fly_at") or ("",))[0] == eg,
+                    "nothing_recorded": R.get("swap_state") is None}
+            if CASE == "nofly":
+                conj["no_pc_action"] = R.get("actions_fly") == []
+        else:
+            sw = R.get("swap_state") or {}
+            conj = {**base, "taught": R.get("fly_teach") == "taught" and R.get("swellow_knows_fly") is True,
+                    "lobby_actions": R.get("actions_fly") == [f"deposit {R.get('expected_victim')}", f"withdraw {sw_tag}"],
+                    "back_on_eg_after_fly": (R.get("after_fly_at") or ("",))[0] == eg,
+                    "swap_recorded": sw.get("carrier") == sw_tag and sw.get("boxed") == R.get("expected_victim")
+                    and sorted(sw.get("fighters") or []) == sorted(R.get("fighters_before") or [])}
+            if CASE == "swap":
+                conj.update({
+                    "restored": "F-RESTORED" in (R.get("restore_readings") or []) and R.get("restore_error") is None,
+                    "restore_actions": R.get("actions_restore") == [f"deposit {sw_tag}", f"withdraw {R.get('expected_victim')}"],
+                    "party_is_the_fighters": sorted(R.get("after_restore_party") or []) == sorted(R.get("fighters_before") or []),
+                    "swellow_boxed_after": sw_tag in R.get("box_end", []),
+                    "in_lobby_after_restore": (R.get("after_restore_at") or ("",))[0] == lobby})
+            else:
+                conj.update({
+                    "refused_by_name": bool(R.get("restore_error")) and "RULING 21" in (R.get("restore_error") or ""),
+                    "no_restore_action": R.get("actions_restore") == [],
+                    "carrier_still_in_party": sw_tag in (R.get("after_restore_party") or [])})
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -28380,6 +28594,8 @@ for step in range(args.frames):
             context.bot_mode_instance = WfBoxFirstMode()
         elif args.driver == "counterbox":
             context.bot_mode_instance = CounterBoxMode()
+        elif args.driver == "flybox":
+            context.bot_mode_instance = FlyBoxMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

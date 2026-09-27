@@ -22591,3 +22591,28 @@ at its badge, but the WITHDRAW side kept reading the whole registry. `find_in_bo
 **Prevention rule:** ⛔ **When a rule changes what a registry MEANS (here: "owed" instead of "ever hunted"), find every
 READER of that registry and move them together.** One side changed and the other did not; that is how an expiry turns
 into a round trip.
+
+## 2026-09-27 — ⛔ A STATE RECORD WRITTEN AFTER A FALLIBLE STEP; AND A SUITE COUNT WRITTEN WITHOUT RUNNING THE SUITE
+
+**Symptom** (the Fly site's adversarial review, before commit):
+- (1) `ensure_fly_learner` withdrew the carrier inside the lobby, walked OUT, and only THEN recorded RULING 21's swap.
+  The walk out can raise. A fighter would then be in the box with no record, and every later check would read "no swap
+  happened": re-entry finds the carrier in the party, and `restore_ch24_fighters` no-ops before the Elite Four.
+- (2) The changelog claimed "Suite 113 … `--quick` 100" while `run_gates.py --quick` was RED: a new silent `except`
+  pushed `repro_no_silent_except` over its ratchet (124 > 123).
+
+**Root cause:**
+- (1) The record was written where the DATA was convenient to compute (after the errand returned), not where the
+  MUTATION happened.
+- (2) Gate COUNTS were updated from the registry, and the suite was never run before they were written down.
+
+**Fix:**
+- (1) `_record_fly_swap` runs inside the lobby errand, right after the withdraw. A gate case raises on the walk out and
+  checks the record survives; a fault arm rebuilds the old order.
+- (2) The handler was removed and the quick suite re-run: all 98 enforcing pass.
+
+**Prevention rules:**
+- ⛔ **Record a state change IMMEDIATELY after the mutation that caused it, before any step that can raise.** A record
+  written "after the errand" is lost exactly when the errand half-fails.
+- ⛔ **Never write a suite count into a doc without having just run the suite.** A count copied from the registry says
+  nothing about whether the gates PASS.

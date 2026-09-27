@@ -7761,3 +7761,26 @@ Increment B's box-first for Strength, Waterfall and Fly is the planned cover.
 - Keeping the full-registry withdraw: after increment A, make-room may box an EXPIRED counter, and the next heal would
   collect it again (the C5 arm reproduces this).
 - Training a box-first counter before its first attempt: a larger change to `_prepare_for_fight`; left for a design pass.
+
+## 2026-09-27 — RULING 20 Phase 1, increment B (Fly) + USER RULING 21: the lobby PC; the lowest fighter sits out; the swap-back happens in the lobby, before the guards
+
+**Decisions** (recon: `ai-research-notes/2026-09-27-ruling20-incB-RECON.md`, site "fly", a NOTE):
+- (a) Box-first Fly uses the League LOBBY PC, the only PC reachable from the plateau without Fly. `pc_trip.pc_stand_for`
+  gives (6,2)/Up there; every other map keeps (10,2)/Up.
+- (b) **Which fighter sits out** (the question RULING 21 left open): increment A's make-room rule decides, so dead
+  weight goes first, then the lowest-level unprotected member. In practice that is a mule (Zigzagoon on the fixture).
+  It is the member whose missed training costs the least, and RULING 15 already lets R1 pass with 4 of 6 at the floor.
+  The user was told this default before the build.
+- (c) **The swap-back happens IN THE LOBBY, after `E1-INSIDE` and before the guard talk**, not before R1 as the
+  ruling's wording ("restored and checked by PID before R1") suggests. R1 is decided wherever training ended, often
+  off the plateau, and only the lobby has a reachable PC. To keep R1 honest, it counts only fighters: the carrier is
+  left out of the trainees and of R1's head-count. The ruling's intent (the same six fighters, checked by PID, before
+  the Elite Four) is kept; talking to the guards sets `ENTERED_ELITE_FOUR` permanently, so the lobby is the last point
+  it can happen.
+- (d) A swap-back that does not land REFUSES by name (it does not enter with the carrier).
+
+**Rejected:**
+- The standard (10,2) stand tile in the lobby: a guard's tile (no path), and under the step-on door to HALL5.
+- Swapping back before R1: needs the lobby PC from wherever training ended, which may be off the plateau.
+- Letting `withdraw_from_box`'s make-room choose the swap-back victim: it picks by rule, not the carrier.
+  `swap_party_box` names both mons.
