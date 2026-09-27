@@ -2922,3 +2922,16 @@ gate `probe_league_reserve.py` R7.
 **Real fix — NOT BUILT (a shared-path change; needs an A/B on ordinary navigation):** read object positions from the
 RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide
 the same latent over-block; Sootopolis's own script moves several (`:57-60`, `:104-117`).
+
+## KI-104 — ⚠ AGENT-MEASURED, NOT YET VERIFIED BY ME: the production HM teach's "weakest move" rule deletes a mon's ONLY move of a type, and 7 hard-capped teaches logged an HM as the slot to replace (2026-09-26)
+
+**What (agent log forensics of the live batch `#26-batch0926`, a NOTE until re-verified):** `early_game.teach_hm_move`
+with `replace_slot=None` forgets an empty slot, else a 0-power move, else the LOWEST raw base power — it ignores STAB and
+type coverage. Measured 4 times this batch: the Rock Smash teach deleted Combusken's Double Kick (its only Fighting move;
+37-70 uses before, 0 after — P1 r2, r4, r5 and P4 r5). Separately, 16 of 87 teach episodes hit their hard cap, and in 7 of
+those the logged `replace_slot` points at Rock Smash, an HM the game refuses to forget (root cause UNVERIFIED).
+**Why it matters:** RULING 19's TM teach must not reuse this rule; and the HM teaches themselves may be quietly weakening
+the team (Double Kick) and burning frames (the capped episodes).
+**Next:** re-verify from the logs (`endless-P*/debug-logs/*20260926*`), then a driven fix that reuses the story learn
+policy (`LevelUpTravelBattleStrategy.which_move_should_be_replaced`: never an HM, keeps type coverage) — see
+`ai-research-notes/2026-09-26-rulings19-20-PLAN.md`.
