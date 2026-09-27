@@ -14,3 +14,12 @@ Blaziken = [Scratch (Normal 40), Blaze Kick (Fire 85), Double Kick (Fighting 30 
 |---|---|---|---|
 | K1 | `POKEBOT_HMTEACH_FAULT_OLDSLOT=1` | `RESULT learned=True`, `replaced=['Double Kick']` (the old rule — as H2b/H2c) | anything else replaced |
 | K2 | the new picker | `RESULT learned=True`, `replaced=['Scratch']` — Scratch is strictly dominated by the incoming Strength (Normal 80 ≥ 40); Double Kick and Blaze Kick (STAB) kept; the verified scroll still corrects HM03 → HM04 | Double Kick or Blaze Kick replaced; Rock Smash (HM) touched; not learned |
+
+## ADDENDUM (filed BEFORE the drive) — the review asked for the §Ch23 Waterfall teach to be re-driven
+
+`--driver ch23teach` on `post_badge8.ss1` (PASS on 2026-09-03 with the OLD rule: "Waterfall onto Wailmer, lost Rollout,
+kept Dive + Surf"). Wailmer = [Dive (HM08), Surf (HM03), Water Gun (Water 40), Rollout (Rock 30)], incoming Waterfall.
+
+| # | Arm | Prediction | Falsifier |
+|---|---|---|---|
+| K3 | the new picker | `ACCEPTANCE: PASS` (Waterfall known, Dive and Surf kept, party intact); **LOST Water Gun** (slot 2 — strictly dominated by Surf and by the incoming Waterfall), Rollout (the only Rock move) KEPT | Waterfall not learned, Dive or Surf lost, or Rollout lost |
