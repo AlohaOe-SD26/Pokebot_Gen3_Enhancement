@@ -5075,8 +5075,9 @@ def _withdraw_hm_learner(item, pids, heal_centers) -> Generator:
     from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 
     mode = _ctx.bot_mode_instance
+    wanted = list(pids)[:1]
     try:
-        setattr(mode, "_wanted_hm_learner_pids", set(list(pids)[:1]))
+        setattr(mode, "_wanted_hm_learner_pids", set(wanted))
         for centre in heal_centers:
             _check_abort()
             try:
@@ -5093,7 +5094,18 @@ def _withdraw_hm_learner(item, pids, heal_centers) -> Generator:
 
     # ‼ ASSERT IDENTITY, NEVER A COUNT. On the make-room path the party size is UNCHANGED
     # (6→6→6), so "the party grew" proves nothing — KI-79's exact trap.
-    slot = hm_learner_slot(item)
+    # ⛔ AND THE IDENTITY IS THE PID WE ASKED FOR (RULING 20 increment B, 2026-09-27). This used to
+    # read `hm_learner_slot(item)`, which ranks the PARTY by level. That is right only when the
+    # party had no learner before. At the Waterfall site the party holds a SATURATED learner of
+    # higher level, and the line then named that mon instead of the one withdrawn.
+    # ⚠ PID-ONLY, AND WHY THAT IS SAFE TODAY (review 2026-09-27): a Shedinja shares its Ninjask's PID
+    # forever (KI-78, which chose `(pid, species)` via `same_pokemon` for destructive actions). Neither
+    # species can learn HM03, HM04, HM06, HM07 or HM08, the HMs routed here (checked in
+    # `species.json`); the HMs both can learn are Cut and Flash, neither wired to this path. ⇒ Before
+    # wiring either (or any HM a twin can learn) through here, make this match, and `find_in_box`,
+    # species-aware.
+    slot = next((i for i, m in enumerate(get_party())
+                 if m is not None and wanted and m.personality_value == wanted[0]), None)
     if slot is not None:
         got = get_party()[slot]
         console.print(

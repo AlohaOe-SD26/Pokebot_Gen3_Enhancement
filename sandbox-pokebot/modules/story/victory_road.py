@@ -959,7 +959,39 @@ def departed_sootopolis() -> bool:
 # --------------------------------------------------------------------------------------------
 # LEG 1 — TEACH WATERFALL (production; the driver-only gap that stopped every 8-badge run)
 # --------------------------------------------------------------------------------------------
-def ensure_waterfall_learner() -> Generator:
+def _boxed_waterfall_learners(hm07, is_hm) -> list:
+    """PIDs of BOXED mon that can take Waterfall NOW: one that already knows it, or a compatible one
+    with a non-HM slot to spend (`is_hm` is `ensure_waterfall_learner`'s own predicate). Order:
+    `boxed_hm_learner_pids` (knows it first, then level). A pure save-block read, so asking costs no
+    journey. `[]` on any read failure: a box we cannot read is a box we must not act on.
+    ⛔ Without the slot check a SATURATED boxed mon could be collected and then fail the teach.
+    """
+    from modules.story.early_game import boxed_hm_learner_pids
+    from modules.story.pc_trip import box_views
+
+    try:
+        order = boxed_hm_learner_pids(hm07)
+        by_pid = {int(m.personality_value): m for m in (box_views()[1] or []) if m is not None}
+    except Exception as error:  # noqa: BLE001 - see the docstring
+        reraise_if_aborting(error)
+        return []
+    out = []
+    for pid in order:
+        mon = by_pid.get(pid)
+        if mon is None:
+            continue
+        try:
+            knows = any(l is not None and l.move.name == "Waterfall" for l in mon.moves)
+            spendable = any(l is None or not is_hm(l) for l in mon.moves)
+        except Exception as error:  # noqa: BLE001 - one unreadable mon must not hide the others
+            reraise_if_aborting(error)
+            continue
+        if knows or spendable:
+            out.append(pid)
+    return out
+
+
+def ensure_waterfall_learner(heal_centers=()) -> Generator:
     """§Ch23 LEG 1, IN PRODUCTION. Teach HM07 from the bag if nobody knows Waterfall.
 
     ⛔⛔ THIS STEP EXISTED ONLY AS A HARNESS DRIVER. The chapter's own build spec says it:
@@ -978,6 +1010,14 @@ def ensure_waterfall_learner() -> Generator:
 
     ‼ IDEMPOTENT ON THE LIVE MOVEPOOL, never on `RECEIVED_HM_WATERFALL`: the flag and the item are
     not the same fact (`sootopolis.py:2769-2772`), and only the movepool answers "can we climb?".
+
+    ⭐ BOX-FIRST (RULING 20 Phase 1, increment B, 2026-09-27). When no PARTY member is compatible
+    AND has a slot to spend, but a BOXED one does (or already knows Waterfall), collect it on one
+    visit to `heal_centers` and teach it. The Segment 22b caller offers Sootopolis, the only centre
+    reachable from the crater without Waterfall (recon `2026-09-27-ruling20-incB-RECON.md`).
+    ⛔ The generic PC-first gate (`hm_learner_slot(item) is None`) cannot serve here: on the measured
+    shape a SATURATED Wailmer/Swampert is compatible, so that gate is False and never fires.
+    `POKEBOT_HMPCFIRST_FAULT=skipfix` disables this block; the empty default offers no centre.
     """
     # ‼ LOCAL IMPORTS, for consistency with `ensure_strength_learner` and this module's own habit.
     # ⛔ AN EARLIER VERSION OF THIS COMMENT CLAIMED A MODULE-SCOPE IMPORT "would create an import
@@ -987,7 +1027,7 @@ def ensure_waterfall_learner() -> Generator:
     # checked. ‼ A false REASON is worse than no reason: the next reader inherits it as fact.
     from modules.console import console
     from modules.items import get_item_bag
-    from modules.story.early_game import teach_hm_move
+    from modules.story.early_game import _hm_pcfirst_disarmed, _withdraw_hm_learner, teach_hm_move
 
     if field_move_carriers()["Waterfall"] is not None:
         console.print("[dim]Story: someone already knows Waterfall — teach skipped.[/]")
@@ -1022,13 +1062,38 @@ def ensure_waterfall_learner() -> Generator:
         except Exception:  # noqa: BLE001 - see above: unreadable => NOT provably spendable.
             return True
 
-    best, best_level = None, -1
-    for i, mon in enumerate(get_party()):
-        if mon is None or mon.is_egg or not mon.species.can_learn_tm_hm(hm07):
-            continue
-        spendable = any(l is None or not _is_hm(l) for l in mon.moves)
-        if spendable and mon.level > best_level:
-            best, best_level = i, mon.level
+    def _pick():
+        best, best_level = None, -1
+        for i, mon in enumerate(get_party()):
+            if mon is None or mon.is_egg or not mon.species.can_learn_tm_hm(hm07):
+                continue
+            spendable = any(l is None or not _is_hm(l) for l in mon.moves)
+            if spendable and mon.level > best_level:
+                best, best_level = i, mon.level
+        return best
+
+    best = _pick()
+    boxed: list = []
+    if best is None:
+        boxed = _boxed_waterfall_learners(hm07, _is_hm)
+    if best is None and boxed and heal_centers and not _hm_pcfirst_disarmed():
+        head = boxed[0]
+        console.print(f"[cyan]Story: no party member can take Waterfall; collecting the boxed learner "
+                      f"pid={head:08X} from the PC...[/]")
+        yield from _withdraw_hm_learner(hm07, [head], heal_centers)
+        if not any(m is not None and m.personality_value == head for m in get_party()):
+            console.print(f"[yellow]Story: the boxed Waterfall learner pid={head:08X} did NOT arrive.[/]")
+        elif field_move_carriers()["Waterfall"] is not None:
+            console.print(f"[green]Story: withdrew pid={head:08X}, which already knows Waterfall - no teach.[/]")
+            return
+        else:
+            best = _pick()
+            if best is not None and get_party()[best].personality_value != head:
+                # Only the withdrawn mon can qualify here: nobody in the party did before.
+                raise BotModeError(
+                    f"Ch23 leg 1: withdrew pid={head:08X} but the Waterfall learner picked is "
+                    f"pid={get_party()[best].personality_value:08X} - refusing to teach the wrong mon."
+                )
 
     if best is None:
         # ⛔ A NAMED REFUSAL, NOT A GENERIC FAILURE. This is the state 5 of 6 measured parties reach,
@@ -1048,12 +1113,19 @@ def ensure_waterfall_learner() -> Generator:
                 roster.append(f"{mon.species.name} L{mon.level} {moves}")
             except Exception:  # noqa: BLE001 - same reasoning one level up.
                 roster.append(f"<unreadable mon> {moves}")
+        compatible = any(m is not None and not m.is_egg and m.species.can_learn_tm_hm(hm07)
+                         for m in get_party())
+        why = ("every compatible party member has four HM moves and HMs cannot be forgotten in Gen 3 "
+               "(Move Deleter only). This is the `#24-hm07funnel` shape: `hm_learner_slot` ranks by "
+               "LEVEL alone, so in a Mudkip line Strength, Rock Smash, Surf and Dive all land on the "
+               "starter — the one mon that could also have carried Waterfall. It can only be "
+               "prevented at the ORIGINAL teach." if compatible
+               else "no party member is compatible with HM07.")
+        box_note = (f" Boxed learners: {[format(p, '08X') for p in boxed]}"
+                    + ("" if heal_centers else " (no Poké Centre offered here, so not withdrawn)")
+                    if boxed else " The box holds no usable Waterfall learner.")
         raise BotModeError(
-            "Ch23 leg 1: nobody can be taught Waterfall — every compatible party member has four "
-            "HM moves and HMs cannot be forgotten in Gen 3 (Move Deleter only). This is the "
-            "`#24-hm07funnel` shape: `hm_learner_slot` ranks by LEVEL alone, so in a Mudkip line "
-            "Strength, Rock Smash, Surf and Dive all land on the starter — the one mon that could "
-            "also have carried Waterfall. It can only be prevented at the ORIGINAL teach. "
+            f"Ch23 leg 1: nobody can be taught Waterfall — {why}{box_note} "
             f"Party: {'; '.join(roster)}"
         )
 

@@ -5658,9 +5658,12 @@ class StoryMode(BotMode):
         #     touches the party.
         #     ‼ HM07 is in the bag from §Ch21; only field USE needs BADGE08, the same
         #     flag-vs-badge split Segment 10b documents for Rock Smash.
+        from modules.map_data import PokemonCenter as _PC22b
         from modules.story.victory_road import ensure_waterfall_learner, field_move_carriers
 
-        yield from ensure_waterfall_learner()
+        # ⭐ RULING 20 increment B: Sootopolis is the only centre reachable from the crater without
+        # Waterfall, so it is where a BOXED learner is collected (recon `…-ruling20-incB-RECON.md`).
+        yield from ensure_waterfall_learner(heal_centers=(_PC22b.SootopolisCity,))
         _guard("Teach Waterfall (Ch22b)",
                lambda: field_move_carriers()["Waterfall"] is not None)
 

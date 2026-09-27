@@ -404,7 +404,8 @@ code** (`modules/story/early_game.py`'s `_hm_pcfirst_disarmed`), `nobox` in the 
 * `skipfix` — **disarm the PC-first block itself**, in production, and require that the carrier is
   NOT withdrawn.
   ⭐ Since 2026-09-27 (RULING 20 increment B) the same value also disarms the Strength site's box-first
-  in `ensure_strength_learner` (`--driver strengthbox`, `SB_EXPECT=skipfix`).
+  in `ensure_strength_learner` (`--driver strengthbox`, `SB_EXPECT=skipfix`) and the Waterfall site's in
+  `ensure_waterfall_learner` (`--driver wfboxfirst`, `WF_EXPECT=skipfix`).
 * `noegress` — aim the `H-CANCONTINUE` egress proof at `(0, 0)`, the map's top-left corner: solid
   wall, and never a warp. MEASURED 2026-09-25: `ACCEPTANCE: FAIL`, `PathFindingError` caught BY
   NAME, and `missing=['H-CANCONTINUE']` — **exactly one reading removed, the other five still

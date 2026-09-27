@@ -1,0 +1,141 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\wf\W4-ordinary-fix.log
+[setup] loaded save state post_badge8.ss1; build=sandbox
+[run] starting faithful loop for up to 20000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> WfBoxFirstMode.run   (state=OVERWORLD)
+[wfboxfirst] PRE case=ordinary expect=fix {'start': ('(0, 7)', (31, 33)), 'badges': 8, 'hm07_in_bag': True, 'box_before': [], 'hm07_compatible': ['FA51ECF3']} party=[('863B0917', 'Sceptile', 51, ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam']), ('33CB74C3', 'Zigzagoon', 19, ['Tackle', 'Growl', 'Surf', 'Headbutt']), ('0B30A747', 'Swellow', 42, ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack']), ('FA51ECF3', 'Wailmer', 40, ['Dive', 'Surf', 'Water Gun', 'Rollout']), ('5C96EA9B', 'Mightyena', 44, ['Tackle', 'Taunt', 'Take Down', 'Bite']), ('C978D14E', 'Castform', 36, ['Powder Snow', 'Weather Ball', 'Sunny Day', 'Hail'])]
+[wfboxfirst] INJECTED {'start': ('(0, 7)', (31, 33)), 'badges': 8, 'hm07_in_bag': True, 'box_before': [], 'hm07_compatible': ['FA51ECF3'], 'wailmer_moves_injected': ['Dive', 'Surf', 'Water Gun', 'Rollout'], 'box_injected': [], 'boxed_usable': [], 'expected_head': None, 'expected_learner': 'FA51ECF3', 'expected_deposit': None}
+f1138: === MOVE-LEARN/EVO WINDOW OPEN === party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+  f1138 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1139 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1140 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1141 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1142 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1143 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1144 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1145 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1146 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1147 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1148 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1149 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1150 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+f1150: === window closed === party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f1330: === MOVE-LEARN/EVO WINDOW OPEN === party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+  f1330 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1331 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1332 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1333 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1334 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1335 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1336 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1337 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1338 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1339 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1340 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1341 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1342 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1343 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1344 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1345 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1346 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1347 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1348 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1349 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1350 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1351 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1352 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1353 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1354 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1355 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1356 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1357 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1358 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1359 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1360 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1361 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1362 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1363 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1364 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1365 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1366 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1367 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1368 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1369 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1370 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1371 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1372 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1373 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1374 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1375 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1376 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1377 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1378 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1379 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1380 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1381 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1382 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1383 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1384 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1385 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1386 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1387 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1388 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1389 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1390 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1391 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=SelectMoveToReplace wfi=0 tasks=['Task_HandleReplaceMoveInput'] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+  f1392 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='WfBoxFirstMode.run' bt='NICK got $4600 for winning!'
+f1392: === window closed === party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f1869: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=WfBoxFirstMode.run bt='NICK got $4600 for winning!' scripts=[] party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[wfboxfirst] fixture RESTORED — the injection does not persist.
+[wfboxfirst] R badges = 8
+[wfboxfirst] R box_before = []
+[wfboxfirst] R box_end = []
+[wfboxfirst] R box_injected = []
+[wfboxfirst] R boxed_usable = []
+[wfboxfirst] R carriers_end = {'Surf': "(868971715, 'Zigzagoon')", 'Dive': "(4199673075, 'Wailmer')", 'Waterfall': "(4199673075, 'Wailmer')"}
+[wfboxfirst] R egress_non_adjacent = [(43, 31), (17, 29), (31, 16), (9, 6)]
+[wfboxfirst] R end = ('(0, 7)', (31, 33))
+[wfboxfirst] R expected_deposit = None
+[wfboxfirst] R expected_head = None
+[wfboxfirst] R expected_learner = 'FA51ECF3'
+[wfboxfirst] R finished = True
+[wfboxfirst] R hm07_compatible = ['FA51ECF3']
+[wfboxfirst] R hm07_in_bag = True
+[wfboxfirst] R party_end = [('863B0917', 'Sceptile', 51, ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam']), ('33CB74C3', 'Zigzagoon', 19, ['Tackle', 'Growl', 'Surf', 'Headbutt']), ('0B30A747', 'Swellow', 42, ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack']), ('FA51ECF3', 'Wailmer', 40, ['Dive', 'Surf', 'Waterfall', 'Rollout']), ('5C96EA9B', 'Mightyena', 44, ['Tackle', 'Taunt', 'Take Down', 'Bite']), ('C978D14E', 'Castform', 36, ['Powder Snow', 'Weather Ball', 'Sunny Day', 'Hail'])]
+[wfboxfirst] R start = ('(0, 7)', (31, 33))
+[wfboxfirst] R wailmer_end_moves = ['Dive', 'Surf', 'Waterfall', 'Rollout']
+[wfboxfirst] R wailmer_moves_injected = ['Dive', 'Surf', 'Water Gun', 'Rollout']
+[wfboxfirst] R waterfall_knowers = ['FA51ECF3']
+[wfboxfirst] ACTIONS withdraw_calls=[] teaches=['FA51ECF3'] deposits=[] failure=None
+[wfboxfirst] conjuncts = {'injected': True, 'no_whiteout': True, 'no_failure': True, 'finished': True, 'taught_the_expected_learner': True, 'learner_knows_waterfall': True, 'wailmer_keeps_dive_and_surf': True, 'deposit_as_predicted': True, 'can_continue': True, 'no_withdraw': True}
+[wfboxfirst] ACCEPTANCE: PASS (case=ordinary expect=fix)
+f1926: CONTROLLER -> <none>   (state=OVERWORLD)
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3268: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect'] ctrl=<none> bt='NICK got $4600 for winning!' scripts=[] party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4616: SAVED stall state #1 to stalls/repro-ml-f4616.ss1 (bt='NICK got $4600 for winning!')
+f4916: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020', (27, 36)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect', 'Task_FieldMoveShowMonOutdoors'] scripts=[] bt='NICK got $4600 for winning!' bot_mode=Manual
+f4916:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f9012: SAVED stall state #2 to stalls/repro-ml-f9012.ss1 (bt='NICK got $4600 for winning!')
+f9312: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020', (12, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=['EventScript_UseDiveUnderwater', 'Std_MsgboxDefault'] bt='NICK got $4600 for winning!' bot_mode=Manual
+f9312:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f13660: SAVED stall state #3 to stalls/repro-ml-f13660.ss1 (bt='NICK got $4600 for winning!')
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f17746: SAVED stall state #4 to stalls/repro-ml-f17746.ss1 (bt='NICK got $4600 for winning!')
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[done] ran 20000 frames; final mode=Manual party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L51: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L42: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 20002 get_party() recomputes, 67 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += wfboxfirst 20002 recomputes (party_accounting_ledger.jsonl)

@@ -22541,3 +22541,19 @@ that exits when `/tmp/sb/STOP` exists.
 **Prevention rule:** ⛔ **A multi-arm runner must check a STOP file before each arm, and must be stopped by that file,
 never by killing its task.** Before killing any process on a machine running a batch, list start times and kill only
 what started after the batch.
+
+## 2026-09-27 — ⛔ A WITHDRAW'S "WHO ARRIVED" LINE WAS COMPUTED FROM A LEVEL RANKING, NOT FROM THE PID IT ASKED FOR
+
+**Symptom** (found by the increment B recon before any run hit it; reproduced in the gate): `_withdraw_hm_learner` asked
+the PC for one PID, then printed "withdrew X (pid=…)" and returned a slot, both taken from `hm_learner_slot(item)`, the
+highest-level compatible PARTY member. With a saturated Wailmer L40 in the party, a withdrawn Marill L30 would have been
+reported as the Wailmer, and a caller trusting the slot would have taught the wrong mon.
+
+**Root cause:** the identity was DERIVED ("the best learner in the party must be the one we just added"). That holds only
+while the party had no learner before, which was true for the one caller that existed when it was written.
+
+**Fix:** the slot is the one holding the PID that was withdrawn. Gate `probe_r20_wfbox.py` W3, with a fault arm that
+rebuilds the old line from source and must fail.
+
+**Prevention rule:** ⛔ **An action's result is identified by the key the action USED, never re-derived by a ranking.**
+A ranking is a candidate; the PID sent to the PC is the attempt (rule 7).

@@ -7720,3 +7720,20 @@ Increment B's box-first for Strength, Waterfall and Fly is the planned cover.
   in the recon.
 - Plain level order for the boxed pick: it would withdraw a Swampert/Marshtomp and spend a slot on the mon that must
   later carry Waterfall.
+
+## 2026-09-27 — RULING 20 Phase 1, increment B (Waterfall): box-first INSIDE `ensure_waterfall_learner`, at Sootopolis only
+
+**Decisions** (recon: `ai-research-notes/2026-09-27-ruling20-incB-RECON.md`, site "waterfall", a NOTE):
+- (a) The box-first block lives in `ensure_waterfall_learner` and uses that function's own pick (compatible AND a non-HM
+  slot to spend). A boxed mon qualifies if it already knows Waterfall or has a spendable slot
+  (`_boxed_waterfall_learners`).
+- (b) Segment 22b offers `(SootopolisCity,)`: the only centre reachable from the crater without Waterfall.
+- (c) `_withdraw_hm_learner` returns and names the slot of the PID it was asked for, not `hm_learner_slot(item)`.
+- (d) `POKEBOT_HMPCFIRST_FAULT=skipfix` disarms this site too; no new arm.
+
+**Rejected:**
+- Routing Waterfall through the generic `ensure_hm_learner_making_room`: its gate is `hm_learner_slot(item) is None`, which
+  is False whenever a SATURATED compatible mon is in the party. That is 5 of the 6 measured 8-badge parties, so the
+  generic path would never fire where it matters.
+- Mossdeep or Ever Grande as centres: the planner refuses both from the crater, and Ever Grande's centre is above the
+  waterfall (circular).

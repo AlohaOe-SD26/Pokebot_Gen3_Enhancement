@@ -271,6 +271,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 1 (B), Strength — a BOXED HM04 learner is collected at the Magma haul's heal stops (the
     # HM07-incapable one first); the in-hideout caller stays party-only. Behaviour with stubs + wiring; 4 fault arms.
     ("probe_r20_strengthbox.py", False),
+    # ⛔ USER RULING 20 Phase 1 (B), Waterfall — box-first inside ensure_waterfall_learner (the generic gate never fires
+    # on a SATURATED compatible learner), and _withdraw_hm_learner names the PID it was asked for. 3 fault arms.
+    ("probe_r20_wfbox.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

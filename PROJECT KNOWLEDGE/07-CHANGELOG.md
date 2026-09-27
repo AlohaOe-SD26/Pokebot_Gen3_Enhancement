@@ -36234,3 +36234,34 @@ Harness: its `ManualBotMode` stub gained the `on_pokenav_call` hook (post-verdic
 and filled two evidence logs to 8 MB; those were truncated after the verdict, with a marker).
 Gate `probe_r20_strengthbox.py` (behaviour with stubs, the box order, the wiring; 4 fault arms). Suite 109 (105
 enforcing + 4 advisory; `--quick` 96).
+
+## 2026-09-27 — RULING 20 PHASE 1, INCREMENT B (WATERFALL): BOX-FIRST INSIDE `ensure_waterfall_learner` (branch `wt/r20phase1`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** On the measured 8-badge shape the only Waterfall-compatible party member is SATURATED with four HMs. The generic
+PC-first gate (`hm_learner_slot(item) is None`) is False there, so a usable learner in the PC was never collected and
+§Ch23 leg 1 raised. The refusal also said "every compatible party member has four HM moves" when none was compatible.
+
+**WHAT.**
+- `ensure_waterfall_learner(heal_centers=())`: no spendable party learner + a usable boxed one
+  (`_boxed_waterfall_learners`: knows it, or compatible with a spendable slot) + centres offered ⇒ one visit, the head
+  PID asserted, then the teach (none if it already knows Waterfall).
+- Segment 22b offers `(SootopolisCity,)`.
+- The refusal separates "no compatible member" from "all saturated" and says what the box check found.
+- `_withdraw_hm_learner` returns and names the slot of the PID it was asked for (it used `hm_learner_slot`, which names
+  the higher-level saturated mon here).
+
+**PROOF** (predictions `4f410744`, filed first; `ai-research-notes/2026-09-27-r20wfbox-GRADED.md`). `--driver wfboxfirst` on `post_badge8.ss1`, by PID:
+- saturated/fix: Marill withdrawn and taught, Zigzagoon deposited, Wailmer kept Dive and Surf;
+- saturated/skipfix and nobox: named refusals, nothing moved;
+- ordinary: Wailmer taught with no PC visit;
+- ordbox: Wailmer taught, Marill stayed boxed;
+- `--driver hmpcfirst` (default arm): still PASS, the rule-9 check on the generic path.
+
+Gate `probe_r20_wfbox.py` (3 fault arms, one rebuilding the old identity from source). Suite 110 (106 enforcing + 4
+advisory; `--quick` 97).
+⚠ **The adversarial review found that 22 gate scripts hardcode the MAIN checkout's path**, so from this worktree
+they graded `main`, not the branch. That blind spot let an inverted range citation this item introduced
+(`03:839`, `victory_road.py:2142-2082`) pass. It was fixed to `2142-2154` and re-checked with the one Tier 0
+gate among the 22 (`probe_citation_ranges`) pointed at the worktree by hand. The scripts themselves are fixed
+in the next commit. Review note also recorded in code: `_withdraw_hm_learner` matches by PID only, which is
+safe today because Shedinja/Ninjask (one PID, KI-78) can learn none of the HMs routed through it.

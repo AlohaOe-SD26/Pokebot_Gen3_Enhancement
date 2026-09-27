@@ -1,0 +1,50 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\wf\W2-saturated-skipfix.log
+Running mGBA 0.10.2
+[setup] loaded save state post_badge8.ss1; build=sandbox
+[run] starting faithful loop for up to 4000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> WfBoxFirstMode.run   (state=OVERWORLD)
+[wfboxfirst] PRE case=saturated expect=skipfix {'start': ('(0, 7)', (31, 33)), 'badges': 8, 'hm07_in_bag': True, 'box_before': [], 'hm07_compatible': ['FA51ECF3']} party=[('863B0917', 'Sceptile', 51, ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam']), ('33CB74C3', 'Zigzagoon', 19, ['Tackle', 'Growl', 'Surf', 'Headbutt']), ('0B30A747', 'Swellow', 42, ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack']), ('FA51ECF3', 'Wailmer', 40, ['Dive', 'Surf', 'Water Gun', 'Rollout']), ('5C96EA9B', 'Mightyena', 44, ['Tackle', 'Taunt', 'Take Down', 'Bite']), ('C978D14E', 'Castform', 36, ['Powder Snow', 'Weather Ball', 'Sunny Day', 'Hail'])]
+[wfboxfirst] INJECTED {'start': ('(0, 7)', (31, 33)), 'badges': 8, 'hm07_in_bag': True, 'box_before': [], 'hm07_compatible': ['FA51ECF3'], 'wailmer_moves_injected': ['Dive', 'Surf', 'Cut', 'Flash'], 'box_injected': ['881111D2'], 'boxed_usable': ['881111D2'], 'expected_head': '881111D2', 'expected_learner': '881111D2', 'expected_deposit': None}
+[wfboxfirst] fixture RESTORED — the injection does not persist.
+[wfboxfirst] R badges = 8
+[wfboxfirst] R box_before = []
+[wfboxfirst] R box_end = ['881111D2']
+[wfboxfirst] R box_injected = ['881111D2']
+[wfboxfirst] R boxed_usable = ['881111D2']
+[wfboxfirst] R carriers_end = {'Surf': "(868971715, 'Zigzagoon')", 'Dive': "(4199673075, 'Wailmer')", 'Waterfall': None}
+[wfboxfirst] R egress_non_adjacent = [(43, 31), (17, 29), (31, 16), (9, 6)]
+[wfboxfirst] R end = ('(0, 7)', (31, 33))
+[wfboxfirst] R expected_deposit = None
+[wfboxfirst] R expected_head = '881111D2'
+[wfboxfirst] R expected_learner = '881111D2'
+[wfboxfirst] R hm07_compatible = ['FA51ECF3']
+[wfboxfirst] R hm07_in_bag = True
+[wfboxfirst] R party_end = [('863B0917', 'Sceptile', 51, ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam']), ('33CB74C3', 'Zigzagoon', 19, ['Tackle', 'Growl', 'Surf', 'Headbutt']), ('0B30A747', 'Swellow', 42, ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack']), ('FA51ECF3', 'Wailmer', 40, ['Dive', 'Surf', 'Cut', 'Flash']), ('5C96EA9B', 'Mightyena', 44, ['Tackle', 'Taunt', 'Take Down', 'Bite']), ('C978D14E', 'Castform', 36, ['Powder Snow', 'Weather Ball', 'Sunny Day', 'Hail'])]
+[wfboxfirst] R start = ('(0, 7)', (31, 33))
+[wfboxfirst] R wailmer_end_moves = ['Dive', 'Surf', 'Cut', 'Flash']
+[wfboxfirst] R wailmer_moves_injected = ['Dive', 'Surf', 'Cut', 'Flash']
+[wfboxfirst] R waterfall_knowers = []
+[wfboxfirst] ACTIONS withdraw_calls=[] teaches=[] deposits=[] failure=BotModeError: Ch23 leg 1: nobody can be taught Waterfall — every compatible party member has four HM moves and HMs cannot be forgotten in Gen 3 (Move Deleter only). This is the `#24-hm07funnel` shape: `hm_learner_slot` ranks by LEVEL alone, so in a Mudkip line Strength, Rock Smash, Surf and Dive all land on the starter — the one mon that could also have carried Waterfall. It can only be prevented at the ORIGINAL teach. Boxed learners: ['881111D2'] Party: Sceptile L51 ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam']; Zigzagoon L19 ['Tackle', 'Growl', 'Surf', 'Headbutt']; Swellow L42 ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack']; Wailmer L40 ['Dive', 'Surf', 'Cut', 'Flash']; Mightyena L44 ['Tackle', 'Taunt', 'Take Down', 'Bite']; Castform L36 ['Powder Snow', 'Weather Ball', 'Sunny Day', 'Hail']
+[wfboxfirst] conjuncts = {'injected': True, 'no_whiteout': True, 'refused': True, 'refusal_says_saturated': True, 'refusal_names_the_box': True, 'no_withdraw': True, 'no_deposit': True, 'no_teach': True, 'no_trip': True, 'box_unchanged': True}
+[wfboxfirst] ACCEPTANCE: PASS (case=saturated expect=skipfix)
+f35: CONTROLLER -> <none>   (state=OVERWORLD)
+f1617: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect'] ctrl=<none> bt='NICK got $4600 for winning!' scripts=[] party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3898: SAVED stall state #1 to stalls/repro-ml-f3898.ss1 (bt='NICK got $4600 for winning!')
+[done] ran 4000 frames; final mode=Manual party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L51: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L42: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 4002 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += wfboxfirst 4002 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-27_11
+-20-00.ss1 created!
+Updated `current_state.ss1`!

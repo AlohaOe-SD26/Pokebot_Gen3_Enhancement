@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -23647,6 +23647,229 @@ class StrengthBoxMode(BotMode):
         context.set_manual_mode()
 
 
+class WfBoxFirstMode(BotMode):
+    """`--driver wfboxfirst` — RULING 20 Phase 1, increment B (Waterfall): production `ensure_waterfall_learner` with
+    Sootopolis offered (the Segment 22b caller's centre), on `post_badge8.ss1` (PINNED; SOOTOPOLIS_CITY (31,33); only
+    Wailmer FA51ECF3 can learn HM07).
+
+    `WF_CASE`:
+      `saturated` (default) — Wailmer rebuilt with [Dive, Surf, Cut, Flash] (compatible but SATURATED, the measured
+                  `#24-hm07funnel` shape: the generic gate never fires on it); a created Marill L30 boxed. Fix: Marill
+                  withdrawn and taught; the one deposit is the make-room victim computed BEFORE the run; Wailmer keeps
+                  Dive and Surf. `WF_EXPECT=skipfix` + `POKEBOT_HMPCFIRST_FAULT=skipfix`: a refusal naming Marill, nothing
+                  moves, no trip.
+      `nobox`     — saturated Wailmer, nothing boxed: a refusal that says the box holds no usable learner; no trip.
+      `ordinary`  — the untouched fixture: Wailmer taught from the party; no withdraw (the ordinary path, rule 9).
+      `ordbox`    — the untouched fixture + Marill boxed: Wailmer still taught from the party; Marill stays boxed.
+    Graded by PID on the recorded ACTIONS (`_withdraw_hm_learner`, `teach_hm_move`, `PCAction.deposit_pokemon_to_box`).
+    Predictions: `ai-research-notes/2026-09-27-r20wfbox-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "WfBoxFirst"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[wfboxfirst] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+        from types import SimpleNamespace
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot, debug_write_party
+        from modules.items import get_item_bag
+        from modules.map import get_map_data_for_current_position
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.modes.util import pc_interaction as _pci
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.pokemon import LearnedMove, get_move_by_name, get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+        from modules.story import pc_trip as _pt
+        from modules.story import victory_road as VR
+
+        TAG = "wfboxfirst"
+        CASE = _os.environ.get("WF_CASE", "saturated")
+        EXPECT = _os.environ.get("WF_EXPECT", "fix")
+        if CASE not in ("saturated", "nobox", "ordinary", "ordbox") or EXPECT not in ("fix", "skipfix"):
+            raise BotModeError(f"{TAG}: WF_CASE={CASE!r} / WF_EXPECT={EXPECT!r} not recognised")
+        WAILMER = 0xFA51ECF3
+        deposits: list = []
+        teaches: list = []
+        withdraw_calls: list = []
+        R: dict = {}
+        failure = None
+        marill_pid = None
+        real_deposit = _pci.PCAction.deposit_pokemon_to_box
+        real_teach = EG.teach_hm_move
+        real_withdraw = EG._withdraw_hm_learner
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        def _rec_deposit(pokemon, target_box=None):
+            deposits.append(pokemon.personality_value)
+            return real_deposit(pokemon, target_box)
+
+        def _rec_teach(item, party_index, replace_slot=None):
+            teaches.append(get_party()[party_index].personality_value)
+            return (yield from real_teach(item, party_index, replace_slot))
+
+        def _rec_withdraw(item, pids, heal_centers):
+            withdraw_calls.append([int(p) for p in pids])
+            return (yield from real_withdraw(item, pids, heal_centers))
+
+        def _box():
+            return [int(m.personality_value) for m in (_pt.box_views()[1] or []) if m is not None]
+
+        def _where():
+            av = get_player_avatar()
+            return (str(av.map_group_and_number), tuple(av.local_coordinates))
+
+        def _moves(m):
+            return [l.move.name for l in m.moves if l is not None]
+
+        try:
+            yield from EG.wait_until_truly_controllable()
+            party = [m for m in get_party() if m is not None]
+            by_pid = {m.personality_value: m for m in party}
+            hm07 = next((s.item for s in get_item_bag().tms_hms if s.item.name == "HM07"), None)
+            R["start"] = _where()
+            R["badges"] = _pt.badge_count()
+            R["hm07_in_bag"] = hm07 is not None
+            R["box_before"] = _box()
+            R["hm07_compatible"] = [f"{m.personality_value:08X}" for m in party
+                                    if hm07 is not None and m.species.can_learn_tm_hm(hm07)]
+            premise = (R["start"][0] == str(MapRSE.SOOTOPOLIS_CITY.value) and R["badges"] == 8 and R["hm07_in_bag"]
+                       and R["box_before"] == [] and R["hm07_compatible"] == [f"{WAILMER:08X}"])
+            log(f"[{TAG}] PRE case={CASE} expect={EXPECT} {R} party="
+                f"{[(f'{m.personality_value:08X}', m.species.name, m.level, _moves(m)) for m in party]}")
+            if not premise:
+                raise BotModeError(f"{TAG}: FIXTURE PREMISE FAILED ({R}) — this is not post_badge8.")
+
+            # ---- INJECT ------------------------------------------------------------------------------------------
+            if CASE in ("saturated", "nobox"):
+                w = by_pid[WAILMER]
+                sat = debug_create_pokemon(species=w.species, level=w.level, original_pokemon=w, moves=[
+                    LearnedMove.create(get_move_by_name(n)) for n in ("Dive", "Surf", "Cut", "Flash")])
+                debug_write_party([sat if m.personality_value == WAILMER else SimpleNamespace(data=m.data)
+                                   for m in party])
+                yield from wait_for_n_frames(2)
+            if CASE in ("saturated", "ordbox"):
+                marill = debug_create_pokemon(species=get_species_by_name("Marill"), level=30)
+                debug_write_box_slot(marill, slot_index=0)
+                yield from wait_for_n_frames(2)
+                marill_pid = marill.personality_value
+            now = [m for m in get_party() if m is not None]
+            R["wailmer_moves_injected"] = _moves(next(m for m in now if m.personality_value == WAILMER))
+            R["box_injected"] = [format(p, "08X") for p in _box()]
+            R["boxed_usable"] = [format(p, "08X") for p in VR._boxed_waterfall_learners(hm07, lambda l: (
+                l.move.tm_hm is not None and l.move.tm_hm.name.startswith("HM")))]
+            if (marill_pid is not None) != bool(R["box_injected"]):
+                raise BotModeError(f"{TAG}: INJECTION FAILED — box holds {R['box_injected']}.")
+            R["expected_head"] = format(marill_pid, "08X") if CASE == "saturated" else None
+            R["expected_learner"] = R["expected_head"] if CASE == "saturated" else (
+                f"{WAILMER:08X}" if CASE in ("ordinary", "ordbox") else None)
+            if CASE == "saturated" and EXPECT == "fix" and len(now) >= 6:
+                v = _pt.make_room_victim(now, exclude_pids=[marill_pid], required=True,
+                                         protected=_pt.deposit_protected_pids())
+                R["expected_deposit"] = None if v is None else format(v[0].personality_value, "08X")
+            else:
+                R["expected_deposit"] = None
+            log(f"[{TAG}] INJECTED {R}")
+
+            _pci.PCAction.deposit_pokemon_to_box = _rec_deposit
+            EG.teach_hm_move = _rec_teach
+            EG._withdraw_hm_learner = _rec_withdraw
+            R["finished"] = yield from EG._yield_bounded_by_frames(
+                VR.ensure_waterfall_learner(heal_centers=(PokemonCenter.SootopolisCity,)), 60_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            EG.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _pci.PCAction.deposit_pokemon_to_box = real_deposit
+            EG.teach_hm_move = real_teach
+            EG._withdraw_hm_learner = real_withdraw
+
+        try:
+            party_end = {m.personality_value: m for m in get_party() if m is not None}
+            R["party_end"] = [(f"{p:08X}", m.species.name, m.level, _moves(m)) for p, m in party_end.items()]
+            R["box_end"] = [format(p, "08X") for p in _box()]
+            R["waterfall_knowers"] = [f"{p:08X}" for p, m in party_end.items() if "Waterfall" in _moves(m)]
+            R["wailmer_end_moves"] = _moves(party_end[WAILMER]) if WAILMER in party_end else None
+            R["carriers_end"] = {k: (None if v is None else str(v)) for k, v in VR.field_move_carriers().items()}
+            R["end"] = _where()
+            md = get_map_data_for_current_position()
+            here = tuple(get_player_avatar().local_coordinates)
+            far = []
+            for wp in (md.warps or []):
+                t = tuple(wp.local_coordinates)
+                if max(abs(t[0] - here[0]), abs(t[1] - here[1])) <= 1:
+                    continue
+                try:
+                    calculate_path((md.map_group_and_number, here), (md.map_group_and_number, t))
+                    far.append(t)
+                except PathFindingError:
+                    continue
+            R["egress_non_adjacent"] = far[:4]
+        except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+            EG.reraise_if_aborting(read_error)
+            R["read_error"] = f"{type(read_error).__name__}: {read_error}"
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — the injection does not persist.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        hx = lambda ps: [format(p, "08X") for p in ps]  # noqa: E731
+        log(f"[{TAG}] ACTIONS withdraw_calls={[hx(c) for c in withdraw_calls]} teaches={hx(teaches)} "
+            f"deposits={hx(deposits)} failure={failure}")
+        base = {"injected": "box_injected" in R and "read_error" not in R,
+                "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if CASE == "nobox" or EXPECT == "skipfix":
+            conj = {**base, "refused": failure is not None and "nobody can be taught Waterfall" in failure,
+                    "refusal_says_saturated": failure is not None and "four HM moves" in failure,
+                    "refusal_names_the_box": failure is not None and (
+                        (R.get("expected_head") or "") in failure if CASE == "saturated"
+                        else "holds no usable Waterfall learner" in failure),
+                    "no_withdraw": withdraw_calls == [], "no_deposit": deposits == [], "no_teach": teaches == [],
+                    "no_trip": R.get("end") == R.get("start"),
+                    "box_unchanged": sorted(R.get("box_end", [])) == sorted(R.get("box_injected", [None]))}
+        else:
+            conj = {**base, "no_failure": failure is None, "finished": R.get("finished") is True,
+                    "taught_the_expected_learner": hx(teaches) == [R.get("expected_learner")],
+                    "learner_knows_waterfall": R.get("expected_learner") in R.get("waterfall_knowers", []),
+                    "wailmer_keeps_dive_and_surf": {"Dive", "Surf"} <= set(R.get("wailmer_end_moves") or []),
+                    "deposit_as_predicted": hx(deposits) == ([R["expected_deposit"]] if R.get("expected_deposit")
+                                                             else []),
+                    "can_continue": bool(R.get("egress_non_adjacent"))}
+            if CASE == "saturated":
+                conj["withdrew_the_head_only"] = [hx(c) for c in withdraw_calls] == [[R.get("expected_head")]]
+                conj["head_in_party_and_gone_from_box"] = (
+                    R.get("expected_head") in [p for p, *_r in R.get("party_end", [])]
+                    and R.get("expected_head") not in R.get("box_end", []))
+            else:
+                conj["no_withdraw"] = withdraw_calls == []
+                if CASE == "ordbox":
+                    conj["marill_still_boxed"] = format(marill_pid or 0, "08X") in R.get("box_end", [])
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE} expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27934,6 +28157,8 @@ for step in range(args.frames):
             context.bot_mode_instance = R20MakeRoomMode()
         elif args.driver == "strengthbox":
             context.bot_mode_instance = StrengthBoxMode()
+        elif args.driver == "wfboxfirst":
+            context.bot_mode_instance = WfBoxFirstMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":
