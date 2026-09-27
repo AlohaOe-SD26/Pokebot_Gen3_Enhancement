@@ -22322,3 +22322,15 @@ with work the trailing `` was doing. The ceiling was invisible until the quanti
 **Fix:** `\d{1,3}`; self-tests with a literal 3-digit count.
 **Prevention rule:** ⛔ **A gate's pattern must not cap the size of the thing it counts** — and when a comment explains why a
 limit is safe, test the explanation (here, a D1g-style case already proved the boundary, not the width, did the work).
+
+## 2026-09-26 — ⛔ A HELPER PROVEN BROKEN WAS FIXED IN ONE CALLER AND LEFT IN THE OTHER FOR THREE WEEKS
+
+**Symptom:** 9 of 87 live HM teaches used the wrong HM (HM06 instead of HM03/HM07) — a permanent stray HM slot, a hard
+cap and a derail each.
+**Root cause:** on 2026-09-05 upstream `scroll_to_item_in_bag` was MEASURED landing on the wrong item (the Ice Beam teach
+used Dive). The fix, `scroll_to_tm_verified`, went into `pokemon_league.teach_move_from_bag` only; the story's own HM
+teach (`early_game.teach_hm_move`) kept calling the broken helper. The mechanism, now proven: the game sorts the TM/HM
+pocket when the bag opens, and the helper counts the unsorted stored order.
+**Fix:** `teach_hm_move` uses the verified scroll; A/B on `norman_done.ss1` (whose stored pocket is unsorted).
+**Prevention rule:** ⛔ **When a shared helper is proven broken, GREP EVERY CALLER the same day** — fixing the caller you
+were debugging leaves the others shipping the bug.

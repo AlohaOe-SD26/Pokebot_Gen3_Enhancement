@@ -5304,7 +5304,39 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     yield from normalize_to_overworld()
     yield from wait_until_truly_controllable()
     yield from StartMenuNavigator("BAG").step()
-    yield from scroll_to_item_in_bag(item)
+    # ⛔⛔ `#26-hmwrongitem` (2026-09-26): THE CURSOR MUST BE PROVEN ON THE HM BEFORE A IS PRESSED.
+    # MEASURED in the live batch (Claude log forensics): 9 of 87 HM teaches used **HM06 Rock Smash** instead of
+    # HM03 / HM07 — the Surf/Waterfall target learned Rock Smash (a PERMANENT, unforgettable slot), the ride ran to its
+    # 9,000-frame hard cap, the story derailed ("Teach flow finished but Marshtomp does not know Surf", 7 runs) and the
+    # retry then taught the right HM on top. Upstream `scroll_to_item_in_bag` computes the slot from the pocket as it
+    # sits in memory, but the game SORTS the TM/HM pocket when the bag opens — right after an HM is received the pocket
+    # is unsorted (e.g. `norman_done.ss1`: [TM08, TM34, TM39, TM47, HM06, TM50, HM04, TM42, HM03]), so the index it
+    # scrolls to holds a different item once sorted. `pokemon_league.scroll_to_tm_verified` reads the cursor and the
+    # LIVE pocket after the scroll, corrects it closed-loop, and REFUSES (BotModeError) rather than press A on anything
+    # else — the fix the Ice Beam teach needed for the same helper on 2026-09-05. The skip-the-fix arm
+    # `POKEBOT_HMTEACH_FAULT_UNVERIFIED=1` restores the old scroll (registered in 29).
+    if os.environ.get("POKEBOT_HMTEACH_FAULT_UNVERIFIED") == "1":
+        yield from scroll_to_item_in_bag(item)
+    else:
+        from modules.story.pokemon_league import scroll_to_tm_verified
+
+        try:
+            yield from scroll_to_tm_verified(item)
+        except BotModeError as refusal:
+            # The bag is OPEN here, and neither the derail recovery nor the watchdog can close a bag. The SAME close as
+            # this function's menus-closed guarantee below: B out (bounded), let the overworld settle, and if the menus
+            # are STILL open say so distinctly — a false-positive break must not pass as the original refusal (review).
+            for _ in range(600):
+                if get_game_state() is GameState.OVERWORLD and not _menu_task_active() \
+                        and player_avatar_is_controllable():
+                    break
+                context.emulator.press_button("B")
+                yield
+                yield
+            yield from wait_until_truly_controllable()
+            if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
+                raise BotModeError(f"Teach flow: could not close the bag after the cursor refusal ({refusal}).")
+            raise
 
     def _tasks() -> set:
         try:

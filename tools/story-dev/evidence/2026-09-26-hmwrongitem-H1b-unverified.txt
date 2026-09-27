@@ -1,0 +1,44 @@
+[setup] LOG -> evidence\2026-09-26-hmwrongitem-H1b-unverified.log
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> TeachFullMode.run   (state=OVERWORLD)
+[teachfull] HANDOFF-STATE controllable=True cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems
+[teachfull] HANDOFF-STATE message_task_active=False tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain']
+[teachfull] item=HM04 teaches Strength
+[teachfull] bag holds 1x HM04
+[teachfull] party — ['0:Shedinja moves=4 compat=False knows=False', '1:Blaziken moves=4 compat=True knows=False', '2:Mightyena moves=4 compat=True knows=False', '3:Ninjask moves=4 compat=False knows=False', '4:Loudred moves=4 compat=True knows=False']
+[teachfull] selection: min_moves=4 want_slot=None
+[teachfull] target=slot 1 Blaziken L36 moves=['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']
+f2000: heartbeat mode=Story ctrl=TeachFullMode.run state=BAG_MENU party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2343: SAVED stall state #1 to stalls/repro-ml-f2343.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+f2643: !!! NO-PROGRESS x1200 sig=('TeachFullMode.run', 'BAG_MENU', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (7, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f2643:     gen -> TeachFullMode.run  @ story_harness.py:2292
+f2643:     gen -> teach_hm_move  @ early_game.py:5844
+f4000: heartbeat mode=Story ctrl=TeachFullMode.run state=BAG_MENU party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4443: !!! NO-PROGRESS x3000 sig=('TeachFullMode.run', 'BAG_MENU', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (7, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f4443:     gen -> TeachFullMode.run  @ story_harness.py:2292
+f4443:     gen -> teach_hm_move  @ early_game.py:5844
+f6000: heartbeat mode=Story ctrl=TeachFullMode.run state=BAG_MENU party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f8000: heartbeat mode=Story ctrl=TeachFullMode.run state=BAG_MENU party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f9443: !!! NO-PROGRESS x8000 sig=('TeachFullMode.run', 'BAG_MENU', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (7, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_CallYesOrNoCallback', 'ListMenuDummyTask'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f9443:     gen -> TeachFullMode.run  @ story_harness.py:2292
+f9443:     gen -> teach_hm_move  @ early_game.py:5844
+f10000: heartbeat mode=Story ctrl=TeachFullMode.run state=BAG_MENU party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f10559: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=TeachFullMode.run bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[teachfull] teach_hm_move RAISED BotModeError: Teach flow finished but Blaziken does not know Strength.
+[teachfull] RESULT learned=False target=Blaziken replaced=[] before=['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash'] after=['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']
+[teachfull] ‼ Read the `TEACH EXIT` / `TEACH OK` lines in the debug log for the exit reason, ride_frames and stall_peak.
+f10617: CONTROLLER -> <none>   (state=OVERWORLD)
+f10673: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=<none> bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f10617 — ending the loop at f10737
+[done] ran 10738 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 10738 get_party() recomputes, 36 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += teachfull 10738 recomputes (party_accounting_ledger.jsonl)

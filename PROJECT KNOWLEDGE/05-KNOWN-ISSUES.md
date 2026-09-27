@@ -510,7 +510,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:7036`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:7068`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:455`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
@@ -2472,7 +2472,7 @@ counted — the closed-loop reader already exists at `battle_move_replacing.py:5
 task list ONCE catches the transient. ⇒ **a one-frame sample is not a contract.**
 
 
-## `KI-89` — ⛔⛔ `scroll_to_item_in_bag` RETURNS SUCCESS WITH THE CURSOR ON THE WRONG ITEM (upstream helper; MEASURED 2026-09-05, NOT fixed, ROUTED AROUND)
+## `KI-89` — ⛔⛔ `scroll_to_item_in_bag` RETURNS SUCCESS WITH THE CURSOR ON THE WRONG ITEM (upstream helper; MEASURED 2026-09-05 AND 2026-09-26 — MECHANISM FOUND: the game SORTS the TM/HM pocket when the bag opens, the helper counts the STORED order; NOT fixed upstream, ROUTED AROUND in BOTH teach paths — the story HM teach since 2026-09-26, KI-105)
 
 **Severity: HIGH and SILENT.** It does not raise, does not warn, and does not look wrong from the
 outside. The caller then presses A on whatever the cursor happens to be sitting on.
@@ -2497,6 +2497,7 @@ used items whose two indices COINCIDE. TM13 is the first item this save acquired
 `use_item_from_bag` inherits it: healing, Repels, Escape Ropes, evolution stones. The visible symptom
 differs per caller and can be a NO-OP rather than an error (using the wrong potion still "works").
 ⚠ **NOT yet measured for those callers** — this KI records what one run proved, not a sweep.
+✅ **MEASURED 2026-09-26 for one more caller — the story's own HM teach (`early_game.teach_hm_move`), where it had used the WRONG HM in 9 of 87 live teaches (KI-105). THE MECHANISM, proven by an A/B on `norman_done.ss1`:** the TM/HM pocket is unsorted in memory right after an item is received, the game sorts it as the bag opens, and this helper counts the STORED order — which is also exactly the TM13 → HM08 case above (TM13 was acquired out of order). Routed around there too (`scroll_to_tm_verified`). ⚠ The sort is (per a decomp read, a note) applied to the TM/HM and Berry pockets only, so the ITEMS-pocket callers are PROBABLY unaffected by this mechanism — still unmeasured.
 
 **NOT FIXED UPSTREAM — A CASE-BY-CASE CALL, NOT A RULING.** ⛔ *(This read "same ruling as `KI-88`" until 2026-09-05. **There is no such ruling** — `KI-88` in turn cited `KI-83`, and nothing at the bottom of that chain was ever decided; see `06-DECISIONS-LOG.md` 2026-09-05. This is a ROOT LINK of the chain that entry retracts, and it was left standing for one revision after the entries citing it were fixed.)* The reason below is this defect's OWN reason and stands on its own: `modules/menuing.py` is a shared file
 every chapter depends on, and a partial fix to its sibling hung a drive on 2026-09-05. Routed around
@@ -2923,15 +2924,35 @@ gate `probe_league_reserve.py` R7.
 RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide
 the same latent over-block; Sootopolis's own script moves several (`:57-60`, `:104-117`).
 
-## KI-104 — ⚠ AGENT-MEASURED, NOT YET VERIFIED BY ME: the production HM teach's "weakest move" rule deletes a mon's ONLY move of a type, and 7 hard-capped teaches logged an HM as the slot to replace (2026-09-26)
+## KI-104 — ⚠ OPEN, NOW VERIFIED (2026-09-26 night): the production HM teach's "weakest raw power" slot rule deletes a mon's ONLY non-HM move of a type — the "hard caps with an HM at replace_slot" half of the first filing was a MISREADING, split out as KI-105
 
-**What (agent log forensics of the live batch `#26-batch0926`, a NOTE until re-verified):** `early_game.teach_hm_move`
-with `replace_slot=None` forgets an empty slot, else a 0-power move, else the LOWEST raw base power — it ignores STAB and
-type coverage. Measured 4 times this batch: the Rock Smash teach deleted Combusken's Double Kick (its only Fighting move;
-37-70 uses before, 0 after — P1 r2, r4, r5 and P4 r5). Separately, 16 of 87 teach episodes hit their hard cap, and in 7 of
-those the logged `replace_slot` points at Rock Smash, an HM the game refuses to forget (root cause UNVERIFIED).
-**Why it matters:** RULING 19's TM teach must not reuse this rule; and the HM teaches themselves may be quietly weakening
-the team (Double Kick) and burning frames (the capped episodes).
-**Next:** re-verify from the logs (`endless-P*/debug-logs/*20260926*`), then a driven fix that reuses the story learn
-policy (`LevelUpTravelBattleStrategy.which_move_should_be_replaced`: never an HM, keeps type coverage) — see
-`ai-research-notes/2026-09-26-rulings19-20-PLAN.md`.
+**What (re-verified by a 3-agent recon of the day's batch logs, and seen LIVE in a drive):** `early_game.teach_hm_move`
+with `replace_slot=None` skips HM slots, then takes an empty slot, a 0-power move, else the LOWEST raw `base_power` — no
+STAB, type or multi-hit weighting. Live cases: Combusken lost Double Kick to Rock Smash (5 runs; Fighting survives only
+via the HM); Blaziken lost Double Kick to Strength (no Fighting move left until Sky Uppercut at L59); Swampert lost
+Earthquake to Waterfall (5 runs — its other slots were HMs); Surf deleted Marshtomp's Mud Shot (its only Ground move)
+while keeping the weaker Muddy Water; Strength deleted Machoke's Low Kick (stored as power 1). The `#26-hmwrongitem`
+A/B drive also shows it: Strength replaced Blaziken's Double Kick on `norman_done.ss1`.
+‼ **Corrected:** the first filing said "7 hard-capped teaches logged an HM as the slot to replace". Wrong — the picker never
+chooses an HM; those were a WRONG-ITEM teach (HM06 used instead of HM03/HM07) that wrote Rock Smash into a correctly
+chosen slot. That is **KI-105**, a different bug with a different fix.
+**Why it matters:** the lost move is permanent and the level-up policy then LOCKS the type out (it counts the HM as
+coverage and declines later same-type moves).
+**Next (the invariants a fix must satisfy — adversarial recon, a NOTE):** a TOTAL picker — for any learner with a non-HM
+move it returns 0-3, never None, never 4 (do NOT reuse `which_move_should_be_replaced`: it DECLINEs Fly/Dive/Flash and
+this very case); HM slots excluded FIRST; type protection as SOFT tiers, never a refusal (callers pre-select learners
+assuming any non-HM slot is spendable); the INCOMING HM counts as a dominator (Surf dominates Muddy Water); an HM must
+never make a non-HM move of its type expendable (counting Rock Smash as Fighting coverage re-creates this bug); special-
+case power-1 and multi-hit moves. Gate rows from the live shapes; then a driven A/B.
+
+## KI-105 — ✅ FIXED ON BRANCH `wt/ch24organic` (2026-09-26 night), A/B-PROVEN: the HM teach used the WRONG HM — the game SORTS the TM/HM pocket when the bag opens, and the upstream scroll counted the unsorted order (`#26-hmwrongitem`)
+
+**What:** 9 of 87 live HM teaches taught **HM06 Rock Smash** to a Surf/Waterfall target — a permanent, unforgettable slot,
+a 9,000-frame hard cap and a derail each (`Teach flow finished but Marshtomp does not know Surf`, 7 runs); the retry then
+taught the right HM on top. `teach_hm_move` scrolled with upstream `scroll_to_item_in_bag`, which computes the slot from
+the pocket AS STORED; right after an HM is received that pocket is unsorted, and the game sorts it as the bag opens.
+**Proof (a pinned fixture whose stored pocket is unsorted):** `norman_done.ss1`, HM04: the old scroll landed on HM03 —
+nothing learned; the fix printed `upstream left the cursor on slot 6 (HM03); correcting to slot 7 (HM04)` and taught
+Strength. The fix is the verified scroll the Ice Beam teach already used (`scroll_to_tm_verified`); a refusal closes the
+bag and re-raises. **Remaining:** merges with the branch; the batch after the merge should show 0 `does not know Surf`
+derails from this cause.

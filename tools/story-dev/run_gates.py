@@ -244,6 +244,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 0 — a post-gym-1 Pokédex catch is not STARTED above ~10 expected throws (Gen 3's own catch
     # arithmetic, from the decomp), and the fence logs each SPECIES' verdict once per reason. Four built-in fault arms.
     ("probe_dexcatch_rate.py", False),
+    # ⛔ `#26-hmwrongitem` — the story's HM teach must PROVE the bag cursor is on the HM before pressing A (the game sorts
+    # the TM/HM pocket when the bag opens; 9 of 87 live teaches used HM06). A/B-proven on `norman_done.ss1`.
+    ("probe_hmteach_itemverify.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

@@ -35962,3 +35962,23 @@ alarm) — and its own `--self-test` then failed 10 cases: every count pattern w
 count would have passed unseen from now on. **WHAT.** The command-comment and prose count patterns take `\d{1,3}`; the
 trailing word boundary (not the width) is what keeps a timing like `~130s` out, and D1g still pins that. New self-test
 cases D2g/D2h use a literal 3-digit count. **PROOF.** `--self-test` 0 deviations; the audit exits 0 on the branch.
+
+## 2026-09-26 (night) — THE HM TEACH NO LONGER USES THE WRONG HM (`#26-hmwrongitem`, KI-105; branch `wt/ch24organic`)
+
+**WHY.** MEASURED (3-agent recon of the day's batch logs, a note, then reproduced): 9 of 87 HM teaches taught HM06 Rock
+Smash to a Surf/Waterfall target — a permanent unforgettable slot, a 9,000-frame hard cap and a derail each
+(`Teach flow finished but Marshtomp does not know Surf`, 7 runs). `early_game.teach_hm_move` scrolled with upstream
+`scroll_to_item_in_bag`, which counts the TM/HM pocket AS STORED; the game SORTS it when the bag opens, and right after an
+HM is received it is unsorted. (The same helper was caught landing on the wrong item on 2026-09-05 — and fixed then only
+for the Ice Beam teach.)
+**WHAT.** The default path now calls `pokemon_league.scroll_to_tm_verified` (read the cursor + the live pocket, correct
+closed-loop, refuse rather than press A on anything else); a refusal closes the open bag (bounded) and re-raises. Arm
+`POKEBOT_HMTEACH_FAULT_UNVERIFIED`. Gate `probe_hmteach_itemverify.py` (V1-V3, two fault arms).
+**PROOF (A/B, predictions committed first; the HM03 arms aborted on a failed premise — no Surf learner — and were
+re-registered on HM04):** `norman_done.ss1` (its stored pocket is unsorted): the OLD scroll landed on HM03 → nothing
+learned; the FIX printed `upstream left the cursor on slot 6 (HM03); correcting to slot 7 (HM04)` → Strength learned
+(re-driven on the FINAL code as H2c — one trajectory replayed, identical). The refusal path now settles and raises a
+distinct error if the bag will not close (this function's own menus-closed guarantee).
+**Adversarial review:** KICK-BACK (the docs were not yet on the branch; KI-89 still called the HM teach an unmeasured caller; the refusal close was weaker than this function's own menus-closed guarantee) → docs on both trees, KI-89 updated with the found mechanism, the close now settles and raises a distinct error, and H2c re-drove the final code (identical) → re-review **APPROVE** (it re-ran the gate and the doc gates itself). ⚠ The refusal branch's proof is STATIC — gated and fault-tested, never live-fired (no fixture forces the verified scroll to refuse).
+⚠ The same drive shows KI-104 live (Strength replaced Blaziken's Double Kick) — the slot rule is a separate, OPEN item.
+Suite 101 (97 enforcing + 4 advisory; `--quick` 89).
