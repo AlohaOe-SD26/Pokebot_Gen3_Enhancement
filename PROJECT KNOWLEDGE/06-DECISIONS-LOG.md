@@ -7318,3 +7318,31 @@ USER'S CALL"). The user's answers, verbatim choices:
 **RECOMMENDATIONS THE USER DECLINED:** "keep all-six-at-65" (R1) and "not yet — measure first" (buy early).
 **BUILD ORDER (mine):** 15 and 16 first (small, gated), then 17 and 18 (story errand / purchase + lock), each
 pre-registered and driven on branch `wt/ch24organic`.
+
+## 2026-09-26 — ⭐⭐ USER RULINGS 19-21: GYM ANSWERS FROM OWNED TMs; ORGANIC CATCHING INSTEAD OF CHAPTER FIXES; THE FLY SWAP
+
+Asked after a 4-angle recon of the live batch's boss deaths (`ai-research-notes/2026-09-26-boss-counter-RECON.md`) and the
+§Ch24 flyer gap (`#26-ch24organic` gap 5). `06` grepped first: no ruling covered teaching TMs for gyms, the Surf carrier,
+or a catch policy for flyers.
+
+* **RULING 19 — "Teach owned TM".** When the bot keeps losing to a gym leader, it may teach a TM it ALREADY OWNS (e.g.
+  TM50 Overheat from Flannery, TM34 Shock Wave from Wattson) to a team member that can learn it, replacing that mon's
+  weakest move. ⛔ The user did NOT select "Surf on a strong battler" or "protect answers from deposit" — do not build
+  those under this ruling.
+* **RULING 20 — ORGANIC CATCHING, NOT CHAPTER-SPECIFIC FIXES (the user's words, verbatim):** *"This shouldn't be an
+  issue if we fix the catch logic, remove the catch 4 party 4 limit and allow the pokedex catching feature work as I
+  explained (pokedex catching is always active so the bot is always catching new/shiny/rare pokemon to complete pokedex
+  as well as catching a more diverse team for counters and hm teaching) so the bot has access to more pokemon (this
+  would also include ensuring the pokemon pc withdraw/deposit logic works and is usable) does this make sense? We should
+  not be hard coding this sort of logic for specific chapters as this is stupid, not organic and makes no sense if we can
+  simply ensure the bot is allowed a full team, catching along the way as well as pc logic and access for nearby pc if
+  it needs it for whatever reason"*
+  ⇒ Supersedes the gap-5 options O2 (a Segment-13e flyer detour) and O3 (a Fly-only dex exemption): the flyer comes
+  from ORGANIC catching. The target of the change is the dex-catch fence (`story_mode.decide_dex_catch`): the pre-gym-1
+  team target of 4, and "catch only when the party is 6/6" (the HM/counter RUNWAY).
+  ⚠ **THE RISK TO RE-MEASURE, NOT TO RE-LITIGATE:** `#24-partycap` measured the runway as worth ~36 points of finish rate,
+  and disturbing the early party measured 52.0% → 15.8% (see the entries above). Those were measured BEFORE the PC-first
+  HM withdraw and the make-room deposit were proven (2026-09-25). ⇒ build it with the PC paths as the runway's
+  replacement, and A/B it on a batch before promotion.
+* **RULING 21 — the Fly swap: "Yes, swap briefly".** During §Ch24 Fly training one fighter may sit in the PC while a
+  Fly carrier trains; the same six fighters are restored and checked by PID before R1 (answers gap-5 decision U1).
