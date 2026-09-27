@@ -3023,5 +3023,18 @@ followed by `wait_for_player_avatar_to_be_controllable()` (`walking.py`), a bare
 no bound and no fault check. The last console line of P1r2 is exactly that print. Why the whiteout was believed, and
 why the accepted `[STALL]` did nothing, are both unmeasured.
 
+**⭐ FORENSICS 2026-09-27** (`ai-research-notes/2026-09-27-ki107-RECON.md`, a NOTE, adversarially checked: 10 of 12
+confirmed, 2 refuted on wording only). **No whiteout was detected during the freeze.**
+- A REAL whiteout 30,253 frames earlier (f708,981, a battle Lost on ROUTE 117) set `_whiteout_pending` and the
+  abort latch. It struck during a heal walk, and the walk does not check the latch, so nothing unwound it.
+- When KI-47's watcher later parked a battle fault, `run()` raised it, and the STALE flag sent it into the whiteout
+  branch.
+- That branch then waited in an unbounded `wait_for_player_avatar_to_be_controllable()`.
+- The accepted `[STALL]` is consumed only in `run()`'s try-loop, which never ran again.
+Fix candidates:
+- F1: unwind a pending whiteout at once in `run()`'s per-frame loop;
+- F2: classify an in-battle fault as a derail;
+- F3: bound the recovery waits;
+- F4: log the KI-47 park and walk the `inner` generator in dumps.
 **Next:** a correctness question, so a DRIVER: reproduce the false whiteout, log the value the recovery ACTS on (rule
 7), then bound the wait. Do not fix from this reading alone.
