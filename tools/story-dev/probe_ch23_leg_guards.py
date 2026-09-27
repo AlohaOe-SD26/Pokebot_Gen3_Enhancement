@@ -76,8 +76,10 @@ GUARDS = [
     ("4b-train", "not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]",
      lambda: (not any(VR._on_map(m) for m in VR.VICTORY_ROAD_MAPS)) and not VR.wally_beaten()
              and not VR.team_is_ready(VR.TRAIN_TARGET)[0]),
-    ("5", "not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))",
-     lambda: (not VR.at_b1f_doorstep()) and (VR._on_map(VR.EG) or VR._on_map(VR.VR1F))),
+    # ⭐ 2026-09-26: the dispatch now calls ONE named predicate — read it, never a hand copy (the old guard re-fired from
+    # the League plateau on a re-entry; `probe_ch23_leg5_reentry.py` gates the fix).
+    ("5", "leg5_should_fire()  [= old guard and not (wally_beaten() and on_league_plateau())]",
+     lambda: VR.leg5_should_fire()),
     ("6", "_on_map(VR1F) and at_b1f_doorstep()",
      lambda: VR._on_map(VR.VR1F) and VR.at_b1f_doorstep()),
     ("7", "_on_map(B2F)", lambda: VR._on_map(VR.B2F)),

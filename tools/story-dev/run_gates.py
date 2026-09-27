@@ -234,6 +234,9 @@ GATES: list[tuple[str, bool]] = [
     # medicine list (before the policy, fail-unlocked), no bag reader sees it, arming is state-derived, the
     # purchase plan is pure, §Ch22 L1 heals → buys → re-heals → gym. Six built-in fault arms turn it red.
     ("probe_league_reserve.py", False),
+    # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
+    # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
+    ("probe_ch23_leg5_reentry.py", True),
     # ⛔ The citation REPAIRER must shift a range citation's BOTH ends (it shifted only the start, 2026-09-26 —
     # the 08 rule it existed to honour). Self-test; the old logic fails it.
     ("repro_fix_doc_citations.py", False),

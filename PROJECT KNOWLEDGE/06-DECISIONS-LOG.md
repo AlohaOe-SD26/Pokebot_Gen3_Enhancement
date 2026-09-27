@@ -7403,3 +7403,18 @@ it would not convert the cash left after each Juan whiteout); a veto of the poli
 fallback); an in-memory latch (lost on restart, leaks into the next run); a gym-only lock (protects nothing measured).
 **REOPEN IF** the next batch shows runs short of the Full Restores at leg 11 after buying early, or Victory Road losses
 that a held Hyper Potion would have prevented — then the scope or the floor is the user's call again.
+
+## 2026-09-26 — §Ch23 LEG-5 RE-ENTRY: A PATH CHECK, NOT A y-THRESHOLD; FAIL TOWARD THE OLD GUARD
+
+**CHOSEN.** `leg5_should_fire()` = the old guard AND `not (wally_beaten() and on_league_plateau())`, where
+`on_league_plateau()` = on EVER_GRANDE_CITY and `calculate_path` to the Victory Road apron (18,42) raises
+`PathFindingError`; any OTHER failure of that read returns False (leg 5 fires, as before).
+**WHY.** The plateau and the south half are disconnected (measured: (18,28) cannot plan to (18,42) or to the Poké Center
+(27,49)), but no layout dump proves where a y-line would fall; the path check asks the question directly. Ever Grande
+has no object events (decomp), so the planner's unseen-object blocker (`KI-103`) cannot fake a "no path". `wally_beaten()`
+alone is wrong: a whiteout respawns at the SOUTH Poké Center with Wally beaten, where leg 5 must fire. Failing toward the
+old guard means the worst an unreadable position can do is reproduce the pre-fix behaviour.
+**ALTERNATIVES REJECTED.** A y-threshold (unmeasured); `wally_beaten()` alone (wrong in the south); moving the leg-11 gate
+or skipping §Ch23 on re-entry (settled NOT to be proposed by the money recon).
+**REOPEN IF** a run on the plateau is seen firing leg 5 anyway (the path check then reads a path that does not exist), or
+the Victory Road EXIT side's same-shaped guard is measured to misfire.

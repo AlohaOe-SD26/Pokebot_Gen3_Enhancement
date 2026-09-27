@@ -1,0 +1,26 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\re_A2-REENTRY.log
+[setup] loaded save state post_league_heal.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch23chapter] BEFORE at=((0, 8), (18, 6)) done=False wally=True
+[ch23chapter] BEFORE flag_only_would_say=True  gate_says=False
+f1: CONTROLLER -> Ch23ChapterMode.run   (state=OVERWORLD)
+[ch23chapter] FAILURE BotModeError: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42 | attempt 2: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42 | attempt 3: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42
+[ch23chapter] AFTER at=((0, 8), (18, 6)) done=False on_ever_grande=True inside_victory_road=False
+[ch23chapter] CONTINUE neighbours_reachable=4
+[ch23chapter] RESULT battles=0 whiteouts=0 failure=BotModeError: Ch23 (Victory Road) failed after 3 attempts. attempt 1: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42 | attempt 2: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42 | attempt 3: UnreachableDestinationError: Could not reach (18, 42) on MapRSE.EVER_GRANDE_CITY: the field is idle and we are still at (18, 6), so retrying cannot change the result (Could not find a path from (18/6 @ EVER_GRANDE_CITY) to (18/42
+[ch23chapter] R leg5_entry = EVER_GRANDE apron
+[ch23chapter] ACCEPTANCE: FAIL
+f857: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f856 — ending the loop at f976
+[done] ran 977 frames; final mode=Manual party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 977 get_party() recomputes, 4 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23chapter 977 recomputes (party_accounting_ledger.jsonl)

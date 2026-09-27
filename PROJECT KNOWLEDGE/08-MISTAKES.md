@@ -22216,3 +22216,27 @@ stored path (never re-plan blind from the far side); gate R7 pins it with two fa
 **Prevention rule:** ⛔ **A PATH BLOCKER CAUSED BY WHAT THE PLANNER CANNOT SEE IS SYMMETRIC — before crossing a choke,
 PLAN THE WAY BACK from the side that can see it.** A one-way trip that can fail on the return is a stranding, not a
 fail-open.
+
+## 2026-09-26 — ⛔ I TYPED A FIXTURE'S md5 PREFIX FROM MEMORY INTO COMMITTED PREDICTIONS
+
+**Symptom:** the re-entry predictions named `post_league_heal` as `1a8a0269b42d`; `verify_fixtures --assert` printed
+MISMATCH and "do NOT run the measurement". The file and its pin are `1a8a0269b42900dd…` — the typo was mine, not a
+changed save. The drives had already run (on the right bytes, it turned out).
+**Root cause:** I wrote the prefix from memory instead of copying it from `saves/FIXTURES.md5`, and ran the assertion in
+the same command as the drives, so its MISMATCH line scrolled past as a truncated tail.
+**Fix:** re-asserted with the pinned prefix (`OK`); the GRADED note corrects the predictions' typo instead of rewriting a
+committed pre-registration.
+**Prevention rule:** ⛔ **COPY a fixture's md5 from `FIXTURES.md5`, never from memory — and run `verify_fixtures
+--assert` in its OWN call, reading its full output, BEFORE the drive it guards.**
+
+## 2026-09-26 — ⛔ A GUARD I ADDED CAUGHT ONLY ITS OWN DOMAIN EXCEPTION, SO IT COULD CRASH WHERE THE OLD GUARD COULD NOT
+
+**Symptom (caught in review, before any run hit it):** `on_league_plateau()` wrapped `calculate_path(get_player_location(),
+…)` in `except PathFindingError`. `get_player_location()` documents a plain `RuntimeError` on a corrupt read during a map
+change; the §Ch23 attempt loop catches only `BotModeError`/`StoryAbort` and `StoryMode.run()` only `BotModeError` — so the
+new guard could END a run where the old one (flags and position only) could never raise.
+**Root cause:** I caught the exception I was reasoning about (no path) and not the ones the CALLEE documents.
+**Fix:** any other exception returns "not proven on the plateau" ⇒ leg 5 fires, exactly the pre-fix behaviour; story
+aborts re-raise; a printed line. Driven by `POKEBOT_CH23_FAULT_PLATEAUREAD` (gate C5).
+**Prevention rule:** ⛔ **A GUARD THAT ADDS A LIVE READ MUST CATCH EVERYTHING ITS CALLEES DOCUMENT AND FAIL TOWARD THE
+BEHAVIOUR IT REPLACES** — a guard must never be able to crash where the guard it tightened could not.

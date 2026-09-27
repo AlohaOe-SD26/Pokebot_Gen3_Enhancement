@@ -827,7 +827,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
    **0/5 trainers and the B2F warp are unreachable from the pocket** ⇒ nothing can ambush a parked
    spin. ⚠ The tile table is a **STATIC ROM read** and KI-74 is exactly where that lies — a LIVE
    grid read is owed before code depends on it.
-   ⛔ **CORRECTED: `team_is_ready` DOES NOT RAISE.** ✅ I read `victory_road.py:2017-2029` — it has
+   ⛔ **CORRECTED: `team_is_ready` DOES NOT RAISE.** ✅ I read `victory_road.py:2070-2082` — it has
    **no `raise` at all**; it returns `(bool, list)`, and the raise is in the CALLER (`:2138`).
    ⇒ design consequence: a §Ch24 leg calling it directly gets `(False, reasons)` back and can DECIDE,
    rather than inheriting a terminal raise. *(Original text, kept as the record:)*

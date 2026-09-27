@@ -716,6 +716,11 @@ FAULT_ARMS = {
     #: §Ch23 leg 11 — restore the pre-RULING-16 purchase: buy (and price) the WHOLE `LEAGUE_BASKET` even when
     #: some of it is already in the bag. The skip-the-fix arm for "buy only what's missing" (2026-09-26).
     "FULLBASKET": "POKEBOT_CH23_FAULT_FULLBASKET",
+    #: leg 5 — restore the pre-2026-09-26 guard, which re-fires leg 5 on the LEAGUE PLATEAU after a re-entry and aims
+    #: at the Victory Road apron it cannot reach. The skip-the-fix arm for `leg5_should_fire` (money recon §4).
+    "REENTRY": "POKEBOT_CH23_FAULT_REENTRY",
+    #: leg 5 — make `on_league_plateau`'s position read RAISE, so its fail-toward-the-old-guard branch is driven
+    "PLATEAUREAD": "POKEBOT_CH23_FAULT_PLATEAUREAD",
 }
 
 
@@ -1767,6 +1772,54 @@ def cross_to_ever_grande(report=None) -> Generator:
 # --------------------------------------------------------------------------------------------
 # LEG 5 — ENTER VICTORY ROAD 1F, BEAT WALLY, REACH THE B1F LADDER
 # --------------------------------------------------------------------------------------------
+def on_league_plateau() -> bool:
+    """On EVER_GRANDE_CITY but UNABLE to plan a path to the Victory Road apron (18,42) — i.e. the League side.
+
+    WHY A PATH CHECK AND NOT A y-THRESHOLD (money recon §4, 2026-09-26): the plateau and the south half of the city are
+    disconnected (measured: from (18,28) `PathFindingError` to (18,42) and to the Poké Center (27,49),
+    `evidence/2026-09-04-ch23-leg9-EXIT.txt:14`), but no layout dump proves where a y-line would sit. ⭐ Ever Grande has
+    no object events, so `KI-103` (an unseen object's template read as a wall) cannot fake a "no path" here.
+    """
+    if not _on_map(EG):
+        return False
+    from modules.map_path import PathFindingError, calculate_path
+    from modules.player import get_player_location
+    from modules.story.early_game import reraise_if_aborting
+
+    try:
+        if _fault("PLATEAUREAD"):
+            raise RuntimeError("POKEBOT_CH23_FAULT_PLATEAUREAD: the position read is broken on purpose")
+        calculate_path(get_player_location(), (EG, VR_APRON))
+    except PathFindingError:  # noqa: BLE001 - THIS is the reading: no path to the apron = the League side
+        return True
+    except Exception as error:  # noqa: BLE001 - UNREADABLE ⇒ "not proven on the plateau" ⇒ leg 5 fires, as it always did
+        # ⛔ Adversarial review 2026-09-26: `get_player_location()` documents a corrupt read during a map change that
+        # raises a plain RuntimeError — neither this guard's caller (the attempt loop catches BotModeError) nor
+        # `StoryMode.run()` would catch it, so a narrow except turned a guard into a crash. Fail toward the OLD behaviour.
+        reraise_if_aborting(error)
+        print(f"[CH23] on_league_plateau: position/path unreadable ({type(error).__name__}: {str(error)[:120]}) — "
+              f"treating as NOT on the plateau (leg 5 fires, the pre-fix behaviour).")
+        return False
+    return False
+
+
+def leg5_should_fire() -> bool:
+    """The chapter's LEG 5 guard — ONE implementation, used by the dispatch AND by `probe_ch23_leg_guards.py`.
+
+    ⛔ THE RE-ENTRY DEFECT IT CLOSES (money recon §4): after a refusal at the League door (18,6), a re-entry skips legs
+    1-4 (`at_ever_grande_top()`) and training (Wally beaten), and the old guard `not at_b1f_doorstep() and (EG or VR1F)`
+    then FIRED leg 5 from the plateau — aiming `_navigate_riding_out(EG, VR_APRON)` at a tile it cannot reach, which
+    raises and burns the chapter's attempts. ⭐ With Wally beaten AND no path to the apron, the bot is PAST leg 5.
+    ⚠ `wally_beaten()` ALONE would be wrong: a whiteout respawns at the SOUTH Poké Center with Wally beaten, and there
+    leg 5 must still fire (`src/data/heal_locations.json:64-67`) — which is exactly what the path check tells apart.
+    """
+    if at_b1f_doorstep() or not (_on_map(EG) or _on_map(VR1F)):
+        return False
+    if _fault("REENTRY"):
+        return True
+    return not (wally_beaten() and on_league_plateau())
+
+
 def wally_beaten() -> bool:
     """The chapter's GRADING FLAG. ⛔ Read the flag, never "we walked past his tile".
 
@@ -3783,7 +3836,7 @@ def do_victory_road_chapter(report: dict | None = None) -> Generator:
                 yield from train_for_victory_road(report)
 
             # --- LEG 5 — INTO VICTORY ROAD AND THROUGH WALLY ------------------------------------
-            if not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F)):
+            if leg5_should_fire():
                 yield from enter_victory_road(report)
 
             # --- LEG 6 — HEAL, B1F PUZZLE, DOWN TO B2F ------------------------------------------

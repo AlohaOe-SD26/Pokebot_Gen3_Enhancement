@@ -35877,3 +35877,19 @@ spends 4 Hyper Potions, NOLOCK and RAISE identical (release + fail-unlocked), FO
 `probe_league_reserve.py` (R1-R7, eight fault arms). Adversarial review: KICK-BACK — "never strand the bot" was proven only statically (an expired budget skips the in-function walk back); FIXED (menus closed first, off-path fallback, a named error if still stranded, `POKEBOT_RESERVE_FAULT_BUDGET`) and DRIVEN (B1 before crossing, B2 inside the Mart). Suite 96 (92 enforcing + 4 advisory); drift 12.
 **NOT SETTLED:** whether early buying leaves enough for leg 11's Full Restores (the batch will say); the reserve's value in
 Juan / Victory Road fights (they never had Hyper Potions to spend); a bag with no free slot.
+
+## 2026-09-26 (late) — §Ch23 LEG 5 NO LONGER RE-FIRES FROM THE LEAGUE PLATEAU (branch `wt/ch24organic`)
+
+**WHY.** The money recon (§4) found that a RE-ENTRY of the §Ch23 chapter on the League plateau (18,6) — after a refusal
+at the door, a transient failure, or a lost `_ch24_owns_run` latch — skipped legs 1-4 and training, then FIRED leg 5,
+which aimed at the Victory Road apron (18,42), unreachable from the plateau: three attempts, then a raise.
+**WHAT.** The dispatch's leg-5 guard is now ONE named predicate, `victory_road.leg5_should_fire()`: the old guard AND
+`not (wally_beaten() and on_league_plateau())`, where `on_league_plateau()` = on EVER_GRANDE_CITY with no plannable path
+to (18,42). ⚠ `wally_beaten()` alone would be wrong: a whiteout respawns at the SOUTH Poké Center with Wally beaten, and
+leg 5 must fire there. `probe_ch23_leg_guards.py` now reads the predicate (the hand copy is gone). Arm
+`POKEBOT_CH23_FAULT_REENTRY` restores the old guard.
+**PROOF** (predictions `ac3f72c9`; `ai-research-notes/2026-09-26-ch23-reentry-GRADED.md`): `--driver ch23chapter` on
+`post_league_heal` — the fix PASSES (chapter done, basket bought, 4,915 frames); the old guard FAILS with `Could not reach
+(18, 42) … still at (18, 6)` ×3. New ROM gate `probe_ch23_leg5_reentry.py`: three plateau fixtures skip, the arm fires
+there, and both south controls — including `ki90_whiteout_at_evergrande` (Wally beaten, south PC) — still fire.
+Adversarial review: KICK-BACK — a plain RuntimeError from `get_player_location()` (documented mid map change) would have escaped the guard as a crash; FIXED (any unreadable position fails toward the old guard — leg 5 fires) and DRIVEN (gate C5, arm `POKEBOT_CH23_FAULT_PLATEAUREAD`). The live batch shows the defect in all five money-refused runs (derails #2-#5). Suite 97 (93 enforcing + 4 advisory; `--quick` 85).
