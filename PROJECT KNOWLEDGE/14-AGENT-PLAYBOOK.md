@@ -452,6 +452,20 @@ offset must be BIT-IDENTICAL** (outcome, end tile, frame count, object positions
 ordinary-case A/B for free. ⛔ The hit rate is ONE party on ONE approach replayed — a MECHANISM test,
 never an organic frequency (CLAUDE.md rule 8).
 
+### 3d. ‼ AN n = 1 BATCH FAILURE: STAGE THE PRECONDITION, KEEP THE MECHANISM PRODUCTION (added 2026-09-27)
+
+KI-106 happened once in 38 runs: a whiteout at one place, after one trainer. Waiting for it is hopeless, but the
+part under test (what the RECOVERY does with leaked input) is entirely DOWNSTREAM of the loss. ⇒ `--driver evgpcwedge`
+runs the PRODUCTION `StoryMode` (as `storyresume`) and stages only the precondition. It writes party HP (data[86:88])
+once Wally is beaten, so the rest of the real leg-5 walk loses. Three things made it gradeable:
+- **Read the fixture's premise before choosing it.** `post_training.ss1`'s `lastHealLocation` (SaveBlock1 +0x1C) is
+  Ever Grande (27,49), directly under the Centre door. With a different respawn tile, a leaked Up proves nothing.
+- **The fix logs the value it ACTS on in BOTH arms.** The skip-the-fix arm still logs the mask as `KEPT (fault arm)`,
+  so the premise (a leaked Up at the recovery start) is the SAME reading in both arms, and a vacuous drive is visible.
+- **Capture production lines, never reconstruct them.** The hook rebinds `modules.debug_logger.event` to a recorder
+  that calls through. Callers do `from modules import debug_logger; debug_logger.event(...)`, so a module-attribute
+  rebind catches every line exactly as written.
+
 ## 4. Story-mapping method (how to build a new chapter)
 
 **MAP FIRST, then build, then validate.** (Hard-won: Rustboro cost us dearly by building
@@ -779,6 +793,7 @@ faces LEFT, never UP — and the Route 128 atoll exit).
 | ‼ A **fault injection that re-fires on every retry**, when the fix's mechanism IS retry | The fault becomes unsatisfiable by construction, so the arm that recovers correctly loops for ever and looks *worse* than the broken one. My first `TEACH_CANCEL_FORGET` did this and reported "both arms fail, the fix is worse". **Latch a timing-miss injection to ONE shot**, then OLD fails and NEW succeeds. |
 | A structural repro that pins a call's **spelling** rather than its meaning | Routing every button through a recording `_press()` wrapper turned three green checks red without changing one behaviour. If a check exists to defend an invariant ("this branch cannot fire once the move is known"), match the branch by either spelling and then assert the invariant. |
 
+| ‼ A generator **abandoned by an abort** while it held buttons | `_held_inputs` is Python-side and OR'd into the pad every frame; a navigator has no `finally:`, so a raise mid-walk leaves direction+B held for whatever runs next. `#24-truckleak` cost 146 runs; KI-106 cost an 8-badge run, where a leaked Up walked a whiteout respawn into a Poké Center and beat every `Down`. ⇒ Release at the RECOVERY SEAM, where no navigator is running (`StoryMode.run()`'s `except BotModeError`, and the hard reset), never per-frame, because navigation needs held buttons. Announce the released mask. |
 ---
 
 ## 8. Documentation discipline (do this every item — it is not optional)

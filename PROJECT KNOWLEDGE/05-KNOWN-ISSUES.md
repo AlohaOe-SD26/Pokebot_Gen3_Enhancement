@@ -2959,21 +2959,49 @@ bag and re-raises. **Remaining:** (merged 2026-09-27) the next batch should show
 derails from this cause. The parked batch (which ran the OLD code) had 18 such derails in 16 runs (Surf 15, Waterfall 3; none ended a run).
 HM07 goes through the same `teach_hm_move` (`victory_road.py:1063`), so Waterfall is covered by construction — read from the code, not measured.
 
-## KI-106 — ⚠ OPEN (n = 1, mechanism UNVERIFIED): after a Victory Road whiteout the §Ch23 re-entry wedged INSIDE the south Ever Grande Poké Center — every step failed `ensure_facing_direction: could not face Down after 1801 pressing frames` (2026-09-27, batch `#26-batch0926`, run P1r8; `#27-evgpcwedge`)
+## KI-106 — ✅ FIXED (2026-09-27), A/B-PROVEN: a held Up LEAKED across a whiteout — it walked the Ever Grande respawn into the south Poké Center, and every turn south then failed (`ensure_facing_direction: could not face Down`); the story's recovery now starts from NO held input (batch `#26-batch0926`, run P1r8; `#27-evgpcwedge`)
 
 **What (read directly in the committed excerpt `tools/story-dev/evidence/2026-09-27-batch0926-P1r8-evgpcwedge.txt`):**
-during §Ch23 training in Victory Road, Azumarill L47 at 3/177 HP used Double-Edge on a wild Roselia L45; the battle ended
-`outcome=BattleOutcome.Draw` (f6034799) and the party whited out — `WHITEOUT recovery #1 at (0, 8)` (f6034957), then
-`EVER GRANDE CITY(0,8) -> EVER GRANDE CITY(16,12)`, the south Poké Center; the park report (a NOTE) found it the batch's
-only whiteout there. The bot then stood at (7, 4) facing Up until f6108988 (≈74k frames). All five derails fail with the
-facing error: #1 aims at `(9, 15) on VICTORY_ROAD_1F`, #2–#5 at leg 4's `(101, 26) on ROUTE128`. All 25 dumps there show
-`held_buttons=['B', 'Up']`, `controllable=True`, `scripts=[]`, a stale message `Encountered Makuhita`, and
-`controllers=['StoryEndlessResetMode.run']`.
-**Hypothesis (UNVERIFIED):** an input held across the whiteout warp. Per the park report, `held_buttons=['B','Up']` is in
-26 of 22,693 run dumps in the batch — 25 here, 1 in P1r9.
-**Not covered by any merged fix:** the §Ch23 leg-5 re-entry fix (`377c9c1a`) is scoped to the League plateau on purpose,
-and its commit says a south-Center whiteout must still fire leg 5 — here leg 5 fired and could not leave the building.
-**Source log (gitignored):** `sandbox-pokebot/profiles/endless-P1-torchic/debug-logs/Old/P1-Story_(ENDLESS_RESET)-debug-20260926-212850.log`
+- **The battle.** On §Ch23 leg 5's walk north after Wally, Azumarill L47 at 3/177 HP used Double-Edge on
+  **Cooltrainer Hope's Roselia L45**. It was a sight-line TRAINER at VR1F (2,15), not a wild mon: that was corrected by
+  the recon, and the Roselia is Hope's only party member in the decomp.
+- **The whiteout.** The battle ended `outcome=BattleOutcome.Draw` (f6034799) and the party whited out:
+  `WHITEOUT recovery #1 at (0, 8)` (f6034957), then `EVER GRANDE CITY(0,8) -> EVER GRANDE CITY(16,12)`, the south
+  Poké Center, at f6035050. The story never asked to go there.
+- **The wedge.** The bot stood at (7, 4) facing Up until f6108988 (≈74k frames), and all five derails failed on the
+  facing error.
+- **The dumps.** All 25 there show `held_buttons=['B', 'Up']`, `controllable=True` and `scripts=[]`.
+
+**Mechanism — A/B-PROVEN 2026-09-27.** Recon, a NOTE: four agents, one adversarial.
+1. A battle interrupted a `_sampling`-wrapped walk north that was holding B+Up.
+2. The whiteout listener's release DID run: the mask on the whiteout screen read `0x0000`.
+3. B+Up was then re-held, either by the `isolate_inputs` restore or by the navigator's next frame.
+4. `_sampling` raised the abort with no `finally`, and `StoryMode.run()`'s recovery never cleared held input.
+5. Emerald reads a held Up before Down (`field_control_avatar.c`). The respawn tile (27,49) sits directly below the door,
+   so the held Up walked the player in, and no turn south could ever land.
+
+**Draw was NOT the cause.** The game routes DREW exactly like LOST, and the batch's other two Draws recovered normally.
+
+**Fix.** `StoryMode.run()`'s `except BotModeError` handler, the entry to BOTH the whiteout and the derail recovery,
+now calls `reset_held_buttons()` first. It logs `RECOVERY-HELD: released leaked held inputs 0x…` when the mask is
+non-zero.
+- Arm: `POKEBOT_RECOVERY_FAULT_KEEPHELD`.
+- Static gate: `probe_recovery_heldrelease.py`, with 3 built-in fault arms.
+
+**Proof.** `--driver evgpcwedge` ran production StoryMode from `post_training.ss1`, with the party staged after Wally.
+Predictions were filed first. The GRADED note is `ai-research-notes/2026-09-27-evgpcwedge-GRADED.md`.
+- **Both arms** reached the recovery with the same leaked `0x0042` (B+Up).
+- **KEEPHELD** walked into the Center and printed the batch's derail #1 **word for word**:
+  `Could not reach (9, 15) … still at (7, 4) … could not face Down`.
+- **FIX** released the mask and walked straight back into Victory Road, with 0 derails.
+
+**Remaining:** frequency only. The next batch should show 0 `could not face` derails and no unrequested south-Center
+entries after a whiteout.
+
+⚠ **SIDE GAP, NOT FIXED.** `on_battle_ended` counts only `BattleOutcome.Lost`, so a Draw whiteout skips the
+defeat and loss-history bookkeeping that feeds the boss give-up and retrain thresholds. It is minor, and unrelated to
+held input.
+
+**Source log (gitignored):**
+`sandbox-pokebot/profiles/endless-P1-torchic/debug-logs/Old/P1-Story_(ENDLESS_RESET)-debug-20260926-212850.log`,
 from line 34060 to its end; P1 stdout L1059285–L1059497.
-**Next (`#27-evgpcwedge`):** reproduce with a driver before fixing — a correctness question — and log the held buttons the
-facing code actually acts on.

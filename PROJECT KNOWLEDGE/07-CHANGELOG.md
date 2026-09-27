@@ -36044,3 +36044,31 @@ re-read directly and committed as `tools/story-dev/evidence/2026-09-27-batch0926
 to MERGED. `#26-batch0926` is marked done. The `#26-ch23money` head now carries the final money numbers, with a caveat:
 whiteout counts do NOT separate refusers from passers. START HERE's first action now points at the report, and the
 next batch is the user's call.
+
+## 2026-09-27 — KI-106 FIXED: EVERY STORY RECOVERY NOW STARTS FROM NO HELD INPUT (`#27-evgpcwedge`, A/B-proven)
+
+**WHY.** Batch `#26-batch0926`, run P1r8, 8 badges:
+- Cooltrainer Hope interrupted §Ch23 leg 5's `_sampling`-wrapped walk north, and the party whited out.
+- B+Up survived. The whiteout listener's release runs BEFORE the interrupted walk's mask comes back, and `_sampling`
+  aborts without a `finally`.
+- The held Up walked the Ever Grande respawn (27,49) into the Poké Center.
+- Emerald reads a held Up before Down, so every `ensure_facing_direction(Down)` failed. Five derails ended the run.
+Recon: four agents, one adversarial. They also corrected the park report on two points: the battle was a TRAINER, and
+Draw is not the cause.
+
+**WHAT.**
+- `StoryMode.run()`'s `except BotModeError` handler, the entry to BOTH the whiteout and the derail recovery, calls
+  `reset_held_buttons()` first. When the mask is non-zero it logs `RECOVERY-HELD: released leaked held inputs 0x…`.
+- Arm `POKEBOT_RECOVERY_FAULT_KEEPHELD` still logs the mask, as `KEPT (fault arm)`.
+- `_sampling` was deliberately left alone.
+- Static gate `probe_recovery_heldrelease.py`, with three built-in fault arms: the release deleted, the release moved
+  into one branch, and a comment-only mention.
+- New driver `--driver evgpcwedge`: production StoryMode from `post_training.ss1`, with the party staged after Wally.
+
+**PROOF** (predictions `159094e4`, filed first; `ai-research-notes/2026-09-27-evgpcwedge-GRADED.md`).
+- Both arms: same staging frame, same whiteout, same leaked `0x0042` at the recovery start. The whiteout screen itself
+  read `0x0000`.
+- KEEPHELD walked into the Centre and printed the batch's derail #1 word for word, then the harness confirmed a hang.
+- FIX walked straight back into Victory Road, with 0 derails.
+
+Suite: 104 (100 enforcing + 4 advisory; `--quick` 91). Playbook: §3d, plus a §7 row.

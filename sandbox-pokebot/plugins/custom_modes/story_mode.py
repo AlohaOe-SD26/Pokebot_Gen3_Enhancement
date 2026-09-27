@@ -4073,6 +4073,48 @@ class StoryMode(BotMode):
             except BotModeError as err:
                 from modules.memory import game_has_started, get_game_state, GameState
 
+                # ⛔⛔ EVERY RECOVERY STARTS FROM NO INPUT — KI-106 / `#27-evgpcwedge` (2026-09-27).
+                # `_held_inputs` is Python-side state that is OR'd into the pad every frame
+                # (`modules/libmgba.py:581`). The generator that just raised is abandoned mid-walk,
+                # and navigators hold direction+B with no `finally:` (`walking.py`; §Ch23's
+                # `_sampling` too), so whatever they held survives into this recovery.
+                # ⭐ WHAT THAT COST (batch `#26-batch0926`, run P1r8, an 8-badge run): a trainer
+                # interrupted leg 5's walk north, the party whited out, and B+Up survived the
+                # whiteout. The listener's own release runs BEFORE `isolate_inputs` restores the
+                # interrupted walk's mask. Held Up walked the respawn at Ever Grande (27,49)
+                # straight through the Poké Center door to the counter. Emerald reads a held Up
+                # before Down (`field_control_avatar.c`), so every later
+                # `ensure_facing_direction(Down)` failed — five derails and the run was over.
+                # ‼ THIS SEAM ON PURPOSE: both the whiteout and the derail recovery below begin
+                # here, and the dead generator can no longer hold anything, so nothing is lost by
+                # clearing. The recovery's own walks set their own held buttons afresh. (A hand-off
+                # that never raises — a direct `context.set_manual_mode()` — is covered separately:
+                # `set_manual_mode` releases held buttons itself, `modules/context.py`.)
+                # ⛔ Do NOT move this to a per-frame path — navigation depends on held buttons
+                # (the `#24-truckleak` note at the hard-reset seam says the same, for the same reason).
+                # ‼ It ANNOUNCES the mask it released — a silent release cannot be graded.
+                # Arm `POKEBOT_RECOVERY_FAULT_KEEPHELD=1` skips the release and still logs the mask it
+                # WOULD have released, so both arms of the A/B record the same premise reading.
+                import os as _os_held
+
+                _held_keep = _os_held.environ.get("POKEBOT_RECOVERY_FAULT_KEEPHELD") == "1"
+                # (`libmgba.py` is upstream-shared and has no mask getter, so the arm reads the
+                # attribute `reset_held_buttons()` itself returns — read-only, never written here.)
+                _held_mask = (getattr(context.emulator, "_held_inputs", 0) if _held_keep
+                              else context.emulator.reset_held_buttons())
+                if _held_mask:
+                    try:
+                        from modules import debug_logger
+
+                        debug_logger.event(
+                            f"RECOVERY-HELD: {'KEPT (fault arm)' if _held_keep else 'released'} "
+                            f"leaked held inputs 0x{_held_mask:04x} at the start of "
+                            f"{'whiteout' if self._whiteout_pending else 'derail'} recovery — KI-106"
+                        )
+                    except Exception as _held_log_err:  # the release above already happened; say the log failed
+                        console.print(f"[yellow]RECOVERY-HELD (mask 0x{_held_mask:04x}, keep={_held_keep}): "
+                                      f"its debug log line failed: {_held_log_err!r}[/]")
+
                 if not self._whiteout_pending:
                     # NON-WHITEOUT DERAIL (user directive 2026-07-21): don't drop
                     # straight to Manual — re-localise (log where we are in the story

@@ -7519,3 +7519,26 @@ original bug); a hard "never delete the only move of a type" rule (Swampert with
 stage); the §Ch23 Waterfall teach now gives up Water Gun (dominated by Surf) instead of Rollout — re-driven.
 **REOPEN IF** a batch shows `learned <HM> (lost <X>)` where X was a mon's only move of a type while a dominated or off-type
 move was available.
+
+## 2026-09-27 — KI-106: RELEASE LEAKED HELD INPUT AT THE STORY'S RECOVERY SEAM, not in `_sampling` or `isolate_inputs`
+
+**Decision:** `StoryMode.run()`'s `except BotModeError` handler releases held buttons FIRST, before it branches into the
+whiteout or the derail recovery, and announces the mask (`RECOVERY-HELD`). Arm: `POKEBOT_RECOVERY_FAULT_KEEPHELD`.
+
+**Rationale:**
+- It is the one place every abort-raised recovery unwinds to, and no navigator is running there. The generator that
+  raised is dead, and the recovery's own walks set their buttons afresh.
+- It covers every wrapper that can abandon a live navigator: `_sampling`, the watchdog and battle-fault closes, and
+  `_yield_bounded*`. It does not have to find each one.
+- A hand-off that never raises (`context.set_manual_mode()`) already releases on its own (`modules/context.py`).
+- A/B-proven on the batch's exact path (`ai-research-notes/2026-09-27-evgpcwedge-GRADED.md`).
+
+**Rejected:**
+- (a) **A `finally: reset_held_buttons()` in `_sampling`**, as `_budgeted` has. It fixes one wrapper out of several,
+  and the recovery seam alone is shown sufficient on this path. Adding it too would be an unmeasured second guard, and
+  CLAUDE.md rule 8 says a guard claimed load-bearing needs its own arm.
+- (b) **Skipping `isolate_inputs`' restore after a whiteout** (`_listeners.py` / `_util_helper.py`). Those files are
+  upstream-shared, so it would be a DIVERGENCE with the widest blast radius. It also covers only one of the two re-hold
+  routes; the navigator's own next frame is the other.
+- (c) **Clearing held D-pad bits inside `ensure_facing_direction` / `follow_waypoints`.** That is also upstream-shared,
+  and it sits on the per-frame path navigation depends on. `#24-truckleak` warns against exactly that.

@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -26500,6 +26500,135 @@ _WANT_POST_RIVAL_SAVE = bool(_os_hook.environ.get("SAVE_POST_RIVAL"))
 # Default OFF: some drivers are meant to keep observing after the hand-off.
 _EXIT_ON_MANUAL = _os_hook.environ.get("HARNESS_EXIT_ON_MANUAL") == "1"
 _manual_since = None
+
+# ---- `--driver evgpcwedge` (KI-106 / `#27-evgpcwedge`, 2026-09-27) --------------------------------------------------
+# The PRODUCTION StoryMode (exactly `storyresume`), plus this per-frame hook, which does two things:
+# (1) STAGING, test-only: once Wally is beaten and the player has stood controllable on VR1F for 30 frames, every party
+#     member except the lowest-level one is set to 0 HP and that one to 1 HP, so the rest of leg 5's walk north loses
+#     (the batch's P1r8 lost to Cooltrainer Hope at (2,15) on this walk);
+# (2) READINGS: the whiteout, every map load after it, and EVERY production `debug_logger.event` — captured by
+#     rebinding the module attribute, so the `RECOVERY-HELD` line the fix prints is read from the code that ACTED
+#     (CLAUDE.md rule 7), not reconstructed here.
+# Predictions: `ai-research-notes/2026-09-27-evgpcwedge-PREDICTIONS.md` (committed before the first drive).
+_EVGP: dict = {"staged": None, "stable": 0, "whiteout": None, "wo_mask": None, "first_map_after": None,
+               "maps_after": [], "events": [], "pc_after": None, "vr_after": None, "stop": None, "last_map": None}
+
+
+def _evgp_hook(step: int) -> bool:
+    """One frame of the `evgpcwedge` driver. Returns True to END the loop (the verdict is already decided)."""
+    from modules.memory import GameState, get_event_flag, get_game_state
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+
+    S = _EVGP
+    if step == 0:
+        from modules import debug_logger as _dl
+
+        _real_event = _dl.event
+
+        def _rec_event(message, *a, **kw):
+            S["events"].append((context.emulator.get_frame_count(), str(message)))
+            return _real_event(message, *a, **kw)
+
+        _dl.event = _rec_event
+        log("[evgp] debug_logger.event is recorded from f0 (production lines, read as they are written)")
+    try:
+        gs = get_game_state()
+        av = get_player_avatar()
+        mp = tuple(av.map_group_and_number)
+        pos = tuple(av.local_coordinates)
+    except Exception:
+        return False
+    fc = context.emulator.get_frame_count()
+    if S["whiteout"] is None and gs == GameState.WHITEOUT and S["staged"] is not None:
+        S["whiteout"] = fc
+        S["wo_mask"] = getattr(context.emulator, "_held_inputs", None)
+        log(f"[evgp] WHITEOUT screen at f{fc}; held mask on the whiteout screen = 0x{S['wo_mask'] or 0:04x}")
+    if mp != S["last_map"] and gs == GameState.OVERWORLD:
+        S["last_map"] = mp
+        log(f"[evgp] MAP {mp} pos={pos} at f{fc}")
+        if S["whiteout"] is not None:
+            S["maps_after"].append((fc, mp, pos))
+            if S["first_map_after"] is None:
+                S["first_map_after"] = (mp, pos)
+            if mp == (16, 12) and S["pc_after"] is None:
+                S["pc_after"] = fc
+            if mp == (24, 43) and S["vr_after"] is None:
+                S["vr_after"] = fc
+    # (1) staging — once
+    if S["staged"] is None:
+        try:
+            ok = (get_event_flag("DEFEATED_WALLY_VICTORY_ROAD") and gs == GameState.OVERWORLD
+                  and mp == (24, 43) and player_avatar_is_controllable())
+        except Exception:
+            ok = False
+        S["stable"] = S["stable"] + 1 if ok else 0
+        if S["stable"] >= 30:
+            from modules.memory import read_symbol, write_symbol
+            from modules.pokemon_party import get_party
+            from modules.state_cache import state_cache
+
+            party = get_party()
+            live = [(i, p) for i, p in enumerate(party) if p is not None]
+            keep = min(live, key=lambda t: t[1].level)[0]
+            raw = bytearray(read_symbol("gPlayerParty"))
+            for i, _p in live:
+                o = i * 100
+                raw[o + 86:o + 88] = (1 if i == keep else 0).to_bytes(2, "little")
+                if i != keep:
+                    raw[o + 80:o + 84] = bytes(4)  # a fainted mon carries no status
+            write_symbol("gPlayerParty", bytes(raw))
+            state_cache.reset()
+            after = [(p.species.name, p.level, p.current_hp) for p in get_party() if p is not None]
+            S["staged"] = fc
+            log(f"[evgp] STAGED at f{fc} on {mp} {pos}: kept slot {keep} at 1 HP, the rest 0 -> {after}")
+    # (2) early stop once the arm's outcome is decided
+    if S["whiteout"] is not None and S["stop"] is None:
+        cant = sum(1 for _f, m in S["events"] if "could not face" in m and "DERAIL" in m)
+        if S["vr_after"] is not None and fc - S["vr_after"] > 600:
+            S["stop"] = f"VICTORY_ROAD_1F reloaded after the whiteout (f{S['vr_after']})"
+        elif cant >= 2:
+            S["stop"] = f"{cant} 'could not face' derails"
+        if S["stop"]:
+            log(f"[evgp] STOP at f{fc}: {S['stop']}")
+            return True
+    return False
+
+
+def _evgp_verdict() -> None:
+    S = _EVGP
+    keep = _os_hook.environ.get("POKEBOT_RECOVERY_FAULT_KEEPHELD") == "1"
+    arm = "KEEPHELD" if keep else "FIX"
+    held = [(f, m) for f, m in S["events"] if "RECOVERY-HELD" in m and "whiteout recovery" in m]
+    derails = [(f, m) for f, m in S["events"] if "DERAIL" in m]
+    cant = [(f, m) for f, m in derails if "could not face" in m]
+    for f, m in S["events"]:
+        if S["staged"] is not None and f >= S["staged"]:
+            log(f"[evgp] EVENT f{f}: {m[:300]}")
+    p0 = S["staged"] is not None
+    p1 = S["whiteout"] is not None and S["first_map_after"] is not None and S["first_map_after"][0] == (0, 8)
+    word = "KEPT (fault arm)" if keep else "released"
+    p2 = any(word in m and (int(m.split("0x")[1][:4], 16) & 0x0040) for _f, m in held)
+    p3 = S["pc_after"] is not None
+    p4 = len(cant)
+    p5 = S["vr_after"] is not None
+    log(f"[evgp] ARM={arm}")
+    log(f"[evgp] P0 staged={p0} (f{S['staged']})")
+    log(f"[evgp] P1 whiteout={S['whiteout']} first_map_after={S['first_map_after']} -> {p1}")
+    log(f"[evgp] P2 PREMISE recovery-held events={[m for _f, m in held]} -> {p2}")
+    log(f"[evgp] P3 (informational, NOT graded) south PC (16,12) loaded after the whiteout: {p3} (f{S['pc_after']})")
+    log(f"[evgp] P4 'could not face' derails: {p4} of {len(derails)} derails")
+    log(f"[evgp] P5 CONTINUE — VICTORY_ROAD_1F reloaded after the whiteout: {p5} (f{S['vr_after']})")
+    log(f"[evgp] maps after the whiteout: {S['maps_after'][:12]}")
+    premise = p0 and p1 and p2
+    if not premise:
+        log(f"[evgp] ACCEPTANCE: FAIL — PREMISE (P0={p0} P1={p1} P2={p2}); per the predictions a missing P2 "
+            f"makes this drive VACUOUS, not a refutation")
+        return
+    ok = (p4 >= 1 and not p5) if keep else (p4 == 0 and p5)
+    log(f"[evgp] ACCEPTANCE: {'PASS' if ok else 'FAIL'} — arm {arm} "
+        f"(expected {'P4>=1, P5 no' if keep else 'P4=0, P5 yes'})")
+
+
 for step in range(args.frames):
     context.frame = step
     if _EXIT_ON_MANUAL and step > 1 and context.bot_mode == "Manual":
@@ -26535,6 +26664,9 @@ for step in range(args.frames):
             _dbglog.on_frame()
         except Exception:
             pass
+
+    if args.driver == "evgpcwedge" and _evgp_hook(step):
+        break
 
     if not injected and step >= args.inject_at:
         if args.inject_hmmule:
@@ -26641,6 +26773,12 @@ for step in range(args.frames):
             from plugins.custom_modes.story_mode import StoryDebugResetMode
 
             context.bot_mode_instance = StoryDebugResetMode()
+        elif args.driver == "evgpcwedge":
+            # KI-106 / `#27-evgpcwedge`: the PRODUCTION StoryMode, exactly as `storyresume`; the staging and the
+            # readings live in `_evgp_hook` (see its block above the main loop).
+            from plugins.custom_modes.story_mode import StoryMode
+
+            context.bot_mode_instance = StoryMode()
         elif args.driver == "storyresume":
             # ⭐⭐ THE PRODUCTION MODE, ON THE LOADED SAVE. Added 2026-09-07 because the harness had
             # **107 driver modes and not one of them ran a plain `StoryMode`** — so `_play()`'s
@@ -27566,6 +27704,11 @@ for step in range(args.frames):
     previous_frame_info.previous_frame = None
 
 log(f"[done] ran {step + 1} frames; final mode={context.bot_mode} party=[{party_snapshot()}]")
+if args.driver == "evgpcwedge":
+    try:
+        _evgp_verdict()
+    except Exception as _e:  # noqa: BLE001 — the verdict must print even from partial state
+        log(f"[evgp] VERDICT ERROR {type(_e).__name__}: {_e}")
 try:
     from modules.memory import get_event_flag as _gef
 

@@ -22396,3 +22396,38 @@ Both corrections came from the adversarial reconciler, not from either counting 
   never by the header.**
 - ⛔ **A milestone count from the analyzer is a FLOOR.** When a milestone gates a conclusion, re-count it from the raw map
   loads.
+
+## 2026-09-27 — ⛔ A FIX FOR A HELD-BUTTON LEAK WAS MADE AT ONE SEAM (THE HARD RESET), AND THE SAME LEAK LIVED AT THE NEXT ONE
+
+**Symptom:** KI-106. A whiteout left B+Up held, and the respawn walked into the Ever Grande Poké Center; every turn
+south failed and the run ended (batch `#26-batch0926`, P1r8).
+
+**Root cause:**
+- `#24-truckleak` (2026-09-07) found that a navigator abandoned by an abort keeps its held buttons. It fixed that only at
+  the HARD RESET between runs.
+- `_budgeted` in `victory_road.py` carries the same warning in its own docstring and releases in a `finally`.
+- Yet its sibling `_sampling`, twenty lines away, does not. The story's own whiteout and derail recovery never
+  released either.
+- The whiteout listener's release was no protection: it runs before the interrupted walk's mask is restored or re-held.
+
+**Fix:** release at the top of `StoryMode.run()`'s recovery handler, the one seam both recoveries share. The release is
+gated (`probe_recovery_heldrelease.py`) and A/B-proven (`--driver evgpcwedge`).
+
+**Prevention rule:** ⛔ **When a fix closes a leak at one seam, grep for EVERY seam where the same abandoned state
+flows next** (the hard reset, the whiteout recovery, the derail recovery), and gate the class, not the instance. A
+docstring that already names the hazard (`_budgeted`'s) is a prompt to audit its siblings, not a reassurance.
+
+## 2026-09-27 — ⛔ THE PARK REPORT CALLED A TRAINER BATTLE "WILD", AND I COPIED IT INTO KI-106 AND THE FINAL NOTE
+
+**Symptom:** the batch report, KI-106 and the FINAL note said "a wild Roselia" and "during §Ch23 training". It was
+Cooltrainer Hope's Roselia, a sight-line TRAINER, on leg 5's walk after Wally.
+
+**Root cause:** the report agent inferred "wild" from the battle's HP line. The log had no `Encountered` line for that
+battle, and Roselia is not wild in Victory Road. I relayed the claim without checking it.
+
+**Fix:** the KI-106 recon's log and decomp angles corrected it (the decomp: `sParty_Hope`, at (6,15) facing Left with
+sight 4). All three docs are corrected.
+
+**Prevention rule:** ⛔ **An agent's descriptive detail about an event (wild or trainer, which leg) is a claim like any
+other.** When a KI is filed from a report, check the one line that would distinguish it: a wild battle ALWAYS logs
+`Encountered <species>`.

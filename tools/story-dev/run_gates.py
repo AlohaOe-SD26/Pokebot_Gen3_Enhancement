@@ -253,6 +253,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-destreachability` (Petalburg Woods) — the Ch12 leg aims at a REACHABLE tile (the old (26, 5) is a solid tree;
     # 67/67 live legs derailed there). ROM: the bot's own planner on the pinned `norman_done.ss1`, with a control.
     ("probe_woods_dest.py", True),
+    # ⛔ KI-106 / `#27-evgpcwedge` — every Story recovery starts from NO held input (a leaked Up walked a whiteout
+    # respawn into the Ever Grande Poké Center and wedged an 8-badge run). Static, with three fault arms built in.
+    ("probe_recovery_heldrelease.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),
