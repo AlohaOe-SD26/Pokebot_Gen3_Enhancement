@@ -22487,3 +22487,18 @@ the plain heal inside. A/B-proven (`ai-research-notes/2026-09-27-lavaheal-GRADED
 checked against every place the errand can LEAVE it,** and one-way or scripted connectivity (ledges, cable cars,
 Jagged Pass) does not show up in the warp graph. And ⛔ **a derail that "always recovers" is still a defect.** Count
 how often the recovery is the normal path: here it was 54 of 54.
+
+## 2026-09-27 — ⛔ A STAGING PREMISE THAT COULD NOT BE SATISFIED: "SET THE LEAD TO 50% HP" ON A SHEDINJA (MAX HP 1)
+
+**Symptom:** both arms of `--driver petaheal` printed `ACCEPTANCE: FAIL`, and both subjects had done exactly what the
+predictions said.
+
+**Root cause:** the driver staged SLOT 0 to half HP. `norman_done.ss1`'s slot 0 is a Shedinja, whose max HP is 1, so
+`max(1, 1 // 2)` = 1 left it full. The premise `staged below full` was False, and "healed" graded nothing.
+
+**Fix:** stage the first live mon with at least 2 max HP, and read the SAME slot back after the heal. Re-run: both
+arms PASS, frame-identical.
+
+**Prevention rule:** ⛔ **A staging write must be checked against the mon it lands on, not assumed.** Species with
+fixed or tiny stats (Shedinja's 1 HP) turn "half" into "full". Pick the target by a property the stage needs, and log
+the before/after reading that the premise conjunct grades.

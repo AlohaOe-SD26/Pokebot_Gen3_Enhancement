@@ -262,6 +262,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#26-healmap-lavaridge` F4 — the Flannery heal takes the cable car + Jagged Pass from below Lavaridge (the
     # generic heal walk has no route there before Flannery: 54 of 54 derailed in the batch). Static + stubbed.
     ("probe_lavaheal.py", False),
+    # ⛔ `#26-healmap-lavaridge` (Petalburg family) — the Norman heal falls back to the story's own road when the
+    # generic walk bounces from the Rustboro side (53 of 53 derailed in the batch), releasing held input first.
+    ("probe_petaheal.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

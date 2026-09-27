@@ -1,0 +1,52 @@
+[setup] LOG -> evidence\2026-09-27-petaheal-F1b-fix.log
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 200000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> PetaHealMode.run   (state=OVERWORLD)
+[petaheal] PRE at=((0, 0), (7, 6)) expect=arrive arm=unset
+f40: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f748: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f749: CONTROLLER -> PetaHealMode.run   (state=OVERWORLD)
+f1002: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=PetaHealMode.run bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2071: SAVED stall state #1 to stalls/repro-ml-f2071.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+[petaheal] HEALED-FIRST=True at=((0, 0), (20, 17))
+f4000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4246: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4247: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f5146: PARTY CHANGE [Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767] -> [Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f5211: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f5222: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='SHEDINJA gained 38 EXP. Points!' scripts=[] party=[Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f5242: CONTROLLER -> PetaHealMode.run   (state=OVERWORLD)
+f5486: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=PetaHealMode.run bt='SHEDINJA gained 38 EXP. Points!' scripts=[] party=[Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f6000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[petaheal] POSITIONED=True at=((0, 31), (11, 7))
+[petaheal] STAGED slot 1 Blaziken 55/110
+f6888: battle_is_active -> True  party=[Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f6889: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f7750: PARTY CHANGE [Shedinja:L29:exp37422|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767] -> [Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f7815: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f7826: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='SHEDINJA gained 50 EXP. Points!' scripts=[] party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f7852: CONTROLLER -> PetaHealMode.run   (state=OVERWORLD)
+f8000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f8453: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=PetaHealMode.run bt='SHEDINJA gained 50 EXP. Points!' scripts=[] party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f10000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f11994: SAVED stall state #2 to stalls/repro-ml-f11994.ss1 (bt='SHEDINJA gained 50 EXP. Points!')
+f12000: heartbeat mode=Story ctrl=PetaHealMode.run state=OVERWORLD party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[petaheal] MAPS ['ROUTE116', 'RUSTBORO_CITY', 'RUSTBORO_CITY_FLAT1_1F', 'RUSTBORO_CITY', 'ROUTE104', 'PETALBURG_WOODS', 'ROUTE104', 'PETALBURG_CITY', 'PETALBURG_CITY_POKEMON_CENTER_1F', 'PETALBURG_CITY']
+[petaheal] PETAHEAL-EVENTS ['PETAHEAL: generic heal failed from map (0, 3); held 0x0000 released; taking the road — HealWalkFailedError']
+[petaheal] END at=((0, 0), (20, 17)) finished=True lead_after=(110, 110) continue=True failure=None
+[petaheal] conjuncts = {'healed_first': True, 'positioned_on_route116': True, 'lead_staged_below_full': True, 'no_failure': True, 'finished': True, 'fallback_acted': True, 'took_the_woods_road': True, 'ends_in_petalburg': True, 'lead_healed': True, 'can_continue_to_the_gym_door': True, 'no_whiteout': True}
+[petaheal] ACCEPTANCE: PASS (expect=arrive)
+f12526: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f12526 — ending the loop at f12646
+[done] ran 12647 frames; final mode=Manual party=[Shedinja:L29:exp37472|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 12650 get_party() recomputes, 43 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += petaheal 12650 recomputes (party_accounting_ledger.jsonl)

@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -23129,6 +23129,165 @@ class LavaHealMode(BotMode):
         context.set_manual_mode()
 
 
+class PetaHealMode(BotMode):
+    """`--driver petaheal` — `#26-healmap-lavaridge`'s Petalburg family: production `early_game.heal_at_petalburg()` from
+    the Rustboro side.
+
+    From `norman_done.ss1` (Petalburg, badges 1-5, party battered): heal in place (the generic heal works FROM Petalburg),
+    walk (production `_navigate_riding_out`) to ROUTE116 (11,7) — where 40 of the batch's 53 Norman heals began — stage
+    the lead to 50% HP, then run the heal. Production `debug_logger.event` lines are recorded (the `PETAHEAL:` line is the
+    fallback ACTING, CLAUDE.md rule 7).
+    GRADES (`PETAHEAL_EXPECT`): `arrive` (default) — no raise; a `PETAHEAL:` event; PETALBURG_WOODS entered; ends in
+    PETALBURG_CITY with the lead at full HP; `calculate_path` reaches the gym door (15,8). `blocked` — with
+    `POKEBOT_PETAHEAL_FAULT_GENERIC=1`: raises BLOCKED naming RUSTBORO_CITY_FLAT1_1F, no `PETAHEAL:` event.
+    Predictions: `ai-research-notes/2026-09-27-petaheal-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "PetaHeal"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[petaheal] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules import debug_logger as _dl
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.memory import read_symbol, write_symbol
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.state_cache import state_cache
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _navigate_riding_out,
+            _yield_bounded_by_frames,
+            heal_at_petalburg,
+            heal_in_pokemon_center,
+            reraise_if_aborting,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "petaheal"
+        EXPECT = _os.environ.get("PETAHEAL_EXPECT", "arrive")
+        stage_slot = None
+        maps: list = []
+        events: list = []
+        failure = None
+        finished = None
+        healed_first = positioned = staged = False
+        _real_event = _dl.event
+
+        def _rec_event(message, *a, **kw):
+            events.append(str(message))
+            return _real_event(message, *a, **kw)
+
+        def _map_now():
+            try:
+                return tuple(get_player_avatar().map_group_and_number)
+            except Exception:  # noqa: BLE001 - an unreadable map is simply not recorded
+                return None
+
+        def _watch():
+            gen = heal_at_petalburg()
+            while True:
+                try:
+                    next(gen)
+                except StopIteration:
+                    return
+                here = _map_now()
+                if here and (not maps or maps[-1] != here):
+                    maps.append(here)
+                yield
+
+        _dl.event = _rec_event
+        try:
+            yield from wait_until_truly_controllable()
+            log(f"[{TAG}] PRE at={VR._where()} expect={EXPECT} "
+                f"arm={_os.environ.get('POKEBOT_PETAHEAL_FAULT_GENERIC', 'unset')}")
+            yield from _yield_bounded_by_frames(heal_in_pokemon_center(PokemonCenter.PetalburgCity), 20_000)
+            state_cache.reset()
+            healed_first = all(p.current_hp == p.total_hp for p in get_party() if p is not None)
+            log(f"[{TAG}] HEALED-FIRST={healed_first} at={VR._where()}")
+            yield from _yield_bounded_by_frames(_navigate_riding_out(MapRSE.ROUTE116, (11, 7)), 60_000)
+            yield from wait_until_truly_controllable()
+            positioned = _map_now() == MapRSE.ROUTE116.value
+            log(f"[{TAG}] POSITIONED={positioned} at={VR._where()}")
+            # ⛔ STAGE A MON THAT CAN BE BELOW FULL. The first drives staged slot 0 — a Shedinja, whose max HP is 1, so
+            # "50%" stayed 1/1 and the heal was unobservable (G1/F1 failed the premise; a DRIVER bug, the subjects
+            # behaved as predicted). ⇒ the first live mon with at least 2 max HP.
+            party = get_party()
+            stage_slot = next((i for i, p in enumerate(party)
+                               if p is not None and p.total_hp >= 2 and p.current_hp > 0), None)
+            if stage_slot is not None:
+                mon = party[stage_slot]
+                raw = bytearray(read_symbol("gPlayerParty"))
+                o = stage_slot * 100
+                raw[o + 86:o + 88] = max(1, mon.total_hp // 2).to_bytes(2, "little")
+                write_symbol("gPlayerParty", bytes(raw))
+                state_cache.reset()
+                s = get_party()[stage_slot]
+                staged = s.current_hp < s.total_hp
+                log(f"[{TAG}] STAGED slot {stage_slot} {mon.species.name} {s.current_hp}/{s.total_hp}")
+            finished = yield from _yield_bounded_by_frames(_watch(), 80_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print (the GENERIC arm is EXPECTED to raise)
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _dl.event = _real_event
+        at = VR._where()
+        end_map = _map_now()
+        try:
+            state_cache.reset()
+            _s = get_party()[stage_slot] if stage_slot is not None else None
+            lead_after = (_s.current_hp, _s.total_hp) if _s is not None else None
+        except Exception:  # noqa: BLE001 - unreadable ⇒ not healed
+            lead_after = None
+        cont = None
+        if end_map == MapRSE.PETALBURG_CITY.value:
+            try:
+                calculate_path(get_map_data(MapRSE.PETALBURG_CITY, tuple(get_player_avatar().local_coordinates)),
+                               (MapRSE.PETALBURG_CITY, (15, 8)))
+                cont = True
+            except PathFindingError as error:
+                cont = f"no: {error}"
+            except Exception as error:  # noqa: BLE001 - recorded, graded as a failure
+                cont = f"err: {type(error).__name__}: {error}"
+        names = [MapRSE(m).name if m in {x.value for x in MapRSE} else str(m) for m in maps]
+        peta = [e for e in events if e.startswith("PETAHEAL:")]
+        log(f"[{TAG}] MAPS {names}")
+        log(f"[{TAG}] PETAHEAL-EVENTS {peta}")
+        log(f"[{TAG}] END at={at} finished={finished} lead_after={lead_after} continue={cont} failure={failure}")
+        premise = {"healed_first": healed_first, "positioned_on_route116": positioned, "lead_staged_below_full": staged}
+        if EXPECT == "arrive":
+            conj = {**premise, "no_failure": failure is None, "finished": finished is True,
+                    "fallback_acted": bool(peta), "took_the_woods_road": "PETALBURG_WOODS" in names,
+                    "ends_in_petalburg": end_map == MapRSE.PETALBURG_CITY.value,
+                    "lead_healed": bool(lead_after) and lead_after[0] == lead_after[1],
+                    "can_continue_to_the_gym_door": cont is True,
+                    "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        else:
+            conj = {**premise, "raised_blocked": failure is not None and "BLOCKED" in failure,
+                    "names_flat1": failure is not None and "RUSTBORO_CITY_FLAT1_1F" in failure,
+                    "no_fallback": not peta,
+                    "not_in_petalburg": end_map != MapRSE.PETALBURG_CITY.value}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -27410,6 +27569,8 @@ for step in range(args.frames):
             context.bot_mode_instance = WoodsLegMode()
         elif args.driver == "lavaheal":
             context.bot_mode_instance = LavaHealMode()
+        elif args.driver == "petaheal":
+            context.bot_mode_instance = PetaHealMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

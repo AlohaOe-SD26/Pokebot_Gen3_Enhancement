@@ -36144,3 +36144,29 @@ The Flannery segment calls it in place of `heal_in_pokemon_center(LavaridgeTown)
 Gate `probe_lavaheal.py` checks the wiring, the set's completeness against MapRSE, and the stubbed behaviour; 3 fault
 arms. Suite 106 (102 enforcing + 4 advisory; `--quick` 93).
 **REMAINING:** the Petalburg (53) and Fortree (8) BLOCKED families.
+
+## 2026-09-27 — THE NORMAN HEAL FALLS BACK TO THE STORY'S OWN ROAD FROM THE RUSTBORO SIDE (`#26-healmap-lavaridge`, the Petalburg Flat1 bounce, A/B-proven from Route 116)
+
+**WHY.** 53 of 53 Norman heals that derailed "BLOCKED" in batch `#26-batch0926` began on Route 116/117 after the prep's
+training top-up. The generic walk bounced off Rustboro Flat1 and raised. The derail's recovery re-ran
+`travel_lavaridge_to_petalburg` and arrived 53 of 53 times.
+
+**WHAT.** `early_game.heal_at_petalburg()` tries the generic heal first. Only on `HealWalkFailedError` from a map in
+`PETALBURG_ROAD_MAPS` does it:
+1. release held input (KI-106);
+2. log `PETAHEAL:`;
+3. take the road;
+4. heal.
+The Norman segment calls it. Arm `POKEBOT_PETAHEAL_FAULT_GENERIC`.
+
+**PROOF** (predictions `360e4cc7`, filed first; `ai-research-notes/2026-09-27-petaheal-GRADED.md`).
+`--driver petaheal` from `norman_done.ss1`: healed in place, walked to ROUTE116 (11,7), a mon staged to 50%.
+- ⚠ **The first pair's GRADES failed on the driver.** It staged a Shedinja (1 max HP), so "50%" stayed 1/1, while both
+  subjects did exactly as predicted. The staging was fixed and both arms re-run.
+- **G1b:** the batch's Flat1 error.
+- **F1b:** `PETAHEAL:` logged, then Rustboro → Route 104 → Petalburg Woods → Petalburg, healed (Blaziken 55 → 110/110),
+  able to path to the gym door.
+Gate `probe_petaheal.py` checks the wiring, the road set against the road's own `order` (AST), and the stubbed
+behaviour on 4 paths; 3 fault arms, one of them a fallback without the held-input release. Suite 107 (103 enforcing +
+4 advisory; `--quick` 94).
+**REMAINING:** the 1 Meteor Falls bounce (from Route 114, a map off the road, so the fallback re-raises as before) and the Fortree family (8). Route 117's 9 origins are covered by the road's own ranking but were not driven.

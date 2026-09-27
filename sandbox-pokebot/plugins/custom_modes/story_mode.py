@@ -5103,7 +5103,7 @@ class StoryMode(BotMode):
             from modules.story.early_game import (
                 PETALBURG_TRAINING_GRASS,
                 _lead_best_matchup,
-                heal_in_pokemon_center,
+                heal_at_petalburg,
             )
 
             norman_fight = {
@@ -5120,7 +5120,9 @@ class StoryMode(BotMode):
             if _cur_map() != MapRSE.PETALBURG_CITY_GYM.value:
                 yield from self._prepare_for_fight(norman_fight)
                 yield from _lead_best_matchup(["Normal"], hunted_pids=self._hunted_counter_pids)
-                yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+                # ⛔ NOT the bare generic heal: from the Rustboro side (a Route 116/117 top-up) it bounced and derailed
+                # 53 of 53 times in batch #26-batch0926 — `heal_at_petalburg` falls back to the story's own road.
+                yield from heal_at_petalburg()
             yield from do_petalburg_gym()
         else:
             console.print("[dim]Story: Surf already received — Gym 5 skipped.[/]")

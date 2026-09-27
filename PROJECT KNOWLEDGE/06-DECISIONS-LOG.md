@@ -7613,3 +7613,22 @@ runs `do_jagged_descent()` (cable car up, Jagged Pass down, ending healed); insi
   car.
 - (F6) **Heal at a nearer centre.** `do_lavaridge_gym` next walks to Lavaridge with the same navigator, so the failure
   just moves.
+
+## 2026-09-27 — the Norman heal TRIES the generic walk first and falls back only on failure (unlike Lavaridge's pre-check)
+
+**Decision:** `heal_at_petalburg()` calls the generic heal first. Only on `HealWalkFailedError`, and only from a map in
+`PETALBURG_ROAD_MAPS` (the maps `travel_lavaridge_to_petalburg` ranks), does it release held input and take that road.
+Anything else re-raises as before. Arm: `POKEBOT_PETAHEAL_FAULT_GENERIC`.
+
+**Rationale:**
+- Unlike Lavaridge, Petalburg is walkable from many prep grounds: Route 102, Route 104's south half, Petalburg itself.
+  A pre-check "outside Petalburg ⇒ take the road" would send those callers down a road that starts at its far end, since
+  the road ranks unknown maps at -1 and runs every leg.
+- Trying first keeps every working case byte-for-byte unchanged. The failing case costs one bounce, about 60 frames,
+  before the fallback.
+
+**Rejected:**
+- (a) **A pre-check, as for Lavaridge.** It is wrong for the many walkable origins.
+- (b) **Catching every `BotModeError`.** It would swallow a whiteout; `StoryAbort` is a `BotModeError`.
+- (c) **Falling back without releasing held input.** KI-106's lesson: a raise abandons the walker mid-step. The gate's
+  fault arm pins this.

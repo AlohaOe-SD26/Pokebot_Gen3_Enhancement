@@ -6961,6 +6961,56 @@ def travel_lavaridge_to_petalburg() -> Generator:
     context.message = "Story: reached Petalburg City — Norman's gym awaits."
 
 
+#: The maps `travel_lavaridge_to_petalburg` walks FROM — its own ordered road, Petalburg excluded. `heal_at_petalburg`
+#: falls back to that road only from here (from anywhere else the road would start at its far end). The gate
+#: `probe_petaheal.py` pins this against the function's own `order` list, so the two cannot drift.
+PETALBURG_ROAD_MAPS = frozenset({
+    MapRSE.LAVARIDGE_TOWN.value, MapRSE.ROUTE112.value, MapRSE.ROUTE111.value, MapRSE.MAUVILLE_CITY.value,
+    MapRSE.ROUTE117.value, MapRSE.VERDANTURF_TOWN.value, MapRSE.RUSTURF_TUNNEL.value, MapRSE.ROUTE116.value,
+    MapRSE.RUSTBORO_CITY.value, MapRSE.ROUTE104.value, MapRSE.PETALBURG_WOODS.value,
+})
+
+
+def heal_at_petalburg() -> Generator:
+    """The Norman segment's heal (§Ch12b), from wherever the boss prep left us.
+
+    ⛔⛔ FROM THE RUSTBORO SIDE THE GENERIC HEAL WALK BOUNCES (2026-09-27, `ai-research-notes/2026-09-27-healwalk-RECON.md`).
+    MEASURED in batch `#26-batch0926`: 53 of 53 Norman heals that derailed "BLOCKED" started on Route 116 or 117 after the
+    prep's training top-up; the generic walk picked a zero-progress building (Rustboro Flat1), misread its successful
+    exit as a failure, and raised. The derail's recovery re-ran `travel_lavaridge_to_petalburg` — the story's own road,
+    Rustboro → Route 104 → Petalburg Woods → Petalburg — and got there 53 times of 53.
+    ⇒ TRY THE GENERIC HEAL FIRST: from Petalburg, Route 102 or Route 104's south half it works, and that path is
+    unchanged. Only on `HealWalkFailedError` from a map on that road: release held input (KI-106 — the raise abandoned
+    the walker mid-step), take the road, then heal. Anything else re-raises as before. Arm
+    `POKEBOT_PETAHEAL_FAULT_GENERIC=1` always re-raises (the old behaviour)."""
+    import os as _os_ph
+
+    from modules.console import console
+    from modules.modes.util.higher_level_actions import HealWalkFailedError
+
+    try:
+        yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+        return
+    except HealWalkFailedError as error:
+        here = _map_group_number()
+        if _os_ph.environ.get("POKEBOT_PETAHEAL_FAULT_GENERIC") == "1" or here not in PETALBURG_ROAD_MAPS:
+            raise
+        _released = context.emulator.reset_held_buttons()
+        console.print(
+            f"[yellow]Story: the generic heal walk to Petalburg failed from {here} ({error}); released held input "
+            f"0x{_released:04x} and taking the Rustboro → Petalburg Woods road instead.[/]"
+        )
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(f"PETAHEAL: generic heal failed from map {here}; held 0x{_released:04x} released; "
+                               f"taking the road — {type(error).__name__}")
+        except Exception as _log_err:  # noqa: BLE001 - the fallback must run even if its log line cannot
+            console.print(f"[yellow]PETAHEAL log line failed: {_log_err!r}[/]")
+    yield from travel_lavaridge_to_petalburg()
+    yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+
+
 # The Petalburg Gym left-door speedrun chain (static warp table, ch12 recon
 # 2026-07-24 — ch12_static_recon*.py / petalburg_gym_probe.py). Each step:
 # (room trainer tile or None, internal door tile to step on, landing tile).
