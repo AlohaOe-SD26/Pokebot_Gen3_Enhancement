@@ -46,3 +46,28 @@
 * **The foe recorder filing a LOSS live.** The recorded value is the same `_foe` the `[TURN]` line prints (proven by the
   145 measured losses); the filing is gated (`probe_gymtm_teach.py` G1b). Live evidence = the batch's loss lines, which
   now end `last foe <species>`.
+
+## ADDENDUM (filed ~20:25, BEFORE any design-4 drive) — the P1 drive of design 3 and DESIGN 4's predictions
+
+**P1 of design 3 ran first (evidence `2026-09-26-gymtm-P1-taught.*`).** Graded against the table above: every TEACH
+conjunct matched the prediction — TM34 Shock Wave → Loudred#B2768B68 replacing Pound, Loudred = [Shock Wave, Uproar,
+Astonish, Stomp], TM34 1→0, no other mon changed, tripwire `BOSS_TRAINING_MODE`, OVERWORLD with no menu, 1,842 frames.
+The ACCEPTANCE line read FAIL on two conjuncts that were the DRIVER'S bugs, not the build's: its continue check called
+`get_map_data(map)` without the required `local_position` (`read_error`, which also failed `no_failure`). Fixed — and a
+second latent bug in the same check (`w.destination_location` does not exist on a warp) was fixed before it could run.
+
+**Then the design changed again, before any further drive.** An adversarial review (Claude agent) found three
+blockers: the recipient must be one the RULED lead/replacement order actually fields against the wall; a taught move
+must not switch off the counter ladder / honest stop; the wall must be weighted by OUR faints and filed only for the
+LEADER'S battle (her gym trainers use Skarmory/Tropius/Pelipper/Swablu). Design 4 adds a reach filter, a Gen-3 duel
+estimate (`MIN_SHARE` 0.5), a credible-answer test (2x AND power), a banned-move / plain-hit filter, the level floor
+`max(wall-2, top-8)`, deposit protection, and one teach per boss until the taught move is SEEN used.
+
+| # | Drive (design 4, `HARNESS_EXIT_ON_MANUAL=1`) | Prediction | Falsifier |
+|---|---|---|---|
+| Q1 | `taught`, devon_scope_got, walls `Skarmory,Skarmory` | **TM50 Overheat → Loudred (pid b2768b68) replacing Pound**, share 100% (Overheat outscores Shock Wave on the duel estimate — observe-only run); Loudred = [Overheat, Uproar, Astonish, Stomp]; TM50 1→0, TM34/TM39 unchanged; others unchanged; tripwire; OVERWORLD, no menu; a path to the Fortree gym door's front | Shock Wave chosen (the share ranking is not what runs); any other mon/TM changes; a menu open |
+| Q2 | `taught`, devon_scope_got, walls `Pelipper,Pelipper` | **TM34 Shock Wave → Loudred replacing Pound** (4x; share 100%, drawback-free wins the tie); TM34 1→0 | Overheat (0.5x on Pelipper) chosen |
+| Q3 | `noteach` (`POKEBOT_GYMTM_FAULT_NOTEACH=1`), devon_scope_got, Skarmory×2 | planned TM50 → Loudred, `('Winona','TM50')` latched, nothing changed | anything taught |
+| Q4 | `budget` (`POKEBOT_GYMTM_FAULT_BUDGET=600`), devon_scope_got, Skarmory×2 | `finished` False; most likely not taught (TM50 still 1); the teach-aware close leaves OVERWORLD, no menu; a path to the gym | a menu left open; a TM spent without the move |
+| Q5 | `noplan`, fortree_gym_wedge, Skarmory×2 | `no plan`; reasons include "Sceptile would never be fielded against Skarmory"; nothing changes; < 2,000 frames | any teach |
+| Q6 | `taught` pointed at Q1's OWN END STATE | **FAIL** — Loudred now has Overheat (a credible 2x answer) ⇒ `no plan` | a PASS |
