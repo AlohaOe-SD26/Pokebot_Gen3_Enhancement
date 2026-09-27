@@ -41,7 +41,7 @@ recomputed fresh here; for a single evaluation at a fixed position that is equiv
 import pathlib as _pl
 import sys
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
@@ -62,7 +62,7 @@ from modules.player import get_player_avatar
 from modules.map_data import MapRSE
 from modules.story import victory_road as VR
 
-SAVES = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves")
+SAVES = (_pl.Path(__file__).resolve().parent / "saves")
 
 #: (leg, the guard exactly as written in the dispatch, a callable evaluating it)
 GUARDS = [

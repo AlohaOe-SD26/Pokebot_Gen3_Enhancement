@@ -57,7 +57,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 
 #: ‼ BUILD-AWARE, so a PROMOTION of this guard can be MEASURED and not assumed. `promote.py`'s own
 #: docstring records a promotion that shipped with a hole precisely because the gate proving the fix

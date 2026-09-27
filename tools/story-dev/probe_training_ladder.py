@@ -30,7 +30,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"))
 
 from modules.story.training_areas import best_training_area
 

@@ -24,7 +24,7 @@ READ-ONLY on disk: loads save states, reads memory, patches one function in RAM.
 import pathlib as _pl
 import sys
 
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT / "sandbox-pokebot"))
 
 from modules.context import context

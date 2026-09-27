@@ -47,7 +47,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 _BUILD = ("custom" if "--build" in sys.argv
           and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox")
 SRC = _ROOT / f"{_BUILD}-pokebot" / "plugins" / "custom_modes" / "story_mode.py"

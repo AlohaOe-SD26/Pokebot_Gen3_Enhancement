@@ -8,7 +8,7 @@ Two things this is trying to learn, and the second matters more than the first:
 """
 import pathlib, re
 
-REPO = pathlib.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+REPO = pathlib.Path(__file__).resolve().parents[2]
 KI_FILE = REPO / "PROJECT KNOWLEDGE" / "05-KNOWN-ISSUES.md"
 HANDOFF = REPO / "PROJECT KNOWLEDGE" / "04-HANDOFF.md"
 

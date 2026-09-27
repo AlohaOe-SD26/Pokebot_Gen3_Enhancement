@@ -67,7 +67,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT / "sandbox-pokebot"))
 
 from modules.context import context

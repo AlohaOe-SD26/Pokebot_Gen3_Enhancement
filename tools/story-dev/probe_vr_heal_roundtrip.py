@@ -23,7 +23,7 @@ reports them separately, because only one of them is a fair question.
 import pathlib as _pl
 import sys
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
@@ -45,7 +45,7 @@ from modules.map_path import calculate_path
 from modules.player import get_player_avatar
 from modules.story import victory_road as VR
 
-SAVES = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves")
+SAVES = (_pl.Path(__file__).resolve().parent / "saves")
 
 #: The only training spot constant in the module (`victory_road.py:477`).
 TRAIN_SPOT_1F = VR.TRAIN_SPOT_1F            # (VICTORY_ROAD_1F, (15, 39))

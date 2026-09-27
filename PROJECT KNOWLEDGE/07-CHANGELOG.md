@@ -36265,3 +36265,21 @@ they graded `main`, not the branch. That blind spot let an inverted range citati
 gate among the 22 (`probe_citation_ranges`) pointed at the worktree by hand. The scripts themselves are fixed
 in the next commit. Review note also recorded in code: `_withdraw_hm_learner` matches by PID only, which is
 safe today because Shedinja/Ninjask (one PID, KI-78) can learn none of the HMs routed through it.
+
+## 2026-09-27 — `#27-gaterepo`: 22 TOOL SCRIPTS GRADED THE MAIN CHECKOUT FROM A WORKTREE — THEY NOW RESOLVE THEIR OWN REPO
+
+**WHY.** The project builds on worktree branches while a batch runs on `main`. 22 scripts in `tools/story-dev/`
+hardcoded `C:\Remote Projects\Pokebot_Gen3_Enhancement` as their root, and several put that checkout's
+`sandbox-pokebot` on `sys.path`. From the worktree they read `main`'s docs and imported `main`'s code, and still printed
+PASS. The Waterfall item's adversarial review caught it: `probe_citation_ranges` had passed an inverted range citation
+the branch had just introduced.
+
+**WHAT.**
+- All 26 hardcoded lines now use `Path(__file__).resolve().parents[2]` (the SAVES lines use `.parent / "saves"`).
+  `evidence/` scripts are frozen history and were left alone.
+- New gate `probe_no_hardcoded_repo.py`: no code string constant in a top-level `tools/story-dev/*.py` may name the main
+  checkout. Docstrings and comments are exempt. 5 built-in fault arms; it flags HEAD's old `probe_citation_ranges.py:52`.
+
+**PROOF.** A planted inverted citation in the worktree now makes `probe_citation_ranges` exit 1, and removing it makes
+it exit 0. Full suite from the worktree (the first time these 22 read the branch): 110 of 110 PASS after the worktree was given its own `repro-fresh` profile (the one FAIL, `probe_fly_disjunct`, was that missing gitignored profile, not code); no regression was hiding behind the 22. Suite 111 (107
+enforcing + 4 advisory; `--quick` 98).

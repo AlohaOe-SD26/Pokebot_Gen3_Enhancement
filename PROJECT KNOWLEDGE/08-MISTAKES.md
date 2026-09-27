@@ -22557,3 +22557,22 @@ rebuilds the old line from source and must fail.
 
 **Prevention rule:** ⛔ **An action's result is identified by the key the action USED, never re-derived by a ranking.**
 A ranking is a candidate; the PID sent to the PC is the attempt (rule 7).
+
+## 2026-09-27 — ⛔ GATES THAT HARDCODED THE MAIN CHECKOUT PRINTED "PASS" FOR A WORKTREE THEY NEVER READ
+
+**Symptom:** a branch introduced an inverted range citation (`victory_road.py:2142-2082`), and `probe_citation_ranges`,
+run from the branch's worktree, printed PASS. An adversarial reviewer re-ran its loop against the worktree and it failed
+at once.
+
+**Root cause:** 22 tool scripts hardcoded `C:\Remote Projects\Pokebot_Gen3_Enhancement` as their root (several also
+imported that checkout's `sandbox-pokebot`). They were written when there was one checkout. Since the worktree
+workflow began, every run of them from a worktree measured `main`.
+They also WROTE there: a ROM gate saves emulator state into its profile on shutdown, so worktree runs rewrote
+`main`'s `sandbox-pokebot/profiles/repro-fresh/current_state.ss1` during a batch (gitignored runtime state, not a
+batch lane, so no harm this time). The worktree needs its own copy of such profiles (`repro-fresh` was seeded
+from `main`'s metadata.yml, current_save.sav and stats.db).
+
+**Fix:** they resolve their root from `__file__`; the guard `probe_no_hardcoded_repo.py` fails on any new literal.
+
+**Prevention rule:** ⛔ **A gate must locate what it grades from ITSELF, never from an absolute path.** When a gate
+passes on a change you just made, check that it can fail on that change: plant the defect and watch it go red.

@@ -51,7 +51,7 @@ except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not
 #: resolver was never wired produces an edge that can NEVER open, and `is_map_reachable` is
 #: fail-safe, so the wrong refusal is indistinguishable from a right one. Worth checking twice.
 #:     PYTHONUTF8=1 py -3.12 probe_caps_resolve_every_gate.py --build custom
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 _BUILD = ("custom" if "--build" in sys.argv
           and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox")
 sys.path.insert(0, str(_ROOT / f"{_BUILD}-pokebot"))

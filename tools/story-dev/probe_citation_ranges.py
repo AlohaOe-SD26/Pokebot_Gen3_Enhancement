@@ -49,7 +49,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-REPO = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+REPO = _pl.Path(__file__).resolve().parents[2]
 DOCS = REPO / "PROJECT KNOWLEDGE"
 
 #: APPEND-ONLY HISTORY IS EXEMPT, AND THE REASON IS NOT CONVENIENCE.

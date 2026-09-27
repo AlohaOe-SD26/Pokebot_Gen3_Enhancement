@@ -1,0 +1,49 @@
+Running mGBA 0.10.2
+========================================================================================================
+DOES THE FLY DISJUNCT CHANGE AN ANSWER?   walking-only  vs  walking OR fly   [build=sandbox]
+  importing from: C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot
+========================================================================================================
+
+─── A  flyable fixture: post_ch24_atdoor_L75.ss1
+  rung      ground             walk<=4hops   can fly   combined   effect
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           False         True      True       ⭐ FLIPPED NO→YES — the disjunct is load-bearing here
+  L21-24    ROUTE111           False         True      True       ⭐ FLIPPED NO→YES — the disjunct is load-bearing here
+  L25-26    ROUTE115           False         True      True       ⭐ FLIPPED NO→YES — the disjunct is load-bearing here
+  L27       ROUTE118           False         True      True       ⭐ FLIPPED NO→YES — the disjunct is load-bearing here
+  L28-38    ROUTE121           False         True      True       ⭐ FLIPPED NO→YES — the disjunct is load-bearing here
+  L39-75    VICTORY_ROAD_1F    True          True      True       (walking already said yes — disjunct irrelevant)
+
+  → 5 rung(s) admitted ONLY because of Fly
+
+─── B  NEGATIVE CONTROL: post_grind_L60.ss1
+  rung      ground             walk<=4hops   can fly   combined   effect
+  --------------------------------------------------------------------------------------------
+  L15-20    ROUTE117           False         False     False      still NO
+  L21-24    ROUTE111           False         False     False      still NO
+  L25-26    ROUTE115           False         False     False      still NO
+  L27       ROUTE118           False         False     False      still NO
+  L28-38    ROUTE121           False         False     False      still NO
+  L39-75    VICTORY_ROAD_1F    True          False     True       (walking already said yes — disjunct irrelevant)
+
+  → 0 rung(s) admitted ONLY because of Fly
+
+========================================================================================================
+  LANDING TILES the traversal will use (door + (0,+1)):
+     ROUTE117           VerdanturfTown     door (16, 3)    → landing (16, 4)
+     ROUTE111           FallarborTown      door (14, 7)    → landing (14, 8)
+     ROUTE115           RustboroCity       door (16, 38)   → landing (16, 39)
+     ROUTE118           MauvilleCity       door (22, 5)    → landing (22, 6)
+     ROUTE121           LilycoveCity       door (24, 14)   → landing (24, 15)
+     VICTORY_ROAD_1F    EvergrandeCity     door (27, 48)   → landing (27, 49)
+
+  ✅ ARM A: 5 rung(s) flipped NO→YES on Fly alone — the clause does real work.
+  ✅ ARM B: nothing extra admitted where Fly is unavailable — the control holds.
+
+  VERDICT: ✅ THE FLY DISJUNCT IS LOAD-BEARING AND CORRECTLY GATED
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-fresh\states\2026-09-27
+_12-24-37.ss1 created!
+Updated `current_state.ss1`!

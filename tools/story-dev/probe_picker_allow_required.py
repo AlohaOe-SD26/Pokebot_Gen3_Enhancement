@@ -42,7 +42,7 @@ try:
 except Exception:  # noqa: BLE001 - a console that cannot be reconfigured is not a reason to abort
     pass
 
-ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"
+ROOT = _pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"
 #: PRODUCTION only. `tools/story-dev` probes legitimately call the pickers bare to MEASURE them —
 #: that is how the asymmetry above was established, and forbidding it would forbid the evidence.
 SCAN = [ROOT / "modules", ROOT / "plugins"]

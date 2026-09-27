@@ -34,7 +34,7 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
-_ROOT = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+_ROOT = _pl.Path(__file__).resolve().parents[2]
 
 # ⛔⛔ `--build custom` EXISTS SO A PROMOTION CAN BE MEASURED RATHER THAN ASSUMED, AND THIS PROBE
 # WOULD HAVE SHIPPED WITHOUT IT. `promote.py`'s own docstring records the cost: on 2026-08-14 a

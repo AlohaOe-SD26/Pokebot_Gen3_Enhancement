@@ -274,6 +274,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 1 (B), Waterfall — box-first inside ensure_waterfall_learner (the generic gate never fires
     # on a SATURATED compatible learner), and _withdraw_hm_learner names the PID it was asked for. 3 fault arms.
     ("probe_r20_wfbox.py", False),
+    # ⛔ `#27-gaterepo` — no live tool script may hardcode the MAIN checkout's path: 22 did, and from a worktree they
+    # graded (and imported) `main` while printing PASS. AST scan; docstrings/comments exempt; 5 fault arms.
+    ("probe_no_hardcoded_repo.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

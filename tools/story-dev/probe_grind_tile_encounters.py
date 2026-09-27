@@ -43,7 +43,7 @@ READ-ONLY: loads save states and reads tiles. Nothing is walked, nothing is writ
 import pathlib as _pl
 import sys
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
@@ -64,7 +64,7 @@ from modules.map import get_map_data
 from modules.map_data import MapRSE
 from modules.player import get_player_avatar
 
-SAVES = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves")
+SAVES = (_pl.Path(__file__).resolve().parent / "saves")
 VR1F = MapRSE.VICTORY_ROAD_1F
 
 #: The tile the proposed TRAINING_GRASS row names, and the one `TRAIN_SPOT_1F` already points at.

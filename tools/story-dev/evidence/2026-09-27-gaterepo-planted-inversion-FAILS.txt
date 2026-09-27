@@ -1,0 +1,25 @@
+====================================================================================================
+GATE: range citations must not be inverted   (+ advisory straddle census)
+====================================================================================================
+  scanned 292 document(s) against 639 source filename(s)
+
+  ℹ ADVISORY — 90 range(s) whose end leaves every definition containing
+    their start. Suspicious, not fatal: an imprecise citation looks the same as a
+    half-applied re-point. Triage when touching the surrounding prose.
+      · 02-ARCHITECTURE.md:415  `map.py:1742-1751` (widest def containing start: 1742-1750)
+      · 03-PUNCH-LIST.md:368  `early_game.py:1988-1997` (widest def containing start: 1823-1989)
+      · 03-PUNCH-LIST.md:528  `victory_road.py:3425-3429` (widest def containing start: 3421-3425)
+      · 03-PUNCH-LIST.md:664  `story_mode.py:1158-1216` (widest def containing start: 1158-1215)
+      · 03-PUNCH-LIST.md:675  `victory_road.py:3374-3460` (widest def containing start: 3279-3415)
+      · 03-PUNCH-LIST.md:825  `early_game.py:1988-1997` (widest def containing start: 1823-1989)
+      · 03-PUNCH-LIST.md:845  `victory_road.py:1902-1912` (widest def containing start: 1895-1903)
+      · 03-PUNCH-LIST.md:903  `story_harness.py:363-592` (widest def containing start: 310-382)
+      · … and 82 more
+
+⛔ FAIL — INVERTED range citation(s); these are defects by construction:
+  • PROJECT KNOWLEDGE\ai-research-notes\zz-TEMP-faulttest-delete-me.md:3  `victory_road.py:2142-2082`  (start > end)
+
+  ‼ THE USUAL CAUSE: a bulk re-point after lines were inserted into a source file, which
+    shifted each citation's START and left its END behind. Recompute the END too — or
+    better, re-point to the exact passage the prose names.
+====================================================================================================

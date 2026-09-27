@@ -23,7 +23,7 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
-REPO = pathlib.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement")
+REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "sandbox-pokebot"))
 
 from modules.context import context  # noqa: E402

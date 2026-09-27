@@ -33,7 +33,7 @@ call return cleanly, everywhere, would satisfy the first half and have broken th
 import pathlib as _pl
 import sys
 
-sys.path.insert(0, str(_pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement") / "sandbox-pokebot"))
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parents[2] / "sandbox-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
@@ -55,7 +55,7 @@ from modules.map_path import calculate_path
 from modules.player import get_player_avatar
 from modules.story import victory_road as VR
 
-SAVES = _pl.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves")
+SAVES = (_pl.Path(__file__).resolve().parent / "saves")
 
 #: The lobby's entry/exit landing tile (`victory_road.py:396-397`). The CONTINUE target: if the bot
 #: can path here from the stop tile it is not PHYSICALLY stranded, whatever the dispatch does.
