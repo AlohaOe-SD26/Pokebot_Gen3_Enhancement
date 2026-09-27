@@ -1,0 +1,24 @@
+[setup] LOG -> evidence\2026-09-26-hmwrongitem-H1-unverified.log
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> TeachFullMode.run   (state=OVERWORLD)
+[teachfull] HANDOFF-STATE controllable=True cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems
+[teachfull] HANDOFF-STATE message_task_active=False tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain']
+[teachfull] item=HM03 teaches Surf
+[teachfull] bag holds 1x HM03
+[teachfull] party — ['0:Shedinja moves=4 compat=False knows=False', '1:Blaziken moves=4 compat=False knows=False', '2:Mightyena moves=4 compat=False knows=False', '3:Ninjask moves=4 compat=False knows=False', '4:Loudred moves=4 compat=False knows=False']
+[teachfull] selection: min_moves=4 want_slot=None
+[teachfull] ABORT — no party mon is compatible, ignorant of the move AND has 4 moves. That combination IS the test; without it this driver measures the instant-learn path that `hmtest` already covers.
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f31 — ending the loop at f151
+[done] ran 152 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 152 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += teachfull 152 recomputes (party_accounting_ledger.jsonl)
