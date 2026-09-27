@@ -7632,3 +7632,22 @@ Anything else re-raises as before. Arm: `POKEBOT_PETAHEAL_FAULT_GENERIC`.
 - (b) **Catching every `BotModeError`.** It would swallow a whiteout; `StoryAbort` is a `BotModeError`.
 - (c) **Falling back without releasing held input.** KI-106's lesson: a raise abandons the walker mid-step. The gate's
   fault arm pins this.
+
+## 2026-09-27 — USER OBSERVATIONS during batch `#27-batch0927`: catching still stops at 4 (re-affirms RULING 20), and a FUTURE fossil request
+
+**Observation 1** (the user, watching the live batch): "It seems that the beginning still locks the party to 4
+pokemon, bot stops catching once team reaches 4 pokemon (around Rustboro gym area, catches more when needing a counter
+but thats about it, should be catching new pokemon constantly)".
+⇒ **Ruling it re-affirms:** USER RULING 20 (2026-09-26), "catching always on; remove the catch-4/party-4 limit".
+**What it tells us:** the fence is still closed. That is expected, because only Phase 0 (safety) is built; Phase 1
+(the PC as the runway) and Phase 2 (open the fence behind a flag) are not.
+**Consequence:** `#26-organiccatch` becomes the top BUILD priority. Design Phase 1 on a branch while the batch runs;
+nothing merges before the park.
+
+**Observation 2:** "it seems to explore and fight in the desert more often now, thats great! At some point in the future
+we would need it to enter the desert cave random event to get a fossil (randomly chooses one each run)".
+⇒ Filed as `#27-desertfossil` (FUTURE).
+- The user's intent: get the desert fossil, choosing one at random each run.
+- The referent is probably Mirage Tower on Route 111 (Root Fossil or Claw Fossil). The mechanics are UNVERIFIED; recon
+  against the decomp comes first.
+- ⛔ Do not re-ask the user what they meant: the intent is recorded here.
