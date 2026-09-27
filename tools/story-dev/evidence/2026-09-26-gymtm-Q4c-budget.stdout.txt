@@ -1,0 +1,76 @@
+[setup] LOG -> evidence\2026-09-26-gymtm-Q4c-budget.log
+Running mGBA 0.10.2
+[setup] loaded save state devon_scope_got.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> GymTmTeachMode.run   (state=OVERWORLD)
+[gymtm] PRE expect=budget walls=['Skarmory', 'Skarmory'] at=((0, 35), (13, 16)) tms={'TM34': 1, 'TM50': 1, 'TM39': 1} reach={'ROUTE120(16, 16)': 'OK', 'ROUTE120(10, 16)': 'OK', 'ROUTE120(13, 19)': 'NO-PATH', 'ROUTE120(13, 13)': 'NO-PATH', 'FORTREE_CITY(5, 7)': 'NO-PATH'}
+[gymtm] PRE Ninjask#42207D6F ['Scratch', 'Fury Swipes', 'Leech Life', 'Fury Cutter']
+[gymtm] PRE Blaziken#341D550A ['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']
+[gymtm] PRE Mightyena#3BDA9D98 ['Tackle', 'Scary Face', 'Sand-attack', 'Bite']
+[gymtm] PRE Loudred#B2768B68 ['Pound', 'Uproar', 'Astonish', 'Stomp']
+[gymtm] PRE Zigzagoon#5FA3F5FB ['Tackle', 'Growl', 'Surf', None]
+[TEACH-BASELINE] gStringVar4 on entry = 'STEVEN: NICK.I enjoy seeing POKéMON and TRAINERS who strive together.I think you’re doing great.Well, let’s meet again somewhere.'
+[TEACH-BASELINE] target nickname='LOUDRED' species='Loudred' moves=['Pound', 'Uproar', 'Astonish', 'Stomp']
+[TEACH-CURSOR] armed: pocket=2 slot=5 -> TM50
+[TEACH-ITEM] asked for TM50; TM/HM pocket order = ['TM08', 'TM34', 'TM39', 'TM42', 'TM47', 'TM50', 'HM02', 'HM03', 'HM04', 'HM06']
+[TEACH-CURSOR] context menu open; bag cursor = pocket=2 slot=5 -> TM50; gStringVar4 = '× 1'
+[TEACH-PARTY] want slot 4 (Loudred); cursor reads=[2, 2, 2, 2, 2, 2, 2, 3, 4, 4, 4]; landed=True; mon under cursor at A-press = Loudred; gStringVar4 = 'Teach which POKéMON?'
+f901: === MOVE-LEARN/EVO WINDOW OPEN === party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+  f901 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=AskWhetherToLearn wfi=0 tasks=['Task_HandleReplaceMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f902 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+f902: === window closed === party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+f1003: === MOVE-LEARN/EVO WINDOW OPEN === party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+  f1003 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1004 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1005 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1006 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1007 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1008 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1009 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1010 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1011 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=ConfirmCancellation wfi=0 tasks=['Task_HandleStopLearningMoveYesNoInput'] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+  f1012 st=PARTY_MENU instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml=DialogueNotActive wfi=0 tasks=[] ctrl='GymTmTeachMode.run' bt='BLAZIKEN gained 565 EXP. Points!'
+f1012: === window closed === party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+f1265: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=GymTmTeachMode.run bt='BLAZIKEN gained 565 EXP. Points!' scripts=[] party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+Story: gym-TM teach vs Winona — not taught (budget expired): TM50 Overheat -> 
+Loudred (slot 4, pid b2768b68) replacing Pound .
+Story: boss-training mode — local wilds (max LNone) are far below the team 
+(L39); re-attempting the boss is the real training (KO'd [1, 1] of theirs). 
+Light top-up to L40 only.
+[gymtm] fixture RESTORED — current_state.ss1 will not carry this run.
+[gymtm] R final_at = ((0, 35), (13, 16))
+[gymtm] R frame_start = 3177497
+[gymtm] R frames = 1291
+[gymtm] R latched = [('Winona', 'TM50')]
+[gymtm] R menus_open_end = []
+[gymtm] R party_end = {1109425519: ('Ninjask', ['Scratch', 'Fury Swipes', 'Leech Life', 'Fury Cutter']), 874337546: ('Blaziken', ['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']), 1004182936: ('Mightyena', ['Tackle', 'Scary Face', 'Sand-attack', 'Bite']), 2994113384: ('Loudred', ['Pound', 'Uproar', 'Astonish', 'Stomp']), 1604580859: ('Zigzagoon', ['Tackle', 'Growl', 'Surf', None])}
+[gymtm] R party_start = {1109425519: ('Ninjask', ['Scratch', 'Fury Swipes', 'Leech Life', 'Fury Cutter']), 874337546: ('Blaziken', ['Scratch', 'Blaze Kick', 'Double Kick', 'Rock Smash']), 1004182936: ('Mightyena', ['Tackle', 'Scary Face', 'Sand-attack', 'Bite']), 2994113384: ('Loudred', ['Pound', 'Uproar', 'Astonish', 'Stomp']), 1604580859: ('Zigzagoon', ['Tackle', 'Growl', 'Surf', None])}
+[gymtm] R reach_end = {'ROUTE120(16, 16)': 'OK', 'ROUTE120(10, 16)': 'OK', 'ROUTE120(13, 19)': 'NO-PATH', 'ROUTE120(13, 13)': 'NO-PATH', 'FORTREE_CITY(5, 7)': 'NO-PATH'}
+[gymtm] R reach_start = {'ROUTE120(16, 16)': 'OK', 'ROUTE120(10, 16)': 'OK', 'ROUTE120(13, 19)': 'NO-PATH', 'ROUTE120(13, 13)': 'NO-PATH', 'FORTREE_CITY(5, 7)': 'NO-PATH'}
+[gymtm] R report = {'boss': 'Winona', 'faints': [{'Skarmory': 3}, {'Skarmory': 3}], 'wall': 'Skarmory', 'reasons': ['TM08 (Bulk Up) is not a damaging move', 'TM39 (Rock Tomb) is not super-effective on Skarmory', 'TM42 (Facade) is not super-effective on Skarmory', 'TM47 (Steel Wing) is not super-effective on Skarmory', 'Shedinja L30 is below the floor L31 (wall L31, top L39)', 'Blaziken would never be fielded against Skarmory (incoming 2.0 > the best 1.0)', 'Ninjask L29 is below the floor L31 (wall L31, top L39)', 'Zigzagoon is a bench species'], 'plan': 'TM50 Overheat -> Loudred (slot 4, pid b2768b68) replacing Pound [share 100%, drawback-free False, coverage 2]', 'budget': 600, 'finished': False, 'tm_count': (1, 1), 'outcome': 'not taught (budget expired)'}
+[gymtm] R start_at = ((0, 35), (13, 16))
+[gymtm] R state_end = 'OVERWORLD'
+[gymtm] R tm_end = {'TM34': 1, 'TM50': 1, 'TM39': 1}
+[gymtm] R tm_start = {'TM34': 1, 'TM50': 1, 'TM39': 1}
+[gymtm] tripped=BOSS_TRAINING_MODE changed={} tm_delta={'TM34': 0, 'TM50': 0, 'TM39': 0}
+[gymtm] conjuncts = {'planned': True, 'budget_expired': True, 'honest_end_state': True, 'can_continue': True, 'no_failure': True, 'no_whiteout': True, 'tripwire_fired': True, 'overworld_no_menu': True}
+[gymtm] ACCEPTANCE: PASS (expect=budget) SCOPE: the teach through its call site; whether the move is USED against the wall is graded from battle [TURN] lines, not here.
+f1322: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f1322 — ending the loop at f1442
+[done] ran 1443 frames; final mode=Manual party=[Shedinja:L30:exp37822|Blaziken:L39:exp53400|Mightyena:L35:exp45489|Ninjask:L29:exp35792|Loudred:L31:exp26331|Zigzagoon:L3:exp27]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L30: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L39: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L35: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L31: Pound, Uproar, Astonish, Stomp
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[PARTY-ACCT] STAGE 0 SUMMARY — 1444 get_party() recomputes, 5 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += gymtm 1444 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-26_19
+-55-21.ss1 created!
+Updated `current_state.ss1`!

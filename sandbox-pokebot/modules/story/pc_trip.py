@@ -126,6 +126,11 @@ def plan_deposits(party) -> dict:
         from modules.context import context
 
         protected = set(getattr(context.bot_mode_instance, "_hunted_counter_pids", ()) or ())
+        # USER RULING 19: a mon that received a single-use gym TM this run sits at the dead-weight level boundary by
+        # design (`gym_tm_teach.LEVEL_WINDOW`) — boxing it would box the TM's move with it. Until that boss is beaten.
+        from modules.story.gym_tm_teach import protected_taught_pids
+
+        protected |= protected_taught_pids(context.bot_mode_instance)
     except Exception:  # noqa: BLE001 - no mode instance (tests) simply means nothing protected
         protected = set()
 

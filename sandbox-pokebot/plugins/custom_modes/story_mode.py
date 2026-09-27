@@ -2033,11 +2033,25 @@ class StoryMode(BotMode):
         self._training_unreachable: set = set()
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
+        #: USER RULING 19 (2026-09-26): map key -> [(seq, boss name, {foe species: our faints})] per lost LEADER battle —
+        #: WHICH foe beats us, by identity, weighted by our faints (`battle_action_selection.TURN_FOE["log"]`). Only a
+        #: battle whose enemy party IS a leader's roster is filed (`_boss_battle`, set at battle start): the gym's
+        #: trainers share the leader's species. The gym-TM teach names its wall from this.
+        self._loss_foe_history: dict = {}
+        #: The boss whose roster is the CURRENT battle's enemy party (`gym_tm_teach.boss_for_enemy_party`), or None.
+        self._boss_battle = None
         self._loss_seq: int = 0
         #: `#26-manualderails`: boss keys whose ONE "second wind" (below) has been consumed.
         #: Per-instance and per-run BY DESIGN — a fresh instance (the user's manual flip) and the
         #: endless loop's per-run reset both re-arm it, exactly like `_counter_hunts`.
         self._second_winds: set = set()
+        #: USER RULING 19 (2026-09-26): (boss name, TM name) pairs the gym-TM teach has already TRIED this run.
+        #: Written BEFORE the act (a TM is single-use), per-run so the next run of an endless batch re-arms it.
+        self._gym_tm_taught: set = set()
+        #: (pid, move) -> {"boss", "wall", "species", "used"} for every move the teach delivered this run. Excluded from
+        #: `_boss_plan_is_hopeless`'s credible-answer scan (a teach must not switch off the counter ladder / honest stop)
+        #: and protected from make-room deposits (`pc_trip`). `used` is set when the log shows it chosen vs its wall.
+        self._gym_tm_taught_moves: dict = {}
         # ⛔ HERE, NOT IN `__init__` — the whole reason this method exists. `StoryEndlessResetMode.run()`
         # loops on the SAME mode object, so `__init__` runs once per BATCH. A latch set in
         # `__init__` would make run 2 of an overnight batch believe §Ch24 had already
@@ -2146,10 +2160,33 @@ class StoryMode(BotMode):
                 pass
             self._loss_seq += 1
             self._loss_ko_history.setdefault(key, []).append((self._loss_seq, kos))
+            foe = None
+            try:
+                from modules.battle_action_selection import TURN_FOE
+                from modules.story.gym_tm_teach import faints_by_foe
+
+                foe = TURN_FOE.get("species")
+                if getattr(self, "_boss_battle", None):
+                    self._loss_foe_history.setdefault(key, []).append(
+                        (self._loss_seq, self._boss_battle, faints_by_foe(list(TURN_FOE.get("log") or ()))))
+            except Exception:  # noqa: BLE001 - an unknown foe is filed as nothing and never names a wall
+                pass
             console.print(
                 f"[yellow]Story: lost a battle at map {key} "
-                f"(defeat #{self._defeat_counts[key]} here; KO'd {kos} of theirs first).[/]"
+                f"(defeat #{self._defeat_counts[key]} here; KO'd {kos} of theirs first; last foe {foe}"
+                f"{'; ' + boss + ' (the leader)' if (boss := getattr(self, '_boss_battle', None)) else ''}).[/]"
             )
+        # USER RULING 19: after a LEADER battle (won or lost), mark a taught move SEEN if its recipient chose it vs its
+        # wall — the second teach for that boss waits for this. A pure read of the log; never raises into the hook.
+        if getattr(self, "_boss_battle", None):
+            try:
+                from modules.battle_action_selection import TURN_FOE
+                from modules.story.gym_tm_teach import note_boss_battle
+
+                note_boss_battle(self, self._boss_battle, list(TURN_FOE.get("log") or ()))
+            except Exception:  # noqa: BLE001 - a missed mark only delays a second teach; it is visible in [GYM_TM]
+                pass
+        self._boss_battle = None
 
     def on_whiteout(self) -> bool:
         # We handle the whiteout ourselves — do NOT drop to Manual (and the watchdog
@@ -2534,8 +2571,15 @@ class StoryMode(BotMode):
                     own_types = tuple(party[i].species.types)
                 except Exception:
                     own_types = ()
+                # USER RULING 19: a move the gym-TM teach delivered is NOT a credible answer here — the teach and the
+                # honest stop are separate decisions, and a taught Rock Tomb (2x on Winona's Dragon/Flying ace) would
+                # otherwise switch off the counter ladder and the 6-loss stop until the 12-loss hard plateau.
+                _taught = {m for (p, m) in (getattr(self, "_gym_tm_taught_moves", None) or {})
+                           if p == getattr(party[i], "personality_value", None)}
                 for learned in party[i].moves:
                     if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                        continue
+                    if learned.move.name in _taught:
                         continue
                     eff = 1.0
                     for t in ace_types:
@@ -3136,6 +3180,15 @@ class StoryMode(BotMode):
         # answers this gym: that verdict is about the SWEEPER, and the laggard rots regardless.
         yield from self._maintain_lagging_battler(target)
 
+        # ⭐ USER RULING 19 (2026-09-26): LOSING HERE ⇒ TEACH AN OWNED TM THAT HITS THE FOE THAT BEATS US.
+        # Before the boss-mode / hopeless / counter-ladder block below, so those judge the party WITH the new move.
+        # Fails OPEN (a teach that cannot happen changes nothing) and is latched per (boss, TM) per run; only the
+        # three named bosses have a roster (`gym_tm_teach.GYM_ROSTERS`).
+        if losses >= 2 and cfg.get("name"):
+            from modules.story.gym_tm_teach import maybe_teach_gym_tm
+
+            yield from maybe_teach_gym_tm(self, cfg, losses)
+
         # --- SWEEPER-SUFFICIENCY GATE (proactive attempts only — once we are LOSING
         #     here, the reactive logic below owns the decision). ---
         if losses < 2:
@@ -3459,6 +3512,29 @@ class StoryMode(BotMode):
                     raise
 
     def on_battle_started(self, encounter):
+        # USER RULING 19: forget the previous battle's foe before this one's first turn, so a loss can never be
+        # filed against a foe from an EARLIER battle. A plain write; it cannot affect the battle.
+        try:
+            from modules.battle_action_selection import TURN_FOE
+
+            TURN_FOE["species"] = None
+            TURN_FOE["log"] = []
+        except Exception:  # noqa: BLE001 - telemetry reset; a failure only leaves the wall unknown
+            pass
+        # ...and name the battle: is this enemy party a gym LEADER's roster? (A trainer battle only — a wild encounter
+        # is never a leader. Read at battle START, when `gEnemyParty` is certainly this battle's.)
+        self._boss_battle = None
+        if encounter is None:
+            try:
+                from modules.pokemon_party import get_opponent_party
+                from modules.story.gym_tm_teach import boss_for_enemy_party
+
+                enemy = get_opponent_party() or []
+                self._boss_battle = boss_for_enemy_party(
+                    [getattr(getattr(m, "species", None), "name", None) for m in enemy
+                     if m is not None and not getattr(m, "is_empty", False)])
+            except Exception:  # noqa: BLE001 - an unreadable enemy party just means "not a leader" (no wall filed)
+                self._boss_battle = None
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
         # or auto-caught. The BattleListener handles the fight while run() pauses.

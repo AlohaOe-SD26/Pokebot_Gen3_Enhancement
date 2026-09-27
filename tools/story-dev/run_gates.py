@@ -237,6 +237,10 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#24-dexcatch-battlebail` / RULING 20 Phase 0 — a post-gym-1 Pokédex catch bails at the ball reserve and on
     # a faint (a dex-only subclass; the shiny, HM and counter catches untouched). Three built-in fault arms.
     ("probe_dexcatch_bail.py", False),
+    # ⛔ USER RULING 19 `#26-gymtmteach` — the gym-TM teach (design 4): the wall by identity weighted by our faints from
+    # the LEADER'S battles only; a recipient the ruled order actually fields; a duel estimate; the slot rule; a taught
+    # move never switches off the counter ladder / honest stop. Six built-in fault arms.
+    ("probe_gymtm_teach.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

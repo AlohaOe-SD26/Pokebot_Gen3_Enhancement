@@ -54,6 +54,13 @@ KI93_SELECTION_REFUSAL_SCRIPTS = (
 )
 
 
+#: USER RULING 19 (2026-09-26): the foe the LAST action was chosen against (`species`), and this battle's decision log
+#: (`log`: `(our_pid, our_species, action, foe_species)` per decision, bounded) — see the [TURN] instrumentation.
+#: `StoryMode.on_battle_started` resets both; `on_battle_ended` reads them.
+TURN_FOE: dict = {"species": None, "log": []}
+TURN_FOE_LOG_MAX = 400
+
+
 def _ki93_forget(battler_index: int | None = None) -> None:
     """Drop the refusal memory once the battle has moved on.
 
@@ -461,6 +468,23 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                     _what = f"{_what}:{_lm.move.name}(pp{_lm.pp})"
                 except Exception:  # noqa: BLE001
                     _what = f"{_what}:idx{index}"
+
+            # USER RULING 19 (2026-09-26): the foe we act against, BY SPECIES, and this decision — the only record of
+            # WHICH foe beat us. `gBattleResults` only COUNTS KOs, and a trainer's replacement is chosen by the AI, not
+            # party order (`battle_ai_switch_items.c`), so a count cannot name the foe. A plain read inside this try:
+            # it can never affect the battle. `StoryMode` resets it at battle start and files it per lost battle.
+            # ⛔⛔ IT MUST SIT BELOW `_what`. The first version sat above it: `_what` is assigned later in this same
+            # function, so reading it first is an `UnboundLocalError` on EVERY decision, swallowed by the `except`
+            # below — which ALSO killed the pre-existing `[TURN]` event for every battle (adversarial review,
+            # 2026-09-26; an AST "is it inside the try" gate could not see a binding-ORDER bug).
+            TURN_FOE["species"] = getattr(getattr(_foe, "species", None), "name", None)
+            TURN_FOE["log"].append((getattr(_me, "personality_value", None),
+                                    getattr(getattr(_me, "species", None), "name", None), _what,
+                                    TURN_FOE["species"]))
+            if len(TURN_FOE["log"]) > TURN_FOE_LOG_MAX:
+                # Drop the OLDEST: the wall is read from each mon's LAST decision, so a cap that froze the log
+                # would misname it in exactly the long, grinding fights this exists for (review, 2026-09-26).
+                del TURN_FOE["log"][0]
 
             def _status_of(mon) -> str:
                 """Permanent + temporary status, compactly. '' when perfectly healthy.

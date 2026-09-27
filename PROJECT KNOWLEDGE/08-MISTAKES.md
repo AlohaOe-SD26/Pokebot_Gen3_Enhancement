@@ -22251,3 +22251,52 @@ editing while the review ran.
 exact bundle that ships.
 **Prevention rule:** ⛔ **FREEZE THE CODE WHILE A REVIEW RUNS — or regenerate the diff from HEAD and re-send it after the
 last edit.** A reviewer must judge the bytes that ship, not a draft of them.
+
+## 2026-09-26 — ⛔⛔ I SHIPPED A RECORDER THAT NEVER RAN, INSIDE A TRY THAT SWALLOWED THE PROOF
+
+**Symptom:** RULING 19's decision recorder (in `battle_action_selection`'s [TURN] instrumentation) read `_what` two lines
+BEFORE it is assigned in the same function: `UnboundLocalError` on every decision, swallowed by the block's
+`except Exception: pass`. The log stayed empty (no wall could ever be named — the ruling a silent no-op in real play) and
+the PRE-EXISTING `[TURN]` telemetry died with it, for every battle. My gate passed (it checked the recorder sat INSIDE the
+try) and six drives passed (they seeded the history the recorder feeds). The adversarial review found it by reading.
+**Root cause:** new code placed inside an existing broad `try` inherits its silence; and every piece of evidence I had
+bypassed the code path it was meant to prove.
+**Fix:** moved below `_what`; gate G1c EXECUTES the real try-body with no `except` (fault arm: the shipped order fails);
+`--driver gymtmbattle` fights real battles — 90 `[TURN]` events, a real leader loss filed.
+**Prevention rule:** ⛔ **Code added inside a broad `try` must be proven to RUN — execute it once with the `except`
+removed.** And ⛔ **a drive that SEEDS the state a component produces proves nothing about that component**; at least one
+drive must produce it for real.
+
+## 2026-09-26 — ⛔ I NAMED A FOE BY A COUNT (the rule already said not to)
+
+**Symptom:** RULING 19's first design read the wall as `roster[kos]` — "after `kos` KOs the foe standing is the next in
+party order". A Claude agent reading the decomp refuted it before any drive: only a trainer's LEAD is party order; every
+replacement is the AI's pick (`battle_ai_switch_items.c` `GetMostSuitableMonToSwitchInto`). The day's batch then showed
+the per-run wall splitting Skarmory 71 / Altaria 64.
+**Root cause:** SESSION DISCIPLINE rule 3 ("assert IDENTITY, never position or count") was filed as a rule about PIDs and
+slots, and did not fire for a count used as an index into a list of foes.
+**Fix:** the wall is read from a per-decision log by species, weighted by our faints, filed only for the leader's battle.
+**Prevention rule:** ⛔ **An index into a roster derived from a COUNT is a position claim.** Before using one, find the
+code that decides the order — here, the AI's switch-in function — or record the identity directly.
+
+## 2026-09-26 — ⛔ A TEACH'S CLOSE THAT ANSWERED THE PROMPTS "FIRST" LEFT THE GAME IN THE PARTY MENU
+
+**Symptom:** drive Q4 (budget 600) expired on "Delete a move?". The close answered learn-move prompts until the first
+frame with no dialogue, then handed to the plain B-only close — and a MESSAGE frame sits between the two prompts, so it
+handed over at once; the plain close ping-ponged "Delete a move?" ⇄ "Stop trying to teach?" and gave up in PARTY_MENU.
+**Root cause:** a two-phase close ("prompts, then the ordinary close") assumes the prompt phase is contiguous.
+**Fix:** one bounded loop that reads the learn-move state on EVERY press (A on "stop trying?", B elsewhere) until the
+overworld. Gate `probe_gymtm_teach.py` G10 pins it; its fault arm restores the hand-off.
+**Prevention rule:** ⛔ **A recovery that exits on "no prompt this frame" is exiting on a transition.** Re-read the state
+every iteration until the TERMINAL state (the overworld), never until the first quiet frame.
+
+## 2026-09-26 — ⛔ A CONTINUE CHECK AIMED AT A TARGET THE FIXTURE CAN NEVER PATH TO
+
+**Symptom:** RULING 19 drives Q1/Q2 taught exactly as predicted and still read FAIL — the driver's "path to the gym" (then
+"to the Pokémon Center") was NO-PATH. `probe_gymtm_reach.py`: from `devon_scope_got.ss1` (the Route 120 bridge) the plain
+planner reaches only two tiles, with or without the teach.
+**Root cause:** the continue target was chosen from the story's intent, not measured from the fixture's start state.
+**Fix:** for a menu-only act the continue grade is "did not move, and the SAME reachability probe reads identically
+before and after, with a positive control".
+**Prevention rule:** ⛔ **Take the continue probe BEFORE the act as well as after.** A target that is NO-PATH before the act
+cannot discriminate anything after it.

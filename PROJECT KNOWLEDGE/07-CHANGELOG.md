@@ -35910,3 +35910,30 @@ strongest move (the parent would pick an impossible Run). An unreadable bag keep
 three trapped cases; the arm; three built-in fault arms); `probe_dex_catch_fence.py` still 20/20. ⚠ NO live drive — the
 item asked for a probe first; live evidence is the next batch's `[DEXCATCH-BAIL]` lines. Adversarial review: KICK-BACK first (the diff I sent predated the trap handling; the reviewer found a trapped-and-empty Run hole) — the hole is closed (fight out) and the re-review on a diff verified byte-identical to the tree is APPROVE-WITH-RISKS (residuals recorded in `06`).
 Suite 98 (94 enforcing + 4 advisory; `--quick` 86).
+
+## 2026-09-26 (night) — USER RULING 19: A GYM THAT KEEPS WINNING GETS AN OWNED TM TAUGHT AGAINST ITS WALL (`#26-gymtmteach`; branch `wt/ch24organic`)
+
+**WHY.** The bot collects gym TMs and never uses them; Winona ended four runs of the day's batch. The user ruled "teach
+an owned TM" (RULING 19). **MEASURED first** (the batch's own `[TURN]` lines, 145 Winona losses): the foe faced last was
+Skarmory 71, **Altaria 64**, Pelipper 5, Tropius 4, Swablu 1 — the wall is per run, not "Skarmory"; Juan's is Kingdra
+(40 of 45), which nothing we own hits super-effectively.
+**WHAT.** New `modules/story/gym_tm_teach.py`, hooked into `_prepare_for_fight` when `losses >= 2` at a named single-
+battle boss (Winona, Juan). The wall is named BY IDENTITY and weighted by OUR faints, from the LEADER'S battles only (a
+decision log in the [TURN] instrumentation; `on_battle_started` names the battle from the enemy party; `on_battle_ended`
+files it). The planner (pure) requires a recipient the RULED lead/replacement order actually fields against the wall, a
+Gen-3 duel share >= 0.5, a safe slot, no banned / non-plain-hit move, and never Overheat on a Torchic line before Blaze
+Kick. The act uses `teach_move_from_bag` in a budget with a TEACH-AWARE close, latches (boss, TM) before acting, and fails
+open. Taught moves do not count as credible answers in `_boss_plan_is_hopeless` (the counter ladder and the honest stop
+are untouched) and their PIDs are protected from deposits. Arms `POKEBOT_GYMTM_FAULT_NOTEACH` / `_BUDGET`.
+**HOW IT GOT HERE.** Design 4 of 4 — the KO-count wall (refuted by the decomp: only a trainer's lead is party order),
+the HM-carrier exclusion and the first slot rule (refuted by observe-only runs on real fixtures), and the last-foe wall
+(refuted by an adversarial review: 10 of 14 plans went to a mon fielded last) never reached a drive.
+**PROOF.** Predictions filed before the drives (`ai-research-notes/2026-09-26-ruling19-gymtm-PREDICTIONS.md`); graded in
+`…-GRADED.md`: **R1 — a REAL gym run** (`--driver gymtmbattle`): the recorder logged every decision, 90 `[TURN]` events,
+the gym trainers were not named as the leader, Winona was, and the loss to her was filed `{Tropius: 1, Skarmory: 5}`;
+Q1c Overheat → Loudred and Q2c Shock Wave → Loudred exactly as predicted; Q3 (NOTEACH) and Q5 (no plan on
+the Treecko fixture) as predicted; Q6 (the driver on its own output) FAILS as predicted; **Q4 FAILED as a result** — the
+first close left PARTY_MENU — fixed and Q4c passes. Gate `probe_gymtm_teach.py` (G1-G10, seven built-in fault arms).
+**Adversarial review:** KICK-BACK (the design-4 recorder read `_what` before assigning it — an `UnboundLocalError` swallowed by the [TURN] try, so the log never filled AND `[TURN]` telemetry died for every battle; every drive had seeded the history) → fixed, gate G1c now EXECUTES the try-body, and a REAL gym run (`--driver gymtmbattle`, R1 and a final-code replay R1b — one trajectory replayed, not a replication) filed a real Winona loss → re-review APPROVE-WITH-RISKS (it re-ran the gate and read the raw logs itself); the reach filter's known limit is logged in `06`.
+⚠ NOT shown: a drive that TEACHES and then FIGHTS — whether the taught move is USED against the wall is for the next batch (`[GYM_TM]`, `[TURN]`).
+Suite 99 (95 enforcing + 4 advisory; `--quick` 87).

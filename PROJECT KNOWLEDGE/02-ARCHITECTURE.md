@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 98 entries = 94 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 99 entries = 95 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 12 SLOW (ROM) gates (measured 2026-09-26 with
 #   `run_gates.py --list`; this line said 9) and is NOT a green suite.
@@ -482,6 +482,17 @@ done
   guarded call in `StoryItemBattleStrategy._maybe_use_item` hides `LEAGUE_BASKET` quantities from in-battle use while
   armed (state-derived: Juan era → entering the Elite Four / champion / a sealed §Ch24 map); fails UNLOCKED; no bag
   reader sees it. Driver `--driver earlybasket`; gate `probe_league_reserve.py`; inputs `probe_reserve_inputs.py`.
+* **`modules/story/gym_tm_teach.py`** — USER RULING 19 (2026-09-26): when a named single-battle boss (Winona, Juan)
+  has beaten us twice, teach a TM the bag already holds. Called from `StoryMode._prepare_for_fight` (after the laggard
+  maintenance, before boss mode / the hopeless test / the counter ladder). THE WALL is by identity: the [TURN]
+  instrumentation appends every decision to `battle_action_selection.TURN_FOE["log"]`; `on_battle_started` names a
+  LEADER battle (enemy party == roster, `boss_for_enemy_party`); a lost leader battle files {foe: our faints} into
+  `_loss_foe_history`. The planner (pure) needs a recipient the ruled lead/replacement order FIELDS against the wall
+  (min incoming), a Gen-3 duel share >= 0.5, a safe slot (`choose_slot`), and never Overheat on a Torchic line before
+  Blaze Kick. The act: `teach_move_from_bag` in a 12k-frame budget, a teach-aware close (`_leave_teach_menus`), a
+  per-(boss, TM) latch before the act, fail-open. Taught moves are skipped by `_boss_plan_is_hopeless` and their PIDs
+  protected from deposits (`pc_trip`). Driver `--driver gymtm`; gate `probe_gymtm_teach.py`; observe-only
+  `probe_gymtm_inputs.py` / `probe_gymtm_reach.py`.
 * **`modules/story/victory_road.py`** — §Ch23 (Victory Road, and the League-approach shop/heal).
   ✅ **A FULL CHAPTER, DISPATCHED AS SEGMENT 23** (2026-09-05) via `do_victory_road_chapter()` /
   `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned

@@ -1,0 +1,44 @@
+[setup] LOG -> evidence\2026-09-26-gymtm-Q5-noplan.log
+[setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f1: CONTROLLER -> GymTmTeachMode.run   (state=OVERWORLD)
+[gymtm] PRE expect=noplan walls=['Skarmory', 'Skarmory'] at=((12, 1), (4, 19)) tms={'TM34': 1, 'TM50': 1, 'TM39': 1}
+[gymtm] PRE Mightyena#5C96EA9B ['Tackle', 'Swagger', 'Take Down', 'Bite']
+[gymtm] PRE Sceptile#863B0917 ['Rock Smash', 'Pursuit', 'Leaf Blade', 'Quick Attack']
+[gymtm] PRE Swellow#0B30A747 ['Peck', 'Wing Attack', 'Double Team', 'Quick Attack']
+[gymtm] PRE Skitty#5CCCD8BE ['Sing', 'Tackle', 'Tail Whip', 'Attract']
+[gymtm] PRE Zigzagoon#33CB74C3 ['Tackle', 'Growl', 'Surf', None]
+[gymtm] PRE Castform#C978D14E ['Powder Snow', 'Rain Dance', 'Sunny Day', 'Hail']
+[gymtm] fixture RESTORED — current_state.ss1 will not carry this run.
+[gymtm] R continue_path = 'OK gates-solved 83 moves (4, 19) -> (15,3) (Winona)'
+[gymtm] R final_at = ((12, 1), (4, 19))
+[gymtm] R frame_start = 2237357
+[gymtm] R frames = 0
+[gymtm] R latched = []
+[gymtm] R menus_open_end = []
+[gymtm] R party_end = {1553394331: ('Mightyena', ['Tackle', 'Swagger', 'Take Down', 'Bite']), 2252015895: ('Sceptile', ['Rock Smash', 'Pursuit', 'Leaf Blade', 'Quick Attack']), 187737927: ('Swellow', ['Peck', 'Wing Attack', 'Double Team', 'Quick Attack']), 1556928702: ('Skitty', ['Sing', 'Tackle', 'Tail Whip', 'Attract']), 868971715: ('Zigzagoon', ['Tackle', 'Growl', 'Surf', None]), 3380138318: ('Castform', ['Powder Snow', 'Rain Dance', 'Sunny Day', 'Hail'])}
+[gymtm] R party_start = {1553394331: ('Mightyena', ['Tackle', 'Swagger', 'Take Down', 'Bite']), 2252015895: ('Sceptile', ['Rock Smash', 'Pursuit', 'Leaf Blade', 'Quick Attack']), 187737927: ('Swellow', ['Peck', 'Wing Attack', 'Double Team', 'Quick Attack']), 1556928702: ('Skitty', ['Sing', 'Tackle', 'Tail Whip', 'Attract']), 868971715: ('Zigzagoon', ['Tackle', 'Growl', 'Surf', None]), 3380138318: ('Castform', ['Powder Snow', 'Rain Dance', 'Sunny Day', 'Hail'])}
+[gymtm] R report = {'boss': 'Winona', 'faints': [{'Skarmory': 3}, {'Skarmory': 3}], 'wall': 'Skarmory', 'reasons': ['TM08 (Bulk Up) is not a damaging move', 'TM39 (Rock Tomb) is not super-effective on Skarmory', 'TM42 (Facade) is not super-effective on Skarmory', 'TM47 (Steel Wing) is not super-effective on Skarmory', 'Sceptile would never be fielded against Skarmory (incoming 2.0 > the best 1.0)', 'Skitty L17 is below the floor L31 (wall L31, top L39)', 'Zigzagoon is a bench species', 'Castform is a bench species', "no eligible battler can take ['TM34', 'TM50'] usefully"], 'outcome': 'no plan'}
+[gymtm] R start_at = ((12, 1), (4, 19))
+[gymtm] R state_end = 'OVERWORLD'
+[gymtm] R tm_end = {'TM34': 1, 'TM50': 1, 'TM39': 1}
+[gymtm] R tm_start = {'TM34': 1, 'TM50': 1, 'TM39': 1}
+[gymtm] tripped=BOSS_TRAINING_MODE changed={} tm_delta={'TM34': 0, 'TM50': 0, 'TM39': 0}
+[gymtm] conjuncts = {'no_plan': True, 'reasons_named': True, 'nothing_changed': True, 'cheap': True, 'no_failure': True, 'no_whiteout': True, 'tripwire_fired': True, 'overworld_no_menu': True}
+[gymtm] ACCEPTANCE: PASS (expect=noplan) SCOPE: the teach through its call site; whether the move is USED against the wall is graded from battle [TURN] lines, not here.
+f31: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=GymTmTeachMode.run bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f32: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f32 — ending the loop at f152
+[done] ran 153 frames; final mode=Manual party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L38: Tackle, Swagger, Take Down, Bite
+[moveset] Sceptile L39: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Swellow L33: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L25: Powder Snow, Rain Dance, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 154 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += gymtm 154 recomputes (party_accounting_ledger.jsonl)

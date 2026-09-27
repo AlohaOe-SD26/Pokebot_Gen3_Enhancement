@@ -7463,3 +7463,25 @@ strategy inherits it and its rule is a user directive (attempt until success, wh
 counter catches are mandatory — a trapped-and-empty mandatory catch still ends in a whiteout (pre-existing, rare).
 **REOPEN IF** the batch shows `[DEXCATCH-BAIL]` never firing (then the wiring is wrong), or dex catches ending in
 whiteouts anyway.
+
+## 2026-09-26 — RULING 19 BUILT AS "TEACH ONLY WHERE THE TM CAN REACH AND WIN SOMETHING" (design 4)
+
+**CHOSEN.** A gym TM is taught only when (1) the wall is named by identity from the leader's own lost battles (our
+faints per foe, >= 2 losses), (2) the recipient is in the best-resisting group against the wall's types — the RULED
+lead/replacement order's own defensive term, used as a predictor and not changed, (3) a Gen-3 duel estimate says it deals
+at least half the wall's HP before it faints, and (4) the slot costs nothing the mon was trained on. One teach per boss
+until the taught move is seen used. Taught moves are invisible to the hopeless test.
+**WHY.** A TM is single-use and the user asked for teaches that help. Measured on real fixtures, the looser designs spent
+the TM on a mon the ruled order fields last (Sceptile / Blaziken vs an all-Flying gym) or disabled the counter ladder
+(a taught Rock Tomb reads as a credible answer to Winona's Dragon/Flying ace). The stricter design teaches less often and
+says why each time (`[GYM_TM] why=`).
+**REJECTED.** A KO-count wall (the decomp: replacements are the AI's pick, not party order); excluding HM carriers (it
+excluded the lead); "prefer Shock Wave" as a rule (the duel estimate ranks Overheat higher on Loudred vs Skarmory, and
+Shock Wave wins the tie when both reach 100%); Tate & Liza (a double battle — the turn record sees one foe).
+**STATED TRADE.** Expected benefit is small (on the fixtures only the Torchic core's Loudred qualifies) and it is a
+frequency question for a batch. ⚠ **THE REACH FILTER IS A HEURISTIC, KNOWINGLY CONSERVATIVE:** it predicts who is sent in
+FIRST against the wall (the ruled key's defensive term), but a long fight cycles the whole party — in the real gym run
+(R1) Sceptile, which it calls "never fielded" vs Skarmory, faced Skarmory as the LAST mon standing. It can only REFUSE a
+teach (never misdirect one), so it errs toward "no plan"; the positive case (a best-resisting recipient taught, then SEEN
+using the move vs the wall) is for the batch. **REOPEN IF** `[GYM_TM]` shows `taught` but no `[TURN] UseMove:<move> … vs <wall>` in
+the same run (the reach predictor is wrong), or `deals only` refusals dominate on teams that go on to lose (MIN_SHARE).

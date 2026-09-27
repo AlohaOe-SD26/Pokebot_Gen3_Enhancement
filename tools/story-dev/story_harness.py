@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -22499,6 +22499,409 @@ class AmuletCoinMode(BotMode):
         context.set_manual_mode()
 
 
+class GymTmTeachMode(BotMode):
+    """`--driver gymtm` — USER RULING 19: the gym-TM teach, through PRODUCTION'S CALL SITE (`_prepare_for_fight`).
+
+    ⭐ It runs the REAL `StoryMode._prepare_for_fight(cfg)` with the loss history SEEDED (`GYMTM_WALLS`, default
+    "Skarmory,Skarmory" = two losses whose last foe was Skarmory) and stops it with a TRIPWIRE on the first line of the boss-mode block that follows the
+    hook ("boss-training mode" / "training harder" / "KO'd nothing") — the pattern `--driver secondwind` proved. So the
+    guard (`losses >= 2`), the order (after maintenance, before boss mode) and the continuation are production's.
+    ⚠ ONE ISOLATION, stated: `_maintain_lagging_battler` is replaced by a no-op — it can train a laggard for tens of
+    thousands of frames and is not what this driver measures (its own driver is `--driver maintain`).
+
+    GRADES (`GYMTM_EXPECT`):
+      `taught`  (default) — the planned recipient (by PID) now knows the planned move; the planned move was replaced
+                and its other three moves are unchanged; every OTHER party member keeps its moveset; exactly one TM was
+                spent and it is the planned one; the tripwire fired (preparation CONTINUED past the hook); the overworld
+                is controllable with no menu open; a real `calculate_path` to the front of the Fortree gym's door.
+      `noteach` — with `POKEBOT_GYMTM_FAULT_NOTEACH=1`: planned and LATCHED, nothing taught, no TM spent.
+      `budget`  — with `POKEBOT_GYMTM_FAULT_BUDGET=<frames>`: the teach expires mid-flight (`finished` False), the menus
+                are closed, and the end state is honest: taught <=> a TM was spent.
+      `noplan`  — the vacuity arm: a plan must NOT exist (e.g. the Treecko fixture against Skarmory); nothing changes,
+                the refusal names its reasons, and the tripwire still fires.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "GymTmTeach"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[gymtm] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        import plugins.custom_modes.story_mode as _sm
+        from modules.items import get_item_bag, get_item_by_name
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.player import get_player_avatar
+        from modules.story import victory_road as VR
+        from modules.story.early_game import reraise_if_aborting, wait_until_truly_controllable
+
+        TAG = "gymtm"
+        EXPECT = _os.environ.get("GYMTM_EXPECT", "taught")
+        if EXPECT not in ("taught", "noteach", "budget", "noplan"):
+            raise BotModeError(f"{TAG}: GYMTM_EXPECT={EXPECT!r} is not taught|noteach|budget|noplan")
+        WALLS = [w.strip() for w in _os.environ.get("GYMTM_WALLS", "Skarmory,Skarmory").split(",") if w.strip()]
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        cfg = {
+            "name": "Winona",
+            "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
+            "band": (29, 33),
+            "ace_types": ("Dragon", "Flying"), "ace_level": 33,
+            "heal": PokemonCenter.FortreeCity,
+        }
+        R: dict = {}
+        failure = None
+        tripped = None
+        TMS = ("TM34", "TM50", "TM39")
+
+        def moveset(p):
+            return [m.move.name if m is not None and m.move is not None else None for m in list(p.moves)[:4]]
+
+        def reach() -> dict:
+            """The CONTINUE probe, taken BEFORE and AFTER the teach — a menu-only act must leave it identical.
+            ‼ WHY NOT "a path to the next chapter's start": measured 2026-09-26 (`probe_gymtm_reach.py`), from
+            `devon_scope_got.ss1` (the Route 120 bridge, (13,16)) `calculate_path` reaches only (10,16) and (16,16) —
+            the fixture stands on a pathfinder island — so a Fortree target is NO-PATH with or without the teach and
+            could not discriminate. Inside the gym the story's own gate solver is the probe."""
+            out = {}
+            try:
+                if VR._on_map(MapRSE.FORTREE_CITY_GYM):
+                    from modules.story import fortree_gates as _fg
+
+                    here_xy = tuple(get_player_avatar().local_coordinates)
+                    moves = _fg.solve(here_xy, _fg.read_orientations())
+                    out["gates->Winona(15,3)"] = "OK" if moves is not None else "NO-PATH"
+                    return out
+                here = get_player_avatar().map_location
+                x, y = get_player_avatar().local_coordinates
+                cur = MapRSE(tuple(get_player_avatar().map_group_and_number))
+                fortree = get_map_data(MapRSE.FORTREE_CITY, (0, 0))
+                pc = next(w for w in fortree.warps if (w.destination_map_group, w.destination_map_number)
+                          == MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value)
+                targets = [(cur, (x + 3, y)), (cur, (x - 3, y)), (cur, (x, y + 3)), (cur, (x, y - 3)),
+                           (MapRSE.FORTREE_CITY, (pc.local_coordinates[0], pc.local_coordinates[1] + 1))]
+                for m, t in targets:
+                    try:
+                        calculate_path(here, (m, t))
+                        out[f"{m.name}{t}"] = "OK"
+                    except PathFindingError:
+                        out[f"{m.name}{t}"] = "NO-PATH"
+            except Exception as reach_error:  # noqa: BLE001 - an unreadable probe is recorded and fails the grade
+                out["<error>"] = f"{type(reach_error).__name__}: {reach_error}"
+            return out
+
+        def snapshot():
+            return {p.personality_value: (p.species.name, moveset(p)) for p in get_party() if p is not None}
+
+        TRIPWIRES = (("PLAIN_ESCALATION", "training harder before"), ("BOSS_TRAINING_MODE", "boss-training mode"),
+                     ("ZERO_KO_FALLBACK", "boss attempts KO'd nothing"))
+
+        class _Tripped(Exception):
+            pass
+
+        real_console = _sm.console
+
+        class _Proxy:
+            def print(self, *a, **kw):
+                text = " ".join(str(x) for x in a)
+                real_console.print(*a, **kw)
+                for tname, needle in TRIPWIRES:
+                    if needle in text:
+                        raise _Tripped(tname)
+
+            def __getattr__(self, item):
+                return getattr(real_console, item)
+
+        try:
+            yield from wait_until_truly_controllable()
+            R["start_at"] = VR._where()
+            R["frame_start"] = context.emulator.get_frame_count()
+            R["tm_start"] = {n: get_item_bag().quantity_of(get_item_by_name(n)) for n in TMS}
+            R["party_start"] = snapshot()
+            R["reach_start"] = reach()
+            log(f"[{TAG}] PRE expect={EXPECT} walls={WALLS} at={R['start_at']} tms={R['tm_start']} "
+                f"reach={R['reach_start']}")
+            for pid, (sp, mv) in R["party_start"].items():
+                log(f"[{TAG}] PRE {sp}#{pid:08X} {mv}")
+            mode = _sm.StoryMode()
+            mode.reset_per_run_state()
+            key = MapRSE.FORTREE_CITY_GYM.value
+            mode._defeat_counts[key] = len(WALLS)
+            # KOs of 1 per loss: "the boss teaches" — boss-training mode then prints the tripwire line right after the hook.
+            mode._loss_ko_history[key] = [(i + 1, 1) for i in range(len(WALLS))]
+            # Design 4's history: (seq, the LEADER'S name, {foe species: our faints}) per lost leader battle.
+            mode._loss_foe_history[key] = [(i + 1, "Winona", {w: 3}) for i, w in enumerate(WALLS)]
+
+            def _no_maintenance(_target):
+                if False:  # a generator that does nothing — see the ISOLATION note in the docstring
+                    yield
+
+            mode._maintain_lagging_battler = _no_maintenance
+            premise_bits = {
+                "losses_armed": len(WALLS) >= 2,
+                "arm_matches": ((EXPECT == "noteach") == (_os.environ.get("POKEBOT_GYMTM_FAULT_NOTEACH") == "1")
+                                and (EXPECT == "budget") == bool(_os.environ.get("POKEBOT_GYMTM_FAULT_BUDGET"))),
+            }
+            if EXPECT != "noplan":
+                premise_bits["some_gym_tm_owned"] = any(q > 0 for q in R["tm_start"].values())
+            if not all(premise_bits.values()):
+                raise BotModeError(f"{TAG}: PREMISE FAILED {premise_bits} — this run would pass having done nothing.")
+            _sm.console = _Proxy()
+            try:
+                yield from mode._prepare_for_fight(dict(cfg))
+                R["prepare_returned"] = True
+            except _Tripped as trip:
+                tripped = str(trip)
+            finally:
+                _sm.console = real_console
+            R["report"] = dict(getattr(mode, "_gym_tm_report", {}) or {})
+            R["latched"] = sorted(getattr(mode, "_gym_tm_taught", set()))
+        except Exception as error:  # noqa: BLE001 - a verdict must print even when the run dies
+            reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            try:
+                R["frames"] = context.emulator.get_frame_count() - R.get("frame_start", 0)
+                R["final_at"] = VR._where()
+                R["tm_end"] = {n: get_item_bag().quantity_of(get_item_by_name(n)) for n in TMS}
+                R["party_end"] = snapshot()
+                from modules.memory import get_game_state as _gs
+                from modules.menuing import is_fade_active as _fade
+                from modules.tasks import task_is_active as _task
+
+                R["state_end"] = _gs().name
+                R["menus_open_end"] = [t for t in ("Task_ShowStartMenu", "Task_HandleChooseMonInput",
+                                                   "Task_ItemContext_MultipleRows", "Task_BagMenu_HandleInput")
+                                       if _task(t)] + (["<fade>"] if _fade() else [])
+                R["reach_end"] = reach()
+            except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
+                reraise_if_aborting(read_error)
+                R["read_error"] = f"<unreadable {type(read_error).__name__}: {read_error}>"
+            _save_end = _os.environ.get("GYMTM_SAVE_END")
+            if _save_end:
+                try:
+                    Path(_save_end).write_bytes(context.emulator.get_save_state())
+                    log(f"[{TAG}] END STATE SAVED to {_save_end}")
+                except Exception as save_error:  # noqa: BLE001
+                    log(f"[{TAG}] COULD NOT SAVE THE END STATE: {save_error}")
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED — current_state.ss1 will not carry this run.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        rep = R.get("report") or {}
+        before, after = R.get("party_start") or {}, R.get("party_end") or {}
+        changed = {pid: (before.get(pid), after.get(pid)) for pid in set(before) | set(after)
+                   if before.get(pid) != after.get(pid)}
+        planned = str(rep.get("plan") or "")
+        tm_delta = {n: (R.get("tm_start") or {}).get(n, 0) - (R.get("tm_end") or {}).get(n, 0) for n in TMS}
+        spent = [n for n, d in tm_delta.items() if d != 0]
+        rs, re_ = R.get("reach_start") or {}, R.get("reach_end") or {}
+        can_continue = (R.get("final_at") == R.get("start_at") and bool(re_) and re_ == rs
+                        and "<error>" not in re_ and any(v == "OK" for v in re_.values()))
+        common = {
+            "no_failure": failure is None and "read_error" not in R,
+            "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+            "tripwire_fired": tripped is not None,
+            "overworld_no_menu": R.get("state_end") == "OVERWORLD" and R.get("menus_open_end") == [],
+        }
+        if EXPECT == "taught":
+            pid, pair = next(iter(changed.items()), (None, (None, None)))
+            (sp0, mv0), (sp1, mv1) = pair[0] or (None, []), pair[1] or (None, [])
+            gained = [m for m in mv1 if m not in mv0]
+            lost = [m for m in mv0 if m not in mv1]
+            conj = {
+                "outcome_taught": rep.get("outcome") == "taught",
+                "exactly_one_mon_changed": len(changed) == 1 and sp0 == sp1,
+                "the_planned_mon_by_pid": pid is not None and f"pid {pid:08x}" in planned,
+                "gained_the_planned_move": len(gained) == 1 and f" {gained[0]} -> " in f" {planned}",
+                "lost_the_planned_move": len(lost) == 1 and f"replacing {lost[0]} " in f"{planned} ",
+                "other_three_kept": sum(1 for a, b in zip(mv0, mv1) if a == b) == 3,
+                "exactly_one_tm_spent": sum(tm_delta.values()) == 1 and len(spent) == 1
+                                        and planned.startswith(spent[0] + " "),
+                "can_continue": can_continue,
+            }
+        elif EXPECT == "noteach":
+            conj = {
+                "planned": bool(planned),
+                "latched_before_act": any(t == planned.split(" ")[0] for _b, t in R.get("latched", [])),
+                "act_skipped": str(rep.get("outcome", "")).startswith("planned, act skipped"),
+                "nothing_changed": not changed and not spent,
+            }
+        elif EXPECT == "budget":
+            taught = rep.get("outcome") == "taught"
+            conj = {
+                "planned": bool(planned),
+                "budget_expired": rep.get("finished") is False,
+                "honest_end_state": (taught and len(spent) == 1) or (not taught and not spent and not changed),
+                "can_continue": can_continue,
+            }
+        else:  # noplan
+            conj = {
+                "no_plan": rep.get("outcome") == "no plan" and not planned,
+                "reasons_named": bool(rep.get("reasons")),
+                "nothing_changed": not changed and not spent,
+                "cheap": (R.get("frames") or 0) < 2_000,
+            }
+        conj.update(common)
+        ok = all(conj.values())
+        log(f"[{TAG}] tripped={tripped} changed={changed} tm_delta={tm_delta}")
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}) SCOPE: the teach through its call site; "
+            f"whether the move is USED against the wall is graded from battle [TURN] lines, not here.")
+        context.set_manual_mode()
+
+
+class GymTmBattleMode(BotMode):
+    """`--driver gymtmbattle` — USER RULING 19's RECORDER in REAL battles (2026-09-26).
+
+    ⭐ WHY IT EXISTS: every `--driver gymtm` drive SEEDS `_loss_foe_history`, so none of them could see that the first
+    recorder read `_what` before assigning it — an UnboundLocalError on every decision, swallowed by the [TURN]
+    instrumentation's try, which also killed the pre-existing [TURN] telemetry (adversarial review, KICK-BACK). This
+    driver fights for real: production's `do_fortree_gym()` from `fortree_gym_wedge.ss1` (inside the gym), with the
+    battle hooks DELEGATED to a real `StoryMode` — so the strategy, the battle naming (`on_battle_started`) and the loss
+    filing (`on_battle_ended`) are production's. Whatever the gym's outcome, it grades the RECORDER:
+
+      * every trainer battle recorded >= 1 decision in `TURN_FOE["log"]`, and >= 1 `[TURN` event was emitted;
+      * the battle was named "Winona" IFF its enemy party is her roster — her gym TRAINERS (who share species) are None;
+      * a LOST battle is filed into `_loss_foe_history` IFF it was the leader's, and then with non-empty faints whose
+        foes are all roster species; a lost TRAINER battle is never filed.
+    The outcome (reached Winona? lost to her?) is REPORTED, not graded — the fixture decides it, not the code.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "GymTmBattle"
+
+    def on_battle_started(self, encounter):
+        from modules.pokemon_party import get_opponent_party
+
+        strategy = self.story.on_battle_started(encounter)
+        try:
+            enemy = [m.species.name for m in (get_opponent_party() or []) if m is not None and not m.is_empty]
+        except Exception as error:  # noqa: BLE001 - recorded; the grade treats an unreadable party as a failure
+            enemy = [f"<unreadable {type(error).__name__}>"]
+        self.fights.append({"wild": encounter is not None, "boss": getattr(self.story, "_boss_battle", None),
+                            "enemy": enemy, "outcome": None})
+        log(f"[gymtmbattle] START #{len(self.fights)} wild={encounter is not None} boss={self.fights[-1]['boss']} "
+            f"enemy={enemy} strategy={type(strategy).__name__}")
+        return strategy
+
+    def on_battle_ended(self, outcome):
+        from modules.battle_action_selection import TURN_FOE
+        from modules.story.gym_tm_teach import faints_by_foe
+
+        entry = self.fights[-1] if self.fights else {"boss": None}
+        decisions = list(TURN_FOE.get("log") or ())
+        before = sum(len(v) for v in self.story._loss_foe_history.values())
+        self.story.on_battle_ended(outcome)
+        after = sum(len(v) for v in self.story._loss_foe_history.values())
+        entry.update(outcome=getattr(outcome, "name", str(outcome)), decisions=len(decisions),
+                     faints=faints_by_foe(decisions), filed=after - before, last=decisions[-2:])
+        log(f"[gymtmbattle] END #{len(self.fights)} outcome={entry['outcome']} decisions={len(decisions)} "
+            f"faints={entry['faints']} filed={entry['filed']} last={entry['last']}")
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[gymtmbattle] WHITEOUT #{self.whiteouts} — abort LATCHED (the loss itself is the evidence here).")
+        return True
+
+    def run(self):
+        import os as _os
+
+        import plugins.custom_modes.story_mode as _sm
+        from modules import debug_logger
+        from modules.story.early_game import _yield_bounded_by_frames, do_fortree_gym, reraise_if_aborting
+        from modules.story.gym_tm_teach import GYM_ROSTERS
+
+        TAG = "gymtmbattle"
+        budget = int(_os.environ.get("GYMTM_BATTLE_FRAMES", "150000"))
+        self.fights: list = []
+        events: list = []
+        real_event = debug_logger.event
+
+        def _recording_event(msg, *a, **k):
+            text = str(msg)
+            if "[TURN " in text or "GYM_TM" in str(k.get("category", "")):
+                events.append(text)
+            return real_event(msg, *a, **k)
+
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        failure = None
+        finished = None
+        self.story = _sm.StoryMode()
+        self.story.reset_per_run_state()
+        debug_logger.event = _recording_event
+        try:
+            finished = yield from _yield_bounded_by_frames(do_fortree_gym(), budget)
+        except Exception as error:  # noqa: BLE001 - a whiteout/abort ENDS the gym; the verdict must still print
+            try:
+                reraise_if_aborting(error)
+                failure = f"{type(error).__name__}: {error}"
+            except Exception as abort:  # noqa: BLE001 - the latched abort is an expected end here, recorded
+                failure = f"(story abort — expected after a loss) {type(abort).__name__}"
+        finally:
+            debug_logger.event = real_event
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        winona = {m.species for m in GYM_ROSTERS["Winona"]}
+        trainer_fights = [f for f in self.fights if not f["wild"]]
+        for i, f in enumerate(self.fights, 1):
+            log(f"[{TAG}] FIGHT {i}: {f}")
+        for e in events[:6] + (["…"] if len(events) > 12 else []) + events[-6:]:
+            log(f"[{TAG}] EVENT {e}")
+        conj = {
+            "fought_trainers": bool(trainer_fights),
+            "every_fight_recorded_decisions": all((f.get("decisions") or 0) > 0 for f in trainer_fights),
+            "turn_events_emitted": sum(1 for e in events if "[TURN " in e) > 0,
+            "named_iff_roster": all((f["boss"] == "Winona") == (set(f["enemy"]) == winona) for f in trainer_fights),
+            "lost_leader_filed_nonempty": all(
+                f.get("filed") == 1 and f.get("faints") and set(f["faints"]) <= winona
+                for f in trainer_fights if f["boss"] and f.get("outcome") == "Lost"),
+            "lost_trainer_not_filed": all(
+                (f.get("filed") or 0) == 0 for f in trainer_fights if not f["boss"] and f.get("outcome") == "Lost"),
+            "no_unexpected_failure": failure is None or failure.startswith("(story abort"),
+        }
+        reached = any(f["boss"] == "Winona" for f in trainer_fights)
+        lost_to_her = any(f["boss"] == "Winona" and f.get("outcome") == "Lost" for f in trainer_fights)
+        log(f"[{TAG}] REPORTED (not graded): finished={finished} failure={failure} fights={len(self.fights)} "
+            f"trainer_fights={len(trainer_fights)} turn_events={sum(1 for e in events if '[TURN ' in e)} "
+            f"reached_winona={reached} lost_to_winona={lost_to_her} whiteouts={getattr(self, 'whiteouts', 0)} "
+            f"loss_foe_history={self.story._loss_foe_history}")
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} SCOPE: the recorder, the naming and the "
+            f"filing in REAL battles; the POSITIVE leader filing is exercised only if the run loses to Winona "
+            f"(lost_to_winona above).")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -26634,6 +27037,10 @@ for step in range(args.frames):
             context.bot_mode_instance = AmuletCoinMode()
         elif args.driver == "earlybasket":
             context.bot_mode_instance = EarlyBasketMode()
+        elif args.driver == "gymtm":
+            context.bot_mode_instance = GymTmTeachMode()
+        elif args.driver == "gymtmbattle":
+            context.bot_mode_instance = GymTmBattleMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":
