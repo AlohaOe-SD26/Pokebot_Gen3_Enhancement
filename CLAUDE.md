@@ -307,6 +307,19 @@ as "the lesson from bug X" does not fire when you are building Y.
    `-u`/`-p`/explicit paths; `POKEBOT_ALLOW_BLIND_ADD=1` is the deliberate escape hatch).
    **Name every added file in the commit message** — if you cannot say what a staged file is, it
    does not belong in that commit.
+1b. **Never discard uncommitted work with git — and COMMIT before a review that may mutate files.**
+   On 2026-09-27 a reviewer agent "reverted" a test mutation with `git checkout -- <file>` while the
+   fix under review was UNCOMMITTED, and deleted the fix. ✅ **ENFORCED (user-approved 2026-09-28):**
+   `.claude/hooks/block_destructive_git.py` denies `checkout` of paths / `-f`, `restore` (not `--staged`),
+   `reset --hard`, `stash` (not list/show/apply), `clean -f`, branch deletion, force-push, `worktree
+   remove`, `rm -f`, and more (its docstring). Gate `selftest_destructive_git_hook.py`. The hatch, ONLY for
+   an operation the USER approved: a live `POKEBOT_ALLOW_DESTRUCTIVE_GIT=1` prefix on the git command.
+   ⛔ **Every hook command must find its script through `"$CLAUDE_PROJECT_DIR/.claude/hooks/..."` and end in
+   `|| true`** (gate S7): a RELATIVE path runs against the session's current directory, and from a
+   subdirectory the `git add -A` hook silently stopped enforcing (measured 2026-09-28). ⚠ A settings change
+   can take effect mid-session after a short delay: PROBE with a harmless command before relying on it.
+   ⚠ The two older hooks read their hatch from the HOOK's environment, which a command prefix never
+   reaches: their documented prefix does not work — see `#27-hookhatch`.
 2. **THE HEADLINE CARRIES THE CAVEAT.** A title that claims more than the evidence makes the
    document wrong no matter how careful the body is — a future agent skims the title and acts on
    it. Before writing "X already does Y", **read X to its LAST statement** (a trailing

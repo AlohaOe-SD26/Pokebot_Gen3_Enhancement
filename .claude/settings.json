@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/session-sync.ps1",
+            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-sync.ps1\" || true",
             "timeout": 45
           }
         ]
@@ -18,22 +18,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/block-blind-git-add.ps1",
+            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-blind-git-add.ps1\" || true",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/block-commit-over-gates.ps1",
+            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-commit-over-gates.ps1\" || true",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/block-destructive-git.ps1",
+            "command": "py -3.12 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block_destructive_git.py\" || true",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/advise-on-commit.ps1",
+            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/advise-on-commit.ps1\" || true",
             "timeout": 20
           }
         ]
