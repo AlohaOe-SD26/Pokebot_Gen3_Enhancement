@@ -1,0 +1,617 @@
+# USER RULING 20 Phase 2 step T — CONTROL ARM (no telemetry): storyresume on post_mtpyre.ss1 (80602159694b, asserted), --frames 90000, profile r20T-CTL
+# code = main 4ea923a5 (worktree branch wt/r20telemetry at its root, before any T edit). This file is the P4 reference: every [BATTLE] started/ended must replay identically in the T arm.
+## profile debug log (verbatim)
+=== DEBUG LOG START 2026-09-28T11:44:33 ===
+    log: C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\r20T-CTL\debug-logs\Story-debug-20260928-114433.log
+--- RUN HEADER (build, config, experiment) ---
+    build:         not a git checkout
+    bot:           PokéBot Gen3 dev
+    python:        3.12.4 on Windows 11
+    mode:          Story
+    profile:       r20T-CTL
+    rom:           Pokémon Emerald (E) (E) rev 0
+    emulation:     speed=0 video=False audio=False
+    fodder-rule:   xp_rate (default) ratio=2.0
+    env:           (no behaviour env vars set)
+--- END RUN HEADER ---
+f3143340 ===== DUMP [enable — initial state] =====
+    mode=Story  message=''
+    game_state=7  controllable=True
+    map=MT. PYRE(24,22)  pos=(23, 7)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1200 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L42 0/124', 'Sceptile L42 21/117', 'Swellow L39 18/109', 'Skitty L17 0/45', 'Zigzagoon L3 16/16', 'Castform L35 0/100']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3143385 [STEP] 'Story: leaving Mt. Pyre for the Magma Hideout...'
+f3143608 [MAP] MT. PYRE(24,22) -> MT. PYRE(24,21) pos=(23, 31)
+f3144389 [MAP] MT. PYRE(24,21) -> MT. PYRE(5,0) pos=(19, 44)
+f3144389 [BALLS] 17 -> 5
+f3144390 [MAP] MT. PYRE(5,0) -> MT. PYRE(24,21) pos=(19, 44)
+f3144390 [BALLS] 5 -> 17
+f3144418 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3144418 [DEXFENCE] skip #353 Shuppet — party is not at full strength
+f3144751 [STEP] 'Encountered Shuppet ♀.\n\nNature:\xa0Relaxed | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa0103 | SV:\xa04,437'
+f3144973 [BATTLE] [TURN 0] Sceptile L42 21/117 -> RunAway  vs Shuppet L29 68/68
+f3145127 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3145127 [RESUMED] after 375 frames with no progress
+f3145127 [MONEY] after RanAway at map (24, 21): money=₽14,804
+f3145288 [MAP] MT. PYRE(24,21) -> MT. PYRE(24,15) pos=(10, 42)
+f3145291 [MAP] MT. PYRE(24,15) -> MT. PYRE(0,0) pos=(10, 42)
+f3145291 [BALLS] 17 -> 3
+f3145292 [MAP] MT. PYRE(0,0) -> MT. PYRE(24,15) pos=(10, 42)
+f3145292 [BALLS] 3 -> 17
+f3145868 [MAP] MT. PYRE(24,15) -> ROUTE 122(0,37) pos=(17, 18)
+f3145949 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3146366 [MAP] ROUTE 122(0,37) -> ROUTE 123(0,38) pos=(20, 40)
+f3146766 [MAP] ROUTE 123(0,38) -> ROUTE 123(0,9) pos=(98, 15)
+f3146766 [BALLS] 17 -> 4
+f3146767 [MAP] ROUTE 123(0,9) -> ROUTE 123(0,38) pos=(98, 15)
+f3146767 [BALLS] 4 -> 17
+f3146795 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3146940 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(98, 15) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L42:exp71324', 'Swellow#0B30A747:L39:exp55164', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=14804 msg='Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3147127 [STEP] 'Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3147349 [BATTLE] [TURN 0] Sceptile L42 21/117 -> RunAway  vs Shuppet L26 64/64
+f3147503 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3147503 [RESUMED] after 375 frames with no progress
+f3147503 [MONEY] after RanAway at map (0, 38): money=₽14,804
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3149591 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149618 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149636 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3150540 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(87, 14) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L42:exp71634', 'Swellow#0B30A747:L39:exp55474', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=14804 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3151502 [BATTLE] [TURN 1] Sceptile L42 21/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3151524 [BATTLE] [TURN 1] Sceptile L42 21/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3151541 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3152145 [PARTY] slot1 Sceptile:L42 -> Sceptile:L43
+f3152282 [LEARN] LearnMoveState.DialogueNotActive -> LearnMoveState.Unknown
+f3152524 [LEARN] LearnMoveState.Unknown -> LearnMoveState.AskWhetherToLearn
+f3152569 [LEARN] LearnMoveState.AskWhetherToLearn -> LearnMoveState.SelectMoveToReplace
+f3152604 [LEARN] LearnMoveState.SelectMoveToReplace -> LearnMoveState.AskWhetherToLearn
+f3152679 [LEARN] LearnMoveState.AskWhetherToLearn -> LearnMoveState.Unknown
+f3152680 [LEARN] LearnMoveState.Unknown -> LearnMoveState.DialogueNotActive
+f3154071 [BATTLE] [TURN 2] Sceptile L43 24/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3154090 [BATTLE] [TURN 2] Sceptile L43 24/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3154108 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3154140 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(87, 14) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp71944', 'Swellow#0B30A747:L39:exp55784', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=14804 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3155494 [BATTLE] [TURN 3] Sceptile L43 24/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155513 [BATTLE] [TURN 3] Sceptile L43 24/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155530 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3156000 [PARTY] slot2 Swellow:L39 -> Swellow:L40
+f3156695 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3156695 [RESUMED] after 555 frames with no progress
+f3156695 [MONEY] after Won at map (0, 38): money=₽17,324
+f3157606 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 21, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3157740 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(66, 17) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp73002', 'Swellow#0B30A747:L40:exp56842', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=17324 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3158683 [BATTLE] [TURN 0] Sceptile L43 24/120 -> UseMove:Slam(pp18)  vs Electrike L30 64/64
+f3158703 [BATTLE] [TURN 0] Sceptile L43 24/120 -> UseMove:Slam(pp18)  vs Electrike L30 64/64
+f3158723 [BATTLE] [TURN 0] Swellow L40 21/112 -> UseMove:Quick Attack(pp30)  vs Electrike L30 64/64
+f3160639 [BATTLE] [TURN 1] Sceptile L43 24/120 -> UseMove:Slam(pp17)  vs Loudred L30 6/90
+f3160656 [BATTLE] [TURN 1] Swellow L40 21/112 [Paralysis] -> UseMove:Wing Attack(pp21)  vs Loudred L30 6/90
+f3161340 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(66, 17) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp73335', 'Swellow#0B30A747:L40:exp57175', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=17324 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3162806 [BATTLE] [TURN 2] Sceptile L43 24/120 -> UseMoveAgainstRightSideOpponent:Slam(pp16)  vs ?
+f3162823 [BATTLE] [TURN 2] Swellow L40 21/112 [Paralysis/Confused] -> UseMoveAgainstRightSideOpponent:Wing Attack(pp20)  vs ?
+f3164770 [BATTLE] [TURN 3] Sceptile L43 24/120 [Confused] -> UseMoveAgainstRightSideOpponent:Pursuit(pp17)  vs ?
+f3164788 [BATTLE] [TURN 3] Swellow L40 21/112 [Paralysis/Confused] -> UseMoveAgainstRightSideOpponent:Wing Attack(pp19)  vs ?
+f3164940 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(66, 17) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp74266', 'Swellow#0B30A747:L40:exp58106', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=17324 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3166792 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3166792 [RESUMED] after 623 frames with no progress
+f3166792 [MONEY] after Won at map (0, 38): money=₽19,244
+f3167125 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+    game_state=7  controllable=False
+    map=ROUTE 123(0,38)  pos=(66, 17)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1920 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L42 0/124', 'Sceptile L43 24/120', 'Swellow L40 10/112', 'Skitty L17 0/45', 'Zigzagoon L3 16/16', 'Castform L35 0/100']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'TrainerApproachListener.handle_trainer_approach']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects']
+    scripts=['Route123_EventScript_RegisterFernando', 'Std_RegisteredInMatchCall']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> TrainerApproachListener.handle_trainer_approach  @ _listeners.py:338
+f3167145 [RESUMED] after 319 frames with no progress
+f3167672 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+    game_state=7  controllable=False
+    map=ROUTE 123(0,38)  pos=(49, 17)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1920 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L42 0/124', 'Sceptile L43 24/120', 'Swellow L40 10/112', 'Skitty L17 0/45', 'Zigzagoon L3 16/16', 'Castform L35 0/100']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'TrainerApproachListener.handle_trainer_approach']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_RunTrainerSeeFuncList']
+    scripts=['EventScript_TrainerApproach']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> TrainerApproachListener.handle_trainer_approach  @ _listeners.py:338
+f3167694 [RESUMED] after 321 frames with no progress
+f3167984 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 10, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3168540 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(49, 17) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp74815', 'Swellow#0B30A747:L40:exp58655', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=19244 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3169021 [BATTLE] [TURN 0] Sceptile L43 24/120 -> UseMove:Slam(pp15)  vs Kadabra L30 64/64
+f3169055 [BATTLE] [TURN 0] Sceptile L43 24/120 -> UseMove:Slam(pp15)  vs Kadabra L30 64/64
+f3169075 [BATTLE] [TURN 0] Swellow L40 10/112 [Paralysis] -> UseMove:Wing Attack(pp18)  vs Kadabra L30 64/64
+f3170516 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 4 metric=damage estimates_ok=4 estimates_failed=0 key=(0, 2.0, -4.0, -1.0, -3)
+f3170543 [PARTY] slot0 Mightyena:L42 -> Sceptile:L43
+f3170543 [PARTY] slot1 Sceptile:L43 -> Swellow:L40
+f3170543 [PARTY] slot2 Swellow:L40 -> Mightyena:L42
+f3170567 [BATTLE] [FAINT-CHOOSER] identity: chosen=Zigzagoon#33CB74C3 menu_slot=4 -> cursor target 4 candidates=[4] snapshot_order=130245
+f3170598 [BATTLE] [FAINT-CHOOSER] alive_slots=[4] on_field=[0, 1] party=[(0, 'Sceptile', 24), (1, 'Swellow', 0), (2, 'Mightyena', 0), (3, 'Skitty', 0), (4, 'Zigzagoon', 16), (5, 'Castform', 0)]
+f3170598 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[4] on_field=[0, 1] party_in_menu=6 [identity]
+f3170598 [BATTLE] [FAINT-CHOOSER] A at cursor=4 pid=33CB74C3 sp=Zigzagoon frames=0
+f3170607 [PARTY] slot1 Swellow:L40 -> Zigzagoon:L3
+f3170607 [PARTY] slot4 Zigzagoon:L3 -> Swellow:L40
+f3170614 [BATTLE] [FAINT-CHOOSER] A at cursor=4 pid=33CB74C3 sp=Zigzagoon frames=16
+f3170622 [BATTLE] [FAINT-CHOOSER] A at cursor=4 pid=33CB74C3 sp=Zigzagoon frames=24
+f3170629 [PARTY] slot0 Sceptile:L43 -> Mightyena:L42
+f3170629 [PARTY] slot1 Zigzagoon:L3 -> Sceptile:L43
+f3170629 [PARTY] slot2 Mightyena:L42 -> Swellow:L40
+f3170629 [PARTY] slot4 Swellow:L40 -> Zigzagoon:L3
+f3170630 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 4 metric=damage estimates_ok=4 estimates_failed=0 key=(0, 2.0, -4.0, -1.0, -3)
+f3171087 [BATTLE] [TURN 1] Sceptile L43 24/120 -> UseMove:Pursuit(pp16)  vs Lunatone L30 82/82
+f3171117 [BATTLE] [TURN 1] Sceptile L43 24/120 -> UseMove:Pursuit(pp16)  vs Lunatone L30 82/82
+f3171135 [BATTLE] [TURN 1] Zigzagoon L3 16/16 -> UseMove:Surf(pp15)  vs Lunatone L30 82/82
+f3172140 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(49, 17) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp75280', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=19244 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3172348 [BATTLE] [TURN 2] Sceptile L43 22/120 -> UseMove:Pursuit(pp15)  vs Lunatone L30 28/82
+f3172373 [BATTLE] [TURN 2] Sceptile L43 22/120 -> UseMove:Pursuit(pp15)  vs Lunatone L30 28/82
+f3173486 [BATTLE] [TURN 3] Sceptile L43 4/120 -> UseMoveAgainstRightSideOpponent:Slam(pp14)  vs ?
+f3173505 [BATTLE] [TURN 3] Sceptile L43 4/120 -> UseMoveAgainstRightSideOpponent:Slam(pp14)  vs ?
+f3174566 [BATTLE] [TURN 4] Sceptile L43 4/120 -> UseMoveAgainstRightSideOpponent:Slam(pp13)  vs ?
+f3175458 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3175458 [RESUMED] after 1489 frames with no progress
+f3175458 [MONEY] after Lost at map (0, 38): money=₽19,244
+f3175580 [MAP] ROUTE 123(0,38) -> FORTREE CITY(0,4) pos=(49, 17)
+f3175581 [BALLS] 17 -> 45609
+f3175582 [BALLS] 45609 -> 17
+f3175668 [MAP] FORTREE CITY(0,4) -> ROUTE 119(0,34) pos=(-1, 7)
+f3175740 [hb] mode=Story state=7 controllable=True map=ROUTE 119(0,34) pos=(31, 7) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=9622 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3176110 [BATTLE] started hp=[('Mightyena', 124, 124), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3176998 [BATTLE] [TURN 0] Mightyena L42 124/124 -> UseMove:Bite(pp25)  vs Koffing L25 55/55
+f3177904 [BATTLE] [TURN 1] Mightyena L42 124/124 -> UseMove:Bite(pp24)  vs Koffing L25 55/55
+f3178346 [PARTY] slot0 Mightyena:L42 -> Mightyena:L43
+f3178865 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3178865 [RESUMED] after 363 frames with no progress
+f3178865 [MONEY] after Won at map (0, 34): money=₽9,922
+f3179133 [MAP] ROUTE 119(0,34) -> FORTREE CITY(0,4) pos=(40, 7)
+f3179340 [hb] mode=Story state=7 controllable=True map=FORTREE CITY(0,4) pos=(14, 4) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp79603', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=9922 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3179744 [MAP] FORTREE CITY(0,4) -> ROUTE 120(0,35) pos=(40, 8)
+f3182050 [MAP] ROUTE 120(0,35) -> ROUTE 121(0,36) pos=(40, 87)
+f3182670 [MAP] ROUTE 121(0,36) -> ROUTE 121(0,9) pos=(57, 10)
+f3182670 [BALLS] 17 -> 4
+f3182671 [MAP] ROUTE 121(0,9) -> ROUTE 121(0,36) pos=(57, 10)
+f3182671 [BALLS] 4 -> 17
+f3182699 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3182940 [hb] mode=Story state=4 controllable=False map=ROUTE 121(0,36) pos=(57, 10) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp79603', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=9922 msg='Encountered Shuppet ♀.\n\nNature:\xa0Gentle | Ability:\xa0Insomnia | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa060,077'
+f3182994 [STEP] 'Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3183485 [BATTLE] [TURN 0] Mightyena L43 127/127 -> UseMove:Take Down(pp20)  vs Poochyena L26 61/61
+f3184210 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3184210 [MONEY] after Won at map (0, 36): money=₽9,922
+f3184958 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3185872 [BATTLE] [TURN 0] Mightyena L43 112/127 -> UseMove:Take Down(pp19)  vs Pikachu L30 61/61
+f3185891 [BATTLE] [TURN 0] Mightyena L43 112/127 -> UseMove:Take Down(pp19)  vs Pikachu L30 61/61
+f3186540 [hb] mode=Story state=4 controllable=False map=ROUTE 121(0,36) pos=(59, 5) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp79807', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=9922 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3187170 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3187170 [RESUMED] after 361 frames with no progress
+f3187170 [MONEY] after Won at map (0, 36): money=₽12,322
+f3187855 [BATTLE] started hp=[('Mightyena', 97, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3188790 [BATTLE] [TURN 0] Mightyena L43 97/127 [Paralysis] -> UseMove:Take Down(pp18)  vs Manectric L29 83/83
+f3188809 [BATTLE] [TURN 0] Mightyena L43 97/127 [Paralysis] -> UseMove:Take Down(pp18)  vs Manectric L29 83/83
+f3189632 [BATTLE] [TURN 1] Mightyena L43 79/127 [Paralysis] -> UseMove:Take Down(pp17)  vs Manectric L29 11/83
+f3190140 [hb] mode=Story state=4 controllable=False map=ROUTE 121(0,36) pos=(65, 11) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp80333', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=12322 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3190508 [BATTLE] [TURN 2] Mightyena L43 63/127 [Paralysis] -> UseMove:Take Down(pp16)  vs Manectric L29 17/83
+f3190527 [BATTLE] [TURN 2] Mightyena L43 63/127 [Paralysis] -> UseMove:Take Down(pp16)  vs Manectric L29 17/83
+f3191012 [BATTLE] [ITEM] using Hyper Potion on Mightyena 39/127 (use 1, worst hit 24)
+f3191012 [BATTLE] [TURN 3] Mightyena L43 39/127 [Paralysis] -> UseItem  vs Manectric L29 17/83
+f3191012 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3191048 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Hyper Potion
+f3191055 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3191129 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3191134 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3191183 [BATTLE] [ITEM-FLOW] party-menu target=0 -> menu slot 0 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3191206 [BATTLE] [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3191439 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3191746 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 101/127 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f3191746 [BATTLE] [TURN 4] Mightyena L43 101/127 [Paralysis] -> UseMove:Take Down(pp16)  vs Manectric L29 17/83
+f3193111 [BATTLE] [TURN 5] Mightyena L43 73/127 [Paralysis] -> UseMove:Take Down(pp15)  vs Shiftry L29 94/94
+f3193691 [BATTLE] [TURN 6] Mightyena L43 73/127 [Paralysis] -> UseMove:Take Down(pp15)  vs Shiftry L29 94/94
+f3193740 [hb] mode=Story state=4 controllable=False map=ROUTE 121(0,36) pos=(65, 11) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=12322 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3194458 [BATTLE] [TURN 7] Mightyena L43 62/127 [Paralysis] -> UseMove:Take Down(pp14)  vs Shiftry L29 49/94
+f3194828 [BATTLE] [TURN 8] Mightyena L43 53/127 [Paralysis] -> UseMove:Take Down(pp14)  vs Shiftry L29 49/94
+f3195489 [BATTLE] [TURN 9] Mightyena L43 39/127 [Paralysis] -> UseMove:Take Down(pp13)  vs Shiftry L29 49/94
+f3196264 [BATTLE] [TURN 10] Mightyena L43 30/127 [Paralysis] -> UseMove:Take Down(pp12)  vs Shiftry L29 13/94
+f3196634 [BATTLE] [TURN 11] Mightyena L43 21/127 [Paralysis] -> UseMove:Take Down(pp12)  vs Shiftry L29 13/94
+f3197298 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 2 metric=damage estimates_ok=13 estimates_failed=0 key=(0, 1.0, -72.0, -1.0, -40)
+f3197340 [hb] mode=Story state=18 controllable=False map=ROUTE 121(0,36) pos=(65, 11) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L43:exp76801', 'Swellow#0B30A747:L40:exp59120', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=12322 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3197347 [BATTLE] [FAINT-CHOOSER] identity: chosen=Swellow#0B30A747 menu_slot=2 -> cursor target 2 candidates=[1, 2, 3, 4, 5] snapshot_order=102345
+f3197374 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2, 3, 4, 5] on_field=[0] party=[(0, 'Mightyena', 0), (1, 'Sceptile', 120), (2, 'Swellow', 112), (3, 'Skitty', 45), (4, 'Zigzagoon', 16), (5, 'Castform', 100)]
+f3197374 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[1, 2, 3, 4, 5] on_field=[0] party_in_menu=6 [identity]
+f3197374 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=0B30A747 sp=Swellow frames=0
+f3197383 [PARTY] slot0 Mightyena:L43 -> Swellow:L40
+f3197383 [PARTY] slot2 Swellow:L40 -> Mightyena:L43
+f3197390 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=0B30A747 sp=Swellow frames=16
+f3197398 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=0B30A747 sp=Swellow frames=24
+f3197405 [PARTY] slot0 Swellow:L40 -> Mightyena:L43
+f3197405 [PARTY] slot2 Mightyena:L43 -> Swellow:L40
+f3197406 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 2 metric=damage estimates_ok=13 estimates_failed=0 key=(0, 1.0, -72.0, -1.0, -40)
+f3197628 [BATTLE] [TURN 12] Swellow L40 112/112 -> UseMove:Wing Attack(pp35)  vs Shiftry L29 13/94
+f3198583 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3198583 [RESUMED] after 368 frames with no progress
+f3198583 [MONEY] after Won at map (0, 36): money=₽13,714
+f3199133 [BATTLE] started hp=[('Mightyena', 0, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3199877 [BATTLE] [TURN 0] Sceptile L43 120/120 -> UseMove:Leaf Blade(pp15)  vs Loudred L29 91/91
+f3200548 [PARTY] slot1 Sceptile:L43 -> Sceptile:L44
+f3200940 [hb] mode=Story state=4 controllable=False map=ROUTE 121(0,36) pos=(72, 11) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp77584', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=13714 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3201201 [BATTLE] [TURN 1] Sceptile L44 123/123 -> UseMove:Leaf Blade(pp14)  vs Vigoroth L29 88/88
+f3202228 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3202228 [RESUMED] after 354 frames with no progress
+f3202228 [MONEY] after Won at map (0, 36): money=₽15,106
+f3202566 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+    game_state=7  controllable=False
+    map=ROUTE 121(0,36)  pos=(72, 11)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 0/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'TrainerApproachListener.handle_trainer_approach']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare']
+    scripts=['Route121_EventScript_RegisterCristin', 'Std_RegisteredInMatchCall']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> TrainerApproachListener.handle_trainer_approach  @ _listeners.py:338
+f3202624 [RESUMED] after 357 frames with no progress
+f3202729 [MAP] ROUTE 121(0,36) -> LILYCOVE CITY(0,5) pos=(80, 6)
+f3203032 [MAP] LILYCOVE CITY(0,5) -> LILYCOVE CITY(13,6) pos=(24, 14)
+f3203446 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+    game_state=7  controllable=True
+    map=LILYCOVE CITY(13,6)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 0/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['LilycoveCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8345
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:613
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f3204351 [RESUMED] after 1204 frames with no progress
+f3204352 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3204492 [MAP] LILYCOVE CITY(13,6) -> LILYCOVE CITY(0,5) pos=(7, 8)
+f3204540 [hb] mode=Story state=7 controllable=False map=LILYCOVE CITY(0,5) pos=(24, 14) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=15106 msg='Encountered Poochyena ♀.\n\nNature:\xa0Quiet | Ability:\xa0Run Away | Item:\xa0- | IV\xa0sum:\xa088 | SV:\xa029,602'
+f3204631 [STORY] WHITEOUT recovery #1 at (0, 5)
+f3204632 [STEP] 'Story: teaching Strength to Sceptile...'
+f3204676 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3204775 [MAP] LILYCOVE CITY(0,5) -> LILYCOVE CITY(13,6) pos=(24, 14)
+f3205189 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+    game_state=7  controllable=True
+    map=LILYCOVE CITY(13,6)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['LilycoveCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8345
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:613
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f3206094 [RESUMED] after 1204 frames with no progress
+f3206095 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3206235 [MAP] LILYCOVE CITY(13,6) -> LILYCOVE CITY(0,5) pos=(7, 8)
+f3206375 [STEP] 'Story: teaching Strength to Sceptile...'
+f3206765 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: teaching Strength to Sceptile...'
+    game_state=1  controllable=False
+    map=LILYCOVE CITY(0,5)  pos=(24, 15)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8363
+      -> ensure_strength_learner  @ early_game.py:8853
+      -> teach_hm_move  @ early_game.py:5596
+      -> teach_hm_move.<locals>._wait_for  @ early_game.py:5582
+f3206874 [RESUMED] after 408 frames with no progress
+f3207200 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: teaching Strength to Sceptile...'
+    game_state=3  controllable=False
+    map=LILYCOVE CITY(0,5)  pos=(24, 15)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_ReplaceMoveYesNo', 'Task_PrintAndWaitForText']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8363
+      -> ensure_strength_learner  @ early_game.py:8853
+      -> teach_hm_move  @ early_game.py:5748
+f3207488 [LEARN] LearnMoveState.DialogueNotActive -> LearnMoveState.AskWhetherToLearn
+f3207500 [LEARN] LearnMoveState.AskWhetherToLearn -> LearnMoveState.DialogueNotActive
+f3207659 [RESUMED] after 758 frames with no progress
+f3207680 [LEARN] LearnMoveState.DialogueNotActive -> LearnMoveState.SelectMoveToReplace
+f3207750 [LEARN] LearnMoveState.SelectMoveToReplace -> LearnMoveState.DialogueNotActive
+f3208097 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: teaching Strength to Sceptile...'
+    game_state=3  controllable=False
+    map=LILYCOVE CITY(0,5)  pos=(24, 15)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1392 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_LearnNextMoveOrClosePartyMenu', 'Task_Fanfare']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8363
+      -> ensure_strength_learner  @ early_game.py:8853
+      -> teach_hm_move  @ early_game.py:5986
+f3208140 [hb] mode=Story state=3 controllable=False map=LILYCOVE CITY(0,5) pos=(24, 15) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=17 money=15106 msg='Story: teaching Strength to Sceptile...'
+f3208145 [RESUMED] after 347 frames with no progress
+f3208262 [STORY] TEACH EXIT reason=ride:learned stall_peak=169 post_select=replace-prompt move=Strength slot=1 replace_slot=3 frame=483 tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'] learn_state=LearnMoveState.DialogueNotActive moves=['Rock Smash', 'Pursuit', 'Leaf Blade', 'Strength']
+f3208292 [STORY] TEACH OK Sceptile learned Strength ride_frames=483 ride_exit=learned stall_peak=169 post_select=replace-prompt close_frames=0
+f3208293 [STEP] 'Story: healing at MAUVILLE_CITY before the Magma Hideout haul...'
+f3208502 [MAP] LILYCOVE CITY(0,5) -> ROUTE 121(0,36) pos=(-1, 17)
+f3209073 [MAP] ROUTE 121(0,36) -> ROUTE 121(3,0) pos=(38, 12)
+f3209074 [MAP] ROUTE 121(3,0) -> ROUTE 121(0,36) pos=(38, 12)
+f3209102 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3209102 [DEXFENCE] CATCH #43 Oddish — dex catch #43 (goes to the PC box)
+f3209102 [DEXCATCH] [DEXCATCH] attempt #1 on Oddish (#43) -> box
+f3209399 [STEP] 'Encountered Oddish ♂.\n\nNature:\xa0Lonely | Ability:\xa0Chlorophyll | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa06,490'
+f3209884 [BATTLE] [TURN 0] Mightyena L43 127/127 -> UseItem  vs Oddish L26 66/66
+f3209884 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3209916 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3209923 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3209977 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3209982 [BALLS] 17 -> 16
+f3209982 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3211292 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3211292 [RESUMED] after 1255 frames with no progress
+f3211292 [MONEY] after Caught at map (0, 36): money=₽15,106
+f3211673 [MAP] ROUTE 121(0,36) -> ROUTE 120(0,35) pos=(-1, 7)
+f3211740 [DEX] owned 10 -> 11: +#43
+f3211740 [hb] mode=Story state=7 controllable=True map=ROUTE 120(0,35) pos=(33, 88) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=11 balls=16 money=15106 msg='Encountered Oddish ♂.\n\nNature:\xa0Lonely | Ability:\xa0Chlorophyll | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa06,490'
+f3213785 [MAP] ROUTE 120(0,35) -> FORTREE CITY(0,4) pos=(-1, 8)
+f3214390 [MAP] FORTREE CITY(0,4) -> ROUTE 119(0,34) pos=(-1, 8)
+f3215340 [hb] mode=Story state=7 controllable=True map=ROUTE 119(0,34) pos=(13, 72) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=11 balls=16 money=15106 msg='Encountered Oddish ♂.\n\nNature:\xa0Lonely | Ability:\xa0Chlorophyll | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa06,490'
+f3216498 [MAP] ROUTE 119(0,34) -> ROUTE 118(0,33) pos=(17, 140)
+f3216700 [MAP] ROUTE 118(0,33) -> ROUTE 118(3,0) pos=(51, 6)
+f3216700 [BALLS] 16 -> 5
+f3216701 [MAP] ROUTE 118(3,0) -> ROUTE 118(0,33) pos=(51, 6)
+f3216701 [BALLS] 5 -> 16
+f3216729 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3216729 [DEXFENCE] CATCH #264 Linoone — dex catch #264 (goes to the PC box)
+f3216729 [DEXCATCH] [DEXCATCH] attempt #1 on Linoone (#264) -> box
+f3217027 [STEP] 'Encountered Linoone ♀.\n\nNature:\xa0Bashful | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa092 | SV:\xa01,829'
+f3217732 [BATTLE] [TURN 0] Mightyena L43 127/127 -> UseItem  vs Linoone L26 78/78
+f3217732 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3217764 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3217769 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3217791 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3217796 [BALLS] 16 -> 15
+f3217796 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3218940 [hb] mode=Story state=4 controllable=False map=ROUTE 118(0,33) pos=(51, 6) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=11 balls=15 money=15106 msg='Encountered Linoone ♀.\n\nNature:\xa0Bashful | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa092 | SV:\xa01,829'
+f3218960 [BATTLE] [TURN 1] Mightyena L43 127/127 [Foresight] -> UseItem  vs Linoone L26 78/78
+f3218960 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3218991 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3218996 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3219018 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3219023 [BALLS] 15 -> 14
+f3219023 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3220241 [BATTLE] [TURN 2] Mightyena L43 127/127 [Foresight] -> UseItem  vs Linoone L26 78/78
+f3220241 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3220272 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3220277 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3220299 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3220304 [BALLS] 14 -> 13
+f3220304 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3221350 [BATTLE] [TURN 3] Mightyena L43 127/127 [Foresight] -> UseItem  vs Linoone L26 78/78
+f3221350 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3221381 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3221386 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3221408 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3221413 [BALLS] 13 -> 12
+f3221413 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3222459 [BATTLE] [TURN 4] Mightyena L43 127/127 [Foresight] -> UseItem  vs Linoone L26 78/78
+f3222459 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3222490 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3222495 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3222517 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3222522 [BALLS] 12 -> 11
+f3222522 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3222540 [hb] mode=Story state=1 controllable=False map=ROUTE 118(0,33) pos=(51, 6) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=11 balls=11 money=15106 msg='Encountered Linoone ♀.\n\nNature:\xa0Bashful | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa092 | SV:\xa01,829'
+f3223410 [BATTLE] [TURN 5] Mightyena L43 119/127 [Foresight] -> UseItem  vs Linoone L26 78/78
+f3223410 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f3223441 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f3223446 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f3223468 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f3223473 [BALLS] 11 -> 10
+f3223473 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f3224789 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3224789 [RESUMED] after 1261 frames with no progress
+f3224789 [MONEY] after Caught at map (0, 33): money=₽15,106
+f3225851 [MAP] ROUTE 118(0,33) -> MAUVILLE CITY(0,2) pos=(-1, 7)
+f3226098 [MAP] MAUVILLE CITY(0,2) -> MAUVILLE CITY(10,5) pos=(22, 5)
+f3226140 [DEX] owned 11 -> 12: +#264
+f3226140 [hb] mode=Story state=7 controllable=False map=MAUVILLE CITY(10,5) pos=(7, 8) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=12 balls=10 money=15106 msg='Encountered Linoone ♀.\n\nNature:\xa0Bashful | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa092 | SV:\xa01,829'
+f3226512 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Linoone ♀.\n\nNature:\xa0Bashful | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa092 | SV:\xa01,829'
+    game_state=7  controllable=True
+    map=MAUVILLE CITY(10,5)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_SuccessBallThrowEnd
+    battle_text='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 119/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['MauvilleCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8345
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:613
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f3227417 [RESUMED] after 1204 frames with no progress
+f3227418 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3227558 [MAP] MAUVILLE CITY(10,5) -> MAUVILLE CITY(0,2) pos=(7, 8)
+f3227699 [STEP] 'Story: topping up at Lavaridge before the mountain...'
+f3227780 [MAP] MAUVILLE CITY(0,2) -> ROUTE 111(0,26) pos=(19, -1)
+f3228130 [MAP] ROUTE 111(0,26) -> TRAINER HILL(26,60) pos=(31, 113)
+f3228235 [MAP] TRAINER HILL(26,60) -> ROUTE 111(0,26) pos=(9, 16)
+f3228271 [STEP] 'Story: clearing the way — Rock Smash obstacle at (18, 101) — stand (18, 102) facing Up (EventScript_RockSmash)'
+f3228839 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: clearing the way — Rock Smash obstacle at (18, 101) — stand (18, 102) facing Up (EventScript_RockSmash)'
+    game_state=7  controllable=True
+    map=ROUTE 111(0,26)  pos=(18, 102)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_SuccessBallThrowEnd
+    battle_text='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['EventScript_RockSmash', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8399
+      -> _navigate_riding_out  @ early_game.py:310
+      -> clear_obstacle  @ obstacle_clearing.py:314
+      -> _smash_rock  @ early_game.py:6182
+f3229075 [RESUMED] after 535 frames with no progress
+f3229516 [MAP] ROUTE 111(0,26) -> ROUTE 112(0,27) pos=(-1, 70)
+f3229740 [hb] mode=Story state=7 controllable=True map=ROUTE 112(0,27) pos=(21, 41) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L43:exp81377', 'Sceptile#863B0917:L44:exp78367', 'Swellow#0B30A747:L40:exp60243', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=12 balls=10 money=15106 msg='Story: clearing the way — Rock Smash obstacle at (18, 101) — stand (18, 102) facing Up (EventScript_RockSmash)'
+f3229936 [MAP] ROUTE 112(0,27) -> ROUTE 112(19,0) pos=(28, 27)
+f3229998 [MAP] ROUTE 112(19,0) -> ROUTE 112(0,27) pos=(6, 11)
+f3230289 [STEP] 'Story: riding the cable car up to Mt. Chimney...'
+f3230366 [MAP] ROUTE 112(0,27) -> ROUTE 112(19,0) pos=(28, 27)
+f3231153 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: riding the cable car up to Mt. Chimney...'
+    game_state=18  controllable=False
+    map=ROUTE 112(19,0)  pos=(6, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_SuccessBallThrowEnd
+    battle_text='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_CableCar', 'Task_AnimateBgGoingUp']
+    scripts=['Route112_CableCarStation_EventScript_RideCableCar']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8411
+      -> ride_cable_car_to_summit  @ early_game.py:6353
+f3231483 [MAP] ROUTE 112(19,0) -> MT. CHIMNEY(19,1) pos=(6, 4)
+f3231483 [RESUMED] after 629 frames with no progress
+f3231720 [MAP] MT. CHIMNEY(19,1) -> MT. CHIMNEY(24,12) pos=(6, 11)
+f3231816 [STEP] 'Story: descending into Jagged Pass...'
+f3231963 [MAP] MT. CHIMNEY(24,12) -> JAGGED PASS(24,13) pos=(21, 41)
+f3232441 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: descending into Jagged Pass...'
+    game_state=7  controllable=True
+    map=JAGGED PASS(24,13)  pos=(14, 15)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_SuccessBallThrowEnd
+    battle_text='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mightyena L43 127/127', 'Sceptile L44 123/123', 'Swellow L40 112/112', 'Skitty L17 45/45', 'Zigzagoon L3 16/16', 'Castform L35 100/100']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=['JaggedPass_EventScript_OpenMagmaHideout']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4137
+      -> StoryMode._play  @ story_mode.py:5374
+      -> do_magma_hideout_chapter  @ early_game.py:8707
+      -> travel_to_magma_hideout_door  @ early_game.py:8429
+      -> open_magma_hideout_entrance  @ early_game.py:8221
+      -> _navigate_riding_out  @ early_game.py:341
+      -> _ride_out_scripted_scene  @ early_game.py:453
+      -> _wait_until_cutscene_over  @ early_game.py:744
+f3232446 [RESUMED] after 304 frames with no progress
+f3232765 [STEP] 'Story: walking to the Magma Hideout door...'
+f3232884 [STEP] 'Story: entering the Magma Hideout...'
+f3232974 [MAP] JAGGED PASS(24,13) -> MAGMA HIDEOUT(24,86) pos=(16, 18)
+f3233068 [STEP] 'Story: inside the Magma Hideout (1F).'
+f3233181 [STEP] 'Story: switching on Strength...'
+
+## harness --log tail
+f67989: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+f68000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f70000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f71757: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessBallThrowEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=StoryMode.run bt='ODDISH was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”' scripts=[] party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f72000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f73389: battle_is_active -> True  party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f73390: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f74000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f76000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f78000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f80000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f81449: battle_is_active -> False  outcome=BattleOutcome.Caught  party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f81460: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessBallThrowEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”' scripts=[] party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f81640: CONTROLLER -> StoryMode.run   (state=OVERWORLD)
+f82000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f82111: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessBallThrowEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect'] ctrl=StoryMode.run bt='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”' scripts=[] party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f83772: SAVED stall state #3 to stalls/r20T-CTL-f83772.ss1 (bt='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”')
+f84000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f84072: !!! NO-PROGRESS x1200 sig=('StoryMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949', (7, 4)) instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['MauvilleCity_PokemonCenter_1F_EventScript_Nurse'] bt='LINOONE was transferred to SOMEONE’S PC.It was placed in  BOX “BOX1.”' bot_mode=Story
+f84072:     gen -> StoryMode.run  @ story_mode.py:4137
+f84072:     gen -> StoryMode._play  @ story_mode.py:5374
+f84072:     gen -> do_magma_hideout_chapter  @ early_game.py:8707
+f84072:     gen -> travel_to_magma_hideout_door  @ early_game.py:8345
+f84072:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f84072:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:614
+f84072:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f84072:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+f86000: heartbeat mode=Story ctrl=StoryMode.run state=OVERWORLD party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+f88000: heartbeat mode=Story ctrl=StoryMode.run state=UNKNOWN party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+[done] ran 90000 frames; final mode=Story party=[Mightyena:L43:exp81377|Sceptile:L44:exp78367|Swellow:L40:exp60243|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L35:exp43949]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L43: Tackle, Taunt, Take Down, Bite
+[moveset] Sceptile L44: Rock Smash, Pursuit, Leaf Blade, Strength
+[moveset] Swellow L40: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L35: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 90001 get_party() recomputes, 301 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += storyresume 90001 recomputes (party_accounting_ledger.jsonl)
