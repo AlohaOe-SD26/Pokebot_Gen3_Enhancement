@@ -337,6 +337,22 @@ class Ki47OorMode(FaintReproMode):
                 if self.ORDERS[ARM] is not None:
                     write_symbol("gBattlePartyCurrentOrder", bytes.fromhex(self.ORDERS[ARM]))
                 st["order_written"] = read_symbol("gBattlePartyCurrentOrder", size=3).hex()
+                # The handler never sees a plain memory write, for TWO reasons, both measured on 2026-09-28:
+                # (1) `get_battle_state()` is cached PER FRAME and the dispatcher's own condition (`battle_handler`
+                #     ~:402) already read it THIS frame, so every arm's `[KI47-OBS] snapshot` read 012345 (Foor too);
+                # (2) ageing the entry was NOT enough: a re-read builds a new object, but `BattleState.__eq__`
+                #     (battle_state.py ~:249) omits `_battler_party_order`, so the cache setter calls it "equal",
+                #     keeps the OLD object and the handler still read 012345 while this wrapper's own read said
+                #     104523. So install the re-read object DIRECTLY (the StateCacheItem `value` setter stores
+                #     unconditionally) and record the order of the object the HANDLER will get from the cache
+                #     (rule 7: read what it acts on, not a value beside it): a premise conjunct.
+                from modules.state_cache import state_cache as _sc_k47
+
+                _item_k47 = _sc_k47.battle_state
+                _item_k47._last_check_frame = _item_k47._last_check_frame - 1
+                _item_k47.value = get_battle_state()
+                st["snapshot_seen"] = bytes(_sc_k47.battle_state.value._battler_party_order).hex()
+                st["snapshot_via_api"] = bytes(get_battle_state()._battler_party_order).hex()
                 st["f0"] = frame()
                 st["pressing"] = True
             try:
@@ -381,7 +397,11 @@ class Ki47OorMode(FaintReproMode):
         log(f"[{TAG}] failure={failure} whiteouts={getattr(self, 'whiteouts', 0)}")
         froze = "fault" in st or R["handler_frames"] is None or R["handler_frames"] >= 3000
         sent_bench = st.get("field_pid") in bench_pids
-        R["verdict"] = {"reached_the_chooser": st["calls"] >= 1, "froze": froze, "sent_a_bench_mon": sent_bench,
+        want_snapshot = self.ORDERS[ARM] or st.get("order_before")
+        R["verdict"] = {"reached_the_chooser": st["calls"] >= 1,
+                        "injection_reached_snapshot": st.get("snapshot_seen") is not None
+                        and st.get("snapshot_seen") == want_snapshot == st.get("snapshot_via_api"),
+                        "froze": froze, "sent_a_bench_mon": sent_bench,
                         "sent_the_chosen_mon": st.get("field_pid") is not None and st.get("field_pid") == R["chosen_pid"],
                         "entry_before_menu": st.get("entry_state") != "PARTY_MENU"}
         log(f"[{TAG}] VERDICT {R['verdict']} handler_frames={R['handler_frames']} presses={st['presses']}")

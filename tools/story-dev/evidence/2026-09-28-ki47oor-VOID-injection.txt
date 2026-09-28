@@ -1,0 +1,26 @@
+# #27-ki47range — WHY THE FIRST UNFIXED RUNS WERE VOID (driver defects, measured 2026-09-28)
+# Run A: the first driver (plain write_symbol). Foor wrote 104523; the HANDLER's snapshot read 012345.
+## Run A harness --log (Foor)
+[ki47oor] R order_written = '104523'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+## Run A handler debug log (Story-debug-20260928-095201.log)
+f138256 [BATTLE] [KI47-OBS] snapshot order=012345 party=4
+f138372 [BATTLE] [KI47-OBS] menu-open fresh order=012345 party_in_menu=4 alive_slots=[1, 2, 3] acted_on=[1, 2, 3] fresh_mapped=[1, 2, 3] out_of_range=[]
+f138372 [BATTLE] [KI47-OBS] A at cursor=3 pid=7E9BB3BA sp=Whismur frames=0
+
+# Run B: cache entry aged by one frame. The DRIVER's own re-read said 104523; the handler, same frame, still read 012345
+# (BattleState.__eq__ omits _battler_party_order, so the cache setter kept the old object).
+## Run B harness --log (Foor)
+[ki47oor] R order_written = '104523'
+[ki47oor] R snapshot_seen = '104523'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+## Run B handler debug log (Story-debug-20260928-100633.log)
+f138256 [BATTLE] [KI47-OBS] snapshot order=012345 party=4
+f138372 [BATTLE] [KI47-OBS] menu-open fresh order=012345 party_in_menu=4 alive_slots=[1, 2, 3] acted_on=[1, 2, 3] fresh_mapped=[1, 2, 3] out_of_range=[]
+f138372 [BATTLE] [KI47-OBS] A at cursor=3 pid=7E9BB3BA sp=Whismur frames=0
+
+# NOTE: Run B's premise conjunct `injection_reached_snapshot: True` was ITSELF WRONG. It read the order of the object
+# the driver's own get_battle_state() call returned (the freshly built local), not the object the cache kept and the
+# handler received. Rule 7 applies to checks too: the conjunct must read what the subject ACTS on. The corrected driver
+# installs the re-read object into the cache and requires snapshot_seen (the cached object) == the written order ==
+# get_battle_state()'s return in the same frame. With that conjunct, unfixed Foor FROZE (evidence ...-unfixed-Foor.txt).

@@ -1,0 +1,147 @@
+# #27-ki47range — --driver ki47oor, UNFIXED code (Step 0 logging only, branch wt/ki47range 8c964be9 + the corrected driver)
+# arm=Foor fixture r20_pregym1_party4_r116.ss1 (= 9710585350be, asserted) --frames 30000
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-28-ki47range-PREDICTIONS.md (b11f327f)
+
+## runner line
+Foor exit=0 10:18:26 AM VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': True, 'sent_a_bench_mon': False, 'sent_the_chosen_mon': False, 'entry_before_menu': True} handler_frames=3045 presses={'A': 105, 'Down': 685}
+
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\k47\u2\Foor.log
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Foor {'arm': 'Foor', 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f159: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f2557: SAVED stall state #1 to stalls/repro-ml-f2557.ss1 (bt='Use next POKéMON?')
+f2857: !!! NO-PROGRESS x1200 sig=('BattleListener.fight', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Story
+f2857:     gen -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+f2857:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2857:     gen -> BattleListener.fight  @ _listeners.py:219
+f2857:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2857:     gen -> handle_battle  @ battle_handler.py:405
+f2857:     gen -> handle_battle.<locals>._watch  @ battle_handler.py:319
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f4615: CONTROLLER -> Ki47OorMode.run   (state=PARTY_MENU)
+[ki47oor] R arm = 'Foor'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 1
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138256
+[ki47oor] R f1 = 141301
+[ki47oor] R fault = "KI-47: battle sub-handler 'handle_fainted_pokemon' ran 3001 frames with no battle progress (frozen at ('BattleScript_FaintedMonTryChoose', 'RunBattleScriptCommands_PopCallbacksStack', 'LearnMoveState."
+[ki47oor] R handler_frames = 3045
+[ki47oor] R order_before = '012345'
+[ki47oor] R order_written = '104523'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 105, 'Down': 685}
+[ki47oor] R snapshot_seen = '104523'
+[ki47oor] R snapshot_via_api = '104523'
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': True, 'sent_a_bench_mon': False, 'sent_the_chosen_mon': False, 'entry_before_menu': True} handler_frames=3045 presses={'A': 105, 'Down': 685}
+f4616: CONTROLLER -> <none>   (state=PARTY_MENU)
+f5516: SAVED stall state #2 to stalls/repro-ml-f5516.ss1 (bt='Use next POKéMON?')
+f5816: !!! NO-PROGRESS x1200 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f5816:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f7616: !!! NO-PROGRESS x3000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f7616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f10000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f12000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f12616: !!! NO-PROGRESS x8000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f12616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f14000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f16000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f18000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f19616: !!! NO-PROGRESS x15000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f19616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f22000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f24000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f24616: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 24617 frames; final mode=Manual party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Whismur L6: Pound, Uproar
+[PARTY-ACCT] STAGE 0 SUMMARY — 24617 get_party() recomputes, 83 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 24617 recomputes (party_accounting_ledger.jsonl)
+
+## handler debug log (Story-debug-20260928-101249.log): KI47-OBS / FAINT-CHOOSER / KI-47 lines
+f138256 [BATTLE] [KI47-OBS] snapshot order=104523 party=4
+f138256 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 3 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138368 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2, 3] on_field=[0] party=[(0, 'Shedinja', 0), (1, 'Poochyena', 16), (2, 'Nincada', 20), (3, 'Whismur', 23)]
+f138368 [BATTLE] [KI47-OBS] menu-open fresh order=104523 party_in_menu=4 alive_slots=[1, 2, 3] acted_on=[0, 4, 5] fresh_mapped=[0, 4, 5] out_of_range=[4, 5]
+f138368 [BATTLE] [FAINT-CHOOSER] index spaces: alive_slots=[1, 2, 3](party-order) -> [0, 4, 5](menu-order) on_field=[0](party-order)  [orders DIVERGE]
+f138400 [BATTLE] [KI47-OBS] A at cursor=0 pid=00000000 sp=Shedinja frames=32
+f141301 [STORY] KI-47 PARK: KI-47: battle sub-handler 'handle_fainted_pokemon' ran 3001 frames with no battle progress (frozen at ('BattleScript_FaintedMonTryChoose', 'RunBattleScriptCommands_PopCallbacksStack', 'LearnMoveState.DialogueNotActive', 17314)) — handed to the mode as a recoverable fault
+
+## stdout (tail 60)
+f2857:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2857:     gen -> BattleListener.fight  @ _listeners.py:219
+f2857:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2857:     gen -> handle_battle  @ battle_handler.py:405
+f2857:     gen -> handle_battle.<locals>._watch  @ battle_handler.py:319
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f4615: CONTROLLER -> Ki47OorMode.run   (state=PARTY_MENU)
+[ki47oor] R arm = 'Foor'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 1
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138256
+[ki47oor] R f1 = 141301
+[ki47oor] R fault = "KI-47: battle sub-handler 'handle_fainted_pokemon' ran 3001 frames with no battle progress (frozen at ('BattleScript_FaintedMonTryChoose', 'RunBattleScriptCommands_PopCallbacksStack', 'LearnMoveState."
+[ki47oor] R handler_frames = 3045
+[ki47oor] R order_before = '012345'
+[ki47oor] R order_written = '104523'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 105, 'Down': 685}
+[ki47oor] R snapshot_seen = '104523'
+[ki47oor] R snapshot_via_api = '104523'
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': True, 'sent_a_bench_mon': False, 'sent_the_chosen_mon': False, 'entry_before_menu': True} handler_frames=3045 presses={'A': 105, 'Down': 685}
+f4616: CONTROLLER -> <none>   (state=PARTY_MENU)
+f5516: SAVED stall state #2 to stalls/repro-ml-f5516.ss1 (bt='Use next POKéMON?')
+f5816: !!! NO-PROGRESS x1200 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f5816:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f7616: !!! NO-PROGRESS x3000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f7616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f10000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f12000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f12616: !!! NO-PROGRESS x8000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f12616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f14000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f16000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f18000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f19616: !!! NO-PROGRESS x15000 sig=('<none>', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose', 'DialogueNotActive', 'Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179', (11, 7)) instr=BattleScript_FaintedMonTryChoose cb=RunBattleScriptCommands_PopCallbacksStack ml_tasks=[] tasks=['Task_HandleChooseMonInput'] scripts=[] bt='Use next POKéMON?' bot_mode=Manual
+f19616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f22000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f24000: heartbeat mode=Manual ctrl=<none> state=PARTY_MENU party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f24616: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 24617 frames; final mode=Manual party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Whismur L6: Pound, Uproar
+[PARTY-ACCT] STAGE 0 SUMMARY — 24617 get_party() recomputes, 83 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 24617 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-28_10
+-18-26.ss1 created!
+Updated `current_state.ss1`!
