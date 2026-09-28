@@ -36455,3 +36455,17 @@ never the Pokémon.
 **WHAT.** Comment-only: the `early_game.py` docstring and the inline comment that said "declined at a full party" now
 say it goes to the PC, with the citation. No behaviour change. One drifted doc citation repaired with
 `fix_doc_citations.py`.
+
+## 2026-09-27 — RULING 20 Phase 2, Step 0: the two fence fixtures are PINNED (branch `wt/swapevo`)
+
+**WHY.** The Phase 2 build spec (`ai-research-notes/2026-09-27-ruling20-phase2-BUILDSPEC.md`) found no PINNED save before
+gym 1 and none with badges and a party below 6, so no Phase 2 arm could be driven.
+**WHAT.** Copied to names no driver writes, read by `--driver partypids` and `probe_ch24_readiness.py`, and pinned in
+`saves/FIXTURES.md5` with their PIDs:
+- `r20_pregym1_party4_r116.ss1` (from `route116team.ss1`): ROUTE116 (11,7), no badges, party of 4 (Mudkip L13,
+  Poochyena L4, Nincada L6, Whismur L6), 96% HP, ₽824. The party already equals today's target, so the P2-a arms
+  (target 4 vs 6) separate at once.
+- `r20_badge1_party1_gym.ss1` (from `gym1_done.ss1`): RUSTBORO_CITY_GYM (5,3), badge 1, party of 1 (Mudkip L16, 46%
+  HP), ₽8,628, for P2-b (open the post-gym-1 fence). Not at full HP, so only encounters after a heal can differ.
+Balls are not recorded: the spec drives every arm with `--set-balls`. The owned count was not read; compute it at load.
+Evidence: `tools/story-dev/evidence/2026-09-27-r20step0-partypids-*.txt`. `verify_fixtures.py`: both OK.

@@ -1,0 +1,22 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sw\pp_r20_pregym1_party4_r116.log
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[run] starting faithful loop for up to 200 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> PartyPidsMode.run   (state=OVERWORLD)
+[partypids] PARTY slot=0 Mudkip       L13  pid=550A9BE6 hp=37/40 (92%) egg=False
+[partypids] PARTY slot=1 Poochyena    L4   pid=5815089E hp=16/17 (94%) egg=False
+[partypids] PARTY slot=2 Nincada      L6   pid=4457D0FB hp=20/20 (100%) egg=False
+[partypids] PARTY slot=3 Whismur      L6   pid=7E9BB3BA hp=23/23 (100%) egg=False
+[partypids] FAINTED BY IDENTITY: none
+[partypids] RESULT party=4 boxed=0 collisions=0
+[partypids] ACCEPTANCE: PASS (read-only dump; it reports, it does not grade)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[done] ran 200 frames; final mode=Manual party=[Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Mudkip L13: Tackle, Growl, Mud-slap, Water Gun
+[moveset] Poochyena L4: Tackle
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Whismur L6: Pound, Uproar
+[PARTY-ACCT] STAGE 0 SUMMARY — 201 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += partypids 201 recomputes (party_accounting_ledger.jsonl)

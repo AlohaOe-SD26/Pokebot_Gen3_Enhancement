@@ -1,0 +1,16 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sw\pp_r20_badge1_party1_gym.log
+[setup] loaded save state r20_badge1_party1_gym.ss1; build=sandbox
+[run] starting faithful loop for up to 200 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> PartyPidsMode.run   (state=OVERWORLD)
+[partypids] PARTY slot=0 Mudkip       L16  pid=550A9BE6 hp=21/46 (46%) egg=False
+[partypids] FAINTED BY IDENTITY: none
+[partypids] RESULT party=1 boxed=0 collisions=0
+[partypids] ACCEPTANCE: PASS (read-only dump; it reports, it does not grade)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+[done] ran 200 frames; final mode=Manual party=[Mudkip:L16:exp2808]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Mudkip L16: Tackle, Growl, Mud-slap, Water Gun
+[PARTY-ACCT] STAGE 0 SUMMARY — 201 get_party() recomputes, 1 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += partypids 201 recomputes (party_accounting_ledger.jsonl)
