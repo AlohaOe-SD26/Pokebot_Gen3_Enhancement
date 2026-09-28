@@ -94,3 +94,33 @@ verdict.
 - **Ball economy** (B, which waits on the user's §8 Q1).
 - **The Rustboro rival loss.** A party of one at L19 is this fixture's artifact; a real run reaches badge 1 with a
   party of 4 (`#27-batch0927`: 25 of 25).
+
+## ADDENDUM — filed after the first five graded arms, BEFORE the seeded arms: pairing arms by seed
+
+**Why:** G-OFF did not replay X0. The cause is `_prepare_for_fight`'s unseeded `random.randint(16, 19)`
+(`story_mode.py:3404`), the bot's deliberate "organic" training target, not the flag:
+- X0 and G-ON drew 19, and a party at L18 trains to 19;
+- G-OFF drew lower and skipped the grind.
+
+So the "deterministic replay" premise above holds for the emulator, not for the bot's own Python RNG. To test OFF
+frame for frame against the old code, four arms run the same `storyresume` command under `random.seed(1)`. A `runpy`
+wrapper sets the seed, so the code is unchanged:
+
+| Arm | Code | Env |
+|---|---|---|
+| S-OLD | `146e0421` (the main checkout) | nothing |
+| S-OFF, S-OFF2 | `111da618` | nothing |
+| S-ON | `111da618` | `POKEBOT_R20_OPENFENCE=1` |
+
+**Predictions**
+- **S-OFF equals S-OFF2**, frame for frame, in every `[DEXFENCE]`, `[CATCH]` and `[BATTLE] started` line: the seed
+  makes the drive replayable. If not, the wrapper is insufficient. The OFF claim then rests on the pure gates and on
+  G-OFF's verdicts only; that is disclosed, not a pass.
+- **S-OLD equals S-OFF** on the same lines, frame for frame. Every `[DEXFENCE]` line reads "runway", and there are 0
+  dex starts.
+- **S-ON** has the same `[BATTLE] started` lines as S-OFF up to its first `[CATCH] start kind=dex`, which reads
+  `party=1/6`. There is no "runway" verdict, and no dex start while the party is hurt or training.
+
+**Falsifiers**
+- S-OFF equals S-OFF2 but S-OLD differs from S-OFF: OFF changed behaviour.
+- S-ON diverges from S-OFF before its first dex start: ON changed something besides the fence.
