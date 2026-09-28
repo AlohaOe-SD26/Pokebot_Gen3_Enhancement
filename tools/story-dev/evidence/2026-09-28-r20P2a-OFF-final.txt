@@ -1,0 +1,21 @@
+# RULING 20 Phase 2 P2-a — storyresume on r20_pregym1_party4_r116.ss1 (9710585350be); arm OFF-final; code b325d257; env: (none)
+# Predictions: ai-research-notes/2026-09-28-r20P2a-PREDICTIONS.md (8510b1bb, before the code).
+## runner line
+F-OFF exit=0 02:40:25 PM | f136701 [CATCHTEAM] exit reason=target target=4 party=4 spare=28 frames=0 loops=0 | team-starts=0 caught=0
+## profile debug log (Story-debug-20260928-143924.log): header env lines, [CATCHTEAM], [CATCH], [DEXFENCE], [BATTLE]
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f136701 [CATCHTEAM] exit reason=target target=4 party=4 spare=28 frames=0 loops=0
+f138842 [BATTLE] started hp=[('Poochyena', 16, 17), ('Mudkip', 37, 40), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f150171 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L5', 'Mudkip:L13', 'Nincada:L6', 'Whismur:L6']
+f155242 [BATTLE] started hp=[('Mudkip', 40, 40), ('Poochyena', 19, 19), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f156584 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L14', 'Poochyena:L5', 'Nincada:L6', 'Whismur:L6']
+f160159 [BATTLE] started hp=[('Mudkip', 42, 42), ('Poochyena', 19, 19), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f167083 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L14', 'Poochyena:L7', 'Nincada:L6', 'Whismur:L6']
+f168008 [BATTLE] started hp=[('Mudkip', 42, 42), ('Poochyena', 23, 23), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f180134 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L16', 'Poochyena:L7', 'Nincada:L6', 'Whismur:L6']
+f184574 [BATTLE] started hp=[('Marshtomp', 23, 53), ('Poochyena', 23, 23), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f186957 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L16', 'Poochyena:L7', 'Nincada:L6', 'Whismur:L6']
+f187181 [BATTLE] started hp=[('Marshtomp', 23, 53), ('Poochyena', 23, 23), ('Nincada', 20, 20), ('Whismur', 23, 23)]
+f188289 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L16', 'Poochyena:L7', 'Nincada:L6', 'Whismur:L6']
+f188820 [BATTLE] started hp=[('Marshtomp', 23, 53), ('Poochyena', 23, 23), ('Nincada', 20, 20), ('Whismur', 23, 23)]

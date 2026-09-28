@@ -7947,3 +7947,17 @@ future agent would cite to revert it.
   in the game and needs its own A/B on the ordinary grass case.
 - Allow-listing the ocean rows silently: the gate lists them against `#27-waterrows` and FAILS if that list goes
   stale.
+
+## 2026-09-28 — RULING 20 P2-a ships OFF, with its `none_left` exit active only under the flag
+
+**Decision:** `POKEBOT_R20_TEAM6` defaults OFF. The new `none_left` exit and the catch-ends-the-spin clause run only
+when the target is above 4. The spec's defensive egg bound is not built.
+**Why:**
+- `#24-partycap` measured this exact raise costing 36 points. Enabling it without the Phase 3 A/B would repeat an
+  experiment with a known bad result.
+- Keeping every new clause behind `target_size > 4` makes OFF byte-identical (verified by review: both short-circuit),
+  which is the ordinary case `#24-partycap` warns about disturbing.
+- A guard that cannot fire (no egg source before gym 1) is decoration.
+**Rejected:**
+- Enabling the `none_left` exit for target 4 too: it is a real improvement, but it changes the ordinary case.
+- A flag default of ON: see the measurement.

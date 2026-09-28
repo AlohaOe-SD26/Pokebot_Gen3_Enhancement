@@ -22851,3 +22851,17 @@ the fixture's own balls. It was found only because step T's re-verification load
   on it. This one was the common path.
 - ⛔ **A loop that waits for an event asserts, on entry, that the event CAN happen.** Here: the tile under the player
   can roll an encounter.
+
+## 2026-09-28 — ⛔ A PRE-REGISTERED WINDOW WAS SIZED WITHOUT THE ENCOUNTER RATE, SO THE DECISIVE ARM READ AS VACUOUS
+
+**Symptom:** RULING 20 P2-a's ON arm printed no `[CATCHTEAM] exit` line within its pre-registered 60,000 frames, so it
+read VACUOUS by its own rule, although the flag worked (a team catch had already landed). It needed 72,322 frames in the
+loop.
+**Root cause:** the discriminator counted which species were ADMISSIBLE (Abra, Skitty, Taillow) but not how RARE they
+are on the grass. The first came about 22,700 frames in; 25 battles showed no Abra or Skitty.
+**Fix:** a disclosed 240,000-frame arm, which reached the pre-registered reading. The original arm stays on record as
+graded.
+**Prevention rule:**
+- ⛔ **Size a drive's window from the event's RATE, not its existence.** When the arms differ only after rare encounters,
+  compute the expected frames (slot rates × encounter rate) before registering the window, or register the reading as
+  "within N frames or VACUOUS" with N derived.

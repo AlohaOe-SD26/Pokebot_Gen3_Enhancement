@@ -36643,3 +36643,26 @@ The spin bound was lowered from the pre-registered 20,000 to 15,000 (disclosed):
 first run.
 **Split off:** `#27-waterrows` (three training rows on ocean water) and `#27-r104strand` (the P4r1/P4r7 Route 104
 fast-fail, a separate bug). Adversarial review: KICK-BACK once, for these `07`/`08` entries; it re-ran the ROM gate (T1-T4, F1, F2 all as claimed), confirmed no consumer reads `(9, 9)` through the table, and named two comment risks (the row's proof is narrower than a sweep from a real PC door; the fault flag is read at import), both now stated in `training_areas.py`.
+
+## 2026-09-28 — USER RULING 20 Phase 2 P2-a: A PRE-GYM-1 TEAM OF 6, BEHIND `POKEBOT_R20_TEAM6` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 20: "a full team caught along the way". The pre-gym-1 target was 4 on purpose: `#24-partycap` raised it
+to 6 once and measured −36 points of finish rate (the Surf gate at a full party). So the raise ships FLAG-GATED, and
+whether today's PC-first make-room paths have removed that cause is the Phase 3 batch's question.
+**WHAT.**
+- `reset_per_run_state` sets `_catch_team_target = 6` only when `POKEBOT_R20_TEAM6=1`.
+- The team loop takes `_team_loop_target()`, the same value the fence reads.
+- Flag ON only: `catch_starter_team` exits `reason=none_left` when no land species on its grass is still admissible,
+  via `_team_admissible_left` (unowned, not in the party, eggs excluded), and a catch ends the spin so that check
+  re-runs.
+- The spec's egg bound is NOT built: there are no eggs before gym 1, so it could never fire.
+- Fault arm `POKEBOT_R20_FAULT_TARGETLOOP`. NEW gate `probe_catch_team_target.py` (A1-A5, F1/F2; suite 121).
+**PROOF** (predictions `8510b1bb`; `ai-research-notes/2026-09-28-r20P2a-GRADED.md`), on `r20_pregym1_party4_r116.ss1`:
+- OFF: exit `target=4 party=4 loops=0`, no catches;
+- FAULT: the same;
+- ON: Taillow and Skitty caught into the party, Abra teleported, exit `target=6 party=6 loops=3`, but only in a
+  DISCLOSED 240,000-frame arm; the pre-registered 60,000-frame window closed before the exit line (VACUOUS by its own
+  rule).
+All three were re-driven identically on the review-fixed `b325d257`.
+**Review:** no blockers. One latent defect was fixed: the none_left helper counted an EGG as a party member. The gate
+now covers it.
