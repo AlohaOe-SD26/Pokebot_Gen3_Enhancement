@@ -36478,3 +36478,24 @@ Evidence: `tools/story-dev/evidence/2026-09-27-r20step0-partypids-*.txt`. `verif
 mutations are tested on a copy (as the gates' fault arms do); `git status --short` is reported at the start and the end
 and must match. ⚠ This is a prompt rule, not an enforced gate: a PreToolUse hook would enforce it for every agent, and
 that is a settings change left for the user to approve.
+
+## 2026-09-27 (10:25 PM) — `#27-batch0927` PARKED AND REPORTED; the day's branches MERGED to `main` (fast-forward `94314281`)
+
+**THE PARK.** The user parked the batch at 10:25:31 PM (every lane's last write; ≈14.1 h). The lane processes are still
+open with the bots stopped. 35 runs, 31 ended, 4 in progress.
+**THE MERGE.** `main` fast-forwarded from `2f957a6c` to `94314281` (`wt/r20phase1` → `wt/r20fly` → `wt/restock` →
+`wt/swapevo`, 24 commits): RULING 20 Phase 1 increments A and B (incl. Fly box-first + RULING 21), KI-107 F3+F4,
+`#27-gaterepo`, `#24-restockleg` F1, the RULING 21 evolution fix (fighters and carrier), the Phase 2 build spec and its
+Step 0 fixtures, the Castform comment correction and the reviewer-agent rule. Full suite on `main` after the merge: 114 of
+115, the 115th being `preflight` ("ahead of the remote"); after the push `preflight` PASSES, so 115 of 115.
+**THE FINAL READ** (`ai-research-notes/2026-09-27-batch0927-FINAL.md`, a NOTE; 4 angles, each re-derived by an
+independent refuter; 25 of 26 headline numbers agreed, the 26th a denominator):
+- leg-11 money refusals 1 of 11 (was 12 of 15); §Ch24 walk-offs 0 (was 3); the FIRST Elite Four entry (P4r2 beat
+  Sidney, lost to Phoebe);
+- R1 ended all 10 runs past leg 11, 9 of them with no Fly learner, and 5 of those 9 had one IN THE PC BOX, which the
+  merged box-first withdraw collects;
+- 35 of 35 held exactly 4 at the Stone Badge, and no ordinary dex catch joined a party after it (the Phase 2 fence);
+- the heal fixes held (Lavaridge/Petalburg BLOCKED 54/53 → 0/0; Woods 90 → 0; wrong-HM 0 of 99);
+- 8-badge runs fell to 39% (was 47%), mostly on 4 KI-47 wedges at 2 badges. NEW HYPOTHESIS: each followed an
+  `[orders DIVERGE]` whose menu index was ≥ the party size, on a 4-member party (0 of 1,128 in-range lines wedged).
+- A correction to the interim note: P1r2's KI-107 whiteout was REAL; its recovery ran ~30k frames late into a wedge.
