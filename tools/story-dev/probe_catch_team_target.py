@@ -84,7 +84,7 @@ def admissible():
     sp = {n: S(name=n, national_dex_number=d) for n, d in (("Abra", 63), ("Skitty", 300), ("Taillow", 276),
                                                            ("Nincada", 290), ("Whismur", 293))}
     enc = S(land_encounters=[S(species=sp[n]) for n in sp])
-    party = [S(species=sp["Nincada"]), None]
+    party = [S(species=sp["Nincada"], is_egg=False), S(species=sp["Skitty"], is_egg=True), None]
     import modules.map as MAP
     import modules.pokedex as DEX
 
@@ -99,7 +99,8 @@ def admissible():
     finally:
         MAP.get_wild_encounters_for_map, DEX.get_pokedex, EG.get_party = saved
     check(got == {"Skitty", "Taillow"} and unreadable is None,
-          f"A4 admissible = unowned and not in party ({got}); an unreadable table -> None ({unreadable})")
+          f"A4 admissible = unowned and not in party, an EGG not counting as in party ({got}); an unreadable table -> "
+          f"None ({unreadable})")
 
 
 def main() -> int:

@@ -2730,7 +2730,9 @@ def _team_admissible_left(grass_map) -> "set | None":
         if enc is None:
             return None
         owned = {s.national_dex_number for s in get_pokedex().owned_species}
-        in_party = {m.species.national_dex_number for m in get_party() if m is not None}
+        # EGG-FILTERED, like every sibling reader (the fence's `battlers`, this loop's `_party_size()`): an egg is not a
+        # team member, so an egg of the last admissible species must not end the loop early (adversarial review).
+        in_party = {m.species.national_dex_number for m in get_party() if m is not None and not m.is_egg}
         return {e.species.name for e in enc.land_encounters
                 if e.species is not None and e.species.national_dex_number not in owned | in_party}
     except Exception:  # noqa: BLE001 - unreadable: keep looping, exactly the pre-P2-a behaviour
