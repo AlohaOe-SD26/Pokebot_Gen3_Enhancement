@@ -36686,4 +36686,7 @@ one refusal, flag-gated for the `#24-partycap` reason.
 - Seeded (`random.seed(1)`): the old code and the new code with the flag OFF are frame-identical, and two OFF runs are too.
 Two disclosed misses: the "deterministic replay" premise (the bot's `_prepare_for_fight` draws an unseeded
 `random.randint`), and one misread ball count.
-**Review:** REVIEW_RESULT.
+**Review:** SHIP-WITH-FIXES, no blockers. One gate gap was fixed (`7f7aadfb`): F1 checked a subset, so a fault arm that
+also fired at a FULL party passed. It now requires equality, and the reviewer's mutant fails it. A separate audit found
+`#27-enroutejoin` (filed): with the flag on, a catch can join the party during an HM or counter hunt's walk. It gates
+enabling the flag.

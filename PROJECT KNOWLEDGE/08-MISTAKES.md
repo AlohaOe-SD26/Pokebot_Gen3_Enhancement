@@ -22881,3 +22881,13 @@ runs matched each other, and the old code matched the new code with the flag off
   The emulator replays; the bot's organic choices (`random.randint`, `random.choice`) do not.
 - ⛔ **Before reading a difference between arms as the flag's, find their last shared line.** If they fork before the
   flag's first possible effect, the difference is not the flag's.
+## 2026-09-28 — ⛔ A FAULT-ARM CHECK ASSERTED A SUBSET, SO A FAULT THAT REDDENED TOO MUCH STILL PASSED
+
+**Symptom:** `probe_dex_open_fence.py` F1 required the seven later-gate cases to go red under `POKEBOT_R20_FAULT_OPENEARLY`
+(`LATER_GATES <= red`). An adversarial reviewer's mutant made the arm fire at a FULL party too, and F1 still passed.
+**Root cause:** a subset check proves the fault reaches what it must, and says nothing about what it must NOT reach.
+The fault run's per-case results went to a private list, so the extra red cases (O3, O3e) printed nothing.
+**Fix:** F1 requires `red == LATER_GATES` (`7f7aadfb`). The real code passes, and the mutant fails with O3 and O3e red.
+**Prevention rule:**
+- ⛔ **A fault arm's check asserts the EXACT set of cases it turns red.** "At least these" lets a fault that breaks more
+  than it should, or a mutant of the arm itself, pass unseen.
