@@ -22783,3 +22783,30 @@ already permuted `gPlayerParty` into menu order when that list is read.
 - ⛔ **A DO-NOT-FIX closure from a probe is a claim with stated limits, not a ruling.** New MEASURED evidence supersedes
   it. Record the supersession in 06 and correct the current-state text in the same commit, never silently, because a
   stale "do not fix" is precisely what a future agent would cite to revert the fix.
+
+## 2026-09-28 — ⛔ TWO WAYS NEW TELEMETRY WOULD HAVE GONE SILENT, AND ONE WAY AN ARM STOPPED MATCHING ITS PRE-REGISTRATION
+
+**Symptom** (RULING 20 step T, all caught BEFORE merge):
+1. The patch's `[CATCHTEAM]` and `[BALLS-BUY]` helpers called `get_item_bag()` in `early_game.py`, which has no
+   module-level import of it. The helpers' own `try` would have swallowed the `NameError`: no line, no error, forever.
+   Found by reading the patch's assumptions against the file before applying it.
+2. After the import was fixed, the new gate's T4 found that `_catchteam_exit` still lost the WHOLE line when ONE field
+   (the ball count) was unreadable.
+3. The first graded T-arm run was launched with `POKEBOT_R20_FAULT_NOCATCHEND=0` exported. The code treats that as
+   off, but the new `env-all:` line faithfully named it, so P5's pre-registered text could never match. Re-run with
+   nothing set.
+
+**Root cause:**
+- (1) and (2): a line-level `try` makes telemetry fail SILENTLY by design. That is right for behaviour and wrong for
+  detection: nothing distinguishes "no event happened" from "the logger died".
+- (3): a runner that sets a variable "to its off value" is not the arm that was registered.
+
+**Fix:** local imports; per-field degradation to `?` (`_m6_field`); `probe_r20_telemetry.py` asserts each exit line
+EXISTS (a missing line is a FAIL, not silence); the T arm was re-run with nothing exported.
+
+**Prevention rules:**
+- ⛔ **A telemetry emit degrades per FIELD, never per LINE.** A whole-line `try` turns one unreadable value into an
+  absent event, which reads as "it never happened". Gate the line's EXISTENCE on a stub where some fields fail.
+- ⛔ **Before applying a patch to a module, grep that module for every name the patch uses.** A `NameError` inside a
+  guarded helper is invisible at runtime.
+- ⛔ **An arm's runner sets exactly the variables its pre-registration names. Unset is not `=0`.**

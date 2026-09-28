@@ -1,0 +1,64 @@
+# USER RULING 20 Phase 2 step T — T arm RE-DRIVEN on the FINAL code 9aff9351 (after the review's hardening), nothing exported.
+# The same trajectory replayed (a determinism check, not a replication): it shows the hardening changed no battle.
+  [CATCH] start=2 end=2  [BALLS]=19  [BATTLE]=24
+  ok   PAIR every start has exactly one end (0 start(s) without end, 0 orphan end(s))
+  ok   DEST dex Oddish#43 f3209102->f3211292: dest=box is party|box
+  ok   THROWN dex Oddish#43 f3209102->f3211292: thrown=1 vs [BALLS] net drop 1
+  ok   DEST dex Linoone#264 f3216729->f3224789: dest=box is party|box
+  ok   THROWN dex Linoone#264 f3216729->f3224789: thrown=6 vs [BALLS] net drop 6
+  ok   HB every [hb] carries box= and badges= (24 heartbeat(s))
+  ok   ENVALL the run header has an `env-all:` line
+  ok   REPLAY every [BATTLE] start/end identical to the control (24 lines)
+
+PASS — the catch telemetry is paired, honest against the bag, and changed no battle
+
+## profile debug log (Story-debug-20260928-121802.log): header env lines, [CATCH], [BATTLE], [BALLS]
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f3144389 [BALLS] 17 -> 5
+f3144390 [BALLS] 5 -> 17
+f3144418 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3145127 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3145291 [BALLS] 17 -> 3
+f3145292 [BALLS] 3 -> 17
+f3146766 [BALLS] 17 -> 4
+f3146767 [BALLS] 4 -> 17
+f3146795 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3147503 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3156695 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3157606 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 21, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3166792 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3167984 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 10, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3175458 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3175581 [BALLS] 17 -> 45609
+f3175582 [BALLS] 45609 -> 17
+f3176110 [BATTLE] started hp=[('Mightyena', 124, 124), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3178865 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3182670 [BALLS] 17 -> 4
+f3182671 [BALLS] 4 -> 17
+f3182699 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3184210 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3184958 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3187170 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3187855 [BATTLE] started hp=[('Mightyena', 97, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3198583 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3199133 [BATTLE] started hp=[('Mightyena', 0, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3202228 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3209102 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3209102 [CATCH] start kind=dex sp=Oddish#43 lv=26 attempt=1 badges=6 party=6/6 box=0 spare=17 exp_throws=3.0 map=0,36
+f3209982 [BALLS] 17 -> 16
+f3211292 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3211292 [CATCH] end kind=dex sp=Oddish#43 end=caught res=Caught thrown=1 frames=2190 dest=box pid=C46E5C99 party=6/6 box=1 spare=16 badges=6 bail=-
+f3216700 [BALLS] 16 -> 5
+f3216701 [BALLS] 5 -> 16
+f3216729 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3216729 [CATCH] start kind=dex sp=Linoone#264 lv=26 attempt=1 badges=6 party=6/6 box=1 spare=16 exp_throws=8.1 map=0,33
+f3217796 [BALLS] 16 -> 15
+f3219023 [BALLS] 15 -> 14
+f3220304 [BALLS] 14 -> 13
+f3221413 [BALLS] 13 -> 12
+f3222522 [BALLS] 12 -> 11
+f3223473 [BALLS] 11 -> 10
+f3224789 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3224789 [CATCH] end kind=dex sp=Linoone#264 end=caught res=Caught thrown=6 frames=8060 dest=box pid=36E8B060 party=6/6 box=2 spare=10 badges=6 bail=-

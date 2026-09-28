@@ -7898,3 +7898,19 @@ stands. The current-state text in `05` says so wherever it appears.
 - This is NOT a re-run of the old probe on the old evidence, which is what "do not re-commission" guarded against.
 **Rejected:** leaving the closure text as it was. A current-state "DO NOT FIX IT" next to the fix is exactly what a
 future agent would cite to revert it.
+
+## 2026-09-28 — RULING 20's catch telemetry is ALWAYS ON (no flag), and it ships ahead of every behaviour change
+
+**Decision:** the step T lines (`[CATCH]`, `[CATCHTEAM]`, `[BALLS-BUY]`, `[BADGE]`, heartbeat `box=`/`badges=`,
+`env-all:`) are unconditional. The only env switch is the grader's fault arm `POKEBOT_R20_FAULT_NOCATCHEND`.
+**Why:**
+- Every Phase 2 arm, flag ON and flag OFF alike, is graded on them. A flag would make the control arm blind, which
+  is the arm that matters most.
+- Their cost is one PC read per catch plus one per heartbeat (both off the per-frame path).
+- They were proven not to change a battle: 24 of 24 `[BATTLE]` lines are identical to a no-telemetry control.
+**Rejected:**
+- A flag, default off: the batch A/B would need it on in both arms anyway, so it is just a way to forget it.
+- Rewriting the existing `env:` line to scan by prefix: `repro_debug_log_header.py` pins its text. A NEW `env-all:`
+  line adds without breaking a reader.
+- Emitting through a method: the gates call these hooks with stand-in `self` objects, and a missing method inside a
+  catch branch's `except: pass` would silently cancel the catch.

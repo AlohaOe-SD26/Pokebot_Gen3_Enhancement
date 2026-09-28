@@ -36565,3 +36565,30 @@ party 4 (4 of 7 such lines wedged, 0 of 1,128 in-range ones), and all 4 runs end
 fixed here, is `#27-battleeq`: the state cache can serve a stale party order to any second reader in a frame.
 **Superseded:** the `#24-faintchooser-fourthspace` closure (`06`). Its "residual" (Mightyena nominated, Swellow sent)
 was this bug.
+
+## 2026-09-28 — USER RULING 20 Phase 2 STEP T: PER-CATCH TELEMETRY, LOG-ONLY, PROVEN TO CHANGE NO BATTLE (`#26-organiccatch`)
+
+**WHY.** Every later Phase 2 arm (the ball restock B, the pre-gym-1 target of 6, the open fence) is graded on catch
+outcomes. Today those are invisible: a box catch changes neither the party length nor its PIDs, and a flee is a flee.
+So the lines come FIRST, and they had to be proven not to change behaviour before anything is built on them.
+**WHAT** (to the build spec, as corrected by a 4-agent re-verification):
+- `[CATCH] start` before each of the four catch-strategy returns (shiny, hm, counter, dex/team).
+- `[CATCH] end` from `on_battle_ended`, giving `end=`, `res=`, `thrown=`, `frames=`, and `dest=`/`pid=` DERIVED from
+  the new PID.
+- Strategy marks for `out_of_balls` and the bail slug.
+- Heartbeat `box=`/`badges=`, and a run-header `env-all:` line beside the curated `env:`.
+- `[BADGE] n=` in `badge_log`, `[CATCHTEAM] exit reason=` and `[BALLS-BUY] why=mandatory`.
+- Every emit is module-level and its own `try`. `res=`, never `outcome=` (so `x4_headless` never double-counts); `lv=`,
+  never `:L<n>`.
+**PROOF** (predictions `67766895` first; `ai-research-notes/2026-09-28-r20T-GRADED.md`):
+- On `post_mtpyre.ss1` at 90,000 frames, 2 paired catches read `dest=box` with new PIDs, and `thrown` 1 and 6 equal the
+  `[BALLS]` deltas.
+- Heartbeat box 0 → 1 → 2; `env-all:` present.
+- **All 24 `[BATTLE]` lines are identical to a no-telemetry control on `main`.**
+- The fault arm `POKEBOT_R20_FAULT_NOCATCHEND=1`: grader exit 1, "start without end" twice, replay identical.
+- Gate `probe_r20_telemetry.py` (registered; suite 118), with three fault arms, found a real defect before any drive:
+  one unreadable field dropped the whole `[CATCHTEAM]` line. Grader `grade_r20_telemetry.py` (self-test).
+- `repro_heartbeat_emits`, `repro_x4_badgelog` and `repro_debug_log_header` assert the new fields.
+- Adversarial review: KICK-BACK once, for these missing `06`/`07`/`08` entries only; it re-ran every gate and traced the loop rewrite and the log consumers (no collision). Its two non-blocking risks were closed in `9aff9351`, and the T arm was re-driven there identically.
+**Found on the way:** `--set-balls` does nothing (a mis-encoded ball name, caught and logged as `[setup] set-balls
+err`). B's arms depend on it, so it is filed as `#27-setballs`.
