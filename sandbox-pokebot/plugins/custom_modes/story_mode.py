@@ -158,8 +158,9 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
             _log_story_event(f"[DEXCATCH-BAIL] {reason}", "DEXCATCH")
         except Exception:  # noqa: BLE001 - telemetry must never break a battle; the flee itself still happens
             pass
-        # R20-T: a short slug for the `[CATCH] end` line (the reason is a sentence with spaces).
-        _r20_mark("bail", "faint" if "fainted" in reason else "trapped" if "trapped" in reason else "reserve")
+        # R20-T: a short slug for the `[CATCH] end` line (the reason is a sentence with spaces). The slug is computed
+        # INSIDE the helper's own `try` (an argument is evaluated outside the callee's guard).
+        _r20_mark_bail(reason)
 
     def decide_turn(self, battle_state):
         import os as _os_bail
@@ -5939,15 +5940,21 @@ def _r20_q(fn, default="?"):
 
 def _r20_levels() -> dict:
     """The levels a catch line reports, each read degrading on its own. PIDs are kept so `end` can name the NEW mon."""
-    from modules.items import get_item_bag as _r20_bag
-    from modules.pokemon_party import get_party as _r20_party
-    from modules.story import counter_hunt as _r20_ch
-    from modules.story.pc_trip import badge_count as _r20_badges
+    # SELF-CONTAINED (adversarial review, 2026-09-28): it never raises, so a future caller without its own `try`
+    # cannot reintroduce the raise-before-return class this whole block exists to prevent.
+    try:
+        from modules.items import get_item_bag as _r20_bag
+        from modules.pokemon_party import get_party as _r20_party
+        from modules.story import counter_hunt as _r20_ch
+        from modules.story.pc_trip import badge_count as _r20_badges
+    except Exception:  # noqa: BLE001 - every level degrades; the caller still gets a well-formed dict
+        return {"party": "?", "ppids": None, "box": -1, "bpids": frozenset(), "spare": None, "badges": "?",
+                "frame": None}
 
     party = _r20_q(lambda: [m for m in _r20_party() if m is not None], None)
     return {
         "party": "?" if party is None else len(party),
-        "ppids": None if party is None else {m.personality_value for m in party},
+        "ppids": None if party is None else _r20_q(lambda: {m.personality_value for m in party}, None),
         "box": _r20_q(_r20_ch._box_count, -1),
         "bpids": _r20_q(_r20_ch._box_pids, frozenset()),
         "spare": _r20_q(lambda: _r20_bag().number_of_balls_except_master_ball, None),
@@ -5979,6 +5986,16 @@ def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:
         )
     except Exception:  # noqa: BLE001 - the catch strategy is returned on the next line regardless
         pass
+
+
+def _r20_mark_bail(reason) -> None:
+    """`_r20_mark("bail", <slug>)` with the slug derived inside a `try` (the reason is free text)."""
+    try:
+        text = str(reason)
+        slug = "faint" if "fainted" in text else "trapped" if "trapped" in text else "reserve"
+    except Exception:  # noqa: BLE001 - an unreadable reason still marks a bail
+        slug = "?"
+    _r20_mark("bail", slug)
 
 
 def _r20_mark(key: str, value: str) -> None:

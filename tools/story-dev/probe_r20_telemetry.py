@@ -164,13 +164,28 @@ def t3():
     print("T3 — never raise on stand-ins")
     for name, fn in (("start on object()", lambda: SM._r20_catch_start(object(), "dex", None, dex=5)),
                      ("start on a bare namespace", lambda: SM._r20_catch_start(types.SimpleNamespace(), "hm", None)),
-                     ("mark with no bot mode", lambda: SM._r20_mark("end", "out_of_balls"))):
+                     ("mark with no bot mode", lambda: SM._r20_mark("end", "out_of_balls")),
+                     ("bail mark with a None reason", lambda: SM._r20_mark_bail(None)),
+                     ("levels with no emulator", SM._r20_levels)):
         try:
             fn()
             ok = True
         except Exception:  # noqa: BLE001 - the gate reports it
             ok = False
         check(ok, f"T3 {name} does not raise")
+    # A mark must land in the context the START opened (it is written through `context.bot_mode_instance`).
+    from modules.context import context as _ctx_t3
+
+    saved = _ctx_t3.bot_mode_instance
+    mode = types.SimpleNamespace(_catch_ctx=_ctx())
+    _ctx_t3.bot_mode_instance = mode
+    try:
+        SM._r20_mark_bail("a team member fainted")
+        SM._r20_mark_bail("only 9 spare balls left")  # only the FIRST mark sticks
+    finally:
+        _ctx_t3.bot_mode_instance = saved
+    check(mode._catch_ctx.get("bail") == "faint",
+          f"T3 a bail mark lands in the open catch context, first one wins (got {mode._catch_ctx.get('bail')!r})")
 
 
 def _team_run(party, balls, abort=False, exit_fn=None):
