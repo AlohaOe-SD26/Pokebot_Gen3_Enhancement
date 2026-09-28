@@ -7927,3 +7927,23 @@ future agent would cite to revert it.
 **Rejected:**
 - Keeping the replace-the-pocket behaviour: no committed evidence depended on it, and it confounds arms.
 - Logging louder but continuing: the old code already logged, and nobody read it.
+
+## 2026-09-28 — A hunt's spin tile is filtered and ASSERTED by tile type; the filter fails OPEN; no automatic retarget
+
+**Decision:**
+- `_hm_hunting_grounds` drops grounds whose spin tile cannot roll a LAND encounter. When the map data is unreadable, it
+  KEEPS the ground.
+- `ensure_hm_learner` raises a named error on arriving at a tile that cannot roll one, and does NOT try the next
+  ground itself.
+**Why:**
+- Failing open matches the rule already written beside `_HM_HUNT_EXCLUDED`: a no-ROM context must not silently empty
+  the list.
+- A named raise is loud and bounded, and the story's recovery already retargets after a derail (the batch showed
+  Route 103 after each Route 101 derail). An in-place retry would hide the defect a second time.
+**Rejected:**
+- Making the "prefer a reachable ground" check warp-aware, so an indoor start stops falling back to `grounds[0]`: the
+  right long-term fix, but a larger change to shared navigation. The tile fix removes the harm without it.
+- Counting real frames in `_story_spin`'s bail (the recon found it counts stop-condition CALLS): it touches every spin
+  in the game and needs its own A/B on the ordinary grass case.
+- Allow-listing the ocean rows silently: the gate lists them against `#27-waterrows` and FAILS if that list goes
+  stale.

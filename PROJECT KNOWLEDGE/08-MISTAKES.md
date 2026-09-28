@@ -22830,3 +22830,24 @@ the fixture's own balls. It was found only because step T's re-verification load
 - ⛔ **Every lever ASSERTS a READ-BACK of what it wrote, from the source of truth rather than a cache** (rule 7 applied
   to setup). Printing it is not enough: the write can return False without raising. `get_item_bag()` and `get_battle_state()` both return a same-frame cached object.
 - ⛔ **A file-wide re-encode is a code change.** Gate literals that are looked up by name, not only doc text.
+
+## 2026-09-28 — ⛔ A TABLE PROMISED "VERIFIED TALL-GRASS TILE", ONE ROW WAS A TRAVEL WAYPOINT, AND A QUIET SPIN LOOKED HEALTHY FOR 204 EPISODES
+
+**Symptom:** the Surf-learner hunt stood still at Route 101 (9,9) until the 18k watchdog, in 10 batch runs. There were
+0 battles and no error: the spin was running, just on plain ground.
+**Root cause:**
+- `TRAINING_GRASS`'s docstring says each `spin_tile` is "a verified tall-grass tile". The ROUTE101 row reused the travel
+  waypoint (its own comment says so), and nothing checked the tile's TYPE. The rows' "two-way swept" checks prove
+  reachability, which (9,9) has.
+- The fallback that selected it carries a comment saying it "fires only when no candidate paths — an abnormal state no
+  driver reproduces yet". It fires on EVERY Surf hunt that starts indoors, which is how the story always starts it.
+**Fix:**
+- A real grass tile; a land-encounter filter on HM hunting grounds; an arrival assertion.
+- `probe_training_tiles.py` checks every row's tile TYPE, with a separating control.
+**Prevention rules:**
+- ⛔ **A table row naming a spin tile is gated on the tile's TYPE, not only its reachability.** A reachable tile that
+  cannot roll an encounter is the quietest failure there is.
+- ⛔ **A comment calling a branch "abnormal" or "rare" is a claim.** Measure how often the branch fires before relying
+  on it. This one was the common path.
+- ⛔ **A loop that waits for an event asserts, on entry, that the event CAN happen.** Here: the tile under the player
+  can roll an encounter.

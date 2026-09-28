@@ -36618,3 +36618,28 @@ of step T found that the lever did nothing:
 
 No committed evidence ever used the lever (0 `set-balls err` lines), so no past result changes. Adversarial review:
 KICK-BACK once, for these `07`/`08` entries; its main risk (a silent write that raises nothing) was closed in `22ba1210` by asserting the read-back, and B and C were re-driven there identically. It counted 38 repaired lines, which this entry now states. ⇒ RULING 20 Phase 2 step B (the ball restock) is unblocked.
+
+## 2026-09-28 — THE SURF-LEARNER HUNT NO LONGER SPINS ON A TILE THAT CANNOT ROLL AN ENCOUNTER (`#27-r101standstill`)
+
+**WHY.** Batch `#27-batch0927`: in 10 runs, the step "nobody can learn Surf — hunting Zigzagoon on ROUTE101" stood
+still at (9,9) until the 18k watchdog derailed it.
+**MECHANISM** (a 4-agent recon, a NOTE; the tile claim verified in our own harness):
+- the hunt runs inside Wally's house, where `calculate_path` (no warps) fails for every ground;
+- so the fallback takes `TRAINING_GRASS`'s first row, ROUTE101 `(9,9)`;
+- that tile is the TRAVEL waypoint, plain ground that can never roll an encounter: 0 battles in 204 episodes.
+**WHAT.**
+- The row now uses `(12,10)`, Tall Grass, two-way pathed to the waypoint and both route ends.
+- `_hm_hunting_grounds` keeps only tiles that roll LAND encounters (`tile_rolls_land_encounters`; it fails open without
+  a ROM). It was also offering the Surf hunt two OCEAN tiles.
+- `ensure_hm_learner` asserts its arrival tile and raises a named `BotModeError` instead of spinning.
+- The fault arm is `POKEBOT_R101_FAULT_OLDTILE=1`.
+- NEW ROM gate `probe_training_tiles.py` (T1-T4, F1/F2; suite 120). NEW driver `--driver r101hunt`.
+**PROOF** (predictions `5f401422` first; `ai-research-notes/2026-09-28-r101standstill-GRADED.md`):
+- unfixed indoor: `(9,9)` `Normal`, 0 battles in 15,000 frames;
+- unfixed outdoor (control): Route 103 grass, 5 battles, caught;
+- fixed indoor: `(12,10)` Tall Grass, 13 battles;
+- the fault arm: the named raise on arrival.
+The spin bound was lowered from the pre-registered 20,000 to 15,000 (disclosed): the harness's own hang stop killed the
+first run.
+**Split off:** `#27-waterrows` (three training rows on ocean water) and `#27-r104strand` (the P4r1/P4r7 Route 104
+fast-fail, a separate bug). Adversarial review: KICK-BACK once, for these `07`/`08` entries; it re-ran the ROM gate (T1-T4, F1, F2 all as claimed), confirmed no consumer reads `(9, 9)` through the table, and named two comment risks (the row's proof is narrower than a sweep from a real PC door; the fault flag is read at import), both now stated in `training_areas.py`.

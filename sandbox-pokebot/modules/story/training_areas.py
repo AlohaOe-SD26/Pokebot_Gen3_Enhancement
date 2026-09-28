@@ -76,10 +76,14 @@ from modules.map_data import MapRSE
 #: ⛔ `#27-r101standstill` (2026-09-28): this row read `(9, 9)`, the TRAVEL waypoint `travel_to_route103()` walks through,
 #: which is `MB_NORMAL` and can NEVER roll a wild encounter. Measured: 0 battles in 204 batch episodes of the Surf-learner
 #: hunt, each ended by the 18k watchdog (the hunt starts inside Wally's house, where every static path check fails and
-#: the fallback takes this first row). `(12, 10)` is Tall Grass in the same patch, two-way pathed to the waypoint and to
-#: both route ends (`ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md`). The travel legs keep `(9, 9)`: they
+#: the fallback takes this first row). `(12, 10)` is Tall Grass in the same patch. PROVEN: `calculate_path` both ways to
+#: the waypoint and both route ends (static), and DRIVEN from Wally's house by `--driver r101hunt` (13 battles). ⚠ That is
+#: narrower than the "two-way swept from the real PC door" standard some rows below carry
+#: (`ai-research-notes/2026-09-28-r101standstill-GRADED.md`). The travel legs keep `(9, 9)`: they
 #: hard-code it and never read this table. Gate: `probe_training_tiles.py`.
 #: `POKEBOT_R101_FAULT_OLDTILE=1` restores `(9, 9)` (the skip-the-fix arm; `early_game` also skips its tile filter).
+#: ⚠ READ ONCE, AT IMPORT: set it in the environment BEFORE Python starts. Setting `os.environ` at runtime flips the
+#: filter (read at call time) but NOT this row.
 _R101_SPIN_TILE = (9, 9) if _os.environ.get("POKEBOT_R101_FAULT_OLDTILE") == "1" else (12, 10)
 
 # Areas with a VERIFIED spin tile — usable for area-appropriate training today.
