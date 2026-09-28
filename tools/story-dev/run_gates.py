@@ -272,6 +272,7 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ RULING 20 P2-a — the pre-gym-1 team target is ONE value, 4 unless POKEBOT_R20_TEAM6=1, read by BOTH the fence and
     # the team loop (`#24-partycap` measured 4 -> 6 costing 36 points once; it stays flag-gated). Two fault arms.
     ("probe_catch_team_target.py", False),
+    ("probe_dex_open_fence.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

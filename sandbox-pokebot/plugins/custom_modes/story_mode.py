@@ -1833,6 +1833,7 @@ def decide_dex_catch(
     party_dex: "frozenset[int]",
     attempts: int,
     expected_throws: "float | None" = None,
+    open_fence: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1903,7 +1904,18 @@ def decide_dex_catch(
         return False, f"pre-gym-1 team already at its target of {party_target}"
 
     # ---- POST-GYM-1: THE DEX FENCE ----------------------------------------------------------------
-    if party_slots_used < PARTY_CAPACITY:
+    # ⭐ USER RULING 20 Phase 2 P2-b (2026-09-28): `open_fence` (the adapter feeds `POKEBOT_R20_OPENFENCE=1`, DEFAULT OFF)
+    # lets a catch below a full party JOIN THE PARTY instead of being refused here. It removes ONLY this refusal: every
+    # gate below still applies, so a party join is exactly as discretionary as a box catch. ⛔ An "open" branch that
+    # returned True right here would skip the hunt, training, reserve, health, attempt and catch-rate gates at once; the
+    # fault arm `POKEBOT_R20_FAULT_OPENEARLY=1` builds exactly that, and `probe_dex_open_fence.py` must go red under it.
+    # Off by default because of `#24-partycap` (below): whether the PC-first make-room paths now absorb the runway these
+    # catches consume is a FREQUENCY question for the Phase 3 batch, not for a drive.
+    import os as _os_open  # LOCAL, like `_os_rate` below: this module has no module-level `os`.
+
+    if open_fence and party_slots_used < PARTY_CAPACITY and _os_open.environ.get("POKEBOT_R20_FAULT_OPENEARLY") == "1":
+        return True, f"dex catch #{species_dex} (joins the party)"
+    if party_slots_used < PARTY_CAPACITY and not open_fence:
         # THE HEART OF THE FENCE. Below a full party the catch would take a PARTY slot, and the empty
         # slots are the runway HM and counter catches land on — `#24-partycap`, MEASURED: 52.0% ->
         # 15.8% finish rate, the ENTIRE loss on one badge rung, 10 of 16 non-finishes being
@@ -1949,6 +1961,10 @@ def decide_dex_catch(
             and _os_rate.environ.get("POKEBOT_DEXCATCH_FAULT_NORATE") != "1"):
         return False, (f"#{species_dex}: ~{expected_throws:.0f} expected throws at full HP with the balls we hold — above "
                        f"{DEX_CATCH_MAX_EXPECTED_THROWS}")
+    if party_slots_used < PARTY_CAPACITY:
+        # Reachable only with `open_fence` (the refusal above returned otherwise). The destination is the GAME's: below six
+        # raw slots `GiveMonToPlayer` puts the catch in the party.
+        return True, f"dex catch #{species_dex} (joins the party)"
     return True, f"dex catch #{species_dex} (goes to the PC box)"
 
 
@@ -2203,6 +2219,10 @@ class StoryMode(BotMode):
         import os as _os_team6
 
         self._catch_team_target = 6 if _os_team6.environ.get("POKEBOT_R20_TEAM6") == "1" else 4
+        # ⭐ USER RULING 20 Phase 2 P2-b (2026-09-28): `POKEBOT_R20_OPENFENCE=1` lets a post-gym-1 dex catch JOIN the party
+        # below six instead of being refused as runway (`decide_dex_catch(open_fence=...)`). DEFAULT OFF for the same
+        # `#24-partycap` reason as the target above. Read PER RUN, like the target, so one process cannot mix two policies.
+        self._open_fence = _os_team6.environ.get("POKEBOT_R20_OPENFENCE") == "1"
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
         # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
         # so the predicate that admitted it is TRUE again on the very next encounter and nothing else
@@ -2391,7 +2411,9 @@ class StoryMode(BotMode):
             the PARTY while there is room. Unchanged, and it must STAY unchanged.
           * POST-GYM-1 THE DEX FENCE (`#24-dexhunt`, user directive 2026-09-04) — catch a NEW species
             into the PC BOX, and ONLY at a full party, with no hunt armed, outside a training grind,
-            above a ball reserve, from full strength, capped per species.
+            above a ball reserve, from full strength, capped per species. With `POKEBOT_R20_OPENFENCE=1`
+            (RULING 20 P2-b, default OFF) the "only at a full party" condition is lifted and a catch
+            below six joins the PARTY; every other condition still applies.
 
         ⛔ ALL DECISION LOGIC LIVES IN `decide_dex_catch`. Nothing here may decide anything: this
         function's ONLY jobs are reading the game and reporting. A condition added here instead of
@@ -2451,6 +2473,8 @@ class StoryMode(BotMode):
                 party_dex=frozenset(p.species.national_dex_number for p in battlers),
                 attempts=self._dex_catch_attempts.get(dex, 0),
                 expected_throws=_expected_throws_for(species, bag),
+                # RULING 20 P2-b: below a full party, a post-gym-1 catch joins the party (flag, default OFF).
+                open_fence=self._open_fence,
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
@@ -3973,7 +3997,9 @@ class StoryMode(BotMode):
             pass
         # CATCHING — two regimes, one predicate (`decide_dex_catch`):
         #   PRE-GYM-1  organic team building (user directive 2026-07-21) -> joins the PARTY
-        #   POST-GYM-1 the `#24-dexhunt` fence (user directive 2026-09-04) -> goes to the PC BOX
+        #   POST-GYM-1 the `#24-dexhunt` fence (user directive 2026-09-04) -> goes to the PC BOX; with
+        #              `POKEBOT_R20_OPENFENCE=1` (RULING 20 P2-b, default OFF) below six it joins the PARTY
+        #              — `_where`/`_full` below already derive which, from the slot count the game reads
         try:
             if self._should_catch(encounter):
                 from modules.console import console
