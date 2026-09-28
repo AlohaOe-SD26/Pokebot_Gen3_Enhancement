@@ -250,6 +250,38 @@ def _predecessors_set(flag: str, current: set[str]) -> bool:
     return all(earlier in current for earlier in order[:index])
 
 
+def _m4_q(fn):
+    try:
+        return fn()
+    except Exception:  # noqa: BLE001 - one field degrades to '?'
+        return "?"
+
+
+def _m4_party():
+    from modules.pokemon_party import get_party
+
+    return len([m for m in get_party() if m is not None])
+
+
+def _m4_box():
+    from modules.story.counter_hunt import _box_count
+
+    n = _box_count()
+    return "?" if n < 0 else n
+
+
+def _m4_owned():
+    from modules.pokedex import get_pokedex
+
+    return len(get_pokedex().owned_species)
+
+
+def _m4_spare():
+    from modules.items import get_item_bag
+
+    return get_item_bag().number_of_balls_except_master_ball
+
+
 def _record(flag: str, frame: int) -> None:
     from modules.context import context
     from modules.remote_party import mon_payload
@@ -275,6 +307,19 @@ def _record(flag: str, frame: int) -> None:
 
         record["team"] = [mon_payload(mon) for mon in get_party() if mon is not None]
     except Exception:
+        pass
+    # USER RULING 20 Phase 2 step T (M4): the party/box/dex/ball LEVELS at each badge, in the debug log. BEFORE the
+    # early returns below, and in its own `try`: this runs after the badge is marked recorded, so a raise here would
+    # lose the JSON record for the rest of the run. Never name the badge here (log scanners substring-match names).
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(
+            f"n={int(flag[5:7])} party={_m4_q(_m4_party)}/6 box={_m4_q(_m4_box)} owned={_m4_q(_m4_owned)} "
+            f"spare={_m4_q(_m4_spare)}",
+            category="BADGE",
+        )
+    except Exception:  # noqa: BLE001 - badge telemetry must never cost the JSON record below
         pass
 
     path = log_path()

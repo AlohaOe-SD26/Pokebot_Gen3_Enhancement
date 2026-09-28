@@ -260,6 +260,9 @@ GATES: list[tuple[str, bool]] = [
     # indexes through `gBattlePartyCurrentOrder` (which holds the ENEMY's order after an enemy send-out: a stale map
     # froze the chooser at party 4). Pure plan table + AST wiring, five built-in fault arms.
     ("probe_faint_chooser_identity.py", False),
+    # ⛔ USER RULING 20 Phase 2 step T — the per-catch telemetry is LOG-ONLY: `end=`/`dest=` classify honestly, and a
+    # raising emit can never cancel a catch, skip defeat counting, or replace a whiteout's StoryAbort. Three fault arms.
+    ("probe_r20_telemetry.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

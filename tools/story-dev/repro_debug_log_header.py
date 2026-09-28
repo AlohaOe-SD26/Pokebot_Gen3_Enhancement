@@ -98,6 +98,12 @@ check("(env)" in header, "and HOW it was set (env vs default) — so a default i
 check("POKEBOT_FODDER_RULE" in header, "the raw env var is echoed too")
 check("POKEBOT_FODDER_RULE" in dl._BEHAVIOUR_ENV_VARS,
       "the behaviour-env-var list covers it (new flags must be added here)")
+# USER RULING 20 Phase 2 step T (M5, 2026-09-28): EVERY `POKEBOT_*` is echoed on its own `env-all:` line, by prefix,
+# beside the curated `env:` line above — so an A/B arm's flag or fault arm is visible in the run's own log even when
+# nobody added it to `_BEHAVIOUR_ENV_VARS`. (The registered gate `probe_r20_telemetry.py` holds the fault arm.)
+_envall = [ln for ln in header.splitlines() if "env-all:" in ln]
+check(len(_envall) == 1 and "POKEBOT_FODDER_RULE" in _envall[0],
+      "an `env-all:` line echoes every POKEBOT_* variable by prefix (RULING 20 step T, M5)")
 
 print("\n== it records the ENVIRONMENT ==")
 check("python:" in header, "the Python version and OS")

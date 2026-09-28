@@ -21,7 +21,12 @@ sys.modules["mgba"].lib = types.SimpleNamespace()
 sys.modules["mgba"].libmgba_version_string = lambda: "stub"
 
 from modules import badge_log  # noqa: E402
+from modules import debug_logger as _dl_m4  # noqa: E402
 from modules.pokemon import StatusCondition  # noqa: E402
+
+# USER RULING 20 Phase 2 step T (M4, 2026-09-28): capture the `[BADGE] n=…` debug-log line `_record` now emits.
+M4_EVENTS: list = []
+_dl_m4.event = lambda msg, category=None, **_k: M4_EVENTS.append((category, msg))
 
 failures = []
 
@@ -107,6 +112,9 @@ if log:
     check(len(rec["team"]) == 1 and rec["team"][0]["name"] == "TORCHIC", "the team was captured")
     check(rec["team"][0]["level"] == 14 and rec["team"][0]["moves"] == ["Ember"], "team detail captured")
     check("earned_at" in rec and "frame" in rec, "timestamp + frame recorded")
+_m4 = [m for c, m in M4_EVENTS if c == "BADGE"]
+check(len(_m4) == 1 and _m4[0].startswith("n=3 ") and "party=1/6" in _m4[0],
+      f"RULING 20 step T (M4): exactly one `[BADGE] n=3 party=1/6 …` line (got {_m4})")
 
 print("\n== the same badge is not recorded twice ==")
 for i in range(5):
@@ -157,6 +165,9 @@ poll(60_000 + badge_log._POLL_INTERVAL)
 log = badge_log.read_log(fake_profile)
 check(len(log) == 4 and log[3]["badge"] == "Knuckle", "the badge was still recorded")
 check(log[3]["team"] == [], "the team degraded to empty rather than losing the record")
+_m4 = [m for c, m in M4_EVENTS if c == "BADGE"]
+check(bool(_m4) and _m4[-1].startswith("n=2 ") and "party=?/6" in _m4[-1],
+      f"…and its M4 `[BADGE]` line degraded to party=? instead of costing the record (got {_m4[-1:]})")
 
 print("\n== the file is valid JSON on disk ==")
 raw = (tmp / "badge-log.json").read_text(encoding="utf-8")

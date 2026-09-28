@@ -107,7 +107,9 @@ def main() -> int:
     #   owned=         -> the `#24-dexhunt` A/B grade (dex strictly increasing)
     #   balls=         -> `#24-dexhunt`'s ball clause; a `[BALLS]` delta only fires on a CHANGE,
     #                     so a run parked at 1 ball emits nothing and reads like one at 30.
-    REQUIRED_HB_FIELDS = ("party=", "ids=", "owned=", "balls=", "money=")  # money= : #26-ch23money F0
+    #   box= / badges= -> USER RULING 20 Phase 2 step T (M3): the box and badge LEVELS every Phase 2 arm grades.
+    REQUIRED_HB_FIELDS = ("party=", "ids=", "owned=", "balls=", "money=",  # money= : #26-ch23money F0
+                          "box=", "badges=")
     missingA = sorted({f for f in REQUIRED_HB_FIELDS if any(f not in l for l in hbA)})
     print(f"    required fields: {'all present' if not missingA else 'MISSING ' + ', '.join(missingA)}")
     okA = (

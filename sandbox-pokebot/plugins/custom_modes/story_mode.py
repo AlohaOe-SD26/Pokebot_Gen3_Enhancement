@@ -86,6 +86,7 @@ class StoryCatchStrategy(CatchStrategy):
         try:
             if self._get_best_poke_ball(battle_state) is None:
                 context.message = "Story: out of Poké Balls — fleeing this catch and moving on."
+                _r20_mark("end", "out_of_balls")  # R20-T: a RanAway that is really an empty bag
                 return TurnAction.run_away()
         except Exception:
             pass
@@ -157,6 +158,8 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
             _log_story_event(f"[DEXCATCH-BAIL] {reason}", "DEXCATCH")
         except Exception:  # noqa: BLE001 - telemetry must never break a battle; the flee itself still happens
             pass
+        # R20-T: a short slug for the `[CATCH] end` line (the reason is a sentence with spaces).
+        _r20_mark("bail", "faint" if "fainted" in reason else "trapped" if "trapped" in reason else "reserve")
 
     def decide_turn(self, battle_state):
         import os as _os_bail
@@ -2205,6 +2208,8 @@ class StoryMode(BotMode):
         #: report only when the reason CHANGED — one global string, so a batch could count TRANSITIONS, not species.
         #: Now every species' verdict is logged once per distinct reason per run: countable per species.
         self._dex_catch_logged: set = set()
+        #: USER RULING 20 Phase 2 step T: the open `[CATCH] start` context, closed by `_r20_catch_end`. Per battle.
+        self._catch_ctx = None
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
@@ -2251,6 +2256,9 @@ class StoryMode(BotMode):
                                f"money=₽{get_player().money:,}", category="MONEY")
         except Exception:  # noqa: BLE001 - telemetry must never break a battle hook; a missed line is visible
             pass
+        # USER RULING 20 Phase 2 step T: close this battle's `[CATCH] start`, if it had one. Its own `try` inside;
+        # placed BEFORE the unguarded Lost block so a telemetry error can never skip defeat counting.
+        _r20_catch_end(self, outcome)
 
         if outcome is BattleOutcome.Lost:
             key = self._location_key()
@@ -3701,6 +3709,11 @@ class StoryMode(BotMode):
             TURN_FOE["log"] = []
         except Exception:  # noqa: BLE001 - telemetry reset; a failure only leaves the wall unknown
             pass
+        # R20-T: a new battle can never close an EARLIER battle's `[CATCH] start`.
+        try:
+            self._catch_ctx = None
+        except Exception:  # noqa: BLE001 - a stub self has no state; telemetry only
+            pass
         # ...and name the battle: is this enemy party a gym LEADER's roster? (A trainer battle only — a wild encounter
         # is never a leader. Read at battle START, when `gEnemyParty` is certainly this battle's.)
         self._boss_battle = None
@@ -3748,6 +3761,7 @@ class StoryMode(BotMode):
                         f"attempting to CATCH it (shinies are always worth a ball)![/]"
                     )
                     context.message = f"Story: ✨ shiny {name} — attempting the catch!"
+                    _r20_catch_start(self, "shiny", encounter)
                     return StoryShinyCatchStrategy()
                 console.print(
                     f"[bold yellow]Story Mode: a SHINY {name} appeared but "
@@ -3782,6 +3796,7 @@ class StoryMode(BotMode):
                     from modules.console import console
 
                     console.print(f"[bold green]Story: catching {sp.name} — it can learn the HM we need![/]")
+                    _r20_catch_start(self, "hm", encounter)
                     return StoryCatchStrategy()
         except Exception:
             pass
@@ -3891,6 +3906,7 @@ class StoryMode(BotMode):
                         f"[bold green]Story: catching {sp.name} — it is the type counter "
                         f"this boss needs![/]"
                     )
+                    _r20_catch_start(self, "counter", encounter)
                     return StoryCatchStrategy()
         except Exception:
             pass
@@ -3989,6 +4005,7 @@ class StoryMode(BotMode):
                     _post_badge = bool(_gef_dexbail("BADGE01_GET"))
                 except Exception:  # noqa: BLE001 - unreadable ⇒ the plain strategy, exactly the pre-change behaviour
                     _post_badge = False
+                _r20_catch_start(self, "dex" if _post_badge else "team", encounter, dex=dex)
                 return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
         except Exception:
             pass
@@ -5899,6 +5916,137 @@ def _log_story_event(message: str, category: str = "STORY") -> None:
 
         debug_logger.event(message, category=category)
     except Exception:  # noqa: BLE001 - logging must never end a run
+        pass
+
+
+# ‼ USER RULING 20 Phase 2, STEP T (2026-09-28): PER-CATCH TELEMETRY. LOG-ONLY — it must never change a decision.
+# Every later Phase 2 arm (the ball restock, the pre-gym-1 target of 6, the open fence) is graded on these lines, so
+# they exist BEFORE any behaviour change. WHY each rule below:
+#  * MODULE-LEVEL functions, never methods: stand-in `self` objects call `on_battle_started`/`on_battle_ended` in the
+#    gates (`probe_money_telemetry`, `repro_counter_hunt`, ...). A missing method would raise inside a catch branch,
+#    whose `except: pass` would then CANCEL THE CATCH silently (08: the local-import trap, three times).
+#  * Every read is inside the helper's own `try`, and callers pass plain values (`dex`, not a dict lookup): an
+#    argument is evaluated OUTSIDE the callee's `try`.
+#  * `res=`, never `outcome=` (`x4_headless.py` counts `outcome=BattleOutcome.X` per battle); `lv=`, never `:L<n>`
+#    (`analyze_endless_batch.py`); `party=<n>/6`, never `party=[`.
+#  * `spare` excludes the Master Ball (`number_of_balls_except_master_ball`), unlike the heartbeat's `balls=`.
+def _r20_q(fn, default="?"):
+    try:
+        return fn()
+    except Exception:  # noqa: BLE001 - one telemetry field degrades, never the battle
+        return default
+
+
+def _r20_levels() -> dict:
+    """The levels a catch line reports, each read degrading on its own. PIDs are kept so `end` can name the NEW mon."""
+    from modules.items import get_item_bag as _r20_bag
+    from modules.pokemon_party import get_party as _r20_party
+    from modules.story import counter_hunt as _r20_ch
+    from modules.story.pc_trip import badge_count as _r20_badges
+
+    party = _r20_q(lambda: [m for m in _r20_party() if m is not None], None)
+    return {
+        "party": "?" if party is None else len(party),
+        "ppids": None if party is None else {m.personality_value for m in party},
+        "box": _r20_q(_r20_ch._box_count, -1),
+        "bpids": _r20_q(_r20_ch._box_pids, frozenset()),
+        "spare": _r20_q(lambda: _r20_bag().number_of_balls_except_master_ball, None),
+        "badges": _r20_q(_r20_badges),
+        "frame": _r20_q(lambda: context.emulator.get_frame_count(), None),
+    }
+
+
+def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:
+    """M1 `[CATCH] start`: the bot has COMMITTED to a catch (called on the line before each catch strategy is returned).
+    Opens the per-battle context that `_r20_catch_end` closes."""
+    try:
+        mon = getattr(encounter, "pokemon", None)
+        sp = getattr(mon, "species", None)
+        s = _r20_levels()
+        s["kind"] = kind
+        s["sp"] = f"{getattr(sp, 'name', '?')}#{getattr(sp, 'national_dex_number', '?')}"
+        mode._catch_ctx = s
+        from modules.items import get_item_bag as _r20_bag2
+
+        x = _r20_q(lambda: _expected_throws_for(sp, _r20_bag2()), None)
+        loc = _r20_q(lambda: mode._location_key(), None) or ("?", "?")
+        att = _r20_q(lambda: mode._dex_catch_attempts.get(dex), None) if dex is not None else None
+        _log_story_event(
+            f"start kind={kind} sp={s['sp']} lv={getattr(mon, 'level', '?')} attempt={att or '-'} "
+            f"badges={s['badges']} party={s['party']}/6 box={s['box']} spare={s['spare']} "
+            f"exp_throws={f'{x:.1f}' if isinstance(x, float) else '-'} map={loc[0]},{loc[1]}",
+            "CATCH",
+        )
+    except Exception:  # noqa: BLE001 - the catch strategy is returned on the next line regardless
+        pass
+
+
+def _r20_mark(key: str, value: str) -> None:
+    """Let a catch STRATEGY say how the catch ended (it cannot be inferred later: an out-of-balls flee and a plain
+    flee are both `RanAway`). Only the first mark sticks."""
+    try:
+        c = getattr(context.bot_mode_instance, "_catch_ctx", None)
+        if isinstance(c, dict):
+            c.setdefault(key, value)
+    except Exception:  # noqa: BLE001 - a lost mark only degrades end= to fled
+        pass
+
+
+def _r20_catch_end(mode, outcome) -> None:
+    """M2 `[CATCH] end`, from `on_battle_ended`: closes the context `_r20_catch_start` opened, if any. `dest`/`pid` are
+    DERIVED from the new PID in the party or the box, never assumed. `POKEBOT_R20_FAULT_NOCATCHEND=1` suppresses it
+    (the grader's fault arm: it must then report "start without end")."""
+    try:
+        c = getattr(mode, "_catch_ctx", None)
+        mode._catch_ctx = None
+    except Exception:  # noqa: BLE001 - a stub self has no open catch
+        return
+    import os as _r20_os
+
+    if not isinstance(c, dict) or _r20_os.environ.get("POKEBOT_R20_FAULT_NOCATCHEND") == "1":
+        return
+    try:
+        nm = getattr(outcome, "name", str(outcome))
+        now = _r20_levels()
+        if nm == "Caught":
+            end = "caught"
+        elif nm == "Lost":
+            end = "lost"
+        elif c.get("bail"):
+            end = "bail"
+        elif c.get("end"):
+            end = c["end"]
+        elif nm == "RanAway":
+            end = "fled"
+        elif nm in ("OpponentFled", "OpponentTeleported"):
+            end = "foe_fled"
+        else:
+            end = "other"
+        new_party = (now["ppids"] - c["ppids"]) if c["ppids"] is not None and now["ppids"] is not None else set()
+        box_ok = c["box"] >= 0 and now["box"] >= 0 and not (c["box"] > 0 and not c["bpids"])
+        new_box = (now["bpids"] - c["bpids"]) if box_ok else set()
+        if end != "caught":
+            dest, pid = "none", None
+        elif len(new_party) == 1:
+            dest, pid = "party", min(new_party)
+        elif len(new_box) == 1:
+            dest, pid = "box", min(new_box)
+        elif box_ok and now["box"] == c["box"] + 1:
+            dest, pid = "box", None
+        else:
+            dest, pid = "?", None
+
+        def d(k):
+            return now[k] - c[k] if isinstance(now[k], int) and isinstance(c[k], int) else "?"
+
+        thrown = -d("spare") if d("spare") != "?" else "?"
+        _log_story_event(
+            f"end kind={c['kind']} sp={c['sp']} end={end} res={nm} thrown={thrown} frames={d('frame')} dest={dest} "
+            f"pid={'-' if pid is None else f'{pid:08X}'} party={now['party']}/6 box={now['box']} spare={now['spare']} "
+            f"badges={now['badges']} bail={c.get('bail') or '-'}",
+            "CATCH",
+        )
+    except Exception:  # noqa: BLE001 - defeat counting below must still run
         pass
 
 

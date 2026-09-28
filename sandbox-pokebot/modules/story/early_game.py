@@ -2655,9 +2655,11 @@ def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
     """Restock Poké Balls if we can afford it (out-of-balls contingency). Buys as many
     as affordable (capped), keeping a money reserve. Returns having bought or not; the
     caller checks the ball count and falls back (skip catching) if still empty."""
+    _o3 = _o3_snapshot()  # R20-T (O3): the levels BEFORE, for the `[BALLS-BUY]` line
     want = min(MAX_BALLS_PER_TRIP, affordable_poke_balls())
     if want <= 0:
         context.message = "Story: too low on money to restock Poké Balls — skipping catching for now."
+        _o3_emit(mart, _o3)
         return
     # A mart-menu hiccup must NEVER break catching — on failure, proceed with what we
     # have (the caller then falls back to skip). Re-raise a whiteout abort, though.
@@ -2671,10 +2673,65 @@ def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
         from modules.console import console
 
         console.print(f"[yellow]Story: mart restock hiccup ({error}) — proceeding with current balls.[/]")
+    _o3_emit(mart, _o3)
 
 
 def _party_size() -> int:
     return len([p for p in get_party() if p is not None and not p.is_egg])
+
+
+# USER RULING 20 Phase 2 step T (O3 + M6): log-only helpers. Each is its own `try`, never yields, and never raises:
+# they run inside a generator's `finally` and after a mart walk, where a raise would replace a whiteout abort.
+def _o3_snapshot():
+    try:
+        from modules.items import get_item_bag as _o3_bag  # early_game has no module-level get_item_bag
+
+        return (_o3_bag().number_of_balls_except_master_ball, _money(), _ball_count("Poké Ball"))
+    except Exception:  # noqa: BLE001 - telemetry only; the restock runs regardless
+        return None
+
+
+def _o3_emit(mart, before) -> None:
+    try:
+        from modules import debug_logger
+
+        after = _o3_snapshot()
+        g, n = mart[0].value
+        if before is None or after is None:
+            debug_logger.event(f"why=mandatory mart={g},{n} bought=? spare=? money=?", category="BALLS-BUY")
+            return
+        debug_logger.event(
+            f"why=mandatory mart={g},{n} bought={after[2] - before[2]} spare={before[0]}->{after[0]} "
+            f"money={before[1]}->{after[1]}",
+            category="BALLS-BUY",
+        )
+    except Exception:  # noqa: BLE001 - telemetry only; a missed line is visible, a raise here is not
+        pass
+
+
+def _m6_field(fn):
+    """One `[CATCHTEAM]` field, degrading to '?' on its own: an unreadable field must not cost the whole line
+    (the gate's T4 caught exactly that — one unreadable ball count silently dropped the exit reason)."""
+    try:
+        return fn()
+    except Exception:  # noqa: BLE001 - one telemetry field degrades to '?', never the line
+        return "?"
+
+
+def _catchteam_exit(why: str, target: int, f0, loops: int) -> None:
+    try:
+        from modules import debug_logger
+        from modules.items import get_item_bag as _m6_bag  # early_game has no module-level get_item_bag
+
+        spare = _m6_field(lambda: _m6_bag().number_of_balls_except_master_ball)
+        frames = _m6_field(lambda: context.emulator.get_frame_count() - f0) if f0 is not None else "?"
+        party = _m6_field(_party_size)
+        debug_logger.event(
+            f"exit reason={why} target={target} party={party} spare={spare} frames={frames} loops={loops}",
+            category="CATCHTEAM",
+        )
+    except Exception:  # noqa: BLE001 - runs in a generator's finally: it must never replace the in-flight exception
+        pass
 
 
 def catch_starter_team(
@@ -2695,27 +2752,40 @@ def catch_starter_team(
     # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
     # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
     heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
+    # R20-T (M6): WHY the team loop stopped. "abort" stays only if an exception (a whiteout's StoryAbort) left the loop.
+    _why = "abort"
+    try:
+        _f0 = context.emulator.get_frame_count()
+    except Exception:  # noqa: BLE001 - telemetry only
+        _f0 = None
     guard = 0
     if _party_size() < target_size and _total_poke_balls() > 1:
         context.message = "Story: catching a team before the first gym…"
-    while _party_size() < target_size:
-        _check_abort()
-        guard += 1
-        if guard > 250:
-            break
-        if _total_poke_balls() <= 1:
-            # OUT-OF-BALLS CONTINGENCY (planning doc §3): try to restock at the mart;
-            # if we can't afford it, stop catching and proceed with the team we have.
-            yield from provision_poke_balls(mart=RUSTBORO_MART)
-            if _total_poke_balls() <= 1:
+    try:
+        while _party_size() < target_size:
+            _check_abort()
+            guard += 1
+            if guard > 250:
+                _why = "guard"
                 break
-        yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+            if _total_poke_balls() <= 1:
+                # OUT-OF-BALLS CONTINGENCY (planning doc §3): try to restock at the mart;
+                # if we can't afford it, stop catching and proceed with the team we have.
+                yield from provision_poke_balls(mart=RUSTBORO_MART)
+                if _total_poke_balls() <= 1:
+                    _why = "no_balls"
+                    break
+            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
-        yield from _story_spin(
-            lambda: _party_size() >= target_size or _total_poke_balls() <= 1 or _lead_hp_pct() <= heal_at
-        )
-        if _lead_hp_pct() <= heal_at and _party_size() < target_size:
-            yield from heal_in_pokemon_center(heal_center)
+            yield from _story_spin(
+                lambda: _party_size() >= target_size or _total_poke_balls() <= 1 or _lead_hp_pct() <= heal_at
+            )
+            if _lead_hp_pct() <= heal_at and _party_size() < target_size:
+                yield from heal_in_pokemon_center(heal_center)
+        else:
+            _why = "target"
+    finally:
+        _catchteam_exit(_why, target_size, _f0, guard)
 
 
 # Chapter 5 (Devon Goods errand) constants — all verified live 2026-07-21 via the

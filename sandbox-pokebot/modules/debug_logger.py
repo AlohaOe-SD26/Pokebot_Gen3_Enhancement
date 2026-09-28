@@ -257,6 +257,15 @@ def _write_run_header() -> None:
         _line("env:", set_vars if set_vars else "(no behaviour env vars set)")
     except Exception:  # noqa: BLE001
         pass
+    # USER RULING 20 Phase 2 step T (M5): EVERY `POKEBOT_*` by prefix, on its own line. The `env:` line above lists
+    # only `_BEHAVIOUR_ENV_VARS`, so a flag or fault arm set for an A/B arm was invisible in the run's own log.
+    try:
+        import os as _os_envall
+
+        _all = {k: _os_envall.environ[k] for k in sorted(_os_envall.environ) if k.startswith("POKEBOT_")}
+        _line("env-all:", _all or "(no POKEBOT_* env vars set)")
+    except Exception:  # noqa: BLE001 - a header line degrades; logging must still start
+        pass
 
     _raw("--- END RUN HEADER ---")
 
@@ -426,6 +435,9 @@ def on_frame(frame_info=None) -> None:
             # League arrivals' money (all refused at §Ch23 leg 11) had to be RECONSTRUCTED from prize texts.
             # A level, not only an edge — the same lesson as `balls=` above. One read per heartbeat.
             f"money={_safe(_money, None)} "
+            # USER RULING 20 Phase 2 step T (M3): the box and badge LEVELS, beside money. Heartbeat-only reads (the
+            # box read walks all 420 slots, so never per frame). `msg=` stays LAST: it is free text.
+            f"box={_safe(_r20_box, None)} badges={_safe(_r20_badges, None)} "
             f"msg={st.get('message')!r}",
         )
 
@@ -622,6 +634,26 @@ def _money():
     from modules.player import get_player
 
     return get_player().money
+
+
+def _r20_box():
+    """Pokémon in the PC (all boxes), or None when unreadable. RULING 20 step T (M3). ⛔ Heartbeat-only."""
+    from modules.story.counter_hunt import _box_count
+
+    n = _box_count()
+    return None if n < 0 else n
+
+
+def _r20_badges():
+    """Badges earned. RULING 20 step T (M3). Prefers `badge_log`'s debounced set (raw flags read garbage for a frame
+    or two during a warp); the harness never runs `badge_log.on_frame`, so there it falls back to the raw count."""
+    from modules import badge_log
+
+    if getattr(badge_log, "_known", None) is not None:
+        return len(badge_log.known_badges())
+    from modules.story.pc_trip import badge_count
+
+    return badge_count()
 
 
 def _owned_dex():
