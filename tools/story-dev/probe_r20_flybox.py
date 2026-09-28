@@ -7,7 +7,8 @@ the plateau is the League lobby's, at (6,1), where the standard stand tile (10,2
   F1  `pc_trip.pc_stand_for`: the lobby -> (6,2)/Up; any other map -> (10,2)/Up; `POKEBOT_R20_FAULT_LOBBYSTAND` -> (10,2)
       everywhere. No PC walk in pc_trip still aims at the bare constant.
   F2  `_boxed_fly_learners`: keeps a knower and a mon `_fly_teach_plan` can teach; drops a saturated one.
-  F3  `ch24_trainees_below_floor` leaves the recorded carrier out; R1's head-count (AST) does too.
+  F3  `ch24_trainees_below_floor` leaves the recorded carrier out; R1's head-count (AST) does too. Both go through
+      `_is_ch24_carrier`: an EVOLVED carrier (same PID) is still the carrier; an unrelated species on its PID is not.
   F4  `restore_ch24_fighters`: nothing recorded -> no-op; a swap that lands -> PASS and the record is cleared; the swap
       skipped (`POKEBOT_R20_FAULT_NOSWAPBACK`) or not landing -> REFUSES by name.
   F5  `ensure_fly_learner` (collaborators stubbed): a party learner -> taught, no lobby; no party learner + a boxed one ->
@@ -121,10 +122,24 @@ def f3(pl_src: str, sink=None):
         PL.context.bot_mode_instance = saved
     check(below == [3, 1], f"F3 the recorded carrier (Wingull) is not a trainee ({below})", sink)
     check(sorted(below_none) == [1, 2, 3], f"F3 with no swap recorded, everyone below the floor is ({below_none})", sink)
+    # The carrier EVOLVED in training (Wingull -> Pelipper, same PID): still the carrier. An UNRELATED species on its PID
+    # (KI-78) is not. (Review of the swap-back evolution fix, 2026-09-27.)
+    for sp, want, what in (("Pelipper", [3, 1], "an EVOLVED carrier (Pelipper, same PID) is still not a trainee"),
+                           ("Zubat", [3, 2, 1], "an UNRELATED species on the carrier's PID IS a trainee (KI-78)")):
+        evolved = [mon(1, "Swampert", 60, ["Surf"]), mon(2, sp, 20, ["Fly"]), mon(3, "Zigzagoon", 19, ["Tackle"])]
+        mode, saved = _with_mode({"fighters": [(1, "Swampert"), (3, "Zigzagoon"), (4, "Castform")],
+                                  "carrier": (2, "Wingull"), "boxed": (4, "Castform")})
+        try:
+            PP.get_party = lambda: evolved
+            got = [p for p, _s, _l in PL.ch24_trainees_below_floor(65)]
+        finally:
+            PP.get_party = saved_gp
+            PL.context.bot_mode_instance = saved
+        check(got == want, f"F3 {what} ({got})", sink)
     fn = ast.unparse(next(n for n in ast.walk(ast.parse(pl_src))
                           if isinstance(n, ast.FunctionDef) and n.name == "prepare_and_open_the_league"))
-    check("(m.personality_value, m.species.name) != _carrier" in fn,
-          "F3 R1's head-count leaves the carrier out (AST)", sink)
+    check("not _is_ch24_carrier(m, _carrier)" in fn and "!= _carrier" not in fn,
+          "F3 R1's head-count leaves the carrier out through _is_ch24_carrier (AST)", sink)
 
 
 def f4(sink=None):
@@ -338,11 +353,17 @@ def main() -> int:
         finally:
             os.environ.pop(arm, None)
         check(bool(sink), f"FAULT {arm} FAILS {part.__name__.upper()} ({len(sink)} caught)")
+    sink = []
+    os.environ["POKEBOT_R20_FAULT_SWAPEXACT"] = "1"
+    try:
+        f3(pl, sink)
+    finally:
+        os.environ.pop("POKEBOT_R20_FAULT_SWAPEXACT", None)
+    check(bool(sink), f"FAULT POKEBOT_R20_FAULT_SWAPEXACT FAILS F3 (the evolved carrier; {len(sink)} caught)")
     # The carrier exclusion removed: rebuild ch24_trainees_below_floor without its `continue`.
     node = next(n for n in ast.walk(ast.parse(pl)) if isinstance(n, ast.FunctionDef) and n.name == "ch24_trainees_below_floor")
     src = ast.get_source_segment(pl, node)
-    mutated, n = re.subn(r"if carrier is not None and \(mon\.personality_value, mon\.species\.name\) == carrier:\s*\n\s*continue",
-                         "pass", src, count=1)
+    mutated, n = re.subn(r"if _is_ch24_carrier\(mon, carrier\):\s*\n\s*continue", "pass", src, count=1)
     check(n == 1, "(fault-arm mutation applied exactly once: the carrier exclusion removed)")
     ns: dict = {}
     exec(compile(mutated, "<mutated ch24_trainees_below_floor>", "exec"), PL.__dict__, ns)  # noqa: S102 - gate fault arm

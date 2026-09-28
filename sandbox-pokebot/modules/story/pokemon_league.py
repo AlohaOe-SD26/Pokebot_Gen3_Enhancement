@@ -1646,7 +1646,7 @@ def ch24_trainees_below_floor(floor: int = CH24_LEVEL_FLOOR) -> list:
         for mon in get_party():
             if mon is None or getattr(mon, "is_egg", False):
                 continue
-            if carrier is not None and (mon.personality_value, mon.species.name) == carrier:
+            if _is_ch24_carrier(mon, carrier):
                 continue
             if mon.level < floor:
                 out.append((mon.personality_value, mon.species.name, mon.level))
@@ -2223,6 +2223,21 @@ def _ch24_carrier_key() -> "tuple | None":
         return None
     carrier = tuple(sw["carrier"])
     return None if carrier in {tuple(f) for f in sw.get("fighters") or ()} else carrier
+
+
+def _is_ch24_carrier(mon, carrier) -> bool:
+    """Is `mon` the recorded Fly carrier? The same PID, and the recorded species OR AN EVOLUTION OF IT (2026-09-27, the
+    review of the swap-back evolution fix): the carrier sits in the party through §Ch24 training and evolves if it
+    battles and levels, and an exact `(pid, species)` key would then count it as a fighter in R1 and train it as a
+    trainee. An unrelated species on the same PID (KI-78) is not the carrier. `POKEBOT_R20_FAULT_SWAPEXACT=1` restores
+    the exact key."""
+    import os as _os
+
+    if carrier is None or mon.personality_value != carrier[0]:
+        return False
+    if _os.environ.get("POKEBOT_R20_FAULT_SWAPEXACT") == "1":
+        return mon.species.name == carrier[1]
+    return _same_or_evolved(carrier[1], mon.species.name)
 
 
 def _record_fly_swap(before_keys: list, head: int) -> "dict | None":
@@ -2843,7 +2858,7 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
         try:
             _carrier = _ch24_carrier_key()   # RULING 21: the Fly carrier is not one of the fighters R1 counts
             party_size = sum(1 for m in get_party() if m is not None and not getattr(m, "is_egg", False)
-                             and (m.personality_value, m.species.name) != _carrier)
+                             and not _is_ch24_carrier(m, _carrier))
         except Exception as error:  # noqa: BLE001 - an unreadable party must REFUSE (fail closed), never pass
             reraise_if_aborting(error)
             party_size = None
