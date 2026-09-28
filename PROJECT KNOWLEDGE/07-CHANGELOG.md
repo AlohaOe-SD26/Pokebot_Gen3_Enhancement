@@ -36592,3 +36592,29 @@ So the lines come FIRST, and they had to be proven not to change behaviour befor
 - Adversarial review: KICK-BACK once, for these missing `06`/`07`/`08` entries only; it re-ran every gate and traced the loop rewrite and the log consumers (no collision). Its two non-blocking risks were closed in `9aff9351`, and the T arm was re-driven there identically.
 **Found on the way:** `--set-balls` does nothing (a mis-encoded ball name, caught and logged as `[setup] set-balls
 err`). B's arms depend on it, so it is filed as `#27-setballs`.
+
+## 2026-09-28 — `--set-balls` WORKS AGAIN: the harness lever had silently done nothing for two months (`#27-setballs`)
+
+**WHY.** RULING 20 Phase 2 step B's arms set their ball count with `story_harness.py --set-balls N`. The re-verification
+of step T found that the lever did nothing:
+- commit `4bd5bc4de` (2026-07-22) had turned "Poké Ball" into its cp1252 mojibake;
+- the lookup raised `KeyError`;
+- the `except` logged `set-balls err`, and the run went on with the fixture's own balls.
+**WHAT.**
+- Both lookups use the real name.
+- `--set-balls` sets only the Poké Ball STACK and keeps every other ball stack (the old code replaced the whole pocket).
+- It reads the pocket back from the SAVE BLOCK (`get_item_bag()` is cached per frame and would report the pre-write
+  bag) and ASSERTS it equals the intended pocket: `debug_write_item_bag` returns False without raising when no save
+  block is mapped.
+- A failure RE-RAISES.
+- All 38 mis-encoded lines in the harness (2 in the rewritten set-balls block, 36 by script) (em dashes, arrows, "Poké", "×") are repaired by an exact cp1252→UTF-8
+  round trip.
+- NEW gate `probe_harness_item_names.py` (registered; suite 119): every literal item lookup resolves, no mojibake,
+  the set-balls `except` re-raises, and the read-back is asserted. Four fault arms.
+**PROOF** (predictions `f257d58e` first; `ai-research-notes/2026-09-28-setballs-GRADED.md`), on `post_mtpyre.ss1`:
+- unfixed: `set-balls err`, `balls=17`;
+- fixed at 30: read-back `Poké Ball x30, Premier Ball x1`, `balls=31`;
+- fixed at 0: `Premier Ball x1`, `balls=1`.
+
+No committed evidence ever used the lever (0 `set-balls err` lines), so no past result changes. Adversarial review:
+KICK-BACK once, for these `07`/`08` entries; its main risk (a silent write that raises nothing) was closed in `22ba1210` by asserting the read-back, and B and C were re-driven there identically. It counted 38 repaired lines, which this entry now states. ⇒ RULING 20 Phase 2 step B (the ball restock) is unblocked.

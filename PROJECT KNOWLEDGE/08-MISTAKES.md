@@ -22810,3 +22810,23 @@ EXISTS (a missing line is a FAIL, not silence); the T arm was re-run with nothin
 - ⛔ **Before applying a patch to a module, grep that module for every name the patch uses.** A `NameError` inside a
   guarded helper is invisible at runtime.
 - ⛔ **An arm's runner sets exactly the variables its pre-registration names. Unset is not `=0`.**
+
+## 2026-09-28 — ⛔ A TEST LEVER FAILED SILENTLY FOR TWO MONTHS BECAUSE ITS `except` LOGGED AND CONTINUED
+
+**Symptom:** `story_harness.py --set-balls N` never changed the bag after 2026-07-22. Every run that passed it measured
+the fixture's own balls. It was found only because step T's re-verification loaded the fixture and read the bag.
+**Root cause:**
+- Commit `4bd5bc4de` re-saved the harness through a cp1252 round trip, and "Poké Ball" became mojibake: 36 lines in
+  all, two of them functional lookups.
+- The lever's `except Exception` logged `set-balls err` and CONTINUED, so the run looked normal.
+- No check ever asserted that the lever's effect was visible afterwards.
+**Fix:**
+- The real name; a read-back from the save block, bypassing the per-frame bag cache, that is ASSERTED equal to the
+  intended pocket; a re-raise; the mojibake repaired.
+- The gate `probe_harness_item_names.py`: every literal lookup resolves offline, no mojibake, the `except` re-raises.
+**Prevention rules:**
+- ⛔ **A test lever's failure must END the run.** An arm whose lever did not apply is a different arm; logging and
+  continuing makes it indistinguishable from a real one.
+- ⛔ **Every lever ASSERTS a READ-BACK of what it wrote, from the source of truth rather than a cache** (rule 7 applied
+  to setup). Printing it is not enough: the write can return False without raising. `get_item_bag()` and `get_battle_state()` both return a same-frame cached object.
+- ⛔ **A file-wide re-encode is a code change.** Gate literals that are looked up by name, not only doc text.

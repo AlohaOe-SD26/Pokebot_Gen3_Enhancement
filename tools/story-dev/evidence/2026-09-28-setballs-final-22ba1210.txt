@@ -1,0 +1,14 @@
+# #27-setballs — arms B and C RE-DRIVEN on the FINAL code 22ba1210 (the read-back is now ASSERTED).
+# One trajectory replayed per arm; it shows the assertion holds on the happy path (no false abort).
+## arm B2
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sb\B2.log
+[setup] created profile sb-B2
+[setup] loaded save state post_mtpyre.ss1; build=sandbox
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Premier Ball x1
+f3146940 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(98, 15) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L42:exp71324', 'Swellow#0B30A747:L39:exp55164', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=31 money=14804 box=0 badges=6 msg='Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+## arm C2
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\sb\C2.log
+[setup] created profile sb-C2
+[setup] loaded save state post_mtpyre.ss1; build=sandbox
+[setup] set Poké Balls to 0 — read back from the save block: ball pocket = Premier Ball x1
+f3146940 [hb] mode=Story state=4 controllable=False map=ROUTE 123(0,38) pos=(98, 15) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35'] ids=['Mightyena#5C96EA9B:L42:exp78383', 'Sceptile#863B0917:L42:exp71324', 'Swellow#0B30A747:L39:exp55164', 'Skitty#5CCCD8BE:L17:exp4598', 'Zigzagoon#33CB74C3:L3:exp27', 'Castform#C978D14E:L35:exp43949'] owned=10 balls=1 money=14804 box=0 badges=6 msg='Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'

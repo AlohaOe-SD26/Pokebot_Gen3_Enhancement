@@ -7914,3 +7914,16 @@ future agent would cite to revert it.
   line adds without breaking a reader.
 - Emitting through a method: the gates call these hooks with stand-in `self` objects, and a missing method inside a
   catch branch's `except: pass` would silently cancel the catch.
+
+## 2026-09-28 — `--set-balls N` sets the Poké Ball STACK only, and a failure aborts the run
+
+**Decision:** the harness lever keeps every other ball stack (Premier, Great, Ultra, …) and re-raises on any failure.
+**Why:**
+- An arm that "sets 30 balls" should differ from its control in ONE thing. Silently deleting a fixture's special balls
+  changes the thrower's sequence and the fence's expected-throws estimate (which scores the whole bag), a second
+  difference nobody asked for.
+- A test lever that fails and continues produces a run that is not the arm it claims to be. That is exactly how this
+  one went unnoticed for two months.
+**Rejected:**
+- Keeping the replace-the-pocket behaviour: no committed evidence depended on it, and it confounds arms.
+- Logging louder but continuing: the old code already logged, and nobody read it.
