@@ -263,6 +263,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ USER RULING 20 Phase 2 step T — the per-catch telemetry is LOG-ONLY: `end=`/`dest=` classify honestly, and a
     # raising emit can never cancel a catch, skip defeat counting, or replace a whiteout's StoryAbort. Three fault arms.
     ("probe_r20_telemetry.py", False),
+    # ⛔ `#27-setballs` — every item name the story harness looks up is REAL (a cp1252 round trip once turned "Poké
+    # Ball" into mojibake and `--set-balls` silently did nothing for two months), and `--set-balls` fails LOUDLY.
+    ("probe_harness_item_names.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

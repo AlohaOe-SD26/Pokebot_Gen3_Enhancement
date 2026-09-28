@@ -26,10 +26,10 @@ except Exception:
 ap = argparse.ArgumentParser()
 ap.add_argument("state", help=".ss1 save state to load (basename in scratchpad or full path)")
 ap.add_argument("--inject-treecko", action="store_true", help="inject a Lv15 Treecko at exp_for_16 - 1 as lead")
-ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Poochyena (loses everything â†’ forces a whiteout, for defeat-recovery testing)")
-ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu â€” KI-12 repro)")
+ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Poochyena (loses everything → forces a whiteout, for defeat-recovery testing)")
+ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu — KI-12 repro)")
 ap.add_argument("--inject-shedinja-faint", action="store_true", help="inject an all-BURNED 1-HP party (Shedinja lead + bench) — rapid in-battle faints for the KI-15 after-faint chooser repro; pair with --driver faintrepro")
-ap.add_argument("--set-balls", type=int, default=None, help="force the PokÃ© Ball count (test out-of-balls provisioning)")
+ap.add_argument("--set-balls", type=int, default=None, help="force the Poké Ball count (test out-of-balls provisioning)")
 ap.add_argument("--inject-hmmule", action="store_true", help="ADD a low-level mon (default Marill L13, carrying Surf) to an otherwise-ready party WITHOUT replacing it — the #24-ch23training discriminator. Override with POKEBOT_MULE_SPECIES / POKEBOT_MULE_LEVEL. Pair with --driver ch23train + POKEBOT_CH23_ESTIMATE_ONLY=1 for a seconds-long A/B.")
 ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the party at")
 ap.add_argument("--frames", type=int, default=60000)
@@ -39,12 +39,12 @@ ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "
 ap.add_argument(
     "--break-state",
     action="store_true",
-    help="FAULT INJECTION: simulate the user's env â€” make get_learn_move_state never "
+    help="FAULT INJECTION: simulate the user's env — make get_learn_move_state never "
     "report AskWhetherToLearn (returns Unknown) and force is_waiting_for_input False, "
     "so ONLY the on-screen text can drive the yes/no. Old code hangs; the fix must not.",
 )
 ap.add_argument("--log", default=None)
-ap.add_argument("--video", action="store_true", help="enable the BG/OBJ renderer (needed to drive the PokÃ©Nav app)")
+ap.add_argument("--video", action="store_true", help="enable the BG/OBJ renderer (needed to drive the PokéNav app)")
 args = ap.parse_args()
 
 # Paths are resolved RELATIVE TO THE REPO so this works on any machine/checkout:
@@ -141,7 +141,7 @@ from modules.libmgba import LibmgbaEmulator
 
 context.emulator = LibmgbaEmulator(profile, lambda: None)
 context.audio = False
-context.video = bool(getattr(args, "video", False))  # renderer on when --video (PokÃ©Nav app needs it)
+context.video = bool(getattr(args, "video", False))  # renderer on when --video (PokéNav app needs it)
 context.emulation_speed = 0
 context.debug = False
 context.bot_mode = "Story"
@@ -516,7 +516,7 @@ def _dump_mart_state(step):
 
 
 class HealTestMode(BotMode):
-    """Isolated test: heal at Oldale PC and observe enter â†’ heal â†’ EXIT (the suspect)."""
+    """Isolated test: heal at Oldale PC and observe enter → heal → EXIT (the suspect)."""
 
     @staticmethod
     def name():
@@ -538,7 +538,7 @@ class HealTestMode(BotMode):
         log("[heal] calling heal_in_pokemon_center(OldaleTown)")
         try:
             yield from heal_in_pokemon_center(PokemonCenter.OldaleTown)
-            log("[heal] DONE â€” healed and exited cleanly")
+            log("[heal] DONE — healed and exited cleanly")
         except Exception as e:
             import traceback
 
@@ -609,7 +609,7 @@ class MartBuyMode(BotMode):
             pass
         else:
             n = int(os.environ.get("BUYN", "5"))
-            _pb = "PokÃ© Ball"
+            _pb = "Poké Ball"
             log(f"[buy] BEFORE: pokeballs={_ball_count(_pb)} premier={_ball_count('Premier Ball')} money={_money()} (buying {n} in tens)")
             try:
                 yield from buy_poke_balls_in_tens(n)
@@ -811,7 +811,7 @@ class PokenavClearMode(BotMode):
             if triggered:
                 break
 
-        log(f"[clr] phase2: tutorial active? {triggered} â€” advancing intro + selecting POKENAV (index 3)")
+        log(f"[clr] phase2: tutorial active? {triggered} — advancing intro + selecting POKENAV (index 3)")
         if triggered:
             yield from wait_for_multiple_choice_question(3)
             log(f"[clr] after multichoice-select: VAR_RESULT={_special_var_result()} "
@@ -821,7 +821,7 @@ class PokenavClearMode(BotMode):
                 _dump("post-select", step)
                 yield
 
-            log("[clr] phase3: FORCE_CALL_READY â€” drive Match Call with A; log gs/script transitions")
+            log("[clr] phase3: FORCE_CALL_READY — drive Match Call with A; log gs/script transitions")
             import os as _os
             btn = _os.environ.get("P3BTN", "A")
             period = int(_os.environ.get("P3PERIOD", "10"))  # press every N frames (let UI settle)
@@ -891,7 +891,7 @@ class PokenavFaithMode(BotMode):
         from modules.player import player_avatar_is_controllable
         from modules.game import decode_string
 
-        # ENABLE the renderer â€” the PokeNav app won't advance without it.
+        # ENABLE the renderer — the PokeNav app won't advance without it.
         context.video = True
         log("[faith] video ENABLED (renderer on)")
 
@@ -955,7 +955,7 @@ class PokenavFaithMode(BotMode):
             yield from wait_for_multiple_choice_question(3)
         log(f"[faith] after select: gs={get_game_state()} tasks={_tasks()}")
 
-        # Phase 2: SCRIPTED probe â€” reach the main menu, screenshot, then run a button
+        # Phase 2: SCRIPTED probe — reach the main menu, screenshot, then run a button
         # script from env FAITHSEQ (comma list like "shot,Down,shot,A,shot,...") capturing a
         # screenshot at each 'shot'. Lets us SEE each PokeNav screen and find the sequence.
         from pathlib import Path as _P
@@ -1097,7 +1097,7 @@ class SailDewfordMode(BotMode):
 
 class ShinyTestMode(BotMode):
     """FAULT-INJECTION (user directive 2026-07-22): force every WILD encounter to read as
-    SHINY and verify the Story shiny branch actually THROWS BALLS and CATCHES â€” even for
+    SHINY and verify the Story shiny branch actually THROWS BALLS and CATCHES — even for
     an already-owned species (Route 116 wilds are all owned by post_rival). Success =
     a battle ends with outcome Caught."""
 
@@ -1148,12 +1148,12 @@ class ShinyTestMode(BotMode):
         from modules.modes.util.global_navigation import navigate_to_anywhere
 
         balls = sum(s.quantity for s in get_item_bag().poke_balls)
-        log(f"[shinytest] starting with {balls} PokÃ© Ball(s)")
+        log(f"[shinytest] starting with {balls} Poké Ball(s)")
         if balls == 0:
             log("[shinytest] INVALID TEST: no balls in this save")
             return
         yield from navigate_to_anywhere(MapRSE.ROUTE116, (11, 7), avoid_encounters=False, avoid_scripted_events=True)
-        log("[shinytest] in the Route 116 grass â€” spinning for a wild...")
+        log("[shinytest] in the Route 116 grass — spinning for a wild...")
         yield from spin(stop_condition=lambda: self._outcome is not None)
         log(f"[shinytest] RESULT: caught={self._caught} outcome={self._outcome} "
             f"balls_left={sum(s.quantity for s in get_item_bag().poke_balls)}")
@@ -1211,9 +1211,9 @@ class HmTestMode(BotMode):
 
 
 class CaveTrainMode(BotMode):
-    """VALIDATE the cave-aware training legs (the 2Ã— real-HW 'not on connected maps'
-    Manual drops): Dewford â†’ thread into Granite Cave to the (35,11) spot â†’ exit the
-    cave â†’ heal at the Dewford PC â†’ thread back in. Exactly the legs that failed."""
+    """VALIDATE the cave-aware training legs (the 2× real-HW 'not on connected maps'
+    Manual drops): Dewford → thread into Granite Cave to the (35,11) spot → exit the
+    cave → heal at the Dewford PC → thread back in. Exactly the legs that failed."""
 
     @staticmethod
     def name():
@@ -1245,7 +1245,7 @@ class CaveTrainMode(BotMode):
             log(f"[cavetrain] healed; map={_map_group_number()}")
             log("[cavetrain] leg 4: back to the cave spot")
             yield from _goto_training_area(MapRSE.GRANITE_CAVE_1F, (35, 11))
-            log(f"[cavetrain] RESULT: back at spot; map={_map_group_number()} â€” ALL LEGS PASS")
+            log(f"[cavetrain] RESULT: back at spot; map={_map_group_number()} — ALL LEGS PASS")
         except Exception as e:
             import traceback
 
@@ -27163,7 +27163,7 @@ class RivalRetryMode(BotMode):
         set_event_flag("MET_RIVAL_RUSTBORO", True)  # simulate a prior loss: met, NOT defeated
         log(f"[retry] simulated prior loss: MET=True DEFEATED={get_event_flag('DEFEATED_RIVAL_RUSTBORO')}")
         yield from _lead_best_matchup(["Grass"])
-        log("[retry] calling fight_rustboro_rival â€” expect it to step onto y=53 and RE-ENGAGE")
+        log("[retry] calling fight_rustboro_rival — expect it to step onto y=53 and RE-ENGAGE")
         try:
             yield from fight_rustboro_rival()
             log(f"[retry] fight_rustboro_rival returned; DEFEATED={get_event_flag('DEFEATED_RIVAL_RUSTBORO')}")
@@ -27297,7 +27297,7 @@ class SailReconMode(BotMode):
                 log(f"[sail] *** ARRIVED IN DEWFORD at f{step} ***")
                 break
             if task_is_active("Task_HandleMultichoiceInput"):
-                log(f"[sail] *** MULTICHOICE up at f{step} â€” 'where are we bound?' ***")
+                log(f"[sail] *** MULTICHOICE up at f{step} — 'where are we bound?' ***")
                 _dump("multichoice", step)
                 break
             try:
@@ -27315,7 +27315,7 @@ class SailReconMode(BotMode):
 class PokenavSkipMode(BotMode):
     """VALIDATE skip_pokenav_match_call_tutorial: from pokenav_got.ss1 (on Devon Corp 3F,
     RECEIVED_POKENAV), apply the state-write skip, then navigate south to the rival and
-    win â€” proving the Scientist tutorial never fires and the rival still triggers."""
+    win — proving the Scientist tutorial never fires and the rival still triggers."""
 
     @staticmethod
     def name():
@@ -27502,7 +27502,7 @@ class Chapter5ReconMode(BotMode):
         yield from _ride_out_scripted_scene("B")
 
         # 2. Chase EAST to Route 116. Target the near WEST edge first (leg approach)
-        #    â€” the far tile (40,8) had no path (Route 116 has blocked tiles).
+        #    — the far tile (40,8) had no path (Route 116 has blocked tiles).
         log("[ch5] step2: chase east onto Route 116 (near edge 5,9)")
         rounds = 0
         while _map_group_number() != route116 and rounds < 25:
@@ -27514,7 +27514,7 @@ class Chapter5ReconMode(BotMode):
                 log(f"[ch5] s2 nav aborted ({str(e)[:70]}); ride out")
                 yield from _ride_out_scripted_scene("B")
         log(f"[ch5] on Route116? map={_map_group_number()}")
-        # 2b. Cross Route 116 east toward the tunnel door approach (47,9) â€” the door
+        # 2b. Cross Route 116 east toward the tunnel door approach (47,9) — the door
         #     (47,8) is entered from BELOW. Try the global navigator (handles ledges).
         if _map_group_number() == route116:
             rounds = 0
@@ -27542,7 +27542,7 @@ class Chapter5ReconMode(BotMode):
         log(f"[ch5] in tunnel? map={_map_group_number()}")
 
         # 4. The grunt is at (13,5) (Mr. Briney at (13,4)), facing WEST along row 5.
-        #    Approach from the west â€” its line of sight triggers the battle. Navigate
+        #    Approach from the west — its line of sight triggers the battle. Navigate
         #    toward a tile just west of it, riding out the scene/battle, anchored on
         #    RECOVERED_DEVON_GOODS.
         log("[ch5] step4: approach the grunt at (13,5) from the west, engage with A")
@@ -27577,7 +27577,7 @@ class Chapter5ReconMode(BotMode):
 class RivalReproMode(BotMode):
     """Walk to the Route 103 rival (a SINGLE-Pokemon trainer) with encounters
     avoided, then engage. The near-Lv16 Treecko crosses Lv16 on the KO that ENDS
-    the trainer battle â€” the exact ML-11 edge case (move-learn as the trainer
+    the trainer battle — the exact ML-11 edge case (move-learn as the trainer
     battle ends), fought with the real Story strategy."""
 
     @staticmethod
@@ -27997,13 +27997,13 @@ def inject_weak():
         nickname="WEAKLING",
     )
     debug_write_party([mon])
-    log("[inject] lone Poochyena Lv3 (will lose â†’ whiteout)")
+    log("[inject] lone Poochyena Lv3 (will lose → whiteout)")
 
 
 def inject_faintbench():
     """A weak LEAD + a weak BENCH: the lead faints in the first gym exchange, forcing
-    the AFTER-FAINT PARTY MENU with a real bench to select â€” the exact machinery of the
-    130k-frame party-menu hang (KI-12). Both mons then faint â†’ whiteout recovery."""
+    the AFTER-FAINT PARTY MENU with a real bench to select — the exact machinery of the
+    130k-frame party-menu hang (KI-12). Both mons then faint → whiteout recovery."""
     from modules.debug_utilities import debug_create_pokemon, debug_write_party
     from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove
 
@@ -28146,13 +28146,13 @@ if args.break_state:
     def _broken_gls():
         s = _orig_gls()
         # The Emerald battle "Delete a move?" Yes/No is detected ONLY by a fragile
-        # script-offset; simulate that offset NEVER matching â†’ state stuck Unknown.
+        # script-offset; simulate that offset NEVER matching → state stuck Unknown.
         if s == _bmr.LearnMoveState.AskWhetherToLearn:
             return _bmr.LearnMoveState.Unknown
         return s
 
     _bmr.get_learn_move_state = _broken_gls
-    # is_waiting_for_input reads the field printer â†’ unreliable in battle; force the
+    # is_waiting_for_input reads the field printer → unreliable in battle; force the
     # worst case (always False) so the old wfi-gated text branch never presses.
     _tasks_mod.is_waiting_for_input = lambda: False
     if hasattr(_bmr, "is_waiting_for_input"):
@@ -28357,7 +28357,7 @@ for step in range(args.frames):
     else:
         _manual_since = None
 
-    # Capture the post-rival save once the rival is defeated â€” ONLY when explicitly asked
+    # Capture the post-rival save once the rival is defeated — ONLY when explicitly asked
     # (SAVE_POST_RIVAL=1), else it would clobber an existing post_rival.ss1 during other
     # tests that happen to run from a post-rival state. Require the flag STABLE for many
     # consecutive frames + controllable (the flag has a 1-frame read flicker).
@@ -28372,7 +28372,7 @@ for step in range(args.frames):
                 _rival_stable = 0
             if _rival_stable >= 120:
                 (SCRATCH / "post_rival.ss1").write_bytes(context.emulator.get_save_state())
-                log(f"f{step}: *** DEFEATED_RIVAL_RUSTBORO stable â€” saved post_rival.ss1 ***")
+                log(f"f{step}: *** DEFEATED_RIVAL_RUSTBORO stable — saved post_rival.ss1 ***")
                 _saved_post_rival = True
         except Exception:
             pass
@@ -28400,22 +28400,40 @@ for step in range(args.frames):
         injected = True
 
     if args.set_balls is not None and step == max(1, args.inject_at):
+        # ‼ `#27-setballs` (2026-09-28): this lever silently did NOTHING from 2026-07-22 on. The lookup used a
+        # mis-encoded name (commit 4bd5bc4de turned "Poké Ball" into its cp1252 mojibake), the KeyError was caught and
+        # logged as `set-balls err`, and the run went on with the fixture's own balls. Now:
+        #  (1) the real name, guarded by the gate `probe_harness_item_names.py`;
+        #  (2) only the Poké Ball STACK is set; every other ball stack (Premier, Great, ...) is KEPT. The old code
+        #      replaced the whole pocket, so a fixture's special balls silently vanished;
+        #  (3) a failure RE-RAISES: a run whose lever did not apply is not the arm it claims to be;
+        #  (4) a READ-BACK from the SAVE BLOCK itself. ⛔ Not `get_item_bag()`: it is cached per frame, so a same-frame
+        #      read returns the object from BEFORE the write (the same trap as KI-108's `get_battle_state()`).
         try:
             from modules.debug_utilities import debug_write_item_bag
-            from modules.items import get_item_bag, ItemSlot
+            from modules.items import ItemBag, ItemPocket, ItemSlot, get_item_bag
+            from modules.memory import get_save_block
             from modules.pokemon import get_item_by_name
 
             bag = get_item_bag()
             ne = lambda pocket: [s for s in pocket if s.quantity > 0]
-            pb = get_item_by_name("PokÃ© Ball")
+            pb = get_item_by_name("Poké Ball")
+            kept = [s for s in ne(bag.poke_balls) if s.item.name != pb.name]
             debug_write_item_bag(
                 items=ne(bag.items), key_items=ne(bag.key_items),
-                poke_balls=([ItemSlot(pb, args.set_balls)] if args.set_balls > 0 else []),
+                poke_balls=([ItemSlot(pb, args.set_balls)] if args.set_balls > 0 else []) + kept,
                 tms_hms=ne(bag.tms_hms), berries=ne(bag.berries),
             )
-            log(f"[setup] set PokÃ© Balls to {args.set_balls}")
+            caps = [p.capacity for p in (ItemPocket.Items, ItemPocket.KeyItems, ItemPocket.PokeBalls,
+                                         ItemPocket.TmsAndHms, ItemPocket.Berries)]
+            raw = get_save_block(1, offset=0x310 if context.rom.is_frlg else 0x560, size=4 * sum(caps))
+            fresh = ItemBag(raw, *caps)
+            now = ", ".join(f"{s.item.name} x{s.quantity}" for s in fresh.poke_balls if s.quantity > 0)
+            log(f"[setup] set Poké Balls to {args.set_balls} — read back from the save block: ball pocket = "
+                f"{now or 'empty'}")
         except Exception as e:
-            log(f"[setup] set-balls err {e}")
+            log(f"[setup] set-balls err {e!r} — ABORTING: a run whose --set-balls did not apply is not that arm")
+            raise
 
     game_state = get_game_state()
     script_context = get_global_script_context()
@@ -28432,7 +28450,7 @@ for step in range(args.frames):
         previous_frame=previous_frame_info,
     )
 
-    # SAVE_CHECKPOINT="FLAG:name" â€” snapshot saves/name.ss1 the first time FLAG is set
+    # SAVE_CHECKPOINT="FLAG:name" — snapshot saves/name.ss1 the first time FLAG is set
     # AND the avatar is stably controllable (captures a clean, loadable checkpoint at a
     # story milestone, e.g. SAVE_CHECKPOINT="DELIVERED_DEVON_GOODS:stern_done").
     _ckpt = _os_hook.environ.get("SAVE_CHECKPOINT")
@@ -29324,7 +29342,7 @@ for step in range(args.frames):
     # STUCK-OVERWORLD DIAGNOSTIC: the reliable "is the game actually blocked"
     # signal is player_avatar_is_controllable() (gDisplayedStringBattle/gBattleMainFunc
     # go STALE after a battle, so they lie). Log a compact trace on change whenever
-    # we're in the overworld, NOT in a battle, but NOT controllable â€” the real hang.
+    # we're in the overworld, NOT in a battle, but NOT controllable — the real hang.
     try:
         from modules.modes.util.walking import player_avatar_is_controllable as _pic
 
