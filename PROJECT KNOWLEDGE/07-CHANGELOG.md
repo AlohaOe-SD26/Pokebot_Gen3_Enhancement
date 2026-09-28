@@ -36431,3 +36431,16 @@ Risks the review raised, not changed: the carrier's own key is still compared ex
 not evolve; unaudited), and `_same_or_evolved` has no fail-closed fallback for an unknown species name (both inputs come
 from the game's own species table).
 Suite 115 (all 111 enforcing PASS on the final code, + 4 advisory).
+
+## 2026-09-27 — RULING 21: THE FLY CARRIER'S OWN KEY ALSO ACCEPTS AN EVOLUTION (branch `wt/swapevo`, NOT merged)
+
+**WHY.** The swap-back review's other risk. The carrier sits in the party through §Ch24 training and evolves if it
+battles and levels. Its key was compared EXACTLY in `ch24_trainees_below_floor` (an evolved carrier would be TRAINED)
+and in R1's head-count (it would be COUNTED as a fighter).
+**WHAT.** `_is_ch24_carrier(mon, carrier)` in `pokemon_league.py`: the same PID, and the recorded species or an evolution
+of it. Both sites use it. `POKEBOT_R20_FAULT_SWAPEXACT` makes it exact again.
+**PROOF.** Gate `probe_r20_flybox.py` F3: an evolved carrier (Wingull → Pelipper) is still not a trainee; an unrelated
+species on its PID is; SWAPEXACT and "the carrier exclusion removed" each FAIL F3. The ordinary R1 path (no swap) was
+re-driven: `--driver restock RS_CASE=full` PASS (evidence `2026-09-27-swapevo-carrier-RS4-full-regression.*`). Quick
+suite: all 100 enforcing PASS. Committed BEFORE its review (`6720f25f`), per `08` 2026-09-27. Adversarial review: PASS (the ordinary path is identical at both sites; a carrier can never share a PID with a fighter, because Nincada, Ninjask and Shedinja cannot learn HM02, checked in the species data).
+Not driven: an actual carrier evolution (pure-gated only).

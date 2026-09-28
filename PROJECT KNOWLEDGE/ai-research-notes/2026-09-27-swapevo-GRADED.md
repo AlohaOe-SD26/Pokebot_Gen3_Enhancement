@@ -33,9 +33,18 @@ fix restores; the old exact test refuses. `wrongline` shows the check is still a
    file. The gate's wiring check went red and exposed it. The fix was re-applied (the diff is exactly the two original
    hunks), and the decisive pair (`evolved`, `evolved` + SWAPEXACT) was re-driven on the restored code: see the `re-`
    evidence files and `07-CHANGELOG.md` 2026-09-27. `08-MISTAKES.md` records the rule: commit before a mutating review.
-Raised and not changed: the carrier's own key is still compared exactly (it is not trained, so it should not evolve;
-unaudited); `_same_or_evolved` has no fail-closed fallback for an unknown species name (both inputs come from the game's
-species table).
+Raised and not changed: `_same_or_evolved` has no fail-closed fallback for an unknown species name (both inputs come
+from the game's species table).
+
+## FOLLOW-UP — THE CARRIER'S OWN KEY (the review's other risk; FIXED the same evening)
+
+The Fly carrier sits in the party through §Ch24 training, and it evolves if it battles and levels. Its key was compared
+EXACTLY in two places: `ch24_trainees_below_floor` (so an evolved carrier would be TRAINED as a trainee) and R1's
+head-count (so it would be COUNTED as a fighter). Both now use `_is_ch24_carrier`: the same PID, and the recorded species
+or an evolution of it. An unrelated species on the carrier's PID is not the carrier. Gate F3 adds both cases, and
+`POKEBOT_R20_FAULT_SWAPEXACT` fails F3 too. It was committed BEFORE its review (the 08 rule from the revert above). The
+ordinary R1 path (no swap recorded) was re-driven: `--driver restock RS_CASE=full` PASS (evidence
+`2026-09-27-swapevo-carrier-RS4-full-regression.*`). Not driven live: an actual carrier evolution (pure-gated only).
 
 ## WHAT THIS DOES NOT SHOW
 
