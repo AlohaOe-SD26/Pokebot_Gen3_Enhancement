@@ -5021,11 +5021,23 @@ def _hm_hunting_grounds(item) -> list[tuple]:
         MapRSE.VICTORY_ROAD_B2F,
     }
 
+    #: ⛔ `#27-r101standstill` (2026-09-28): the hunt targets species from the LAND table, so its spin tile must roll LAND
+    #: encounters. Two kinds of row could never deliver: `ROUTE101 (9, 9)` was plain ground (the travel waypoint; 0
+    #: battles in 204 batch episodes), and three rows sit on OCEAN WATER (Routes 115, 118, 119), where only water
+    #: species appear. `tile_rolls_land_encounters` is None without a ROM, and then the row is KEPT (fail open, as the
+    #: `is_map_reachable` note above requires). `POKEBOT_R101_FAULT_OLDTILE=1` skips this filter (the fault arm).
+    import os as _os_r101
+
+    from modules.story.training_areas import tile_rolls_land_encounters
+
+    _filter_tiles = _os_r101.environ.get("POKEBOT_R101_FAULT_OLDTILE") != "1"
     grounds = []
     for map_enum, tile, _band in TRAINING_GRASS:
         if map_enum in _HM_HUNT_EXCLUDED:
             continue
         if tile is None:
+            continue
+        if _filter_tiles and tile_rolls_land_encounters(map_enum, tile) is False:
             continue
         try:
             enc = get_wild_encounters_for_map(*map_enum.value)
@@ -5118,6 +5130,22 @@ def ensure_hm_learner(item) -> Generator:
             raise BotModeError(f"Cannot hunt a {move.name} learner: no Poké Balls and no money to buy any.")
 
     yield from _navigate_riding_out(map_enum, tile)
+
+    # ‼ `#27-r101standstill` (2026-09-28): ASSERT, on arrival, that the tile under the player can roll a LAND encounter.
+    # Without it a bad tile spins silently until the 18k watchdog (204 batch episodes on ROUTE101 (9, 9)). A named raise
+    # turns a quiet standstill into a derail that says WHY. Reads the tile the player actually STANDS on (rule 7), not
+    # the table row; an unreadable tile keeps the old behaviour (spin), never a false alarm.
+    try:
+        _arr = get_map_data_for_current_position()
+        _land_ok = None if _arr is None else (bool(_arr.has_encounters) and not bool(_arr.is_surfable))
+        _arr_desc = "?" if _arr is None else f"{_arr.tile_type} at {tuple(get_player_avatar().local_coordinates)}"
+    except Exception:  # noqa: BLE001 - an unreadable tile keeps the old behaviour (spin); never a false alarm
+        _land_ok, _arr_desc = None, "?"
+    if _land_ok is False:
+        raise BotModeError(
+            f"Cannot hunt a {move.name} learner on {map_enum.name} {tile}: the tile under the player ({_arr_desc}) "
+            f"cannot roll a wild land encounter — fix its TRAINING_GRASS spin tile (#27-r101standstill)."
+        )
 
     from modules.pokemon import get_species_by_name
 

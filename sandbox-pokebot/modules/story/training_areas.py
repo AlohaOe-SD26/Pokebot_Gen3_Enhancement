@@ -73,9 +73,18 @@ from modules.map_data import MapRSE
 #   are far less distorted, which is why this table is land-only.
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 
+#: ⛔ `#27-r101standstill` (2026-09-28): this row read `(9, 9)`, the TRAVEL waypoint `travel_to_route103()` walks through,
+#: which is `MB_NORMAL` and can NEVER roll a wild encounter. Measured: 0 battles in 204 batch episodes of the Surf-learner
+#: hunt, each ended by the 18k watchdog (the hunt starts inside Wally's house, where every static path check fails and
+#: the fallback takes this first row). `(12, 10)` is Tall Grass in the same patch, two-way pathed to the waypoint and to
+#: both route ends (`ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md`). The travel legs keep `(9, 9)`: they
+#: hard-code it and never read this table. Gate: `probe_training_tiles.py`.
+#: `POKEBOT_R101_FAULT_OLDTILE=1` restores `(9, 9)` (the skip-the-fix arm; `early_game` also skips its tile filter).
+_R101_SPIN_TILE = (9, 9) if _os.environ.get("POKEBOT_R101_FAULT_OLDTILE") == "1" else (12, 10)
+
 # Areas with a VERIFIED spin tile — usable for area-appropriate training today.
 TRAINING_GRASS: list[tuple] = [
-    (MapRSE.ROUTE101, (9, 9), (2, 3)),   # tile used by travel_to_route103()
+    (MapRSE.ROUTE101, _R101_SPIN_TILE, (2, 3)),   # Tall Grass; NOT the (9, 9) travel waypoint
     (MapRSE.ROUTE102, (9, 2), (3, 5)),   # PETALBURG_TRAINING_GRASS (Ch12 Norman prep;
     # two-way swept from the Petalburg PC door (20,16), 2026-07-24 — hosts Lotad, a
     # Surf learner, which the 12c HM hunt needs reachable from Petalburg)
@@ -231,6 +240,22 @@ PENDING_GRASS: list[tuple] = [
     # exit chain-aware FIRST, then promote — and validate live, because this is
     # navigation code and this project's regressions live there.
 ]
+
+
+def tile_rolls_land_encounters(map_enum, tile) -> "bool | None":
+    """True when standing on `tile` of `map_enum` can roll a LAND wild encounter: the tile has the encounter flag and is
+    not surfable water. None when the map data cannot be read (no ROM context), so a caller can fail OPEN.
+
+    WHY (`#27-r101standstill`, 2026-09-28): a spin parked on a tile that cannot roll an encounter fails QUIETLY; it looks
+    healthy and trains or catches nothing (`victory_road.py` names this "the project's worst failure shape"). A water
+    tile rolls WATER encounters, never the land species a hunt targets from the land table."""
+    try:
+        from modules.map import get_map_data
+
+        d = get_map_data(map_enum, tuple(tile))
+        return bool(d.has_encounters) and not bool(d.is_surfable)
+    except Exception:  # noqa: BLE001 - unreadable map data: the caller decides (fail open)
+        return None
 
 
 def best_training_grass(mon_level: int, *, allow=None):

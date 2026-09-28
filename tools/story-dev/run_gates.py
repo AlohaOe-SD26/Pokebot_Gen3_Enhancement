@@ -266,6 +266,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ `#27-setballs` — every item name the story harness looks up is REAL (a cp1252 round trip once turned "Poké
     # Ball" into mojibake and `--set-balls` silently did nothing for two months), and `--set-balls` fails LOUDLY.
     ("probe_harness_item_names.py", False),
+    # ⛔ `#27-r101standstill` — every TRAINING_GRASS row and named spin tile can roll a LAND encounter (ROUTE101 (9, 9) was
+    # the travel waypoint: 204 batch hunts spun on it with 0 battles). ROM gate: tile types come from the map data.
+    ("probe_training_tiles.py", True),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

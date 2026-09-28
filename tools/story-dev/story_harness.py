@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor", "r101hunt"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1208,6 +1208,123 @@ class HmTestMode(BotMode):
         while True:
             context.emulator.press_button("B")
             yield
+
+
+class R101HuntMode(BotMode):
+    """`--driver r101hunt` — `#27-r101standstill`, on `norman_done.ss1` (PINNED; PETALBURG_CITY (7,6), badges 1-5,
+    RECEIVED_HM_SURF, party of 5 with NO Surf learner). Runs the REAL `early_game.ensure_hm_learner(HM03)`:
+      R101_ARM=indoor  (default) step Up through Wally's door (7,5) into (8,0) first, as every batch episode began;
+      R101_ARM=outdoor run it from Petalburg outdoors.
+    Readings (rule 7: what the code ACTS on): the `(map, tile)` actually passed to `_navigate_riding_out`; the map, tile
+    and tile type under the player when `_story_spin` starts; the battles during the spin; the exit (a slot, or the raised
+    text). The spin is bounded at 15,000 frames from its start (`R101_SPIN_BOUND`). ⛔ Not 20,000 (the pre-registered
+    figure): the harness's own `HANG CONFIRMED (20000 frames no progress)` stop kills the process first, so a 20,000
+    bound never closes and no verdict prints (measured on the first unfixed INDOOR run).
+    Predictions: `ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name():
+        return "R101Hunt"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryMode
+
+        if getattr(self, "_spin_f0", None) is not None:
+            self._spin_battles = getattr(self, "_spin_battles", 0) + 1
+        shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
+        return StoryMode.on_battle_started(shim, encounter)
+
+    def on_whiteout(self) -> bool:
+        self._whiteouts = getattr(self, "_whiteouts", 0) + 1
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.items import get_item_by_name
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+
+        TAG = "r101hunt"
+        ARM = _os.environ.get("R101_ARM", "indoor")
+        BOUND = int(_os.environ.get("R101_SPIN_BOUND", "15000"))
+        frame = lambda: context.emulator.get_frame_count()  # noqa: E731
+        R: dict = {"arm": ARM}
+        hm = get_item_by_name("HM03")
+        av = get_player_avatar()
+        R["start"] = (tuple(av.map_group_and_number), tuple(av.local_coordinates))
+        R["premise_no_learner"] = EG.hm_learner_slot(hm) is None
+        R["premise_party_room"] = len([m for m in get_party() if m is not None]) < 6
+        R["party"] = [f"{m.species.name}#{m.personality_value:08X}" for m in get_party() if m is not None]
+        log(f"[{TAG}] PRE {R}")
+        failure = None
+        orig_nav, orig_spin = EG._navigate_riding_out, EG._story_spin
+        try:
+            if ARM == "indoor":
+                yield from EG._pass_through_door((7, 5), MapRSE.PETALBURG_CITY.value)
+                for _ in range(240):  # let the warp fade settle; bounded
+                    if tuple(get_player_avatar().map_group_and_number) == (8, 0):
+                        break
+                    yield
+                yield from EG.wait_until_truly_controllable()
+            av = get_player_avatar()
+            R["hunt_from"] = (tuple(av.map_group_and_number), tuple(av.local_coordinates))
+            R["premise_indoor"] = R["hunt_from"][0] == (8, 0)
+
+            def nav(map_enum, tile, *a, **k):
+                R.setdefault("nav_calls", []).append((getattr(map_enum, "name", str(map_enum)), tuple(tile)))
+                return (yield from orig_nav(map_enum, tile, *a, **k))
+
+            def spin(stop, *a, **k):
+                pav = get_player_avatar()
+                here = (tuple(pav.map_group_and_number), tuple(pav.local_coordinates))
+                try:
+                    d = get_map_data(here[0], here[1])
+                    R["spin_tile"] = (here, d.tile_type, bool(d.has_encounters))
+                except Exception as err:  # noqa: BLE001 - the verdict records it
+                    R["spin_tile"] = (here, f"?{type(err).__name__}", None)
+                self._spin_f0 = frame()
+                self._spin_battles = 0
+
+                def bounded():
+                    if frame() - self._spin_f0 >= BOUND:
+                        R["spin_bound_hit"] = True
+                        return True
+                    return stop()
+
+                try:
+                    return (yield from orig_spin(bounded, *a, **k))
+                finally:
+                    R["spin_frames"] = frame() - self._spin_f0
+                    R["spin_battles"] = self._spin_battles
+
+            EG._navigate_riding_out, EG._story_spin = nav, spin
+            try:
+                slot = yield from EG.ensure_hm_learner(hm)
+                R["exit"] = f"slot {slot}"
+            except Exception as err:  # noqa: BLE001 - the raised text IS a reading (guard (c))
+                R["exit"] = f"{type(err).__name__}: {str(err)[:200]}"
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            EG._navigate_riding_out, EG._story_spin = orig_nav, orig_spin
+        R["arrival_frames_to_exit"] = R.get("spin_frames")
+        R["whiteouts"] = getattr(self, "_whiteouts", 0)
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        spin = R.get("spin_tile") or (None, None, None)
+        verdict = {
+            "premise_no_learner": R["premise_no_learner"], "premise_party_room": R["premise_party_room"],
+            "premise_indoor": R.get("premise_indoor") if ARM == "indoor" else None,
+            "ground": (R.get("nav_calls") or [None])[-1], "spin_tile_type": spin[1], "spin_tile_encounters": spin[2],
+            "spin_battles": R.get("spin_battles"), "spin_bound_hit": bool(R.get("spin_bound_hit")),
+            "exit": R.get("exit"), "failure": failure,
+        }
+        log(f"[{TAG}] VERDICT {verdict}")
+        context.set_manual_mode()
 
 
 class CaveTrainMode(BotMode):
@@ -28547,6 +28664,8 @@ for step in range(args.frames):
             context.bot_mode_instance = CaveTrainMode()
         elif args.driver == "hmtest":
             context.bot_mode_instance = HmTestMode()
+        elif args.driver == "r101hunt":
+            context.bot_mode_instance = R101HuntMode()
         elif args.driver == "faintrepro":
             context.bot_mode_instance = FaintReproMode()
         elif args.driver == "pokenavfaith":
