@@ -1,0 +1,41 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\rs\RS2-short-norestock.log
+[setup] loaded save state post_moveset.ss1; build=sandbox
+[run] starting faithful loop for up to 5000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> RestockMode.run   (state=OVERWORLD)
+[restock] PRE case=short expect=norestock {'start': ('(0, 8)', (18, 6)), 'stock_start': {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 30, 'Full Restore': 3, 'Full Heal': 8, 'Revive': 3}, 'money_start': 1741}
+[restock] INJECTED {'start': ('(0, 8)', (18, 6)), 'stock_start': {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 30, 'Full Restore': 3, 'Full Heal': 8, 'Revive': 3}, 'money_start': 1741, 'money_injected': 900000, 'stock_injected': {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 26, 'Full Restore': 1, 'Full Heal': 8, 'Revive': 2}, 'expected_to_buy': [('Hyper Potion', 4), ('Full Restore', 2), ('Revive', 1)], 'expected_cost': 12300, 'floor': 19}
+[restock] fixture RESTORED.
+[restock] R end = ('(0, 8)', (18, 6))
+[restock] R expected_cost = 12300
+[restock] R expected_to_buy = [('Hyper Potion', 4), ('Full Restore', 2), ('Revive', 1)]
+[restock] R floor = 19
+[restock] R money_end = 900000
+[restock] R money_injected = 900000
+[restock] R money_start = 1741
+[restock] R start = ('(0, 8)', (18, 6))
+[restock] R stock_end = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 26, 'Full Restore': 1, 'Full Heal': 8, 'Revive': 2}
+[restock] R stock_injected = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 26, 'Full Restore': 1, 'Full Heal': 8, 'Revive': 2}
+[restock] R stock_start = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1, 'Hyper Potion': 30, 'Full Restore': 3, 'Full Heal': 8, 'Revive': 3}
+[restock] REPORT readiness_refusal = ['League basket short: Hyper Potion 26/30, Full Restore 1/3, Revive 2/3']
+[restock] readings = [] failure=BotModeError: §Ch24 R1: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (18, 6) — League basket short: Hyper Potion 26/30, Full Restore 1/3, Revive 2/3. The gauntlet is one-way with no nurse, so this is decided BEFORE the guards are talked to (ENTERED_ELITE_FOUR is still False).
+[restock] conjuncts = {'no_read_error': True, 'no_whiteout': True, 'refused_on_the_basket': True, 'no_restock': True, 'money_unchanged': True, 'no_e1_ready': True}
+[restock] ACCEPTANCE: PASS (case=short expect=norestock)
+f65: CONTROLLER -> <none>   (state=OVERWORLD)
+f1062: SAVED stall state #1 to stalls/repro-ml-f1062.ss1 (bt='NICK got $4128 for winning!')
+f1362: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 8)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ExecuteMatchCall', 'Task_SpinPokenavIcon'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f1362:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f2295: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='NICK got $4128 for winning!' scripts=[] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[done] ran 5000 frames; final mode=Manual party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Swellow L48: Facade, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Strength, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 5002 get_party() recomputes, 17 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += restock 5002 recomputes (party_accounting_ledger.jsonl)

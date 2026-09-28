@@ -36360,3 +36360,45 @@ the `inner` wrapper.
 unbounded under the arm; the recovery block has no unbounded wait. The real whiteout-recovery path still passes
 (`--driver evgpcwedge` on `post_training.ss1`: PASS, 33,749 frames, the same count as the pre-change run on the same fixture (evidence `2026-09-27-ki107-evgp-regression.txt`)). ⚠ The ROOT CAUSE (F1, the stale flag) is NOT fixed.
 Suite 114 (110 enforcing + 4 advisory; `--quick` 101).
+
+## 2026-09-27 — `#24-restockleg` F1 (USER RULING 12): §Ch24 R1 RESTOCKS ONCE BEFORE IT REFUSES ON A SHORT BASKET (branch `wt/restock`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** Batch run P4r2 entered the Elite Four, beat Sidney and lost to Phoebe. Every re-entry was then refused at R1 on
+a short basket (Hyper Potion 26/30, Full Restore 1/3, Revive 2/3) that it could afford (₽12,300 needed, ₽13,636 held).
+Nothing restocked: §Ch23 leg 11 is latched off in §Ch24 (`ai-research-notes/2026-09-27-ch24-basket-restock-RECON.md`).
+
+**WHAT** (`sandbox-pokebot/modules/story/pokemon_league.py`):
+- `ch24_should_restock(reasons, on_eg_or_lobby)` (pure): True only when every reason is the basket's and the bot is on
+  Ever Grande or in the lobby. A level shortfall never shops. Arm `POKEBOT_CH24_FAULT_NORESTOCK`.
+- In `prepare_and_open_the_league`, before the refusal: `VR.stock_for_the_elite_four` once (§Ch23 leg 11's shop: buys
+  only the missing lines, RULING 16; refuses by name when cash plus sellables cannot cover them), then the bag is re-read
+  and R1 decided again with the same party size (`report["readiness_after_restock"]`). An unreadable bag or an
+  unrecorded party size refuses by name.
+- Driver `--driver restock` (`RS_CASE` short/poor/full, `RS_EXPECT` fix/norestock).
+
+**PROOF** (predictions `5480be7c`, filed first; `ai-research-notes/2026-09-27-restock-GRADED.md`). `post_moveset.ss1`,
+four arms, all as predicted:
+- short/fix: bought exactly [Hyper Potion 4, Full Restore 2, Revive 1], −₽12,300, R1 passed, `E1-INSIDE`;
+- short/NORESTOCK: R1 refused on the basket, nothing bought;
+- poor: the shop refused by name before walking, R1 refused, no spend;
+- full: no shop, R1 passed.
+RS1 and RS3 were re-driven on the final code: both PASS (evidence `2026-09-27-restock-RS{1,3}-*-final.*`).
+Gate `probe_ch24_restock.py` (5 fault arms). Suite 115 (111 enforcing + 4 advisory: all 111 PASS, run after G3's first narrowing; `--quick` 102: all 100 enforcing
+PASS, re-run after G3's final edit, and it contains both edited gates).
+**Review: adversarial KICK-BACK, fixed:**
+- (1) the gate's wiring check read the ORDER of substrings, and PASSED with the recompute deleted (the reviewer's
+  mutation). It now checks the data flow in the AST: the shop, then `stock` re-read, then `reasons` from that `stock`.
+  Two new fault arms delete the recompute and the re-read. `08-MISTAKES.md` 2026-09-27.
+- (2) the review request cited an earlier driver version's smoke test as the `poor` case; the graded evidence is RS3.
+- (3) a latent `r1_party_size or 0` default (a missing size would pass the level half) now refuses by name.
+- (4) found AFTER the review by the quick suite: `probe_ch24_r1_refusal.py` G3 ("the R1 block adds no yield") went
+  red, because the restock walks to the Mart. G3 was NARROWED, not removed. A yield is allowed only inside
+  `if ch24_should_restock(...)`, which is False for a ready party (now asserted). A new fault arm widens the guard to
+  `if reasons:` and must FAIL. The narrowing went back to the same reviewer, whose second pass proved a decoy guard
+  (`if ch24_should_restock([literal], True): yield`) inherited the name-only exemption. G3 now requires exactly ONE
+  branch fed the real `reasons`; two more fault arms (the decoy; a literal) must FAIL. A third pass found `reasons`
+  could be rebound to a forged basket reason before the guard (and `reasons = []` would disarm R1, which no gate had
+  ever checked). New G3b whitelists every STORE of `reasons` in the block (a fourth pass slipped a walrus and a tuple
+  unpack past a statement-kind list); 5 more fault arms (forge, disarm, append, walrus, tuple unpack) must FAIL. The
+  final form was not re-reviewed; aliasing (`r = reasons; r.append(…)`) is a known, unguarded gap.
+⚠ The real post-loss path (the guards moved, a whiteout respawn at (18,6)) is unmeasured until a batch runs the merge.

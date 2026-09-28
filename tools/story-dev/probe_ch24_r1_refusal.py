@@ -14,6 +14,13 @@ now raises there. What makes it worth anything is WHERE it sits, so that is what
       and before the guard talk (`press_button`) — `ENTERED_ELITE_FOUR` is permanent, so a refusal after
       the talk would be too late.
   G3  The R1 block adds NO `yield` ⇒ a READY party's trajectory is unchanged by construction (no frames).
+      ONE sanctioned exception (2026-09-27, `#24-restockleg` F1, USER RULING 12): the restock branch
+      `if ch24_should_restock(...)`, which walks to the League Mart and cannot run for a ready party
+      (`ch24_should_restock([], …)` is False, checked). EXACTLY ONE such branch, fed the real `reasons`. Fault arms
+      widen its guard, add a decoy guard, and feed it a literal; each must FAIL.
+  G3b `reasons` is never forged, emptied or mutated in the R1 block: every assignment is a `ch24_readiness_shortfall`
+      call or a non-empty fail-closed literal that is not a basket reason. Fault arms: a forged rebind, `reasons = []`,
+      an in-place append.
   G4  Both production arms are read where they claim (`NOTRAIN` in `train_for_league`, `NOREADY` in
       `prepare_and_open_the_league`), comments stripped so a MENTION cannot satisfy it; both registered.
 
@@ -128,16 +135,70 @@ def g2_g3(src: str, sink=None) -> None:
     first_move = min(moves) if moves else None
     check(first_move is not None and r_line < first_move,
           f"G2 R1 (line {r_line}) precedes the first door walk / warp / guard press (line {first_move})", sink)
-    # G3 — the statements from `left = ch24_trainees_below_floor(...)` through the R1 `if` add no yield.
+    # G3 — the statements from `left = ch24_trainees_below_floor(...)` through the R1 `if` add no yield, EXCEPT inside
+    # the `#24-restockleg` F1 branch (`if ch24_should_restock(...)`, USER RULING 12, 2026-09-27). That branch walks to
+    # the League Mart, and it cannot run for a READY party: `ch24_should_restock([], …)` is False (checked below). So a
+    # ready party's trajectory is still unchanged. Any yield OUTSIDE that exact branch FAILS.
     body = fn.body
     i_left = next(i for i, s in enumerate(body) if isinstance(s, ast.Assign)
                   and "ch24_trainees_below_floor" in (ast.get_source_segment(src, s) or "")
                   and any(getattr(t, "id", None) == "left" for t in s.targets))
     i_r1 = next(i for i, s in enumerate(body) if s.lineno <= r_line <= s.end_lineno)
+    restock_ifs = [n for s in body[i_left:i_r1 + 1] for n in ast.walk(s) if isinstance(n, ast.If)
+                   and isinstance(n.test, ast.Call) and getattr(n.test.func, "id", None) == "ch24_should_restock"]
+    # ⛔ The exemption is for ONE branch, guarded by the REAL `reasons` (second review, 2026-09-27: a decoy
+    # `if ch24_should_restock(["League basket short: FAKE"], True): yield` inherited it while a name-only match was used,
+    # and would run for a READY party). A second guard, or one not fed `reasons`, gets NO exemption and FAILS here.
+    exact = [n for n in restock_ifs if len(n.test.args) == 2 and not n.test.keywords
+             and isinstance(n.test.args[0], ast.Name) and n.test.args[0].id == "reasons"]
+    check(len(restock_ifs) == 1 and exact == restock_ifs,
+          f"G3 exactly ONE restock branch in the R1 block, guarded by `ch24_should_restock(reasons, …)` "
+          f"(found {len(restock_ifs)}, {len(exact)} fed `reasons`)", sink)
+    sanctioned = ({id(n) for st in exact[0].body for n in ast.walk(st)}
+                  if len(restock_ifs) == 1 and exact == restock_ifs else set())
     yields = [n.lineno for s in body[i_left:i_r1 + 1] for n in ast.walk(s)
-              if isinstance(n, (ast.Yield, ast.YieldFrom))]
-    check(not yields, f"G3 the R1 block (lines {body[i_left].lineno}-{body[i_r1].end_lineno}) adds no yield "
-          f"{yields or ''}", sink)
+              if isinstance(n, (ast.Yield, ast.YieldFrom)) and id(n) not in sanctioned]
+    check(not yields, f"G3 the R1 block (lines {body[i_left].lineno}-{body[i_r1].end_lineno}) adds no yield outside "
+          f"the RULING 12 restock branch {yields or ''}", sink)
+    check(PL.ch24_should_restock([], True) is False and PL.ch24_should_restock([], False) is False,
+          "G3 the restock branch cannot run for a READY party (`ch24_should_restock([], …)` is False)", sink)
+
+    # G3b — `reasons` can be neither FORGED nor DISARMED inside the R1 block (third review, 2026-09-27: rebinding
+    # `reasons = ["League basket short: FAKE"]` just before the restock guard passed every check; `reasons = []` would
+    # disarm R1 itself, and no gate looked). Every assignment is built ONLY from `ch24_readiness_shortfall(...)` calls and
+    # NON-EMPTY lists of string literals that are NOT basket reasons (the fail-closed refusals), joined by `x if c else y`;
+    # and nothing mutates `reasons` in place.
+    def _legit(v) -> bool:
+        if isinstance(v, ast.IfExp):
+            return _legit(v.body) and _legit(v.orelse)
+        if isinstance(v, ast.Call):
+            return getattr(v.func, "id", None) == "ch24_readiness_shortfall"
+        if isinstance(v, ast.List):
+            return bool(v.elts) and all(isinstance(e, ast.Constant) and isinstance(e.value, str)
+                                        and not e.value.startswith("League basket short") for e in v.elts)
+        return False
+
+    # ⛔ Check every STORE of the name, not a list of statement kinds (fourth review: a walrus `(reasons := …)` and a
+    # tuple-unpack `reasons, _ = …` both passed a statement-kind list). A store is legitimate ONLY as the sole target of a
+    # plain `reasons = <legit>`; everything else that binds, deletes or item-assigns `reasons` FAILS.
+    span = body[i_left:i_r1 + 1]
+    parent = {id(c): p for s in span for p in ast.walk(s) for c in ast.iter_child_nodes(p)}
+    bad = []
+    for s in span:
+        for n in ast.walk(s):
+            if isinstance(n, ast.Name) and n.id == "reasons" and isinstance(n.ctx, (ast.Store, ast.Del)):
+                p = parent.get(id(n))
+                if not (isinstance(p, ast.Assign) and p.targets == [n] and _legit(p.value)):
+                    bad.append(n.lineno)
+            elif (isinstance(n, ast.Subscript) and isinstance(n.ctx, (ast.Store, ast.Del))
+                  and getattr(n.value, "id", None) == "reasons"):
+                bad.append(n.lineno)
+            elif (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                  and getattr(n.func.value, "id", None) == "reasons"
+                  and n.func.attr in ("append", "extend", "insert", "clear", "pop", "remove")):
+                bad.append(n.lineno)
+    check(not bad, f"G3b `reasons` is only ever computed or a fail-closed refusal — never forged, emptied or mutated "
+          f"{bad or ''}", sink)
 
 
 def _strip_comments(src: str) -> str:
@@ -195,6 +256,39 @@ def main() -> int:
          src.replace("    report[\"readiness_refusal\"] = reasons\n",
                      "    yield\n    report[\"readiness_refusal\"] = reasons\n")),
         ("the refusal renamed (not found must FAIL, not pass)", src.replace(MARKER, "§Ch24 R1: renamed")),
+        # The G3 exemption must be NARROW: the restock's guard widened to any reason un-sanctions its yield.
+        ("the restock guard widened to `if reasons:`",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    if reasons:\n")),
+        # The second review's own mutation: a DECOY guard with literal arguments runs for a ready party.
+        ("a decoy `if ch24_should_restock([literal], True): yield` before the real branch",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    if ch24_should_restock([\"League basket short: FAKE\"], True):\n        yield\n"
+                     "    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n")),
+        ("the real guard fed a literal instead of `reasons`",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    if ch24_should_restock([\"League basket short: FAKE\"], True):\n")),
+        # The third review's own mutation, and its two siblings (G3b).
+        ("`reasons` rebound to a forged basket reason before the guard",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    reasons = [\"League basket short: FAKE\"]\n"
+                     "    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n")),
+        ("R1 disarmed by `reasons = []`",
+         src.replace("    report[\"readiness_refusal\"] = reasons\n",
+                     "    reasons = []\n    report[\"readiness_refusal\"] = reasons\n")),
+        ("a basket reason appended in place",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    reasons.append(\"League basket short: FAKE\")\n"
+                     "    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n")),
+        # The fourth review's two mutations.
+        ("a walrus rebind `(reasons := [forged])`",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    (reasons := [\"League basket short: FAKE\"])\n"
+                     "    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n")),
+        ("a tuple-unpack rebind `reasons, _ = [forged], None`",
+         src.replace("    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n",
+                     "    reasons, _decoy = [\"League basket short: FAKE\"], None\n"
+                     "    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):\n")),
     ):
         assert mutated != src, f"mutation '{label}' did not apply — update the gate"
         sink = []

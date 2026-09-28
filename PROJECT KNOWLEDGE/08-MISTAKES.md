@@ -22616,3 +22616,48 @@ into a round trip.
   written "after the errand" is lost exactly when the errand half-fails.
 - ⛔ **Never write a suite count into a doc without having just run the suite.** A count copied from the registry says
   nothing about whether the gates PASS.
+
+## 2026-09-27 — ⛔ A WIRING GATE CHECKED THE ORDER OF TEXT, SO DELETING THE LOAD-BEARING LINE STILL PASSED
+
+**Symptom** (the `#24-restockleg` F1 adversarial review, before commit): `probe_ch24_restock.py` R2 was meant to prove
+that R1 decides AGAIN after the restock. The reviewer deleted the recompute (`reasons = … ch24_readiness_shortfall(left,
+stock, …)`), leaving `report["readiness_after_restock"] = reasons` in place. The gate still PASSED. R1 would then have
+decided on the STALE, pre-restock reasons: a successful restock still refused, with the gate green.
+A second, smaller finding: the review request cited a 300-frame smoke test as "the `poor` case". It was an earlier
+driver version's `short` run, which printed its own FAIL.
+A third, found AFTER the review by the quick suite: an EXISTING gate went red. `probe_ch24_r1_refusal.py` G3 ("the R1
+block adds no yield") forbids exactly what the restock does, walking to the Mart. Only the item's own gate had been run
+before the review, so the reviewer judged a change whose suite was red.
+
+**Root cause:** R2 found five substrings in the unparsed function and checked their left-to-right order. Order proves
+the lines EXIST in sequence. It does not prove that the value one line computes is the value the next line uses. And the
+three built-in fault arms each removed a line whose substring R2 searched for, so none of them could expose the gap.
+
+**Fix:** R2 now also walks the AST of the restock `if` and requires, in order: the shop call; `stock` re-assigned from
+`bag_healing_stock()`; `reasons` re-assigned from `ch24_readiness_shortfall(left, stock, …)`; and
+`readiness_after_restock = reasons`. Two new fault arms delete the recompute (the reviewer's own mutation) and the bag
+re-read. Each must FAIL, and each does. The graded `poor` evidence is `RS3`, a run of the reviewed code. G3 was narrowed,
+not deleted, because its purpose (a READY party's trajectory is unchanged) still holds: a yield is allowed only inside
+`if ch24_should_restock(...)`, G3 asserts that predicate is False for a ready party (`[]`), and a new fault arm widens
+the guard to `if reasons:` and must FAIL. The narrowing went back to the same reviewer, whose second pass PROVED a hole
+in it: the exemption matched the callee's NAME, so a decoy `if ch24_should_restock(["…FAKE"], True): yield` inherited
+it and would run for a ready party. G3 now requires exactly ONE such branch, fed the real `reasons`; two more fault arms
+(the decoy; the guard fed a literal) must FAIL. A third pass found `reasons` itself could be rebound to a forged basket
+reason just before the guard, and a `reasons = []` would have disarmed R1 with every gate green since R1 shipped. New
+G3b: every assignment to `reasons` in the block is a `ch24_readiness_shortfall` call or a non-empty fail-closed literal
+that is not a basket reason, and nothing mutates it in place (fault arms: the forge, the disarm, an append). A fourth
+pass slipped a walrus `(reasons := …)` and a tuple unpack `reasons, _ = …` past a list of statement KINDS; G3b now checks
+every STORE of the name (only a plain single-target `reasons = <legit>` passes), with both as fault arms. That final form
+was not re-reviewed, and aliasing (`r = reasons; r.append(…)`) is a known, unguarded gap.
+
+**Prevention rules:**
+- ⛔ **Run the quick suite BEFORE the adversarial review, not after.** A change that turns an existing gate red has
+  crossed a rule someone wrote down on purpose. Reconcile it first, and show the reviewer the reconciliation.
+- ⛔ **A gate exemption must match the exact call the code takes, not a function name.** Pin the arguments, and require
+  exactly one such site. A name-only exemption is inherited by any decoy.
+- ⛔ **To guard a variable, check every STORE of its name (`ast.Name` with a Store/Del ctx), not a list of statement
+  kinds.** Each kind you enumerate leaves the next one open (walrus, tuple unpack, for-targets).
+- ⛔ **A wiring gate must check the DATA FLOW (which name feeds which call), not the order of text.** Then add a fault
+  arm that deletes each load-bearing statement WITHOUT deleting the text the gate searches for.
+- ⛔ **Cite as evidence only a run of the code under review, under its own printed case label.** A smoke test from an
+  earlier driver version is a debugging aid.

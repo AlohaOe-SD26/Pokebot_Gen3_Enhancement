@@ -7795,3 +7795,23 @@ real recovery path was re-driven (`--driver evgpcwedge`). They also cap a measur
 core loop every run goes through, and this project does not ship a core-loop change on a forensic reading alone.
 **Rejected:** a silent timeout (the derail branch's `wait_until_truly_controllable` returns silently). The run would
 continue into a battle menu and fail later under another name, which is how KI-107 hid in the first place.
+
+## 2026-09-27 — `#24-restockleg` F1 (USER RULING 12): R1 restocks ONCE, inside itself, only when the basket is its ONLY reason
+
+**Decision:** R1 in `prepare_and_open_the_league` runs §Ch23 leg 11's existing shop (`stock_for_the_elite_four`) once
+and decides again, when every reason is the basket's and the bot is on Ever Grande or in the lobby
+(`ch24_should_restock`). There is no separate §Ch24 restock leg with its own re-entry predicate.
+**Why:**
+- The measured failure (batch run P4r2) was R1 refusing five times on a basket it could afford. R1 already runs on
+  every re-entry, including after a loss, so restocking at R1 covers the post-loss case without a new predicate.
+- The shop already buys only the missing lines (RULING 16) and refuses by name when cash plus sellables cannot cover
+  them. Reusing it keeps one buy path for the whole game.
+- R1 decides again after the shop, so the RE-ENTRY GATE STAYS BAG + MONEY (the punch-list's rule: never health).
+**Rejected:**
+- Restocking alongside a level shortfall: R1 would still refuse on levels, so the purchase changes nothing now. The
+  next R1, after training, restocks anyway.
+- Restocking off Ever Grande/the lobby: no Mart is reachable from there without the return bridge.
+- A retry loop around the shop: an unaffordable basket stays unaffordable, and the chapter's own retry already
+  re-runs R1.
+**Not decided here:** the bag heal's order (it spends Full Restores before Hyper Potions; the recon's F2) and the PP
+problem (the League Mart sells no Ether/Elixir/Leppa).

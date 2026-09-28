@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -24303,6 +24303,152 @@ class FlyBoxMode(BotMode):
         context.set_manual_mode()
 
 
+class RestockMode(BotMode):
+    """`--driver restock` — `#24-restockleg` F1 (USER RULING 12): production `prepare_and_open_the_league` on
+    `post_moveset.ss1` (PINNED; EVER_GRANDE_CITY (18,6) after §Ch23 leg 11, the full League basket in the bag).
+
+    `RS_CASE`:
+      `short` (default) — the bag is rewritten to batch run P4r2's shortfall (Hyper Potion 26/30, Full Restore 1/3, Revive
+              2/3). Fix: R1's only reason is the basket ⇒ the League Mart restock buys exactly the missing lines
+              (₽12,300), R1 is decided again and passes (`E1-READY`), and the leg continues into the lobby.
+              With `POKEBOT_CH24_FAULT_NORESTOCK=1` (`RS_EXPECT=norestock`): R1 refuses on the basket, nothing is bought,
+              the money is unchanged.
+      `poor`  — the same shortfall with the fixture's own ₽1,741: the restock is TRIED and refuses by name (cash + the
+              sellable Nugget cannot cover ₽12,300), so R1 still refuses; nothing is bought.
+      `full`  — the untouched bag: R1 passes with NO restock (the ordinary path).
+    ⚠ The floor is set to the party's LOWEST level so the level half of R1 passes and no training runs: this drive tests
+    the basket half only. Graded on the report's readings, the bag and the money before/after.
+    Predictions: `ai-research-notes/2026-09-27-restock-PREDICTIONS.md`."""
+
+    @staticmethod
+    def name() -> str:
+        return "Restock"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[restock] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.debug_utilities import debug_give_max_coins_and_money, debug_write_item_bag
+        from modules.items import ItemSlot, get_item_bag, get_item_by_name
+        from modules.map_data import MapRSE
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player, get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+        from modules.story import pokemon_league as PL
+        from modules.story import victory_road as VR
+
+        TAG = "restock"
+        CASE = _os.environ.get("RS_CASE", "short")
+        EXPECT = _os.environ.get("RS_EXPECT", "fix")
+        if CASE not in ("short", "poor", "full") or EXPECT not in ("fix", "norestock"):
+            raise BotModeError(f"{TAG}: RS_CASE={CASE!r} / RS_EXPECT={EXPECT!r} not recognised")
+        SHORT = {"Hyper Potion": 26, "Full Restore": 1, "Revive": 2}
+        R: dict = {}
+        rep: dict = {}
+        failure = None
+        self._ch24_fly_swap = None
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+
+        def _where():
+            av = get_player_avatar()
+            return (str(av.map_group_and_number), tuple(av.local_coordinates))
+
+        try:
+            yield from EG.wait_until_truly_controllable()
+            R["start"] = _where()
+            R["stock_start"] = VR.bag_healing_stock()
+            R["money_start"] = get_player().money
+            full = all(R["stock_start"].get(n, 0) >= q for n, q in VR.LEAGUE_BASKET)
+            premise = R["start"] == (str(MapRSE.EVER_GRANDE_CITY.value), (18, 6)) and full
+            log(f"[{TAG}] PRE case={CASE} expect={EXPECT} {R}")
+            if not premise:
+                raise BotModeError(f"{TAG}: FIXTURE PREMISE FAILED ({R}) — not post_moveset with a full basket.")
+            if CASE == "short":
+                debug_give_max_coins_and_money()   # P4r2 held enough (₽13,636 vs ₽12,300); the fixture holds ₽1,741
+                yield from wait_for_n_frames(2)
+            if CASE in ("short", "poor"):
+                bag = get_item_bag()
+                items = [ItemSlot(s.item, SHORT.get(s.item.name, s.quantity)) for s in bag.items]
+                debug_write_item_bag(items, list(bag.key_items), list(bag.poke_balls), list(bag.tms_hms),
+                                     list(bag.berries))
+                yield from wait_for_n_frames(2)
+            R["money_injected"] = get_player().money
+            R["stock_injected"] = VR.bag_healing_stock()
+            R["expected_to_buy"] = [(n, q - R["stock_injected"].get(n, 0)) for n, q in VR.LEAGUE_BASKET
+                                    if R["stock_injected"].get(n, 0) < q]
+            R["expected_cost"] = sum(get_item_by_name(n).price * k for n, k in R["expected_to_buy"])
+            floor = min(m.level for m in get_party() if m is not None and not m.is_egg)
+            R["floor"] = floor
+            log(f"[{TAG}] INJECTED {R}")
+            R["finished"] = yield from EG._yield_bounded_by_frames(PL.prepare_and_open_the_league(rep, floor=floor),
+                                                                   200_000)
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            EG.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+        try:
+            R["end"] = _where()
+            R["money_end"] = get_player().money
+            R["stock_end"] = VR.bag_healing_stock()
+        except Exception as read_error:  # noqa: BLE001
+            EG.reraise_if_aborting(read_error)
+            R["read_error"] = repr(read_error)
+        finally:
+            try:
+                if _fixture_bytes:
+                    context.emulator.load_save_state(_fixture_bytes)
+                    log(f"[{TAG}] fixture RESTORED.")
+            except Exception as restore_error:  # noqa: BLE001
+                log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error}")
+
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        for k in ("restock", "restock_error", "readiness_refusal", "readiness_after_restock"):
+            if k in rep:
+                v = rep[k]
+                if isinstance(v, dict):
+                    v = {kk: vv for kk, vv in v.items() if kk != "readings"}
+                log(f"[{TAG}] REPORT {k} = {v!r}")
+        readings = sorted(rep.get("readings", set()))
+        log(f"[{TAG}] readings = {readings} failure={failure}")
+        spent = (R.get("money_injected") or 0) - (R.get("money_end") or 0)
+        full_end = all((R.get("stock_end") or {}).get(n, 0) >= q for n, q in VR.LEAGUE_BASKET)
+        base = {"no_read_error": "read_error" not in R, "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+        if CASE == "short" and EXPECT == "fix":
+            conj = {**base, "no_failure": failure is None,
+                    "restock_bought_the_missing_lines": sorted(tuple(x) for x in ((rep.get("restock") or {}).get("to_buy") or [])) == sorted(tuple(x) for x in R.get("expected_to_buy") or []),
+                    "money_drop_equals_cost": spent == R.get("expected_cost") and spent > 0,
+                    "basket_full_after": full_end,
+                    "r1_passed": "E1-READY" in readings and rep.get("readiness_after_restock") == [],
+                    "continued_into_the_lobby": "E1-INSIDE" in readings}
+        elif CASE == "poor":
+            conj = {**base, "refused_on_the_basket": failure is not None and "League basket short" in failure,
+                    "restock_tried_and_refused_by_name": "restock" in rep and "short by" in str(rep.get("restock_error")),
+                    "money_unchanged": spent == 0, "no_e1_ready": "E1-READY" not in readings}
+        elif CASE == "short":
+            conj = {**base, "refused_on_the_basket": failure is not None and "League basket short" in failure,
+                    "no_restock": "restock" not in rep, "money_unchanged": spent == 0,
+                    "no_e1_ready": "E1-READY" not in readings}
+        else:
+            conj = {**base, "no_failure": failure is None, "no_restock": "restock" not in rep,
+                    "money_unchanged": spent == 0, "r1_passed": "E1-READY" in readings}
+        log(f"[{TAG}] conjuncts = {conj}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if all(conj.values()) else 'FAIL'} (case={CASE} expect={EXPECT})")
+        context.set_manual_mode()
+
+
 class EarlyBasketMode(BotMode):
     """`--driver earlybasket` — USER RULING 18's purchase: §Ch22 L1 exactly (`heal_and_stock_before_the_gym`, then
     `enter_gym`), the same two calls the Juan chapter makes.
@@ -28596,6 +28742,8 @@ for step in range(args.frames):
             context.bot_mode_instance = CounterBoxMode()
         elif args.driver == "flybox":
             context.bot_mode_instance = FlyBoxMode()
+        elif args.driver == "restock":
+            context.bot_mode_instance = RestockMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

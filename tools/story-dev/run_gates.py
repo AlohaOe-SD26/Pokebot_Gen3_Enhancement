@@ -286,6 +286,9 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ KI-107 F3+F4 — the whiteout recovery's waits are BOUNDED (a stale whiteout flag + a battle menu idled a run 6.27M
     # frames), the KI-47 park is logged, and dumps follow the `inner` generator. 3 fault arms.
     ("probe_ki107_bounded.py", False),
+    # ⛔ `#24-restockleg` F1 (USER RULING 12) — a basket-ONLY R1 refusal restocks once at §Ch23 leg 11's shop, then R1 is
+    # decided again, before the refusal can raise; a level shortfall never shops. 3 fault arms.
+    ("probe_ch24_restock.py", False),
     # ⛔ §Ch23 leg 5 must NOT re-fire from the League plateau on a re-entry (it aimed at an unreachable apron), and
     # MUST still fire from the south, incl. the Wally-beaten south-PC respawn. The REENTRY arm restores the bug.
     ("probe_ch23_leg5_reentry.py", True),

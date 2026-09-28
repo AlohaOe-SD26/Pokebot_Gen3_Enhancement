@@ -1696,6 +1696,16 @@ def ch24_readiness_shortfall(below: list, stock: dict, *, party_size: int, floor
     return reasons
 
 
+def ch24_should_restock(reasons, on_eg_or_lobby: bool) -> bool:
+    """PURE. `#24-restockleg` F1 (USER RULING 12, "Restock, then retry"): restock only when the League basket is R1's
+    ONLY reason, only where the Mart is reachable (Ever Grande or the lobby), and not under
+    `POKEBOT_CH24_FAULT_NORESTOCK=1`. A level shortfall is never "fixed" by shopping."""
+    import os as _os_rs
+
+    return (bool(reasons) and all(str(r).startswith("League basket short") for r in reasons) and bool(on_eg_or_lobby)
+            and _os_rs.environ.get("POKEBOT_CH24_FAULT_NORESTOCK") != "1")
+
+
 def _ch24_slot_of(pid: int) -> "int | None":
     """Current slot of a PID, or None. ‼ Re-read every time: rotations move mōn."""
     from modules.pokemon_party import get_party
@@ -2804,8 +2814,41 @@ def prepare_and_open_the_league(report=None, *, floor: int = CH24_LEVEL_FLOOR) -
         else:
             reasons = ch24_readiness_shortfall(left, stock, party_size=party_size, floor=floor)
         report["r1_party_size"] = party_size
-    report["readiness_refusal"] = reasons
     import os as _os
+
+    # ---- `#24-restockleg` F1 — USER RULING 12 ("Restock, then retry") -------------------------------------------------
+    # ⭐ WHY (2026-09-27, `ai-research-notes/2026-09-27-ch24-basket-restock-RECON.md`): batch run P4r2 entered the Elite
+    # Four, beat Sidney and lost to Phoebe. Every re-entry was then refused HERE on a short basket, though the ₽12,300 gap
+    # was affordable and the lobby Mart sells all four lines. Nothing restocked: §Ch23 leg 11 is latched off in §Ch24.
+    # ⇒ When the basket is R1's ONLY reason and we stand on Ever Grande or in the lobby, run leg 11's own shop ONCE (it
+    # buys only what is MISSING, RULING 16; it refuses by name when cash + sellable items cannot cover it; it ends back
+    # on Ever Grande), then decide R1 again. A level shortfall is never "fixed" by shopping, and an unaffordable basket
+    # still refuses. `POKEBOT_CH24_FAULT_NORESTOCK=1` skips it (the old behaviour).
+    if ch24_should_restock(reasons, VR._on_map(VR.EG) or VR._on_map(VR.LEAGUE_1F)):
+        restock: dict = {}
+        report["restock"] = restock
+        console.print(f"[cyan]§Ch24 R1: the basket is short ({'; '.join(reasons)}) — restocking at the League Mart "
+                      f"once (RULING 12), then deciding again.[/]")
+        try:
+            yield from VR.stock_for_the_elite_four(restock)
+        except BotModeError as error:
+            reraise_if_aborting(error)
+            report["restock_error"] = str(error)[:300]
+            console.print(f"[yellow]§Ch24 R1: the restock did not complete — {str(error)[:200]}[/]")
+        try:
+            stock = VR.bag_healing_stock()
+        except Exception as error:  # noqa: BLE001 - an unreadable bag must REFUSE (fail closed), never pass
+            reraise_if_aborting(error)
+            stock = None
+        # ⛔ The SAME party size the first decision used. Unrecorded ⇒ refuse by name: a `… or 0` default would make
+        # `min(4, 0)` pass the level half (review 2026-09-27; unreachable today, since only a basket-only refusal shops).
+        r1_size = report.get("r1_party_size")
+        reasons = (["the bag could not be read after the restock, so the League basket is unverified"] if stock is None
+                   else ["the party size was not recorded, so R1 cannot be decided again after the restock"]
+                   if r1_size is None
+                   else ch24_readiness_shortfall(left, stock, party_size=r1_size, floor=floor))
+        report["readiness_after_restock"] = reasons
+    report["readiness_refusal"] = reasons
 
     # ⛔ FAULT ARM `POKEBOT_CH24_FAULT_NOREADY=1` — the SKIP-THE-FIX arm: R1 is disarmed, so a
     # below-floor party must walk in and open the door. Proves R1 is what stops it.

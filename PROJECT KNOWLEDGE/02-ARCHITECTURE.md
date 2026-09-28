@@ -248,7 +248,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 114 entries = 110 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 115 entries = 111 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 13 SLOW (ROM) gates (counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.
@@ -527,7 +527,12 @@ done
   or a `LEAGUE_BASKET` line is short
   (pure decision `ch24_readiness_shortfall`; gate `probe_ch24_r1_refusal.py`; arms
   `POKEBOT_CH24_FAULT_NOTRAIN` / `POKEBOT_CH24_FAULT_NOREADY`) — until then it only recorded the
-  shortfall and walked in anyway. ⭐ **Then its RETURN BRIDGE (`return_to_league_door`, gap 2)** gets a ready
+  shortfall and walked in anyway. ⭐ **R1 RESTOCKS BEFORE IT REFUSES (`#24-restockleg` F1, USER RULING 12,
+  2026-09-27):** when the basket is R1's ONLY reason and the bot is on Ever Grande or in the lobby
+  (pure `ch24_should_restock`), it runs §Ch23 leg 11's own shop once (`VR.stock_for_the_elite_four`: buys only the
+  missing lines, refuses by name when cash plus sellables cannot cover them) and decides R1 again
+  (`report["readiness_after_restock"]`). A level shortfall never shops. Gate `probe_ch24_restock.py`; arm
+  `POKEBOT_CH24_FAULT_NORESTOCK`. ⭐ **Then its RETURN BRIDGE (`return_to_league_door`, gap 2)** gets a ready
   party from wherever training ended back to EVER_GRANDE_CITY (18,6): no-op in the lobby / on (18,6); WALK
   when the plateau connects (avoiding the (18,27) return trap); else step out of Victory Road, check Fly's
   preconditions BY NAME, fly to the Pokémon League and ASSERT THE TILE (`fly_to_destination` accepts any
