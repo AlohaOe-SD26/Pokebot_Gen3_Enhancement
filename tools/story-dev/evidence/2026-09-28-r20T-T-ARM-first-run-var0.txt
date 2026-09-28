@@ -1,0 +1,21 @@
+# OBSERVATION (not the graded arm): the first T run exported POKEBOT_R20_FAULT_NOCATCHEND=0 (a runner choice), so its env-all line
+# names that variable and does not match P5's pre-registered text. It was re-run with nothing set (…-T-ARM.txt, graded).
+# Otherwise identical: the grader PASSES it too.
+  [CATCH] start=2 end=2  [BALLS]=19  [BATTLE]=24
+  ok   PAIR every start has exactly one end (0 start(s) without end, 0 orphan end(s))
+  ok   DEST dex Oddish#43 f3209102->f3211292: dest=box is party|box
+  ok   THROWN dex Oddish#43 f3209102->f3211292: thrown=1 vs [BALLS] net drop 1
+  ok   DEST dex Linoone#264 f3216729->f3224789: dest=box is party|box
+  ok   THROWN dex Linoone#264 f3216729->f3224789: thrown=6 vs [BALLS] net drop 6
+  ok   HB every [hb] carries box= and badges= (24 heartbeat(s))
+  ok   ENVALL the run header has an `env-all:` line
+  ok   REPLAY every [BATTLE] start/end identical to the control (24 lines)
+
+PASS — the catch telemetry is paired, honest against the bag, and changed no battle
+## grader exit=0
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_FAULT_NOCATCHEND': '0'}
+f3209102 [CATCH] start kind=dex sp=Oddish#43 lv=26 attempt=1 badges=6 party=6/6 box=0 spare=17 exp_throws=3.0 map=0,36
+f3211292 [CATCH] end kind=dex sp=Oddish#43 end=caught res=Caught thrown=1 frames=2190 dest=box pid=C46E5C99 party=6/6 box=1 spare=16 badges=6 bail=-
+f3216729 [CATCH] start kind=dex sp=Linoone#264 lv=26 attempt=1 badges=6 party=6/6 box=1 spare=16 exp_throws=8.1 map=0,33
+f3224789 [CATCH] end kind=dex sp=Linoone#264 end=caught res=Caught thrown=6 frames=8060 dest=box pid=36E8B060 party=6/6 box=2 spare=10 badges=6 bail=-
