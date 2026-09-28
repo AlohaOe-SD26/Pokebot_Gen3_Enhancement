@@ -36530,3 +36530,38 @@ pre-scan; (3) the v3 confirmation: PowerShell script blocks (`ForEach-Object { g
 commit messages, 691 real branch/tag checkouts and 61 multi-line scripts; ~85 ms per call.
 **Not done here:** the older hooks' escape hatch and their PowerShell parser weaknesses (`#27-hookhatch`, a user
 decision in part).
+
+## 2026-09-28 — KI-47's FAINT-CHOOSER WEDGE IS FIXED: THE CHOOSER NOW DECIDES BY IDENTITY, NOT BY INDEX CONVERSION (`#27-ki47range`)
+
+**WHY.** Batch `#27-batch0927`: every faint-chooser (KI-47-shaped) wedge followed an out-of-range `[orders DIVERGE]` at
+party 4 (4 of 7 such lines wedged, 0 of 1,128 in-range ones), and all 4 runs ended at 2 badges.
+**THE MECHANISM (reproduced; predictions committed first, `b11f327f` + addendum `da891426`):**
+- `handle_fainted_pokemon` mapped indexes through `gBattlePartyCurrentOrder` as snapshotted at entry. After an ENEMY
+  send-out that global holds the ENEMY's order: `SwitchPartyOrder` has no side check (decomp, a NOTE).
+- Its recovery sweep then mapped slots that were ALREADY menu order a second time (KI-34's premise was wrong: the menu
+  has permuted `gPlayerParty` by then). At party 4 that yields slots 4/5, which the cursor cannot reach; the refusal
+  fallback fires only on an EMPTY set, so the loop pressed Down until the 3,000-frame KI-47 watchdog.
+**WHAT.**
+- `modules/faint_chooser.py` (NEW, pure): `mon_identity` = (PID, species index); `faint_chooser_plan` returns the
+  chosen mon's menu slot and the candidates (living, non-egg, identity not on the field), all in menu order.
+- `battle_handler.handle_fainted_pokemon`: records the chosen identity, targets its menu slot once the menu is open,
+  excludes on-field mons by identity, and uses the candidates as read. The old three conversions run only under
+  `POKEBOT_KI47_FAULT_STALEMAP=1` (registered in 29). The Step 0 lines became `[FAINT-CHOOSER] identity: ...` and
+  `[FAINT-CHOOSER] A at cursor=...` (rule 7).
+- Gate `probe_faint_chooser_identity.py` (registered; the suite is 117): a pure plan table and AST wiring (every
+  conversion inside `if _stalemap:`), five non-vacuous fault arms and a false-positive arm.
+- `repro_faint_chooser_index_space.py`: marked partly SUPERSEDED; it no longer asserts the refuted premise.
+**PROOF (`--driver ki47oor`, `r20_pregym1_party4_r116.ss1`; graded note `ai-research-notes/2026-09-28-ki47range-GRADED.md`):**
+| Arm | Unfixed | Fixed `1dc3a8f3` | Fixed + STALEMAP |
+|---|---|---|---|
+| C0 | 148 frames, chosen sent | 148 frames, chosen sent (no regression) | — |
+| Wid | = C0 | = C0 | — |
+| Foor (stale `104523`) | **FROZE** 3,045 frames, `[0,4,5]` | **148 frames, chosen sent** | **FROZE** 3,045 (identical) |
+| Finr (`021345`) | chosen sent | chosen sent | — |
+| Swp (natural `210345`) | **Poochyena sent, not the chosen Whismur** | **Whismur sent** (menu slot 2, field slot 0) | Poochyena again |
+| ki66faint (Steven multi) | (2026-08-17: Mightyena nominated, Swellow sent) | chosen sent on both faints, battle **Won** | — |
+**The driver's first four runs were VOID.** The injection never reached the handler: a per-frame cache, and
+`BattleState.__eq__` omitting the order. Its first premise check read the wrong object (`08`). A second finding, not
+fixed here, is `#27-battleeq`: the state cache can serve a stale party order to any second reader in a frame.
+**Superseded:** the `#24-faintchooser-fourthspace` closure (`06`). Its "residual" (Mightyena nominated, Swellow sent)
+was this bug.

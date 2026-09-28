@@ -358,11 +358,15 @@ as "the lesson from bug X" does not fire when you are building Y.
    more samples of the exotic one.
 10. ⛔ **WHEN A FIX IS A COORDINATE CONVERSION, MEASURE ITS DIRECTION FIRST** (added 2026-08-17).
    Run an OBSERVE-ONLY probe printing both coordinates beside a ground truth derived independently,
-   *then* apply it. Never reason it out from a docstring: `handle_fainted_pokemon` has now had
-   **three** index-space bugs (KI-18, KI-34, KI-66); a fourth was filed as
-   `#24-faintchooser-fourthspace` and CLOSED 2026-08-17 — ⛔ do not reopen it, and do not copy
-   "a fourth is filed" out of here again (that stale clause was imported into the punch list on
-   2026-09-11 and caught by `probe_closed_item_refs.py`). The RULE below is unaffected. A backwards conversion is worse than the bug it replaces.
+   *then* apply it. Never reason it out from a docstring: `handle_fainted_pokemon` had **four**
+   index-space bugs (KI-18, KI-34, KI-66, and KI-47's faint-chooser wedge, fixed 2026-09-28 by
+   `#27-ki47range`). The fourth is the double map that `#24-faintchooser-fourthspace` had closed as
+   "inert" on 2026-08-17 on a check that held by construction; that closure is superseded in `06`.
+   ✅ **That function no longer converts at all:** it decides by IDENTITY, `(PID, species)`
+   (`modules/faint_chooser.py`), and `probe_faint_chooser_identity.py` confines every conversion to
+   a fault arm. ⛔ Do not reintroduce a conversion there. **Where a conversion must survive, prefer
+   identity over position** (rule 3), and otherwise this rule stands unchanged (the KI-96 and KI-101
+   paths still convert; see KI-108). A backwards conversion is worse than the bug it replaces.
 11. ⛔ **BEFORE ESCALATING ANYTHING TO THE USER, `grep -i` `06-DECISIONS-LOG.md` FIRST** (added
    2026-08-23). That file exists so a question never has to be asked TWICE, and it is NOT in the
    session-start reading set — so it gets written to and never read from. *Cost of learning this: an

@@ -7852,3 +7852,49 @@ mentions. The escape hatch is a LIVE `POKEBOT_ALLOW_DESTRUCTIVE_GIT=1` prefix on
   message offers `git switch`).
 - A sandbox-grade parser: the hook is a seat belt against habit. Deliberate evasion (splatting, `eval`, interpreters
   that shell out, GIT_* redirection, unicode look-alike whitespace) is listed as a known limit.
+
+## 2026-09-28 — The after-faint chooser decides by IDENTITY (PID + species); every index conversion is confined to a fault arm (`#27-ki47range`, KI-47)
+
+**Decision:** `handle_fainted_pokemon` records WHO the strategy chose, `(personality value, species index)`, and once
+the in-battle menu is open finds that identity in `get_party()`. The sweep's candidates are the menu slots of living
+non-egg mons whose identity is not on the field. The pure logic lives in `modules/faint_chooser.py`. The three old
+conversions (the primary map through the entry snapshot, the KI-66 on-field map, KI-34's second map) run ONLY under
+`POKEBOT_KI47_FAULT_STALEMAP=1`, and `probe_faint_chooser_identity.py` W1 fails if a conversion appears outside it.
+**Why:**
+- This function had FOUR index-space bugs (KI-18, KI-34, KI-66, KI-47). Each fix corrected one conversion and left
+  the class alive. Identity removes the class: no order is consulted, so a stale or foreign
+  `gBattlePartyCurrentOrder` cannot matter (CLAUDE.md rule 3).
+- The premise that makes identity work is checked three ways:
+  - the decomp (a NOTE: `OpenPartyMenuInBattle` calls `UpdatePartyToBattleOrder()` synchronously, so `gPlayerParty[i]`
+    IS menu slot i while the menu is open);
+  - KI-66's own measurement;
+  - LIVE, by the fixed `Swp` arm (a natural non-identity order).
+- Species is in the key because a Shedinja is a byte copy of its Nincada (`CreateShedinja`), so a Ninjask and its
+  Shedinja share a PID and OT ID, and the story party carries a Nincada.
+**Rejected:**
+- The PRE-REGISTERED fix (b), "map the primary index through a FRESH `get_battle_state()`": UNSOUND.
+  `BattleState.__eq__` omits the order, so a second call in a frame can return a stale-order object. Measured: the
+  handler read `012345` while memory held `104523`.
+- A raw `read_symbol` of the order at menu-open: correct today, but it keeps the conversion class alive, and that class
+  has cost four bugs.
+- Fixing `BattleState.__eq__` inside this item: it changes the inputs of the KI-96 swap, KI-101 item-target and
+  move-replacement paths, and each needs its own A/B. Filed separately as `#27-battleeq`.
+- A range guard ("drop candidates >= len(party)"), the registered part (c): candidates now come from
+  `enumerate(party_in_menu)`, so it could never fire, and a guard that cannot fire is decoration.
+
+## 2026-09-28 — The `#24-faintchooser-fourthspace` closure (2026-08-17) is SUPERSEDED by measured evidence
+
+**Decision:** the closure's *"inert in behaviour. ⛔ DO NOT FIX IT, and do not re-commission the probe"* no longer
+stands. The current-state text in `05` says so wherever it appears.
+**Why:**
+- RULE 11 WAS CHECKED FIRST. This log holds no USER ruling on the item. The closure was an agent's probe, n = 1, with
+  stated limits.
+- Its acceptance clause (*"the accepted cursor is in `alive_slots_menu`"*) holds by construction.
+- The consequence it filed as a "residual" (Mightyena nominated, Swellow sent) was measured on 2026-09-28 as the bug:
+  - arm `Swp` (a natural order after one switch): the WRONG mon sent;
+  - arm `Foor` (the enemy's order): the chooser FROZE, which is the shape of the 4 faint-chooser wedges in batch
+    `#27-batch0927`.
+  - Evidence: `ai-research-notes/2026-09-28-ki47range-GRADED.md`.
+- This is NOT a re-run of the old probe on the old evidence, which is what "do not re-commission" guarded against.
+**Rejected:** leaving the closure text as it was. A current-state "DO NOT FIX IT" next to the fix is exactly what a
+future agent would cite to revert it.

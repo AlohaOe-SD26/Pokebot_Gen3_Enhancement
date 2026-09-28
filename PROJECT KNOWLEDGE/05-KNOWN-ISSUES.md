@@ -675,7 +675,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 index-space diagnosis tables, and the A/B that proved the fix) moved VERBATIM to
 `28-HANDOFF-ARCHIVE.md` to keep this file under its `lint_docs` R3 budget after `KI-91` and
 `KI-92` were filed. ⛔ **Nothing was deleted and nothing changed status** — KI-34 remains FIXED
-(2026-07-30), and `battle_handler.py:676-680` / `:683` still carry the mapping.
+(2026-07-30); its mapping now runs ONLY under the fault arm `POKEBOT_KI47_FAULT_STALEMAP` (2026-09-28: its premise was wrong, `#27-ki47range`).
 ⭐ **WHY IT IS WORTH RE-READING RATHER THAN FORGETTING:** its shape — a candidate filter and the
 game disagreeing about which INDEX SPACE they are in — has recurred three more times since
 (`KI-18`, `KI-66`, and `#24-faintchooser-fourthspace`). ⇒ read the archived tables before
@@ -831,7 +831,19 @@ together (pair P2), and retiring a body is still editing it.
 
 Full entry in `28-HANDOFF-ARCHIVE.md`. Closed over a month; moved for the R3 line budget. ‼ Kept as a pointer because it is the ANCESTOR of `KI-47`, `KI-93` and `KI-96` — the same class of unbounded battle-menu loop, and the first one this project paid for.
 
-## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED)
+## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED) — 🔶 **MIXED: its FAINT-CHOOSER member is ✅ FIXED AND A/B-PROVEN 2026-09-28 (`#27-ki47range`); the class and its other members stay OPEN**
+
+> ✅✅ **2026-09-28 — THE FAINT-CHOOSER WEDGE (the batch's 4 run-enders at 2 badges) IS FIXED, BY IDENTITY.** Mechanism,
+> reproduced with `--driver ki47oor` (predictions committed first): `handle_fainted_pokemon` mapped indexes through its
+> ENTRY snapshot of `gBattlePartyCurrentOrder`, which after an ENEMY send-out holds the ENEMY's order
+> (`SwitchPartyOrder` has no side check), and its sweep then converted menu slots a SECOND time (KI-34's premise was
+> wrong: the menu has already permuted `gPlayerParty`). At party 4 that targets slots 4/5, unreachable, so it pressed
+> Down to the watchdog (unfixed `Foor`: 3,045 frames). With a NATURAL order after one switch it sent the WRONG mon
+> (`Swp`). The chooser now records WHO was chosen, `(PID, species)`, and finds it in the menu-order party
+> (`modules/faint_chooser.py`). Fixed: `Foor` 148 frames, `Swp` the chosen mon, C0 unchanged; the fault arm
+> `POKEBOT_KI47_FAULT_STALEMAP=1` brings both bugs back exactly. Gate `probe_faint_chooser_identity.py`. Graded:
+> `ai-research-notes/2026-09-28-ki47range-GRADED.md`. ⚠ OPEN IN THIS CLASS: the RotateLead refusal below
+> (`#24-ki47rotatelead`), and KI-108 (the state cache can serve a stale order to other readers).
 
 > ⭐⭐ **2026-09-03 — THIS CLASS NOW HAS A DETERMINISTIC, ~22,000-FRAME REPRODUCTION.** It has only
 > ever been seen opportunistically, in batches, at a cost of *"a whole lane"* per hit. One command:
@@ -1851,9 +1863,9 @@ DRIVEN question**. This probe answers "do we have it", never "can we get there".
 at all (only their own puzzle flags), which would mean the tombs are solvable without the Sealed
 Chamber. That contradicts common knowledge — **sequence the Sealed Chamber first regardless.**
 
-## KI-66 — the multi-battle hazard is BROADER than the faint chooser — 🔶 **PARTLY FIXED 2026-08-17 (DRIVEN); the residual is tracked as `#24-faintchooser-fourthspace`.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
+## KI-66 — the multi-battle hazard is BROADER than the faint chooser — 🔶 **PARTLY FIXED 2026-08-17 (DRIVEN); its index-space residual (`#24-faintchooser-fourthspace`, closed "inert" 2026-08-17) was REAL and is ✅ FIXED 2026-09-28 by `#27-ki47range` (identity chooser); the OWNER filter is still OPEN.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
-**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. 🔶 Still PARTLY FIXED; the residual is `#24-faintchooser-fourthspace`. ⛔ Archived for the R3 budget only — NOT a closure. ⭐ Re-read its index-space diagnosis before touching `handle_fainted_pokemon`: that shape has now recurred four times.
+**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. 🔶 Still PARTLY FIXED; the index-space residual `#24-faintchooser-fourthspace` is ✅ FIXED 2026-09-28 (`#27-ki47range`; the 2026-08-17 "inert" closure is superseded in `06`). ⛔ Archived for the R3 budget only — NOT a closure. ⭐ Re-read its index-space diagnosis before touching `handle_fainted_pokemon`: that shape has now recurred four times.
 ### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED
 
 ⛔ **Read this before writing a line.** A Tier 2 cold-start agent tried to BEGIN this item and
@@ -1985,7 +1997,7 @@ as the owner filter does. Tracked so it does not orphan, as `#24-faintchooser-fo
 ✅✅ **AND THAT PROBE RAN — ANSWERED 2026-08-17, `#24-faintchooser-fourthspace` IS CLOSED.
 NO FOURTH INDEX SPACE IS DEMONSTRATED: the last cursor the sweep read before the menu closed
 (**3**) IS in `alive_slots_menu` (**[1,3,4,5]**). The anomaly is REAL IN THE LOG and INERT IN
-BEHAVIOUR. ⛔ DO NOT "FIX" IT, and ⛔ do not re-commission the probe — it exists and it ran
+BEHAVIOUR. *(‼‼ SUPERSEDED 2026-09-28, `06`: that acceptance clause was true BY CONSTRUCTION — the sweep presses A only on candidates — and the "residual" below it, Mightyena nominated / Swellow sent, WAS the bug: `#27-ki47range` measured the double map sending the wrong mon on a natural order and freezing the chooser on the enemy's order. It is FIXED by identity. Everything that follows in this block is HISTORY.)* ⛔ DO NOT "FIX" IT, and ⛔ do not re-commission the probe — it exists and it ran
 (commit `684d83a7`; the positive control on the pre-fix build, `cursor_reads=66, A-presses=239`,
 is what makes that zero trustworthy). ⚠ Limits: refusal count APPROXIMATE, n=1 diverging faint.**
 *(‖ This block read "it needs its own probe" for a day AFTER that probe had run and been
@@ -3045,3 +3057,30 @@ Fix candidates:
 - `battle_handler` logs `KI-47 PARK`, and dumps follow the `inner` generator.
 - ⚠ The ROOT CAUSE is not fixed: a whiteout that strikes during a heal walk that ignores the abort latch leaves
   `_whiteout_pending` stale (F1). Gate `probe_ki107_bounded.py`.
+
+## KI-108 — ⚠ OPEN (filed 2026-09-28; NOT fixed): `BattleState.__eq__` omits the party ORDER and the TURN, so a second `get_battle_state()` in a frame can return a STALE order (`#27-battleeq`)
+**Measured** (`#27-ki47range`, `--driver ki47oor`, `evidence/2026-09-28-ki47oor-VOID-injection.txt`): memory held
+`gBattlePartyCurrentOrder = 104523`; the driver's own `get_battle_state()` returned `104523`; the handler's call IN
+THE SAME FRAME returned `012345`.
+**Mechanism** (verified in-tree):
+- `get_battle_state()` (`battle_state.py`) returns the CACHED object when `age_in_frames == 0`. Otherwise it builds a
+  new object, assigns it to the cache, and returns the NEW object.
+- The cache setter (`state_cache.py`, `battle_state`) KEEPS THE OLD OBJECT when `old == new`, and `__eq__` compares 9
+  of the constructor's 11 fields: NOT `_battler_party_order`, NOT `_current_turn`.
+- ⇒ The FIRST call in a frame is fresh. Every LATER call in that frame gets the old object, which can persist across
+  frames until a compared field changes.
+- Upstream has the same code (pristine mirror).
+**Exposure** (from an agent audit, a NOTE; the load-bearing sites were re-read):
+- Acting readers that are correct ONLY because each happens to be the first caller in its frame:
+  - `battle_action_selection.py` ~:803 (the KI-96 swap re-map) and ~:1107 (the KI-101 item target; its comment
+    *"A FRESH read … re-reads `gBattlePartyCurrentOrder`"* is true only for a first caller);
+  - `battle_move_replacing.py` ~:149.
+- Anything that reads first in a frame (the audit names the GUI debug Battle tab) makes every one of them stale.
+- `current_turn` readers: e.g. `battle_strategies/lose_on_purpose.py:148` (Fake Out).
+- The same pattern, lower stakes: `EffectiveWildEncounterList.__eq__` omits the lead's level (web stream only).
+- ✅ The faint chooser no longer consumes the order (KI-47's fix, `modules/faint_chooser.py`), so it is immune.
+**Fix candidates** (the item's own A/B decides):
+- Add both fields to `__eq__`. This is a divergence from upstream, and it changes the inputs of the KI-96, KI-101 and
+  move-replacing paths, so it needs an A/B on the ORDINARY case.
+- Or bypass the cache at those sites with a pure read that never writes the cache.
+⛔ Ageing the cache entry is NOT a bypass: the setter still keeps the old object.

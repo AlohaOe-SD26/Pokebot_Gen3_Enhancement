@@ -22720,3 +22720,66 @@ A live probe (`git branch -d <nonexistent>`, `git add -A --dry-run`) was BLOCKED
 - ⛔ **In PowerShell, parenthesise EVERY condition that mixes `-and` and `-or`.** They have equal precedence.
 - ⛔ **Don't hand-parse shell text; and don't trust `shlex` comments either.** Strip comments yourself, only at a word
   start, keeping the newline.
+
+## 2026-09-28 — ⛔ A FAULT INJECTION THAT NEVER REACHED ITS SUBJECT READ AS A NULL RESULT, AND BOTH ITS CONTROL AND ITS FIRST PREMISE CHECK WERE BLIND TO IT
+
+**Symptom** (`#27-ki47range`, `--driver ki47oor`): all four pre-registered arms ran identically (148 frames, the chosen
+mon sent), INCLUDING `Foor`, the one arm built to freeze. The pre-registered falsifier said *"unfixed Foor resolves ⇒
+the mechanism is wrong; stop"*, so taking the run at face value would have REFUTED a true mechanism, the one behind 4
+batch wedges. The driver had written `104523` into `gBattlePartyCurrentOrder` and read it back; the handler's own
+`[KI47-OBS] snapshot` line read `012345`.
+
+**Root cause:** two layers of caching between the write and the subject:
+- `get_battle_state()` is cached PER FRAME, and the dispatcher's condition had already read it in the frame of the write.
+- After the entry was aged by one frame, `BattleState.__eq__` (which omits `_battler_party_order`, upstream too) made the
+  state cache's setter KEEP THE OLD OBJECT. The driver's re-read returned its freshly built local object (`104523`)
+  while the handler, same frame, received the cached old one (`012345`).
+Neither check could have caught it:
+- The faithfulness control `Wid` writes the TRUE order, which is indistinguishable from writing nothing.
+- The first premise conjunct `injection_reached_snapshot` read the driver's OWN object, a value BESIDE the action. It
+  printed True over a handler that saw nothing.
+
+**Fix:** the driver installs the re-read object into the cache directly, and the conjunct requires the CACHED object
+(what the handler receives) == the written order == `get_battle_state()`'s return in the same frame. Re-run: the
+handler logged `snapshot order=104523` and unfixed `Foor` froze exactly as pre-registered (685 Downs, 3,045 frames).
+Evidence: `evidence/2026-09-28-ki47oor-VOID-injection.txt`.
+
+**Prevention rules:**
+- ⛔ **Before grading ANY fault injection, confirm from the SUBJECT's own log line that it saw the injected value.** An
+  injector's read-back of its own write proves the write, not the injection.
+- ⛔ **A faithfulness control must be able to fail.** "Write the true value" cannot distinguish faithful from
+  ineffective; pair it with a conjunct, in the arms where written != natural, that the subject's reading equals the
+  write.
+- ⛔ **Rule 7 applies to checks too:** a premise conjunct reads what the subject ACTS on (here: the cached object), not
+  a value computed beside it.
+- ⛔ **A cached accessor after a memory write proves nothing until you know BOTH its age rule and its replacement rule**
+  (`state_cache` keeps the old object whenever `__eq__` says equal; `__eq__` may omit fields).
+
+## 2026-09-28 — ⛔ A PROBE CLOSED A REAL BUG AS "INERT" BECAUSE ITS ACCEPTANCE CLAUSE WAS TRUE BY CONSTRUCTION, AND FILED THE BUG'S ACTUAL CONSEQUENCE AS A "RESIDUAL"
+
+**Symptom:** `#24-faintchooser-fourthspace` (2026-08-17) suspected exactly this bug, the after-faint sweep converting
+menu slots a SECOND time. It graded *"the last cursor the sweep read IS in `alive_slots_menu`"*, got H0 and closed
+the item: *"real in the log, inert in behaviour. ⛔ DO NOT FIX IT."* Under *"RESIDUAL, UNPROVEN"* it recorded that the
+strategy nominated Mightyena and Swellow was sent: *"legal and sensible, not investigated."* 42 days later, under
+`#27-ki47range`:
+- the same double map sent the WRONG mon on a NATURAL order after one switch (arm `Swp`: chose Whismur, sent Poochyena);
+- fed the enemy's order, it produced unreachable menu slots and froze the chooser (arm `Foor`). That is the shape of all
+  4 faint-chooser wedges in batch `#27-batch0927`.
+
+**Root cause:** the sweep presses A ONLY when the cursor is in its candidate set, so *"the accepted cursor is a
+candidate"* holds BY CONSTRUCTION (CLAUDE.md rule 4: assert something the run does not already satisfy). The question
+that mattered, whether the mon SENT was the mon CHOSEN, was the "residual". The premise that made the double map look
+necessary (KI-34: *"`alive_slots` is in REGULAR party order"*) was never re-checked. `OpenPartyMenuInBattle` has
+already permuted `gPlayerParty` into menu order when that list is read.
+
+**Fix:** the chooser decides by identity (`modules/faint_chooser.py`); drives are graded by sent PID == chosen PID;
+`probe_faint_chooser_identity.py` confines every conversion to a fault arm. The closure is superseded in
+`06-DECISIONS-LOG.md` (it was an agent's probe, n = 1, not a user ruling).
+
+**Prevention rules:**
+- ⛔ **Grade a chooser by OUTCOME against INTENT: the mon that took the field == the mon the strategy chose.** Never by
+  an internal consistency the code enforces by construction.
+- ⛔ **A "residual, not investigated" that is exactly the behaviour the probe exists to detect IS the finding.**
+- ⛔ **A DO-NOT-FIX closure from a probe is a claim with stated limits, not a ruling.** New MEASURED evidence supersedes
+  it. Record the supersession in 06 and correct the current-state text in the same commit, never silently, because a
+  stale "do not fix" is precisely what a future agent would cite to revert the fix.
