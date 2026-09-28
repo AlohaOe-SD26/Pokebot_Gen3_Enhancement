@@ -36444,3 +36444,14 @@ species on its PID is; SWAPEXACT and "the carrier exclusion removed" each FAIL F
 re-driven: `--driver restock RS_CASE=full` PASS (evidence `2026-09-27-swapevo-carrier-RS4-full-regression.*`). Quick
 suite: all 100 enforcing PASS. Committed BEFORE its review (`6720f25f`), per `08` 2026-09-27. Adversarial review: PASS (the ordinary path is identical at both sites; a carrier can never share a PID with a fighter, because Nincada, Ninjask and Shedinja cannot learn HM02, checked in the species data).
 Not driven: an actual carrier evolution (pure-gated only).
+
+## 2026-09-27 — RULING 20 design item 9 (Castform at a full party) CLOSED WITHOUT A BUILD: the game already sends it to the PC; two wrong comments corrected (branch `wt/swapevo`)
+
+**WHY.** The Phase 2 build spec's refuter reported that the design's item 9 ("accept Castform at a full party instead
+of declining it") rested on a wrong premise. **VERIFIED** in the decomp (`data/maps/Route119_WeatherInstitute_2F/
+scripts.inc`, read via `gh api`): `givemon SPECIES_CASTFORM` returns `MON_GIVEN_TO_PC` at a full party, and the script
+calls `Common_EventScript_TransferredToPC`. The only YES/NO is the nickname prompt, so B declines the nickname and
+never the Pokémon.
+**WHAT.** Comment-only: the `early_game.py` docstring and the inline comment that said "declined at a full party" now
+say it goes to the PC, with the citation. No behaviour change. One drifted doc citation repaired with
+`fix_doc_citations.py`.

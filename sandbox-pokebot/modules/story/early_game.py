@@ -7298,9 +7298,12 @@ def do_weather_institute() -> Generator:
     interior grunts + SHELLY (Carvanha/Mightyena L28) are fought inline by the
     listener while navigating to the top floor. Completion:
     `HIDE_ROUTE_119_TEAM_AQUA` (also despawns the bridge grunts (13,33-34)).
-    Castform is offered afterwards (`RECEIVED_CASTFORM`) — accepted if a party slot
-    is free, politely declined (B) otherwise. ⚠ interior tiles are build-time
-    leads — validate on the first post-Surf run."""
+    Castform is given afterwards (`RECEIVED_CASTFORM`): into the party if a slot is
+    free, otherwise TO THE PC. The only YES/NO is the NICKNAME prompt, so B declines
+    the nickname, never the Pokémon (decomp `data/maps/Route119_WeatherInstitute_2F/
+    scripts.inc`: `givemon` → `MON_GIVEN_TO_PC` → `Common_EventScript_TransferredToPC`;
+    read 2026-09-27, correcting an earlier "declined at a full party").
+    ⚠ interior tiles are build-time leads — validate on the first post-Surf run."""
     from modules.memory import get_event_flag
 
     def _cleared() -> bool:
@@ -7369,7 +7372,8 @@ def do_weather_institute() -> Generator:
             raise BotModeError("Weather Institute: never cleared (Shelly not beaten?).")
     context.message = "Story: Weather Institute cleared!"
     # Castform offer rides on the aftermath dialogue — the rider answers YES-shaped
-    # prompts with A only when a real choice box is up (party-full = B declines).
+    # prompts with A only when a real choice box is up. At a full party the game sends
+    # Castform to the PC; the only choice box is the nickname (see the docstring).
     yield from _ride_out_all_scenes(quiet_frames=300)
     # Leave the building (back out the entrance door).
     yield from normalize_to_overworld()
