@@ -1,0 +1,25 @@
+# `#27-enroutejoin` MEASUREMENT (observe-only, unfixed code 930baacf + driver): norman_done.ss1 (e6fb7d5f); r101hunt R101_ARM=healedindoor R101_FENCE=real (flag unset); seed 1; --set-balls 20 --frames 45000; seeded as named via a runpy wrapper.
+# Predictions: ai-research-notes/2026-09-28-enroutejoin-PREDICTIONS.md (these ran BEFORE it, as its measured discriminator).
+[r101hunt] PRE {'arm': 'healedindoor', 'start': ((0, 0), (7, 6)), 'premise_no_learner': True, 'premise_party_room': True, 'party': ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']}
+[setup] set Poké Balls to 20 — read back from the save block: ball pocket = Poké Ball x20, Premier Ball x3, Great Ball x1
+[r101hunt] BATTLE f2978086 phase=spin sp=Zigzagoon strategy=StoryCatchStrategy fence=None
+[r101hunt] R arm = 'healedindoor'
+[r101hunt] R arrival_frames_to_exit = 3626
+[r101hunt] R exit = 'slot 5'
+[r101hunt] R hunt_from = ((8, 0), (3, 7))
+[r101hunt] R nav_calls = [('ROUTE101', (12, 10))]
+[r101hunt] R party = ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']
+[r101hunt] R party_after_walk = 4
+[r101hunt] R premise_healthy = True
+[r101hunt] R premise_indoor = True
+[r101hunt] R premise_no_learner = True
+[r101hunt] R premise_party_room = True
+[r101hunt] R spin_battles = 1
+[r101hunt] R spin_frames = 3626
+[r101hunt] R spin_tile = (((0, 16), (12, 10)), 'Tall Grass', True)
+[r101hunt] R start = ((0, 0), (7, 6))
+[r101hunt] R walk_battles = []
+[r101hunt] R walk_catch_strategies = []
+[r101hunt] R walk_joins = []
+[r101hunt] R whiteouts = 0
+[r101hunt] VERDICT {'premise_no_learner': True, 'premise_party_room': True, 'premise_indoor': True, 'ground': ('ROUTE101', (12, 10)), 'spin_tile_type': 'Tall Grass', 'spin_tile_encounters': True, 'spin_battles': 1, 'spin_bound_hit': False, 'exit': 'slot 5', 'failure': None, 'premise_healthy': True, 'walk_battles': 0, 'walk_catch_strategies': 0, 'walk_joins': [], 'party_after_walk': 4}
