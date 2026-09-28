@@ -15,8 +15,14 @@ the plateau is the League lobby's, at (6,1), where the standard stand tile (10,2
       KNOWER -> no teach; `POKEBOT_R20_FAULT_NOFLYBOX` -> no lobby, `no_learner`.
   F6  WIRING (AST): `prepare_and_open_the_league` calls `restore_ch24_fighters` after `E1-INSIDE` and before the guard
       talk; `story_mode` resets `_ch24_fly_swap` per run.
-FAULT ARMS (built in; each must FAIL): NOFLYBOX (F5), NOSWAPBACK (F4), LOBBYSTAND (F1), the carrier exclusion removed
-(F3), the swap-back moved after the guard talk (F6).
+  F7  `ch24_fighters_restored` (2026-09-27): the swap is recorded BEFORE §Ch24 training, so a fighter that EVOLVED since
+      (same PID) is still restored; an unrelated species on the same PID, a de-evolution, a different PID, a missing
+      fighter, an EXTRA member, and a KI-78 twin swapped for another Ninjask are REFUSED. `restore_ch24_fighters` uses
+      it (AST). Fault arms: SWAPEXACT, and the count check deleted (the review's mutation).
+      Known limit: the species data lists Shedinja `evolves_from` Nincada, so a recorded Nincada matches a Shedinja on
+      its PID; unreachable here (the swap party is full, so no Shedinja can appear, and the count check comes first).
+FAULT ARMS (built in; each must FAIL): NOFLYBOX (F5), NOSWAPBACK (F4), LOBBYSTAND (F1), SWAPEXACT (F7), the carrier
+exclusion removed (F3), the swap-back moved after the guard talk (F6).
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_r20_flybox.py
 """
@@ -42,7 +48,8 @@ PT_SRC = ROOT / "sandbox-pokebot" / "modules" / "story" / "pc_trip.py"
 PL_SRC = ROOT / "sandbox-pokebot" / "modules" / "story" / "pokemon_league.py"
 SM_SRC = ROOT / "sandbox-pokebot" / "plugins" / "custom_modes" / "story_mode.py"
 REGISTRY = ROOT / "PROJECT KNOWLEDGE" / "29-DISABLED-FEATURES-REGISTRY.md"
-ARMS = ("POKEBOT_R20_FAULT_NOFLYBOX", "POKEBOT_R20_FAULT_LOBBYSTAND", "POKEBOT_R20_FAULT_NOSWAPBACK")
+ARMS = ("POKEBOT_R20_FAULT_NOFLYBOX", "POKEBOT_R20_FAULT_LOBBYSTAND", "POKEBOT_R20_FAULT_NOSWAPBACK",
+        "POKEBOT_R20_FAULT_SWAPEXACT")
 HMS = {"Cut", "Fly", "Surf", "Strength", "Flash", "Rock Smash", "Waterfall", "Dive"}
 failures: list = []
 
@@ -256,6 +263,29 @@ def f5(sink=None, efl=None):
          PT.withdraw_from_box) = saved
 
 
+def f7(sink=None, restored=None):
+    """RULING 21's identity check survives EVOLUTION (2026-09-27, the Phase 2 build spec's F4): the swap is recorded
+    BEFORE §Ch24 training, and trainees evolve on the way to L65 — the PID survives, the species does not."""
+    fn = restored or PL.ch24_fighters_restored
+    A, B, C, X = 0x863B0917, 0x33CB74C3, 0x11111111, 0x22222222
+    rec = [(A, "Grovyle"), (B, "Zigzagoon"), (C, "Wailmer")]
+    check(fn([(A, "Grovyle"), (B, "Zigzagoon"), (C, "Wailmer")], rec) is True, "F7 the same six ⇒ restored", sink)
+    check(fn([(A, "Sceptile"), (B, "Linoone"), (C, "Wailord")], rec) is True,
+          "F7 fighters EVOLVED during training (same PIDs) ⇒ restored", sink)
+    check(fn([(A, "Sceptile")], [(A, "Treecko")]) is True, "F7 a TWO-stage evolution ⇒ restored", sink)
+    check(fn([(A, "Mightyena"), (B, "Zigzagoon"), (C, "Wailmer")], rec) is False,
+          "F7 the same PID with an UNRELATED species ⇒ REFUSED (identity, not PID alone)", sink)
+    check(fn([(A, "Treecko"), (B, "Zigzagoon"), (C, "Wailmer")], rec) is False, "F7 a DE-evolution ⇒ REFUSED", sink)
+    check(fn([(X, "Sceptile"), (B, "Zigzagoon"), (C, "Wailmer")], rec) is False, "F7 a different PID ⇒ REFUSED", sink)
+    check(fn([(A, "Grovyle"), (B, "Zigzagoon")], rec) is False, "F7 a fighter missing ⇒ REFUSED", sink)
+    check(fn([(A, "Grovyle"), (B, "Zigzagoon"), (C, "Wailmer"), (X, "Swellow")], rec) is False,
+          "F7 every fighter PLUS an extra member (e.g. the carrier left in) ⇒ REFUSED (review 2026-09-27)", sink)
+    check(fn([(X, "Ninjask"), (X, "Shedinja")], [(X, "Ninjask"), (X, "Shedinja")]) is True,
+          "F7 KI-78 twins (one PID, Ninjask + Shedinja) ⇒ restored", sink)
+    check(fn([(X, "Ninjask"), (X, "Ninjask")], [(X, "Ninjask"), (X, "Shedinja")]) is False,
+          "F7 KI-78: a twin swapped for a second Ninjask ⇒ REFUSED", sink)
+
+
 def f6(pl_src: str, sm_src: str, pt_src: str, sink=None):
     fn = ast.unparse(next(n for n in ast.walk(ast.parse(pl_src))
                           if isinstance(n, ast.FunctionDef) and n.name == "prepare_and_open_the_league"))
@@ -266,6 +296,10 @@ def f6(pl_src: str, sm_src: str, pt_src: str, sink=None):
     check("self._ch24_fly_swap = None" in ast.unparse(ast.parse(sm_src)), "F6 story_mode resets _ch24_fly_swap", sink)
     check("navigate_to(here, PC_STAND_TILE)" not in ast.unparse(ast.parse(pt_src)),
           "F1 no PC walk in pc_trip aims at the bare constant any more", sink)
+    rf = ast.unparse(next(n for n in ast.walk(ast.parse(pl_src))
+                          if isinstance(n, ast.FunctionDef) and n.name == "restore_ch24_fighters"))
+    check("if not ch24_fighters_restored(party_keys, fighters):" in rf and "party_keys != fighters" not in rf,
+          "F7 restore_ch24_fighters decides with ch24_fighters_restored, not an exact (pid, species) equality", sink)
 
 
 def main() -> int:
@@ -287,6 +321,8 @@ def main() -> int:
     f5()
     print("\n== F6 wiring ==")
     f6(pl, sm, pt)
+    print("\n== F7 the identity check survives evolution ==")
+    f7()
     print("\n== the arms ==")
     reg = REGISTRY.read_text(encoding="utf-8")
     for a in ARMS:
@@ -294,7 +330,7 @@ def main() -> int:
 
     print("\n== FAULT ARMS: the gate must FAIL when the thing it guards is broken ==")
     for arm, part in (("POKEBOT_R20_FAULT_NOFLYBOX", f5), ("POKEBOT_R20_FAULT_NOSWAPBACK", f4),
-                      ("POKEBOT_R20_FAULT_LOBBYSTAND", f1)):
+                      ("POKEBOT_R20_FAULT_LOBBYSTAND", f1), ("POKEBOT_R20_FAULT_SWAPEXACT", f7)):
         sink: list = []
         os.environ[arm] = "1"
         try:
@@ -331,6 +367,16 @@ def main() -> int:
     sink = []
     f5(sink, efl=ns["ensure_fly_learner"])
     check(bool(sink), f"FAULT the swap recorded after the walk out FAILS F5 ({len(sink)} caught)")
+    # The review's mutation (2026-09-27): the count check deleted from ch24_fighters_restored — an extra member then passed.
+    node = next(n for n in ast.walk(ast.parse(pl)) if isinstance(n, ast.FunctionDef) and n.name == "ch24_fighters_restored")
+    src = ast.get_source_segment(pl, node)
+    mutated, n = re.subn(r"\n\s*if len\(left\) != len\(fighters\):\s*\n\s*return False", "", src, count=1)
+    check(n == 1, "(fault-arm mutation applied exactly once: the count check deleted)")
+    ns = {}
+    exec(compile(mutated, "<mutated ch24_fighters_restored>", "exec"), PL.__dict__, ns)  # noqa: S102 - gate fault arm
+    sink = []
+    f7(sink, restored=ns["ch24_fighters_restored"])
+    check(bool(sink), f"FAULT the count check deleted FAILS F7 ({len(sink)} caught)")
     call = "    yield from restore_ch24_fighters(swapback)\n"
     guard = "VR._navigate_riding_out(VR.LEAGUE_1F, LEAGUE_GUARD_TALK_TILE), 60_000)\n"
     check(pl.count(call) == 1 and pl.count(guard) == 1,

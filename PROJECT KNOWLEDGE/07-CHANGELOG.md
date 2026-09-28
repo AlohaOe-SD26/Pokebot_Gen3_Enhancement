@@ -36402,3 +36402,32 @@ PASS, re-run after G3's final edit, and it contains both edited gates).
   unpack past a statement-kind list); 5 more fault arms (forge, disarm, append, walrus, tuple unpack) must FAIL. The
   final form was not re-reviewed; aliasing (`r = reasons; r.append(…)`) is a known, unguarded gap.
 ⚠ The real post-loss path (the guards moved, a whiteout respawn at (18,6)) is unmeasured until a batch runs the merge.
+
+## 2026-09-27 — RULING 21: THE FLY SWAP-BACK NO LONGER REFUSES A FIGHTER THAT EVOLVED IN §Ch24 TRAINING (branch `wt/swapevo`, NOT merged — batch `#27-batch0927` is running)
+
+**WHY.** The RULING 20 Phase 2 build spec's recon (§5 F4) flagged it, and it was verified at file:line. `_record_fly_swap`
+records the fighters as `(pid, species)` in the lobby, before §Ch24 training. `restore_ch24_fighters` then required the
+party to EQUAL that list. Training takes the under-levelled trainees from ~L47 toward L65, and many evolve, so a correct
+party refused the guards, and every re-entry after it. It shipped in increment B (`wt/r20fly`); no batch has run it.
+
+**WHAT** (`sandbox-pokebot/modules/story/pokemon_league.py`): `ch24_fighters_restored(party_keys, fighters)` matches
+each recorded fighter to exactly one party member with the same PID whose species is the recorded one or an evolution of
+it (`_same_or_evolved`, walking `evolves_from`). An unrelated species on the same PID (KI-78), a de-evolution, a
+different PID, a missing fighter, or an extra member still refuses. Arm `POKEBOT_R20_FAULT_SWAPEXACT` (registered in 29).
+Driver `--driver flybox` gains `FB_CASE=evolved|wrongline`, which rewrite the swap record before the real restore.
+
+**PROOF** (predictions `769f5491`, filed first; `ai-research-notes/2026-09-27-swapevo-GRADED.md`). `post_moveset.ss1`,
+four arms, all as predicted: `evolved` restored; `evolved` + SWAPEXACT refused by name after the same swap-back actions
+(the A/B: only the check differs); `wrongline` refused; `swap` unchanged. Gate `probe_r20_flybox.py` F7 (10 pure cases;
+fault arms SWAPEXACT and "the count check deleted").
+**Review: adversarial KICK-BACK, fixed:**
+- (1) deleting the count check left F7 green (proven by mutation): a case "every fighter plus an extra member" and a
+  fault arm that deletes the check were added;
+- (2) the docs followed the review, as planned;
+- (3) ⛔ the reviewer reverted its mutation with `git checkout --` on the UNCOMMITTED fix, restoring the pre-fix file.
+  The gate's wiring check caught it. The fix was re-applied (diff = exactly the two original hunks) and the decisive
+  arms re-driven on it: both as before (`evolved` restored; with SWAPEXACT it refused), evidence `2026-09-27-swapevo-re-*`. `08-MISTAKES.md` 2026-09-27.
+Risks the review raised, not changed: the carrier's own key is still compared exactly (it is not trained, so it should
+not evolve; unaudited), and `_same_or_evolved` has no fail-closed fallback for an unknown species name (both inputs come
+from the game's own species table).
+Suite 115 (all 111 enforcing PASS on the final code, + 4 advisory).

@@ -2313,14 +2313,52 @@ def _in_league_lobby(errand_factory, *, leave: bool) -> Generator:
     return True, "ok", result
 
 
+def _same_or_evolved(recorded_species: str, now_species: str) -> bool:
+    """True when `now_species` IS `recorded_species` or evolved FROM it (walks `evolves_from` to the base). A de-evolution
+    or an unrelated line is False."""
+    from modules.obtainability import evolution_chain_to_base
+    from modules.pokemon import get_species_by_name
+
+    if recorded_species == now_species:
+        return True
+    chain = evolution_chain_to_base(get_species_by_name(now_species).index)
+    return get_species_by_name(recorded_species).index in chain[:-1]
+
+
+def ch24_fighters_restored(party_keys, fighters) -> bool:
+    """PURE (given species data). USER RULING 21's identity check: every recorded fighter `(pid, species)` is matched by
+    exactly ONE party member with the SAME PID whose species is the recorded one OR AN EVOLUTION OF IT, and nothing else
+    is in the party.
+    ⛔ WHY EVOLUTION (2026-09-27, `ai-research-notes/2026-09-27-ruling20-phase2-BUILDSPEC.md` §5 F4): the swap is
+    recorded BEFORE §Ch24 training, which takes the under-levelled trainees from ~L47 toward L65. Many evolve on the way.
+    The PID survives an evolution and the species does not, so an exact `(pid, species)` equality REFUSED THE GUARDS on a
+    party that was exactly right, and on every re-entry after it (the record persists).
+    ⛔ It stays an IDENTITY check: the same PID with an UNRELATED species does not match (KI-78: Ninjask and Shedinja
+    share a PID), and neither does a de-evolution. `POKEBOT_R20_FAULT_SWAPEXACT=1` restores the exact-species test."""
+    import os as _os
+
+    exact = _os.environ.get("POKEBOT_R20_FAULT_SWAPEXACT") == "1"
+    left = [tuple(k) for k in party_keys]
+    if len(left) != len(fighters):
+        return False
+    for pid, sp in (tuple(f) for f in fighters):
+        hit = next((i for i, (p, s) in enumerate(left)
+                    if p == pid and (s == sp if exact else _same_or_evolved(sp, s))), None)
+        if hit is None:
+            return False
+        left.pop(hit)
+    return True
+
+
 def restore_ch24_fighters(report=None) -> Generator:
     """USER RULING 21 ("Yes, swap briefly"): the six fighters are restored and CHECKED BY PID before the Elite Four.
 
     If box-first withdrew a Fly carrier and boxed a fighter (`_ch24_fly_swap`), swap them back at the League lobby PC:
-    the carrier into the box, the fighter out. Then the party's non-egg `(pid, species)` set must EQUAL the recorded
-    fighters, or this REFUSES by name: the Elite Four is one-way, and entering without the fighters is what the ruling
-    forbids. No swap recorded ⇒ nothing to do. Production calls it in the lobby, after `E1-INSIDE` and before the guards
-    are talked to (talking sets `ENTERED_ELITE_FOUR` permanently).
+    the carrier into the box, the fighter out. Then the party's non-egg `(pid, species)` set must match the recorded
+    fighters (`ch24_fighters_restored`: same PIDs, each species the recorded one or an EVOLUTION of it, since training
+    runs between the record and this check), or this REFUSES by name: the Elite Four is one-way, and entering without the
+    fighters is what the ruling forbids. No swap recorded ⇒ nothing to do. Production calls it in the lobby, after
+    `E1-INSIDE` and before the guards are talked to (talking sets `ENTERED_ELITE_FOUR` permanently).
     `POKEBOT_R20_FAULT_NOSWAPBACK=1` skips the swap: the identity check must then refuse (it proves the check is live).
     """
     import os as _os
@@ -2345,7 +2383,7 @@ def restore_ch24_fighters(report=None) -> Generator:
                         if m is not None and not getattr(m, "is_egg", False))
     fighters = sorted(tuple(f) for f in sw.get("fighters") or ())
     report["swapback_party"] = [f"{sp}#{pid:08X}" for pid, sp in party_keys]
-    if party_keys != fighters:
+    if not ch24_fighters_restored(party_keys, fighters):
         raise BotModeError(
             "§Ch24 RULING 21: the party is not the six recorded fighters before the Elite Four — party "
             f"{[f'{sp}#{pid:08X}' for pid, sp in party_keys]} vs fighters {[f'{sp}#{pid:08X}' for pid, sp in fighters]}"

@@ -24140,8 +24140,15 @@ class FlyBoxMode(BotMode):
 
         TAG = "flybox"
         CASE = _os.environ.get("FB_CASE", "swap")
-        if CASE not in ("swap", "nofly", "wrongtile", "noswap", "ordinary"):
+        if CASE not in ("swap", "nofly", "wrongtile", "noswap", "ordinary", "evolved", "wrongline"):
             raise BotModeError(f"{TAG}: FB_CASE={CASE!r} not recognised")
+        # `evolved` / `wrongline` (2026-09-27, the RULING 21 evolution fix): `swap`, then the RECORD is rewritten so
+        # Sceptile#863B0917 (a fighter that stays in the party) reads as its PRE-evolution "Grovyle" — exactly what the
+        # check sees when a Grovyle evolves during §Ch24 training — or as an UNRELATED "Mightyena". `evolved` must be
+        # RESTORED (with `POKEBOT_R20_FAULT_SWAPEXACT=1` and `FB_EXPECT=refuse` it must refuse, the old behaviour);
+        # `wrongline` must REFUSE by name. Both after the real swap-back actions.
+        EXPECT = _os.environ.get("FB_EXPECT", "fix")
+        SCEPTILE = 0x863B0917
         SWELLOW = 0x0B30A747
         actions: list = []
         R: dict = {}
@@ -24224,9 +24231,14 @@ class FlyBoxMode(BotMode):
             R["actions_fly"] = [f"{a} {sp}#{pid:08X}" for a, pid, sp in actions]
             R["fighters_before"] = _hx(fighters_before)
             actions.clear()
-            if CASE in ("swap", "noswap", "ordinary"):
+            if CASE in ("swap", "noswap", "ordinary", "evolved", "wrongline"):
                 if CASE == "noswap":
                     _os.environ["POKEBOT_R20_FAULT_NOSWAPBACK"] = "1"
+                if CASE in ("evolved", "wrongline") and self._ch24_fly_swap:
+                    as_sp = "Grovyle" if CASE == "evolved" else "Mightyena"
+                    self._ch24_fly_swap["fighters"] = [(p, as_sp if p == SCEPTILE else s)
+                                                       for p, s in self._ch24_fly_swap["fighters"]]
+                    R["fighters_rewritten"] = _hx(self._ch24_fly_swap["fighters"])
                 rest: dict = {}
                 try:
                     R["restore_finished"] = yield from EG._yield_bounded_by_frames(PL.restore_ch24_fighters(rest), 40_000)
@@ -24286,13 +24298,22 @@ class FlyBoxMode(BotMode):
                     "back_on_eg_after_fly": (R.get("after_fly_at") or ("",))[0] == eg,
                     "swap_recorded": sw.get("carrier") == sw_tag and sw.get("boxed") == R.get("expected_victim")
                     and sorted(sw.get("fighters") or []) == sorted(R.get("fighters_before") or [])}
-            if CASE == "swap":
+            if CASE in ("evolved", "wrongline"):
+                pre = "Grovyle" if CASE == "evolved" else "Mightyena"
+                conj["record_rewritten"] = f"{pre}#{SCEPTILE:08X}" in (R.get("fighters_rewritten") or [])
+                conj["swap_back_happened"] = (R.get("actions_restore")
+                                              == [f"deposit {sw_tag}", f"withdraw {R.get('expected_victim')}"])
+            if CASE == "swap" or (CASE == "evolved" and EXPECT == "fix"):
                 conj.update({
                     "restored": "F-RESTORED" in (R.get("restore_readings") or []) and R.get("restore_error") is None,
                     "restore_actions": R.get("actions_restore") == [f"deposit {sw_tag}", f"withdraw {R.get('expected_victim')}"],
                     "party_is_the_fighters": sorted(R.get("after_restore_party") or []) == sorted(R.get("fighters_before") or []),
                     "swellow_boxed_after": sw_tag in R.get("box_end", []),
                     "in_lobby_after_restore": (R.get("after_restore_at") or ("",))[0] == lobby})
+            elif CASE in ("evolved", "wrongline"):
+                conj.update({
+                    "refused_by_name": bool(R.get("restore_error")) and "RULING 21" in (R.get("restore_error") or ""),
+                    "not_restored": "F-RESTORED" not in (R.get("restore_readings") or [])})
             else:
                 conj.update({
                     "refused_by_name": bool(R.get("restore_error")) and "RULING 21" in (R.get("restore_error") or ""),

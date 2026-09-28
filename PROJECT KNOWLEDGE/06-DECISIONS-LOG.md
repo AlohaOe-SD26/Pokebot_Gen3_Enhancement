@@ -7815,3 +7815,14 @@ and decides again, when every reason is the basket's and the bot is on Ever Gran
   re-runs R1.
 **Not decided here:** the bag heal's order (it spends Full Restores before Hyper Potions; the recon's F2) and the PP
 problem (the League Mart sells no Ether/Elixir/Leppa).
+
+## 2026-09-27 — RULING 21's identity check accepts an EVOLUTION on the same PID (not PID-only, not a re-record)
+
+**Decision:** `ch24_fighters_restored` matches each recorded fighter to exactly one party member with the same PID whose
+species is the recorded one or an evolution of it (walking `evolves_from`).
+**Why:** the record is taken before §Ch24 training, and training evolves trainees. An exact `(pid, species)` equality
+refused a correct party. Evolution is the only change training makes to a fighter's identity key.
+**Rejected:**
+- PID only: KI-78's Ninjask and Shedinja share a PID, which is why `(pid, species)` was used in the first place.
+- Re-recording the fighters after training: the record exists to name WHO the fighters were at the swap. A re-record
+  would accept whatever the party holds by then.

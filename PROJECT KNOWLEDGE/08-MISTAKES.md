@@ -22661,3 +22661,31 @@ was not re-reviewed, and aliasing (`r = reasons; r.append(…)`) is a known, ung
   arm that deletes each load-bearing statement WITHOUT deleting the text the gate searches for.
 - ⛔ **Cite as evidence only a run of the code under review, under its own printed case label.** A smoke test from an
   earlier driver version is a debugging aid.
+
+## 2026-09-27 — ⛔ AN IDENTITY RECORD WAS COMPARED EXACTLY ACROSS A PHASE THAT CHANGES ONE OF ITS FIELDS
+
+**Symptom** (found by the RULING 20 Phase 2 build spec's recon, §5 F4, before any batch ran it): RULING 21's swap-back
+refused to talk to the guards whenever a fighter had evolved during §Ch24 training, and kept refusing on every re-entry.
+It passed its own gate and 5 of 5 driven arms, because none of them trained between the record and the check.
+
+**Root cause:** `_record_fly_swap` records the fighters as `(pid, species)` before training;
+`restore_ch24_fighters` compared the party to that record with `==`. Training is exactly the phase that changes
+`species` (evolution) and preserves `pid`. The test staging went straight from the swap to the restore, so it could not
+see a field change that only the phase in between produces.
+
+**Fix:** `ch24_fighters_restored`: the same PID, and the species is the recorded one or an evolution of it. Arm
+`POKEBOT_R20_FAULT_SWAPEXACT` restores the old test; `--driver flybox` `evolved` passes with the fix and refuses with the
+arm on the same input.
+
+**A second finding, the same item: a REVIEWER'S REVERT WIPED THE FIX.** The adversarial reviewer mutated
+`pokemon_league.py` to test the gate, then "reverted" with `git checkout -- <file>`. The fix was UNCOMMITTED, so that
+restored the pre-fix file. The gate's wiring check went red and exposed it. The fix was re-applied (the diff checked to
+be exactly the two original hunks) and the decisive arms were re-driven on the restored code.
+
+**Prevention rules:**
+- ⛔ **When a record is checked AFTER a phase, list what that phase can change, and compare only what it preserves (or
+  model the change).** Then stage the test WITH that phase's effect between the record and the check. A test that goes
+  straight from record to check cannot see the drift.
+- ⛔ **Commit the code under review (a WIP commit on the branch) BEFORE handing it to a reviewer who may mutate it,** and
+  tell the reviewer to mutate a COPY or to undo by re-applying the original text, never `git checkout`/`restore`/`reset`.
+  "Frozen" must mean committed: an uncommitted change has no undo.
