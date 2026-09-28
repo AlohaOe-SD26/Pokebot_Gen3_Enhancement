@@ -28431,6 +28431,15 @@ for step in range(args.frames):
             now = ", ".join(f"{s.item.name} x{s.quantity}" for s in fresh.poke_balls if s.quantity > 0)
             log(f"[setup] set Poké Balls to {args.set_balls} — read back from the save block: ball pocket = "
                 f"{now or 'empty'}")
+            # ⛔ ASSERT the read-back, never just print it (adversarial review, 2026-09-28): `debug_write_item_bag`
+            # returns False WITHOUT raising when no save block is mapped, so a silent no-op would otherwise print a
+            # stale pocket beside a claim of success, the exact shape this block exists to kill.
+            got = {s.item.name: s.quantity for s in fresh.poke_balls if s.quantity > 0}
+            want = {s.item.name: s.quantity for s in kept}
+            if args.set_balls > 0:
+                want[pb.name] = args.set_balls
+            if got != want:
+                raise RuntimeError(f"--set-balls read-back {got} != intended {want}")
         except Exception as e:
             log(f"[setup] set-balls err {e!r} — ABORTING: a run whose --set-balls did not apply is not that arm")
             raise

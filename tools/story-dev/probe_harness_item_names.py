@@ -83,11 +83,26 @@ def setballs_is_loud(src: str, sink=None):
     check(loud, f"L1 the --set-balls failure path re-raises ({len(handlers)} handler(s))", sink)
 
 
+def setballs_asserts_readback(src: str, sink=None):
+    """L2: the try BODY (not a handler) raises when the save-block read-back differs from what was intended — a write
+    that silently returns False must not print a stale pocket beside a claim of success."""
+    tree = ast.parse(src)
+    body_raises = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If) and "set_balls" in ast.unparse(node.test):
+            for t in ast.walk(node):
+                if isinstance(t, ast.Try):
+                    for stmt in t.body:
+                        body_raises += sum(isinstance(x, ast.Raise) for x in ast.walk(stmt))
+    check(body_raises >= 1, f"L2 the --set-balls block raises on a read-back mismatch ({body_raises} raise(s))", sink)
+
+
 def main() -> int:
     src = HARNESS.read_text(encoding="utf-8")
     names_resolve(src)
     no_mojibake(src)
     setballs_is_loud(src)
+    setballs_asserts_readback(src)
 
     print("F — fault arms (each requires the unmutated harness to pass first)")
     base_ok = not failures
@@ -106,6 +121,10 @@ def main() -> int:
     sink = []
     names_resolve(m3, sink)
     check(base_ok and m3 != src and not sink, "F3 a COMMENT naming the bad lookup does not trip N1")
+    m4 = src.replace('raise RuntimeError(f"--set-balls read-back', 'log(f"--set-balls read-back', 1)
+    sink = []
+    setballs_asserts_readback(m4, sink)
+    check(base_ok and m4 != src and bool(sink), "F4 a read-back that is only LOGGED (not raised) fails L2")
 
     print()
     if failures:
