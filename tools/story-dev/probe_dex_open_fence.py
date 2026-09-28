@@ -15,12 +15,14 @@ proves the lift is exactly one refusal wide.
   O4-O10 ON, party 1, one later gate tripped each: an armed hunt, training, spare balls AT the reserve, a hurt party,
       the attempt cap, too many expected throws, a full PC. Each is still refused, for its own reason.
   O11 ON, before gym 1: unchanged team building (the pre-gym-1 branch returns before the fence).
+  O12 `#27-enroutejoin`: ON, party 1, a hunt WALKING to its ground -> refused; O12o the same with the flag OFF -> still
+      "runway"; O12f ON at a full party -> still "goes to the PC box" (the walk gate touches only a party join).
   A1  `reset_per_run_state` reads the flag: unset -> `_open_fence is False`; `=1` -> True.
   A2  wiring, by AST: the adapter's `decide_dex_catch(...)` call passes `open_fence=self._open_fence`.
   A3  both flags are registered in `29-DISABLED-FEATURES-REGISTRY.md`.
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
   F1  `POKEBOT_R20_FAULT_OPENEARLY=1` (in production code) returns "joins the party" before the later gates: EXACTLY
-      O4-O10 go red. Equality, not a subset: an arm that also fired at a full party would redden O3/O3e as well.
+      O4-O10 and O12 go red. Equality, not a subset: an arm that also fired at a full party would redden O3/O3e as well.
   F2  the same fault arm leaves O0 (flag OFF) green: it reaches only the open branch.
   F3  a source mutant passing `open_fence=False` fails A2.
   F4  a mutant that drops the keyword but keeps it in a COMMENT still fails A2 (a mention cannot satisfy the gate).
@@ -69,8 +71,12 @@ CASES = [
     ("O9", dict(ON, expected_throws=SM.DEX_CATCH_MAX_EXPECTED_THROWS + 1), False, "expected throws"),
     ("O10", dict(ON, boxed_count=SM.PC_STORAGE_SLOTS), False, "PC storage is full"),
     ("O11", dict(ON, pre_badge1=True), True, "pre-gym-1"),
+    # `#27-enroutejoin`: a hunt walking to its ground refuses a PARTY JOIN only; OFF and a full party are unchanged.
+    ("O12", dict(ON, hunt_walking=True), False, "hunt is walking"),
+    ("O12o", dict(hunt_walking=True), False, "runway"),
+    ("O12f", dict(ON, hunt_walking=True, party_slots_used=6, battler_count=6), True, "PC box"),
 ]
-LATER_GATES = {"O4", "O5", "O6", "O7", "O8", "O9", "O10"}
+LATER_GATES = {"O4", "O5", "O6", "O7", "O8", "O9", "O10", "O12"}
 
 
 def check(cond, msg, sink=None):

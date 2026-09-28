@@ -110,6 +110,35 @@ def swap_train_active() -> bool:
     return _SWAP_TRAIN
 
 
+# `#27-enroutejoin` (2026-09-28): True while an HM-learner or counter hunt WALKS to its hunting ground. Both hunts arm
+# only on ARRIVAL, so the dex fence could not see the walk, and with RULING 20 P2-b's `POKEBOT_R20_OPENFENCE` a new
+# species met there JOINED THE PARTY: `ensure_hm_learner` then compared its spin against the party count it took at
+# ENTRY and raised "never caught one" having hunted nothing; a counter could be pushed into the box untrained
+# (`ai-research-notes/2026-09-28-enroutejoin-AUDIT.md`). The fence reads this and refuses a PARTY JOIN only.
+_HUNT_WALK = False
+
+
+def hunt_walk_active() -> bool:
+    """True while a hunt walks to its ground (`hunt_walk`). `POKEBOT_ENROUTE_FAULT_NOWALK=1` is the skip-the-fix arm:
+    it always answers False, so the fence is open on the walk again."""
+    if os.environ.get("POKEBOT_ENROUTE_FAULT_NOWALK") == "1":
+        return False
+    return _HUNT_WALK
+
+
+def hunt_walk(walk: Generator) -> Generator:
+    """Run a hunt's walk (`provision_poke_balls()` or `_navigate_riding_out(...)`) with `hunt_walk_active()` True.
+    Restores the PREVIOUS value on every exit — return, raise, or the generator being closed by a whiteout unwind —
+    so an aborted walk cannot leave the fence shut for the rest of the run."""
+    global _HUNT_WALK
+    previous = _HUNT_WALK
+    _HUNT_WALK = True
+    try:
+        return (yield from walk)
+    finally:
+        _HUNT_WALK = previous
+
+
 class StoryAbort(BotModeError):
     """The whiteout unwind signal — a `BotModeError` so nothing that already catches one breaks.
 
@@ -5155,12 +5184,14 @@ def ensure_hm_learner(item) -> Generator:
     map_enum, tile, names = chosen if chosen is not None else grounds[0]
     context.message = f"Story: nobody can learn {move.name} — hunting {'/'.join(names)} on {map_enum.name}..."
 
+    # ‼ `#27-enroutejoin`: both walks run under `hunt_walk`, so no catch can JOIN the party before the hunt arms: the
+    # spin below compares against `party_count`, taken at ENTRY (a join on the walk made it stop on its first frame).
     if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
-        yield from provision_poke_balls()
+        yield from hunt_walk(provision_poke_balls())
         if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
             raise BotModeError(f"Cannot hunt a {move.name} learner: no Poké Balls and no money to buy any.")
 
-    yield from _navigate_riding_out(map_enum, tile)
+    yield from hunt_walk(_navigate_riding_out(map_enum, tile))
 
     # ‼ `#27-r101standstill` (2026-09-28): ASSERT, on arrival, that the tile under the player can roll a LAND encounter.
     # Without it a bad tile spins silently until the 18k watchdog (204 batch episodes on ROUTE101 (9, 9)). A named raise

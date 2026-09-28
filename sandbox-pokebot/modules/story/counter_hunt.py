@@ -523,6 +523,7 @@ def hunt(candidate, needed_type_names) -> Generator:
         _navigate_riding_out,
         _story_spin,
         normalize_to_overworld,
+        hunt_walk,
         provision_poke_balls,
         wait_until_truly_controllable,
     )
@@ -539,7 +540,7 @@ def hunt(candidate, needed_type_names) -> Generator:
     context.message = f"Story: hunting {species_name} on {map_enum.name}…"
 
     if _ball_count() <= 1:
-        yield from provision_poke_balls()
+        yield from hunt_walk(provision_poke_balls())
         if _ball_count() <= 1:
             console.print("[yellow]Story: counter hunt abandoned — could not buy Poké Balls.[/]")
             return None
@@ -555,7 +556,10 @@ def hunt(candidate, needed_type_names) -> Generator:
     # fail-fast guard is (it bails the moment the field is idle AND the position has not
     # changed, i.e. when retrying genuinely cannot help). So a bigger budget costs nothing
     # on a stuck journey and is the difference between arriving and not on a long one.
-    yield from _navigate_riding_out(map_enum, tile, tries=24)
+    # ‼ `#27-enroutejoin`: under `hunt_walk` no catch can JOIN the party on the way (the hunt arms only below, on
+    # arrival). A join that filled the party sent the counter to the BOX untrained, and the target itself could be caught
+    # on the approach and then excluded by the snapshot below.
+    yield from hunt_walk(_navigate_riding_out(map_enum, tile, tries=24))
 
     before = _party_count()
     # ‼ SNAPSHOT THE BOX TOO (`#24-pcoverflow` break 2, 2026-08-06). With a full party the

@@ -273,6 +273,8 @@ GATES: list[tuple[str, bool]] = [
     # the team loop (`#24-partycap` measured 4 -> 6 costing 36 points once; it stays flag-gated). Two fault arms.
     ("probe_catch_team_target.py", False),
     ("probe_dex_open_fence.py", False),
+    # `#27-enroutejoin` — every HM/counter hunt WALK runs under `hunt_walk`, and the fence refuses a party join then.
+    ("probe_hunt_walk.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

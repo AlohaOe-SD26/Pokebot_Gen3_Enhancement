@@ -1217,7 +1217,10 @@ class R101HuntMode(BotMode):
       R101_ARM=outdoor run it from Petalburg outdoors;
       R101_ARM=healed  heal at the Petalburg Pokémon Center first (production `heal_in_pokemon_center`), then run it from
                        there. `#27-enroutejoin`: the fixture starts with 3 of 5 fainted, so without a heal the dex fence
-                       refuses every walk battle on health and a walk-join arm is VACUOUS.
+                       refuses every walk battle on health and a walk-join arm is VACUOUS;
+      R101_ARM=healedindoor  the heal, THEN Wally's door, then the hunt: from indoors the hunt falls back to ROUTE101
+                       (12, 10), a longer walk through Route 102 (from the PC outdoors it picked ROUTE103 (5, 7), and the
+                       seeded walk met no wild battle — measured, VACUOUS).
       R101_FENCE=real  (`#27-enroutejoin`) battles go to a REAL `StoryMode` (per-run state reset), so the production dex
                        fence decides; the default keeps the old shim, whose `_should_catch` always says no.
     Readings (rule 7: what the code ACTS on): the `(map, tile)` actually passed to `_navigate_riding_out`; the map, tile
@@ -1288,14 +1291,7 @@ class R101HuntMode(BotMode):
         failure = None
         orig_nav, orig_spin = EG._navigate_riding_out, EG._story_spin
         try:
-            if ARM == "indoor":
-                yield from EG._pass_through_door((7, 5), MapRSE.PETALBURG_CITY.value)
-                for _ in range(240):  # let the warp fade settle; bounded
-                    if tuple(get_player_avatar().map_group_and_number) == (8, 0):
-                        break
-                    yield
-                yield from EG.wait_until_truly_controllable()
-            elif ARM == "healed":
+            if ARM in ("healed", "healedindoor"):
                 from modules.map_data import PokemonCenter
                 from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 
@@ -1303,6 +1299,13 @@ class R101HuntMode(BotMode):
                 yield from EG.wait_until_truly_controllable()
                 R["premise_healthy"] = all(m.current_hp == m.total_hp for m in get_party() if m is not None
                                            and not m.is_egg)
+            if ARM in ("indoor", "healedindoor"):
+                yield from EG._pass_through_door((7, 5), MapRSE.PETALBURG_CITY.value)
+                for _ in range(240):  # let the warp fade settle; bounded
+                    if tuple(get_player_avatar().map_group_and_number) == (8, 0):
+                        break
+                    yield
+                yield from EG.wait_until_truly_controllable()
             av = get_player_avatar()
             R["hunt_from"] = (tuple(av.map_group_and_number), tuple(av.local_coordinates))
             R["premise_indoor"] = R["hunt_from"][0] == (8, 0)
@@ -1313,6 +1316,8 @@ class R101HuntMode(BotMode):
             def nav(map_enum, tile, *a, **k):
                 R.setdefault("nav_calls", []).append((getattr(map_enum, "name", str(map_enum)), tuple(tile)))
                 before_walk = _pids()
+                # `#27-enroutejoin`: the fence's walk marker AS THE HUNT SETS IT (None on code without the marker).
+                R.setdefault("walk_marker", []).append(getattr(EG, "hunt_walk_active", lambda: None)())
                 self._in_walk = True
                 try:
                     return (yield from orig_nav(map_enum, tile, *a, **k))
@@ -1366,14 +1371,14 @@ class R101HuntMode(BotMode):
         spin = R.get("spin_tile") or (None, None, None)
         verdict = {
             "premise_no_learner": R["premise_no_learner"], "premise_party_room": R["premise_party_room"],
-            "premise_indoor": R.get("premise_indoor") if ARM == "indoor" else None,
+            "premise_indoor": R.get("premise_indoor") if ARM in ("indoor", "healedindoor") else None,
             "ground": (R.get("nav_calls") or [None])[-1], "spin_tile_type": spin[1], "spin_tile_encounters": spin[2],
             "spin_battles": R.get("spin_battles"), "spin_bound_hit": bool(R.get("spin_bound_hit")),
             "exit": R.get("exit"), "failure": failure,
             # `#27-enroutejoin` readings (meaningful with R101_FENCE=real; `premise_healthy` only on the healed arm)
             "premise_healthy": R.get("premise_healthy"), "walk_battles": len(R["walk_battles"]),
             "walk_catch_strategies": len(R["walk_catch_strategies"]), "walk_joins": R.get("walk_joins", []),
-            "party_after_walk": R.get("party_after_walk"),
+            "party_after_walk": R.get("party_after_walk"), "walk_marker": R.get("walk_marker"),
         }
         log(f"[{TAG}] VERDICT {verdict}")
         context.set_manual_mode()

@@ -1834,6 +1834,7 @@ def decide_dex_catch(
     attempts: int,
     expected_throws: "float | None" = None,
     open_fence: bool = False,
+    hunt_walking: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1930,6 +1931,12 @@ def decide_dex_catch(
         # spin ENDS EARLY, the verdict finds nothing, and the ladder loses a 120,000-frame hunt and a
         # ball having caught the wrong thing.
         return False, "a catch-on-sight hunt is armed"
+    if hunt_walking and open_fence and party_slots_used < PARTY_CAPACITY:
+        # ⛔ `#27-enroutejoin` (2026-09-28): an HM or counter hunt is WALKING to its ground and arms only on arrival, so
+        # `hunt_armed` above is still False. A PARTY JOIN here changes the party the hunt planned against: the HM hunt's
+        # spin compares with its ENTRY count and raises "never caught one" at once; a counter can land in the box. Only
+        # the P2-b party-join path reaches this (flag OFF returned above as runway; a full party goes to the box).
+        return False, "a hunt is walking to its ground — a party join now would change the party it planned for"
     if training:
         # A catch earns ZERO exp, and `train_team` exists only to gain exp. Worse, `#24-ch23training`
         # is the top run-ender (16 of 49 = 32.7%) precisely because a grind exceeds its frame ceiling.
@@ -2475,6 +2482,8 @@ class StoryMode(BotMode):
                 expected_throws=_expected_throws_for(species, bag),
                 # RULING 20 P2-b: below a full party, a post-gym-1 catch joins the party (flag, default OFF).
                 open_fence=self._open_fence,
+                # `#27-enroutejoin`: an HM/counter hunt is walking to its ground (it arms only on arrival).
+                hunt_walking=bool(_eg.hunt_walk_active()),
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
