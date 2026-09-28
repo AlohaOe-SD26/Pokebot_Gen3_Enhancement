@@ -1,5 +1,16 @@
 """Regression: the after-faint recovery sweep must compare indices in the CURSOR's space (KI-34).
 
+‼‼ PARTLY SUPERSEDED 2026-09-28 (`#27-ki47range`, KI-47) — READ THIS BEFORE THE REST.
+The premise below that `alive_slots` is in REGULAR party order is WRONG. `party_in_menu = get_party()` is read with
+the in-battle menu OPEN, and `OpenPartyMenuInBattle` has already permuted `gPlayerParty` into MENU order
+(`UpdatePartyToBattleOrder`, decomp-checked), so KI-34's `_to_menu_order` converted menu slots a SECOND time. Measured
+with `--driver ki47oor`: after one natural switch that sent the WRONG mon (arm `Swp`), and with the enemy's order
+(left in `gBattlePartyCurrentOrder` by `SwitchPartyOrder` after an enemy send-out) it produced unreachable slots 4/5
+at party 4: the KI-47 freeze (arm `Foor`). What the user saw in KI-34 (the bot picking an ON-FIELD mon) was real; its
+cause was the RAW `_on_field` comparison that KI-66 fixed three weeks later. The chooser now decides by IDENTITY
+(`modules/faint_chooser.py`); the gate is `probe_faint_chooser_identity.py`. What stays true here: the arithmetic of
+`map_battle_party_index`, and the sweep's refusal-learning invariants asserted at the end.
+
 FOUND BY THE USER, WATCHING THE SCREEN — not by telemetry:
     "the bot is selecting a live pokemon in the pokeparty, but its one that is already in the
      field (cannot select an already active pokemon to swap out/swap out for a fainted pokemon)"
@@ -106,7 +117,10 @@ i = src.index("party_in_menu = get_party()")
 _end = src.find(chr(10) + "def ", i)
 sweep = src[i:_end if _end != -1 else len(src)]
 check("alive_slots_menu" in sweep, "the sweep builds a menu-order set")
-check("map_battle_party_index" in sweep, "…via map_battle_party_index, as the primary path does")
+# ‼ SUPERSEDED 2026-09-28 (`#27-ki47range`): this asserted that the sweep maps through `map_battle_party_index`. That
+# premise was wrong (`party_in_menu` is ALREADY menu order) and the second map WAS the KI-47 freeze. The invariant now
+# lives in the registered gate `probe_faint_chooser_identity.py` (W1: every conversion is confined to the fault arm
+# `POKEBOT_KI47_FAULT_STALEMAP`); this repro no longer asserts it either way.
 # ‼ ASSERT THE INVARIANT, NOT THE VARIABLE NAME (2026-07-31). These read
 # `cursor in alive_slots_menu` literally and went red when the KI-38 fix routed the same
 # comparison through `_candidates` — a menu-order set derived from `alive_slots_menu` minus

@@ -1,0 +1,134 @@
+# #27-ki47range — --driver ki47oor arm=Swp, FIXED code = commit 1dc3a8f3 (runner verified HEAD 1dc3a8f3, dirty=0), POKEBOT_KI47_FAULT_STALEMAP=0
+# fixture r20_pregym1_party4_r116.ss1 (= 9710585350be, asserted) --frames 30000
+# Predictions: ai-research-notes/2026-09-28-ki47range-PREDICTIONS.md (b11f327f) + -PREDICTIONS-ADDENDUM.md (da891426), both committed BEFORE this run
+
+## runner line
+Swp-fixed exit=0 11:02:25 AM VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\k47\f\Swp-fixed.log
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Swp {'arm': 'Swp', 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA'], 'staged': ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f222: battle_is_active -> True  party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f223: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f846: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+f868: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f1901: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+f1957: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=UNKNOWN party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f3945: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4099: PARTY CHANGE [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4166: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4177: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='WHISMUR grew to LV. 7!' scripts=[] party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4203: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+[ki47oor] R arm = 'Swp'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 2
+[ki47oor] R chosen_field_idx = 0
+[ki47oor] R chosen_menu_idx = 2
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138521
+[ki47oor] R f1 = 138667
+[ki47oor] R fainted_species = 'Shedinja'
+[ki47oor] R field_frame = 138888
+[ki47oor] R field_pid = '7E9BB3BA'
+[ki47oor] R handler_frames = 146
+[ki47oor] R order_before = '210345'
+[ki47oor] R order_written = '210345'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 95, 'Down': 2}
+[ki47oor] R snapshot_seen = '210345'
+[ki47oor] R snapshot_via_api = '210345'
+[ki47oor] R staged = ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = 2
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+f4204: CONTROLLER -> <none>   (state=OVERWORLD)
+f5104: SAVED stall state #1 to stalls/repro-ml-f5104.ss1 (bt='WHISMUR grew to LV. 7!')
+f5404: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f5404:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f7204: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f7204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f12204: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f12204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f19204: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f19204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f24204: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 24205 frames; final mode=Manual party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Whismur L7: Pound, Uproar
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[PARTY-ACCT] STAGE 0 SUMMARY — 24205 get_party() recomputes, 81 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 24205 recomputes (party_accounting_ledger.jsonl)
+
+## handler debug log (Story-debug-20260928-105648.log): FAINT-CHOOSER / KI-47 lines
+f138521 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 0 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138608 [BATTLE] [FAINT-CHOOSER] identity: chosen=Whismur#7E9BB3BA menu_slot=2 -> cursor target 2 candidates=[1, 2, 3] snapshot_order=210345
+f138635 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2, 3] on_field=[0] party=[(0, 'Shedinja', 0), (1, 'Nincada', 20), (2, 'Whismur', 23), (3, 'Poochyena', 16)]
+f138635 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[1, 2, 3] on_field=[0] party_in_menu=4 [identity]
+f138635 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=0
+f138651 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=16
+f138659 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=24
+f138667 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 0 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+
+## stdout (tail 40)
+[ki47oor] R staged = ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = 2
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+f4204: CONTROLLER -> <none>   (state=OVERWORLD)
+f5104: SAVED stall state #1 to stalls/repro-ml-f5104.ss1 (bt='WHISMUR grew to LV. 7!')
+f5404: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f5404:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f7204: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f7204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f12204: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f12204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f19204: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119', (11, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='WHISMUR grew to LV. 7!' bot_mode=Manual
+f19204:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f24204: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 24205 frames; final mode=Manual party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Whismur L7: Pound, Uproar
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[PARTY-ACCT] STAGE 0 SUMMARY — 24205 get_party() recomputes, 81 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 24205 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-28_11
+-02-25.ss1 created!
+Updated `current_state.ss1`!
