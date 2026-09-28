@@ -1,0 +1,173 @@
+# RULING 20 Phase 2 P2-b — storyresume on r20_badge1_party1_gym.ss1 (50af0f5c); arm S-OFF; code 111da618; env: nothing; --set-balls 30 --frames 240000; the harness run under random.seed(1) via a runpy wrapper
+# Predictions: ai-research-notes/2026-09-28-r20P2b-PREDICTIONS.md (0221abed, before the code; seeded arms: addendum 27466355).
+# Source: Story-debug-20260928-153930.log (1482 lines); extract = env header, [DEXFENCE], [CATCH], [BATTLE] started/ended, [STEP] (not 'Encountered'), [STORY], [BADGE].
+## harness set-up line
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Great Ball x1
+## console 'catching a new' lines (stdout)
+(none)
+## debug-log extract
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is 1/6 — a catch would consume the HM/counter runway
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is 1/6 — a catch would consume the HM/counter runway
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f176385 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f184993 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185172 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f188817 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f195688 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] skip #41 Zubat — party is 1/6 — a catch would consume the HM/counter runway
+f201453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f201731 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f201731 [DEXFENCE] skip #63 Abra — party is 1/6 — a catch would consume the HM/counter runway
+f202711 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f202949 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f204004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f204797 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f204797 [DEXFENCE] skip #304 Aron — party is 1/6 — a catch would consume the HM/counter runway
+f206064 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f206293 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f207835 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f208129 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f209397 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f209747 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f211250 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f211543 [BATTLE] started hp=[('Marshtomp', 59, 61)]
+f213366 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f213904 [BATTLE] started hp=[('Marshtomp', 56, 61)]
+f213904 [DEXFENCE] skip #296 Makuhita — party is 1/6 — a catch would consume the HM/counter runway
+f215024 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f215359 [BATTLE] started hp=[('Marshtomp', 56, 61)]
+f217427 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f219723 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+f220141 [BATTLE] started hp=[('Marshtomp', 59, 64)]
+f221198 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f221573 [BATTLE] started hp=[('Marshtomp', 59, 64)]
+f222722 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f224920 [STEP] 'Story: back in Dewford Town.'
+f226465 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f227810 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f237261 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L20']
+f237417 [STORY] WHITEOUT recovery #1 at (0, 11) (moved on since the last whiteout — budget reset)
+f240322 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f247593 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L21']
+f247749 [STORY] WHITEOUT recovery #2 at (0, 11)
+f247764 [STEP] 'Story: training the team to Lv 22 in the grass…'
+f248574 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f250291 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f250551 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f251671 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f252101 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f253158 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f253417 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f254472 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f254822 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f255800 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f256090 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f257638 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f257908 [BATTLE] started hp=[('Marshtomp', 65, 67)]
+f257908 [DEXFENCE] skip #74 Geodude — party is 1/6 — a catch would consume the HM/counter runway
+f259114 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f259454 [BATTLE] started hp=[('Marshtomp', 65, 67)]
+f260572 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L21']
+f260851 [BATTLE] started hp=[('Marshtomp', 65, 67)]
+f262106 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f264245 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f265590 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f276356 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L22']
+f276512 [STORY] WHITEOUT recovery #3 at (0, 11)
+f276527 [STEP] 'Story: training the team to Lv 23 in the grass…'
+f277236 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f278355 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f278725 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f279930 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f280260 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f281381 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f281630 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f282748 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f282997 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f284051 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f284341 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f285459 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f285708 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f286668 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f287548 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f288820 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f290951 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f292296 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f301130 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L23']
+f301286 [STORY] WHITEOUT recovery #4 at (0, 11)
+f301301 [STEP] 'Story: training the team to Lv 24 in the grass…'
+f302110 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f303226 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f304136 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f305191 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f305541 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f306658 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f306957 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f308010 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f308420 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f309474 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f309824 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f310878 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f311228 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f312431 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f312931 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f313986 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f314336 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f315388 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f315768 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f316823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f317082 [BATTLE] started hp=[('Marshtomp', 73, 73)]
+f318214 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f320353 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f321698 [BATTLE] started hp=[('Marshtomp', 76, 76)]
+f332243 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f334243 [STEP] 'Story: sailing from Dewford to Slateport...'
+f339177 [BATTLE] started hp=[('Marshtomp', 76, 76)]
+f341094 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f341465 [BATTLE] started hp=[('Marshtomp', 76, 76)]
+f343790 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f345880 [STEP] 'Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum...'
+f349644 [BATTLE] started hp=[('Marshtomp', 76, 76)]
+f352921 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L25']
+f353468 [BATTLE] started hp=[('Marshtomp', 71, 79)]
+f355979 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L25']
+f359059 [STEP] "Story: Devon Goods delivered — Slateport's museum is Aqua-free (party healed by the scene)!"
+f359609 [STEP] 'Story: back on the Slateport streets.'
+f362937 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f365275 [BATTLE] started hp=[('Marshtomp', 79, 79)]
+f369019 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L25']
+f369913 [BATTLE] started hp=[('Marshtomp', 77, 79)]
+f373649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L26']
+f374311 [BATTLE] started hp=[('Marshtomp', 75, 81)]
+f376927 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L26']
+f379484 [BATTLE] started hp=[('Marshtomp', 75, 81)]

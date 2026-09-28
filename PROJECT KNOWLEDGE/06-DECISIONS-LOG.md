@@ -7961,3 +7961,23 @@ when the target is above 4. The spec's defensive egg bound is not built.
 **Rejected:**
 - Enabling the `none_left` exit for target 4 too: it is a real improvement, but it changes the ordinary case.
 - A flag default of ON: see the measurement.
+## 2026-09-28 — RULING 20 P2-b lifts ONE refusal, behind a flag that ships OFF; its fault arm is "the open branch returns early"
+
+**Decision:**
+- `POKEBOT_R20_OPENFENCE` (default OFF) removes only the post-gym-1 "party is N/6 — runway" refusal. Every later gate
+  still applies to a party join: hunt, training, ball reserve, a full PC, full strength, the attempt cap, expected throws.
+- The fault arm is `POKEBOT_R20_FAULT_OPENEARLY` (the open branch admits before the later gates). It replaces the build
+  spec's reserve-only arm.
+- The PC-full gate stays for party joins, although a join needs no PC space.
+**Why:**
+- The likeliest wrong build of "open the fence" is `return True` at the fence, which skips all seven later gates at once,
+  and a catch battle never fights back. The reserve-only arm would have proved one of the seven.
+- OFF ships because `#24-partycap` measured the runway's value (−36 points when filled early). Whether the PC-first
+  make-room paths absorb that is the Phase 3 batch's question.
+- A story run with every PC slot full is practically unreachable, and one fewer special case keeps the predicate simple.
+**Rejected:**
+- The spec's `…FAULT_OPENNORESERVE`: it covers one gate of seven.
+- A separate catch strategy for party joins: the post-badge `StoryDexCatchStrategy` (reserve and faint bail) already
+  applies to every dex catch, and a join is no less discretionary than a box catch.
+- Seeding the bot's organic RNG in production to make drives replayable: the randomness is deliberate ("organic"). The
+  harness is seeded from outside instead (a `runpy` wrapper), for the A/B only.

@@ -1,0 +1,241 @@
+# RULING 20 Phase 2 P2-b — storyresume on r20_badge1_party1_gym.ss1 (50af0f5c); arm X0-OFF-measure; code 146e0421 (unchanged code; measurement); env: nothing; --set-balls 30 --frames 240000; unseeded
+# Predictions: ai-research-notes/2026-09-28-r20P2b-PREDICTIONS.md (0221abed, before the code; seeded arms: addendum 27466355).
+# Source: Story-debug-20260928-151132.log (1690 lines); extract = env header, [DEXFENCE], [CATCH], [BATTLE] started/ended, [STEP] (not 'Encountered'), [STORY], [BADGE].
+## harness set-up line
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Great Ball x1
+## console 'catching a new' lines (stdout)
+(none)
+## debug-log extract
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is 1/6 — a catch would consume the HM/counter runway
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is 1/6 — a catch would consume the HM/counter runway
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f173587 [STEP] 'Story: training the team to Lv 19 in the grass…'
+f175100 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f176403 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f176613 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f176613 [DEXFENCE] skip #63 Abra — party is 1/6 — a catch would consume the HM/counter runway
+f177593 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f177828 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f179035 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f179240 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180543 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f180818 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180818 [DEXFENCE] skip #293 Whismur — party is 1/6 — a catch would consume the HM/counter runway
+f181943 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f182208 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f183417 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f183682 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f184725 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f184930 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186139 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f186414 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186414 [DEXFENCE] skip #261 Poochyena — party is 1/6 — a catch would consume the HM/counter runway
+f187499 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f187714 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f188799 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f189005 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f190204 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f192380 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f194287 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f202004 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L19']
+f202168 [STORY] WHITEOUT recovery #1 at (0, 3)
+f202183 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f203234 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f206606 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f213469 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f215856 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f217426 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f218453 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f218453 [DEXFENCE] skip #304 Aron — party is 1/6 — a catch would consume the HM/counter runway
+f219717 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f220019 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f222231 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f222862 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f223845 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f224083 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f225349 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f226087 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f226087 [DEXFENCE] skip #41 Zubat — party is 1/6 — a catch would consume the HM/counter runway
+f227142 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f227429 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f227429 [DEXFENCE] skip #74 Geodude — party is 1/6 — a catch would consume the HM/counter runway
+f228636 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f230908 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+f231070 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f231070 [DEXFENCE] skip #296 Makuhita — party is 1/6 — a catch would consume the HM/counter runway
+f232794 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f233146 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f234267 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f234738 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f235793 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20']
+f237991 [STEP] 'Story: back in Dewford Town.'
+f239536 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f240881 [BATTLE] started hp=[('Marshtomp', 64, 64)]
+f248353 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L21']
+f248509 [STORY] WHITEOUT recovery #1 at (0, 11) (moved on since the last whiteout — budget reset)
+f251414 [BATTLE] started hp=[('Marshtomp', 67, 67)]
+f261682 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f263682 [STEP] 'Story: sailing from Dewford to Slateport...'
+f268616 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f270471 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f270842 [BATTLE] started hp=[('Marshtomp', 65, 70)]
+f274098 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f276188 [STEP] 'Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum...'
+f279952 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f282282 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f282829 [BATTLE] started hp=[('Marshtomp', 62, 70)]
+f285700 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L22']
+f288780 [STEP] "Story: Devon Goods delivered — Slateport's museum is Aqua-free (party healed by the scene)!"
+f289330 [STEP] 'Story: back on the Slateport streets.'
+f292658 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f294996 [BATTLE] started hp=[('Marshtomp', 70, 70)]
+f300960 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L23']
+f301854 [BATTLE] started hp=[('Marshtomp', 66, 72)]
+f307932 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f308292 [BATTLE] started hp=[('Marshtomp', 59, 75)]
+f308292 [DEXFENCE] skip #309 Electrike — party is 1/6 — a catch would consume the HM/counter runway
+f309707 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f310166 [BATTLE] started hp=[('Marshtomp', 59, 75)]
+f313384 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f315480 [BATTLE] started hp=[('Marshtomp', 59, 75)]
+f316565 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L24']
+f317183 [BATTLE] started hp=[('Marshtomp', 59, 75)]
+f322202 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L24']
+f322358 [STORY] WHITEOUT recovery #1 at (0, 1) (moved on since the last whiteout — budget reset)
+f323918 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f325276 [BATTLE] started hp=[('Marshtomp', 75, 75)]
+f329697 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L24']
+f329853 [STORY] WHITEOUT recovery #2 at (0, 1)
+f332270 [BATTLE] started hp=[('Marshtomp', 75, 75)]
+f332270 [DEXFENCE] skip #316 Gulpin — party is 1/6 — a catch would consume the HM/counter runway
+f335046 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L25']
+f335299 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f336429 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L25']
+f336991 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f341651 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L25']
+f341807 [STORY] WHITEOUT recovery #3 at (0, 1)
+f343367 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f344725 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f349310 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L25']
+f349466 [STORY] WHITEOUT recovery #4 at (0, 1)
+f351992 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f352644 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L25']
+f353262 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f358236 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L25']
+f358392 [STORY] WHITEOUT recovery #5 at (0, 1)
+f359952 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f360941 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f361613 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L25']
+f362231 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f366718 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L25']
+f366874 [STORY] WHITEOUT recovery #6 at (0, 1)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHWEST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTH: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHWEST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_ENTRANCE: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_ENTRANCE
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM1: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM1
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM2: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM2
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM3: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM3
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM4: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM4
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM5: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM5
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM6: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM6
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM7: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM7
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM8: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM8
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_1F: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_1F
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_INNER_ROOM: reachable but 11 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_LOWER_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ICE_ROOM: reachable but 13 hops away (limit 8)
+f366888 [STORY] counter gate rejected GRANITE_CAVE_1F: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected GRANITE_CAVE_B1F: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected GRANITE_CAVE_B2F: reachable but 11 hops away (limit 8)
+f366888 [STORY] counter gate rejected GRANITE_CAVE_STEVENS_ROOM: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected VICTORY_ROAD_1F: needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+f366888 [STORY] counter gate rejected METEOR_FALLS_B1F_2R: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected VICTORY_ROAD_B1F: needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+f366888 [STORY] counter gate rejected VICTORY_ROAD_B2F: needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+f366888 [STORY] counter gate rejected SKY_PILLAR_3F: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SKY_PILLAR_5F: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected VICTORY_ROAD_1F: needs Waterfall at EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_1F: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_1F
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_ENTRANCE: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_ENTRANCE
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2
+f366888 [STORY] counter gate rejected CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3: no connection path from SLATEPORT_CITY to CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM1: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM1
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM2: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM2
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM3: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM3
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM4: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM4
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM5: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM5
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM6: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM6
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM7: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM7
+f366888 [STORY] counter gate rejected SEAFLOOR_CAVERN_ROOM8: no connection path from SLATEPORT_CITY to SEAFLOOR_CAVERN_ROOM8
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ICE_ROOM: reachable but 13 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_INNER_ROOM: reachable but 11 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_LOWER_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTH: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHWEST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHWEST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHWEST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTH: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHWEST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHWEST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected MAGMA_HIDEOUT_3F_2R: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected MAGMA_HIDEOUT_4F: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected METEOR_FALLS_B1F_2R: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTH: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTH: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHWEST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHWEST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_INNER_ROOM: reachable but 11 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_LOWER_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ICE_ROOM: reachable but 13 hops away (limit 8)
+f366888 [STORY] counter gate rejected SHOAL_CAVE_LOW_TIDE_ICE_ROOM: reachable but 13 hops away (limit 8)
+f366888 [STORY] counter gate rejected SKY_PILLAR_5F: reachable but 12 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHEAST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHEAST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHEAST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_SOUTHEAST: reachable but 9 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHEAST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHEAST: reachable but 10 hops away (limit 8)
+f366888 [STORY] counter gate rejected SAFARI_ZONE_NORTHEAST: reachable but 10 hops away (limit 8)
+f366889 [STEP] 'Story: hunting Numel on FIERY_PATH…'
+f368273 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f372804 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L25']
+f372975 [STORY] WHITEOUT recovery #7 at (0, 1)
+f374535 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f375376 [BATTLE] started hp=[('Marshtomp', 78, 78)]
+f375992 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L25']
+f376667 [BATTLE] started hp=[('Marshtomp', 78, 78)]

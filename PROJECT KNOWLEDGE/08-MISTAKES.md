@@ -22865,3 +22865,19 @@ graded.
 - ⛔ **Size a drive's window from the event's RATE, not its existence.** When the arms differ only after rare encounters,
   compute the expected frames (slot rates × encounter rate) before registering the window, or register the reading as
   "within N frames or VACUOUS" with N derived.
+## 2026-09-28 — ⛔ A PRE-REGISTRATION PREDICTED EXACT FRAMES FROM A "DETERMINISTIC REPLAY"; THE EMULATOR IS DETERMINISTIC, THE BOT IS NOT
+
+**Symptom:** RULING 20 P2-b's OFF arm did not reproduce the measurement drive's 11 verdicts frame for frame (it logged 7,
+on a different path), although the flag was off and the predicate unchanged.
+**Root cause:** `_prepare_for_fight` picks its training target with an unseeded `random.randint(16, 19)`
+(`story_mode.py:3404`), the bot's deliberate "organic" randomness. With the party at L18 only a draw of 19 trains, so
+arms fork at the first such draw. The ON arm happened to draw 19 like the measurement, and matched it exactly, which
+made the premise look sound.
+**Fix:** a pre-registered addendum ran four arms under `random.seed(1)` via a `runpy` wrapper (no code change). Two OFF
+runs matched each other, and the old code matched the new code with the flag off, both frame for frame.
+**Prevention rules:**
+- ⛔ **To pair live A/B arms, seed the bot's Python RNG.** Use
+  `py -3.12 -c "import random,runpy,sys; random.seed(N); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" <harness args>`.
+  The emulator replays; the bot's organic choices (`random.randint`, `random.choice`) do not.
+- ⛔ **Before reading a difference between arms as the flag's, find their last shared line.** If they fork before the
+  flag's first possible effect, the difference is not the flag's.

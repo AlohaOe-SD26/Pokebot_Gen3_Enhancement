@@ -1,0 +1,192 @@
+# RULING 20 Phase 2 P2-b — storyresume on r20_badge1_party1_gym.ss1 (50af0f5c); arm G-ON; code 111da618; env: POKEBOT_R20_OPENFENCE=1; --set-balls 30 --frames 240000; unseeded
+# Predictions: ai-research-notes/2026-09-28-r20P2b-PREDICTIONS.md (0221abed, before the code; seeded arms: addendum 27466355).
+# Source: Story-debug-20260928-152938.log (1540 lines); extract = env header, [DEXFENCE], [CATCH], [BATTLE] started/ended, [STEP] (not 'Encountered'), [STORY], [BADGE].
+## harness set-up line
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Great Ball x1
+## console 'catching a new' lines (stdout)
+Story: catching a new Aron for the team!
+Story: catching a new Zubat for the team!
+## debug-log extract
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1'}
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f173587 [STEP] 'Story: training the team to Lv 19 in the grass…'
+f175100 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f175100 [DEXFENCE] skip #276 Taillow — a training grind is in progress
+f176403 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f176613 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f176613 [DEXFENCE] skip #63 Abra — a training grind is in progress
+f177593 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f177828 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f177828 [DEXFENCE] skip #290 Nincada — a training grind is in progress
+f179035 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f179240 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180543 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f180818 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180818 [DEXFENCE] skip #293 Whismur — a training grind is in progress
+f181943 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f182208 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f183417 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f183682 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f184725 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f184930 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186139 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f186414 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186414 [DEXFENCE] skip #261 Poochyena — a training grind is in progress
+f187499 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f187714 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f188799 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f189005 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f190204 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f192380 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f194287 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f202004 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L19']
+f202168 [STORY] WHITEOUT recovery #1 at (0, 3)
+f202183 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f203234 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f206606 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f213469 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f215856 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f217426 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f218453 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f218453 [DEXFENCE] CATCH #304 Aron — dex catch #304 (joins the party)
+f218453 [CATCH] start kind=dex sp=Aron#304 lv=9 attempt=1 badges=1 party=1/6 box=0 spare=32 exp_throws=2.8 map=24,8
+f220209 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L19', 'Aron:L9']
+f220209 [CATCH] end kind=dex sp=Aron#304 end=caught res=Caught thrown=1 frames=1756 dest=party pid=F2EF6B27 party=2/6 box=0 spare=31 badges=1 bail=-
+f220842 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30)]
+f220842 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f220842 [CATCH] start kind=dex sp=Zubat#41 lv=10 attempt=1 badges=1 party=2/6 box=0 spare=31 exp_throws=2.5 map=24,9
+f222474 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f222474 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=1 frames=1632 dest=party pid=8990FD2E party=3/6 box=0 spare=30 badges=1 bail=-
+f222753 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f224021 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f224291 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f225796 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f226553 [BATTLE] started hp=[('Marshtomp', 59, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f226553 [DEXFENCE] skip #296 Makuhita — party is not at full strength
+f228618 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Aron:L9', 'Zubat:L10']
+f230954 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+f231358 [BATTLE] started hp=[('Marshtomp', 62, 64), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f232477 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Aron:L9', 'Zubat:L10']
+f232893 [BATTLE] started hp=[('Marshtomp', 62, 64), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f233948 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Aron:L9', 'Zubat:L10']
+f236172 [STEP] 'Story: back in Dewford Town.'
+f236409 [STEP] 'Story: training the team to Lv 16 in the grass…'
+f237321 [BATTLE] started hp=[('Zubat', 30, 30), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f237321 [DEXFENCE] skip #296 Makuhita — a training grind is in progress
+f250616 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f250977 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f252995 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f253336 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f253336 [DEXFENCE] skip #74 Geodude — a training grind is in progress
+f255492 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f255883 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f257901 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f258571 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f260694 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f261335 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 60, 64)]
+f263491 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f263811 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 60, 64)]
+f265657 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f266038 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 60, 64)]
+f268856 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L10', 'Aron:L9', 'Marshtomp:L20']
+f270107 [BATTLE] started hp=[('Zubat', 16, 30), ('Aron', 30, 30), ('Marshtomp', 56, 64)]
+f272824 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f273134 [BATTLE] started hp=[('Zubat', 19, 33), ('Aron', 30, 30), ('Marshtomp', 54, 64)]
+f275106 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f275356 [BATTLE] started hp=[('Zubat', 19, 33), ('Aron', 30, 30), ('Marshtomp', 54, 64)]
+f278192 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f278473 [BATTLE] started hp=[('Zubat', 19, 33), ('Aron', 30, 30), ('Marshtomp', 54, 64)]
+f281098 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f283287 [STEP] 'Story: training the team to Lv 16 in the grass…'
+f284157 [BATTLE] started hp=[('Zubat', 33, 33), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f286793 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f287063 [BATTLE] started hp=[('Zubat', 33, 33), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f290484 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L11', 'Aron:L9', 'Marshtomp:L20']
+f290895 [BATTLE] started hp=[('Zubat', 33, 33), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f299281 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f299551 [BATTLE] started hp=[('Zubat', 29, 35), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f307209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f307780 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 64, 64)]
+f309902 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f310363 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f311664 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f312195 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f314219 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f314499 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f316609 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f316909 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f318209 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f318830 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 62, 64)]
+f320681 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f321062 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 60, 64)]
+f322914 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f323435 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 58, 64)]
+f325283 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f325644 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 58, 64)]
+f328090 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f328651 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 56, 64)]
+f330775 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L12', 'Aron:L9', 'Marshtomp:L20']
+f331326 [BATTLE] started hp=[('Zubat', 19, 35), ('Aron', 30, 30), ('Marshtomp', 54, 64)]
+f333481 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L20']
+f333812 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 54, 64)]
+f335819 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f336570 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 55, 67)]
+f339168 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f339649 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 55, 67)]
+f341770 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f342011 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 53, 67)]
+f343860 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f344371 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 51, 67)]
+f346221 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f346602 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 49, 67)]
+f348448 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f348718 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 49, 67)]
+f350841 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f351132 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 47, 67)]
+f352980 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f353741 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 47, 67)]
+f356017 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f356328 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 43, 67)]
+f358345 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f358696 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 43, 67)]
+f360913 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f361274 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 38, 67)]
+f363299 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f363680 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 38, 67)]
+f365615 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f365966 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 36, 67)]
+f367266 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Zubat:L13', 'Aron:L9', 'Marshtomp:L21']
+f367727 [BATTLE] started hp=[('Zubat', 21, 37), ('Aron', 30, 30), ('Marshtomp', 36, 67)]
+f369890 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L14', 'Aron:L9', 'Marshtomp:L21']
+f370341 [BATTLE] started hp=[('Zubat', 23, 39), ('Aron', 30, 30), ('Marshtomp', 34, 67)]
+f372271 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L14', 'Aron:L9', 'Marshtomp:L21']
+f372912 [BATTLE] started hp=[('Zubat', 23, 39), ('Aron', 30, 30), ('Marshtomp', 34, 67)]
+f375184 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L14', 'Aron:L9', 'Marshtomp:L21']
+f375485 [BATTLE] started hp=[('Zubat', 23, 39), ('Aron', 30, 30), ('Marshtomp', 32, 67)]
+f377422 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Zubat:L14', 'Aron:L9', 'Marshtomp:L21']
+f377933 [BATTLE] started hp=[('Zubat', 23, 39), ('Aron', 30, 30), ('Marshtomp', 32, 67)]

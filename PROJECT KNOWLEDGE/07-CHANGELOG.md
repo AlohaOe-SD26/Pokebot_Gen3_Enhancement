@@ -36666,3 +36666,24 @@ whether today's PC-first make-room paths have removed that cause is the Phase 3 
 All three were re-driven identically on the review-fixed `b325d257`.
 **Review:** no blockers. One latent defect was fixed: the none_left helper counted an EGG as a party member. The gate
 now covers it.
+## 2026-09-28 — USER RULING 20 Phase 2 P2-b: A POST-GYM-1 DEX CATCH CAN JOIN THE PARTY, BEHIND `POKEBOT_R20_OPENFENCE` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** The user's RULING 20 asks for a full team caught along the way. After gym 1 the fence refused every new species
+below a full party as "runway" (`#27-batch0927`: no dex catch at party 4 or 5 after badge 1, in 25 runs). P2-b lifts that
+one refusal, flag-gated for the `#24-partycap` reason.
+**WHAT.**
+- `decide_dex_catch(..., open_fence=False)`. When true, the runway refusal is skipped and every later gate still applies.
+  An admit below six says "(joins the party)".
+- `StoryMode.reset_per_run_state` reads `POKEBOT_R20_OPENFENCE` into `_open_fence`; the adapter passes it.
+- Fault arm `POKEBOT_R20_FAULT_OPENEARLY` (the open branch admits before the later gates). NEW gate
+  `probe_dex_open_fence.py` (O0-O11, A1-A3, F1-F4; suite 122).
+**PROOF** (predictions `0221abed` and addendum `27466355`; `ai-research-notes/2026-09-28-r20P2b-GRADED.md`), on
+`r20_badge1_party1_gym.ss1` (party of one after gym 1):
+- ON: no "runway" verdict. It refused while the party was hurt or training, then caught Aron at f218453 into the party
+  (`party=1/6` → `2/6`).
+- FAULT: it started a catch at f144426 while the party was at 21/46.
+- The party-6 control `post_mtpyre.ss1`: identical with the flag on and off.
+- Seeded (`random.seed(1)`): the old code and the new code with the flag OFF are frame-identical, and two OFF runs are too.
+Two disclosed misses: the "deterministic replay" premise (the bot's `_prepare_for_fight` draws an unseeded
+`random.randint`), and one misread ball count.
+**Review:** REVIEW_RESULT.

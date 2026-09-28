@@ -1,0 +1,154 @@
+# RULING 20 Phase 2 P2-b — storyresume on r20_badge1_party1_gym.ss1 (50af0f5c); arm G-FAULT; code 111da618; env: POKEBOT_R20_OPENFENCE=1 POKEBOT_R20_FAULT_OPENEARLY=1; --set-balls 30 --frames 240000; unseeded
+# Predictions: ai-research-notes/2026-09-28-r20P2b-PREDICTIONS.md (0221abed, before the code; seeded arms: addendum 27466355).
+# Source: Story-debug-20260928-152938.log (1545 lines); extract = env header, [DEXFENCE], [CATCH], [BATTLE] started/ended, [STEP] (not 'Encountered'), [STORY], [BADGE].
+## harness set-up line
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Great Ball x1
+## console 'catching a new' lines (stdout)
+Story: catching a new Nincada for the team!
+Story: catching a new Poochyena for the team!
+Story: catching a new Abra for the team!
+Story: catching a new Whismur for the team!
+Story: catching a new Taillow for the team!
+## debug-log extract
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_FAULT_OPENEARLY': '1', 'POKEBOT_R20_OPENFENCE': '1'}
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] CATCH #290 Nincada — dex catch #290 (joins the party)
+f144426 [CATCH] start kind=dex sp=Nincada#290 lv=6 attempt=1 badges=1 party=1/6 box=0 spare=31 exp_throws=2.5 map=0,31
+f146127 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mudkip:L16', 'Nincada:L6']
+f146127 [CATCH] end kind=dex sp=Nincada#290 end=caught res=Caught thrown=1 frames=1701 dest=party pid=A98C1FEA party=2/6 box=0 spare=30 badges=1 bail=-
+f146657 [BATTLE] started hp=[('Mudkip', 21, 46), ('Nincada', 21, 21)]
+f152737 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16', 'Nincada:L6']
+f153023 [BATTLE] started hp=[('Mudkip', 0, 46), ('Nincada', 17, 21)]
+f153023 [DEXFENCE] CATCH #261 Poochyena — dex catch #261 (joins the party)
+f153023 [CATCH] start kind=dex sp=Poochyena#261 lv=7 attempt=1 badges=1 party=2/6 box=0 spare=30 exp_throws=3.0 map=0,31
+f154674 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mudkip:L16', 'Nincada:L6', 'Poochyena:L7']
+f154674 [CATCH] end kind=dex sp=Poochyena#261 end=caught res=Caught thrown=1 frames=1651 dest=party pid=F73C4931 party=3/6 box=0 spare=29 badges=1 bail=-
+f155367 [BATTLE] started hp=[('Mudkip', 0, 46), ('Nincada', 17, 21), ('Poochyena', 22, 22)]
+f166640 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Mudkip:L16', 'Nincada:L6', 'Poochyena:L7']
+f167820 [BATTLE] started hp=[('Mudkip', 46, 46), ('Nincada', 21, 21), ('Poochyena', 22, 22)]
+f167820 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+f167820 [CATCH] start kind=dex sp=Abra#63 lv=7 attempt=1 badges=1 party=3/6 box=0 spare=29 exp_throws=3.6 map=0,31
+f169449 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mudkip:L16', 'Nincada:L6', 'Poochyena:L7', 'Abra:L7']
+f169449 [CATCH] end kind=dex sp=Abra#63 end=caught res=Caught thrown=1 frames=1629 dest=party pid=FD2DA16A party=4/6 box=0 spare=28 badges=1 bail=-
+f170211 [BATTLE] started hp=[('Mudkip', 46, 46), ('Nincada', 21, 21), ('Poochyena', 22, 22), ('Abra', 20, 20)]
+f178908 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7']
+f179333 [BATTLE] started hp=[('Marshtomp', 52, 56), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20)]
+f182059 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7']
+f182820 [STORY] WHITEOUT recovery #1 at (0, 31)
+f182835 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f183395 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f183536 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f184524 [BATTLE] started hp=[('Marshtomp', 52, 56), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20)]
+f186678 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7']
+f188780 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f189275 [BATTLE] started hp=[('Marshtomp', 52, 56), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20)]
+f189275 [DEXFENCE] CATCH #293 Whismur — dex catch #293 (joins the party)
+f189275 [CATCH] start kind=dex sp=Whismur#293 lv=6 attempt=1 badges=1 party=4/6 box=0 spare=28 exp_throws=3.6 map=24,4
+f194646 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L17', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Whismur:L6']
+f194646 [CATCH] end kind=dex sp=Whismur#293 end=caught res=Caught thrown=5 frames=5371 dest=party pid=79D31830 party=5/6 box=0 spare=23 badges=1 bail=-
+f200824 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f201063 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f202658 [BATTLE] started hp=[('Whismur', 25, 25), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56)]
+f204831 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L7', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17']
+f205239 [BATTLE] started hp=[('Whismur', 18, 27), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56)]
+f205239 [DEXFENCE] CATCH #276 Taillow — dex catch #276 (joins the party)
+f205239 [CATCH] start kind=dex sp=Taillow#276 lv=7 attempt=1 badges=1 party=5/6 box=0 spare=24 exp_throws=3.1 map=0,31
+f211091 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Whismur:L7', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f211091 [CATCH] end kind=dex sp=Taillow#276 end=caught res=Caught thrown=6 frames=5852 dest=party pid=B4DC8D5D party=6/6 box=0 spare=18 badges=1 bail=-
+f213394 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f214143 [BATTLE] started hp=[('Whismur', 27, 27), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f215538 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L7', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f215774 [BATTLE] started hp=[('Whismur', 20, 27), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f218049 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L8', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f218358 [BATTLE] started hp=[('Whismur', 16, 30), ('Nincada', 23, 23), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f220607 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Whismur:L8', 'Nincada:L7', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f223157 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f224095 [BATTLE] started hp=[('Nincada', 23, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f226699 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L7', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f229011 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f229709 [BATTLE] started hp=[('Nincada', 23, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f235691 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L7', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f235897 [BATTLE] started hp=[('Nincada', 13, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f237826 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Nincada:L7', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f240140 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f240940 [BATTLE] started hp=[('Nincada', 23, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f243796 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L7', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f246108 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f246779 [BATTLE] started hp=[('Nincada', 23, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f249006 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L7', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f249223 [BATTLE] started hp=[('Nincada', 23, 23), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f256563 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L8', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f256779 [BATTLE] started hp=[('Nincada', 15, 25), ('Whismur', 30, 30), ('Poochyena', 22, 22), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f259816 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L8', 'Whismur:L8', 'Poochyena:L7', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f262366 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f263073 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f267225 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f269561 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f270301 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f274339 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f276649 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f277387 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f279783 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f282097 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f282785 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f285593 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f285891 [BATTLE] started hp=[('Poochyena', 11, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f290265 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f292567 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f293274 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f295375 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f297688 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f298375 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f302137 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f304442 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f305140 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f307535 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L17', 'Taillow:L7']
+f309847 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f310708 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 56, 56), ('Taillow', 23, 23)]
+f313652 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Taillow:L7']
+f315963 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f316935 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Taillow', 23, 23)]
+f319672 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Taillow:L7']
+f321983 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f322841 [BATTLE] started hp=[('Poochyena', 22, 22), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Taillow', 23, 23)]
+f326032 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L8', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Taillow:L7']
+f326409 [BATTLE] started hp=[('Poochyena', 11, 24), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Taillow', 23, 23)]
+f329607 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Poochyena:L8', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Taillow:L7']
+f332171 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f332876 [BATTLE] started hp=[('Taillow', 23, 23), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f333864 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Taillow:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f334216 [BATTLE] started hp=[('Taillow', 23, 23), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f336403 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L7', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f338715 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f339453 [BATTLE] started hp=[('Taillow', 23, 23), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f341516 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L8', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f341883 [BATTLE] started hp=[('Taillow', 19, 24), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f343424 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L8', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f345736 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f346563 [BATTLE] started hp=[('Taillow', 24, 24), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f348259 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L9', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f348565 [BATTLE] started hp=[('Taillow', 22, 26), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f350209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L9', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f350505 [BATTLE] started hp=[('Taillow', 19, 26), ('Whismur', 30, 30), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f353302 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L9', 'Whismur:L8', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f355850 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f356788 [BATTLE] started hp=[('Whismur', 30, 30), ('Taillow', 26, 26), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f358562 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L8', 'Taillow:L9', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f358850 [BATTLE] started hp=[('Whismur', 14, 30), ('Taillow', 26, 26), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f361173 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Whismur:L8', 'Taillow:L9', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f363479 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f364124 [BATTLE] started hp=[('Whismur', 30, 30), ('Taillow', 26, 26), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f367106 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L9', 'Taillow:L9', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f367318 [BATTLE] started hp=[('Whismur', 22, 32), ('Taillow', 26, 26), ('Nincada', 25, 25), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f370628 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Whismur:L9', 'Taillow:L9', 'Nincada:L8', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f373178 [STEP] 'Story: training the team to Lv 10 in the grass…'
+f373858 [BATTLE] started hp=[('Nincada', 25, 25), ('Taillow', 26, 26), ('Whismur', 32, 32), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f376078 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L8', 'Taillow:L9', 'Whismur:L9', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f376364 [BATTLE] started hp=[('Nincada', 25, 25), ('Taillow', 26, 26), ('Whismur', 32, 32), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]
+f378786 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Nincada:L8', 'Taillow:L9', 'Whismur:L9', 'Abra:L7', 'Marshtomp:L18', 'Poochyena:L8']
+f379143 [BATTLE] started hp=[('Nincada', 12, 25), ('Taillow', 26, 26), ('Whismur', 32, 32), ('Abra', 20, 20), ('Marshtomp', 58, 58), ('Poochyena', 24, 24)]

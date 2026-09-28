@@ -1,0 +1,92 @@
+# RULING 20 Phase 2 P2-b — storyresume on post_mtpyre.ss1 (80602159); arm G-CTRL-OFF; code 111da618; env: nothing; --set-balls 30 --frames 120000; unseeded
+# Predictions: ai-research-notes/2026-09-28-r20P2b-PREDICTIONS.md (0221abed, before the code; seeded arms: addendum 27466355).
+# Source: Story-debug-20260928-153425.log (729 lines); extract = env header, [DEXFENCE], [CATCH], [BATTLE] started/ended, [STEP] (not 'Encountered'), [STORY], [BADGE].
+## harness set-up line
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Premier Ball x1
+## console 'catching a new' lines (stdout)
+Story: catching a new Oddish into the PC box!
+Story: catching a new Linoone into the PC box!
+Story: catching a new Geodude into the PC box!
+## debug-log extract
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f3143385 [STEP] 'Story: leaving Mt. Pyre for the Magma Hideout...'
+f3144418 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3144418 [DEXFENCE] skip #353 Shuppet — party is not at full strength
+f3145127 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3145949 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3146795 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3147503 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L42', 'Sceptile:L42', 'Swellow:L39', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3156695 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3157606 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 21, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3166792 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3167984 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 24, 120), ('Swellow', 10, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3175458 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3176110 [BATTLE] started hp=[('Mightyena', 124, 124), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3178865 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3182699 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3184210 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3184958 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3187170 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3187855 [BATTLE] started hp=[('Mightyena', 97, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3198583 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3199133 [BATTLE] started hp=[('Mightyena', 0, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3202228 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3204631 [STORY] WHITEOUT recovery #1 at (0, 5)
+f3204632 [STEP] 'Story: teaching Strength to Sceptile...'
+f3204676 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3206375 [STEP] 'Story: teaching Strength to Sceptile...'
+f3208262 [STORY] TEACH EXIT reason=ride:learned stall_peak=169 post_select=replace-prompt move=Strength slot=1 replace_slot=3 frame=483 tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'] learn_state=LearnMoveState.DialogueNotActive moves=['Rock Smash', 'Pursuit', 'Leaf Blade', 'Strength']
+f3208292 [STORY] TEACH OK Sceptile learned Strength ride_frames=483 ride_exit=learned stall_peak=169 post_select=replace-prompt close_frames=0
+f3208293 [STEP] 'Story: healing at MAUVILLE_CITY before the Magma Hideout haul...'
+f3209102 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3209102 [DEXFENCE] CATCH #43 Oddish — dex catch #43 (goes to the PC box)
+f3209102 [CATCH] start kind=dex sp=Oddish#43 lv=26 attempt=1 badges=6 party=6/6 box=0 spare=31 exp_throws=3.0 map=0,36
+f3211292 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3211292 [CATCH] end kind=dex sp=Oddish#43 end=caught res=Caught thrown=1 frames=2190 dest=box pid=C46E5C99 party=6/6 box=1 spare=30 badges=6 bail=-
+f3216729 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3216729 [DEXFENCE] CATCH #264 Linoone — dex catch #264 (goes to the PC box)
+f3216729 [CATCH] start kind=dex sp=Linoone#264 lv=26 attempt=1 badges=6 party=6/6 box=1 spare=30 exp_throws=8.1 map=0,33
+f3224789 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3224789 [CATCH] end kind=dex sp=Linoone#264 end=caught res=Caught thrown=6 frames=8060 dest=box pid=36E8B060 party=6/6 box=2 spare=24 badges=6 bail=-
+f3227699 [STEP] 'Story: topping up at Lavaridge before the mountain...'
+f3228271 [STEP] 'Story: clearing the way — Rock Smash obstacle at (18, 101) — stand (18, 102) facing Up (EventScript_RockSmash)'
+f3230289 [STEP] 'Story: riding the cable car up to Mt. Chimney...'
+f3231816 [STEP] 'Story: descending into Jagged Pass...'
+f3232765 [STEP] 'Story: walking to the Magma Hideout door...'
+f3232884 [STEP] 'Story: entering the Magma Hideout...'
+f3233068 [STEP] 'Story: inside the Magma Hideout (1F).'
+f3233181 [STEP] 'Story: switching on Strength...'
+f3233969 [STEP] 'Story: pushed the boulder (6, 23) -> (5, 23).'
+f3234049 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_1F to MAGMA_HIDEOUT_2F_1R...'
+f3234271 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3234271 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (goes to the PC box)
+f3234271 [CATCH] start kind=dex sp=Geodude#74 lv=30 attempt=1 badges=6 party=6/6 box=2 spare=24 exp_throws=3.0 map=24,86
+f3237341 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3237341 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=2 frames=3070 dest=box pid=429B5B2E party=6/6 box=3 spare=22 badges=6 bail=-
+f3237600 [BATTLE] started hp=[('Mightyena', 121, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3237600 [DEXFENCE] skip #75 Graveler — party is not at full strength
+f3239039 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3239297 [BATTLE] started hp=[('Mightyena', 121, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3240712 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3241678 [BATTLE] started hp=[('Mightyena', 121, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3243591 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3243896 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_2F_1R to MAGMA_HIDEOUT_3F_1R...'
+f3244223 [BATTLE] started hp=[('Mightyena', 107, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3245538 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3246348 [BATTLE] started hp=[('Mightyena', 107, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3248888 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3249529 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_3F_1R to MAGMA_HIDEOUT_4F...'
+f3249792 [BATTLE] started hp=[('Mightyena', 83, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3251117 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3251742 [BATTLE] started hp=[('Mightyena', 83, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3253668 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3254084 [BATTLE] started hp=[('Mightyena', 68, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3255409 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3256162 [BATTLE] started hp=[('Mightyena', 68, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3258092 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3258628 [STEP] 'Story: Magma Hideout 4F - challenging Maxie (Mightyena 37 / Crobat 38 / Camerupt 39)...'
+f3259731 [BATTLE] started hp=[('Mightyena', 68, 127), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
+f3261862 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L44', 'Sceptile:L44', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3262798 [BATTLE] started hp=[('Mightyena', 71, 130), ('Sceptile', 123, 123), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 16, 16), ('Castform', 100, 100)]
