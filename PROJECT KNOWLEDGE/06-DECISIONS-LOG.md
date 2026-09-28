@@ -7826,3 +7826,29 @@ refused a correct party. Evolution is the only change training makes to a fighte
 - PID only: KI-78's Ninjask and Shedinja share a PID, which is why `(pid, species)` was used in the first place.
 - Re-recording the fighters after training: the record exists to name WHO the fighters were at the swap. A re-record
   would accept whatever the party holds by then.
+
+## 2026-09-28 — The destructive-git hook: Python with a shell-aware pre-scan; a hatch read from the COMMAND; every hook located via $CLAUDE_PROJECT_DIR
+
+**Decision (the user approved the hook itself, 2026-09-28):** `.claude/hooks/block_destructive_git.py` denies git
+commands that can silently discard uncommitted work, published history or a branch, and allows ordinary work and mere
+mentions. The escape hatch is a LIVE `POKEBOT_ALLOW_DESTRUCTIVE_GIT=1` prefix on the git command itself. Every hook in
+`.claude/settings.json` finds its script through `"$CLAUDE_PROJECT_DIR/.claude/hooks/..."` and ends in `|| true`.
+**Why:**
+- A reviewer's `git checkout --` deleted an uncommitted fix on 2026-09-27; CLAUDE.md already forbade it, in prose.
+  The blocked set is CLAUDE.md's existing rules, so the hook adds no new policy.
+- PYTHON, NOT POWERSHELL: the first (PowerShell) draft emitted INVALID JSON (a BOM-less .ps1 is read as Windows-1252),
+  so it could never have blocked anything, and a hand-written PowerShell parser let 49 of 79 probes through. Python's
+  `shlex` plus a small per-shell pre-scan (quotes, escapes, comments at a word start, continuations, heredocs,
+  here-strings, `$( )`) survived two more adversarial rounds; its confirmation review found 0 false positives over
+  200 real commit messages, 691 real branch/tag checkouts and 61 multi-line scripts, at ~85 ms per call.
+- The hatch is read from the COMMAND because the hook runs in its own process: a variable in the command never reaches
+  it (why the older hooks' documented prefix does not work, `#27-hookhatch`).
+- `$CLAUDE_PROJECT_DIR`: with a relative path, a hook runs against the session's CURRENT directory. MEASURED: from
+  `tools/story-dev` the new hook exited 2 (= block everything) and the old `git add -A` hook silently let a dry run
+  through. `|| true` stops a path failure from ever exiting 2.
+**Rejected:**
+- Blocking every `git checkout`: it is also the branch switch. Operands are asked of the repo (a real ref is not a
+  file); a `$var` or xargs operand counts as a path (so checking out a branch held in a variable is blocked: the deny
+  message offers `git switch`).
+- A sandbox-grade parser: the hook is a seat belt against habit. Deliberate evasion (splatting, `eval`, interpreters
+  that shell out, GIT_* redirection, unicode look-alike whitespace) is listed as a known limit.
