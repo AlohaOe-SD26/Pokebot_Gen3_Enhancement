@@ -36469,3 +36469,12 @@ gym 1 and none with badges and a party below 6, so no Phase 2 arm could be drive
   HP), ₽8,628, for P2-b (open the post-gym-1 fence). Not at full HP, so only encounters after a heal can differ.
 Balls are not recorded: the spec drives every arm with `--set-balls`. The owned count was not read; compute it at load.
 Evidence: `tools/story-dev/evidence/2026-09-27-r20step0-partypids-*.txt`. `verify_fixtures.py`: both OK.
+
+## 2026-09-27 — The `reviewer` agent may no longer rewrite the working tree (branch `wt/swapevo`)
+
+**WHY.** A reviewer "reverted" a test mutation with `git checkout -- <file>` on an UNCOMMITTED fix and deleted it
+(`08-MISTAKES.md` 2026-09-27). The 08 rule tells the author to commit first; this makes the reviewer's side explicit.
+**WHAT.** `.claude/agents/reviewer.md`: no `git checkout/restore/reset/stash/clean` or other tree-rewriting command;
+mutations are tested on a copy (as the gates' fault arms do); `git status --short` is reported at the start and the end
+and must match. ⚠ This is a prompt rule, not an enforced gate: a PreToolUse hook would enforce it for every agent, and
+that is a settings change left for the user to approve.
