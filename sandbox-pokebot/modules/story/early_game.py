@@ -2718,6 +2718,25 @@ def _m6_field(fn):
         return "?"
 
 
+def _team_admissible_left(grass_map) -> "set | None":
+    """RULING 20 P2-a: the LAND species on `grass_map` the pre-gym-1 team loop could still admit — unowned and not already
+    in the party (the fence's own C11/C12 rules). None when the table or the dex cannot be read (the caller keeps looping:
+    fail open)."""
+    try:
+        from modules.map import get_wild_encounters_for_map
+        from modules.pokedex import get_pokedex
+
+        enc = get_wild_encounters_for_map(*grass_map.value)
+        if enc is None:
+            return None
+        owned = {s.national_dex_number for s in get_pokedex().owned_species}
+        in_party = {m.species.national_dex_number for m in get_party() if m is not None}
+        return {e.species.name for e in enc.land_encounters
+                if e.species is not None and e.species.national_dex_number not in owned | in_party}
+    except Exception:  # noqa: BLE001 - unreadable: keep looping, exactly the pre-P2-a behaviour
+        return None
+
+
 def _catchteam_exit(why: str, target: int, f0, loops: int) -> None:
     try:
         from modules import debug_logger
@@ -2768,6 +2787,12 @@ def catch_starter_team(
             if guard > 250:
                 _why = "guard"
                 break
+            # ⭐ USER RULING 20 Phase 2 P2-a (2026-09-28), FLAG ON ONLY (a target above the classic 4): stop when no land
+            # species on this grass is still admissible (unowned and not in the party), instead of spinning toward the
+            # 250-loop guard. An unreadable table returns None and keeps looping (fail open). OFF (target 4): unchanged.
+            if target_size > 4 and _team_admissible_left(grass_map) == set():
+                _why = "none_left"
+                break
             if _total_poke_balls() <= 1:
                 # OUT-OF-BALLS CONTINGENCY (planning doc §3): try to restock at the mart;
                 # if we can't afford it, stop catching and proceed with the team we have.
@@ -2777,8 +2802,12 @@ def catch_starter_team(
                     break
             yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
+            # P2-a (flag ON only): a catch also ends the spin, so the none_left check above re-runs after each catch
+            # instead of after the next heal. OFF: the stop condition is byte-identical.
+            _p0 = _party_size()
             yield from _story_spin(
                 lambda: _party_size() >= target_size or _total_poke_balls() <= 1 or _lead_hp_pct() <= heal_at
+                or (target_size > 4 and _party_size() > _p0)
             )
             if _lead_hp_pct() <= heal_at and _party_size() < target_size:
                 yield from heal_in_pokemon_center(heal_center)

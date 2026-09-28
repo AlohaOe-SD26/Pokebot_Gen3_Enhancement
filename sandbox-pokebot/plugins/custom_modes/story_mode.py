@@ -2196,7 +2196,13 @@ class StoryMode(BotMode):
         # ‼ The empty slots were never waste — they are the RUNWAY the HM/counter catches
         # land on. Measured: at cap 4 the team still reaches a mean of 5.85 by the Feather
         # Badge. It fills up either way; letting wilds take the seats first is what breaks it.
-        self._catch_team_target = 4
+        #
+        # ⭐ USER RULING 20 Phase 2 P2-a (2026-09-28): `POKEBOT_R20_TEAM6=1` raises it to 6 — the user's "a full team caught
+        # along the way". FLAG-GATED, DEFAULT OFF, because of the measurement above: whether the PC-first make-room paths
+        # built since have removed that Surf-gate cause is a FREQUENCY question for the Phase 3 batch, not for a drive.
+        import os as _os_team6
+
+        self._catch_team_target = 6 if _os_team6.environ.get("POKEBOT_R20_TEAM6") == "1" else 4
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
         # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
         # so the predicate that admitted it is TRUE again on the very next encounter and nothing else
@@ -2242,6 +2248,16 @@ class StoryMode(BotMode):
             _ch.disarm()
         except Exception:
             pass
+
+    def _team_loop_target(self) -> int:
+        """The target `catch_starter_team` is given: the SAME value the fence reads (`_catch_team_target`), from one
+        place, so the two readers cannot drift. `POKEBOT_R20_FAULT_TARGETLOOP=1` returns the old 4 while the fence
+        keeps its value (the P2-a fault arm: `probe_catch_team_target.py` must go red, the live ON arm stops at 4)."""
+        import os as _os_tl
+
+        if _os_tl.environ.get("POKEBOT_R20_FAULT_TARGETLOOP") == "1":
+            return 4
+        return self._catch_team_target
 
     def on_battle_ended(self, outcome) -> None:
         from modules.battle_state import BattleOutcome
@@ -4634,7 +4650,7 @@ class StoryMode(BotMode):
                 "heal": PokemonCenter.RustboroCity,
             }
             # Build an organic team (catch new species) BEFORE training + the gym.
-            yield from catch_starter_team(self._catch_team_target)
+            yield from catch_starter_team(self._team_loop_target())
             yield from self._prepare_for_fight(roxanne_fight)
             yield from do_rustboro_gym()
         else:
