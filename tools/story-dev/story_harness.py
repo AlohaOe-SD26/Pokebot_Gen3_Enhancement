@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -222,6 +222,170 @@ class FaintReproMode(BotMode):
     def run(self):
         from modules.modes.util import spin
         yield from spin()
+
+
+class Ki47OorMode(FaintReproMode):
+    """`--driver ki47oor` — `#27-ki47range` (KI-47's faint-chooser freeze on a 4-member party), on
+    `r20_pregym1_party4_r116.ss1` (PINNED; ROUTE116 (11,7), a party of 4). The lead is replaced by a BURNED 1-HP
+    Growl-only Shedinja, so it faints at the end of its first turn and the after-faint chooser runs with the fixture's
+    own three bench mons: a 4-member party, the shape of every logged freeze.
+
+    `KI47_ARM` writes `gBattlePartyCurrentOrder` on the FIRST faint, just before the handler snapshots it. The game
+    re-copies the PLAYER's order when its own menu opens (`PlayerHandleChoosePokemon`), so only the bot's early
+    snapshot is affected; arm `Wid` (the true order) is the faithfulness control and must behave like `C0`.
+      C0    no write (the ordinary faint; the regression arm)
+      Wid   the true order 01 23 45
+      Foor  O=[1,0,4,5,2,3] (10 45 23): the stale-enemy-order shape the batch logged; candidates land at slots 4/5
+      Finr  O=[0,2,1,3,4,5] (02 13 45): in range but wrong
+    Grades the ACTION (rule 7): frames inside the handler, the buttons it pressed, a KI-47 recovery request, and the
+    PID actually on the field afterwards against the living bench PIDs. Declares `handles_battle_faults` and claims the
+    fault every frame, as StoryMode does, so a freeze becomes a verdict instead of a drop to Manual.
+    Predictions: `ai-research-notes/2026-09-28-ki47range-PREDICTIONS.md`."""
+
+    handles_battle_faults = True
+    ORDERS = {"C0": None, "Wid": "012345", "Foor": "104523", "Finr": "021345"}
+
+    @staticmethod
+    def name():
+        return "Ki47Oor"
+
+    def on_battle_started(self, encounter):
+        """The FaintRepro no-flee strategy, with the lead the strategy CHOSE recorded (by PID, in party order at the
+        moment it chose): the `Finr` arm is graded on whether that mon is the one actually sent out."""
+        strategy = super().on_battle_started(encounter)
+        orig_choose = strategy.choose_new_lead_after_faint
+        mode = self
+
+        def choose(battle_state):
+            idx = orig_choose(battle_state)
+            if getattr(mode, "_chosen_pid", None) is None and idx is not None:
+                try:
+                    from modules.pokemon_party import get_party
+
+                    mode._chosen_pid = f"{get_party()[idx].personality_value:08X}"
+                except Exception as err:  # noqa: BLE001 - the verdict records it
+                    mode._chosen_pid = f"?{type(err).__name__}"
+            return idx
+
+        strategy.choose_new_lead_after_faint = choose
+        return strategy
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def run(self):
+        import os as _os
+
+        import modules.battle_handler as _bh
+        from modules.battle_fault import take_pending_fault
+        from modules.battle_state import get_battle_state
+        from modules.debug_utilities import debug_create_pokemon, debug_write_party
+        from modules.memory import GameState, get_game_state, read_symbol, write_symbol
+        from modules.modes.util import spin
+        from modules.player import get_player_avatar
+        from modules.pokemon import LearnedMove, StatusCondition, get_move_by_name, get_species_by_name
+        from modules.pokemon_party import get_party
+
+        TAG = "ki47oor"
+        ARM = _os.environ.get("KI47_ARM", "C0")
+        if ARM not in self.ORDERS:
+            raise BotModeError(f"{TAG}: KI47_ARM={ARM!r} not recognised")
+        R: dict = {"arm": ARM}
+        st: dict = {"calls": 0, "presses": {}, "pressing": False}
+        frame = lambda: context.emulator.get_frame_count()  # noqa: E731
+
+        av = get_player_avatar()
+        party = [m for m in get_party() if m is not None]
+        R["start"] = (str(av.map_group_and_number), tuple(av.local_coordinates))
+        R["premise_party4"] = len(party) == 4
+        bench = party[1:4]
+        R["bench"] = [f"{m.species.name}#{m.personality_value:08X}" for m in bench]
+        bench_pids = {f"{m.personality_value:08X}" for m in bench}
+        shed = debug_create_pokemon(species=get_species_by_name("Shedinja"), level=22,
+                                    moves=[LearnedMove.create(get_move_by_name("Growl"))], current_hp=1,
+                                    status_condition=StatusCondition.Burn)
+        debug_write_party([shed] + bench)
+        log(f"[{TAG}] PRE arm={ARM} {R}")
+
+        orig = _bh.handle_fainted_pokemon
+        real_press = context.emulator.press_button
+
+        def _press(button, *a, **k):
+            if st["pressing"]:
+                st["presses"][button] = st["presses"].get(button, 0) + 1
+            return real_press(button, *a, **k)
+
+        orig_sel = _bh.handle_battle_action_selection
+
+        def sel_wrapped(strategy):
+            # The PID ON THE FIELD at the first move selection after the chooser returned: what was actually sent out.
+            if "f1" in st and "field_pid" not in st:
+                try:
+                    st["field_pid"] = f"{get_battle_state().own_side.left_battler.personality_value:08X}"
+                    st["field_frame"] = frame()
+                except Exception as err:  # noqa: BLE001 - the verdict records it
+                    st["field_pid"] = f"?{type(err).__name__}"
+            return (yield from orig_sel(strategy))
+
+        def wrapped(strategy):
+            st["calls"] += 1
+            first = st["calls"] == 1
+            if first:
+                st["entry_state"] = getattr(get_game_state(), "name", str(get_game_state()))
+                st["order_before"] = read_symbol("gBattlePartyCurrentOrder", size=3).hex()
+                if self.ORDERS[ARM] is not None:
+                    write_symbol("gBattlePartyCurrentOrder", bytes.fromhex(self.ORDERS[ARM]))
+                st["order_written"] = read_symbol("gBattlePartyCurrentOrder", size=3).hex()
+                st["f0"] = frame()
+                st["pressing"] = True
+            try:
+                result = yield from orig(strategy)
+            finally:
+                if first:
+                    st["pressing"] = False
+                    st["f1"] = frame()
+            return result
+
+        _bh.handle_fainted_pokemon = wrapped
+        _bh.handle_battle_action_selection = sel_wrapped
+        context.emulator.press_button = _press
+        failure = None
+        try:
+            g = spin()
+            f_start = frame()
+            while frame() - f_start < 60_000:
+                reason = take_pending_fault()
+                if reason:
+                    st["fault"] = reason[:200]
+                    break
+                if "f1" in st and ("field_pid" in st or get_game_state() == GameState.OVERWORLD):
+                    break
+                try:
+                    next(g)
+                except StopIteration:
+                    break
+                yield
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            _bh.handle_fainted_pokemon = orig
+            _bh.handle_battle_action_selection = orig_sel
+            context.emulator.press_button = real_press
+
+        R.update({k: v for k, v in st.items() if k != "pressing"})
+        R["chosen_pid"] = getattr(self, "_chosen_pid", None)
+        R["handler_frames"] = (st["f1"] - st["f0"]) if "f1" in st and "f0" in st else None
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        log(f"[{TAG}] failure={failure} whiteouts={getattr(self, 'whiteouts', 0)}")
+        froze = "fault" in st or R["handler_frames"] is None or R["handler_frames"] >= 3000
+        sent_bench = st.get("field_pid") in bench_pids
+        R["verdict"] = {"reached_the_chooser": st["calls"] >= 1, "froze": froze, "sent_a_bench_mon": sent_bench,
+                        "sent_the_chosen_mon": st.get("field_pid") is not None and st.get("field_pid") == R["chosen_pid"],
+                        "entry_before_menu": st.get("entry_state") != "PARTY_MENU"}
+        log(f"[{TAG}] VERDICT {R['verdict']} handler_frames={R['handler_frames']} presses={st['presses']}")
+        context.set_manual_mode()
 
 
 class SpinFightMode(BotMode):
@@ -28765,6 +28929,8 @@ for step in range(args.frames):
             context.bot_mode_instance = FlyBoxMode()
         elif args.driver == "restock":
             context.bot_mode_instance = RestockMode()
+        elif args.driver == "ki47oor":
+            context.bot_mode_instance = Ki47OorMode()
         elif args.driver == "ch24room":
             context.bot_mode_instance = Ch24RoomMode()
         elif args.driver == "ch24bridge":

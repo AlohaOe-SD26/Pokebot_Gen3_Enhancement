@@ -483,6 +483,16 @@ def handle_item_stealing() -> Generator[None, None, tuple[int, Item] | None]:
 def handle_fainted_pokemon(strategy: BattleStrategy):
     fainted_pokemon: BattlePokemon | None = None
     battle_state = get_battle_state()
+    # `#27-ki47range` STEP 0 — OBSERVE ONLY (rule 10: measure an index conversion's direction before changing it).
+    # The raw `gBattlePartyCurrentOrder` bytes this SNAPSHOT holds. The decomp says the game copies the PLAYER's
+    # order back only when the choose-a-mon menu opens, so here it can still hold the ENEMY's order.
+    try:
+        from modules import debug_logger as _dl_ki47
+
+        _dl_ki47.event(f"[KI47-OBS] snapshot order={bytes(battle_state._battler_party_order).hex()} "
+                       f"party={get_party_size()}", category="BATTLE")
+    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+        pass
     if battle_state.own_side.left_battler is None or battle_state.own_side.left_battler.current_hp == 0:
         fainted_pokemon = battle_state.own_side.left_battler
     elif battle_state.is_double_battle and (
@@ -703,6 +713,25 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
 
     global _faint_chooser_giveups
     alive_slots_menu = {_to_menu_order(i) for i in alive_slots}
+    # `#27-ki47range` STEP 0 — OBSERVE ONLY: the order the menu actually uses (read FRESH, now that it is open), and
+    # the candidate set each reading of it would produce. The chooser ACTS on `alive_slots_menu` (the stale snapshot).
+    try:
+        from modules import debug_logger as _dl_ki47
+
+        _fresh = get_battle_state()
+        _fresh_map = set()
+        for _i in alive_slots:
+            try:
+                _fresh_map.add(_fresh.map_battle_party_index(_i))
+            except Exception:  # noqa: BLE001 - a missing index is itself the observation
+                _fresh_map.add(-1)
+        _dl_ki47.event(f"[KI47-OBS] menu-open fresh order={bytes(_fresh._battler_party_order).hex()} "
+                       f"party_in_menu={len(party_in_menu)} alive_slots={sorted(alive_slots)} "
+                       f"acted_on={sorted(alive_slots_menu)} fresh_mapped={sorted(_fresh_map)} "
+                       f"out_of_range={sorted(i for i in alive_slots_menu if i >= len(party_in_menu))}",
+                       category="BATTLE")
+    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+        pass
     try:
         from modules import debug_logger
 
@@ -785,6 +814,18 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             # that we did, so the next iteration can tell acceptance from refusal.
             button = "A"
             _last_a_cursor = cursor
+            # `#27-ki47range` STEP 0 — OBSERVE ONLY (rule 7: log the value the code ACTS on): the menu slot we
+            # confirm and the PID it holds in the menu's own order.
+            try:
+                from modules import debug_logger as _dl_ki47
+
+                _tgt = party_in_menu[cursor] if 0 <= cursor < len(party_in_menu) else None
+                _dl_ki47.event(f"[KI47-OBS] A at cursor={cursor} pid="
+                               f"{'-' if _tgt is None else f'{_tgt.personality_value:08X}'} "
+                               f"sp={getattr(getattr(_tgt, 'species', None), 'name', '-')} frames={frames}",
+                               category="BATTLE")
+            except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+                pass
         else:
             button = None    # cursor unreadable: wait, never gamble an A (KI-17)
         # ‼ COUNT WHAT WE PRESS AND WHERE THE CURSOR WAS (KI-34). Playbook §7: "pressing the
