@@ -1,0 +1,86 @@
+# #27-r101standstill — --driver r101hunt, arm unfixed-OUTDOOR; code UNFIXED 5f401422; norman_done.ss1 (e6fb7d5f36db) --set-balls 20 --frames 45000
+# Predictions: ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md (5f401422, before the fix).
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\r101\U-outdoor.log
+[setup] created profile r101-U-outdoor
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 45000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[r101hunt] PRE {'arm': 'outdoor', 'start': ((0, 0), (7, 6)), 'premise_no_learner': True, 'premise_party_room': True, 'party': ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']}
+f1: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+[setup] set Poké Balls to 20 — read back from the save block: ball pocket = Poké Ball x20, Premier Ball x3, Great Ball x1
+f145: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=R101HuntMode.run bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f1322: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f1323: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2268: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2278: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='Got away safely!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2304: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+f2553: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2554: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f3500: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f3536: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+f3925: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f3926: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4872: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4908: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+f5187: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f5188: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f6134: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f6170: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+f6380: battle_is_active -> True  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f6381: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f8331: PARTY CHANGE [Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767] -> [Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f8373: battle_is_active -> False  outcome=BattleOutcome.Caught  party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f8383: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessBallThrowEnd textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='Give a nickname to the captured ZIGZAGOON?' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f8409: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+[r101hunt] R arm = 'outdoor'
+[r101hunt] R arrival_frames_to_exit = 7257
+[r101hunt] R exit = 'slot 5'
+[r101hunt] R hunt_from = ((0, 0), (7, 6))
+[r101hunt] R nav_calls = [('ROUTE103', (5, 7))]
+[r101hunt] R party = ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']
+[r101hunt] R premise_indoor = False
+[r101hunt] R premise_no_learner = True
+[r101hunt] R premise_party_room = True
+[r101hunt] R spin_battles = 5
+[r101hunt] R spin_frames = 7257
+[r101hunt] R spin_tile = (((0, 18), (5, 7)), 'Tall Grass', True)
+[r101hunt] R start = ((0, 0), (7, 6))
+[r101hunt] R whiteouts = 0
+[r101hunt] VERDICT {'premise_no_learner': True, 'premise_party_room': True, 'premise_indoor': None, 'ground': ('ROUTE103', (5, 7)), 'spin_tile_type': 'Tall Grass', 'spin_tile_encounters': True, 'spin_battles': 5, 'spin_bound_hit': False, 'exit': 'slot 5', 'failure': None}
+f8454: CONTROLLER -> <none>   (state=OVERWORLD)
+f9354: SAVED stall state #1 to stalls/r101-U-outdoor-f9354.ss1 (bt='Give a nickname to the captured ZIGZAGOON?')
+f9654: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27', (5, 7)) instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Give a nickname to the captured ZIGZAGOON?' bot_mode=Manual
+f9654:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f11454: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27', (5, 7)) instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Give a nickname to the captured ZIGZAGOON?' bot_mode=Manual
+f11454:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f16454: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27', (5, 7)) instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Give a nickname to the captured ZIGZAGOON?' bot_mode=Manual
+f16454:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f23454: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27', (5, 7)) instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Give a nickname to the captured ZIGZAGOON?' bot_mode=Manual
+f23454:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f26000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+f28454: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 28455 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767|Zigzagoon:L3:exp27]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[moveset] Zigzagoon L3: Tackle, Growl
+[PARTY-ACCT] STAGE 0 SUMMARY — 28455 get_party() recomputes, 95 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += r101hunt 28455 recomputes (party_accounting_ledger.jsonl)

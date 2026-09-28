@@ -1,0 +1,96 @@
+# #27-r101standstill — --driver r101hunt, arm unfixed-INDOOR; code UNFIXED 5f401422 (= main 2820655e + the predictions); norman_done.ss1 (e6fb7d5f36db) --set-balls 20 --frames 45000
+# Predictions: ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md (5f401422, before the fix).
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\r101\U-indoor.log
+[setup] created profile r101-U-indoor2
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 45000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[r101hunt] PRE {'arm': 'indoor', 'start': ((0, 0), (7, 6)), 'premise_no_learner': True, 'premise_party_room': True, 'party': ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']}
+f1: CONTROLLER -> R101HuntMode.run   (state=OVERWORLD)
+[setup] set Poké Balls to 20 — read back from the save block: ball pocket = Poké Ball x20, Premier Ball x3, Great Ball x1
+f45: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=R101HuntMode.run bt='BLAZIKEN learned BLAZE KICK!' scripts=[] party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f2409: SAVED stall state #1 to stalls/r101-U-indoor2-f2409.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+f2709: !!! NO-PROGRESS x1200 sig=('R101HuntMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f2709:     gen -> R101HuntMode.run  @ story_harness.py:1306
+f2709:     gen -> ensure_hm_learner  @ early_game.py:5140
+f2709:     gen -> R101HuntMode.run.<locals>.spin  @ story_harness.py:1299
+f2709:     gen -> _story_spin  @ early_game.py:223
+f2709:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2709:     gen -> spin  @ higher_level_actions.py:391
+f4000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f4509: !!! NO-PROGRESS x3000 sig=('R101HuntMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f4509:     gen -> R101HuntMode.run  @ story_harness.py:1306
+f4509:     gen -> ensure_hm_learner  @ early_game.py:5140
+f4509:     gen -> R101HuntMode.run.<locals>.spin  @ story_harness.py:1299
+f4509:     gen -> _story_spin  @ early_game.py:223
+f4509:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f4509:     gen -> spin  @ higher_level_actions.py:391
+f6000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f8000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f9509: !!! NO-PROGRESS x8000 sig=('R101HuntMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f9509:     gen -> R101HuntMode.run  @ story_harness.py:1306
+f9509:     gen -> ensure_hm_learner  @ early_game.py:5140
+f9509:     gen -> R101HuntMode.run.<locals>.spin  @ story_harness.py:1299
+f9509:     gen -> _story_spin  @ early_game.py:223
+f9509:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f9509:     gen -> spin  @ higher_level_actions.py:391
+f10000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f12000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f14000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f16000: heartbeat mode=Story ctrl=R101HuntMode.run state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f16509: !!! NO-PROGRESS x15000 sig=('R101HuntMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Story
+f16509:     gen -> R101HuntMode.run  @ story_harness.py:1306
+f16509:     gen -> ensure_hm_learner  @ early_game.py:5140
+f16509:     gen -> R101HuntMode.run.<locals>.spin  @ story_harness.py:1299
+f16509:     gen -> _story_spin  @ early_game.py:223
+f16509:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f16509:     gen -> spin  @ higher_level_actions.py:391
+[r101hunt] R arm = 'indoor'
+[r101hunt] R arrival_frames_to_exit = 15002
+[r101hunt] R exit = 'BotModeError: Hunted for a Surf learner but never caught one (timeout/balls).'
+[r101hunt] R hunt_from = ((8, 0), (3, 7))
+[r101hunt] R nav_calls = [('ROUTE101', (9, 9))]
+[r101hunt] R party = ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']
+[r101hunt] R premise_indoor = True
+[r101hunt] R premise_no_learner = True
+[r101hunt] R premise_party_room = True
+[r101hunt] R spin_battles = 0
+[r101hunt] R spin_bound_hit = True
+[r101hunt] R spin_frames = 15002
+[r101hunt] R spin_tile = (((0, 16), (9, 9)), 'Normal', False)
+[r101hunt] R start = ((0, 0), (7, 6))
+[r101hunt] R whiteouts = 0
+[r101hunt] VERDICT {'premise_no_learner': True, 'premise_party_room': True, 'premise_indoor': True, 'ground': ('ROUTE101', (9, 9)), 'spin_tile_type': 'Normal', 'spin_tile_encounters': False, 'spin_battles': 0, 'spin_bound_hit': True, 'exit': 'BotModeError: Hunted for a Surf learner but never caught one (timeout/balls).', 'failure': None}
+f16520: CONTROLLER -> <none>   (state=OVERWORLD)
+f17420: SAVED stall state #2 to stalls/r101-U-indoor2-f17420.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+f17720: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f17720:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f19520: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f19520:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f24520: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f24520:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f26000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f30000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f31520: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (9, 9)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f31520:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f32000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f34000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+f36520: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 36521 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 36521 get_party() recomputes, 122 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += r101hunt 36521 recomputes (party_accounting_ledger.jsonl)
