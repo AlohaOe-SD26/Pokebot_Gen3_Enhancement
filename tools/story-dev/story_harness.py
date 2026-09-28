@@ -1214,10 +1214,16 @@ class R101HuntMode(BotMode):
     """`--driver r101hunt` — `#27-r101standstill`, on `norman_done.ss1` (PINNED; PETALBURG_CITY (7,6), badges 1-5,
     RECEIVED_HM_SURF, party of 5 with NO Surf learner). Runs the REAL `early_game.ensure_hm_learner(HM03)`:
       R101_ARM=indoor  (default) step Up through Wally's door (7,5) into (8,0) first, as every batch episode began;
-      R101_ARM=outdoor run it from Petalburg outdoors.
+      R101_ARM=outdoor run it from Petalburg outdoors;
+      R101_ARM=healed  heal at the Petalburg Pokémon Center first (production `heal_in_pokemon_center`), then run it from
+                       there. `#27-enroutejoin`: the fixture starts with 3 of 5 fainted, so without a heal the dex fence
+                       refuses every walk battle on health and a walk-join arm is VACUOUS.
+      R101_FENCE=real  (`#27-enroutejoin`) battles go to a REAL `StoryMode` (per-run state reset), so the production dex
+                       fence decides; the default keeps the old shim, whose `_should_catch` always says no.
     Readings (rule 7: what the code ACTS on): the `(map, tile)` actually passed to `_navigate_riding_out`; the map, tile
     and tile type under the player when `_story_spin` starts; the battles during the spin; the exit (a slot, or the raised
-    text). The spin is bounded at 15,000 frames from its start (`R101_SPIN_BOUND`). ⛔ Not 20,000 (the pre-registered
+    text). With `R101_FENCE=real`, also every battle's PHASE (walk / spin / other), the STRATEGY the hook returned (the
+    action) and the fence's last reason, plus the party PIDs that joined during the walk. The spin is bounded at 15,000 frames from its start (`R101_SPIN_BOUND`). ⛔ Not 20,000 (the pre-registered
     figure): the harness's own `HANG CONFIRMED (20000 frames no progress)` stop kills the process first, so a 20,000
     bound never closes and no verdict prints (measured on the first unfixed INDOOR run).
     Predictions: `ai-research-notes/2026-09-28-r101standstill-PREDICTIONS.md`."""
@@ -1231,8 +1237,27 @@ class R101HuntMode(BotMode):
 
         if getattr(self, "_spin_f0", None) is not None:
             self._spin_battles = getattr(self, "_spin_battles", 0) + 1
-        shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
-        return StoryMode.on_battle_started(shim, encounter)
+        import os as _os
+
+        if _os.environ.get("R101_FENCE") != "real":
+            shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
+            return StoryMode.on_battle_started(shim, encounter)
+        sm = getattr(self, "_real_sm", None)
+        if sm is None:
+            sm = self._real_sm = StoryMode.__new__(StoryMode)
+            StoryMode.reset_per_run_state(sm)
+        sm._dex_catch_last_reason = None  # a battle the fence never saw reads None, not a stale reason
+        strategy = StoryMode.on_battle_started(sm, encounter)
+        phase = "walk" if getattr(self, "_in_walk", False) else ("spin" if getattr(self, "_spin_f0", None) is not None
+                                                                  else "other")
+        sp = getattr(getattr(getattr(encounter, "pokemon", None), "species", None), "name", "?")
+        row = (context.emulator.get_frame_count(), phase, sp, type(strategy).__name__ if strategy is not None else None,
+               sm._dex_catch_last_reason)
+        if getattr(self, "_battle_rows", None) is None:
+            self._battle_rows = []
+        self._battle_rows.append(row)
+        log(f"[r101hunt] BATTLE f{row[0]} phase={row[1]} sp={row[2]} strategy={row[3]} fence={row[4]!r}")
+        return strategy
 
     def on_whiteout(self) -> bool:
         self._whiteouts = getattr(self, "_whiteouts", 0) + 1
@@ -1270,13 +1295,33 @@ class R101HuntMode(BotMode):
                         break
                     yield
                 yield from EG.wait_until_truly_controllable()
+            elif ARM == "healed":
+                from modules.map_data import PokemonCenter
+                from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+
+                yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+                yield from EG.wait_until_truly_controllable()
+                R["premise_healthy"] = all(m.current_hp == m.total_hp for m in get_party() if m is not None
+                                           and not m.is_egg)
             av = get_player_avatar()
             R["hunt_from"] = (tuple(av.map_group_and_number), tuple(av.local_coordinates))
             R["premise_indoor"] = R["hunt_from"][0] == (8, 0)
 
+            def _pids():
+                return {m.personality_value: m.species.name for m in get_party() if m is not None}
+
             def nav(map_enum, tile, *a, **k):
                 R.setdefault("nav_calls", []).append((getattr(map_enum, "name", str(map_enum)), tuple(tile)))
-                return (yield from orig_nav(map_enum, tile, *a, **k))
+                before_walk = _pids()
+                self._in_walk = True
+                try:
+                    return (yield from orig_nav(map_enum, tile, *a, **k))
+                finally:
+                    self._in_walk = False
+                    after_walk = _pids()
+                    R.setdefault("walk_joins", []).extend(f"{after_walk[p]}#{p:08X}" for p in after_walk
+                                                          if p not in before_walk)
+                    R["party_after_walk"] = len(after_walk)
 
             def spin(stop, *a, **k):
                 pav = get_player_avatar()
@@ -1313,6 +1358,9 @@ class R101HuntMode(BotMode):
             EG._navigate_riding_out, EG._story_spin = orig_nav, orig_spin
         R["arrival_frames_to_exit"] = R.get("spin_frames")
         R["whiteouts"] = getattr(self, "_whiteouts", 0)
+        rows = getattr(self, "_battle_rows", None) or []
+        R["walk_battles"] = [r for r in rows if r[1] == "walk"]
+        R["walk_catch_strategies"] = [r for r in rows if r[1] == "walk" and r[3] and "Catch" in r[3]]
         for k in sorted(R):
             log(f"[{TAG}] R {k} = {R[k]!r}")
         spin = R.get("spin_tile") or (None, None, None)
@@ -1322,6 +1370,10 @@ class R101HuntMode(BotMode):
             "ground": (R.get("nav_calls") or [None])[-1], "spin_tile_type": spin[1], "spin_tile_encounters": spin[2],
             "spin_battles": R.get("spin_battles"), "spin_bound_hit": bool(R.get("spin_bound_hit")),
             "exit": R.get("exit"), "failure": failure,
+            # `#27-enroutejoin` readings (meaningful with R101_FENCE=real; `premise_healthy` only on the healed arm)
+            "premise_healthy": R.get("premise_healthy"), "walk_battles": len(R["walk_battles"]),
+            "walk_catch_strategies": len(R["walk_catch_strategies"]), "walk_joins": R.get("walk_joins", []),
+            "party_after_walk": R.get("party_after_walk"),
         }
         log(f"[{TAG}] VERDICT {verdict}")
         context.set_manual_mode()
