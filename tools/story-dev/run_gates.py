@@ -336,6 +336,11 @@ GATES: list[tuple[str, bool]] = [
     # SECOND occurrence of that class; CLAUDE.md says committing over a red gate is the same
     # offence as `git add -A`, and that one has a hook. Now so does this.
     ("selftest_commit_over_gates_hook.py", False),
+    # ⛔ The third hook (user-approved 2026-09-28): git commands that can silently DISCARD work
+    # (`checkout -- <f>`, `restore`, `reset --hard`, `stash`, `clean -f`, branch deletion, force-push,
+    # `worktree remove`, `rm -f`). A reviewer's `git checkout --` deleted an uncommitted fix on
+    # 2026-09-27. Case table + two mutants (always-allow, always-block) + the settings registration.
+    ("selftest_destructive_git_hook.py", False),
     # #30 — `#24-loopheadabort`. Nav retry loops must `_check_abort()` at the LOOP HEAD (outside the
     # try — `StoryAbort` subclasses `BotModeError`, so a check inside would be swallowed by the
     # ⛔ §1 gates the ORDERING that makes those checks safe: `StoryMode.run` must clear the
