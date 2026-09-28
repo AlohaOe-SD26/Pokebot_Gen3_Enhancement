@@ -256,6 +256,10 @@ GATES: list[tuple[str, bool]] = [
     # ⛔ KI-106 / `#27-evgpcwedge` — every Story recovery starts from NO held input (a leaked Up walked a whiteout
     # respawn into the Ever Grande Poké Center and wedged an 8-badge run). Static, with three fault arms built in.
     ("probe_recovery_heldrelease.py", False),
+    # ⛔ KI-47 / `#27-ki47range` — the after-faint chooser decides by IDENTITY (PID + species), never by converting
+    # indexes through `gBattlePartyCurrentOrder` (which holds the ENEMY's order after an enemy send-out: a stale map
+    # froze the chooser at party 4). Pure plan table + AST wiring, five built-in fault arms.
+    ("probe_faint_chooser_identity.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

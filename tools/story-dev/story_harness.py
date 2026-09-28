@@ -237,13 +237,17 @@ class Ki47OorMode(FaintReproMode):
       Wid   the true order 01 23 45
       Foor  O=[1,0,4,5,2,3] (10 45 23): the stale-enemy-order shape the batch logged; candidates land at slots 4/5
       Finr  O=[0,2,1,3,4,5] (02 13 45): in range but wrong
+      Swp   NO write: a NATURAL non-identity order. Party [Whismur, Nincada, Shedinja, Poochyena]; turn 1 switches to
+            the Shedinja (the GAME's `SwitchPartyOrder` makes the order 21 03 45) and the burn faints it; the chooser
+            is directed to Whismur (field slot 0, menu slot 2). Premise conjuncts: the fainted mon is the Shedinja,
+            the order is not identity, and the chosen mon's field slot differs from its menu slot.
     Grades the ACTION (rule 7): frames inside the handler, the buttons it pressed, a KI-47 recovery request, and the
     PID actually on the field afterwards against the living bench PIDs. Declares `handles_battle_faults` and claims the
     fault every frame, as StoryMode does, so a freeze becomes a verdict instead of a drop to Manual.
-    Predictions: `ai-research-notes/2026-09-28-ki47range-PREDICTIONS.md`."""
+    Predictions: `ai-research-notes/2026-09-28-ki47range-PREDICTIONS.md` and `...-PREDICTIONS-ADDENDUM.md` (Swp)."""
 
     handles_battle_faults = True
-    ORDERS = {"C0": None, "Wid": "012345", "Foor": "104523", "Finr": "021345"}
+    ORDERS = {"C0": None, "Wid": "012345", "Foor": "104523", "Finr": "021345", "Swp": None}
 
     @staticmethod
     def name():
@@ -255,19 +259,43 @@ class Ki47OorMode(FaintReproMode):
         strategy = super().on_battle_started(encounter)
         orig_choose = strategy.choose_new_lead_after_faint
         mode = self
+        swp = getattr(mode, "_arm", None) == "Swp"
 
         def choose(battle_state):
+            from modules.pokemon_party import get_party
+
             idx = orig_choose(battle_state)
+            if swp and getattr(mode, "_force_pid", None) is not None:
+                # `Swp` directs the choice to Whismur, whose field slot (0) differs from its menu slot (2): the
+                # only choice on this party that discriminates the fix from the double map.
+                idx = next((i for i, m in enumerate(get_party())
+                            if m is not None and m.personality_value == mode._force_pid), idx)
             if getattr(mode, "_chosen_pid", None) is None and idx is not None:
                 try:
-                    from modules.pokemon_party import get_party
-
                     mode._chosen_pid = f"{get_party()[idx].personality_value:08X}"
+                    mode._chosen_idx = idx
                 except Exception as err:  # noqa: BLE001 - the verdict records it
                     mode._chosen_pid = f"?{type(err).__name__}"
             return idx
 
         strategy.choose_new_lead_after_faint = choose
+        if swp:
+            orig_decide = strategy.decide_turn
+
+            def decide(battle_state):
+                # Turn 1: switch to the burned 1-HP Shedinja through the bot's OWN switch path, so the game's
+                # `SwitchPartyOrder` produces a real non-identity order before the faint.
+                if not getattr(mode, "_swp_switched", False):
+                    from modules.battle_strategies import TurnAction
+                    from modules.pokemon_party import get_party
+
+                    mode._swp_switched = True
+                    mode._swp_switch_idx = next(i for i, m in enumerate(get_party())
+                                                if m is not None and m.species.name == "Shedinja")
+                    return TurnAction.rotate_lead(mode._swp_switch_idx)
+                return orig_decide(battle_state)
+
+            strategy.decide_turn = decide
         return strategy
 
     def on_whiteout(self) -> bool:
@@ -305,7 +333,15 @@ class Ki47OorMode(FaintReproMode):
         shed = debug_create_pokemon(species=get_species_by_name("Shedinja"), level=22,
                                     moves=[LearnedMove.create(get_move_by_name("Growl"))], current_hp=1,
                                     status_condition=StatusCondition.Burn)
-        debug_write_party([shed] + bench)
+        self._arm = ARM
+        if ARM == "Swp":
+            by_sp = {m.species.name: m for m in bench}
+            staged = [by_sp["Whismur"], by_sp["Nincada"], shed, by_sp["Poochyena"]]
+            self._force_pid = by_sp["Whismur"].personality_value
+        else:
+            staged = [shed] + bench
+        debug_write_party(staged)
+        R["staged"] = [m.species.name for m in staged]
         log(f"[{TAG}] PRE arm={ARM} {R}")
 
         orig = _bh.handle_fainted_pokemon
@@ -314,6 +350,12 @@ class Ki47OorMode(FaintReproMode):
         def _press(button, *a, **k):
             if st["pressing"]:
                 st["presses"][button] = st["presses"].get(button, 0) + 1
+                # The chosen mon's MENU slot, read at the first press with the menu open (the menu has permuted
+                # `gPlayerParty` by then): `Swp`'s discriminator is field slot != menu slot.
+                if "chosen_menu_idx" not in st and get_game_state() == GameState.PARTY_MENU:
+                    want = getattr(self, "_chosen_pid", None)
+                    st["chosen_menu_idx"] = next((i for i, m in enumerate(get_party()) if m is not None
+                                                  and f"{m.personality_value:08X}" == want), None)
             return real_press(button, *a, **k)
 
         orig_sel = _bh.handle_battle_action_selection
@@ -333,6 +375,10 @@ class Ki47OorMode(FaintReproMode):
             first = st["calls"] == 1
             if first:
                 st["entry_state"] = getattr(get_game_state(), "name", str(get_game_state()))
+                try:
+                    st["fainted_species"] = get_battle_state().own_side.left_battler.species.name
+                except Exception as err:  # noqa: BLE001 - the verdict records it
+                    st["fainted_species"] = f"?{type(err).__name__}"
                 st["order_before"] = read_symbol("gBattlePartyCurrentOrder", size=3).hex()
                 if self.ORDERS[ARM] is not None:
                     write_symbol("gBattlePartyCurrentOrder", bytes.fromhex(self.ORDERS[ARM]))
@@ -391,6 +437,8 @@ class Ki47OorMode(FaintReproMode):
 
         R.update({k: v for k, v in st.items() if k != "pressing"})
         R["chosen_pid"] = getattr(self, "_chosen_pid", None)
+        R["chosen_field_idx"] = getattr(self, "_chosen_idx", None)
+        R["swp_switch_idx"] = getattr(self, "_swp_switch_idx", None)
         R["handler_frames"] = (st["f1"] - st["f0"]) if "f1" in st and "f0" in st else None
         for k in sorted(R):
             log(f"[{TAG}] R {k} = {R[k]!r}")
@@ -404,6 +452,15 @@ class Ki47OorMode(FaintReproMode):
                         "froze": froze, "sent_a_bench_mon": sent_bench,
                         "sent_the_chosen_mon": st.get("field_pid") is not None and st.get("field_pid") == R["chosen_pid"],
                         "entry_before_menu": st.get("entry_state") != "PARTY_MENU"}
+        if ARM == "Swp":
+            # A premise conjunct false = the arm is VACUOUS (addendum §5), never a result.
+            R["verdict"]["premise_swp"] = (st.get("fainted_species") == "Shedinja"
+                                           and st.get("snapshot_seen") not in (None, "012345")
+                                           and R["chosen_field_idx"] is not None
+                                           and st.get("chosen_menu_idx") is not None
+                                           and R["chosen_field_idx"] != st.get("chosen_menu_idx"))
+        else:
+            R["verdict"]["premise_fainted_is_shedinja"] = st.get("fainted_species") == "Shedinja"
         log(f"[{TAG}] VERDICT {R['verdict']} handler_frames={R['handler_frames']} presses={st['presses']}")
         context.set_manual_mode()
 

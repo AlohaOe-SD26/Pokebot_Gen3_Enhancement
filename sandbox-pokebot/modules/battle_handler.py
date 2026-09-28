@@ -1,3 +1,4 @@
+import os
 from typing import Generator, TYPE_CHECKING
 
 from modules.battle_action_selection import handle_battle_action_selection
@@ -16,6 +17,7 @@ from modules.battle_state import (
 from modules.battle_strategies import BattleStrategy
 from modules.context import context
 from modules.debug import debug
+from modules.faint_chooser import faint_chooser_plan, field_identities, mon_identity
 from modules.items import Item, get_item_by_index
 from modules.keyboard import handle_naming_screen
 from modules.memory import get_game_state, GameState, read_symbol, unpack_uint16
@@ -483,16 +485,17 @@ def handle_item_stealing() -> Generator[None, None, tuple[int, Item] | None]:
 def handle_fainted_pokemon(strategy: BattleStrategy):
     fainted_pokemon: BattlePokemon | None = None
     battle_state = get_battle_state()
-    # `#27-ki47range` STEP 0 — OBSERVE ONLY (rule 10: measure an index conversion's direction before changing it).
-    # The raw `gBattlePartyCurrentOrder` bytes this SNAPSHOT holds. The decomp says the game copies the PLAYER's
-    # order back only when the choose-a-mon menu opens, so here it can still hold the ENEMY's order.
+    # `#27-ki47range` (KI-47, 2026-09-28): this snapshot's party ORDER is not trusted for anything but the fault arm
+    # below. After an ENEMY send-out, `gBattlePartyCurrentOrder` holds the ENEMY's order (`SwitchPartyOrder` has no
+    # side check); the player's menu re-copies the player's order only when it opens. And this call is the second
+    # `get_battle_state()` of its frame (the dispatcher's condition was the first), so it returns the CACHED object,
+    # whose order can be older still (`BattleState.__eq__` omits the order). Kept only for the log line.
     try:
-        from modules import debug_logger as _dl_ki47
-
-        _dl_ki47.event(f"[KI47-OBS] snapshot order={bytes(battle_state._battler_party_order).hex()} "
-                       f"party={get_party_size()}", category="BATTLE")
-    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
-        pass
+        _snapshot_order = bytes(battle_state._battler_party_order).hex()
+    except Exception:  # noqa: BLE001 - logging only
+        _snapshot_order = "?"
+    # The fault arm restores the three pre-fix index conversions (primary map, KI-66 on-field map, sweep double map).
+    _stalemap = os.environ.get("POKEBOT_KI47_FAULT_STALEMAP") == "1"
     if battle_state.own_side.left_battler is None or battle_state.own_side.left_battler.current_hp == 0:
         fainted_pokemon = battle_state.own_side.left_battler
     elif battle_state.is_double_battle and (
@@ -573,6 +576,10 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         raise RuntimeError(f"Cannot send out party index #{new_lead_index} because it is an egg.")
     if new_lead.current_hp <= 0:
         raise RuntimeError(f"Cannot send out {new_lead.name} (#{new_lead_index}) because it has 0 HP.")
+    # `#27-ki47range`: remember WHO was chosen, not WHERE. `new_lead_index` is an index into `get_party()` as it
+    # reads NOW (field order during the dialogue, menu order if the menu is already open); the identity is valid in
+    # both, and in whatever order the menu shows.
+    _chosen_id = mon_identity(new_lead)
 
     while (
         battle_is_active()
@@ -591,8 +598,32 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     if get_current_battle_script_instruction() == "BattleScript_FaintedMonEnd":
         return
 
-    if index_needs_mapping:
-        new_lead_index = battle_state.map_battle_party_index(new_lead_index)
+    # ‼ `#27-ki47range` (KI-47, 2026-09-28) — FIND THE CHOSEN MON BY IDENTITY IN THE MENU'S OWN ORDER.
+    # The menu is open here (the loop above waits for its task), and `OpenPartyMenuInBattle` permutes `gPlayerParty`
+    # into menu order synchronously (`UpdatePartyToBattleOrder`), so `get_party()[i]` IS menu slot i. The old code
+    # mapped `new_lead_index` through the entry SNAPSHOT's order instead; after an enemy send-out that is the ENEMY's
+    # order, and at party 4 it produced slots 4/5 (the fallback below then sent the first living mon, not the chosen
+    # one). MEASURED with `--driver ki47oor`: `ai-research-notes/2026-09-28-ki47range-*`.
+    if _stalemap:
+        if index_needs_mapping:
+            new_lead_index = battle_state.map_battle_party_index(new_lead_index)
+    else:
+        # The battlers come from `gBattleMons`, which `BattleState.__eq__` DOES compare, so they are current.
+        _own = get_battle_state().own_side
+        _target, _cands, _ = faint_chooser_plan(
+            get_party(), field_identities((_own.left_battler, _own.right_battler)), _chosen_id
+        )
+        new_lead_index = _target if _target is not None else (min(_cands) if _cands else -1)
+        try:
+            from modules import debug_logger as _dl_ki47
+
+            _dl_ki47.event(f"[FAINT-CHOOSER] identity: chosen={getattr(new_lead.species, 'name', '?')}"
+                           f"#{new_lead.personality_value:08X} menu_slot={_target} -> cursor target {new_lead_index} "
+                           f"candidates={sorted(_cands)} snapshot_order={_snapshot_order}"
+                           + ("" if _target is not None else "  ‼ CHOSEN MON NOT A CANDIDATE — falling back"),
+                           category="BATTLE")
+        except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+            pass
 
     # FORK (2026-07-22, batch run02): the battle→party mapping itself can return an
     # OUT-OF-RANGE slot (returned 4 in a 4-mon party) — the guards above only checked
@@ -632,6 +663,10 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     # a real bench mon. Single battles cannot hit it (no `right_battler` slot exists), which
     # is why this only ever showed up in doubles. `choose_new_lead_after_faint` already
     # performs this exclusion (level_up.py) — the driver simply never mirrored it.
+    # ‼ `#27-ki47range` (2026-09-28): the exclusion is now by IDENTITY — the menu slots holding the mons whose
+    # (PID, species) is on the field (`faint_chooser_plan`), so no index space is involved at all. The KI-66 mapping
+    # below survives ONLY as the `POKEBOT_KI47_FAULT_STALEMAP` fault arm. Its own measurement (Steven multi battle)
+    # stays true; the mapping was right there only because the order it used happened to be the player's.
     _on_field = set()
     try:
         # ‼ Do NOT re-import get_battle_state here. It is already imported at module
@@ -640,26 +675,31 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         # referencing an unbound local (`UnboundLocalError`, caught immediately by this
         # repro's control arm). Just call the module-level one.
         _bs = get_battle_state()
-        for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
-            if _side is not None and getattr(_side, "party_index", None) is not None:
-                # ‼ TRANSLATE INTO THE SAME INDEX SPACE AS `party_in_menu` (KI-66, 2026-08-17).
-                # THE THIRD index-space bug in this one function, after KI-18 and KI-34, and the
-                # same shape both times: `party_index` comes from `gBattlerPartyIndexes`, which is
-                # in FIELD order, while `party_in_menu = get_party()` is read AFTER the menu opened
-                # and `UpdatePartyToBattleOrder` has permuted it into BATTLE-SLOT order. Comparing
-                # them raw excluded the WRONG slot.
-                # MEASURED in the Steven multi battle (`--driver ki66faint`), both faints:
-                #   faint 1  raw=[0,3] -> mapped=[0,1]   truth = Sceptile(0) fainted + Metang(1)
-                #   faint 2  raw=[1,3] -> mapped=[0,1]   truth = Mightyena(0) fainted + Metang(1)
-                # i.e. RAW excluded Swellow, which was on the BENCH (proven by its send-out at
-                # f21009) and was the only legal replacement — so the sweep's candidate set held
-                # only slots the ROM refuses, costing 1263 frames against 59 on a clean faint.
-                # ‼ `alive_slots` three blocks below ALREADY maps for exactly this reason
-                # (`_to_menu_order`); this filter simply never mirrored it.
-                try:
-                    _on_field.add(_bs.map_battle_party_index(_side.party_index))
-                except Exception:  # noqa: BLE001 - mapping absent: the raw index is the best hint
-                    _on_field.add(_side.party_index)
+        if _stalemap:
+            for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
+                if _side is not None and getattr(_side, "party_index", None) is not None:
+                    # ‼ TRANSLATE INTO THE SAME INDEX SPACE AS `party_in_menu` (KI-66, 2026-08-17).
+                    # THE THIRD index-space bug in this one function, after KI-18 and KI-34, and the
+                    # same shape both times: `party_index` comes from `gBattlerPartyIndexes`, which is
+                    # in FIELD order, while `party_in_menu = get_party()` is read AFTER the menu opened
+                    # and `UpdatePartyToBattleOrder` has permuted it into BATTLE-SLOT order. Comparing
+                    # them raw excluded the WRONG slot.
+                    # MEASURED in the Steven multi battle (`--driver ki66faint`), both faints:
+                    #   faint 1  raw=[0,3] -> mapped=[0,1]   truth = Sceptile(0) fainted + Metang(1)
+                    #   faint 2  raw=[1,3] -> mapped=[0,1]   truth = Mightyena(0) fainted + Metang(1)
+                    # i.e. RAW excluded Swellow, which was on the BENCH (proven by its send-out at
+                    # f21009) and was the only legal replacement — so the sweep's candidate set held
+                    # only slots the ROM refuses, costing 1263 frames against 59 on a clean faint.
+                    # ‼ `alive_slots` three blocks below ALREADY maps for exactly this reason
+                    # (`_to_menu_order`); this filter simply never mirrored it.
+                    try:
+                        _on_field.add(_bs.map_battle_party_index(_side.party_index))
+                    except Exception:  # noqa: BLE001 - mapping absent: the raw index is the best hint
+                        _on_field.add(_side.party_index)
+        else:
+            _, _, _on_field = faint_chooser_plan(
+                party_in_menu, field_identities((_bs.own_side.left_battler, _bs.own_side.right_battler)), None
+            )
     except Exception:
         _on_field = set()  # can't read it — fall back to the old, looser filter
     alive_slots = [
@@ -705,40 +745,35 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     #
     # ‼ This function's PRIMARY path already maps (see `index_needs_mapping` above). Only this
     # recovery sweep never mirrored it — the same shape as the KI-18 note one layer up.
-    def _to_menu_order(regular_index: int) -> int:
-        try:
-            return battle_state.map_battle_party_index(regular_index)
-        except Exception:  # noqa: BLE001 - no battle state / index absent: assume identity
-            return regular_index
-
+    #
+    # ‼‼ SUPERSEDED 2026-09-28 (`#27-ki47range`, KI-47): the premise above was WRONG. `party_in_menu` is read with the
+    # menu OPEN, and `OpenPartyMenuInBattle` has already permuted `gPlayerParty` into MENU order
+    # (`UpdatePartyToBattleOrder`), so `alive_slots` is ALREADY menu order and this map converted it a SECOND time.
+    # With the player's own order that silently sent the wrong living mon (`--driver ki47oor` arm `Swp`); with the
+    # enemy's order (left in the global by `SwitchPartyOrder` after an enemy send-out) it produced slots 4/5 at party
+    # 4, which the cursor can never reach: the KI-47 freeze (arm `Foor`: 685 Downs, 3,045 frames). What KI-34 saw
+    # was real, but its cure is the on-field exclusion above plus the KI-38 refusal learning below, not a
+    # conversion. The double map survives ONLY as the `POKEBOT_KI47_FAULT_STALEMAP` fault arm.
     global _faint_chooser_giveups
-    alive_slots_menu = {_to_menu_order(i) for i in alive_slots}
-    # `#27-ki47range` STEP 0 — OBSERVE ONLY: the order the menu actually uses (read FRESH, now that it is open), and
-    # the candidate set each reading of it would produce. The chooser ACTS on `alive_slots_menu` (the stale snapshot).
-    try:
-        from modules import debug_logger as _dl_ki47
-
-        _fresh = get_battle_state()
-        _fresh_map = set()
-        for _i in alive_slots:
+    if _stalemap:
+        def _to_menu_order(regular_index: int) -> int:
             try:
-                _fresh_map.add(_fresh.map_battle_party_index(_i))
-            except Exception:  # noqa: BLE001 - a missing index is itself the observation
-                _fresh_map.add(-1)
-        _dl_ki47.event(f"[KI47-OBS] menu-open fresh order={bytes(_fresh._battler_party_order).hex()} "
-                       f"party_in_menu={len(party_in_menu)} alive_slots={sorted(alive_slots)} "
-                       f"acted_on={sorted(alive_slots_menu)} fresh_mapped={sorted(_fresh_map)} "
-                       f"out_of_range={sorted(i for i in alive_slots_menu if i >= len(party_in_menu))}",
-                       category="BATTLE")
-    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
-        pass
+                return battle_state.map_battle_party_index(regular_index)
+            except Exception:  # noqa: BLE001 - no battle state / index absent: assume identity
+                return regular_index
+
+        alive_slots_menu = {_to_menu_order(i) for i in alive_slots}
+    else:
+        alive_slots_menu = set(alive_slots)
     try:
         from modules import debug_logger
 
+        _oor = sorted(i for i in alive_slots_menu if i >= len(party_in_menu))
         debug_logger.event(
-            f"[FAINT-CHOOSER] index spaces: alive_slots={alive_slots}(party-order) -> "
-            f"{sorted(alive_slots_menu)}(menu-order) on_field={sorted(_on_field)}(party-order)"
-            + ("  [orders DIVERGE]" if alive_slots_menu != set(alive_slots) else "  [orders agree]"),
+            f"[FAINT-CHOOSER] candidates(menu-order)={sorted(alive_slots_menu)} on_field={sorted(_on_field)} "
+            f"party_in_menu={len(party_in_menu)} "
+            + ("[FAULT ARM POKEBOT_KI47_FAULT_STALEMAP: stale double map]" if _stalemap else "[identity]")
+            + (f"  ‼ OUT OF RANGE {_oor}" if _oor else ""),
             category="BATTLE",
         )
     except Exception:  # noqa: BLE001
@@ -814,13 +849,13 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             # that we did, so the next iteration can tell acceptance from refusal.
             button = "A"
             _last_a_cursor = cursor
-            # `#27-ki47range` STEP 0 — OBSERVE ONLY (rule 7: log the value the code ACTS on): the menu slot we
-            # confirm and the PID it holds in the menu's own order.
+            # `#27-ki47range` (rule 7: log the value the code ACTS on): the menu slot we confirm and the mon it holds
+            # in the menu's own order. Emitted per A press only, so it cannot flood the log.
             try:
                 from modules import debug_logger as _dl_ki47
 
                 _tgt = party_in_menu[cursor] if 0 <= cursor < len(party_in_menu) else None
-                _dl_ki47.event(f"[KI47-OBS] A at cursor={cursor} pid="
+                _dl_ki47.event(f"[FAINT-CHOOSER] A at cursor={cursor} pid="
                                f"{'-' if _tgt is None else f'{_tgt.personality_value:08X}'} "
                                f"sp={getattr(getattr(_tgt, 'species', None), 'name', '-')} frames={frames}",
                                category="BATTLE")
