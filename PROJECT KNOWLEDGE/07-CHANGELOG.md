@@ -36499,3 +36499,34 @@ independent refuter; 25 of 26 headline numbers agreed, the 26th a denominator):
 - 8-badge runs fell to 39% (was 47%), mostly on 4 KI-47 wedges at 2 badges. NEW HYPOTHESIS: each followed an
   `[orders DIVERGE]` whose menu index was ≥ the party size, on a 4-member party (0 of 1,128 in-range lines wedged).
 - A correction to the interim note: P1r2's KI-107 whiteout was REAL; its recovery ran ~30k frames late into a wedge.
+
+## 2026-09-28 — THE DESTRUCTIVE-GIT HOOK IS LIVE (user-approved), AND EVERY HOOK NOW WORKS FROM A SUBDIRECTORY
+
+**WHY.** On 2026-09-27 a reviewer agent "reverted" a test mutation with `git checkout -- <file>` while the fix under
+review was uncommitted, and deleted the fix (`08-MISTAKES.md`). The user approved turning CLAUDE.md's prose into a hook.
+**WHAT.**
+- `.claude/hooks/block_destructive_git.py` denies git commands that can silently discard work: checkout of paths /
+  `-f` / `--ours` / `-B`, `restore` (not `--staged`), `reset --hard`, `stash` (not list/show/apply), `clean -f` (not
+  `-n`), branch deletion and forced moves, force-push and remote ref deletion, forced fetch refspecs, `worktree remove`
+  / `add -B`, `rm -f` (not `--cached`), `update-ref -d/--stdin/refs/heads/...`, `apply -R`, `tag -d`, `filter-branch`,
+  `reflog expire`, `prune`, `-c alias.*`-style overrides. It finds git behind wrappers, in `$( )` and backticks, in
+  `bash -c` / `cmd /c` / `powershell` strings, in `bash <<EOF` bodies, `find -exec`, `submodule foreach` and PowerShell
+  script blocks; tracks `cd`; asks the repo whether a checkout operand is a ref or a path. The hatch, only for a
+  user-approved operation, is a LIVE `POKEBOT_ALLOW_DESTRUCTIVE_GIT=1` prefix on the git command.
+- `.claude/settings.json`: the new hook, and EVERY hook (the old ones too) now `"$CLAUDE_PROJECT_DIR/.claude/hooks/..."
+  ... || true`. Measured before the fix: from `tools/story-dev` the `git add -A` hook silently let a dry run through;
+  after it, the same probe is BLOCKED.
+- CLAUDE.md session-discipline rule 1b. Gate `selftest_destructive_git_hook.py` (S1-S7).
+**PROOF.** Self-test 318/318. Gate: the table, always-allow and always-block mutants (both FAIL), the settings
+registration, the REAL hook process's stdout parsed as JSON for Bash and PowerShell denies (ASCII, even with a non-ASCII
+command), silence on ordinary work and fail-open on garbage, a non-JSON mutant that must FAIL, and every hook path via
+`$CLAUDE_PROJECT_DIR` with a relative-path mutant that must FAIL. Live probes blocked. Suite 116 (quick 103: all 101
+enforcing PASS).
+**Review: four adversarial rounds, all findings fixed.** (1) the PowerShell draft: invalid JSON, 49/79 bypasses, false
+positives ⇒ rewritten in Python; (2) Python v2: a trailing `# comment` merged the next line into it (shlex), plus
+continuations, `"$( )"`, heredoc openers in comments/strings, `cd`, and the `2>&1` false positive ⇒ v3's shell-aware
+pre-scan; (3) the v3 confirmation: PowerShell script blocks (`ForEach-Object { git checkout -- $_ }`, `try { } catch`)
+⇒ fixed and re-verified with the reviewer's own harnesses (0 mismatches, 0 bad JSON); 0 false positives over 200 real
+commit messages, 691 real branch/tag checkouts and 61 multi-line scripts; ~85 ms per call.
+**Not done here:** the older hooks' escape hatch and their PowerShell parser weaknesses (`#27-hookhatch`, a user
+decision in part).

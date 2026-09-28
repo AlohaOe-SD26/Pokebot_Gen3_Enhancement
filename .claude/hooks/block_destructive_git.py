@@ -294,8 +294,23 @@ def commands(text: str, shell: str) -> "tuple[list, list]":
         return [], scripts          # unbalanced beyond repair: the shell will refuse to run it too
     out, cur = [], []
     for t in toks:
-        if _is_sep(t):
+        # A script block `{ ... }` (PowerShell: ForEach-Object { }, try { } catch { }; bash: a group) is a command
+        # boundary. A token that merely CONTAINS braces (`stash@{0}`, `@{-1}`, find's `{}`) is not.
+        if t.startswith("{") and t not in {"{", "{}"}:
             if cur:
+                out.append(cur)
+            cur = [t[1:]]
+            continue
+        if t.endswith("}") and t != "}" and "{" not in t:
+            cur.append(t[:-1])
+            out.append(cur)
+            cur = []
+            continue
+        if _is_sep(t) or t in {"{", "}"}:
+            if cur:
+                # `git checkout -- (git diff --name-only)`: a parenthesised expression is an OPERAND.
+                if "(" in t and re.split(r"[\\/]", cur[0])[-1].lower().removesuffix(".exe") == "git":
+                    cur.append(UNRESOLVED)
                 out.append(cur)
             cur = []
         else:
@@ -308,7 +323,7 @@ def commands(text: str, shell: str) -> "tuple[list, list]":
 def substitutions(tok: str) -> "list[str]":
     """Every `$( ... )` body inside a word (quoted text included: bash and PowerShell both run it)."""
     found, i = [], 0
-    while True:
+    while i < len(tok):                                  # bounded: `i` strictly increases
         i = tok.find("$(", i)
         if i < 0:
             return found
@@ -318,6 +333,7 @@ def substitutions(tok: str) -> "list[str]":
             j += 1
         found.append(tok[i + 2:j - 1])
         i = j
+    return found
 
 
 # ------------------------------------------------------------------------------------------------ option helpers
@@ -453,10 +469,16 @@ def git_reason(args: "list[str]", ctx: Ctx, depth: int, env_alias: bool = False)
                 return f"push refspec '{a}' forces or deletes a remote ref"
         return None
     if sub == "fetch":
-        return "fetch of a '+refspec' force-updates a local branch" if any(o.startswith("+") for o in operands) else None
+        forced = any(o.startswith("+") for o in operands) or (
+            any(lopt(a, "force") or sopt(a, "f") for a in opts) and any(":" in o for o in operands))
+        return "fetch with a forced refspec overwrites a local branch" if forced else None
     if sub == "worktree":
-        return "worktree remove deletes a checkout that may hold uncommitted work" if operands[:1] in (
-            ["remove"], ["rm"]) else None
+        if operands[:1] in (["remove"], ["rm"]):
+            return "worktree remove deletes a checkout that may hold uncommitted work"
+        return "worktree add -B resets an existing branch" if operands[:1] == ["add"] and "-B" in rest else None
+    if sub == "tag":
+        return "tag deletion (restore/* tags are this project's rollback points)" if any(
+            lopt(a, "delete") or sopt(a, "d") for a in opts) else None
     if sub == "rm":
         if any(lopt(a, "cached") for a in opts):
             return None
@@ -588,7 +610,7 @@ def evaluate(text: str, shell: str, ctx: Ctx, depth: int = 0) -> "str | None":
         head = re.split(r"[\\/]", cmd[0])[-1].lower()
         for ext in (".exe", ".cmd", ".bat"):
             head = head.removesuffix(ext)
-        if head in {"cd", "pushd", "set-location", "sl", "chdir"}:
+        if head in {"cd", "pushd", "set-location", "sl", "chdir", "push-location"}:
             dest = next((a for a in cmd[1:] if not a.startswith("-")), None)
             if dest and dest not in {"~", "-"} and not dest.startswith("$"):
                 ctx = ctx.with_cwd(dest)
@@ -597,6 +619,8 @@ def evaluate(text: str, shell: str, ctx: Ctx, depth: int = 0) -> "str | None":
             cmd = cmd + [UNRESOLVED]      # xargs APPENDS operands from stdin
         if head in SHELLS:
             inner = _shell_inner(head, cmd)
+            if inner is None and "<<<" in cmd and cmd.index("<<<") + 1 < len(cmd):     # `bash <<< 'git ...'`
+                inner = cmd[cmd.index("<<<") + 1]
             if inner:
                 r = evaluate(inner, "ps" if head in {"pwsh", "powershell"} else "bash", ctx, depth + 1)
                 if r and not hatch:
@@ -736,6 +760,16 @@ CASES: "list[tuple[str, bool, str]]" = [
     ("ps", B, f'Write-Output "$({G} reset --hard)"'), ("ps", B, f"# @'\n{G} reset --hard\n'@ | Out-Null"),
     ("ps", B, f'Write-Output "<#"; {G} reset --hard; Write-Output "#>"'),
     ("ps", B, f'{G} -C "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\" reset --hard'),
+    # the v3 confirmation review: PowerShell script blocks, Push-Location, a parenthesised operand
+    ("ps", B, f"{G} diff --name-only | ForEach-Object {{ {G} checkout -- $_ }}"), ("ps", B, f"$fs | % {{ {G} restore $_ }}"),
+    ("ps", B, f"$files | foreach {{ {G} checkout $_ }}"), ("ps", B, f"ForEach-Object -Process {{ {G} reset --hard }}"),
+    ("ps", B, f"try {{ {G} reset --hard }} catch {{ }}"), ("ps", B, f"try {{ {G} status }} catch {{ {G} stash }}"),
+    ("ps", B, f"foreach ($f in $files) {{{G} checkout -- $f}}"), ("ps", B, f"if ({G} status --porcelain) {{{G} stash}}"),
+    ("ps", B, f"Invoke-Command {{ {G} reset --hard }}"), ("ps", B, f"Start-Job {{ {G} stash drop }}"),
+    ("ps", B, f"Push-Location sandbox-pokebot; {G} checkout modules"), ("ps", B, f"{G} checkout -- ({G} diff --name-only)"),
+    ("ps", B, f"{G} restore ({G} diff --name-only)"), ("bash", B, f"bash <<< '{G} reset --hard'"),
+    ("bash", B, f"{G} tag -d restore/pre-promote-2026-09-24"), ("bash", B, f"{G} fetch -f origin main:main"),
+    ("bash", B, f"{G} worktree add -B wt/x ../wt"),
     # --- BLOCK: the hatch cannot be spoofed ----------------------------------------------------------------------------------
     ("bash", B, f'echo "{H}" && {G} reset --hard'), ("bash", B, f"# {H}\n{G} reset --hard"),
     ("ps", B, f'<#\n$env:{HATCH} = "1"\n#>\n{G} reset --hard'), ("ps", B, f'if ($false) {{\n$env:{HATCH} = "1"\n}}\n{G} reset --hard'),
@@ -772,7 +806,11 @@ CASES: "list[tuple[str, bool, str]]" = [
     ("bash", A, f"for f in a.py b.py; do {G} log --oneline -- $f; done"), ("bash", A, f"for f in *.py; do {G} diff -- \"$f\"; done"),
     ("bash", A, f"find . -name '*.py' -exec {G} log -1 -- {{}} \\;"), ("bash", A, f"cd sandbox-pokebot && {G} status --short"),
     ("bash", A, f"bash -c '{G} status'"), ("ps", A, f"$s = {G} status --short"), ("ps", A, f"cd sandbox-pokebot; {G} log -1"),
-    ("bash", A, f"issue#27 && {G} status"), ("bash", A, f"cat <<\\EOF > n.md\n{G} stash drop is refused\nEOF"),
+    ("bash", A, f"issue#27 && {G} status"), ("ps", A, f"{G} stash show -p stash@{{0}}"), ("ps", A, f"{G} checkout @{{-1}}"),
+    ("ps", A, f"try {{ {G} status }} catch {{ Write-Output $_ }}"), ("ps", A, f"$fs | ForEach-Object {{ {G} log -1 -- $_ }}"),
+    ("ps", A, f"{G} diff --name-only | ForEach-Object {{ {G} add $_ }}"), ("bash", A, f"{G} tag -a v1 -m x"),
+    ("bash", A, f"{G} tag --list"), ("bash", A, f"{G} fetch origin main"), ("bash", A, f"bash <<< '{G} status'"),
+    ("bash", A, f"{G} worktree add ../wt -b wt/x"), ("bash", A, f"cat <<\\EOF > n.md\n{G} stash drop is refused\nEOF"),
     ("bash", A, f"cat > notes.md << 'END-OF-NOTES'\n...{G} stash drop is refused.\nEND-OF-NOTES"),
     # --- ALLOW: MENTIONS ---------------------------------------------------------------------------------------------------
     ("bash", A, f'echo "{G} checkout -- a.py"'), ("bash", A, f'grep -n "{G} reset --hard" CLAUDE.md'),

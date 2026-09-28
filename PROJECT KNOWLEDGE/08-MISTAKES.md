@@ -22689,3 +22689,34 @@ be exactly the two original hunks) and the decisive arms were re-driven on the r
 - ⛔ **Commit the code under review (a WIP commit on the branch) BEFORE handing it to a reviewer who may mutate it,** and
   tell the reviewer to mutate a COPY or to undo by re-applying the original text, never `git checkout`/`restore`/`reset`.
   "Frozen" must mean committed: an uncommitted change has no undo.
+
+## 2026-09-28 — ⛔ A SAFETY HOOK THAT PASSED ITS OWN SELF-TEST COULD NEVER HAVE BLOCKED ANYTHING; AND THE OLD HOOKS WERE SILENTLY OFF IN SUBDIRECTORIES
+
+**Symptom** (the destructive-git hook, built 2026-09-28): the first PowerShell draft passed 82/82 self-test cases and its
+end-to-end probe "looked right" (it printed the first 160 characters of a deny). An adversarial review found:
+- its deny output was NOT VALID JSON: a BOM-less `.ps1` is read as Windows-1252 by PowerShell 5.1, the reason's em-dash
+  became mojibake, and Claude Code could never have parsed the denial;
+- 49 of 79 bypass probes got through (e.g. a `# don't` comment opened a "quote" and hid every later line);
+- PowerShell's `-and`/`-or` have EQUAL precedence, so `A -or B -and C` meant `(A -or B) -and C` (found by its own table).
+Then, when the Python rewrite went live, a probe from `tools/story-dev` showed every hook used a RELATIVE path: the new
+hook exited 2 (blocking every command) and the existing `git add -A` hook silently let `git add -A --dry-run` through.
+
+**Root cause:**
+- The gate tested the DECISION function, never the REAL OUTPUT that Claude Code consumes.
+- Hand-parsing shell text is where both reviews found holes; `shlex` alone also failed (its comment handling swallows the
+  newline, merging the next line into a commented command).
+- Hook commands in settings.json are run from the session's current directory, which moves when a command `cd`s.
+
+**Fix:** Python (`json.dumps` output, ASCII-only file) with a per-shell pre-scan in front of `shlex`; every review case
+pinned (318 cases). The gate now parses the REAL hook stdout as JSON (S5) with a non-JSON mutant that must fail (S6),
+and checks every hook command uses `"$CLAUDE_PROJECT_DIR/..."` with `|| true` (S7, with a relative-path fault arm).
+A live probe (`git branch -d <nonexistent>`, `git add -A --dry-run`) was BLOCKED from a subdirectory afterwards.
+
+**Prevention rules:**
+- ⛔ **A hook's gate must parse the hook's REAL OUTPUT the way the consumer does** (here: `json.loads` of stdout). A
+  passing decision table says nothing about whether the consumer can read the answer.
+- ⛔ **Every hook command locates its script via `"$CLAUDE_PROJECT_DIR/..."` and ends in `|| true`.** Probe it from a
+  SUBDIRECTORY with a harmless command before calling it enforced.
+- ⛔ **In PowerShell, parenthesise EVERY condition that mixes `-and` and `-or`.** They have equal precedence.
+- ⛔ **Don't hand-parse shell text; and don't trust `shlex` comments either.** Strip comments yourself, only at a word
+  start, keeping the newline.
