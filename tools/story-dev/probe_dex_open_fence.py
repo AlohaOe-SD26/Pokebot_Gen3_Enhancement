@@ -19,8 +19,8 @@ proves the lift is exactly one refusal wide.
   A2  wiring, by AST: the adapter's `decide_dex_catch(...)` call passes `open_fence=self._open_fence`.
   A3  both flags are registered in `29-DISABLED-FEATURES-REGISTRY.md`.
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
-  F1  `POKEBOT_R20_FAULT_OPENEARLY=1` (in production code) returns "joins the party" before the later gates: O4-O10
-      must ALL go red.
+  F1  `POKEBOT_R20_FAULT_OPENEARLY=1` (in production code) returns "joins the party" before the later gates: EXACTLY
+      O4-O10 go red. Equality, not a subset: an arm that also fired at a full party would redden O3/O3e as well.
   F2  the same fault arm leaves O0 (flag OFF) green: it reaches only the open branch.
   F3  a source mutant passing `open_fence=False` fails A2.
   F4  a mutant that drops the keyword but keeps it in a COMMENT still fails A2 (a mention cannot satisfy the gate).
@@ -139,7 +139,10 @@ def main() -> int:
     base_ok = not failures
     sink: list = []
     red = with_env({FAULT: "1"}, lambda: run_cases(sink))
-    check(base_ok and LATER_GATES <= red, f"F1 {FAULT}=1 knocks over every later gate: red={sorted(red)}")
+    # ⛔ EQUALITY, not a subset (review 2026-09-28): a fault arm that also fired at a FULL party would turn O3/O3e red
+    # too, and a subset check passed it (proved by a mutant that dropped the arm's `< PARTY_CAPACITY` guard).
+    check(base_ok and red == LATER_GATES, f"F1 {FAULT}=1 knocks over exactly the later gates, and nothing at a full "
+                                          f"party: red={sorted(red)}")
     check(base_ok and "O0" not in red, f"F2 {FAULT}=1 leaves the flag-OFF case O0 green (it reaches only the open "
                                        f"branch)")
     mutant = src.replace("open_fence=self._open_fence,", "open_fence=False,", 1)
