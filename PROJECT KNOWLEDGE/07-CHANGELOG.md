@@ -36720,3 +36720,24 @@ A batch-log count (a NOTE) found walk battles in 81–90% of 84 real hunts, and 
 `hunt_walk`'s `finally`), confirmed no `yield` between a walk's end and the arming in either hunt, and mutated the gate:
 a dropped `open_fence` guard fails O12o, and a `hunt_walk` without `finally` fails W2-W4. Not driven live: the counter
 hunt's walk and a whiteout mid-walk (both gate-covered; the flag defaults OFF).
+## 2026-09-28 — USER RULING 20 Phase 2 P2-c: BEFORE GYM 1, AN ARMED OR WALKING HUNT COMES BEFORE TEAM BUILDING, BEHIND `POKEBOT_R20_HUNTFIRST` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** `decide_dex_catch`'s team-building branch returned before its hunt-armed check. So before gym 1 a team catch
+was admitted while a counter hunt spun for its target. The species-blind `catch_confirmed` ends the spin on any new
+party PID, and the hunt then "found nothing".
+**WHAT.**
+- `decide_dex_catch(..., hunt_first=False)`. When true and before gym 1, it refuses an armed hunt ("a catch-on-sight
+  hunt is armed") or a walking one (the `#27-enroutejoin` marker) before team building.
+- `StoryMode._hunt_first` is read per run; the adapter passes it.
+- NEW gate `probe_hunt_first.py` (H1-H7, A1-A3, F1-F3; suite 124).
+- NEW driver `--driver huntfirst`: the real pre-gym-1 `counter_hunt.hunt()` with the real fence and the live armed
+  set.
+**PROOF** (predictions `4a3030dc`, correction `1a8013bc`; `ai-research-notes/2026-09-28-r20P2c-GRADED.md`), on
+`r20_pregym1_party4_r116.ss1` with `POKEBOT_R20_TEAM6=1`:
+- OFF admitted an Abra as a team catch three times while the hunt was armed.
+- ON refused the first at the same frame, and the hunt caught a new Nincada ~4,300 frames sooner.
+- The full-team control is identical in every action.
+- The spin-ENDING outcome was not driven: every admitted Abra escaped.
+- A driver bug (the hunt disarmed by the driver's own lazy `reset_per_run_state`) was caught by the per-battle armed
+  reading and fixed. That run is kept as INVALID.
+**Review:** REVIEW_RESULT.

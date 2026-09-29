@@ -1,0 +1,20 @@
+# RULING 20 P2-c GRADED ARM C-ON: --driver huntfirst on r20_pregym1_party4_r116.ss1 (9710585350be); env POKEBOT_R20_HUNTFIRST=1 (TEAM6 unset); --frames 60000; random.seed(1) via a runpy wrapper; code 7239018b.
+# Predictions: ai-research-notes/2026-09-28-r20P2c-PREDICTIONS.md (4a3030dc, before the code; correction 1a8013bc, before any drive).
+[huntfirst] BATTLE f136846 phase=spin sp=Whismur#293 strategy=StoryItemBattleStrategy fence='#293 already owned' counter_armed=[290]
+[huntfirst] BATTLE f138732 phase=spin sp=Poochyena#261 strategy=StoryItemBattleStrategy fence='#261 already owned' counter_armed=[290]
+[huntfirst] BATTLE f140752 phase=spin sp=Abra#63 strategy=StoryItemBattleStrategy fence='a catch-on-sight hunt is armed' counter_armed=[290]
+[huntfirst] BATTLE f141964 phase=spin sp=Whismur#293 strategy=StoryItemBattleStrategy fence='#293 already owned' counter_armed=[290]
+[huntfirst] BATTLE f143839 phase=spin sp=Nincada#290 strategy=StoryCatchStrategy fence=None counter_armed=[290]
+[huntfirst] R hunt_first_flag = True
+[huntfirst] R hunt_return = "{'slot': 4, 'pid': 1563910897}"
+[huntfirst] R hunt_tile = (11, 7)
+[huntfirst] R joined = ['Nincada#5D3762F1']
+[huntfirst] R nav_calls = [('ROUTE116', (11, 7))]
+[huntfirst] R party_before = ['Mudkip#550A9BE6', 'Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[huntfirst] R premise_prebadge = True
+[huntfirst] R spin_frames = 15478
+[huntfirst] R spin_rows = [(136846, 'spin', 'Whismur', 'StoryItemBattleStrategy', '#293 already owned'), (138732, 'spin', 'Poochyena', 'StoryItemBattleStrategy', '#261 already owned'), (140752, 'spin', 'Abra', 'StoryItemBattleStrategy', 'a catch-on-sight hunt is armed'), (141964, 'spin', 'Whismur', 'StoryItemBattleStrategy', '#293 already owned'), (143839, 'spin', 'Nincada', 'StoryCatchStrategy', None)]
+[huntfirst] R team_target = 4
+[huntfirst] R whitelist_tile = None
+[huntfirst] R whiteouts = 0
+[huntfirst] VERDICT {'premise_prebadge': True, 'team_target': 4, 'hunt_first_flag': True, 'hunt_tile': (11, 7), 'spin_battles': 5, 'spin_frames': 15478, 'spin_bound_hit': False, 'hunt_return': "{'slot': 4, 'pid': 1563910897}", 'joined': ['Nincada#5D3762F1'], 'failure': None}

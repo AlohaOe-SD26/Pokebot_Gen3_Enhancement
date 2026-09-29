@@ -8000,3 +8000,22 @@ path never reach that refusal.
 - **Arming each hunt before its walk:** catch-on-sight would then fire during the walk. That changes the ordinary
   hunt's behaviour and the counter hunt's snapshot semantics, which is a larger change than this defect needs.
 - **Refusing only the hunt's own target species on the walk:** any new member breaks the HM hunt's count.
+## 2026-09-28 — RULING 20 P2-c ships OFF, covers a WALKING hunt as well as an armed one, and has no production fault env
+
+**Decision:**
+- `POKEBOT_R20_HUNTFIRST` (default OFF) puts two refusals BEFORE the pre-gym-1 team-building branch, and only before gym
+  1: an armed hunt, and a hunt walking to its ground.
+- Flag OFF is the skip-the-fix arm. No `…_FAULT_…` env was added.
+**Why:**
+- The spec named only the armed case. But a pre-gym-1 team catch is a PARTY JOIN, which is exactly what
+  `#27-enroutejoin` refuses on a hunt's walk after gym 1. Leaving the walk open before gym 1 would reopen that hazard
+  for the counter hunt (the counter pushed into the box once team catches fill the party).
+- After gym 1 the later checks already run in this order, so the flag is scoped to `pre_badge1`, and the post-gym-1
+  path is byte-identical (gate H6/H7).
+- The guard IS the flag: turning it off restores the old order exactly. The gate's order mutant (F1) covers "the flag
+  is read but the order is wrong".
+**Rejected:**
+- The armed case only: leaves the walk open (above).
+- Applying it after gym 1 too: at a full party it would refuse box catches during a hunt's walk, which harm nothing.
+  That would be a behaviour change with no defect behind it.
+- A production fault env: it would duplicate the flag.

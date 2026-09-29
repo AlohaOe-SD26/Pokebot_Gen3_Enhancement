@@ -22919,3 +22919,17 @@ replayed identically with true counts.
 - ⛔ **Identity is `(PID, species)` in drivers and probes too, never the PID alone** (CLAUDE.md rule 3 + KI-78).
 - ⛔ **When an instrument and production disagree on the same quantity in the same run, resolve it before writing
   either down.**
+## 2026-09-28 — ⛔ A DRIVER'S LAZY STAND-IN RESET DISARMED THE HUNT IT WAS TESTING
+
+**Symptom:** `--driver huntfirst`'s first measurement showed the counter hunt ignoring two Nincada, its own target, and
+ending on a team catch. That looked like a second production bug.
+**Root cause:** the driver built its real `StoryMode` lazily at the first battle and called `reset_per_run_state`, which
+deliberately calls `counter_hunt.disarm()` (a hunt interrupted mid-flight must not stay armed). The first battle was
+mid-spin, so the driver disarmed the hunt under test. Production was right; the instrument was wrong (CLAUDE.md rule 4).
+**Fix:** build the stand-in BEFORE the action under test and reuse it (`d4b8d861`). A per-battle `counter_armed` reading
+is what exposed it, and it stays in the driver.
+**Prevention rules:**
+- ⛔ **A driver object whose construction RESETS state is built before the action it observes, never lazily inside a
+  hook.** `reset_per_run_state` disarms hunts, clears latches and zeroes counters.
+- ⛔ **Log the armed/latched state the code under test DEPENDS on, beside every reading.** Without `counter_armed` this
+  would have been filed as a production defect.
