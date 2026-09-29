@@ -8019,3 +8019,38 @@ path never reach that refusal.
 - Applying it after gym 1 too: at a full party it would refuse box catches during a hunt's walk, which harm nothing.
   That would be a behaviour change with no defect behind it.
 - A production fault env: it would duplicate the flag.
+## 2026-09-28 — USER RULINGS 23, 24 and 25: the answers to RULING 20's §8 questions (money for balls, catching while hurt or training, the attempt cap)
+
+The user answered the three policy questions of `ai-research-notes/2026-09-27-ruling20-phase2-BUILDSPEC.md` §8
+(2026-09-28, evening). ⛔ **Do not re-ask any of them.**
+
+**USER RULING 23 — money for Poké Balls (§8 Q1).** The user's words: *"yes and a reasonable amount, I am not sure at
+this moment but this also brings up more money making (seeking trainers for first time battle and re-battling)."*
+- ⇒ The bot MAY spend money on Poké Balls for Pokédex catches before badge 7. This unblocks build step **B** (the
+  ball restock at the dex reserve).
+- ⇒ **The amount is NOT ruled.** The build must propose a concrete, bounded default and show it to the user. It must
+  leave RULING 18's League basket and its ₽1,000 reserve untouched.
+- ⇒ NEW DIRECTION, to be planned rather than built blind: **money-making** by battling trainers the bot has not fought
+  yet, and re-battling them (rematches).
+
+**USER RULING 24 — catching while hurt or training (§8 Q2).** The user's words: *"catching should always be available if
+the bot encounters a pokemon that it wants to catch, even in training and wounded pokemon. If the bot whites out or the
+training pokemon faints, thats ok because it can always heal or travel to heal, catching has a bit higher priority."*
+- ⇒ The dex fence's "a training grind is in progress" and "party is not at full strength" refusals are to be REMOVED
+  for a species the bot wants.
+- ⇒ A faint or a whiteout during a catch is ACCEPTED: catching outranks avoiding them.
+- ⇒ It narrows the 2026-09-26 design choice to port the full-strength check (`06`: "The health check is a design
+  choice … not a ruling"). That choice is now overruled by the user.
+
+**USER RULING 25 — the attempt cap (§8 Q3).** The user asked whether the cap is per encounter. It is not: it is per
+SPECIES per RUN (`DEX_CATCH_MAX_ATTEMPTS = 2` catch battles started against one species in one run). The user's words:
+*"I think bumping it up to 3 unless its rare/shiny/legendary. But ultimately the bot should try to catch the pokemon."*
+- ⇒ **INTERPRETATION, stated to the user in the same reply** (reversible if they correct it): a cap of **3** catch
+  battles per species per run for ordinary species, and **no cap** for a rare, shiny or legendary one. Shinies
+  already take their own always-catch branch. "Rare" still needs a concrete definition, proposed in the design.
+- ⇒ FUTURE DESIGN, to be DISCUSSED with the user before any build: **weakening the target before catching it**, done
+  carefully. The design must account for indirect and self damage: weather, Spikes, and a target that knows
+  Self-Destruct / Explosion, Double-Edge (recoil), Curse, or a weather move.
+
+**Why these are recorded here:** CLAUDE.md rule 11. This file exists so a question is never asked twice. The three §8
+questions are CLOSED.

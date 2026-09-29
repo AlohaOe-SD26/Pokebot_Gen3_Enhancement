@@ -199,6 +199,8 @@ O3 [BALLS-BUY] why=<mandatory|reserve> mart=<g>,<n> bought=<n> spare=<a>-><b> mo
 
 ## 8. Open questions for the user (06 checked; policy only)
 
+> ✅ **ANSWERED 2026-09-28 — USER RULINGS 23, 24 and 25 (`06-DECISIONS-LOG.md`, last entries). Do not re-ask.** Q1: yes, a reasonable amount (not yet set), plus a money-making direction. Q2: catching is always available, even while hurt or training; a faint or whiteout is acceptable. Q3: 3 per species per run, uncapped for rare, shiny and legendary species; weakening before catching is for a later discussion.
+
 1. **Money:** before badge 7, may the bot spend money on Poké Balls for Pokédex catches, and how much per run at most? The League basket costs ₽54,300 (`victory_road.py:440-449`), and RULING 18 keeps back ₽1,000 (`league_reserve.py:53`).
 2. **"Always catching":** should catching still pause while a team member is hurt (82 refusals) or during a training grind (99)? The health check is a design choice (06:4920), not a ruling.
 3. **Retries:** a species is attempted at most twice per run (`story_mode.py:1642`). Is that acceptable?
