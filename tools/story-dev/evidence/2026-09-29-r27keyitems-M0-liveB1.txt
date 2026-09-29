@@ -1,0 +1,12 @@
+# design v2 step 6 (KB) M0, flag OFF — liveB1: post_league_shop.ss1 (1564948368f6), ch24probe, POKEBOT_CH24_STAGE_FREEZE=1, 120000 frames, seed 1; worktree 7dcd69fd + the harness identity helpers (no gate code).
+# Two identical runs (KI-112): kb-B1-r1 (Story-debug-20260929-130404.log) vs kb-B1-r2 (Story-debug-20260929-130404.log): IDENTICAL over 73 tracked lines.
+# Below: run 1's [TRAINER], [BATTLE] started/ended/[ITEM] using, [MODE], [MONEY] lines.
+f4319292 [BATTLE] started hp=[('Sceptile', 147, 147), ('Zigzagoon', 48, 48), ('Swellow', 139, 139), ('Wailord', 226, 226), ('Mightyena', 144, 144), ('Castform', 103, 103)]
+f4319292 [TRAINER] start opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 double=False two=False money=1741 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Restore:3,Full_Heal:8,Revive:3 
+f4320217 [BATTLE] [ITEM] using Full Heal on Sceptile 147/147 (use 1, worst hit 0)
+f4325721 [BATTLE] [ITEM] using Full Restore on Sceptile 29/147 (use 2, worst hit 66)
+f4327762 [BATTLE] [ITEM] using Full Restore on Sceptile 15/147 (use 3, worst hit 68)
+f4333720 [BATTLE] [ITEM] using Full Restore on Sceptile 46/147 (use 4, worst hit 68)
+f4337854 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L54', 'Zigzagoon:L19', 'Swellow:L48', 'Wailord:L47', 'Mightyena:L48', 'Castform:L36']
+f4337854 [TRAINER] end opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 res=Won money=1741->6641 delta=4900 mult=1 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Heal:7,Revive:3 map=?
+f4339706 [MODE] Story -> Manual   (message='Story: parked script context detected — treating the scene as over.')

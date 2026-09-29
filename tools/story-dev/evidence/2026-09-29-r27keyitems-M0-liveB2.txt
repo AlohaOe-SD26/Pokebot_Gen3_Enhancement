@@ -1,0 +1,53 @@
+# design v2 step 6 (KB) M0, flag OFF — liveB2: magma_door_losing.ss1 (76ef84a3), magmahideout, 120000 frames, seed 1; worktree 7dcd69fd + the harness identity helpers (no gate code).
+# Two identical runs (KI-112): kb-B2-r1 (Story-debug-20260929-130404.log) vs kb-B2-r2 (Story-debug-20260929-130404.log): IDENTICAL over 162 tracked lines.
+# Below: run 1's [TRAINER], [BATTLE] started/ended/[ITEM] using, [MODE], [MONEY] lines.
+f3232218 [BATTLE] started hp=[('Mightyena', 127, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3233536 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3235574 [BATTLE] started hp=[('Mightyena', 127, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3235574 [TRAINER] start opp=717 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=15106 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3237487 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3237487 [TRAINER] end opp=717 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=15106->15686 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3237725 [BATTLE] started hp=[('Mightyena', 113, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3239044 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3240257 [BATTLE] started hp=[('Mightyena', 113, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3240257 [TRAINER] start opp=718 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=15686 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3242208 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3242208 [TRAINER] end opp=718 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=15686->16266 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3242606 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3243927 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3244603 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3245919 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3246568 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3246568 [TRAINER] start opp=724 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=16266 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3248494 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3248494 [TRAINER] end opp=724 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=16266->16846 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3248860 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3250179 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3251233 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3251233 [TRAINER] start opp=731 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=16846 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3253163 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3253163 [TRAINER] end opp=731 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=16846->17426 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3253945 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3255266 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3256071 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3256071 [TRAINER] start opp=726 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=17426 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3258047 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3258047 [TRAINER] end opp=726 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=17426->18006 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3258434 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3261023 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L44', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3261768 [BATTLE] started hp=[('Mightyena', 51, 130), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3261768 [TRAINER] start opp=727+728 class=0x09(TEAM_MAGMA)+0x09(TEAM_MAGMA) value=5+5 lvl_last=29+29 first=True+True base=1160 double=True two=True money=18006 heal_stock=Hyper_Potion:1 map=? enemy_alive=2
+f3266439 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3266439 [TRAINER] end opp=727+728 class=0x09(TEAM_MAGMA)+0x09(TEAM_MAGMA) value=5+5 lvl_last=29+29 first=True+True base=1160 res=Won money=18006->19166 delta=1160 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3266944 [BATTLE] started hp=[('Mightyena', 13, 130), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3267903 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3268955 [BATTLE] started hp=[('Sceptile', 120, 120), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Mightyena', 13, 130), ('Castform', 100, 100)]
+f3268955 [TRAINER] start opp=732 class=0x31(MAGMA_ADMIN) value=10 lvl_last=33 first=True base=1320 double=False two=False money=19166 heal_stock=Hyper_Potion:1 map=? enemy_alive=4
+f3274485 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Mightyena:L44', 'Castform:L35']
+f3274485 [TRAINER] end opp=732 class=0x31(MAGMA_ADMIN) value=10 lvl_last=33 first=True base=1320 res=Won money=19166->20486 delta=1320 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3276879 [BATTLE] started hp=[('Sceptile', 122, 122), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Mightyena', 13, 130), ('Castform', 100, 100)]
+f3276879 [TRAINER] start opp=601 class=0x35(MAGMA_LEADER) value=20 lvl_last=39 first=True base=3120 double=False two=False money=20486 heal_stock=Hyper_Potion:1 map=? enemy_alive=3
+f3282442 [BATTLE] [ITEM] using Hyper Potion on Sceptile 30/122 (use 1, worst hit 80)
+f3294699 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Sceptile:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Mightyena:L44', 'Castform:L35']
+f3294699 [TRAINER] end opp=601 class=0x35(MAGMA_LEADER) value=20 lvl_last=39 first=True base=3120 res=Lost money=20486->20486 delta=0 mult=0 heal_stock=- map=?
+f3295158 [MODE] Story -> Manual   (message='Story: at (15, 21), facing Right at Maxie (16, 21).')
