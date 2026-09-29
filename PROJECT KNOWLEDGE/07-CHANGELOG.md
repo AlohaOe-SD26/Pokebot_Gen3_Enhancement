@@ -36716,4 +36716,7 @@ A batch-log count (a NOTE) found walk battles in 81–90% of 84 real hunts, and 
   - a PID-collision instrument artifact read as "the heal deposited one";
   - a harness line 13 frames later, after the hand-off to Manual.
 - `fix_doc_citations.py` skipped a line that cites the same stale location twice. It was repaired by hand.
-**Review:** REVIEW_RESULT.
+**Review:** SHIP, no fixes required. It traced both unwind paths (a whiteout raise and a generator close pass through
+`hunt_walk`'s `finally`), confirmed no `yield` between a walk's end and the arming in either hunt, and mutated the gate:
+a dropped `open_fence` guard fails O12o, and a `hunt_walk` without `finally` fails W2-W4. Not driven live: the counter
+hunt's walk and a whiteout mid-walk (both gate-covered; the flag defaults OFF).
