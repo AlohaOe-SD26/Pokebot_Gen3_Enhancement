@@ -8102,3 +8102,21 @@ healing items during battles (gym leaders, story "bosses" and elite 4 only) so i
 key battles."*
 - ⇒ In-battle healing-item use is allowed against gym leaders, story bosses and the Elite Four, and NOT in ordinary
   battles.
+## 2026-09-29 — RULING 24 step 2: the health lift removes ONE refusal, and a lost DEX catch is filed apart from map defeats (team losses are not)
+
+**Decision:**
+- `POKEBOT_R24_CATCHHURT` (default OFF) skips only `decide_dex_catch`'s "party is not at full strength" refusal. Every
+  other gate keeps its order.
+- With the flag on, a LOST battle whose open catch kind is `dex` goes into `_catch_defeat_counts`, not
+  `_defeat_counts` / `_loss_ko_history`.
+- `team`, `hm`, `counter` and `shiny` losses are unchanged.
+**Why:**
+- RULING 24 accepts losing a catch battle. Counting that loss as a map defeat would then trigger survival mode (3+
+  defeats on a map flees every wild, the wanted ones too), or count as a boss loss on that map (e.g. the Route 110
+  rival's key). That would punish the behaviour the ruling asks for.
+- Pre-gym-1 `team` catches are excluded because `#24-partycap` protects that regime, and the design's checker showed
+  that including them would change survival-mode triggering there.
+- `_last_defeat_key` is skipped along with the rest. It is written in one place and read nowhere (grep).
+**Rejected:**
+- Filing every catch kind apart: this changes pre-gym-1 behaviour.
+- Leaving catch losses as map defeats: survival mode would then flee the very species RULING 24 says to catch.

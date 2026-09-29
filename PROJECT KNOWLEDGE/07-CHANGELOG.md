@@ -36764,3 +36764,18 @@ for a later discussion.
   - The next build is design step 2, the RULING 24 health lift (`POKEBOT_R24_CATCHHURT`).
   - P2-a2 is re-scoped: its faint bail contradicts RULING 24 and is dropped, and its cap merges into design step 8.
   - The ball restock B is design step 6. Its budget numbers await the user.
+## 2026-09-29 — USER RULING 24 step 2: A POST-GYM-1 DEX CATCH STARTS WHILE THE PARTY IS HURT, BEHIND `POKEBOT_R24_CATCHHURT` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 24: *"catching should always be available … even in training and wounded pokemon."* After gym 1 the
+fence refused every catch while any battler was below full HP.
+**WHAT.**
+- `decide_dex_catch(..., lift_health=False)`: when on, only the health refusal is skipped.
+- C4: a lost `dex` catch is filed in `_catch_defeat_counts` (logged `[CATCH] loss-filed`), not as a map defeat.
+- Fault arms: `…_FAULT_LIFTEARLY`, `…_FAULT_KINDLATE`, `…_FAULT_TEAMLOSS`.
+- NEW gate `probe_dex_catch_anytime.py` (A1-A14, D1-D3, F1-F5; suite 125).
+**PROOF** (predictions `2a14de6c`; `ai-research-notes/2026-09-29-r24catchhurt-GRADED.md`), seeded, on `post_mtpyre.ss1`:
+- OFF replays the measurement exactly.
+- ON catches the Shuppet the OFF arm refuses for health at f3144418.
+- With 10 spare balls both arms refuse it on the reserve.
+- The fault arm starts that catch and bails with 0 throws.
+**Review:** REVIEW_RESULT.
