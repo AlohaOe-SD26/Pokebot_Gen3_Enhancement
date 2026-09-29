@@ -2373,6 +2373,10 @@ class StoryMode(BotMode):
         self._r25_cap = _os_team6.environ.get("POKEBOT_R25_CAP") == "1"
         self._r25_rare = _os_team6.environ.get("POKEBOT_R25_RARE") == "1"
         self._r25_last_verdict = None
+        # design v2 step 9a (RULINGS 23 + 26): cities whose ball top-off errand FAILED this run (walk, bound, or a bag
+        # delta that is not the plan) are not walked again THIS run. ⛔ Reset here, per run: ENDLESS RESET reuses one
+        # StoryMode, so a lazily-set attribute would carry one run's failure into every later run.
+        self._ball_topoff_failed: set = set()
         self._r24_trainee_check = None
         self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).

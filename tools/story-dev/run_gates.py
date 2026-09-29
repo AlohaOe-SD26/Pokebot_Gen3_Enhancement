@@ -1134,6 +1134,10 @@ GATES: list[tuple[str, bool]] = [
     # THREE ARMS: C1 the real literal (RED->GREEN demonstrated), C2 every other needle still
     # matches, C3 a clean log matches nothing. `--self-test` fault-tests the gate itself.
     ("repro_content_end_classifier.py", False),
+    # USER RULINGS 23 + 26 (design v2 step 9a, BB) — the ball top-off piggyback on `heal_in_pokemon_center` (an
+    # UPSTREAM-derived file): pure planning, the heal's three hunks by AST, the errand executed with stubs, 9 mutants.
+    # ‼ APPENDED AT THE END, never inserted (the ordinal rule above; the step 9 recon flagged it).
+    ("probe_stock_topoff.py", False),
 ]
 
 

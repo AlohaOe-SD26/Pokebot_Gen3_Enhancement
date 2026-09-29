@@ -518,6 +518,14 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
     # patched onto each raise site: patching two sites is exactly the shape that let gate #57's own
     # `healbare` arm revert one and miss the other while the gate stayed green.
     _fault_arm, _fault_limit = _healwalk_fault_arm()
+    # FORK (design v2 step 9a, USER RULINGS 23 + 26): the ball top-off piggyback's flag, parsed BEFORE any yield so
+    # OFF stays byte-identical (`modules/story/stock_topoff.py`). A value outside {unset, 0, observe, 1} is OFF WITH a
+    # printed error, never silently OFF.
+    from modules.story.stock_topoff import parse_flag as _topoff_parse
+
+    _topoff_mode, _topoff_error = _topoff_parse(_os_hla.environ.get("POKEBOT_R23_BALLRESTOCK"))
+    if _topoff_error:
+        _piggyback_report("the ball top-off", _topoff_error, console_too=True)
     if _fault_arm and _healwalk_fault_state["fired"] < _fault_limit:
         _healwalk_fault_state["fired"] += 1
         _piggyback_report("heal-walk FAULT ARM",
@@ -772,6 +780,36 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
                 stable = 0
             waited += 1
             yield
+
+        # FORK (design v2 step 9a, USER RULINGS 23 + 26): top off the balls at the city's mart, as a piggyback on a heal
+        # that was happening anyway (`modules/story/stock_topoff.py`). ⛔ With the flag OFF, in `observe`, or with an
+        # empty plan it yields NOTHING. It runs only if the exit above reached a stable avatar (a recorded exit tile
+        # taken mid-animation could be the door warp). A failure never escapes the heal, but it is never silent.
+        _topoff_moved = False
+        if _topoff_mode in ("observe", "1"):
+            try:
+                from modules.story.stock_topoff import ball_topoff_errand
+
+                _topoff_moved = yield from ball_topoff_errand(pokemon_center_door_location, _topoff_mode, stable >= 20)
+            except Exception as error:  # noqa: BLE001 - a failed top-off must not destroy a heal that succeeded,
+                # and must not pass silently: `_piggyback_report` says so. A WHITEOUT or abort is re-raised first.
+                from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module
+
+                reraise_if_aborting(error)
+                _piggyback_report("the ball top-off", f"FAILED ({error!r})")
+                _topoff_moved = True
+        if _topoff_moved:
+            # The heal's LAST act stays a stable-controllable wait (the endless heal/leave-PC loop above), but only
+            # when the errand moved the avatar: an unconditional copy would add frames to every OFF heal.
+            stable = 0
+            waited = 0
+            while stable < 20 and waited < 300:
+                if player_avatar_is_controllable():
+                    stable += 1
+                else:
+                    stable = 0
+                waited += 1
+                yield
 
 
 @debug.track

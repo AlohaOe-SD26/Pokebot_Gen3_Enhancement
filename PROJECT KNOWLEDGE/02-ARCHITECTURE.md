@@ -221,6 +221,13 @@ raises. It reads `modules/data/emerald_rarity.json`, keyed by NATIONAL dex, whic
 STATICALLY from the tracked ROM (no emulator; the gitignored encounter cache holds a dead Altering Cave table,
 KI-113). Its one production reader is `StoryMode._should_catch` (design v2 step 8), and only with `POKEBOT_R25_RARE`. Gate: `probe_rarity_predicate.py` (runs `--check`).
 
+### `modules/story/stock_topoff.py`: OURS, new 2026-09-29 (SANDBOX ONLY; behind `POKEBOT_R23_BALLRESTOCK`, default OFF)
+The ball top-off (design v2 step 9a; USER RULINGS 23 + 26). PURE planning (`limits`, `best_ball`, `stage`, `floor`,
+`ball_topoff_plan`, `plan_lines`) plus one emulator errand, `ball_topoff_errand`, called from ONE place: the end of
+`heal_in_pokemon_center` (`modules/modes/util/higher_level_actions.py`, an UPSTREAM-derived function; three small
+hunks: the flag parsed before the first yield, the guarded call, and a second stable wait ONLY if the errand moved).
+Step 9a whitelists Rustboro only. OFF, `observe` and an empty plan yield nothing. Gate: `probe_stock_topoff.py`.
+
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:
   the user ruled to leave it and fix the docs); `rare_species_dataset.py` reads it statically.
@@ -256,7 +263,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 132 entries = 128 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 133 entries = 129 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 14 SLOW (ROM) gates (recounted 2026-09-29: 14 `True`; counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.

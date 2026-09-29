@@ -2160,7 +2160,7 @@ the three refuted recon claims, and the fixture that CANNOT test this bug
   good place to end a route.
 - **The failure.** A chapter navigates underwater to a planner-chosen destination, calls
   `surface_from_dive()`, and gets
-  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:1235`, inside `surface_from_dive`, which spans `:1184-1204`).
+  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:1273`, inside `surface_from_dive`, which spans `:1184-1204`).
   ‼ It fails **loudly**, which is the good news. The bad news is the retry shape: re-running the
   same `navigate_to` re-derives the same destination, so a naive retry loop cannot converge — the
   KI-67 shape (signal something, retry without changing state).

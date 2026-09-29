@@ -2144,7 +2144,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:2588`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:2592`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -2963,7 +2963,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:2588-2664`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:2592-2668`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.
