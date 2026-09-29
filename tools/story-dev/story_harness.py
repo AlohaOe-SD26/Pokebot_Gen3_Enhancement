@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor", "r101hunt"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor", "r101hunt", "huntfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1392,6 +1392,154 @@ class R101HuntMode(BotMode):
             "premise_healthy": R.get("premise_healthy"), "walk_battles": len(R["walk_battles"]),
             "walk_catch_strategies": len(R["walk_catch_strategies"]), "walk_joins": R.get("walk_joins", []),
             "party_after_walk": R.get("party_after_walk"), "walk_marker": R.get("walk_marker"),
+        }
+        log(f"[{TAG}] VERDICT {verdict}")
+        context.set_manual_mode()
+
+
+class HuntFirstMode(BotMode):
+    """`--driver huntfirst` — USER RULING 20 Phase 2 P2-c (`POKEBOT_R20_HUNTFIRST`), on `r20_pregym1_party4_r116.ss1`
+    (PINNED; ROUTE116 (11, 7), no badges, party of 4 = Mudkip/Poochyena/Nincada/Whismur, 28 spare balls).
+    Runs the REAL `counter_hunt.hunt()` BEFORE GYM 1 with the REAL dex fence deciding every battle (a `StoryMode` with its
+    per-run state reset, as `r101hunt`'s `R101_FENCE=real`). Set `POKEBOT_R20_TEAM6=1` so the pre-gym-1 team target is 6
+    and team building is ACTIVE at party 4, the state P2-c is about.
+    The candidate is the DRIVER's choice (like `r101hunt`'s HM03): Nincada (Bug/Ground) on ROUTE116 (11, 7), the team loop's
+    TRAINING_GRASS tile (Route 116 is not on `hunt_ground_tile`'s whitelist), `needed=["Ground"]`. Nincada is already in the party, so only a NEW
+    Nincada PID can satisfy the hunt's own verdict (`party_counter_slot` excludes the before-PIDs).
+    THE QUESTION: before gym 1 the fence's team-building branch returns BEFORE its hunt-armed check, and the counter
+    hunt's `catch_confirmed` party path is species-blind, so a TEAM catch (Abra/Skitty/Taillow) during the armed spin
+    ends the spin, and the hunt reports "found nothing in 120000 frames" without having spun that long.
+    Env: HF_SPIN_BOUND (default 40000) bounds the spin (production's own budget is 120,000).
+    Readings (rule 7): every battle's phase (walk/spin/other), the STRATEGY the hook returned and the fence's reason; the
+    hunt's RETURN value; the (PID, species) that joined the party; the spin's frames.
+    Emits: [huntfirst] BATTLE ... / R ... / VERDICT {...}."""
+
+    @staticmethod
+    def name():
+        return "HuntFirst"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryMode
+
+        sm = getattr(self, "_real_sm", None)
+        if sm is None:
+            sm = self._real_sm = StoryMode.__new__(StoryMode)
+            StoryMode.reset_per_run_state(sm)
+        sm._dex_catch_last_reason = None  # a battle the fence never saw reads None, not a stale reason
+        strategy = StoryMode.on_battle_started(sm, encounter)
+        phase = "walk" if getattr(self, "_in_walk", False) else ("spin" if getattr(self, "_spin_f0", None) is not None
+                                                                  else "other")
+        sp = getattr(getattr(getattr(encounter, "pokemon", None), "species", None), "name", "?")
+        row = (context.emulator.get_frame_count(), phase, sp, type(strategy).__name__ if strategy is not None else None,
+               sm._dex_catch_last_reason)
+        if getattr(self, "_battle_rows", None) is None:
+            self._battle_rows = []
+        self._battle_rows.append(row)
+        try:
+            from modules.story import counter_hunt as _c
+            _armed = sorted(_c.COUNTER_CATCH_TARGET_DEX)
+            _dex = getattr(getattr(getattr(encounter, "pokemon", None), "species", None), "national_dex_number", None)
+        except Exception as err:  # noqa: BLE001 - the reading records it
+            _armed, _dex = f"?{type(err).__name__}", None
+        log(f"[huntfirst] BATTLE f{row[0]} phase={row[1]} sp={row[2]}#{_dex} strategy={row[3]} fence={row[4]!r} "
+            f"counter_armed={_armed}")
+        return strategy
+
+    def on_whiteout(self) -> bool:
+        self._whiteouts = getattr(self, "_whiteouts", 0) + 1
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.map_data import MapRSE
+        from modules.pokemon_party import get_party
+        from modules.story import counter_hunt as CH
+        from modules.story import early_game as EG
+        from modules.story.training_areas import hunt_ground_tile
+
+        TAG = "huntfirst"
+        BOUND = int(_os.environ.get("HF_SPIN_BOUND", "40000"))
+        frame = lambda: context.emulator.get_frame_count()  # noqa: E731
+        R: dict = {}
+
+        def ids():
+            return [(m.personality_value, m.species.name) for m in get_party() if m is not None]
+
+        before = ids()
+        R["party_before"] = [f"{s}#{p:08X}" for p, s in before]
+        try:
+            from modules.memory import get_event_flag
+
+            R["premise_prebadge"] = not get_event_flag("BADGE01_GET")
+        except Exception as err:  # noqa: BLE001 - the verdict records it
+            R["premise_prebadge"] = f"?{type(err).__name__}"
+        try:
+            from plugins.custom_modes.story_mode import StoryMode
+
+            probe = StoryMode.__new__(StoryMode)
+            StoryMode.reset_per_run_state(probe)
+            # ⛔ BUILT HERE, BEFORE THE HUNT, AND REUSED BY `on_battle_started`. `reset_per_run_state` DISARMS the counter
+            # hunt (a hunt interrupted mid-flight must not stay armed), so the first version, which built this lazily at
+            # the first battle, disarmed the very hunt under test mid-spin (measured 2026-09-28: `counter_armed=[]` on
+            # every spin battle, two Nincada battles not caught).
+            self._real_sm = probe
+            R["team_target"] = probe._catch_team_target
+            R["hunt_first_flag"] = getattr(probe, "_hunt_first", None)
+        except Exception as err:  # noqa: BLE001 - the verdict records it
+            R["team_target"] = f"?{type(err).__name__}"
+        # `hunt_ground_tile(ROUTE116)` is None: Route 116 is not on the counter-hunt whitelist (it fails closed), so the
+        # driver passes the TRAINING_GRASS spin tile the pre-gym-1 team loop uses, (11, 7) (type-gated by
+        # `probe_training_tiles.py`). The fence/hunt interaction under test does not depend on which tile.
+        R["whitelist_tile"] = hunt_ground_tile(MapRSE.ROUTE116)
+        tile = (11, 7)
+        R["hunt_tile"] = tile
+        candidate = {"map_enum": MapRSE.ROUTE116, "hunt_tile": tile, "species_name": "Nincada", "types": ["Bug", "Ground"],
+                     "level_band": (3, 5), "encounter_rate": "?"}
+        failure = None
+        orig_nav, orig_spin = EG._navigate_riding_out, EG._story_spin
+        try:
+            def nav(map_enum, tile_, *a, **k):
+                R.setdefault("nav_calls", []).append((getattr(map_enum, "name", str(map_enum)), tuple(tile_)))
+                self._in_walk = True
+                try:
+                    return (yield from orig_nav(map_enum, tile_, *a, **k))
+                finally:
+                    self._in_walk = False
+
+            def spin(stop, *a, **k):
+                self._spin_f0 = frame()
+
+                def bounded():
+                    if frame() - self._spin_f0 >= BOUND:
+                        R["spin_bound_hit"] = True
+                        return True
+                    return stop()
+
+                try:
+                    return (yield from orig_spin(bounded, *a, **k))
+                finally:
+                    R["spin_frames"] = frame() - self._spin_f0
+
+            EG._navigate_riding_out, EG._story_spin = nav, spin
+            R["hunt_return"] = repr((yield from CH.hunt(candidate, ["Ground"])))
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state
+            failure = f"{type(error).__name__}: {error}"
+        finally:
+            EG._navigate_riding_out, EG._story_spin = orig_nav, orig_spin
+        after = ids()
+        R["joined"] = [f"{s}#{p:08X}" for p, s in after if (p, s) not in before]
+        rows = getattr(self, "_battle_rows", None) or []
+        R["spin_rows"] = [r for r in rows if r[1] == "spin"]
+        R["whiteouts"] = getattr(self, "_whiteouts", 0)
+        for k in sorted(R):
+            log(f"[{TAG}] R {k} = {R[k]!r}")
+        verdict = {
+            "premise_prebadge": R.get("premise_prebadge"), "team_target": R.get("team_target"),
+            "hunt_first_flag": R.get("hunt_first_flag"), "hunt_tile": R.get("hunt_tile"),
+            "spin_battles": len(R["spin_rows"]), "spin_frames": R.get("spin_frames"),
+            "spin_bound_hit": bool(R.get("spin_bound_hit")), "hunt_return": R.get("hunt_return"),
+            "joined": R["joined"], "failure": failure,
         }
         log(f"[{TAG}] VERDICT {verdict}")
         context.set_manual_mode()
@@ -28736,6 +28884,8 @@ for step in range(args.frames):
             context.bot_mode_instance = HmTestMode()
         elif args.driver == "r101hunt":
             context.bot_mode_instance = R101HuntMode()
+        elif args.driver == "huntfirst":
+            context.bot_mode_instance = HuntFirstMode()
         elif args.driver == "faintrepro":
             context.bot_mode_instance = FaintReproMode()
         elif args.driver == "pokenavfaith":
