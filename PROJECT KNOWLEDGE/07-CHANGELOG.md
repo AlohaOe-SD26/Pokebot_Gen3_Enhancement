@@ -36926,3 +36926,16 @@ codebase read it.
 - A two-opponent battle (Sailor + Tuber) sums live to the ₽468 paid.
 - The FIRSTMON and WILDTOO fault arms go red for their own reasons.
 - The first of three control runs diverged one frame at a warp; the other two replay M0 exactly.
+
+## 2026-09-29 — design v2 step 5 (TID/T1) REVIEWED: KICK-BACK on the resume pointers; `_t1_start`'s no-raise now gated (W5/F8) (`#26-organiccatch`)
+
+- **Review: KICK-BACK, one blocker.** The resume pointers (04's banner and `➡➡➡ START HERE`, 03's `#26-organiccatch`)
+  still said "the next item to BUILD is v2 step 5" after step 5 shipped. That was the pointer update prepared for
+  after the review. All three now mark step 5 done and point at v2 step 6 (KB).
+- The reviewer independently re-derived Brawly's ₽1,900 and the Sailor + Tuber ₽468 from the ROM bytes, without the
+  module. It re-ran the gate, the drift check (22) and the no-silent-except ratchet (217, at baseline).
+- **Risks taken:**
+  - Gate case W5 plus source mutant F8: an unreadable snapshot in `_t1_start` is logged, never raised. Only `_t1_end`
+    had a case.
+  - The graded note now states the skip discriminator's measured scope: one badge-1 run.
+- **Process change (08, 14):** resume pointers are updated BEFORE the review, never "after it".

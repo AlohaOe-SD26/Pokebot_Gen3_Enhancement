@@ -13,7 +13,8 @@ read straight from the `.gba` file (symbols via `set_rom`), so this gate needs n
   W1  `_t1_start`: a Wally-tutorial battle type (encounter None, no Trainer bit) makes NO snapshot and NO line;
       W2 a wild battle makes none; W3 a trainer battle makes one snapshot and one `start` line;
       W4 a POST-BATTLE scene re-entering the hook (0 enemy mons alive — measured live: a trainer win that evolves a mon
-      calls `on_battle_started` again at f150064) makes NO snapshot and one `skip reason=no_enemy_alive` line.
+      calls `on_battle_started` again at f150064) makes NO snapshot and one `skip reason=no_enemy_alive` line;
+      W5 an unreadable snapshot (it raises) is LOGGED as `start unreadable`, with no context and no raise.
   E1  `on_battle_ended` with an OPEN `_t1_ctx` and a RAISING logger still counts the defeat (T1 cannot skip it).
   L1  the end line uses `res=` (never `outcome=`) and no field value contains a space.
   A1  the three fault envs are registered in 29.
@@ -25,6 +26,8 @@ FAULT ARMS (the unmutated subject passes first; each must turn EXACTLY its own s
   F5  a source mutant reading B whatever the battle type → {B1}.
   F6  a source mutant printing `outcome=` → {L1}.
   F7  a `story_mode` source mutant without the post-battle guard → {W4} (it logged a phantom `delta=0 mult=0` pair).
+  F8  a `story_mode` source mutant whose `_t1_start` guard misses the snapshot's error → {W5} (added after the review:
+      "neither helper can raise" had a case for `_t1_end` only).
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_trainer_identity_T1.py
 """
@@ -144,12 +147,12 @@ def cases(ti=TI, sm=SM, sink=None) -> set:
     # W1-W3 — which battles snapshot. `snapshot` is stubbed so no emulator is needed.
     logs: list = []
 
-    def run_start(battle_type, encounter, alive=1):
+    def run_start(battle_type, encounter, alive=1, snap=None):
         stub = types.SimpleNamespace(_location_key=lambda: (0, 31))
         logs.clear()
         # `_t1_start` imports the REAL module, so its `snapshot`/`enemy_alive` are the ones to stub (not a mutant's).
         with Patch(BST, get_battle_type=lambda: battle_type), \
-                Patch(TI, snapshot=lambda bt: dict(SAMPLE_CTX), enemy_alive=lambda: alive), \
+                Patch(TI, snapshot=snap or (lambda bt: dict(SAMPLE_CTX)), enemy_alive=lambda: alive), \
                 Patch(sm, _log_story_event=lambda text, cat="": logs.append((cat, text))):
             sm._t1_start(stub, encounter)
         return getattr(stub, "_t1_ctx", None), list(logs)
@@ -166,6 +169,15 @@ def cases(ti=TI, sm=SM, sink=None) -> set:
     rec("W4", ctx is None and len(lines) == 1 and "skip reason=no_enemy_alive" in lines[0][1],
         f"a post-battle scene re-entering the hook (0 enemy alive): ctx={ctx is not None} "
         f"lines={[t[:40] for _, t in lines]} (want no context and one skip line — measured live at f150064)")
+    # W5 — `_t1_start` cannot raise: an unreadable snapshot is LOGGED, the hook continues (review finding 2026-09-29).
+    raised = None
+    try:
+        ctx, lines = run_start(BattleType.Trainer, None, snap=_boom)
+    except Exception as error:  # noqa: BLE001 - the gate reports it
+        raised, ctx, lines = error, None, []
+    rec("W5", raised is None and ctx is None and len(lines) == 1 and lines[0][1].startswith("start unreadable"),
+        f"a raising snapshot: raised={raised!r} ctx={ctx is not None} lines={[t[:30] for _, t in lines]} "
+        f"(want no raise, no context, one 'start unreadable' line)")
     # E1 — an open context + a raising logger cannot skip defeat counting.
     stub = types.SimpleNamespace(_location_key=lambda: (0, 8), _defeat_counts={}, _last_defeat_key=None, _loss_seq=0,
                                  _loss_ko_history={}, _catch_ctx=None, _boss_battle=None, _t1_ctx=dict(SAMPLE_CTX))
@@ -243,6 +255,20 @@ def main() -> int:
     else:
         red = {"(anchor missing)"}
     check(base_ok and red == {"W4"}, f"F7 a _t1_start without the post-battle guard turns exactly ['W4'] red "
+                                     f"(red: {sorted(red)})")
+    handler = '        _log_story_event(_ti.format_start(ctx), "TRAINER")\n    except Exception as exc:'
+    handler = handler.replace("\n", "\r\n") if "\r\n" in sm_src else handler
+    if sm_src.count(handler) == 1:
+        sm_mut8 = types.ModuleType("sm_f8")
+        sm_mut8.__file__ = str(sm_path)
+        exec(compile(sm_src.replace(handler, handler.replace("except Exception as exc:",
+                                                             "except ZeroDivisionError as exc:"), 1),
+                     "sm_f8", "exec"), sm_mut8.__dict__)
+        with env():
+            red = cases(TI, sm_mut8, [])
+    else:
+        red = {"(anchor missing)"}
+    check(base_ok and red == {"W5"}, f"F8 a _t1_start whose guard misses the snapshot's error turns exactly ['W5'] red "
                                      f"(red: {sorted(red)})")
 
     print()

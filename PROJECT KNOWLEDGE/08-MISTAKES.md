@@ -23066,3 +23066,15 @@ exactly" reading used ONE run and happened to reproduce.
 control, first check whether the control reproduces ITSELF. "Identical output across runs is a determinism check,
 never a replication" (CLAUDE.md rule 8), and the converse also holds: one differing run is not a regression until the
 difference reproduces.
+
+## 2026-09-29 — ⛔ THE SAME KICK-BACK TWICE: I HELD THE RESUME-POINTER UPDATE "UNTIL AFTER THE REVIEW", AND THE REVIEW BLOCKED ON IT
+
+**Symptom:** RULING 24 step 4's review and design v2 step 5's review each returned KICK-BACK with ONE blocker: 04's
+banner, 04's `➡➡➡ START HERE` and 03's item still said "the next item to BUILD is <the item just shipped>".
+**Root cause:** I prepared the pointer edits and deliberately held them until the review passed, reasoning that the
+review might change the item. But the reviewer reads the docs AS THEY WILL SHIP. An item whose own record commands its
+own rebuild is not shippable, so the blocker was correct both times.
+**Fix:** the pointers were applied, and the item re-checked.
+**Prevention:** ⛔ apply the resume pointers (banner, START HERE, the punch-list item, the design note's status) BEFORE
+launching the review. If the review changes the item, the pointer is edited again, cheaply. Recorded in the playbook's
+pre-review check (§0b).

@@ -124,6 +124,10 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   3 identical seeded runs of one commit reached a warp one frame late and diverged. Run the control at least TWICE. When
   an arm differs from it, first check whether the control reproduces ITSELF. A difference is attributed to the change
   only when it reproduces.
+* ⛔ **UPDATE THE RESUME POINTERS BEFORE THE REVIEW, NOT AFTER** (added 2026-09-29, two kick-backs running). The
+  reviewer reads the docs as they will ship, and "the next item to build is <this item>" is a blocker. The
+  pointers are 04's banner, 04's `➡➡➡ START HERE`, the punch-list item and the design note's status. Apply them
+  before the review; re-edit them if the review changes the item.
 
 ---
 

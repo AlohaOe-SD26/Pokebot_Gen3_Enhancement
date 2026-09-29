@@ -49,3 +49,10 @@
 - An Amulet Coin battle: `mult=2` needs a player-side holder to SWITCH IN, and none exists at badge 1.
 - Whether money-making pays.
 - Whether ANY earlier A/B in this project replayed only by luck. KI-112 asks.
+- **That the skip discriminator (0 living enemy mons) holds in EVERY battle type.**
+  - Measured: 12 real starts (1-3 alive, one two-opponent battle at 2) and 1 re-entry (0).
+  - All in ONE ~120k-frame badge-1 run.
+  - Observed: sight-triggered route trainers, and one scripted leader battle (Brawly).
+  - Not observed: other leaders, the Elite Four, and a whiteout-then-evolution.
+  - It fails SAFE for the game: a wrong skip loses a telemetry line, never a battle decision.
+  - A batch should count `skip` lines against `start` lines (review risk, 2026-09-29).
