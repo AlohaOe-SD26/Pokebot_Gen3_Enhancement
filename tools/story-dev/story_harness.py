@@ -28937,6 +28937,8 @@ for step in range(args.frames):
             # the attempt cap is reached on a real encounter. It stands for attempts that did NOT happen on this
             # trajectory: the A/B tests the fence and adapter wiring live, not a natural path to the cap. Re-applied after
             # every `reset_per_run_state` (which would wipe it), and printed each time, like the defeats preset above.
+            # ⚠ That re-apply path has NOT run in any graded arm: storyresume's only reset is in `StoryMode.__init__`,
+            # before this wrapper exists, so each arm printed exactly ONE `applied` line (the step 8 review counted).
             _sra_preset = _os.environ.get("STORYRESUME_PRESET_ATTEMPTS", "").strip()
             if _sra_preset:
                 _sra_inst = context.bot_mode_instance

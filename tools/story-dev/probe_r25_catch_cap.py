@@ -7,15 +7,19 @@ user accepted the whiteouts that can cost (06). So two failure shapes matter and
     off (RAREUNGATED). ⇒ K3, K6 and K7 must hold.
   * ‼ the exemption is SILENTLY INERT: `_should_catch` holds an `EncounterInfo`, and `rarity.encounter_rarity` on the
     wrapper reads rare=False with an adapter_error note and never raises (the step 8 recon ran it). Stub-based rows
-    cannot see that. ⇒ K9 runs the REAL `encounter_rarity` through the helper on the adapter's own expression, and A1
-    pins that expression in `_should_catch` by AST.
+    cannot see that. ⇒ K11 EXECUTES the real `StoryMode._should_catch` on a shim with stubbed live reads, for OFF, RARE
+    and CAP, and A1 pins its wiring by AST. ⚠ K9 only shows the REAL `encounter_rarity` works on a Pokemon and not on
+    the wrapper: it builds its own `getattr(enc, "pokemon", None)`, so it cannot see the ADAPTER (the step 8 review
+    measured that six adapter mutants left every K/A row green before K11 existed).
 
 ROWS
   K1-K10  literal fence rows (the fence's full-party admit case, one field overridden per row). K6 compares each gate's
           reason for a RARE target with that same gate's reason for an ordinary one: the exemption must not change it.
-  A1-A6   wiring: the AST pin, OFF gives the old inputs with no read, the defaults, the per-run flags, the log suffix,
-          and the three log sites.
-  M1-M7   source mutants of `story_mode.py`, each with the EXACT set of rows it must turn red; N1 a comment-only edit
+  K11     the REAL adapter `StoryMode._should_catch` on a shim: OFF refuses at the cap with NO rarity read; RARE admits
+          a rare target and logs its suffix; CAP admits at 2; RARE gives an ordinary target nothing.
+  A1-A6   wiring: the AST pin (every argument of the verdict and inputs calls), OFF gives the old inputs with no read,
+          the defaults, the per-run flag ASSIGNMENTS, the log suffix, and the three log sites.
+  M1-M13  source mutants of `story_mode.py`, each with the EXACT set of rows it must turn red; N1 a comment-only edit
           that must turn nothing red.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_r25_catch_cap.py        (exit 1 on any failure)
@@ -171,6 +175,85 @@ def k_rows(m, tag=""):
     return failed
 
 
+def adapter_rows(m, tag=""):
+    """K11: EXECUTE the real `m.StoryMode._should_catch` on a shim, with every live read stubbed (a full, healthy party
+    after gym 1, 30 spare balls, nothing armed), and record what it decides, logs and stashes."""
+    failed: list[str] = []
+    import modules.items as _items
+    import modules.memory as _memory
+    import modules.pokedex as _pokedex
+    import modules.pokemon_party as _pparty
+    from modules.story import counter_hunt as _ch
+    from modules.story import early_game as _eg
+
+    party = [Mon(n, 0) for n in (1, 4, 7, 261, 183, 351)]
+    for p in party:
+        p.current_hp = p.total_hp = 10
+    stubs = [
+        (_memory, "get_event_flag", lambda name: True),
+        (_pparty, "get_party", lambda: list(party)),
+        (_pokedex, "get_pokedex", lambda: SimpleNamespace(owned_species=[p.species for p in party])),
+        (_items, "get_item_bag", lambda: SimpleNamespace(number_of_balls_except_master_ball=30, poke_balls=[])),
+        (_ch, "resource_blocker", lambda: None),
+        (_ch, "is_armed", lambda: False),
+        (_ch, "_box_count", lambda: 12),
+        (_eg, "HM_CATCH_TARGET_DEX", None),
+        (_eg, "swap_train_active", lambda: False),
+        (_eg, "hunt_walk_active", lambda: False),
+    ]
+    reads: list = []
+    real_rarity = rarity.encounter_rarity
+    stubs.append((rarity, "encounter_rarity", lambda p: reads.append(p) or real_rarity(p)))
+    logged: list = []
+    stubs.append((m, "_log_story_event", lambda line, tag_: logged.append(line)))
+    saved = [(mod, name, getattr(mod, name)) for mod, name, _ in stubs]
+
+    def run(rare_flag, cap_flag, national):
+        shim = SimpleNamespace(_catch_team_target=4, _dex_catch_attempts={national: 2}, _open_fence=False,
+                               _hunt_first=False, _r24_catchhurt=False, _r24_catchtrain=False,
+                               _r25_cap=cap_flag, _r25_rare=rare_flag)
+        reads.clear()
+        logged.clear()
+        got = m.StoryMode._should_catch(shim, SimpleNamespace(pokemon=Mon(national, 0x10), is_shiny=False))
+        return got, shim, list(logged), len(reads)
+
+    try:
+        for mod, name, value in stubs:
+            setattr(mod, name, value)
+        results = {
+            "K11a": run(False, False, 358),   # Chimecho (rate-rare), flags OFF
+            "K11b": run(True, False, 358),    # RARE on
+            "K11c": run(False, True, 358),    # CAP on
+            "K11d": run(True, False, 263),    # RARE on, Zigzagoon (ordinary)
+        }
+    finally:
+        for mod, name, value in saved:
+            setattr(mod, name, value)
+
+    def arow(key, label, ok, detail):
+        if not ok:
+            failed.append(key)
+        if not tag:
+            check(f"{key} {label}", ok, detail)
+
+    got, shim, lines, n = results["K11a"]
+    arow("K11a", "REAL adapter, flags OFF, a rare target at attempts 2 -> refused at the cap, the rarity predicate NEVER "
+         "read, no suffix", not got and "already attempted" in shim._dex_catch_last_reason and n == 0
+         and shim._r25_last_verdict is None and lines and not lines[0].endswith("note=-"), f"{got} {lines} reads={n}")
+    got, shim, lines, n = results["K11b"]
+    arow("K11b", "REAL adapter, RARE on -> admitted past the cap, asked about the POKEMON, suffix rare=rate tier=RARE",
+         got and n == 1 and getattr(shim._r25_last_verdict, "rare", False)
+         and lines and lines[0].endswith(" rare=rate tier=RARE note=-"), f"{got} {lines} reads={n}")
+    got, shim, lines, n = results["K11c"]
+    arow("K11c", "REAL adapter, CAP on -> admitted at attempts 2, no read, no suffix",
+         got and n == 0 and lines and "note=" not in lines[0], f"{got} {lines} reads={n}")
+    got, shim, lines, n = results["K11d"]
+    arow("K11d", "REAL adapter, RARE on, an ORDINARY target -> refused at the cap, suffix rare=- tier=- note=-",
+         not got and "already attempted" in shim._dex_catch_last_reason and lines
+         and lines[0].endswith(" rare=- tier=- note=-"), f"{got} {lines} reads={n}")
+    return failed
+
+
 def a_rows(m, src, tag=""):
     failed: list[str] = []
 
@@ -189,8 +272,10 @@ def a_rows(m, src, tag=""):
                                                                                for t in n.targets)] if fn else []
     arow("A1 `_should_catch` passes `**r25_catch_inputs(...)` to decide_dex_catch, and asks r25_rarity_verdict about "
          "`getattr(encounter, 'pokemon', None)` (the wrapper only under the fault arm)",
-         len(calls) == 1 and len(star) == 1 and ast.unparse(star[0].value).startswith("r25_catch_inputs(")
-         and len(verdict_calls) == 1 and ast.unparse(verdict_calls[0].args[1]) == "_rarity.encounter_rarity"
+         len(calls) == 1 and len(star) == 1
+         and ast.unparse(star[0].value) == "r25_catch_inputs(getattr(self, '_r25_cap', False), _r25_verdict)"
+         and len(verdict_calls) == 1 and ast.unparse(verdict_calls[0].args[0]) == "getattr(self, '_r25_rare', False)"
+         and ast.unparse(verdict_calls[0].args[1]) == "_rarity.encounter_rarity"
          and ast.unparse(verdict_calls[0].args[2]) == "_r25_subject" and len(subject) == 1
          and ast.unparse(subject[0].value).endswith("else getattr(encounter, 'pokemon', None)")
          and "POKEBOT_R25_FAULT_RAREWRAPPER" in ast.unparse(subject[0].value),
@@ -205,8 +290,9 @@ def a_rows(m, src, tag=""):
          sig["max_attempts"].default == m.DEX_CATCH_MAX_ATTEMPTS and sig["rare"].default is False)
     reset_fn = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "reset_per_run_state"), None)
     reset_src = ast.get_source_segment(src, reset_fn) if reset_fn else ""   # from the SOURCE, so mutants are read too
-    arow("A4 the flags are read per run in reset_per_run_state",
-         'environ.get("POKEBOT_R25_CAP") == "1"' in reset_src and 'environ.get("POKEBOT_R25_RARE") == "1"' in reset_src)
+    arow("A4 the flags are read per run in reset_per_run_state, each into ITS OWN attribute",
+         'self._r25_cap = _os_team6.environ.get("POKEBOT_R25_CAP") == "1"' in reset_src
+         and 'self._r25_rare = _os_team6.environ.get("POKEBOT_R25_RARE") == "1"' in reset_src)
     uv = rarity.RareVerdict(True, "ULTRA", ("variant",))
     bad = SimpleNamespace(_r25_rare=True, _r25_last_verdict=SimpleNamespace())   # no .reasons: must not raise
     arow("A5 the log suffix: OFF '', ON with a verdict, ON unread, and never raises",
@@ -238,6 +324,8 @@ def main() -> int:
     src = SM_PATH.read_text(encoding="utf-8")
     print("K — fence rows through the real helpers")
     k_rows(SM)
+    print("\nK11 — the REAL adapter, executed on a shim")
+    adapter_rows(SM)
     print("\nA — wiring")
     a_rows(SM, src)
 
@@ -251,22 +339,43 @@ def main() -> int:
          "rareearly", "    # ---- POST-GYM-1: THE DEX FENCE ---",
          "    if rare:\n        return True, 'FAULT: rare early'\n    # ---- POST-GYM-1: THE DEX FENCE ---",
          K6 | {"K4", "K5a"}),
-        ("M2 RAREALL: every verdict counts as rare -> K1a K2a K2b K3 K5b K7 K8 K10 and A2",
+        ("M2 RAREALL: every verdict counts as rare -> K1a K2a K2b K3 K5b K7 K8 K10, A2, K11a K11d",
          "rareall", '"rare": bool(getattr(verdict, "rare", False)),', '"rare": True,',
-         {"K1a", "K2a", "K2b", "K3", "K5b", "K7", "K8", "K10", "A2"}),
-        ("M3 RAREUNGATED: the verdict is read with the flag OFF -> K3 K5b and A2",
+         {"K1a", "K2a", "K2b", "K3", "K5b", "K7", "K8", "K10", "A2", "K11a", "K11d"}),
+        ("M3 RAREUNGATED: the verdict is read with the flag OFF -> K3 K5b, A2, K11a K11c (a read with RARE off)",
          "rareungated", "    if not rare_on:\n        return None\n", "    if False:\n        return None\n",
-         {"K3", "K5b", "A2"}),
-        ("M4 CAP2: the cap stays at 2 with CAP on -> K1b", "cap2",
+         {"K3", "K5b", "A2", "K11a", "K11c"}),
+        ("M4 CAP2: the cap stays at 2 with CAP on -> K1b K11c", "cap2",
          '"max_attempts": R25_MAX_ATTEMPTS if cap_on else DEX_CATCH_MAX_ATTEMPTS,',
-         '"max_attempts": DEX_CATCH_MAX_ATTEMPTS,', {"K1b"}),
-        ("M5 NOATTEMPTS: a rare target still meets the cap -> K4 K9", "noattempts",
-         "    if not rare and attempts >= max_attempts:", "    if attempts >= max_attempts:", {"K4", "K9"}),
+         '"max_attempts": DEX_CATCH_MAX_ATTEMPTS,', {"K1b", "K11c"}),
+        ("M5 NOATTEMPTS: a rare target still meets the cap -> K4 K9 K11b", "noattempts",
+         "    if not rare and attempts >= max_attempts:", "    if attempts >= max_attempts:", {"K4", "K9", "K11b"}),
         ("M6 NOTHROWS: a rare target still meets the throws gate -> K5a", "nothrows",
          "expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS and not rare\n",
          "expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS\n", {"K5a"}),
-        ("M7 WRAPPER: the adapter asks about the EncounterInfo -> A1", "wrapper",
-         'else getattr(encounter, "pokemon", None))', "else encounter)", {"A1"}),
+        # ⚠ M7 was pre-registered (2026-09-29-r25cap-PREDICTIONS.md) to turn "the AST row AND the real-rarity row" red,
+        # but K9 never ran the adapter, so only A1 went red: that prediction FAILED as written (the graded note says so).
+        # K11 (added in the review) runs the real adapter, and is now red under it too.
+        ("M7 WRAPPER: the adapter asks about the EncounterInfo -> A1, K11b (rare read as not rare) and K11d (its note)",
+         "wrapper", 'else getattr(encounter, "pokemon", None))', "else encounter)", {"A1", "K11b", "K11d"}),
+        # The adapter mutants the step 8 review showed were invisible before K11 (its X1, X2, X3, X4, X5, X6):
+        ("M8 the verdict is read with RARE OFF (in the adapter) -> A1, K11a, K11c", "adapter_readoff",
+         'r25_rarity_verdict(getattr(self, "_r25_rare", False), _rarity.encounter_rarity, _r25_subject)',
+         "r25_rarity_verdict(True, _rarity.encounter_rarity, _r25_subject)", {"A1", "K11a", "K11c"}),
+        ("M9 the verdict is dropped from the fence inputs -> A1, K11b", "adapter_dropverdict",
+         '**r25_catch_inputs(getattr(self, "_r25_cap", False), _r25_verdict),',
+         '**r25_catch_inputs(getattr(self, "_r25_cap", False), None),', {"A1", "K11b"}),
+        ("M10 the cap reads the RARE flag -> A1, K11c, K11d", "adapter_capfromrare",
+         '**r25_catch_inputs(getattr(self, "_r25_cap", False), _r25_verdict),',
+         '**r25_catch_inputs(getattr(self, "_r25_rare", False), _r25_verdict),', {"A1", "K11c", "K11d"}),
+        ("M11 reset_per_run_state fills _r25_cap from the RARE env -> A4", "reset_swapped",
+         'self._r25_cap = _os_team6.environ.get("POKEBOT_R25_CAP") == "1"',
+         'self._r25_cap = _os_team6.environ.get("POKEBOT_R25_RARE") == "1"', {"A4"}),
+        ("M12 the verdict is never stashed (the log suffix reads 'unread') -> K11b, K11d", "adapter_nostash",
+         "            self._r25_last_verdict = _r25_verdict\n", "            pass\n", {"K11b", "K11d"}),
+        ("M13 the cap is always ON in the adapter -> A1, K11a, K11d", "adapter_capalways",
+         '**r25_catch_inputs(getattr(self, "_r25_cap", False), _r25_verdict),',
+         "**r25_catch_inputs(True, _r25_verdict),", {"A1", "K11a", "K11d"}),
         ("N1 a comment edit near the wiring turns NOTHING red", "comment",
          "# RULING 25 (design v2 step 8): the cap of 3 and the rare exemption (flags, default OFF), from ONE pure helper.",
          "# (edited) RULING 25: r25_catch_inputs( is named in this comment only.", set()),
@@ -274,7 +383,7 @@ def main() -> int:
     for label, name, old, new, want in cases:
         try:
             mod, msrc = mutant(name, old, new)
-            red = set(k_rows(mod, "m")) | set(a_rows(mod, msrc, "m"))
+            red = set(k_rows(mod, "m")) | set(a_rows(mod, msrc, "m")) | set(adapter_rows(mod, "m"))
             check(label, red == want, f"red {sorted(red)}" + ("" if red == want else f" (want {sorted(want)})"))
         except Exception as error:  # noqa: BLE001
             check(label, False, f"{type(error).__name__}: {error}")

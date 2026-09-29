@@ -271,7 +271,7 @@ it.
   species (the user's male Skitty, the ULTRA tier).
 - **Must do:** stay DATA. The table is generated from the ROM and gated, never hand-edited. Never raise: a verdict
   that cannot be decided is "not rare" with a note.
-- **Where it stands:** built and inert (design v2 step 7). Step 8 is its first consumer. Q5, Q6 and Q7 are the
+- **Where it stands:** built (design v2 step 7). Step 8's catch fence reads it, only with `POKEBOT_R25_RARE`. Q5, Q6 and Q7 are the
   user's to confirm.
 
 ### Trainer identity (`sandbox-pokebot/modules/story/trainer_identity.py`, new 2026-09-29)

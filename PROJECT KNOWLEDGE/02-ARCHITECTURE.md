@@ -213,13 +213,13 @@ hooks inside `get_party()` record HOLE / OVERFLOW / INVALID exactly and STALE by
 run summary is printed by `story_harness.py` at the end of a drive. Nothing consumes the readers
 — that is asserted by the gate, not just intended. Gate: `repro_party_accounting.py`.
 
-### `modules/rarity.py`: OURS, new 2026-09-29 (SANDBOX ONLY; inert until design v2 step 8)
+### `modules/rarity.py`: OURS, new 2026-09-29 (SANDBOX ONLY; read by design v2 step 8's fence)
 The rare-species predicate (design v2 step 7): `RARE = legendary OR special OR rate OR pseudo OR variant`, with
 shiny as its own reason. `encounter_rarity(pokemon)` returns `RareVerdict(rare, tier, reasons, note)` and never
 raises. It reads `modules/data/emerald_rarity.json`, keyed by NATIONAL dex, which is GENERATED, never hand-edited:
 `tools/story-dev/rare_species_dataset.py --write` reads the wild tables and each map's region-map section
 STATICALLY from the tracked ROM (no emulator; the gitignored encounter cache holds a dead Altering Cave table,
-KI-113). Nothing in production imports it yet. Gate: `probe_rarity_predicate.py` (runs `--check`).
+KI-113). Its one production reader is `StoryMode._should_catch` (design v2 step 8), and only with `POKEBOT_R25_RARE`. Gate: `probe_rarity_predicate.py` (runs `--check`).
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:

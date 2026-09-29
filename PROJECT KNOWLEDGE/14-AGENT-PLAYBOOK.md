@@ -141,6 +141,12 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   - For a push, keep the flag clear and inject a fake LIVE object at the pushed tile (`get_map_objects` returning an
     extra entry with the same local id). The template tile is then free and the new tile walled. Then ask for the path.
   - `probe_rarity_shoal_path.py` is the worked example: three pushes open the Shoal Cave Ice Room; two do not.
+* ⛔ **TO PIN WIRING, EXECUTE THE PRODUCTION FUNCTION; A ROW THAT REBUILDS ITS EXPRESSION PINS ONLY THE COPY** (added
+  2026-09-29, 08). Step 8's "real-rarity row" built its own `getattr(enc, "pokemon", None)`, so six adapter mutants
+  stayed green. The fix ran the real `StoryMode._should_catch` on a shim with the live reads stubbed (`get_event_flag`,
+  `get_party`, `get_pokedex`, `get_item_bag`, the hunt readers). `probe_r25_catch_cap.py` K11 is the worked example.
+  ‼ And grade EVERY pre-registered bullet, gate bullets included, against its own words before writing "every
+  prediction held".
 * ✅ **TWO READERS OF THE SAME DATA: KEEP BOTH AND ASSERT THE EXACT DIFF** (added 2026-09-29, KI-113). The static ROM
   read of the wild tables and the runtime cache agree everywhere except Altering Cave, and the generator asserts
   exactly that. A new difference then turns a check red instead of silently changing a verdict.

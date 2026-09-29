@@ -37044,3 +37044,21 @@ held:
   with RARE only.
 - F (the wrapper fault) refuses with `note=adapter_error`.
 - The Zubat controls: CAP admits #3, and RARE gives an ordinary species nothing.
+
+## 2026-09-29 — design v2 step 8 (RC) REVIEWED: evidence lens BLOCK (one gate prediction had failed and was reported as held); all findings taken (`#26-organiccatch`)
+
+- **The BLOCK.** The graded note said "every prediction held", but M7 (the WRAPPER mutant) turned only A1 red, not
+  "the AST row and the real-rarity row". K9 never ran the adapter. The note now grades it FAILED as written. This also
+  corrects the entry above: every LIVE prediction held; one GATE prediction did not.
+- **The gap behind it** (code lens, measured): six adapter mutants left every row green. There is NEW K11, which
+  EXECUTES the real `_should_catch` on a stubbed shim (OFF, RARE, CAP, ordinary). A1 pins every argument and A4 the
+  assignment targets. New mutants M8-M13, and all 13 red sets were written before the confirming run.
+- **The grader:** refusal arms must show no catch commit at the frame (fault-tested with an injected line). The raw M0
+  logs are committed, and the filter's exact scope is stated.
+- **Docs:**
+  - `rarity.py` is no longer "inert" (02, 01, 04, 03);
+  - `#24-rare-catch` is no longer credited to step 8;
+  - P2-a2's pre-gym-1 cap is DEFERRED, not "merged into step 8";
+  - the design note's step 8 body gains an AS-BUILT block;
+  - 04's STATE row is re-stamped;
+  - the accepted consequences are widened (06, 29).

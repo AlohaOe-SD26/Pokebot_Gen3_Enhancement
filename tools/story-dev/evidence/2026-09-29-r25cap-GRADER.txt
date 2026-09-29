@@ -1,4 +1,11 @@
-# design v2 step 8 (RC) GRADER: scratchpad r25_grade_arms.py over the arms' debug logs (committed below verbatim), against M0-r1.
+# design v2 step 8 (RC) GRADER, re-run after the step 8 review: r25_grade_arms.py over the arms' raw debug logs (committed below verbatim), against M0-r1.
+# The review added the refusal-arm check (no [DEXCATCH]/[CATCH] start at the frame). FAULT-TESTED: a copy of arm A's log with an injected
+#   'f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party' line grades '=== A: FAIL ... A COMMIT WAS LOGGED'.
+# Raw logs committed: 2026-09-29-r25cap-raw/M0-r1.debug.log and M0-r2.debug.log (the M0 r1-vs-r2 claim is re-checkable).
+#   The ARM raw logs are not committed; each arm file carries its tracked lines, which the per-arm claims rest on.
+# ⚠ The tracked-line filter drops EVERY [MAP] line containing (0,0) or (255,255). On this trajectory those are exactly three one-frame
+#   pairs: f160879/80 RUSTURF TUNNEL(0,0), f167356/57 ROUTE 116(255,255) (in every run, before the discriminators) and f213839/40
+#   GRANITE CAVE(255,255) (in some runs only, after the Abra). (0,0) is also Petalburg City's real id; the trajectory never enters it.
 
 === OFF-r1: PASS — 90 vs M0 90 tracked lines, IDENTICAL, suffix absent
 
@@ -8,6 +15,7 @@
   prefix vs M0 before f212439: identical (79 vs 79 lines)
   suffix: absent everywhere -> ok
   preset applied line: True (want True)
+  refusal arm: no [DEXCATCH] / [CATCH] start at f212439 -> ok
   AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
   AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 2x this run
   ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 2x this run
@@ -38,6 +46,7 @@
   prefix vs M0 before f212439: identical (79 vs 79 lines)
   suffix: absent everywhere -> ok
   preset applied line: True (want True)
+  refusal arm: no [DEXCATCH] / [CATCH] start at f212439 -> ok
   AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
   AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run
   ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run
@@ -68,6 +77,7 @@
   prefix vs M0 before f212439: identical (79 vs 79 lines, suffix stripped)
   suffix: present on all 11 pre-discriminator catch lines -> ok
   preset applied line: True (want True)
+  refusal arm: no [DEXCATCH] / [CATCH] start at f212439 -> ok
   AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
   AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run rare=- tier=- note=adapter_error:AttributeError
   ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run rare=- tier=- note=adapter_error:AttributeError
@@ -76,6 +86,7 @@
   prefix vs M0 before f200242: identical (54 vs 54 lines)
   suffix: absent everywhere -> ok
   preset applied line: True (want True)
+  refusal arm: no [DEXCATCH] / [CATCH] start at f200242 -> ok
   AT  f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
   AT  f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run
   ok   want: f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run
@@ -95,6 +106,7 @@
   prefix vs M0 before f200242: identical (54 vs 54 lines, suffix stripped)
   suffix: present on all 2 pre-discriminator catch lines -> ok
   preset applied line: True (want True)
+  refusal arm: no [DEXCATCH] / [CATCH] start at f200242 -> ok
   AT  f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
   AT  f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run rare=- tier=- note=-
   ok   want: f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run rare=- tier=- note=-
@@ -196,7 +208,10 @@ def grade(name, frame, want_at, rare_on=False, want_applied=True, stdout_need=No
     got = at(lines, frame)
     got_ok = [w in got for w in want_at]
     applied = "STORYRESUME_PRESET_ATTEMPTS applied" in out
-    ok = prefix_ok and suffix_ok and all(got_ok) and applied == want_applied
+    # A REFUSAL arm (its wanted line is a skip) must also show NO catch commit at the frame (review, 2026-09-29).
+    refusal = any(" skip #" in w for w in want_at)
+    no_commit = not any("[DEXCATCH]" in l or "[CATCH] start" in l for l in got) if refusal else True
+    ok = prefix_ok and suffix_ok and all(got_ok) and applied == want_applied and no_commit
     print(f"\n=== {name}: {'PASS' if ok else 'FAIL'}")
     print(f"  prefix vs M0 before f{frame}: {'identical' if prefix_ok else 'DIFFERENT'} ({len(pre_arm)} vs {len(pre_m0)} lines"
           f"{', suffix stripped' if rare_on else ''})")
@@ -208,6 +223,8 @@ def grade(name, frame, want_at, rare_on=False, want_applied=True, stdout_need=No
     print(f"  suffix: {'present on all ' + str(len(suff_lines)) + ' pre-discriminator catch lines' if rare_on else 'absent everywhere'}"
           f" -> {'ok' if suffix_ok else 'WRONG'}")
     print(f"  preset applied line: {applied} (want {want_applied})")
+    if refusal:
+        print(f"  refusal arm: no [DEXCATCH] / [CATCH] start at f{frame} -> {'ok' if no_commit else 'A COMMIT WAS LOGGED'}")
     for line in got:
         print(f"  AT  {line}")
     for w, o in zip(want_at, got_ok):

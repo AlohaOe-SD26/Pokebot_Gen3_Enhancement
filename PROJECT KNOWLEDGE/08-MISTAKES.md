@@ -23098,3 +23098,22 @@ then swapped in "agreement with `calculate_path`" as the control. But the flood'
 **Prevention rule:** a control must be able to FAIL, from a source independent of the subject. Pre-register it as a
 named decisive case whose answer comes from somewhere else (a live in-game observation, or a controlled decoder), and
 say in advance what a mismatch would mean. Never control an instrument with the code it was transcribed from.
+
+## 2026-09-29 — ⛔ "EVERY PREDICTION HELD" OVER A GATE PREDICTION THAT HAD FAILED; AND A ROW THAT REBUILT THE PRODUCTION EXPRESSION INSTEAD OF RUNNING IT
+
+**Symptom:** design v2 step 8's graded note said "every prediction held". The predictions had said the WRAPPER mutant
+turns "the AST row AND the real-rarity row" red; the gate as built turned only the AST row red. An evidence reviewer
+BLOCKED it. The code reviewer then showed six adapter mutants that left the whole gate green.
+**Root cause:**
+- I graded the LIVE arms line by line and the GATE bullets by impression. When I pinned M7's red set as `{A1}`, I did
+  not compare it with the pre-registered text.
+- The "real-rarity row" (K9) built its own `getattr(enc, "pokemon", None)`. A row that REBUILDS the production
+  expression cannot see the production expression change.
+**Fix:**
+- The note now grades M7 FAILED as written.
+- NEW K11 EXECUTES the real `StoryMode._should_catch` on a stubbed shim.
+- The six adapter mutants are now M8-M13. All 13 red sets were written before the confirming run.
+**Prevention rules:**
+- (1) Grade EVERY pre-registered bullet, gate bullets included, against its own words, one by one, before writing a
+  headline.
+- (2) To pin WIRING, execute the production function. A copy of its expression pins only the copy.

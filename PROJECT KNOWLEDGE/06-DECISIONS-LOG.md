@@ -8356,3 +8356,19 @@ unverifiable, when it is two lines from exact.
 - A pure-only proof: a ~15-line harness lever made the live A/B possible.
 **Accepted consequence (recorded; diagnosed, not re-litigated):** a trapped rare target can re-enter the
 throw-into-reserve path more often than the old cap of 2 allowed (the graded note).
+
+## 2026-09-29 — RULING 25 / design v2 step 8 (RC), after the review: the accepted consequences are WIDER than first recorded (`#26-organiccatch`)
+
+**Decision (a record, not a change):** the step 8 entry above named one consequence. The review showed that the old
+cap of 2 was the only per-species, per-run bound in more places. These are recorded in the same "diagnosed, not
+re-litigated" way:
+- CAP alone takes an ORDINARY trapper (Trapinch) from 2 to 3 trapped, throw-into-reserve entries.
+- Faint-bail attempts spend no ball. With `POKEBOT_R24_CATCHHURT` also on, nothing but the encounter itself bounds
+  them for a rare target.
+- With `POKEBOT_R24_OVERSURVIVAL`, a rare species on a 3+-defeat map becomes a catch battle on every encounter
+  instead of a flee.
+- Telemetry: with RARE on, `[DEXFENCE]` dedups later exempted admissions; count them from `[DEXCATCH] attempt`.
+**Why:** RULING 25 ("never given up on") and RULING 24 (catch whiteouts accepted) cover all of them. None loops
+without a fresh encounter. Step 14 measures their frequency.
+**Rejected:** a per-species rare cap (it contradicts RULING 25), and changing the `[DEXFENCE]` dedup key (it is pinned
+by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
