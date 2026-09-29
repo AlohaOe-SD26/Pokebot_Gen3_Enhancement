@@ -36782,3 +36782,22 @@ fence refused every catch while any battler was below full HP.
 filing `hm` losses apart passed. D4-D6 and the mutant F6 were added; the shipped code was already correct. The
 review's two notes (a shared boss map key sees fewer wild-catch losses; `_catch_defeat_counts` is write-only) are
 recorded in `06`.
+## 2026-09-29 — USER RULING 24 step 3: A POST-GYM-1 DEX CATCH STARTS DURING A TRAINING GRIND AND KEEPS THE TRAINEE AS LEAD, BEHIND `POKEBOT_R24_CATCHTRAIN` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 24: *"catching should always be available … even in training."* After gym 1 the fence refused every
+catch while `train_team` ran.
+**WHAT.**
+- `decide_dex_catch(..., lift_training=False)`: when on, only the training refusal is skipped.
+- C3: a dex catch started during swap-training keeps the trainee in slot 0.
+- Flag-ON telemetry: `[CATCH] trainee` / `trainee-after`.
+- Two comments corrected: the watchdog counts overworld frames only, and a party join resets it; `roster.py`'s rotation
+  claim.
+- Fault arm `POKEBOT_R24_FAULT_ROTATE`. NEW gate `probe_dex_catch_training.py` (T1-T6, A1-A3, L1, F1-F3; suite 126).
+**PROOF** (predictions `9651365d`; `ai-research-notes/2026-09-29-r24catchtrain-GRADED.md`), seed 9 (a sweep of 2-9 found
+the only seed drawing the grind):
+- OFF replays the measurement exactly.
+- ON catches the Taillow OFF refuses at f175100 while the party is at full HP. The trainee stayed as lead (`same=True`),
+  and both earlier health refusals are unchanged.
+- Seen once: the training ran about 2,700 frames longer, and the fresh L8 Taillow led the rival fight. The lead choice
+  is recorded as data for `#24-leadpolicy`, whose option B the user rejected.
+**Review:** REVIEW_RESULT.

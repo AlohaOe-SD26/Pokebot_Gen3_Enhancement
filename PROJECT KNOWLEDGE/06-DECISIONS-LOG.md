@@ -8129,3 +8129,21 @@ key battles."*
   counter. **Accepted, deliberately:** that loss was never the boss's. The boss's own losses cannot be diverted: a dex
   catch is only ever opened in a WILD battle, and `_boss_battle` is only set for trainer battles.
 - `_catch_defeat_counts` is written and logged but read by nothing yet. It is telemetry until a consumer needs it.
+## 2026-09-29 — RULING 24 step 3: the training lift removes ONE refusal; a training dex catch keeps the trainee as lead; the flag is read from the RUNNING mode
+
+**Decision:**
+- `POKEBOT_R24_CATCHTRAIN` (default OFF) skips only "a training grind is in progress".
+- A `StoryDexCatchStrategy` built while swap-training, with the flag on, returns None from
+  `choose_new_lead_after_battle`, so a faint in that catch does not rotate the lead.
+- The strategy reads the flag from `context.bot_mode_instance._r24_catchtrain`, the running mode's per-run value. The
+  pinned call site `return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()` is unchanged.
+**Why:**
+- `train_team` picks its trainee by SLOT. The inherited rotation (it fires when the lead has fainted) would put another
+  mon in slot 0 and train the wrong one: the KI-84 early exit in `slots={0}` grinds. `train_team`'s own heal restores a
+  fainted trainee.
+- One source for the flag (the P2-a lesson: two readers of one setting must read it from one place).
+- `probe_dexcatch_bail.py` pins the call site's exact text.
+**Rejected:**
+- Passing the flag through the constructor: this changes the pinned call site.
+- Reading the env inside the strategy: that makes a second reader of the flag.
+- Leaving the rotation: it defeats slot-based grinds exactly when RULING 24 accepts a faint.

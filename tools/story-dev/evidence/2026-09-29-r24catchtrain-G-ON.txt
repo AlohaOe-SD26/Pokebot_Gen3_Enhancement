@@ -1,0 +1,117 @@
+# RULING 24 step 3 GRADED ARM G-ON: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c); POKEBOT_R20_OPENFENCE=1 POKEBOT_R24_CATCHTRAIN=1; --set-balls 30 --frames 90000; random.seed(9); code c769c010.
+# Predictions: ai-research-notes/2026-09-29-r24catchtrain-PREDICTIONS.md (9651365d, before the code).
+# Source: Story-debug-20260929-085624.log.
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R24_CATCHTRAIN': '1'}
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f142708 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Water Gun(pp12)  vs Machop L9 31/31
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f144924 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Water Gun(pp10)  vs Nincada L6 21/21
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f146743 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Tackle(pp35)  vs Shroomish L9 29/29
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f151228 [BATTLE] [TURN 0] Marshtomp L17 29/56 -> UseMove:Water Gun(pp9)  vs Geodude L8 24/24
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f153291 [BATTLE] [TURN 0] Marshtomp L17 29/56 -> UseMove:Tackle(pp32)  vs Shroomish L8 27/27
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f157861 [BATTLE] [TURN 0] Marshtomp L17 5/56 -> UseMove:Water Gun(pp8)  vs Geodude L8 24/24
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f162506 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> UseMove:Water Gun(pp6)  vs Poochyena L11 28/28
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f166888 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> RunAway  vs Taillow L8 24/24
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167842 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> RunAway  vs Taillow L6 21/21
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f173587 [STEP] 'Story: training the team to Lv 19 in the grass…'
+f175100 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f175100 [DEXFENCE] CATCH #276 Taillow — dex catch #276 (joins the party)
+f175100 [DEXCATCH] [DEXCATCH] attempt #1 on Taillow (#276) -> party
+f175100 [CATCH] trainee lead=Marshtomp#550A9BE6 (a dex catch during swap-training)
+f175100 [CATCH] start kind=dex sp=Taillow#276 lv=8 attempt=1 badges=1 party=1/6 box=0 spare=32 exp_throws=2.8 map=0,31
+f175552 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Taillow L8 25/25
+f177556 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Taillow:L8']
+f177556 [CATCH] end kind=dex sp=Taillow#276 end=caught res=Caught thrown=2 frames=2456 dest=party pid=118FF55F party=2/6 box=0 spare=30 badges=1 bail=-
+f177766 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f177766 [CATCH] trainee-after lead=Marshtomp#550A9BE6 before=Marshtomp#550A9BE6 same=True
+f177766 [DEXFENCE] skip #261 Poochyena — party is not at full strength
+f178252 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp25)  vs Poochyena L7 24/24
+f178850 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f179206 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f179691 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp24)  vs Poochyena L6 21/21
+f180288 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f180624 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f181075 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp23)  vs Taillow L6 21/21
+f181667 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f181892 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f182377 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp22)  vs Poochyena L6 21/21
+f182974 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f183380 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f183831 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp21)  vs Taillow L7 23/23
+f184426 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f184812 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f185263 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp20)  vs Taillow L6 22/22
+f185857 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f186172 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f186172 [DEXFENCE] skip #293 Whismur — party is not at full strength
+f186703 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp19)  vs Whismur L6 24/24
+f187298 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f187583 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f187583 [DEXFENCE] skip #63 Abra — party is not at full strength
+f188066 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Tackle(pp35)  vs Abra L7 20/20
+f188563 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f188779 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f188779 [DEXFENCE] skip #300 Skitty — party is not at full strength
+f189254 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp18)  vs Skitty L8 28/28
+f189850 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f190085 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f190616 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp17)  vs Whismur L6 24/24
+f191211 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18', 'Taillow:L8']
+f191436 [BATTLE] started hp=[('Marshtomp', 55, 58), ('Taillow', 25, 25)]
+f191921 [BATTLE] [TURN 0] Marshtomp L18 55/58 -> UseMove:Water Gun(pp16)  vs Poochyena L6 20/20
+f192677 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Taillow:L8']
+f195102 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f196996 [BATTLE] started hp=[('Taillow', 25, 25), ('Marshtomp', 61, 61)]
+f197647 [BATTLE] [TURN 0] Taillow L8 25/25 -> UseMove:Quick Attack(pp30)  vs Wingull L13 33/33
+f197666 [BATTLE] [TURN 0] Taillow L8 25/25 -> UseMove:Quick Attack(pp30)  vs Wingull L13 33/33
+f202805 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Taillow:L8', 'Marshtomp:L19']
+f202969 [STORY] WHITEOUT recovery #1 at (0, 3)
+f202984 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f203936 [BATTLE] started hp=[('Taillow', 25, 25), ('Marshtomp', 61, 61)]
+f204691 [BATTLE] [TURN 0] Taillow L8 25/25 -> UseMove:Peck(pp35)  vs Seedot L6 20/20
+f204706 [BATTLE] [TURN 0] Taillow L8 25/25 -> UseMove:Peck(pp35)  vs Seedot L6 20/20
+f204723 [BATTLE] [TURN 0] Marshtomp L19 61/61 -> UseMove:Tackle(pp35)  vs Seedot L6 20/20
+f206930 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L8', 'Marshtomp:L19']
+f207428 [BATTLE] started hp=[('Taillow', 25, 25), ('Marshtomp', 59, 61)]
+f208056 [BATTLE] [TURN 0] Taillow L8 25/25 -> UseMove:Peck(pp33)  vs Lotad L6 20/20
+f211123 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L10', 'Marshtomp:L19']
+f217994 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f220394 [BATTLE] started hp=[('Taillow', 29, 29), ('Marshtomp', 61, 61)]
+f220994 [BATTLE] [TURN 0] Taillow L10 29/29 -> UseMove:Quick Attack(pp30)  vs Tentacool L11 29/29
+f222888 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Taillow:L11', 'Marshtomp:L19']
+f223545 [BATTLE] started hp=[('Taillow', 15, 31), ('Marshtomp', 61, 61)]
+f224042 [BATTLE] [TURN 0] Taillow L11 15/31 [Poison] -> UseMove:Quick Attack(pp28)  vs Abra L8 24/24
+f224573 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Taillow:L11', 'Marshtomp:L19']
+f224989 [BATTLE] started hp=[('Taillow', 12, 31), ('Marshtomp', 61, 61)]
+f225485 [BATTLE] [TURN 0] Taillow L11 12/31 [Poison] -> UseMove:Quick Attack(pp27)  vs Abra L9 24/24
+f226014 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Taillow:L11', 'Marshtomp:L19']
+f226276 [BATTLE] started hp=[('Taillow', 10, 31), ('Marshtomp', 61, 61)]
+f226276 [DEXFENCE] skip #304 Aron — party is not at full strength
+f226856 [BATTLE] [TURN 0] Taillow L11 10/31 [Poison] -> UseMove:Peck(pp35)  vs Aron L11 34/34
+f227796 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Taillow:L11', 'Marshtomp:L19']
+f228429 [BATTLE] started hp=[('Taillow', 0, 31), ('Marshtomp', 61, 61)]
+f228993 [BATTLE] [TURN 0] Marshtomp L19 61/61 -> UseMove:Water Gun(pp25)  vs Aron L11 33/33
