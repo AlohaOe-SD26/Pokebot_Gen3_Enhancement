@@ -12638,3 +12638,61 @@ closed 2026-09-23 and measured; kept verbatim for its reasoning, moved out of th
   ⛔ **STILL UNMEASURED: THE HP HALF.** `hp_threshold` is 20 % and the trainee out-levels its wilds, so it SHOULD be rare — but that is a reading. Only a drive at a level-matched ground, counting WHICH BRANCH fires, settles it. ‼ Instrument the branch and the chosen finisher INDEX; a candidate list is not an attempt.
   ⛔ **IF IT FIRES OFTEN:** training all six cannot meet the L65-75 ceiling, and the question returns to the user with real numbers. USER RULING 12 says what is WANTED; it cannot make an impossible outcome possible.
 
+---
+
+## Archived from `04-HANDOFF.md`
+
+Flagged STALE by the 2026-09-28 Tier 2 cold-start audit (a month behind: no §Ch24, no RULING 20); archived to keep 04 under its R3 line budget.
+
+## ⏱ THE 60-SECOND VERSION — ⛔ STALE HISTORY (rewritten 2026-08-27, before §Ch24 shipped and before RULING 20). For the CURRENT state read the banner (line 6) and the single line beginning `>    ➡➡➡`; this section is kept for its background only
+
+*(‼ rewritten 2026-08-27 because the previous version was TWO ARCS STALE — it opened on an arc that had finished days earlier. This is the FIRST thing a cold reader sees, so it rots the most expensively; it gets rewritten on EVERY chapter move.)*
+
+* **§Ch21 IS FINISHED — Sootopolis / Cave of Origin / Sky Pillar / Rayquaza / HM07.** All five legs
+  **AND** the `_play()` wiring shipped 2026-09-02: Segment 21 dispatches
+  `sootopolis.do_sootopolis_chapter()`, and `--driver ch21chapter` drove legs 1→5 end to end from
+  `post_ch20.ss1` → `ACCEPTANCE: PASS`, **`frames=95823` (MEASURED)**, `encounters=26`,
+  `whiteouts=0`, ending SOOTOPOLIS_CITY (31,34) with the GYM WARP reachable in 2 wp. The
+  chapter ladder is **23 of 24** — ⛔ DERIVED so it can be re-checked: §Ch18+§Ch19 reached **20**,
+  §Ch20 **21**, §Ch21 **22**, §Ch22 **23**. ✅✅ **§Ch23 SHIPPED 2026-09-05 AND §Ch24 IS BUILT, WIRED INTO `_play` (2026-09-25) AND BEATS THE ELITE FOUR + CHAMPION FROM A PINNED FIXTURE — ALL 24 RUNGS EXIST.** ⛔ What remains is ORGANIC: a real run has never reached Victory Road; 2026-09-26 fixed §Ch23's two organic killers (`#24-ch23training`, `#26-carleestage`), and the §Ch24 hand-off gaps are `#26-ch24organic`. *(This bullet read “ONLY §Ch24 (THE ELITE FOUR) REMAINS” until a Tier 2 cold-start audit caught it on 2026-09-26 — stale by the whole §Ch24 build.)* *(Earlier:)* **§Ch23 SHIPPED AS A CHAPTER ON 2026-09-05 — ONLY §Ch24 (THE ELITE FOUR) REMAINED.** *(This read “Only §Ch23 (Victory Road) and §Ch24 remain” until 2026-09-16, and was contradicted by the VERY NEXT LINE. This block's own preamble says it “is the FIRST thing a cold reader sees, so it rots the most expensively; it gets rewritten on EVERY chapter move” — it was not. Found by a Tier 2 re-audit.)* *(A draft said 21, putting §Ch20 and §Ch21 on the same rung; a Tier 2 cold-start audit caught it.)*
+* ⛔ **RETIRED HISTORY — ARCHIVED 2026-09-24 to `28-HANDOFF-ARCHIVE.md`.** It was a ~9,300-character retired NEXT-ACTION block (arrow retired 2026-09-17; every item it named is CLOSED) sitting in the file a cold agent reads FIRST. ⛔ The single live marker is and was the `➡➡➡ START HERE` line. Moved for readability, not because anything changed.
+  ✅ **SUPERSEDED 2026-09-05 — LEG 5 PASSES AND WALLY IS BEATEN** (`post_wally.ss1`, `wally_flag=True`, `whiteouts=0`); training was the fix. ⛔ The historical text below is kept for its measurement only: *"LEG 5 IS BUILT AND ITS CODE IS CORRECT, BUT IT DOES NOT PASS — THE PARTY LOSES TO WALLY."* `--driver ch23road` reaches the trigger, `WallyEntranceBattle` FIRES, and the bot loses twice (`BattleScript_LocalBattleLostEnd` ×2, 2 whiteouts). ✅ The mechanic is MEASURED intact: var armed (0), `prev_elevation` 4 matching the event, and a **`GAME_STAT_STEPS` delta of exactly 29 across a 29-waypoint walk** proving the coord-event step gate opened every time. ⇒ **`#24-ch23wally` — ✅ THE USER RULED ON 2026-09-04: TRAIN. IT IS DONE** (party is now Sceptile L51 / Swellow **L47** / Wailord **L47** / Mightyena **L47 + CRUNCH**; bench Zigzagoon L19, Castform L36) — ✅ **and the FIGHT HAS NOW BEEN RE-RUN AND WON (2026-09-04, 0 whiteouts), so the item is CLOSED.** *(The roster this sentence used to quote — Swellow L42 / Wailmer L40 / Mightyena L44 — is the PRE-TRAINING one and is kept nowhere as current.)* ⚠ Survivable by design — leg 4 armed the respawn to EVER_GRANDE, so a whiteout lands ABOVE the falls and leg 5 re-runs. ‼ **AND HOPE IS NOT ON THIS ROUTE:** her cone is unavoidable on (15,40)→**the ladder** (44 steps), NOT on (15,40)→**the trigger** (29 steps) — `battles=0` on the way to Wally is CORRECT, and reading it as a second broken mechanic cost four of the six diagnostic drives.
+  ⛔⛔ **TWO BOULDER PUSHES SEAL VICTORY ROAD B1F FOR THAT VISIT, EACH AVAILABLE AS YOUR FIRST *PUSH* —
+  never push (4,7) or (9,10) SOUTH; see the queue for the 2-push solution.** ⚠ AGENT-DERIVED, unconfirmed.
+  ⛔ Do NOT rebuild a §Ch21/§Ch22 leg, re-run the leg-5 PART C probe, or re-wire either chapter.
+  ‼ The kit is **{Strength, Rock Smash, Surf}** — *not* Flash, which is optional AND not held.
+* ✅✅✅ **§Ch22 IS A CHAPTER (2026-09-03) — BUILT, WIRED AS SEGMENT 22, AND DRIVEN TO
+  `ACCEPTANCE: PASS`.** `--driver ch22chapter` from `post_hm07.ss1`: `badge8=True`, ending
+  `SOOTOPOLIS_CITY (31,33)`, `city_state=6`, `ice_steps=64`, `b1f_steps=19`, `CONTINUE=23`,
+  `frames=64563`. Both fault arms exercised. ⛔ DO NOT REBUILD ANY OF IT.
+  ⭐⭐ **AND IT PASSED BY *LOSING THE GYM FIGHT AND RECOVERING*** — `outcomes=['BattleOutcome.
+  Lost','BattleOutcome.Won']`, `RECOVERIES 1`: it cleared the abort latch, walked out of the Poké
+  Center, re-entered, walked **virgin ice** and won the second time. ⚠ **The fight is stochastic:
+  5 WINS AND 1 LOSS over six distinct RNG draws.** "The party CAN win Juan" is measured; "wins
+  reliably" is measured FALSE. ⇒ a story run may spend an extra ~35k frames there, by design.
+  ⭐ **`battles_on_B1F=0` WITH `b1f_entered=True`** confirms the decomp read that the Juan victory
+  script `settrainerflag`s all ten B1F trainers ⇒ the post-badge descent is free, there is no XP
+  run, and `ch22exit`'s 3 battles / 629→332 HP were measured at `badge8=False`, a premise the
+  chapter never enters. ‼ Drive 1 printed the SAME `0` having never entered B1F — identical
+  number, and only one of them means anything.
+  ⛔⛔ **AND ONE ARM DIED TO KI-47, WHICH IS NOT §Ch22's:** `handle_battle_action_selection` froze
+  3,001 frames inside the Juan fight and dropped to Manual with **no `ACCEPTANCE` line at all**
+  (it happens in the battle listener, outside the story generator). ⭐ KI-47 now has a
+  deterministic ~22,000-frame repro command — see KI-47. *(This bullet has gone stale FIVE times;
+  it is the FIRST thing a cold reader is told to read, so update it whenever §Ch22/§Ch23 moves.)*
+* ⛔⛔ **A CONTINUATION CHECK IS ONLY AS GOOD AS THE CONTINUATION IT NAMES** — leg 5 drive 1
+  printed `ACCEPTANCE: PASS` holding HM07 while the (31,32) SOOTOPOLIS GYM warp, §Ch22's own
+  entrance, was UNREACHABLE: Wallace had never stepped off the tile in front of it and the
+  check pointed at the Poké Center, reachable either way. ⇒ aim every can-continue check at what the NEXT item actually walks to. (`08-MISTAKES.md` 2026-09-02.)
+* ⛔⛔ **THE RULE LEG 3 PAID FOR: "the planner returned a path" is NOT "the bot can walk it".**
+  `_map_layout_cache` (map.py:735-755) is keyed by MAP ALONE, so the live and static layout
+  readers share one entry, whoever reads FIRST wins for the process, and `calculate_path`
+  inherits it — leg 3's first drive walked into a 9x3 block of solid rock. ⇒ **check routes
+  against `sootopolis._live_wall_tiles()` / `probe_live_mapgrid.py`, which read `gBackupMapLayout`, the grid the GAME walks on.** ‼ §Ch22 is the same class in a NEW form: there, `_live_collision_grid` is blind to `setmetatile` and fails SILENTLY.
+* ✅ **Everything before §Ch21 is DONE** — the PC/PARTY arc, §Ch20 as a chapter (2026-08-24), and the three `#26-*` production defects. ⛔ Do not rebuild any of them.
+* ⛔ **Three USER DECISIONS are ripe and are not mine to make:** the drift promotion, the post-wind repeat burn (`#26-manualderails` D4), mixin adoption (`#24-harnesswhiteoutdrop`).
+* ‼ **The rules that keep biting, in one line each:** agreement between documents is NOT
+  evidence (they may be copies); **never let the planner choose a surfacing tile** (KI-72);
+  **`puzzle_solver.py` is a recipe book to COPY FROM, never to drive**; and a chapter's grade
+  must include a real `calculate_path` off the END tile — §Ch15/18/19 each PASSED stranded.
+
