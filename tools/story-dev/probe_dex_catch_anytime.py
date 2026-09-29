@@ -18,11 +18,13 @@ history on that map.
       `_defeat_counts` alone; OFF adds 1 to `_defeat_counts`.
   D2  the same with a `team` catch: `_defeat_counts` +1 in BOTH arms (pre-gym-1 accounting unchanged).
   D3  the same with no catch open (an ordinary loss), ON: `_defeat_counts` +1.
+  D4-D6 the same with an `hm`, `counter` or `shiny` catch open, ON: `_defeat_counts` +1 (C4 files DEX losses only).
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
   F1  `POKEBOT_R24_FAULT_LIFTEARLY=1`: EXACTLY A3-A7 go red (the admit moved before the later gates).
   F2  `POKEBOT_R24_FAULT_KINDLATE=1`: D1 goes red (the kind read after `_r20_catch_end` cleared it).
   F3  `POKEBOT_R24_FAULT_TEAMLOSS=1`: D2 goes red.
   F4  an adapter passing `lift_health=False` fails A11; F5 the keyword kept only in a COMMENT still fails A11.
+  F6  a source mutant whose C4 files `hm` losses too (the review's mutant) fails D4.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dex_catch_anytime.py
 """
@@ -109,30 +111,31 @@ def run_cases(sink=None) -> set:
     return red
 
 
-def fresh_mode():
-    m = SM.StoryMode.__new__(SM.StoryMode)
-    SM.StoryMode.reset_per_run_state(m)
+def fresh_mode(mod=SM):
+    m = mod.StoryMode.__new__(mod.StoryMode)
+    mod.StoryMode.reset_per_run_state(m)
     return m
 
 
-def lost_battle(kind):
+def lost_battle(kind, mod=SM):
     """Counts after a stubbed LOST battle with a `kind` catch open (None = no catch). Output of the hook is silenced."""
-    m = fresh_mode()
+    m = fresh_mode(mod)
     m._location_key = lambda: (0, 25)
     m._boss_battle = None
     if kind is not None:
         m._catch_ctx = {"kind": kind}
     with contextlib.redirect_stdout(io.StringIO()):
-        SM.StoryMode.on_battle_ended(m, BattleOutcome.Lost)
+        mod.StoryMode.on_battle_ended(m, BattleOutcome.Lost)
     return m._defeat_counts.get((0, 25), 0), getattr(m, "_catch_defeat_counts", {}).get((0, 25), 0)
 
 
-def accounting(sink=None) -> set:
+def accounting(sink=None, mod=SM) -> set:
     red = set()
     with env(**{FLAG: "1", **{k: os.environ[k] for k in FAULTS if os.environ.get(k)}}):
-        on_dex = lost_battle("dex")
-        on_team = lost_battle("team")
-        on_none = lost_battle(None)
+        on_dex = lost_battle("dex", mod)
+        on_team = lost_battle("team", mod)
+        on_none = lost_battle(None, mod)
+        on_other = {k: lost_battle(k, mod) for k in ("hm", "counter", "shiny")}
     off_dex = lost_battle("dex")
     off_team = lost_battle("team")
     ok = on_dex == (0, 1) and off_dex == (1, 0)
@@ -147,7 +150,25 @@ def accounting(sink=None) -> set:
     if not ok:
         red.add("D3")
     check(ok, f"D3 an ordinary loss, ON: {on_none} (want (1, 0))", sink)
+    # review 2026-09-29: C4 must file DEX losses only. Without these, a mutant filing `hm` losses apart passed the gate
+    # (an HM hunt losing on one map would stop feeding survival mode).
+    for tag, kind in (("D4", "hm"), ("D5", "counter"), ("D6", "shiny")):
+        ok = on_other[kind] == (1, 0)
+        if not ok:
+            red.add(tag)
+        check(ok, f"{tag} a lost {kind.upper()} catch still counts as a map defeat, ON: {on_other[kind]} (want (1, 0))", sink)
     return red
+
+
+def mutant_module(src: str, edited: bool):
+    """`story_mode` compiled from a MUTATED COPY of its source (the file is never touched)."""
+    import types
+
+    assert edited, "the mutant's anchor was not found in the source"
+    mod = types.ModuleType("story_mode_mutant")
+    mod.__file__ = str(SM_PATH)
+    exec(compile(src, "story_mode_mutant", "exec"), mod.__dict__)
+    return mod
 
 
 def wiring(src: str, sink=None):
@@ -186,6 +207,11 @@ def main() -> int:
         with env(**{fault: "1"}):
             red = accounting(sink)
         check(base_ok and want in red, f"{tag} {fault}=1 reddens {want}: red={sorted(red)}")
+    sink = []
+    old = '_c4_kinds = {"dex", "team"} if _os_c4.environ.get("POKEBOT_R24_FAULT_TEAMLOSS") == "1" else {"dex"}'
+    with env():
+        red = accounting(sink, mutant_module(src.replace(old, '_c4_kinds = {"dex", "hm"}', 1), old in src))
+    check(base_ok and "D4" in red, f"F6 a C4 that also files HM losses fails D4: red={sorted(red)}")
     sink = []
     wiring(src.replace("lift_health=self._r24_catchhurt,", "lift_health=False,", 1), sink)
     check(base_ok and bool(sink), "F4 an adapter passing lift_health=False fails A11")
