@@ -8054,3 +8054,51 @@ SPECIES per RUN (`DEX_CATCH_MAX_ATTEMPTS = 2` catch battles started against one 
 
 **Why these are recorded here:** CLAUDE.md rule 11. This file exists so a question is never asked twice. The three §8
 questions are CLOSED.
+## 2026-09-29 — USER RULINGS 23 and 25 CLARIFIED, and USER RULINGS 26 and 27: stocks kept all game, the best ball, never give up on a wanted rare, weaken-to-catch BUILT, healing items in key battles only
+
+The user answered the five questions of `ai-research-notes/2026-09-28-r23-25-DESIGN.md` §5 (2026-09-29). ⛔ **Do not
+re-ask any of them.**
+
+**RULING 23, clarified (the ball budget).** Q1 asked about "₽20,000 per run". The user's words: *"What do you mean per
+run? like per bot run or per hunting run? it should be unlimited if its per bot run (session) but limit it to buying the
+balls in batches so it buys a reasonable amount of balls but doesnt spend too much per batch (that it
+maintains/tops off periodically just like healing items)."* Also, from the Q4 answer: *"ensuring it buys the best
+pokeball available to it at the respective shop."*
+- ⇒ **NO per-run spending ceiling.**
+- ⇒ **Purchases come in bounded BATCHES**, topped off periodically the way healing items are.
+- ⇒ **Buy the BEST ball the current shop sells.** This supersedes the design's "Poké Balls only".
+- ⇒ RULING 18's League basket and reserve still stand.
+
+**USER RULING 26 (new, from the Q2 answer): keep stocks all game.** The user's words: *"Bot should be maintaining its
+healing items and ball stock through out the game, focusing more hevily on ball stock post elite 4 (can also battle
+elite 4, re-battle gym leaders and trainers for money if needed)."*
+- ⇒ Healing items AND balls are maintained throughout the game. There is no badge-6 or badge-7 stop.
+- ⇒ After the Elite Four the weight shifts to balls.
+- ⇒ POST-GAME money: re-battling the Elite Four, gym leaders and trainers is allowed when money is needed.
+- ⇒ The user approved the design's money-making plan (§4a): *"Your plan for "Money-making" makes sense."*
+
+**RULING 25, clarified ("rare", hard catches, giving up).**
+- **Q3, what "rare" means.** The user's words: *"We already talked about this a while ago, check the notes/documentation."*
+  It is **ROSTER RULING 3** (`06`, 2026-08-06, "'rare' … = THREE OR'd rules"), refined by the user on 2026-08-14 (in
+  `03-PUNCH-LIST.md` `#24-rarepredicate`). The rules:
+  - shiny;
+  - a rare gender variant ("Male Skitty");
+  - a low encounter rate (Skitty 2%);
+  - "pseudo-rare": field-move GATES plus few LOCATIONS (Bagon behind Surf and Waterfall, in one place);
+  - explicit special cases (Feebas).
+  ⛔ **The 2026-09-28 design proposed a NEW "≤ 10% rate" definition without finding this ruling. That is superseded.**
+- **Q4, hard catches.** The user's words: *"It should still try to catch without limit if it wants to catch the pokemon
+  but we should implement that weaken to catch pokemon logic so it increases its catch rate (also ensuring it buys the
+  best pokeball available to it at the respective shop)."*
+- **Q5, giving up.** The user's words: *"No it should continue to attempt to catch it, same answer as response to question
+  4."*
+- ⇒ **A wanted RARE species is never given up on:** no attempt cap, and no expected-throws refusal.
+- ⇒ **WEAKEN-TO-CATCH IS TO BE BUILT, not only discussed.** It carries the safety concerns RULING 25 named: weather,
+  Spikes, Self-Destruct/Explosion, recoil, Curse, weather moves.
+- ⇒ **Interpretation, reversible if the user corrects it:** ORDINARY (non-rare) species keep RULING 25's cap of 3.
+
+**USER RULING 27 (new): healing items during KEY battles only.** The user's words: *"also ensure that the bot can use
+healing items during battles (gym leaders, story "bosses" and elite 4 only) so it has a better chance at winning those
+key battles."*
+- ⇒ In-battle healing-item use is allowed against gym leaders, story bosses and the Elite Four, and NOT in ordinary
+  battles.

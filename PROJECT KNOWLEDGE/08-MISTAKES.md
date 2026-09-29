@@ -22946,3 +22946,21 @@ being explained.
 **Prevention rule:**
 - ⛔ **Before saying "X explains what we saw", confirm X's precondition held in THAT run** (its party, movesets, flags
   and state). A real mechanism that never fired explains nothing.
+## 2026-09-29 — ⛔ A DESIGN WORKFLOW INVENTED A DEFINITION THE USER HAD ALREADY RULED ON ("rare"), AND I PUT IT TO THE USER AS A QUESTION
+
+**Symptom:** the 2026-09-28 RULINGS 23-25 design proposed "rare = best encounter rate ≤ 10%" (32 species) and asked the
+user to choose between 10% and 5%. The user replied that it had been discussed before. It had: ROSTER RULING 3
+(`06`, 2026-08-06), refined by the user on 2026-08-14 in `#24-rarepredicate`.
+**Root cause:** CLAUDE.md rule 11 (grep `06` before escalating) was followed by nobody in the chain:
+- the workflow's research and synthesis prompts never told the agents to search `06` / `03` for the policy terms they
+  were defining;
+- the two adversarial checkers were pointed at code and game mechanics, not at prior rulings;
+- I relayed the question without grepping `06` myself.
+**Fix:** the rulings are recorded (`06`, 2026-09-29). The next design workflow's shared preamble REQUIRES a rulings
+search, and one checker's lens is "prior rulings".
+**Prevention rules:**
+- ⛔ **Every design or research agent prompt that defines or proposes a POLICY term carries a mandatory step: `grep -n -i
+  '<term>' 06-DECISIONS-LOG.md 03-PUNCH-LIST.md` first, and cite the prior ruling or say "none found".**
+- ⛔ **One adversarial checker's lens is always "does any proposal here contradict or re-invent a recorded ruling?"**
+- ⛔ **Before putting a question to the user, grep `06` for its key noun** (rule 11, restated because it failed again:
+  agents inherit the rule only if the prompt carries it).
