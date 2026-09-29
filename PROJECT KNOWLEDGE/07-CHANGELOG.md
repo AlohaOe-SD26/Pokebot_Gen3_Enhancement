@@ -36740,4 +36740,9 @@ party PID, and the hunt then "found nothing".
 - The spin-ENDING outcome was not driven: every admitted Abra escaped.
 - A driver bug (the hunt disarmed by the driver's own lazy `reset_per_run_state`) was caught by the per-battle armed
   reading and fixed. That run is kept as INVALID.
-**Review:** REVIEW_RESULT.
+**Review:** APPROVE, no blockers. It confirmed three things:
+- every early refusal (shiny, owned, in party, resource) still runs first;
+- no HM hunt can be armed before gym 1;
+- `catch_starter_team`'s walks are never marked as a hunt's.
+One gate gap was fixed (`3e0fc087`): H8/H9 pin the post-gym-1 reason below a full party, and F4, its mutant (the armed
+check without `pre_badge1`), fails H8.
