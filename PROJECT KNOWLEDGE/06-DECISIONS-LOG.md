@@ -8295,3 +8295,34 @@ unverifiable, when it is two lines from exact.
   but step 13 will.
 - A `key=` field on the always-on `[TRAINER]` line: the classification is a pending policy, and it lives only on the
   flag-ON `[KEYBATTLE]` line.
+
+## 2026-09-29 — design v2 step 7 (RP): what "rare" is, pinned in data (`#26-organiccatch`)
+
+**Decision:**
+- `modules/rarity.py` over a GENERATED `modules/data/emerald_rarity.json`:
+  - RARE = legendary OR special (Feebas) OR rate (the best per-table SUMMED rate ≤ 4%) OR pseudo OR variant.
+  - The variant is the minority gender, when best rate × P(minority) ≤ 4%.
+- **Pseudo** = exactly 1 MAPSEC AND ≥ 2 gates on the EASIEST home. A gate is an HM or a rod needed to reach the
+  encounter FROM THE STORY PATH (Q6's proposal). Members: **Bagon** `{surf, waterfall}` and **Snorunt**
+  `{strength, surf}`.
+- **Tier:** ULTRA with the variant or the shiny reason, otherwise RARE.
+- **Shape:** a verdict carries a `note` (`no_data`, `no_species`, `adapter_error`), and species index 0 is guarded.
+- **Data source:** the generator reads the ROM statically; it no longer reads the runtime cache.
+**Why:**
+- The user's words for pseudo-rare are field-move gating plus one location (03:1846-1848).
+- Q6 is the text the user will be shown, and its "off the story path" beats the design's looser "LOCAL".
+- Min over rows follows from "a species is only as gated as its easiest home": Solrock shares Bagon's room but also
+  lives gate-free in 1F_1R.
+- MAPSEC is counted by ID because UNDERWATER_124/126 share a NAME.
+- Shiny is ULTRA because the ULTRA tier means "every encounter, even if owned", and the shiny branch already does
+  exactly that.
+- The ROM read replaces the cache because the cache is gitignored and holds a dead Altering Cave table (KI-113).
+- Snorunt: production `calculate_path` shows the Lower Room boulder seals the Ice Room, and Route 125 needs Surf from
+  Mossdeep.
+**Rejected:**
+- Warp depth as the pseudo axis. It stays a diagnostic column.
+- Counting bikes as gates. The user named HMs and a rod; bikes would add Safari species on unmeasured tiles.
+- Max or union over rows (it makes Solrock pseudo).
+- Keying by the internal index (Skitty 300 is internal 315).
+- Believing the verifier's flood as the citation after its pre-registered control failed (R3). It is supporting
+  evidence only.

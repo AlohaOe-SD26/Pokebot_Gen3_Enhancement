@@ -128,6 +128,18 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   reviewer reads the docs as they will ship, and "the next item to build is <this item>" is a blocker. The
   pointers are 04's banner, 04's `➡➡➡ START HERE`, the punch-list item and the design note's status. Apply them
   before the review; re-edit them if the review changes the item.
+* ⛔ **A CONTROL FOR A NEW INSTRUMENT IS AN ORACLE'S ANSWER ON THE DECISIVE CASES, NOT ANOTHER INSTRUMENT'S COUNT**
+  (added 2026-09-29, 08). A flood fill that must "reproduce 262 tiles" recorded by a decomp decode can fail for
+  counting reasons and prove nothing. Ask it instead to agree with production `calculate_path` on the named tiles the
+  claim turns on.
+* ✅ **`calculate_path` CAN A/B A BOULDER OR ANY OBJECT-TEMPLATE WALL** (added 2026-09-29). With the player on another
+  map, an object-template tile is a wall while its hide-flag is CLEAR (`map_path.py` `is_tile_accessible`). Wrap
+  `map_path.get_event_flag_by_number` to force that one flag clear (object present) and then set (object gone), and
+  ask for the path both ways. `probe_rarity_shoal_path.py` is the worked example: the Shoal Cave boulder that seals
+  the Ice Room.
+* ✅ **TWO READERS OF THE SAME DATA: KEEP BOTH AND ASSERT THE EXACT DIFF** (added 2026-09-29, KI-113). The static ROM
+  read of the wild tables and the runtime cache agree everywhere except Altering Cave, and the generator asserts
+  exactly that. A new difference then turns a check red instead of silently changing a verdict.
 
 ---
 

@@ -23078,3 +23078,23 @@ own rebuild is not shippable, so the blocker was correct both times.
 **Prevention:** ⛔ apply the resume pointers (banner, START HERE, the punch-list item, the design note's status) BEFORE
 launching the review. If the review changes the item, the pointer is edited again, cheaply. Recorded in the playbook's
 pre-review check (§0b).
+
+## 2026-09-29 — ⛔ I PRE-REGISTERED A CONTROL AS A COUNT FROM A DIFFERENT INSTRUMENT, AND IT FAILED FOR A REASON THAT IS NOT AN ERROR
+
+**Symptom:** design v2 step 7's R3 said an independent flood must reproduce 262/299 tiles (Meteor Falls 1F_1R) before
+anything else it printed is believed. It gave 296/333, and so it was disqualified as a citation. The verifier then
+changed its own exit criterion after seeing the mismatch.
+**Root cause:**
+- 262/299 was recorded on 2026-09-11 by a DIFFERENT method (a decomp `map.bin` decode).
+- A count is a property of its instrument's counting rules as much as of the map. The new flood follows the
+  production tile rules, and agrees with production `calculate_path` on 618 of 621 tiles, including the two decisive
+  ones.
+- The pre-registration had fixed the wrong kind of control: a number from another instrument, not an oracle the new
+  instrument must agree with.
+**Fix:**
+- R3 is graded FAILED and its consequence applied (supporting only; Meteor Falls keeps its old citation).
+- The load-bearing Shoal Cave claim was re-measured on production's own pathfinder, with a built-in A/B: the boulder
+  flag forced clear against forced set.
+**Prevention rule:** pre-register a control as AGREEMENT WITH THE PRODUCTION ORACLE on the decisive cases (e.g.
+`calculate_path` on named tiles), or as a count taken with the SAME method. Never use a number recorded by a
+different instrument.

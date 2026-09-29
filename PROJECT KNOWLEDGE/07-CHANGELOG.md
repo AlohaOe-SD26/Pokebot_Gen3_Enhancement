@@ -36978,3 +36978,24 @@ twice and every pair is identical.
   - KI-112 gains the post-Manual stop-frame drift as evidence;
   - 02's slow-gate count (13 → 14, a pre-existing drift);
   - the GRADER header now says all `[BATTLE]` sub-kinds were compared.
+
+## 2026-09-29 — DESIGN v2 STEP 7 (RP): THE RARE-SPECIES PREDICATE — INERT DATA + A PURE MODULE; PSEUDO = BAGON + SNORUNT (`#26-organiccatch`)
+
+**WHY.** Step 8 lets a RARE species through the cap without limit, so "rare" must be data a gate can pin, not prose.
+**WHAT** (code `5fd35957`, predictions `19290f8c`):
+- `modules/rarity.py`: `RareVerdict(rare, tier, reasons, note)`, PURE `classify`, and `encounter_rarity`, which never
+  raises.
+- `modules/data/emerald_rarity.json`: generated, 153 rows, keyed by national dex.
+- `rare_species_dataset.py` is now the authoritative generator. It reads our ROM statically, applies the exclusions,
+  has `--write`/`--check`, keeps the 2026-08-06 reproduction as hard checks, and requires static ROM = cache except
+  Altering Cave (KI-113).
+- NEW gate `probe_rarity_predicate.py` (suite 131): 33 literal rows, set equality, data facts, synthetic stubs,
+  `--check`, 13 mutants and 2 negative arms.
+- NEW measurement probe `probe_rarity_shoal_path.py` (production `calculate_path`).
+**RESULT** (`ai-research-notes/2026-09-29-rarepredicate-GRADED.md`):
+- rate 14, variant 6, pseudo {Bagon, Snorunt}, legendary 21, special {Feebas};
+- R1, R2, R4, R5 and R7 held;
+- **R3 FAILED as written** (296/333 against the recorded 262/299), and its consequence was applied as
+  pre-registered;
+- R6 held: a blind re-derivation from the decomp (pret `f90719c4`) matched every list and field; its two differences are by design (variant is per-individual; an alphabetical tie-break).
+- Also: Q9's Zangoose error corrected; KI-113 filed.
