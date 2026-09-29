@@ -1,0 +1,20 @@
+# design v2 step 5 (TID/T1): storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), POKEBOT_R20_OPENFENCE=1, --set-balls 60, --frames 120000, random.seed(1).
+# CONTROLS: the same command on the PARENT commit main 03244ae7 (no T1), three runs; compared with step 4's M0 (main 9a4fbbeb; steps 4-5 are default OFF, so the same trajectory is expected) and with the T1 arm.
+# Compared: every event line except [TRAINER], [hb], [DEX], [BALLS] and the one-frame (0,0) warp read.
+
+CONTROL vs M0: FIRST DIFF at #223 (346 vs 337 lines)
+    CONTROL: f215058 [MONEY] after Won at map (24, 9): money=₽5,506
+    M0     : f215058 [MONEY] after Won at map (24, 9): money=₽5,506
+    CONTROL: f215158 [MAP] GRANITE CAVE(24,9) -> GRANITE CAVE(24,8) pos=(29, 13)
+    M0     : f215158 [MAP] GRANITE CAVE(24,9) -> GRANITE CAVE(24,8) pos=(29, 13)
+    CONTROL: f215288 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,7) pos=(25, 13)
+    M0     : f215287 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,7) pos=(25, 13)
+    CONTROL: f215706 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,10) pos=(5, 10)
+    M0     : f215597 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+    CONTROL: f217767 [RESUMED] after 1962 frames with no progress
+    M0     : f215597 [DEXFENCE] skip #296 Makuhita — party is not at full strength
+    CONTROL: f217854 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+    M0     : f215928 [STEP] 'Encountered Makuhita ♀.\n\nNature:\xa0Sassy | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa060 | SV:\xa040,329'
+CONTROL2 vs M0: IDENTICAL (337 vs 337 lines)
+CONTROL3 vs M0: IDENTICAL (337 vs 337 lines)
+T1 vs M0: IDENTICAL (337 vs 337)

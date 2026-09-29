@@ -8244,3 +8244,29 @@ These are READINGS of existing rulings, made by the design v2 synthesis and its 
 - Verified by an independent agent (`ai-research-notes/2026-09-29-v2step0-VERIFY.md`) and re-run by the orchestrator.
 **Rejected:** leaving the verdict standing. Every later reader would keep believing the warp-depth dataset is
 unverifiable, when it is two lines from exact.
+
+## 2026-09-29 — design v2 step 5 (TID/T1): trainer telemetry is ALWAYS ON and log-only; B is read only in TwoOpponents; a post-battle re-entry is skipped by a MEASURED discriminator; a control is run more than once
+
+**Decision:**
+- `[TRAINER] start/end` lines (`modules/story/trainer_identity.py` plus `story_mode._t1_start/_t1_end`), with no
+  flag: the 06:7902 precedent for telemetry.
+- The facts they use, as the game computes them (decomp-cited):
+  - who (A, and B only when the battle type has TwoOpponents);
+  - the class and the money value (the 4-byte table);
+  - the last ROM-party mon's level;
+  - the payout formula (DOUBLE ×2 only without TWO_OPPONENTS);
+  - first fight (flag 0x500+id at start).
+- `_t1_start` skips a start with 0 living enemy mons: a post-battle scene re-entering the hook. It logs the skip.
+- Graded A/Bs run their control more than once (KI-112).
+**Why:**
+- Steps 6 and 10 (key-battle items, the healing kit) and all money work need trainer identity, and nothing read it.
+- B: a stale `gTrainerBattleOpponent_B` survives into single battles (decomp; an agent's finding).
+- The skip: the phantom pair was MEASURED in a smoke run. `gBattleOutcome` was tried and refuted (it read `Won` at all
+  6 starts); the living-enemy count separates 1-2 from 0.
+- Controls: 1 of 3 identical control runs diverged at a warp.
+**Rejected:**
+- A feature flag: it is telemetry, per the 06:7902 precedent.
+- Reading the last mon's level from `gEnemyParty`: a two-opponent battle caps each side at 3 there.
+- `key=` on the line: that is step 6's decision, pending the user's Q3.
+- Keying the skip on `gBattleOutcome`: refuted by measurement.
+- One control run: KI-112.

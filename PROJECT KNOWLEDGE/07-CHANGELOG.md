@@ -36905,3 +36905,24 @@ re-checked by the orchestrator.
   "unobtainable") and mislabels the Johto starters.
 **Not done here (named in v2 step 0, deliberately deferred):** the fix of any KI. Step 0 files them; v2 step 11
 measures and fixes.
+
+## 2026-09-29 — DESIGN v2 STEP 5 (TID/T1): ALWAYS-ON `[TRAINER]` TELEMETRY — WHO THE TRAINER IS, WHAT THE GAME PAYS, AND WHAT IT PAID (`#26-organiccatch`)
+
+**WHY.** RULINGS 26 and 27 (money-making; healing items in key battles only) need trainer identity. Nothing in the
+codebase read it.
+**WHAT.**
+- NEW `modules/story/trainer_identity.py`: read-only, decomp-cited, verified on our ROM by two agents and the
+  orchestrator.
+- `story_mode._t1_start/_t1_end` log `[TRAINER] start … / end … res= money=a->b delta= mult= heal_stock=`, with `res=`
+  never `outcome=` and no spaces in values.
+- It skips a post-battle scene that re-enters the hook (`skip reason=no_enemy_alive`).
+- NEW gate `probe_trainer_identity_T1.py`: no emulator, the ROM is read from the `.gba`. S1, R1-R3, P1, B1, W1-W4, E1,
+  L1, A1, and F1-F7, each with an exact red set. Suite 129.
+- Registry: three fault arms.
+- KI-112 (the harness is not frame-deterministic) and `#27-determinism` are filed.
+**PROOF** (predictions `41f3118f` plus addendum `0b8d5e25`; `ai-research-notes/2026-09-29-t1trainer-GRADED.md`):
+- 152 of 152 `[BATTLE]` lines are identical to the reproducing control.
+- Every Won battle's `delta == base` (`mult=1`), Brawly ₽1,900 included.
+- A two-opponent battle (Sailor + Tuber) sums live to the ₽468 paid.
+- The FIRSTMON and WILDTOO fault arms go red for their own reasons.
+- The first of three control runs diverged one frame at a warp; the other two replay M0 exactly.

@@ -1,0 +1,159 @@
+# design v2 step 5 (TID/T1): storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), POKEBOT_R20_OPENFENCE=1, --set-balls 60, --frames 120000, random.seed(1). Arm FIRSTMON: code 5d11488c; POKEBOT_T1_FAULT_FIRSTMON=1.
+# Source: Story-debug-20260929-120017.log. Kept: [TRAINER], [MONEY], [BATTLE] started/ended, [MAP], WHITEOUT, [MODE].
+f139973 [MAP] RUSTBORO CITY(11,3) -> RUSTBORO CITY(0,3) pos=(5, 19)
+f141583 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f142089 [TRAINER] start opp=322 class=0x25(YOUNGSTER) value=4 lvl_last=9 first=True base=144 double=False two=False money=8628 heal_stock=- map=0,31 enemy_alive=1
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144209 [MONEY] after Won at map (0, 31): money=₽8,772
+f144209 [TRAINER] end opp=322 class=0x25(YOUNGSTER) value=4 lvl_last=9 first=True base=144 res=Won money=8628->8772 delta=144 mult=1 heal_stock=- map=0,31
+f144398 [MAP] ROUTE 116(0,31) -> ROUTE 116(0,3) pos=(15, 7)
+f144399 [MAP] ROUTE 116(0,3) -> ROUTE 116(0,31) pos=(15, 7)
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f145612 [MONEY] after Won at map (0, 31): money=₽8,772
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f146142 [TRAINER] start opp=280 class=0x21(SCHOOL_KID) value=5 lvl_last=9 first=True base=180 double=False two=False money=8772 heal_stock=- map=0,31 enemy_alive=1
+f148516 [MONEY] after Won at map (0, 31): money=₽8,952
+f148516 [TRAINER] end opp=280 class=0x21(SCHOOL_KID) value=5 lvl_last=9 first=True base=180 res=Won money=8772->8952 delta=180 mult=1 heal_stock=- map=0,31
+f150064 [TRAINER] skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150066 [MONEY] after Won at map (0, 31): money=₽8,952
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f150617 [TRAINER] start opp=631 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 double=False two=False money=8952 heal_stock=- map=0,31 enemy_alive=1
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152239 [MONEY] after Won at map (0, 31): money=₽9,272
+f152239 [TRAINER] end opp=631 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 res=Won money=8952->9272 delta=320 mult=1 heal_stock=- map=0,31
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152670 [TRAINER] start opp=754 class=0x25(YOUNGSTER) value=4 lvl_last=8 first=True base=128 double=False two=False money=9272 heal_stock=- map=0,31 enemy_alive=2
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f156823 [MONEY] after Won at map (0, 31): money=₽9,400
+f156823 [TRAINER] end opp=754 class=0x25(YOUNGSTER) value=4 lvl_last=8 first=True base=128 res=Won money=9272->9400 delta=128 mult=1 heal_stock=- map=0,31
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f157249 [TRAINER] start opp=753 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 double=False two=False money=9400 heal_stock=- map=0,31 enemy_alive=2
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160004 [MONEY] after Won at map (0, 31): money=₽9,720
+f160004 [TRAINER] end opp=753 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 res=Won money=9400->9720 delta=320 mult=1 heal_stock=- map=0,31
+f160848 [MAP] ROUTE 116(0,31) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f160879 [MAP] RUSTURF TUNNEL(24,4) -> RUSTURF TUNNEL(0,0) pos=(47, 8)
+f160880 [MAP] RUSTURF TUNNEL(0,0) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f161895 [TRAINER] start opp=16 class=0x03(TEAM_AQUA) value=5 lvl_last=11 first=True base=220 double=False two=False money=9720 heal_stock=- map=24,4 enemy_alive=1
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f163453 [MONEY] after Won at map (24, 4): money=₽9,940
+f163453 [TRAINER] end opp=16 class=0x03(TEAM_AQUA) value=5 lvl_last=11 first=True base=220 res=Won money=9720->9940 delta=220 mult=1 heal_stock=- map=24,4
+f166018 [MAP] RUSTURF TUNNEL(24,4) -> ROUTE 116(0,31) pos=(4, 10)
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167042 [MONEY] after RanAway at map (0, 31): money=₽9,940
+f167356 [MAP] ROUTE 116(0,31) -> ROUTE 116(255,255) pos=(15, 8)
+f167357 [MAP] ROUTE 116(255,255) -> ROUTE 116(0,31) pos=(15, 8)
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167996 [MONEY] after RanAway at map (0, 31): money=₽9,940
+f168226 [MAP] ROUTE 116(0,31) -> RUSTBORO CITY(0,3) pos=(-1, 8)
+f169144 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,2) pos=(30, 12)
+f173866 [MAP] RUSTBORO CITY(11,2) -> RUSTBORO CITY(11,1) pos=(2, 1)
+f174160 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+f174475 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+f174940 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,5) pos=(16, 38)
+f176275 [MAP] RUSTBORO CITY(11,5) -> RUSTBORO CITY(0,3) pos=(7, 8)
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f178292 [TRAINER] start opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=13 first=True base=780 double=False two=False money=9940 heal_stock=- map=0,3 enemy_alive=2
+f184993 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f184993 [MONEY] after Lost at map (0, 3): money=₽9,940
+f184993 [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=13 first=True base=780 res=Lost money=9940->9940 delta=0 mult=0 heal_stock=- map=0,3
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f186223 [TRAINER] start opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 double=False two=False money=4970 heal_stock=- map=0,19 enemy_alive=2
+f188817 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f188817 [MONEY] after Won at map (0, 19): money=₽5,066
+f188817 [TRAINER] end opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 res=Won money=4970->5066 delta=96 mult=1 heal_stock=- map=0,19
+f189563 [MAP] ROUTE 104(0,19) -> PETALBURG WOODS(24,11) pos=(11, 30)
+f190110 [MAP] PETALBURG WOODS(24,11) -> ROUTE 104(0,19) pos=(17, 38)
+f190441 [MAP] ROUTE 104(0,19) -> ROUTE 104(17,0) pos=(17, 50)
+f190444 [MAP] ROUTE 104(17,0) -> ROUTE 104(30,0) pos=(17, 50)
+f190445 [MAP] ROUTE 104(30,0) -> ROUTE 104(17,0) pos=(17, 50)
+f192556 [MAP] ROUTE 104(17,0) -> ROUTE 104(0,19) pos=(6, 2)
+f192926 [MAP] ROUTE 104(0,19) -> ROUTE 105(0,20) pos=(22, 80)
+f194774 [MAP] ROUTE 105(0,20) -> ROUTE 106(0,21) pos=(22, 80)
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f198075 [TRAINER] start opp=340 class=0x27(FISHERMAN) value=10 lvl_last=11 first=True base=440 double=False two=False money=5066 heal_stock=- map=0,21 enemy_alive=1
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199649 [MONEY] after Won at map (0, 21): money=₽5,506
+f199649 [TRAINER] end opp=340 class=0x27(FISHERMAN) value=10 lvl_last=11 first=True base=440 res=Won money=5066->5506 delta=440 mult=1 heal_stock=- map=0,21
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f199946 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(0,0) pos=(48, 16)
+f199947 [MAP] GRANITE CAVE(0,0) -> GRANITE CAVE(24,7) pos=(48, 16)
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f203722 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7']
+f203722 [MONEY] after Caught at map (24, 7): money=₽5,506
+f203961 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23)]
+f205638 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f205638 [MONEY] after Caught at map (24, 7): money=₽5,506
+f205885 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f207856 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f207856 [MONEY] after Won at map (24, 7): money=₽5,506
+f207980 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,8) pos=(17, 11)
+f208409 [BATTLE] started hp=[('Marshtomp', 59, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f209977 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f209977 [MONEY] after Won at map (24, 8): money=₽5,506
+f210173 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,9) pos=(28, 21)
+f210450 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f211717 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f211717 [MONEY] after Won at map (24, 9): money=₽5,506
+f212147 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f212963 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f212963 [MONEY] after OpponentTeleported at map (24, 9): money=₽5,506
+f213316 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f215058 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f215058 [MONEY] after Won at map (24, 9): money=₽5,506
+f215158 [MAP] GRANITE CAVE(24,9) -> GRANITE CAVE(24,8) pos=(29, 13)
+f215287 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,7) pos=(25, 13)
+f215597 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f217207 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f217207 [MONEY] after Won at map (24, 7): money=₽5,506
+f217454 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f218475 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f218475 [MONEY] after OpponentTeleported at map (24, 7): money=₽5,506
+f218719 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,10) pos=(5, 10)
+f220922 [MAP] GRANITE CAVE(24,10) -> GRANITE CAVE(24,7) pos=(7, 3)
+f221415 [MAP] GRANITE CAVE(24,7) -> ROUTE 106(0,21) pos=(37, 12)
+f221748 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(66, 20)
+f222003 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f223388 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f223628 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f225013 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f225351 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,3) pos=(8, 17)
+f226469 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f226469 [TRAINER] start opp=266 class=0x20(LEADER) value=25 lvl_last=16 first=True base=1600 double=False two=False money=5506 heal_stock=- map=3,3 enemy_alive=3
+f238265 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Zubat:L7', 'Geodude:L7']
+f238265 [MONEY] after Won at map (3, 3): money=₽7,406
+f238265 [TRAINER] end opp=266 class=0x20(LEADER) value=25 lvl_last=16 first=True base=1600 res=Won money=5506->7406 delta=1900 mult=1.19 heal_stock=- map=3,3
+f240977 [MAP] DEWFORD TOWN(3,3) -> DEWFORD TOWN(0,11) pos=(5, 27)
+f241284 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f242669 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f243651 [MAP] DEWFORD TOWN(0,11) -> ROUTE 107(0,22) pos=(20, 8)
+f243894 [MAP] ROUTE 107(0,22) -> ROUTE 108(0,23) pos=(60, 8)
+f244137 [MAP] ROUTE 108(0,23) -> ROUTE 109(0,24) pos=(60, 8)
+f245412 [BATTLE] started hp=[('Marshtomp', 64, 64), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f245412 [TRAINER] start opp=491+697 class=0x2F(SAILOR)+0x12(TUBER) value=8+1 lvl_last=13+13 first=True+True base=468 double=True two=True money=7406 heal_stock=- map=0,24 enemy_alive=2
+f253550 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Zubat:L7', 'Geodude:L8']
+f253550 [MONEY] after Won at map (0, 24): money=₽7,874
+f253550 [TRAINER] end opp=491+697 class=0x2F(SAILOR)+0x12(TUBER) value=8+1 lvl_last=13+13 first=True+True base=468 res=Won money=7406->7874 delta=468 mult=1 heal_stock=- map=0,24
+f253703 [MAP] ROUTE 109(0,24) -> SLATEPORT CITY(0,1) pos=(18, -1)
+f254164 [MAP] SLATEPORT CITY(0,1) -> SLATEPORT CITY(9,11) pos=(19, 19)
+f255549 [MAP] SLATEPORT CITY(9,11) -> SLATEPORT CITY(0,1) pos=(7, 8)
+f255959 [MAP] SLATEPORT CITY(0,1) -> SLATEPORT CITY(9,0) pos=(26, 38)
+f257258 [MAP] SLATEPORT CITY(9,0) -> SLATEPORT CITY(0,1) pos=(2, 14)
+f257655 [MAP] SLATEPORT CITY(0,1) -> SLATEPORT CITY(9,7) pos=(30, 26)
+f257658 [MAP] SLATEPORT CITY(9,7) -> SLATEPORT CITY(19,0) pos=(30, 26)
+f257659 [MAP] SLATEPORT CITY(19,0) -> SLATEPORT CITY(9,7) pos=(30, 26)
+f258171 [MAP] SLATEPORT CITY(9,7) -> SLATEPORT CITY(9,8) pos=(6, 1)
+f259455 [BATTLE] started hp=[('Marshtomp', 64, 64), ('Zubat', 23, 23), ('Geodude', 24, 24)]
+f259455 [TRAINER] start opp=20 class=0x03(TEAM_AQUA) value=5 lvl_last=15 first=True base=300 double=False two=False money=7824 heal_stock=- map=9,8 enemy_alive=1

@@ -1,0 +1,61 @@
+# design v2 step 5 GRADER (the re-graded run vs the REPRODUCING control CONTROL2; CONTROL1 was a non-deterministic outlier, see -CONTROLS.txt). Every ^f\d+ [BATTLE] line compared (TURN / ITEM-FLOW / FAINT-CHOOSER included).
+
+== T1 (Story-debug-20260929-120017.log): [BATTLE] lines 152 vs CONTROL 152 to f259455; IDENTICAL
+   [TRAINER]: 12 start, 11 end, 1 skip, 0 other
+   lines with outcome=: 0
+    f150064 [TRAINER] skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)
+   ok  f144209 opp=322 class=0x25(YOUNGSTER) lvl=9 base=144 res=Won delta=144 mult=1 first=True
+   ok  f148516 opp=280 class=0x21(SCHOOL_KID) lvl=9 base=180 res=Won delta=180 mult=1 first=True
+   ok  f152239 opp=631 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f156823 opp=754 class=0x25(YOUNGSTER) lvl=8 base=128 res=Won delta=128 mult=1 first=True
+   ok  f160004 opp=753 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f163453 opp=16 class=0x03(TEAM_AQUA) lvl=11 base=220 res=Won delta=220 mult=1 first=True
+   ok  f184993 opp=600 class=0x32(PkMn_TRAINER) lvl=15 base=900 res=Lost delta=0 mult=0 first=True
+   ok  f188817 opp=604 class=0x36(LASS) lvl=6 base=96 res=Won delta=96 mult=1 first=True
+   ok  f199649 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=440 mult=1 first=True
+   ok  f238265 opp=266 class=0x20(LEADER) lvl=19 base=1900 res=Won delta=1900 mult=1 first=True
+   ok  f253550 opp=491+697 class=0x2F(SAILOR)+0x12(TUBER) lvl=13+13 base=468 res=Won delta=468 mult=1 first=True+True
+
+== FIRSTMON (Story-debug-20260929-120017.log): [BATTLE] lines 152 vs CONTROL 152 to f259455; IDENTICAL
+   [TRAINER]: 12 start, 11 end, 1 skip, 0 other
+   lines with outcome=: 0
+    f150064 [TRAINER] skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)
+   ok  f144209 opp=322 class=0x25(YOUNGSTER) lvl=9 base=144 res=Won delta=144 mult=1 first=True
+   ok  f148516 opp=280 class=0x21(SCHOOL_KID) lvl=9 base=180 res=Won delta=180 mult=1 first=True
+   ok  f152239 opp=631 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f156823 opp=754 class=0x25(YOUNGSTER) lvl=8 base=128 res=Won delta=128 mult=1 first=True
+   ok  f160004 opp=753 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f163453 opp=16 class=0x03(TEAM_AQUA) lvl=11 base=220 res=Won delta=220 mult=1 first=True
+   ok  f184993 opp=600 class=0x32(PkMn_TRAINER) lvl=13 base=780 res=Lost delta=0 mult=0 first=True
+   ok  f188817 opp=604 class=0x36(LASS) lvl=6 base=96 res=Won delta=96 mult=1 first=True
+   ok  f199649 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=440 mult=1 first=True
+   BAD f238265 opp=266 class=0x20(LEADER) lvl=16 base=1600 res=Won delta=1900 mult=1.19 first=True
+   ok  f253550 opp=491+697 class=0x2F(SAILOR)+0x12(TUBER) lvl=13+13 base=468 res=Won delta=468 mult=1 first=True+True
+
+== WILDTOO (Story-debug-20260929-120016.log): [BATTLE] lines 152 vs CONTROL 152 to f259455; IDENTICAL
+   [TRAINER]: 24 start, 23 end, 1 skip, 0 other
+   lines with outcome=: 0
+    f150064 [TRAINER] skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)
+   ok  f144209 opp=322 class=0x25(YOUNGSTER) lvl=9 base=144 res=Won delta=144 mult=1 first=True
+   BAD f145612 opp=322 class=0x25(YOUNGSTER) lvl=9 base=144 res=Won delta=0 mult=0 first=False
+   ok  f148516 opp=280 class=0x21(SCHOOL_KID) lvl=9 base=180 res=Won delta=180 mult=1 first=True
+   ok  f152239 opp=631 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f156823 opp=754 class=0x25(YOUNGSTER) lvl=8 base=128 res=Won delta=128 mult=1 first=True
+   ok  f160004 opp=753 class=0x02(HIKER) lvl=8 base=320 res=Won delta=320 mult=1 first=True
+   ok  f163453 opp=16 class=0x03(TEAM_AQUA) lvl=11 base=220 res=Won delta=220 mult=1 first=True
+   ok  f167042 opp=16 class=0x03(TEAM_AQUA) lvl=11 base=220 res=RanAway delta=0 mult=0 first=False
+   ok  f167996 opp=16 class=0x03(TEAM_AQUA) lvl=11 base=220 res=RanAway delta=0 mult=0 first=False
+   ok  f184993 opp=600 class=0x32(PkMn_TRAINER) lvl=15 base=900 res=Lost delta=0 mult=0 first=True
+   ok  f188817 opp=604 class=0x36(LASS) lvl=6 base=96 res=Won delta=96 mult=1 first=True
+   ok  f199649 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=440 mult=1 first=True
+   ok  f203722 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Caught delta=0 mult=0 first=False
+   ok  f205638 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Caught delta=0 mult=0 first=False
+   BAD f207856 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=0 mult=0 first=False
+   BAD f209977 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=0 mult=0 first=False
+   BAD f211717 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=0 mult=0 first=False
+   ok  f212963 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=OpponentTeleported delta=0 mult=0 first=False
+   BAD f215058 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=0 mult=0 first=False
+   BAD f217207 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=Won delta=0 mult=0 first=False
+   ok  f218475 opp=340 class=0x27(FISHERMAN) lvl=11 base=440 res=OpponentTeleported delta=0 mult=0 first=False
+   ok  f238265 opp=266 class=0x20(LEADER) lvl=19 base=1900 res=Won delta=1900 mult=1 first=True
+   ok  f253550 opp=491+697 class=0x2F(SAILOR)+0x12(TUBER) lvl=13+13 base=468 res=Won delta=468 mult=1 first=True+True

@@ -3131,3 +3131,28 @@ exists to prevent.
 **Fix:** spell it `Solarbeam` in the ban list, its template, the schema default and the fallback, and match
 `move.effect` (SOLAR_BEAM) in the weather check. The profile is the user's file, so a divergence to log. Vehicle: v2
 step 11, or a standalone item if it is wanted sooner.
+
+## KI-112 — ⚠ OPEN (filed 2026-09-29; cause NOT measured): the harness is NOT frame-deterministic — 1 of 3 identical seeded runs arrived one frame late at a warp and diverged (`#27-determinism`)
+**Measured** (design v2 step 5; `tools/story-dev/evidence/2026-09-29-t1trainer-CONTROLS.txt`):
+- The command: `storyresume` on `r20_badge1_party1_gym.ss1`, `POKEBOT_R20_OPENFENCE=1`, `--set-balls 60`, 120,000
+  frames, `random.seed(1)`. It was run three times on the SAME commit (`main` `03244ae7`).
+- Two runs replayed step 4's M0 exactly (337 of 337 event lines).
+- One reached the Granite Cave (24,8)→(24,7) warp at **f215288 instead of f215287**. It then missed the Makuhita
+  encounter at f215597 and diverged for the rest of the run.
+- Step 4's excluded one-frame `(0,0)` map read (at a warp, varying run to run) is plausibly the same phenomenon. This is
+  a HYPOTHESIS.
+**Consequence:**
+- **One control run is not a control.** An A/B arm that differs from ONE run of the old code is not evidence of a
+  behaviour change.
+- T1 would have failed its no-behaviour-change check on the outlier. It matched both reproducing runs, 152 of 152
+  `[BATTLE]` lines.
+- Earlier "OFF replays M0 exactly" readings each rest on one run that happened to reproduce. They stand as readings;
+  they are not replications.
+**Cause candidates (NOT measured, do not treat as found):**
+- wall-clock reads: `modules/state_cache.py` (`time.time()` ages) and `modules/watchdog.py` (`time.monotonic()`
+  softlock and recovery timers);
+- CPU contention: the outlier ran while other heavy processes were running.
+**Fix direction:**
+- A determinism probe: N identical seeded runs of one command, reporting the first divergence.
+- Then find the wall-clock input that reaches a frame decision, and make it frame-based.
+- Until then, graded A/Bs run the control at least TWICE, and a divergence is attributed only when it reproduces.

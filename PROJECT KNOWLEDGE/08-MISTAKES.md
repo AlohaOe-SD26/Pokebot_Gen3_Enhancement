@@ -23051,3 +23051,18 @@ full Tier 0 set. The one I left out was the one that fired.
 FIXED Tier 0 script covering nine gates, never a chosen subset.
 **Prevention:** ⛔ Tier 0 is a SET, not a menu. Run all of it before every doc commit, including a "tiny" late edit.
 The late edit is exactly the one nobody re-reads.
+
+## 2026-09-29 — ⛔ ONE CONTROL RUN NEARLY FAILED A CHANGE THAT CHANGES NOTHING: THE HARNESS IS NOT FRAME-DETERMINISTIC
+
+**Symptom:** design v2 step 5's pre-registered control (the parent commit, same seeded command) differed from the T1
+arm from line #105 of its `[BATTLE]` lines. Read at face value, the always-on telemetry "changed a battle".
+**Root cause:** the CONTROL was the outlier. It reached a Granite Cave warp one frame late (f215288, not f215287) and
+missed an encounter. Two re-runs of the SAME control replayed step 4's M0 exactly, and so did T1. The harness is not
+frame-deterministic, with 1 of 3 identical runs diverging (KI-112, cause not measured). Every earlier "OFF replays
+exactly" reading used ONE run and happened to reproduce.
+**Fix:** the control was re-run twice. The grade uses the reproducing control, and the outlier is kept as the record
+(`evidence/2026-09-29-t1trainer-CONTROLS.txt`). KI-112 and `#27-determinism` are filed.
+**Prevention:** ⛔ a control is a CLASS of runs, not a run. Run it at least twice. When an arm differs from the
+control, first check whether the control reproduces ITSELF. "Identical output across runs is a determinism check,
+never a replication" (CLAUDE.md rule 8), and the converse also holds: one differing run is not a regression until the
+difference reproduces.

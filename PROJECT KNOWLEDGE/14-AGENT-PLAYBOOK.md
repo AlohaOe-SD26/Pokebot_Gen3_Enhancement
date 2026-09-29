@@ -120,6 +120,10 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   handler calls `should_flee_after_faint` TWICE for one faint; a new "once per faint" line fired twice live, while the
   gate (one call per case) said "one". An old line on the same hook that is deduped (`_announce_bail`) is the tell. Gate
   the line with the caller's real call pattern (08, 2026-09-29).
+* ⛔ **A CONTROL IS A CLASS OF RUNS, NOT A RUN** (added 2026-09-29, KI-112). The harness is not frame-deterministic: 1 of
+  3 identical seeded runs of one commit reached a warp one frame late and diverged. Run the control at least TWICE. When
+  an arm differs from it, first check whether the control reproduces ITSELF. A difference is attributed to the change
+  only when it reproduces.
 
 ---
 
