@@ -134,6 +134,10 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
             self._keep_lead_in_training = bool(getattr(context.bot_mode_instance, "_r24_catchtrain", False)) and _sta()
         except Exception:  # noqa: BLE001 - unreadable ⇒ the old behaviour (rotate as the parent decides)
             self._keep_lead_in_training = False
+        # ⭐ USER RULING 24 step 5 (C5): no bail on a faint — *"If the bot whites out or the training pokemon faints, thats
+        # ok … catching has a bit higher priority"*. Read from the RUNNING mode (one source for the flag, as C3 above);
+        # unreadable ⇒ False, the old behaviour (bail).
+        self._no_faint_bail = bool(getattr(getattr(context, "bot_mode_instance", None), "_r24_nofaintbail", False))
 
     def choose_new_lead_after_battle(self) -> int | None:
         import os as _os_rot
@@ -146,6 +150,17 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
         import os as _os_bail
 
         if _os_bail.environ.get("POKEBOT_DEXCATCH_FAULT_NOBAIL") == "1":
+            return super().should_flee_after_faint(battle_state)
+        # `getattr`: an instance built without `__init__` (gates build it with `__new__`) keeps the old behaviour.
+        if getattr(self, "_no_faint_bail", False):
+            # USER RULING 24 step 5: BOTH faint-bail paths. (a) the parent's answer here (`CatchStrategy`: False ⇒ the
+            # handler sends the next able mon), and (b) `_fainted_this_battle` stays False, so `decide_turn` cannot bail
+            # "a team member fainted" on the NEXT turn — (a) alone still fled a turn later (the design's C5 finding).
+            # Fault arm `POKEBOT_R24_FAULT_HALFBAIL=1` (never set in a real run) changes only (a):
+            # `probe_dex_catch_nofaintbail.py` must go red under it.
+            if _os_bail.environ.get("POKEBOT_R24_FAULT_HALFBAIL") == "1":
+                self._fainted_this_battle = True
+            _r24_nofaintbail_log()
             return super().should_flee_after_faint(battle_state)
         self._fainted_this_battle = True
         # ⛔ Only when escape is POSSIBLE: trapped (Shadow Tag, Arena Trap — Trapinch is a Route 111 catch — Mean Look,
@@ -2287,6 +2302,9 @@ class StoryMode(BotMode):
         # ⭐ USER RULING 24 step 4 (2026-09-29): `POKEBOT_R24_OVERSURVIVAL=1` runs the dex-catch commit BEFORE survival mode,
         # so a wanted species is caught on a map where the bot otherwise flees every wild. DEFAULT OFF; read per run.
         self._r24_oversurvival = _os_team6.environ.get("POKEBOT_R24_OVERSURVIVAL") == "1"
+        # ⭐ USER RULING 24 step 5 (2026-09-29): `POKEBOT_R24_NOFAINTBAIL=1` stops a post-gym-1 dex catch from bailing on
+        # a faint (BOTH paths; `StoryDexCatchStrategy` reads this from the running mode). DEFAULT OFF; read per run.
+        self._r24_nofaintbail = _os_team6.environ.get("POKEBOT_R24_NOFAINTBAIL") == "1"
         self._r24_trainee_check = None
         self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
@@ -6181,6 +6199,17 @@ def _r24_trainee_report(mode, party_fn) -> None:
     except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
         pass
     mode._r24_trainee_check = None
+
+
+def _r24_nofaintbail_log() -> None:
+    """USER RULING 24 step 5 telemetry, FLAG ON ONLY: the ACTION (rule 7) — a faint in a dex catch that did NOT bail.
+    Called only from the flag-ON branch of `StoryDexCatchStrategy.should_flee_after_faint`, once per faint; OFF never
+    reaches it, so an OFF run gains no line. Gated by `probe_dex_catch_nofaintbail.py` (a mutant logging on OFF goes red)."""
+    try:
+        context.message = "Story: a team member fainted — sending the next Pokémon and throwing on (RULING 24)."
+        _log_story_event("[DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on", "DEXCATCH")
+    except Exception:  # noqa: BLE001 - telemetry must never break a battle
+        pass
 
 
 def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:
