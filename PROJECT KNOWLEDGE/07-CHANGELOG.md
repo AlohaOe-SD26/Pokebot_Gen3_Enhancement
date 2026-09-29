@@ -36999,3 +36999,30 @@ twice and every pair is identical.
   pre-registered;
 - R6 held: a blind re-derivation from the decomp (pret `f90719c4`) matched every list and field; its two differences are by design (variant is per-individual; an alphabetical tie-break).
 - Also: Q9's Zangoose error corrected; KI-113 filed.
+
+## 2026-09-29 — design v2 step 7 (RP) REVIEWED: three lenses PASS_WITH_NITS; every should-fix taken (`#26-organiccatch`)
+
+- **Code fixes:**
+  - `encounter_rarity` now refuses a failed checksum (`invalid`) and an egg (`egg`). The review measured a random
+    blob reading as Lugia.
+  - The gate's L27 names a real species, so the `is_empty` guard is really tested.
+  - NEW C2 (`--check` must go red on a drifted copy), and M14-M17 (the three guards, and a blind comparator).
+  - M13 also asserts the drift line.
+  - Fishing tables are read on the pointer alone, as the game does.
+  - `probe_rarity_shoal_path.py` now has a real push (arm C, three pushes; arm D, two), an island test with controls,
+    and a room-to-room low-tide search.
+- **Evidence fixes:**
+  - The graded note no longer leans on the disqualified probe. R1, R2 and R4 are marked as graded on a substitute.
+  - The substitute's own permissiveness (~293 against 262) is stated, and the verdict rests only on its conservative
+    NO-PATH readings.
+  - R6 and R7 now have committed evidence.
+- **Corrects the entry above:**
+  - the gate has 37 literal rows (L1-L33 plus L5b, L5c, L27b and L27c), not 33;
+  - R1, R2 and R4 held on a SUBSTITUTE instrument, not the pre-registered one.
+- **Docs:**
+  - Q5 and Q6 now state the exact rules the build uses, and Q9's other learners are marked unobtainable.
+  - 02: the tracked ROM, and the offline-probe list.
+  - 05's how-to-read now names the later upstream KIs.
+  - 01 gains the rarity and trainer-identity components.
+  - 04's stale "build B" order now points at v2.
+  - 08 and the playbook bullets are corrected (a control must be able to fail).

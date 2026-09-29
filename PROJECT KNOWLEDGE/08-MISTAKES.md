@@ -23079,22 +23079,22 @@ own rebuild is not shippable, so the blocker was correct both times.
 launching the review. If the review changes the item, the pointer is edited again, cheaply. Recorded in the playbook's
 pre-review check (§0b).
 
-## 2026-09-29 — ⛔ I PRE-REGISTERED A CONTROL AS A COUNT FROM A DIFFERENT INSTRUMENT, AND IT FAILED FOR A REASON THAT IS NOT AN ERROR
+## 2026-09-29 — ⛔ I PRE-REGISTERED A CONTROL AS A COUNT FROM A DIFFERENT INSTRUMENT; IT FAILED, AND ITS FAILURE CANNOT SAY WHICH INSTRUMENT IS WRONG
 
-**Symptom:** design v2 step 7's R3 said an independent flood must reproduce 262/299 tiles (Meteor Falls 1F_1R) before
-anything else it printed is believed. It gave 296/333, and so it was disqualified as a citation. The verifier then
-changed its own exit criterion after seeing the mismatch.
+**Symptom:** design v2 step 7's R3 said an independent flood must reproduce 262/299 tiles (Meteor Falls 1F_1R, recorded
+on 2026-09-11 by a controlled decomp decoder) before anything else it printed is believed. It gave 296/333. Its author
+then swapped in "agreement with `calculate_path`" as the control. But the flood's rules had been transcribed FROM
+`calculate_path`, so that agreement could not fail.
 **Root cause:**
-- 262/299 was recorded on 2026-09-11 by a DIFFERENT method (a decomp `map.bin` decode).
-- A count is a property of its instrument's counting rules as much as of the map. The new flood follows the
-  production tile rules, and agrees with production `calculate_path` on 618 of 621 tiles, including the two decisive
-  ones.
-- The pre-registration had fixed the wrong kind of control: a number from another instrument, not an oracle the new
-  instrument must agree with.
+- A count belongs to its instrument's rules as much as to the map. So "the new count differs from the old count"
+  cannot tell "the new instrument is wrong" from "the two instruments use different rules". Here the cause is still
+  not isolated.
+- The replacement control shared its source with the subject. A check that cannot fail is not a control.
 **Fix:**
-- R3 is graded FAILED and its consequence applied (supporting only; Meteor Falls keeps its old citation).
-- The load-bearing Shoal Cave claim was re-measured on production's own pathfinder, with a built-in A/B: the boulder
-  flag forced clear against forced set.
-**Prevention rule:** pre-register a control as AGREEMENT WITH THE PRODUCTION ORACLE on the decisive cases (e.g.
-`calculate_path` on named tiles), or as a count taken with the SAME method. Never use a number recorded by a
-different instrument.
+- R3 was graded FAILED, and its consequence was applied in full: the probe is cited for nothing.
+- The load-bearing Shoal Cave claim was re-measured on production `calculate_path`, with a boulder A/B.
+- That instrument's own permissiveness (~293 against 262) is stated. The verdict rests only on its conservative
+  NO-PATH readings.
+**Prevention rule:** a control must be able to FAIL, from a source independent of the subject. Pre-register it as a
+named decisive case whose answer comes from somewhere else (a live in-game observation, or a controlled decoder), and
+say in advance what a mismatch would mean. Never control an instrument with the code it was transcribed from.

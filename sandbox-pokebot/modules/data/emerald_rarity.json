@@ -38,7 +38,7 @@
     "surf"
    ]
   },
-  "map_access_source": "Meteor Falls: sandbox-pokebot/modules/story/training_areas.py (measured 2026-09-11); Shoal Cave: tools/story-dev/probe_rarity_shoal_path.py (evidence/2026-09-29-rarepredicate-SHOALPATH.txt, production calculate_path). Supporting, not load-bearing: tools/story-dev/probe_rarity_access_gates.py (evidence/2026-09-29-rarepredicate-ACCESSGATES.txt), whose literal 262/299 control did NOT reproduce (296/333)",
+  "map_access_source": "Meteor Falls: sandbox-pokebot/modules/story/training_areas.py (measured 2026-09-11); Shoal Cave: tools/story-dev/probe_rarity_shoal_path.py (evidence/2026-09-29-rarepredicate-SHOALPATH.txt, production calculate_path). NOT a citation: tools/story-dev/probe_rarity_access_gates.py, whose pre-registered 262/299 control failed (296/333), so nothing it prints is believed",
   "unmeasured_areas": {
    "NEW_MAUVILLE": "Surf to reach; the Basement Key is an item, not a gate",
    "ABANDONED_SHIP": "Surf to reach; Dive for the hidden floor",

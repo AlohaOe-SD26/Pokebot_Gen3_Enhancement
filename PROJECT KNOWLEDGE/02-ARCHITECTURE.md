@@ -222,8 +222,8 @@ STATICALLY from the tracked ROM (no emulator; the gitignored encounter cache hol
 KI-113). Nothing in production imports it yet. Gate: `probe_rarity_predicate.py` (runs `--check`).
 
 ## External dependencies & services
-- **ROMs**: user-supplied in each copy's `roms/`, SHA-1 whitelisted,
-  never committed.
+- **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:
+  the user ruled to leave it and fix the docs); `rare_species_dataset.py` reads it statically.
 - **Profiles** (`<copy>/profiles/<name>/`): save, savestates, per-profile
   config, `stats.db` — never committed.
 - GitHub (upstream releases for the stock auto-updater; disabled for git
@@ -618,8 +618,8 @@ done
     BATTLE-order index was being fed to a PARTY-MENU scroll) plus `[TURN …]` per-decision and
     `[ITEM-FLOW]` per-stage telemetry.
 - Offline planner probes need **no emulator**: `probe_counter_candidates_offline.py`,
-  `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py` (since 2026-09-29 it reads
-  the tracked ROM file statically, still with no emulator), `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and
+  `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `analyse_defeat_loops.py`. (`rare_species_dataset.py`
+  also needs no emulator, but it reads the tracked ROM file statically and stubs nothing.) ‼ The others stub `get_map_enum`/`get_encounter_index`, and
   `find_counter_candidates` returns `[]` on ANY internal error — so each one carries a POSITIVE
   CONTROL (Norman must find Machop @ FIERY_PATH). Without it, a broken harness is indistinguishable
   from a real "no answer".

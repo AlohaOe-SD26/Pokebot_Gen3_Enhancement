@@ -8309,7 +8309,7 @@ unverifiable, when it is two lines from exact.
 - **Shape:** a verdict carries a `note` (`no_data`, `no_species`, `adapter_error`), and species index 0 is guarded.
 - **Data source:** the generator reads the ROM statically; it no longer reads the runtime cache.
 **Why:**
-- The user's words for pseudo-rare are field-move gating plus one location (03:1846-1848).
+- The user's words for pseudo-rare are field-move gating plus one location (03 `#24-rarepredicate`, the quote "For the Bagon instance …").
 - Q6 is the text the user will be shown, and its "off the story path" beats the design's looser "LOCAL".
 - Min over rows follows from "a species is only as gated as its easiest home": Solrock shares Bagon's room but also
   lives gate-free in 1F_1R.

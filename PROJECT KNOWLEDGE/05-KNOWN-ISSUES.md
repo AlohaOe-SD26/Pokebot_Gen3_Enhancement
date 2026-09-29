@@ -13,13 +13,14 @@
 
 ## ‼ HOW TO READ THIS FILE (re-audited against code 2026-07-27)
 
-**Only KI-1 … KI-5 are upstream bugs.** They exist identically in
+**KI-1 … KI-5 are the original upstream bugs.** Later entries about upstream code say UPSTREAM in their header
+(KI-109 to KI-111, KI-113). They exist identically in
 `40cakes repo/pokebot-gen3/` (pristine — do not fix there) and in our forks (fix
 candidates; any fix goes in DIVERGENCE-LOG). *The paragraph that used to sit here
 claimed ALL entries were upstream bugs — it was written when the file held five, and
 was wrong for the other eighteen.*
 
-**Everything from KI-6 onward is OUR OWN story-bot / fork code**, and the active copy
+**Everything else from KI-6 onward is OUR OWN story-bot / fork code**, and the active copy
 is **`sandbox-pokebot/`** (not `custom-pokebot/`). KI-23/KI-24 concern
 `modules/story/region_reach.py` and `modules/story/counter_plan.py`, which are ours and
 have no upstream equivalent.

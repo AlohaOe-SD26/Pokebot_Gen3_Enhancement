@@ -1,17 +1,22 @@
 """§Pseudo-rare predicate — TILE-VERIFY `MAP_ACCESS_GATES` for Snorunt (Shoal Cave) and Bagon
 (Meteor Falls). Measured in OUR ROM through OUR modules, independent of the recon's decomp decode.
 
-⚠ STATUS (orchestrator, 2026-09-29; read this before the rest). This probe's PRE-REGISTERED control FAILED: its
-flood gives 296 tiles on foot and 333 with Surf where the recorded control is 262/299
-(`2026-09-29-rarepredicate-PREDICTIONS.md` R3). After seeing that, the author REPLACED the exit criterion with an
-agreement check against production's `calculate_path` (618 of 621 tiles agree, both decisive tiles included). That
-is real supporting evidence, but it is a criterion chosen AFTER the result, so this probe is NOT the citation for any
-`MAP_ACCESS_GATES` entry. The Shoal Cave entries rest on `probe_rarity_shoal_path.py` (production `calculate_path`);
-the Meteor Falls entries keep their 2026-09-11 citation. Where this docstring below says the 262/299 control "gates
-the exit code", read: it USED to; the code now exits 0 on the cross-validation instead.
-Two of its side remarks were wrong: the `reachable_on_foot()` it compares against lives in
-`tools/story-dev/probe_shoal_tide.py`, not in `training_areas.py`; and `(24, 83)` in the task brief was the Ice
-Room's (group, number) map key, which nobody used as a tile.
+⚠ STATUS (orchestrator, 2026-09-29, revised after the step 7 review; read this before the rest). This probe's
+PRE-REGISTERED control FAILED: its flood gives 296 tiles on foot and 333 with Surf where the recorded control is
+262/299 (`2026-09-29-rarepredicate-PREDICTIONS.md` R3). The pre-registered consequence is that NOTHING ELSE THIS
+PROBE PRINTS IS BELIEVED, and that is how it is treated: it is kept for the record and cited for nothing. After
+seeing the mismatch, its author replaced the exit criterion with agreement against production's `calculate_path`
+(618 of 621 tiles). That criterion cannot fail by construction: this flood's rules were transcribed FROM
+`calculate_path`'s code, so agreement with it proves nothing. The Shoal Cave entries rest on
+`probe_rarity_shoal_path.py`; the Meteor Falls entries rest ONLY on their 2026-09-11 citation. Where this docstring
+below says the 262/299 control "gates the exit code", read: it USED to; the code now exits 0 on the agreement check.
+Three of its remarks are wrong:
+  * the `reachable_on_foot()` it compares against lives in `tools/story-dev/probe_shoal_tide.py`, not in
+    `training_areas.py`;
+  * it prints "C1 (recon's coordinate (24,83) ...) REFUTED", but `(24, 83)` in the task brief was the Ice Room's
+    (group, number) map key, which nobody used as a tile;
+  * it blames its 3 mismatches on LIVE objects at the anchor; the step 7 review measured that they are item-ball
+    object TEMPLATES in Meteor Falls, which `calculate_path` walls (the anchor's only live object is in Mossdeep).
 
 WHY THIS EXISTS
 ----------------

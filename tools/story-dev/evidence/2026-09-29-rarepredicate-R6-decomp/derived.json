@@ -1,0 +1,7182 @@
+{
+ "265": {
+  "name": "SPECIES_WURMPLE",
+  "best": 45,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS",
+   "MAPSEC_ROUTE_101",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_104"
+  ],
+  "secids": [
+   59,
+   16,
+   17,
+   19
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE101",
+    "land",
+    45
+   ],
+   [
+    "MAP_ROUTE102",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE104",
+    "land",
+    20
+   ],
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    25
+   ]
+  ]
+ },
+ "261": {
+  "name": "SPECIES_POOCHYENA",
+  "best": 60,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS",
+   "MAPSEC_ROUTE_101",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_116",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123"
+  ],
+  "secids": [
+   59,
+   16,
+   17,
+   18,
+   19,
+   25,
+   31,
+   32,
+   35,
+   36,
+   38
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE101",
+    "land",
+    45
+   ],
+   [
+    "MAP_ROUTE102",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE103",
+    "land",
+    60
+   ],
+   [
+    "MAP_ROUTE104",
+    "land",
+    40
+   ],
+   [
+    "MAP_ROUTE110",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE116",
+    "land",
+    28
+   ],
+   [
+    "MAP_ROUTE117",
+    "land",
+    30
+   ],
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE120",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    20
+   ]
+  ]
+ },
+ "263": {
+  "name": "SPECIES_ZIGZAGOON",
+  "best": 30,
+  "secs": [
+   "MAPSEC_ROUTE_101",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119"
+  ],
+  "secids": [
+   16,
+   17,
+   18,
+   33,
+   34
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE101",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE102",
+    "land",
+    15
+   ],
+   [
+    "MAP_ROUTE103",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE118",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE119",
+    "land",
+    30
+   ]
+  ]
+ },
+ "270": {
+  "name": "SPECIES_LOTAD",
+  "best": 30,
+  "secs": [
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_114"
+  ],
+  "secids": [
+   17,
+   29
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE114",
+    "land",
+    30
+   ]
+  ]
+ },
+ "280": {
+  "name": "SPECIES_RALTS",
+  "best": 4,
+  "secs": [
+   "MAPSEC_ROUTE_102"
+  ],
+  "secids": [
+   17
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "land",
+    4
+   ]
+  ]
+ },
+ "273": {
+  "name": "SPECIES_SEEDOT",
+  "best": 1,
+  "secs": [
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_120"
+  ],
+  "secids": [
+   17,
+   32,
+   35
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE117",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE120",
+    "land",
+    1
+   ]
+  ]
+ },
+ "183": {
+  "name": "SPECIES_MARILL",
+  "best": 100,
+  "secs": [
+   "MAPSEC_PETALBURG_CITY",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_111",
+   "MAPSEC_ROUTE_112",
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   7,
+   17,
+   19,
+   26,
+   27,
+   29,
+   32,
+   35,
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "water",
+    99
+   ],
+   [
+    "MAP_ROUTE104",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE111",
+    "water",
+    99
+   ],
+   [
+    "MAP_ROUTE112",
+    "land",
+    25
+   ],
+   [
+    "MAP_ROUTE114",
+    "water",
+    99
+   ],
+   [
+    "MAP_ROUTE117",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE117",
+    "water",
+    99
+   ],
+   [
+    "MAP_ROUTE120",
+    "land",
+    15
+   ],
+   [
+    "MAP_ROUTE120",
+    "water",
+    99
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "water",
+    100
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "water",
+    39
+   ]
+  ]
+ },
+ "118": {
+  "name": "SPECIES_GOLDEEN",
+  "best": 80,
+  "secs": [
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_PETALBURG_CITY",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_111",
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_SAFARI_ZONE",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   63,
+   7,
+   17,
+   26,
+   29,
+   32,
+   35,
+   57,
+   70
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ],
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "water",
+    1
+   ],
+   [
+    "MAP_ROUTE102",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE102",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE111",
+    "water",
+    1
+   ],
+   [
+    "MAP_ROUTE111",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE111",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE114",
+    "water",
+    1
+   ],
+   [
+    "MAP_ROUTE114",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE114",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE117",
+    "water",
+    1
+   ],
+   [
+    "MAP_ROUTE117",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE117",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE120",
+    "water",
+    1
+   ],
+   [
+    "MAP_ROUTE120",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE120",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "good_rod",
+    40
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "good_rod",
+    40
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "super_rod",
+    40
+   ]
+  ]
+ },
+ "129": {
+  "name": "SPECIES_MAGIKARP",
+  "best": 100,
+  "secs": [
+   "MAPSEC_ABANDONED_SHIP",
+   "MAPSEC_DEWFORD_TOWN",
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_LILYCOVE_CITY",
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_PETALBURG_CITY",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_105",
+   "MAPSEC_ROUTE_106",
+   "MAPSEC_ROUTE_107",
+   "MAPSEC_ROUTE_108",
+   "MAPSEC_ROUTE_109",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_111",
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_128",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134",
+   "MAPSEC_SAFARI_ZONE",
+   "MAPSEC_SEAFLOOR_CAVERN",
+   "MAPSEC_SHOAL_CAVE",
+   "MAPSEC_SLATEPORT_CITY",
+   "MAPSEC_SOOTOPOLIS_CITY",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   61,
+   2,
+   15,
+   12,
+   63,
+   13,
+   6,
+   7,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   29,
+   30,
+   32,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   57,
+   68,
+   67,
+   8,
+   14,
+   70
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ],
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE102",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE103",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE103",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE104",
+    "old_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE104",
+    "good_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE104",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE105",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE105",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE110",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE110",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE111",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE111",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE114",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE114",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE117",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE117",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE118",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE118",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE124",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE124",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE106",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE106",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE107",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE107",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE108",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE108",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE109",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE109",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE115",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE115",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE119",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE119",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE120",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE120",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE121",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE121",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE122",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE122",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE123",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE123",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE125",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE125",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE126",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE126",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE127",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE127",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE128",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE128",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE129",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE129",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE130",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE130",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE131",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE131",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE132",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE132",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE133",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE133",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE134",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ROUTE134",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "good_rod",
+    60
+   ],
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "water",
+    100
+   ],
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "good_rod",
+    100
+   ],
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "old_rod",
+    70
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "good_rod",
+    60
+   ]
+  ]
+ },
+ "341": {
+  "name": "SPECIES_CORPHISH",
+  "best": 100,
+  "secs": [
+   "MAPSEC_PETALBURG_CITY",
+   "MAPSEC_ROUTE_102",
+   "MAPSEC_ROUTE_117"
+  ],
+  "secids": [
+   7,
+   17,
+   32
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE102",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE102",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE117",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE117",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_PETALBURG_CITY",
+    "super_rod",
+    100
+   ]
+  ]
+ },
+ "278": {
+  "name": "SPECIES_WINGULL",
+  "best": 95,
+  "secs": [
+   "MAPSEC_DEWFORD_TOWN",
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_LILYCOVE_CITY",
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_MT_PYRE",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_105",
+   "MAPSEC_ROUTE_106",
+   "MAPSEC_ROUTE_107",
+   "MAPSEC_ROUTE_108",
+   "MAPSEC_ROUTE_109",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_128",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134",
+   "MAPSEC_SLATEPORT_CITY"
+  ],
+  "secids": [
+   2,
+   15,
+   12,
+   13,
+   65,
+   6,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   30,
+   33,
+   34,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   8
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE103",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE103",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE104",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE104",
+    "water",
+    95
+   ],
+   [
+    "MAP_ROUTE105",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE110",
+    "land",
+    8
+   ],
+   [
+    "MAP_ROUTE110",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE118",
+    "land",
+    19
+   ],
+   [
+    "MAP_ROUTE118",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE124",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE106",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE107",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE108",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE109",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE115",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE115",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE119",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    9
+   ],
+   [
+    "MAP_ROUTE121",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE122",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    9
+   ],
+   [
+    "MAP_ROUTE123",
+    "water",
+    35
+   ],
+   [
+    "MAP_MT_PYRE_EXTERIOR",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE125",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE126",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE127",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE128",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE129",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE130",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE131",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE132",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE133",
+    "water",
+    35
+   ],
+   [
+    "MAP_ROUTE134",
+    "water",
+    35
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "water",
+    35
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "water",
+    35
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "water",
+    35
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "water",
+    35
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "water",
+    35
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "water",
+    35
+   ]
+  ]
+ },
+ "72": {
+  "name": "SPECIES_TENTACOOL",
+  "best": 99,
+  "secs": [
+   "MAPSEC_ABANDONED_SHIP",
+   "MAPSEC_DEWFORD_TOWN",
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_LILYCOVE_CITY",
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_105",
+   "MAPSEC_ROUTE_106",
+   "MAPSEC_ROUTE_107",
+   "MAPSEC_ROUTE_108",
+   "MAPSEC_ROUTE_109",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_128",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134",
+   "MAPSEC_SEAFLOOR_CAVERN",
+   "MAPSEC_SHOAL_CAVE",
+   "MAPSEC_SLATEPORT_CITY",
+   "MAPSEC_SOOTOPOLIS_CITY"
+  ],
+  "secids": [
+   61,
+   2,
+   15,
+   12,
+   13,
+   6,
+   18,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   30,
+   33,
+   34,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   68,
+   67,
+   8,
+   14
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ],
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE103",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE103",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE103",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE105",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE105",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE105",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE110",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE110",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE110",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE118",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE118",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE118",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE124",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE124",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE124",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "water",
+    99
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "good_rod",
+    40
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_ROUTE106",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE106",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE106",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE107",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE107",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE107",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE108",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE108",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE108",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE109",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE109",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE109",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE115",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE115",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE115",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE119",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE119",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE119",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE121",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE121",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE121",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE122",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE122",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE122",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE123",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE123",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE123",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE125",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE125",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE125",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE126",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE126",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE126",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE127",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE127",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE127",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE128",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE128",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE129",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE129",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE129",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE130",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE130",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE130",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE131",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE131",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE131",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE132",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE132",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE132",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE133",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE133",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE133",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE134",
+    "water",
+    60
+   ],
+   [
+    "MAP_ROUTE134",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ROUTE134",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "water",
+    99
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "good_rod",
+    40
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "water",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "water",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "water",
+    60
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "water",
+    60
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "water",
+    60
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "water",
+    60
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "water",
+    60
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "water",
+    60
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "water",
+    60
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "water",
+    60
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "water",
+    60
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "old_rod",
+    30
+   ],
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "old_rod",
+    30
+   ]
+  ]
+ },
+ "279": {
+  "name": "SPECIES_PELIPPER",
+  "best": 5,
+  "secs": [
+   "MAPSEC_DEWFORD_TOWN",
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_LILYCOVE_CITY",
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_105",
+   "MAPSEC_ROUTE_106",
+   "MAPSEC_ROUTE_107",
+   "MAPSEC_ROUTE_108",
+   "MAPSEC_ROUTE_109",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_128",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134",
+   "MAPSEC_SLATEPORT_CITY"
+  ],
+  "secids": [
+   2,
+   15,
+   12,
+   13,
+   6,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   30,
+   33,
+   34,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   8
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE103",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE104",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE105",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE110",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE118",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE124",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE106",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE107",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE108",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE109",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE115",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE119",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE121",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE122",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE123",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE125",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE126",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE127",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE128",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE129",
+    "water",
+    4
+   ],
+   [
+    "MAP_ROUTE130",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE131",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE132",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE133",
+    "water",
+    5
+   ],
+   [
+    "MAP_ROUTE134",
+    "water",
+    5
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "water",
+    5
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "water",
+    5
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "water",
+    5
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "water",
+    5
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "water",
+    5
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "water",
+    5
+   ]
+  ]
+ },
+ "320": {
+  "name": "SPECIES_WAILMER",
+  "best": 100,
+  "secs": [
+   "MAPSEC_DEWFORD_TOWN",
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_LILYCOVE_CITY",
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_105",
+   "MAPSEC_ROUTE_106",
+   "MAPSEC_ROUTE_107",
+   "MAPSEC_ROUTE_108",
+   "MAPSEC_ROUTE_109",
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_128",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134",
+   "MAPSEC_SEAFLOOR_CAVERN",
+   "MAPSEC_SHOAL_CAVE",
+   "MAPSEC_SLATEPORT_CITY"
+  ],
+  "secids": [
+   2,
+   15,
+   12,
+   13,
+   6,
+   18,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   30,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   68,
+   67,
+   8
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE103",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE103",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE105",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE105",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE110",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE110",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE124",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE124",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE106",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE106",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE107",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE107",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE108",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE108",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE109",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE109",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE115",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE115",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE121",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE121",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE122",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE122",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE123",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE123",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE125",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE125",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE126",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE126",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE127",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE127",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE128",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE128",
+    "super_rod",
+    45
+   ],
+   [
+    "MAP_ROUTE129",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE129",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE130",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE130",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE131",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE131",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE132",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE132",
+    "super_rod",
+    45
+   ],
+   [
+    "MAP_ROUTE133",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE133",
+    "super_rod",
+    45
+   ],
+   [
+    "MAP_ROUTE134",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE134",
+    "super_rod",
+    45
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_LILYCOVE_CITY",
+    "super_rod",
+    85
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_DEWFORD_TOWN",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SLATEPORT_CITY",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "super_rod",
+    45
+   ]
+  ]
+ },
+ "319": {
+  "name": "SPECIES_SHARPEDO",
+  "best": 40,
+  "secs": [
+   "MAPSEC_MOSSDEEP_CITY",
+   "MAPSEC_PACIFIDLOG_TOWN",
+   "MAPSEC_ROUTE_103",
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_122",
+   "MAPSEC_ROUTE_124",
+   "MAPSEC_ROUTE_125",
+   "MAPSEC_ROUTE_126",
+   "MAPSEC_ROUTE_127",
+   "MAPSEC_ROUTE_129",
+   "MAPSEC_ROUTE_130",
+   "MAPSEC_ROUTE_131",
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134"
+  ],
+  "secids": [
+   13,
+   6,
+   18,
+   33,
+   37,
+   39,
+   40,
+   41,
+   42,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE103",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE118",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE124",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE122",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE125",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE126",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE127",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE129",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE130",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE131",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE132",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE133",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_ROUTE134",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_MOSSDEEP_CITY",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_PACIFIDLOG_TOWN",
+    "super_rod",
+    40
+   ]
+  ]
+ },
+ "276": {
+  "name": "SPECIES_TAILLOW",
+  "best": 40,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS",
+   "MAPSEC_ROUTE_104",
+   "MAPSEC_ROUTE_115",
+   "MAPSEC_ROUTE_116"
+  ],
+  "secids": [
+   59,
+   19,
+   30,
+   31
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE104",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE116",
+    "land",
+    20
+   ],
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    5
+   ],
+   [
+    "MAP_ROUTE115",
+    "land",
+    40
+   ]
+  ]
+ },
+ "309": {
+  "name": "SPECIES_ELECTRIKE",
+  "best": 30,
+  "secs": [
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_118"
+  ],
+  "secids": [
+   25,
+   33
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE110",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE118",
+    "land",
+    30
+   ]
+  ]
+ },
+ "316": {
+  "name": "SPECIES_GULPIN",
+  "best": 15,
+  "secs": [
+   "MAPSEC_ROUTE_110"
+  ],
+  "secids": [
+   25
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE110",
+    "land",
+    15
+   ]
+  ]
+ },
+ "312": {
+  "name": "SPECIES_MINUN",
+  "best": 15,
+  "secs": [
+   "MAPSEC_ROUTE_110"
+  ],
+  "secids": [
+   25
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE110",
+    "land",
+    15
+   ]
+  ]
+ },
+ "43": {
+  "name": "SPECIES_ODDISH",
+  "best": 40,
+  "secs": [
+   "MAPSEC_ROUTE_110",
+   "MAPSEC_ROUTE_117",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   25,
+   32,
+   34,
+   35,
+   36,
+   38,
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE110",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE117",
+    "land",
+    40
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    40
+   ],
+   [
+    "MAP_ROUTE119",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE120",
+    "land",
+    25
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    15
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    15
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    40
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    30
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    30
+   ]
+  ]
+ },
+ "311": {
+  "name": "SPECIES_PLUSLE",
+  "best": 2,
+  "secs": [
+   "MAPSEC_ROUTE_110"
+  ],
+  "secids": [
+   25
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE110",
+    "land",
+    2
+   ]
+  ]
+ },
+ "27": {
+  "name": "SPECIES_SANDSHREW",
+  "best": 50,
+  "secs": [
+   "MAPSEC_MIRAGE_TOWER",
+   "MAPSEC_ROUTE_111"
+  ],
+  "secids": [
+   199,
+   26
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "land",
+    35
+   ],
+   [
+    "MAP_MIRAGE_TOWER_1F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_2F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_3F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_4F",
+    "land",
+    50
+   ]
+  ]
+ },
+ "328": {
+  "name": "SPECIES_TRAPINCH",
+  "best": 50,
+  "secs": [
+   "MAPSEC_MIRAGE_TOWER",
+   "MAPSEC_ROUTE_111"
+  ],
+  "secids": [
+   199,
+   26
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "land",
+    35
+   ],
+   [
+    "MAP_MIRAGE_TOWER_1F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_2F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_3F",
+    "land",
+    50
+   ],
+   [
+    "MAP_MIRAGE_TOWER_4F",
+    "land",
+    50
+   ]
+  ]
+ },
+ "343": {
+  "name": "SPECIES_BALTOY",
+  "best": 24,
+  "secs": [
+   "MAPSEC_ROUTE_111"
+  ],
+  "secids": [
+   26
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "land",
+    24
+   ]
+  ]
+ },
+ "331": {
+  "name": "SPECIES_CACNEA",
+  "best": 6,
+  "secs": [
+   "MAPSEC_ROUTE_111"
+  ],
+  "secids": [
+   26
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "land",
+    6
+   ]
+  ]
+ },
+ "74": {
+  "name": "SPECIES_GEODUDE",
+  "best": 100,
+  "secs": [
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_MAGMA_HIDEOUT",
+   "MAPSEC_ROUTE_111",
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_SAFARI_ZONE",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   55,
+   198,
+   26,
+   29,
+   57,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "rock_smash",
+    100
+   ],
+   [
+    "MAP_ROUTE114",
+    "rock_smash",
+    100
+   ],
+   [
+    "MAP_GRANITE_CAVE_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "rock_smash",
+    70
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "rock_smash",
+    100
+   ],
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "rock_smash",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_1F",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_1R",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_2R",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_1R",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_2R",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_4F",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_3R",
+    "land",
+    55
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_3R",
+    "land",
+    55
+   ]
+  ]
+ },
+ "339": {
+  "name": "SPECIES_BARBOACH",
+  "best": 100,
+  "secs": [
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_ROUTE_111",
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   63,
+   26,
+   29,
+   35,
+   70
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE111",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE111",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_ROUTE114",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE114",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_ROUTE120",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE120",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "super_rod",
+    100
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "super_rod",
+    80
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "super_rod",
+    80
+   ]
+  ]
+ },
+ "322": {
+  "name": "SPECIES_NUMEL",
+  "best": 75,
+  "secs": [
+   "MAPSEC_FIERY_PATH",
+   "MAPSEC_JAGGED_PASS",
+   "MAPSEC_ROUTE_112"
+  ],
+  "secids": [
+   74,
+   76,
+   27
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE112",
+    "land",
+    75
+   ],
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    30
+   ],
+   [
+    "MAP_JAGGED_PASS",
+    "land",
+    55
+   ]
+  ]
+ },
+ "327": {
+  "name": "SPECIES_SPINDA",
+  "best": 70,
+  "secs": [
+   "MAPSEC_ROUTE_113"
+  ],
+  "secids": [
+   28
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE113",
+    "land",
+    70
+   ]
+  ]
+ },
+ "218": {
+  "name": "SPECIES_SLUGMA",
+  "best": 25,
+  "secs": [
+   "MAPSEC_FIERY_PATH",
+   "MAPSEC_ROUTE_113"
+  ],
+  "secids": [
+   74,
+   28
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE113",
+    "land",
+    25
+   ],
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    10
+   ]
+  ]
+ },
+ "227": {
+  "name": "SPECIES_SKARMORY",
+  "best": 5,
+  "secs": [
+   "MAPSEC_ROUTE_113"
+  ],
+  "secids": [
+   28
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE113",
+    "land",
+    5
+   ]
+  ]
+ },
+ "333": {
+  "name": "SPECIES_SWABLU",
+  "best": 40,
+  "secs": [
+   "MAPSEC_ROUTE_114",
+   "MAPSEC_ROUTE_115"
+  ],
+  "secids": [
+   29,
+   30
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE114",
+    "land",
+    40
+   ],
+   [
+    "MAP_ROUTE115",
+    "land",
+    30
+   ]
+  ]
+ },
+ "271": {
+  "name": "SPECIES_LOMBRE",
+  "best": 20,
+  "secs": [
+   "MAPSEC_ROUTE_114"
+  ],
+  "secids": [
+   29
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE114",
+    "land",
+    20
+   ]
+  ]
+ },
+ "336": {
+  "name": "SPECIES_SEVIPER",
+  "best": 9,
+  "secs": [
+   "MAPSEC_ROUTE_114"
+  ],
+  "secids": [
+   29
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE114",
+    "land",
+    9
+   ]
+  ]
+ },
+ "274": {
+  "name": "SPECIES_NUZLEAF",
+  "best": 1,
+  "secs": [
+   "MAPSEC_ROUTE_114"
+  ],
+  "secids": [
+   29
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE114",
+    "land",
+    1
+   ]
+  ]
+ },
+ "293": {
+  "name": "SPECIES_WHISMUR",
+  "best": 100,
+  "secs": [
+   "MAPSEC_DESERT_UNDERPASS",
+   "MAPSEC_ROUTE_116",
+   "MAPSEC_RUSTURF_TUNNEL",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   209,
+   31,
+   60,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE116",
+    "land",
+    20
+   ],
+   [
+    "MAP_RUSTURF_TUNNEL",
+    "land",
+    100
+   ],
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    5
+   ],
+   [
+    "MAP_DESERT_UNDERPASS",
+    "land",
+    34
+   ]
+  ]
+ },
+ "290": {
+  "name": "SPECIES_NINCADA",
+  "best": 20,
+  "secs": [
+   "MAPSEC_ROUTE_116"
+  ],
+  "secids": [
+   31
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE116",
+    "land",
+    20
+   ]
+  ]
+ },
+ "63": {
+  "name": "SPECIES_ABRA",
+  "best": 10,
+  "secs": [
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_ROUTE_116"
+  ],
+  "secids": [
+   55,
+   31
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 63,
+  "reasons": [
+   "variant"
+  ],
+  "var": [
+   "female",
+   "315/128"
+  ],
+  "tables": [
+   [
+    "MAP_ROUTE116",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_B1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_STEVENS_ROOM",
+    "land",
+    10
+   ]
+  ]
+ },
+ "300": {
+  "name": "SPECIES_SKITTY",
+  "best": 2,
+  "secs": [
+   "MAPSEC_ROUTE_116"
+  ],
+  "secids": [
+   31
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 191,
+  "reasons": [
+   "rate",
+   "variant"
+  ],
+  "var": [
+   "male",
+   "65/128"
+  ],
+  "tables": [
+   [
+    "MAP_ROUTE116",
+    "land",
+    2
+   ]
+  ]
+ },
+ "314": {
+  "name": "SPECIES_ILLUMISE",
+  "best": 18,
+  "secs": [
+   "MAPSEC_ROUTE_117"
+  ],
+  "secids": [
+   32
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 254,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE117",
+    "land",
+    18
+   ]
+  ]
+ },
+ "313": {
+  "name": "SPECIES_VOLBEAT",
+  "best": 1,
+  "secs": [
+   "MAPSEC_ROUTE_117"
+  ],
+  "secids": [
+   32
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 0,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE117",
+    "land",
+    1
+   ]
+  ]
+ },
+ "264": {
+  "name": "SPECIES_LINOONE",
+  "best": 30,
+  "secs": [
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119"
+  ],
+  "secids": [
+   33,
+   34
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE118",
+    "land",
+    10
+   ],
+   [
+    "MAP_ROUTE119",
+    "land",
+    30
+   ]
+  ]
+ },
+ "310": {
+  "name": "SPECIES_MANECTRIC",
+  "best": 10,
+  "secs": [
+   "MAPSEC_ROUTE_118"
+  ],
+  "secids": [
+   33
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE118",
+    "land",
+    10
+   ]
+  ]
+ },
+ "352": {
+  "name": "SPECIES_KECLEON",
+  "best": 1,
+  "secs": [
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119",
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123"
+  ],
+  "secids": [
+   33,
+   34,
+   35,
+   36,
+   38
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE118",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE119",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE120",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    1
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    1
+   ]
+  ]
+ },
+ "318": {
+  "name": "SPECIES_CARVANHA",
+  "best": 100,
+  "secs": [
+   "MAPSEC_ROUTE_118",
+   "MAPSEC_ROUTE_119"
+  ],
+  "secids": [
+   33,
+   34
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE118",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE118",
+    "super_rod",
+    60
+   ],
+   [
+    "MAP_ROUTE119",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE119",
+    "super_rod",
+    100
+   ]
+  ]
+ },
+ "285": {
+  "name": "SPECIES_SHROOMISH",
+  "best": 15,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS"
+  ],
+  "secids": [
+   59
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    15
+   ]
+  ]
+ },
+ "266": {
+  "name": "SPECIES_SILCOON",
+  "best": 10,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS"
+  ],
+  "secids": [
+   59
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    10
+   ]
+  ]
+ },
+ "268": {
+  "name": "SPECIES_CASCOON",
+  "best": 10,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS"
+  ],
+  "secids": [
+   59
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    10
+   ]
+  ]
+ },
+ "287": {
+  "name": "SPECIES_SLAKOTH",
+  "best": 5,
+  "secs": [
+   "MAPSEC_PETALBURG_WOODS"
+  ],
+  "secids": [
+   59
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_PETALBURG_WOODS",
+    "land",
+    5
+   ]
+  ]
+ },
+ "41": {
+  "name": "SPECIES_ZUBAT",
+  "best": 100,
+  "secs": [
+   "MAPSEC_ALTERING_CAVE",
+   "MAPSEC_CAVE_OF_ORIGIN",
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_SEAFLOOR_CAVERN",
+   "MAPSEC_SHOAL_CAVE",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   210,
+   72,
+   55,
+   63,
+   68,
+   67,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_GRANITE_CAVE_1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_GRANITE_CAVE_B1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "land",
+    30
+   ],
+   [
+    "MAP_GRANITE_CAVE_STEVENS_ROOM",
+    "land",
+    30
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM1",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM2",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM3",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM4",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM5",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "water",
+    35
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "water",
+    35
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM8",
+    "land",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "water",
+    35
+   ],
+   [
+    "MAP_CAVE_OF_ORIGIN_ENTRANCE",
+    "land",
+    90
+   ],
+   [
+    "MAP_CAVE_OF_ORIGIN_1F",
+    "land",
+    60
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "land",
+    80
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "water",
+    90
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM",
+    "land",
+    45
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "land",
+    45
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "land",
+    45
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "water",
+    30
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "land",
+    45
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "water",
+    30
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "land",
+    40
+   ],
+   [
+    "MAP_ALTERING_CAVE",
+    "land",
+    100
+   ]
+  ]
+ },
+ "296": {
+  "name": "SPECIES_MAKUHITA",
+  "best": 50,
+  "secs": [
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   55,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 63,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_GRANITE_CAVE_1F",
+    "land",
+    50
+   ],
+   [
+    "MAP_GRANITE_CAVE_B1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_STEVENS_ROOM",
+    "land",
+    50
+   ]
+  ]
+ },
+ "304": {
+  "name": "SPECIES_ARON",
+  "best": 40,
+  "secs": [
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   55,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_GRANITE_CAVE_B1F",
+    "land",
+    40
+   ],
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    5
+   ],
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "land",
+    40
+   ],
+   [
+    "MAP_GRANITE_CAVE_STEVENS_ROOM",
+    "land",
+    10
+   ]
+  ]
+ },
+ "302": {
+  "name": "SPECIES_SABLEYE",
+  "best": 35,
+  "secs": [
+   "MAPSEC_CAVE_OF_ORIGIN",
+   "MAPSEC_GRANITE_CAVE",
+   "MAPSEC_SKY_PILLAR",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   72,
+   55,
+   85,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_GRANITE_CAVE_B1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "land",
+    20
+   ],
+   [
+    "MAP_CAVE_OF_ORIGIN_1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "land",
+    35
+   ],
+   [
+    "MAP_SKY_PILLAR_1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_SKY_PILLAR_3F",
+    "land",
+    30
+   ],
+   [
+    "MAP_SKY_PILLAR_5F",
+    "land",
+    30
+   ]
+  ]
+ },
+ "353": {
+  "name": "SPECIES_SHUPPET",
+  "best": 100,
+  "secs": [
+   "MAPSEC_MT_PYRE",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123"
+  ],
+  "secids": [
+   65,
+   36,
+   38
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_MT_PYRE_1F",
+    "land",
+    100
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    30
+   ],
+   [
+    "MAP_MT_PYRE_2F",
+    "land",
+    100
+   ],
+   [
+    "MAP_MT_PYRE_3F",
+    "land",
+    100
+   ],
+   [
+    "MAP_MT_PYRE_4F",
+    "land",
+    90
+   ],
+   [
+    "MAP_MT_PYRE_5F",
+    "land",
+    90
+   ],
+   [
+    "MAP_MT_PYRE_6F",
+    "land",
+    90
+   ],
+   [
+    "MAP_MT_PYRE_EXTERIOR",
+    "land",
+    60
+   ],
+   [
+    "MAP_MT_PYRE_SUMMIT",
+    "land",
+    85
+   ]
+  ]
+ },
+ "42": {
+  "name": "SPECIES_GOLBAT",
+  "best": 100,
+  "secs": [
+   "MAPSEC_CAVE_OF_ORIGIN",
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_SEAFLOOR_CAVERN",
+   "MAPSEC_SHOAL_CAVE",
+   "MAPSEC_SKY_PILLAR",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   72,
+   63,
+   68,
+   67,
+   85,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    25
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "land",
+    50
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "water",
+    90
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM1",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM2",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM3",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM4",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM5",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM6",
+    "water",
+    5
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM7",
+    "water",
+    5
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ROOM8",
+    "land",
+    10
+   ],
+   [
+    "MAP_SEAFLOOR_CAVERN_ENTRANCE",
+    "water",
+    5
+   ],
+   [
+    "MAP_CAVE_OF_ORIGIN_ENTRANCE",
+    "land",
+    10
+   ],
+   [
+    "MAP_CAVE_OF_ORIGIN_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "land",
+    35
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "land",
+    35
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "water",
+    100
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "land",
+    65
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "water",
+    90
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "land",
+    65
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "water",
+    90
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM",
+    "land",
+    5
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "land",
+    5
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "land",
+    5
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "land",
+    5
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "land",
+    5
+   ],
+   [
+    "MAP_SKY_PILLAR_1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_SKY_PILLAR_3F",
+    "land",
+    30
+   ],
+   [
+    "MAP_SKY_PILLAR_5F",
+    "land",
+    30
+   ],
+   [
+    "MAP_METEOR_FALLS_STEVENS_CAVE",
+    "land",
+    65
+   ]
+  ]
+ },
+ "297": {
+  "name": "SPECIES_HARIYAMA",
+  "best": 35,
+  "secs": [
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 63,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    25
+   ],
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "land",
+    35
+   ]
+  ]
+ },
+ "305": {
+  "name": "SPECIES_LAIRON",
+  "best": 25,
+  "secs": [
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "land",
+    25
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "land",
+    25
+   ]
+  ]
+ },
+ "294": {
+  "name": "SPECIES_LOUDRED",
+  "best": 16,
+  "secs": [
+   "MAPSEC_DESERT_UNDERPASS",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   209,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_1F",
+    "land",
+    10
+   ],
+   [
+    "MAP_DESERT_UNDERPASS",
+    "land",
+    16
+   ]
+  ]
+ },
+ "203": {
+  "name": "SPECIES_GIRAFARIG",
+  "best": 20,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    20
+   ]
+  ]
+ },
+ "177": {
+  "name": "SPECIES_NATU",
+  "best": 15,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    15
+   ]
+  ]
+ },
+ "84": {
+  "name": "SPECIES_DODUO",
+  "best": 15,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    15
+   ]
+  ]
+ },
+ "44": {
+  "name": "SPECIES_GLOOM",
+  "best": 15,
+  "secs": [
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123",
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   36,
+   38,
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    5
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    5
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    5
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    5
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    15
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    15
+   ]
+  ]
+ },
+ "202": {
+  "name": "SPECIES_WOBBUFFET",
+  "best": 10,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    10
+   ]
+  ]
+ },
+ "25": {
+  "name": "SPECIES_PIKACHU",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTH",
+    "land",
+    5
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "366": {
+  "name": "SPECIES_CLAMPERL",
+  "best": 65,
+  "secs": [
+   "MAPSEC_UNDERWATER_124",
+   "MAPSEC_UNDERWATER_126"
+  ],
+  "secids": [
+   50,
+   51
+  ],
+  "mingates": 2,
+  "easiest": [
+   [
+    "dive",
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_UNDERWATER_ROUTE126",
+    "water",
+    65
+   ],
+   [
+    "MAP_UNDERWATER_ROUTE124",
+    "water",
+    65
+   ]
+  ]
+ },
+ "170": {
+  "name": "SPECIES_CHINCHOU",
+  "best": 30,
+  "secs": [
+   "MAPSEC_UNDERWATER_124",
+   "MAPSEC_UNDERWATER_126"
+  ],
+  "secids": [
+   50,
+   51
+  ],
+  "mingates": 2,
+  "easiest": [
+   [
+    "dive",
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_UNDERWATER_ROUTE126",
+    "water",
+    30
+   ],
+   [
+    "MAP_UNDERWATER_ROUTE124",
+    "water",
+    30
+   ]
+  ]
+ },
+ "369": {
+  "name": "SPECIES_RELICANTH",
+  "best": 5,
+  "secs": [
+   "MAPSEC_UNDERWATER_124",
+   "MAPSEC_UNDERWATER_126"
+  ],
+  "secids": [
+   50,
+   51
+  ],
+  "mingates": 2,
+  "easiest": [
+   [
+    "dive",
+    "surf"
+   ]
+  ],
+  "ratio": 31,
+  "reasons": [
+   "variant"
+  ],
+  "var": [
+   "female",
+   "155/256"
+  ],
+  "tables": [
+   [
+    "MAP_UNDERWATER_ROUTE126",
+    "water",
+    5
+   ],
+   [
+    "MAP_UNDERWATER_ROUTE124",
+    "water",
+    5
+   ]
+  ]
+ },
+ "73": {
+  "name": "SPECIES_TENTACRUEL",
+  "best": 20,
+  "secs": [
+   "MAPSEC_ABANDONED_SHIP"
+  ],
+  "secids": [
+   61
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ],
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "water",
+    1
+   ],
+   [
+    "MAP_ABANDONED_SHIP_ROOMS_B1F",
+    "super_rod",
+    20
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "water",
+    1
+   ],
+   [
+    "MAP_ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "super_rod",
+    20
+   ]
+  ]
+ },
+ "299": {
+  "name": "SPECIES_NOSEPASS",
+  "best": 30,
+  "secs": [
+   "MAPSEC_GRANITE_CAVE"
+  ],
+  "secids": [
+   55
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rock_smash"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_GRANITE_CAVE_B2F",
+    "rock_smash",
+    30
+   ]
+  ]
+ },
+ "109": {
+  "name": "SPECIES_KOFFING",
+  "best": 25,
+  "secs": [
+   "MAPSEC_FIERY_PATH"
+  ],
+  "secids": [
+   74
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    25
+   ]
+  ]
+ },
+ "66": {
+  "name": "SPECIES_MACHOP",
+  "best": 25,
+  "secs": [
+   "MAPSEC_FIERY_PATH",
+   "MAPSEC_JAGGED_PASS"
+  ],
+  "secids": [
+   74,
+   76
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 63,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    15
+   ],
+   [
+    "MAP_JAGGED_PASS",
+    "land",
+    25
+   ]
+  ]
+ },
+ "324": {
+  "name": "SPECIES_TORKOAL",
+  "best": 30,
+  "secs": [
+   "MAPSEC_FIERY_PATH",
+   "MAPSEC_MAGMA_HIDEOUT"
+  ],
+  "secids": [
+   74,
+   198
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    18
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_1F",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_1R",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_2R",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_1R",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_2R",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_4F",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_3R",
+    "land",
+    30
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_3R",
+    "land",
+    30
+   ]
+  ]
+ },
+ "88": {
+  "name": "SPECIES_GRIMER",
+  "best": 2,
+  "secs": [
+   "MAPSEC_FIERY_PATH"
+  ],
+  "secids": [
+   74
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_FIERY_PATH",
+    "land",
+    2
+   ]
+  ]
+ },
+ "371": {
+  "name": "SPECIES_BAGON",
+  "best": 25,
+  "secs": [
+   "MAPSEC_METEOR_FALLS"
+  ],
+  "secids": [
+   63
+  ],
+  "mingates": 2,
+  "easiest": [
+   [
+    "surf",
+    "waterfall"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [
+   "pseudo"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "land",
+    25
+   ]
+  ]
+ },
+ "338": {
+  "name": "SPECIES_SOLROCK",
+  "best": 35,
+  "secs": [
+   "MAPSEC_METEOR_FALLS"
+  ],
+  "secids": [
+   63
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "land",
+    25
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "water",
+    10
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "land",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_1R",
+    "water",
+    10
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "land",
+    35
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "water",
+    10
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "land",
+    35
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "water",
+    10
+   ],
+   [
+    "MAP_METEOR_FALLS_STEVENS_CAVE",
+    "land",
+    35
+   ]
+  ]
+ },
+ "340": {
+  "name": "SPECIES_WHISCASH",
+  "best": 20,
+  "secs": [
+   "MAPSEC_METEOR_FALLS",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   63,
+   70
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_METEOR_FALLS_B1F_2R",
+    "super_rod",
+    20
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "super_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_1F_2R",
+    "super_rod",
+    20
+   ],
+   [
+    "MAP_METEOR_FALLS_B1F_1R",
+    "super_rod",
+    20
+   ]
+  ]
+ },
+ "325": {
+  "name": "SPECIES_SPOINK",
+  "best": 20,
+  "secs": [
+   "MAPSEC_JAGGED_PASS"
+  ],
+  "secids": [
+   76
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_JAGGED_PASS",
+    "land",
+    20
+   ]
+  ]
+ },
+ "277": {
+  "name": "SPECIES_SWELLOW",
+  "best": 10,
+  "secs": [
+   "MAPSEC_ROUTE_115"
+  ],
+  "secids": [
+   30
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE115",
+    "land",
+    10
+   ]
+  ]
+ },
+ "39": {
+  "name": "SPECIES_JIGGLYPUFF",
+  "best": 10,
+  "secs": [
+   "MAPSEC_ROUTE_115"
+  ],
+  "secids": [
+   30
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 191,
+  "reasons": [
+   "variant"
+  ],
+  "var": [
+   "male",
+   "325/128"
+  ],
+  "tables": [
+   [
+    "MAP_ROUTE115",
+    "land",
+    10
+   ]
+  ]
+ },
+ "100": {
+  "name": "SPECIES_VOLTORB",
+  "best": 50,
+  "secs": [
+   "MAPSEC_NEW_MAUVILLE"
+  ],
+  "secids": [
+   62
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_NEW_MAUVILLE_INSIDE",
+    "land",
+    49
+   ],
+   [
+    "MAP_NEW_MAUVILLE_ENTRANCE",
+    "land",
+    50
+   ]
+  ]
+ },
+ "81": {
+  "name": "SPECIES_MAGNEMITE",
+  "best": 50,
+  "secs": [
+   "MAPSEC_NEW_MAUVILLE"
+  ],
+  "secids": [
+   62
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_NEW_MAUVILLE_INSIDE",
+    "land",
+    49
+   ],
+   [
+    "MAP_NEW_MAUVILLE_ENTRANCE",
+    "land",
+    50
+   ]
+  ]
+ },
+ "101": {
+  "name": "SPECIES_ELECTRODE",
+  "best": 1,
+  "secs": [
+   "MAPSEC_NEW_MAUVILLE"
+  ],
+  "secids": [
+   62
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_NEW_MAUVILLE_INSIDE",
+    "land",
+    1
+   ]
+  ]
+ },
+ "82": {
+  "name": "SPECIES_MAGNETON",
+  "best": 1,
+  "secs": [
+   "MAPSEC_NEW_MAUVILLE"
+  ],
+  "secids": [
+   62
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_NEW_MAUVILLE_INSIDE",
+    "land",
+    1
+   ]
+  ]
+ },
+ "357": {
+  "name": "SPECIES_TROPIUS",
+  "best": 9,
+  "secs": [
+   "MAPSEC_ROUTE_119"
+  ],
+  "secids": [
+   34
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE119",
+    "land",
+    9
+   ]
+  ]
+ },
+ "262": {
+  "name": "SPECIES_MIGHTYENA",
+  "best": 30,
+  "secs": [
+   "MAPSEC_ROUTE_120",
+   "MAPSEC_ROUTE_121",
+   "MAPSEC_ROUTE_123"
+  ],
+  "secids": [
+   35,
+   36,
+   38
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE120",
+    "land",
+    30
+   ],
+   [
+    "MAP_ROUTE121",
+    "land",
+    20
+   ],
+   [
+    "MAP_ROUTE123",
+    "land",
+    20
+   ]
+  ]
+ },
+ "359": {
+  "name": "SPECIES_ABSOL",
+  "best": 8,
+  "secs": [
+   "MAPSEC_ROUTE_120"
+  ],
+  "secids": [
+   35
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE120",
+    "land",
+    8
+   ]
+  ]
+ },
+ "355": {
+  "name": "SPECIES_DUSKULL",
+  "best": 13,
+  "secs": [
+   "MAPSEC_MT_PYRE"
+  ],
+  "secids": [
+   65
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_MT_PYRE_4F",
+    "land",
+    10
+   ],
+   [
+    "MAP_MT_PYRE_5F",
+    "land",
+    10
+   ],
+   [
+    "MAP_MT_PYRE_6F",
+    "land",
+    10
+   ],
+   [
+    "MAP_MT_PYRE_SUMMIT",
+    "land",
+    13
+   ]
+  ]
+ },
+ "37": {
+  "name": "SPECIES_VULPIX",
+  "best": 30,
+  "secs": [
+   "MAPSEC_MT_PYRE"
+  ],
+  "secids": [
+   65
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 191,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_MT_PYRE_EXTERIOR",
+    "land",
+    30
+   ]
+  ]
+ },
+ "358": {
+  "name": "SPECIES_CHIMECHO",
+  "best": 2,
+  "secs": [
+   "MAPSEC_MT_PYRE"
+  ],
+  "secids": [
+   65
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_MT_PYRE_SUMMIT",
+    "land",
+    2
+   ]
+  ]
+ },
+ "370": {
+  "name": "SPECIES_LUVDISC",
+  "best": 40,
+  "secs": [
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_ROUTE_128"
+  ],
+  "secids": [
+   15,
+   43
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 191,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE128",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_ROUTE128",
+    "super_rod",
+    40
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "super_rod",
+    40
+   ]
+  ]
+ },
+ "222": {
+  "name": "SPECIES_CORSOLA",
+  "best": 15,
+  "secs": [
+   "MAPSEC_EVER_GRANDE_CITY",
+   "MAPSEC_ROUTE_128"
+  ],
+  "secids": [
+   15,
+   43
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 191,
+  "reasons": [
+   "variant"
+  ],
+  "var": [
+   "male",
+   "975/256"
+  ],
+  "tables": [
+   [
+    "MAP_ROUTE128",
+    "super_rod",
+    15
+   ],
+   [
+    "MAP_EVER_GRANDE_CITY",
+    "super_rod",
+    15
+   ]
+  ]
+ },
+ "321": {
+  "name": "SPECIES_WAILORD",
+  "best": 1,
+  "secs": [
+   "MAPSEC_ROUTE_129"
+  ],
+  "secids": [
+   44
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE129",
+    "water",
+    1
+   ]
+  ]
+ },
+ "116": {
+  "name": "SPECIES_HORSEA",
+  "best": 15,
+  "secs": [
+   "MAPSEC_ROUTE_132",
+   "MAPSEC_ROUTE_133",
+   "MAPSEC_ROUTE_134"
+  ],
+  "secids": [
+   47,
+   48,
+   49
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ROUTE132",
+    "super_rod",
+    15
+   ],
+   [
+    "MAP_ROUTE133",
+    "super_rod",
+    15
+   ],
+   [
+    "MAP_ROUTE134",
+    "super_rod",
+    15
+   ]
+  ]
+ },
+ "54": {
+  "name": "SPECIES_PSYDUCK",
+  "best": 100,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "water",
+    100
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "water",
+    95
+   ]
+  ]
+ },
+ "119": {
+  "name": "SPECIES_SEAKING",
+  "best": 20,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHWEST",
+    "super_rod",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "super_rod",
+    20
+   ]
+  ]
+ },
+ "231": {
+  "name": "SPECIES_PHANPY",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    30
+   ]
+  ]
+ },
+ "178": {
+  "name": "SPECIES_XATU",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    5
+   ]
+  ]
+ },
+ "214": {
+  "name": "SPECIES_HERACROSS",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTH",
+    "land",
+    5
+   ]
+  ]
+ },
+ "111": {
+  "name": "SPECIES_RHYHORN",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    30
+   ]
+  ]
+ },
+ "85": {
+  "name": "SPECIES_DODRIO",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "127": {
+  "name": "SPECIES_PINSIR",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "55": {
+  "name": "SPECIES_GOLDUCK",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHWEST",
+    "water",
+    5
+   ]
+  ]
+ },
+ "303": {
+  "name": "SPECIES_MAWILE",
+  "best": 5,
+  "secs": [
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "land",
+    5
+   ],
+   [
+    "MAP_VICTORY_ROAD_B2F",
+    "land",
+    5
+   ]
+  ]
+ },
+ "75": {
+  "name": "SPECIES_GRAVELER",
+  "best": 70,
+  "secs": [
+   "MAPSEC_MAGMA_HIDEOUT",
+   "MAPSEC_VICTORY_ROAD"
+  ],
+  "secids": [
+   198,
+   70
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_VICTORY_ROAD_B1F",
+    "rock_smash",
+    70
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_1F",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_1R",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_2R",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_1R",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_2R",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_4F",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_3F_3R",
+    "land",
+    15
+   ],
+   [
+    "MAP_MAGMA_HIDEOUT_2F_3R",
+    "land",
+    15
+   ]
+  ]
+ },
+ "363": {
+  "name": "SPECIES_SPHEAL",
+  "best": 50,
+  "secs": [
+   "MAPSEC_SHOAL_CAVE"
+  ],
+  "secids": [
+   67
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM",
+    "land",
+    50
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "land",
+    50
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "land",
+    50
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "water",
+    10
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "land",
+    50
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "water",
+    10
+   ],
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "land",
+    45
+   ]
+  ]
+ },
+ "120": {
+  "name": "SPECIES_STARYU",
+  "best": 15,
+  "secs": [
+   "MAPSEC_LILYCOVE_CITY"
+  ],
+  "secids": [
+   12
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_LILYCOVE_CITY",
+    "super_rod",
+    15
+   ]
+  ]
+ },
+ "361": {
+  "name": "SPECIES_SNORUNT",
+  "best": 10,
+  "secs": [
+   "MAPSEC_SHOAL_CAVE"
+  ],
+  "secids": [
+   67
+  ],
+  "mingates": 2,
+  "easiest": [
+   [
+    "strength",
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [
+   "pseudo"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "land",
+    10
+   ]
+  ]
+ },
+ "344": {
+  "name": "SPECIES_CLAYDOL",
+  "best": 25,
+  "secs": [
+   "MAPSEC_SKY_PILLAR"
+  ],
+  "secids": [
+   85
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SKY_PILLAR_1F",
+    "land",
+    25
+   ],
+   [
+    "MAP_SKY_PILLAR_3F",
+    "land",
+    25
+   ],
+   [
+    "MAP_SKY_PILLAR_5F",
+    "land",
+    19
+   ]
+  ]
+ },
+ "354": {
+  "name": "SPECIES_BANETTE",
+  "best": 15,
+  "secs": [
+   "MAPSEC_SKY_PILLAR"
+  ],
+  "secids": [
+   85
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SKY_PILLAR_1F",
+    "land",
+    15
+   ],
+   [
+    "MAP_SKY_PILLAR_3F",
+    "land",
+    15
+   ],
+   [
+    "MAP_SKY_PILLAR_5F",
+    "land",
+    15
+   ]
+  ]
+ },
+ "130": {
+  "name": "SPECIES_GYARADOS",
+  "best": 20,
+  "secs": [
+   "MAPSEC_SOOTOPOLIS_CITY"
+  ],
+  "secids": [
+   14
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SOOTOPOLIS_CITY",
+    "super_rod",
+    20
+   ]
+  ]
+ },
+ "334": {
+  "name": "SPECIES_ALTARIA",
+  "best": 6,
+  "secs": [
+   "MAPSEC_SKY_PILLAR"
+  ],
+  "secids": [
+   85
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SKY_PILLAR_5F",
+    "land",
+    6
+   ]
+  ]
+ },
+ "191": {
+  "name": "SPECIES_SUNKERN",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    30
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    10
+   ]
+  ]
+ },
+ "179": {
+  "name": "SPECIES_MAREEP",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    30
+   ]
+  ]
+ },
+ "190": {
+  "name": "SPECIES_AIPOM",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    10
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    30
+   ]
+  ]
+ },
+ "167": {
+  "name": "SPECIES_SPINARAK",
+  "best": 10,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    10
+   ]
+  ]
+ },
+ "163": {
+  "name": "SPECIES_HOOTHOOT",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    5
+   ],
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "209": {
+  "name": "SPECIES_SNUBBULL",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 191,
+  "reasons": [
+   "variant"
+  ],
+  "var": [
+   "male",
+   "325/256"
+  ],
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "234": {
+  "name": "SPECIES_STANTLER",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "207": {
+  "name": "SPECIES_GLIGAR",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "194": {
+  "name": "SPECIES_WOOPER",
+  "best": 60,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "water",
+    60
+   ]
+  ]
+ },
+ "195": {
+  "name": "SPECIES_QUAGSIRE",
+  "best": 1,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "surf"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "water",
+    1
+   ]
+  ]
+ },
+ "223": {
+  "name": "SPECIES_REMORAID",
+  "best": 59,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "good_rod",
+    20
+   ],
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "super_rod",
+    59
+   ]
+  ]
+ },
+ "224": {
+  "name": "SPECIES_OCTILLERY",
+  "best": 1,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rod"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [
+   "rate"
+  ],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_SOUTHEAST",
+    "super_rod",
+    1
+   ]
+  ]
+ },
+ "216": {
+  "name": "SPECIES_TEDDIURSA",
+  "best": 30,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    30
+   ]
+  ]
+ },
+ "165": {
+  "name": "SPECIES_LEDYBA",
+  "best": 10,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    10
+   ]
+  ]
+ },
+ "204": {
+  "name": "SPECIES_PINECO",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "228": {
+  "name": "SPECIES_HOUNDOUR",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "241": {
+  "name": "SPECIES_MILTANK",
+  "best": 5,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 254,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "land",
+    5
+   ]
+  ]
+ },
+ "213": {
+  "name": "SPECIES_SHUCKLE",
+  "best": 100,
+  "secs": [
+   "MAPSEC_SAFARI_ZONE"
+  ],
+  "secids": [
+   57
+  ],
+  "mingates": 1,
+  "easiest": [
+   [
+    "rock_smash"
+   ]
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_SAFARI_ZONE_NORTHEAST",
+    "rock_smash",
+    100
+   ]
+  ]
+ },
+ "132": {
+  "name": "SPECIES_DITTO",
+  "best": 50,
+  "secs": [
+   "MAPSEC_DESERT_UNDERPASS"
+  ],
+  "secids": [
+   209
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 255,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_DESERT_UNDERPASS",
+    "land",
+    50
+   ]
+  ]
+ },
+ "235": {
+  "name": "SPECIES_SMEARGLE",
+  "best": 100,
+  "secs": [
+   "MAPSEC_ARTISAN_CAVE"
+  ],
+  "secids": [
+   202
+  ],
+  "mingates": 0,
+  "easiest": [
+   []
+  ],
+  "ratio": 127,
+  "reasons": [],
+  "var": null,
+  "tables": [
+   [
+    "MAP_ARTISAN_CAVE_B1F",
+    "land",
+    100
+   ],
+   [
+    "MAP_ARTISAN_CAVE_1F",
+    "land",
+    100
+   ]
+  ]
+ }
+}

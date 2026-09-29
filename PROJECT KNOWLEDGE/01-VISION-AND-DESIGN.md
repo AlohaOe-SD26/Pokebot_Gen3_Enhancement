@@ -263,6 +263,24 @@ it.
   to answer *"does A ever actually differ from B in a real run?"* before any decision depends on
   it. Re-pointing the capacity-shaped call sites is Stage 1 and is gated on that measurement.
 
+### Rarity predicate (`sandbox-pokebot/modules/rarity.py` + `modules/data/emerald_rarity.json`, new 2026-09-29)
+- **Purpose:** answer "is this wild Pokémon RARE?" the way the user defined it, so the catch rules can treat rare
+  species differently. USER RULING 25 lifts the cap of 3 for rare, shiny and legendary species; ROSTER RULING 3 makes
+  rare the duplicate exemption. RARE = legendary, Feebas, a thin encounter rate (≤ 4%), the user's "pseudo-rare"
+  (one area, behind two or more HMs or a rod off the story path: Bagon, Snorunt), or the minority gender of a thin
+  species (the user's male Skitty, the ULTRA tier).
+- **Must do:** stay DATA. The table is generated from the ROM and gated, never hand-edited. Never raise: a verdict
+  that cannot be decided is "not rare" with a note.
+- **Where it stands:** built and inert (design v2 step 7). Step 8 is its first consumer. Q5, Q6 and Q7 are the
+  user's to confirm.
+
+### Trainer identity (`sandbox-pokebot/modules/story/trainer_identity.py`, new 2026-09-29)
+- **Purpose:** name every trainer battle and its prize money from the game's own tables. The always-on `[TRAINER]`
+  lines (design v2 step 5) make money-making measurable (RULING 26). The key-class set decides which battles may use
+  healing items (RULING 27, step 6, behind `POKEBOT_R27_KEYITEMS`).
+- **Must do:** carry identity and money only in the always-on lines, never a policy verdict; fail open when a side is
+  unreadable, so a boss fight never loses its items to a reader bug.
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

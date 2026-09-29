@@ -21,8 +21,8 @@ LEGENDARY. It is a sibling of rare in RULING 25 ("rare/shiny/legendary", 06:8047
 kinds; it is folded in here because step 8 treats all three the same way (uncapped).
 
 `note` explains a verdict that could not look anything up: "no_data" (no wild table and not listed: Surskit, Wynaut,
-Sudowoodo), "no_species" (an empty slot, or species index 0, whose national number reads as 151 = Mew), or
-"adapter_error:<Type>". A verdict is never raised: a caller in a battle loop must not crash on a telemetry question.
+Sudowoodo), "no_species" (an empty slot, or species index 0, whose national number reads as 151 = Mew), "invalid"
+(a failed checksum: the species bytes are garbage), "egg", or "adapter_error:<Type>". A verdict is never raised: a caller in a battle loop must not crash on a telemetry question.
 """
 
 from __future__ import annotations
@@ -86,6 +86,12 @@ def encounter_rarity(pokemon, table: dict[int, dict] | None = None) -> RareVerdi
     try:
         if pokemon is None or pokemon.is_empty:
             return RareVerdict(False, None, (), "no_species")
+        # ‼ A mon that fails its checksum decrypts to an arbitrary species, which can be a legendary (the review
+        # measured a random blob reading as Lugia), and the opponent-party reader does not filter these out.
+        if not pokemon.is_valid:
+            return RareVerdict(False, None, (), "invalid")
+        if pokemon.is_egg:
+            return RareVerdict(False, None, (), "egg")
         species = pokemon.species
         if species.index == 0:
             return RareVerdict(False, None, (), "no_species")

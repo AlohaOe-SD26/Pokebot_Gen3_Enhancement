@@ -1,0 +1,103 @@
+committed rows 153 wild rows 131 mine wild 131
+in committed-wild not mine: []
+in mine not committed-wild: []
+committed non-wild rows: [('144', 'Articuno', ['legendary']), ('145', 'Zapdos', ['legendary']), ('146', 'Moltres', ['legendary']), ('150', 'Mewtwo', ['legendary']), ('151', 'Mew', ['legendary']), ('243', 'Raikou', ['legendary']), ('244', 'Entei', ['legendary']), ('245', 'Suicune', ['legendary']), ('249', 'Lugia', ['legendary']), ('250', 'Ho-Oh', ['legendary']), ('251', 'Celebi', ['legendary']), ('349', 'Feebas', ['special']), ('377', 'Regirock', ['legendary']), ('378', 'Regice', ['legendary']), ('379', 'Registeel', ['legendary']), ('380', 'Latias', ['legendary']), ('381', 'Latios', ['legendary']), ('382', 'Kyogre', ['legendary']), ('383', 'Groudon', ['legendary']), ('384', 'Rayquaza', ['legendary']), ('385', 'Jirachi', ['legendary']), ('386', 'Deoxys', ['legendary'])]
+
+DIFFS:
+  ('39', 'Jigglypuff', 'reasons', ['variant'], [])
+  ('63', 'Abra', 'reasons', ['variant'], [])
+  ('72', 'Tentacool', 'gates(multi-mapsec, info)', [['rod'], ['surf']], ['rod'])
+  ('73', 'Tentacruel', 'gates(single-mapsec)', [['rod'], ['surf']], ['rod'])
+  ('116', 'Horsea', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('118', 'Goldeen', 'gates(multi-mapsec, info)', [['rod'], ['surf']], ['rod'])
+  ('129', 'Magikarp', 'gates(multi-mapsec, info)', [['rod'], ['surf']], ['rod'])
+  ('170', 'Chinchou', 'gates(multi-mapsec, info)', [['dive', 'surf']], ['dive', 'surf'])
+  ('209', 'Snubbull', 'reasons', ['variant'], [])
+  ('222', 'Corsola', 'reasons', ['variant'], [])
+  ('222', 'Corsola', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('279', 'Pelipper', 'gates(multi-mapsec, info)', [['surf']], ['surf'])
+  ('300', 'Skitty', 'reasons', ['rate', 'variant'], ['rate'])
+  ('318', 'Carvanha', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('319', 'Sharpedo', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('320', 'Wailmer', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('339', 'Barboach', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('340', 'Whiscash', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('341', 'Corphish', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+  ('366', 'Clamperl', 'gates(multi-mapsec, info)', [['dive', 'surf']], ['dive', 'surf'])
+  ('369', 'Relicanth', 'reasons', ['variant'], [])
+  ('369', 'Relicanth', 'gates(multi-mapsec, info)', [['dive', 'surf']], ['dive', 'surf'])
+  ('370', 'Luvdisc', 'gates(multi-mapsec, info)', [['rod']], ['rod'])
+
+Reason diffs ignoring variant token:
+
+any committed row carrying reason variant: []
+committed rows with variant_gender set: [('39', 'Jigglypuff', 'male', 2.5390625), ('63', 'Abra', 'female', 2.4609375), ('209', 'Snubbull', 'male', 1.26953125), ('222', 'Corsola', 'male', 3.80859375), ('300', 'Skitty', 'male', 0.5078125), ('369', 'Relicanth', 'female', 0.60546875)]
+committed legendary/special reasons: [(144, ['legendary']), (145, ['legendary']), (146, ['legendary']), (150, ['legendary']), (151, ['legendary']), (243, ['legendary']), (244, ['legendary']), (245, ['legendary']), (249, ['legendary']), (250, ['legendary']), (251, ['legendary']), (349, ['special']), (377, ['legendary']), (378, ['legendary']), (379, ['legendary']), (380, ['legendary']), (381, ['legendary']), (382, ['legendary']), (383, ['legendary']), (384, ['legendary']), (385, ['legendary']), (386, ['legendary'])]
+legendary set ok: True [] []
+special: ['349']
+mapsec sample check (id -> decomp name):
+   2 MAPSEC_DEWFORD_TOWN
+   6 MAPSEC_PACIFIDLOG_TOWN
+   7 MAPSEC_PETALBURG_CITY
+   8 MAPSEC_SLATEPORT_CITY
+   12 MAPSEC_LILYCOVE_CITY
+   13 MAPSEC_MOSSDEEP_CITY
+   14 MAPSEC_SOOTOPOLIS_CITY
+   15 MAPSEC_EVER_GRANDE_CITY
+   16 MAPSEC_ROUTE_101
+   17 MAPSEC_ROUTE_102
+   18 MAPSEC_ROUTE_103
+   19 MAPSEC_ROUTE_104
+   20 MAPSEC_ROUTE_105
+   21 MAPSEC_ROUTE_106
+   22 MAPSEC_ROUTE_107
+   23 MAPSEC_ROUTE_108
+   24 MAPSEC_ROUTE_109
+   25 MAPSEC_ROUTE_110
+   26 MAPSEC_ROUTE_111
+   27 MAPSEC_ROUTE_112
+   28 MAPSEC_ROUTE_113
+   29 MAPSEC_ROUTE_114
+   30 MAPSEC_ROUTE_115
+   31 MAPSEC_ROUTE_116
+   32 MAPSEC_ROUTE_117
+   33 MAPSEC_ROUTE_118
+   34 MAPSEC_ROUTE_119
+   35 MAPSEC_ROUTE_120
+   36 MAPSEC_ROUTE_121
+   37 MAPSEC_ROUTE_122
+   38 MAPSEC_ROUTE_123
+   39 MAPSEC_ROUTE_124
+   40 MAPSEC_ROUTE_125
+   41 MAPSEC_ROUTE_126
+   42 MAPSEC_ROUTE_127
+   43 MAPSEC_ROUTE_128
+   44 MAPSEC_ROUTE_129
+   45 MAPSEC_ROUTE_130
+   46 MAPSEC_ROUTE_131
+   47 MAPSEC_ROUTE_132
+   48 MAPSEC_ROUTE_133
+   49 MAPSEC_ROUTE_134
+   50 MAPSEC_UNDERWATER_124
+   51 MAPSEC_UNDERWATER_126
+   55 MAPSEC_GRANITE_CAVE
+   57 MAPSEC_SAFARI_ZONE
+   59 MAPSEC_PETALBURG_WOODS
+   60 MAPSEC_RUSTURF_TUNNEL
+   61 MAPSEC_ABANDONED_SHIP
+   62 MAPSEC_NEW_MAUVILLE
+   63 MAPSEC_METEOR_FALLS
+   65 MAPSEC_MT_PYRE
+   67 MAPSEC_SHOAL_CAVE
+   68 MAPSEC_SEAFLOOR_CAVERN
+   70 MAPSEC_VICTORY_ROAD
+   72 MAPSEC_CAVE_OF_ORIGIN
+   74 MAPSEC_FIERY_PATH
+   76 MAPSEC_JAGGED_PASS
+   85 MAPSEC_SKY_PILLAR
+   198 MAPSEC_MAGMA_HIDEOUT
+   199 MAPSEC_MIRAGE_TOWER
+   202 MAPSEC_ARTISAN_CAVE
+   209 MAPSEC_DESERT_UNDERPASS
+   210 MAPSEC_ALTERING_CAVE
+gates_unmeasured present: ['ABANDONED_SHIP', 'ARTISAN_CAVE', 'DESERT_UNDERPASS', 'NEW_MAUVILLE', 'SAFARI_ZONE']

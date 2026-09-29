@@ -128,15 +128,19 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   reviewer reads the docs as they will ship, and "the next item to build is <this item>" is a blocker. The
   pointers are 04's banner, 04's `➡➡➡ START HERE`, the punch-list item and the design note's status. Apply them
   before the review; re-edit them if the review changes the item.
-* ⛔ **A CONTROL FOR A NEW INSTRUMENT IS AN ORACLE'S ANSWER ON THE DECISIVE CASES, NOT ANOTHER INSTRUMENT'S COUNT**
-  (added 2026-09-29, 08). A flood fill that must "reproduce 262 tiles" recorded by a decomp decode can fail for
-  counting reasons and prove nothing. Ask it instead to agree with production `calculate_path` on the named tiles the
-  claim turns on.
-* ✅ **`calculate_path` CAN A/B A BOULDER OR ANY OBJECT-TEMPLATE WALL** (added 2026-09-29). With the player on another
-  map, an object-template tile is a wall while its hide-flag is CLEAR (`map_path.py` `is_tile_accessible`). Wrap
-  `map_path.get_event_flag_by_number` to force that one flag clear (object present) and then set (object gone), and
-  ask for the path both ways. `probe_rarity_shoal_path.py` is the worked example: the Shoal Cave boulder that seals
-  the Ice Room.
+* ⛔ **A CONTROL MUST BE ABLE TO FAIL, FROM A SOURCE INDEPENDENT OF THE SUBJECT** (added 2026-09-29, 08). A flood that
+  must "reproduce 262 tiles" from a different decoder can fail on a rules difference and prove nothing. A flood
+  transcribed from `calculate_path`'s code cannot be controlled BY `calculate_path`: agreement is guaranteed. Name the
+  decisive cases and take their answers from somewhere else. Know which way your instrument errs: a MORE permissive
+  pathfinder makes its NO-PATH readings conservative, and its PATH readings weak.
+* ✅ **`calculate_path` CAN A/B A BOULDER OR ANY OBJECT-TEMPLATE WALL, INCLUDING THE PUSH** (added 2026-09-29). With
+  the player on another map, an object-template tile is a wall while its hide-flag is CLEAR (`map_path.py`
+  `is_tile_accessible`).
+  - Force the flag clear with the object in place: that tests NECESSITY.
+  - Deleting the object (flag set) only shows it is what blocks. It does NOT show a push works.
+  - For a push, keep the flag clear and inject a fake LIVE object at the pushed tile (`get_map_objects` returning an
+    extra entry with the same local id). The template tile is then free and the new tile walled. Then ask for the path.
+  - `probe_rarity_shoal_path.py` is the worked example: three pushes open the Shoal Cave Ice Room; two do not.
 * ✅ **TWO READERS OF THE SAME DATA: KEEP BOTH AND ASSERT THE EXACT DIFF** (added 2026-09-29, KI-113). The static ROM
   read of the wild tables and the runtime cache agree everywhere except Altering Cave, and the generator asserts
   exactly that. A new difference then turns a check red instead of silently changing a verdict.

@@ -13,7 +13,8 @@ WHAT IT CHECKS
   S   full-set equality against the literal lists (rate 14, variant 6, pseudo, legendary 21, special 1, nothing else).
   D   data facts the recon found: the UNDERWATER name trap, the Altering Cave dead set, the excluded rows.
   P   the generator's pure rule on synthetic stubs (per-MAPSEC counting, min over rows, the underwater gate, P(minority)).
-  C   `rare_species_dataset.py --check`: the committed JSON is exactly what the generator produces.
+  C   `rare_species_dataset.py --check`: the committed JSON is exactly what the generator produces (C1), and the
+      comparator goes red on a drifted copy (C2).
   M   one source mutant per guard, each of which must turn a named check RED (a missing anchor fails explicitly), and
       a negative arm: editing a COMMENT that mentions a guarded token must turn nothing red.
 
@@ -71,15 +72,19 @@ class Mon:
 
     gender = Pokemon.gender
 
-    def __init__(self, national=None, pv=0, shiny=False, empty=False, internal=None):
+    def __init__(self, national=None, pv=0, shiny=False, empty=False, internal=None, valid=True, egg=False):
         self.species = get_species_by_index(internal) if internal is not None else get_species_by_national_dex(national)
         self.personality_value = pv
         self.is_shiny = shiny
         self.is_empty = empty
+        self.is_valid = valid
+        self.is_egg = egg
 
 
 class RaisingMon:
     is_empty = False
+    is_valid = True
+    is_egg = False
 
     @property
     def species(self):
@@ -144,7 +149,11 @@ def literal_rows(mod, table, tag="") -> list[str]:
         if not tag:
             check(label, ok, f"got {v}")
 
-    special("L27 an empty slot -> not rare, no_species", Mon(internal=0, empty=True), "no_species")
+    # ‼ The empty slot names a REAL species (stale bytes), so only the is_empty guard can keep it out (the review:
+    # an internal-0 fixture here passed with that guard deleted, because the index-0 guard caught it first).
+    special("L27 an empty slot whose stale bytes name Mew -> not rare, no_species", Mon(151, empty=True), "no_species")
+    special("L27b a failed checksum that decodes to Lugia -> not rare, invalid", Mon(249, valid=False), "invalid")
+    special("L27c an egg of a male Skitty -> not rare, egg", Mon(300, 0xC0, egg=True), "egg")
     special("L28 species index 0 (national reads 151 = Mew) -> not rare, no_species", Mon(internal=0), "no_species")
     special("L29 an adapter that raises -> not rare, adapter_error, no raise", RaisingMon(), "adapter_error:RuntimeError")
     special("L30 None -> not rare, no_species", None, "no_species")
@@ -248,6 +257,23 @@ def run_check(g) -> tuple[int, str]:
     return rc, buf.getvalue()
 
 
+def drift_detected(g) -> tuple[bool, str]:
+    """Point `--check` at a DRIFTED copy of the committed table (Bagon's gates edited) and require it to go red. This
+    is the only thing that fault-tests the comparator, which alone catches edits to MAP_ACCESS_GATES, the underwater
+    rule or the method gates (none of the S/D/P rows see those; the step 7 review measured it)."""
+    drifted = json.loads(rarity.DATA_FILE.read_text(encoding="utf-8"))
+    drifted["species"]["371"]["gates"] = ["surf"]
+    saved = g.OUT
+    with tempfile.TemporaryDirectory() as tmp:
+        g.OUT = pathlib.Path(tmp) / "emerald_rarity.json"
+        g.OUT.write_text(json.dumps(drifted, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        try:
+            rc, out = run_check(g)
+        finally:
+            g.OUT = saved
+    return rc == 1 and "FAIL  --check:" in out, f"rc={rc}"
+
+
 # ------------------------------------------------------------------------------------------------ mutants
 def mutant(path: pathlib.Path, name: str, old: str, new: str, count: int = 1) -> types.ModuleType:
     src = path.read_text(encoding="utf-8")
@@ -288,6 +314,8 @@ def main() -> int:
     for line in out.splitlines():
         if "SKIP" in line:
             print(f"  {line.strip()}")
+    ok, detail = drift_detected(gen)
+    check("C2 --check goes RED on a drifted copy of the table (the comparator can fail)", ok, detail)
 
     print("\nM — mutants (each must turn its named check RED)")
 
@@ -335,9 +363,23 @@ def main() -> int:
         m = mutant(GEN_PATH, "edge1", "s, d = tuple(edge[0]), tuple(edge[2])", "s, d = tuple(edge[0]), tuple(edge[1])")
         rc_m, out_m = run_check(m)
         check("M13 parsing edge[1] -> --check red (the warp-depth column and the record drift)",
-              rc_m == 1 and "FAIL  the record: the warp-depth histogram" in out_m, f"rc={rc_m}")
+              rc_m == 1 and "FAIL  the record: the warp-depth histogram" in out_m and "FAIL  --check:" in out_m,
+              f"rc={rc_m}")
     else:
         print("  SKIP  M13 edge[1] — cache/ is absent. THIS IS NOT A PASS.")
+
+    m = mutant(RAR_PATH, "no_empty_guard", "        if pokemon is None or pokemon.is_empty:\n",
+               "        if pokemon is None:\n")
+    expect_red("M14 no is_empty guard -> L27 red (a stale Mew reads as legendary)", literal_rows(m, table, "m"), "L27 ")
+    m = mutant(RAR_PATH, "no_valid_guard", "        if not pokemon.is_valid:\n", "        if False:\n")
+    expect_red("M15 no checksum guard -> L27b red", literal_rows(m, table, "m"), "L27b ")
+    m = mutant(RAR_PATH, "no_egg_guard", "        if pokemon.is_egg:\n", "        if False:\n")
+    expect_red("M16 no egg guard -> L27c red", literal_rows(m, table, "m"), "L27c ")
+    m = mutant(GEN_PATH, "blind_comparator",
+               '        committed = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}',
+               "        committed = json.loads(text)")
+    ok, detail = drift_detected(m)
+    check("M17 a --check that compares the fresh table with itself -> C2 red", not ok, detail)
 
     print("\nN — negative arm: a comment mentioning guarded tokens is not a guard")
     m = mutant(GEN_PATH, "comment_only", "(`modules/warp_graph.py` `to_json`), so the destination MAP is `edge[2]`",

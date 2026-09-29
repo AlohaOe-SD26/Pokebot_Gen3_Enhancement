@@ -1,23 +1,55 @@
-# 2026-09-29 design v2 step 7 (RP) — probe_rarity_shoal_path.py (production calculate_path), branch wt/rarepredicate
-# command: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_rarity_shoal_path.py   (exit 0)
+# 2026-09-29 design v2 step 7 (RP) — probe_rarity_shoal_path.py (production calculate_path), branch wt/rarepredicate, after the step 7 review
+# command: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_rarity_shoal_path.py   (exit 0). RAW stdout+stderr, untrimmed.
 Running mGBA 0.10.2
 anchor: post_dive.ss1, player on MOSSDEEP_CITY (19, 11)
-S1 — every warp INTO the Ice Room, from every Shoal Cave map
-    SHOAL_CAVE_LOW_TIDE_INNER_ROOM (19, 14) -> SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arriving (7, 2)
-    SHOAL_CAVE_LOW_TIDE_INNER_ROOM (15, 19) -> SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arriving (2, 6)
-    SHOAL_CAVE_LOW_TIDE_INNER_ROOM (30, 25) -> SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arriving (19, 11)
-    SHOAL_CAVE_LOW_TIDE_LOWER_ROOM (28, 11) -> SHOAL_CAVE_LOW_TIDE_ICE_ROOM arriving (17, 10)
-    SHOAL_CAVE_LOW_TIDE_ICE_ROOM (17, 10) -> SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arriving (28, 11)
+
+S1 — every warp INTO the Ice Room
+    SHOAL_CAVE_LOW_TIDE_LOWER_ROOM (28, 11) -> ICE_ROOM arriving (17, 10)
   PASS  S1 the Ice Room's only entrance is the Lower Room warp (28,11)  — [((24, 49), (28, 11), (17, 10))]
-  PASS  the Lower Room has a pushable boulder (graphics 87) at (25,3) with hide-flag 0x11  — [(87, 17)]
-  arm A (boulder PRESENT): from (7, 2): ice-warp=False push-tile=True; from (2, 6): ice-warp=False push-tile=True; from (19, 11): ice-warp=False push-tile=False
-  arm B (boulder GONE): from (7, 2): ice-warp=True push-tile=True; from (2, 6): ice-warp=True push-tile=True; from (19, 11): ice-warp=False push-tile=False
-  PASS  S2 boulder PRESENT: no Lower Room arrival has a path to the Ice Room warp
-  PASS  S2 control: boulder PRESENT, the push tile (24,3) IS reachable (the boulder can be pushed)
-  PASS  S2 control: boulder GONE, a path to the Ice Room warp EXISTS (the boulder is what blocks it)
-S3 — the Route 125 approach from Mossdeep
-    ROUTE125 (22, 19): on foot=False  with Surf=True
-  PASS  S3 Route 125 cave warp (22, 19): no path on foot, a path with Surf
-  PASS  S3 the Route 125 side has a Shoal Cave warp at all
-ALL PASS — Snorunt's room needs Strength (inside) and Surf (the approach from the story path)
+  PASS  the Lower Room has a pushable boulder (graphics 87, local id 1) at (25,3) with hide-flag 0x11  — [(87, 17, 1)]
+
+S2 — the Lower Room boulder
+    arm A (boulder at (25,3), flag clear): from (7, 2): ice-warp=False push-tile=True; from (2, 6): ice-warp=False push-tile=True; from (19, 11): ice-warp=False push-tile=False
+    arm B (boulder deleted, flag set; contrast only): from (7, 2): ice-warp=True push-tile=True; from (2, 6): ice-warp=True push-tile=True; from (19, 11): ice-warp=False push-tile=False
+    arm C (pushed east x3: live boulder at (28,3)): from (7, 2): ice-warp=True push-tile=True; from (2, 6): ice-warp=True push-tile=True; from (19, 11): ice-warp=False push-tile=False
+    arm D (pushed east x2: live boulder at (27,3)): from (7, 2): ice-warp=False push-tile=True; from (2, 6): ice-warp=False push-tile=True; from (19, 11): ice-warp=False push-tile=False
+  PASS  S2 NECESSITY: boulder in place, no Lower Room arrival has a path to the Ice Room warp
+  PASS  S2 control: boulder in place, the push tile (24,3) IS reachable
+  PASS  S2 SUFFICIENCY: pushed east three times, a path to the Ice Room warp exists
+  PASS  S2 pushed only twice, still no path (the three pushes are all needed)
+  PASS  S2 contrast: deleted, a path exists (the boulder is what blocks it)
+
+S3 — the Route 125 approach
+  PASS  S3 Route 125 has a warp into Shoal Cave  — [(22, 19)]
+    ROUTE125 (22, 19): on foot to Mossdeep (19, 11) = False; land neighbours [(22, 20)] reached on foot [(22, 20)]; from Mossdeep on foot = False, with Surf = True
+  PASS  S3 NECESSITY: from the cave warp (22, 19), no on-foot path to Mossdeep
+  PASS  S3 control: from the cave warp (22, 19), a land neighbour IS reached on foot
+  PASS  S3 from Mossdeep: no path on foot, a path with Surf
+  PASS  S3 control: the instrument finds an on-foot path inside Mossdeep at all  — target (19, 6)
+
+S4 — sufficiency on foot at low tide: a room-to-room search (a permissive instrument: see the docstring)
+    reached SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM arrival (19, 5)
+    reached SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM arrival (20, 30)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (15, 19)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (19, 14)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (30, 25)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (34, 29)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (38, 15)
+    reached SHOAL_CAVE_LOW_TIDE_INNER_ROOM arrival (42, 4)
+    reached SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM arrival (3, 12)
+    reached SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM arrival (7, 4)
+    reached SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arrival (2, 6)
+    reached SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arrival (7, 2)
+    reached SHOAL_CAVE_LOW_TIDE_LOWER_ROOM arrival (19, 11)
+  PASS  S4 the search stayed inside its bound  — 70 calculate_path calls
+  PASS  S4 from the Route 125 arrival, on foot, a Lower Room arrival that reaches the push tile is reached  — [((24, 49), (2, 6)), ((24, 49), (7, 2))]
+  PASS  S4 the Ice Room is NOT reached on foot with the boulder in place (S2's necessity, room to room)
+    Ice Room: 154 encounter tiles; from the arrival (17, 10), first reached (4, 7)
+  PASS  S4 the Ice Room arrival reaches an encounter tile on foot
+
+ALL PASS — Snorunt's room NEEDS Strength (inside) and Surf (the approach from the story path)
 Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-29_15
+-08-16.ss1 created!
+Updated `current_state.ss1`!

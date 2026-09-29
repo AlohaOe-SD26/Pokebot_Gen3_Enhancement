@@ -64,7 +64,7 @@ VARIANT_MAX_PCT = 4     # Q5 (a stated interpretation): the same cut as the rate
 VARIANT_RATIOS = (31, 63, 191)
 LEGENDARY = (144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251,
              377, 378, 379, 380, 381, 382, 383, 384, 385, 386)
-SPECIAL = {349: "Feebas: six random Route 119 fishing tiles, in no wild table (03:1837-1839; 06:8084-8088)"}
+SPECIAL = {349: "Feebas: six random Route 119 fishing tiles, in no wild table (the user's words in 03 `#24-rarepredicate`; 06:8084-8088)"}
 
 PSEUDO_RULE = ("exactly 1 MAPSEC AND >= 2 gates on the easiest home. A gate is an HM field move or a fishing rod "
                "needed to reach the encounter FROM THE STORY PATH (the Q6 proposal: a map the story walks through "
@@ -89,14 +89,17 @@ EXCLUDED = {
 # ‼ MEASURED gates only. Each entry is the set of gates needed to reach that MAP's encounter area from the story path.
 # A map not listed here contributes no gates beyond its encounter method.
 MAP_ACCESS_GATES: dict[tuple[int, int], tuple[str, ...]] = {
-    # Meteor Falls, from the story arrival in 1F_1R (27,18): measured 2026-09-11 (`modules/story/training_areas.py`,
-    # the comment above its Meteor Falls rows); re-found by the step 7 verifier's flood fill (its literal control
-    # did not reproduce, so it is supporting evidence only), and the user's own words for Bagon (03:1846-1848).
+    # Meteor Falls, from the story arrival in 1F_1R (27,18): ONLY the 2026-09-11 measurement
+    # (`modules/story/training_areas.py`, the comment above its Meteor Falls rows; a controlled decoder), which agrees
+    # with the user's own words for Bagon (03 `#24-rarepredicate`). The step 7 verifier's flood is NOT a citation:
+    # its pre-registered control failed (R3), so nothing it prints is believed.
     (24, 1): ("surf", "waterfall"),   # METEOR_FALLS_1F_2R
     (24, 2): ("surf", "waterfall"),   # METEOR_FALLS_B1F_1R
     (24, 3): ("surf", "waterfall"),   # METEOR_FALLS_B1F_2R (Bagon's only room)
     # Shoal Cave, from Mossdeep: Surf to reach Route 125's island, and inside the cave the Lower Room boulder seals
-    # the Ice Room (`probe_rarity_shoal_path.py`, production `calculate_path`). The high-tide maps own no table.
+    # the Ice Room until it is pushed east three times (`probe_rarity_shoal_path.py`, production `calculate_path`;
+    # the pseudo verdict rests on its NO-PATH readings, which are conservative because `calculate_path` is more
+    # permissive than the controlled decoder). The high-tide maps own no wild table.
     (24, 46): ("surf",),              # SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM
     (24, 47): ("surf",),              # SHOAL_CAVE_LOW_TIDE_INNER_ROOM
     (24, 48): ("surf",),              # SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM
@@ -105,10 +108,9 @@ MAP_ACCESS_GATES: dict[tuple[int, int], tuple[str, ...]] = {
 }
 MAP_ACCESS_SOURCE = ("Meteor Falls: sandbox-pokebot/modules/story/training_areas.py (measured 2026-09-11); "
                      "Shoal Cave: tools/story-dev/probe_rarity_shoal_path.py "
-                     "(evidence/2026-09-29-rarepredicate-SHOALPATH.txt, production calculate_path). Supporting, "
-                     "not load-bearing: tools/story-dev/probe_rarity_access_gates.py "
-                     "(evidence/2026-09-29-rarepredicate-ACCESSGATES.txt), whose literal 262/299 control did NOT "
-                     "reproduce (296/333)")
+                     "(evidence/2026-09-29-rarepredicate-SHOALPATH.txt, production calculate_path). NOT a citation: "
+                     "tools/story-dev/probe_rarity_access_gates.py, whose pre-registered 262/299 control failed "
+                     "(296/333), so nothing it prints is believed")
 
 # Off-story-path areas whose tiles have NOT been measured. A single-MAPSEC species found only there is decided on its
 # method gates alone, and its row says so (`gates_unmeasured`), so a step-8 log can name the gap.
@@ -208,7 +210,10 @@ def read_rom_tables(data: bytes, get_symbol):
             if info and u8(info) > 0:
                 tables.append((method, u32(info + 4), 0, count, rates))
         info = u32(base + 16)
-        if info and u8(info) > 0:
+        # Fishing: the game checks only the POINTER (decomp `wild_encounter.c` `DoesCurrentMapHaveFishingMons`), never
+        # the rate byte, so neither does this. (The runtime reader, `modules/map.py`, also requires rate > 0; no
+        # fishing table in our ROM has rate 0, so the two readers still agree. Found by the step 7 review.)
+        if info:
             for start, end, method, rates in FISH_RATES:
                 tables.append((method, u32(info + 4), start, end - start, rates))
         for method, slots, first, count, rates in tables:
