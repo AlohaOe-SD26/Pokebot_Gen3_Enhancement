@@ -1,0 +1,59 @@
+# RUN 1 (code db41db78), KEPT AS A RECORD: the [DEXCATCH-NOBAIL] line fired TWICE for one faint (f359393, f359535) — the handler calls should_flee_after_faint twice. Fixed by a per-faint dedupe; the graded arms are the re-run.
+# RULING 24 step 5 arm HALF: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), --set-balls 60, --frames 240000, random.seed(1), POKEBOT_R20_OPENFENCE=1; code db41db78; POKEBOT_R24_NOFAINTBAIL=1 + POKEBOT_R24_FAULT_HALFBAIL=1.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r24nofaintbail-PREDICTIONS.md (3f1e6544).
+# Source: Story-debug-20260929-104258.log (debug-log frame = harness frame + 139,500). Window: the Gulpin catch on Route 110, debug f350000-f379500, every [TURN n] line included.
+f350678 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 72, 72), ('Geodude', 28, 28)]
+f350678 [DEXFENCE] CATCH #316 Gulpin — dex catch #316 (joins the party)
+f350678 [DEXCATCH] [DEXCATCH] attempt #1 on Gulpin (#316) -> party
+f350678 [CATCH] start kind=dex sp=Gulpin#316 lv=12 attempt=1 badges=2 party=3/6 box=0 spare=58 exp_throws=3.0 map=0,25
+f351187 [BATTLE] [TURN 0] Zubat L10 28/28 -> UseItem  vs Gulpin L12 38/38
+f352299 [BATTLE] [TURN 1] Zubat L10 28/28 [Yawning] -> UseItem  vs Gulpin L12 38/38
+f353314 [BATTLE] [TURN 2] Zubat L10 28/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f354009 [BATTLE] [TURN 3] Zubat L10 21/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f354734 [BATTLE] [TURN 4] Zubat L10 21/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f355487 [BATTLE] [TURN 5] Zubat L10 21/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f356182 [BATTLE] [TURN 6] Zubat L10 14/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f357050 [BATTLE] [TURN 7] Zubat L10 7/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f357775 [BATTLE] [TURN 8] Zubat L10 7/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f358528 [BATTLE] [TURN 9] Zubat L10 7/28 [Sleep] -> UseItem  vs Gulpin L12 38/38
+f359393 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on
+f359394 [STEP] 'Story: a team member fainted — sending the next Pokémon and throwing on (RULING 24).'
+f359535 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on
+f359752 [DEXCATCH] [DEXCATCH-BAIL] a team member fainted
+f359752 [BATTLE] [TURN 10] Marshtomp L23 72/72 -> RunAway  vs Gulpin L12 38/38
+f359753 [STEP] 'Story: abandoning this Pokédex catch — a team member fainted.'
+f359906 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Zubat:L10', 'Marshtomp:L23', 'Geodude:L10']
+f359906 [CATCH] end kind=dex sp=Gulpin#316 end=bail res=RanAway thrown=10 frames=9228 dest=none pid=- party=3/6 box=0 spare=48 badges=2 bail=faint
+f360767 [BATTLE] started hp=[('Marshtomp', 72, 72), ('Zubat', 0, 28), ('Geodude', 28, 28)]
+f361402 [BATTLE] [TURN 0] Marshtomp L23 72/72 -> UseMove:Tackle(pp35)  vs Wingull L18 43/43
+f361421 [BATTLE] [TURN 0] Marshtomp L23 72/72 -> UseMove:Tackle(pp35)  vs Wingull L18 43/43
+f362049 [BATTLE] [TURN 1] Marshtomp L23 72/72 -> UseMove:Tackle(pp34)  vs Wingull L18 4/43
+f362068 [BATTLE] [TURN 1] Marshtomp L23 72/72 -> UseMove:Tackle(pp34)  vs Wingull L18 4/43
+f363297 [BATTLE] [TURN 2] Marshtomp L24 75/75 -> UseMove:Tackle(pp33)  vs Grovyle L20 52/52
+f363318 [BATTLE] [TURN 2] Marshtomp L24 75/75 -> UseMove:Tackle(pp33)  vs Grovyle L20 52/52
+f364095 [BATTLE] [TURN 3] Marshtomp L24 44/75 -> UseMove:Tackle(pp32)  vs Grovyle L20 40/52
+f364116 [BATTLE] [TURN 3] Marshtomp L24 44/75 -> UseMove:Tackle(pp32)  vs Grovyle L20 40/52
+f364908 [BATTLE] [TURN 4] Marshtomp L24 9/75 -> UseMove:Tackle(pp31)  vs Grovyle L20 42/52
+f364927 [BATTLE] [TURN 4] Marshtomp L24 9/75 -> UseMove:Tackle(pp31)  vs Grovyle L20 42/52
+f365337 [BATTLE] [TURN 5] Marshtomp L24 1/75 -> UseMove:Tackle(pp30)  vs Grovyle L20 32/52
+f365356 [BATTLE] [TURN 5] Marshtomp L24 1/75 -> UseMove:Tackle(pp30)  vs Grovyle L20 32/52
+f366016 [BATTLE] [TURN 6] Geodude L10 28/28 -> UseMove:Tackle(pp35)  vs Grovyle L20 32/52
+f366037 [BATTLE] [TURN 6] Geodude L10 28/28 -> UseMove:Tackle(pp35)  vs Grovyle L20 32/52
+f367077 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L24', 'Zubat:L10', 'Geodude:L10']
+f367198 [MAP] ROUTE 110(0,25) -> SLATEPORT CITY(0,1) pos=(34, 56)
+f367234 [STORY] WHITEOUT recovery #2 at (0, 1)
+f367656 [MAP] SLATEPORT CITY(0,1) -> ROUTE 110(0,25) pos=(17, -1)
+f368028 [MAP] ROUTE 110(0,25) -> ROUTE 103(0,18) pos=(-1, 71)
+f372262 [MAP] ROUTE 103(0,18) -> ROUTE 110(0,25) pos=(80, 11)
+f372633 [MAP] ROUTE 110(0,25) -> SLATEPORT CITY(0,1) pos=(17, 100)
+f372943 [MAP] SLATEPORT CITY(0,1) -> SLATEPORT CITY(9,11) pos=(19, 19)
+f374328 [MAP] SLATEPORT CITY(9,11) -> SLATEPORT CITY(0,1) pos=(7, 8)
+f374614 [MAP] SLATEPORT CITY(0,1) -> SLATEPORT CITY(0,0) pos=(19, 20)
+f374615 [MAP] SLATEPORT CITY(0,0) -> SLATEPORT CITY(0,1) pos=(19, 20)
+f374883 [MAP] SLATEPORT CITY(0,1) -> ROUTE 110(0,25) pos=(17, -1)
+f376015 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28)]
+f376686 [BATTLE] [TURN 0] Zubat L10 28/28 -> UseMove:Leech Life(pp15)  vs Wingull L18 43/43
+f376704 [BATTLE] [TURN 0] Zubat L10 28/28 -> UseMove:Leech Life(pp15)  vs Wingull L18 43/43
+f377612 [BATTLE] [TURN 1] Zubat L10 9/28 -> UseMove:Leech Life(pp14)  vs Wingull L18 42/43
+f378625 [BATTLE] [TURN 2] Zubat L10 10/28 -> UseMove:Leech Life(pp13)  vs Slugma L18 42/43
+f378644 [BATTLE] [TURN 2] Zubat L10 10/28 -> UseMove:Leech Life(pp13)  vs Slugma L18 42/43

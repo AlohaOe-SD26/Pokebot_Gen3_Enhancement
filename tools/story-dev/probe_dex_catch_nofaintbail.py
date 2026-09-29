@@ -14,6 +14,9 @@ Measured discriminator (step 4's M0, seed 1): a Gulpin catch on Route 110 bailed
   N4  ON trapped: with no ball left it FIGHTS (strongest move); after a faint it takes the parent's answer (False).
   N5  OFF + a faint: bails on both paths (`True`, then RUN AWAY next turn) and logs NO `[DEXCATCH-NOBAIL]` line.
   N6  the constructor reads the RUNNING mode's `_r24_nofaintbail` (ON → True, OFF → False, no mode → False).
+  N7  ONE line per FAINT, not per call: the handler calls `should_flee_after_faint` twice for one faint (measured live,
+      2026-09-29: f359393 and f359535 for one Zubat). Two calls with 1 fainted ⇒ one line; a second faint (2 fainted)
+      ⇒ a second line.
   A1  `reset_per_run_state` reads the flag.   A2 both flags are registered in 29.
   A3  one source: the env name `POKEBOT_R24_NOFAINTBAIL` is read exactly once in story_mode.py's CODE (comments and
       docstrings excluded) — in `reset_per_run_state`, never inside the strategy.
@@ -21,9 +24,10 @@ FAULT ARMS (built in; the unmutated subject must pass first; each must turn EXAC
   F1  `POKEBOT_R24_FAULT_HALFBAIL=1` (production): only path (a) changes → {N1}.
   F2  a source mutant dropping EVERY bail when the flag is on (the design's BAILWIDE, as a mutant) → {N3, N4}.
   F3  a source mutant logging the NOBAIL line before the flag check (telemetry without its guard) → {N5}.
-  F4  a source mutant ignoring the flag (the skip-the-fix arm) → {N1, N2}.
+  F4  a source mutant ignoring the flag (the skip-the-fix arm) → {N1, N2, N7}.
   F5  a source mutant that also reads the env inside the strategy → A3 red.
   F6  (NEGATIVE) a comment that quotes the env read must leave A3 GREEN (the gate must not fire on mentions).
+  F7  a source mutant without the per-faint dedupe (the first version) → {N7}.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dex_catch_nofaintbail.py
 """
@@ -82,19 +86,33 @@ class _Bag:
         self.number_of_balls_except_master_ball = n
 
 
+PARTY_FAINTED = [1]  # how many party members read as fainted (N7 moves it)
+
+
+def _party():
+    n = PARTY_FAINTED[0]
+    return [types.SimpleNamespace(is_empty=False, current_hp=0 if i < n else 20) for i in range(3)]
+
+
 @contextlib.contextmanager
 def stubs(mod, bag_n):
-    """The parent's turn is a sentinel, the bag holds `bag_n` balls, logs are captured, `context` is a namespace."""
+    """The parent's turn is a sentinel, the bag holds `bag_n` balls, the party has `PARTY_FAINTED[0]` fainted members,
+    logs are captured, `context` is a namespace."""
+    import modules.pokemon_party as PARTY
+
     logs: list = []
-    saved = (mod.StoryCatchStrategy.decide_turn, ITEMS.get_item_bag, mod._log_story_event, mod.context)
+    saved = (mod.StoryCatchStrategy.decide_turn, ITEMS.get_item_bag, mod._log_story_event, mod.context, PARTY.get_party)
     try:
         mod.StoryCatchStrategy.decide_turn = lambda self, bs: PARENT
         ITEMS.get_item_bag = lambda: _Bag(bag_n)
         mod._log_story_event = lambda text, cat="": logs.append(text)
         mod.context = types.SimpleNamespace(message="", bot_mode_instance=None)
+        PARTY.get_party = _party
+        PARTY_FAINTED[0] = 1
         yield logs
     finally:
-        (mod.StoryCatchStrategy.decide_turn, ITEMS.get_item_bag, mod._log_story_event, mod.context) = saved
+        (mod.StoryCatchStrategy.decide_turn, ITEMS.get_item_bag, mod._log_story_event, mod.context,
+         PARTY.get_party) = saved
 
 
 def make(mod, no_faint_bail: bool):
@@ -161,6 +179,15 @@ def cases(mod=SM, sink=None, fault=False) -> set:
                 n4_faint = s.should_flee_after_faint(_State()) is False
         finally:
             BS.BattleStrategyUtil, mod.StoryDexCatchStrategy._get_best_poke_ball = real_bsu, real_ball
+        # N7 — one line per faint: the handler's second call for the SAME faint adds nothing; a NEW faint adds one.
+        with stubs(mod, R + 5) as logs:
+            s = make(mod, True)
+            s.should_flee_after_faint(None)
+            s.should_flee_after_faint(None)
+            same = len([t for t in logs if "DEXCATCH-NOBAIL" in t])
+            PARTY_FAINTED[0] = 2
+            s.should_flee_after_faint(None)
+            n7 = (same, len([t for t in logs if "DEXCATCH-NOBAIL" in t]), [t[-12:] for t in logs])
         # N5 — OFF + a faint: both paths bail; no NOBAIL line.
         with stubs(mod, R + 5) as logs:
             s = make(mod, False)
@@ -175,6 +202,8 @@ def cases(mod=SM, sink=None, fault=False) -> set:
     rec("N2", len(n2) == 1 and "DEXCATCH-NOBAIL" in n2[0], f"ON + a faint logs exactly one NOBAIL line and no BAIL line ({n2})")
     rec("N3", n3[0] and n3[1] is not None and "reserve" in n3[1], f"ON at the reserve still runs away ({n3})")
     rec("N4", n4_fight and n4_faint, f"ON trapped: no ball ⇒ fight ({n4_fight}); a faint ⇒ the parent's answer ({n4_faint})")
+    rec("N7", n7[:2] == (1, 2), f"one NOBAIL line per faint: two calls for one faint → {n7[0]} line(s); a second faint → "
+                                 f"{n7[1]} in all ({n7[2]}) (want 1, 2)")
     rec("N5", n5[0] is True and n5[1] and not n5[2] and n5[3],
         f"OFF + a faint: flee={n5[0]}, next turn runs={n5[1]}, NOBAIL lines={n5[2]}, BAIL line={n5[3]}")
     return red
@@ -263,14 +292,14 @@ def main() -> int:
     check(base_ok and red == {"N3", "N4"}, f"F2 a mutant dropping every bail under the flag turns exactly {{N3, N4}} red "
                                            f"(red: {sorted(red)})")
     guard = "        if getattr(self, \"_no_faint_bail\", False):\n"
-    inner = "            _r24_nofaintbail_log()\n".replace("\n", nl)
-    m3 = mutate(guard, "        _r24_nofaintbail_log()\n" + guard)  # MOVE the call out of the guard (not a copy)
+    inner = "            _r24_nofaintbail_log(self)\n".replace("\n", nl)
+    m3 = mutate(guard, "        _r24_nofaintbail_log(self)\n" + guard)  # MOVE the call out of the guard (not a copy)
     m3 = m3.replace(inner, "", 1) if m3 and m3.count(inner) == 1 else None
     red = cases(mutant_module(m3), []) if m3 else {"(anchor missing)"}
     check(base_ok and red == {"N5"}, f"F3 a NOBAIL log before the flag check turns exactly {{N5}} red (red: {sorted(red)})")
     m4 = mutate(guard, "        if False:\n")
     red = cases(mutant_module(m4), []) if m4 else {"(anchor missing)"}
-    check(base_ok and red == {"N1", "N2"}, f"F4 a strategy ignoring the flag turns exactly {{N1, N2}} red "
+    check(base_ok and red == {"N1", "N2", "N7"}, f"F4 a strategy ignoring the flag turns exactly {{N1, N2, N7}} red "
                                            f"(red: {sorted(red)})")
     m5 = mutate(guard, "        if getattr(self, \"_no_faint_bail\", False) or _os_bail.environ.get(\"" + FLAG +
                 "\") == \"1\":\n")
@@ -285,6 +314,11 @@ def main() -> int:
         one_source(m6, sink)
     check(base_ok and m6 is not None and not sink, f"F6 (negative) a COMMENT quoting the env read leaves A3 green "
                                                    f"(anchored={m6 is not None}, red={bool(sink)})")
+
+    m7 = mutate("    if fainted in logged:\n        return\n", "")
+    red = cases(mutant_module(m7), []) if m7 else {"(anchor missing)"}
+    check(base_ok and red == {"N7"}, f"F7 a mutant without the per-faint dedupe turns exactly {{N7}} red "
+                                     f"(red: {sorted(red)})")
 
     print()
     if failures:

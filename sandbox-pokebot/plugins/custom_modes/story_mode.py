@@ -160,7 +160,7 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
             # `probe_dex_catch_nofaintbail.py` must go red under it.
             if _os_bail.environ.get("POKEBOT_R24_FAULT_HALFBAIL") == "1":
                 self._fainted_this_battle = True
-            _r24_nofaintbail_log()
+            _r24_nofaintbail_log(self)
             return super().should_flee_after_faint(battle_state)
         self._fainted_this_battle = True
         # ⛔ Only when escape is POSSIBLE: trapped (Shadow Tag, Arena Trap — Trapinch is a Route 111 catch — Mean Look,
@@ -6201,13 +6201,34 @@ def _r24_trainee_report(mode, party_fn) -> None:
     mode._r24_trainee_check = None
 
 
-def _r24_nofaintbail_log() -> None:
+def _r24_nofaintbail_log(strategy) -> None:
     """USER RULING 24 step 5 telemetry, FLAG ON ONLY: the ACTION (rule 7) — a faint in a dex catch that did NOT bail.
-    Called only from the flag-ON branch of `StoryDexCatchStrategy.should_flee_after_faint`, once per faint; OFF never
-    reaches it, so an OFF run gains no line. Gated by `probe_dex_catch_nofaintbail.py` (a mutant logging on OFF goes red)."""
+    Called only from the flag-ON branch of `StoryDexCatchStrategy.should_flee_after_faint`; OFF never reaches it, so an
+    OFF run gains no line. Gated by `probe_dex_catch_nofaintbail.py` (a mutant logging on OFF goes red).
+    ⛔ ONE LINE PER FAINT, NOT PER CALL: the battle handler calls `should_flee_after_faint` TWICE for one faint (measured
+    2026-09-29: the dispatcher re-enters `handle_fainted_pokemon` while the send-in completes — the first graded ON run
+    logged the line at f359393 AND f359535 for one Zubat). Keyed on the number of fainted party members, which only a
+    NEW faint changes; the count rides on the line. Unreadable party ⇒ key None (one line for this battle)."""
+    try:
+        from modules.pokemon_party import get_party as _gp_nfb
+
+        fainted = sum(1 for m in _gp_nfb() if m is not None and not m.is_empty and m.current_hp == 0)
+    except Exception:  # noqa: BLE001 - an unreadable party still logs once
+        fainted = None
+    logged = getattr(strategy, "_nofaintbail_logged", None)
+    if logged is None:
+        logged = set()
+        try:
+            strategy._nofaintbail_logged = logged
+        except Exception:  # noqa: BLE001 - a read-only stand-in: log every call rather than never
+            pass
+    if fainted in logged:
+        return
+    logged.add(fainted)
     try:
         context.message = "Story: a team member fainted — sending the next Pokémon and throwing on (RULING 24)."
-        _log_story_event("[DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on", "DEXCATCH")
+        _log_story_event(f"[DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on "
+                         f"(fainted={fainted if fainted is not None else '?'})", "DEXCATCH")
     except Exception:  # noqa: BLE001 - telemetry must never break a battle
         pass
 
