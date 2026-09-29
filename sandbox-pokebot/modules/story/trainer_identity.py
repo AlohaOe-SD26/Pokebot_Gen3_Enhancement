@@ -46,13 +46,43 @@ CLASS_NAME_LEN = 13
 CLASS_COUNT = 66
 ROM_START, ROM_END = 0x0800_0000, 0x0A00_0000
 
-#: IDENTITY constants only (`include/constants/trainers.h:288-353`, verified). Which of these are "key battles" is
-#: design v2 step 6's decision (pending the user's Q3) — deliberately NOT encoded here.
+#: IDENTITY constants (`include/constants/trainers.h:288-353`, verified).
 TRAINER_CLASS = {
     "TEAM_AQUA": 0x03, "COOLTRAINER": 0x05, "TEAM_MAGMA": 0x09, "AQUA_ADMIN": 0x0B, "AQUA_LEADER": 0x0D,
     "RICH_BOY": 0x16, "ELITE_FOUR": 0x1F, "LEADER": 0x20, "YOUNGSTER": 0x25, "CHAMPION": 0x26, "MAGMA_ADMIN": 0x31,
     "RIVAL": 0x32, "MAGMA_LEADER": 0x35,
 }
+
+#: USER RULING 27 (healing items in battle ONLY against gym leaders, story bosses and the Elite Four): the KEY trainer
+#: classes (design v2 step 6, KB). ⚠ A PROPOSAL pending the user's Q3 ("who counts as a story boss") — data, not a
+#: blocker; the gate that reads it is behind `POKEBOT_R27_KEYITEMS` (default OFF). Verified on the ROM (all 854
+#: trainers scanned, 2026-09-29): every `_prepare_for_fight` boss and every named story boss is in it (Roxanne-Juan
+#: 0x20; the rival and Wally 0x32; Maxie 0x35; Archie 0x0D; Tabitha 0x31; Matt/Shelly 0x0B; the Elite Four 0x1F;
+#: Wallace 0x26). ⚠ 0x32 ("PkMn TRAINER" in the ROM) ALSO covers Steven's post-game battle (804) and Red/Leaf — not
+#: named in Q3 as shown to the user. Team grunts (0x09/0x03), Cooltrainers (0x05) and route classes are NOT key.
+KEY_TRAINER_CLASSES = frozenset({
+    TRAINER_CLASS["LEADER"], TRAINER_CLASS["ELITE_FOUR"], TRAINER_CLASS["CHAMPION"], TRAINER_CLASS["RIVAL"],
+    TRAINER_CLASS["MAGMA_LEADER"], TRAINER_CLASS["AQUA_LEADER"], TRAINER_CLASS["MAGMA_ADMIN"],
+    TRAINER_CLASS["AQUA_ADMIN"],
+})
+
+
+def key_battle_verdict(flag_on: bool, sides: list) -> "tuple[bool, str]":
+    """PURE (design v2 step 6, KB): may this trainer battle use healing items? `sides` is `[(trainer_id, cls), …]` —
+    one side for a single battle (A), two for a two-opponent battle. ⚠ Two-opponent battles are always DOUBLE and never
+    reach `_maybe_use_item` today (doubles take `decide_turn_in_double_battle`); the list form is for step 13.
+    FAILS OPEN: refuses ONLY when the flag is on AND every side was READ and none is a key class. Flag off, no side,
+    or any unreadable id/class ⇒ allow (a reader failure must never cost a key battle its items)."""
+    if not flag_on:
+        return True, "flag_off"
+    if not sides:
+        return True, "fail_open_no_opponent"
+    for tid, cls in sides:
+        if tid is None or cls is None:
+            return True, "fail_open_unreadable"
+    if any(cls in KEY_TRAINER_CLASSES for _tid, cls in sides):
+        return True, "key_class"
+    return False, "not_a_key_class"
 
 
 def _symbol(name: str) -> tuple[int, int]:

@@ -4834,6 +4834,29 @@ class SlateportTheftMode(BotMode):
         return
 
 
+def _harness_t1_start(mode, encounter) -> None:
+    """HARNESS identity line (design v2 step 6, KB, 2026-09-29): run the production `[TRAINER] start` helper
+    (`story_mode._t1_start`, design v2 step 5) from a harness BotMode, so a driver that builds its own
+    `StoryItemBattleStrategy` still logs WHICH trainer each battle is. `_t1_start` accepts any stand-in `self`
+    (map reads `map=?`) and never raises; this wrapper only guards the import."""
+    try:
+        from plugins.custom_modes.story_mode import _t1_start
+
+        _t1_start(mode, encounter)
+    except Exception as exc:  # noqa: BLE001 - harness telemetry only; the fight must go on
+        log(f"[t1] harness identity start unreadable: {exc!r}")
+
+
+def _harness_t1_end(mode, outcome) -> None:
+    """The battle-end half of `_harness_t1_start` (`story_mode._t1_end`: `[TRAINER] end … res= delta=`)."""
+    try:
+        from plugins.custom_modes.story_mode import _t1_end
+
+        _t1_end(mode, outcome)
+    except Exception as exc:  # noqa: BLE001 - harness telemetry only; the fight must go on
+        log(f"[t1] harness identity end unreadable: {exc!r}")
+
+
 class MagmaHideoutMode(BotMode):
     """`#24-magmahideout` INCREMENTS 2+3 — go IN and beat Maxie, from the door anchor.
 
@@ -4861,9 +4884,13 @@ class MagmaHideoutMode(BotMode):
     def name():
         return "MagmaHideout"
 
+    def on_battle_ended(self, outcome):
+        _harness_t1_end(self, outcome)
+
     def on_battle_started(self, encounter):
         from modules.battle_strategies import DefaultBattleStrategy
 
+        _harness_t1_start(self, encounter)  # design v2 step 6: WHICH trainer (log-only)
         if encounter is None:
             # ‼ The hideout is wall-to-wall trainers (Tabitha + the numbered grunts + Maxie), so
             # use the STORY item strategy — the one that actually uses potions in a boss fight
@@ -16624,9 +16651,13 @@ class Ch24ProbeMode(BotMode):
             f"⭐ This is a legitimate MEASUREMENT, not a driver failure.")
         return True
 
+    def on_battle_ended(self, outcome):
+        _harness_t1_end(self, outcome)
+
     def on_battle_started(self, encounter):
         from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
+        _harness_t1_start(self, encounter)  # design v2 step 6: WHICH trainer (log-only)
         self.battles = getattr(self, "battles", 0) + 1
         # ⛔ STAMP THE FRAME THE BATTLE ACTUALLY STARTED ON (2026-09-16, `#24-pass2triage` finding k).
         # The reading named `battle_frames` used to be the loop counter of the wait BELOW, and that

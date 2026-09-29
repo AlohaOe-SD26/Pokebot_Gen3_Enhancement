@@ -776,6 +776,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         #: `(item, bag_quantity)` banked at REQUEST time so the verdict can ask the only question
         #: that actually has a crisp answer — WAS THE ITEM CONSUMED?
         self._item_qty_when_requested = None
+        #: USER RULING 27 (design v2 step 6, KB): this battle's cached key-battle verdict (True = items allowed), read
+        #: once by `_r27_key_gate` when `POKEBOT_R27_KEYITEMS=1`. None = not decided yet.
+        self._r27_verdict = None
 
     def decide_turn(self, battle_state):
         try:
@@ -806,6 +809,13 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
 
         if BattleType.Trainer not in battle_state.type:
             return None  # wilds keep the existing behaviour, untouched
+        # ⭐ USER RULING 27 (design v2 step 6, KB; flag `POKEBOT_R27_KEYITEMS`, DEFAULT OFF): healing items in battle ONLY
+        # against gym leaders, story bosses and the Elite Four — a KEY trainer class (`trainer_identity.
+        # KEY_TRAINER_CLASSES`, a proposal pending the user's Q3). The flag test comes FIRST, so OFF does zero reads and
+        # stays byte-identical. It sits INSIDE this method, not in `on_battle_started`, so the harness drivers that build
+        # this strategy themselves are gated too. `_r27_key_gate` never raises and fails OPEN.
+        if _os.environ.get("POKEBOT_R27_KEYITEMS") == "1" and not _r27_key_gate(self, battle_state):
+            return None
         mon = battle_state.own_side.left_battler
         if mon is None or mon.total_hp <= 0:
             return None
@@ -6244,6 +6254,48 @@ def _r24_nofaintbail_log(strategy) -> None:
                          f"(fainted={fainted if fainted is not None else '?'})", "DEXCATCH")
     except Exception:  # noqa: BLE001 - telemetry must never break a battle
         pass
+
+
+def _r27_key_gate(strategy, battle_state) -> bool:
+    """USER RULING 27 (design v2 step 6, KB): may `StoryItemBattleStrategy` use healing items in THIS trainer battle?
+    Called only when `POKEBOT_R27_KEYITEMS=1`. Reads the opponent(s) once (`trainer_identity`: A, plus B only in a
+    TwoOpponents battle), decides with the PURE `key_battle_verdict`, caches the verdict on the strategy instance (one
+    per battle) and logs one `[KEYBATTLE] opp= class= key= allow= reason=` line. NEVER RAISES and FAILS OPEN: any read
+    failure allows items (a reader bug must never cost a key battle its items) and logs `reason=FAIL_OPEN…`.
+    Module-level (the step-4 lesson): gates and repros drive `_maybe_use_item` on fakes.
+    Fault arms (never set in a real run; gate `repro_key_battle_items.py`):
+      `POKEBOT_R27_FAULT_RAISE=1` — the reader raises (the item must STILL fire, with a FAIL_OPEN line);
+      `POKEBOT_R27_FAULT_ALLORDINARY=1` — every read class is forced to 0x05 (a Cooltrainer), at this call site only."""
+    cached = getattr(strategy, "_r27_verdict", None)
+    if cached is not None:
+        return cached
+    import os as _os_kb
+
+    sides: list = []
+    try:
+        from modules.battle_state import BattleType
+        from modules.story import trainer_identity as _ti
+
+        if _os_kb.environ.get("POKEBOT_R27_FAULT_RAISE") == "1":
+            raise RuntimeError("POKEBOT_R27_FAULT_RAISE")
+        two = BattleType.TwoOpponents in battle_state.type
+        a, b = _ti.read_opponent_trainers(two)
+        ordinary = _os_kb.environ.get("POKEBOT_R27_FAULT_ALLORDINARY") == "1"
+        for tid in [a] + ([b] if two else []):
+            cls = None if tid is None else (0x05 if ordinary else _ti.trainer_class(tid))
+            sides.append((tid, cls))
+        allow, reason = _ti.key_battle_verdict(True, sides)
+        key = any(cls in _ti.KEY_TRAINER_CLASSES for _tid, cls in sides if cls is not None)
+    except Exception as exc:  # noqa: BLE001 - FAIL OPEN: an unreadable opponent must never cost a key battle its items
+        allow, reason, key = True, f"FAIL_OPEN({type(exc).__name__})", "?"
+    try:
+        strategy._r27_verdict = allow
+    except Exception:  # noqa: BLE001 - a read-only stand-in keeps no cache; the verdict is recomputed next turn
+        pass
+    opp = "+".join("?" if tid is None else str(tid) for tid, _cls in sides) or "?"
+    classes = "+".join("?" if cls is None else f"0x{cls:02X}" for _tid, cls in sides) or "?"
+    _log_story_event(f"opp={opp} class={classes} key={key} allow={allow} reason={reason}", "KEYBATTLE")
+    return allow
 
 
 def _t1_start(mode, encounter) -> None:
