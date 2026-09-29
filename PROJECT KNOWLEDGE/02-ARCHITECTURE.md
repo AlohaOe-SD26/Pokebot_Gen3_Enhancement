@@ -213,6 +213,14 @@ hooks inside `get_party()` record HOLE / OVERFLOW / INVALID exactly and STALE by
 run summary is printed by `story_harness.py` at the end of a drive. Nothing consumes the readers
 — that is asserted by the gate, not just intended. Gate: `repro_party_accounting.py`.
 
+### `modules/rarity.py`: OURS, new 2026-09-29 (SANDBOX ONLY; inert until design v2 step 8)
+The rare-species predicate (design v2 step 7): `RARE = legendary OR special OR rate OR pseudo OR variant`, with
+shiny as its own reason. `encounter_rarity(pokemon)` returns `RareVerdict(rare, tier, reasons, note)` and never
+raises. It reads `modules/data/emerald_rarity.json`, keyed by NATIONAL dex, which is GENERATED, never hand-edited:
+`tools/story-dev/rare_species_dataset.py --write` reads the wild tables and each map's region-map section
+STATICALLY from the tracked ROM (no emulator; the gitignored encounter cache holds a dead Altering Cave table,
+KI-113). Nothing in production imports it yet. Gate: `probe_rarity_predicate.py` (runs `--check`).
+
 ## External dependencies & services
 - **ROMs**: user-supplied in each copy's `roms/`, SHA-1 whitelisted,
   never committed.
@@ -248,7 +256,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 130 entries = 126 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 131 entries = 127 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 14 SLOW (ROM) gates (recounted 2026-09-29: 14 `True`; counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.
@@ -610,8 +618,8 @@ done
     BATTLE-order index was being fed to a PARTY-MENU scroll) plus `[TURN …]` per-decision and
     `[ITEM-FLOW]` per-stage telemetry.
 - Offline planner probes need **no emulator**: `probe_counter_candidates_offline.py`,
-  `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py`,
-  `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and
+  `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py` (since 2026-09-29 it reads
+  the tracked ROM file statically, still with no emulator), `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and
   `find_counter_candidates` returns `[]` on ANY internal error — so each one carries a POSITIVE
   CONTROL (Norman must find Machop @ FIERY_PATH). Without it, a broken harness is indistinguishable
   from a real "no answer".

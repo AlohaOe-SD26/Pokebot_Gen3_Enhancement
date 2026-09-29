@@ -289,6 +289,9 @@ GATES: list[tuple[str, bool]] = [
     ("probe_trainer_identity_T1.py", False),
     # USER RULING 27 (design v2 step 6, KB) — healing items only against key trainer classes (flag, default OFF).
     ("repro_key_battle_items.py", False),
+    # design v2 step 7 (RP) — the rare-species predicate: inert data + a pure module. The generator reads our ROM
+    # statically (no emulator), and `--check` proves the committed table is what it produces. 13 mutants.
+    ("probe_rarity_predicate.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

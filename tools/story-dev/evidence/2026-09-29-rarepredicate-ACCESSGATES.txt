@@ -1,0 +1,163 @@
+Running mGBA 0.10.2
+====================================================================================================
+PSEUDO-RARE ACCESS GATES — Snorunt (Shoal Cave) & Bagon (Meteor Falls), measured live
+====================================================================================================
+
+====================================================================================================
+0 — CONTROL (must pass before anything else is trusted): Meteor Falls 1F_1R, from (27,18)
+====================================================================================================
+  map size: 30x42
+  ON FOOT     : 296 tiles   (training_areas.py 2026-09-11 recorded 262)
+  WITH SURF   : 333 tiles   (training_areas.py 2026-09-11 recorded 299)
+  +WATERFALL  : 438 tiles   (tile-by-tile convention; recon claims 364, training_areas.py recorded 404 = 364 + 40 climbed waterfall tiles — see docstring)
+    of which 40 are Waterfall-type tiles themselves (matches the '+40 waterfall tiles climbed through' figure exactly)
+  [NO MATCH] literal on-foot=262 and surf=299 NOT reproduced exactly
+
+  ‼ THE LITERAL NUMBERS DID NOT MATCH ON FIRST RUN (296/333, not 262/299) — before
+    concluding this probe is wrong, it is cross-validated against PRODUCTION'S OWN
+    trusted pathfinder, `modules.map_path.calculate_path` (the same code the bot's real
+    navigation runs), tile-by-tile, on every collision-free tile of this map, in the SAME
+    live ROM/save. If this probe's flood-fill and `calculate_path` agree almost everywhere
+    — including on the two decisive tiles (5,4)/(26,28) — that is STRONGER evidence of
+    correctness than matching a number recorded by a different (decomp-decoding) method on
+    2026-09-11, and promotes this cross-check to the real control.
+
+  ON-FOOT cross-check vs calculate_path(no_surfing=True): 621 collision-free tiles checked, 3 mismatch(es)
+    mismatch (27, 4): this probe=True  calculate_path=False  elev=3 type='Cave'
+    mismatch (27, 5): this probe=True  calculate_path=False  elev=3 type='Cave'
+    mismatch (2, 14): this probe=True  calculate_path=False  elev=3 type='Cave'
+  SURF cross-check vs calculate_path(no_surfing=False): 621 collision-free tiles checked, 3 mismatch(es)
+    mismatch (27, 4): this probe=True  calculate_path=False  elev=3 type='Cave'
+    mismatch (27, 5): this probe=True  calculate_path=False  elev=3 type='Cave'
+    mismatch (2, 14): this probe=True  calculate_path=False  elev=3 type='Cave'
+  agreement rate: 99.5%
+  ‼ note on the 3 recurring mismatches (if any): `calculate_path` additionally consults
+    LIVE loaded-object `blocked_coordinates` from wherever the anchor save is ACTUALLY
+    standing right now (modules/map_path.py:806-822) — an artifact of the anchor's real
+    position, not a Meteor Falls geometry fact, and identical across the on-foot/Surf arms
+    (same 3 tiles both times) is consistent with that explanation rather than a tile-rule bug.
+
+  sanity: (5,4) in foot/surf sets = False (calculate_path agrees: True)   (26,28) in foot/surf sets = False (calculate_path agrees: True)
+    [CONFIRMED] neither B1F warp tile is reachable on foot or with Surf alone (docstring's 'contains NEITHER')
+
+  [CONTROL PASS (via calculate_path cross-validation)] this probe is behaviourally faithful to production  (⚠ the LITERAL 262/299 numbers remain unreproduced — see above; this is reported as a finding, not concealed)
+
+====================================================================================================
+1 — CLAIM C3 (Bagon): METEOR_FALLS_B1F_2R from the story arrival, three capability regimes
+====================================================================================================
+CLAIM: B1F_2R (Bagon) is unreachable on foot or Surf-alone from (27,18); reachable with Surf + Waterfall.
+
+  ON FOOT            METEOR_FALLS_1F_1R=296  METEOR_FALLS_1F_2R=0  METEOR_FALLS_B1F_1R=0  METEOR_FALLS_B1F_2R=0      Bagon room reached: False
+  +SURF              METEOR_FALLS_1F_1R=333  METEOR_FALLS_1F_2R=0  METEOR_FALLS_B1F_1R=0  METEOR_FALLS_B1F_2R=0      Bagon room reached: False
+  +SURF+WATERFALL    METEOR_FALLS_1F_1R=499  METEOR_FALLS_1F_2R=392  METEOR_FALLS_B1F_1R=463  METEOR_FALLS_B1F_2R=65 Bagon room reached: True
+
+  [CONFIRMED] B1F_2R NOT reached on foot
+  [CONFIRMED] B1F_2R NOT reached with Surf alone
+  [CONFIRMED] B1F_2R IS reached with Surf+Waterfall
+  ⇒ C3 VERDICT: CONFIRMED
+
+  MINIMAL CAPABILITY SET PER ROOM (first regime, in FOOT < SURF < SURF+WATERFALL order, that reaches it):
+    METEOR_FALLS_1F_2R     first reachable with: Surf+Waterfall  (392 tiles)
+    METEOR_FALLS_B1F_1R    first reachable with: Surf+Waterfall  (463 tiles)
+    METEOR_FALLS_B1F_2R    first reachable with: Surf+Waterfall  (65 tiles)
+
+====================================================================================================
+2 — CLAIM C2: the Route 125 entrance to Shoal Cave is an island (needs Surf to approach)
+====================================================================================================
+CLAIM: (22, 19) on ROUTE125 sits on a ~91-tile on-foot island; Surf is required to reach it from Mossdeep.
+
+  ROUTE125 size: 80x40
+  on-foot component containing (22, 19): 91 tiles, reaches_map_edge=False
+    [REPRODUCED] recon claimed ~91 tiles
+    [CONFIRMED] component does NOT reach the map edge (i.e. it is landlocked/an island by the same test as probe_route128_landing.py)
+  ROUTE125 connections: [('South', 'MOSSDEEP CITY'), ('West', 'ROUTE 124'), ('Dive', 'UNDERWATER')]
+    [CONFIRMED] Surf is required to reach the cave-side island from any land connection
+
+====================================================================================================
+3 — CLAIM C1a (Snorunt / Strength gate): the Lower Room boulder, cross-checked live
+====================================================================================================
+CLAIM: boulder at (25,3) in the Lower Room must be pushed EAST 3 times before the warp at (28,11) to the Ice Room is reachable; nothing else is needed at low tide.
+
+  LIVE ROM object read at Lower Room (25,3):
+    graphics_id=87  movement_type=LOOK_AROUND  elevation=3  flag_id=17
+    cross-check (gh api data/maps/ShoalCave_LowTideLowerRoom/map.json, fetched while writing this probe): graphics_id 'OBJ_EVENT_GFX_PUSHABLE_BOULDER' at (25,3), flag FLAG_TEMP_11 — position MATCHES.
+    all objects on this map: [((25, 3), 87), ((11, 4), 44)]
+
+  PUSH SIMULATION (boulder (25,3), East x3): ok=True  reason=ok  final position=(28, 3)
+
+  Lower Room flood from arrival (7,2) [one of its 3 Inner-room doors]:
+    WITHOUT Strength (boulder blocks (25,3)) : 83 tiles, reaches (28,11)=False
+    WITH    Strength (boulder moved to (28, 3)) : 102 tiles, reaches (28,11)=True
+  [CONFIRMED] boulder object exists at (25,3) in our ROM
+  [CONFIRMED] the East x3 push is a VALID push (clear tiles, standing room behind)
+  [CONFIRMED] WITHOUT Strength, (28,11) is NOT reachable
+  [CONFIRMED] WITH Strength, (28,11) IS reachable
+
+====================================================================================================
+4 — CLAIM C1b: inside the Ice Room at low tide, is anything ELSE needed to reach Snorunt?
+====================================================================================================
+  ICE ROOM size: 20x30
+  recon's claimed Snorunt tile (24,83): OUT OF BOUNDS — the coordinate does not exist on this map
+  Ice Room LAND table (rate 10): Zubat L26-26 20%, Spheal L26-26 20%, Zubat L28-28 10%, Spheal L28-28 10%, Zubat L30-30 10%, Spheal L30-30 10%, Snorunt L26-26 5%, Spheal L32-32 5%, Golbat L30-30 4%, Snorunt L28-28 4%, Golbat L32-32 1%, Snorunt L30-30 1%
+  Snorunt share of the LAND table: 10%
+
+  ON FOOT from the arrival (17,10): 315 tiles, 154 of them ENCOUNTER tiles
+  WITH SURF from the arrival (17,10): 315 tiles, 154 of them ENCOUNTER tiles
+  ON-FOOT reachable tile-type histogram: {'Ladder': 1, 'Cave': 154, 'Ice': 150, 'Normal': 6, 'Jump South': 4}
+  [CONFIRMED] the Ice Room's own land-encounter tiles are reachable ON FOOT (no extra HM inside)
+  [CONFIRMED] Surf does NOT reach materially more encounter tiles than on-foot (no hidden Surf gate)
+
+====================================================================================================
+5 — ROOM-BY-ROOM MINIMAL HM SET, LOW TIDE, from the Route125 entrance warp (20,30)
+====================================================================================================
+  room       on foot, no Strength        on foot, WITH Strength      Surf, WITH Strength       
+  Entrance   reached (315)               reached (315)               reached (315)             
+  Inner      reached (547)               reached (547)               reached (547)             
+  Stairs     reached (54)                reached (54)                reached (54)              
+  Lower      reached (83)                reached (102)               reached (102)             
+  Ice        NOT reached                 reached (315)               reached (315)             
+
+  encounter headers per room (LOW tide), read live:
+    Entrance   SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM        HAS a land/surf table
+    Inner      SHOAL_CAVE_LOW_TIDE_INNER_ROOM           HAS a land/surf table
+    Stairs     SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM          HAS a land/surf table
+    Lower      SHOAL_CAVE_LOW_TIDE_LOWER_ROOM           HAS a land/surf table
+    Ice        SHOAL_CAVE_LOW_TIDE_ICE_ROOM             HAS a land/surf table
+
+====================================================================================================
+6 — ROOM-BY-ROOM MINIMAL HM SET, HIGH TIDE (Entrance/Inner layouts swapped, per probe_shoal_tide.py)
+====================================================================================================
+  room       on foot, WITH Strength      Surf, WITH Strength       
+  Entrance   reached (181)               reached (652)             
+  Inner      NOT reached                 reached (983)             
+  Stairs     NOT reached                 reached (54)              
+  Lower      NOT reached                 reached (102)             
+  Ice        NOT reached                 reached (315)             
+
+  ⚠ Lower/Stairs/Ice have NO high-tide layout of their own (confirmed via `gh api` map listing: only ShoalCave_HighTideEntranceRoom / ...InnerRoom exist) — read at their single layout regardless of tide, as in section 5.
+
+====================================================================================================
+SUMMARY / VERDICTS
+====================================================================================================
+  CONTROL raw 262/299 numbers reproduced exactly         : NO
+  CONTROL calculate_path cross-validation (99.5% agreement)   : PASS
+  C1a (Strength gates the Ice Room door, Lower Room)     : CONFIRMED
+  C1b (nothing else needed inside the Ice Room, low tide): CONFIRMED
+  C1  (recon's coordinate (24,83) for Snorunt itself)    : REFUTED — out of bounds on a 20x30 map; Snorunt is a LAND-TABLE species for the whole room, not one tile
+  C2  (Route125 approach is an island needing Surf)      : CONFIRMED
+  C3  (Bagon needs Surf+Waterfall, not Surf alone)       : CONFIRMED
+
+  ‼ NOT MEASURED by this probe (say so plainly rather than guess):
+    - The exact ICE-SLIDING PUZZLE inside the Ice Room (Ice tiles are modelled as freely
+      enterable/exitable for REACHABILITY, matching map_path.py's own rule that Ice tiles
+      get accessible_from_direction=[True]*4; the forced-slide DESTINATION is not solved
+      here, so a tile flagged 'reachable' may in practice need a specific slide line-up.
+      This does not affect the HM/gate question, only exact foot-by-foot navigation.)
+    - Whether the Black Belt NPC in the Lower Room can block the boulder approach tile at
+      a given moment (NPCs are not modelled as obstacles here; only the boulder is).
+    - High-tide Lower/Stairs/Ice — moot, since those rooms have no high-tide layout.
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-09-29_14
+-27-44.ss1 created!
+Updated `current_state.ss1`!

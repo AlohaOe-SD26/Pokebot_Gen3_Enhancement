@@ -1,0 +1,3824 @@
+{
+ "_meta": {
+  "generator": "tools/story-dev/rare_species_dataset.py --write",
+  "rom": "BPEE0",
+  "design": "PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md §2 step 7",
+  "keyed_by": "national dex number (as a string); `internal` is the ROM species index",
+  "rule": "RARE = legendary OR special OR rate OR pseudo OR variant; shiny is its own branch",
+  "rate": "best per-table summed rate <= 4%",
+  "variant": "ratio in [31, 63, 191], the minority gender, best_rate x P(minority) <= 4% (Q5, a stated interpretation); modules/rarity.py checks the individual",
+  "pseudo": "exactly 1 MAPSEC AND >= 2 gates on the easiest home. A gate is an HM field move or a fishing rod needed to reach the encounter FROM THE STORY PATH (the Q6 proposal: a map the story walks through adds no gate, so Victory Road's species do not qualify; bikes are not gates)",
+  "map_access_gates": {
+   "METEOR_FALLS_1F_2R": [
+    "surf",
+    "waterfall"
+   ],
+   "METEOR_FALLS_B1F_1R": [
+    "surf",
+    "waterfall"
+   ],
+   "METEOR_FALLS_B1F_2R": [
+    "surf",
+    "waterfall"
+   ],
+   "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM": [
+    "surf"
+   ],
+   "SHOAL_CAVE_LOW_TIDE_INNER_ROOM": [
+    "surf"
+   ],
+   "SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM": [
+    "surf"
+   ],
+   "SHOAL_CAVE_LOW_TIDE_LOWER_ROOM": [
+    "surf"
+   ],
+   "SHOAL_CAVE_LOW_TIDE_ICE_ROOM": [
+    "strength",
+    "surf"
+   ]
+  },
+  "map_access_source": "Meteor Falls: sandbox-pokebot/modules/story/training_areas.py (measured 2026-09-11); Shoal Cave: tools/story-dev/probe_rarity_shoal_path.py (evidence/2026-09-29-rarepredicate-SHOALPATH.txt, production calculate_path). Supporting, not load-bearing: tools/story-dev/probe_rarity_access_gates.py (evidence/2026-09-29-rarepredicate-ACCESSGATES.txt), whose literal 262/299 control did NOT reproduce (296/333)",
+  "unmeasured_areas": {
+   "NEW_MAUVILLE": "Surf to reach; the Basement Key is an item, not a gate",
+   "ABANDONED_SHIP": "Surf to reach; Dive for the hidden floor",
+   "ARTISAN_CAVE": "Battle Frontier (post-game); Surf across the Frontier's water",
+   "DESERT_UNDERPASS": "post-game tunnel off Route 114",
+   "SAFARI_ZONE": "HM needs not measured; its Mach/Acro Bike areas are not gates under the Q6 proposal"
+  },
+  "excluded": {
+   "ROUTE130": "ROUTE130 land: Mirage Island only (Wynaut), which appears on a PV-matched random day",
+   "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1: unused, no warp reaches it",
+   "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2: unused, no warp reaches it",
+   "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3: unused, no warp reaches it"
+  },
+  "tier": "ULTRA when the variant (or shiny) reason is present, otherwise RARE",
+  "warp_depth": "diagnostic only (the 2026-08-06 axis, replaced by pseudo); null without cache/"
+ },
+ "species": {
+  "25": {
+   "name": "Pikachu",
+   "internal": 25,
+   "national": 25,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "27": {
+   "name": "Sandshrew",
+   "internal": 27,
+   "national": 27,
+   "gender_ratio": 127,
+   "best_rate": 50,
+   "mapsecs": [
+    26,
+    199
+   ],
+   "maps": [
+    "MIRAGE_TOWER_1F",
+    "MIRAGE_TOWER_2F",
+    "MIRAGE_TOWER_3F",
+    "MIRAGE_TOWER_4F",
+    "ROUTE111"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "37": {
+   "name": "Vulpix",
+   "internal": 37,
+   "national": 37,
+   "gender_ratio": 191,
+   "best_rate": 30,
+   "mapsecs": [
+    65
+   ],
+   "maps": [
+    "MT_PYRE_EXTERIOR"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": 7.6171875,
+   "warp_depth": 2,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "39": {
+   "name": "Jigglypuff",
+   "internal": 39,
+   "national": 39,
+   "gender_ratio": 191,
+   "best_rate": 10,
+   "mapsecs": [
+    30
+   ],
+   "maps": [
+    "ROUTE115"
+   ],
+   "gates": [],
+   "variant_gender": "male",
+   "variant_pct": 2.5390625,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "41": {
+   "name": "Zubat",
+   "internal": 41,
+   "national": 41,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    55,
+    63,
+    67,
+    68,
+    70,
+    72,
+    210
+   ],
+   "maps": [
+    "ALTERING_CAVE",
+    "CAVE_OF_ORIGIN_1F",
+    "CAVE_OF_ORIGIN_ENTRANCE",
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_B2F",
+    "GRANITE_CAVE_STEVENS_ROOM",
+    "METEOR_FALLS_1F_1R",
+    "SEAFLOOR_CAVERN_ENTRANCE",
+    "SEAFLOOR_CAVERN_ROOM1",
+    "SEAFLOOR_CAVERN_ROOM2",
+    "SEAFLOOR_CAVERN_ROOM3",
+    "SEAFLOOR_CAVERN_ROOM4",
+    "SEAFLOOR_CAVERN_ROOM5",
+    "SEAFLOOR_CAVERN_ROOM6",
+    "SEAFLOOR_CAVERN_ROOM7",
+    "SEAFLOOR_CAVERN_ROOM8",
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM",
+    "VICTORY_ROAD_1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "42": {
+   "name": "Golbat",
+   "internal": 42,
+   "national": 42,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    63,
+    67,
+    68,
+    70,
+    72,
+    85
+   ],
+   "maps": [
+    "CAVE_OF_ORIGIN_1F",
+    "CAVE_OF_ORIGIN_ENTRANCE",
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "METEOR_FALLS_STEVENS_CAVE",
+    "SEAFLOOR_CAVERN_ENTRANCE",
+    "SEAFLOOR_CAVERN_ROOM1",
+    "SEAFLOOR_CAVERN_ROOM2",
+    "SEAFLOOR_CAVERN_ROOM3",
+    "SEAFLOOR_CAVERN_ROOM4",
+    "SEAFLOOR_CAVERN_ROOM5",
+    "SEAFLOOR_CAVERN_ROOM6",
+    "SEAFLOOR_CAVERN_ROOM7",
+    "SEAFLOOR_CAVERN_ROOM8",
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM",
+    "SKY_PILLAR_1F",
+    "SKY_PILLAR_3F",
+    "SKY_PILLAR_5F",
+    "VICTORY_ROAD_1F",
+    "VICTORY_ROAD_B1F",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "43": {
+   "name": "Oddish",
+   "internal": 43,
+   "national": 43,
+   "gender_ratio": 127,
+   "best_rate": 40,
+   "mapsecs": [
+    25,
+    32,
+    34,
+    35,
+    36,
+    38,
+    57
+   ],
+   "maps": [
+    "ROUTE110",
+    "ROUTE117",
+    "ROUTE119",
+    "ROUTE120",
+    "ROUTE121",
+    "ROUTE123",
+    "SAFARI_ZONE_NORTH",
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "44": {
+   "name": "Gloom",
+   "internal": 44,
+   "national": 44,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    36,
+    38,
+    57
+   ],
+   "maps": [
+    "ROUTE121",
+    "ROUTE123",
+    "SAFARI_ZONE_NORTH",
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "54": {
+   "name": "Psyduck",
+   "internal": 54,
+   "national": 54,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "55": {
+   "name": "Golduck",
+   "internal": 55,
+   "national": 55,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "63": {
+   "name": "Abra",
+   "internal": 63,
+   "national": 63,
+   "gender_ratio": 63,
+   "best_rate": 10,
+   "mapsecs": [
+    31,
+    55
+   ],
+   "maps": [
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_B2F",
+    "GRANITE_CAVE_STEVENS_ROOM",
+    "ROUTE116"
+   ],
+   "gates": [],
+   "variant_gender": "female",
+   "variant_pct": 2.4609375,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "66": {
+   "name": "Machop",
+   "internal": 66,
+   "national": 66,
+   "gender_ratio": 63,
+   "best_rate": 25,
+   "mapsecs": [
+    74,
+    76
+   ],
+   "maps": [
+    "FIERY_PATH",
+    "JAGGED_PASS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": 6.15234375,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "72": {
+   "name": "Tentacool",
+   "internal": 72,
+   "national": 72,
+   "gender_ratio": 127,
+   "best_rate": 99,
+   "mapsecs": [
+    2,
+    6,
+    8,
+    12,
+    13,
+    14,
+    15,
+    18,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    30,
+    33,
+    34,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    61,
+    67,
+    68
+   ],
+   "maps": [
+    "ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "ABANDONED_SHIP_ROOMS_B1F",
+    "DEWFORD_TOWN",
+    "EVER_GRANDE_CITY",
+    "LILYCOVE_CITY",
+    "MOSSDEEP_CITY",
+    "PACIFIDLOG_TOWN",
+    "ROUTE103",
+    "ROUTE105",
+    "ROUTE106",
+    "ROUTE107",
+    "ROUTE108",
+    "ROUTE109",
+    "ROUTE110",
+    "ROUTE115",
+    "ROUTE118",
+    "ROUTE119",
+    "ROUTE121",
+    "ROUTE122",
+    "ROUTE123",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE128",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134",
+    "SEAFLOOR_CAVERN_ENTRANCE",
+    "SEAFLOOR_CAVERN_ROOM6",
+    "SEAFLOOR_CAVERN_ROOM7",
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SLATEPORT_CITY",
+    "SOOTOPOLIS_CITY"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "73": {
+   "name": "Tentacruel",
+   "internal": 73,
+   "national": 73,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    61
+   ],
+   "maps": [
+    "ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "ABANDONED_SHIP_ROOMS_B1F"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 4,
+   "gates_unmeasured": [
+    "ABANDONED_SHIP"
+   ],
+   "reasons": []
+  },
+  "74": {
+   "name": "Geodude",
+   "internal": 74,
+   "national": 74,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    26,
+    29,
+    55,
+    57,
+    70,
+    198
+   ],
+   "maps": [
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B2F",
+    "MAGMA_HIDEOUT_1F",
+    "MAGMA_HIDEOUT_2F_1R",
+    "MAGMA_HIDEOUT_2F_2R",
+    "MAGMA_HIDEOUT_2F_3R",
+    "MAGMA_HIDEOUT_3F_1R",
+    "MAGMA_HIDEOUT_3F_2R",
+    "MAGMA_HIDEOUT_3F_3R",
+    "MAGMA_HIDEOUT_4F",
+    "ROUTE111",
+    "ROUTE114",
+    "SAFARI_ZONE_NORTH",
+    "VICTORY_ROAD_B1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "75": {
+   "name": "Graveler",
+   "internal": 75,
+   "national": 75,
+   "gender_ratio": 127,
+   "best_rate": 70,
+   "mapsecs": [
+    70,
+    198
+   ],
+   "maps": [
+    "MAGMA_HIDEOUT_1F",
+    "MAGMA_HIDEOUT_2F_1R",
+    "MAGMA_HIDEOUT_2F_2R",
+    "MAGMA_HIDEOUT_2F_3R",
+    "MAGMA_HIDEOUT_3F_1R",
+    "MAGMA_HIDEOUT_3F_2R",
+    "MAGMA_HIDEOUT_3F_3R",
+    "MAGMA_HIDEOUT_4F",
+    "VICTORY_ROAD_B1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "81": {
+   "name": "Magnemite",
+   "internal": 81,
+   "national": 81,
+   "gender_ratio": 255,
+   "best_rate": 50,
+   "mapsecs": [
+    62
+   ],
+   "maps": [
+    "NEW_MAUVILLE_ENTRANCE",
+    "NEW_MAUVILLE_INSIDE"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [
+    "NEW_MAUVILLE"
+   ],
+   "reasons": []
+  },
+  "82": {
+   "name": "Magneton",
+   "internal": 82,
+   "national": 82,
+   "gender_ratio": 255,
+   "best_rate": 1,
+   "mapsecs": [
+    62
+   ],
+   "maps": [
+    "NEW_MAUVILLE_INSIDE"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "NEW_MAUVILLE"
+   ],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "84": {
+   "name": "Doduo",
+   "internal": 84,
+   "national": 84,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "85": {
+   "name": "Dodrio",
+   "internal": 85,
+   "national": 85,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "88": {
+   "name": "Grimer",
+   "internal": 88,
+   "national": 88,
+   "gender_ratio": 127,
+   "best_rate": 2,
+   "mapsecs": [
+    74
+   ],
+   "maps": [
+    "FIERY_PATH"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "100": {
+   "name": "Voltorb",
+   "internal": 100,
+   "national": 100,
+   "gender_ratio": 255,
+   "best_rate": 50,
+   "mapsecs": [
+    62
+   ],
+   "maps": [
+    "NEW_MAUVILLE_ENTRANCE",
+    "NEW_MAUVILLE_INSIDE"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [
+    "NEW_MAUVILLE"
+   ],
+   "reasons": []
+  },
+  "101": {
+   "name": "Electrode",
+   "internal": 101,
+   "national": 101,
+   "gender_ratio": 255,
+   "best_rate": 1,
+   "mapsecs": [
+    62
+   ],
+   "maps": [
+    "NEW_MAUVILLE_INSIDE"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "NEW_MAUVILLE"
+   ],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "109": {
+   "name": "Koffing",
+   "internal": 109,
+   "national": 109,
+   "gender_ratio": 127,
+   "best_rate": 25,
+   "mapsecs": [
+    74
+   ],
+   "maps": [
+    "FIERY_PATH"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "111": {
+   "name": "Rhyhorn",
+   "internal": 111,
+   "national": 111,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "116": {
+   "name": "Horsea",
+   "internal": 116,
+   "national": 116,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    47,
+    48,
+    49
+   ],
+   "maps": [
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "118": {
+   "name": "Goldeen",
+   "internal": 118,
+   "national": 118,
+   "gender_ratio": 127,
+   "best_rate": 80,
+   "mapsecs": [
+    7,
+    17,
+    26,
+    29,
+    32,
+    35,
+    57,
+    63,
+    70
+   ],
+   "maps": [
+    "METEOR_FALLS_1F_1R",
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "PETALBURG_CITY",
+    "ROUTE102",
+    "ROUTE111",
+    "ROUTE114",
+    "ROUTE117",
+    "ROUTE120",
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTHEAST",
+    "SAFARI_ZONE_SOUTHWEST",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "119": {
+   "name": "Seaking",
+   "internal": 119,
+   "national": 119,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "120": {
+   "name": "Staryu",
+   "internal": 120,
+   "national": 120,
+   "gender_ratio": 255,
+   "best_rate": 15,
+   "mapsecs": [
+    12
+   ],
+   "maps": [
+    "LILYCOVE_CITY"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "127": {
+   "name": "Pinsir",
+   "internal": 127,
+   "national": 127,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "129": {
+   "name": "Magikarp",
+   "internal": 129,
+   "national": 129,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    2,
+    6,
+    7,
+    8,
+    12,
+    13,
+    14,
+    15,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    29,
+    30,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    57,
+    61,
+    63,
+    67,
+    68,
+    70
+   ],
+   "maps": [
+    "ABANDONED_SHIP_HIDDEN_FLOOR_CORRIDORS",
+    "ABANDONED_SHIP_ROOMS_B1F",
+    "DEWFORD_TOWN",
+    "EVER_GRANDE_CITY",
+    "LILYCOVE_CITY",
+    "METEOR_FALLS_1F_1R",
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "MOSSDEEP_CITY",
+    "PACIFIDLOG_TOWN",
+    "PETALBURG_CITY",
+    "ROUTE102",
+    "ROUTE103",
+    "ROUTE104",
+    "ROUTE105",
+    "ROUTE106",
+    "ROUTE107",
+    "ROUTE108",
+    "ROUTE109",
+    "ROUTE110",
+    "ROUTE111",
+    "ROUTE114",
+    "ROUTE115",
+    "ROUTE117",
+    "ROUTE118",
+    "ROUTE119",
+    "ROUTE120",
+    "ROUTE121",
+    "ROUTE122",
+    "ROUTE123",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE128",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134",
+    "SAFARI_ZONE_NORTHWEST",
+    "SAFARI_ZONE_SOUTHEAST",
+    "SAFARI_ZONE_SOUTHWEST",
+    "SEAFLOOR_CAVERN_ENTRANCE",
+    "SEAFLOOR_CAVERN_ROOM6",
+    "SEAFLOOR_CAVERN_ROOM7",
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SLATEPORT_CITY",
+    "SOOTOPOLIS_CITY",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "130": {
+   "name": "Gyarados",
+   "internal": 130,
+   "national": 130,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    14
+   ],
+   "maps": [
+    "SOOTOPOLIS_CITY"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "132": {
+   "name": "Ditto",
+   "internal": 132,
+   "national": 132,
+   "gender_ratio": 255,
+   "best_rate": 50,
+   "mapsecs": [
+    209
+   ],
+   "maps": [
+    "DESERT_UNDERPASS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [
+    "DESERT_UNDERPASS"
+   ],
+   "reasons": []
+  },
+  "144": {
+   "name": "Articuno",
+   "internal": 144,
+   "national": 144,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "145": {
+   "name": "Zapdos",
+   "internal": 145,
+   "national": 145,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "146": {
+   "name": "Moltres",
+   "internal": 146,
+   "national": 146,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "150": {
+   "name": "Mewtwo",
+   "internal": 150,
+   "national": 150,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "151": {
+   "name": "Mew",
+   "internal": 151,
+   "national": 151,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "163": {
+   "name": "Hoothoot",
+   "internal": 163,
+   "national": 163,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST",
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "165": {
+   "name": "Ledyba",
+   "internal": 165,
+   "national": 165,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "167": {
+   "name": "Spinarak",
+   "internal": 167,
+   "national": 167,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "170": {
+   "name": "Chinchou",
+   "internal": 170,
+   "national": 170,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    50,
+    51
+   ],
+   "maps": [
+    "UNDERWATER_ROUTE124",
+    "UNDERWATER_ROUTE126"
+   ],
+   "gates": [
+    "dive",
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 99,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "177": {
+   "name": "Natu",
+   "internal": 177,
+   "national": 177,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTH",
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "178": {
+   "name": "Xatu",
+   "internal": 178,
+   "national": 178,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTH"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "179": {
+   "name": "Mareep",
+   "internal": 179,
+   "national": 179,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "183": {
+   "name": "Marill",
+   "internal": 183,
+   "national": 183,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    7,
+    17,
+    19,
+    26,
+    27,
+    29,
+    32,
+    35,
+    57
+   ],
+   "maps": [
+    "PETALBURG_CITY",
+    "ROUTE102",
+    "ROUTE104",
+    "ROUTE111",
+    "ROUTE112",
+    "ROUTE114",
+    "ROUTE117",
+    "ROUTE120",
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "190": {
+   "name": "Aipom",
+   "internal": 190,
+   "national": 190,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST",
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "191": {
+   "name": "Sunkern",
+   "internal": 191,
+   "national": 191,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST",
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "194": {
+   "name": "Wooper",
+   "internal": 194,
+   "national": 194,
+   "gender_ratio": 127,
+   "best_rate": 60,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "195": {
+   "name": "Quagsire",
+   "internal": 195,
+   "national": 195,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "202": {
+   "name": "Wobbuffet",
+   "internal": 202,
+   "national": 202,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "203": {
+   "name": "Girafarig",
+   "internal": 203,
+   "national": 203,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTH",
+    "SAFARI_ZONE_SOUTHWEST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "204": {
+   "name": "Pineco",
+   "internal": 204,
+   "national": 204,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "207": {
+   "name": "Gligar",
+   "internal": 207,
+   "national": 207,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "209": {
+   "name": "Snubbull",
+   "internal": 209,
+   "national": 209,
+   "gender_ratio": 191,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": "male",
+   "variant_pct": 1.26953125,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "213": {
+   "name": "Shuckle",
+   "internal": 213,
+   "national": 213,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [
+    "rock_smash"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "214": {
+   "name": "Heracross",
+   "internal": 214,
+   "national": 214,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTH"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "216": {
+   "name": "Teddiursa",
+   "internal": 216,
+   "national": 216,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "218": {
+   "name": "Slugma",
+   "internal": 218,
+   "national": 218,
+   "gender_ratio": 127,
+   "best_rate": 25,
+   "mapsecs": [
+    28,
+    74
+   ],
+   "maps": [
+    "FIERY_PATH",
+    "ROUTE113"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "222": {
+   "name": "Corsola",
+   "internal": 222,
+   "national": 222,
+   "gender_ratio": 191,
+   "best_rate": 15,
+   "mapsecs": [
+    15,
+    43
+   ],
+   "maps": [
+    "EVER_GRANDE_CITY",
+    "ROUTE128"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": "male",
+   "variant_pct": 3.80859375,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "223": {
+   "name": "Remoraid",
+   "internal": 223,
+   "national": 223,
+   "gender_ratio": 127,
+   "best_rate": 59,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "224": {
+   "name": "Octillery",
+   "internal": 224,
+   "national": 224,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "227": {
+   "name": "Skarmory",
+   "internal": 227,
+   "national": 227,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    28
+   ],
+   "maps": [
+    "ROUTE113"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "228": {
+   "name": "Houndour",
+   "internal": 228,
+   "national": 228,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "231": {
+   "name": "Phanpy",
+   "internal": 231,
+   "national": 231,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTH"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "234": {
+   "name": "Stantler",
+   "internal": 234,
+   "national": 234,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_SOUTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "235": {
+   "name": "Smeargle",
+   "internal": 235,
+   "national": 235,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    202
+   ],
+   "maps": [
+    "ARTISAN_CAVE_1F",
+    "ARTISAN_CAVE_B1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 7,
+   "gates_unmeasured": [
+    "ARTISAN_CAVE"
+   ],
+   "reasons": []
+  },
+  "241": {
+   "name": "Miltank",
+   "internal": 241,
+   "national": 241,
+   "gender_ratio": 254,
+   "best_rate": 5,
+   "mapsecs": [
+    57
+   ],
+   "maps": [
+    "SAFARI_ZONE_NORTHEAST"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [
+    "SAFARI_ZONE"
+   ],
+   "reasons": []
+  },
+  "243": {
+   "name": "Raikou",
+   "internal": 243,
+   "national": 243,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "244": {
+   "name": "Entei",
+   "internal": 244,
+   "national": 244,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "245": {
+   "name": "Suicune",
+   "internal": 245,
+   "national": 245,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "249": {
+   "name": "Lugia",
+   "internal": 249,
+   "national": 249,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "250": {
+   "name": "Ho-Oh",
+   "internal": 250,
+   "national": 250,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "251": {
+   "name": "Celebi",
+   "internal": 251,
+   "national": 251,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "261": {
+   "name": "Poochyena",
+   "internal": 286,
+   "national": 261,
+   "gender_ratio": 127,
+   "best_rate": 60,
+   "mapsecs": [
+    16,
+    17,
+    18,
+    19,
+    25,
+    31,
+    32,
+    35,
+    36,
+    38,
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS",
+    "ROUTE101",
+    "ROUTE102",
+    "ROUTE103",
+    "ROUTE104",
+    "ROUTE110",
+    "ROUTE116",
+    "ROUTE117",
+    "ROUTE120",
+    "ROUTE121",
+    "ROUTE123"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "262": {
+   "name": "Mightyena",
+   "internal": 287,
+   "national": 262,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    35,
+    36,
+    38
+   ],
+   "maps": [
+    "ROUTE120",
+    "ROUTE121",
+    "ROUTE123"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "263": {
+   "name": "Zigzagoon",
+   "internal": 288,
+   "national": 263,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    16,
+    17,
+    18,
+    33,
+    34
+   ],
+   "maps": [
+    "ROUTE101",
+    "ROUTE102",
+    "ROUTE103",
+    "ROUTE118",
+    "ROUTE119"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "264": {
+   "name": "Linoone",
+   "internal": 289,
+   "national": 264,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    33,
+    34
+   ],
+   "maps": [
+    "ROUTE118",
+    "ROUTE119"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "265": {
+   "name": "Wurmple",
+   "internal": 290,
+   "national": 265,
+   "gender_ratio": 127,
+   "best_rate": 45,
+   "mapsecs": [
+    16,
+    17,
+    19,
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS",
+    "ROUTE101",
+    "ROUTE102",
+    "ROUTE104"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "266": {
+   "name": "Silcoon",
+   "internal": 291,
+   "national": 266,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "268": {
+   "name": "Cascoon",
+   "internal": 293,
+   "national": 268,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "270": {
+   "name": "Lotad",
+   "internal": 295,
+   "national": 270,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    17,
+    29
+   ],
+   "maps": [
+    "ROUTE102",
+    "ROUTE114"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "271": {
+   "name": "Lombre",
+   "internal": 296,
+   "national": 271,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    29
+   ],
+   "maps": [
+    "ROUTE114"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "273": {
+   "name": "Seedot",
+   "internal": 298,
+   "national": 273,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    17,
+    32,
+    35
+   ],
+   "maps": [
+    "ROUTE102",
+    "ROUTE117",
+    "ROUTE120"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "274": {
+   "name": "Nuzleaf",
+   "internal": 299,
+   "national": 274,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    29
+   ],
+   "maps": [
+    "ROUTE114"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "276": {
+   "name": "Taillow",
+   "internal": 304,
+   "national": 276,
+   "gender_ratio": 127,
+   "best_rate": 40,
+   "mapsecs": [
+    19,
+    30,
+    31,
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS",
+    "ROUTE104",
+    "ROUTE115",
+    "ROUTE116"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "277": {
+   "name": "Swellow",
+   "internal": 305,
+   "national": 277,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    30
+   ],
+   "maps": [
+    "ROUTE115"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "278": {
+   "name": "Wingull",
+   "internal": 309,
+   "national": 278,
+   "gender_ratio": 127,
+   "best_rate": 95,
+   "mapsecs": [
+    2,
+    6,
+    8,
+    12,
+    13,
+    15,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    30,
+    33,
+    34,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    65
+   ],
+   "maps": [
+    "DEWFORD_TOWN",
+    "EVER_GRANDE_CITY",
+    "LILYCOVE_CITY",
+    "MOSSDEEP_CITY",
+    "MT_PYRE_EXTERIOR",
+    "PACIFIDLOG_TOWN",
+    "ROUTE103",
+    "ROUTE104",
+    "ROUTE105",
+    "ROUTE106",
+    "ROUTE107",
+    "ROUTE108",
+    "ROUTE109",
+    "ROUTE110",
+    "ROUTE115",
+    "ROUTE118",
+    "ROUTE119",
+    "ROUTE121",
+    "ROUTE122",
+    "ROUTE123",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE128",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134",
+    "SLATEPORT_CITY"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "279": {
+   "name": "Pelipper",
+   "internal": 310,
+   "national": 279,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    2,
+    6,
+    8,
+    12,
+    13,
+    15,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    30,
+    33,
+    34,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49
+   ],
+   "maps": [
+    "DEWFORD_TOWN",
+    "EVER_GRANDE_CITY",
+    "LILYCOVE_CITY",
+    "MOSSDEEP_CITY",
+    "PACIFIDLOG_TOWN",
+    "ROUTE103",
+    "ROUTE104",
+    "ROUTE105",
+    "ROUTE106",
+    "ROUTE107",
+    "ROUTE108",
+    "ROUTE109",
+    "ROUTE110",
+    "ROUTE115",
+    "ROUTE118",
+    "ROUTE119",
+    "ROUTE121",
+    "ROUTE122",
+    "ROUTE123",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE128",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134",
+    "SLATEPORT_CITY"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "280": {
+   "name": "Ralts",
+   "internal": 392,
+   "national": 280,
+   "gender_ratio": 127,
+   "best_rate": 4,
+   "mapsecs": [
+    17
+   ],
+   "maps": [
+    "ROUTE102"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "285": {
+   "name": "Shroomish",
+   "internal": 306,
+   "national": 285,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "287": {
+   "name": "Slakoth",
+   "internal": 364,
+   "national": 287,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    59
+   ],
+   "maps": [
+    "PETALBURG_WOODS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "290": {
+   "name": "Nincada",
+   "internal": 301,
+   "national": 290,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    31
+   ],
+   "maps": [
+    "ROUTE116"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "293": {
+   "name": "Whismur",
+   "internal": 370,
+   "national": 293,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    31,
+    60,
+    70,
+    209
+   ],
+   "maps": [
+    "DESERT_UNDERPASS",
+    "ROUTE116",
+    "RUSTURF_TUNNEL",
+    "VICTORY_ROAD_1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "294": {
+   "name": "Loudred",
+   "internal": 371,
+   "national": 294,
+   "gender_ratio": 127,
+   "best_rate": 16,
+   "mapsecs": [
+    70,
+    209
+   ],
+   "maps": [
+    "DESERT_UNDERPASS",
+    "VICTORY_ROAD_1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "296": {
+   "name": "Makuhita",
+   "internal": 335,
+   "national": 296,
+   "gender_ratio": 63,
+   "best_rate": 50,
+   "mapsecs": [
+    55,
+    70
+   ],
+   "maps": [
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_STEVENS_ROOM",
+    "VICTORY_ROAD_1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": 12.3046875,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "297": {
+   "name": "Hariyama",
+   "internal": 336,
+   "national": 297,
+   "gender_ratio": 63,
+   "best_rate": 35,
+   "mapsecs": [
+    70
+   ],
+   "maps": [
+    "VICTORY_ROAD_1F",
+    "VICTORY_ROAD_B1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": 8.61328125,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "299": {
+   "name": "Nosepass",
+   "internal": 320,
+   "national": 299,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    55
+   ],
+   "maps": [
+    "GRANITE_CAVE_B2F"
+   ],
+   "gates": [
+    "rock_smash"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "300": {
+   "name": "Skitty",
+   "internal": 315,
+   "national": 300,
+   "gender_ratio": 191,
+   "best_rate": 2,
+   "mapsecs": [
+    31
+   ],
+   "maps": [
+    "ROUTE116"
+   ],
+   "gates": [],
+   "variant_gender": "male",
+   "variant_pct": 0.5078125,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "302": {
+   "name": "Sableye",
+   "internal": 322,
+   "national": 302,
+   "gender_ratio": 127,
+   "best_rate": 35,
+   "mapsecs": [
+    55,
+    70,
+    72,
+    85
+   ],
+   "maps": [
+    "CAVE_OF_ORIGIN_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_B2F",
+    "SKY_PILLAR_1F",
+    "SKY_PILLAR_3F",
+    "SKY_PILLAR_5F",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "303": {
+   "name": "Mawile",
+   "internal": 355,
+   "national": 303,
+   "gender_ratio": 127,
+   "best_rate": 5,
+   "mapsecs": [
+    70
+   ],
+   "maps": [
+    "VICTORY_ROAD_B1F",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "304": {
+   "name": "Aron",
+   "internal": 382,
+   "national": 304,
+   "gender_ratio": 127,
+   "best_rate": 40,
+   "mapsecs": [
+    55,
+    70
+   ],
+   "maps": [
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_B2F",
+    "GRANITE_CAVE_STEVENS_ROOM",
+    "VICTORY_ROAD_1F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "305": {
+   "name": "Lairon",
+   "internal": 383,
+   "national": 305,
+   "gender_ratio": 127,
+   "best_rate": 25,
+   "mapsecs": [
+    70
+   ],
+   "maps": [
+    "VICTORY_ROAD_1F",
+    "VICTORY_ROAD_B1F",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "309": {
+   "name": "Electrike",
+   "internal": 337,
+   "national": 309,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    25,
+    33
+   ],
+   "maps": [
+    "ROUTE110",
+    "ROUTE118"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "310": {
+   "name": "Manectric",
+   "internal": 338,
+   "national": 310,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    33
+   ],
+   "maps": [
+    "ROUTE118"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "311": {
+   "name": "Plusle",
+   "internal": 353,
+   "national": 311,
+   "gender_ratio": 127,
+   "best_rate": 2,
+   "mapsecs": [
+    25
+   ],
+   "maps": [
+    "ROUTE110"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "312": {
+   "name": "Minun",
+   "internal": 354,
+   "national": 312,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    25
+   ],
+   "maps": [
+    "ROUTE110"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "313": {
+   "name": "Volbeat",
+   "internal": 386,
+   "national": 313,
+   "gender_ratio": 0,
+   "best_rate": 1,
+   "mapsecs": [
+    32
+   ],
+   "maps": [
+    "ROUTE117"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "314": {
+   "name": "Illumise",
+   "internal": 387,
+   "national": 314,
+   "gender_ratio": 254,
+   "best_rate": 18,
+   "mapsecs": [
+    32
+   ],
+   "maps": [
+    "ROUTE117"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "316": {
+   "name": "Gulpin",
+   "internal": 367,
+   "national": 316,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    25
+   ],
+   "maps": [
+    "ROUTE110"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "318": {
+   "name": "Carvanha",
+   "internal": 330,
+   "national": 318,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    33,
+    34
+   ],
+   "maps": [
+    "ROUTE118",
+    "ROUTE119"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "319": {
+   "name": "Sharpedo",
+   "internal": 331,
+   "national": 319,
+   "gender_ratio": 127,
+   "best_rate": 40,
+   "mapsecs": [
+    6,
+    13,
+    18,
+    33,
+    37,
+    39,
+    40,
+    41,
+    42,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49
+   ],
+   "maps": [
+    "MOSSDEEP_CITY",
+    "PACIFIDLOG_TOWN",
+    "ROUTE103",
+    "ROUTE118",
+    "ROUTE122",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "320": {
+   "name": "Wailmer",
+   "internal": 313,
+   "national": 320,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    2,
+    6,
+    8,
+    12,
+    13,
+    15,
+    18,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    30,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    67,
+    68
+   ],
+   "maps": [
+    "DEWFORD_TOWN",
+    "EVER_GRANDE_CITY",
+    "LILYCOVE_CITY",
+    "MOSSDEEP_CITY",
+    "PACIFIDLOG_TOWN",
+    "ROUTE103",
+    "ROUTE105",
+    "ROUTE106",
+    "ROUTE107",
+    "ROUTE108",
+    "ROUTE109",
+    "ROUTE110",
+    "ROUTE115",
+    "ROUTE121",
+    "ROUTE122",
+    "ROUTE123",
+    "ROUTE124",
+    "ROUTE125",
+    "ROUTE126",
+    "ROUTE127",
+    "ROUTE128",
+    "ROUTE129",
+    "ROUTE130",
+    "ROUTE131",
+    "ROUTE132",
+    "ROUTE133",
+    "ROUTE134",
+    "SEAFLOOR_CAVERN_ENTRANCE",
+    "SEAFLOOR_CAVERN_ROOM6",
+    "SEAFLOOR_CAVERN_ROOM7",
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SLATEPORT_CITY"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "321": {
+   "name": "Wailord",
+   "internal": 314,
+   "national": 321,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    44
+   ],
+   "maps": [
+    "ROUTE129"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "322": {
+   "name": "Numel",
+   "internal": 339,
+   "national": 322,
+   "gender_ratio": 127,
+   "best_rate": 75,
+   "mapsecs": [
+    27,
+    74,
+    76
+   ],
+   "maps": [
+    "FIERY_PATH",
+    "JAGGED_PASS",
+    "ROUTE112"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "324": {
+   "name": "Torkoal",
+   "internal": 321,
+   "national": 324,
+   "gender_ratio": 127,
+   "best_rate": 30,
+   "mapsecs": [
+    74,
+    198
+   ],
+   "maps": [
+    "FIERY_PATH",
+    "MAGMA_HIDEOUT_1F",
+    "MAGMA_HIDEOUT_2F_1R",
+    "MAGMA_HIDEOUT_2F_2R",
+    "MAGMA_HIDEOUT_2F_3R",
+    "MAGMA_HIDEOUT_3F_1R",
+    "MAGMA_HIDEOUT_3F_2R",
+    "MAGMA_HIDEOUT_3F_3R",
+    "MAGMA_HIDEOUT_4F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "325": {
+   "name": "Spoink",
+   "internal": 351,
+   "national": 325,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    76
+   ],
+   "maps": [
+    "JAGGED_PASS"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "327": {
+   "name": "Spinda",
+   "internal": 308,
+   "national": 327,
+   "gender_ratio": 127,
+   "best_rate": 70,
+   "mapsecs": [
+    28
+   ],
+   "maps": [
+    "ROUTE113"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "328": {
+   "name": "Trapinch",
+   "internal": 332,
+   "national": 328,
+   "gender_ratio": 127,
+   "best_rate": 50,
+   "mapsecs": [
+    26,
+    199
+   ],
+   "maps": [
+    "MIRAGE_TOWER_1F",
+    "MIRAGE_TOWER_2F",
+    "MIRAGE_TOWER_3F",
+    "MIRAGE_TOWER_4F",
+    "ROUTE111"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "331": {
+   "name": "Cacnea",
+   "internal": 344,
+   "national": 331,
+   "gender_ratio": 127,
+   "best_rate": 6,
+   "mapsecs": [
+    26
+   ],
+   "maps": [
+    "ROUTE111"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "333": {
+   "name": "Swablu",
+   "internal": 358,
+   "national": 333,
+   "gender_ratio": 127,
+   "best_rate": 40,
+   "mapsecs": [
+    29,
+    30
+   ],
+   "maps": [
+    "ROUTE114",
+    "ROUTE115"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "334": {
+   "name": "Altaria",
+   "internal": 359,
+   "national": 334,
+   "gender_ratio": 127,
+   "best_rate": 6,
+   "mapsecs": [
+    85
+   ],
+   "maps": [
+    "SKY_PILLAR_5F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 7,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "336": {
+   "name": "Seviper",
+   "internal": 379,
+   "national": 336,
+   "gender_ratio": 127,
+   "best_rate": 9,
+   "mapsecs": [
+    29
+   ],
+   "maps": [
+    "ROUTE114"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "338": {
+   "name": "Solrock",
+   "internal": 349,
+   "national": 338,
+   "gender_ratio": 255,
+   "best_rate": 35,
+   "mapsecs": [
+    63
+   ],
+   "maps": [
+    "METEOR_FALLS_1F_1R",
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "METEOR_FALLS_STEVENS_CAVE"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "339": {
+   "name": "Barboach",
+   "internal": 323,
+   "national": 339,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    26,
+    29,
+    35,
+    63,
+    70
+   ],
+   "maps": [
+    "METEOR_FALLS_1F_1R",
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "ROUTE111",
+    "ROUTE114",
+    "ROUTE120",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "340": {
+   "name": "Whiscash",
+   "internal": 324,
+   "national": 340,
+   "gender_ratio": 127,
+   "best_rate": 20,
+   "mapsecs": [
+    63,
+    70
+   ],
+   "maps": [
+    "METEOR_FALLS_1F_2R",
+    "METEOR_FALLS_B1F_1R",
+    "METEOR_FALLS_B1F_2R",
+    "VICTORY_ROAD_B2F"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 2,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "341": {
+   "name": "Corphish",
+   "internal": 326,
+   "national": 341,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    7,
+    17,
+    32
+   ],
+   "maps": [
+    "PETALBURG_CITY",
+    "ROUTE102",
+    "ROUTE117"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "343": {
+   "name": "Baltoy",
+   "internal": 318,
+   "national": 343,
+   "gender_ratio": 255,
+   "best_rate": 24,
+   "mapsecs": [
+    26
+   ],
+   "maps": [
+    "ROUTE111"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "344": {
+   "name": "Claydol",
+   "internal": 319,
+   "national": 344,
+   "gender_ratio": 255,
+   "best_rate": 25,
+   "mapsecs": [
+    85
+   ],
+   "maps": [
+    "SKY_PILLAR_1F",
+    "SKY_PILLAR_3F",
+    "SKY_PILLAR_5F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "349": {
+   "name": "Feebas",
+   "internal": 328,
+   "national": 349,
+   "gender_ratio": 127,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "special"
+   ]
+  },
+  "352": {
+   "name": "Kecleon",
+   "internal": 317,
+   "national": 352,
+   "gender_ratio": 127,
+   "best_rate": 1,
+   "mapsecs": [
+    33,
+    34,
+    35,
+    36,
+    38
+   ],
+   "maps": [
+    "ROUTE118",
+    "ROUTE119",
+    "ROUTE120",
+    "ROUTE121",
+    "ROUTE123"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "353": {
+   "name": "Shuppet",
+   "internal": 377,
+   "national": 353,
+   "gender_ratio": 127,
+   "best_rate": 100,
+   "mapsecs": [
+    36,
+    38,
+    65
+   ],
+   "maps": [
+    "MT_PYRE_1F",
+    "MT_PYRE_2F",
+    "MT_PYRE_3F",
+    "MT_PYRE_4F",
+    "MT_PYRE_5F",
+    "MT_PYRE_6F",
+    "MT_PYRE_EXTERIOR",
+    "MT_PYRE_SUMMIT",
+    "ROUTE121",
+    "ROUTE123"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "354": {
+   "name": "Banette",
+   "internal": 378,
+   "national": 354,
+   "gender_ratio": 127,
+   "best_rate": 15,
+   "mapsecs": [
+    85
+   ],
+   "maps": [
+    "SKY_PILLAR_1F",
+    "SKY_PILLAR_3F",
+    "SKY_PILLAR_5F"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "355": {
+   "name": "Duskull",
+   "internal": 361,
+   "national": 355,
+   "gender_ratio": 127,
+   "best_rate": 13,
+   "mapsecs": [
+    65
+   ],
+   "maps": [
+    "MT_PYRE_4F",
+    "MT_PYRE_5F",
+    "MT_PYRE_6F",
+    "MT_PYRE_SUMMIT"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "357": {
+   "name": "Tropius",
+   "internal": 369,
+   "national": 357,
+   "gender_ratio": 127,
+   "best_rate": 9,
+   "mapsecs": [
+    34
+   ],
+   "maps": [
+    "ROUTE119"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "358": {
+   "name": "Chimecho",
+   "internal": 411,
+   "national": 358,
+   "gender_ratio": 127,
+   "best_rate": 2,
+   "mapsecs": [
+    65
+   ],
+   "maps": [
+    "MT_PYRE_SUMMIT"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": [
+    "rate"
+   ]
+  },
+  "359": {
+   "name": "Absol",
+   "internal": 376,
+   "national": 359,
+   "gender_ratio": 127,
+   "best_rate": 8,
+   "mapsecs": [
+    35
+   ],
+   "maps": [
+    "ROUTE120"
+   ],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "361": {
+   "name": "Snorunt",
+   "internal": 346,
+   "national": 361,
+   "gender_ratio": 127,
+   "best_rate": 10,
+   "mapsecs": [
+    67
+   ],
+   "maps": [
+    "SHOAL_CAVE_LOW_TIDE_ICE_ROOM"
+   ],
+   "gates": [
+    "strength",
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 4,
+   "gates_unmeasured": [],
+   "reasons": [
+    "pseudo"
+   ]
+  },
+  "363": {
+   "name": "Spheal",
+   "internal": 341,
+   "national": 363,
+   "gender_ratio": 127,
+   "best_rate": 50,
+   "mapsecs": [
+    67
+   ],
+   "maps": [
+    "SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_ICE_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_INNER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_LOWER_ROOM",
+    "SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM"
+   ],
+   "gates": [
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 1,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "366": {
+   "name": "Clamperl",
+   "internal": 373,
+   "national": 366,
+   "gender_ratio": 127,
+   "best_rate": 65,
+   "mapsecs": [
+    50,
+    51
+   ],
+   "maps": [
+    "UNDERWATER_ROUTE124",
+    "UNDERWATER_ROUTE126"
+   ],
+   "gates": [
+    "dive",
+    "surf"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 99,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "369": {
+   "name": "Relicanth",
+   "internal": 381,
+   "national": 369,
+   "gender_ratio": 31,
+   "best_rate": 5,
+   "mapsecs": [
+    50,
+    51
+   ],
+   "maps": [
+    "UNDERWATER_ROUTE124",
+    "UNDERWATER_ROUTE126"
+   ],
+   "gates": [
+    "dive",
+    "surf"
+   ],
+   "variant_gender": "female",
+   "variant_pct": 0.60546875,
+   "warp_depth": 99,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "370": {
+   "name": "Luvdisc",
+   "internal": 325,
+   "national": 370,
+   "gender_ratio": 191,
+   "best_rate": 40,
+   "mapsecs": [
+    15,
+    43
+   ],
+   "maps": [
+    "EVER_GRANDE_CITY",
+    "ROUTE128"
+   ],
+   "gates": [
+    "rod"
+   ],
+   "variant_gender": null,
+   "variant_pct": 10.15625,
+   "warp_depth": 0,
+   "gates_unmeasured": [],
+   "reasons": []
+  },
+  "371": {
+   "name": "Bagon",
+   "internal": 395,
+   "national": 371,
+   "gender_ratio": 127,
+   "best_rate": 25,
+   "mapsecs": [
+    63
+   ],
+   "maps": [
+    "METEOR_FALLS_B1F_2R"
+   ],
+   "gates": [
+    "surf",
+    "waterfall"
+   ],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": 3,
+   "gates_unmeasured": [],
+   "reasons": [
+    "pseudo"
+   ]
+  },
+  "377": {
+   "name": "Regirock",
+   "internal": 401,
+   "national": 377,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "378": {
+   "name": "Regice",
+   "internal": 402,
+   "national": 378,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "379": {
+   "name": "Registeel",
+   "internal": 403,
+   "national": 379,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "380": {
+   "name": "Latias",
+   "internal": 407,
+   "national": 380,
+   "gender_ratio": 254,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "381": {
+   "name": "Latios",
+   "internal": 408,
+   "national": 381,
+   "gender_ratio": 0,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "382": {
+   "name": "Kyogre",
+   "internal": 404,
+   "national": 382,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "383": {
+   "name": "Groudon",
+   "internal": 405,
+   "national": 383,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "384": {
+   "name": "Rayquaza",
+   "internal": 406,
+   "national": 384,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "385": {
+   "name": "Jirachi",
+   "internal": 409,
+   "national": 385,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  },
+  "386": {
+   "name": "Deoxys",
+   "internal": 410,
+   "national": 386,
+   "gender_ratio": 255,
+   "best_rate": null,
+   "mapsecs": [],
+   "maps": [],
+   "gates": [],
+   "variant_gender": null,
+   "variant_pct": null,
+   "warp_depth": null,
+   "gates_unmeasured": [],
+   "reasons": [
+    "legendary"
+   ]
+  }
+ }
+}

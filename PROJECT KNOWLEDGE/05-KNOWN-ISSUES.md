@@ -3160,3 +3160,19 @@ step 11, or a standalone item if it is wanted sooner.
 every `[BATTLE]` line. After their shared `[MODE] Story -> Manual` drop, their `[RESUMED] after N frames` lines differ
 (1815, 1820 and 1806 frames). The same holds for two `magmahideout` runs (304 and 353). That points at wall-clock
 timing in the idle/recovery path; it is consistent with the watchdog candidate, and still NOT measured as the cause.
+
+## KI-113 — ⚠ OPEN (filed 2026-09-29; low impact, upstream code): the runtime encounter reader holds the DEAD Altering Cave table (Smeargle), not the live one (Zubat)
+**Measured** (design v2 step 7; `tools/story-dev/rare_species_dataset.py`, check "the static ROM read equals the cache
+everywhere except ALTERING_CAVE"):
+- `gWildMonHeaders` has NINE headers for `ALTERING_CAVE` (24,106), one per `VAR_ALTERING_CAVE_WILD_SET` value. The game
+  takes the FIRST matching header and adds the var (decomp `wild_encounter.c` `GetCurrentMapWildMonHeaderId`). Only a
+  Mystery Gift event script changes the var (`data/scripts/gift_altering_cave.inc`, an event distribution), so in
+  ordinary play the live table is set 0: Zubat 100%.
+- `modules/map.py` `get_wild_encounters_for_map` (UPSTREAM code) stores the headers in a dict keyed by (group, number),
+  so the LAST header wins: set 8, Smeargle 100%. `cache/encounter_index_BPEE0.json` inherits it. Every other map
+  agrees exactly between the two readers.
+**Consequence:** anything that asks the runtime index where a species lives is told Smeargle is in Altering Cave, and
+not told Zubat is. Nothing in the story needs either, so the impact is low. The rarity table does NOT inherit it:
+its generator reads the first header.
+**Fix direction:** keep the first header per map in `get_wild_encounters_for_map` (a divergence from upstream, so it
+needs a DIVERGENCE-LOG entry when promoted), then rebuild the cache. Not started.
