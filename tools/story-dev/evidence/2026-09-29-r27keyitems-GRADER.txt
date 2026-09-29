@@ -1,0 +1,75 @@
+# RULING 27 / design v2 step 6 (KB) GRADER: each arm vs its M0 (Live A: main 7dcd69fd; Live B: the worktree with the harness identity helpers), every [BATTLE] line (TURN/ITEM/FAINT-CHOOSER) plus [TRAINER]/[MAP]/[MONEY]/[CATCH]; the one-frame (0,0) warp read excluded; [KEYBATTLE] listed per arm.
+
+== A-OFF-r1 vs M0-A: 205 vs 205 tracked lines to f3232443: IDENTICAL
+   [KEYBATTLE] lines: 0   [TRAINER] starts: 8
+     ITEM: f3196418 [BATTLE] [ITEM] using Hyper Potion on Mightyena 30/127 (use 1, worst hit 0)
+
+== A-OFF-r2 vs M0-A: 205 vs 205 tracked lines to f3232443: IDENTICAL
+   [KEYBATTLE] lines: 0   [TRAINER] starts: 8
+     ITEM: f3196418 [BATTLE] [ITEM] using Hyper Potion on Mightyena 30/127 (use 1, worst hit 0)
+
+== A-ON-r1 vs M0-A: 217 vs 205 tracked lines to f3233043: FIRST DIFF at #134
+   M0 : f3196418 [BATTLE] [ITEM] using Hyper Potion on Mightyena 30/127 (use 1, worst hit 0)
+   ARM: f3196418 [BATTLE] [TURN 0] Mightyena L43 30/127 [Paralysis] -> UseMove:Take Down(pp14)  vs Loudred L29 91/91
+   [KEYBATTLE] lines: 5   [TRAINER] starts: 8
+     f3173266 [KEYBATTLE] opp=651 class=0x2A key=False allow=False reason=not_a_key_class
+     f3185424 [KEYBATTLE] opp=300 class=0x24 key=False allow=False reason=not_a_key_class
+     f3190230 [KEYBATTLE] opp=11 class=0x05 key=False allow=False reason=not_a_key_class
+     f3196418 [KEYBATTLE] opp=767 class=0x05 key=False allow=False reason=not_a_key_class
+     f3229983 [KEYBATTLE] opp=717 class=0x09 key=False allow=False reason=not_a_key_class
+
+== A-ON-r2 vs M0-A: 217 vs 205 tracked lines to f3233043: FIRST DIFF at #134
+   M0 : f3196418 [BATTLE] [ITEM] using Hyper Potion on Mightyena 30/127 (use 1, worst hit 0)
+   ARM: f3196418 [BATTLE] [TURN 0] Mightyena L43 30/127 [Paralysis] -> UseMove:Take Down(pp14)  vs Loudred L29 91/91
+   [KEYBATTLE] lines: 5   [TRAINER] starts: 8
+     f3173266 [KEYBATTLE] opp=651 class=0x2A key=False allow=False reason=not_a_key_class
+     f3185424 [KEYBATTLE] opp=300 class=0x24 key=False allow=False reason=not_a_key_class
+     f3190230 [KEYBATTLE] opp=11 class=0x05 key=False allow=False reason=not_a_key_class
+     f3196418 [KEYBATTLE] opp=767 class=0x05 key=False allow=False reason=not_a_key_class
+     f3229983 [KEYBATTLE] opp=717 class=0x09 key=False allow=False reason=not_a_key_class
+
+== A-RAISE vs M0-A: 205 vs 205 tracked lines to f3232443: IDENTICAL
+   [KEYBATTLE] lines: 5   [TRAINER] starts: 8
+     f3173266 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)
+     f3185424 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)
+     f3190230 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)
+     f3196418 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)
+     f3232443 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)
+     ITEM: f3196418 [BATTLE] [ITEM] using Hyper Potion on Mightyena 30/127 (use 1, worst hit 0)
+
+== B1-ON vs M0-B1: 73 vs 73 tracked lines to f4337854: IDENTICAL
+   [KEYBATTLE] lines: 1   [TRAINER] starts: 1
+     f4320217 [KEYBATTLE] opp=261 class=0x1F key=True allow=True reason=key_class
+     ITEM: f4320217 [BATTLE] [ITEM] using Full Heal on Sceptile 147/147 (use 1, worst hit 0)
+     ITEM: f4325721 [BATTLE] [ITEM] using Full Restore on Sceptile 29/147 (use 2, worst hit 66)
+     ITEM: f4327762 [BATTLE] [ITEM] using Full Restore on Sceptile 15/147 (use 3, worst hit 68)
+     ITEM: f4333720 [BATTLE] [ITEM] using Full Restore on Sceptile 46/147 (use 4, worst hit 68)
+
+== B1-ORD vs M0-B1: 91 vs 73 tracked lines to f4341990: FIRST DIFF at #5
+   M0 : f4320217 [BATTLE] [ITEM] using Full Heal on Sceptile 147/147 (use 1, worst hit 0)
+   ARM: f4320217 [BATTLE] [TURN 0] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+   [KEYBATTLE] lines: 1   [TRAINER] starts: 1
+     f4320217 [KEYBATTLE] opp=261 class=0x05 key=False allow=False reason=not_a_key_class
+
+== B2-ON vs M0-B2: 162 vs 162 tracked lines to f3294821: IDENTICAL
+   [KEYBATTLE] lines: 7   [TRAINER] starts: 8
+     f3236482 [KEYBATTLE] opp=717 class=0x09 key=False allow=False reason=not_a_key_class
+     f3241189 [KEYBATTLE] opp=718 class=0x09 key=False allow=False reason=not_a_key_class
+     f3247448 [KEYBATTLE] opp=724 class=0x09 key=False allow=False reason=not_a_key_class
+     f3252203 [KEYBATTLE] opp=731 class=0x09 key=False allow=False reason=not_a_key_class
+     f3257041 [KEYBATTLE] opp=726 class=0x09 key=False allow=False reason=not_a_key_class
+     f3269631 [KEYBATTLE] opp=732 class=0x31 key=True allow=True reason=key_class
+     f3277800 [KEYBATTLE] opp=601 class=0x35 key=True allow=True reason=key_class
+     ITEM: f3282442 [BATTLE] [ITEM] using Hyper Potion on Sceptile 30/122 (use 1, worst hit 80)
+
+== B2-ORD vs M0-B2: 152 vs 162 tracked lines to f3296686: FIRST DIFF at #86
+   M0 : f3282442 [BATTLE] [ITEM] using Hyper Potion on Sceptile 30/122 (use 1, worst hit 80)
+   ARM: f3282442 [BATTLE] [TURN 5] Sceptile L44 30/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+   [KEYBATTLE] lines: 7   [TRAINER] starts: 8
+     f3236482 [KEYBATTLE] opp=717 class=0x05 key=False allow=False reason=not_a_key_class
+     f3241189 [KEYBATTLE] opp=718 class=0x05 key=False allow=False reason=not_a_key_class
+     f3247448 [KEYBATTLE] opp=724 class=0x05 key=False allow=False reason=not_a_key_class
+     f3252203 [KEYBATTLE] opp=731 class=0x05 key=False allow=False reason=not_a_key_class
+     f3257041 [KEYBATTLE] opp=726 class=0x05 key=False allow=False reason=not_a_key_class
+     f3269631 [KEYBATTLE] opp=732 class=0x05 key=False allow=False reason=not_a_key_class
+     f3277800 [KEYBATTLE] opp=601 class=0x05 key=False allow=False reason=not_a_key_class

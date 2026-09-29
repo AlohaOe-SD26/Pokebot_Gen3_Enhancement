@@ -8270,3 +8270,28 @@ unverifiable, when it is two lines from exact.
 - `key=` on the line: that is step 6's decision, pending the user's Q3.
 - Keying the skip on `gBattleOutcome`: refuted by measurement.
 - One control run: KI-112.
+
+## 2026-09-29 — RULING 27 / design v2 step 6 (KB): healing items only against KEY trainer classes, gated INSIDE `_maybe_use_item`, failing OPEN
+
+**Decision:**
+- `POKEBOT_R27_KEYITEMS` (default OFF): `StoryItemBattleStrategy._maybe_use_item` returns early, right after the
+  Trainer-battle return, when `_r27_key_gate` refuses.
+  - The key set is `trainer_identity.KEY_TRAINER_CLASSES`: LEADER, ELITE_FOUR, CHAMPION, RIVAL, MAGMA_LEADER,
+    AQUA_LEADER, MAGMA_ADMIN and AQUA_ADMIN. It is a proposal pending the user's Q3.
+  - The verdict is PURE and takes a list of sides.
+  - It is read once per battle, logged once as `[KEYBATTLE]`, and FAILS OPEN on any unreadable side.
+**Why:**
+- RULING 27: *"use healing items during battles (gym leaders, story "bosses" and elite 4 only)"*.
+- The gate is INSIDE the method, not in `on_battle_started`, because the harness drivers build the strategy
+  themselves (59 constructions). A hook-level gate would leave them ungated, and the key arms would pass vacuously.
+- The flag is tested first, so OFF does zero reads (gate I2).
+- It is an early return, because gate #59 pins the policy block's exact indentation.
+- It fails OPEN, because a reader bug must never cost a Juan or an Elite Four fight its items (A-RAISE: the item
+  still fires).
+**Rejected:**
+- A gate in `on_battle_started`: the harness drivers would be ungated.
+- Failing closed on an unreadable opponent.
+- Judging only side A in the verdict: a two-opponent battle has two sides. None reaches this method today (doubles),
+  but step 13 will.
+- A `key=` field on the always-on `[TRAINER]` line: the classification is a pending policy, and it lives only on the
+  flag-ON `[KEYBATTLE]` line.

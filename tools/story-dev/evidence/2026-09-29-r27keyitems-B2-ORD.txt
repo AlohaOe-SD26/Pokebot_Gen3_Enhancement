@@ -1,0 +1,117 @@
+# RULING 27 / design v2 step 6 (KB) arm B2-ORD: magma_door_losing.ss1 (76ef84a3), magmahideout, 120000 frames, seed 1; code e1ddc4e7; POKEBOT_R27_KEYITEMS=1 + POKEBOT_R27_FAULT_ALLORDINARY=1.
+# Source: Story-debug-20260929-132227.log. Kept: [KEYBATTLE], [TRAINER], [BATTLE] started/ended/[ITEM]/[TURN], [MODE].
+f3232218 [BATTLE] started hp=[('Mightyena', 127, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3233020 [BATTLE] [TURN 0] Mightyena L43 127/127 -> UseMove:Bite(pp25)  vs Geodude L27 63/63
+f3233536 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3235574 [BATTLE] started hp=[('Mightyena', 127, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3235574 [TRAINER] start opp=717 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=15106 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3236482 [KEYBATTLE] opp=717 class=0x05 key=False allow=False reason=not_a_key_class
+f3236482 [BATTLE] [TURN 0] Mightyena L43 127/127 -> UseMove:Take Down(pp20)  vs Poochyena L29 59/59
+f3237487 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3237487 [TRAINER] end opp=717 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=15106->15686 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3237725 [BATTLE] started hp=[('Mightyena', 113, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3238527 [BATTLE] [TURN 0] Mightyena L43 113/127 -> UseMove:Bite(pp24)  vs Geodude L30 66/66
+f3239044 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3240257 [BATTLE] started hp=[('Mightyena', 113, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3240257 [TRAINER] start opp=718 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=15686 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3241189 [KEYBATTLE] opp=718 class=0x05 key=False allow=False reason=not_a_key_class
+f3241189 [BATTLE] [TURN 0] Mightyena L43 113/127 -> UseMove:Take Down(pp19)  vs Numel L29 73/73
+f3242208 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3242208 [TRAINER] end opp=718 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=15686->16266 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3242606 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3243408 [BATTLE] [TURN 0] Mightyena L43 95/127 -> UseMove:Bite(pp23)  vs Geodude L30 68/68
+f3243927 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3244603 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3245405 [BATTLE] [TURN 0] Mightyena L43 95/127 -> UseMove:Bite(pp22)  vs Geodude L27 62/62
+f3245919 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3246568 [BATTLE] started hp=[('Mightyena', 95, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3246568 [TRAINER] start opp=724 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=16266 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3247448 [KEYBATTLE] opp=724 class=0x05 key=False allow=False reason=not_a_key_class
+f3247448 [BATTLE] [TURN 0] Mightyena L43 95/127 -> UseMove:Take Down(pp18)  vs Zubat L29 62/62
+f3247467 [BATTLE] [TURN 0] Mightyena L43 95/127 -> UseMove:Take Down(pp18)  vs Zubat L29 62/62
+f3248494 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3248494 [TRAINER] end opp=724 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=16266->16846 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3248860 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3249662 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp21)  vs Geodude L28 65/65
+f3250179 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3251233 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3251233 [TRAINER] start opp=731 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=16846 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3252203 [KEYBATTLE] opp=731 class=0x05 key=False allow=False reason=not_a_key_class
+f3252203 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp20)  vs Baltoy L29 62/62
+f3252222 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp20)  vs Baltoy L29 62/62
+f3253163 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3253163 [TRAINER] end opp=731 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=16846->17426 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3253945 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3254747 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp19)  vs Geodude L30 67/67
+f3255266 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3256071 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3256071 [TRAINER] start opp=726 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 double=False two=False money=17426 heal_stock=Hyper_Potion:1 map=? enemy_alive=1
+f3257041 [KEYBATTLE] opp=726 class=0x05 key=False allow=False reason=not_a_key_class
+f3257041 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp18)  vs Baltoy L29 62/62
+f3257060 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp18)  vs Baltoy L29 62/62
+f3258047 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L43', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3258047 [TRAINER] end opp=726 class=0x09(TEAM_MAGMA) value=5 lvl_last=29 first=True base=580 res=Won money=17426->18006 delta=580 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3258434 [BATTLE] started hp=[('Mightyena', 80, 127), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3259233 [BATTLE] [TURN 0] Mightyena L43 80/127 -> UseMove:Bite(pp17)  vs Torkoal L30 88/88
+f3259783 [BATTLE] [TURN 1] Mightyena L43 80/127 -> UseMove:Bite(pp16)  vs Torkoal L30 88/88
+f3260369 [BATTLE] [TURN 2] Mightyena L43 48/127 -> UseMove:Bite(pp15)  vs Torkoal L30 44/88
+f3261023 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L44', 'Zigzagoon:L3', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3261768 [BATTLE] started hp=[('Mightyena', 51, 130), ('Zigzagoon', 16, 16), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3261768 [TRAINER] start opp=727+728 class=0x09(TEAM_MAGMA)+0x09(TEAM_MAGMA) value=5+5 lvl_last=29+29 first=True+True base=1160 double=True two=True money=18006 heal_stock=Hyper_Potion:1 map=? enemy_alive=2
+f3263102 [BATTLE] [TURN 0] Mightyena L44 51/130 -> UseMove:Take Down(pp17)  vs Numel L29 73/73
+f3263128 [BATTLE] [TURN 0] Mightyena L44 51/130 -> UseMove:Take Down(pp17)  vs Numel L29 73/73
+f3263146 [BATTLE] [TURN 0] Zigzagoon L3 16/16 -> UseMove:Surf(pp15)  vs Numel L29 73/73
+f3264965 [BATTLE] [TURN 1] Mightyena L44 27/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp16)  vs ?
+f3264984 [BATTLE] [TURN 1] Mightyena L44 27/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp16)  vs ?
+f3265001 [BATTLE] [TURN 1] Zigzagoon L6 22/22 -> UseMoveAgainstRightSideOpponent:Tackle(pp35)  vs ?
+f3266439 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3266439 [TRAINER] end opp=727+728 class=0x09(TEAM_MAGMA)+0x09(TEAM_MAGMA) value=5+5 lvl_last=29+29 first=True+True base=1160 res=Won money=18006->19166 delta=1160 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3266944 [BATTLE] started hp=[('Mightyena', 13, 130), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Sceptile', 120, 120), ('Castform', 100, 100)]
+f3267749 [BATTLE] [TURN 0] Mightyena L44 13/130 -> RunAway  vs Torkoal L28 79/79
+f3267903 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Mightyena:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Sceptile:L43', 'Castform:L35']
+f3268955 [BATTLE] started hp=[('Sceptile', 120, 120), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Mightyena', 13, 130), ('Castform', 100, 100)]
+f3268955 [TRAINER] start opp=732 class=0x31(MAGMA_ADMIN) value=10 lvl_last=33 first=True base=1320 double=False two=False money=19166 heal_stock=Hyper_Potion:1 map=? enemy_alive=4
+f3269631 [KEYBATTLE] opp=732 class=0x05 key=False allow=False reason=not_a_key_class
+f3269631 [BATTLE] [TURN 0] Sceptile L43 120/120 -> UseMove:Leaf Blade(pp15)  vs Numel L26 69/69
+f3270743 [BATTLE] [TURN 1] Sceptile L43 120/120 -> UseMove:Slam(pp20)  vs Zubat L30 66/66
+f3270762 [BATTLE] [TURN 1] Sceptile L43 120/120 -> UseMove:Slam(pp20)  vs Zubat L30 66/66
+f3271993 [BATTLE] [TURN 2] Sceptile L43 120/120 -> UseMove:Leaf Blade(pp14)  vs Mightyena L28 79/79
+f3273192 [BATTLE] [TURN 3] Sceptile L43 120/120 -> UseMove:Leaf Blade(pp13)  vs Camerupt L33 92/92
+f3274485 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Mightyena:L44', 'Castform:L35']
+f3274485 [TRAINER] end opp=732 class=0x31(MAGMA_ADMIN) value=10 lvl_last=33 first=True base=1320 res=Won money=19166->20486 delta=1320 mult=1 heal_stock=Hyper_Potion:1 map=?
+f3276879 [BATTLE] started hp=[('Sceptile', 122, 122), ('Zigzagoon', 24, 24), ('Swellow', 114, 114), ('Skitty', 45, 45), ('Mightyena', 13, 130), ('Castform', 100, 100)]
+f3276879 [TRAINER] start opp=601 class=0x35(MAGMA_LEADER) value=20 lvl_last=39 first=True base=3120 double=False two=False money=20486 heal_stock=Hyper_Potion:1 map=? enemy_alive=3
+f3277800 [KEYBATTLE] opp=601 class=0x05 key=False allow=False reason=not_a_key_class
+f3277800 [BATTLE] [TURN 0] Sceptile L44 122/122 -> UseMove:Leaf Blade(pp12)  vs Mightyena L37 105/105
+f3278741 [BATTLE] [TURN 1] Sceptile L44 122/122 -> UseMove:Leaf Blade(pp11)  vs Mightyena L37 32/105
+f3279586 [BATTLE] [TURN 2] Sceptile L44 122/122 -> UseMove:Leaf Blade(pp10)  vs Mightyena L37 3/105
+f3280592 [BATTLE] [TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3280611 [BATTLE] [TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3281604 [BATTLE] [TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3281623 [BATTLE] [TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3282442 [BATTLE] [TURN 5] Sceptile L44 30/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3282461 [BATTLE] [TURN 5] Sceptile L44 30/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+f3283605 [BATTLE] [TURN 6] Mightyena L44 13/130 -> UseMove:Take Down(pp15)  vs Crobat L38 90/119
+f3283624 [BATTLE] [TURN 6] Mightyena L44 13/130 -> UseMove:Take Down(pp15)  vs Crobat L38 90/119
+f3284330 [BATTLE] [TURN 7] Swellow L41 114/114 -> UseMove:Wing Attack(pp35)  vs Crobat L38 90/119
+f3284349 [BATTLE] [TURN 7] Swellow L41 114/114 -> UseMove:Wing Attack(pp35)  vs Crobat L38 90/119
+f3285190 [BATTLE] [TURN 8] Swellow L41 114/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3285209 [BATTLE] [TURN 8] Swellow L41 114/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3285875 [BATTLE] [TURN 9] Swellow L41 76/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3285894 [BATTLE] [TURN 9] Swellow L41 76/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3286561 [BATTLE] [TURN 10] Swellow L41 38/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3286581 [BATTLE] [TURN 10] Swellow L41 38/114 [Confused] -> UseMove:Wing Attack(pp34)  vs Crobat L38 47/119
+f3287801 [BATTLE] [TURN 11] Castform L35 100/100 -> UseMove:Weather Ball(pp10)  vs Crobat L38 47/119
+f3287820 [BATTLE] [TURN 11] Castform L35 100/100 -> UseMove:Weather Ball(pp10)  vs Crobat L38 47/119
+f3288410 [BATTLE] [TURN 12] Castform L35 75/100 -> UseMove:Weather Ball(pp9)  vs Crobat L38 23/119
+f3288429 [BATTLE] [TURN 12] Castform L35 75/100 -> UseMove:Weather Ball(pp9)  vs Crobat L38 23/119
+f3289533 [BATTLE] [TURN 13] Castform L35 75/100 [Confused] -> UseMove:Weather Ball(pp8)  vs Crobat L38 1/119
+f3289552 [BATTLE] [TURN 13] Castform L35 75/100 [Confused] -> UseMove:Weather Ball(pp8)  vs Crobat L38 1/119
+f3291327 [BATTLE] [TURN 14] Castform L35 50/100 [Confused] -> UseMove:Powder Snow(pp25)  vs Mightyena L37 3/105
+f3292397 [BATTLE] [TURN 15] Castform L35 50/100 [Confused] -> UseMove:Powder Snow(pp24)  vs Mightyena L37 39/105
+f3293223 [BATTLE] [TURN 16] Castform L35 7/100 [Confused] -> UseMove:Powder Snow(pp24)  vs Mightyena L37 31/105
+f3294658 [BATTLE] [TURN 17] Skitty L17 45/45 -> UseMove:Tackle(pp35)  vs Mightyena L37 15/105
+f3295578 [BATTLE] [TURN 18] Zigzagoon L7 24/24 -> UseMove:Tackle(pp35)  vs Mightyena L37 4/105
+f3296564 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Sceptile:L44', 'Zigzagoon:L7', 'Swellow:L41', 'Skitty:L17', 'Mightyena:L44', 'Castform:L35']
+f3296564 [TRAINER] end opp=601 class=0x35(MAGMA_LEADER) value=20 lvl_last=39 first=True base=3120 res=Lost money=20486->20486 delta=0 mult=0 heal_stock=Hyper_Potion:1 map=?
+f3297023 [MODE] Story -> Manual   (message='Story: at (15, 21), facing Right at Maxie (16, 21).')

@@ -1,0 +1,42 @@
+# RULING 27 / design v2 step 6 (KB) arm B1-ON: post_league_shop.ss1 (1564948368f6), ch24probe + POKEBOT_CH24_STAGE_FREEZE=1, 120000 frames, seed 1; code e1ddc4e7; POKEBOT_R27_KEYITEMS=1.
+# Source: Story-debug-20260929-132228.log. Kept: [KEYBATTLE], [TRAINER], [BATTLE] started/ended/[ITEM]/[TURN], [MODE].
+f4319292 [BATTLE] started hp=[('Sceptile', 147, 147), ('Zigzagoon', 48, 48), ('Swellow', 139, 139), ('Wailord', 226, 226), ('Mightyena', 144, 144), ('Castform', 103, 103)]
+f4319292 [TRAINER] start opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 double=False two=False money=1741 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Restore:3,Full_Heal:8,Revive:3 
+f4320217 [KEYBATTLE] opp=261 class=0x1F key=True allow=True reason=key_class
+f4320217 [BATTLE] [ITEM] using Full Heal on Sceptile 147/147 (use 1, worst hit 0)
+f4320217 [BATTLE] [TURN 0] Sceptile L53 147/147 [Freeze] -> UseItem  vs Mightyena L46 134/134
+f4320929 [BATTLE] [ITEM] status cure ✔ WORKED: Freeze -> Healthy
+f4320929 [BATTLE] [TURN 1] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4321864 [BATTLE] [TURN 2] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp14)  vs Mightyena L46 25/134
+f4322559 [BATTLE] [TURN 3] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp13)  vs Mightyena L46 134/134
+f4322578 [BATTLE] [TURN 3] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp13)  vs Mightyena L46 134/134
+f4323371 [BATTLE] [TURN 4] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp12)  vs Mightyena L46 37/134
+f4323390 [BATTLE] [TURN 4] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp12)  vs Mightyena L46 37/134
+f4324529 [BATTLE] [TURN 5] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp11)  vs Absol L49 137/137
+f4324548 [BATTLE] [TURN 5] Sceptile L53 95/147 -> UseMove:Leaf Blade(pp11)  vs Absol L49 137/137
+f4325721 [BATTLE] [ITEM] using Full Restore on Sceptile 29/147 (use 2, worst hit 66)
+f4325721 [BATTLE] [TURN 6] Sceptile L53 29/147 -> UseItem  vs Absol L49 91/137
+f4326380 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 147/147 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f4326380 [BATTLE] [TURN 7] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp9)  vs Absol L49 91/137
+f4326956 [BATTLE] [TURN 8] Sceptile L53 83/147 -> UseMove:Leaf Blade(pp7)  vs Absol L49 91/137
+f4326975 [BATTLE] [TURN 8] Sceptile L53 83/147 -> UseMove:Leaf Blade(pp7)  vs Absol L49 91/137
+f4327762 [BATTLE] [ITEM] using Full Restore on Sceptile 15/147 (use 3, worst hit 68)
+f4327762 [BATTLE] [TURN 9] Sceptile L53 15/147 -> UseItem  vs Absol L49 8/137
+f4328406 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 110/147 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f4328406 [BATTLE] [TURN 10] Sceptile L53 110/147 -> UseMove:Leaf Blade(pp5)  vs Absol L49 8/137
+f4329480 [BATTLE] [TURN 11] Sceptile L53 110/147 -> UseMove:Leaf Blade(pp3)  vs Shiftry L48 158/158
+f4330434 [BATTLE] [TURN 12] Sceptile L53 110/147 -> UseMove:Leaf Blade(pp2)  vs Shiftry L48 116/158
+f4331624 [BATTLE] [TURN 13] Sceptile L53 110/147 [Confused] -> UseMove:Strength(pp15)  vs Shiftry L48 76/158
+f4332871 [BATTLE] [TURN 14] Sceptile L53 110/147 [Confused] -> UseMove:Strength(pp14)  vs Cacturne L46 134/134
+f4332890 [BATTLE] [TURN 14] Sceptile L53 110/147 [Confused] -> UseMove:Strength(pp14)  vs Cacturne L46 134/134
+f4333720 [BATTLE] [ITEM] using Full Restore on Sceptile 46/147 (use 4, worst hit 68)
+f4333720 [BATTLE] [TURN 15] Sceptile L53 46/147 [Confused] -> UseItem  vs Cacturne L46 134/134
+f4334647 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 147/147 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f4334647 [BATTLE] [TURN 16] Sceptile L53 147/147 -> UseMove:Strength(pp14)  vs Cacturne L46 134/134
+f4335361 [BATTLE] [TURN 17] Sceptile L53 116/147 -> UseMove:Strength(pp13)  vs Cacturne L46 45/134
+f4335380 [BATTLE] [TURN 17] Sceptile L53 116/147 -> UseMove:Strength(pp13)  vs Cacturne L46 45/134
+f4336541 [BATTLE] [TURN 18] Sceptile L54 119/150 -> UseMove:Leaf Blade(pp1)  vs Crawdaunt L48 132/132
+f4336560 [BATTLE] [TURN 18] Sceptile L54 119/150 -> UseMove:Leaf Blade(pp1)  vs Crawdaunt L48 132/132
+f4337854 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L54', 'Zigzagoon:L19', 'Swellow:L48', 'Wailord:L47', 'Mightyena:L48', 'Castform:L36']
+f4337854 [TRAINER] end opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 res=Won money=1741->6641 delta=4900 mult=1 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Heal:7,Revive:3 map=?
+f4339706 [MODE] Story -> Manual   (message='Story: parked script context detected — treating the scene as over.')

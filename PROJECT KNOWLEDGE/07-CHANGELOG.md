@@ -36939,3 +36939,24 @@ codebase read it.
     had a case.
   - The graded note now states the skip discriminator's measured scope: one badge-1 run.
 - **Process change (08, 14):** resume pointers are updated BEFORE the review, never "after it".
+
+## 2026-09-29 — USER RULING 27 / DESIGN v2 STEP 6 (KB): HEALING ITEMS IN BATTLE ONLY AGAINST KEY TRAINER CLASSES, BEHIND `POKEBOT_R27_KEYITEMS` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 27: healing items only against gym leaders, story bosses and the Elite Four. The bot used them in
+every single trainer battle.
+**WHAT.**
+- `trainer_identity.KEY_TRAINER_CLASSES`: a proposal pending Q3. It covers every configured and named boss; class
+  0x32 also covers Steven and Red/Leaf.
+- The PURE `key_battle_verdict`, which fails open.
+- `_r27_key_gate` inside `_maybe_use_item`: flag first, one `[KEYBATTLE]` line per battle.
+- The fault arms RAISE and ALLORDINARY.
+- The harness `Ch24ProbeMode` and `MagmaHideoutMode` log the step-5 `[TRAINER]` identity.
+- NEW gate `repro_key_battle_items.py`: V1-V2, I1-I4 on the real `_maybe_use_item`, A1-A2, F1-F5. Suite 130.
+**PROOF** (predictions `ccf218d1`; `ai-research-notes/2026-09-29-r27keyitems-GRADED.md`). Every M0 and OFF arm was run
+twice and every pair is identical.
+- OFF replays M0 (205/205).
+- ON refuses the Hyper Potion against Cooltrainer 767, and the turn becomes Take Down.
+- ON keeps the Full Heal and Full Restores against Sidney, and the Hyper Potion against Maxie.
+- ALLORDINARY refuses both of those.
+- RAISE still heals, with FAIL_OPEN lines.
+- The spec's stale Live A reading was re-measured before the code.

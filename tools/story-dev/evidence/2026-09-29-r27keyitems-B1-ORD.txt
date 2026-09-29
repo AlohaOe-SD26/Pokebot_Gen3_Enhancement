@@ -1,0 +1,51 @@
+# RULING 27 / design v2 step 6 (KB) arm B1-ORD: post_league_shop.ss1 (1564948368f6), ch24probe + POKEBOT_CH24_STAGE_FREEZE=1, 120000 frames, seed 1; code e1ddc4e7; POKEBOT_R27_KEYITEMS=1 + POKEBOT_R27_FAULT_ALLORDINARY=1.
+# Source: Story-debug-20260929-132227.log. Kept: [KEYBATTLE], [TRAINER], [BATTLE] started/ended/[ITEM]/[TURN], [MODE].
+f4319292 [BATTLE] started hp=[('Sceptile', 147, 147), ('Zigzagoon', 48, 48), ('Swellow', 139, 139), ('Wailord', 226, 226), ('Mightyena', 144, 144), ('Castform', 103, 103)]
+f4319292 [TRAINER] start opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 double=False two=False money=1741 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Restore:3,Full_Heal:8,Revive:3 
+f4320217 [KEYBATTLE] opp=261 class=0x05 key=False allow=False reason=not_a_key_class
+f4320217 [BATTLE] [TURN 0] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4320236 [BATTLE] [TURN 0] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4320835 [BATTLE] [TURN 1] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4320854 [BATTLE] [TURN 1] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4321451 [BATTLE] [TURN 2] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4321470 [BATTLE] [TURN 2] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4322068 [BATTLE] [TURN 3] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4322087 [BATTLE] [TURN 3] Sceptile L53 147/147 [Freeze] -> UseMove:Leaf Blade(pp15)  vs Mightyena L46 134/134
+f4322994 [BATTLE] [TURN 4] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp14)  vs Mightyena L46 35/134
+f4323013 [BATTLE] [TURN 4] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp14)  vs Mightyena L46 35/134
+f4324148 [BATTLE] [TURN 5] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp13)  vs Absol L49 137/137
+f4324167 [BATTLE] [TURN 5] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp13)  vs Absol L49 137/137
+f4324764 [BATTLE] [TURN 6] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp11)  vs Absol L49 137/137
+f4324783 [BATTLE] [TURN 6] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp11)  vs Absol L49 137/137
+f4325379 [BATTLE] [TURN 7] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp9)  vs Absol L49 137/137
+f4325398 [BATTLE] [TURN 7] Sceptile L53 147/147 -> UseMove:Leaf Blade(pp9)  vs Absol L49 137/137
+f4326790 [BATTLE] [TURN 8] Mightyena L48 144/144 -> UseMove:Take Down(pp20)  vs Absol L49 137/137
+f4326809 [BATTLE] [TURN 8] Mightyena L48 144/144 -> UseMove:Take Down(pp20)  vs Absol L49 137/137
+f4327476 [BATTLE] [TURN 9] Mightyena L48 43/144 -> UseMove:Take Down(pp18)  vs Absol L49 94/137
+f4327495 [BATTLE] [TURN 9] Mightyena L48 43/144 -> UseMove:Take Down(pp18)  vs Absol L49 94/137
+f4329058 [BATTLE] [TURN 10] Wailord L47 226/226 -> UseMove:Water Spout(pp5)  vs Absol L49 78/137
+f4329077 [BATTLE] [TURN 10] Wailord L47 226/226 -> UseMove:Water Spout(pp5)  vs Absol L49 78/137
+f4329894 [BATTLE] [TURN 11] Wailord L47 69/226 -> UseMove:Water Spout(pp3)  vs Absol L49 9/137
+f4330795 [BATTLE] [TURN 12] Wailord L47 69/226 -> UseMove:Water Spout(pp2)  vs Cacturne L46 114/134
+f4330814 [BATTLE] [TURN 12] Wailord L47 69/226 -> UseMove:Water Spout(pp2)  vs Cacturne L46 114/134
+f4332122 [BATTLE] [TURN 13] Swellow L48 139/139 -> UseMove:Wing Attack(pp35)  vs Cacturne L46 95/134
+f4332142 [BATTLE] [TURN 13] Swellow L48 139/139 -> UseMove:Wing Attack(pp35)  vs Cacturne L46 95/134
+f4333322 [BATTLE] [TURN 14] Swellow L48 139/139 -> UseMove:Wing Attack(pp34)  vs Absol L49 9/137
+f4334075 [BATTLE] [TURN 15] Swellow L48 139/139 -> UseMove:Wing Attack(pp32)  vs Absol L49 91/137
+f4334095 [BATTLE] [TURN 15] Swellow L48 139/139 -> UseMove:Wing Attack(pp32)  vs Absol L49 91/137
+f4334823 [BATTLE] [TURN 16] Swellow L48 58/139 -> UseMove:Wing Attack(pp30)  vs Absol L49 40/137
+f4334842 [BATTLE] [TURN 16] Swellow L48 58/139 -> UseMove:Wing Attack(pp30)  vs Absol L49 40/137
+f4335904 [BATTLE] [TURN 17] Swellow L48 58/139 -> UseMove:Wing Attack(pp28)  vs Shiftry L48 158/158
+f4336714 [BATTLE] [TURN 18] Swellow L48 58/139 [Torment] -> UseMove:Wing Attack(pp27)  vs Shiftry L48 60/158
+f4336984 [BATTLE] [TURN 18] Swellow L48 58/139 [Torment] -> UseMove:Peck(pp35)  vs Shiftry L48 60/158
+f4338587 [BATTLE] [TURN 19] Swellow L49 61/142 [Torment] -> UseMove:Peck(pp34)  vs Crawdaunt L48 132/132
+f4338606 [BATTLE] [TURN 19] Swellow L49 61/142 [Torment] -> UseMove:Wing Attack(pp27)  vs Crawdaunt L48 132/132
+f4339733 [BATTLE] [TURN 20] Castform L36 103/103 -> UseMove:Weather Ball(pp10)  vs Crawdaunt L48 93/132
+f4339752 [BATTLE] [TURN 20] Castform L36 103/103 -> UseMove:Weather Ball(pp10)  vs Crawdaunt L48 93/132
+f4340421 [BATTLE] [TURN 21] Castform L36 14/103 -> UseMove:Weather Ball(pp9)  vs Crawdaunt L48 78/132
+f4340440 [BATTLE] [TURN 21] Castform L36 14/103 -> UseMove:Weather Ball(pp9)  vs Crawdaunt L48 78/132
+f4341180 [BATTLE] [TURN 22] Zigzagoon L19 48/48 -> UseMove:Headbutt(pp15)  vs Crawdaunt L48 78/132
+f4341199 [BATTLE] [TURN 22] Zigzagoon L19 48/48 -> UseMove:Headbutt(pp15)  vs Crawdaunt L48 78/132
+f4341868 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Sceptile:L53', 'Zigzagoon:L19', 'Swellow:L49', 'Wailord:L47', 'Mightyena:L48', 'Castform:L36']
+f4341868 [TRAINER] end opp=261 class=0x1F(ELITE_FOUR) value=25 lvl_last=49 first=True base=4900 res=Lost money=1741->1741 delta=0 mult=0 heal_stock=Potion:1,Antidote:4,Super_Potion:1,Hyper_Potion:30,Full_Restore:3,Full_Heal:8,Revi
+f4342056 [MODE] Story -> Manual   (message='Story: parked script context detected — treating the scene as over.')
