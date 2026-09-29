@@ -1,0 +1,85 @@
+# RULING 24 step 3 MEASUREMENT M0 (observe-only; main 57b46186, unchanged for step 3): storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), POKEBOT_R20_OPENFENCE=1, --set-balls 30 --frames 90000, random.seed(9) (a seed sweep 2-9 found 9 the only one drawing the Lv 19 grind).
+# Predictions: ai-research-notes/2026-09-29-r24catchtrain-PREDICTIONS.md (this ran BEFORE it).
+# Source: Story-debug-20260929-084609.log.
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1'}
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f173587 [STEP] 'Story: training the team to Lv 19 in the grass…'
+f175100 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f175100 [DEXFENCE] skip #276 Taillow — a training grind is in progress
+f176403 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f176613 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f176613 [DEXFENCE] skip #63 Abra — a training grind is in progress
+f177593 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f177828 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f177828 [DEXFENCE] skip #290 Nincada — a training grind is in progress
+f179035 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f179240 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180543 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f180818 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f180818 [DEXFENCE] skip #293 Whismur — a training grind is in progress
+f181943 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f182208 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f183417 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f183682 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f184725 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f184930 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186139 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f186414 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f186414 [DEXFENCE] skip #261 Poochyena — a training grind is in progress
+f187499 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f187714 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f188799 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f189005 [BATTLE] started hp=[('Marshtomp', 55, 58)]
+f190204 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f192380 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f194287 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f202004 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L19']
+f202168 [STORY] WHITEOUT recovery #1 at (0, 3)
+f202183 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f203234 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f206606 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f213469 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f215856 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f217426 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f218453 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f218453 [DEXFENCE] CATCH #304 Aron — dex catch #304 (joins the party)
+f218453 [CATCH] start kind=dex sp=Aron#304 lv=9 attempt=1 badges=1 party=1/6 box=0 spare=32 exp_throws=2.8 map=24,8
+f220209 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L19', 'Aron:L9']
+f220209 [CATCH] end kind=dex sp=Aron#304 end=caught res=Caught thrown=1 frames=1756 dest=party pid=F2EF6B27 party=2/6 box=0 spare=31 badges=1 bail=-
+f220842 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30)]
+f220842 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f220842 [CATCH] start kind=dex sp=Zubat#41 lv=10 attempt=1 badges=1 party=2/6 box=0 spare=31 exp_throws=2.5 map=24,9
+f222474 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f222474 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=1 frames=1632 dest=party pid=8990FD2E party=3/6 box=0 spare=30 badges=1 bail=-
+f222753 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f224021 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f224291 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f225796 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L9', 'Zubat:L10']
+f226553 [BATTLE] started hp=[('Marshtomp', 59, 61), ('Aron', 30, 30), ('Zubat', 30, 30)]
+f226553 [DEXFENCE] skip #296 Makuhita — party is not at full strength
+f228618 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L20', 'Aron:L9', 'Zubat:L10']
