@@ -92,3 +92,24 @@ over all 255 classes), and no Hoenn trainer battle has class 0. Its proof is the
 - Rematch state. `first=` is True on the first fight at each rematch tier, which has its own flag.
 - The B side of a two-opponent battle LIVE: no pinned fixture has one. The gate's rows cover the formula.
 - Whether money-making pays.
+
+## ADDENDUM (committed BEFORE the code, after observe-only smoke runs; no graded drive has run)
+
+Three observe-only smoke runs of the uncommitted code (20,000 frames, seed 1) found one thing the plan did not predict:
+- **A post-battle scene re-enters the battle hook.** After the School Kid (id 280) win that evolves Mudkip into
+  Marshtomp, the listener calls `on_battle_started` AGAIN at f150064 and `on_battle_ended` again at f150066.
+  - This is pre-existing behaviour. CONTROL also logs `[MONEY] after Won` twice for that battle (f148516 and f150066).
+  - T1 logged a PHANTOM pair (`opp=280 … res=Won delta=0 mult=0`), which is exactly this note's falsifier "a Won line
+    with `delta != base`".
+- **The discriminator was MEASURED, not assumed.**
+  - `gBattleOutcome` was the first hypothesis, and it was REFUTED: it read `Won` at all 6 starts, real and phantom.
+  - The number of living enemy mons: 1 or 2 at every real start, **0 at the re-entry**.
+- **Fix:** `_t1_start` logs `[TRAINER] skip reason=no_enemy_alive …` and opens no pair when 0 enemy mons are alive. An
+  unreadable party still logs the battle. The start line gains `enemy_alive=`. Gate case W4, and the source mutant
+  F7.
+
+**Revised readings for the graded arms (everything else above stands):**
+- T1: at f150064 one `[TRAINER] skip reason=no_enemy_alive` line and NO `[TRAINER] start`/`end` pair. Every
+  `[TRAINER] start` line reads `enemy_alive` ≥ 1.
+- The `[BATTLE]` lines stay identical to CONTROL, because the guard only chooses whether to LOG.
+
