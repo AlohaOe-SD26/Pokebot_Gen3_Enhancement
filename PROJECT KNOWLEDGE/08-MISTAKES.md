@@ -23006,3 +23006,19 @@ no `_dex_catch_attempts`. F5 (the `self.` form) turns exactly {S11} red. Three g
 **Prevention:** ⛔ when extracting code out of a method that tests call UNBOUND with a stand-in `self`, call the helper
 through the class and add a shim-shaped gate case. The expected reading of a refactor case is whatever the PRE-CHANGE
 code returns: measure it on the old code before writing it down.
+
+## 2026-09-29 — ⛔ A PER-EVENT LOG LINE CLAIMED "ONCE PER FAINT" WHILE THE HOOK IS CALLED TWICE PER FAINT; THE GATE CALLED IT ONCE
+
+**Symptom:** RULING 24 step 5's first graded ON run logged `[DEXCATCH-NOBAIL]` at f359393 AND f359535 for ONE Zubat
+faint. The registry row, the helper's docstring and the gate all said "one line per faint". A batch counting faints from
+the line would have double-counted.
+**Root cause:** `handle_fainted_pokemon` is entered twice for one faint. The dispatcher re-enters it while the send-in
+completes: the party order flips and flips back (`...-DOUBLECALL.txt`). The OFF path never showed this, because
+`_announce_bail` is idempotent: the double call was HIDDEN by the old line's dedupe, which I did not copy. The gate
+called `should_flee_after_faint` once per case, so it could only confirm "one call → one line".
+**Fix:** the line is deduped on the number of fainted party members, which only a new faint changes, and carries
+`fainted=N` (`4161a1cb`). Gate N7 (two calls for one faint → one line; a second faint → a second line) and the
+no-dedupe mutant F7.
+**Prevention:** ⛔ before claiming a per-EVENT count for a line logged from a hook, READ the caller for how often it
+invokes the hook, and gate it with the caller's real call pattern. If the old line on the same hook is deduped
+(`_announce_bail`), treat that as a signal that the hook repeats.

@@ -36842,3 +36842,25 @@ battle hook (`repro_ki65_unbound_party_index.py`). It was fixed by the class cal
   on the reserve) and reinstated it as an open user question. It also stopped re-asking the ≤4% rare cut, which the user
   deferred to the notes, and removed an agent table row credited as the user's words. The orchestrator added that
   archive:6149's second half (`OR warp_depth >= 3`) is replaced by the pseudo-rare rule, not silently dropped.
+
+## 2026-09-29 — USER RULING 24 step 5: A POST-GYM-1 DEX CATCH NO LONGER BAILS WHEN A TEAM MEMBER FAINTS, ON BOTH PATHS, BEHIND `POKEBOT_R24_NOFAINTBAIL` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 24: *"If the bot whites out or the training pokemon faints, thats ok … catching has a bit higher
+priority"*. `StoryDexCatchStrategy` fled on a faint in two places. Measured: a Gulpin catch abandoned on Route 110 after
+ten throws.
+**WHAT.**
+- The flag, read per run and read by the strategy from the running mode.
+- Under it: (a) the parent's faint answer, and (b) no `_fainted_this_battle`. The reserve bail and the trapped fight
+  stay.
+- Fault arm `POKEBOT_R24_FAULT_HALFBAIL` (only (a)).
+- The flag-ON-only `[DEXCATCH-NOBAIL] … (fainted=N)` line, one per faint.
+- NEW gate `probe_dex_catch_nofaintbail.py`: N1-N7, A1-A3, F1-F7, with exact red sets. F6 is a negative arm (a comment
+  mention must not fire). Suite 128.
+- Registry: run it WITH `POKEBOT_R24_CATCHHURT`.
+**PROOF** (predictions `3f1e6544`; `ai-research-notes/2026-09-29-r24nofaintbail-GRADED.md`), seed 1, re-run on
+`4161a1cb`:
+- OFF replays step 4's M0 exactly.
+- ON throws on with Marshtomp after the Zubat faints and catches the Gulpin (`thrown=11`).
+- HALF sends Marshtomp in, then bails a turn later (`thrown=10 bail=faint`): path (a) alone is not enough, measured.
+**Found by the first run:** the NOBAIL line fired twice for one faint, because the handler calls the hook twice. It is
+now deduped per faint, with N7/F7 (08).

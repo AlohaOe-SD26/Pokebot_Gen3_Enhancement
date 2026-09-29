@@ -1,0 +1,20 @@
+# RULING 24 step 5 GRADER output (the re-run on 4161a1cb): each arm's debug log against step 4's M0 (main 9a4fbbeb, seed 1).
+# Tracked: [BATTLE] started|ended, [CATCH], [DEXFENCE], [DEXCATCH], [MAP], [STORY] WHITEOUT (as pre-registered). Excluded:
+# only the one-frame (0,0) warp map read disclosed in step 4's graded note.
+M0 = C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\os-M0-s1-b60\debug-logs\Story-debug-20260929-092445.log
+
+== OFF  (Story-debug-20260929-105058.log; tracked lines 184, last f376701; M0 lines to f376701: 184)
+   0 differing tracked lines against M0
+   stdout: preset lines=0 survival-flee lines=0 tracebacks=0
+
+== ON  (Story-debug-20260929-105056.log; tracked lines 176, last f379347; M0 lines to f379347: 184)
+   FIRST DIFFERENCE at tracked line #158:
+     M0 : f359393 [DEXCATCH] [DEXCATCH-BAIL] a team member fainted
+     ARM: f359393 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on (fainted=1)
+   stdout: preset lines=0 survival-flee lines=0 tracebacks=0
+
+== HALF  (Story-debug-20260929-105058.log; tracked lines 174, last f376015; M0 lines to f376015: 178)
+   FIRST DIFFERENCE at tracked line #158:
+     M0 : f359393 [DEXCATCH] [DEXCATCH-BAIL] a team member fainted
+     ARM: f359393 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on (fainted=1)
+   stdout: preset lines=0 survival-flee lines=0 tracebacks=0

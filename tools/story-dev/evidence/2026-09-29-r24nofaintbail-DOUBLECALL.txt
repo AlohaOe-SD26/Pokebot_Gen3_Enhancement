@@ -1,0 +1,17 @@
+# RULING 24 step 5, run 1 ON (code db41db78): the battle handler called should_flee_after_faint TWICE for one Zubat faint.
+# Source: Story-debug-20260929-104257.log, debug-log frames f359390-f359760, every line. The [DEXCATCH-NOBAIL] line fires at f359393 and f359535; the party order flips at f359512 and back at f359534 (the dispatcher re-enters handle_fainted_pokemon).
+f359393 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on
+f359394 [STEP] 'Story: a team member fainted — sending the next Pokémon and throwing on (RULING 24).'
+f359478 [BATTLE] [FAINT-CHOOSER] identity: chosen=Marshtomp#550A9BE6 menu_slot=1 -> cursor target 1 candidates=[1, 2] snapshot_order=012345
+f359503 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2] on_field=[0] party=[(0, 'Zubat', 0), (1, 'Marshtomp', 72), (2, 'Geodude', 28)]
+f359503 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[1, 2] on_field=[0] party_in_menu=3 [identity]
+f359503 [BATTLE] [FAINT-CHOOSER] A at cursor=1 pid=550A9BE6 sp=Marshtomp frames=0
+f359512 [PARTY] slot0 Zubat:L10 -> Marshtomp:L23
+f359512 [PARTY] slot1 Marshtomp:L23 -> Zubat:L10
+f359519 [BATTLE] [FAINT-CHOOSER] A at cursor=1 pid=550A9BE6 sp=Marshtomp frames=16
+f359527 [BATTLE] [FAINT-CHOOSER] A at cursor=1 pid=550A9BE6 sp=Marshtomp frames=24
+f359534 [PARTY] slot0 Marshtomp:L23 -> Zubat:L10
+f359534 [PARTY] slot1 Zubat:L10 -> Marshtomp:L23
+f359535 [DEXCATCH] [DEXCATCH-NOBAIL] a team member fainted — sending the next Pokémon and throwing on
+f359752 [BATTLE] [TURN 10] Marshtomp L23 72/72 -> UseItem  vs Gulpin L12 38/38
+f359752 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball

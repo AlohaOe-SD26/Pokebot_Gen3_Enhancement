@@ -116,6 +116,10 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   `self._helper(…)` outside the old `try` made every such battle hook raise, while the step's own gate (built on real
   instances) stayed green. Call the helper through the class (`StoryMode._helper(self, …)`), add a case with the
   repro's exact shim, and take its expected reading from the PRE-CHANGE code (08, 2026-09-29).
+* ⛔ **A PER-EVENT LOG LINE FROM A HOOK: read how often the CALLER invokes the hook** (added 2026-09-29). The battle
+  handler calls `should_flee_after_faint` TWICE for one faint; a new "once per faint" line fired twice live, while the
+  gate (one call per case) said "one". An old line on the same hook that is deduped (`_announce_bail`) is the tell. Gate
+  the line with the caller's real call pattern (08, 2026-09-29).
 
 ---
 

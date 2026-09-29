@@ -8172,3 +8172,27 @@ key battles."*
   and the registry row says to run the two TOGETHER. Without CATCHHURT, a lost catch on a boss-key map (Route 110 is the
   rival's) counts toward that boss's give-up. Widening C4 here would change a gated step's contract inside another
   step.
+
+## 2026-09-29 — RULING 24 step 5: no faint bail on a dex catch, on BOTH paths; the flag is read from the running mode; BAILWIDE became a gate mutant
+
+**Decision:**
+- `POKEBOT_R24_NOFAINTBAIL` (default OFF): a faint during a post-gym-1 DEX catch no longer bails.
+  - (a) `should_flee_after_faint` returns the parent's answer (False: the handler sends the next able mon).
+  - (b) `_fainted_this_battle` stays False, so `decide_turn` cannot flee "a team member fainted" on the next turn.
+  - The reserve bail and the trapped-and-empty fight stay.
+- `StoryDexCatchStrategy` reads the flag from `context.bot_mode_instance._r24_nofaintbail`, the running mode's per-run
+  value.
+- The design's `POKEBOT_R24_FAULT_BAILWIDE` is a SOURCE MUTANT in the gate (F2), not a production env read.
+- The `[DEXCATCH-NOBAIL]` line is deduped per FAINT (keyed on the fainted-member count), because the handler calls the
+  hook twice for one faint.
+**Why:**
+- RULING 24: *"If the bot whites out or the training pokemon faints, thats ok … catching has a bit higher priority"*.
+- Both paths: HALF, the live fault arm, measured that (a) alone still flees exactly one turn later.
+- One source for the flag: the P2-a lesson and the step-3 pattern.
+- BAILWIDE only proves the gate reads the reserve row, and no live run would set it. A production env read with no live
+  use is clutter a later reader must reason about.
+**Rejected:**
+- Only path (a): measured to flee a turn later.
+- Clearing `_fainted_this_battle` in `decide_turn`: that is a second site for one rule.
+- Keying the telemetry on the fainted battler: during the send-in the "active battler" is already the NEXT mon, so the
+  key would differ between the handler's two calls.
