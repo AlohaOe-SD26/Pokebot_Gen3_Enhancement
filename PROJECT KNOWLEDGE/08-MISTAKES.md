@@ -22964,3 +22964,13 @@ search, and one checker's lens is "prior rulings".
 - ⛔ **One adversarial checker's lens is always "does any proposal here contradict or re-invent a recorded ruling?"**
 - ⛔ **Before putting a question to the user, grep `06` for its key noun** (rule 11, restated because it failed again:
   agents inherit the rule only if the prompt carries it).
+## 2026-09-29 — ⛔ A GATE PROVED "C4 NEVER TOUCHES hm/counter/shiny" WITHOUT A CASE FOR ANY OF THEM
+
+**Symptom:** `probe_dex_catch_anytime.py`'s accounting cases covered `dex`, `team` and "no catch". The adversarial
+review mutated C4 to file `hm` losses too, and the gate still passed.
+**Root cause:** the claim named FIVE kinds, and the cases covered two. A scope claim is only as proven as its
+least-tested member.
+**Fix:** D4-D6 (hm, counter, shiny), plus F6, the review's mutant compiled from a copy of the source (`9d24eb97`).
+**Prevention rule:**
+- ⛔ **A gate backing "X applies ONLY to A, never to B, C, D" has one case per named member, plus one mutant that
+  widens the scope.** Two of five is not a proof of five.

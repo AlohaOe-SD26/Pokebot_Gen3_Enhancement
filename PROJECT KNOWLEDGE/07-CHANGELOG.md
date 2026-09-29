@@ -36778,4 +36778,7 @@ fence refused every catch while any battler was below full HP.
 - ON catches the Shuppet the OFF arm refuses for health at f3144418.
 - With 10 spare balls both arms refuse it on the reserve.
 - The fault arm starts that catch and bails with 0 throws.
-**Review:** REVIEW_RESULT.
+**Review:** KICK-BACK, then fixed (`9d24eb97`). The gate's loss-accounting cases missed hm, counter and shiny: a mutant
+filing `hm` losses apart passed. D4-D6 and the mutant F6 were added; the shipped code was already correct. The
+review's two notes (a shared boss map key sees fewer wild-catch losses; `_catch_defeat_counts` is write-only) are
+recorded in `06`.

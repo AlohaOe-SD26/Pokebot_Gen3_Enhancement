@@ -8120,3 +8120,12 @@ key battles."*
 **Rejected:**
 - Filing every catch kind apart: this changes pre-gym-1 behaviour.
 - Leaving catch losses as map defeats: survival mode would then flee the very species RULING 24 says to catch.
+## 2026-09-29 — RULING 24 C4 knowingly changes what a SHARED map key sees; `_catch_defeat_counts` is telemetry only
+
+**Recorded from the step-2 adversarial review, to avoid a surprise later.**
+- A boss's loss counters are keyed by MAP. The Route 110 rival uses `keys=[ROUTE110]`
+  (`story_mode.py` `rival110_fight`), and `_boss_plan_is_hopeless` and the escalation ladder read them.
+- With `POKEBOT_R24_CATCHHURT` on, a lost DEX catch against a wild Pokémon on such a map no longer adds to that
+  counter. **Accepted, deliberately:** that loss was never the boss's. The boss's own losses cannot be diverted: a dex
+  catch is only ever opened in a WILD battle, and `_boss_battle` is only set for trainer battles.
+- `_catch_defeat_counts` is written and logged but read by nothing yet. It is telemetry until a consumer needs it.
