@@ -285,6 +285,8 @@ GATES: list[tuple[str, bool]] = [
     ("probe_dex_catch_oversurvival.py", False),
     # USER RULING 24 step 5 — no first-faint bail on a dex catch, BOTH paths (flag, default OFF).
     ("probe_dex_catch_nofaintbail.py", False),
+    # design v2 step 5 (TID/T1) — trainer identity + prize money read as the game does; the lines never change a battle.
+    ("probe_trainer_identity_T1.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

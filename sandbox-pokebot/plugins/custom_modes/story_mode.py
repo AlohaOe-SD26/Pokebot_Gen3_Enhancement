@@ -2321,6 +2321,8 @@ class StoryMode(BotMode):
         self._dex_catch_logged: set = set()
         #: USER RULING 20 Phase 2 step T: the open `[CATCH] start` context, closed by `_r20_catch_end`. Per battle.
         self._catch_ctx = None
+        #: design v2 step 5 (TID/T1): the open `[TRAINER] start` context, closed by `_t1_end`. Per battle.
+        self._t1_ctx = None
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
@@ -2377,6 +2379,9 @@ class StoryMode(BotMode):
                                f"money=₽{get_player().money:,}", category="MONEY")
         except Exception:  # noqa: BLE001 - telemetry must never break a battle hook; a missed line is visible
             pass
+        # design v2 step 5 (TID/T1): close this battle's `[TRAINER] start`, if it had one. Its own guards inside; placed
+        # BEFORE `_r20_catch_end` and the unguarded Lost block, so it can never skip defeat counting.
+        _t1_end(self, outcome)
         # ⭐ USER RULING 24 C4 (2026-09-29, flag `POKEBOT_R24_CATCHHURT`): a LOST dex catch battle is filed apart from the
         # map's defeat counters, so a catch the ruling accepts losing cannot trigger survival mode (3+ defeats on a map
         # flees every wild, wanted ones included) or count as a boss loss on that map. ⛔ The kind is read BEFORE
@@ -3941,9 +3946,10 @@ class StoryMode(BotMode):
             TURN_FOE["log"] = []
         except Exception:  # noqa: BLE001 - telemetry reset; a failure only leaves the wall unknown
             pass
-        # R20-T: a new battle can never close an EARLIER battle's `[CATCH] start`.
+        # R20-T: a new battle can never close an EARLIER battle's `[CATCH] start` (nor, T1, a `[TRAINER] start`).
         try:
             self._catch_ctx = None
+            self._t1_ctx = None
         except Exception:  # noqa: BLE001 - a stub self has no state; telemetry only
             pass
         # ...and name the battle: is this enemy party a gym LEADER's roster? (A trainer battle only — a wild encounter
@@ -3960,6 +3966,9 @@ class StoryMode(BotMode):
                      if m is not None and not getattr(m, "is_empty", False)])
             except Exception:  # noqa: BLE001 - an unreadable enemy party just means "not a leader" (no wall filed)
                 self._boss_battle = None
+        # design v2 step 5 (TID/T1): WHO this trainer is and what the game will pay — log-only, always on (06:7902
+        # precedent). It decides inside whether this is a real trainer battle (not Wally's tutorial) and never raises.
+        _t1_start(self, encounter)
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
         # or auto-caught. The BattleListener handles the fight while run() pauses.
@@ -6235,6 +6244,74 @@ def _r24_nofaintbail_log(strategy) -> None:
                          f"(fainted={fainted if fainted is not None else '?'})", "DEXCATCH")
     except Exception:  # noqa: BLE001 - telemetry must never break a battle
         pass
+
+
+def _t1_start(mode, encounter) -> None:
+    """design v2 step 5 (TID/T1, 2026-09-29), ALWAYS ON, log-only: `[TRAINER] start …` — which trainer(s) this battle
+    is against and what the game will pay (`modules/story/trainer_identity.py`). Snapshots ONLY a real trainer battle:
+    `encounter is None` AND `BattleType.Trainer` in the battle type — Wally's catching tutorial also passes
+    `encounter=None` but its battle type has no Trainer bit (and its stale opponent id is in range). Module-level, not a
+    method: gates and repros call `on_battle_started` with a stand-in `self` (the step-4 lesson). Never raises.
+    Fault arm `POKEBOT_T1_FAULT_WILDTOO=1` (never in a real run) snapshots wild battles too."""
+    import os as _os_t1
+
+    try:
+        from modules.battle_state import BattleType, get_battle_type
+
+        battle_type = get_battle_type()
+        wildtoo = _os_t1.environ.get("POKEBOT_T1_FAULT_WILDTOO") == "1"
+        if not ((encounter is None and BattleType.Trainer in battle_type) or (wildtoo and encounter is not None)):
+            return
+        from modules.story import trainer_identity as _ti
+
+        # ⛔ A POST-BATTLE SCENE RE-ENTERS THIS HOOK (measured 2026-09-29, the first live smoke run): after a trainer win
+        # that evolves a party mon, the listener calls `on_battle_started` AGAIN (f150064) and `on_battle_ended` again
+        # (f150066) — same trainer id, same battle type, `gBattleOutcome` still `Won` (so IT cannot tell; measured on all
+        # 6 starts). What does tell: a REAL start has a living enemy mon (1-2 measured), the re-entry has 0. Without
+        # this guard T1 logged a phantom `res=Won delta=0 mult=0` pair. Unreadable ⇒ log as before (never hide a battle).
+        alive = _ti.enemy_alive()
+        if alive == 0:
+            _log_story_event("skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)", "TRAINER")
+            return
+        ctx = _ti.snapshot(battle_type)
+        ctx["enemy_alive"] = "?" if alive is None else alive
+        try:
+            ctx["map"] = mode._location_key()
+        except Exception:  # noqa: BLE001 - a stand-in self has no location; the line reads map=? instead
+            ctx["map"] = "?"
+        try:
+            mode._t1_ctx = ctx
+        except Exception:  # noqa: BLE001 - a read-only stand-in self cannot hold the context; no end line then
+            pass
+        _log_story_event(_ti.format_start(ctx), "TRAINER")
+    except Exception as exc:  # noqa: BLE001 - telemetry must never break the battle hook; the failure is logged
+        try:
+            _log_story_event(f"start unreadable ({type(exc).__name__}: {exc})", "TRAINER")
+        except Exception:  # noqa: BLE001 - even the failure line must not break the hook (a raising logger)
+            pass
+
+
+def _t1_end(mode, outcome) -> None:
+    """The battle-end half of `_t1_start`: `[TRAINER] end … res= money=a->b delta= mult= heal_stock=`. Clears the
+    context FIRST (a failure later cannot leave it open into the next battle), and never raises — it runs BEFORE the
+    unguarded Lost block in `on_battle_ended`, so a raise here would skip defeat counting (gate F-arm)."""
+    ctx = getattr(mode, "_t1_ctx", None)
+    if ctx is None:
+        return
+    try:
+        mode._t1_ctx = None
+    except Exception:  # noqa: BLE001 - a read-only stand-in self keeps the context; the next start resets it anyway
+        pass
+    try:
+        from modules.player import get_player
+        from modules.story import trainer_identity as _ti
+
+        _log_story_event(_ti.format_end(ctx, outcome, get_player().money, _ti.heal_stock()), "TRAINER")
+    except Exception as exc:  # noqa: BLE001 - telemetry must never break the battle hook; the failure is logged
+        try:
+            _log_story_event(f"end unreadable ({type(exc).__name__}: {exc})", "TRAINER")
+        except Exception:  # noqa: BLE001 - even the failure line must not break the hook (a raising logger)
+            pass
 
 
 def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:
