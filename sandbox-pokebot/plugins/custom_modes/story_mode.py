@@ -2284,6 +2284,9 @@ class StoryMode(BotMode):
         # ⭐ USER RULING 24 step 3 (2026-09-29): `POKEBOT_R24_CATCHTRAIN=1` lifts the "a training grind is in progress"
         # refusal, and a dex catch started during swap-training keeps the trainee as lead. DEFAULT OFF; read per run.
         self._r24_catchtrain = _os_team6.environ.get("POKEBOT_R24_CATCHTRAIN") == "1"
+        # ⭐ USER RULING 24 step 4 (2026-09-29): `POKEBOT_R24_OVERSURVIVAL=1` runs the dex-catch commit BEFORE survival mode,
+        # so a wanted species is caught on a map where the bot otherwise flees every wild. DEFAULT OFF; read per run.
+        self._r24_oversurvival = _os_team6.environ.get("POKEBOT_R24_OVERSURVIVAL") == "1"
         self._r24_trainee_check = None
         self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
@@ -3836,6 +3839,74 @@ class StoryMode(BotMode):
                     self._note_training_unreachable(grass_map, grass_tile, origin=_reloc_origin)
                     raise
 
+    def _dex_catch_commit(self, encounter):
+        """The dex-catch commit, EXACTLY the block `on_battle_started` ran inline before USER RULING 24 step 4
+        (2026-09-29): a catch strategy when `_should_catch` admits the encounter, else None. Extracted so the flag
+        `POKEBOT_R24_OVERSURVIVAL` can run it BEFORE survival mode (a wanted species outranks fleeing) while OFF runs it
+        after, as always. ⛔ Keep the LOCAL `console` import inside: the UnboundLocalError-swallowed-by-`except` trap has
+        disabled branches of `on_battle_started` three times (08)."""
+        # CATCHING — two regimes, one predicate (`decide_dex_catch`):
+        #   PRE-GYM-1  organic team building (user directive 2026-07-21) -> joins the PARTY
+        #   POST-GYM-1 the `#24-dexhunt` fence (user directive 2026-09-04) -> goes to the PC BOX; with
+        #              `POKEBOT_R20_OPENFENCE=1` (RULING 20 P2-b, default OFF) below six it joins the PARTY
+        #              — `_where`/`_full` below already derive which, from the slot count the game reads
+        try:
+            if self._should_catch(encounter):
+                from modules.console import console
+                from modules.pokemon_party import get_party as _gp_dex
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                dex = getattr(sp, "national_dex_number", None)
+                # ‼ INSTRUMENT THE ACTION, NOT THE INPUT TO IT (CLAUDE.md rule 7). Count the attempt
+                # HERE — at the point the bot actually commits to a catch — not inside the predicate,
+                # which is called for evaluation and must stay pure.
+                if dex is not None:
+                    self._dex_catch_attempts[dex] = self._dex_catch_attempts.get(dex, 0) + 1
+                # ⛔ THE DESTINATION IS DERIVED, NOT ASSUMED. This line read "for the team!" until
+                # 2026-09-10; at a full party the game stores the catch via
+                # `Cmd_givecaughtmon -> GiveMonToPlayer -> CopyMonToPC` and the message was about to
+                # start lying on the exact path the fence adds. Read the slot count the game reads.
+                try:
+                    _full = len([m for m in _gp_dex() if m is not None]) >= PARTY_CAPACITY
+                except Exception:
+                    _full = False
+                _where = "into the PC box" if _full else "for the team"
+                console.print(
+                    f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} {_where}![/]"
+                )
+                # ‼ A BOX CATCH IS INVISIBLE TO EVERY EXISTING INSTRUMENT: it changes neither the
+                # party length nor its PID set, so `debug_logger`'s `[PARTY]` event never fires, and
+                # the only other positive signal is the `[DEX]` delta computed once per 3,600-frame
+                # heartbeat. An A/B grading "did the fence act?" would be reading a coarse, indirect
+                # instrument on the one path it exists to measure.
+                _log_story_event(
+                    f"[DEXCATCH] attempt #{self._dex_catch_attempts.get(dex, 0)} on "
+                    f"{getattr(sp, 'name', '?')} (#{dex}) -> {'box' if _full else 'party'}",
+                    "DEXCATCH",
+                )
+                # Use the story catch strategy (flees when out of balls instead of
+                # dropping to Manual — see StoryCatchStrategy).
+                # ⭐ AFTER GYM 1 the catch is DISCRETIONARY (the fence regime): the dex-only subclass bails at the
+                # ball reserve or on a faint (`#24-dexcatch-battlebail`, RULING 20 Phase 0). Pre-gym-1 team building
+                # keeps the plain strategy, byte-identical.
+                try:
+                    # ⛔ ALIASED local import: `get_event_flag` is not a module-level name here, and an UN-aliased local
+                    # import would make it function-local for this whole method (UnboundLocalError elsewhere, swallowed
+                    # by an `except` — the silent-failure shape recorded in 08 more than once).
+                    from modules.memory import get_event_flag as _gef_dexbail
+
+                    _post_badge = bool(_gef_dexbail("BADGE01_GET"))
+                except Exception:  # noqa: BLE001 - unreadable ⇒ the plain strategy, exactly the pre-change behaviour
+                    _post_badge = False
+                # USER RULING 24 step 3 (flag ON only; pre-gym-1 team catches start during train_team with it OFF):
+                # record the trainee in slot 0 when a dex catch starts during swap-training.
+                _r24_trainee_record(self, _post_badge, _gp_dex)
+                _r20_catch_start(self, "dex" if _post_badge else "team", encounter, dex=dex)
+                return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
+        except Exception:
+            pass
+        return None
+
     def on_battle_started(self, encounter):
         # USER RULING 24 step 3 (flag `POKEBOT_R24_CATCHTRAIN` only): after a dex catch that started during swap-training,
         # log WHO leads now — the action C3 guards (rule 7), read after any post-battle rotation has run.
@@ -4053,6 +4124,26 @@ class StoryMode(BotMode):
                     return StoryCatchStrategy()
         except Exception:
             pass
+        # ⭐ USER RULING 24 step 4 (2026-09-29, flag `POKEBOT_R24_OVERSURVIVAL`, DEFAULT OFF): "catching should always be
+        # available if the bot encounters a pokemon that it wants to catch" — so a WANTED species is caught BEFORE survival
+        # mode (3+ defeats on this map) can flee it. An unwanted species still meets survival mode below. Shiny, HM and
+        # counter catches ran above and stay first. Fault arm `POKEBOT_R24_FAULT_SKIPSURVIVAL=1` (never set in a real
+        # run) also skips survival mode for UNWANTED species; `probe_dex_catch_oversurvival.py` must go red under it.
+        # ‼ Pair it with `POKEBOT_R24_CATCHHURT`: C4 (`on_battle_ended`) is keyed on that flag only, so without it a lost
+        # catch here is filed on this map's `_defeat_counts`, which on a boss-key map (ROUTE110) feeds the boss give-up.
+        # ⛔ Both calls go THROUGH THE CLASS (`StoryMode._dex_catch_commit(self, …)`), never `self._dex_catch_commit`:
+        # harness drivers and repros call `StoryMode.on_battle_started(shim, …)` with a stand-in `self` that has no such
+        # method, and the call sits OUTSIDE any `try`. `self._dex_catch_commit` raised AttributeError out of the battle
+        # hook there (the suite's `repro_ki65_unbound_party_index.py` went red); the old inline block only touched `self`
+        # inside its own `try`. Gate: `probe_dex_catch_oversurvival.py` S11 / F5.
+        import os as _os_r24s
+
+        _r24_skip_survival = False
+        if getattr(self, "_r24_oversurvival", False):
+            _dex_strategy = StoryMode._dex_catch_commit(self, encounter)
+            if _dex_strategy is not None:
+                return _dex_strategy
+            _r24_skip_survival = _os_r24s.environ.get("POKEBOT_R24_FAULT_SKIPSURVIVAL") == "1"
         # ‼ SURVIVAL MODE (#24-whiteout, from live batch 20260725-194810). WILD battles
         # on a map that has already wiped us repeatedly stop being an XP opportunity and
         # become the thing to escape. run01 whited out **25 times on ROUTE110** — respawn
@@ -4074,6 +4165,7 @@ class StoryMode(BotMode):
 
             if (
                 encounter is not None
+                and not _r24_skip_survival
                 and not swap_train_active()
                 and self._defeat_counts.get(self._location_key(), 0)
                 >= self.SURVIVAL_WHITEOUT_THRESHOLD
@@ -4097,66 +4189,12 @@ class StoryMode(BotMode):
                 return StoryFleeStrategy()
         except Exception:
             pass
-        # CATCHING — two regimes, one predicate (`decide_dex_catch`):
-        #   PRE-GYM-1  organic team building (user directive 2026-07-21) -> joins the PARTY
-        #   POST-GYM-1 the `#24-dexhunt` fence (user directive 2026-09-04) -> goes to the PC BOX; with
-        #              `POKEBOT_R20_OPENFENCE=1` (RULING 20 P2-b, default OFF) below six it joins the PARTY
-        #              — `_where`/`_full` below already derive which, from the slot count the game reads
-        try:
-            if self._should_catch(encounter):
-                from modules.console import console
-                from modules.pokemon_party import get_party as _gp_dex
-
-                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
-                dex = getattr(sp, "national_dex_number", None)
-                # ‼ INSTRUMENT THE ACTION, NOT THE INPUT TO IT (CLAUDE.md rule 7). Count the attempt
-                # HERE — at the point the bot actually commits to a catch — not inside the predicate,
-                # which is called for evaluation and must stay pure.
-                if dex is not None:
-                    self._dex_catch_attempts[dex] = self._dex_catch_attempts.get(dex, 0) + 1
-                # ⛔ THE DESTINATION IS DERIVED, NOT ASSUMED. This line read "for the team!" until
-                # 2026-09-10; at a full party the game stores the catch via
-                # `Cmd_givecaughtmon -> GiveMonToPlayer -> CopyMonToPC` and the message was about to
-                # start lying on the exact path the fence adds. Read the slot count the game reads.
-                try:
-                    _full = len([m for m in _gp_dex() if m is not None]) >= PARTY_CAPACITY
-                except Exception:
-                    _full = False
-                _where = "into the PC box" if _full else "for the team"
-                console.print(
-                    f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} {_where}![/]"
-                )
-                # ‼ A BOX CATCH IS INVISIBLE TO EVERY EXISTING INSTRUMENT: it changes neither the
-                # party length nor its PID set, so `debug_logger`'s `[PARTY]` event never fires, and
-                # the only other positive signal is the `[DEX]` delta computed once per 3,600-frame
-                # heartbeat. An A/B grading "did the fence act?" would be reading a coarse, indirect
-                # instrument on the one path it exists to measure.
-                _log_story_event(
-                    f"[DEXCATCH] attempt #{self._dex_catch_attempts.get(dex, 0)} on "
-                    f"{getattr(sp, 'name', '?')} (#{dex}) -> {'box' if _full else 'party'}",
-                    "DEXCATCH",
-                )
-                # Use the story catch strategy (flees when out of balls instead of
-                # dropping to Manual — see StoryCatchStrategy).
-                # ⭐ AFTER GYM 1 the catch is DISCRETIONARY (the fence regime): the dex-only subclass bails at the
-                # ball reserve or on a faint (`#24-dexcatch-battlebail`, RULING 20 Phase 0). Pre-gym-1 team building
-                # keeps the plain strategy, byte-identical.
-                try:
-                    # ⛔ ALIASED local import: `get_event_flag` is not a module-level name here, and an UN-aliased local
-                    # import would make it function-local for this whole method (UnboundLocalError elsewhere, swallowed
-                    # by an `except` — the silent-failure shape recorded in 08 more than once).
-                    from modules.memory import get_event_flag as _gef_dexbail
-
-                    _post_badge = bool(_gef_dexbail("BADGE01_GET"))
-                except Exception:  # noqa: BLE001 - unreadable ⇒ the plain strategy, exactly the pre-change behaviour
-                    _post_badge = False
-                # USER RULING 24 step 3 (flag ON only; pre-gym-1 team catches start during train_team with it OFF):
-                # record the trainee in slot 0 when a dex catch starts during swap-training.
-                _r24_trainee_record(self, _post_badge, _gp_dex)
-                _r20_catch_start(self, "dex" if _post_badge else "team", encounter, dex=dex)
-                return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
-        except Exception:
-            pass
+        # The dex-catch commit (`_dex_catch_commit`). OFF: here, AFTER survival mode, exactly as always. ON
+        # (`POKEBOT_R24_OVERSURVIVAL`): it already ran before survival mode, above, and declined.
+        if not getattr(self, "_r24_oversurvival", False):
+            _dex_strategy = StoryMode._dex_catch_commit(self, encounter)
+            if _dex_strategy is not None:
+                return _dex_strategy
         # SWAP-TRAINING: while train_team is running, use the swap strategy so an
         # under-levelled lead is switched out to a stronger team-mate (shares XP, no
         # fainting) instead of grinding itself to death against higher-level wilds.

@@ -78,7 +78,12 @@ def d2(src: str, sink=None):
     check("return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()" in code,
           "D2 the fence's call site: post-gym-1 ⇒ the dex-only class, pre-gym-1 ⇒ the plain one", sink)
     obs = _method_src(src, "StoryMode", "on_battle_started")
-    check(obs.count("StoryDexCatchStrategy()") == 1, "D2 exactly one site returns the dex-only class", sink)
+    # The fence's commit moved into `StoryMode._dex_catch_commit` (USER RULING 24 step 4, 2026-09-29), which
+    # `on_battle_started` calls (`probe_dex_catch_oversurvival.py` A2); the count spans the two, so a second dex-only
+    # site in EITHER still turns this red.
+    commit = _method_src(src, "StoryMode", "_dex_catch_commit")
+    check(commit.count("StoryDexCatchStrategy()") + obs.count("StoryDexCatchStrategy()") == 1,
+          "D2 exactly one site returns the dex-only class (on_battle_started + _dex_catch_commit)", sink)
     check(obs.count("return StoryCatchStrategy()") >= 2,
           "D2 the MANDATORY catches (HM learner, boss counter) still return the plain strategy", sink)
     tree = ast.parse(src)
@@ -212,6 +217,9 @@ def main() -> int:
     d2(src.replace("return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()",
                    "return StoryCatchStrategy()", 1), sink)
     check(bool(sink), f"FAULT the fence site wired to the plain strategy FAILS D2 ({len(sink)} caught)")
+    sink = []
+    d2(src.replace("return StoryCatchStrategy()", "return StoryDexCatchStrategy()", 1), sink)
+    check(bool(sink), f"FAULT a mandatory site (on_battle_started) given the dex-only class FAILS D2 ({len(sink)} caught)")
     sink = []
 
     class _BailsOnError(SM.StoryDexCatchStrategy):

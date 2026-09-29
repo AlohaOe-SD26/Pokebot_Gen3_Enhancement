@@ -15,13 +15,14 @@ proves the properties, not the text:
   T4  `catch_starter_team` reports WHY it stopped (target / no_balls / abort), and a `StoryAbort` from
       `_check_abort` still propagates out of it unchanged.
   T5  the run header carries `env-all:` with every `POKEBOT_*` variable.
-  W   every catch-strategy `return` in `on_battle_started` is IMMEDIATELY preceded by an `_r20_catch_start(...)` call
-      (a deleted start site would silently lose a whole kind); and the fault arm is registered in 29.
+  W   every catch-strategy `return` in `on_battle_started` and `_dex_catch_commit` (the dex commit, extracted by USER
+      RULING 24 step 4 on 2026-09-29) is IMMEDIATELY preceded by an `_r20_catch_start(...)` call (a deleted start site
+      would silently lose a whole kind); and the fault arm is registered in 29.
 FAULT ARMS (built in; each must FAIL for its own reason):
   F1  an UNGUARDED `_r20_catch_end` (raises)  -> T2 goes red;
   F2  a `_catchteam_exit` that raises          -> T4's abort check goes red;
   F3  a source mutant with one start call removed -> W goes red; a comment mentioning `_r20_catch_start` must not
-      satisfy W (AST reading).
+      satisfy W (AST reading). F3b removes the DEX start call inside `_dex_catch_commit` -> W goes red.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_r20_telemetry.py
 """
@@ -268,20 +269,23 @@ def _is_start_call(node) -> bool:
 def wiring(src: str, sink=None):
     tree = ast.parse(src)
     cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == "StoryMode")
-    fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "on_battle_started")
+    # The dex commit moved into `StoryMode._dex_catch_commit` (USER RULING 24 step 4, 2026-09-29), which
+    # `on_battle_started` calls; the four catch returns now span the two methods (shiny/hm/counter + dex).
+    fns = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in ("on_battle_started", "_dex_catch_commit")]
     returns, covered = 0, 0
-    for node in ast.walk(fn):
-        for field in ("body", "orelse", "finalbody"):
-            body = getattr(node, field, None)
-            if not isinstance(body, list):
-                continue
-            for i, stmt in enumerate(body):
-                if _is_catch_return(stmt):
-                    returns += 1
-                    covered += i > 0 and _is_start_call(body[i - 1])
-    check(returns >= 4 and covered == returns,
-          f"W every catch-strategy return in on_battle_started is preceded by _r20_catch_start ({covered}/{returns})",
-          sink)
+    for fn in fns:
+        for node in ast.walk(fn):
+            for field in ("body", "orelse", "finalbody"):
+                body = getattr(node, field, None)
+                if not isinstance(body, list):
+                    continue
+                for i, stmt in enumerate(body):
+                    if _is_catch_return(stmt):
+                        returns += 1
+                        covered += i > 0 and _is_start_call(body[i - 1])
+    check(len(fns) == 2 and returns >= 4 and covered == returns,
+          f"W every catch-strategy return in on_battle_started + _dex_catch_commit is preceded by _r20_catch_start "
+          f"({covered}/{returns}, methods={len(fns)})", sink)
 
 
 def main() -> int:
@@ -312,6 +316,11 @@ def main() -> int:
     sink = []
     wiring("\n".join(mutant), sink)
     check(base_ok and bool(sink), "F3 removing one start call (leaving only a COMMENT that mentions it) turns W red")
+    idx = next(i for i, ln in enumerate(lines) if ln.strip().startswith('_r20_catch_start(self, "dex" if _post_badge'))
+    mutant = lines[:idx] + ["                # _r20_catch_start (the dex start call, removed)"] + lines[idx + 1:]
+    sink = []
+    wiring("\n".join(mutant), sink)
+    check(base_ok and bool(sink), "F3b removing the DEX start call (in _dex_catch_commit) turns W red")
 
     print()
     if failures:

@@ -18,11 +18,14 @@ dex catch started during swap-training keeps the lead (C3).
   G1  the trainee telemetry, flag OFF, during swap-training: NO `[CATCH] trainee` line, nothing recorded (an OFF run
       gains no line; review 2026-09-29).       G2 flag ON, training, post-gym-1: exactly one `trainee lead=` line.
   G3  flag ON, NOT training: no line.        G4 the report logs `trainee-after … same=` once, then clears the record.
-  A4  by AST: `on_battle_started` calls `_r24_trainee_report` and `_r24_trainee_record`.
+  A4  by AST: `on_battle_started` calls `_r24_trainee_report`, and `_dex_catch_commit` (the dex commit, extracted from
+      `on_battle_started` by USER RULING 24 step 4 on 2026-09-29; `on_battle_started` calls it — see
+      `probe_dex_catch_oversurvival.py` A2) calls `_r24_trainee_record`.
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
   F1  `POKEBOT_R24_FAULT_ROTATE=1` (in production code) restores the rotation: L1 fails.
   F2  an adapter passing `lift_training=False` fails A1; F3 the keyword kept only in a COMMENT still fails A1.
   F4  a `_r24_trainee_record` without its flag guard (compiled from a mutated copy) fails G1.
+  F5  a source mutant with the `_r24_trainee_record` call removed from `_dex_catch_commit` fails A4.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dex_catch_training.py
 """
@@ -159,10 +162,15 @@ def telemetry(mod=SM, sink=None):
 
 def call_sites(src: str, sink=None):
     tree = ast.parse(src)
-    obs = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "on_battle_started"), None)
-    names = {getattr(c.func, "id", "") for c in ast.walk(obs) if isinstance(c, ast.Call)} if obs else set()
-    ok = {"_r24_trainee_report", "_r24_trainee_record"} <= names
-    check(ok, f"A4 on_battle_started calls _r24_trainee_report and _r24_trainee_record ({ok})", sink)
+
+    def called(name):
+        fn = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name), None)
+        return {getattr(c.func, "id", "") for c in ast.walk(fn) if isinstance(c, ast.Call)} if fn else set()
+
+    report = "_r24_trainee_report" in called("on_battle_started")
+    record = "_r24_trainee_record" in called("_dex_catch_commit")
+    check(report and record, f"A4 on_battle_started calls _r24_trainee_report ({report}); _dex_catch_commit calls "
+                             f"_r24_trainee_record ({record})", sink)
 
 
 def mutant_module(src: str):
@@ -224,6 +232,10 @@ def main() -> int:
     telemetry(mutant_module(src.replace(guard, "    if not post_badge:", 1)), sink)
     check(base_ok and any(s.startswith("G1") for s in sink),
           f"F4 a trainee record without its flag guard fails G1 (red: {[s.split()[0] for s in sink]})")
+    sink = []
+    rec = "_r24_trainee_record(self, _post_badge, _gp_dex)"
+    call_sites(src.replace(rec, "pass  # " + rec, 1) if src.count(rec) == 1 else "", sink)
+    check(base_ok and bool(sink), "F5 the _r24_trainee_record call removed from _dex_catch_commit (a comment left) fails A4")
 
     print()
     if failures:

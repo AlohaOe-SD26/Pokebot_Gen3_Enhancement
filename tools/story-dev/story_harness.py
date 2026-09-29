@@ -28878,6 +28878,29 @@ for step in range(args.frames):
             from plugins.custom_modes.story_mode import StoryMode
 
             context.bot_mode_instance = StoryMode()
+            # HARNESS-ONLY preset (USER RULING 24 step 4's live A/B, 2026-09-29): `STORYRESUME_PRESET_DEFEATS="24,7=3"`
+            # (`;`-separated) starts the run with that many defeats filed on those maps, so SURVIVAL MODE is armed where
+            # a wanted species will be met. ⛔ `StoryMode.run()` calls `reset_per_run_state()` at EVERY run start, which
+            # would silently wipe a preset set here once; so the instance's reset is wrapped to re-apply it after the
+            # real reset, and each application is printed (the evidence must show the preset was live).
+            _sr_preset = _os.environ.get("STORYRESUME_PRESET_DEFEATS", "").strip()
+            if _sr_preset:
+                _sr_inst = context.bot_mode_instance
+                _sr_real_reset = _sr_inst.reset_per_run_state
+
+                def _sr_apply_preset(_inst=_sr_inst, _spec=_sr_preset):
+                    for _item in _spec.split(";"):
+                        _k, _v = _item.split("=")
+                        _g, _n = _k.split(",")
+                        _inst._defeat_counts[(int(_g), int(_n))] = int(_v)
+                    print(f"[HARNESS] STORYRESUME_PRESET_DEFEATS applied: _defeat_counts={_inst._defeat_counts}")
+
+                def _sr_reset_then_preset(_real=_sr_real_reset, _apply=_sr_apply_preset):
+                    _real()
+                    _apply()
+
+                _sr_inst.reset_per_run_state = _sr_reset_then_preset
+                _sr_apply_preset()
         elif args.driver == "cavetrain":
             context.bot_mode_instance = CaveTrainMode()
         elif args.driver == "hmtest":
