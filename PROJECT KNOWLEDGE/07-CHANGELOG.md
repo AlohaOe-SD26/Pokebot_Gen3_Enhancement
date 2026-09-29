@@ -36803,3 +36803,25 @@ the only seed drawing the grind):
 **Review:** KICK-BACK, then fixed (`135ecaa3`). The flag-ON-only trainee telemetry had no gate case. It moved into
 `_r24_trainee_record` / `_r24_trainee_report`, and G1-G4, A4 and the mutant F4 were added. Replayed seeded, ON and OFF
 are identical to the graded arms. A pre-review self-check was added to the playbook (§0b).
+
+## 2026-09-29 — USER RULING 24 step 4: A WANTED SPECIES IS CAUGHT ON A MAP WHERE SURVIVAL MODE FLEES EVERY WILD, BEHIND `POKEBOT_R24_OVERSURVIVAL` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 24: *"catching should always be available if the bot encounters a pokemon that it wants to catch"*.
+Survival mode (3+ defeats on a map ⇒ flee every wild) ran before the dex-catch commit, so a wanted species there was
+fled unevaluated. Measured: an unowned Poochyena on Route 110, at full HP.
+**WHAT.**
+- The dex commit moved unchanged into `StoryMode._dex_catch_commit`. With the flag on, it runs before survival mode;
+  OFF runs it after, as always. Both calls go through the class.
+- Fault arm `POKEBOT_R24_FAULT_SKIPSURVIVAL`. NEW gate `probe_dex_catch_oversurvival.py` (S1-S11, A1-A3, F1-F5, each
+  fault an EXACT red set; suite 127).
+- Harness-only `STORYRESUME_PRESET_DEFEATS`.
+- Three gates that pinned the dex site to `on_battle_started` now span both methods, each with a new fault arm.
+- Registry: run it WITH `POKEBOT_R24_CATCHHURT` (C4 is keyed on that flag only).
+**PROOF** (predictions `333b4988`; `ai-research-notes/2026-09-29-r24oversurvival-GRADED.md`), seed 1, five arms, all as
+pre-registered:
+- OFF replays the measurement: 0 differing lines over the whole run, the same Manual stop.
+- ON is identical through four OWNED survival flees, then catches the Poochyena that OFF flees (`end=caught`).
+- With 3 defeats preset on Granite Cave 1F: OFF flees a wanted Zubat and ON catches it. ON still flees the next
+  (owned) Zubat, and the fault arm replays the unpreset run exactly.
+**Caught by the suite, before the drives:** the first version's `self._dex_catch_commit` raised in every shim-driven
+battle hook (`repro_ki65_unbound_party_index.py`). It was fixed by the class call, plus S11/F5 (08).

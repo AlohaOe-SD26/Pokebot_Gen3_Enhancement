@@ -1,0 +1,6 @@
+# RULING 24 step 4: the extraction is a MOVE. Compared: 9a4fbbeb on_battle_started (inline) vs f961218b StoryMode._dex_catch_commit.
+HEAD 9a4fbbeb: try-statements in on_battle_started that build StoryDexCatchStrategy: 1
+f961218b: try-statements in _dex_catch_commit: 1
+ast.dump(old) == ast.dump(new): True
+helper body after the try: ['return None']
+f961218b on_battle_started still contains StoryDexCatchStrategy: False

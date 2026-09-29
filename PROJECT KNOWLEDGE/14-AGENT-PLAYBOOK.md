@@ -111,6 +111,11 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   or "no new log line when OFF", NAME the case that proves it. If there is none, write it, plus one MUTANT that widens
   the scope, before the review. Steps 2 and 3 of RULING 24 each shipped a true claim with no case behind it, and each
   review found it with a one-line mutant.
+* ⛔ **A REFACTOR OF A METHOD THAT TESTS CALL UNBOUND needs a SHIM-SHAPED case** (added 2026-09-29). Many drivers and
+  repros call `StoryMode.on_battle_started(shim, …)` with a stand-in `self`. Extracting a block into a helper and calling
+  `self._helper(…)` outside the old `try` made every such battle hook raise, while the step's own gate (built on real
+  instances) stayed green. Call the helper through the class (`StoryMode._helper(self, …)`), add a case with the
+  repro's exact shim, and take its expected reading from the PRE-CHANGE code (08, 2026-09-29).
 
 ---
 

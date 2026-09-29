@@ -22986,3 +22986,23 @@ telemetry, because nothing in the WORKFLOW made me enumerate my self-report's sc
 **Prevention (structural, not prose):** a pre-review self-check is now in `14-AGENT-PLAYBOOK.md` §0b ("map every scope
 sentence in your self-report to its gate case"). The self-report is where the claims are written, so that is where the
 check runs.
+
+## 2026-09-29 — ⛔ AN EXTRACT-METHOD REFACTOR MOVED A `self.` ACCESS FROM INSIDE A `try` TO OUTSIDE IT, AND EVERY SHIM-DRIVEN REPRO'S BATTLE HOOK RAISED
+
+**Symptom:** after RULING 24 step 4 extracted the dex commit into `StoryMode._dex_catch_commit`, the suite went red on
+`repro_ki65_unbound_party_index.py`: "the move-learn offer was REACHED: 0" in both arms. That reads like an emulator or
+fixture problem, and the step's own new gate (S1-S10) was green. On `main` the same repro passed, which placed the
+fault in this change.
+**Root cause:** harness drivers and repros call `StoryMode.on_battle_started(shim, encounter)` with a stand-in `self`
+(a `SimpleNamespace` with only `_should_catch` and `_catch_team_target`; six harness drivers and four repros use this
+shape). The old inline block touched `self` only INSIDE its own `try/except`, so a missing attribute fell through. The
+new `self._dex_catch_commit(encounter)` sat OUTSIDE any `try` and raised `AttributeError` out of the battle hook. The
+step's gate missed it because every case used a real `StoryMode` instance.
+**Fix:** both calls go through the class, `StoryMode._dex_catch_commit(self, encounter)`, which restores the old behaviour
+for any `self`. Gate case S11 drives the repro's exact shim shape. Its expected reading (`StoryItemBattleStrategy`, no
+commit) was MEASURED on HEAD's pre-change code, not guessed: my first guess ("a catch") was wrong, because the shim has
+no `_dex_catch_attempts`. F5 (the `self.` form) turns exactly {S11} red. Three gates that pinned the dex site to
+`on_battle_started`'s text (D2, W, A4) now span both methods, each with a fault arm proving the helper half is read.
+**Prevention:** ⛔ when extracting code out of a method that tests call UNBOUND with a stand-in `self`, call the helper
+through the class and add a shim-shaped gate case. The expected reading of a refactor case is whatever the PRE-CHANGE
+code returns: measure it on the old code before writing it down.

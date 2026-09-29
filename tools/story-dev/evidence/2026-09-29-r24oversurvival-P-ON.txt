@@ -1,0 +1,74 @@
+# RULING 24 step 4 arm P-ON: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), --set-balls 60, --frames 100000, random.seed(1). Env: f961218b; PRESET 24,7=3; POKEBOT_R24_OVERSURVIVAL=1; POKEBOT_R20_OPENFENCE=1.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r24oversurvival-PREDICTIONS.md (333b4988).
+# Source: Story-debug-20260929-095615.log (debug-log frame = harness frame + 139,500) and os-P-ON.stdout.txt.
+# Windows below are DEBUG-LOG frames. Kept: [BATTLE] started/ended/[TURN 0], [CATCH], [DEXFENCE], [DEXCATCH], [MAP], WHITEOUT, [MODE], [DEX].
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R24_OVERSURVIVAL': '1'}
+
+## debug-log window f195000-f215000
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f198658 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Mud-slap(pp10)  vs Tentacool L11 29/29
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f199946 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(0,0) pos=(48, 16)
+f199947 [MAP] GRANITE CAVE(0,0) -> GRANITE CAVE(24,7) pos=(48, 16)
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f200242 [DEXCATCH] [DEXCATCH] attempt #1 on Zubat (#41) -> party
+f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=1 badges=1 party=1/6 box=0 spare=62 exp_throws=2.2 map=24,7
+f200705 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Zubat L7 23/23
+f203722 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7']
+f203722 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=3 frames=3480 dest=party pid=C749AAB1 party=2/6 box=0 spare=59 badges=1 bail=-
+f203961 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23)]
+f203961 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (joins the party)
+f203961 [DEXCATCH] [DEXCATCH] attempt #1 on Geodude (#74) -> party
+f203961 [CATCH] start kind=dex sp=Geodude#74 lv=7 attempt=1 badges=1 party=2/6 box=0 spare=59 exp_throws=3.0 map=24,7
+f204300 [DEX] owned 2 -> 3: +#41
+f204465 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Geodude L7 22/22
+f205638 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f205638 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=1 frames=1677 dest=party pid=218F97E2 party=3/6 box=0 spare=58 badges=1 bail=-
+f205885 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f206347 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> RunAway  vs Zubat L7 24/24
+f206501 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f206625 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,8) pos=(17, 11)
+f207059 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,9) pos=(28, 21)
+f207600 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f207600 [DEXFENCE] CATCH #304 Aron — dex catch #304 (joins the party)
+f207600 [DEXCATCH] [DEXCATCH] attempt #1 on Aron (#304) -> party
+f207600 [CATCH] start kind=dex sp=Aron#304 lv=12 attempt=1 badges=1 party=3/6 box=0 spare=58 exp_throws=3.6 map=24,9
+f207900 [DEX] owned 3 -> 4: +#74
+f208166 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Aron L12 35/35
+f209327 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12']
+f209327 [CATCH] end kind=dex sp=Aron#304 end=caught res=Caught thrown=1 frames=1727 dest=party pid=7B1E3581 party=4/6 box=0 spare=57 badges=1 bail=-
+f209565 [MAP] GRANITE CAVE(24,9) -> GRANITE CAVE(24,8) pos=(29, 13)
+f209695 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,7) pos=(25, 13)
+f210113 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,10) pos=(5, 10)
+f211500 [DEX] owned 4 -> 5: +#304
+f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+f212439 [DEXCATCH] [DEXCATCH] attempt #1 on Abra (#63) -> party
+f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=1 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10
+f212921 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Abra L8 22/22
+f213768 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12']
+f213768 [CATCH] end kind=dex sp=Abra#63 end=foe_fled res=OpponentTeleported thrown=1 frames=1329 dest=none pid=- party=4/6 box=0 spare=56 badges=1 bail=-
+f213836 [MAP] GRANITE CAVE(24,10) -> GRANITE CAVE(24,7) pos=(7, 3)
+f213839 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(255,255) pos=(7, 3)
+f213840 [MAP] GRANITE CAVE(255,255) -> GRANITE CAVE(24,7) pos=(7, 3)
+f214097 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+f214097 [DEXFENCE] CATCH #296 Makuhita — dex catch #296 (joins the party)
+f214097 [DEXCATCH] [DEXCATCH] attempt #1 on Makuhita (#296) -> party
+f214097 [CATCH] start kind=dex sp=Makuhita#296 lv=7 attempt=1 badges=1 party=4/6 box=0 spare=56 exp_throws=3.6 map=24,7
+f214619 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Makuhita L7 27/27
+
+## stdout: harness preset + survival-mode lines (each with the preceding battle_is_active frame)
+? | [HARNESS] STORYRESUME_PRESET_DEFEATS applied: _defeat_counts={(24, 7): 3}
+f60742 | Story: catching a new Zubat for the team!
+f64461 | Story: catching a new Geodude for the team!
+f66385 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f68100 | Story: catching a new Aron for the team!
+f72939 | Story: catching a new Abra for the team!
+f74597 | Story: catching a new Makuhita for the team!

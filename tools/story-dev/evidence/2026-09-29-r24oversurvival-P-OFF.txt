@@ -1,0 +1,60 @@
+# RULING 24 step 4 arm P-OFF: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), --set-balls 60, --frames 100000, random.seed(1). Env: f961218b; STORYRESUME_PRESET_DEFEATS=24,7=3; POKEBOT_R20_OPENFENCE=1.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r24oversurvival-PREDICTIONS.md (333b4988).
+# Source: Story-debug-20260929-095614.log (debug-log frame = harness frame + 139,500) and os-P-OFF.stdout.txt.
+# Windows below are DEBUG-LOG frames. Kept: [BATTLE] started/ended/[TURN 0], [CATCH], [DEXFENCE], [DEXCATCH], [MAP], WHITEOUT, [MODE], [DEX].
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1'}
+
+## debug-log window f195000-f215000
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f198658 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Mud-slap(pp10)  vs Tentacool L11 29/29
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f199946 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(0,0) pos=(48, 16)
+f199947 [MAP] GRANITE CAVE(0,0) -> GRANITE CAVE(24,7) pos=(48, 16)
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200705 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> RunAway  vs Zubat L7 23/23
+f200859 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f201113 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f201635 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> RunAway  vs Makuhita L6 24/24
+f201789 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f202067 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f202587 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> RunAway  vs Makuhita L8 31/31
+f202741 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f202817 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,8) pos=(17, 11)
+f203108 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f203108 [DEXFENCE] skip #302 Sableye — #302: ~15 expected throws at full HP with the balls we hold — above 10
+f203656 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Water Gun(pp25)  vs Sableye L10 32/32
+f205687 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19']
+f205965 [BATTLE] started hp=[('Marshtomp', 61, 61)]
+f205965 [DEXFENCE] CATCH #304 Aron — dex catch #304 (joins the party)
+f205965 [DEXCATCH] [DEXCATCH] attempt #1 on Aron (#304) -> party
+f205965 [CATCH] start kind=dex sp=Aron#304 lv=10 attempt=1 badges=1 party=1/6 box=0 spare=62 exp_throws=2.8 map=24,8
+f206530 [BATTLE] [TURN 0] Marshtomp L19 61/61 -> UseItem  vs Aron L10 30/30
+f210190 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L19', 'Aron:L10']
+f210190 [CATCH] end kind=dex sp=Aron#304 end=caught res=Caught thrown=4 frames=4225 dest=party pid=E9066A29 party=2/6 box=0 spare=58 badges=1 bail=-
+f210452 [BATTLE] started hp=[('Marshtomp', 53, 61), ('Aron', 30, 30)]
+f210452 [DEXFENCE] skip #296 Makuhita — party is not at full strength
+f210972 [BATTLE] [TURN 0] Marshtomp L19 53/61 -> UseMove:Water Gun(pp22)  vs Makuhita L10 36/36
+f211500 [DEX] owned 2 -> 3: +#304
+f212005 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L10']
+f212185 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,9) pos=(28, 21)
+f212445 [BATTLE] started hp=[('Marshtomp', 49, 61), ('Aron', 30, 30)]
+f212445 [DEXFENCE] skip #302 Sableye — party is not at full strength
+f212992 [BATTLE] [TURN 0] Marshtomp L19 49/61 -> UseMove:Water Gun(pp20)  vs Sableye L11 35/35
+f214747 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Aron:L10']
+
+## stdout: harness preset + survival-mode lines (each with the preceding battle_is_active frame)
+? | [HARNESS] STORYRESUME_PRESET_DEFEATS applied: _defeat_counts={(24, 7): 3}
+f60742 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f61613 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f62567 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f66465 | Story: catching a new Aron for the team!
+f79224 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f80194 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f83454 | Story: 3 defeats on this map already — fleeing wild battles to get through
+f84521 | Story: 3 defeats on this map already — fleeing wild battles to get through

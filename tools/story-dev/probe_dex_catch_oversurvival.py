@@ -24,12 +24,15 @@ unwanted), `_location_key` stubbed with 3 (or 0) defeats, swap-training off, no 
   A1  `reset_per_run_state` reads the flag.   A2 `on_battle_started` calls `_dex_catch_commit` exactly twice, and the
       helper keeps its LOCAL `from modules.console import console` (the UnboundLocalError trap, 08).
   A3  both flags are registered in 29.
+  A4  by AST: BOTH `_dex_catch_commit` calls in `on_battle_started` go through the class, `StoryMode._dex_catch_commit(
+      self, …)` (the S11 shim only reaches the OFF site, so the ON site needs its own structural check).
 FAULT ARMS (built in; the unmutated subject must pass first; each must turn EXACTLY its own set red):
   F1  `POKEBOT_R24_FAULT_SKIPSURVIVAL=1` (in production code) also skips survival mode for unwanted species: {S3}.
   F2  a source mutant without the early (ON) call: {S1, S5} (ON then never runs the commit at all).
   F3  a widening mutant that hoists the early call above the shiny branch: {S8, S9, S10}.
   F4  a widening mutant that runs the early call whatever the flag (OFF then catches before survival mode): {S2}.
   F5  a mutant calling `self._dex_catch_commit(encounter)` (the first version) at the OFF site: {S11}.
+  F6  the same `self.` form at the ON site only: A4 goes red (no behavioural case can see it).
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dex_catch_oversurvival.py
 """
@@ -205,6 +208,18 @@ def structure(src: str, sink=None):
                                         f"its local console import ({local_console})", sink)
 
 
+def class_calls(src: str, sink=None) -> bool:
+    tree = ast.parse(src)
+    obs = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "on_battle_started"), None)
+    calls = [c for c in ast.walk(obs) if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+             and c.func.attr == "_dex_catch_commit"] if obs else []
+    ok = len(calls) == 2 and all(isinstance(c.func.value, ast.Name) and c.func.value.id == "StoryMode"
+                                 and c.args and isinstance(c.args[0], ast.Name) and c.args[0].id == "self"
+                                 for c in calls)
+    check(ok, f"A4 both _dex_catch_commit calls go through the class ({[ast.unparse(c.func) for c in calls]})", sink)
+    return ok
+
+
 def mutant_module(src: str):
     mod = types.ModuleType("story_mode_mutant")
     mod.__file__ = str(SM_PATH)
@@ -228,6 +243,7 @@ def main() -> int:
     structure(src)
     reg = REGISTRY.read_text(encoding="utf-8") if REGISTRY.exists() else ""
     check(FLAG in reg and FAULT in reg, f"A3 {FLAG} and {FAULT} are registered in 29")
+    class_calls(src)
 
     print("F — fault arms (each requires the unmutated subject to pass first)")
     base_ok = not failures
@@ -267,6 +283,14 @@ def main() -> int:
            if src.count(off_call) == 1 else {"(anchor missing)"})
     check(base_ok and red == {"S11"}, f"F5 a mutant calling self._dex_catch_commit at the OFF site turns exactly {{S11}} "
                                        f"red (red: {sorted(red)})")
+    on_call = ("        if getattr(self, \"_r24_oversurvival\", False):" + nl +
+               "            _dex_strategy = StoryMode._dex_catch_commit(self, encounter)")
+    sink = []
+    anchored = src.count(on_call) == 1  # a missing anchor must FAIL, never read as "the fault fired"
+    if anchored:
+        class_calls(src.replace(on_call, on_call.replace("StoryMode._dex_catch_commit(self, encounter)",
+                                                         "self._dex_catch_commit(encounter)"), 1), sink)
+    check(base_ok and anchored and bool(sink), f"F6 the self. form at the ON site only turns A4 red (anchored={anchored})")
 
     print()
     if failures:

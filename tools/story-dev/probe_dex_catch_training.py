@@ -234,8 +234,11 @@ def main() -> int:
           f"F4 a trainee record without its flag guard fails G1 (red: {[s.split()[0] for s in sink]})")
     sink = []
     rec = "_r24_trainee_record(self, _post_badge, _gp_dex)"
-    call_sites(src.replace(rec, "pass  # " + rec, 1) if src.count(rec) == 1 else "", sink)
-    check(base_ok and bool(sink), "F5 the _r24_trainee_record call removed from _dex_catch_commit (a comment left) fails A4")
+    anchored = src.count(rec) == 1  # a missing anchor must FAIL, never read as "the fault fired"
+    if anchored:
+        call_sites(src.replace(rec, "pass  # " + rec, 1), sink)
+    check(base_ok and anchored and bool(sink),
+          f"F5 the _r24_trainee_record call removed from _dex_catch_commit (a comment left) fails A4 (anchored={anchored})")
 
     print()
     if failures:

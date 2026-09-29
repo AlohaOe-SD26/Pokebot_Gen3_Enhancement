@@ -1,0 +1,56 @@
+# RULING 24 step 4 arm P-FAULT: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), --set-balls 60, --frames 100000, random.seed(1). Env: f961218b; PRESET 24,7=3; POKEBOT_R24_OVERSURVIVAL=1; POKEBOT_R24_FAULT_SKIPSURVIVAL=1; POKEBOT_R20_OPENFENCE=1.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r24oversurvival-PREDICTIONS.md (333b4988).
+# Source: Story-debug-20260929-095616.log (debug-log frame = harness frame + 139,500) and os-P-FAULT.stdout.txt.
+# Windows below are DEBUG-LOG frames. Kept: [BATTLE] started/ended/[TURN 0], [CATCH], [DEXFENCE], [DEXCATCH], [MAP], WHITEOUT, [MODE], [DEX].
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R24_FAULT_SKIPSURVIVAL': '1', 'POKEBOT_R24_OVERSURVIVAL': '1'}
+
+## debug-log window f195000-f215000
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f198658 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Mud-slap(pp10)  vs Tentacool L11 29/29
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f200242 [DEXCATCH] [DEXCATCH] attempt #1 on Zubat (#41) -> party
+f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=1 badges=1 party=1/6 box=0 spare=62 exp_throws=2.2 map=24,7
+f200705 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Zubat L7 23/23
+f203722 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7']
+f203722 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=3 frames=3480 dest=party pid=C749AAB1 party=2/6 box=0 spare=59 badges=1 bail=-
+f203961 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23)]
+f203961 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (joins the party)
+f203961 [DEXCATCH] [DEXCATCH] attempt #1 on Geodude (#74) -> party
+f203961 [CATCH] start kind=dex sp=Geodude#74 lv=7 attempt=1 badges=1 party=2/6 box=0 spare=59 exp_throws=3.0 map=24,7
+f204300 [DEX] owned 2 -> 3: +#41
+f204465 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Geodude L7 22/22
+f205638 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f205638 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=1 frames=1677 dest=party pid=218F97E2 party=3/6 box=0 spare=58 badges=1 bail=-
+f205885 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f206347 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Water Gun(pp25)  vs Zubat L7 24/24
+f207856 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f207900 [DEX] owned 3 -> 4: +#74
+f207980 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,8) pos=(17, 11)
+f208409 [BATTLE] started hp=[('Marshtomp', 59, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f208409 [DEXFENCE] skip #302 Sableye — party is not at full strength
+f208956 [BATTLE] [TURN 0] Marshtomp L19 59/61 -> UseMove:Water Gun(pp23)  vs Sableye L10 30/30
+f209977 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f210173 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,9) pos=(28, 21)
+f210450 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f210450 [DEXFENCE] skip #304 Aron — party is not at full strength
+f211015 [BATTLE] [TURN 0] Marshtomp L19 56/61 -> UseMove:Water Gun(pp21)  vs Aron L10 31/31
+f211717 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f212147 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f212147 [DEXFENCE] skip #63 Abra — party is not at full strength
+f212630 [BATTLE] [TURN 0] Marshtomp L19 56/61 -> UseMove:Tackle(pp35)  vs Abra L10 25/25
+f212963 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Marshtomp:L19', 'Zubat:L7', 'Geodude:L7']
+f213316 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f213862 [BATTLE] [TURN 0] Marshtomp L19 56/61 -> UseMove:Water Gun(pp20)  vs Sableye L10 30/30
+
+## stdout: harness preset + survival-mode lines (each with the preceding battle_is_active frame)
+? | [HARNESS] STORYRESUME_PRESET_DEFEATS applied: _defeat_counts={(24, 7): 3}
+f60742 | Story: catching a new Zubat for the team!
+f64461 | Story: catching a new Geodude for the team!

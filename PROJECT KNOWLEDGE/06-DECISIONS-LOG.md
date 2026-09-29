@@ -8147,3 +8147,28 @@ key battles."*
 - Passing the flag through the constructor: this changes the pinned call site.
 - Reading the env inside the strategy: that makes a second reader of the flag.
 - Leaving the rotation: it defeats slot-based grinds exactly when RULING 24 accepts a faint.
+
+## 2026-09-29 — RULING 24 step 4: a wanted species outranks SURVIVAL MODE; the dex commit is ONE helper called from two places, through the class
+
+**Decision:**
+- `POKEBOT_R24_OVERSURVIVAL` (default OFF) runs the dex-catch commit BEFORE survival mode, the flee-every-wild rule for a
+  map with 3+ defeats. OFF runs it after, where it always ran.
+- "Wanted" is OPERATIONAL here: `_should_catch` admits the encounter, so every other fence gate still applies. An
+  unwanted species still meets survival mode. Shiny, HM and counter catches stay first.
+- The commit is `StoryMode._dex_catch_commit`, the old block MOVED unchanged (AST-identical). Both call sites go through
+  the class (`StoryMode._dex_catch_commit(self, …)`).
+**Why:**
+- RULING 24: *"catching should always be available if the bot encounters a pokemon that it wants to catch"*. Measured:
+  M0 fled an unowned Poochyena at full HP on Route 110. Survival mode exists for #24-whiteout's 25-whiteout loop, which
+  an unwanted species must still get past.
+- One helper keeps ONE commit site: attempts, telemetry and the dex/team strategy choice. OFF is provably the old code.
+- The class call: harness drivers and repros pass a stand-in `self` (08, 2026-09-29).
+**Rejected:**
+- Asking `_should_catch` inside survival mode's condition: that is a second evaluation site with the commit still
+  AFTER, and its log/attempt effects are split across two places.
+- Moving the call unconditionally: it changes default behaviour before the Phase 3 batch A/B.
+- Exempting only RARE species: the ruling says any species the bot wants.
+- Tying C4 (a lost dex catch filed apart from map defeats) to this flag too. C4 stays keyed on `POKEBOT_R24_CATCHHURT`,
+  and the registry row says to run the two TOGETHER. Without CATCHHURT, a lost catch on a boss-key map (Route 110 is the
+  rival's) counts toward that boss's give-up. Widening C4 here would change a gated step's contract inside another
+  step.
