@@ -36864,3 +36864,20 @@ ten throws.
 - HALF sends Marshtomp in, then bails a turn later (`thrown=10 bail=faint`): path (a) alone is not enough, measured.
 **Found by the first run:** the NOBAIL line fired twice for one faint, because the handler calls the hook twice. It is
 now deduped per faint, with N7/F7 (08).
+
+## 2026-09-29 — RULING 24 step 5 REVIEWED: APPROVE; two non-blocking risks taken; RULING 24 is fully built (`#26-organiccatch`)
+
+- **Review: APPROVE, no blockers.** The reviewer re-ran the new gate and five adjacent dex-catch gates, traced the
+  post-faint path (`should_flee_after_faint` False → the existing `choose_new_lead_after_faint`; the dispatcher never
+  calls it at a true whiteout), and grepped the raw evidence against the predictions.
+- **Two risks taken:**
+  - The `fainted=N` count now skips eggs, matching the codebase's own "is it down" test. It was cosmetic: the dedupe
+    keys on a change in the count.
+  - A comment separates the new `[DEXCATCH-NOBAIL]` action line from the older, unrelated
+    `POKEBOT_DEXCATCH_FAULT_NOBAIL` arm.
+  - The dex-catch gates were re-run: green.
+- **One risk left:** the constructor's flag read has no local `try`. `getattr` with a default cannot raise here, and the
+  strategy's only construction site is inside `_dex_catch_commit`'s `try`.
+- **Resume pointers (03, 04, the v2 note):** RULING 24 is FULLY built (design steps 2-5, each behind a default-OFF
+  flag). Next is v2 step 0 (docs only; its three claims are already verified by independent agents), then v2 step 5
+  (TID/T1).

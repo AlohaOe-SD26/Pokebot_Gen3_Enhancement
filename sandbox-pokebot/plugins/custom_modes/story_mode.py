@@ -6208,11 +6208,15 @@ def _r24_nofaintbail_log(strategy) -> None:
     ⛔ ONE LINE PER FAINT, NOT PER CALL: the battle handler calls `should_flee_after_faint` TWICE for one faint (measured
     2026-09-29: the dispatcher re-enters `handle_fainted_pokemon` while the send-in completes — the first graded ON run
     logged the line at f359393 AND f359535 for one Zubat). Keyed on the number of fainted party members, which only a
-    NEW faint changes; the count rides on the line. Unreadable party ⇒ key None (one line for this battle)."""
+    NEW faint changes; the count rides on the line. Unreadable party ⇒ key None (one line for this battle).
+    Eggs are not counted (the codebase's own "is it down" test is `not is_egg and current_hp > 0`, `catch.py:35`).
+    ⚠ NOT related to `POKEBOT_DEXCATCH_FAULT_NOBAIL` (the older skip-the-fix arm that disables the whole
+    `#24-dexcatch-battlebail` feature): `[DEXCATCH-NOBAIL]` is this step's INTENDED action, "a faint, and no bail"."""
     try:
         from modules.pokemon_party import get_party as _gp_nfb
 
-        fainted = sum(1 for m in _gp_nfb() if m is not None and not m.is_empty and m.current_hp == 0)
+        fainted = sum(1 for m in _gp_nfb()
+                      if m is not None and not m.is_empty and not getattr(m, "is_egg", False) and m.current_hp == 0)
     except Exception:  # noqa: BLE001 - an unreadable party still logs once
         fainted = None
     logged = getattr(strategy, "_nofaintbail_logged", None)
