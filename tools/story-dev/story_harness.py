@@ -1322,7 +1322,9 @@ class R101HuntMode(BotMode):
             R["premise_indoor"] = R["hunt_from"][0] == (8, 0)
 
             def _pids():
-                return {m.personality_value: m.species.name for m in get_party() if m is not None}
+                # IDENTITY is (PID, species), never the PID alone: a Shedinja carries its Ninjask's PID (KI-78), and a
+                # PID-keyed dict collapsed this very fixture's party of 5 to 4 (measured 2026-09-28, `#27-enroutejoin`).
+                return [(m.personality_value, m.species.name) for m in get_party() if m is not None]
 
             def nav(map_enum, tile, *a, **k):
                 R.setdefault("nav_calls", []).append((getattr(map_enum, "name", str(map_enum)), tuple(tile)))
@@ -1335,8 +1337,8 @@ class R101HuntMode(BotMode):
                 finally:
                     self._in_walk = False
                     after_walk = _pids()
-                    R.setdefault("walk_joins", []).extend(f"{after_walk[p]}#{p:08X}" for p in after_walk
-                                                          if p not in before_walk)
+                    R.setdefault("walk_joins", []).extend(f"{sp}#{pid:08X}" for pid, sp in after_walk
+                                                          if (pid, sp) not in before_walk)
                     R["party_after_walk"] = len(after_walk)
 
             def spin(stop, *a, **k):
