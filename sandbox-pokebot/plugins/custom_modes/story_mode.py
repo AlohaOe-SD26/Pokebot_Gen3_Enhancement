@@ -3840,16 +3840,9 @@ class StoryMode(BotMode):
         # USER RULING 24 step 3 (flag `POKEBOT_R24_CATCHTRAIN` only): after a dex catch that started during swap-training,
         # log WHO leads now — the action C3 guards (rule 7), read after any post-battle rotation has run.
         if getattr(self, "_r24_trainee_check", None) is not None:
-            try:
-                from modules.pokemon_party import get_party as _gp_tr
+            from modules.pokemon_party import get_party as _gp_tr
 
-                _lead = next((m for m in _gp_tr() if m is not None), None)
-                _now = f"{_lead.species.name}#{_lead.personality_value:08X}" if _lead is not None else "?"
-                _log_story_event(f"trainee-after lead={_now} before={self._r24_trainee_check} "
-                                 f"same={_now == self._r24_trainee_check}", "CATCH")
-            except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
-                pass
-            self._r24_trainee_check = None
+            _r24_trainee_report(self, _gp_tr)
         # USER RULING 19: forget the previous battle's foe before this one's first turn, so a loss can never be
         # filed against a foe from an EARLIER battle. A plain write; it cannot affect the battle.
         try:
@@ -4159,18 +4152,7 @@ class StoryMode(BotMode):
                     _post_badge = False
                 # USER RULING 24 step 3 (flag ON only; pre-gym-1 team catches start during train_team with it OFF):
                 # record the trainee in slot 0 when a dex catch starts during swap-training.
-                if _post_badge and getattr(self, "_r24_catchtrain", False):
-                    try:
-                        from modules.story.early_game import swap_train_active as _sta_tr
-
-                        if _sta_tr():
-                            _l0 = next((m for m in _gp_dex() if m is not None), None)
-                            if _l0 is not None:
-                                self._r24_trainee_check = f"{_l0.species.name}#{_l0.personality_value:08X}"
-                                _log_story_event(f"trainee lead={self._r24_trainee_check} (a dex catch during "
-                                                 f"swap-training)", "CATCH")
-                    except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
-                        pass
+                _r24_trainee_record(self, _post_badge, _gp_dex)
                 _r20_catch_start(self, "dex" if _post_badge else "team", encounter, dex=dex)
                 return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
         except Exception:
@@ -6126,6 +6108,41 @@ def _r20_levels() -> dict:
         "badges": _r20_q(_r20_badges),
         "frame": _r20_q(lambda: context.emulator.get_frame_count(), None),
     }
+
+
+def _r24_trainee_record(mode, post_badge: bool, party_fn) -> None:
+    """USER RULING 24 step 3 telemetry, FLAG ON ONLY (`POKEBOT_R24_CATCHTRAIN`): when a POST-gym-1 dex catch starts during
+    swap-training, record the trainee in slot 0 and log `[CATCH] trainee lead=…`. With the flag off it does nothing at
+    all — pre-gym-1 team catches start during `train_team` with the flag off, and an OFF run must gain no line. Gated by
+    `probe_dex_catch_training.py` G1-G3 (a mutant that drops the flag guard must go red)."""
+    if not (post_badge and getattr(mode, "_r24_catchtrain", False)):
+        return
+    try:
+        from modules.story.early_game import swap_train_active as _sta_tr
+
+        if not _sta_tr():
+            return
+        l0 = next((m for m in party_fn() if m is not None), None)
+        if l0 is not None:
+            mode._r24_trainee_check = f"{l0.species.name}#{l0.personality_value:08X}"
+            _log_story_event(f"trainee lead={mode._r24_trainee_check} (a dex catch during swap-training)", "CATCH")
+    except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
+        pass
+
+
+def _r24_trainee_report(mode, party_fn) -> None:
+    """The next battle's half of `_r24_trainee_record`: log WHO leads now (read after any post-battle rotation) as
+    `[CATCH] trainee-after lead=… before=… same=…`, then clear the record so it is reported once. No record ⇒ nothing."""
+    before = getattr(mode, "_r24_trainee_check", None)
+    if before is None:
+        return
+    try:
+        lead = next((m for m in party_fn() if m is not None), None)
+        now = f"{lead.species.name}#{lead.personality_value:08X}" if lead is not None else "?"
+        _log_story_event(f"trainee-after lead={now} before={before} same={now == before}", "CATCH")
+    except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
+        pass
+    mode._r24_trainee_check = None
 
 
 def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:

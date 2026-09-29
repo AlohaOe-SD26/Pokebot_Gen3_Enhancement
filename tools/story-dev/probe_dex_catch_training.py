@@ -15,9 +15,14 @@ dex catch started during swap-training keeps the lead (C3).
   A3  both flags are registered in 29.
   L1  `StoryDexCatchStrategy` built while swap-training with the running mode's flag ON returns None from
       `choose_new_lead_after_battle`; with the flag OFF, or when not training, it returns the parent's answer.
+  G1  the trainee telemetry, flag OFF, during swap-training: NO `[CATCH] trainee` line, nothing recorded (an OFF run
+      gains no line; review 2026-09-29).       G2 flag ON, training, post-gym-1: exactly one `trainee lead=` line.
+  G3  flag ON, NOT training: no line.        G4 the report logs `trainee-after … same=` once, then clears the record.
+  A4  by AST: `on_battle_started` calls `_r24_trainee_report` and `_r24_trainee_record`.
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
   F1  `POKEBOT_R24_FAULT_ROTATE=1` (in production code) restores the rotation: L1 fails.
   F2  an adapter passing `lift_training=False` fails A1; F3 the keyword kept only in a COMMENT still fails A1.
+  F4  a `_r24_trainee_record` without its flag guard (compiled from a mutated copy) fails G1.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_dex_catch_training.py
 """
@@ -110,6 +115,64 @@ def lead(sink=None):
           f"flag ON, not training -> {on_idle} (want 3)", sink)
 
 
+class _Mon:
+    def __init__(self, name, pid):
+        self.species = types.SimpleNamespace(name=name)
+        self.personality_value = pid
+
+
+def telemetry(mod=SM, sink=None):
+    """G1-G4 on the helpers, with `_log_story_event` captured and swap-training stubbed."""
+    logged: list = []
+    party = [_Mon("Marshtomp", 0x550A9BE6), _Mon("Taillow", 0x118FF55F)]
+    saved = (mod._log_story_event, EG._SWAP_TRAIN)
+    try:
+        mod._log_story_event = lambda msg, cat="STORY": logged.append((cat, msg))
+
+        def mode(flag):
+            return types.SimpleNamespace(_r24_catchtrain=flag, _r24_trainee_check=None)
+
+        EG._SWAP_TRAIN = True
+        m = mode(False)
+        mod._r24_trainee_record(m, True, lambda: party)
+        check(not logged and m._r24_trainee_check is None,
+              f"G1 flag OFF, training: no line ({logged}), nothing recorded ({m._r24_trainee_check})", sink)
+        m = mode(True)
+        mod._r24_trainee_record(m, True, lambda: party)
+        g2 = [x for x in logged if "trainee lead=Marshtomp#550A9BE6" in x[1] and x[0] == "CATCH"]
+        check(len(logged) == 1 and len(g2) == 1, f"G2 flag ON, training: one trainee line ({logged})", sink)
+        logged.clear()
+        mod._r24_trainee_report(m, lambda: party)
+        g4 = [x for x in logged if "trainee-after lead=Marshtomp#550A9BE6" in x[1] and "same=True" in x[1]]
+        cleared = m._r24_trainee_check is None
+        mod._r24_trainee_report(m, lambda: party)
+        check(len(g4) == 1 and len(logged) == 1 and cleared,
+              f"G4 the report logs once and clears ({logged}; cleared={cleared})", sink)
+        logged.clear()
+        EG._SWAP_TRAIN = False
+        m = mode(True)
+        mod._r24_trainee_record(m, True, lambda: party)
+        check(not logged and m._r24_trainee_check is None, f"G3 flag ON, NOT training: no line ({logged})", sink)
+    finally:
+        mod._log_story_event, EG._SWAP_TRAIN = saved
+
+
+def call_sites(src: str, sink=None):
+    tree = ast.parse(src)
+    obs = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "on_battle_started"), None)
+    names = {getattr(c.func, "id", "") for c in ast.walk(obs) if isinstance(c, ast.Call)} if obs else set()
+    ok = {"_r24_trainee_report", "_r24_trainee_record"} <= names
+    check(ok, f"A4 on_battle_started calls _r24_trainee_report and _r24_trainee_record ({ok})", sink)
+
+
+def mutant_module(src: str):
+    assert src != SM_PATH.read_text(encoding="utf-8"), "the mutant's anchor was not found"
+    mod = types.ModuleType("story_mode_mutant")
+    mod.__file__ = str(SM_PATH)
+    exec(compile(src, "story_mode_mutant", "exec"), mod.__dict__)
+    return mod
+
+
 def wiring(src: str, sink=None):
     ok = False
     for node in ast.walk(ast.parse(src)):
@@ -140,6 +203,9 @@ def main() -> int:
     print("L — keep the trainee as lead (C3)")
     with env():
         lead()
+    print("G — the trainee telemetry is FLAG-ON only")
+    telemetry()
+    call_sites(src)
 
     print("F — fault arms (each requires the unmutated subject to pass first)")
     base_ok = not failures
@@ -153,6 +219,11 @@ def main() -> int:
     sink = []
     wiring(src.replace("lift_training=self._r24_catchtrain,", "# lift_training=self._r24_catchtrain,", 1), sink)
     check(base_ok and bool(sink), "F3 the keyword kept only in a COMMENT still fails A1")
+    sink = []
+    guard = '    if not (post_badge and getattr(mode, "_r24_catchtrain", False)):'
+    telemetry(mutant_module(src.replace(guard, "    if not post_badge:", 1)), sink)
+    check(base_ok and any(s.startswith("G1") for s in sink),
+          f"F4 a trainee record without its flag guard fails G1 (red: {[s.split()[0] for s in sink]})")
 
     print()
     if failures:
