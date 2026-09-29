@@ -82,3 +82,42 @@ wraps the counter hunt's walk, and in that trajectory no party join happened on 
 - **A real walk battle being refused, live.** None was found in 7 trajectories. It is proven by the pure gates only.
 - **How often a hunt's walk meets a battle in real runs.** That is the log-count agent's question, a note.
 - **The withdraw re-picks (audit site C).** They are not changed; their walks cross no land encounters.
+
+## ADDENDUM — filed after the four graded arms and BEFORE the `healed101` arms: a LIVE walk battle
+
+**Why:** the batch-log count (`2026-09-28-enroutejoin-FREQUENCY.md`, a NOTE) refutes "walk battles are rare":
+- 81–90% of 84 real hunts met one on the walk;
+- 21–26% met one where the flag would have caught a new species into the party;
+- the Surf hunt's Route 101 → Route 103 walks alone met 38.
+
+So a new driver arm, `R101_ARM=healed101` (tools only), heals, then walks the DRIVER to ROUTE101 (12, 10), then starts
+the real hunt from there. That is the batch shape after the first ground failed. The driver's own walk shows as phase
+"other", not the hunt's.
+
+**Arms** (fixed code `409b5dda` plus this driver arm, `norman_done.ss1`, `random.seed(1)`, `R101_FENCE=real`,
+`--set-balls 20`, `--frames 45000`):
+- **H-FIX-ON:** `OPENFENCE=1`.
+- **H-FAULT-ON:** `OPENFENCE=1` + `POKEBOT_ENROUTE_FAULT_NOWALK=1`.
+- **H-OFF:** nothing set.
+
+**Predictions (conditional).** With the flag ON, the driver's own walk can already catch, so a flag-OFF run cannot
+preview the ON path. FIX and FAULT differ ONLY in the marker, and the marker is False outside a hunt's walk.
+- **1.** H-FIX-ON and H-FAULT-ON are identical up to **B\***: the hunt's first walk battle where the party is below 6 and
+  at full HP, the species is unowned, and more than 10 balls are spare.
+- **2.** In **H-FIX-ON**, B\*'s row reads `phase=walk` with the fence reason "a hunt is walking to its ground — …", and
+  no catch strategy. No walk-phase row starts a catch, `walk_joins` is `[]`, and the hunt reaches its spin (the exit is
+  not "never caught one" at `spin_battles 0`).
+- **3.** In **H-FAULT-ON**, the same battle (same frame, same species) reads `phase=walk` with a catch strategy. If the
+  catch lands, `walk_joins` names it, and then:
+  - if the species cannot learn Surf: the exit is `BotModeError: Hunted for a Surf learner but never caught one
+    (timeout/balls).` with `spin_battles 0`;
+  - if it can (Zigzagoon or Lotad): the exit is that slot, with `spin_battles 0`.
+- **4.** **H-OFF:** every walk-phase fence reason is "runway" (or an earlier gate). No catch starts in any phase.
+
+**VACUOUS** if H-FIX-ON has no B\*, i.e. no walk-phase row with the "a hunt is walking" reason. That is reported as
+vacuous, not as a pass.
+
+**Falsifiers**
+- H-FIX-ON starts a catch in phase walk.
+- H-FIX-ON and H-FAULT-ON differ before B\*.
+- H-FAULT-ON refuses B\* (the fault arm does not reach the marker).

@@ -1221,6 +1221,8 @@ class R101HuntMode(BotMode):
       R101_ARM=healedindoor  the heal, THEN Wally's door, then the hunt: from indoors the hunt falls back to ROUTE101
                        (12, 10), a longer walk through Route 102 (from the PC outdoors it picked ROUTE103 (5, 7), and the
                        seeded walk met no wild battle — measured, VACUOUS).
+      R101_ARM=healed101  the heal, then the driver walks to ROUTE101 (12, 10) and starts the hunt THERE (the batch shape
+                       after the first ground failed; its walk to Route 103 crosses grass).
       R101_FENCE=real  (`#27-enroutejoin`) battles go to a REAL `StoryMode` (per-run state reset), so the production dex
                        fence decides; the default keeps the old shim, whose `_should_catch` always says no.
     Readings (rule 7: what the code ACTS on): the `(map, tile)` actually passed to `_navigate_riding_out`; the map, tile
@@ -1291,7 +1293,7 @@ class R101HuntMode(BotMode):
         failure = None
         orig_nav, orig_spin = EG._navigate_riding_out, EG._story_spin
         try:
-            if ARM in ("healed", "healedindoor"):
+            if ARM in ("healed", "healedindoor", "healed101"):
                 from modules.map_data import PokemonCenter
                 from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 
@@ -1299,6 +1301,15 @@ class R101HuntMode(BotMode):
                 yield from EG.wait_until_truly_controllable()
                 R["premise_healthy"] = all(m.current_hp == m.total_hp for m in get_party() if m is not None
                                            and not m.is_egg)
+            if ARM == "healed101":
+                # `#27-enroutejoin`: start the hunt standing on Route 101's grass, the shape batch hunts took after
+                # the first ground failed (38 walk battles on the Route 101 -> Route 103 walks, b0926 + b0927). The
+                # driver's own walk here is NOT the hunt's walk (phase "other" in the battle rows).
+                yield from EG._navigate_riding_out(MapRSE.ROUTE101, (12, 10))
+                yield from EG.wait_until_truly_controllable()
+                R["party_at_hunt_start"] = len([m for m in get_party() if m is not None])
+                R["premise_healthy_at_hunt_start"] = all(m.current_hp == m.total_hp for m in get_party()
+                                                         if m is not None and not m.is_egg)
             if ARM in ("indoor", "healedindoor"):
                 yield from EG._pass_through_door((7, 5), MapRSE.PETALBURG_CITY.value)
                 for _ in range(240):  # let the warp fade settle; bounded
