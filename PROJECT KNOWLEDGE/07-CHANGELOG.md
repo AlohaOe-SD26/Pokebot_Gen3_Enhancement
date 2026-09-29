@@ -36746,3 +36746,21 @@ party PID, and the hunt then "found nothing".
 - `catch_starter_team`'s walks are never marked as a hunt's.
 One gate gap was fixed (`3e0fc087`): H8/H9 pin the post-gym-1 reason below a full party, and F4, its mutant (the armed
 check without `pre_badge1`), fails H8.
+## 2026-09-28 — USER RULINGS 23-25 RECORDED, AND THEIR BUILD ORDER DESIGNED AND ADVERSARIALLY CORRECTED (`#26-organiccatch`)
+
+**WHY.** The user answered the Phase 2 build spec's three §8 policy questions. RULING 23: money for balls, yes; the
+amount is to be proposed; a new money-making direction. RULING 24: catching is always available, even while hurt or
+training. RULING 25: a cap of 3, with rare, shiny and legendary species uncapped; weakening a target before catching it is
+for a later discussion.
+**WHAT.**
+- The rulings are recorded in `06`, and the spec's §8 is marked answered.
+- A design workflow ran eight agents: five research angles, a synthesis, and two adversarial checkers (code, and the
+  game via the decomp). It produced `ai-research-notes/2026-09-28-r23-25-DESIGN.md`.
+- The checkers found 2 blockers, 11 should-fixes and 13 notes. All are applied inline and listed in the note's
+  corrections table. The blockers:
+  - a ball-budget fault arm predicted from the money at LOAD, not at the heal;
+  - a rare-species exemption that leaked into flag OFF.
+- **The queue changed.**
+  - The next build is design step 2, the RULING 24 health lift (`POKEBOT_R24_CATCHHURT`).
+  - P2-a2 is re-scoped: its faint bail contradicts RULING 24 and is dropped, and its cap merges into design step 8.
+  - The ball restock B is design step 6. Its budget numbers await the user.

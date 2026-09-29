@@ -22933,3 +22933,16 @@ is what exposed it, and it stays in the driver.
   hook.** `reset_per_run_state` disarms hunts, clears latches and zeroes counters.
 - ⛔ **Log the armed/latched state the code under test DEPENDS on, beside every reading.** Without `counter_armed` this
   would have been filed as a production defect.
+## 2026-09-28 — ⛔ I EXPLAINED AN OBSERVED OUTCOME WITH A CODE PATH WHOSE PRECONDITION NEVER HELD IN THAT RUN
+
+**Symptom:** a checker's note said our catch strategy uses a status move before throwing when the one-throw chance is
+below 0.5, which lets Abra Teleport. I told the user this "explains why all three Abra attempts in today's P2-c drives
+escaped". It did not. The path needs a sleep or paralysis move on the active mon, and the P2-c party (Mudkip,
+Poochyena, Nincada, Whismur) had none. The bot threw on turn 1 each time, and ~0.28-chance throws missed. Across every
+logged battle against an Abra, no such move was ever used.
+**Root cause:** I attached a mechanism to an outcome without checking that the mechanism's PRECONDITION held in the run
+being explained.
+**Fix:** the correction agent checked the movesets and the logs; the design note and my report to the user say so.
+**Prevention rule:**
+- ⛔ **Before saying "X explains what we saw", confirm X's precondition held in THAT run** (its party, movesets, flags
+  and state). A real mechanism that never fired explains nothing.
