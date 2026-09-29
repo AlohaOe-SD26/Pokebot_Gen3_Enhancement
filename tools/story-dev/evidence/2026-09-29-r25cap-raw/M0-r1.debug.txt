@@ -1,0 +1,607 @@
+=== DEBUG LOG START 2026-09-29T15:21:42 ===
+    log: C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\debug-logs\Story-debug-20260929-152142.log
+--- RUN HEADER (build, config, experiment) ---
+    build:         not a git checkout
+    bot:           PokéBot Gen3 dev
+    python:        3.12.4 on Windows 11
+    mode:          Story
+    profile:       repro-ml
+    rom:           Pokémon Emerald (E) (E) rev 0
+    emulation:     speed=0 video=False audio=False
+    fodder-rule:   xp_rate (default) ratio=2.0
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R24_OVERSURVIVAL': '1'}
+--- END RUN HEADER ---
+f139500 ===== DUMP [enable — initial state] =====
+    mode=Story  message=''
+    game_state=7  controllable=True
+    map=RUSTBORO CITY(11,3)  pos=(5, 3)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1500 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mudkip L16 21/46']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f139509 [BALLS] 6 -> 61
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f139973 [MAP] RUSTBORO CITY(11,3) -> RUSTBORO CITY(0,3) pos=(5, 19)
+f140380 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: leaving the gym — the Devon Goods get stolen…'
+    game_state=7  controllable=True
+    map=RUSTBORO CITY(0,3)  pos=(23, 20)  facing=Left
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1500 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mudkip L16 21/46']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects']
+    scripts=['RustboroCity_EventScript_StolenGoodsScene']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4871
+      -> recover_devon_goods  @ early_game.py:2902
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f140587 [RESUMED] after 506 frames with no progress
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f141384 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: chasing the thief east to Rusturf Tunnel…'
+    game_state=7  controllable=False
+    map=RUSTBORO CITY(0,3)  pos=(30, 9)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $1500 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Mudkip L16 21/46']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['RustboroCity_EventScript_EmployeeAskToGetGoods', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4871
+      -> recover_devon_goods  @ early_game.py:2920
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f141487 [RESUMED] after 402 frames with no progress
+f141583 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f142089 [TRAINER] start opp=322 class=0x25(YOUNGSTER) value=4 lvl_last=9 first=True base=144 double=False two=False money=8628 heal_stock=- map=0,31 enemy_alive=1
+f142708 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Water Gun(pp12)  vs Machop L9 31/31
+f143100 [hb] mode=Story state=4 controllable=False map=ROUTE 116(0,31) pos=(12, 4) party=['Mudkip:L16'] ids=['Mudkip#550A9BE6:L16:exp2808'] owned=1 balls=61 money=8628 box=0 badges=1 msg='Story: chasing the thief east to Rusturf Tunnel…'
+f143313 [BATTLE] [TURN 1] Mudkip L16 21/46 -> UseMove:Water Gun(pp11)  vs Machop L9 14/31 [FocusEnergy]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144209 [RESUMED] after 392 frames with no progress
+f144209 [MONEY] after Won at map (0, 31): money=₽8,772
+f144209 [TRAINER] end opp=322 class=0x25(YOUNGSTER) value=4 lvl_last=9 first=True base=144 res=Won money=8628->8772 delta=144 mult=1 heal_stock=- map=0,31
+f144398 [MAP] ROUTE 116(0,31) -> ROUTE 116(0,3) pos=(15, 7)
+f144398 [BALLS] 61 -> 1
+f144399 [MAP] ROUTE 116(0,3) -> ROUTE 116(0,31) pos=(15, 7)
+f144399 [BALLS] 1 -> 61
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f144745 [STEP] 'Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+f144924 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Water Gun(pp10)  vs Nincada L6 21/21
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f145612 [MONEY] after Won at map (0, 31): money=₽8,772
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f146142 [TRAINER] start opp=280 class=0x21(SCHOOL_KID) value=5 lvl_last=9 first=True base=180 double=False two=False money=8772 heal_stock=- map=0,31 enemy_alive=1
+f146700 [hb] mode=Story state=4 controllable=False map=ROUTE 116(0,31) pos=(22, 17) party=['Mudkip:L16'] ids=['Mudkip#550A9BE6:L16:exp3032'] owned=1 balls=61 money=8772 box=0 badges=1 msg='Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+f146743 [BATTLE] [TURN 0] Mudkip L16 21/46 -> UseMove:Tackle(pp35)  vs Shroomish L9 29/29
+f147088 [BATTLE] [TURN 1] Mudkip L16 19/46 -> UseMove:Tackle(pp34)  vs Shroomish L9 20/29
+f147507 [BATTLE] [TURN 2] Mudkip L16 19/46 -> UseMove:Tackle(pp33)  vs Shroomish L9 10/29
+f147998 [PARTY] slot0 Mudkip:L16 -> Mudkip:L17
+f148516 [MONEY] after Won at map (0, 31): money=₽8,952
+f148516 [TRAINER] end opp=280 class=0x21(SCHOOL_KID) value=5 lvl_last=9 first=True base=180 res=Won money=8772->8952 delta=180 mult=1 heal_stock=- map=0,31
+f149734 [PARTY] slot0 Mudkip:L17 -> Marshtomp:L17
+f150064 [TRAINER] skip reason=no_enemy_alive (a post-battle scene re-entered the battle hook)
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150066 [MONEY] after Won at map (0, 31): money=₽8,952
+f150300 [DEX] owned 1 -> 2: +#259
+f150300 [hb] mode=Story state=7 controllable=False map=ROUTE 116(0,31) pos=(36, 16) party=['Marshtomp:L17'] ids=['Marshtomp#550A9BE6:L17:exp3156'] owned=2 balls=61 money=8952 box=0 badges=1 msg='Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f150617 [TRAINER] start opp=631 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 double=False two=False money=8952 heal_stock=- map=0,31 enemy_alive=1
+f151228 [BATTLE] [TURN 0] Marshtomp L17 29/56 -> UseMove:Water Gun(pp9)  vs Geodude L8 24/24
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152239 [RESUMED] after 367 frames with no progress
+f152239 [MONEY] after Won at map (0, 31): money=₽9,272
+f152239 [TRAINER] end opp=631 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 res=Won money=8952->9272 delta=320 mult=1 heal_stock=- map=0,31
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152670 [TRAINER] start opp=754 class=0x25(YOUNGSTER) value=4 lvl_last=8 first=True base=128 double=False two=False money=9272 heal_stock=- map=0,31 enemy_alive=2
+f153291 [BATTLE] [TURN 0] Marshtomp L17 29/56 -> UseMove:Tackle(pp32)  vs Shroomish L8 27/27
+f153900 [hb] mode=Story state=4 controllable=False map=ROUTE 116(0,31) pos=(36, 16) party=['Marshtomp:L17'] ids=['Marshtomp#550A9BE6:L17:exp3303'] owned=2 balls=61 money=9272 box=0 badges=1 msg='Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+f154075 [BATTLE] [TURN 1] Marshtomp L17 18/56 -> UseMove:Tackle(pp31)  vs Shroomish L8 18/27
+f154860 [BATTLE] [TURN 2] Marshtomp L17 7/56 -> UseMove:Tackle(pp30)  vs Shroomish L8 10/27
+f155648 [BATTLE] [TURN 3] Marshtomp L17 7/56 -> UseMove:Tackle(pp29)  vs Lotad L8 24/24
+f156043 [BATTLE] [TURN 4] Marshtomp L17 5/56 -> UseMove:Tackle(pp28)  vs Lotad L8 4/24
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f156823 [RESUMED] after 379 frames with no progress
+f156823 [MONEY] after Won at map (0, 31): money=₽9,400
+f156823 [TRAINER] end opp=754 class=0x25(YOUNGSTER) value=4 lvl_last=8 first=True base=128 res=Won money=9272->9400 delta=128 mult=1 heal_stock=- map=0,31
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f157249 [TRAINER] start opp=753 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 double=False two=False money=9400 heal_stock=- map=0,31 enemy_alive=2
+f157500 [hb] mode=Story state=4 controllable=False map=ROUTE 116(0,31) pos=(39, 13) party=['Marshtomp:L17'] ids=['Marshtomp#550A9BE6:L17:exp3540'] owned=2 balls=61 money=9400 box=0 badges=1 msg='Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+f157861 [BATTLE] [TURN 0] Marshtomp L17 5/56 -> UseMove:Water Gun(pp8)  vs Geodude L8 24/24
+f158859 [BATTLE] [TURN 1] Marshtomp L17 5/56 -> UseMove:Water Gun(pp7)  vs Geodude L8 24/24
+f159493 [PARTY] slot0 Marshtomp:L17 -> Marshtomp:L18
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160004 [RESUMED] after 354 frames with no progress
+f160004 [MONEY] after Won at map (0, 31): money=₽9,720
+f160004 [TRAINER] end opp=753 class=0x02(HIKER) value=10 lvl_last=8 first=True base=320 res=Won money=9400->9720 delta=320 mult=1 heal_stock=- map=0,31
+f160454 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Nincada ♂.\n\nNature:\xa0Naive | Ability:\xa0Compoundeyes | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa014,283'
+    game_state=7  controllable=False
+    map=ROUTE 116(0,31)  pos=(47, 9)  facing=Left
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $320 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['Route116_EventScript_BrineyTrigger', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4871
+      -> recover_devon_goods  @ early_game.py:2933
+      -> _pass_through_door  @ early_game.py:469
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> navigate_to  @ walking.py:480
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> follow_waypoints  @ walking.py:279
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_n_frames  @ sleep.py:12
+f160750 [RESUMED] after 595 frames with no progress
+f160848 [MAP] ROUTE 116(0,31) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f160879 [MAP] RUSTURF TUNNEL(24,4) -> RUSTURF TUNNEL(0,0) pos=(47, 8)
+f160880 [MAP] RUSTURF TUNNEL(0,0) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161100 [hb] mode=Story state=7 controllable=True map=RUSTURF TUNNEL(24,4) pos=(9, 5) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3834'] owned=2 balls=61 money=9720 box=0 badges=1 msg='Story: cornering the thief in Rusturf Tunnel…'
+f161506 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: cornering the thief in Rusturf Tunnel…'
+    game_state=7  controllable=True
+    map=RUSTURF TUNNEL(24,4)  pos=(13, 5)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $320 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['RusturfTunnel_EventScript_Grunt', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4871
+      -> recover_devon_goods  @ early_game.py:2960
+f161646 [RESUMED] after 439 frames with no progress
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f161895 [TRAINER] start opp=16 class=0x03(TEAM_AQUA) value=5 lvl_last=11 first=True base=220 double=False two=False money=9720 heal_stock=- map=24,4 enemy_alive=1
+f162506 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> UseMove:Water Gun(pp6)  vs Poochyena L11 28/28
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f163453 [RESUMED] after 404 frames with no progress
+f163453 [MONEY] after Won at map (24, 4): money=₽9,940
+f163453 [TRAINER] end opp=16 class=0x03(TEAM_AQUA) value=5 lvl_last=11 first=True base=220 res=Won money=9720->9940 delta=220 mult=1 heal_stock=- map=24,4
+f163763 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: cornering the thief in Rusturf Tunnel…'
+    game_state=7  controllable=False
+    map=RUSTURF TUNNEL(24,4)  pos=(13, 5)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $220 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'BattleListener.fight']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['RusturfTunnel_EventScript_Grunt', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> BattleListener.fight  @ _listeners.py:220
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> BattleListener._wait_until_battle_is_over  @ _listeners.py:212
+f164122 [RESUMED] after 658 frames with no progress
+f164681 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: cornering the thief in Rusturf Tunnel…'
+    game_state=7  controllable=False
+    map=RUSTURF TUNNEL(24,4)  pos=(13, 5)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $220 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['RusturfTunnel_EventScript_Grunt']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4871
+      -> recover_devon_goods  @ early_game.py:2960
+f164700 [hb] mode=Story state=7 controllable=False map=RUSTURF TUNNEL(24,4) pos=(13, 5) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=61 money=9940 box=0 badges=1 msg='Story: cornering the thief in Rusturf Tunnel…'
+f165392 [RESUMED] after 1010 frames with no progress
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166018 [MAP] RUSTURF TUNNEL(24,4) -> ROUTE 116(0,31) pos=(4, 10)
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f166692 [STEP] 'Encountered Taillow ♀.\n\nNature:\xa0Hasty | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa099 | SV:\xa038,773'
+f166888 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> RunAway  vs Taillow L8 24/24
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167042 [RESUMED] after 349 frames with no progress
+f167042 [MONEY] after RanAway at map (0, 31): money=₽9,940
+f167356 [MAP] ROUTE 116(0,31) -> ROUTE 116(255,255) pos=(15, 8)
+f167356 [BALLS] 61 -> 2
+f167357 [MAP] ROUTE 116(255,255) -> ROUTE 116(0,31) pos=(15, 8)
+f167357 [BALLS] 2 -> 61
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167646 [STEP] 'Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+f167842 [BATTLE] [TURN 0] Marshtomp L18 7/58 -> RunAway  vs Taillow L6 21/21
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167996 [RESUMED] after 349 frames with no progress
+f167996 [MONEY] after RanAway at map (0, 31): money=₽9,940
+f168226 [MAP] ROUTE 116(0,31) -> RUSTBORO CITY(0,3) pos=(-1, 8)
+f168300 [hb] mode=Story state=7 controllable=True map=RUSTBORO CITY(0,3) pos=(32, 9) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=61 money=9940 box=0 badges=1 msg='Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+f168724 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+    game_state=7  controllable=False
+    map=RUSTBORO CITY(0,3)  pos=(30, 12)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['RustboroCity_EventScript_ReturnGoods', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4880
+      -> return_devon_goods_and_get_pokenav  @ early_game.py:2987
+      -> _navigate_through_scripts  @ early_game.py:1430
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f168734 [BALLS] 61 -> 62
+f169144 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,2) pos=(30, 12)
+f169144 [RESUMED] after 719 frames with no progress
+f169479 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+    game_state=7  controllable=True
+    map=RUSTBORO CITY(11,2)  pos=(2, 2)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['RustboroCity_DevonCorp_3F_EventScript_MeetPresident', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4880
+      -> return_devon_goods_and_get_pokenav  @ early_game.py:2987
+      -> _navigate_through_scripts  @ early_game.py:1430
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f170537 [RESUMED] after 1357 frames with no progress
+f171155 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+    game_state=7  controllable=False
+    map=RUSTBORO CITY(11,2)  pos=(14, 5)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 7/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['RustboroCity_DevonCorp_3F_EventScript_MeetPresident', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4880
+      -> return_devon_goods_and_get_pokenav  @ early_game.py:2987
+      -> _navigate_through_scripts  @ early_game.py:1430
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f171900 [hb] mode=Story state=7 controllable=False map=RUSTBORO CITY(11,2) pos=(14, 5) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=62 money=9940 box=0 badges=1 msg='Encountered Taillow ♀.\n\nNature:\xa0Lax | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa064 | SV:\xa034,021'
+f173520 [RESUMED] after 2664 frames with no progress
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f173866 [MAP] RUSTBORO CITY(11,2) -> RUSTBORO CITY(11,1) pos=(2, 1)
+f174160 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+f174475 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+f174940 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,5) pos=(16, 38)
+f175355 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+    game_state=7  controllable=True
+    map=RUSTBORO CITY(11,5)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 58/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['RustboroCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4956
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:613
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f175500 [hb] mode=Story state=7 controllable=True map=RUSTBORO CITY(11,5) pos=(7, 4) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=62 money=9940 box=0 badges=1 msg='Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f176134 [RESUMED] after 1078 frames with no progress
+f176135 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f176275 [MAP] RUSTBORO CITY(11,5) -> RUSTBORO CITY(0,3) pos=(7, 8)
+f176385 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f176954 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Story: heading south — the rival is waiting in Rustboro...'
+    game_state=7  controllable=False
+    map=RUSTBORO CITY(0,3)  pos=(16, 53)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 58/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects']
+    scripts=['RustboroCity_EventScript_MayEncounter', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4960
+      -> fight_rustboro_rival  @ early_game.py:3236
+      -> _ride_out_scripted_scene  @ early_game.py:482
+      -> _wait_until_cutscene_over  @ early_game.py:773
+f177836 [RESUMED] after 1181 frames with no progress
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f178292 [TRAINER] start opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 double=False two=False money=9940 heal_stock=- map=0,3 enemy_alive=2
+f178927 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Tackle(pp35)  vs Wingull L13 33/33
+f178946 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Tackle(pp35)  vs Wingull L13 33/33
+f179100 [hb] mode=Story state=4 controllable=False map=RUSTBORO CITY(0,3) pos=(16, 53) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=62 money=9940 box=0 badges=1 msg='Story: heading south — the rival is waiting in Rustboro...'
+f179369 [BATTLE] [TURN 1] Marshtomp L18 58/58 -> UseMove:Tackle(pp34)  vs Wingull L13 17/33
+f179388 [BATTLE] [TURN 1] Marshtomp L18 58/58 -> UseMove:Tackle(pp34)  vs Wingull L13 17/33
+f179955 [BATTLE] [TURN 2] Marshtomp L18 58/58 [Confused] -> UseMove:Tackle(pp33)  vs Wingull L13 1/33
+f179974 [BATTLE] [TURN 2] Marshtomp L18 58/58 [Confused] -> UseMove:Tackle(pp33)  vs Wingull L13 1/33
+f180709 [BATTLE] [TURN 3] Marshtomp L18 53/58 [Confused] -> UseMove:Tackle(pp33)  vs Wingull L13 1/33
+f180728 [BATTLE] [TURN 3] Marshtomp L18 53/58 [Confused] -> UseMove:Tackle(pp33)  vs Wingull L13 1/33
+f181971 [BATTLE] [TURN 4] Marshtomp L18 53/58 [Confused] -> UseMove:Tackle(pp32)  vs Treecko L15 37/37
+f181990 [BATTLE] [TURN 4] Marshtomp L18 53/58 [Confused] -> UseMove:Tackle(pp32)  vs Treecko L15 37/37
+f182700 [hb] mode=Story state=4 controllable=False map=RUSTBORO CITY(0,3) pos=(16, 53) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4140'] owned=2 balls=62 money=9940 box=0 badges=1 msg='Story: heading south — the rival is waiting in Rustboro...'
+f182966 [BATTLE] [TURN 5] Marshtomp L18 32/58 [Confused] -> UseMove:Tackle(pp31)  vs Treecko L15 30/37
+f182985 [BATTLE] [TURN 5] Marshtomp L18 32/58 [Confused] -> UseMove:Tackle(pp31)  vs Treecko L15 30/37
+f183971 [BATTLE] [TURN 6] Marshtomp L18 11/58 [Confused] -> UseMove:Water Gun(pp25)  vs Treecko L15 30/37
+f183990 [BATTLE] [TURN 6] Marshtomp L18 11/58 [Confused] -> UseMove:Water Gun(pp25)  vs Treecko L15 30/37
+f184993 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f184993 [RESUMED] after 3342 frames with no progress
+f184993 [MONEY] after Lost at map (0, 3): money=₽9,940
+f184993 [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 res=Lost money=9940->9940 delta=0 mult=0 heal_stock=- map=0,3
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185172 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f185516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f186223 [TRAINER] start opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 double=False two=False money=4970 heal_stock=- map=0,19 enemy_alive=2
+f186300 [hb] mode=Story state=4 controllable=False map=ROUTE 104(0,19) pos=(30, 24) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4140'] owned=2 balls=62 money=4970 box=0 badges=1 msg="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f186834 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Tackle(pp35)  vs Lotad L6 20/20
+f187695 [BATTLE] [TURN 1] Marshtomp L18 58/58 -> UseMove:Tackle(pp34)  vs Shroomish L6 23/23
+f188067 [BATTLE] [TURN 2] Marshtomp L18 56/58 -> UseMove:Tackle(pp33)  vs Shroomish L6 5/23
+f188817 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f188817 [RESUMED] after 348 frames with no progress
+f188817 [MONEY] after Won at map (0, 19): money=₽5,066
+f188817 [TRAINER] end opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 res=Won money=4970->5066 delta=96 mult=1 heal_stock=- map=0,19
+f189155 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+    game_state=7  controllable=False
+    map=ROUTE 104(0,19)  pos=(30, 24)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $96 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 56/58']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'TrainerApproachListener.handle_trainer_approach']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare', 'Task_DrawFieldMessage']
+    scripts=['Route104_EventScript_RegisterHaleyAfterBattle', 'Std_RegisteredInMatchCall', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> TrainerApproachListener.handle_trainer_approach  @ _listeners.py:338
+f189287 [RESUMED] after 431 frames with no progress
+f189563 [MAP] ROUTE 104(0,19) -> PETALBURG WOODS(24,11) pos=(11, 30)
+f189900 [hb] mode=Story state=7 controllable=True map=PETALBURG WOODS(24,11) pos=(14, 26) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4316'] owned=2 balls=62 money=5066 box=0 badges=1 msg="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f190110 [MAP] PETALBURG WOODS(24,11) -> ROUTE 104(0,19) pos=(17, 38)
+f190441 [MAP] ROUTE 104(0,19) -> ROUTE 104(17,0) pos=(17, 50)
+f190444 [MAP] ROUTE 104(17,0) -> ROUTE 104(30,0) pos=(17, 50)
+f190445 [MAP] ROUTE 104(30,0) -> ROUTE 104(17,0) pos=(17, 50)
+f190903 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+    game_state=7  controllable=True
+    map=ROUTE 104(17,0)  pos=(6, 2)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $96 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 56/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['Route104_MrBrineysHouse_EventScript_Briney', 'Route104_MrBrineysHouse_EventScript_SailingIntro', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4984
+      -> sail_to_dewford  @ early_game.py:3671
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_n_frames  @ sleep.py:12
+f192556 [MAP] ROUTE 104(17,0) -> ROUTE 104(0,19) pos=(6, 2)
+f192556 [RESUMED] after 1952 frames with no progress
+f192926 [MAP] ROUTE 104(0,19) -> ROUTE 105(0,20) pos=(22, 80)
+f193481 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+    game_state=7  controllable=False
+    map=ROUTE 105(0,20)  pos=(22, 60)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $96 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 56/58']
+    held_buttons=[]
+    controllers=['StoryMode.run', 'PokenavListener.ignore_call']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_HidePokenavMessageWhenDone', 'ExecuteMatchCall', 'Task_SpinPokenavIcon']
+    scripts=['Route104_EventScript_SailToDewfordDadCalls']
+    generator call stack (where the bot is waiting):
+      -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> PokenavListener.ignore_call  @ _listeners.py:395
+f193500 [hb] mode=Story state=7 controllable=False map=ROUTE 105(0,20) pos=(22, 60) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4316'] owned=2 balls=62 money=5066 box=0 badges=1 msg="Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f194698 [RESUMED] after 1516 frames with no progress
+f194774 [MAP] ROUTE 105(0,20) -> ROUTE 106(0,21) pos=(22, 80)
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195688 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f196352 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message="Story: taking Steven's Letter to Granite Cave..."
+    game_state=7  controllable=True
+    map=DEWFORD TOWN(3,1)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+    battle_text='NICK got $96 for winning!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 56/58']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['DewfordTown_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4992
+      -> deliver_stevens_letter  @ early_game.py:3859
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:613
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f197100 [hb] mode=Story state=7 controllable=True map=DEWFORD TOWN(3,1) pos=(7, 4) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4316'] owned=2 balls=62 money=5066 box=0 badges=1 msg="Story: taking Steven's Letter to Granite Cave..."
+f197131 [RESUMED] after 1078 frames with no progress
+f197132 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f198075 [TRAINER] start opp=340 class=0x27(FISHERMAN) value=10 lvl_last=11 first=True base=440 double=False two=False money=5066 heal_stock=- map=0,21 enemy_alive=1
+f198658 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseMove:Mud-slap(pp10)  vs Tentacool L11 29/29
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199649 [RESUMED] after 409 frames with no progress
+f199649 [MONEY] after Won at map (0, 21): money=₽5,506
+f199649 [TRAINER] end opp=340 class=0x27(FISHERMAN) value=10 lvl_last=11 first=True base=440 res=Won money=5066->5506 delta=440 mult=1 heal_stock=- map=0,21
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f199946 [BALLS] 62 -> 0
+f199947 [BALLS] 0 -> 62
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f200242 [DEXCATCH] [DEXCATCH] attempt #1 on Zubat (#41) -> party
+f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=1 badges=1 party=1/6 box=0 spare=62 exp_throws=2.2 map=24,7
+f200515 [STEP] 'Encountered Zubat ♂.\n\nNature:\xa0Lax | Ability:\xa0Inner Focus | Item:\xa0- | IV\xa0sum:\xa094 | SV:\xa060,501'
+f200700 [hb] mode=Story state=4 controllable=False map=GRANITE CAVE(24,7) pos=(32, 8) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4563'] owned=2 balls=62 money=5506 box=0 badges=1 msg='Encountered Zubat ♂.\n\nNature:\xa0Lax | Ability:\xa0Inner Focus | Item:\xa0- | IV\xa0sum:\xa094 | SV:\xa060,501'
+f200705 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Zubat L7 23/23
+f200705 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Great Ball
+f200737 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Great Ball
+f200740 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Great Ball
+f200791 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Great Ball
+f200796 [BALLS] 62 -> 61
+f200796 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Great Ball
+f201551 [BATTLE] [TURN 1] Marshtomp L18 58/58 -> UseItem  vs Zubat L7 23/23
+f201551 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Great Ball
+f201582 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Great Ball
+f201587 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Great Ball
+f201609 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Great Ball
+f201614 [BALLS] 61 -> 60
+f201614 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Great Ball
+f202555 [BATTLE] [TURN 2] Marshtomp L18 58/58 [Confused] -> UseItem  vs Zubat L7 23/23
+f202555 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f202586 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f202590 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f202615 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f202620 [BALLS] 60 -> 59
+f202620 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f203680 [PARTY] size 1 -> 2: ['Marshtomp:L18', 'Zubat:L7']
+f203722 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7']
+f203722 [MONEY] after Caught at map (24, 7): money=₽5,506
+f203722 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=3 frames=3480 dest=party pid=C749AAB1 party=2/6 box=0 spare=59 badges=1 bail=-
+f203961 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23)]
+f203961 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (joins the party)
+f203961 [DEXCATCH] [DEXCATCH] attempt #1 on Geodude (#74) -> party
+f203961 [CATCH] start kind=dex sp=Geodude#74 lv=7 attempt=1 badges=1 party=2/6 box=0 spare=59 exp_throws=3.0 map=24,7
+f204275 [STEP] 'Encountered Geodude ♂.\n\nNature:\xa0Impish | Ability:\xa0Rock Head | Item:\xa0- | IV\xa0sum:\xa090 | SV:\xa014,272'
+f204300 [DEX] owned 2 -> 3: +#41
+f204300 [hb] mode=Story state=4 controllable=False map=GRANITE CAVE(24,7) pos=(27, 7) party=['Marshtomp:L18', 'Zubat:L7'] ids=['Marshtomp#550A9BE6:L18:exp4563', 'Zubat#C749AAB1:L7:exp343'] owned=3 balls=59 money=5506 box=0 badges=1 msg='Encountered Geodude ♂.\n\nNature:\xa0Impish | Ability:\xa0Rock Head | Item:\xa0- | IV\xa0sum:\xa090 | SV:\xa014,272'
+f204465 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Geodude L7 22/22
+f204465 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f204497 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f204501 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f204523 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f204528 [BALLS] 59 -> 58
+f204528 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f205596 [PARTY] size 2 -> 3: ['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f205638 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f205638 [MONEY] after Caught at map (24, 7): money=₽5,506
+f205638 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=1 frames=1677 dest=party pid=218F97E2 party=3/6 box=0 spare=58 badges=1 bail=-
+f205885 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f206157 [STEP] 'Encountered Zubat ♂.\n\nNature:\xa0Sassy | Ability:\xa0Inner Focus | Item:\xa0- | IV\xa0sum:\xa0113 | SV:\xa038,183'
+f206347 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> RunAway  vs Zubat L7 24/24
+f206501 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7']
+f206501 [RESUMED] after 343 frames with no progress
+f206501 [MONEY] after RanAway at map (24, 7): money=₽5,506
+f206625 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,8) pos=(17, 11)
+f207059 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,9) pos=(28, 21)
+f207600 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f207600 [DEXFENCE] CATCH #304 Aron — dex catch #304 (joins the party)
+f207600 [DEXCATCH] [DEXCATCH] attempt #1 on Aron (#304) -> party
+f207600 [CATCH] start kind=dex sp=Aron#304 lv=12 attempt=1 badges=1 party=3/6 box=0 spare=58 exp_throws=3.6 map=24,9
+f207900 [DEX] owned 3 -> 4: +#74
+f207900 [hb] mode=Story state=4 controllable=False map=GRANITE CAVE(24,9) pos=(9, 15) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7'] ids=['Marshtomp#550A9BE6:L18:exp4563', 'Zubat#C749AAB1:L7:exp343', 'Geodude#218F97E2:L7:exp236'] owned=4 balls=58 money=5506 box=0 badges=1 msg='Encountered Zubat ♂.\n\nNature:\xa0Sassy | Ability:\xa0Inner Focus | Item:\xa0- | IV\xa0sum:\xa0113 | SV:\xa038,183'
+f207976 [STEP] 'Encountered Aron ♂.\n\nNature:\xa0Calm | Ability:\xa0Rock Head | Item:\xa0- | IV\xa0sum:\xa077 | SV:\xa053,042'
+f208166 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Aron L12 35/35
+f208166 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f208198 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f208202 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f208224 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f208229 [BALLS] 58 -> 57
+f208229 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f209285 [PARTY] size 3 -> 4: ['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12']
+f209327 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12']
+f209327 [MONEY] after Caught at map (24, 9): money=₽5,506
+f209327 [CATCH] end kind=dex sp=Aron#304 end=caught res=Caught thrown=1 frames=1727 dest=party pid=7B1E3581 party=4/6 box=0 spare=57 badges=1 bail=-
+f209565 [MAP] GRANITE CAVE(24,9) -> GRANITE CAVE(24,8) pos=(29, 13)
+f209695 [MAP] GRANITE CAVE(24,8) -> GRANITE CAVE(24,7) pos=(25, 13)
+f210113 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(24,10) pos=(5, 10)
+f210511 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message='Encountered Aron ♂.\n\nNature:\xa0Calm | Ability:\xa0Rock Head | Item:\xa0- | IV\xa0sum:\xa077 | SV:\xa053,042'
+    game_state=7  controllable=True
+    map=GRANITE CAVE(24,10)  pos=(7, 7)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_SuccessBallThrowEnd
+    battle_text='Give a nickname to the captured ARON?'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Marshtomp L18 58/58', 'Zubat L7 23/23', 'Geodude L7 22/22', 'Aron L12 35/35']
+    held_buttons=[]
+    controllers=['StoryMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_Fanfare']
+    scripts=['GraniteCave_StevensRoom_EventScript_Steven', 'Common_EventScript_PlayerHandedOverTheItem']
+    generator call stack (where the bot is waiting):
+      -> StoryMode.run  @ story_mode.py:4377
+      -> StoryMode._play  @ story_mode.py:4992
+      -> deliver_stevens_letter  @ early_game.py:3892
+f211500 [DEX] owned 4 -> 5: +#304
+f211500 [hb] mode=Story state=7 controllable=True map=GRANITE CAVE(24,10) pos=(7, 7) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12'] ids=['Marshtomp#550A9BE6:L18:exp4563', 'Zubat#C749AAB1:L7:exp343', 'Geodude#218F97E2:L7:exp236', 'Aron#7B1E3581:L12:exp2160'] owned=5 balls=57 money=5506 box=0 badges=1 msg='Encountered Aron ♂.\n\nNature:\xa0Calm | Ability:\xa0Rock Head | Item:\xa0- | IV\xa0sum:\xa077 | SV:\xa053,042'
+f212174 [RESUMED] after 1962 frames with no progress
+f212261 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+f212439 [DEXCATCH] [DEXCATCH] attempt #1 on Abra (#63) -> party
+f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=1 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10
+f212731 [STEP] 'Encountered Abra ♀.\n\nNature:\xa0Brave | Ability:\xa0Inner Focus | Item:\xa0Twistedspoon | IV\xa0sum:\xa0133 | SV:\xa058,827'
+f212921 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Abra L8 22/22
+f212921 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f212953 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f212957 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f212979 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f212984 [BALLS] 57 -> 56
+f212984 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f213768 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12']
+f213768 [RESUMED] after 729 frames with no progress
+f213768 [MONEY] after OpponentTeleported at map (24, 10): money=₽5,506
+f213768 [CATCH] end kind=dex sp=Abra#63 end=foe_fled res=OpponentTeleported thrown=1 frames=1329 dest=none pid=- party=4/6 box=0 spare=56 badges=1 bail=-
+f213836 [MAP] GRANITE CAVE(24,10) -> GRANITE CAVE(24,7) pos=(7, 3)
+f213839 [MAP] GRANITE CAVE(24,7) -> GRANITE CAVE(255,255) pos=(7, 3)
+f213839 [BALLS] 56 -> 1
+f213840 [MAP] GRANITE CAVE(255,255) -> GRANITE CAVE(24,7) pos=(7, 3)
+f213840 [BALLS] 1 -> 56
+f214097 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+f214097 [DEXFENCE] CATCH #296 Makuhita — dex catch #296 (joins the party)
+f214097 [DEXCATCH] [DEXCATCH] attempt #1 on Makuhita (#296) -> party
+f214097 [CATCH] start kind=dex sp=Makuhita#296 lv=7 attempt=1 badges=1 party=4/6 box=0 spare=56 exp_throws=3.6 map=24,7
+f214429 [STEP] 'Encountered Makuhita ♀.\n\nNature:\xa0Bold | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa086 | SV:\xa032,273'
+f214619 [BATTLE] [TURN 0] Marshtomp L18 58/58 -> UseItem  vs Makuhita L7 27/27
+f214619 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Poké Ball
+f214651 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Poké Ball
+f214655 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Poké Ball
+f214677 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Poké Ball
+f214682 [BALLS] 56 -> 55
+f214682 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Poké Ball
+f215100 [hb] mode=Story state=4 controllable=False map=GRANITE CAVE(24,7) pos=(9, 10) party=['Marshtomp:L18', 'Zubat:L7', 'Geodude:L7', 'Aron:L12'] ids=['Marshtomp#550A9BE6:L18:exp4563', 'Zubat#C749AAB1:L7:exp343', 'Geodude#218F97E2:L7:exp236', 'Aron#7B1E3581:L12:exp2160'] owned=5 balls=55 money=5506 box=0 badges=1 msg='Encountered Makuhita ♀.\n\nNature:\xa0Bold | Ability:\xa0Guts | Item:\xa0- | IV\xa0sum:\xa086 | SV:\xa032,273'

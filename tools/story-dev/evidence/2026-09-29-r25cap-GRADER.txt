@@ -1,7 +1,7 @@
 # design v2 step 8 (RC) GRADER, re-run after the step 8 review: r25_grade_arms.py over the arms' raw debug logs (committed below verbatim), against M0-r1.
 # The review added the refusal-arm check (no [DEXCATCH]/[CATCH] start at the frame). FAULT-TESTED: a copy of arm A's log with an injected
 #   'f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party' line grades '=== A: FAIL ... A COMMIT WAS LOGGED'.
-# Raw logs committed: 2026-09-29-r25cap-raw/M0-r1.debug.log and M0-r2.debug.log (the M0 r1-vs-r2 claim is re-checkable).
+# Raw logs committed: 2026-09-29-r25cap-raw/M0-r1.debug.txt and M0-r2.debug.txt (renamed from .log, which .gitignore excludes; the M0 r1-vs-r2 claim is re-checkable).
 #   The ARM raw logs are not committed; each arm file carries its tracked lines, which the per-arm claims rest on.
 # ⚠ The tracked-line filter drops EVERY [MAP] line containing (0,0) or (255,255). On this trajectory those are exactly three one-frame
 #   pairs: f160879/80 RUSTURF TUNNEL(0,0), f167356/57 ROUTE 116(255,255) (in every run, before the discriminators) and f213839/40
