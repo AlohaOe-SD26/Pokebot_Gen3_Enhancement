@@ -71,3 +71,13 @@ with the P2-c code.
   gate only.
 - **Production would not hunt on Route 116.** `hunt_ground_tile(ROUTE116)` is None, and the whitelist fails closed.
   The driver uses the team loop's tile, and the fence/hunt interaction does not depend on the tile.
+
+## ADDENDUM — a correction filed BEFORE any P2-c drive ran
+
+**C-OFF / C-ON are NOT identical "in every row".** In C-ON, a team species met during the armed spin is refused FIRST by
+the new check ("a catch-on-sight hunt is armed"). In C-OFF it is refused by the team target ("pre-gym-1 team already at
+its target of 4"). Both are refusals, and neither returns a catch strategy.
+
+**Corrected prediction:** C-ON and C-OFF are identical in every row's frame, phase, species and STRATEGY (the action),
+and in the verdict. Only the fence REASON of such battles differs. The same holds for ON against OFF before f140752.
+**Corrected falsifier:** C-ON differs from C-OFF in any row's frame, phase, species or strategy, or in the verdict.
