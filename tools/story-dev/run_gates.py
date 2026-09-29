@@ -292,6 +292,9 @@ GATES: list[tuple[str, bool]] = [
     # design v2 step 7 (RP) — the rare-species predicate: inert data + a pure module. The generator reads our ROM
     # statically (no emulator), and `--check` proves the committed table is what it produces. 13 mutants.
     ("probe_rarity_predicate.py", False),
+    # USER RULING 25 (design v2 step 8, RC) — the cap of 3 and the rare exemption (flags, default OFF); the real rarity
+    # predicate is asked about `encounter.pokemon` (the EncounterInfo reads not-rare silently: pinned). 7 mutants.
+    ("probe_r25_catch_cap.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

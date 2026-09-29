@@ -1687,6 +1687,12 @@ DEX_CATCH_BALL_RESERVE = 10
 #: draining the ball pool, which is precisely the resource the mandatory hunts share. 2 is one retry.
 DEX_CATCH_MAX_ATTEMPTS = 2
 
+#: USER RULING 25 (06, 2026-09-28), design v2 step 8 (RC): with `POKEBOT_R25_CAP=1` an ordinary species gets THREE
+#: attempts per run instead of `DEX_CATCH_MAX_ATTEMPTS`; with `POKEBOT_R25_RARE=1` a RARE target (`modules/rarity.py`) is
+#: exempt from the attempt cap AND the expected-throws refusal. Both DEFAULT OFF until the Phase 3 batch A/B. ⚠ Neither
+#: lifts the 10-ball dex reserve (`DEX_CATCH_BALL_RESERVE`): whether a rare target may throw past it is Q8, OPEN.
+R25_MAX_ATTEMPTS = 3
+
 #: USER RULING 20 Phase 0 (2026-09-26): a post-gym-1 Pokédex catch is not STARTED when a full-HP catch, thrown in the
 #: order the thrower spends our balls (best stack first), is expected to take more than this many balls. ⚠ A JUDGEMENT, not a measurement — sized so the 30-ball Rustboro
 #: purchase covers ~3 hard catches, and logged per refusal so a batch can re-derive it. MEASURED motivation: one Absol
@@ -1855,6 +1861,45 @@ def decide_maintenance(
     return slot, f"maintain slot {slot} L{level}->L{catchup} (est {est} <= budget {budget})"
 
 
+def r25_rarity_verdict(rare_on: bool, rarity_fn, pokemon):
+    """USER RULING 25 (design v2 step 8): the rare verdict the fence uses, or None when `POKEBOT_R25_RARE` is off (then
+    nothing is read at all). `pokemon` must be the encounter's POKEMON (see `_should_catch`). Never raises: a raising
+    `rarity_fn` gives a not-rare verdict with a `helper_error` note, so a reader bug can never switch catching off (the
+    adapter's blanket `except` would turn a raise into "fence errored" on EVERY encounter)."""
+    if not rare_on:
+        return None
+    try:
+        return rarity_fn(pokemon)
+    except Exception as error:  # noqa: BLE001 - a reader bug becomes a NOT-rare verdict carrying a helper_error note
+        from modules.rarity import RareVerdict
+
+        return RareVerdict(False, None, (), f"helper_error:{type(error).__name__}")
+
+
+def r25_catch_inputs(cap_on: bool, verdict) -> dict:
+    """USER RULING 25 (design v2 step 8): the two fence inputs the R25 flags decide, in ONE pure place, passed to
+    `decide_dex_catch` UNCHANGED (`**`). Both flags OFF gives exactly the pre-step-8 inputs."""
+    return {
+        "max_attempts": R25_MAX_ATTEMPTS if cap_on else DEX_CATCH_MAX_ATTEMPTS,
+        "rare": bool(getattr(verdict, "rare", False)),
+    }
+
+
+def _r25_log_suffix(mode) -> str:
+    """design v2 step 8: the rare verdict appended to `[DEXCATCH] attempt` and `[CATCH] start`, with
+    `POKEBOT_R25_RARE` ON only, so every OFF line stays byte-identical. The note is printed too: an `adapter_error`
+    verdict must never read as an ordinary "not rare"."""
+    try:
+        if not getattr(mode, "_r25_rare", False):
+            return ""
+        v = getattr(mode, "_r25_last_verdict", None)
+        if v is None:
+            return " rare=- tier=- note=unread"
+        return f" rare={','.join(v.reasons) or '-'} tier={v.tier or '-'} note={v.note or '-'}"
+    except Exception:  # noqa: BLE001 - a log suffix never breaks a catch
+        return ""
+
+
 def decide_dex_catch(
     *,
     is_wild: bool,
@@ -1880,8 +1925,15 @@ def decide_dex_catch(
     hunt_first: bool = False,
     lift_health: bool = False,
     lift_training: bool = False,
+    max_attempts: int = DEX_CATCH_MAX_ATTEMPTS,
+    rare: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
+
+    USER RULING 25 (design v2 step 8): `max_attempts` is the per-species cap (3 with `POKEBOT_R25_CAP`), and `rare`
+    (only ever True with `POKEBOT_R25_RARE`) exempts the target from the cap and the expected-throws refusal. Both come
+    from `r25_catch_inputs`; the defaults are exactly the pre-step-8 fence. Every other gate, the reserve included,
+    still applies to a rare target, in the same order.
 
     ⛔⛔ WHY THIS IS A PURE FUNCTION AND NOT AN `if` CHAIN INSIDE THE ADAPTER. `04-HANDOFF.md` says of
     this item: *"NO CHEAP FIXTURE TEST EXISTS — a Tier 2 auditor tried and could not compute a
@@ -2025,7 +2077,7 @@ def decide_dex_catch(
         # Entering only from full strength is the part of that exposure a PURE predicate can bound.
         # ⚠ It does NOT bound mid-battle degradation — see `#24-dexcatch-battlebail`.
         return False, "party is not at full strength"
-    if attempts >= DEX_CATCH_MAX_ATTEMPTS:
+    if not rare and attempts >= max_attempts:
         return False, f"already attempted #{species_dex} {attempts}x this run"
     # USER RULING 20 Phase 0: do not START a catch the balls cannot afford. POST-gym-1 only — the pre-gym-1 branch
     # above returned already and stays byte-identical (`#24-partycap`). None = unknown ⇒ no effect (never a silent
@@ -2033,7 +2085,7 @@ def decide_dex_catch(
     import os as _os_rate  # ⛔ LOCAL: this module has no module-level `os`; a bare `os` here was a NameError that
     #                         the adapter's `except` would have filed as "fence errored" (caught before it shipped).
 
-    if (expected_throws is not None and expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS
+    if (expected_throws is not None and expected_throws > DEX_CATCH_MAX_EXPECTED_THROWS and not rare
             and _os_rate.environ.get("POKEBOT_DEXCATCH_FAULT_NORATE") != "1"):
         return False, (f"#{species_dex}: ~{expected_throws:.0f} expected throws at full HP with the balls we hold — above "
                        f"{DEX_CATCH_MAX_EXPECTED_THROWS}")
@@ -2315,6 +2367,12 @@ class StoryMode(BotMode):
         # ⭐ USER RULING 24 step 5 (2026-09-29): `POKEBOT_R24_NOFAINTBAIL=1` stops a post-gym-1 dex catch from bailing on
         # a faint (BOTH paths; `StoryDexCatchStrategy` reads this from the running mode). DEFAULT OFF; read per run.
         self._r24_nofaintbail = _os_team6.environ.get("POKEBOT_R24_NOFAINTBAIL") == "1"
+        # ⭐ USER RULING 25 (design v2 step 8, 2026-09-29): `POKEBOT_R25_CAP=1` gives an ordinary species 3 attempts per run
+        # (not 2); `POKEBOT_R25_RARE=1` exempts a RARE target from the attempt cap and the expected-throws refusal
+        # (`r25_catch_inputs`). DEFAULT OFF; read per run. `_r25_last_verdict` is the verdict `_should_catch` last used.
+        self._r25_cap = _os_team6.environ.get("POKEBOT_R25_CAP") == "1"
+        self._r25_rare = _os_team6.environ.get("POKEBOT_R25_RARE") == "1"
+        self._r25_last_verdict = None
         self._r24_trainee_check = None
         self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
@@ -2550,6 +2608,7 @@ class StoryMode(BotMode):
         """
         reason = "unevaluated"
         dex, species = None, None
+        self._r25_last_verdict = None
         try:
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
@@ -2557,12 +2616,24 @@ class StoryMode(BotMode):
             from modules.items import get_item_bag
             from modules.story import counter_hunt as _chunt
             from modules.story import early_game as _eg
+            from modules import rarity as _rarity
 
             raw_party = [p for p in get_party() if p is not None]
             battlers = [p for p in raw_party if not p.is_egg]
             species = getattr(getattr(encounter, "pokemon", None), "species", None)
             dex = species.national_dex_number if species is not None else None
             bag = get_item_bag()
+            # USER RULING 25 (design v2 step 8): the rare verdict, read only with `POKEBOT_R25_RARE`. ⛔ It is asked about
+            # the POKEMON, `encounter.pokemon`, never the `EncounterInfo`: `encounter_rarity` on the wrapper reads
+            # rare=False with an adapter_error note and never raises, so the exemption would ship silently inert (the
+            # step 8 recon ran it). The fault arm `POKEBOT_R25_FAULT_RAREWRAPPER` passes the wrapper, to prove the live
+            # A/B can see exactly that bug. ALIASED local import (the UnboundLocalError shape in 08).
+            import os as _os_r25
+
+            _r25_subject = (encounter if _os_r25.environ.get("POKEBOT_R25_FAULT_RAREWRAPPER") == "1"
+                            else getattr(encounter, "pokemon", None))
+            _r25_verdict = r25_rarity_verdict(getattr(self, "_r25_rare", False), _rarity.encounter_rarity, _r25_subject)
+            self._r25_last_verdict = _r25_verdict
 
             catch, reason = decide_dex_catch(
                 is_wild=encounter is not None,
@@ -2607,6 +2678,8 @@ class StoryMode(BotMode):
                 lift_health=self._r24_catchhurt,
                 # RULING 24 step 3: after gym 1, a wanted species is caught even during a training grind (flag).
                 lift_training=self._r24_catchtrain,
+                # RULING 25 (design v2 step 8): the cap of 3 and the rare exemption (flags, default OFF), from ONE pure helper.
+                **r25_catch_inputs(getattr(self, "_r25_cap", False), _r25_verdict),
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
@@ -2622,7 +2695,7 @@ class StoryMode(BotMode):
             logged = self._dex_catch_logged = set()
         line = dex_fence_log_line(logged, dex, getattr(species, "name", "?"), catch, reason)
         if line:
-            _log_story_event(line, "DEXFENCE")
+            _log_story_event(line + _r25_log_suffix(self), "DEXFENCE")
         return catch
 
     # ------------------------------------------------------------------
@@ -3914,7 +3987,7 @@ class StoryMode(BotMode):
                 # instrument on the one path it exists to measure.
                 _log_story_event(
                     f"[DEXCATCH] attempt #{self._dex_catch_attempts.get(dex, 0)} on "
-                    f"{getattr(sp, 'name', '?')} (#{dex}) -> {'box' if _full else 'party'}",
+                    f"{getattr(sp, 'name', '?')} (#{dex}) -> {'box' if _full else 'party'}{_r25_log_suffix(self)}",
                     "DEXCATCH",
                 )
                 # Use the story catch strategy (flees when out of balls instead of
@@ -6384,7 +6457,8 @@ def _r20_catch_start(mode, kind: str, encounter, dex=None) -> None:
         _log_story_event(
             f"start kind={kind} sp={s['sp']} lv={getattr(mon, 'level', '?')} attempt={att or '-'} "
             f"badges={s['badges']} party={s['party']}/6 box={s['box']} spare={s['spare']} "
-            f"exp_throws={f'{x:.1f}' if isinstance(x, float) else '-'} map={loc[0]},{loc[1]}",
+            f"exp_throws={f'{x:.1f}' if isinstance(x, float) else '-'} map={loc[0]},{loc[1]}"
+            f"{_r25_log_suffix(mode) if kind in ('dex', 'team') else ''}",
             "CATCH",
         )
     except Exception:  # noqa: BLE001 - the catch strategy is returned on the next line regardless

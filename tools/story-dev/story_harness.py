@@ -28932,6 +28932,28 @@ for step in range(args.frames):
 
                 _sr_inst.reset_per_run_state = _sr_reset_then_preset
                 _sr_apply_preset()
+            # HARNESS-ONLY preset (design v2 step 8's live A/B, 2026-09-29): `STORYRESUME_PRESET_ATTEMPTS="63=2"`
+            # (`;`-separated `dex=N`) starts the run with that many dex-catch ATTEMPTS already filed for those species, so
+            # the attempt cap is reached on a real encounter. It stands for attempts that did NOT happen on this
+            # trajectory: the A/B tests the fence and adapter wiring live, not a natural path to the cap. Re-applied after
+            # every `reset_per_run_state` (which would wipe it), and printed each time, like the defeats preset above.
+            _sra_preset = _os.environ.get("STORYRESUME_PRESET_ATTEMPTS", "").strip()
+            if _sra_preset:
+                _sra_inst = context.bot_mode_instance
+                _sra_prev_reset = _sra_inst.reset_per_run_state
+
+                def _sra_apply(_inst=_sra_inst, _spec=_sra_preset):
+                    for _item in _spec.split(";"):
+                        _k, _v = _item.split("=")
+                        _inst._dex_catch_attempts[int(_k)] = int(_v)
+                    print(f"[HARNESS] STORYRESUME_PRESET_ATTEMPTS applied: _dex_catch_attempts={_inst._dex_catch_attempts}")
+
+                def _sra_reset_then_preset(_prev=_sra_prev_reset, _apply=_sra_apply):
+                    _prev()
+                    _apply()
+
+                _sra_inst.reset_per_run_state = _sra_reset_then_preset
+                _sra_apply()
         elif args.driver == "cavetrain":
             context.bot_mode_instance = CaveTrainMode()
         elif args.driver == "hmtest":
