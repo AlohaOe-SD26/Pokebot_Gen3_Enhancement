@@ -12,12 +12,14 @@ catch three times while the hunt was armed; `ai-research-notes/2026-09-28-r20P2c
   H5  OFF, pre-gym-1, walking: admitted (the flag is what changes it).
   H6  ON, post-gym-1, full party, armed: refused "hunt is armed", as with the flag OFF.
   H7  ON, post-gym-1, full party, walking, not armed: "goes to the PC box" (the flag changes nothing after gym 1).
+  H8/H9 ON, post-gym-1, party 3, armed / walking: still refused as "runway" FIRST (the new checks need `pre_badge1`).
   A1  `reset_per_run_state` reads the flag: unset -> `_hunt_first is False`; `=1` -> True.
   A2  by AST: the adapter passes `hunt_first=self._hunt_first`.
   A3  `POKEBOT_R20_HUNTFIRST` is registered in `29-DISABLED-FEATURES-REGISTRY.md`.
 FAULT ARMS (built in; the unmutated subject must pass first; each must FAIL):
   F1  the new checks moved AFTER the pre-gym-1 branch (the old order, with the flag still read): H2 fails.
   F2  an adapter passing `hunt_first=False` fails A2; F3 the keyword kept only in a COMMENT still fails A2.
+  F4  `pre_badge1` dropped from the armed check (the review's mutant) fails H8.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_hunt_first.py
 """
@@ -49,6 +51,7 @@ BASE = dict(
     attempts=0, expected_throws=2.0,
 )
 POST = dict(pre_badge1=False, party_slots_used=6, battler_count=6)
+POST3 = dict(pre_badge1=False, party_slots_used=3, battler_count=3)
 CASES = [
     ("H1", dict(hunt_armed=True), True, "pre-gym-1"),
     ("H2", dict(hunt_armed=True, hunt_first=True), False, "hunt is armed"),
@@ -57,6 +60,10 @@ CASES = [
     ("H5", dict(hunt_walking=True), True, "pre-gym-1"),
     ("H6", dict(POST, hunt_armed=True, hunt_first=True), False, "hunt is armed"),
     ("H7", dict(POST, hunt_walking=True, hunt_first=True), True, "PC box"),
+    # review 2026-09-28: after gym 1 BELOW a full party the flag must leave the runway refusal first. Without these two,
+    # an edit dropping `pre_badge1` from one new check changed only a reason and shipped unseen.
+    ("H8", dict(POST3, hunt_armed=True, hunt_first=True), False, "runway"),
+    ("H9", dict(POST3, hunt_walking=True, hunt_first=True), False, "runway"),
 ]
 
 
@@ -96,6 +103,15 @@ def wiring(src: str, sink=None):
     check(ok, f"A2 the adapter passes hunt_first=self._hunt_first ({ok})", sink)
 
 
+def mutant_predicate(src: str, old: str, new: str):
+    """The predicate with one source edit, compiled from a COPY of the source (the file is never touched)."""
+    assert src.count(old) == 1, old
+    mod = types.ModuleType("story_mode_mutant")
+    mod.__file__ = str(SM_PATH)
+    exec(compile(src.replace(old, new, 1), "story_mode_mutant", "exec"), mod.__dict__)
+    return mod.decide_dex_catch
+
+
 def old_order_predicate(src: str):
     """The predicate with the two new checks moved AFTER the pre-gym-1 branch — the old order, flag still read."""
     block_start = "    if hunt_first and pre_badge1 and hunt_armed:"
@@ -126,6 +142,10 @@ def main() -> int:
     run_cases(old_order_predicate(src), sink)
     check(base_ok and any(s.startswith("H2") for s in sink),
           f"F1 the checks moved after the pre-gym-1 branch fail H2 (red: {[s.split()[0] for s in sink]})")
+    sink = []
+    run_cases(mutant_predicate(src, "if hunt_first and pre_badge1 and hunt_armed:", "if hunt_first and hunt_armed:"), sink)
+    check(base_ok and any(s.startswith("H8") for s in sink),
+          f"F4 pre_badge1 dropped from the armed check fails H8 (red: {[s.split()[0] for s in sink]})")
     sink = []
     wiring(src.replace("hunt_first=self._hunt_first,", "hunt_first=False,", 1), sink)
     check(base_ok and bool(sink), "F2 an adapter passing hunt_first=False fails A2")
