@@ -106,6 +106,11 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
 * **A known bug in a tool is a SEDUCTIVE explanation for anything that tool reports.** KI-24
   (the tile planner mis-reads terrain) was reached for when the planner was correctly modelling an
   NPC. Check the boring explanation — an object, a flag, an era — before the famous one.
+* ⛔ **BEFORE ASKING FOR A REVIEW, map every scope sentence in your self-report to its gate case** (added
+  2026-09-29, after two consecutive kick-backs for the same gap). For each "X only when Y", "never Z", "OFF unchanged"
+  or "no new log line when OFF", NAME the case that proves it. If there is none, write it, plus one MUTANT that widens
+  the scope, before the review. Steps 2 and 3 of RULING 24 each shipped a true claim with no case behind it, and each
+  review found it with a one-line mutant.
 
 ---
 

@@ -22974,3 +22974,15 @@ least-tested member.
 **Prevention rule:**
 - ⛔ **A gate backing "X applies ONLY to A, never to B, C, D" has one case per named member, plus one mutant that
   widens the scope.** Two of five is not a proof of five.
+## 2026-09-29 — ⛔ THE SAME GAP TWICE IN A ROW: A SCOPE CLAIM ("no new log line when OFF") WITH NO GATE CASE
+
+**Symptom:** the RULING 24 step 3 review found that the flag-ON-only trainee telemetry had no gate coverage. A change
+dropping its flag guard would add lines to OFF runs, and every gate would still pass. This is the SAME shape as step 2's
+kick-back (a scope claim over five kinds with cases for two), one item later, after the prevention rule was written.
+**Root cause:** the step 2 rule was filed as a lesson about C4's kinds. It did not fire while building step 3's
+telemetry, because nothing in the WORKFLOW made me enumerate my self-report's scope sentences before the review
+(CLAUDE.md: a rule filed as "the lesson from bug X" does not fire when building Y).
+**Fix:** the telemetry moved into two helpers; G1-G4 and the mutant F4 were added (`135ecaa3`).
+**Prevention (structural, not prose):** a pre-review self-check is now in `14-AGENT-PLAYBOOK.md` §0b ("map every scope
+sentence in your self-report to its gate case"). The self-report is where the claims are written, so that is where the
+check runs.

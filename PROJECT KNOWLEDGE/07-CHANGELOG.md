@@ -36800,4 +36800,6 @@ the only seed drawing the grind):
   and both earlier health refusals are unchanged.
 - Seen once: the training ran about 2,700 frames longer, and the fresh L8 Taillow led the rival fight. The lead choice
   is recorded as data for `#24-leadpolicy`, whose option B the user rejected.
-**Review:** REVIEW_RESULT.
+**Review:** KICK-BACK, then fixed (`135ecaa3`). The flag-ON-only trainee telemetry had no gate case. It moved into
+`_r24_trainee_record` / `_r24_trainee_report`, and G1-G4, A4 and the mutant F4 were added. Replayed seeded, ON and OFF
+are identical to the graded arms. A pre-review self-check was added to the playbook (§0b).
