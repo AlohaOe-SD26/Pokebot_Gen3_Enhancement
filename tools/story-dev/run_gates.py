@@ -277,6 +277,8 @@ GATES: list[tuple[str, bool]] = [
     ("probe_hunt_walk.py", False),
     # RULING 20 P2-c — before gym 1, an armed or walking hunt is checked before team building (flag, default OFF).
     ("probe_hunt_first.py", False),
+    # USER RULING 24 step 2 — a hurt party no longer blocks a post-gym-1 dex catch; its loss is not a map defeat (flag).
+    ("probe_dex_catch_anytime.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

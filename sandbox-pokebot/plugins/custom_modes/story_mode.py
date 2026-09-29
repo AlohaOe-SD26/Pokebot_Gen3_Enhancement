@@ -1836,6 +1836,7 @@ def decide_dex_catch(
     open_fence: bool = False,
     hunt_walking: bool = False,
     hunt_first: bool = False,
+    lift_health: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1949,6 +1950,13 @@ def decide_dex_catch(
         # spin compares with its ENTRY count and raises "never caught one" at once; a counter can land in the box. Only
         # the P2-b party-join path reaches this (flag OFF returned above as runway; a full party goes to the box).
         return False, "a hunt is walking to its ground — a party join now would change the party it planned for"
+    # ⛔ USER RULING 24 fault arm `POKEBOT_R24_FAULT_LIFTEARLY=1` (never set in a real run): the health lift built as an
+    # admit HERE, before the training, reserve, PC, attempt and catch-rate gates. `probe_dex_catch_anytime.py` must go
+    # red under it; a correct lift removes the health refusal and nothing else.
+    import os as _os_r24
+
+    if lift_health and _os_r24.environ.get("POKEBOT_R24_FAULT_LIFTEARLY") == "1":
+        return True, f"dex catch #{species_dex} (goes to the PC box)"
     if training:
         # A catch earns ZERO exp, and `train_team` exists only to gain exp. Worse, `#24-ch23training`
         # is the top run-ender (16 of 49 = 32.7%) precisely because a grind exceeds its frame ceiling.
@@ -1960,7 +1968,10 @@ def decide_dex_catch(
         return False, f"only {spare_balls} spare balls — below the dex reserve of {DEX_CATCH_BALL_RESERVE}"
     if boxed_count >= PC_STORAGE_SLOTS:
         return False, "PC storage is full"
-    if not party_healthy:
+    # ⭐ USER RULING 24 (2026-09-28): "catching should always be available … even in training and wounded pokemon".
+    # `lift_health` (flag `POKEBOT_R24_CATCHHURT`, DEFAULT OFF) skips THIS refusal only; a faint or whiteout during the
+    # catch is accepted by the ruling. Its losses are filed apart from map defeats (`on_battle_ended`, C4).
+    if not party_healthy and not lift_health:
         # ⛔ A CATCH BATTLE NEVER FIGHTS BACK. `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
         # throws a ball or applies a status move, and `should_flee_after_faint` is unconditionally
         # False (`:38-39`) — so the wild attacks freely and the bot does not leave until the balls run
@@ -2245,6 +2256,11 @@ class StoryMode(BotMode):
         # ⭐ USER RULING 20 Phase 2 P2-c (2026-09-28): `POKEBOT_R20_HUNTFIRST=1` puts an armed or walking hunt BEFORE the
         # pre-gym-1 team-building branch (`decide_dex_catch(hunt_first=...)`). DEFAULT OFF; read per run.
         self._hunt_first = _os_team6.environ.get("POKEBOT_R20_HUNTFIRST") == "1"
+        # ⭐ USER RULING 24 step 2 (2026-09-29): `POKEBOT_R24_CATCHHURT=1` lifts the "not at full strength" refusal for a
+        # post-gym-1 dex catch, and files a LOST dex catch battle in `_catch_defeat_counts` instead of the map's defeat
+        # counters (C4 — `on_battle_ended`). DEFAULT OFF; read per run.
+        self._r24_catchhurt = _os_team6.environ.get("POKEBOT_R24_CATCHHURT") == "1"
+        self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
         # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
         # so the predicate that admitted it is TRUE again on the very next encounter and nothing else
@@ -2315,11 +2331,36 @@ class StoryMode(BotMode):
                                f"money=₽{get_player().money:,}", category="MONEY")
         except Exception:  # noqa: BLE001 - telemetry must never break a battle hook; a missed line is visible
             pass
+        # ⭐ USER RULING 24 C4 (2026-09-29, flag `POKEBOT_R24_CATCHHURT`): a LOST dex catch battle is filed apart from the
+        # map's defeat counters, so a catch the ruling accepts losing cannot trigger survival mode (3+ defeats on a map
+        # flees every wild, wanted ones included) or count as a boss loss on that map. ⛔ The kind is read BEFORE
+        # `_r20_catch_end`, which clears `_catch_ctx`. `team`/`hm`/`counter`/`shiny` losses keep today's accounting.
+        # Fault arms: `POKEBOT_R24_FAULT_KINDLATE=1` reads the kind after the clear (C4 never fires);
+        # `POKEBOT_R24_FAULT_TEAMLOSS=1` also files `team` losses here (pre-gym-1 accounting would change).
+        import os as _os_c4
+
+        _c4_on = bool(getattr(self, "_r24_catchhurt", False))
+        _c4_kinds = {"dex", "team"} if _os_c4.environ.get("POKEBOT_R24_FAULT_TEAMLOSS") == "1" else {"dex"}
+        _c4_late = _os_c4.environ.get("POKEBOT_R24_FAULT_KINDLATE") == "1"
+        _c4_kind = None if (not _c4_on or _c4_late) else (getattr(self, "_catch_ctx", None) or {}).get("kind")
         # USER RULING 20 Phase 2 step T: close this battle's `[CATCH] start`, if it had one. Its own `try` inside;
         # placed BEFORE the unguarded Lost block so a telemetry error can never skip defeat counting.
         _r20_catch_end(self, outcome)
+        if _c4_on and _c4_late:
+            _c4_kind = (getattr(self, "_catch_ctx", None) or {}).get("kind")  # read after the clear: always None
 
-        if outcome is BattleOutcome.Lost:
+        if outcome is BattleOutcome.Lost and _c4_on and _c4_kind in _c4_kinds:
+            key = self._location_key()
+            counts = getattr(self, "_catch_defeat_counts", None)
+            if counts is None:
+                counts = self._catch_defeat_counts = {}
+            counts[key] = counts.get(key, 0) + 1
+            try:
+                _log_story_event(f"loss-filed kind={_c4_kind} map={key} catch_losses={counts[key]} "
+                                 f"defeats={self._defeat_counts.get(key, 0)}", "CATCH")
+            except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
+                pass
+        elif outcome is BattleOutcome.Lost:
             key = self._location_key()
             self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
             self._last_defeat_key = key
@@ -2501,6 +2542,8 @@ class StoryMode(BotMode):
                 hunt_walking=bool(_eg.hunt_walk_active()),
                 # RULING 20 P2-c: before gym 1, an armed or walking hunt comes before team building (flag, default OFF).
                 hunt_first=self._hunt_first,
+                # RULING 24: after gym 1, a wanted species is caught even while the party is hurt (flag, default OFF).
+                lift_health=self._r24_catchhurt,
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
