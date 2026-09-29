@@ -1,0 +1,22 @@
+# RULING 20 P2-c MEASUREMENT (observe-only; unchanged code 255ee5f0 + the huntfirst driver): r20_pregym1_party4_r116.ss1 (9710585350be), POKEBOT_R20_TEAM6=1, --frames 60000, random.seed(1); the driver fixed (the StoryMode is built before the hunt). Seeds 2 and 3 give the same verdict.
+# Predictions: ai-research-notes/2026-09-28-r20P2c-PREDICTIONS.md (these ran BEFORE it, as its measured discriminator).
+[huntfirst] BATTLE f136846 phase=spin sp=Whismur#293 strategy=StoryItemBattleStrategy fence='#293 already owned' counter_armed=[290]
+[huntfirst] BATTLE f138732 phase=spin sp=Poochyena#261 strategy=StoryItemBattleStrategy fence='#261 already owned' counter_armed=[290]
+[huntfirst] BATTLE f140752 phase=spin sp=Abra#63 strategy=StoryCatchStrategy fence='pre-gym-1 team building (joins the party)' counter_armed=[290]
+[huntfirst] BATTLE f142577 phase=spin sp=Abra#63 strategy=StoryCatchStrategy fence='pre-gym-1 team building (joins the party)' counter_armed=[290]
+[huntfirst] BATTLE f144228 phase=spin sp=Abra#63 strategy=StoryCatchStrategy fence='pre-gym-1 team building (joins the party)' counter_armed=[290]
+[huntfirst] BATTLE f146011 phase=spin sp=Poochyena#261 strategy=StoryItemBattleStrategy fence='#261 already owned' counter_armed=[290]
+[huntfirst] BATTLE f148137 phase=spin sp=Nincada#290 strategy=StoryCatchStrategy fence=None counter_armed=[290]
+[huntfirst] R hunt_first_flag = None
+[huntfirst] R hunt_return = "{'slot': 4, 'pid': 4261536207}"
+[huntfirst] R hunt_tile = (11, 7)
+[huntfirst] R joined = ['Nincada#FE01E1CF']
+[huntfirst] R nav_calls = [('ROUTE116', (11, 7))]
+[huntfirst] R party_before = ['Mudkip#550A9BE6', 'Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[huntfirst] R premise_prebadge = True
+[huntfirst] R spin_frames = 12967
+[huntfirst] R spin_rows = [(136846, 'spin', 'Whismur', 'StoryItemBattleStrategy', '#293 already owned'), (138732, 'spin', 'Poochyena', 'StoryItemBattleStrategy', '#261 already owned'), (140752, 'spin', 'Abra', 'StoryCatchStrategy', 'pre-gym-1 team building (joins the party)'), (142577, 'spin', 'Abra', 'StoryCatchStrategy', 'pre-gym-1 team building (joins the party)'), (144228, 'spin', 'Abra', 'StoryCatchStrategy', 'pre-gym-1 team building (joins the party)'), (146011, 'spin', 'Poochyena', 'StoryItemBattleStrategy', '#261 already owned'), (148137, 'spin', 'Nincada', 'StoryCatchStrategy', None)]
+[huntfirst] R team_target = 6
+[huntfirst] R whitelist_tile = None
+[huntfirst] R whiteouts = 0
+[huntfirst] VERDICT {'premise_prebadge': True, 'team_target': 6, 'hunt_first_flag': None, 'hunt_tile': (11, 7), 'spin_battles': 7, 'spin_frames': 12967, 'spin_bound_hit': False, 'hunt_return': "{'slot': 4, 'pid': 4261536207}", 'joined': ['Nincada#FE01E1CF'], 'failure': None}
