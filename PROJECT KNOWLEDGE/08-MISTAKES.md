@@ -22891,3 +22891,31 @@ The fault run's per-case results went to a private list, so the extra red cases 
 **Prevention rule:**
 - ⛔ **A fault arm's check asserts the EXACT set of cases it turns red.** "At least these" lets a fault that breaks more
   than it should, or a mutant of the arm itself, pass unseen.
+## 2026-09-28 — ⛔ A PROOF PLAN RESTED ON "WALK BATTLES ARE RARE", INFERRED FROM A FLAG NAME; THE LOGS SAID 81–90%
+
+**Symptom:** for `#27-enroutejoin` I concluded from `_navigate_riding_out(..., avoid_encounters=True)` that a hunt's walk
+rarely meets a wild battle, and pre-registered "no live arm can show a walk battle being refused". A batch-log count
+then found walk battles in 81–90% of 84 real hunts (Petalburg Woods, Rusturf Tunnel, the Fiery Path floor, the water
+routes: routing cannot avoid them). A new arm reproduced the bug live on the first try.
+**Root cause:** I read a parameter's NAME as a measurement of its effect. Eight drives with 0 walk battles made it look
+confirmed, but all eight took one short town-to-grass walk.
+**Fix:** a pre-registered addendum with the batch shape (the hunt started on Route 101), which reproduced the derail
+live.
+**Prevention rules:**
+- ⛔ **A frequency claim a proof plan depends on is MEASURED from the batch logs first.** An agent counted this one in
+  minutes. Drives that sample one route cannot say how often something happens on the others.
+- ⛔ **When the drives cannot reach a case, look for the batch's own SHAPE of it** (here, the hunt restarted from Route
+  101) **before concluding it is unreachable.**
+
+## 2026-09-28 — ⛔ A DRIVER KEYED THE PARTY BY PID, A SHEDINJA COLLAPSED IT, AND I PUBLISHED "THE HEAL DEPOSITED ONE"
+
+**Symptom:** the `r101hunt` driver reported `party_after_walk 4` for a party of 5, and I wrote into a committed
+pre-registration that the heal had deposited a member. The production fence's line in the same run said "party is 5/6".
+**Root cause:** the driver's snapshot was `{pid: species}`. On `norman_done.ss1` the Shedinja carries its Ninjask's PID
+(KI-78), so the dict held 4 keys.
+**Fix:** `3b8962e5` keys identity by `(PID, species)`, the same identity `modules/faint_chooser.py` uses. The arms were
+replayed identically with true counts.
+**Prevention rules:**
+- ⛔ **Identity is `(PID, species)` in drivers and probes too, never the PID alone** (CLAUDE.md rule 3 + KI-78).
+- ⛔ **When an instrument and production disagree on the same quantity in the same run, resolve it before writing
+  either down.**

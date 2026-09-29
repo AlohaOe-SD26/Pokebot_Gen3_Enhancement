@@ -1,0 +1,133 @@
+# `#27-enroutejoin` GRADED ARM G-LONG-ON: storyresume on r20_badge1_party1_gym.ss1 (50af0f5c), POKEBOT_R20_OPENFENCE=1, --set-balls 30 --frames 480000, random.seed(1); code 409b5dda.
+# Predictions: ai-research-notes/2026-09-28-enroutejoin-PREDICTIONS.md (780e151a; the healed101 arms: addendum 3a3728df).
+# Source: Story-debug-20260928-165632.log. Compare with 2026-09-28-enroutejoin-M3-ON-s1.txt (unfixed code).
+    env:           (no behaviour env vars set)
+    env-all:       {'POKEBOT_R20_OPENFENCE': '1'}
+f139515 [STEP] 'Story: leaving the gym — the Devon Goods get stolen…'
+f140859 [STEP] 'Story: chasing the thief east to Rusturf Tunnel…'
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160907 [STEP] 'Story: cornering the thief in Rusturf Tunnel…'
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f165555 [STEP] 'Story: taking the Devon Goods back to Mr. Stone at Devon Corp...'
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f173586 [STEP] 'Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)...'
+f176385 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185172 [STEP] "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f195688 [STEP] "Story: taking Steven's Letter to Granite Cave..."
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=1 badges=1 party=1/6 box=0 spare=32 exp_throws=2.2 map=24,7
+f203722 [CATCH] end kind=dex sp=Zubat#41 end=caught res=Caught thrown=3 frames=3480 dest=party pid=C749AAB1 party=2/6 box=0 spare=29 badges=1 bail=-
+f203961 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23)]
+f203961 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (joins the party)
+f203961 [CATCH] start kind=dex sp=Geodude#74 lv=7 attempt=1 badges=1 party=2/6 box=0 spare=29 exp_throws=3.0 map=24,7
+f205638 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=1 frames=1677 dest=party pid=218F97E2 party=3/6 box=0 spare=28 badges=1 bail=-
+f205885 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f208409 [BATTLE] started hp=[('Marshtomp', 59, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f208409 [DEXFENCE] skip #302 Sableye — party is not at full strength
+f210450 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f210450 [DEXFENCE] skip #304 Aron — party is not at full strength
+f212147 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f212147 [DEXFENCE] skip #63 Abra — party is not at full strength
+f213316 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f215597 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f215597 [DEXFENCE] skip #296 Makuhita — party is not at full strength
+f217454 [BATTLE] started hp=[('Marshtomp', 56, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f220867 [STEP] "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+f223529 [STEP] 'Story: back in Dewford Town.'
+f225124 [STEP] 'Story: entering Dewford Gym to challenge Brawly...'
+f226469 [BATTLE] started hp=[('Marshtomp', 61, 61), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f240265 [STEP] 'Story: sailing from Dewford to Slateport...'
+f245412 [BATTLE] started hp=[('Marshtomp', 64, 64), ('Zubat', 23, 23), ('Geodude', 22, 22)]
+f255690 [STEP] 'Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum...'
+f259455 [BATTLE] started hp=[('Marshtomp', 64, 64), ('Zubat', 23, 23), ('Geodude', 24, 24)]
+f262746 [BATTLE] started hp=[('Marshtomp', 45, 67), ('Zubat', 23, 23), ('Geodude', 24, 24)]
+f269237 [STEP] "Story: Devon Goods delivered — Slateport's museum is Aqua-free (party healed by the scene)!"
+f269787 [STEP] 'Story: back on the Slateport streets.'
+f271690 [STEP] 'Story: training the team to Lv 12 in the grass…'
+f274388 [BATTLE] started hp=[('Zubat', 23, 23), ('Marshtomp', 67, 67), ('Geodude', 24, 24)]
+f292250 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 67, 70), ('Geodude', 24, 24)]
+f306142 [BATTLE] started hp=[('Zubat', 0, 28), ('Marshtomp', 67, 70), ('Geodude', 24, 24)]
+f312482 [BATTLE] started hp=[('Zubat', 0, 28), ('Marshtomp', 67, 70), ('Geodude', 28, 28)]
+f319398 [BATTLE] started hp=[('Zubat', 0, 28), ('Marshtomp', 69, 72), ('Geodude', 28, 28)]
+f330112 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f331279 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 72, 72), ('Geodude', 28, 28)]
+f337003 [BATTLE] started hp=[('Zubat', 0, 28), ('Marshtomp', 72, 72), ('Geodude', 28, 28)]
+f342527 [STORY] WHITEOUT recovery #1 at (0, 1) (moved on since the last whiteout — budget reset)
+f342542 [STEP] 'Story: training the team to Lv 13 in the grass…'
+f349742 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f350678 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 72, 72), ('Geodude', 28, 28)]
+f350678 [DEXFENCE] CATCH #316 Gulpin — dex catch #316 (joins the party)
+f350678 [CATCH] start kind=dex sp=Gulpin#316 lv=12 attempt=1 badges=2 party=3/6 box=0 spare=28 exp_throws=3.0 map=0,25
+f359394 [STEP] 'Story: abandoning this Pokédex catch — a team member fainted.'
+f359583 [CATCH] end kind=dex sp=Gulpin#316 end=bail res=RanAway thrown=10 frames=8905 dest=none pid=- party=3/6 box=0 spare=18 badges=2 bail=faint
+f360444 [BATTLE] started hp=[('Marshtomp', 72, 72), ('Zubat', 0, 28), ('Geodude', 28, 28)]
+f366373 [STORY] WHITEOUT recovery #2 at (0, 1)
+f366611 [STEP] 'Story: training the team to Lv 12 in the grass…'
+f373808 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f374657 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28)]
+f374657 [DEXFENCE] CATCH #309 Electrike — dex catch #309 (joins the party)
+f374657 [CATCH] start kind=dex sp=Electrike#309 lv=13 attempt=1 badges=2 party=3/6 box=0 spare=18 exp_throws=6.0 map=0,25
+f376369 [CATCH] end kind=dex sp=Electrike#309 end=caught res=Caught thrown=1 frames=1712 dest=party pid=A76B7E5F party=4/6 box=0 spare=17 badges=2 bail=-
+f376701 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f376701 [DEXFENCE] CATCH #43 Oddish — dex catch #43 (joins the party)
+f376701 [CATCH] start kind=dex sp=Oddish#43 lv=13 attempt=1 badges=2 party=4/6 box=0 spare=17 exp_throws=3.0 map=0,25
+f385128 [STEP] "Story: abandoning this Pokédex catch — only 10 spare balls left — the rest are the mandatory hunts' reserve (10)."
+f385279 [CATCH] end kind=dex sp=Oddish#43 end=bail res=RanAway thrown=7 frames=8578 dest=none pid=- party=4/6 box=0 spare=10 badges=2 bail=reserve
+f385555 [BATTLE] started hp=[('Zubat', 24, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f394664 [BATTLE] started hp=[('Zubat', 0, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f401785 [STORY] WHITEOUT recovery #3 at (0, 1)
+f403421 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f404435 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f405753 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f414836 [STORY] WHITEOUT recovery #4 at (0, 1)
+f416472 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f417818 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f425846 [STORY] WHITEOUT recovery #5 at (0, 1)
+f428410 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f430094 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f442444 [STORY] WHITEOUT recovery #6 at (0, 1)
+f442459 [STEP] 'Story: hunting Numel on FIERY_PATH…'
+f443832 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f452665 [STORY] WHITEOUT recovery #7 at (0, 1)
+f454301 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f455646 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 75, 75), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f469146 [STORY] WHITEOUT recovery #8 at (0, 1)
+f471736 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f473006 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f482621 [STORY] WHITEOUT recovery #9 at (0, 1)
+f484257 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f485366 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f486588 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f496446 [STORY] WHITEOUT recovery #10 at (0, 1)
+f498082 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f499080 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f500868 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f512665 [STORY] WHITEOUT recovery #11 at (0, 1)
+f514301 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f515261 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f516551 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f525328 [STORY] WHITEOUT recovery #12 at (0, 1)
+f526965 [STEP] 'Story: heading up Route 110 — the rival is waiting...'
+f528310 [BATTLE] started hp=[('Zubat', 28, 28), ('Marshtomp', 78, 78), ('Geodude', 28, 28), ('Electrike', 37, 37)]
+f538053 [STORY] WHITEOUT recovery #13 at (0, 1)
+f538067 [STORY] DERAIL #1: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (ty
+f538366 [STORY] DERAIL #2: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (ty
+f538665 [STORY] DERAIL #3: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (ty
+f538964 [STORY] DERAIL #4: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (ty
+f539263 [STORY] DERAIL #5: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (ty
+f539264 [MODE] Story -> Manual   (message='this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; To
+f539264 [STEP] 'this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (type match) o
+f539278 [STEP] 'Bot stopped: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) — reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) — reachable; Torkoal (Fire) (

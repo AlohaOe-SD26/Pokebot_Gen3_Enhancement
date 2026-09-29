@@ -1,0 +1,29 @@
+# `#27-enroutejoin` GRADED ARM H-FAULT-ON: r101hunt on norman_done.ss1 (e6fb7d5f), R101_ARM=healed101, R101_FENCE=real, POKEBOT_R20_OPENFENCE=1 POKEBOT_ENROUTE_FAULT_NOWALK=1; --set-balls 20 --frames 45000; random.seed(1) via a runpy wrapper; code 3a3728df.
+# Predictions: ai-research-notes/2026-09-28-enroutejoin-PREDICTIONS.md (780e151a; the healed101 arms: addendum 3a3728df).
+# ⚠ `party_after_walk` in this run is UNDERCOUNTED BY ONE: the driver keyed the party by PID and this party's Shedinja carries its Ninjask's PID (KI-78). Fixed in 3b8962e5; the `r` replay of the H arms carries the true count.
+[r101hunt] PRE {'arm': 'healed101', 'start': ((0, 0), (7, 6)), 'premise_no_learner': True, 'premise_party_room': True, 'party': ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']}
+[setup] set Poké Balls to 20 — read back from the save block: ball pocket = Poké Ball x20, Premier Ball x3, Great Ball x1
+[r101hunt] BATTLE f2977204 phase=walk sp=Wurmple strategy=StoryDexCatchStrategy fence='dex catch #265 (joins the party)'
+[r101hunt] R arm = 'healed101'
+[r101hunt] R arrival_frames_to_exit = 1
+[r101hunt] R exit = 'BotModeError: Hunted for a Surf learner but never caught one (timeout/balls).'
+[r101hunt] R hunt_from = ((0, 16), (12, 10))
+[r101hunt] R nav_calls = [('ROUTE103', (5, 7))]
+[r101hunt] R party = ['Shedinja#42207D6F', 'Blaziken#341D550A', 'Mightyena#3BDA9D98', 'Ninjask#42207D6F', 'Loudred#B2768B68']
+[r101hunt] R party_after_walk = 5
+[r101hunt] R party_at_hunt_start = 5
+[r101hunt] R premise_healthy = True
+[r101hunt] R premise_healthy_at_hunt_start = True
+[r101hunt] R premise_indoor = False
+[r101hunt] R premise_no_learner = True
+[r101hunt] R premise_party_room = True
+[r101hunt] R spin_battles = 0
+[r101hunt] R spin_frames = 1
+[r101hunt] R spin_tile = (((0, 18), (5, 7)), 'Tall Grass', True)
+[r101hunt] R start = ((0, 0), (7, 6))
+[r101hunt] R walk_battles = [(2977204, 'walk', 'Wurmple', 'StoryDexCatchStrategy', 'dex catch #265 (joins the party)')]
+[r101hunt] R walk_catch_strategies = [(2977204, 'walk', 'Wurmple', 'StoryDexCatchStrategy', 'dex catch #265 (joins the party)')]
+[r101hunt] R walk_joins = ['Wurmple#6E8805CD']
+[r101hunt] R walk_marker = [False]
+[r101hunt] R whiteouts = 0
+[r101hunt] VERDICT {'premise_no_learner': True, 'premise_party_room': True, 'premise_indoor': None, 'ground': ('ROUTE103', (5, 7)), 'spin_tile_type': 'Tall Grass', 'spin_tile_encounters': True, 'spin_battles': 0, 'spin_bound_hit': False, 'exit': 'BotModeError: Hunted for a Surf learner but never caught one (timeout/balls).', 'failure': None, 'premise_healthy': True, 'walk_battles': 1, 'walk_catch_strategies': 1, 'walk_joins': ['Wurmple#6E8805CD'], 'party_after_walk': 5, 'walk_marker': [False]}

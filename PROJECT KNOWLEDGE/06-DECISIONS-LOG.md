@@ -7981,3 +7981,22 @@ when the target is above 4. The spec's defensive egg bound is not built.
   applies to every dex catch, and a join is no less discretionary than a box catch.
 - Seeding the bot's organic RNG in production to make drives replayable: the randomness is deliberate ("organic"). The
   harness is seeded from outside instead (a `runpy` wrapper), for the A/B only.
+## 2026-09-28 — `#27-enroutejoin`: refuse a PARTY JOIN while a hunt walks, rather than re-reading the party on arrival or arming before the walk
+
+**Decision:** `early_game.hunt_walk(walk)` marks each HM or counter hunt's walk (the mart trip and `_navigate_riding_out`).
+`decide_dex_catch` refuses a catch when `hunt_walking and open_fence and party < 6`. Flag OFF and the full-party box
+path never reach that refusal.
+**Why:**
+- It removes the cause (a party that changes under a hunt's plan) at the one place the audit found it can change, for
+  BOTH hunts at once.
+- It is invisible to flag OFF, which is every real run today.
+- It restores exactly what flag OFF already does on the walk: no party join there. So opening the fence costs a hunt
+  nothing it had before.
+**Rejected:**
+- **Re-reading the party on arrival in `ensure_hm_learner`.** A 5 → 6 join still leaves the HM catch branch refusing
+  the target (`len(party) < 6`), so the hunt spins to its deadline instead. It also fixes nothing in `counter_hunt`
+  (the counter still goes to the box).
+- **An identity-based stop condition:** the same 5 → 6 problem.
+- **Arming each hunt before its walk:** catch-on-sight would then fire during the walk. That changes the ordinary
+  hunt's behaviour and the counter hunt's snapshot semantics, which is a larger change than this defect needs.
+- **Refusing only the hunt's own target species on the walk:** any new member breaks the HM hunt's count.

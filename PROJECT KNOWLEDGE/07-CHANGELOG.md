@@ -36690,3 +36690,30 @@ Two disclosed misses: the "deterministic replay" premise (the bot's `_prepare_fo
 also fired at a FULL party passed. It now requires equality, and the reviewer's mutant fails it. A separate audit found
 `#27-enroutejoin` (filed): with the flag on, a catch can join the party during an HM or counter hunt's walk. It gates
 enabling the flag.
+## 2026-09-28 — `#27-enroutejoin`: WITH `POKEBOT_R20_OPENFENCE` ON, A CATCH CAN NO LONGER JOIN THE PARTY WHILE A HUNT WALKS TO ITS GROUND
+
+**WHY.** An audit of P2-b found that the HM-learner and counter hunts arm only on ARRIVAL, so the dex fence was open for
+their whole walk. With the flag on, a new species met there joined the party:
+- `ensure_hm_learner` compared its spin with the party count it took at ENTRY and raised "never caught one";
+- a counter could land in the box untrained.
+
+A batch-log count (a NOTE) found walk battles in 81–90% of 84 real hunts, and the triggering case in ~21–26%.
+**WHAT.**
+- `early_game.hunt_walk()` / `hunt_walk_active()`. The four walk calls in the two hunts are wrapped.
+- `decide_dex_catch(..., hunt_walking=False)` refuses a PARTY JOIN while a hunt walks. Flag OFF and a full party are
+  unchanged.
+- Fault arm `POKEBOT_ENROUTE_FAULT_NOWALK`.
+- NEW gate `probe_hunt_walk.py` (W1-W4, A1-A3, F1-F5); `probe_dex_open_fence.py` gains O12/O12o/O12f (suite 123).
+- Driver `r101hunt` gains `R101_ARM=healed`/`healedindoor`/`healed101` and `R101_FENCE=real`, plus walk-phase readings.
+  Its party snapshot now keys identity by `(PID, species)`.
+**PROOF** (predictions `780e151a` and addendum `3a3728df`; `ai-research-notes/2026-09-28-enroutejoin-GRADED.md`):
+- **Skip-the-fix, reproduced live:** a Wurmple caught on the Route 101 walk filled the party, the spin ran 0 battles,
+  and the hunt raised "never caught one".
+- **Fixed:** the same battle was refused and the hunt caught its Zigzagoon.
+- **Unchanged:** flag OFF, and the ordinary hunts and a 480,000-frame story replay.
+- **Three disclosed misses:**
+  - "walk battles are rare";
+  - a PID-collision instrument artifact read as "the heal deposited one";
+  - a harness line 13 frames later, after the hand-off to Manual.
+- `fix_doc_citations.py` skipped a line that cites the same stale location twice. It was repaired by hand.
+**Review:** REVIEW_RESULT.
