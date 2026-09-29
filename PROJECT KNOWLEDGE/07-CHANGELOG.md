@@ -36960,3 +36960,21 @@ twice and every pair is identical.
 - ALLORDINARY refuses both of those.
 - RAISE still heals, with FAIL_OPEN lines.
 - The spec's stale Live A reading was re-measured before the code.
+
+## 2026-09-29 — RULING 27 / design v2 step 6 (KB) REVIEWED: all three lenses PASS; the refusals' cost recorded (`#26-organiccatch`)
+
+- **The review ran as a three-lens workflow; all three PASS.**
+  - The code reviewer re-ran all six pinned gates and checked that OFF does zero reads, that the cache is per battle
+    (a fresh strategy at every construction site, `_watched_strategy` caches only the class), and that no local import
+    was added.
+  - The evidence checker re-derived the grades from the raw logs.
+  - Tier 1 checked the doc pairs.
+- **Should-fix, taken.** The graded note now records what the pre-registration said would be "recorded, not
+  predicted":
+  - A-ON's lead fainted right after the refused heal. The battle was still won, at the same payout.
+  - B1-ORD LOST to Sidney without items, where ON and M0 won ₽4,900.
+- **Nits, taken:**
+  - the "every pair identical" wording is scoped to the tracked lines;
+  - KI-112 gains the post-Manual stop-frame drift as evidence;
+  - 02's slow-gate count (13 → 14, a pre-existing drift);
+  - the GRADER header now says all `[BATTLE]` sub-kinds were compared.

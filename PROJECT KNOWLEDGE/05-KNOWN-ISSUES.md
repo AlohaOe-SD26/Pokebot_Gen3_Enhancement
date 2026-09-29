@@ -3156,3 +3156,7 @@ step 11, or a standalone item if it is wanted sooner.
 - A determinism probe: N identical seeded runs of one command, reporting the first divergence.
 - Then find the wall-clock input that reaches a frame decision, and make it frame-based.
 - Until then, graded A/Bs run the control at least TWICE, and a divergence is attributed only when it reproduces.
+**Further evidence (2026-09-29, RULING 27 KB):** three runs of one `ch24probe` command agree over every tracked line and
+every `[BATTLE]` line. After their shared `[MODE] Story -> Manual` drop, their `[RESUMED] after N frames` lines differ
+(1815, 1820 and 1806 frames). The same holds for two `magmahideout` runs (304 and 353). That points at wall-clock
+timing in the idle/recovery path; it is consistent with the watchdog candidate, and still NOT measured as the cause.

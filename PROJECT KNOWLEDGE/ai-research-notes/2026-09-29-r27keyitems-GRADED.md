@@ -2,8 +2,9 @@
 
 > Predictions: `2026-09-29-r27keyitems-PREDICTIONS.md` (`ccf218d1`, before the code). Code: `e1ddc4e7`. Evidence:
 > `tools/story-dev/evidence/2026-09-29-r27keyitems-*.txt`; `-GRADER.txt` compares each arm with its M0 over every
-> `[BATTLE]` line plus the identity, money and map lines. Every M0 and every OFF control was run TWICE (KI-112); every
-> pair is identical.
+> `[BATTLE]` line (all sub-kinds) plus the identity, money and map lines. Every M0 and every OFF control was run TWICE
+> (KI-112); every pair is identical OVER THOSE TRACKED LINES. The Live B pairs differ only after the `[MODE] Story ->
+> Manual` drop, in their stop/`[RESUMED]` frames: new KI-112 evidence, and after every graded decision.
 
 ## RESULTS — every prediction held
 
@@ -20,6 +21,20 @@
 **Stale spec reading, re-measured first.** The spec's Live A discriminator ("f3191012, 39/127, against Marcel") no
 longer occurs: Marcel's battle uses no item. The M0 pair found the real one, the Hyper Potion against Cooltrainer 767
 at f3196418. It was pre-registered before the code.
+
+## SEEN, NOT GRADED — what the refusals COST (one trajectory each; the predictions said "recorded, not predicted")
+
+- **A-ON: the lead fainted right after the refused heal.**
+  - At f3196418 Mightyena (30/127, paralysed) attacked with Take Down instead of healing.
+  - It fainted that turn, and the faint chooser sent Sceptile in at f3197359.
+  - The battle was still WON with the same payout (₽13,714 → ₽15,106, as in M0), where M0's Mightyena had stayed up.
+  - This is the price RULING 27 accepts in ordinary battles. Its frequency is the batch's question (step 14).
+- **B1-ORD: without items, the Sidney battle was LOST** (f4341868 `res=Lost`, ₽0). B1-ON, like M0, won it (₽4,900)
+  with the Full Heal and three Full Restores. This is the case for keeping items in key battles, the other half of
+  the ruling. One trajectory.
+- The single-run fault arms (B1-ORD, B2-ORD, A-RAISE) each diverge at the gate's own frame, after an identical
+  history, beside their `allow=` line. A KI-112 frame drift cannot produce that, so the attribution holds without a
+  replicate.
 
 ## FOUND ALONG THE WAY
 

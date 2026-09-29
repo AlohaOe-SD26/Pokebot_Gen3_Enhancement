@@ -1,4 +1,4 @@
-# RULING 27 / design v2 step 6 (KB) GRADER: each arm vs its M0 (Live A: main 7dcd69fd; Live B: the worktree with the harness identity helpers), every [BATTLE] line (TURN/ITEM/FAINT-CHOOSER) plus [TRAINER]/[MAP]/[MONEY]/[CATCH]; the one-frame (0,0) warp read excluded; [KEYBATTLE] listed per arm.
+# RULING 27 / design v2 step 6 (KB) GRADER: each arm vs its M0 (Live A: main 7dcd69fd; Live B: the worktree with the harness identity helpers), every [BATTLE] line (ALL sub-kinds: started, ended, TURN, ITEM, ITEM-FLOW, FAINT-CHOOSER) plus [TRAINER]/[MAP]/[MONEY]/[CATCH]; the one-frame (0,0) warp read excluded; [KEYBATTLE] listed per arm.
 
 == A-OFF-r1 vs M0-A: 205 vs 205 tracked lines to f3232443: IDENTICAL
    [KEYBATTLE] lines: 0   [TRAINER] starts: 8
