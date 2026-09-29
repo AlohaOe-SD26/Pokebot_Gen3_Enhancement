@@ -659,7 +659,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⚠ **TWO GOTCHAS FOR WHOEVER BUILDS IT:** `pc_trip.py:274-276` returns **True having deposited nothing** when the party is already under six (so two calls will not box two), and `find_dead_weight` sorts **ascending by level** (`team_policy.py:170-173`) so the caller **cannot name a victim**. Boxing two NAMED mōn needs a PID-addressed deposit on the same `interact_with_pc` primitive.
   ⛔ **BLOCKED ON A USER DECISION** — removing two Pokémon changes what the art piece shows, and no ruling permits it. Put both readings to the user with these numbers; do not pick.
   *(original filing follows)* — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
-  ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:16017`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
+  ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:16165`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
   **THE NUMBERS, ALL FROM OUR OWN TREE:** production's only story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`) — ⭐ **verified to be the ONLY one in the entire story tree** (`grep` over `modules/story/*.py` + `story_mode.py` returns exactly that one plus `ENDLESS_RESET_TARGET`, which is unrelated). And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).
   ⚠ **THAT CURVE IS SIMULATED, NOT MEASURED — and I wrote “the measured curve” here first and corrected it the same day.** `07-CHANGELOG.md:23285` says *“Simulated over 400 runs per configuration”*, and `04-HANDOFF.md` carries the standing caveat *“SIMULATION results, not drives — the model approximates the enemy AI and ignores crits/status; treat L62/L75 as ESTIMATES”*. ⭐ **Its TOP END is now corroborated by a real drive** — the 2026-09-17 tail probe beat Wallace at L75+ and cleared the game (one trajectory). ⇒ **“L75 clears” is simulated AND driven; “L47/L53 is hopeless” is simulated ONLY.** The conclusion survives either way: L47 against a break-even of L62 is a **15-level** gap, far outside any plausible error bar on a 400-run model.
   ⛔⛔ **THIS CORRECTS THE LAST SENTENCE OF A STANDING RULING, AND THAT IS WHERE A FUTURE AGENT WILL LOOK.** `06-DECISIONS-LOG.md` (2026-09-16, *“CORRECTION TO MY OWN WINNABILITY VERDICT”*) ends: *“the cheapest path to a winnable gauntlet is not more legs — it is **grinding past L62, toward ~L75** — and it is a capability we already shipped.”* ⇒ **That capability is shipped in the HARNESS, NOT in production.** `--driver ch24grind` is `Ch24GrindMode` in `tools/story-dev/story_harness.py`; nothing in `sandbox-pokebot/modules/story/` can climb above `TRAIN_TARGET = 47`. The ruling’s *conclusion* (grind to L62–75) is right; its *“already shipped”* is true only of the harness. ⚠ `06` is append-only, so that entry stands as written — **this item is the correction of record**, and a dated decisions-log entry is appended alongside it pointing here.
@@ -716,7 +716,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
      and refusing would be measuring the wrong quantity … ⇒ refuse any SINGLE mon whose grind is
      unaffordable”* — and the test is `worst = max(estimates.items(), …)`, one mon, one call.
      ⇒ **each step under the ceiling is legal; the guard was never the obstacle it looked like.**
-   * ⭐ **The shape exists:** `Ch24GrindMode` (`story_harness.py:16017-16136`) is a stepped loop of
+   * ⭐ **The shape exists:** `Ch24GrindMode` (`story_harness.py:16165-16284`) is a stepped loop of
      `train_for_victory_road(target=low+STEP)`, `STEP=2`, `MAX_STEPS=24`, `MAX_RETRIES=2`, a save-state
      checkpoint after EVERY step, and a refuse-to-spin break. Its checkpoint ladder
      `post_e4grind_L49 … L73 + FINAL` is **on disk** from 2026-09-17.
@@ -2126,7 +2126,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:2413`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:2428`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -2945,7 +2945,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:2413-2489`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:2428-2504`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.

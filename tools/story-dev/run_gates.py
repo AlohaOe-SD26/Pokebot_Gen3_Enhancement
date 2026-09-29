@@ -275,6 +275,8 @@ GATES: list[tuple[str, bool]] = [
     ("probe_dex_open_fence.py", False),
     # `#27-enroutejoin` — every HM/counter hunt WALK runs under `hunt_walk`, and the fence refuses a party join then.
     ("probe_hunt_walk.py", False),
+    # RULING 20 P2-c — before gym 1, an armed or walking hunt is checked before team building (flag, default OFF).
+    ("probe_hunt_first.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

@@ -1835,6 +1835,7 @@ def decide_dex_catch(
     expected_throws: "float | None" = None,
     open_fence: bool = False,
     hunt_walking: bool = False,
+    hunt_first: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1893,6 +1894,17 @@ def decide_dex_catch(
     # attempted; the caller passes its verdict straight through, so this function cannot drift from it.
     if resource_block:
         return False, resource_block
+
+    # ---- USER RULING 20 Phase 2 P2-c (2026-09-28): HUNT FIRST, flag `POKEBOT_R20_HUNTFIRST` (DEFAULT OFF) -----------
+    # The team-building branch below returns BEFORE the hunt-armed check further down, so before gym 1 a team catch was
+    # admitted while a counter hunt spun for its target — and `counter_hunt.catch_confirmed`'s party path is
+    # species-blind, so that catch ENDED the spin and the hunt "found nothing" (measured live: `--driver huntfirst`,
+    # `ai-research-notes/2026-09-28-r20P2c-PREDICTIONS.md`). With the flag, an armed or WALKING hunt (`#27-enroutejoin`)
+    # comes first. Before gym 1 only: after it, the checks below already refuse in this order.
+    if hunt_first and pre_badge1 and hunt_armed:
+        return False, "a catch-on-sight hunt is armed"
+    if hunt_first and pre_badge1 and hunt_walking:
+        return False, "a hunt is walking to its ground — a party join now would change the party it planned for"
 
     # ---- PRE-GYM-1: organic team building (user directive 2026-07-21) — UNCHANGED ------------------
     # ⛔ This branch must stay behaviourally identical. It is the ordinary case, it runs in every run,
@@ -2230,6 +2242,9 @@ class StoryMode(BotMode):
         # below six instead of being refused as runway (`decide_dex_catch(open_fence=...)`). DEFAULT OFF for the same
         # `#24-partycap` reason as the target above. Read PER RUN, like the target, so one process cannot mix two policies.
         self._open_fence = _os_team6.environ.get("POKEBOT_R20_OPENFENCE") == "1"
+        # ⭐ USER RULING 20 Phase 2 P2-c (2026-09-28): `POKEBOT_R20_HUNTFIRST=1` puts an armed or walking hunt BEFORE the
+        # pre-gym-1 team-building branch (`decide_dex_catch(hunt_first=...)`). DEFAULT OFF; read per run.
+        self._hunt_first = _os_team6.environ.get("POKEBOT_R20_HUNTFIRST") == "1"
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
         # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
         # so the predicate that admitted it is TRUE again on the very next encounter and nothing else
@@ -2484,6 +2499,8 @@ class StoryMode(BotMode):
                 open_fence=self._open_fence,
                 # `#27-enroutejoin`: an HM/counter hunt is walking to its ground (it arms only on arrival).
                 hunt_walking=bool(_eg.hunt_walk_active()),
+                # RULING 20 P2-c: before gym 1, an armed or walking hunt comes before team building (flag, default OFF).
+                hunt_first=self._hunt_first,
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
