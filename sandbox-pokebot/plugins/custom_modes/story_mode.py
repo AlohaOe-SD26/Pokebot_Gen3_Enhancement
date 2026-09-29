@@ -124,6 +124,23 @@ class StoryDexCatchStrategy(StoryCatchStrategy):
         super().__init__()
         self._fainted_this_battle = False
         self.bail_reason = None
+        # ⭐ USER RULING 24 step 3 (C3): a dex catch started DURING swap-training keeps the trainee in slot 0. The
+        # inherited `choose_new_lead_after_battle` rotates when the lead has fainted, and `train_team` picks its trainee
+        # by SLOT, so a rotation would train the wrong mon (the KI-84 early exit in `slots={0}` grinds). The flag is
+        # the RUNNING mode's per-run value (one source); `train_team`'s own heal restores the fainted trainee.
+        try:
+            from modules.story.early_game import swap_train_active as _sta
+
+            self._keep_lead_in_training = bool(getattr(context.bot_mode_instance, "_r24_catchtrain", False)) and _sta()
+        except Exception:  # noqa: BLE001 - unreadable ⇒ the old behaviour (rotate as the parent decides)
+            self._keep_lead_in_training = False
+
+    def choose_new_lead_after_battle(self) -> int | None:
+        import os as _os_rot
+
+        if self._keep_lead_in_training and _os_rot.environ.get("POKEBOT_R24_FAULT_ROTATE") != "1":
+            return None
+        return super().choose_new_lead_after_battle()
 
     def should_flee_after_faint(self, battle_state) -> bool:
         import os as _os_bail
@@ -1837,6 +1854,7 @@ def decide_dex_catch(
     hunt_walking: bool = False,
     hunt_first: bool = False,
     lift_health: bool = False,
+    lift_training: bool = False,
 ) -> "tuple[bool, str]":
     """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
 
@@ -1957,12 +1975,15 @@ def decide_dex_catch(
 
     if lift_health and _os_r24.environ.get("POKEBOT_R24_FAULT_LIFTEARLY") == "1":
         return True, f"dex catch #{species_dex} (goes to the PC box)"
-    if training:
+    # ⭐ USER RULING 24 step 3 (2026-09-29): `lift_training` (flag `POKEBOT_R24_CATCHTRAIN`, DEFAULT OFF) skips THIS refusal
+    # only — "catching should always be available … even in training". The strategy then keeps the trainee in slot 0
+    # (`StoryDexCatchStrategy.choose_new_lead_after_battle`), so a faint in the catch cannot rotate a slot-based grind.
+    if training and not lift_training:
         # A catch earns ZERO exp, and `train_team` exists only to gain exp. Worse, `#24-ch23training`
         # is the top run-ender (16 of 49 = 32.7%) precisely because a grind exceeds its frame ceiling.
-        # ‼ And the no-progress watchdog counts OVERWORLD frames with unchanged party EXP
-        # (`early_game.py:202-218`), resetting ONLY on an EXP change — so catches lengthen the
-        # un-reset window without ever moving it.
+        # ‼ CORRECTED 2026-09-29: the no-progress watchdog (`early_game.py` `_story_spin`, ~:233-249) counts only
+        # OVERWORLD frames, so a catch battle's frames never tick it, and a PARTY JOIN changes the party's total EXP,
+        # which RESETS it. (This comment used to say catches lengthen the window "without ever moving it".)
         return False, "a training grind is in progress"
     if spare_balls <= DEX_CATCH_BALL_RESERVE:
         return False, f"only {spare_balls} spare balls — below the dex reserve of {DEX_CATCH_BALL_RESERVE}"
@@ -2260,6 +2281,10 @@ class StoryMode(BotMode):
         # post-gym-1 dex catch, and files a LOST dex catch battle in `_catch_defeat_counts` instead of the map's defeat
         # counters (C4 — `on_battle_ended`). DEFAULT OFF; read per run.
         self._r24_catchhurt = _os_team6.environ.get("POKEBOT_R24_CATCHHURT") == "1"
+        # ⭐ USER RULING 24 step 3 (2026-09-29): `POKEBOT_R24_CATCHTRAIN=1` lifts the "a training grind is in progress"
+        # refusal, and a dex catch started during swap-training keeps the trainee as lead. DEFAULT OFF; read per run.
+        self._r24_catchtrain = _os_team6.environ.get("POKEBOT_R24_CATCHTRAIN") == "1"
+        self._r24_trainee_check = None
         self._catch_defeat_counts: dict = {}
         # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
         # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
@@ -2544,6 +2569,8 @@ class StoryMode(BotMode):
                 hunt_first=self._hunt_first,
                 # RULING 24: after gym 1, a wanted species is caught even while the party is hurt (flag, default OFF).
                 lift_health=self._r24_catchhurt,
+                # RULING 24 step 3: after gym 1, a wanted species is caught even during a training grind (flag).
+                lift_training=self._r24_catchtrain,
             )
         except Exception as error:  # noqa: BLE001
             # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
@@ -3810,6 +3837,19 @@ class StoryMode(BotMode):
                     raise
 
     def on_battle_started(self, encounter):
+        # USER RULING 24 step 3 (flag `POKEBOT_R24_CATCHTRAIN` only): after a dex catch that started during swap-training,
+        # log WHO leads now — the action C3 guards (rule 7), read after any post-battle rotation has run.
+        if getattr(self, "_r24_trainee_check", None) is not None:
+            try:
+                from modules.pokemon_party import get_party as _gp_tr
+
+                _lead = next((m for m in _gp_tr() if m is not None), None)
+                _now = f"{_lead.species.name}#{_lead.personality_value:08X}" if _lead is not None else "?"
+                _log_story_event(f"trainee-after lead={_now} before={self._r24_trainee_check} "
+                                 f"same={_now == self._r24_trainee_check}", "CATCH")
+            except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
+                pass
+            self._r24_trainee_check = None
         # USER RULING 19: forget the previous battle's foe before this one's first turn, so a loss can never be
         # filed against a foe from an EARLIER battle. A plain write; it cannot affect the battle.
         try:
@@ -4117,6 +4157,20 @@ class StoryMode(BotMode):
                     _post_badge = bool(_gef_dexbail("BADGE01_GET"))
                 except Exception:  # noqa: BLE001 - unreadable ⇒ the plain strategy, exactly the pre-change behaviour
                     _post_badge = False
+                # USER RULING 24 step 3 (flag ON only; pre-gym-1 team catches start during train_team with it OFF):
+                # record the trainee in slot 0 when a dex catch starts during swap-training.
+                if _post_badge and getattr(self, "_r24_catchtrain", False):
+                    try:
+                        from modules.story.early_game import swap_train_active as _sta_tr
+
+                        if _sta_tr():
+                            _l0 = next((m for m in _gp_dex() if m is not None), None)
+                            if _l0 is not None:
+                                self._r24_trainee_check = f"{_l0.species.name}#{_l0.personality_value:08X}"
+                                _log_story_event(f"trainee lead={self._r24_trainee_check} (a dex catch during "
+                                                 f"swap-training)", "CATCH")
+                    except Exception:  # noqa: BLE001 - telemetry must never break the battle hook
+                        pass
                 _r20_catch_start(self, "dex" if _post_badge else "team", encounter, dex=dex)
                 return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()
         except Exception:

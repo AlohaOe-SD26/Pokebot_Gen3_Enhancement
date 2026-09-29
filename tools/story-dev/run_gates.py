@@ -279,6 +279,8 @@ GATES: list[tuple[str, bool]] = [
     ("probe_hunt_first.py", False),
     # USER RULING 24 step 2 — a hurt party no longer blocks a post-gym-1 dex catch; its loss is not a map defeat (flag).
     ("probe_dex_catch_anytime.py", False),
+    # USER RULING 24 step 3 — a training grind no longer blocks a post-gym-1 dex catch, and the trainee keeps the lead.
+    ("probe_dex_catch_training.py", False),
     # ⛔ `#26-healmap-lavaridge` — an unreachable training ground is remembered from where it was CHOSEN as well as
     # where the walk died (the old key never matched after an abandon: ROUTE111 (25,55) re-walked 19x in P1r7).
     ("probe_trainblock_origin.py", False),

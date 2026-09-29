@@ -15,9 +15,9 @@ side of KI-38** — the project's dominant battle hang — with FOUR unbounded `
 (`menuing.py:1021-1026`, `:1028`, `:1031`, plus `navigate_to_mon:525` / `navigate_to_lead:530`) and
 a `set_manual_mode()` trapdoor underneath (`menu_parsers.py:164-166` drops the bot to Manual on
 `slot_id == -1` **and still returns**, so the caller's loop keeps pressing while the run is already
-dead). ‼ `RotatePokemon(i, j)` with `j != 0` has **NEVER been driven** in this project: every story
-strategy returns `None` from `choose_new_lead_after_battle`, so the listener that would call it
-never fires. Building on it raw would be re-walking KI-38 in a new place.
+dead). ‼ `RotatePokemon(i, j)` with `j != 0` has **NEVER been driven** in this project. *(Corrected 2026-09-29: not
+every story strategy returns `None` from `choose_new_lead_after_battle` — the catch strategies inherit the default,
+which rotates when the lead has FAINTED; RULING 24 step 3 keeps the trainee during swap-training.)* Building on it raw would be re-walking KI-38 in a new place.
 
 So everything here is wrapped in the harness `_rotate_lead_safely` already proves in production
 (it runs every training round): refuse to open a menu while a field script is active, BOUND the
