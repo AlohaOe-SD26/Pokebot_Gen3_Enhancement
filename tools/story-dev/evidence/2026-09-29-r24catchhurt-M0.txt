@@ -1,0 +1,67 @@
+# RULING 24 step 2 MEASUREMENT M0 (observe-only; unchanged code 476c9958): storyresume on post_mtpyre.ss1 (80602159), --set-balls 30 --frames 120000, random.seed(1) via a runpy wrapper.
+# Predictions: ai-research-notes/2026-09-29-r24catchhurt-PREDICTIONS.md (this ran BEFORE it, as its measured discriminator).
+# Source: Story-debug-20260929-080647.log.
+## set-balls
+[setup] set Poké Balls to 30 — read back from the save block: ball pocket = Poké Ball x30, Premier Ball x1
+## extract
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+f3143385 [STEP] 'Story: leaving Mt. Pyre for the Magma Hideout...'
+f3144418 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3144418 [DEXFENCE] skip #353 Shuppet — party is not at full strength
+f3145949 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3146795 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3156846 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 17, 120), ('Swellow', 21, 112), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3168023 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 0, 120), ('Swellow', 11, 112), ('Skitty', 0, 45), ('Zigzagoon', 32, 32), ('Castform', 0, 100)]
+f3172378 [BATTLE] started hp=[('Mightyena', 124, 124), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3178965 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3178965 [DEXFENCE] CATCH #43 Oddish — dex catch #43 (goes to the PC box)
+f3178965 [CATCH] start kind=dex sp=Oddish#43 lv=26 attempt=1 badges=6 party=6/6 box=0 spare=31 exp_throws=3.0 map=0,36
+f3183853 [CATCH] end kind=dex sp=Oddish#43 end=caught res=Caught thrown=4 frames=4888 dest=box pid=1251A575 party=6/6 box=1 spare=27 badges=6 bail=-
+f3184504 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3189301 [BATTLE] started hp=[('Mightyena', 89, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3195397 [BATTLE] started hp=[('Mightyena', 30, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3203108 [STORY] WHITEOUT recovery #1 at (0, 5)
+f3203109 [STEP] 'Story: teaching Strength to Mightyena...'
+f3203153 [STEP] 'Story: healing at LILYCOVE_CITY before the Magma Hideout haul...'
+f3204852 [STEP] 'Story: teaching Strength to Mightyena...'
+f3206728 [STORY] TEACH EXIT reason=ride:learned stall_peak=172 post_select=replace-prompt move=Strength slot=0 replace_slot=1 frame=490 tasks=['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'] learn_state=LearnMoveState.DialogueNotActive moves=['Tackle', 'Strength', 'Take Down', 'Bite']
+f3206758 [STORY] TEACH OK Mightyena learned Strength ride_frames=490 ride_exit=learned stall_peak=172 post_select=replace-prompt close_frames=0
+f3206759 [STEP] 'Story: healing at MAUVILLE_CITY before the Magma Hideout haul...'
+f3207367 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3209384 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3215934 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3215934 [DEXFENCE] skip #264 Linoone — party is not at full strength
+f3221655 [STEP] 'Story: topping up at Lavaridge before the mountain...'
+f3222227 [STEP] 'Story: clearing the way — Rock Smash obstacle at (18, 101) — stand (18, 102) facing Up (EventScript_RockSmash)'
+f3224245 [STEP] 'Story: riding the cable car up to Mt. Chimney...'
+f3225772 [STEP] 'Story: descending into Jagged Pass...'
+f3226721 [STEP] 'Story: walking to the Magma Hideout door...'
+f3226840 [STEP] 'Story: entering the Magma Hideout...'
+f3227024 [STEP] 'Story: inside the Magma Hideout (1F).'
+f3227137 [STEP] 'Story: switching on Strength...'
+f3227929 [STEP] 'Story: pushed the boulder (6, 23) -> (5, 23).'
+f3228009 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_1F to MAGMA_HIDEOUT_2F_1R...'
+f3228351 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3228351 [DEXFENCE] CATCH #74 Geodude — dex catch #74 (goes to the PC box)
+f3228351 [CATCH] start kind=dex sp=Geodude#74 lv=28 attempt=1 badges=6 party=6/6 box=1 spare=27 exp_throws=3.0 map=24,86
+f3230561 [CATCH] end kind=dex sp=Geodude#74 end=caught res=Caught thrown=1 frames=2210 dest=box pid=14509729 party=6/6 box=2 spare=26 badges=6 bail=-
+f3231535 [BATTLE] started hp=[('Mightyena', 127, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3233881 [BATTLE] started hp=[('Mightyena', 116, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3233881 [DEXFENCE] skip #75 Graveler — party is not at full strength
+f3235918 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_2F_1R to MAGMA_HIDEOUT_3F_1R...'
+f3236614 [BATTLE] started hp=[('Mightyena', 110, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3239462 [BATTLE] started hp=[('Mightyena', 92, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3242765 [BATTLE] started hp=[('Mightyena', 77, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3244376 [STEP] 'Story: Magma Hideout - MAGMA_HIDEOUT_3F_1R to MAGMA_HIDEOUT_4F...'
+f3245068 [BATTLE] started hp=[('Mightyena', 77, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3247335 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3248917 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3251256 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3253481 [STEP] 'Story: Magma Hideout 4F - challenging Maxie (Mightyena 37 / Crobat 38 / Camerupt 39)...'
+f3254005 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3254005 [DEXFENCE] skip #324 Torkoal — party is not at full strength
+f3255682 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3258696 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
+f3261614 [BATTLE] started hp=[('Mightyena', 62, 130), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 100, 100)]
