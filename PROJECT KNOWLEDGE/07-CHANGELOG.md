@@ -36825,3 +36825,20 @@ pre-registered:
   (owned) Zubat, and the fault arm replays the unpreset run exactly.
 **Caught by the suite, before the drives:** the first version's `self._dex_catch_commit` raised in every shim-driven
 battle hook (`repro_ki65_unbound_party_index.py`). It was fixed by the class call, plus S11/F5 (08).
+
+## 2026-09-29 — RULING 24 step 4 REVIEWED: KICK-BACK on the resume pointers only; fixed; design v2 filed (`#26-organiccatch`)
+
+- **Review.** The adversarial reviewer independently re-derived the AST identity, traced both call sites, re-ran the
+  gates (suite 126/127; the red one is `preflight`, the unpushed branch), and diffed the raw M0 and G-OFF logs itself
+  (268 lines each, 0 differing). The ONE blocker was documentary: four resume pointers still said "the next item to
+  BUILD is design step 4". Those are 04's banner, 04's `➡➡➡ START HERE` line (twice) and 03's `#26-organiccatch`.
+  All four now mark step 4 done and point at design step 5 (`POKEBOT_R24_NOFAINTBAIL`). 04's merged-branches list
+  gains step 4, and the banner and START HERE dates move to 2026-09-29.
+- **Correction to the step-4 entry above:** the gate is S1-S11, **A1-A4, F1-F6**. A4 (both calls go through the class)
+  and F6 (the ON-site mutant) were added at the §0b pre-review self-check (`639b13ba`), after that entry was written;
+  a missing mutation anchor now fails explicitly.
+- **Design v2 filed:** `ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md` (a NOTE). Two adversarial rounds with quotes.
+  Round 2 reverted a claim that rare species throw past the 10-ball reserve (06:4881 "MUST STAY SO"; 06:8095 is silent
+  on the reserve) and reinstated it as an open user question. It also stopped re-asking the ≤4% rare cut, which the user
+  deferred to the notes, and removed an agent table row credited as the user's words. The orchestrator added that
+  archive:6149's second half (`OR warp_depth >= 3`) is replaced by the pseudo-rare rule, not silently dropped.
