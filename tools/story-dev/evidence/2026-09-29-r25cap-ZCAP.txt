@@ -1,0 +1,64 @@
+# design v2 step 8 (RC) arm ZCAP on be5ba33d (branch wt/r25cap). The M0 command (evidence/2026-09-29-r25cap-M0.txt) plus: STORYRESUME_PRESET_ATTEMPTS=41=2 POKEBOT_R25_CAP=1 (--frames 62000)
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r25cap-PREDICTIONS.md (0bfc275e). Frames are DEBUG-LOG frames (harness + 139,500).
+# stdout [HARNESS] lines:
+#   [HARNESS] STORYRESUME_PRESET_DEFEATS applied: _defeat_counts={(24, 7): 3}
+#   [HARNESS] STORYRESUME_PRESET_ATTEMPTS applied: _dex_catch_attempts={41: 2}
+# tracked lines:
+f139973 [MAP] RUSTBORO CITY(11,3) -> RUSTBORO CITY(0,3) pos=(5, 19)
+f141583 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144398 [MAP] ROUTE 116(0,31) -> ROUTE 116(0,3) pos=(15, 7)
+f144399 [MAP] ROUTE 116(0,3) -> ROUTE 116(0,31) pos=(15, 7)
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is not at full strength
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160848 [MAP] ROUTE 116(0,31) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f166018 [MAP] RUSTURF TUNNEL(24,4) -> ROUTE 116(0,31) pos=(4, 10)
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is not at full strength
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f168226 [MAP] ROUTE 116(0,31) -> RUSTBORO CITY(0,3) pos=(-1, 8)
+f169144 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,2) pos=(30, 12)
+f173866 [MAP] RUSTBORO CITY(11,2) -> RUSTBORO CITY(11,1) pos=(2, 1)
+f174160 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+f174475 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+f174940 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,5) pos=(16, 38)
+f176275 [MAP] RUSTBORO CITY(11,5) -> RUSTBORO CITY(0,3) pos=(7, 8)
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f184993 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f188817 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f189563 [MAP] ROUTE 104(0,19) -> PETALBURG WOODS(24,11) pos=(11, 30)
+f190110 [MAP] PETALBURG WOODS(24,11) -> ROUTE 104(0,19) pos=(17, 38)
+f190441 [MAP] ROUTE 104(0,19) -> ROUTE 104(17,0) pos=(17, 50)
+f190444 [MAP] ROUTE 104(17,0) -> ROUTE 104(30,0) pos=(17, 50)
+f190445 [MAP] ROUTE 104(30,0) -> ROUTE 104(17,0) pos=(17, 50)
+f192556 [MAP] ROUTE 104(17,0) -> ROUTE 104(0,19) pos=(6, 2)
+f192926 [MAP] ROUTE 104(0,19) -> ROUTE 105(0,20) pos=(22, 80)
+f194774 [MAP] ROUTE 105(0,20) -> ROUTE 106(0,21) pos=(22, 80)
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f199649 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f199915 [MAP] ROUTE 106(0,21) -> GRANITE CAVE(24,7) pos=(48, 16)
+f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+f200242 [DEXCATCH] [DEXCATCH] attempt #3 on Zubat (#41) -> party
+f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=3 badges=1 party=1/6 box=0 spare=62 exp_throws=2.2 map=24,7

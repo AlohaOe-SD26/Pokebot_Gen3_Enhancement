@@ -8326,3 +8326,33 @@ unverifiable, when it is two lines from exact.
 - Keying by the internal index (Skitty 300 is internal 315).
 - Believing the verifier's flood as the citation after its pre-registered control failed (R3). It is supporting
   evidence only.
+
+## 2026-09-29 — RULING 25 / design v2 step 8 (RC): the cap of 3 and the rare exemption, through two pure helpers, asking about `encounter.pokemon` (`#26-organiccatch`)
+
+**Decision:**
+- `POKEBOT_R25_CAP` gives an ordinary species 3 attempts per run. `POKEBOT_R25_RARE` exempts a RARE target from the
+  attempt cap and the expected-throws refusal. Both are DEFAULT OFF and read per run.
+- The inputs come from two module-level PURE helpers:
+  - `r25_rarity_verdict(rare_on, rarity_fn, pokemon)` returns None when off (no read); a raising reader gives a
+    not-rare verdict with a note.
+  - `r25_catch_inputs(cap_on, verdict)` returns the two fence inputs.
+  - They are passed to `decide_dex_catch` unchanged via `**`.
+- The adapter asks about `getattr(encounter, "pokemon", None)`.
+- The 10-ball reserve and every other gate are untouched.
+**Why:**
+- RULING 25: *"a cap of 3; a wanted rare species is never given up on"*.
+- The helpers are split (the spec had one) so that the verdict is computed ONCE, and its note can be logged on
+  `[DEXFENCE]`, `[DEXCATCH]` and `[CATCH] start` without a second call site that could diverge.
+- The `.pokemon` wiring: the recon ran the spec's `rarity_fn(enc)` shape, and the EncounterInfo reads not-rare
+  silently. Live arm F shows exactly that.
+- The OFF cap is the constant `DEX_CATCH_MAX_ATTEMPTS`, so OFF cannot drift from the fence's own default.
+- The reserve is not lifted, because Q8 is open and the record keeps the reserve separate for the mandatory hunts
+  (06:4881).
+**Rejected:**
+- The spec's single helper taking the encounter.
+- A literal 2 for the OFF cap.
+- Logging the verdict by recomputing it in `_dex_catch_commit`.
+- Changing `_r20_catch_start`'s signature (a gate stub pins it).
+- A pure-only proof: a ~15-line harness lever made the live A/B possible.
+**Accepted consequence (recorded; diagnosed, not re-litigated):** a trapped rare target can re-enter the
+throw-into-reserve path more often than the old cap of 2 allowed (the graded note).

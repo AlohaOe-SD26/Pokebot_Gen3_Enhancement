@@ -37026,3 +37026,21 @@ twice and every pair is identical.
   - 01 gains the rarity and trainer-identity components.
   - 04's stale "build B" order now points at v2.
   - 08 and the playbook bullets are corrected (a control must be able to fail).
+
+## 2026-09-29 — USER RULING 25 / DESIGN v2 STEP 8 (RC): THE CAP OF 3 (`POKEBOT_R25_CAP`) AND THE RARE EXEMPTION (`POKEBOT_R25_RARE`), BOTH DEFAULT OFF (`#26-organiccatch`)
+
+**WHY.** RULING 25: a cap of 3 per species per run; no cap for a wanted rare species.
+**WHAT** (predictions + M0 `0bfc275e`, code `be5ba33d`):
+- `r25_rarity_verdict` / `r25_catch_inputs`: pure helpers, asking about `encounter.pokemon`.
+- `decide_dex_catch(max_attempts, rare)`.
+- The per-run flags; the flag-ON ` rare= tier= note=` suffix on three log lines.
+- The fault arm `POKEBOT_R25_FAULT_RAREWRAPPER`.
+- The harness-only lever `STORYRESUME_PRESET_ATTEMPTS`.
+- NEW gate `probe_r25_catch_cap.py` (suite 132): K1-K10, A1-A6, 7 mutants with exact red sets, and N1.
+**PROOF** (`ai-research-notes/2026-09-29-r25cap-GRADED.md`), on the graded female-Abra trajectory; every prediction
+held:
+- M0 ×2 and OFF ×2 are identical (90/90).
+- A refuses at 2; B admits #3 with CAP; C refuses at 3; D admits #4 with RARE (`rare=variant tier=ULTRA`); E admits
+  with RARE only.
+- F (the wrapper fault) refuses with `note=adapter_error`.
+- The Zubat controls: CAP admits #3, and RARE gives an ordinary species nothing.

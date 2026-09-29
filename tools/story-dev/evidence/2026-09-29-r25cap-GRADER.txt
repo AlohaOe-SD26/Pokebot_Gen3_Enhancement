@@ -1,0 +1,259 @@
+# design v2 step 8 (RC) GRADER: scratchpad r25_grade_arms.py over the arms' debug logs (committed below verbatim), against M0-r1.
+
+=== OFF-r1: PASS — 90 vs M0 90 tracked lines, IDENTICAL, suffix absent
+
+=== OFF-r2: PASS — 90 vs M0 90 tracked lines, IDENTICAL, suffix absent
+
+=== A: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 2x this run
+  ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 2x this run
+
+=== LEVERTYPO: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: False (want False)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+  AT  f212439 [DEXCATCH] [DEXCATCH] attempt #1 on Abra (#63) -> party
+  AT  f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=1 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10
+  ok   want: f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+  ok   want: f212439 [DEXCATCH] [DEXCATCH] attempt #1 on Abra (#63) -> party
+
+=== B: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+  AT  f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party
+  AT  f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=3 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10
+  ok   want: f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)
+  ok   want: f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party
+
+=== C: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run
+  ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run
+
+=== D: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines, suffix stripped)
+  suffix: present on all 11 pre-discriminator catch lines -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party) rare=variant tier=ULTRA note=-
+  AT  f212439 [DEXCATCH] [DEXCATCH] attempt #4 on Abra (#63) -> party rare=variant tier=ULTRA note=-
+  AT  f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=4 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10 rare=variant tier=ULTRA note=-
+  ok   want: f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party) rare=variant tier=ULTRA note=-
+  ok   want: f212439 [DEXCATCH] [DEXCATCH] attempt #4 on Abra (#63) -> party rare=variant tier=ULTRA note=-
+
+=== E: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines, suffix stripped)
+  suffix: present on all 11 pre-discriminator catch lines -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party) rare=variant tier=ULTRA note=-
+  AT  f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party rare=variant tier=ULTRA note=-
+  AT  f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=3 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10 rare=variant tier=ULTRA note=-
+  ok   want: f212439 [DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party) rare=variant tier=ULTRA note=-
+  ok   want: f212439 [DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party rare=variant tier=ULTRA note=-
+
+=== F: PASS
+  prefix vs M0 before f212439: identical (79 vs 79 lines, suffix stripped)
+  suffix: present on all 11 pre-discriminator catch lines -> ok
+  preset applied line: True (want True)
+  AT  f212439 [BATTLE] started hp=[('Marshtomp', 58, 58), ('Zubat', 23, 23), ('Geodude', 22, 22), ('Aron', 35, 35)]
+  AT  f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run rare=- tier=- note=adapter_error:AttributeError
+  ok   want: f212439 [DEXFENCE] skip #63 Abra — already attempted #63 3x this run rare=- tier=- note=adapter_error:AttributeError
+
+=== ZOFF: PASS
+  prefix vs M0 before f200242: identical (54 vs 54 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: True (want True)
+  AT  f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+  AT  f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run
+  ok   want: f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run
+
+=== ZCAP: PASS
+  prefix vs M0 before f200242: identical (54 vs 54 lines)
+  suffix: absent everywhere -> ok
+  preset applied line: True (want True)
+  AT  f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+  AT  f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+  AT  f200242 [DEXCATCH] [DEXCATCH] attempt #3 on Zubat (#41) -> party
+  AT  f200242 [CATCH] start kind=dex sp=Zubat#41 lv=7 attempt=3 badges=1 party=1/6 box=0 spare=62 exp_throws=2.2 map=24,7
+  ok   want: f200242 [DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)
+  ok   want: f200242 [DEXCATCH] [DEXCATCH] attempt #3 on Zubat (#41) -> party
+
+=== ZRARE: PASS
+  prefix vs M0 before f200242: identical (54 vs 54 lines, suffix stripped)
+  suffix: present on all 2 pre-discriminator catch lines -> ok
+  preset applied line: True (want True)
+  AT  f200242 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+  AT  f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run rare=- tier=- note=-
+  ok   want: f200242 [DEXFENCE] skip #41 Zubat — already attempted #41 2x this run rare=- tier=- note=-
+
+=== D [CATCH] start: PASS — ['f212439 [CATCH] start kind=dex sp=Abra#63 lv=8 attempt=4 badges=1 party=4/6 box=0 spare=57 exp_throws=3.6 map=24,10 rare=variant tier=ULTRA note=-']
+
+GRADE: ALL PASS
+
+# ---- r25_grade.py (the tracked-line extractor) ----
+"""design v2 step 8 (RC) grader: extract the tracked lines from a Story-debug log, and compare two logs.
+
+Tracked: [DEXFENCE], [DEXCATCH], [CATCH], [BATTLE] started/ended, [MAP] (minus the one-frame (0,0) and (255,255) warp reads), WHITEOUT.
+Usage: r25_grade.py extract <debug.log> [max_frame]        -> prints the tracked lines
+       r25_grade.py compare <a.log> <b.log> [max_frame]     -> first difference, or IDENTICAL with the count
+"""
+import re
+import sys
+
+KEEP = re.compile(r"\[(DEXFENCE|DEXCATCH|CATCH|MAP|KEYBATTLE)\]|\[BATTLE\] (started|ended)|WHITEOUT")
+FRAME = re.compile(r"^f(\d+) ")
+
+
+def tracked(path, max_frame=None):
+    out = []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            m = FRAME.match(line)
+            if not m or not KEEP.search(line):
+                continue
+            if max_frame is not None and int(m.group(1)) > max_frame:
+                break
+            if "[MAP]" in line and ("(0,0)" in line or "(255,255)" in line):
+                continue
+            out.append(line)
+    return out
+
+
+def main(argv):
+    cmd = argv[1]
+    if cmd == "extract":
+        mf = int(argv[3]) if len(argv) > 3 else None
+        for line in tracked(argv[2], mf):
+            print(line)
+        return 0
+    a, b = argv[2], argv[3]
+    mf = int(argv[4]) if len(argv) > 4 else None
+    la, lb = tracked(a, mf), tracked(b, mf)
+    for i, (x, y) in enumerate(zip(la, lb)):
+        if x != y:
+            print(f"FIRST DIFF at #{i} ({len(la)} vs {len(lb)} lines)\n    A: {x}\n    B: {y}")
+            return 1
+    if len(la) != len(lb):
+        print(f"PREFIX IDENTICAL, lengths differ: {len(la)} vs {len(lb)}")
+        return 1
+    print(f"IDENTICAL: {len(la)} of {len(la)} tracked lines" + (f" (<= f{mf})" if mf else ""))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+# ---- r25_grade_arms.py ----
+"""Grade the design v2 step 8 arms against the pre-registered predictions (2026-09-29-r25cap-PREDICTIONS.md).
+
+For every arm: (1) its tracked lines equal M0's up to the frame BEFORE its discriminator, with the flag-ON suffix
+` rare=… tier=… note=…` stripped for that comparison (and, with RARE on, every pre-discriminator [DEXFENCE]/[DEXCATCH]/
+[CATCH] start line must CARRY the suffix); (2) the lines AT the discriminator frame match the predicted text exactly.
+"""
+import re
+import sys
+
+sys.path.insert(0, r"C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad")
+from r25_grade import tracked  # noqa: E402
+
+L = "C:/Users/Ripto/AppData/Local/Temp/p2b/r25/logs/"
+SUFFIX = re.compile(r" rare=\S+ tier=\S+ note=\S+$")
+FR = re.compile(r"^f(\d+) ")
+ABRA, ZUBAT = 212439, 200242
+M0 = tracked(L + "M0-r1.debug.log")
+fails = []
+
+
+def at(lines, frame):
+    return [l for l in lines if int(FR.match(l).group(1)) == frame]
+
+
+def before(lines, frame):
+    return [l for l in lines if int(FR.match(l).group(1)) < frame]
+
+
+def grade(name, frame, want_at, rare_on=False, want_applied=True, stdout_need=None):
+    lines = tracked(L + f"{name}.debug.log")
+    out = open(f"C:/Users/Ripto/AppData/Local/Temp/p2b/r25/{name}.stdout.txt", encoding="utf-8", errors="replace").read()
+    pre_arm, pre_m0 = before(lines, frame), before(M0, frame)
+    stripped = [SUFFIX.sub("", l) for l in pre_arm]
+    prefix_ok = stripped == pre_m0
+    suff_lines = [l for l in pre_arm if re.search(r"\[(DEXFENCE|DEXCATCH)\]|\[CATCH\] start", l)]
+    suffix_ok = all(SUFFIX.search(l) for l in suff_lines) if rare_on else not any(SUFFIX.search(l) for l in lines)
+    got = at(lines, frame)
+    got_ok = [w in got for w in want_at]
+    applied = "STORYRESUME_PRESET_ATTEMPTS applied" in out
+    ok = prefix_ok and suffix_ok and all(got_ok) and applied == want_applied
+    print(f"\n=== {name}: {'PASS' if ok else 'FAIL'}")
+    print(f"  prefix vs M0 before f{frame}: {'identical' if prefix_ok else 'DIFFERENT'} ({len(pre_arm)} vs {len(pre_m0)} lines"
+          f"{', suffix stripped' if rare_on else ''})")
+    if not prefix_ok:
+        for a, b in zip(stripped, pre_m0):
+            if a != b:
+                print(f"    first diff:\n      arm: {a}\n      M0 : {b}")
+                break
+    print(f"  suffix: {'present on all ' + str(len(suff_lines)) + ' pre-discriminator catch lines' if rare_on else 'absent everywhere'}"
+          f" -> {'ok' if suffix_ok else 'WRONG'}")
+    print(f"  preset applied line: {applied} (want {want_applied})")
+    for line in got:
+        print(f"  AT  {line}")
+    for w, o in zip(want_at, got_ok):
+        print(f"  {'ok  ' if o else 'MISS'} want: {w}")
+    if not ok:
+        fails.append(name)
+
+
+# OFF controls: the whole run equals M0, with no suffix anywhere
+for name in ("OFF-r1", "OFF-r2"):
+    lines = tracked(L + f"{name}.debug.log")
+    ok = lines == M0 and not any(SUFFIX.search(l) for l in lines)
+    print(f"\n=== {name}: {'PASS' if ok else 'FAIL'} — {len(lines)} vs M0 {len(M0)} tracked lines, "
+          f"{'IDENTICAL' if lines == M0 else 'DIFFERENT'}, suffix {'absent' if not any(SUFFIX.search(l) for l in lines) else 'PRESENT'}")
+    if lines != M0:
+        for i, (a, b) in enumerate(zip(lines, M0)):
+            if a != b:
+                print(f"    first diff #{i}:\n      arm: {a}\n      M0 : {b}")
+                break
+    if not ok:
+        fails.append(name)
+
+F = "f212439 "
+grade("A", ABRA, [F + "[DEXFENCE] skip #63 Abra — already attempted #63 2x this run"])
+grade("LEVERTYPO", ABRA, [F + "[DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)",
+                          F + "[DEXCATCH] [DEXCATCH] attempt #1 on Abra (#63) -> party"], want_applied=False)
+grade("B", ABRA, [F + "[DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)",
+                  F + "[DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party"])
+grade("C", ABRA, [F + "[DEXFENCE] skip #63 Abra — already attempted #63 3x this run"])
+S = " rare=variant tier=ULTRA note=-"
+grade("D", ABRA, [F + "[DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)" + S,
+                  F + "[DEXCATCH] [DEXCATCH] attempt #4 on Abra (#63) -> party" + S], rare_on=True)
+grade("E", ABRA, [F + "[DEXFENCE] CATCH #63 Abra — dex catch #63 (joins the party)" + S,
+                  F + "[DEXCATCH] [DEXCATCH] attempt #3 on Abra (#63) -> party" + S], rare_on=True)
+grade("F", ABRA, [F + "[DEXFENCE] skip #63 Abra — already attempted #63 3x this run rare=- tier=- note=adapter_error:AttributeError"],
+      rare_on=True)
+Z = "f200242 "
+grade("ZOFF", ZUBAT, [Z + "[DEXFENCE] skip #41 Zubat — already attempted #41 2x this run"])
+grade("ZCAP", ZUBAT, [Z + "[DEXFENCE] CATCH #41 Zubat — dex catch #41 (joins the party)",
+                      Z + "[DEXCATCH] [DEXCATCH] attempt #3 on Zubat (#41) -> party"])
+grade("ZRARE", ZUBAT, [Z + "[DEXFENCE] skip #41 Zubat — already attempted #41 2x this run rare=- tier=- note=-"], rare_on=True)
+
+# D's [CATCH] start must carry attempt=4 and the suffix
+d_start = [l for l in at(tracked(L + "D.debug.log"), ABRA) if "[CATCH] start" in l]
+ok = len(d_start) == 1 and " attempt=4 " in d_start[0] and d_start[0].endswith(S)
+print(f"\n=== D [CATCH] start: {'PASS' if ok else 'FAIL'} — {d_start}")
+if not ok:
+    fails.append("D-start")
+print(f"\nGRADE: {'ALL PASS' if not fails else 'FAILED ' + ', '.join(fails)}")
