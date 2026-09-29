@@ -8196,3 +8196,51 @@ key battles."*
 - Clearing `_fainted_this_battle` in `decide_turn`: that is a second site for one rule.
 - Keying the telemetry on the fainted battler: during the send-in the "active battler" is already the NEXT mon, so the
   key would differ between the handler's two calls.
+
+## 2026-09-29 — READINGS OF THE RECORD that design v2 builds on (recorded so they are not re-derived or re-asked)
+
+These are READINGS of existing rulings, made by the design v2 synthesis and its two adversarial checks
+(`ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md`). They are not new user rulings. Each is reversible by the user.
+- **"Wanted"** = the 2026-07-31 ruling's INTENT (06:1181-1182: *"Catch every unseen species … Dex-complete intent"*).
+  - Its except/"cheap" clause is the GUARD, and parts of it are superseded: the boss-prep/grind parts (06:1202-1203) by
+    RULING 24 (06:8039-8040); the full-party skip (06:1200-1201) by the box path (06:4895-4901).
+  - The build's OPERATIONAL test is "`_should_catch` admits". The definitional "wanted" is used only for refusal
+    telemetry and metrics.
+- **The 10-ball dex reserve still applies to a wanted RARE species (the build default).**
+  - 06:8095 lifts only the attempt cap and the expected-throws refusal, and says nothing about the reserve.
+  - The reserve must stay a separate constant (06:4881) and exists for the mandatory hunts (06:7459-7460).
+  - Whether to throw past it is open question Q8 in the v2 note. Record the user's answer HERE when it comes.
+- **The Sootopolis (Juan) healing kit is not held back for a question.** RULING 26 (06:8075, *"no badge-6 or badge-7
+  stop"*), RULING 27 (06:8103, gym leaders) and RULING 18's reserve, which withholds only the League basket
+  (06:7391).
+- **An uncapped rare species may cost repeated whiteouts.**
+  - This consequence was shown to the user (v1 §5 Q5, `2026-09-28-r23-25-DESIGN.md:577-579`) and accepted ("No it
+    should continue to attempt to catch it", 06:8093-8095). There is NO reopen trigger.
+  - If an unattended run is seen looping on a rare species, *"this is the known cause and it is BY DESIGN — the fix is
+    a new ruling from the user, not a unilateral cap"* (the 06:5358-5359 wording, carried over).
+- **§Ch24 RULING 2's three clauses are all scoped "for §Ch24"** (06:5670-5671), and none is superseded. That the kit
+  reaches the Elite Four rests on RULING 26 (06:8072-8073, 06:8075).
+- **Rare = the archived rule's RATE half (`best_slot_rate <= 4%`, archive ~6149)**, because the user deferred "rare"
+  to the notes (06:8081).
+  - Its warp-depth half is REPLACED by the user's 2026-08-14 pseudo-rare reasoning (field-move gates + few locations;
+    open question Q6 in the v2 note for the exact cut).
+  - The warp-depth dataset itself now reproduces; see the next entry.
+
+## 2026-09-29 — `#24-rarepredicate`: the 2026-08-07 "the dataset does not reproduce" verdict is RETRACTED (two script defects)
+
+**Decision:**
+- The retraction: `rare_species_dataset.py` had two defects.
+  - It read `edge[1]`, a tile coordinate, as a warp's destination map (`warp_graph.py` `to_json` is
+    `[from_map, from_coords, to_map, to_coords]`).
+  - It seeded the underwater group-0 maps, (0,50)-(0,56) in `map_data.py`, at depth 0, under a false comment.
+- With both fixed, it reproduces EVERY number of the 2026-08-06 record: the histogram, 13 at depth ≥ 3, 26 RARE,
+  Bagon d3. Those numbers are now HARD, fault-tested checks in the script.
+- The 2026-08-06 entry ("Still standing … its dataset does not reproduce and its warp-depth rule fails Bagon"), 03 and
+  08 (2026-08-07) are CORRECTED by this entry. Old entries are not rewritten.
+- **Warp depth is still NOT adopted as the pseudo-rare rule**; see the entry above.
+**Why:**
+- Both fixes follow what the DATA IS (the edge layout, the map group), not what answer Bagon needed. Each fix alone
+  does NOT reproduce the record (fault arms, `evidence/2026-09-29-v2step0-rare-FAULT-*.txt`).
+- Verified by an independent agent (`ai-research-notes/2026-09-29-v2step0-VERIFY.md`) and re-run by the orchestrator.
+**Rejected:** leaving the verdict standing. Every later reader would keep believing the warp-depth dataset is
+unverifiable, when it is two lines from exact.

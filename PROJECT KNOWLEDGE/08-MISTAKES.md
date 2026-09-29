@@ -23022,3 +23022,32 @@ no-dedupe mutant F7.
 **Prevention:** ⛔ before claiming a per-EVENT count for a line logged from a hook, READ the caller for how often it
 invokes the hook, and gate it with the caller's real call pattern. If the old line on the same hook is deduped
 (`_announce_bail`), treat that as a signal that the hook repeats.
+
+## 2026-09-29 — ⛔ "THE DATASET DOES NOT REPRODUCE" WAS ITSELF A BUG: the reproducing script mis-parsed its input, and a comment in it was false
+
+**Symptom:** `#24-rarepredicate` was held "NOT READY" from 2026-08-07. The first script to compute the 2026-08-06
+rare-species dataset got d0=62 d1=36 d2=22 d3=11 d99=1 and Bagon d2. It concluded that the recorded figures were
+unverifiable prose (08, 2026-08-07: "A load-bearing dataset existed only as prose, and it does not reproduce").
+**Root cause:** the RECORD was right and the SCRIPT was wrong, twice.
+- `edge[1]` is a tile coordinate. The warp's destination map is `edge[2]`.
+- A comment said "Underwater maps are not group 0". They are: (0,50)-(0,56).
+- The resulting "bidirectional warps moved d99 from 34 to 1" sensitivity, written up as a property of the data, was
+  an artifact of the parse bug.
+**Fix:** both lines were corrected and the agreement made a hard, fault-tested check (design v2 step 0; 06, same date).
+**Prevention:**
+- ⛔ When a re-derivation disagrees with a record, audit the re-derivation's PARSE of its inputs against the producer's
+  own serializer (`to_json`) BEFORE concluding the record is wrong.
+- A disagreement is two claims, and the newer one is not the default winner.
+- And a comment that states a data fact ("X are not group 0") is a claim: check it against the table it describes.
+
+## 2026-09-29 — ⛔ A HAND-PICKED SUBSET OF TIER 0 LET A RED DOC GATE ONTO `main`
+
+**Symptom:** RULING 24 step 5's final doc commit (`8e633c10`, merged and pushed) added "This umbrella item STAYS
+OPEN" to `#26-organiccatch`. `probe_closed_item_refs.py` reads "stays OPEN" as a claim, and the same bullet names the
+CLOSED `#24-dexcatch-battlebail`, so the gate went red on `main`. It was found by the next item's Tier 0 run.
+**Root cause:** before that commit I re-ran five of the doc gates, the ones I expected the edit to touch, instead of the
+full Tier 0 set. The one I left out was the one that fired.
+**Fix:** reworded to "is left unchecked `[ ]` on purpose" (design v2 step 0's commit). Every doc commit now runs one
+FIXED Tier 0 script covering nine gates, never a chosen subset.
+**Prevention:** ⛔ Tier 0 is a SET, not a menu. Run all of it before every doc commit, including a "tiny" late edit.
+The late edit is exactly the one nobody re-reads.

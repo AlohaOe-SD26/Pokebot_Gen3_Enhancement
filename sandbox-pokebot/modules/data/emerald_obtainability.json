@@ -96,7 +96,7 @@
    "emerald_reachable": true,
    "automatable": true,
    "needs_user": false,
-   "note": "Route 111 — blocks the path; interact with the Wailmer Pail. NOTE: not in the bot's static_soft_resets seed (a gap to add)."
+   "note": "Battle Frontier (BattleFrontier_OutsideEast, the odd tree at (54,62)) — post-game (the ferry needs FLAG_SYS_GAME_CLEAR). Use the Wailmer Pail (Pretty Petal Flower Shop, Route 104) on it: a Lv 40 static battle. ONE-SHOT: win, run, teleport or catch all set FLAG_DEFEATED_SUDOWOODO. In no Emerald wild table. Bot: the dedicated Sudowoodo mode (modes/sudowoodo.py). Corrected 2026-09-29 (design v2 step 0) from a Gold/Silver 'Route 111' note."
   },
   "377": {
    "name": "Regirock",

@@ -3084,3 +3084,50 @@ THE SAME FRAME returned `012345`.
   move-replacing paths, so it needs an A/B on the ORDINARY case.
 - Or bypass the cache at those sites with a pure read that never writes the cache.
 ⛔ Ageing the cache entry is NOT a bypass: the setter still keeps the old object.
+
+## KI-109 — ⚠ OPEN (filed 2026-09-29; NOT fixed; UPSTREAM bug): Sonicboom and Psywave are scored as ~1-power moves, so every move picker passes them over for weaker attacks
+**Measured** (design v2 step 0; `ai-research-notes/2026-09-29-v2step0-VERIFY.md`, re-checked by the orchestrator):
+- `sandbox-pokebot/modules/battle_strategies/_util.py:218` checks `move.name == "Sonic Boom"`, and `:227` checks
+  `"Psy Wave"`.
+- The data spells them `"Sonicboom"` (`modules/data/moves.json:1718`) and `"Psywave"` (`:5218`), so neither
+  fixed-damage branch can match. Both fall through the normal formula as base-power-1 moves.
+- In the game Sonicboom always does 20, and Psywave does level × 0.5-1.5.
+- An agent's stand-in calculation: an L18 Voltorb vs Electrike picks Tackle (max 7) over Sonicboom (20).
+**Reach:** `calculate_move_damage_range` feeds `get_strongest_move_against`, which is used by:
+- the default, level-up, run-away and Story strategies;
+- the faint chooser's damage term;
+- `lose_on_purpose` (inverted there).
+Affected mons: Voltorb/Electrode, Magnemite/Magneton; Spoink/Grumpig, Lunatone/Solrock and Chimecho when they also
+know another damaging move.
+**Fix direction** (vehicle: design v2 step 11, M1 damage-calculator fidelity):
+- Match on `move.effect` (SONICBOOM, PSYWAVE, DRAGON_RAGE, SUPER_FANG, LEVEL_DAMAGE).
+- ‼ Keep type IMMUNITY: the fixed-damage returns (`:215-228`) come after the type multiply and ignore it. Seismic Toss
+  vs Ghost and Night Shade vs Normal already score 20, although the game's `typecalc` makes them miss. Correcting only
+  the two strings would make Psywave vs Dark and Sonicboom vs Ghost score full damage.
+- The upstream mirror and `custom-pokebot` carry the same code; a fix is a divergence to log.
+
+## KI-110 — ⚠ OPEN, DORMANT (filed 2026-09-29; NOT fixed; UPSTREAM bug): the damage calculator boosts OUR Sp. Def on the Rain Badge (8); the game does it on the Mind Badge (7)
+**Measured:**
+- `_util.py:342-343`: `if get_event_flag("BADGE08_GET") and defender_is_player: special_defence = …110%`.
+- The decomp `src/pokemon.c:3167`: `ShouldGetStatBadgeBoost(FLAG_BADGE07_GET, battlerIdDef)`. The Mind Badge boosts
+  both Sp. Atk and Sp. Def, the same in pokeruby and pokefirered.
+- The code also lacks `ShouldGetStatBadgeBoost`'s exceptions (`pokemon.c:3407-3419`): no badge boost in link,
+  e-Reader, recorded, Battle Frontier or Secret Base battles. So its live attacker-side boosts overstate our Atk and
+  Sp. Atk by 10% in the Frontier.
+**Reach today: none.** No caller computes damage aimed at our Pokémon (`defender_is_player` is never True). It
+matters only if an incoming-damage estimate is added, and then only between gyms 7 and 8.
+**Fix:** `BADGE08_GET` → `BADGE07_GET` at `:342`; optionally mirror the exceptions. Vehicle: v2 step 11.
+
+## KI-111 — ⚠ OPEN (filed 2026-09-29; NOT fixed; UPSTREAM bug): "Solar Beam" is misspelled (the game says "Solarbeam"), so the two-turn-move ban never catches it and its weather penalty never applies
+**Measured:**
+- `_util.py:508` checks `move.name == "Solar Beam"`; `moves.json:2663` says `"Solarbeam"`. So the rain, sandstorm and
+  hail halving never applies.
+- The same misspelling is in `profiles/battle.yml:31`, `modules/config/templates/battle.yml:31`, the schema default
+  (`schemas_v1.py:42`) and `pokemon_league.py:2469`'s fallback.
+- ⇒ **Solarbeam is NOT actually banned**, although the banned list names it as a two-turn move. An agent's sweep: of
+  the 38 banned entries, only "Solar Beam" and "None" are not real move names.
+**Reach:** any party Pokémon that knows Solarbeam (Grass lines) may pick it. That spends a charge turn, which the ban
+exists to prevent.
+**Fix:** spell it `Solarbeam` in the ban list, its template, the schema default and the fallback, and match
+`move.effect` (SOLAR_BEAM) in the weather check. The profile is the user's file, so a divergence to log. Vehicle: v2
+step 11, or a standalone item if it is wanted sooner.

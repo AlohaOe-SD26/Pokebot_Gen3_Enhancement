@@ -1,0 +1,17 @@
+# design v2 step 0: rare_species_dataset.py BEFORE the fix (HEAD 8e633c10). Exit 1: Bagon at depth 2; 23 RARE.
+species with encounters : 132
+warp-depth histogram    : {'d0': 62, 'd1': 36, 'd2': 22, 'd3': 11, 'd99': 1}
+rare by rate  (<=4%)    : 14
+rare by depth (>=3)     : 12
+RARE (either rule)      : 23
+
+VALIDATION — internal consistency only. See the DISAGREEMENT block below.
+  PASS  132 species carry wild encounters  — got 132
+  PASS  the histogram accounts for every species  — 132 vs 132
+  PASS  every species resolved to a finite-or-99 depth
+  PASS  the OR'd rule is the union of its two parts
+  FAIL  Bagon is selected — pseudo-rare via warp depth  — rate=25% depth=2
+  PASS  Skitty is selected — rare via rate  — rate=2% depth=0
+
+FAILED 1 check(s):
+  - Bagon is selected — pseudo-rare via warp depth

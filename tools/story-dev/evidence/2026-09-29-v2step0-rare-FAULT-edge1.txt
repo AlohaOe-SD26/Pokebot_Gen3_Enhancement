@@ -1,0 +1,25 @@
+# design v2 step 0 FAULT ARM: the fixed script with ONLY the 'edge1' fix reverted (a copy). Must FAIL the agreement checks.
+  PASS  the underwater group-0 maps are found by name (7 in Emerald)  — [(0, 50), (0, 51), (0, 52), (0, 53), (0, 54), (0, 55), (0, 56)]
+species with encounters : 132
+warp-depth histogram    : {'d0': 59, 'd1': 4, 'd2': 54, 'd3': 9, 'd4+': 2, 'd99': 4}
+rare by rate  (<=4%)    : 14
+rare by depth (>=3)     : 15
+RARE (either rule)      : 26
+
+VALIDATION — internal consistency, then AGREEMENT with the 2026-08-06 record (below).
+  PASS  132 species carry wild encounters  — got 132
+  PASS  the histogram accounts for every species  — 132 vs 132
+  PASS  every species resolved to a finite-or-99 depth
+  PASS  the OR'd rule is the union of its two parts
+  FAIL  Bagon is selected — pseudo-rare via warp depth  — rate=25% depth=2
+  PASS  Skitty is selected — rare via rate  — rate=2% depth=0
+
+AGREEMENT — recorded 2026-08-06 vs computed here (hard checks)
+  FAIL  the histogram matches the record  — recorded {'d0': 59, 'd1': 21, 'd2': 39, 'd3': 7, 'd4+': 3, 'd99': 3} computed {'d0': 59, 'd1': 4, 'd2': 54, 'd3': 9, 'd4+': 2, 'd99': 4}
+  FAIL  depth>=3 count matches the record  — recorded 13 computed 15
+  PASS  RARE total matches the record  — recorded 26 computed 26
+
+FAILED 3 check(s):
+  - Bagon is selected — pseudo-rare via warp depth
+  - the histogram matches the record
+  - depth>=3 count matches the record

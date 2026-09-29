@@ -72,7 +72,7 @@ Nothing restocks at the dex reserve.
 - **Prediction:** each `start kind=dex` has exactly one `end`. When the catch succeeds, `dest=box`, the PID is new in the box, and `box` rises by 1.
 - **Fault arm:** `POKEBOT_R20_FAULT_NOCATCHEND=1` suppresses M2. The grader must report "start without end".
 
-**B. Restock at the reserve (Phase 1 item 8). Flag `POKEBOT_R20_BALL_RESTOCK`, default 0.**
+**B. Restock at the reserve (Phase 1 item 8). Flag `POKEBOT_R20_BALL_RESTOCK`, default 0.** *(⚠ 2026-09-29, design v2 step 0: the flag is renamed `POKEBOT_R23_BALLRESTOCK`, and B is REPLACED by design v2 step 9, the best-ball top-off in bounded batches: `ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md`.)*
 - **The predicate:** a pure `ball_restock_plan(spare, badge7, center, money)`. It fires only when all of these hold:
   - spare ≤ 10 (`items.py:447-448`, Master Ball excluded);
   - not `BADGE07_GET`;

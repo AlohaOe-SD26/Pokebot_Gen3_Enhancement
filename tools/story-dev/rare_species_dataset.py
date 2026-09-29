@@ -71,17 +71,27 @@ for src, dsts in wg["connections"]:
         adj_free.setdefault(s, set()).add(tuple(d))
         adj_free.setdefault(tuple(d), set()).add(s)
 
-# ‼ WARPS ARE TRAVERSABLE BOTH WAYS. The cache stores each warp as a directed record, and a
-# door that is only recorded interior->exterior left 34 species "unreachable" on the first run
-# against a recorded d99 of 3. A door works in both directions; the graph's directedness is a
-# storage detail, not a game fact.
+# Warps are added in both directions (a door works both ways). ⚠ CORRECTED 2026-09-29 (design v2 step 0): the old
+# comment here said a directed graph left 34 species "unreachable"; that was an artifact of the edge-parse bug below.
+# With the correct destination, one-way and two-way warps give IDENTICAL per-species depths (verified 2026-09-29).
+# ⛔ FIXED 2026-09-29: an edge is `[from_map, from_coords, to_map, to_coords]` (`modules/warp_graph.py` `to_json`), so
+# the destination MAP is `edge[2]`. This read `edge[1]` — a TILE coordinate — as a map, which is why the 2026-08-07 run
+# "did not reproduce" the 2026-08-06 figures. A fix to what the data IS, not a tune toward Bagon's depth.
 for edge in wg["edges"]:
-    s, d = tuple(edge[0]), tuple(edge[1])
+    s, d = tuple(edge[0]), tuple(edge[2])
     adj_warp.setdefault(s, set()).add(d)
     adj_warp.setdefault(d, set()).add(s)
 
-# Seed: every group-0 map (the overworld: towns and routes). Underwater maps are not group 0.
-seeds = {tuple(m) for m, _region in wg["regions"] if m[0] == 0}
+# Seed: every NON-UNDERWATER group-0 map (the overworld: towns and routes), as the 2026-08-06 spec says.
+# ⛔ FIXED 2026-09-29: the old comment claimed "Underwater maps are not group 0" — false: `map_data.py` puts
+# UNDERWATER_ROUTE124/126/127/128/129/105/125 at (0,50)-(0,56). Seeding them at 0 made Dive-only species "d0".
+# The set is DERIVED from `MapRSE` by name (no hardcoded range), so a renumbered map cannot silently re-enter the seeds.
+sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+from modules.map_data import MapRSE  # noqa: E402
+
+UNDERWATER_G0 = {m.value for m in MapRSE if m.name.startswith("UNDERWATER_") and m.value[0] == 0}
+check("the underwater group-0 maps are found by name (7 in Emerald)", len(UNDERWATER_G0) == 7, str(sorted(UNDERWATER_G0)))
+seeds = {tuple(m) for m, _region in wg["regions"] if m[0] == 0 and tuple(m) not in UNDERWATER_G0}
 INF = 99
 depth: dict[tuple, int] = {}
 
@@ -147,7 +157,7 @@ print(f"rare by rate  (<=4%)    : {sum(r['rare_by_rate'] for r in rows)}")
 print(f"rare by depth (>=3)     : {sum(r['rare_by_depth'] for r in rows)}")
 print(f"RARE (either rule)      : {sum(r['rare'] for r in rows)}")
 print()
-print("VALIDATION — internal consistency only. See the DISAGREEMENT block below.")
+print("VALIDATION — internal consistency, then AGREEMENT with the 2026-08-06 record (below).")
 # --- INTERNAL CONSISTENCY (these are pass/fail) ---
 check("132 species carry wild encounters", len(rows) == 132, f"got {len(rows)}")
 check("the histogram accounts for every species", sum(hist.values()) == len(rows),
@@ -180,6 +190,32 @@ if args.json:
     pathlib.Path(args.json).write_text(json.dumps(rows, indent=1), encoding="utf-8")
     print(f"\nwrote {args.json}")
 
+# ============================================================================
+# ✅ AGREEMENT WITH THE FIGURES RECORDED 2026-08-06 (`28-HANDOFF-ARCHIVE.md`, the `#24-rarepredicate` spec)
+#
+# History: the 2026-08-07 run of this script "did not reproduce" them (d0=62 d1=36 d2=22 d3=11 d99=1; 23 RARE; Bagon
+# d2), and `03`/`06`/`08` recorded the dataset as unverified. That verdict rested on TWO defects in THIS script, both
+# fixed 2026-09-29 (design v2 step 0; verified by an independent agent and re-run by the orchestrator):
+#   1. `edge[1]` (a tile coordinate) was read as the warp's destination map; it is `edge[2]`.
+#   2. the underwater group-0 maps were seeded at depth 0 (a false comment said they are not group 0).
+# Each fix alone does NOT reproduce the record; both together reproduce every recorded number. These are now HARD
+# checks: a change that moves the numbers must be deliberate, and must update the record with it.
+# ⚠ Reproducing warp depth does NOT make it the pseudo-rare rule: design v2 step 7 uses the user's 2026-08-14 reasoning
+# (field-move gates + few locations, `03` `#24-rarepredicate`), and the rate half (<= 4%) of the archived rule.
+# ============================================================================
+RECORDED = {"d0": 59, "d1": 21, "d2": 39, "d3": 7, "d4+": 3, "d99": 3}
+RECORDED_DEPTH3 = 13
+RECORDED_RARE = 26
+
+print()
+print("AGREEMENT — recorded 2026-08-06 vs computed here (hard checks)")
+check("the histogram matches the record", dict(sorted(hist.items())) == dict(sorted(RECORDED.items())),
+      f"recorded {RECORDED} computed {dict(sorted(hist.items()))}")
+check("depth>=3 count matches the record", sum(r["rare_by_depth"] for r in rows) == RECORDED_DEPTH3,
+      f"recorded {RECORDED_DEPTH3} computed {sum(r['rare_by_depth'] for r in rows)}")
+check("RARE total matches the record", sum(r["rare"] for r in rows) == RECORDED_RARE,
+      f"recorded {RECORDED_RARE} computed {sum(r['rare'] for r in rows)}")
+
 print()
 if FAILURES:
     print(f"FAILED {len(FAILURES)} check(s):")
@@ -189,45 +225,3 @@ if FAILURES:
 print("ALL PASS")
 
 
-# ============================================================================
-# ‼‼ DISAGREEMENT WITH THE FIGURES RECORDED IN `03-PUNCH-LIST.md` (2026-08-06)
-#
-# Those figures are prose only: **no script that produces them exists in this repo** (checked
-# 2026-08-07 — this file is the first). They are described there as "independently reproduced",
-# but a number nobody can regenerate is not a verified number, and `#24-roster` is approved to
-# build ON this dataset.
-#
-# This derivation lands CLOSE but does not match the recorded shape, so the two disagree and I
-# cannot adjudicate them without the original method. **Do not treat either as verified.**
-# ============================================================================
-RECORDED = {"d0": 59, "d1": 21, "d2": 39, "d3": 7, "d4+": 3, "d99": 3}
-RECORDED_DEPTH3 = 13
-RECORDED_RARE = 26
-
-print()
-print("=" * 74)
-print("DISAGREEMENT — recorded (03-PUNCH-LIST 2026-08-06) vs computed here")
-print("=" * 74)
-print(f"  histogram recorded : {RECORDED}")
-print(f"  histogram computed : {dict(sorted(hist.items()))}")
-print(f"  depth>=3  recorded : {RECORDED_DEPTH3}      computed : {sum(r['rare_by_depth'] for r in rows)}")
-print(f"  RARE total recorded: {RECORDED_RARE}      computed : {sum(r['rare'] for r in rows)}")
-print()
-print("""  >> THE HEADLINE: Skitty REPRODUCES EXACTLY (rate 2%, depth 0 -> selected by the rate
-     rule). BAGON DOES NOT: this derivation puts it at **depth 2**, one short of the `>=3`
-     threshold that exists FOR ITS SAKE. So as computed here, the rule fails the very
-     example the user named when giving the ruling.
-
-     ‼ DO NOT TUNE THE BFS UNTIL BAGON COMES OUT AT 3. That is fitting the method to the
-     desired answer, and the punch list ALREADY predicted this exact fragility: "the cutoff
-     is fragile at the boundary — Meteor Falls' d2 rooms are ALSO Surf-gated in reality, so
-     `>=3` earns some of its precision by luck of Bagon's room being one warp deeper."
-     Under this derivation that luck does not hold. Either the depth definition or the
-     threshold needs to be decided deliberately, with the reasoning written down.
-
-  ‼ NO SCRIPT PRODUCING THE RECORDED FIGURES EXISTS IN THIS REPO. Before `#24-roster`""")
-print("    depends on this dataset, ONE derivation has to be made authoritative — most likely")
-print("    by pinning the exact BFS definition (seed set, whether connection closure is")
-print("    transitive, warp directionality) rather than by re-running either from memory.")
-print("    This script's own choices are stated at the top and in the code; they are the only")
-print("    ones currently auditable.")

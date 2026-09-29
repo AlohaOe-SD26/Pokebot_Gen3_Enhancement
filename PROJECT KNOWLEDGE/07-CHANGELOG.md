@@ -36881,3 +36881,27 @@ now deduped per faint, with N7/F7 (08).
 - **Resume pointers (03, 04, the v2 note):** RULING 24 is FULLY built (design steps 2-5, each behind a default-OFF
   flag). Next is v2 step 0 (docs only; its three claims are already verified by independent agents), then v2 step 5
   (TID/T1).
+
+## 2026-09-29 — DESIGN v2 STEP 0 (docs, plus a verified tool fix): the rare dataset REPRODUCES; three damage-calculator KIs; one ball-restock flag name; the record's readings in 06 (`#26-organiccatch`)
+
+**WHY.** Design v2 (`ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md`) put a docs-first step before any build. Three
+of its claims were verified by independent agents first (`ai-research-notes/2026-09-29-v2step0-VERIFY.md`) and
+re-checked by the orchestrator.
+**WHAT.**
+- **`tools/story-dev/rare_species_dataset.py` fixed (two defects).** It now reproduces the 2026-08-06 record exactly,
+  as hard checks. The underwater maps are derived from `MapRSE` by name. Fault arms revert each fix: both go red.
+  Evidence: `evidence/2026-09-29-v2step0-rare-{BEFORE,AFTER,FAULT-*}.txt`. `#24-rarepredicate`'s headline retracts
+  the 2026-08-07 verdict (06 and 08 have new entries).
+- **KI-109** (Sonicboom/Psywave misnamed: live move-choice effect), **KI-110** (the Sp. Def badge is 8, not 7:
+  dormant) and **KI-111** (Solarbeam is misspelled, so it is not actually banned and has no weather penalty). All are
+  upstream bugs; the fix vehicle is v2 step 11.
+- **One ball-restock flag name, `POKEBOT_R23_BALLRESTOCK`**, in 03, 04 and the BUILDSPEC. B is replaced by v2 step 9.
+- **v1 marked superseded in part**, in its header.
+- **06: the readings of the record** that v2 builds on ("wanted", the reserve for rare species, the Juan kit, the
+  accepted uncapped-rare cost, §Ch24 RULING 2's scope, rare = the rate half).
+- **Data:** the Sudowoodo obtainability note (SANDBOX `emerald_obtainability.json`) is corrected from Gold/Silver
+  "Route 111" to the Battle Frontier one-shot. It is display text only.
+- **NEW item `#27-obtaindata`:** the same file has Emerald's in-game trades reversed (so Meowth is wrongly
+  "unobtainable") and mislabels the Johto starters.
+**Not done here (named in v2 step 0, deliberately deferred):** the fix of any KI. Step 0 files them; v2 step 11
+measures and fixes.
