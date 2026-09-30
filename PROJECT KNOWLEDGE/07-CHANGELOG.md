@@ -37078,3 +37078,30 @@ bought balls only at fixed story points.
 - OFF ×2, typo, observe, the spare-27 control and the floor arm are frame-exact with M0.
 - The single-line path buys 2.
 - The bound arm recovers without a drop to Manual.
+
+## 2026-09-29 — design v2 step 9a (BB) REVIEWED: three lenses PASS_WITH_NITS; every finding taken (`#26-organiccatch`)
+
+- **Code** (`stock_topoff.py`):
+  - an OUTER bound that closes the heal mid-errand (maintenance's `_yield_bounded(train_team(...))` reaches a Rustboro
+    heal in a DEFAULT run) is now logged (`topoff-closed`) and memoised, where it was silent;
+  - a planning failure reports and memoises WITHOUT moving (no needless second wait);
+  - success requires being back on the exit tile facing Down;
+  - the recovery's outcome is logged (`topoff-recovery`);
+  - `_inputs` leaves out a flag missing from the event-flag table, so `stage()` really fails closed;
+  - the reserve-era flag is imported;
+  - the dead in-game-max clamp is removed, with its invariant proven instead (L9).
+- **Gate:**
+  - NEW E2 executes the errand's ACTION path (8 cases), E3 `_inputs`, and E4 `_walk_buy_return` with a fake avatar the
+    stub walks move;
+  - NEW mutants M10-M20: the reviewer's seven invisible mutants plus four more;
+  - all 20 red sets were written before the confirming run.
+- **Regression re-run** of B-OFF, B-ON, B-FLOOR2 and B-BOUND on the fixed code
+  (`evidence/2026-09-29-ballrestock-REVIEW-RERUN.txt`, expected lines filed first).
+- **Evidence and docs:**
+  - the "half the excess protects the next heal" rationale is corrected (heals are free; a whiteout can still end
+    below the floor);
+  - the grader counts only `[STEP]` lines and checks for no drop to Manual;
+  - the raw post-whiteout money lines and the full typo line are quoted in the evidence;
+  - the suite output is committed;
+  - the queue keeps Q1;
+  - the v2 note's step 9 has an AS-BUILT block; a 01 entry; KI-72's citation; the registry row; a HOW TO RUN entry.

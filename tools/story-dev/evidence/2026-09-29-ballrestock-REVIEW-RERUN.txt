@@ -1,0 +1,55 @@
+# design v2 step 9a (BB): regression re-run AFTER the step 9a review's code fixes (stock_topoff.py: a GeneratorExit
+# handler; planning failures reported and memoised without moving; success now requires being back on the exit tile;
+# the recovery's outcome logged; `_inputs` leaves out a flag missing from the table; the dead in-game-max clamp removed).
+# The graded arms ran on 1daec9a4; these four re-run the same commands on the fixed code.
+#
+# EXPECTED (written BEFORE the re-runs; the grader compares against these lines):
+#   B-OFF-rerun    : tracked lines identical to M0-5 (52/52); no [BALLS-BUY] line.
+#   B-ON-rerun     : exactly one  [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31
+#                    money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (...)  ; identical
+#                    to M0 before f176384; then 'heading south'.
+#   B-FLOOR2-rerun : exactly one  why=topoff ... bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39
+#                    facing=Down ; identical before f176384; then 'heading south'.
+#   B-BOUND-rerun  : a  why=topoff-failed ... reason=the errand's frame bound expired  line, THEN (new) a
+#                    why=topoff-recovery ... reason=finished=True back_on_exit=True  line; identical before f176384;
+#                    then 'heading south'; no drop to Manual.
+#
+# RESULTS (appended by the re-run below)
+# ########## the post-review regression re-run (evidence/2026-09-29-ballrestock-REVIEW-RERUN.txt) ##########
+# 
+# === B-OFF-rerun: PASS
+#   tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+#   [BALLS-BUY] lines match the prediction: True (0 line(s), want 0)
+# 
+# === B-ON-rerun: PASS
+#   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+#   BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+#   [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+#   the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+# 
+# === B-FLOOR2-rerun: PASS
+#   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+#   BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball (spare 7 <= trigger 20; budget 500)
+#   [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+#   the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+# 
+# === B-BOUND-rerun: PASS
+#   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+#   BALLS [BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=the errand's frame bound expired
+#   BALLS [BALLS-BUY] why=topoff-recovery mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=-->- money=-->- reason=finished=True back_on_exit=True
+#   [BALLS-BUY] lines match the prediction: True (2 line(s), want 2)
+#   the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+# 
+# GRADE: ALL PASS
+# ---- B-OFF-rerun: [BALLS-BUY] lines and the [STEP] 'heading south' line
+#   f176385 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+# ---- B-ON-rerun: [BALLS-BUY] lines and the [STEP] 'heading south' line
+#   f178239 [BALLS] [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+#   f178260 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+# ---- B-FLOOR2-rerun: [BALLS-BUY] lines and the [STEP] 'heading south' line
+#   f177827 [BALLS] [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball (spare 7 <= trigger 20; budget 500)
+#   f177848 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+# ---- B-BOUND-rerun: [BALLS-BUY] lines and the [STEP] 'heading south' line
+#   f176685 [BALLS] [BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=the errand's frame bound expired
+#   f177037 [BALLS] [BALLS-BUY] why=topoff-recovery mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=-->- money=-->- reason=finished=True back_on_exit=True
+#   f177058 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'

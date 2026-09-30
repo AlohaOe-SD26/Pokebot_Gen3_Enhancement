@@ -281,6 +281,16 @@ it.
 - **Must do:** carry identity and money only in the always-on lines, never a policy verdict; fail open when a side is
   unreadable, so a boss fight never loses its items to a reader bug.
 
+### Ball top-off (`sandbox-pokebot/modules/story/stock_topoff.py`, new 2026-09-29)
+- **Purpose:** keep the bot able to catch all game long (USER RULINGS 23 + 26: balls in bounded batches, the best
+  ball the current shop sells, stock maintained throughout). It rides a Pokémon Center heal the story was making anyway
+  ("piggyback, do not detour"): when spare balls fall to 20, it walks to that city's mart and tops off to about 30.
+- **Must do:** never spend below the floor (RULING 18's League basket stands); never change a heal when OFF, in
+  `observe`, or with nothing to buy; end the heal where it would have ended (the exit tile, facing Down); never fail
+  silently, and never walk into the same failure twice in a run.
+- **Where it stands:** 9a is built behind `POKEBOT_R23_BALLRESTOCK` (default OFF; Rustboro only). 9b (the Sootopolis
+  League-basket visit) is next. The amounts are a bounded default pending the user's Q1.
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

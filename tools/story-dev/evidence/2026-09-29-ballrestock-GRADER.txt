@@ -1,4 +1,5 @@
-# design v2 step 9a (BB) GRADER: bb_grade_arms.py (verbatim below) over the arms' debug logs, against M0-5-r1 / M0-25.
+# design v2 step 9a (BB) GRADER, re-run after the step 9a review (the check now counts only [STEP] 'heading south' lines and asserts no drop to Manual after the errand).
+# bb_grade_arms.py (verbatim below) over the arms' debug logs, against M0-5-r1 / M0-25; the post-review re-run arms are graded at the end.
 
 === B-OFF-r1: PASS
   tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
@@ -32,24 +33,56 @@
   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
   BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
   [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
-  the run reaches 'heading south' AFTER the errand: True
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
 
 === B-FLOOR2: PASS
   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
   BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball (spare 7 <= trigger 20; budget 500)
   [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
-  the run reaches 'heading south' AFTER the errand: True
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
 
 === B-BOUND: PASS
   tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
   BALLS [BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=the errand's frame bound expired
   [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
-  the run reaches 'heading south' AFTER the errand: True
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+
+########## the post-review regression re-run (evidence/2026-09-29-ballrestock-REVIEW-RERUN.txt) ##########
+
+=== B-OFF-rerun: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  [BALLS-BUY] lines match the prediction: True (0 line(s), want 0)
+
+=== B-ON-rerun: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+
+=== B-FLOOR2-rerun: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball (spare 7 <= trigger 20; budget 500)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
+
+=== B-BOUND-rerun: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=the errand's frame bound expired
+  BALLS [BALLS-BUY] why=topoff-recovery mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=-->- money=-->- reason=finished=True back_on_exit=True
+  [BALLS-BUY] lines match the prediction: True (2 line(s), want 2)
+  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: True
 
 GRADE: ALL PASS
 
-# Seen, not graded: the errand took f176384 -> f178239 (~1,855 frames; bound 8,000). The rival (opp=600) is LOST in every arm and in M0;
-#   after that whiteout ON holds ₽2,770 (5,540/2) against M0's ₽4,970 (9,940/2), and 31 balls against 7. The window's second heal is Dewford's (not whitelisted: no line).
+# ---- RAW LINES QUOTED (the review: the post-whiteout money and the full typo line were not in committed evidence) ----
+# M0-5-r1 after its rival loss:
+#   f186223 [TRAINER] start opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 double=False two=False money=4970 heal_stock=- map=0,19 enemy_alive=2
+# B-ON after its rival loss:
+#   f188798 [TRAINER] start opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 double=False two=False money=2770 heal_stock=- map=0,19 enemy_alive=2
+#   f189900 [hb] mode=Story state=4 controllable=False map=ROUTE 104(0,19) pos=(30, 24) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4234'] owned=2 balls=31 money=2770 box=0 badges=1 msg="Story: heading to Mr. Briney's cott
+# B-TYPO, the full printed line (the debug log carries it whole; stdout wraps it):
+#   f173586 [PC] Story: PC — the ball top-off: POKEBOT_R23_BALLRESTOCK='yes' is not one of ('', '0', 'observe', '1'): treated as OFF
+#   f195717 [PC] Story: PC — the ball top-off: POKEBOT_R23_BALLRESTOCK='yes' is not one of ('', '0', 'observe', '1'): treated as OFF
 # ---- bb_grade_arms.py ----
 """Grade the design v2 step 9a arms against 2026-09-29-ballrestock-PREDICTIONS.md.
 
@@ -106,8 +139,13 @@ def grade(name, *, m0, whole, want_balls, stdout_need=None):
     if not whole:
         r = raw(name)
         fb = frame_of(r, "[BALLS-BUY]")
-        south = [int(FR.match(l).group(1)) for l in r if "heading south" in l and FR.match(l)]
-        after_ok = fb is not None and any(s > fb for s in south)
+        # ⛔ Only the [STEP] line counts (an [hb] heartbeat can quote the same message: the step 9a review).
+        south = [int(FR.match(l).group(1)) for l in r if "[STEP]" in l and "heading south" in l and FR.match(l)]
+        # A drop to Manual AFTER the errand: a `[MODE] Story -> Manual` line, or a stuck dump reporting no controller
+        # (the one such dump in every log sits at the run's START, before the heal, and is not counted).
+        start = next((i for i, l in enumerate(r) if "[BALLS-BUY]" in l), len(r))
+        manual = [l for l in r[start:] if "Story -> Manual" in l or "no controller on the stack" in l]
+        after_ok = fb is not None and any(s > fb for s in south) and not manual
     ok = same and balls_ok and stdout_ok and after_ok
     print(f"\n=== {name}: {'PASS' if ok else 'FAIL'}")
     print(f"  tracked vs M0 ({scope}): {'identical' if same else 'DIFFERENT'}")
@@ -124,7 +162,7 @@ def grade(name, *, m0, whole, want_balls, stdout_need=None):
     if stdout_need:
         print(f"  stdout carries {stdout_need}: {stdout_ok}")
     if not whole:
-        print(f"  the run reaches 'heading south' AFTER the errand: {after_ok}")
+        print(f"  the run reaches the [STEP] 'heading south' AFTER the errand, with no drop to Manual: {after_ok}")
     if not ok:
         fails.append(name)
 
@@ -152,4 +190,18 @@ grade("B-FLOOR2", m0=M05, whole=False, want_balls=[
     r"exit=(\d+),(\d+) back=\1,\2 facing=Down reason=top off 2 x Poké Ball .*"])
 grade("B-BOUND", m0=M05, whole=False, want_balls=[
     r"\[BALLS-BUY\] why=topoff-failed mart=RustboroCity ball=Poké Ball .* reason=the errand's frame bound expired"])
+import os as _os
+
+if _os.path.exists(L + "logs/B-BOUND-rerun.debug.log"):
+    print("\n########## the post-review regression re-run (evidence/2026-09-29-ballrestock-REVIEW-RERUN.txt) ##########")
+    grade("B-OFF-rerun", m0=M05, whole=True, want_balls=[])
+    grade("B-ON-rerun", m0=M05, whole=False, want_balls=[
+        r"\[BALLS-BUY\] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 "
+        r"exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball \(spare 7 <= trigger 20; budget 4470\)"])
+    grade("B-FLOOR2-rerun", m0=M05, whole=False, want_balls=[
+        r"\[BALLS-BUY\] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 "
+        r"exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball .*"])
+    grade("B-BOUND-rerun", m0=M05, whole=False, want_balls=[
+        r"\[BALLS-BUY\] why=topoff-failed mart=RustboroCity ball=Poké Ball .* reason=the errand's frame bound expired",
+        r"\[BALLS-BUY\] why=topoff-recovery mart=RustboroCity ball=Poké Ball .* reason=finished=True back_on_exit=True"])
 print(f"\nGRADE: {'ALL PASS' if not fails else 'FAILED ' + ', '.join(fails)}")

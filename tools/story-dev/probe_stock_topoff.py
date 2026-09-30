@@ -7,15 +7,22 @@ one and never ends on the other), and — because it rides an upstream heal ever
 all, or ending a heal off its exit tile. Each has rows here.
 
 ROWS
-  L1-L8   PURE: the limits (and that they come from the source constants), `best_ball`, `stage` (order and fail-closed),
-          `floor`, `ball_topoff_plan` (including below-floor, the fault floor and the in-game max), `plan_lines`
-          (Premier-preserving merge), the hysteresis bound, `parse_flag`.
+  L1-L9   PURE: the limits (and that they come from the source constants), `best_ball`, `stage` (order and fail-closed),
+          `floor`, `ball_topoff_plan` (below-floor, the fault floors, fail-closed), `plan_lines` (Premier-preserving
+          merge), the hysteresis bound (L7, L7b), `parse_flag`, and L9: the in-game-max invariant over a grid (no clamp is
+          written for it, because it cannot bind; the step 9a review found the old clamp dead and its row mislabelled).
   A1-A6   the heal's three hunks by AST (the flag parsed before the first yield; the errand inside the flag branch with an
           abort-aware loud handler, given `stable >= 20`; the second stable wait ONLY under `_topoff_moved`), the
           whitelist (Rustboro only), the memo reset per run, and no `buy_poke_balls*` in the errand.
   E1      the errand EXECUTED with stubs: OFF, a non-story mode, a non-whitelisted city, a failed city, an unstable exit
           and `observe` all return False with ZERO yields; `observe` and an empty plan log one line each.
-  M1-M9   source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red).
+  E2      the errand's ACTION path EXECUTED with a stub walk, a stub recovery and a fake frame counter (the review: seven
+          mutants of this path were invisible): success; a short bag delta; not back on the exit tile; the bound expiring;
+          the walk raising; an abort (re-raised); an OUTER close mid-errand (logged + memoised); planning raising.
+  E3      `_inputs` EXECUTED with a flag missing from the event-flag table: the stage fails CLOSED (None), not MID.
+  E4      `_walk_buy_return` EXECUTED with every emulator call stubbed and a fake avatar that the stub walks MOVE: a
+          planned delta is ok and back on the exit tile facing Down; a short delta is not ok.
+  M1-M20  source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red).
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_stock_topoff.py        (exit 1 on any failure)
 """
@@ -78,10 +85,10 @@ def l_rows(t, tag=""):
     row("L2", "best_ball: Poké; Great; Ultra; Rustboro-expanded -> Poké (tie, cheapest); Verdanturf -> Great; Ultra "
         "disallowed -> Great; nothing allowed -> None",
         bb == ["Poké Ball", "Great Ball", "Ultra Ball", "Poké Ball", "Great Ball", "Great Ball", None], str(bb))
-    f = dict(IS_CHAMPION=False, ENTERED_ELITE_FOUR=False, SOOTOPOLIS_ARCHIE_MAXIE_LEAVE=False, BADGE01_GET=True)
-    st = [t.stage(f), t.stage(dict(f, BADGE01_GET=False)), t.stage(dict(f, SOOTOPOLIS_ARCHIE_MAXIE_LEAVE=True)),
-          t.stage(dict(f, SOOTOPOLIS_ARCHIE_MAXIE_LEAVE=True, ENTERED_ELITE_FOUR=True)),
-          t.stage(dict(f, ENTERED_ELITE_FOUR=True, IS_CHAMPION=True)), t.stage({"BADGE01_GET": True})]
+    f = dict(champion=False, entered_e4=False, reserve_era=False, badge1=True)
+    st = [t.stage(f), t.stage(dict(f, badge1=False)), t.stage(dict(f, reserve_era=True)),
+          t.stage(dict(f, reserve_era=True, entered_e4=True)),
+          t.stage(dict(f, entered_e4=True, champion=True)), t.stage({"badge1": True})]
     row("L3", "stage: MID, PRE_GYM1, BASKET_ERA, LEAGUE, POSTGAME in priority order; a missing flag -> None (fail closed)",
         st == ["MID", "PRE_GYM1", "BASKET_ERA", "LEAGUE", "POSTGAME", None], str(st))
     fl = [t.floor("MID", None), t.floor("POSTGAME", None), t.floor("BASKET_ERA", 54300), t.floor("LEAGUE", 0),
@@ -104,11 +111,11 @@ def l_rows(t, tag=""):
         "pre gym 1": (plan(stage_name="PRE_GYM1"), [], "before gym 1"),
         "no ball": (plan(ball=None, price=None), [], "no allowed ball"),
         "Great 10": (plan(spare=0, money=20000, ball="Great Ball", price=600), [("Great Ball", 10)], "top off 10"),
-        "in-game max": (plan(spare=0, money=1100, floor_money=0), [("Poké Ball", 2)], "top off 2"),
+        "budget binds": (plan(spare=0, money=1100, floor_money=0), [("Poké Ball", 2)], "top off 2"),
     }
     bad = {k: (got, want) for k, (got, want, why) in cases.items() if got[0] != want or why not in got[1]}
     row("L5", "ball_topoff_plan over 10 literal cases (the A1 case, the control, both fault floors, below the floor, "
-        "fail-closed, no ball, Great, the in-game max)", not bad, str(bad) if bad else "")
+        "fail-closed, no ball, Great, the budget binding)", not bad, str(bad) if bad else "")
     pl = [t.plan_lines("Poké Ball", 22), t.plan_lines("Poké Ball", 30), t.plan_lines("Poké Ball", 7),
           t.plan_lines("Poké Ball", 10), t.plan_lines("Great Ball", 12), t.plan_lines("Poké Ball", 0)]
     row("L6", "plan_lines: 22 -> 10+12 (2 Premiers, no ball dropped); 30 -> 3x10; 7; 10; Great 12 in one line; 0 -> []",
@@ -140,6 +147,18 @@ def l_rows(t, tag=""):
     row("L8", "parse_flag: unset/''/0 -> OFF; observe; 1; a typo -> OFF WITH an error",
         [p[0] for p in pf] == ["", "", "", "observe", "1", ""] and [p[1] is None for p in pf] == [True] * 5 + [False],
         str(pf))
+    over = []
+    for money in (0, 1, 199, 200, 1000, 1001, 2500, 9940, 20000, 999_999):
+        for floor_money in (0, 1000, 9600, 109_600):
+            for spare in (0, 7, 20):
+                for ball, price in (("Poké Ball", 200), ("Great Ball", 600), ("Ultra Ball", 1200)):
+                    lines, _ = t.ball_topoff_plan(spare=spare, money=money, ball=ball, price=price, stage_name="MID",
+                                                  floor_money=floor_money, lim=lim)
+                    total = sum(q for _, q in lines) * price
+                    if any(q > min(money // price, 99) for _, q in lines) or total > money:
+                        over.append((money, floor_money, spare, ball, lines))
+    row("L9", "the in-game max per line, min(money // price, 99), and the total cost never exceed what the formula "
+        "allows, over a 360-case grid (so no clamp is needed; the old one was dead)", not over, str(over[:3]))
     return failed
 
 
@@ -255,6 +274,316 @@ def e_rows(t, tag=""):
     return failed
 
 
+class _Abort(Exception):
+    """Stands for the story abort `reraise_if_aborting` re-raises."""
+
+
+def e2_rows(t, tag=""):
+    """E2: the errand's ACTION path, executed with a stub walk, a stub recovery and a fake frame counter."""
+    failed: list[str] = []
+    from modules import player as _player
+    from modules.context import context
+    from modules.map_data import PokemonCenter
+    from modules.story import early_game as _eg
+    from plugins.custom_modes.story_mode import StoryMode
+
+    frames = [0]
+    calls = {"recover": 0}
+    emitted: list = []
+
+    def fake_walk(kind):
+        def walk(mart, exit_map, exit_tile, lines, live, reason, report):
+            if kind == "loop":
+                for _ in range(200):          # a bound that is IGNORED hits this cap and raises instead of hanging
+                    frames[0] += 100
+                    yield
+                raise RuntimeError("UNBOUNDED: the errand's frame bound never fired")
+            frames[0] += 100
+            yield
+            if kind == "raise":
+                raise RuntimeError("walk failed")
+            if kind == "abort":
+                raise RuntimeError("ABORT")
+            frames[0] += 100
+            yield
+            report.update({"bought": 22, "premier": 2, "spare_after": 31, "money_after": 5540,
+                           "ok": kind != "short", "returned": kind != "notback"})
+            if kind == "short":
+                report["why"] = "bag delta 20 != planned 22"
+        return walk
+
+    def fake_recover(exit_map, exit_tile, report):
+        calls["recover"] += 1
+        frames[0] += 100
+        yield
+        report["recovered_on_exit"] = True
+
+    def reraise(error):
+        if "ABORT" in str(error):
+            raise _Abort(str(error))
+
+    saved = [(t, "_emit", t._emit), (t, "_inputs", t._inputs), (t, "_allowed", t._allowed),
+             (t, "_walk_buy_return", t._walk_buy_return), (t, "_recover", t._recover),
+             (_player, "get_player_avatar", _player.get_player_avatar), (_eg, "reraise_if_aborting", _eg.reraise_if_aborting),
+             (context, "bot_mode_instance", getattr(context, "bot_mode_instance", None)),
+             (context, "emulator", getattr(context, "emulator", None))]
+    import os as _os
+    saved_env = _os.environ.get("POKEBOT_R23_FAULT_ERRANDFRAMES")
+    results = {}
+    try:
+        t._emit = lambda line: emitted.append(line)
+        t._allowed = lambda: {"Poké Ball"}
+        t._recover = fake_recover
+        _player.get_player_avatar = lambda: SimpleNamespace(map_group_and_number=(0, 3), local_coordinates=(16, 39))
+        _eg.reraise_if_aborting = reraise
+        context.emulator = SimpleNamespace(get_frame_count=lambda: frames[0], press_button=lambda b: None)
+        good_inputs = lambda mode: {"stage": "MID", "floor": 1000, "spare": 7, "money": 9940, "flags": {},  # noqa: E731
+                                    "price_of": lambda n: PRICES[n]}
+
+        def run(kind, inputs=good_inputs, close_after_first=False, bound=None):
+            story = StoryMode.__new__(StoryMode)
+            story._ball_topoff_failed = set()
+            context.bot_mode_instance = story
+            t._inputs = inputs
+            t._walk_buy_return = fake_walk(kind)
+            if bound is None:
+                _os.environ.pop("POKEBOT_R23_FAULT_ERRANDFRAMES", None)
+            else:
+                _os.environ["POKEBOT_R23_FAULT_ERRANDFRAMES"] = str(bound)
+            emitted.clear()
+            calls["recover"] = 0
+            gen = t.ball_topoff_errand(PokemonCenter.RustboroCity, "1", True)
+            out = None
+            try:
+                steps = 0
+                next(gen)
+                steps += 1
+                if close_after_first:
+                    gen.close()
+                    out = "CLOSED"
+                else:
+                    while steps < 1000:
+                        next(gen)
+                        steps += 1
+            except StopIteration as stop:
+                out = stop.value
+            except _Abort:
+                out = "ABORT"
+            except Exception as error:  # noqa: BLE001 - a raise out of the errand is a red row, reported
+                out = f"RAISED {type(error).__name__}: {error}"
+            return out, sorted(story._ball_topoff_failed), list(emitted), calls["recover"]
+
+        def planning_raises(mode):
+            raise RuntimeError("inputs failed")
+
+        results = {
+            "E2a": run("ok"),
+            "E2b": run("short"),
+            "E2c": run("notback"),
+            "E2d": run("loop", bound=250),
+            "E2e": run("raise"),
+            "E2f": run("abort"),
+            "E2g": run("ok", close_after_first=True),
+        }
+        # E2h: planning raises BEFORE anything moves (no yield at all)
+        story = StoryMode.__new__(StoryMode)
+        story._ball_topoff_failed = set()
+        context.bot_mode_instance = story
+        t._inputs = planning_raises
+        emitted.clear()
+        gen = t.ball_topoff_errand(PokemonCenter.RustboroCity, "1", True)
+        try:
+            next(gen)
+            results["E2h"] = ("YIELDED", sorted(story._ball_topoff_failed), list(emitted), 0)
+        except StopIteration as stop:
+            results["E2h"] = (stop.value, sorted(story._ball_topoff_failed), list(emitted), 0)
+        except Exception as error:  # noqa: BLE001 - a raise out of the errand is a red row, reported
+            results["E2h"] = (f"RAISED {type(error).__name__}", sorted(story._ball_topoff_failed), list(emitted), 0)
+    finally:
+        for obj, name, value in saved:
+            setattr(obj, name, value)
+        if saved_env is None:
+            _os.environ.pop("POKEBOT_R23_FAULT_ERRANDFRAMES", None)
+        else:
+            _os.environ["POKEBOT_R23_FAULT_ERRANDFRAMES"] = saved_env
+
+    def has(lines, needle):
+        return any(needle in line for line in lines)
+
+    R = "RustboroCity"
+    expect = {
+        "E2a": lambda r: r[0] is True and r[1] == [] and r[3] == 0 and not has(r[2], "topoff-failed"),
+        "E2b": lambda r: r[0] is True and r[1] == [R] and r[3] == 1 and has(r[2], "reason=bag delta 20 != planned 22")
+        and has(r[2], "why=topoff-recovery"),
+        "E2c": lambda r: r[0] is True and r[1] == [R] and r[3] == 1 and has(r[2], "reason=not back on the exit tile"),
+        "E2d": lambda r: r[0] is True and r[1] == [R] and r[3] == 1 and has(r[2], "reason=the errand's frame bound expired"),
+        "E2e": lambda r: r[0] is True and r[1] == [R] and r[3] == 1 and has(r[2], "walk failed"),
+        "E2f": lambda r: r[0] == "ABORT",
+        "E2g": lambda r: r[0] == "CLOSED" and r[1] == [R] and has(r[2], "why=topoff-closed"),
+        "E2h": lambda r: r[0] is False and r[1] == [R] and has(r[2], "planning raised"),
+    }
+    labels = {
+        "E2a": "success: moved (True), no memo, no recovery",
+        "E2b": "a short bag delta: memoised, logged with its reason, recovered (and the recovery logged)",
+        "E2c": "bought but not back on the exit tile: memoised, logged, recovered",
+        "E2d": "the frame bound expires: memoised, logged, recovered",
+        "E2e": "the walk raises: memoised, logged, recovered",
+        "E2f": "an abort is RE-RAISED, never swallowed",
+        "E2g": "an OUTER close mid-errand: logged `topoff-closed` and memoised",
+        "E2h": "planning raises: NOT moved (False), memoised, logged, zero yields",
+    }
+    for key in sorted(expect):
+        ok = key in results and expect[key](results[key])
+        if not ok:
+            failed.append(key)
+        if not tag:
+            r = results.get(key)
+            check(f"{key} {labels[key]}", ok, "" if ok else f"got {(r[0], r[1], [x[:70] for x in r[2]], r[3]) if r else None}")
+    return failed
+
+
+def e3_rows(t, tag=""):
+    """E3: `_inputs` with a flag missing from the event-flag table must fail closed (stage None), not guess MID."""
+    failed: list[str] = []
+    import modules.items as _items
+    import modules.memory as _memory
+    import modules.player as _player
+
+    names = t.flag_names()
+    saved = [(_memory, "_event_flags", _memory._event_flags), (_memory, "get_event_flag", _memory.get_event_flag),
+             (_items, "get_item_bag", _items.get_item_bag), (_items, "get_item_by_name", _items.get_item_by_name),
+             (_player, "get_player", _player.get_player)]
+    try:
+        _memory.get_event_flag = lambda name: name == names["badge1"]
+        _items.get_item_bag = lambda: SimpleNamespace(number_of_balls_except_master_ball=7)
+        _items.get_item_by_name = lambda n: SimpleNamespace(name=n, price=PRICES.get(n, 200))
+        _player.get_player = lambda: SimpleNamespace(money=9940)
+        _memory._event_flags = {n: 0 for n in names.values()}
+        full = t._inputs(None)["stage"]
+        _memory._event_flags = {n: 0 for k, n in names.items() if k != "champion"}
+        missing = t._inputs(None)["stage"]
+    finally:
+        for obj, name, value in saved:
+            setattr(obj, name, value)
+    ok = (full, missing) == ("MID", None)
+    if not ok:
+        failed.append("E3")
+    if not tag:
+        check("E3 `_inputs`: every flag in the table -> MID; one flag missing from the table -> stage None (fail closed)",
+              ok, f"{(full, missing)}")
+    return failed
+
+
+def e4_rows(t, tag=""):
+    """E4: `_walk_buy_return` with every emulator call stubbed; the stub walks MOVE a fake avatar."""
+    failed: list[str] = []
+    import modules.items as _items
+    import modules.mart as _mart
+    import modules.modes.util as _util
+    import modules.modes.util.higher_level_actions as _hla
+    import modules.modes.util.tasks_scripts as _ts
+    import modules.modes.util.walking as _walking
+    import modules.player as _player
+    from modules.context import context
+    from modules.map_data import MapRSE
+    from modules.story import early_game as _eg
+    from modules.story import league_reserve as _lr
+
+    state = {}
+
+    def nav(dest_map, dest_tile, **_kw):
+        state["map"] = tuple(dest_map.value)
+        state["tile"] = tuple(dest_tile)
+        yield
+
+    def one(*_a, **_kw):
+        yield
+
+    def face(direction):
+        state["facing"] = direction
+        yield
+
+    def press(button):
+        if button == "A":
+            state["menu"] = True
+
+    def buy(lines):
+        for item, qty in lines:
+            state["bag"][item.name] = state["bag"].get(item.name, 0) + qty - state["short_by"]
+            state["short_by"] = 0
+            if item.name == "Poké Ball" and qty >= 10:
+                state["bag"]["Premier Ball"] = state["bag"].get("Premier Ball", 0) + 1
+        yield
+
+    class Bag:
+        def quantity_of(self, item):
+            return state["bag"].get(item.name, 0)
+
+        @property
+        def number_of_balls_except_master_ball(self):
+            return sum(state["bag"].values())
+
+    saved = [(_eg, "_navigate_riding_out", _eg._navigate_riding_out),
+             (_eg, "wait_until_truly_controllable", _eg.wait_until_truly_controllable),
+             (_eg, "_check_abort", _eg._check_abort), (_walking, "ensure_facing_direction", _walking.ensure_facing_direction),
+             (_ts, "task_is_active", _ts.task_is_active), (_mart, "get_mart_buyable_items", _mart.get_mart_buyable_items),
+             (_hla, "buy_in_shop", _hla.buy_in_shop), (_lr, "_close_shop_and_dialogs", _lr._close_shop_and_dialogs),
+             (_items, "get_item_bag", _items.get_item_bag), (_items, "get_item_by_name", _items.get_item_by_name),
+             (_player, "get_player", _player.get_player), (_player, "get_player_avatar", _player.get_player_avatar),
+             (_util, "wait_for_n_frames", _util.wait_for_n_frames), (t, "_emit", t._emit),
+             (context, "emulator", getattr(context, "emulator", None))]
+    results = {}
+    try:
+        _eg._navigate_riding_out = nav
+        _eg.wait_until_truly_controllable = one
+        _eg._check_abort = lambda: None
+        _walking.ensure_facing_direction = face
+        _ts.task_is_active = lambda name: bool(state.get("menu")) and name == "Task_ShopMenu"
+        _mart.get_mart_buyable_items = lambda: [SimpleNamespace(name="Poké Ball")]
+        _hla.buy_in_shop = buy
+        _lr._close_shop_and_dialogs = lambda report: one()
+        _items.get_item_bag = lambda: Bag()
+        _items.get_item_by_name = lambda n: SimpleNamespace(name=n, price=PRICES.get(n, 200))
+        _player.get_player = lambda: SimpleNamespace(money=9940 - 4400)
+        _player.get_player_avatar = lambda: SimpleNamespace(map_group_and_number=state["map"],
+                                                            local_coordinates=state["tile"],
+                                                            facing_direction=state["facing"])
+        _util.wait_for_n_frames = lambda n: one()
+        t._emit = lambda line: state["emitted"].append(line)
+        context.emulator = SimpleNamespace(press_button=press, get_frame_count=lambda: 0)
+        for key, short_by in (("E4a", 0), ("E4b", 2)):
+            state.clear()
+            state.update({"map": (0, 3), "tile": (16, 39), "facing": "Down", "menu": False,
+                          "bag": {"Poké Ball": 7}, "short_by": short_by, "emitted": []})
+            report: dict = {}
+            gen = t._walk_buy_return((MapRSE.RUSTBORO_CITY_MART, (3, 3), "Left"), MapRSE.RUSTBORO_CITY, (16, 39),
+                                     [("Poké Ball", 10), ("Poké Ball", 12)], {"spare": 7, "money": 9940}, "r", report)
+            for _ in range(500):
+                try:
+                    next(gen)
+                except StopIteration:
+                    break
+                except Exception as error:  # noqa: BLE001 - a raise is recorded as the row's reading (a red row)
+                    report["raised"] = repr(error)
+                    break
+            results[key] = (dict(report), list(state["emitted"]), dict(state))
+    finally:
+        for obj, name, value in saved:
+            setattr(obj, name, value)
+    a, b = results.get("E4a"), results.get("E4b")
+    ok_a = (a is not None and a[0].get("ok") is True and a[0].get("returned") is True and a[0].get("bought") == 22
+            and a[0].get("premier") == 2 and a[2]["tile"] == (16, 39) and a[2]["facing"] == "Down"
+            and any("why=topoff " in line for line in a[1]))
+    ok_b = (b is not None and b[0].get("ok") is False and "bag delta 20 != planned 22" in b[0].get("why", ""))
+    for key, ok, label, got in (("E4a", ok_a, "a planned delta: ok, bought 22 + 2 Premier, back on (16,39) facing Down, "
+                                 "one `why=topoff` line", a), ("E4b", ok_b, "a delta 2 short: NOT ok, with its reason", b)):
+        if not ok:
+            failed.append(key)
+        if not tag:
+            check(f"{key} `_walk_buy_return` executed: {label}", ok, "" if ok else f"got {got[0] if got else None}")
+    return failed
+
+
 def mutant_module(path, name, old, new, modname):
     src = path.read_text(encoding="utf-8")
     n = src.count(old)
@@ -278,6 +607,9 @@ def main() -> int:
     a_rows(hsrc, tsrc, smsrc)
     print("\nE — the errand, executed with stubs")
     e_rows(T)
+    e2_rows(T)
+    e3_rows(T)
+    e4_rows(T)
 
     print("\nM — mutants (each must turn EXACTLY its named rows red)")
     cases = [
@@ -286,10 +618,10 @@ def main() -> int:
          "        if _topoff_moved:\n", "        if True:  # _topoff_moved\n", {"A3"}),
         ("M2 the errand called whatever the flag -> A2", H_PATH,
          "        if _topoff_mode in (\"observe\", \"1\"):\n", "        if True:  # _topoff_mode\n", {"A2"}),
-        ("M3 stage fails OPEN (MID on an unreadable flag) -> L3", T_PATH,
+        ("M3 stage fails OPEN (MID on an unreadable flag) -> L3 and E3", T_PATH,
          "    except Exception:  # noqa: BLE001 - an unreadable flag is \"no purchase\", never a stage guessed low\n        return None",
          "    except Exception:  # noqa: BLE001 - an unreadable flag is \"no purchase\", never a stage guessed low\n        return \"MID\"",
-         {"L3"}),
+         {"L3", "E3"}),
         ("M4 the basket floor dropped (CASH_FLOOR in the reserve era) -> L4", T_PATH,
          "        return CASH_FLOOR + 2 * int(missing_basket_cost)", "        return CASH_FLOOR", {"L4"}),
         ("M5 no below-the-floor refusal -> L5 (its reason becomes 'cannot afford')", T_PATH,
@@ -303,10 +635,42 @@ def main() -> int:
         ("M8 a typo silently OFF (no error) -> L8", T_PATH,
          "        return \"\", f\"POKEBOT_R23_BALLRESTOCK={value!r} is not one of {VALID_FLAG_VALUES}: treated as OFF\"",
          "        return \"\", None", {"L8"}),
-        ("M9 the errand buys with buy_poke_balls -> A6", T_PATH,
+        ("M9 the errand buys with buy_poke_balls -> A6, E4a, E4b", T_PATH,
          "    yield from buy_in_shop([(get_item_by_name(n), q) for n, q in lines])",
          "    from modules.story.early_game import buy_poke_balls\n    yield from buy_poke_balls(sum(q for _, q in lines))",
-         {"A6"}),
+         {"A6", "E4a", "E4b"}),
+        # --- the step 9a review's invisible mutants of the ACTION path (its X1-X7), now each red on E2/E4 ---
+        ("M10 a failed errand is not memoised -> E2b E2c E2d E2e", T_PATH,
+         "    if not moved_ok:\n        failed.add(city)\n", "    if not moved_ok:\n", {"E2b", "E2c", "E2d", "E2e"}),
+        ("M11 the errand swallows an abort -> E2f", T_PATH,
+         "        reraise_if_aborting(error)\n        report[\"error\"] = repr(error)",
+         "        report[\"error\"] = repr(error)", {"E2f"}),
+        ("M12 the bag-delta check always ok -> E4b", T_PATH,
+         "    report[\"ok\"] = report[\"bought\"] == planned", "    report[\"ok\"] = True", {"E4b"}),
+        ("M13 the recovery removed -> E2b E2c E2d E2e", T_PATH,
+         "        recovered = yield from _yield_bounded_by_frames(_recover(exit_map, exit_tile, report), RECOVERY_FRAMES)",
+         "        recovered = None", {"E2b", "E2c", "E2d", "E2e"}),
+        ("M14 the errand says 'not moved' after moving (no second stable wait) -> E2a-E2e", T_PATH,
+         "    return True\n\n\ndef _walk_buy_return", "    return False\n\n\ndef _walk_buy_return",
+         {"E2a", "E2b", "E2c", "E2d", "E2e"}),
+        ("M15 the walk back removed -> E4a", T_PATH,
+         "        report[\"why\"] = f\"bag delta {report['bought']} != planned {planned}\"\n"
+         "    yield from _navigate_riding_out(exit_map, exit_tile)\n",
+         "        report[\"why\"] = f\"bag delta {report['bought']} != planned {planned}\"\n", {"E4a"}),
+        ("M16 the errand's frame bound ignored -> E2d", T_PATH,
+         "        bound = int(_os_bb2.environ.get(\"POKEBOT_R23_FAULT_ERRANDFRAMES\", \"\") or ERRAND_FRAMES)",
+         "        bound = 10 ** 12", {"E2d"}),
+        ("M17 no GeneratorExit handler (an outer close goes silent again) -> E2g", T_PATH,
+         "    except GeneratorExit:\n", "    except ZeroDivisionError:\n", {"E2g"}),
+        ("M18 a planning failure escapes the errand -> E2h", T_PATH,
+         "        reraise_if_aborting(error)\n        failed.add(city)\n",
+         "        raise\n        failed.add(city)\n", {"E2h"}),
+        ("M19 `_inputs` reads a flag missing from the table as False -> E3", T_PATH,
+         "for key, name in flag_names().items() if name in _event_flags}", "for key, name in flag_names().items()}",
+         {"E3"}),
+        ("M20 success no longer requires being back on the exit tile -> E2c", T_PATH,
+         "        moved_ok = finished and report.get(\"ok\", False) and report.get(\"returned\", False)",
+         "        moved_ok = finished and report.get(\"ok\", False)", {"E2c"}),
         ("N1 a comment edit in the heal hunk turns NOTHING red", H_PATH,
          "        # The heal's LAST act stays a stable-controllable wait",
          "        # (edited) _topoff_moved and stable < 20 named in a comment only; the heal's LAST act stays a wait",
@@ -324,7 +688,8 @@ def main() -> int:
             tt = msrc if path == T_PATH else tsrc
             red = set(a_rows(h, tt, smsrc, "m"))
             if path == T_PATH:
-                red |= set(l_rows(mod, "m")) | set(e_rows(mod, "m"))
+                red |= (set(l_rows(mod, "m")) | set(e_rows(mod, "m")) | set(e2_rows(mod, "m")) | set(e3_rows(mod, "m"))
+                        | set(e4_rows(mod, "m")))
             check(label, red == want, f"red {sorted(red)}" + ("" if red == want else f" (want {sorted(want)})"))
         except Exception as error:  # noqa: BLE001
             check(label, False, f"{type(error).__name__}: {error}")

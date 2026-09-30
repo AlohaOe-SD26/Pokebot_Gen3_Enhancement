@@ -23140,3 +23140,20 @@ recon noticed.
 **Prevention rules:**
 - After committing, compare `git show --stat HEAD` with the files the message names.
 - A new gate goes at the END of `GATES`.
+
+## 2026-09-29 — ⛔ THE SAME GATE GAP TWICE IN ONE AFTERNOON: A DOCSTRING LISTED "SAFETY PROPERTIES (EACH HAS A GATE ROW)" AND HALF OF THEM HAD NONE
+
+**Symptom:** hours after step 8's review found that no gate row executed the adapter, step 9a's review found the same
+shape. `stock_topoff.py`'s docstring listed its safety properties as "each has a gate row", yet no row ran the errand
+past its preconditions. Seven mutants of the action path stayed green: no memo, no recovery, the bound ignored, an
+abort swallowed, and more. Two claimed protections were unreachable besides: a dead clamp, and a fail-closed `stage()`
+that `get_event_flag` could never trigger.
+**Root cause:**
+- I wrote the step-8 prevention rule ("to pin wiring, execute the production function") and applied it to the
+  PRE-conditions, which are cheap to execute, but not to the ACTION path, which needs more stubs.
+- A docstring claim of "each has a gate row" was never checked claim by claim.
+**Fix:**
+- E2/E3/E4 execute the action path, `_inputs` and `_walk_buy_return` with stubs.
+- M10-M20 cover every listed property. The two unreachable protections were removed or made real.
+**Prevention rule:** when a docstring lists safety properties, enumerate them and map each to a row that EXECUTES it,
+and give each row a mutant that turns it red. A property with no row is a claim to delete, not to keep.

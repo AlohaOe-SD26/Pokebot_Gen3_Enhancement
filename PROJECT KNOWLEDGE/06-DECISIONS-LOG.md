@@ -8391,8 +8391,9 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
 - RULING 23: "bounded batches, topped off periodically the way healing items are; the best ball the current shop
   sells". RULING 26: maintained all game.
 - The heal piggyback is where the bot already stands in a city ("piggyback, do not detour").
-- Half of (money − floor) per visit: one whiteout halves the money, so a purchase can never be what makes the next heal
-  unaffordable.
+- Half of (money − floor) per visit: a visit spends at most half of what is spendable, so repeated visits approach the
+  floor geometrically instead of hitting it. (Corrected in review: it does NOT keep the floor through a whiteout, which
+  halves ALL the money, and heals are free; the floor protects later mandatory purchases such as the League basket.)
 - Rustboro first: its mart sells Poké Balls from the start, and the M0 trajectory reaches a post-badge-1 heal there.
 **Rejected:**
 - An unconditional second stable wait (it changes every OFF heal).
