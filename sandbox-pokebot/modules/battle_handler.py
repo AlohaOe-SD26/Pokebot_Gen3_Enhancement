@@ -17,6 +17,7 @@ from modules.battle_state import (
 from modules.battle_strategies import BattleStrategy
 from modules.context import context
 from modules.debug import debug
+from modules import dmgaudit as _dmgaudit
 from modules.faint_chooser import faint_chooser_plan, field_identities, mon_identity
 from modules.items import Item, get_item_by_index
 from modules.keyboard import handle_naming_screen
@@ -320,6 +321,8 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
                 last = sig
             yield value
 
+    # design v2 step 11 (M1b): the `[DMGAUDIT] CTL` line; drops any stale BEFORE. Observe-only, flag-gated, never raises.
+    _dmgaudit.on_battle_start()
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
         # A sub-handler has given up and handed a recoverable fault to the mode
         # (#24-movelearn-recovery). Stop driving immediately: re-invoking the handler
@@ -411,6 +414,8 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
             context.emulator.press_button("B")
             yield
 
+    # design v2 step 11 (M1b): the AFTER of a battle's last turn (`kind=end`). Observe-only, flag-gated, never raises.
+    _dmgaudit.on_battle_end()
     outcome = get_last_battle_outcome()
     party_indices_with_picked_up_items = []
     party_indices_that_took_damage_or_changed_status = []

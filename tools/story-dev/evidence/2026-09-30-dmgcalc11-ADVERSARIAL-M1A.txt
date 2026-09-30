@@ -1,0 +1,344 @@
+design v2 step 11 (M1) — the ADVERSARIAL MUTANT PASS on the M1a gate (probe_damage_calc_decomp.py) and its fold-in, 2026-09-30 (LA)
+==============================================================================================================
+The reports below are MODEL OUTPUT (subagent hand-backs, verbatim, in the order they arrived). They are NOTES: every
+row a fold-in added was re-run on the real code, every mutant's red set was written BEFORE its run, and the final gate
+run is in 2026-09-30-dmgcalc11-GATES.txt.
+Its load-bearing finding for later work: three #27-dmgcalcfix 'fixes' (Guts, Brick Break, KI-110) each had
+a destructive twin with identical output on every row; the fold-in added the rows that tell each pair apart
+(B-BURN, B-REFL, B-KI110-SPA), plus rows for crit + stat stages, a low level, Super Fang below full HP,
+Charge on a non-Electric move, the fixed-damage moves on a non-immune target, Foresight, and three CASES for
+the gate's own weakened assertions.
+
+===== 1. THE ADVERSARIAL PASS (a fresh agent that never built the gate; it changed no repository file) =====
+----- the pass -----
+## Adversarial mutant pass: `probe_damage_calc_decomp.py`
+
+I ran **72 mutants in total**: 43 against the calculator, 15 against the port, 14 against the gate itself, plus 4 runs pairing a weakened gate with a calculator mutant.
+
+**Headline:** the gate is strong on everything after the base term. It is thin in two places:
+- **The base-term lines that `#27-dmgcalcfix` will edit.** For three of the planned fixes, a destructive "fix" gives **byte-identical output in every row** to the correct fix, even after the literals are re-pinned.
+- **Six of the gate's own assertions.** No CASE protects them. Removing any one leaves the gate ALL PASS, and a real calculator bug then gets through.
+
+No repository file was modified: every mutant was exec'd into `sys.modules`, and the scripts live in my scratchpad (`mutrun.py`, `gatemut.py`, `wrongfix.py`, `extra.py`). I ran no git-mutating command and no emulator. One thing you should know: `PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md` became modified in the worktree while I was running. I only read that file, so the change came from somewhere else.
+
+### All mutants tried
+Line references are to `_util.py` (U), `dmgcalc_port.py` (P) and the probe (G).
+
+| id | exact edit | result |
+|---|---|---|
+| U01 | :236 remove `and move_type.name == "Electric"` (Charge doubles every type) | **MISS** |
+| U02 | :236 `move_type` -> `move.type` (the #27 fix: Charge on the listed type) | B-HPC (correct) |
+| U03 | :222 `defender.current_hp // 2` -> `defender.total_hp // 2` | **MISS** |
+| U04 | :216 `DamageRange(40)` -> `DamageRange(20)` | **MISS** |
+| U05 | :432 and :475 `2 * attacker.level // 5 + 2` -> `2 * (attacker.level // 5) + 2` | **MISS** |
+| U06 | STAB moved after the type loop | BK-C BK-CC BK-NC BK-NCC D-A1 D-A2 D-A3 |
+| U07 | :208 `move_type in attacker_types` -> `== attacker_types[0]` | BK-C D-A3 |
+| U08 | :186 Wonder Guard `> 1` -> `>= 1` | **MISS** |
+| U09 | :180-181 Levitate deleted | **MISS** |
+| U10 | :195-196 Volt Absorb deleted | **MISS** |
+| U11 | :242 `max(1, _percentage(damage, 85))` -> `_percentage(damage, 85)` | B-STR D-N2 (min end only) |
+| U12 | :242 85 -> 86 | 12 rows |
+| U13 | :231 crit `damage *= 2` -> `damage * 3 // 2` | BK-C BK-CC D-A1 D-A2 D-A3 |
+| U14 | :487 Light Screen test reads `reflect_timer` | **MISS** |
+| U15 | :504-505 rain's Water boost deleted | **MISS** |
+| U16 | :338 `BADGE05_GET` -> `BADGE06_GET` | **MISS** |
+| U17 | :340-343 KI-110 "fixed" by retargeting the BADGE07 line to Sp.Def and dropping the BADGE08 line | B-KI110-B7 B-KI110-B8 — **identical to u4 in every row** |
+| U18 | :444-446 burn halving deleted (the Guts "fix") | B-GUTS — **identical to u2 in every row** |
+| U19 | :448-453 Reflect block deleted (the Brick Break "fix") | B-BB — **identical to u3 in every row** |
+| U20 | :449 drop `and not is_critical_hit` (Reflect halves crits) | **MISS** |
+| U21 | :33 stage denominator `* 5` -> `* 10` | **MISS** |
+| U22 | :424 crit rule `attack <= 0` -> `>= 0` | **MISS** |
+| U23 | :176 base called without `is_critical_hit` | BK-C BK-CC D-A1 D-A2 D-A3 (caught only by probe:258's assert) |
+| U24 | :408 pinch-ability test `<=` -> `<` | **MISS** |
+| U25 | :332-333 Huge Power / Pure Power deleted | **MISS** |
+| U26 | :389 Thick Fat halves `attack` | **MISS** |
+| U27 | :358 Choice Band 150 -> 200 | **MISS** |
+| U28 | :417-418 Explosion's defence halving deleted | **MISS** |
+| U29 | :445 any status halves | B-MS2 |
+| U30 | :213 type step wrapped in `max(1, …)` (the D3 fix applied to x0 too) | B-STR BK-C BK-CC BK-NC BK-NCC D-N2 |
+| U31 | :212 `reversed(defender_types)` | D-N1 D-O1 |
+| U32 | :477 crit Sp.Def rule `> 0` -> `< 0` | **MISS** |
+| U33 | :379 party-`Pokemon` attacker status forced Healthy | **MISS** |
+| U34 | :228 "Psy Wave" branch range 150 -> 100 | MISS (dead branch: the data says "Psywave") |
+| U35 | :225 `attacker.level` -> `defender.level` | B-NS B-ST |
+| U36 | :337 BADGE01 110 -> 120 | L1 |
+| U37 | :390-391 Hustle deleted | **MISS** |
+| U38 | :341 BADGE07 Sp.Atk 110 -> 100 | **MISS** |
+| U39 | :513-514 sun's Fire boost deleted | **MISS** |
+| U40 | :204-205 early `damage == 0` return deleted | **MISS** |
+| U41 | :209 STAB `int(d*1.5+0.5)` | 12 rows |
+| U42 | :192-193 Soundproof deleted | **MISS** |
+| U43 | :215-216 Dragon Rage branch deleted | **MISS** |
+| P01 | Charge moved after STAB | BK-NCC |
+| P02 | random min 85 -> 86 | 11 rows |
+| P03 | `("Ground","Flying",0)` -> 5 | BK-C BK-NC P1 P2 |
+| P04 | Dark->Dark swapped before Dark->Ghost | D-N1 P1 |
+| P05 | `if d == 0 and mul != 0` -> `if d == 0` | no red (equivalent: `no_effect` zeroes it) |
+| P06 | mono-type row applied twice | 8 rows incl. P2 |
+| P07 | `charge_applies` ignores the type | B-HPC |
+| P08 | Psywave max `level*200//100` | B-PSY |
+| P09 | SUPER_FANG `// 4` | **MISS** (never reached) |
+| P10 | LEVEL_DAMAGE `level*2` | **MISS** (never reached) |
+| P11 | DRAGON_RAGE 20 | **MISS** (never called) |
+| P12 | `DMG_MULTIPLIER = 2` | 20 rows |
+| P13 | Foresight test inverted | B-SF B-ST BK-C BK-NC P2 |
+| P14 | crit ignored | BK-C BK-CC D-A1 D-A2 D-A3 |
+| P15 | STAB skipped under Charge | BK-CC BK-NCC D-A2 |
+| G01 | probe:361 drop `calc == ours` | **gate ALL PASS** |
+| G02 | probe:382 drop `calc == ours` | **gate ALL PASS**; with G01, U11 slips through (no red) |
+| G03 | probe:765 bucket `==` -> `<=` | caught (m2, m3) |
+| G04 | probe:765 anchor inequality removed | gate ALL PASS (low harm, see vacuity) |
+| G05 | probe:530 L1 -> `off != on` | **gate ALL PASS**; U36 then slips through |
+| G06 | probe:258 `assert base_calls == [crit]` removed | **gate ALL PASS**; U23 then slips through |
+| G07 | probe:208-209 NotImplemented loop removed | gate ALL PASS (redundant) |
+| G08 | probe:204-209 isinstance, identical-record and loop asserts removed | gate ALL PASS (redundant: S1 still refuses all 5) |
+| G09 | probe:1030 `red == want` -> `want <= red` | **gate ALL PASS** (N1/N2 become vacuous) |
+| G10 | calculator sweep cache keyed on the real source | caught (m2) |
+| G11 | badge stub patched on `modules.memory` | caught (23 failures) |
+| G12 | probe:382 drop `port == game` | caught (m5–m8) |
+| G13 | probe:118 a row that raises counts as a pass | **gate ALL PASS**; U23 then slips through |
+| G14 | probe:749 drop `_calls == total` | gate ALL PASS (low harm) |
+
+### Misses ranked by harm
+
+The fidelity-row values proposed below come from my own hand arithmetic on the decomp formula. I did not run them. Per the project's rule, re-derive each one independently before filing.
+
+1. **Wrong-fix twins U18, U19, U17: the #27 fix gate cannot tell a right fix from a wrong one.**
+   - `wrongfix.py` showed every B-row output identical between u2 and U18, between u3 and U19, and between u4 and U17. That includes the post-fix values the fixer would re-pin.
+   - The harm is real. Deleting burn halving overestimates every burned non-Guts attacker by 2x. Deleting Reflect overestimates all physical damage into Reflect by 2x. U17 silently drops our Sp.Atk badge-7 boost (-10% on every special move).
+   - Rows to add, all fidelity rows with delta 0:
+     - **B-BURN:** Zigzagoon (Pickup), burned, Tackle vs Rattata, L50, 100/100 -> [11, 13].
+     - **B-REFL:** Zigzagoon Tackle into foe Reflect -> [11, 13].
+     - **B-KI110-SPA:** our Magikarp Water Gun, SpA 100, BADGE07 set, vs Poochyena SpD 100 -> [26, 31].
+   - New CASES:
+     - U18 -> {B-GUTS, B-BURN}; u2 stays {B-GUTS}.
+     - U19 -> {B-BB, B-REFL}; u3 stays {B-BB}.
+     - U17 -> {B-KI110-B7, B-KI110-B8, B-KI110-SPA}.
+     - U38 -> {B-KI110-SPA}.
+   - A related wart at probe:428: the B-KI110 `queried` clause requires BADGE08 to be read. After the correct u4 fix those rows report "queried False", so they cannot go green by re-pinning the literals alone.
+
+2. **Base-term crit and stat-stage logic is never exercised (U20, U21, U22, U32, and U23 by value).**
+   - Every record has stages at 6 (probe:164), and no B row is a crit. D rows and the sweep patch out the base, so :424/:435/:449/:467/:477/:487 never run with a crit, and `_calculate_modified_stat` only ever runs at the identity point.
+   - This matters for production: Growl, Leer and Tail Whip are everywhere, and `dmgaudit.py:118` logs a crit prediction plus a crit base for the live M1b audit.
+   - Rows to add:
+     - **B-STAGE:** attacker Atk stage -1 (byte 0x19 = 5), Tackle -> fidelity [15, 18]; U21 gives (11, 13).
+     - **B-STAGE-CRIT:** the same with a crit -> game [43, 51], ours (42, 50), delta -1; U22 gives (30, 36).
+     - **B-CRIT-REFL:** Tackle with a crit into Reflect -> game [43, 51], ours (42, 50); U20 and U23 give (22, 26).
+
+3. **The level factor, U05.**
+   - Every row uses level 30 or 50, where `2*L//5` equals `2*(L//5)`.
+   - At L8 the factor is 5 vs 4 (-20%), which is early game.
+   - Add **B-LVL:** Zigzagoon L8 Tackle -> fidelity [5, 7]; U05 gives (5, 6).
+
+4. **Super Fang, U03 (and the port's P09).**
+   - B-SF uses hp == max_hp == 200 (probe:478), and it is the immune case, so both halves go unchecked.
+   - Add **B-SF2:** Super Fang vs Normal at hp 150/200 -> [75, 75] fidelity. This also reaches the port's SUPER_FANG branch.
+
+5. **Charge on a non-Electric move, U01.**
+   - The sweep turns Charge on only for Electric moves (probe:582), and every charged row is Electric.
+   - Fix: sweep Charge across all 17 types and require the NCC/CC buckets to equal NC/C for non-Electric, or add **B-CHG-TACKLE:** charged Tackle -> fidelity [21, 25].
+
+6. **Out-of-scope branches with no row at all.**
+   - Ordered roughly by harm: Levitate (U09); pinch abilities, which the starter always has (U24); Light Screen (U14); rain and sun (U15, U39); BADGE05 (U16); Huge Power (U25); Thick Fat, Hustle, Choice Band, Explosion, Soundproof and Wonder Guard (U26–U28, U37, U42, U08); Dragon Rage (U04, U43); the early zero-return (U40); the party-`Pokemon` path (U33).
+   - On U33: `story_mode.py:481` and `get_strongest_move_against` feed party `Pokemon` objects into the calculator, and no row uses one.
+   - Our code currently matches the decomp on these lines, so each would be a delta-0 fidelity row. #27 edits their neighbours (Brick Break sits next to Reflect and Light Screen, Solarbeam next to rain and sun, KI-110 next to BADGE05).
+
+7. **The port's non-immune fixed-damage branches never run (P09, P10, P11).**
+   - All three fixed-damage rows (B-NS, B-ST, B-SF) hit an immune type, so the port returns 0 from its first line (dmgcalc_port.py:284), and nothing ever calls DRAGON_RAGE.
+   - Add non-immune rows for Night Shade, Seismic Toss and Dragon Rage.
+
+8. **Gate self-protection: CASES that would have caught the hollowings.**
+
+   | new CASE | code mutant | measured red set | protects against |
+   |---|---|---|---|
+   | u7 | U23 | {D-A1, D-A2, D-A3, BK-C, BK-CC} | G06, G13 |
+   | u8 | U11 | {B-STR, D-N2} | G01+G02 |
+   | u9 | U36 | {L1} | G05 |
+
+   - G09 also needs a comparator self-test: feed a known over-reddening mutant (U12) a too-small `want` and require that the check FAILS.
+
+### Vacuity and independence findings
+- **The game literals are independent.** `m1_rows_game.md` derives them with decomp line citations. I re-derived D-A1…D-O1, B-MS1, B-GUTS and both B-KI110 rows by hand, and all match. Rows compare against literals, never against live calculator output.
+- **The port is faithful.** Its 111-row table matches decomp `battle_main.c` exactly, in order, with correct line comments (compared programmatically at f90719c). The typecalc walk, the per-step floor, the random factor and the Psywave redraw all match.
+- **Two things are measurements, not derivations.**
+  - The PREREG bucket bounds came from the design review's sweep (marked "⚙ measured"); only the hand anchors constrain them, and only as lower bounds.
+  - SW's total was re-derived after the first run from the same factors the sweep loop uses, so it mostly pins `SWEEP_BS`, the type count and `_calls`.
+- **The sweep is complete over its declared space.** It covers 17×17 ordered pairs including mono pairs, and excluding ??? is fine. Three gaps:
+  - Charge is only ever on for Electric moves.
+  - Attackers are always mono-type, so type2 STAB is covered only by D-A3. That is why the anchor inequality is not purely redundant: U07 fired it through BK-C, although D-A3 fires anyway.
+  - **Foresight is never applied to our calculator**, which has no Foresight handling: a known game divergence (Normal/Fighting hitting a Ghost) that no row pins.
+- **The side check's redundant asserts (G07, G08) cost nothing.** S1 still refuses every stand-in through the `is True`/`is False` identity asserts that remain.
+
+===== 2. THE BUILDER'S REPORTS (the gate's first build, then its fold-in(s) of the pass) =====
+----- 2a. the first build -----
+The gate is built and passes: 50 checks, `ALL PASS`, exit 0, in **30.7 s wall** (under the 120 s target). Every pre-registered literal and all four bucket bounds reproduced exactly. All 20 mutants turned exactly their pre-written red sets red. I only created the two files, `_util.py` is unmodified, and I ran no git command that changes anything.
+
+**Files**
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/dmgcalc_port.py`
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/probe_damage_calc_decomp.py`
+
+**Timing**
+- With a process pool, the full real-calculator sweep takes about 5 s; the m2 mutant re-runs it in 6.6 s.
+- Sweeps are cached by the source of what they actually call. Mutants that can't change the sweep reuse it and take 0.0 s; port mutants that can take about 1.8 s.
+- If no pool can be made, the gate runs in-process: still ALL PASS, in 84 s. I checked that both paths give identical sweep results for the real code and for m2 (20,808 keys, 5,368,464 calls each).
+- It also passes with DeprecationWarnings turned into errors.
+
+**The port.** It is a table-order port with all decomp citations checked at `f90719c4`. The type table was transcribed from the decomp text by script. It matches `types.json` entry by entry, including the order within each attacking type (row P1).
+
+**Rows (all PASS; three literals each, game / ours / delta)**
+
+| Row | Game | Ours | Delta |
+|---|---|---|---|
+| D-A1 | [30,36] | (27,32) | −4 |
+| D-A2 | [61,72] | (54,64) | −8 |
+| D-A3 | [51,60] | (47,56) | −4 |
+| D-N1 | [5,7] | (5,6) | −1 |
+| D-N2 | [1,1] | (1,0) | −1 |
+| D-O1 | [1,2] | (2,3) | +1 |
+| B-MS1 | [10,12] | (14,17) | +5 |
+| B-MS2 | [14,17] | (10,12) | −5 |
+| B-GUTS | [35,42] | (18,22) | −20 |
+| B-BB | [88,104] | (45,54) | −50 |
+| B-KI110-B7 | [22,27] | (23,28) | +1 |
+| B-KI110-B8 | [23,28] | (22,27) | −1 |
+| B-KI111 | [71,84] | (137,162) | +78 |
+| B-STR | [20,24] | (1,0) | −24 |
+| B-HP (fidelity) | [27,32] | (27,32) | 0 (ours rolls Dark 70) |
+| B-HPC | [54,64] | (108,128) | +64 (ours rolls Electric 70) |
+| B-SONIC | [20,20] | (3,4) | −16 |
+| B-PSY | [15,45] | (2,3) | −42 |
+| B-NS | 0 | (30,30) | +30 |
+| B-ST | 0 | (30,30) | +30 |
+| B-SF | 0 | (100,100) | +100 |
+
+- **D rows:** the port and the real calculator both hit their literals (base patched to B, sides asserted).
+- **B rows:** the port is also checked. The fixed-damage rows use `fixed_damage`. The other B rows run the port with the base values from `m1_rows_game.md`; that goes beyond your spec. I added it so the Struggle-skip and Charge-on-rolled-type mutants have a row to turn red.
+- **Extra rows:**
+  - **P1:** the port's table equals the ROM chart.
+  - **P2:** the port's walk handles three cases: a no-effect hit deals 0, the Foresight sentinel, and a mono-type taking its row once.
+  - **SW:** the sweep is complete: 5,368,464 tuples, the patched base called that many times, 10,404 combinations.
+  - **L1:** Badge 1 changes ours from (21,25) to (22,27).
+  - **S1:** a stand-in, swapped sides, a wrong side and identical records are all refused. The row confirms `__contains__` returns NotImplemented for a stand-in, which is why the check calls it directly.
+
+**Bucket bounds (measured = pre-registered; each ≥ its measured anchor delta)**
+
+| Bucket | Under | Over | Min end | n |
+|---|---|---|---|---|
+| Non-crit | 1 | 1 | 1 | 2,535,108 |
+| Crit | 4 | 0 | 4 | 2,535,108 |
+| Non-crit + Charge | 4 | 0 | 4 | 149,124 |
+| Crit + Charge | 8 | 0 | 7 | 149,124 |
+
+Witnesses (game vs ours):
+- **Non-crit:**
+  - under: Normal vs Rock/Steel, B=2: [1,1] vs (1,0)
+  - over: Fighting vs Rock/Flying, B=3: [1,2] vs (2,3)
+  - min: Normal vs Normal/Ghost, B=2: [0,0] vs (1,0)
+- **Crit:**
+  - under: Fighting vs Normal/Rock, STAB, B=3: [30,36] vs (27,32)
+  - over: Normal vs Normal/Normal, B=2: [3,4] vs (3,4)
+  - min: the same pairing, B=5: [51,60] vs (47,56)
+- **Non-crit + Charge:**
+  - under: Electric vs Flying/Water, STAB, B=3: [30,36] vs (27,32)
+  - over: Electric vs Normal/Normal, B=2: [3,4] vs (3,4)
+  - min: Electric vs Flying/Water, STAB, B=5: [51,60] vs (47,56)
+- **Crit + Charge:**
+  - under: Electric vs Flying/Water, STAB, B=3: [61,72] vs (54,64)
+  - over: Electric vs Normal/Normal, B=2: [6,8] vs (6,8)
+  - min: the same as under, B=3
+
+**Mutants (sets written before the first mutant run; expected = actual on the final run)**
+
+| Mutant | Red set |
+|---|---|
+| m1: the port in our order | {D-A1, D-A2, D-A3, BK-C, BK-NCC, BK-CC} |
+| m2: `_util` with D1 fixed (in memory only) | the same set; every Group B row stayed green, as predicted |
+| m3: port walk in defender order | {D-N1, D-O1, BK-NC} (the non-crit "over" bound comes only from type order) |
+| m4: no per-step minimum | {D-N2} |
+| m5: Charge on the rolled Hidden Power type | {B-HPC} |
+| m6: no Struggle skip | {B-STR} |
+| m7: wrong Psywave floor | {B-PSY} |
+| m8: fixed damage ignores ×0 | {B-NS, B-ST, B-SF} |
+| m9: the sentinel read as the table's end | {B-ST, B-SF, P2, BK-NC, BK-C} |
+| m10: STAB reads type1 only | {D-A3} |
+| m11: no floor at 1 in the random factor | {D-N2} |
+| m12: no-effect hit reported as `gBattleMoveDamage` | {P2} |
+| u1: Marvel Scale fix | {B-MS1, B-MS2} |
+| u2: Guts fix | {B-GUTS} |
+| u3: Brick Break fix | {B-BB} |
+| u4: KI-110 fix | {B-KI110-B7, B-KI110-B8} |
+| u5: KI-111 fix | {B-KI111} |
+| u6: Badge 1 read removed | {L1} |
+| N1, N2: comment-only edits | {} |
+
+**First-run difference.** On the first run every mutant's set was its expected set plus `SW`, and `SW` was also red on the unmutated code. Its failing line showed the sweep counted 5,368,464 tuples. My hard-coded expected total (5,368,992) was an arithmetic slip; the correct figure is 17·289·2·2·258 + 289·2·2·258 = 5,368,464. So the check was wrong, not the subject. I rewrote it as its factors and also pinned B = 2..259 in the row. I changed no pre-registered literal and no expected set.
+
+**Nothing in the predictions failed to reproduce.** Four things you should know:
+- The port reports a no-effect hit as 0 HP. The decomp's `gBattleMoveDamage` is actually 1 in cases like Ground vs Flying/Rock (a later type row floors the 0 back to 1), but the HP update is skipped. P2 and m12 pin this, and it does not affect any bound.
+- The witnesses are printed, not pinned as rows, as you asked. The design wanted them as rows, but they largely coincide with the anchors: the crit "under" witness is D-A1's tuple, the non-crit "over" is D-O1's, and the crit + Charge "under" is D-A2 with the defender pair in the other order.
+- The gate is not registered in `run_gates.py`, since I was told to change no other file.
+- The worktree holds other agents' uncommitted work (`dmgaudit.py`, `probe_dmgaudit.py`, `audit_damage_calc.py`, edits to `battle_action_selection.py` and `battle_handler.py`, the 29 registry). I didn't touch any of it.
+
+----- 2b. the fold-in -----
+The follow-up is done and the gate passes: 83 checks (45 rows, 38 mutant cases), 0 failures, `ALL PASS` in **71.5 s wall**, also clean with DeprecationWarnings as errors. Every new game literal and every expected OURS value reproduced exactly. 37 of the 38 mutant sets matched on the first run; the one miss (u7) was my own derivation error, explained below. I edited only `tools/story-dev/probe_damage_calc_decomp.py` (the port needed no change), ran no git command that changes anything, and `_util.py` is unmodified. Run: `cd tools/story-dev && PYTHONUTF8=1 py -3.12 -u probe_damage_calc_decomp.py`.
+
+**Decision for you: the no-pool fallback path now takes 294.8 s**, right at `run_gates`' 300 s limit (it was 84 s before). The 7 mutants that change what the sweep can run each re-run the 5.4-million-call sweep, about 33 s each in one process. It still passes, but a machine that can't create a process pool would probably time out (loudly, rc 124). I didn't engineer around it. One option saves only one of those re-sweeps (U21, about 33 s) at the cost of more complex cache logic. The other is to fail fast when no pool can be made. Say if you want either.
+
+**A. New rows (all PASS, literals are game / ours / delta)**
+
+| Row | Game | Ours | Delta |
+|---|---|---|---|
+| B-BURN | [11,13] | (11,13) | 0 |
+| B-REFL | [11,13] | (11,13) | 0 |
+| B-KI110-SPA | [26,31] | (26,31) | 0 |
+| B-STAGE | [15,18] | (15,18) | 0 |
+| B-STAGE-CRIT | [43,51] | (42,50) | −1 |
+| B-CRIT-REFL | [43,51] | (42,50) | −1 |
+| B-LVL | [5,7] | (5,7) | 0 |
+| B-SF2 | 75 | (75,75) | 0 |
+| B-CHG-TACKLE | [21,25] | (21,25) | 0 |
+| B-NS2 | 30 | (30,30) | 0 |
+| B-ST2 | 30 | (30,30) | 0 |
+| B-DR | 40 | (40,40) | 0 |
+| B-FORESIGHT | [21,25] | (1,0) | −25 |
+| B-SPD-CRIT (my addition) | [32,38] | (32,38) | 0 |
+
+- **Construction:** each row is built like the existing Group B rows: real objects, sides asserted, flags patched per row. Each also checks its input actually landed: the burn and that the ability isn't Guts, Reflect 5, Atk stage −1, ChargedUp, Foresight, SpD stage +1.
+- **Port checks:** each row is also checked through the port. The four fixed-damage rows use `fixed_damage`, so its non-immune branches now actually run. The others use `after_base` with a base value I derived from `pokemon.c` (lines cited in `B_HAND`); all matched your game literals.
+- **B-SPD-CRIT:** none of your rows could catch U32. Every special crit row had a defender SpD stage of 0, where the raw and modified stat are equal under any inversion. So I added this fidelity row: Water Gun, crit, no STAB, neutral type, defender SpD +1. Its game literal is my single derivation (`pokemon.c:3292-3309`), not a double one, and it is labelled that way in the gate. It agrees with our calculator.
+
+**B. Mutant cases (expected = actual)**
+
+- **Existing cases I updated before the run:** m1 and m2 gained B-STAGE-CRIT and B-CRIT-REFL, because both the port and ours move with the crit order. Both matched. All other old sets were unchanged and matched.
+- **New cases:**
+  - U18 (burn halving deleted) → {B-BURN, B-GUTS}. The correct Guts fix (u2) does not redden B-BURN.
+  - U19 (Reflect block deleted) → {B-REFL, B-BB}. The correct Brick Break fix (u3) does not redden B-REFL.
+  - U17 (wrong KI-110 fix) → {B-KI110-B7, B-KI110-B8, B-KI110-SPA}
+  - U38 → {B-KI110-SPA}
+  - U20 → {B-CRIT-REFL}
+  - U21 → {B-STAGE}
+  - U22 (applied as `<= 0` → `> 0`) → {B-STAGE-CRIT}
+  - U32 (applied as `> 0` → `<= 0`) → {B-SPD-CRIT}
+  - U05 → {B-LVL}. Applied to the physical level-factor line only; the identical special-branch line is covered by no row, because every special row is at L50 or L30, where both formulas agree.
+  - U03 → {B-SF2}
+  - U01 → {B-CHG-TACKLE}
+  - U43 → {B-DR}
+  - Port Super Fang `// 4` → {B-SF2}; port level damage ×2 → {B-NS2, B-ST2}; port Dragon Rage 20 → {B-DR}
+  - u8 (U11, the min floor removed) → {D-N2, B-STR, B-FORESIGHT}
+  - u9 (U36, Badge 1 boost 110 → 120) → {L1}
+- **The u7 (U23) miss:** my pre-written set was {D-A1, D-A2, D-A3, B-STAGE-CRIT, B-CRIT-REFL, B-SPD-CRIT}; the run also reddened BK-C and BK-CC. The BK rows re-measure their anchors through the same base-call check that fires on crit rows. BK-C's anchors (D-A1, D-A3) and BK-CC's (D-A2) are crit rows, so those two raise. BK-NC (non-crit anchors) and BK-NCC (no anchor) stayed green, which confirms the cause. I corrected the set openly, with a comment in the source saying what the first run showed and why.
+- **C1 comparator row:** added. It feeds the comparator an over-reddening and an under-reddening result and requires both to be reported as mismatches.
+
+**C. Fixes and the hollowing confirmation**
+
+- The "BADGE08 was queried" clause is removed from the B-KI110 rows. The correct KI-110 fix (u4) still reddens exactly {B-KI110-B7, B-KI110-B8}, now via the literals alone.
+- I re-ran scratch copies of the gate with each hollowing applied; nothing in the repo was written. The unhollowed copy passes, and each hollowing now fails a case:
+
+| Hollowing | Caught by |
+|---|---|
+| D rows' `calc == ours` removed | u8 (D-N2 stops reddening) |
+| B rows' `calc == ours` removed | u8 (B-STR and B-FORESIGHT stop reddening) |
+| L1 checks only that the two values differ | u9 |
+| the base-call assert removed | u7 |
+| a raising row counted as a pass | u7 |
+| the comparator weakened to `want <= red` | row C1 |

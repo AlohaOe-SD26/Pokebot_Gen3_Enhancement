@@ -1,0 +1,569 @@
+design v2 step 11 (M1) — the ADVERSARIAL MUTANT PASS on the audit gate (probe_dmgaudit.py) and its fold-in, 2026-09-30 (LA)
+======================================================================================================
+The reports below are MODEL OUTPUT (subagent hand-backs, verbatim, in the order they arrived). They are NOTES: every
+row a fold-in added was re-run on the real code, every mutant's red set was written BEFORE its run, and the final gate
+run is in 2026-09-30-dmgcalc11-GATES.txt.
+The pass: 107 mutants; the gate caught 11 and MISSED 96 (about 8 equivalent or stricter-only). The fold-in:
+36 rows, 105 of its mutants (A44/A64 left out: no row can tell them), 39 of the builder's own, a COVERAGE row,
+the classifier's FAINT RULE (the live smoke's finding, 2026-09-30-dmgcalc11-SMOKE.txt), and a real classifier
+gap the pass found that no mutant expressed (Hidden Power's rolled type in the sport and pinch checks),
+fixed. Final: 177 rows, 193 mutants, every expected set exact on its first run.
+
+===== 1. THE ADVERSARIAL PASS (a fresh agent that never built the gate; it changed no repository file) =====
+----- the pass -----
+# Adversarial mutant pass on `probe_dmgaudit.py`
+
+## Summary
+
+I tried 107 mutants: 65 in the classifier/audit, 12 whitelist, 28 in production `dmgaudit.py` (numbered D01–D30; D01–D29 run, D30 was badges) and 2 in the hook text. Two of these were my own labelling slips — see note at the end of the table. Each mutant was exec'd in memory with the gate's own `_apply`/`_install`, and the gate's own `all_rows()` decided the red set against a clean baseline (0 baseline red).
+
+- **The gate caught 11. It missed 96.** One catch is accidental: D03 turns red only because the gate never sets `context.emulator`.
+- About 8 of the 96 misses are equivalent in practice or only make the audit stricter: A32, A44, A64, A73, D05, D14, D30, A19. They are marked **eq/cons** below.
+- I wrote **35 proposed rows**. Every one passes on the real code and turns red on each mutant it targets. I also computed the exact red set of every mutant over the new rows, and of the gate's own 49 CASES.
+- **One real classifier gap** turned up that is not a mutant (Hidden Power; section 4).
+- **The gate only covers a small part of production.** PIN rows check `bide`, the kinds, the category, parseability, and "pred is numeric". Nothing checks any other RAW field's value, the prediction's inputs, the exit guard, `_pending`, or the failure path.
+- Nothing in the repo was written. My git use was read-only (`status`, `diff`, `log`, `show`).
+- Scratch files: `C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\`
+  - `mutants.py` and `wmuts.py` hold the exact old/new anchors.
+  - `proposed.py` holds the row code, including a `world()` fake with distinct bytes and a valid EWRAM chain.
+  - `cross.py` and `cross2.py` compute the red sets.
+
+## 1. Every mutant tried (a file:line edit → gate rows turned red, or MISS)
+
+**Classifier: per-read strata**
+| ID | Edit | Gate |
+|---|---|---|
+| A01 | `C:sport` checks only `rd.s3[0]` (the foe's half dropped) | MISS |
+| A02 | `mtype in ("Fire","Electric")` → `mtype == "Fire"` | MISS |
+| A03 | `S3_SPORTS = 0x20000` (Mud Sport bit dropped) | MISS |
+| A04 | `("GUST","TWISTER")` → `("GUST",)` | MISS |
+| A05 | `S2_CONFUSION = 0x1` | MISS |
+| A06 | `S2_WRAPPED = 0x2000` | MISS |
+| A07 | `if foe.status1:` → `& S1_TICKS` | MISS |
+| A08 | Brick Break checks Reflect only (`& 0x1`) | MISS (eq: Light Screen does not affect physical damage) |
+| A09 | per-read pinch `<=` → `<` | MISS |
+| A10 | pinch DIP `<=` → `<` | MISS |
+| A33 | `_state_reasons(b, …)` call removed | R01b–R18b, R20b, R21b (R19b cannot turn red: the dip covers it) |
+| A61 | field-level and our-side checks moved under `foe_ok` (`if not foe_ok: return out`) | MISS |
+
+**Classifier: BEFORE-only strata and pair strata**
+| ID | Edit | Gate |
+|---|---|---|
+| A11–A15 | `FOE_SELF_HURT` loses DOUBLE_EDGE / RECOIL_IF_MISS / BELLY_DRUM / PAIN_SPLIT / MEMENTO | MISS ×5 |
+| A30 | False Swipe `foe.hp <= pred[3]` → `<` | MISS |
+| A62 | `foe_mv == 0 and b.mv[0] == 0` | Q02, T1 |
+| A63 | Curse counted as self-hurt for any type | Q04 |
+| A16 | `FOE_SELF_STATE` loses SEMI_INVULNERABLE | MISS |
+| A17 | `FOE_SELF_STATE` loses DEFENSE_UP_2 | MISS |
+| A18 | foe-profile-changed compares types only | MISS |
+| A19 | Liquid Ooze Leech Seed check reads `a.s3[0]` only | MISS (eq in practice) |
+| A20 | `FOE_DRAIN` loses DREAM_EATER | MISS |
+| A21 | status-change reason fires for Guts only (Facade dropped) | MISS |
+| A64 | screens-changed → any `side[1]` change | MISS (cons) |
+| A65 | weather-changed dropped | G06 |
+
+**Self-check**
+| ID | Edit | Gate |
+|---|---|---|
+| A22 | held-item exclusion reads `foe_a.item` (not `foe_b`) | MISS |
+| A23 | `FOE_DRAIN \| FOE_HEAL` → `FOE_HEAL` | MISS |
+| A24 / A24b | Leech Seed on us read at BEFORE only / AFTER only | MISS / MISS |
+| A25 | tick status read at BEFORE only | MISS |
+| A26 | foe Leech Seed / Ingrain term → `False` | MISS |
+| A27 | foe status2 ticks → `False` | MISS |
+| A28 | `b.weather or a.weather` → `b.weather` | MISS |
+| A50 | agreement within ±1 | MISS |
+
+**Pairing, identity, acceptance, outputs**
+| ID | Edit | Gate |
+|---|---|---|
+| A29 | entry pairing accepts `a.t - b.t in (0, 1)` | MISS |
+| A31 | trainer KO checks `a.party[0] != (old.pid, 0)` (by position) | MISS |
+| A32 | `d_bide <= old.hp` | MISS (cons) |
+| A66 | old PID taken as "not the AFTER foe" | P6 |
+| A67 | end-without-outcome dropped | P2 |
+| A46 | `hits` restricted to `tier == "A"` | MISS |
+| A47 | `over` counted on `kind == "turn"` only | MISS |
+| A68 | `over` counted on trainer battles only | MISS |
+| A69 | `over` uses the `ACCEPT_MARGIN` constant | I5, X7 |
+| A34 | below-min tag `<` → `<=` | MISS |
+| A35 | `n_m1a` `>` → `>=` | MISS |
+| A36 | stats `below` `<` → `<=` | MISS |
+| A43 | M1a Charge bound ignores the move's type | MISS |
+| A44 | predicted-immune tested on `pred[3]` | MISS (eq) |
+| A70 | `max(obs − cmax)` taken over "turn" pairs only | MISS |
+
+**Parser and port control**
+| ID | Edit | Gate |
+|---|---|---|
+| A37 | repeated field allowed | MISS |
+| A38 | AFTER `kind` unchecked | MISS |
+| A39 | party length unchecked | MISS |
+| A40 | `dis` unchecked | MISS |
+| A71 | `pred=err…` accepted by `startswith` | MISS |
+| A72 | ERR `where` unchecked | MISS |
+| A41 | port check `lo < d < hi` (open interval) | MISS |
+| A42 | Hidden Power `t >= 9` → `t > 9` | MISS |
+| A73 | attacker types swapped | MISS (eq: STAB is membership only, `dmgcalc_port.py:230`) |
+| A74 | foresight from our status2 | PC6 |
+| A75 | Charge from the foe's s3 | PC4 |
+
+**Whitelist**
+| ID | Edit | Gate |
+|---|---|---|
+| W01–W06 | an OUT effect added to TIER_A: DOUBLE_HIT, LEVEL_DAMAGE, OHKO, FLAIL, TRAP, TWINEEDLE | MISS ×6 |
+| W07 / W08 | POISON_FANG / CONFUSE_HIT moved B→A | MISS / MISS |
+| W09 | PURSUIT moved C→A | MISS |
+| W10 | THUNDER dropped from A | MISS |
+| W11 | SNORE dropped from C | MISS |
+| W12 | `MOVE_SURF = 58` | R10a, R10b, W1, W3 |
+
+**Production `dmgaudit.py`**
+| ID | Edit | Gate |
+|---|---|---|
+| D01 | `signed=False` for bide | MISS (low: gBideDmg is never negative in practice) |
+| D02 | inner EWRAM guard dropped | MISS |
+| D03 | outer EWRAM guard dropped | PIN-b1–b6 — accidental: `context.emulator` is None in the gate |
+| D04 | flags pointer read at `+0` | MISS |
+| D05 | `flags_ptr + b` (stride 1) | MISS (eq for the classifier: it reads only `ff[0]`) |
+| D06 | party HP read at `0x54` | MISS |
+| D07 | party PID read at `+4` | MISS |
+| D08 | turn counter at `+0x12` | MISS |
+| D09 | mons written (foe, ours) | MISS |
+| D10 | `mv` read as u8 | MISS |
+| D11 | `side` written reversed | MISS |
+| D12 | `s3` written reversed | MISS |
+| D13 | `act` written reversed | MISS |
+| D14 | weather low byte only | MISS (eq in Emerald) |
+| D15 | prediction attacker/defender SWAPPED | MISS |
+| D16 | crit call without `is_critical_hit=True` | MISS |
+| D17 | bcrit computed with `False` | MISS |
+| D18 | exit guard dropped | MISS |
+| D19 | `sub_8012324` dropped from the selection states | MISS |
+| D20 | battle start does not clear `_pending` | MISS |
+| D21 | entry does not consume `_pending` | MISS |
+| D22 | entry logs without a pending BEFORE | MISS |
+| D23 | end logs without a pending BEFORE | MISS |
+| D24 | end read uses `flash_fire=True` | MISS |
+| D25 | flag test `!= ""` | MISS |
+| D26 | `_pending = True` set before the log | MISS |
+| D27 | entry hook's try/except removed | MISS |
+| D28 | ERR `where="entry"` | MISS |
+| D29 | a prediction error logs `pred=none` | MISS |
+| D30 | badges `range(7)` | MISS (low: the field is unused) |
+
+**Hook text**
+| ID | Edit | Gate |
+|---|---|---|
+| H01 | BAS: `battle_state = get_battle_state()` added before the exit hook | MISS |
+| H02 | BAS: a `category='DMGAUDIT'` event emitted from BAS itself | MISS |
+
+(Two labelling slips in the table: A61 was named "trainer-KO field checks" in my run, and A62 ended up as a "foe-move-zero only when our move is 0" mutant. Both are exact in `mutants.py`.)
+
+## 2. Misses ranked by harm, with the proposed rows
+
+Every row below is validated: it passes on the real code and turns red on its targets. Each mutant's exact red set over the new rows equals that one row, with these exceptions:
+- A06 → NR-counters **and** NR-selfcheck-halves.
+- A33 → NR-sport, twister, counters, foestatus, brick.
+
+### Highest harm: a false FAIL that sticks, a garbage acceptance, or something the live arms cannot see
+
+1. **D16 (crit without `is_critical_hit`) and D15 (attacker/defender swapped), plus D17.**
+   - D16 makes crit_max equal max. About 1 hit in 16 then reads ~2× over the bound, and one over is a FAIL for good. It would be misread as a calculator defect.
+   - D15 makes the prediction a garbage number. The live per-turn table grades verdicts, not values, so the live arm would not catch it.
+   - **NP-pred-exact:** assert that the logged `pred` and `base` equal `BattleStrategyUtil(state)` for (own.left, opp.left) and the crit variant. Also check that crit ≠ plain and swapped ≠ straight.
+   - ⚠ This needs a **staged fixture** (foe Def +2). `real_state()` has neutral stages, so base b equals bcrit (both 41), and D17 cannot be told apart even by an exact-value check. Red set: {NP-pred-exact} for D15, D16, D17.
+
+2. **A46, A47, A68: the acceptance's counted set narrowed.**
+   - These silently ignore over-bound hits on KOs (7 of the 10 accepted Step-0 samples are KOs), on wild battles, and on Tier B/C moves.
+   - **NR-accept-kinds:** one over-bound hit, on its own, for each of: battle-end KO, trainer KO, wild, Ember (B), Surf (C). Each must give FAIL. Red set {NR-accept-kinds}.
+
+3. **W01–W11: whitelist entries admitted, moved or dropped.**
+   - Double Kick would put two hits into one Δbide. OHKO, fixed damage and dynamic power would also get in. A B→A move loses the trainer-KO "unobservable" guard.
+   - W2 is circular: `probe_dmgaudit.py:473-477` reads `m.TIER_A/B/C` from the module under test.
+   - **NR-whitelist-table:** the gate holds its **own literal copy** of F2's lists and asserts `tier_of` for the first move of every effect in moves.json, plus Surf and Struggle by index. Red set {NR-whitelist-table} for W01–W12.
+
+4. **A05 and A11–A14: the foe hurting itself, which the decomp shows lands in gBideDmg.**
+   - `battle_script_commands.c:1905-1912` adds `gBattleMoveDamage` to gBideDmg unless `HITMARKER_IGNORE_BIDE` is set.
+   - Only the weather loop (`battle_scripts_1.s` ~3211) and the end-of-turn functions (`battle_util.c:1464`, `:1783`) set that marker.
+   - The foe's recoil (bs.s:3938-3944), crash (RecoilIfMiss), Belly Drum (:1776-1785), Pain Split (:1239-1252) and confusion self-hit (:3801-3811) all run `datahpupdate BS_ATTACKER` without it. So Δbide[1] over-reads, and the result is a false FAIL.
+   - The confusion counter is 2–5, so with mask 0x1 about half of confused turns get through.
+   - **NR-counters** (confusion 2/3/4/5, wrap 0x4000–0xA000) and **NR-selfhurt** (one move for every F4 self-hurt effect, from the gate's own literal list).
+
+5. **A04: Twister's condition dropped.** `bs.s:1826-1829` doubles Twister vs STATUS3_ON_AIR, so a 2× over-read → FAIL. **NR-twister.**
+
+6. **D11, D12, D09, D08, D10, D13, D06, D07, D04, D02, D01, D14: RAW field source and order are unpinned.**
+   - D11 and D12 are latent. The Step-0 trajectory contains no screens, Dig or sport events, so the live table cannot catch them. A Reflect or Dig read on the wrong side lets Brick Break or Earthquake over-reads through.
+   - D04 matters because the calculator does not model Flash Fire (`_util.py:518` todo).
+   - **NP-fields:** distinct fake bytes (turn at 0x12=9 / 0x13=5, act (0,1,254,253), mv (36,336,7,8), bide with −5, side (0x10,0x3), s3 (0x20000,0x40004), weather 0x108, dis `range(0x38)`, party with OT id / level / mail beside PID and HP, a valid EWRAM chain for ff (1,0x100)).
+   - Both lines are parsed with `parse_line` and every field is asserted. A second world puts the flags pointer outside EWRAM and expects `ff=null` with no dereference.
+   - Also **NP-ff-null-resources** (gBattleResources at 0 and at IWRAM → `ff=null`, zero emulator reads). This catches D03 on purpose rather than by accident.
+
+7. **H01: a second `get_battle_state()` in BAS (KI-108).**
+   - F4 names "no new get_battle_state() call in BAS" as an AST row. The gate only pins `dmgaudit.py` (PIN-c5) and the first statement (PIN-c1).
+   - The DIFF arm compares flag on vs off, so an unconditional extra call would look the same in both arms.
+   - **NH-gbs-count:** AST count of `get_battle_state()` in BAS equals 5 (the current count). Also **NH-no-dmgaudit-literal** for H02.
+
+8. **D27 and D28: the failure path is never exercised.** If the try is removed, a read failure raises into every battle. **NP-raise:** `read_symbol("gBideDmg")` raises; each hook returns normally; ERR `where=before` / `after-entry` / `after-end` are logged and parse; `_pending` stays False after a failed BEFORE (this also catches D26).
+
+9. **A16, A17: FOE_SELF_STATE members** (Haze / Minimize / Transform / Skill Swap before a trainer KO can over-read). **NR-unobservable:** one trainer-KO row per effect in the gate's own literal list.
+
+10. **A18: foe-profile-changed checks types only** (a foe that Skill Swaps away Thick Fat → over-read). **NR-profile:** ability, Def and SpD changes each on their own.
+
+11. **A61: our side's checks skipped on a trainer-KO AFTER.** Our Flash Fire activating that turn gives an over-read. **NR-tko-after-ff:** `tko(a={"ff": (1, 0)})` → our-flash-fire.
+
+12. **A10: the dip exactly at maxhp/3.** The game uses `<=`, so the move gets 1.5× → over-read. **NR-pinch-edges:** HP after the dip exactly 42 = 127//3, plus AFTER-only HP 42 for A09.
+
+### Middle: loud or wasted batch, or a false falsifier
+
+13. **A22–A28, A50: the self-check.**
+   - C3 (`probe_dmgaudit.py:660-672`) puts every condition at both reads, because `pair()` copies BEFORE into AFTER (:173-185).
+   - A22 lets a consumed berry (Vanessa's Pikachu) produce a spurious DISAGREE on the pre-registered 0-disagreement falsifier.
+   - **NR-selfcheck-halves:** one-sided held item, drain, Leech Seed at BEFORE only and at AFTER only, poison at AFTER, foe seeded/rooted, cursed/nightmare/wrap/sub, weather at AFTER only, and a disagreement of exactly 1.
+
+14. **D20–D23: the `_pending` lifecycle.** A stale BEFORE is not dropped, or every re-entry logs an AFTER; the log grows toward the 30 MB cap → INSTRUMENT FAIL. **NP-pending:** stale pending → only CTL; the sequence start, entry, exit, entry, entry, end → exactly CTL, BEFORE, AFTER.
+
+15. **D18, D19: the exit guard.** It is reachable today only through the Safari Pokéblock `break` at BAS:984. **NP-exit-guard:** each selection callback, and battle inactive → nothing logged, `_pending` unchanged.
+
+16. **A31: trainer KO checked by party position.** This rejects every KO except the lead's, which breaks the project's "identity, never position" rule. **NR-tko-identity:** the old mon at party slot 2, plus Δbide exactly equal to its HP.
+
+17. **A29 (same-turn entry pairs): NR-same-turn-entry.** **D25 ("0" turns the flag on): NP-flag-values.** **D24: NP-end-no-ff.** **D29: NP-pred-err.**
+
+### Low: under-reads, output numbers, parser strictness
+
+18. A01–A03 (sports; the calculator does not model them, `_util.py:402-406`, so these are under-reads in the lower tail F9 owes step 12): **NR-sport**. A07 **NR-foestatus**. A08 **NR-brick**. A19/A20 **NR-ooze**. A21 **NR-facade-sleep**. A30 **NR-falseswipe-edge**.
+19. A34–A36, A70: **NR-output-edges** (obs exactly at min; exactly cmax+8 with Charge; a KO pair inside max(obs−cmax)).
+20. A41 **NR-port-edges** (obs exactly 34 and 88). A42 **NR-hp-mystery-skip** (IVs 30/31/30/30/30/31 → Fire). A37–A40, A71, A72 **NR-parser** (six malformed shapes).
+
+### Integrating the rows changes the existing CASES red sets
+
+From `cross2.py`, over the new rows:
+- M04 +NR-accept-kinds
+- M05 +NR-accept-kinds, NR-output-edges
+- M06 +NR-unobservable, NR-tko-identity
+- M18 +NR-sport, NR-pinch-edges, NR-tko-after-ff
+- M21 +NR-pinch-edges
+- M24, M25 +NR-whitelist-table
+- M27 +NR-selfcheck-halves
+- M29 +NR-parser
+- MP3, MP4 +NR-port-edges
+- PM1 +NP-flag-values
+- PM2 +NP-fields, pred-exact, pending, pred-err, ff-null-resources
+- PM9 +NP-fields, pred-exact, pending, raise, end-no-ff, pred-err, ff-null-resources
+
+The PM2 additions appear only because my `world()` does not rebind `get_battle_state`. Reuse `prod()`'s rebinding when you integrate, then re-derive these sets.
+
+## 3. Vacuity (file:line in `probe_dmgaudit.py` unless stated)
+
+- **:1150-1151** PIN-b1 accepts any numbers for `pred` and `base`, so D15, D16 and D17 cannot fail it. **:1035-1042** `real_state()` has neutral stages, so base is 41,41 and even an exact check cannot see D17.
+- **:1020-1032** `fake_syms`:
+  - gBattleResources is NULL, so the Flash Fire dereference (`dmgaudit.py:62-67`) never runs.
+  - side, s3, weather and dis are all zero.
+  - The party's neighbouring bytes are zero, and no row ever asserts t, out, act, mv, mons, side, s3, weather, ff or party. PIN-b5 (:1170-1175) checks only that lines parse; PIN-b4 (:1165-1168) checks only bide.
+- **:1066-1067** `prod()` fixes `battle_is_active=True` and a non-selection callback, so the exit guard's return never runs.
+- **:1092-1102** `run_seq` is the only flag-set sequence and it forces `_pending=False`. No row injects a failure, so the ERR `where` names and "never raises" are untested. I6 only parses a hand-written ERR line.
+- **D03 is caught by accident** (`context.emulator` is None). Give the gate a fake emulator and it becomes a MISS unless NP-ff-null-resources is added.
+- **:660-672** C3 cannot tell the BEFORE and AFTER halves apart.
+- **:709-746** every X-row over is trainer / Tier A / "turn".
+- **:473-477** W2 is circular.
+- R02 and R03 use counter value 1 and 0x2000, so the masks are unpinned. Q03, G08 and G10 test one member per set. O2 and O3 have no boundary values and no KO pair. PC7 uses 89 and 33 (one past each bound, never at it). PC9 never tests the skip boundary (bits 34–37).
+- R19b cannot turn red when the BEFORE per-read call is removed, because the dip (40−16 ≤ 42) also fires. This is harmless.
+- **60 of 141 rows appear in no CASES red set**, so no author mutant has shown they can fail: I4, I6, P8, P11, S1, S2, S5, S6, S11, S13, S14, W2, R01b–R21b, Q01, Q03–Q11, G02–G06, G08, C1, X1, O2, O3, PC1, PC2, PC9, PIN-a1, a3, a4, PIN-c3. My pass has since shown R*b (except R19b), Q02, Q04 and G06 can.
+
+## 4. A real classifier gap (not a mutant)
+
+`C:sport` (`audit_damage_calc.py:422`) and the pinch DIP (`:488`) compare the move's **listed** type.
+
+The game uses Hidden Power's **rolled** type:
+- `battle_script_commands.c:8909-8912` sets `dynamicMoveType`, and `:1295` passes it to the damage calculation.
+- `pokemon.c:3124-3127` uses it as the type, and `:3215` (sport) and `:3219` (pinch) test that type.
+
+Our calculator also uses the rolled type (`_util.py:25-27`, `:408-414`). Two consequences:
+- **Hidden Power rolled Grass, Overgrow, and a dip to ≤ 1/3 is ACCEPTED.** The game applies 1.5× and ours does not, so the result is a false FAIL.
+- **Hidden Power rolled Fire under Water Sport is ACCEPTED.** It is halved, so it pollutes the lower tail.
+
+`NR-hp-rolled-type` (in `proposed.py`) is **RED on the current code**: both cases come out `ACCEPTED`, `reasons=[]`.
+
+The fix is to use `hidden_power_type(me.ivs)` for move 237 in both places, and in `_state_reasons`'s `mtype`.
+
+A related note: SUPERPOWER and OVERHEAT are in Tier A, but their guaranteed self stat-drop always triggers `our-attack-stage-changed`. So they can never be ACCEPTED — they are in the whitelist in name only (this loses samples; it is not a harm).
+
+All status, side and action constants in the audit match pokeemerald `include/constants/battle.h`.
+
+===== 2. THE BUILDER'S REPORTS (the gate's first build, then its fold-in(s) of the pass) =====
+----- 2a. the first build -----
+I've built both files. The gate passes, and all 31 mutants turned exactly the rows I wrote down for them red on the first mutant run, so I changed no expected set.
+
+**Files (the only two I created; I modified nothing else, ran no git command that changes anything, and never ran the emulator):**
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/audit_damage_calc.py`
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/probe_dmgaudit.py`
+
+**Gate result:** `ALL PASS (31 mutants) in 12.6 s`. That is 151 checks: 120 rows plus 31 mutants, well under 60 s.
+
+**The classifier:**
+- **Exit codes:** 0 PASS, 1 FAIL, 2 INSUFFICIENT, 3 instrument failure (raw line count ≠ parsed count, or the logger's cap marker `event log size cap reached` from `debug_logger.py`).
+- **Parsing is strict to v=1.** An unknown field, `v≠1`, a wrong hex width or `fNone` counts as unparsed, so the audit exits 3. If production ever adds a field, it has to bump `v`.
+- **Production is compatible.** The production module appeared while I worked; a read-only look at its format strings matches my parser field for field: `bide` is decoded signed, and `eff` is the plain moves.json string.
+- **The whitelist** is a constant in the classifier, keyed on moves.json `effect`, with Surf (57) and Struggle (165) keyed on move index.
+- **ACCEPT_MARGIN = 3** (a proposal for the user). The M1a bounds are the pre-registered 4, and 8 with Charge.
+- **Outputs:**
+  - the raw and parsed counts;
+  - per-reason counts;
+  - accepted samples split wild/trainer, by tier and by kind;
+  - per effect and per stratum: max(obs − crit_max), max(obs/crit_max), the counts over crit_max + margin and over crit_max + the M1a bound, and hits below the non-crit min;
+  - the crit-ambiguity list;
+  - the self-check disagreements with their frames;
+  - one line per BEFORE;
+  - the port-control line and the acceptance line.
+
+**Rows (120), with their IDs as they appear in the gate:**
+- **I1–I6 (instrument):** raw = parsed; six malformed-line shapes each exit 3; the cap marker exits 3; the marker text is really in `debug_logger.py`; the CLI with `--margin`; ERR lines are counted.
+- **P1–P11 (pairing):**
+  - the battle-end pair, and its two rejections (outcome 0; counter moved);
+  - the trainer-KO pair (Koffing → Koffing, same species, new PID);
+  - the three trainer-KO rejections: Δbide < HP; old PID's party HP ≠ 0; Spikes, at BEFORE (P7) and at AFTER (P7a);
+  - a turn gap; a double BEFORE (the latest wins); a CTL clearing a pending BEFORE; a BEFORE left unpaired at the log's end.
+- **S1–S14 (samples):**
+  - a clean hit;
+  - four not-a-sample cases: PP unchanged; the chosen move ≠ the slot whose PP dropped (matched by move id); our action not a move; the move not in our moveset;
+  - our PID changed (rejected);
+  - five excluded cases: negative Δbide (instrument fault); Δbide 0 (no damage); doubles; max = 0; no prediction;
+  - three tags and labels: crit ambiguity at obs = max / max+1 / crit_max+1; below the non-crit min; wild vs trainer.
+- **W1–W3 (whitelist):** the tier function; the constants exist in moves.json, don't overlap, and include every stat `*_HIT` effect; one sample per tier.
+- **R01–R21, each as `b` (condition at BEFORE only) and `a` (condition at AFTER only), 42 rows:**
+  - foe: status, confused, trapped, Leech Seed, cursed, Nightmare, Substitute, Focus Band, held item;
+  - the Tier C conditions: Surf/underwater, Earthquake/underground, Gust/in the air, Stomp/minimized, SmellingSalt, Facade, Weather Ball, Brick Break, sports;
+  - our side: pinch, Flash Fire, Rough Skin.
+- **Q01–Q11 (BEFORE-only):**
+  - the foe's chosen action: item action; move reads 0; a self-hurting move; Ghost Curse; Protect/Endure/Bide;
+  - Pursuit vs a switch; False Swipe with the foe's HP ≤ crit_max;
+  - the persistent divergences: Guts + burn, Marvel Scale, Cloud Nine/Air Lock, Flash Fire.
+- **G01–G12 (only the pair shows):**
+  - changes between reads: the foe's Def/SpD stage; the foe's types or stats; screens; our Atk/SpA stage; a status change with Guts; the weather;
+  - the pinch dip; Liquid Ooze vs a draining foe;
+  - trainer KO: by a Tier B move, or after the foe's Harden, is unobservable; the replacement itself is not judged;
+  - Tier B whose secondary shows at AFTER.
+- **C1–C4 (self-check):** a disagreement is counted with its frame; the masked heal is not a disagreement; seven exclusion cases; trainer KOs and battle ends are skipped.
+- **X1–X7 (acceptance):**
+  - with 300 clean samples plus one at crit_max + margin + 1: FAIL;
+  - the same sample in an excluded stratum: PASS;
+  - exactly at the bound: PASS;
+  - 299 clean: INSUFFICIENT; 299 plus one excluded hit: INSUFFICIENT;
+  - a single over-bound hit (n=1): FAIL;
+  - the margin is a real parameter.
+- **O1–O3 (outputs):** every required output line is present; the error numbers are right; the M1a bound is 8 for a charged Electric move and 4 otherwise.
+- **PC1–PC4 (port control):** no module → "unavailable"; no `after_base` → "unavailable"; `after_base` with no adapter → "NOT WIRED"; an injected adapter counts inside/outside/unreplayable correctly.
+- **T1:** the predictions' 17-turn table, rebuilt from the Step-0 evidence file, reproduces every predicted verdict. It gets 10 accepted and INSUFFICIENT, and the only self-check-eligible turns are the three named ones (f3190263, f3198642, f3216950), with 0 disagreements.
+- **T2:** the FAULT arm offline (bide slot 1 replaced by slot 0) disagrees on exactly those three turns.
+
+**Mutants: expected = actual on every one:**
+
+| Mutant | Rows turned red |
+|---|---|
+| M01 `>=` for `>` in the acceptance | I5, X3, X7 |
+| M02 excluded strata counted in the verdict | X2, X5, T1 |
+| M03 the 300 floor ignored | I1, I5, X4, X5, O1, T1 |
+| M04 INSUFFICIENT decided before FAIL | I5, X6 |
+| M05 pairing on turn+1 only (no battle-end pair) | P1, P2, P3, C4, T1 |
+| M06 the foe's identity on species only | P4, P5, P6, P7, P7a, G09, G10, G11, T1 |
+| M07 our identity on species only | S4 |
+| M08 the first BEFORE wins | P9 |
+| M09 a CTL does not clear a pending BEFORE | P10 |
+| M10 trainer KO's Δbide ≥ HP check dropped | P5 |
+| M11 trainer KO's party-HP check dropped | P6 |
+| M12 trainer KO's Spikes check dropped | P7, P7a |
+| M13 PP check by slot instead of move id | S3 |
+| M14 negative Δbide not an instrument fault | S7 |
+| M15 Δbide 0 not "no damage" | S8, T1 |
+| M16 doubles not stratified | S9 |
+| M17 max == 0 not stratified | S10 |
+| M18 stratum checks evaluated at BEFORE only | R01a–R21a, G12 |
+| M19 the replacement judged on a trainer KO | G11 |
+| M20 a Tier B trainer KO not unobservable | G09 |
+| M21 pinch dip not checked | G07 |
+| M22 foe Def/SpD stage change not stratified | G01 |
+| M23 foe's chosen move 0 read as clean | Q02, T1 |
+| M24 Surf keyed on its effect | W1, W3 |
+| M25 Struggle keyed on its effect | W1 |
+| M26 self-check keeps the foe's item action | C2, T1, T2 |
+| M27 self-check keeps a held item | C3, T1, T2 |
+| M28 crit tag includes obs == max | S12 |
+| M29 raw count taken from parsed records | I2 |
+| M30 cap marker ignored | I3 |
+| M31 a comment-only edit | none |
+
+**Where F4 was ambiguous, and what I chose (each choice can only exclude more, never accept more):**
+1. **Trainer KO at the AFTER read.** The foe slot then holds the replacement, so I don't apply the foe's per-mon checks to it; our-side and side-level checks still run. What that could miss is covered by a stratum I added, `foe-after-unobservable`: it fires when our move is Tier B, or when the foe's chosen move could have changed what our hit met (its Def/SpD stages, its types, going underground/underwater/airborne, minimizing, a sport).
+2. **I added `foe-profile-changed`** (the foe's types, ability, Def or SpD stat differ between reads, e.g. Conversion or Transform), by analogy with F4's "Def/SpD stage changed". It is not in F4.
+3. **Action-based reasons and Pursuit are read at BEFORE only.** The entry read resets actions to 255 and moves to 0 (visible in the Step-0 reads), and a battle-end read just repeats BEFORE's. False Swipe's condition is defined on "HP before", so it has no AFTER half either.
+4. **One over-bound hit is FAIL at any sample size.** F4 doesn't say what wins when a run is both under 300 and over the bound; I followed B1's "one is enough to fail it for good".
+5. **Wild vs trainer is a label, not an exclusion**, because the predictions table accepts wild samples.
+6. **Doubles are checked after the sample checks.** A doubles turn where our move didn't run is "not a sample"; one where it ran is in the doubles stratum.
+7. **The self-check runs on every validly paired singles turn with the same foe and no KO, whatever our action was.** I added three exclusions beyond F4's enumerated list: the foe's own heal moves, Pain Split, and a foe Substitute.
+8. **One consequence of choice 1:** an Intimidate replacement on a trainer KO would flag "our Atk stage changed" and exclude a good sample.
+
+**Findings for you:**
+- **The port control cannot be wired from the logs.** `dmgcalc_port.py` now exists with `after_base(B, move_type, attacker_types, defender_types_rom, crit, charge_listed_electric, ...)`, but it starts from the base damage term B, and no v=1 `[DMGAUDIT]` field carries B. The audit therefore prints "port control: NOT WIRED …" and leaves the adapter `_port_range` undefined; PC4 proves the replay loop works once it exists. Wiring it needs a decision: add a `B` field to the BEFORE line, or build a separate base-damage port.
+- **T1 grades f3193320 (Shiftry, which chose Harden) as ACCEPTED only because my synthetic record keeps its Def stage unchanged.** On the live run, the read decides.
+- **Other fields the Step-0 probe never read are neutral in T1**, except Vanessa's Pikachu's Oran Berry. The predictions there are synthesized so each observed damage falls inside [min, max].
+
+----- 2b. the second round (the port control via base=; its PIN-b6 caught production omitting base=none, fixed in production) -----
+All three parts are built, but the gate currently FAILS on one row, PIN-b6, because production doesn't meet the updated contract. Every other row passes, and all 49 mutants matched their pre-written sets on their first run. I edited only my two files, ran no git command that changes anything, and never ran the emulator.
+
+**Files:**
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/audit_damage_calc.py`
+- `C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/probe_dmgaudit.py`
+
+**Result:** `FAILED 1 check(s) in 17.9 s`: 141 rows (140 pass, PIN-b6 fails) and 49 mutants, all matching.
+
+**The production defect behind PIN-b6.** In `sandbox-pokebot/modules/dmgaudit.py`, `_prediction` omits `base=` on its two early returns: `return "pred=none eff=-"` and `return f"pred=err:Absent eff={move.effect}"`. The contract says `base=none` goes on every BEFORE. As it stands, every non-move turn (a switch or an item) and every Absent-battler turn writes a BEFORE the audit cannot parse. On the live ON arms that makes raw ≠ parsed, so the audit exits 3.
+- The fix is to add `base=none` to both strings: `"pred=none base=none eff=-"` and `f"pred=err:Absent base=none eff={move.effect}"`.
+- I proved it with a scratch script that loads the fixed copy in memory only. With the fix, no row is red, and every production mutant matches its complete set, including PIN-b6 in PM3 and PM9.
+- Until the fix lands, the gate reports PIN-b6 as "baseline red" and leaves it out of the mutant comparisons, printing which rows it left out. That keeps one defect from hiding the other mutant results; the gate still exits 1.
+
+**⚠ A conflict with your instruction, resolved in the port's favour; please confirm.** You asked for "the move's LISTED type" and suggested a mutant where the adapter passes the rolled Hidden Power type. The port's final docstring says `move_type` is GET_MOVE_TYPE, the ROLLED type for Hidden Power, used for STAB and the type chart; only Charge reads the listed type. The M1a gate uses it that way (B-HPC calls `after("B-HPC", "Electric", …)` with `charge_applies(charged, listed, …)`, and its mutant m5, "Charge on the rolled type", is the bug). So the adapter passes:
+- `move_type` = the rolled type for Hidden Power (computed from our record's IV word per `Cmd_hiddenpowercalc`), the listed type for every other move;
+- Charge = our s3 bit 0x200 AND the listed type Electric.
+
+Both directions are mutants: MP1 (the listed type passed for Hidden Power) and MP2 (Charge read from the rolled type). If you really meant the listed type, only MP1 inverts.
+
+**1. The `base` field.** The parser now requires `base=<b>,<bcrit>` or `base=none` on every BEFORE and stores it as `Rec.base`; `v` stays 1. I2 gained a seventh malformed-line shape, a BEFORE without `base=`.
+
+**2. The port control is wired.** `port_calls` builds two keyword calls per clean accepted hit: non-crit from b, crit from bcrit.
+- Our types and the foe's types come from the BEFORE records at 0x21/0x22, in ROM order, using the port's type names.
+- `struggle` is move 165.
+- `foresight` is the foe's status2 bit 0x20000000. You didn't list it, but the port accepts it and the decomp needs it against Ghost foes.
+- A hit is "outside" when it falls outside [the non-crit min, the crit max]; each is printed with its frame, observation and range. `base=none` or a type id outside 0–17 counts as unreplayable.
+- The earlier PC3/PC4 rows ("NOT WIRED" and the injected adapter) are replaced.
+
+**3. Production pins.**
+- **Execution, flag unset:** each hook is called with `_pending = True`, `read_symbol` and `debug_logger.event` spied.
+- **Execution, flag set:** `read_symbol` returns fixed bytes, `_prediction` runs the real calculator on a real `BattleState` built from the records, and `get_battle_state` is spied wherever it is bound, including from-imports.
+- **AST:** the hook positions in the two hook files, and two checks on `dmgaudit.py` itself.
+
+**New and changed rows (all pass except PIN-b6):**
+- **PC1–PC2:** no module / no `after_base` → "port control: unavailable".
+- **PC3:** the exact calls: B 40 then 44, move_type Normal, attacker Dark/Dark, a dual-type foe (Electric, Water) in ROM order.
+- **PC4:** Spark while charged → charge True.
+- **PC5:** Hidden Power rolled Electric while charged → move_type Electric, charge False; rolled Dark → Dark.
+- **PC6:** foresight → True.
+- **PC7:** the real port, hand-derived range [34, 88]: 65 inside; 89 and 33 outside, listed with frames.
+- **PC8:** `base=none` and a type id of 200 → 2 unreplayable.
+- **PC9:** the adapter's type names equal the port's `ROM_TYPE_IDS`; the Hidden Power roll gives Dark and Electric.
+- **PIN-a1–a4:** flag unset, each hook reads nothing and logs nothing.
+- **PIN-b1:** zero `get_battle_state()` calls across the four hooks, with the calculator having really run (pred and base are numbers).
+- **PIN-b2:** all 5 lines are category DMGAUDIT.
+- **PIN-b3:** the kinds come out CTL, BEFORE, AFTER(entry), BEFORE, AFTER(end).
+- **PIN-b4:** the FAULT switch makes bide position 1 equal position 0.
+- **PIN-b5:** everything production writes parses under the audit's v=1 parser (raw 5 = parsed 5).
+- **PIN-b6 (FAILS):** a BEFORE with `pred=none` carries `base=none` and parses.
+- **PIN-c1:** exactly one `on_selection_entry()`, right after `battle_state = get_battle_state()`.
+- **PIN-c2:** exactly one `on_selection_exit(battle_state)`, the last statement, after the `while`.
+- **PIN-c3/c4:** in `handle_battle`, `on_battle_start()` is immediately before the main loop and `on_battle_end()` immediately after it.
+- **PIN-c5:** `get_battle_state` never appears in `dmgaudit.py` as a name, attribute or import (the docstring already mentions it, and the comment mutant PM7 proves comments don't trip it).
+- **PIN-c6:** every `event` call in `dmgaudit.py` passes `category="DMGAUDIT"`.
+
+**Mutants (all written before their first run; expected = actual on every one):**
+
+| Mutant | Rows turned red |
+|---|---|
+| MP1 Hidden Power's listed type passed as move_type | PC5 |
+| MP2 Charge read from the rolled type | PC5 |
+| MP3 crit replayed from b instead of bcrit | PC3, PC4, PC5, PC6, PC7 |
+| MP4 the port's top taken from the non-crit call | PC3, PC4, PC5, PC6, PC7 |
+| MP5 foe types in reversed order | PC3 |
+| MP6 defender types taken from our record | PC3, PC4, PC5, PC6, PC8 |
+| MP7 foresight never passed | PC6 |
+| MP8 an unreplayable record counted as replayed | PC8 |
+| PM1 entry hook reads before its flag check | PIN-a2 |
+| PM2 `get_battle_state()` at the top of `_prediction` | PIN-b1, PIN-c5 |
+| PM3 category "BATTLE" | PIN-b2, PIN-b5, PIN-c6 (+ PIN-b6, left out while baseline-red) |
+| PM4 exit hook removed | PIN-c2 |
+| PM5 exit hook moved inside the `while` | PIN-c2 |
+| PM6 `on_battle_end` placed before the loop | PIN-c4 |
+| PM7 a comment naming `get_battle_state` | none |
+| PM8 entry hook before `battle_state = get_battle_state()` | PIN-c1 |
+| PM9 flag read once at import, not per call | PIN-b1–b5 (+ PIN-b6, left out) |
+| PM10 the FAULT switch ignored | PIN-b4 |
+
+The 31 earlier mutants (M01–M31) still turn exactly their sets red with the new rows present.
+
+**Other notes:**
+- The gate clears both flag variables at startup, so an ambient value can't skew the rows or PM9.
+- The Step-0 T rows now carry placeholder `base` values; they never grade the port line.
+
+----- 2c. the fold-in of the pass + the faint rule -----
+Both classifier changes are in, and the adversarial pass's rows and mutants are integrated. The gate passes: `ALL PASS (177 rows, 193 mutants) in 11.8 s`. I wrote every red set before its first run, and all 193 matched on that first run, so none was re-derived to fit. No row proved a production defect: the `base=none` fix has landed in `dmgaudit.py`, so last round's PIN-b6 failure is now green. I edited only `tools/story-dev/audit_damage_calc.py` and `tools/story-dev/probe_dmgaudit.py`, ran no git command that changes anything, and never ran the emulator.
+
+**Classifier changes (`audit_damage_calc.py`):**
+1. **The faint rule.** `foe_fainted = not same_foe or foe_a.hp == 0`. When the foe fainted or was replaced, no per-mon foe check or comparison runs on the AFTER record (the per-read foe checks, the Def/SpD-stage change, `foe-profile-changed`). The foe's chosen move stands in (`foe-after-unobservable` for Tier B or `FOE_SELF_STATE`), and our side's and the field's checks still run. The design's F6 ⚠ paragraph already states this rule; I didn't touch it.
+2. **Hidden Power's rolled type.** A new `damage_type()` gives the rolled type for move 237. It now drives the sports check, the per-read pinch and the pinch dip. Charge still reads the listed type, as the port and M1a's B-HPC require.
+3. **Faster parsing, same behavior.** Precompiled regexes (one per field) and one struct unpack per mon. Needed for time; every mutant anchor line is unchanged.
+
+**T1 rechecked against realistic faint-reset records.** The Step-0 conversion now gives each species its real ability, gives Pikachu Evasion +2, and applies the reset at a KO's battle-end read.
+- f3174185 (Koffing #2): **ACCEPTED**. It would have read `foe-profile-changed` without the rule.
+- f3187609 (Pikachu): **EXCLUDED `foe-held-item`**, from BEFORE (the AFTER item reads 0).
+- ⚠ **f3193320 (Shiftry) flips to EXCLUDED `foe-after-unobservable`.** It chose Harden and fainted, and the reset destroys the Def-stage evidence the pre-registered row relied on ("the read decides"). That row allowed either verdict. Accepted samples go 10 → 9, inside the predicted 7–10.
+
+**Rows added (36, the N group; all green):**
+- **The live bug:** NR-faint-reset (reset battle-end KO: ability 0, stages neutral, item 0 → ACCEPTED) and NR-faint-harden (the same after Harden → `foe-after-unobservable`).
+- **The gap:** NR-hp-rolled-type (Overgrow with a Grass roll, by the dip and per read; a Fire roll under Water Sport).
+- **From the pass (adapted):**
+  - classifier rows: NR-sport, -twister, -counters, -foestatus, -brick, -pinch-edges, -selfhurt, -falseswipe-edge, -unobservable, -profile, -ooze, -facade-sleep, -selfcheck-halves, -same-turn-entry, -tko-identity, -tko-after-ff, -accept-kinds, -output-edges, -hp-mystery-skip, -port-edges, -whitelist-table (the gate's own literal F2 lists), -parser;
+  - production rows: NP-fields, -pred-exact (staged foe Def +2), -exit-guard, -pending, -raise, -end-no-ff, -ff-null-resources, -flag-values, -pred-err;
+  - hook-file rows: NH-gbs-count (pins 5, which is also the count at base 241929d7) and NH-no-dmgaudit-literal.
+- **Where I departed from the pass's proposals:**
+  - `world()` merges the pass's fake with my rebinding of `get_battle_state` everywhere it's bound, plus a badge-flag fake.
+  - NP-fields also asserts badges, which catches D30; no pass row did.
+  - NP-pred-exact also asserts zero `get_battle_state()` calls.
+  - NP-end-no-ff requires a logged line, so it can't pass vacuously.
+  - NR-unobservable includes CURSE.
+- **Three existing rows changed:** O3 gained a charged Take Down (needed for A43), PC3 gained our dual types (needed for A73), and T1 as above.
+- **A new COVERAGE check** fails if any row is in no mutant's expected set. All 177 rows are covered.
+
+**Mutants: 193, expected = actual on every one** (pool of 8 processes). I also re-ran all 193 in-process: 0 mismatches, 55.5 s.
+- **Existing sets re-derived for the new rows** (the same 14 the pass named; contents recomputed):
+
+| Mutant | Adds |
+|---|---|
+| M04 | NR-accept-kinds |
+| M05 | NR-faint-reset, NR-faint-harden, NR-accept-kinds, NR-output-edges |
+| M06 | NR-unobservable, NR-tko-identity |
+| M18 (anchor updated) | NR-sport, NR-pinch-edges, NR-hp-rolled-type, NR-tko-after-ff |
+| M21 (anchor updated) | NR-pinch-edges, NR-hp-rolled-type |
+| M24, M25 | NR-whitelist-table |
+| M27 | NR-selfcheck-halves |
+| M29 | NR-parser |
+| MP3, MP4 | NR-port-edges |
+| PM1 | NP-flag-values |
+| PM2 | NP-pred-exact |
+| PM9 | NP-fields, -pred-exact, -pending, -raise, -end-no-ff, -ff-null-resources, -pred-err |
+
+  M19's anchor was also updated; its set ({G11}) is unchanged.
+- **The pass's mutants: 105 added**, anchors copied verbatim by a generator. Most turn exactly their target row red. My sets differ from the pass's targets here:
+
+| Mutant | Rows turned red |
+|---|---|
+| A01 | NR-sport, NR-hp-rolled-type |
+| A06 | NR-counters, NR-selfcheck-halves |
+| A33 | the 20 R-b rows except R19b (the dip catches it), T1, NR-sport, NR-twister, NR-counters, NR-foestatus, NR-brick, NR-hp-rolled-type |
+| A42 | NR-hp-mystery-skip, NR-hp-rolled-type |
+| A43 | O3 |
+| A62 | Q02, T1 |
+| A63 | Q04 |
+| A65 | G06 |
+| A66 | P6 |
+| A67 | P2 |
+| A69 | I5, X7 |
+| A73, A74, A75 | PC3, PC6, PC4 |
+| D03 | NP-ff-null-resources |
+| W12 | W1, W3, R10a, R10b, NR-whitelist-table |
+
+  Two are left out because no row can catch them: **A44** (equivalent for every prediction our calculator makes: its immunity zeroes non-crit and crit alike) and **A64** (it only excludes more, which the design allows).
+- **39 of my own:**
+  - MF1 (faint rule dropped) → NR-faint-reset, NR-faint-harden, T1.
+  - MT1 / MT2 (listed type used again) → NR-hp-rolled-type.
+  - MX1–MX32 and PMX1–PMX4: one for every row no other mutant reached (for example MX5 wild/trainer swapped → S1, S14, T1, O1; MX27 self-check always agrees → C1, T2, NR-selfcheck-halves, O1; PMX1 start hook logs before its flag check → PIN-a1, b2, b3, b5, NP-flag-values, NP-pending).
+  - No-ops M31 and PM7 still turn nothing red.
+
+**Wall time:** 11.8 s with the pool. The runner falls back to in-process if no pool can be made, which takes about 56 s — inside the 60 s limit, but with little margin.

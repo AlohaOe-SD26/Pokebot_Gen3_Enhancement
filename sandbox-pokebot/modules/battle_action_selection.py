@@ -12,6 +12,7 @@ from modules.battle_state import (
 from modules.battle_strategies import BattleStrategy, TurnAction, SafariTurnAction
 from modules.context import context
 from modules.debug import debug
+from modules import dmgaudit as _dmgaudit
 from modules.items import Item, ItemBattleUse, get_pokeblocks
 from modules.memory import read_symbol, unpack_uint32, get_game_state, GameState, get_game_state_symbol, unpack_uint16
 from modules.menuing import scroll_to_item_in_bag, scroll_to_party_menu_index
@@ -113,6 +114,8 @@ def _ki93_check_owner(battle_state, battler_index) -> None:
 @debug.track
 def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
     battle_state = get_battle_state()
+    # design v2 step 11 (M1b): the AFTER of a pending `[DMGAUDIT]` BEFORE. Observe-only, flag-gated, never raises.
+    _dmgaudit.on_selection_entry()
     previous_battler_index = None
     #: ‼ KI-46 — CONSECUTIVE FRAMES SPENT WITHOUT RECOGNISING THE BATTLE STATE.
     #:
@@ -1002,6 +1005,11 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
 
             case _:
                 raise RuntimeError(f"Invalid turn action: {action}")
+
+    # design v2 step 11 (M1b): the `[DMGAUDIT]` BEFORE at the selection EXIT. Only this fall-through writes one (the
+    # early returns do not), and it checks itself that the game has left the selection states. Observe-only,
+    # flag-gated, never raises.
+    _dmgaudit.on_selection_exit(battle_state)
 
 
 @debug.track

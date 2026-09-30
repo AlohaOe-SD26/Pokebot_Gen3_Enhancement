@@ -1,0 +1,115 @@
+design v2 step 11 (M1b) — the M1b-DIFF and M1b-EXEC arms (the design's arms table), run on the build, 2026-09-30 LA
+====================================================================================================================
+AS BUILT, equal to or stronger than the table's wording: (a) compares the new modules with the base as ASTs once the
+hooks are removed (so NOTHING else changed, not only the yields of one driven path); (b) flag unset, each hook makes
+zero reads and zero log calls; (c) flag set, zero get_battle_state() calls (KI-108) and every line is DMGAUDIT. (c)'s
+CTL/BEFORE/AFTER sequence is also M1b-EXEC: an exception in a hook logs an ERR line instead of its BEFORE or AFTER
+(no hook swallows silently), so the exact sequence proves every hook body RAN to its log call.
+
+===== output =====
+(a) the new modules = the base + the hooks only
+  PASS  battle_action_selection.py: AST with the hooks removed == the base's  — 2 hook call(s)
+  PASS  battle_handler.py: AST with the hooks removed == the base's  — 2 hook call(s)
+(b) flag UNSET: zero reads, zero log calls
+  PASS  on_battle_start: 0 reads, 0 logs  — 0 reads, 0 logs
+  PASS  on_selection_entry: 0 reads, 0 logs  — 0 reads, 0 logs
+  PASS  on_selection_exit: 0 reads, 0 logs  — 0 reads, 0 logs
+  PASS  on_battle_end: 0 reads, 0 logs  — 0 reads, 0 logs
+(c) flag SET: zero get_battle_state() calls; category DMGAUDIT
+  PASS  0 get_battle_state() calls across all four hooks  — 0
+  PASS  every line is category DMGAUDIT  — ['DMGAUDIT']
+  PASS  the sequence CTL, BEFORE, AFTER, BEFORE, AFTER  — ['CTL', 'BEFORE', 'AFTER', 'BEFORE', 'AFTER']
+ALL PASS
+
+===== the script (scratch m1_diff_check.py, verbatim) =====
+"""M1b-DIFF (design v2 step 11, F7 / the arms table), exact form:
+(a) the new battle_action_selection.py and battle_handler.py differ from the base (241929d7) by EXACTLY the added
+    `from modules import dmgaudit as _dmgaudit` import and the hook calls (compared as ASTs with those removed);
+(b) with the flag UNSET, every hook performs ZERO memory reads and ZERO log calls;
+(c) with the flag SET, the hooks make ZERO `get_battle_state()` calls (KI-108), and each hook's lines use the category
+    DMGAUDIT.
+"""
+import ast
+import os
+import pathlib
+import subprocess
+import sys
+import types
+
+WT = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24")
+sys.path.insert(0, str(WT / "sandbox-pokebot"))
+BASE = "241929d7"
+OK = []
+
+
+def check(label, ok, detail=""):
+    OK.append(ok)
+    print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  — {detail}" if detail else ""))
+
+
+def strip_hooks(src: str) -> str:
+    tree = ast.parse(src)
+
+    class Strip(ast.NodeTransformer):
+        def visit_ImportFrom(self, node):
+            if node.module == "modules" and any(a.name == "dmgaudit" for a in node.names):
+                return None
+            return node
+
+        def visit_Expr(self, node):
+            c = node.value
+            if (isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute) and isinstance(c.func.value, ast.Name)
+                    and c.func.value.id == "_dmgaudit"):
+                return None
+            return node
+
+    return ast.dump(Strip().visit(tree))
+
+
+print("(a) the new modules = the base + the hooks only")
+for rel in ("sandbox-pokebot/modules/battle_action_selection.py", "sandbox-pokebot/modules/battle_handler.py"):
+    old = subprocess.run(["git", "-C", str(WT), "show", f"{BASE}:{rel}"], capture_output=True, text=True,
+                         encoding="utf-8", check=True).stdout
+    new = (WT / rel).read_text(encoding="utf-8")
+    hooks = sum(1 for n in ast.walk(ast.parse(new)) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and isinstance(n.func.value, ast.Name) and n.func.value.id == "_dmgaudit")
+    check(f"{rel.split('/')[-1]}: AST with the hooks removed == the base's", strip_hooks(new) == ast.dump(ast.parse(old)),
+          f"{hooks} hook call(s)")
+
+import modules.dmgaudit as D  # noqa: E402
+import modules.memory as M  # noqa: E402
+from modules import debug_logger  # noqa: E402
+import modules.battle_state as BS  # noqa: E402
+
+reads, logs, gbs = [], [], []
+real_read, real_event, real_gbs = M.read_symbol, debug_logger.event, BS.get_battle_state
+M.read_symbol = lambda *a, **k: reads.append(a) or bytes(k.get("size", 4) or 4)
+debug_logger.event = lambda msg, category="STORY": logs.append((category, msg))
+BS.get_battle_state = lambda: gbs.append(1)
+
+print("(b) flag UNSET: zero reads, zero log calls")
+os.environ.pop(D.FLAG, None)
+D._pending = True
+for name, call in (("on_battle_start", D.on_battle_start), ("on_selection_entry", D.on_selection_entry),
+                   ("on_selection_exit", lambda: D.on_selection_exit(object())), ("on_battle_end", D.on_battle_end)):
+    reads.clear(); logs.clear()
+    call()
+    check(f"{name}: 0 reads, 0 logs", not reads and not logs, f"{len(reads)} reads, {len(logs)} logs")
+
+print("(c) flag SET: zero get_battle_state() calls; category DMGAUDIT")
+os.environ[D.FLAG] = "1"
+BS.battle_is_active = lambda: True
+BS.get_main_battle_callback = lambda: "RunTurnActionsFunctions"
+fake_state = types.SimpleNamespace(own_side=types.SimpleNamespace(left_battler=None),
+                                   opponent=types.SimpleNamespace(left_battler=None))
+gbs.clear(); logs.clear()
+D.on_battle_start(); D.on_selection_exit(fake_state); D.on_selection_entry(); D.on_selection_exit(fake_state)
+D.on_battle_end()
+check("0 get_battle_state() calls across all four hooks", not gbs, f"{len(gbs)}")
+check("every line is category DMGAUDIT", logs and all(c == "DMGAUDIT" for c, _ in logs), str(sorted({c for c, _ in logs})))
+kinds = [m.split()[0] for _, m in logs]
+check("the sequence CTL, BEFORE, AFTER, BEFORE, AFTER", kinds == ["CTL", "BEFORE", "AFTER", "BEFORE", "AFTER"], str(kinds))
+M.read_symbol, debug_logger.event, BS.get_battle_state = real_read, real_event, real_gbs
+os.environ.pop(D.FLAG, None)
+print("ALL PASS" if all(OK) else "FAILED")
+sys.exit(0 if all(OK) else 1)

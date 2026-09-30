@@ -208,6 +208,12 @@
     - Q5: `gBattleMons` is readable at all 14 battle-end reads.
     - Q6: the Flash Fire flags read `[0, 0]` at every selection entry and exit, and `gBattleResources` is NULL at every
       battle-end read (freed). ⇒ **The battle-end AFTER read must not dereference it.**
+  - ⚠ **FOUND BY THE FIRST LIVE AUDIT (a 50,000-frame smoke with the flag on, 2026-09-30): a faint RESETS the foe's
+    `gBattleMons` record.** At a battle-end AFTER read after a KO, the foe's ability byte (0x20) reads 0, and on
+    Vanessa's Pikachu the stat stages were reset to neutral and the held item (0x2E) was cleared. A classifier that
+    compares the foe's record between the reads therefore excludes EVERY KO pair as "changed", which is exactly the
+    evidence B4 keeps. ⇒ **When the foe fainted (its HP after is 0), F4 applies no per-mon foe comparison at the AFTER
+    read**; like a trainer KO, it keys on the foe's chosen move ("foe-after-unobservable") and on our side's checks.
 - **F7, inertness and correctness (M1b), on `post_mtpyre.ss1` (PINNED, md5 asserted), `storyresume --frames 90000`,
   seeded, at the SAME HEAD.** The runner writes `git rev-parse HEAD` and "clean tree" into each evidence file (a
   worktree log cannot) [R:SR N3].
@@ -277,3 +283,62 @@
   selection exit is final and frame-safe; the AFTER object is reusable; the symbols and the 0x13 offset; `gBideDmg`
   before the cap and blind to heals and ticks; `types.json` equals the ROM chart; the real calculator runs offline on
   synthetic records; the Tier C scripts; 06's precedents as cited; no user ruling contradicted.
+
+## AS BUILT (2026-09-30, the build commit; the live arms are graded in a separate note)
+
+⛔ **The build is gated, not graded.** Nothing below says the calculator is accurate enough for step 12: that is M1b's
+acceptance, on the live arms, still to run.
+
+- **Production (F3), `sandbox-pokebot/modules/dmgaudit.py`, OFF unless `POKEBOT_R25_DMGAUDIT=1`.** Four hooks, each
+  reading the flag on every call and catching its own errors into ONE `ERR` line:
+  - `on_battle_start` (the `CTL` line) and `on_battle_end` (`AFTER kind=end`) in `battle_handler.handle_battle`;
+  - `on_selection_entry` (`AFTER kind=entry`) and `on_selection_exit` (`BEFORE`) in
+    `battle_action_selection.handle_battle_action_selection`.
+  - Only pure `read_symbol` reads, and no `get_battle_state()` (KI-108). The prediction reuses the handler's own
+    object and is computed for the move the GAME records as chosen.
+  - `base=` (the calculator's own base term, plain and crit) is logged beside `pred=`, so the audit can replay the
+    decomp-ordered port from the live base: SR-7's independent control, live.
+  - Three things were added while building:
+    - an absent left battler (a fainted slot in a double) logs `pred=err:Absent`;
+    - every early return logs `base=none` (the audit gate's PIN-b6 caught its omission);
+    - the battle-end read never dereferences `gBattleResources` (F6 Q6).
+  - The fault arm `POKEBOT_R25_FAULT_DMGAUDIT_BIDE0` copies slot 0's `gBideDmg` into slot 1.
+  - Both envs have `29` rows.
+  - The line format is `2026-09-30-dmgcalc11-recon/m1_line_format.md` (v=1).
+- **M1a (F1): `tools/story-dev/dmgcalc_port.py` + `probe_damage_calc_decomp.py`.**
+  - The port follows the decomp's order and embeds `gTypeEffectiveness` in TABLE order.
+  - The gate has 45 rows and 38 mutant cases. Every pre-registered literal (`…-PREDICTIONS.md`) and all four bucket
+    bounds reproduced EXACTLY.
+  - It runs in ~71-73 s with a process pool. ⚠ **Its no-pool fallback measured ~295 s, at the suite's 300 s limit:**
+    a known limit, recorded, not fixed.
+- **M1b's audit (F4): `tools/story-dev/audit_damage_calc.py` + `probe_dmgaudit.py`.**
+  - The audit is pure: a strict v=1 parser, F4's pairing, the classifier, F2's whitelist tiers, the port control
+    through `base=`, and the acceptance.
+  - `ACCEPT_MARGIN = 3` is printed as a PROPOSAL for the user (F8).
+  - Its exits: 0 PASS, 1 FAIL, 2 INSUFFICIENT, 3 the instrument failed.
+  - The gate has 177 rows and 193 mutants, and a COVERAGE row fails if a row is in no mutant's set. It runs in ~12 s
+    with a pool, ~56 s in-process.
+- **Two classifier rules the design did not have:**
+  - the FAINT RULE (the ⚠ paragraph under F6; found by the first live smoke,
+    `evidence/2026-09-30-dmgcalc11-SMOKE.txt`);
+  - Hidden Power's ROLLED type drives the sport and pinch checks (found by the audit gate's adversarial pass).
+- **One pre-registered verdict moves under the faint rule, inside what the table allowed.**
+  - Marcel's Shiftry at f3193320 chose Harden and fainted.
+  - The table said "ACCEPTED if our hit came first, else excluded: the foe's Def stage changed (either is correct; the
+    read decides)". The faint reset erases that Def-stage read.
+  - It is now EXCLUDED, with the reason keyed on the chosen move (`foe-after-unobservable`).
+  - The expected accepted count on a reproducing run becomes 9, inside the predicted 7 to 10.
+  - The graded note must state this reason change; it is not a new prediction.
+- **Both adversarial mutant passes were folded into the gates**
+  (`evidence/2026-09-30-dmgcalc11-ADVERSARIAL-{M1A,AUDIT}.txt`):
+  - **M1a: 72 mutants.** The load-bearing finding for `#27-dmgcalcfix` was three planned fixes (Guts, Brick Break,
+    KI-110) that each had a destructive twin with identical output on every row. The new rows B-BURN, B-REFL and
+    B-KI110-SPA tell each pair apart.
+  - **The audit: 107 mutants, of which the first gate MISSED 96.** 36 rows and 105 of the pass's mutants were added.
+- **M1b-DIFF and M1b-EXEC** (`evidence/2026-09-30-dmgcalc11-DIFF.txt`) passed, in a form equal to or stronger than the
+  arms table:
+  - the new modules equal the base as ASTs once the hooks are removed;
+  - with the flag unset, zero reads and zero logs;
+  - with the flag set, zero `get_battle_state()` calls, and the exact CTL/BEFORE/AFTER sequence, which proves each hook
+    body ran to its log call.
+- **The full suite: ALL 134 ENFORCING GATES PASS in 469.3 s** (`evidence/2026-09-30-dmgcalc11-GATES.txt`).

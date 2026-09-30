@@ -1153,6 +1153,16 @@ GATES: list[tuple[str, bool]] = [
     # dispatch, the counter phase (one purchase AFTER the basket, per-set verdicts and memo keys), and the driver's
     # `kit_grade.py`; mutants with exact red sets. ‼ APPENDED AT THE END, never inserted.
     ("probe_kit_topoff_sootopolis.py", False),
+    # design v2 step 11 (M1a, damage-calculator fidelity) — our `calculate_move_damage_range` against a decomp-ordered
+    # port (`dmgcalc_port.py`, a TEST ORACLE): hand-derived three-literal rows (game / ours / delta), the exhaustive
+    # bucket sweep with pre-registered bounds (crit 4 HP, crit + Charge 8 HP), and wrong-fix twins so `#27-dmgcalcfix`
+    # cannot "fix" a bug by deleting its neighbour. ~73 s with a process pool. ‼ APPENDED AT THE END, never inserted.
+    ("probe_damage_calc_decomp.py", False),
+    # design v2 step 11 (M1b, the live damage audit) — the offline classifier `audit_damage_calc.py` (pairing incl. the
+    # battle-end and trainer-KO pairs, every stratum at both reads, the faint reset, the acceptance) and the production
+    # raw reads `modules/dmgaudit.py` with its four hooks (execution and AST pins; no `get_battle_state()`).
+    # ‼ APPENDED AT THE END, never inserted.
+    ("probe_dmgaudit.py", False),
 ]
 
 
