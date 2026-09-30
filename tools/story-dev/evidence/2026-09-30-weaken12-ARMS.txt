@@ -1,0 +1,383 @@
+design v2 step 12 (weaken-to-catch) — the LIVE ARMS, GRADED against the pre-registered predictions, 2026-09-30 (LA)
+=====================================================================================================================
+Build 18b32bcc. r20_pregym1_party4_r116.ss1 (md5 asserted), TEAM6=1, DMGAUDIT=1, --set-balls 30, 240000 frames, the
+seed-1 wrapper, sequential; the two W-OFF runs separated in time. Predictions: ai-research-notes/2026-09-30-weaken12-
+PREDICTIONS.md (1f52cfd9, BEFORE any production code). The Step-0 reads (the base code): 2026-09-30-weaken12-STEP0.txt.
+
+===== the runners =====
+WT HEAD 18b32bcc87220a994427a68ba91993a68dcc9e93 branch wt/weaken12 dirty-code=0
+  OK         r20_pregym1_party4_r116.ss1 = 9710585350be
+W-OFF1 exit=0 debug=Story-debug-20260930-123358.log 12:37:36 PM
+W-OBS exit=0 debug=Story-debug-20260930-123743.log 12:41:22 PM
+ST-ON exit=0 debug=Story-debug-20260930-124128.log 12:45:06 PM
+DR-ON exit=0 debug=Story-debug-20260930-124512.log 12:48:51 PM
+W-OFF2 exit=0 debug=Story-debug-20260930-124857.log 12:52:37 PM
+W-OBSCALC exit=0 debug=Story-debug-20260930-125244.log 12:56:26 PM
+DR-FAULT exit=0 debug=Story-debug-20260930-125632.log 01:00:13 PM
+W12-ARMS-DONE
+
+(the W-OBS re-run, under the decision rule "a lone divergent run is re-run, never graded":)
+WT HEAD 18b32bcc87220a994427a68ba91993a68dcc9e93 branch wt/weaken12 dirty-code=0
+  OK         r20_pregym1_party4_r116.ss1 = 9710585350be
+W-OBS-r2 exit=0 debug=Story-debug-20260930-130209.log 01:05:49 PM
+W12-ARMS-DONE
+
+===== every run's frame-stamped lines (without WEAKEN and DMGAUDIT lines) =====
+  W-OFF1      1021 lines sha e444a33991bd7720   without [BALLS]:  922 lines sha 604d29c10ae293d5
+  W-OFF2      1021 lines sha e444a33991bd7720   without [BALLS]:  922 lines sha 604d29c10ae293d5
+  W-OBS       1019 lines sha 9c75bafecb3bd38c   without [BALLS]:  922 lines sha 604d29c10ae293d5
+  W-OBS-r2    1021 lines sha e444a33991bd7720   without [BALLS]:  922 lines sha 604d29c10ae293d5
+  W-OBSCALC   1021 lines sha e444a33991bd7720   without [BALLS]:  922 lines sha 604d29c10ae293d5
+  ST-ON       1041 lines sha 2f628cd76e216075   without [BALLS]:  954 lines sha a084c457206db8c0
+  DR-ON       1181 lines sha 414d58ba95536d55   without [BALLS]: 1045 lines sha f29c2d4724d057db
+  DR-FAULT    1152 lines sha 1808b21bc90fd64c   without [BALLS]: 1037 lines sha c8dcb64585df3572
+NL Step-0 (the base code): sha e444a33991bd7720 (the same hashing: WEAKEN and DMGAUDIT lines dropped). Without
+[BALLS] lines too, all FIVE flag-unset/observe runs (W-OFF1, W-OFF2, W-OBS, W-OBS-r2, W-OBSCALC) share one
+trajectory: sha 604d29c10ae293d5.
+
+===== the first W-OBS run: its ONLY difference is one transient [BALLS] telemetry pair =====
+  W-OFF1:
+    f271785 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+    f272102 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+    f272106 [BALLS] 21 -> 24720
+    f272107 [BALLS] 24720 -> 21
+    f272516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+  W-OBS (the first run):
+    f271785 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+    f272102 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+    f272516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+    f272923 ===== DUMP [STUCK — 300 frames no progress] =====
+    f272963 [RESUMED] after 339 frames with no progress
+- W-OFF1, W-OFF2, W-OBSCALC, W-OBS-r2 and NL Step-0 all log a garbage ball count (24720) for one frame at f272106-7,
+  during a map transition. The first W-OBS run does not. With every [BALLS] line removed, its lines are identical to
+  W-OFF1's: the same gameplay, frame for frame.
+- As filed, W-OBS's first check ("every line without WEAKEN == W-OFF1") FAILS on those two lines (GRADE, below).
+- Under the filed decision rule (D15), it was re-run: W-OBS-r2 equals W-OFF1 on EVERY line, the transient included,
+  and it is graded (GRADE-r2: 34 of 34).
+- KI-112 lead (UNVERIFIED): `[BALLS]` compares per-frame logger samples (`debug_logger.on_frame`). A run that does not
+  sample the one garbage frame suggests on_frame skipped that frame, i.e. frames emulated in a batch that no Python
+  code observed. The same mechanism would explain KI-112's gameplay divergences. Not measured here; #27-determinism.
+
+===== GRADE, as filed (the first W-OBS run): 33 of 34 =====
+== W-OFF x2: = NL Step-0 (sha e444a33991bd7720), 0 WEAKEN lines ==
+  PASS  W-OFF1: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF1: 0 lines contain WEAKEN
+  PASS  W-OFF2: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF2: 0 lines contain WEAKEN
+== W-OBS ==
+  FAIL  W-OBS: every line without WEAKEN/DMGAUDIT == W-OFF1  — #642: 'f272516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)' | 'f272106 [BALLS] 21 -> 24720'
+  PASS  W-OBS: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBS: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBS: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBS: 0 first=1
+  PASS  W-OBS: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBS: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBS: every OBS snapshot replays to the same verdict (determinism only)  — []
+== W-OBSCALC ==
+  PASS  W-OBSCALC: every line without WEAKEN/DMGAUDIT == W-OFF1
+  PASS  W-OBSCALC: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBSCALC: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBSCALC: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBSCALC: 0 first=1
+  PASS  W-OBSCALC: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBSCALC: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBSCALC: every OBS snapshot replays to the same verdict (determinism only)  — []
+== ST-ON: = ST Step-0 up to f165971; DAMAGE Seismic Toss, dbide 15, the Taillow at 6/21; 0 res=Won ==
+  PASS  ST-ON: every line before f165971 == ST Step-0
+  PASS  ST-ON: the first act is DAMAGE with Seismic Toss, before the f165971 turn line  — f165971 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=206887A5 hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Seismic_Toss ball=- reason=stage1:LEVEL_DAMAGE snap={"target":{"pid":543721381,"species_i
+  PASS  ST-ON: the f165971 [TURN 0] line shows UseMove:Seismic Toss  — f165971 [BATTLE] [TURN 0] Mudkip L15 21/44 -> UseMove:Seismic Toss(pp2)  vs Taillow L6 21/21
+  PASS  ST-ON: DMGAUDIT BEFORE mv[0]=69, dbide 15, the Taillow at 6 after  — mv=(69, 45, 0, 0) dbide=15 after_hp=6
+  PASS  ST-ON: 0 [CATCH] end ... res=Won  — []
+  PASS  ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level  — []
+== DR-ON: = DR Step-0 on EVERY line without WEAKEN; THROW (floor) at f140685; 0 res=Won ==
+  PASS  DR-ON: every line without WEAKEN/DMGAUDIT == DR Step-0 (the whole run)
+  PASS  DR-ON: the first act (the f140685 decision) is THROW with the floor as its reason  — f140685 [WEAKEN] act=THROW t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=- move=- ball=Poké_Ball reason=dmg:floor@1|st:no-status-move snap={"target":{"pid":2973106956,"sp
+  PASS  DR-ON: no act=DAMAGE anywhere
+  PASS  DR-ON: 0 res=Won
+== DR-FAULT: = DR Step-0 up to f140685; DAMAGE Dragon Rage, dbide 40, the Taillow faints (res=Won) ==
+  PASS  DR-FAULT: every line before f140685 == DR Step-0
+  PASS  DR-FAULT: the first act is DAMAGE with Dragon Rage  — f140685 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Dragon_Rage ball=- reason=stage1:DRAGON_RAGE snap={"target":{"pid":2973106956,"species_id
+  PASS  DR-FAULT: DMGAUDIT BEFORE mv[0]=82 and dbide 40  — mv=(82, 45, 0, 0) dbide=40
+  PASS  DR-FAULT: [CATCH] end kind=team sp=Taillow#276 ... res=Won  — f141324 [CATCH] end kind=team sp=Taillow#276 end=other res=Won thrown=0 frames=1079 dest=none pid=- party=4/6 box=0 spare=31 badges=0 bail=-
+
+33/34 checks PASS
+
+===== GRADE-r2 (W-OBS-r2, the reproducing run): 34 of 34 =====
+== W-OFF x2: = NL Step-0 (sha e444a33991bd7720), 0 WEAKEN lines ==
+  PASS  W-OFF1: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF1: 0 lines contain WEAKEN
+  PASS  W-OFF2: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF2: 0 lines contain WEAKEN
+== W-OBS-r2 ==
+  PASS  W-OBS-r2: every line without WEAKEN/DMGAUDIT == W-OFF1
+  PASS  W-OBS-r2: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBS-r2: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBS-r2: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBS-r2: 0 first=1
+  PASS  W-OBS-r2: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBS-r2: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBS-r2: every OBS snapshot replays to the same verdict (determinism only)  — []
+== W-OBSCALC ==
+  PASS  W-OBSCALC: every line without WEAKEN/DMGAUDIT == W-OFF1
+  PASS  W-OBSCALC: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBSCALC: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBSCALC: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBSCALC: 0 first=1
+  PASS  W-OBSCALC: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBSCALC: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBSCALC: every OBS snapshot replays to the same verdict (determinism only)  — []
+== ST-ON: = ST Step-0 up to f165971; DAMAGE Seismic Toss, dbide 15, the Taillow at 6/21; 0 res=Won ==
+  PASS  ST-ON: every line before f165971 == ST Step-0
+  PASS  ST-ON: the first act is DAMAGE with Seismic Toss, before the f165971 turn line  — f165971 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=206887A5 hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Seismic_Toss ball=- reason=stage1:LEVEL_DAMAGE snap={"target":{"pid":543721381,"species_i
+  PASS  ST-ON: the f165971 [TURN 0] line shows UseMove:Seismic Toss  — f165971 [BATTLE] [TURN 0] Mudkip L15 21/44 -> UseMove:Seismic Toss(pp2)  vs Taillow L6 21/21
+  PASS  ST-ON: DMGAUDIT BEFORE mv[0]=69, dbide 15, the Taillow at 6 after  — mv=(69, 45, 0, 0) dbide=15 after_hp=6
+  PASS  ST-ON: 0 [CATCH] end ... res=Won  — []
+  PASS  ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level  — []
+== DR-ON: = DR Step-0 on EVERY line without WEAKEN; THROW (floor) at f140685; 0 res=Won ==
+  PASS  DR-ON: every line without WEAKEN/DMGAUDIT == DR Step-0 (the whole run)
+  PASS  DR-ON: the first act (the f140685 decision) is THROW with the floor as its reason  — f140685 [WEAKEN] act=THROW t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=- move=- ball=Poké_Ball reason=dmg:floor@1|st:no-status-move snap={"target":{"pid":2973106956,"sp
+  PASS  DR-ON: no act=DAMAGE anywhere
+  PASS  DR-ON: 0 res=Won
+== DR-FAULT: = DR Step-0 up to f140685; DAMAGE Dragon Rage, dbide 40, the Taillow faints (res=Won) ==
+  PASS  DR-FAULT: every line before f140685 == DR Step-0
+  PASS  DR-FAULT: the first act is DAMAGE with Dragon Rage  — f140685 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Dragon_Rage ball=- reason=stage1:DRAGON_RAGE snap={"target":{"pid":2973106956,"species_id
+  PASS  DR-FAULT: DMGAUDIT BEFORE mv[0]=82 and dbide 40  — mv=(82, 45, 0, 0) dbide=40
+  PASS  DR-FAULT: [CATCH] end kind=team sp=Taillow#276 ... res=Won  — f141324 [CATCH] end kind=team sp=Taillow#276 end=other res=Won thrown=0 frames=1079 dest=none pid=- party=4/6 box=0 spare=31 badges=0 bail=-
+
+34/34 checks PASS
+
+===== the grader (verbatim) =====
+"""Grade design v2 step 12's live arms against the PRE-REGISTERED predictions (2026-09-30-weaken12-PREDICTIONS.md,
+committed 1f52cfd9 before any production code). Every expectation is transcribed from that file."""
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+S = Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+A, Z = S / "w12arms", S / "w12s0"
+T = Path(r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+sys.path.insert(0, str(T))
+sys.path.insert(0, str(T.parents[1] / "sandbox-pokebot"))
+import audit_damage_calc as adc  # noqa: E402
+
+FR = re.compile(r"^f(\d+) ")
+OK = []
+
+
+def check(label, ok, detail=""):
+    OK.append(bool(ok))
+    print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  — {detail}" if detail else ""))
+
+
+def stamped(path):
+    return [l.rstrip("\n") for l in path.open(encoding="utf-8", errors="replace") if FR.match(l)]
+
+
+def plain(lines):
+    return [l for l in lines if "WEAKEN" not in l and "DMGAUDIT" not in l]
+
+
+def sha(lines):
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()[:16]
+
+
+def frame(l):
+    return int(FR.match(l).group(1))
+
+
+def first_diff(a, b):
+    for i, (x, y) in enumerate(zip(a, b)):
+        if x != y:
+            return i
+    return None if len(a) == len(b) else min(len(a), len(b))
+
+
+def befores(lines):
+    out = {}
+    for i, l in enumerate(lines):
+        if "[DMGAUDIT] BEFORE" in l:
+            r = adc.parse_line(l, i)
+            out[r.frame] = r
+    return out
+
+
+def pairs(lines):
+    rep = adc.audit_text("\n".join(lines))
+    return {v.before.frame: v for v in rep.verdicts}
+
+
+def catch_spans(lines):
+    spans, cur = [], None
+    for l in lines:
+        if "[CATCH] start" in l:
+            cur = [frame(l), None, re.search(r"kind=(\S+)", l).group(1)]
+        elif "[CATCH] end" in l and cur is not None:
+            cur[1] = frame(l)
+            spans.append(tuple(cur))
+            cur = None
+    return spans
+
+
+def weaken(lines, tag="[WEAKEN-OBS]"):
+    return [l for l in lines if "WEAKEN" in l and (tag in l if tag else True)]
+
+
+NL = stamped(Z / "NL-r1.debug.txt")
+ST0 = stamped(Z / "ST-r1.debug.txt")
+DR0 = stamped(Z / "DR-r1.debug.txt")
+print("== W-OFF x2: = NL Step-0 (sha e444a33991bd7720), 0 WEAKEN lines ==")
+for t in ("W-OFF1", "W-OFF2"):
+    L = stamped(A / f"{t}.debug.txt")
+    check(f"{t}: non-DMGAUDIT lines sha == e444a33991bd7720", sha(plain(L)) == "e444a33991bd7720", sha(plain(L)))
+    check(f"{t}: 0 lines contain WEAKEN",
+          sum("WEAKEN" in l for l in (A / f"{t}.debug.txt").open(encoding="utf-8", errors="replace")) == 0)
+off1 = stamped(A / "W-OFF1.debug.txt")
+
+for t in ("W-OBS", "W-OBSCALC"):
+    print(f"== {t} ==")
+    L = stamped(A / f"{t}.debug.txt")
+    d = first_diff(plain(L), plain(off1))
+    check(f"{t}: every line without WEAKEN/DMGAUDIT == W-OFF1", d is None,
+          "" if d is None else f"#{d}: {plain(L)[d][:100]!r} | {plain(off1)[d][:100]!r}")
+    obs = weaken(L)
+    allw = weaken(L, None)
+    check(f"{t}: exactly 11 [WEAKEN-OBS] lines", len(obs) == 11, str(len(obs)))
+    check(f"{t}: every WEAKEN line is an OBS line (no act=, no ERR)", len(allw) == len(obs),
+          str([l[:100] for l in allw if "[WEAKEN-OBS]" not in l][:3]))
+    check(f"{t}: every OBS line would=THROW", all("would=THROW" in l for l in obs),
+          str([re.search(r"would=(\S+)", l).group(1) for l in obs]))
+    check(f"{t}: 0 first=1", not any("first=1" in l for l in obs))
+    spans = catch_spans(L)
+    inside = [any(a <= frame(l) <= b and k in ("team", "dex") for a, b, k in spans) for l in obs]
+    check(f"{t}: every OBS line inside a team/dex [CATCH] battle", all(inside), str(spans))
+    # an INDEPENDENT reader: the OBS line's target HP/max, status and moves vs DMGAUDIT's raw record at that turn
+    bef = befores(L)
+    bad = []
+    for l in obs:
+        f = frame(l)
+        nxt = min((k for k in bef if k >= f), default=None)
+        if nxt is None:
+            bad.append((f, "no BEFORE"))
+            continue
+        foe = bef[nxt].mons[1]
+        hp = re.search(r"hp=(\d+)/(\d+)", l)
+        st = re.search(r" st=([0-9a-f]+)", l)
+        tmv = re.search(r"tmv=(\S+)", l).group(1)
+        mv = ",".join("-" if x == 0 else f"{x}:{p}" for x, p in zip(foe.moves, foe.pp))
+        if (int(hp.group(1)), int(hp.group(2)), int(st.group(1), 16), tmv) != (foe.hp, foe.maxhp, foe.status1, mv):
+            bad.append((f, (hp.group(0), st.group(1), tmv), (foe.hp, foe.maxhp, foe.status1, mv)))
+    check(f"{t}: each OBS line's target values == DMGAUDIT's raw record (independent reader)", not bad, str(bad[:3]))
+    # the replay: each snapshot through the pure module gives the same verdict (a determinism check only)
+    from modules.story import weaken_catch as wc
+    mism = []
+    for l in obs:
+        snap = l.split(" snap=", 1)[1]
+        args = wc.snapshot_from_json(snap)
+        dd = wc.decide_weaken_turn(*args)
+        if dd.verdict != re.search(r"would=(\S+)", l).group(1):
+            mism.append((frame(l), dd.verdict))
+    check(f"{t}: every OBS snapshot replays to the same verdict (determinism only)", not mism, str(mism[:3]))
+
+print("== ST-ON: = ST Step-0 up to f165971; DAMAGE Seismic Toss, dbide 15, the Taillow at 6/21; 0 res=Won ==")
+L = stamped(A / "ST-ON.debug.txt")
+pre = [l for l in plain(L) if frame(l) < 165971]
+pre0 = [l for l in plain(ST0) if frame(l) < 165971]
+d = first_diff(pre, pre0)
+check("ST-ON: every line before f165971 == ST Step-0", d is None, "" if d is None else f"#{d}: {pre[d][:110]!r}")
+acts = [l for l in L if "[WEAKEN] act=" in l]
+a0 = next((l for l in acts if frame(l) <= 165971 + 400), None)
+check("ST-ON: the first act is DAMAGE with Seismic Toss, before the f165971 turn line",
+      a0 is not None and "act=DAMAGE" in a0 and "move=Seismic_Toss" in a0, (a0 or "none")[:200])
+turn0 = next((l for l in L if l.startswith("f165971 ") and "[TURN 0]" in l), None)
+check("ST-ON: the f165971 [TURN 0] line shows UseMove:Seismic Toss", turn0 is not None and "Seismic Toss" in turn0,
+      (turn0 or "none")[:160])
+pv = pairs(L)
+b = min((k for k in pv if k >= 165971), default=None)
+v = pv.get(b)
+ok = v is not None and v.before.mv[0] == 69 and v.d_bide == 15 and v.after is not None and v.after.mons[1].hp == 6
+check("ST-ON: DMGAUDIT BEFORE mv[0]=69, dbide 15, the Taillow at 6 after", ok,
+      "none" if v is None else f"mv={v.before.mv} dbide={v.d_bide} after_hp={v.after.mons[1].hp if v.after else None}")
+won = [l for l in L if "[CATCH] end" in l and "res=Won" in l]
+check("ST-ON: 0 [CATCH] end ... res=Won", not won, str([w[:120] for w in won]))
+dmg = [l for l in acts if "act=DAMAGE" in l]
+wrong = []
+for l in dmg:
+    f = frame(l)
+    k = min((k for k in pv if k >= f), default=None)
+    vv = pv.get(k)
+    lead_level = vv.before.mons[0].level if vv else None
+    if vv is None or vv.before.mv[0] != 69 or vv.d_bide != lead_level:
+        wrong.append((f, None if vv is None else (vv.before.mv[0], vv.d_bide, lead_level)))
+check(f"ST-ON: every DAMAGE ({len(dmg)}) ran Seismic Toss with dbide == the lead's level", not wrong, str(wrong[:3]))
+
+print("== DR-ON: = DR Step-0 on EVERY line without WEAKEN; THROW (floor) at f140685; 0 res=Won ==")
+L = stamped(A / "DR-ON.debug.txt")
+d = first_diff(plain(L), plain(DR0))
+check("DR-ON: every line without WEAKEN/DMGAUDIT == DR Step-0 (the whole run)", d is None,
+      "" if d is None else f"#{d}: {plain(L)[d][:100]!r} | {plain(DR0)[d][:100]!r}")
+a0 = next((l for l in L if "[WEAKEN] act=" in l), None)
+check("DR-ON: the first act (the f140685 decision) is THROW with the floor as its reason",
+      a0 is not None and "act=THROW" in a0 and "floor" in a0 and frame(a0) <= 140685 + 400, (a0 or "none")[:200])
+check("DR-ON: no act=DAMAGE anywhere", not any("act=DAMAGE" in l for l in L))
+check("DR-ON: 0 res=Won", not any("[CATCH] end" in l and "res=Won" in l for l in L))
+
+print("== DR-FAULT: = DR Step-0 up to f140685; DAMAGE Dragon Rage, dbide 40, the Taillow faints (res=Won) ==")
+L = stamped(A / "DR-FAULT.debug.txt")
+pre = [l for l in plain(L) if frame(l) < 140685]
+pre0 = [l for l in plain(DR0) if frame(l) < 140685]
+d = first_diff(pre, pre0)
+check("DR-FAULT: every line before f140685 == DR Step-0", d is None, "" if d is None else f"#{d}")
+a0 = next((l for l in L if "[WEAKEN] act=" in l), None)
+check("DR-FAULT: the first act is DAMAGE with Dragon Rage", a0 is not None and "act=DAMAGE" in a0 and "Dragon_Rage" in a0,
+      (a0 or "none")[:200])
+pv = pairs(L)
+b = min((k for k in pv if k >= 140685), default=None)
+v = pv.get(b)
+check("DR-FAULT: DMGAUDIT BEFORE mv[0]=82 and dbide 40", v is not None and v.before.mv[0] == 82 and v.d_bide == 40,
+      "none" if v is None else f"mv={v.before.mv} dbide={v.d_bide}")
+won = [l for l in L if "[CATCH] end" in l and "Taillow" in l and "res=Won" in l]
+check("DR-FAULT: [CATCH] end kind=team sp=Taillow#276 ... res=Won", bool(won), (won or ["none"])[0][:160])
+print(f"\n{sum(OK)}/{len(OK)} checks PASS")
+
+===== the runner (verbatim) =====
+#!/usr/bin/env bash
+# design v2 step 12 — the live arms on the BUILD commit (pre-registered: ai-research-notes/2026-09-30-weaken12-PREDICTIONS.md).
+# r20_pregym1_party4_r116.ss1, TEAM6=1, DMGAUDIT=1, --set-balls 30, 240000 frames, the seed-1 wrapper, sequential.
+# Order W-OFF1, W-OBS, ST-ON, DR-ON, W-OFF2, W-OBSCALC, DR-FAULT: the two W-OFF runs are SEPARATED IN TIME.
+S="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad"
+OUT="$S/w12arms"
+mkdir -p "$OUT"
+WT="C:/Remote Projects/pokebot-wt-ch24"
+DL="$WT/sandbox-pokebot/profiles/repro-ml/debug-logs"
+cd "$WT/tools/story-dev" || exit 2
+echo "WT HEAD $(git rev-parse HEAD) branch $(git branch --show-current) dirty-code=$(git status --short -- ../../sandbox-pokebot story_harness.py | wc -l)"
+PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert r20_pregym1_party4_r116.ss1=9710585350be | tail -1
+busy=$(powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name like 'py%'\" | Where-Object { \$_.CommandLine -like '*story_harness*' -or \$_.CommandLine -like '*run_with_base*' }).Count" | tr -d '\r')
+if [ "$busy" != "0" ]; then echo "!!! $busy harness process(es) already running: refusing to start"; exit 5; fi
+W="import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')"
+UNSET="-u POKEBOT_R25_WEAKEN -u POKEBOT_R25_WEAKEN_CALC -u POKEBOT_R25_WEAKEN_KINDS -u POKEBOT_R25_FAULT_WEAKEN_NOFLOOR"
+run() {
+  # $1 tag, $2 the lever ("" for none), $3 the env settings (KEY=VALUE words, no spaces inside a value)
+  tag=$1; lever=$2; envs=$3
+  if [ -n "$lever" ]; then LEV=(--set-lead-move "$lever"); else LEV=(); fi
+  before=$(ls "$DL")
+  # shellcheck disable=SC2086  # $UNSET and $envs are split into words on purpose
+  env $UNSET $envs POKEBOT_R20_TEAM6=1 POKEBOT_R25_DMGAUDIT=1 PYTHONUTF8=1 timeout 3000 \
+    py -3.12 -u -c "$W" saves/r20_pregym1_party4_r116.ss1 --driver storyresume --frames 240000 --set-balls 30 \
+    "${LEV[@]}" --log "$OUT/$tag.log" > "$OUT/$tag.stdout.txt" 2>&1
+  rc=$?
+  new=$(comm -13 <(echo "$before" | sort) <(ls "$DL" | sort))
+  n=$(echo "$new" | grep -c .)
+  if [ "$n" = "1" ]; then cp "$DL/$new" "$OUT/$tag.debug.txt"; else echo "!!! $tag: $n new debug logs ($new)"; fi
+  echo "$tag exit=$rc debug=$new $(date '+%I:%M:%S %p')"
+}
+run W-OFF1    ""               ""
+run W-OBS     ""               "POKEBOT_R25_WEAKEN=observe"
+run ST-ON     "1=Seismic Toss" "POKEBOT_R25_WEAKEN=1"
+run DR-ON     "1=Dragon Rage"  "POKEBOT_R25_WEAKEN=1"
+run W-OFF2    ""               ""
+run W-OBSCALC ""               "POKEBOT_R25_WEAKEN=observe POKEBOT_R25_WEAKEN_CALC=1"
+run DR-FAULT  "1=Dragon Rage"  "POKEBOT_R25_WEAKEN=1 POKEBOT_R25_FAULT_WEAKEN_NOFLOOR=1"
+echo "W12-ARMS-DONE"

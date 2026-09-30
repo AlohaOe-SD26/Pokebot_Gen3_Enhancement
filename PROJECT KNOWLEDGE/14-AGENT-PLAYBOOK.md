@@ -576,6 +576,22 @@ Step 11's arms left the trajectory its per-turn table was taken from. Was that t
 - **Observe-only instruments get a LIVE SMOKE before their classifier is final.** The faint reset (08) was invisible
   to a gate built on the design's own model of memory.
 
+### 3f. ‼ PROVE A SAFETY BOUND IS LOAD-BEARING LIVE: A LEVER THAT MAKES IT BIND, AND A FAULT THAT REMOVES ONLY IT (added 2026-09-30)
+
+Design v2 step 12's KO bound (hp − X ≥ 1) could not bind on natural play: no lead held an exact-damage move, and at full
+HP the one we injected (Seismic Toss, 13-17 damage) was smaller than every target's HP.
+- **A TEST lever makes the case exist:** `story_harness.py --set-lead-move SLOT=Move`. It is a state write, read back
+  and asserted or the run aborts, and it is applied in BOTH arms, so the lever-OFF run is the control.
+- **Choose the lever value by COMPUTATION** so the guard binds by construction. Dragon Rage's fixed 40 is ≥ every
+  Route 116 target's max HP.
+- **Three runs then prove it:**
+  - OFF with the lever: the control;
+  - ON: the guard binds and the module refuses; it must equal OFF;
+  - ON plus a fault env that removes ONLY that guard: the harm happens (`[CATCH] end … res=Won`).
+  - Without the third, a refusing module and a module that never considered acting look the same.
+- **No escape clause:** "declared vacuous" is a FAIL (08). Compute the discriminator on the fixture's real target
+  BEFORE filing.
+
 ## 4. Story-mapping method (how to build a new chapter)
 
 **MAP FIRST, then build, then validate.** (Hard-won: Rustboro cost us dearly by building

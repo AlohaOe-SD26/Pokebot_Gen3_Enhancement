@@ -23466,3 +23466,28 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - **Correction to this morning's "two identical runs" rule (08, the one-run table entry):** the two runs must be
     SEPARATED IN TIME, or have an unrelated run between them. Step 11's nine agreeing runs were back to back, and the
     one divergent run was the only early one (review F9).
+
+## 2026-09-30 — ⛔ STEP 12's FIRST DESIGN HAD A FAULT ARM THAT COULD NOT BIND AND A GAIN RULE THAT WOULD HAVE MADE ITS OWN ACTING ARM VACUOUS; BOTH WERE ONLY SEEN BY COMPUTING ON THE ARM'S OWN TARGET
+
+- **Symptoms:**
+  - **(a)** The design's W-FAULT arm (skip hp − X ≥ 1) used Seismic Toss. With X = the lead's level (13-17) against
+    targets with max HP 20-28, at full HP, the bound could NEVER bind. Its pass column also said "or the arm is declared
+    vacuous with its reason", so it would have PASSED by declaration (design review, proof LP1, blocker).
+  - **(b)** The first revision's E_gain netted the damage turn: `E(hp) − (1 + E(hp − X))`. On the arm's own target (a
+    Taillow, 22 max HP, 13 damage) that is 0.97 < 1.0. The acting arm would have shown the module refusing to act,
+    graded as "correct".
+  - **(c)** My citation re-point moved a range's START and left its END behind (`story_mode.py:1811-1800`), the
+    failure `probe_citation_ranges.py` names as "the usual cause"; the gate caught it.
+- **Root causes:**
+  - (a) and (b): numbers chosen on paper, never evaluated on the fixture's real target before filing.
+  - (c): a remap script written for single citations and pointed at ranges.
+- **The fixes that worked:**
+  - (a) a second lever value, Dragon Rage (40 ≥ every target's max HP), so the bound binds by construction. DR-ON
+    (throws) and DR-FAULT (the Taillow faints, `res=Won`) proved it live, with no vacuity exit.
+  - (b) E_gain counts BALLS saved, the resource RULING 25 constrains, recorded in the design before the predictions.
+  - (c) re-mapped both ends.
+- **Prevention rules:**
+  - Before filing an arm, COMPUTE its discriminator, and every bound it claims to test, on the fixture's REAL target:
+    level, HP, moves, catch rate.
+  - An arm's pass column has no escape clause: "declared vacuous" is a FAIL.
+  - A re-point of `file:A-B` maps both A and B.

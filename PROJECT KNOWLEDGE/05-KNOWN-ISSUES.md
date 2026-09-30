@@ -3183,6 +3183,16 @@ timing in the idle/recovery path; it is consistent with the watchdog candidate, 
   to 8:12 AM. A time-of-day or accumulated-state input fits as well as a random event does (the step 11 review, F9).
 - **New consequence:** a pre-registered per-turn table taken from ONE live run can lose its tail. Step 11's lost its
   two Linoone rows. Take such a table from two identical runs SEPARATED IN TIME, not back to back.
+**A THIRD EVENT, CONFINED TO TELEMETRY (2026-09-30, design v2 step 12; `evidence/2026-09-30-weaken12-ARMS.txt`):**
+- The runs: 6 at the base code plus 8 on the build, all `r20_pregym1_party4_r116.ss1` with seed 1.
+- Every flag-unset or observe run logs a one-frame garbage ball count (`[BALLS] 21 -> 24720 -> 21`) at f272106-7,
+  during a map transition. The first W-OBS run did not.
+- Its gameplay was identical: with the `[BALLS]` lines removed, all five such runs match frame for frame. Its re-run
+  logged the transient.
+- **A lead, UNVERIFIED:** `[BALLS]` compares `debug_logger.on_frame`'s per-frame samples. Missing a one-frame value
+  suggests that frame was never sampled, i.e. emulated with no Python observer (a frame batch). That would explain a
+  decision made "one frame late" (the first event). `#27-determinism` should test whether every frame reaches
+  `on_frame`.
 
 ## KI-113 — ⚠ OPEN (filed 2026-09-29; low impact, upstream code): the runtime encounter reader holds the DEAD Altering Cave table (Smeargle), not the live one (Zubat)
 **Measured** (design v2 step 7; `tools/story-dev/rare_species_dataset.py`, check "the static ROM read equals the cache
