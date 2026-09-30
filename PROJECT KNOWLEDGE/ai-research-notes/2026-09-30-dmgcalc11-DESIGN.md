@@ -1,163 +1,264 @@
-# 2026-09-30 — design v2 step 11 (M1, damage-calculator fidelity): the DESIGN, after a five-angle recon
+# 2026-09-30 — design v2 step 11 (M1, damage-calculator fidelity): the DESIGN, after a five-angle recon and a three-lens review
 
 > A NOTE refining `2026-09-29-r23-27-DESIGN-v2.md` §Step 11. It supersedes that section where they differ.
 > - The recon was a workflow of five fresh Claude agents: our calculator, the decomp transcribed, an adversarial
->   deviation hunt, the records and rulings, and the live state readers. A Gemini fan-out was used only for "what to
->   look for", and the decomp agent checked it against the decomp: names mostly right, placement and order mostly
->   wrong. Their reports are NOTES. The author re-read every load-bearing claim marked ✔ at the cited place. ⚙ marks
->   a number the recon computed that M1a must re-derive; ⚠ marks a claim not yet checked live.
+>   deviation hunt, the records and rulings, and the live state readers (their reports are NOTES in
+>   `2026-09-30-dmgcalc11-recon/`). A Gemini fan-out was used only for "what to look for", and the decomp agent
+>   checked it claim by claim: names mostly right, placement and order mostly wrong. The author re-read every
+>   load-bearing claim marked ✔ at the cited place. ⚙ marks a number computed by the recon or the review that the
+>   gate must re-derive; ⚠ marks a claim not yet checked live.
 > - Branch `wt/dmgcalc11`, cut from `main` `241929d7` (10b merged).
-> - ⛔ **Nothing here is built yet.** The order is: this design, an adversarial review of it, the Step-0 live reads
->   (F6), predictions, code, gate, arms, review.
+> - ✅ **The design's adversarial review has RUN** (three fresh Claude agents, 2026-09-30: the M1a gate, the M1b
+>   audit, scope/records/arms; `## THE DESIGN REVIEW` at the end). It found 4 blockers and about 30 should-fix
+>   findings. Every one is folded in below, marked **[R:<id>]**.
+> - ⛔ **Nothing here is built yet.** Next: the Step-0 live reads (F6), then predictions, code, the gate's
+>   adversarial mutant pass, the gate, the arms, the review.
 
 ## WHY THE v2 STEP 11 BODY CANNOT BE BUILT AS WRITTEN
 
-- **B1. The proposed acceptance fails by construction on CORRECT play.** v2 says "0 over crit_max + 3 HP" (v2 §3,
-  M1b acceptance). Our calculator doubles for a crit AFTER STAB and type effectiveness:
-  - ours: ✔ `_util.py:207-213` (STAB, then each type), then `:230-231` (crit ×2) and `:233-238` (Charge ×2);
-  - the game: ✔ `battle_script_commands.c:1293-1301` (`Cmd_damagecalc`: base × `gCritMultiplier` ×
-    `dmgMultiplier`, then Charge ×2, then Helping Hand), before `Cmd_typecalc`'s STAB (`:1369-1372`) and type steps
-    (`ModulateDmgByType`, ✔ `:1321-1325`, a minimum of 1 per step), with the random factor last (✔ `:1639-1651`).
-  - ⚙ Two recon agents, independently: crit_max reads up to **4 HP** low (a STAB crit against a 4× target with an
-    odd post-base value), and up to **8 HP** with Charge; the non-crit max up to **1 HP** low.
-  - Realistic 4× cases on the story path: Makuhita vs the Aron line, Marshtomp's Mud-Slap vs Magnemite, Electrike vs
-    Wingull/Pelipper, Grass vs Barboach and Geodude. One such crit fails M1b "for good".
-- **B2. "The whitelisted effects" are defined nowhere**, and `EFFECT_HIT` alone is not safe: Surf is `EFFECT_HIT` yet
-  doubles against a diving target (recon: `battle_scripts_1.s:236-240`).
-- **B3. `[TURN]` does not name the executed move.** It is logged before the no-PP override (✔ the emission at
-  `battle_action_selection.py:534-538`; recon: the override at `:552-569`), and Encore can substitute the move. So
-  M1b must predict for the move the GAME records as chosen, `gChosenMoveByBattler[0]` (✔ `pokeemerald.sym:156`,
-  `02024274`), read at the selection exit.
-- **B4. Excluding faints discards the evidence step 12 exists for** (KO-safety). ⚠ `gBideDmg[1]` (✔ `.sym:133`,
-  `020241f8`) records our hit's damage BEFORE the HP cap and ignores heals, items, end-of-turn effects and weather
-  chip (recon: `battle_script_commands.c:1912` vs `:1920-1929`). If it holds live, KO samples become valid.
+- **B1. The proposed acceptance CAN FAIL ON CORRECT PLAY (rarely), because the calculator applies the crit after
+  STAB and type.** v2 says "0 over crit_max + 3 HP" (v2 §3's M1b acceptance row).
+  - Ours: ✔ `_util.py:207-213` (STAB, then each type), then `:230-231` (crit ×2) and `:233-238` (Charge ×2).
+  - The game: ✔ `battle_script_commands.c:1293-1301` (`Cmd_damagecalc`: base × `gCritMultiplier` × `dmgMultiplier`,
+    then Charge ×2, then Helping Hand), before STAB (`:1369-1372`) and the type steps (`ModulateDmgByType`, ✔
+    `:1321-1325`, a minimum of 1 per step), with the random factor last (✔ `:1639-1651`).
+  - ⚙ The recon and the review, three times independently: crit_max reads up to **4 HP** low, and up to **8 HP** with
+    Charge. By hand: a STAB 4× crit on an odd post-base value B, the game 12B, ours 12B−4.
+  - **How often [R:SR-12]:** exceeding crit_max + 3 needs STAB, two 2× steps, a crit, an odd B and the top random
+    roll: ⚙ about 1/512 per STAB-4× hit. A STAB 2× crit errs by 2 (inside +3); a non-STAB 4× by 0. So a failure
+    is luck, not fidelity, and one is enough to fail the acceptance for good.
+  - Story-path 4× cases: Makuhita vs the Aron line, Marshtomp's Mud-Slap vs Magnemite, Electrike vs
+    Wingull/Pelipper, Grass vs Barboach and Geodude.
+- **B2. "The whitelisted effects" are defined nowhere**, and `EFFECT_HIT` alone is not safe: Surf is `EFFECT_HIT`
+  yet doubles against a diving target (`battle_scripts_1.s:236-240`, checked by the review).
+- **B3. `[TURN]` does not name the executed move.** It is logged before the no-PP override (✔ emission
+  `battle_action_selection.py:534-538`; the override at `:552-569`), and Encore can substitute the move. M1b
+  predicts for `gChosenMoveByBattler[0]` (✔ `pokeemerald.sym:156`), read at the selection exit.
+- **B4. Excluding faints discards the evidence step 12 exists for** (KO-safety). `gBideDmg[1]` (✔ `.sym:133`)
+  records our hit's damage before the HP cap and is blind to heals, end-of-turn effects and weather chip (the recon;
+  confirmed by two review lenses at `bsc.c:1912` vs `:1920-1929`). ⚠ Live unverified (F6). Its limits
+  [R:M1A-8, M1b-6, M1b-9, SR-15]: it is recorded AFTER the hp−1 clamp (False Swipe, Endure, Focus Band), and it
+  also records the foe's recoil, crash, confusion self-hit, Substitute cost, Belly Drum, Curse cost, Pain Split, our
+  Rough Skin and our Liquid Ooze; the foe's Bide resets it to 0 mid-turn.
 - **B5. The spec evaluates the foe's status only before the turn**, but our own move can burn, poison, confuse or trap
-  the foe THIS turn, and the end-of-turn tick lands in the same turn.
+  the foe THIS turn.
 - **B6. KI-110 cannot be pinned in the direction M1 audits.** It changes only damage aimed at US
-  (`defender_is_player`), so an our-attack row passes vacuously (KI-110's own "Reach today: none").
+  (`defender_is_player`); an our-attack row passes vacuously.
 - **B7. A scope conflict in the record:** step 11 is "measurement only" (v2:23, v2:569; 03; 04), while KI-109, KI-110
-  and KI-111 each name "v2 step 11" as their fix vehicle (05). 06 holds no user ruling on fixing the calculator and
-  no "do not re-raise" (the records agent grepped it; CLAUDE.md rule 11).
+  and KI-111 each named "v2 step 11" as their fix vehicle (05). 06 holds no user ruling on fixing the calculator and
+  no "do not re-raise" (grepped by the recon and again by the review: CLAUDE.md rule 11).
 
-## THE DESIGN (F1-F9; each also a `06` decision when built)
+## THE DESIGN (F1-F10; each also a `06` decision when built)
 
 - **F1, scope: MEASUREMENT ONLY. `_util.py` is not changed in step 11.**
-  - M1a pins every deviation as a KNOWN-DIVERGENCE row: the game's value from the decomp port beside ours, each with
-    a decomp citation.
-  - The fixes become a NEW item, `#27-dmgcalcfix`: KI-109/110/111, D1 (crit and Charge order), D2 (type order), D3
-    (the per-step minimum), Marvel Scale on the wrong battler, Guts + burn, Psywave's minimum, fixed-damage immunity,
-    Brick Break vs screens. It is behind its own default-OFF flag, with M1a as its gate and an A/B on the ORDINARY
-    case, because `_util.py` is the every-battle path (06:4555-4559, 06:4595-4598). The KIs' "vehicle: v2 step 11"
-    lines are corrected in the commit that files this design.
-  - Why not fix in step 11: a KI-109 fix changes move choice (a behaviour change needs a flag and an A/B), and M1b's
-    inertness proof is "every battle line identical", which cannot hold in the same step as a behaviour change.
+  - M1a pins every deviation as a KNOWN-DIVERGENCE row (F2).
+  - The fixes are a NEW item, **`#27-dmgcalcfix`**, filed in `03` with this revision: KI-109/110/111, D1 (the crit
+    and Charge order), D2 (type order), D3 (the per-step minimum), Marvel Scale on the wrong battler, Guts + burn,
+    Psywave's minimum, fixed-damage immunity, Brick Break vs screens, Hidden Power (Electric) under Charge. Its own
+    default-OFF flag, M1a as its gate, an A/B on the ORDINARY case (06:4555-4559, 06:4595-4598). KI-111's fix
+    touches the user's profile and the schema, and every fix is an upstream divergence for `DIVERGENCE-LOG`
+    [R:SR N5]. The KIs' "vehicle: v2 step 11" lines point to it (edited in this revision [R:SR-10]: the first
+    version of this note CLAIMED that edit and had not made it).
+  - Why not in step 11: a KI-109 fix changes move choice (a behaviour change, so a flag and an A/B), and M1b's
+    inertness proof cannot hold in the same step as a behaviour change.
 - **F2, M1a: `tools/story-dev/probe_damage_calc_decomp.py`, a pure gate.**
-  - A decomp-ORDERED port: base (the calculator's own base term, see below), × crit × `dmgMultiplier`, × Charge,
-    STAB ×15/10, each type step in `gTypeEffectiveness` TABLE order with a minimum of 1, then the random factor
-    `100 - r%16` for r in 0..15. It is a TEST ORACLE in `tools/` and never a production dependency (06:4606-4617
-    rejected a second damage model in production).
-  - **Enumeration, not sampling.** Past the base term, the error depends only on the post-base value B, STAB and the
-    multiplier multiset. The probe sweeps B, STAB, crit, Charge and every (move type, defender type pair) from the
-    ROM's type chart, and reports the maximum under- and over-prediction for the non-crit range, crit_max and crit
-    with Charge. **Pre-registered:** non-crit 1 HP, crit 4 HP, crit + Charge 8 HP. ⛔ The defender's types come in
-    ROM order (`gBattleMons` 0x21/0x22); `species.json` stores some in a different order (Aron, Lotad, Skarmory).
-  - **Exact rows** executing the REAL `calculate_move_damage_range` (the playbook: execute production to pin wiring)
-    on stand-ins that keep `BattlePokemon`'s contract. ⛔ A stubbed defender must NOT count as the player (recon:
-    `battle_state.py:370-377` returns `NotImplemented`, which reads True, and would switch on KI-110's boost). Rows:
-    the crit order (a worked 4× case); the type order (Bite vs Sableye, 1 HP); the per-step minimum (`max=0`, `min=1`
-    on an immune or 0.25× tiny case); Marvel Scale on each battler; Guts + burn; Sonicboom and Psywave (KI-109; Psywave's
-    minimum is level/2); fixed damage vs an immune type; Brick Break vs Reflect; Struggle; Hidden Power's type and
-    power; KI-110 in the foe→us direction; KI-111 (Solarbeam's weather halving). Each expected value comes from the
-    port and a decomp line, never from `_util`'s output.
-  - **The whitelist, as a constant keyed on `moves.json` `effect`** (never on names: "Sonicboom", "Psywave",
-    "Solarbeam", "Selfdestruct", "Doubleslap" and "Smellingsalt" are spelled that way in the data):
-    - Tier A (plain, one hit, fixed power): HIT, HIGH_CRITICAL, ALWAYS_HIT, QUICK_ATTACK, VITAL_THROW, PAY_DAY,
-      SECRET_POWER, SKY_UPPERCUT, THUNDER, KNOCK_OFF, THIEF, RAPID_SPIN, FLINCH_HIT, PARALYZE_HIT, FREEZE_HIT, the
-      stat-down and stat-up *_HIT effects, SUPERPOWER, OVERHEAT, RECHARGE, DOUBLE_EDGE, RECOIL (not Struggle),
-      RECOIL_IF_MISS, ABSORB, DREAM_EATER, FALSE_SWIPE, FAKE_OUT, FOCUS_PUNCH, SNORE, RAGE, HIDDEN_POWER.
+  - **The instrument cannot be controlled by itself [R:M1A-1, SR-7] (BLOCKER folded).** A port written in our order
+    would enumerate 0 and pass. Therefore:
+    - the predictions pre-register HAND-DERIVED anchor literals, each with its decomp lines, BEFORE the port exists.
+      From the review ⚙: Fighting STAB vs Normal/Rock, B=3, crit: game 36, ours 32. Spark STAB vs Wingull, B=3,
+      crit + Charge: game 72, ours 64. Mud-Slap vs Magnemite, B=5, crit: game 60, ours 56;
+    - every anchor is checked against BOTH the port and the calculator;
+    - every enumerated bound must be at least its bucket's largest anchor delta (a smaller bound means the port is
+      wrong), and after the first run the bounds are asserted EXACTLY, each with a witness tuple pinned as a row;
+    - the mutant "the port in our order" must turn the anchor assertions red.
+  - **The enumeration drives PRODUCTION [R:M1A-5].** `_calculate_base_move_damage` is patched to return B, and the
+    REAL `calculate_move_damage_range` runs the rest. Ordered defender type pairs in ROM order (never from
+    `species.json`, which is alphabetical: 95 of 385 species differ [R:M1A N1]), a defender with a neutral ability,
+    a whitelisted non-Struggle move. ⚙ 36 s for all 17 types × 289 ordered pairs × STAB × crit × Charge × B = 2-259.
+  - **Four signed buckets, max end and min end separately [R:M1A-4].** ⚙ Pre-registered: non-crit under 1 / over 1;
+    crit under 4; non-crit + Charge under 4; crit + Charge under 8; min ends ±1, 4, 4, 7.
+  - **Rows run the REAL calculator on REAL objects [R:M1A-2, SR N7].** `BattlePokemon` built from 0x58-byte
+    `gBattleMons` records inside a real `BattleState`; types only from `get_type_by_name`/`_index` (a fresh `Type`
+    compares by identity and reads neutral); every row asserts `attacker in own_side` and `defender not in own_side`
+    first (a stand-in's `__contains__` returns `NotImplemented`, which reads True).
+  - **Badges per row [R:M1A-3].** `_util.get_event_flag` is patched per row with an explicit flag set (patching
+    `modules.memory` does nothing: `_util` imported the name; offline, every flag reads False silently). KI-110 is
+    pinned at {BADGE07 set, BADGE08 clear}, in the foe→us direction. A liveness row: Badge 1 on vs off must change
+    ours' output.
+  - **Every KNOWN-DIVERGENCE row asserts three literals [R:M1A-6]:** the game's value (from the port, or for a
+    base-term row hand-derived from `pokemon.c`), ours, and the nonzero delta. Rows: the crit order; the type order
+    (Bite vs Sableye, with an odd post-STAB value); the per-step minimum; Marvel Scale on each battler; Guts + burn;
+    Sonicboom and Psywave (KI-109; Psywave's minimum is level/2); fixed damage vs an immune type, using a move whose
+    name branch DOES match (Night Shade vs Normal; Seismic Toss or Super Fang vs Ghost) [R:M1A-7]; Brick Break vs
+    Reflect; Struggle; Hidden Power's type and power; Hidden Power (Electric) under Charge [R:M1A N6]; KI-110; KI-111.
+  - **The whitelist**, a constant keyed on `moves.json` `effect`, never on names, except Surf and Struggle, which
+    need the move index [R:M1A N3]:
+    - Tier A (plain: one hit, fixed power, no condition): HIT, HIGH_CRITICAL, ALWAYS_HIT, QUICK_ATTACK, VITAL_THROW,
+      PAY_DAY, SECRET_POWER, SKY_UPPERCUT, THUNDER, KNOCK_OFF, THIEF, RAPID_SPIN, FLINCH_HIT, PARALYZE_HIT,
+      FREEZE_HIT, the stat-down and stat-up *_HIT effects, SUPERPOWER, OVERHEAT, RECHARGE, DOUBLE_EDGE, RECOIL (not
+      Struggle), RECOIL_IF_MISS, ABSORB, RAGE, HIDDEN_POWER.
     - Tier B (a secondary that can move the FOE's HP the same turn): BURN_HIT, BLAZE_KICK, THAW_HIT, TRI_ATTACK,
-      POISON_HIT, POISON_TAIL, POISON_FANG, CONFUSE_HIT. In the whitelist only when the AFTER read passes F3's status
-      exclusions.
-    - Tier C (a conditional ×2 or a screen skip): Surf/Whirlpool vs Underwater, EARTHQUAKE vs Underground, GUST and
-      TWISTER vs InTheAir, FLINCH_MINIMIZE_HIT vs Minimized, FACADE, SMELLINGSALT, WEATHER_BALL, BRICK_BREAK, PURSUIT.
-      In the whitelist only while the condition is observably false at BOTH reads.
+      POISON_HIT, POISON_TAIL, POISON_FANG, CONFUSE_HIT. Valid only when the AFTER read passes F4's status rules.
+    - Tier C (conditional; valid only while the condition is observably false at BOTH reads): Surf vs Underwater;
+      EARTHQUAKE vs Underground; GUST and TWISTER vs InTheAir; FLINCH_MINIMIZE_HIT vs Minimized; FACADE;
+      SMELLINGSALT; WEATHER_BALL; BRICK_BREAK; PURSUIT; any Fire or Electric move while Mud Sport or Water Sport is on
+      any battler [R:M1A-9]; FALSE_SWIPE only while the foe's HP before exceeds crit_max [R:M1A-8]; FAKE_OUT,
+      FOCUS_PUNCH, SNORE and DREAM_EATER, whose failures still spend PP (they read as a 0; F4's "no damage" stratum)
+      [R:M1A N2, M1b-2]. (Whirlpool is TRAP, which is out.)
     - Everything else is out: multi-hit, dynamic power, fixed damage, OHKO, Counter/Mirror Coat/Bide/Endeavor,
-      two-turn, Future Sight, trapping, EXPLOSION. They go to a logged stratum, never to the acceptance set.
-  - Fault (the spec's): a synthetic row over crit_max + MARGIN must fail the probe. Plus the gate's own mutants, with
-    sets written before the run, and a timing check against `run_gates`' 300 s limit (08, 2026-09-30).
-- **F3, M1b: `[DMGAUDIT]` lines, observe-only, behind `POKEBOT_R25_DMGAUDIT=1`, in their OWN log category** (never
-  `BATTLE`, never appended to `[TURN]`: v2 [A-S10]).
-  - **BEFORE, at the selection exit** (the fall-through of ✔ `battle_action_selection.py:173`'s `while`), in the same
-    frame, with PURE reads only (`read_symbol`; never `get_battle_state()`, KI-108): the turn counter, our and the
-    foe's chosen action and move, a snapshot of `gBattleMons` for both battlers, `gStatuses3`, the weather, the side
-    statuses and `gBideDmg[1]`. The prediction is the REAL calculator for `gChosenMoveByBattler[0]`: min and max, and
-    crit_max with `is_critical_hit=True`.
-  - **AFTER, at the next selection entry**, reusing the handler's existing `get_battle_state()` object (no new cached
-    call), plus direct reads of the turn counter and `gBideDmg`; or at the battle's end if it ended that turn.
-  - **A sample** is a pair with after-turn == before-turn + 1, singles only, our action USE_MOVE with a nonzero chosen
-    move, our PID unchanged, the foe's (PID, species) unchanged, and the chosen move's PP down by at least 1 (it ran).
-  - **The observed damage** is `gBideDmg[1]` after − before (primary: uncapped, blind to heals and ticks) and the foe's
-    HP before − after (secondary). A self-check counts the turns where they disagree with no KO, heal or tick.
-  - **Strata, never silent discards.** Every pair is logged with its verdict: in the whitelist or not (by tier),
-    wild or trainer, and each exclusion reason, evaluated at BOTH reads: the foe's status, confusion, trap, Leech
-    Seed, Curse or Nightmare; a Tier C condition; OUR side changed (HP crossed 1/3 with a matching pinch ability, an
-    Atk/SpA stage rise, a status change with Guts or Facade, Flash Fire); the weather changed; the foe's chosen move
-    hurts itself (recoil, crash, Substitute, Belly Drum, Ghost Curse, Pain Split, Explosion, Memento); our Rough Skin;
-    a Substitute on the foe; `max == 0` (predicted immune).
-  - **A crit is not readable after the turn** (recon: `gCritMultiplier` is overwritten by the next selection's AI
-    scoring). A reading in (max, crit_max] is tagged "crit or under-prediction, ambiguous".
-  - A `[DMGAUDIT] CTL` line at battle start proves the audit ran.
-- **F4, `tools/story-dev/audit_damage_calc.py`.** It prints the raw `[DMGAUDIT]` line count beside the parsed count
-  and fails on a mismatch (08: a `[TURN]` parser once dropped 13.5% of rows). Per stratum and per effect it reports:
-  the maximum of observed − crit_max and observed / crit_max; the counts over crit_max + 3 and over crit_max + M1a's
-  enumerated bound; the executed hits below the non-crit min (the "progress" side step 12 also needs); and the
-  bide-vs-HP disagreement count. It computes the acceptance verdict, but the acceptance DATA is step 14's (v2).
-- **F5, the flag is kept, against the step-T precedent (06:7902-7917), for reasons that differ from step T's.**
-  - M1b adds per-turn memory reads to the battle-action path of EVERY battle; step T's telemetry sat off the
-    per-frame path. The flag gives a SAME-HEAD inertness A/B (v2 [A-S10]) and a switch-off without a revert.
-  - The worry "it is just a way to forget it" is met by step 14's runbook, which sets it in both arms by name.
-  - Rejected: always on from the first commit. Deferred, not rejected: always on after step 14's batch proves it
-    inert at scale.
-  - The flag gets its `29` row in the commit that first reads it (`lint_docs` R6, both directions).
-- **F6, the Step-0 live reads, BEFORE the predictions** (observe-only; an ad-hoc driver or a probe, nothing
-  committed to production). ⚠ All from the recon's decomp reading, none checked live:
+      two-turn, Future Sight, TRAP, EXPLOSION. It goes to a logged stratum, never to the acceptance set.
+  - **Mutants**, with sets written before the first run and an ADVERSARIAL mutant pass before the gate is trusted
+    [R:SR N6]: the port in our order; swapped type order; a `_util` edit that FIXES D1 (every D1 row must flip:
+    `#27-dmgcalcfix` depends on exactly that); and the gate's usual row mutants. Timed against `run_gates`' 300 s.
+    (The spec's "a synthetic row over crit_max + MARGIN must fail" belongs to F4's audit, which is where an
+    acceptance is computed [R:M1A N5, SR-8].)
+- **F3, M1b PRODUCTION: RAW reads only [R:SR-2].** Behind `POKEBOT_R25_DMGAUDIT=1`, in their OWN log category
+  `DMGAUDIT` (never `BATTLE`, never appended to `[TURN]`: v2 [A-S10]).
+  - Why raw: every verdict is then computed OFFLINE by F4, which is pure and gateable, and a classifier bug found
+    after step 14 costs a re-audit, not a re-batch. The every-battle path gains reads and one log call, nothing else.
+  - **BEFORE, at the selection exit** (the fall-through of ✔ `battle_action_selection.py:173`'s `while`; the review
+    checked: choices are final there, and no frame passes, so HP cannot change). It logs, by PURE `read_symbol` reads:
+    the turn counter (`gBattleResults` + 0x13, ✔ `battle.h:247` per two lenses), `gBattleOutcome`, both chosen
+    actions and moves, both battlers' raw `gBattleMons` records (0x58 bytes), `gStatuses3`, `gDisableStructs`, the
+    weather, both side statuses, both `gBideDmg` slots, and the Flash Fire flag (a `gBattleResources` double
+    dereference [R:M1b-8]). And the LIVE prediction for `gChosenMoveByBattler[0]`: min, max, and crit_max with
+    `is_critical_hit=True`, computed on the handler's EXISTING `battle_state` object (BAS:115), valid because nothing
+    in `gBattleMons` changes during selection [R:M1b-11c, SR N7]. ⛔ It adds no `get_battle_state()` call (KI-108).
+  - **AFTER, at the next selection entry** (reusing the BAS:115 object), and **at the battle's end** (the
+    battle-handler loop's exit, with pure reads; ⚠ whether `gBattleMons` survives there is F6's question) [R:M1b-11d]:
+    the same raw fields.
+  - **Where BEFORE lives [R:M1b-12]:** at module level (the handler is re-entered within one selection, and a
+    function local dies across re-entries: BAS:26-28); the latest exit overwrites it; it is cleared at battle start.
+    There are other exits (BAS:193, :886, :981, raises, the KI-47 abandonment): only the `while` fall-through writes
+    a BEFORE.
+  - A `[DMGAUDIT] CTL` line at battle start. ⛔ With the flag unset, NO line contains `DMGAUDIT` [R:SR-3].
+  - The flag is read per handler call, like BAS's census flags (BAS:150): a THIRD stated exception to v2:151's
+    "read per run in `reset_per_run_state`", because BAS has no StoryMode and the harness drivers bypass it
+    [R:SR-11].
+- **F4, M1b CLASSIFIER and AUDIT: `tools/story-dev/audit_damage_calc.py` (pure; gated by `probe_dmgaudit.py`).**
+  - **Pairing [R:M1b-1, SR-1] (BLOCKER folded):** a pair is BEFORE(T) with EITHER the entry read at T+1, OR the
+    battle-end read with `gBattleOutcome != 0` and the counter still T (the game never increments it on the turn a
+    battle ends: ✔ `battle_main.c:3988-3997`). A changed foe identity is kept when Δ`gBideDmg[1]` ≥ the foe's HP at
+    BEFORE and the old mon's party HP is 0 (a trainer KO); `gBideDmg` is per slot and survives the switch. Not with
+    Spikes on the foe's side (a switch-in's Spikes are recorded) [R:M1b-1b, SR N4].
+  - **A sample:** singles only; our action USE_MOVE with a nonzero chosen move; our PID unchanged; the chosen MOVE's
+    PP down by at least 1, matched by move id, never by slot [R:SR-2]. **A hit is Δ`gBideDmg[1]` > 0**; a 0 with PP
+    spent is the "no damage" stratum (miss, Protect/Detect, a failed move) [R:M1b-2, SR-14]. A NEGATIVE Δ is an
+    instrument fault (the foe's Bide resets it) [R:M1b-9].
+  - **Strata, never silent discards**, each evaluated at BOTH reads:
+    - the foe: status, confusion, trap, Leech Seed, Curse or Nightmare; a Tier C condition; its Def/SpD stage or its
+      side's screens changed [R:M1b-10]; its chosen move hurts itself (recoil, crash, Substitute, Belly Drum, Ghost
+      Curse, Pain Split, Explosion, Memento), or is Protect, Detect, Endure or Bide [R:M1b-6, M1b-9]; its chosen move
+      reads 0 (Struggle) [R:M1b-9]; it holds a Focus Band; a Substitute; a held item or a bag item used
+      (`gChosenActionByBattler[1]` = item) [R:M1b-5, SR-4];
+    - our side: HP ≤ maxHP/3 at ANY point of the turn with a matching pinch ability (HP before − Δ`gBideDmg[0]`, which
+      catches a dip and a drain back up [R:M1b-7]); an Atk/SpA stage change; a status change with Guts or Facade;
+      Flash Fire set; our Rough Skin; our Liquid Ooze against a draining foe [R:SR-15];
+    - PERSISTENT known-divergence states at BEFORE, from M1a's rows (Guts + burn, Marvel Scale, Cloud Nine/Air Lock,
+      Flash Fire): their own stratum, never the acceptance set [R:M1b-8];
+    - the weather changed; `max == 0` (predicted immune); outside the whitelist (by tier); wild vs trainer.
+  - **Crit ambiguity:** a crit is not readable after the turn, so a reading in (max, crit_max] is tagged "crit or
+    under-prediction, ambiguous".
+  - **The self-check:** on clean turns (no KO, and no heal or tick from an enumerated list: a held item present at
+    BEFORE, a foe item action, drain, Leech Seed on us, and the end-of-turn ticks), Δ`gBideDmg[1]` equals the foe's HP
+    difference. Pre-registered as 0 disagreements on named turns [R:M1b-4, SR-9].
+  - **Outputs:** the raw `[DMGAUDIT]` line count beside the parsed count (FAIL on a mismatch); FAIL on the logger's
+    30 MB cap marker [R:SR N2]; per stratum and per effect: max(observed − crit_max), max(observed / crit_max), the
+    counts over crit_max + ACCEPT_MARGIN and over crit_max + M1a's bound, the hits below the non-crit min (step 12's
+    "progress" side), the self-check count; and an INDEPENDENT control: every clean BEFORE record replayed through
+    M1a's port, with the observations outside the port's [min, crit_max] counted [R:SR-7].
+  - **The acceptance verdict** (the data is step 14's): ≥ 300 clean whitelisted hits, 0 over crit_max +
+    ACCEPT_MARGIN; fewer than 300 is "insufficient", never PASS.
+  - **`probe_dmgaudit.py`, the pure gate [R:SR-2, SR-8]:** rows EXECUTE the classifier on synthetic BEFORE/AFTER
+    records: one per stratum reason, the battle-end pair, the trainer-KO pair, a turn gap, a double BEFORE, a changed
+    PID, unchanged PP, a chosen move ≠ the slot whose PP dropped, a negative Δ, a bide/HP disagreement; and the
+    acceptance: one clean sample at crit_max + ACCEPT_MARGIN + 1 → FAIL, the same in an excluded stratum → PASS,
+    exactly at the bound → PASS, 299 samples → "insufficient". AST rows pin production: the category, no new
+    `get_battle_state()` call in BAS, the flag read site, and nothing in BAS emits `DMGAUDIT` with the flag unset.
+    Mutants with sets written before the first run.
+- **F5, the flag is kept, against the step-T precedent (06:7902-7917, applied again at 06:8248-8272) [R:SR-11].**
+  - The difference: M1b reads memory inside the shared selection generator of EVERY battle (06:4555-4559), where a
+    defect costs every fight; step T's reads sat per catch and per heartbeat. The flag gives a SAME-HEAD inertness A/B
+    (v2 [A-S10]) and a switch-off without a revert.
+  - "It is just a way to forget it" is met by step 14's runbook, which sets it in both arms by name.
+  - Rejected: always on from the first commit. Deferred: always on after step 14 proves it inert at scale.
+  - `29` rows for the flag and for any fault env, in the commit that first reads each (`lint_docs` R6 checks both
+    directions, including `tools/story-dev`) [R:SR N1].
+- **F6, the Step-0 live reads, BEFORE the predictions** (observe-only; a scratch driver, nothing in production). ⚠ All
+  from the decomp:
   - `gBideDmg[1]`'s difference equals the foe's HP difference on a clean non-KO hit, and holds the uncapped roll on a
     KO;
-  - `gChosenActionByBattler[0]` and `gChosenMoveByBattler[0]` are final at the selection exit;
-  - the turn counter (`gBattleResults` + 0x13) and `gBattleMons[1]` are readable where F3 reads them, including at a
-    battle's end.
-  - If `gBideDmg` fails, F3 falls back to the HP difference with the spec's original exclusions, and faints become a
-    censored stratum.
-- **F7, inertness (M1b): a same-HEAD pair on `post_mtpyre.ss1` (PINNED, md5 asserted), `storyresume --frames
-  90000`, seeded, DMGAUDIT unset vs `1`, at least TWO runs per arm (KI-112).** Every frame-stamped line except
-  `[DMGAUDIT]` must be identical, and the report names the first difference.
-  - Non-vacuity: the ON arm must hold a `CTL` line, at least one prediction line, at least one doubles exclusion and
-    at least one item or AI-item stratum. The recon tabulated the fixture's battles: three doubles on Route 123;
-    Vanessa's Oran Berry; Marcel's and Cristin's Hyper Potions; our Mightyena asleep for three turns; Hideo's Koffing
-    that knows Self-Destruct.
-  - Also: an offline differential of the battle-action module with the flag unset, and a G1c-style execution of the
-    new code with its `except` removed (08: a recorder that never ran inside a swallowing `try`).
-- **F8, the consequence for step 12, stated so it is not lost.** While D1 stands, "0 over crit_max + 3" cannot hold
-  on correct play. Step 12's stage 2 is therefore blocked until EITHER `#27-dmgcalcfix` fixes D1, OR MARGIN is re-set
-  from M1a's enumerated bound. MARGIN is one of v2 §3's numbers, all "PROPOSALS for the user", so the choice goes to
-  the user. Step 12's own bound (`ceil(W·crit_max·1.10) + 3`) already absorbs D1 whenever crit_max ≥ 10 (⚙). The
-  acceptance being STRICTER than step 12's bound is deliberate: do not "harmonise" it the wrong way.
-- **F9, what step 11 owes step 12, beyond the verdict:** the whitelist (F2), the per-effect error distributions
-  (F4) to re-derive CALC_ERR and MARGIN, and the lower tail (hits below the non-crit min).
+  - `gChosenActionByBattler[0]`/`gChosenMoveByBattler[0]` are final at the selection exit;
+  - the turn counter's VALUE at a battle-end read equals BEFORE's (F4's pairing) [R:SR-1];
+  - `gBattleMons[0]` and `[1]` (our PP too) and `gBideDmg` are readable at the battle's end [R:SR-1];
+  - the Flash Fire dereference reads a sane value.
+  - If `gBideDmg` fails, F4 falls back to the HP difference and faints become a censored stratum.
+- **F7, inertness and correctness (M1b), on `post_mtpyre.ss1` (PINNED, md5 asserted), `storyresume --frames 90000`,
+  seeded, at the SAME HEAD.** The runner writes `git rev-parse HEAD` and "clean tree" into each evidence file (a
+  worktree log cannot) [R:SR N3].
+  - **The decision rule, pre-registered [R:SR-5, M1b-11a]:** the two OFF runs must match each other first (else a
+    third); each ON run must equal a reproducing OFF run on every frame-stamped line that does not contain
+    `DMGAUDIT`, and the report names the first difference; a lone divergent run is re-run, never graded.
+  - **The category rules [R:SR-3]:** OFF has 0 lines containing `DMGAUDIT`; in ON every such line matches
+    `^f\d+ \[DMGAUDIT\] `, and no `[BATTLE]` line contains it.
+  - **Non-vacuity, pre-registered from the OFF runs at the base [R:M1b-3, M1b-5, SR-4]:** a `CTL` line; at least one
+    ACCEPTED whitelisted hit whose Δ`gBideDmg[1]` equals the foe's HP difference; at least one battle-end KO pair
+    [R:SR-1]; at least one doubles stratum (Route 123); a held-item stratum (Vanessa's Pikachu holds an Oran Berry,
+    deterministic at BEFORE); the named turns of the self-check. (The review found that two of the three item
+    events the first version cited never fire in the committed runs: a one-hit KO, and an HP above the AI's quarter
+    threshold.)
+  - **A per-turn expected-verdict table [R:SR-2b]**, pre-registered with its FIELDS (foe species, HP before and
+    after, verdict), derived from the OFF runs' `[TURN]`/`[TRAINER]` lines, graded line by line.
+- **F8, the consequence for step 12, stated so it is not lost [R:SR-12, SR-13].** While D1 stands, "0 over crit_max +
+  3" can fail on correct play (about 1/512 per STAB-4× hit). So:
+  - MARGIN is split: **ACCEPT_MARGIN** (the acceptance's slack) and the weaken bound's own margin (v2:628's "+3").
+    Re-setting one must not silently widen the other (the second is a behaviour change).
+  - Step 12's stage 2 **stays OFF** (v2:630 already), and its L1/L2 wait, until EITHER `#27-dmgcalcfix` fixes D1
+    with its flag ON in BOTH of step 14's arms (otherwise step 14 measures the unfixed calculator; else a second
+    batch), OR the user re-sets ACCEPT_MARGIN from M1a's bound. v2 §3's numbers are "PROPOSALS for the user".
+  - The exact absorption (⚙, W = 1; W is undefined in the tree): ceil(1.1·c) + 3 − c ≥ 4 for every c ≥ 1, equal to 4
+    up to c = 10, so D1 alone uses the whole slack; D1 + Charge (8) needs c ≥ 41. The acceptance being STRICTER than
+    step 12's bound is deliberate: do not "harmonise" it the wrong way.
+- **F9, what step 11 owes step 12, beyond the verdict:** the whitelist (F2), the per-effect error distributions (F4)
+  to re-derive CALC_ERR and the margins, and the lower tail (hits below the non-crit min).
+- **F10, the docs this revision corrects [R:SR-10]:** the KI-109/110/111 vehicle lines (→ `#27-dmgcalcfix`); the new
+  item in `03`; supersede markers at v2's §Step 11 and its §3 M1b row; `03` and `04` point to THIS note first.
 
 ## THE ARMS (to pre-register after the Step-0 reads)
 
 | Arm | What | Pass |
 |---|---|---|
-| G-M1a | `probe_damage_calc_decomp.py` | every row as pre-registered; its enumerated bounds equal the predictions (1 / 4 / 8) or the difference is REPORTED as a result; its mutants red on their sets; under 300 s |
-| M1b-OFF ×2 | post_mtpyre, DMGAUDIT unset, seeded | the control, run twice |
-| M1b-ON ×2 | the same, DMGAUDIT `1` | every non-`[DMGAUDIT]` frame-stamped line = OFF's; non-vacuity (F7) |
-| M1b-FAULT | ON + a fault that reads `gBideDmg[0]` in place of `[1]` | the self-check's disagreement count rises above 0 on clean turns (the reader is proven pointed at the foe) |
-| M1b-AUDIT | `audit_damage_calc.py` on the ON arms | raw count = parsed count; strata printed; a fault arm (a dropped line) fails it |
+| G-M1a | `probe_damage_calc_decomp.py` | the anchor literals hold on port AND calculator; bounds ≥ the anchors, then exact; every row's three literals; mutants red on their sets; under 300 s |
+| G-AUDIT | `probe_dmgaudit.py` | every classifier and acceptance row; the AST pins; mutants red on their sets |
+| M1b-OFF ×2 | post_mtpyre, DMGAUDIT unset, seeded, same HEAD | the two match each other; 0 lines containing `DMGAUDIT` |
+| M1b-ON ×2 | the same, DMGAUDIT `1` | each equals a reproducing OFF run on every line without `DMGAUDIT`; the category rules; non-vacuity; the per-turn verdict table |
+| M1b-FAULT | ON + a fault that reads `gBideDmg[0]` in place of `[1]` | the self-check count > ON's pre-registered 0, on the named turns |
+| M1b-DIFF | the old BAS module (`git show 241929d7:`) vs the new, flag unset, both driving the real generator through `repro_ki46_action_selection_bound.py`'s fake readers | identical yields and lines; the same number of `get_battle_state()` calls with the flag on and off [R:SR-6] |
+| M1b-EXEC | the new BAS code run with its `except` removed | it runs (08: a recorder that never ran inside a swallowing `try`) |
+| M1b-AUDIT | `audit_damage_calc.py` on the ON arms | raw count = parsed count; strata printed; the independent port control reported |
 
 ## OPEN, NOT DECIDED HERE
 
-- MARGIN (F8): the user's, once M1a has measured the bound.
-- Whether `#27-dmgcalcfix` comes before step 12 (it unblocks F8's first option) or after.
-- A mid-turn read that would make the crit and the move order observable (recon: UNVERIFIED feasibility). Not needed
-  for F3.
+- ACCEPT_MARGIN (F8): the user's, once M1a has measured the bound, shown with the ~1/512 rate.
+- Whether `#27-dmgcalcfix` comes before step 14 (with its flag ON in both arms) or after (a second batch).
+- A mid-turn read that would make the crit and the move order observable (UNVERIFIED feasibility; not needed).
+
+## THE DESIGN REVIEW (three fresh Claude agents, 2026-09-30; their output is a NOTE, and the author checked each blocker at its cited line before folding it)
+
+- **Blockers (4), all folded:**
+  - M1A-1 / SR-7: the bound could not fail (a port in our order passes). → Hand-derived anchors; bounds asserted.
+  - M1b-1 / SR-1: KO samples were zero by construction. The turn counter does not move on a battle's last turn (✔
+    `battle_main.c:3988-3997`), and a trainer's replacement changes the identity. → F4's pairing.
+  - SR-2: no arm checked that M1b was CORRECT, only that it was inert, present and parsed. → Raw production (F3), a
+    pure classifier with its own gate (F4), a per-turn verdict table (F7).
+- **Should-fix, all folded (marked in place):** M1A-2 to M1A-9 (real objects, badges per row, the fourth bucket, the
+  enumeration drives production, three-literal rows, a non-vacuous immunity row, False Swipe/Endure/Focus Band, the
+  sports); M1b-2 to M1b-12 (hits vs misses, a baseline for the fault arm, the item strata, the clamp, the pinch dip,
+  persistent divergences, the other writers of `gBideDmg`, the foe's side, the KI-112 rule, where BEFORE lives); SR-3
+  to SR-15 (the category rules, F3/F7 consistency, the decision rule, the differential and execution arms, the audit's
+  fault rows, the claim that was not true, the flag's read site, the headline's caveat, the margin split and sequencing,
+  misses, Liquid Ooze).
+- **Checked and found TRUE by the review:** B1's two orders and the 1/4/8 bounds (reproduced three times); B3; the
+  selection exit is final and frame-safe; the AFTER object is reusable; the symbols and the 0x13 offset; `gBideDmg`
+  before the cap and blind to heals and ticks; `types.json` equals the ROM chart; the real calculator runs offline on
+  synthetic records; the Tier C scripts; 06's precedents as cited; no user ruling contradicted.

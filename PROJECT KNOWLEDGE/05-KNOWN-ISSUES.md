@@ -3104,7 +3104,7 @@ THE SAME FRAME returned `012345`.
 - `lose_on_purpose` (inverted there).
 Affected mons: Voltorb/Electrode, Magnemite/Magneton; Spoink/Grumpig, Lunatone/Solrock and Chimecho when they also
 know another damaging move.
-**Fix direction** (vehicle: design v2 step 11, M1 damage-calculator fidelity):
+**Fix direction** (vehicle: `#27-dmgcalcfix` (design v2 step 11 is MEASUREMENT only and pins this as a known-divergence row: `ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md` F1)):
 - Match on `move.effect` (SONICBOOM, PSYWAVE, DRAGON_RAGE, SUPER_FANG, LEVEL_DAMAGE).
 - ‼ Keep type IMMUNITY: the fixed-damage returns (`:215-228`) come after the type multiply and ignore it. Seismic Toss
   vs Ghost and Night Shade vs Normal already score 20, although the game's `typecalc` makes them miss. Correcting only
@@ -3121,7 +3121,7 @@ know another damaging move.
   Sp. Atk by 10% in the Frontier.
 **Reach today: none.** No caller computes damage aimed at our Pokémon (`defender_is_player` is never True). It
 matters only if an incoming-damage estimate is added, and then only between gyms 7 and 8.
-**Fix:** `BADGE08_GET` → `BADGE07_GET` at `:342`; optionally mirror the exceptions. Vehicle: v2 step 11.
+**Fix:** `BADGE08_GET` → `BADGE07_GET` at `:342`; optionally mirror the exceptions. Vehicle: `#27-dmgcalcfix` (design v2 step 11 is MEASUREMENT only and pins this as a known-divergence row: `ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md` F1).
 
 ## KI-111 — ⚠ OPEN (filed 2026-09-29; NOT fixed; UPSTREAM bug): "Solar Beam" is misspelled (the game says "Solarbeam"), so the two-turn-move ban never catches it and its weather penalty never applies
 **Measured:**
@@ -3134,8 +3134,8 @@ matters only if an incoming-damage estimate is added, and then only between gyms
 **Reach:** any party Pokémon that knows Solarbeam (Grass lines) may pick it. That spends a charge turn, which the ban
 exists to prevent.
 **Fix:** spell it `Solarbeam` in the ban list, its template, the schema default and the fallback, and match
-`move.effect` (SOLAR_BEAM) in the weather check. The profile is the user's file, so a divergence to log. Vehicle: v2
-step 11, or a standalone item if it is wanted sooner.
+`move.effect` (SOLAR_BEAM) in the weather check. The profile is the user's file, so a divergence to log. Vehicle: `#27-dmgcalcfix` (design v2 step 11 is MEASUREMENT only and pins this as a known-divergence row: `ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md` F1),
+or a standalone item if it is wanted sooner.
 
 ## KI-112 — ⚠ OPEN (filed 2026-09-29; cause NOT measured): the harness is NOT frame-deterministic — 1 of 3 identical seeded runs arrived one frame late at a warp and diverged (`#27-determinism`)
 **Measured** (design v2 step 5; `tools/story-dev/evidence/2026-09-29-t1trainer-CONTROLS.txt`):
