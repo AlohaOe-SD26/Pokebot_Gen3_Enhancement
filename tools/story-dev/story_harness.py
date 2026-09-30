@@ -30,6 +30,7 @@ ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Po
 ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu — KI-12 repro)")
 ap.add_argument("--inject-shedinja-faint", action="store_true", help="inject an all-BURNED 1-HP party (Shedinja lead + bench) — rapid in-battle faints for the KI-15 after-faint chooser repro; pair with --driver faintrepro")
 ap.add_argument("--set-balls", type=int, default=None, help="force the Poké Ball count (test out-of-balls provisioning)")
+ap.add_argument("--set-lead-move", default=None, help="TEST ONLY (design v2 step 12's lever): 'SLOT=Move Name' overwrites move slot SLOT (0-3) of party slot 0 with that move at full PP; every other field and member is kept; read back and asserted, or the run aborts")
 ap.add_argument("--inject-hmmule", action="store_true", help="ADD a low-level mon (default Marill L13, carrying Surf) to an otherwise-ready party WITHOUT replacing it — the #24-ch23training discriminator. Override with POKEBOT_MULE_SPECIES / POKEBOT_MULE_LEVEL. Pair with --driver ch23train + POKEBOT_CH23_ESTIMATE_ONLY=1 for a seconds-long A/B.")
 ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the party at")
 ap.add_argument("--frames", type=int, default=60000)
@@ -29029,6 +29030,66 @@ for step in range(args.frames):
                 raise RuntimeError(f"--set-balls read-back {got} != intended {want}")
         except Exception as e:
             log(f"[setup] set-balls err {e!r} — ABORTING: a run whose --set-balls did not apply is not that arm")
+            raise
+
+    if args.set_lead_move is not None and step == max(1, args.inject_at):
+        # Design v2 step 12's TEST lever (`ai-research-notes/2026-09-30-weaken12-DESIGN.md` D8): no pinned party lead
+        # holds an exact-damage move, so a live stage-1 arm needs one. A STATE WRITE, for test arms only, applied in
+        # BOTH arms of an experiment. Only party slot 0 is rebuilt (through `debug_create_pokemon`, every field passed,
+        # the `game_cheats._rebuild_party` precedent); the other members are written back byte for byte. The read-back
+        # parses `gPlayerParty` itself (`get_party()` is cached per frame, the `--set-balls` trap) and asserts the
+        # lead's identity, the new move at full PP, the three other moves, and every other member's bytes.
+        try:
+            from modules.debug_utilities import debug_create_pokemon, debug_write_party
+            from modules.memory import read_symbol
+            from modules.pokemon import LearnedMove, Pokemon, get_move_by_name
+
+            slot_text, move_name = args.set_lead_move.split("=", 1)
+            mslot = int(slot_text)
+            if not 0 <= mslot <= 3:
+                raise ValueError(f"move slot {mslot} is not 0-3")
+            new_move = get_move_by_name(move_name.strip())
+            raw = read_symbol("gPlayerParty", size=600)
+            count = read_symbol("gPlayerPartyCount", size=1)[0]
+            members = [Pokemon(raw[i * 100:(i + 1) * 100]) for i in range(count)]
+            lead = members[0]
+            if lead.is_empty or lead.is_egg:
+                raise ValueError("party slot 0 is empty or an egg")
+            moves = list(lead.moves)
+            while len(moves) < 4:
+                moves.append(None)
+            old = moves[mslot]
+            moves[mslot] = LearnedMove.create(new_move)
+            rebuilt = debug_create_pokemon(
+                species=lead.species, level=lead.level, original_pokemon=lead, nickname=lead.nickname,
+                is_shiny=lead.is_shiny, gender=lead.gender, nature=lead.nature, held_item=lead.held_item,
+                friendship=lead.friendship, moves=[m for m in moves if m is not None], ivs=lead.ivs, evs=lead.evs,
+                current_hp=lead.current_hp, status_condition=lead.status_condition,
+                has_second_ability=lead.ability is not lead.species.abilities[0], experience=lead.total_exp)
+            debug_write_party([rebuilt] + members[1:])
+            back_raw = read_symbol("gPlayerParty", size=600)
+            back = Pokemon(back_raw[0:100])
+            want = [(m.move.name, m.pp) if m is not None else None for m in moves]
+            got = [(m.move.name, m.pp) if m is not None else None for m in back.moves]
+            while len(got) < 4:
+                got.append(None)
+            problems = []
+            if back.personality_value != lead.personality_value or back.species.name != lead.species.name:
+                problems.append(f"identity {back.species.name}#{back.personality_value:08x} != "
+                                f"{lead.species.name}#{lead.personality_value:08x}")
+            if (back.level, back.current_hp) != (lead.level, lead.current_hp):
+                problems.append(f"level/hp {(back.level, back.current_hp)} != {(lead.level, lead.current_hp)}")
+            if got != want:
+                problems.append(f"moves {got} != {want}")
+            if back_raw[100:100 * count] != raw[100:100 * count]:
+                problems.append("another party member's bytes changed")
+            if problems:
+                raise RuntimeError("--set-lead-move read-back: " + "; ".join(problems))
+            log(f"[setup] set-lead-move: {lead.species.name}#{lead.personality_value:08x} slot {mslot} "
+                f"{old.move.name if old is not None else 'empty'} -> {new_move.name} "
+                f"(pp {moves[mslot].pp}); read back from gPlayerParty: {got}")
+        except Exception as e:
+            log(f"[setup] set-lead-move err {e!r} — ABORTING: a run whose lever did not apply is not that arm")
             raise
 
     game_state = get_game_state()

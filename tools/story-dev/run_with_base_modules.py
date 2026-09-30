@@ -7,8 +7,9 @@ loads the base source of each named module (`git show <base>:<path>`) into `sys.
 path BEFORE the harness imports it, seeds `random` exactly as the seeded wrapper does, and runs `story_harness.py`.
 
 ⛔ Name EVERY production module the build changed. The run then asserts that no module the build ADDED under
-`sandbox-pokebot/modules` was imported, which is how a forgotten module shows itself: the build's copy of a changed
-module imports the build's new code.
+`sandbox-pokebot/modules` or `sandbox-pokebot/plugins` was imported, which is how a forgotten module shows itself: the
+build's copy of a changed module imports the build's new code. (Design v2 step 12, D14: `plugins.custom_modes.*` is
+accepted too, since `story_mode.py` is imported as `plugins.custom_modes.story_mode`.)
 
 Run from tools/story-dev:
   PYTHONUTF8=1 py -3.12 -u run_with_base_modules.py <base-commit> <path>[,<path>...] <harness args...>
@@ -27,13 +28,14 @@ from pathlib import Path
 
 def _module_name(rel: str) -> str:
     parts = Path(rel).with_suffix("").parts
-    assert parts[0] == "sandbox-pokebot" and parts[1] == "modules", f"not a sandbox-pokebot module: {rel}"
+    assert parts[0] == "sandbox-pokebot" and parts[1] in ("modules", "plugins"), f"not a sandbox-pokebot module: {rel}"
     return ".".join(parts[1:])
 
 
 def _added_modules(repo: Path, base: str) -> list[str]:
     out = subprocess.run(["git", "-C", str(repo), "diff", "--name-only", "--diff-filter=A", base, "HEAD", "--",
-                          "sandbox-pokebot/modules"], capture_output=True, text=True, encoding="utf-8", check=True).stdout
+                          "sandbox-pokebot/modules", "sandbox-pokebot/plugins"],
+                         capture_output=True, text=True, encoding="utf-8", check=True).stdout
     return [_module_name(p) for p in out.split() if p.endswith(".py")]
 
 
@@ -46,6 +48,7 @@ def main() -> None:
     sys.path.insert(0, str(repo / "sandbox-pokebot"))
     import modules  # noqa: F401  (the package, so each submodule can be registered on its parent)
 
+    injected = {}
     for rel in paths:
         name = _module_name(rel)
         src = subprocess.run(["git", "-C", str(repo), "show", f"{base}:{rel}"], capture_output=True, text=True,
@@ -57,6 +60,7 @@ def main() -> None:
         parent, _, leaf = name.rpartition(".")
         setattr(sys.modules[parent] if parent in sys.modules else importlib.import_module(parent), leaf, mod)
         exec(compile(src, path, "exec"), mod.__dict__)
+        injected[name] = mod
         print(f"# run_with_base_modules: {name} loaded from {base} ({len(src)} chars)", flush=True)
     added = _added_modules(repo, base)
     early = [m for m in added if m in sys.modules]
@@ -68,7 +72,12 @@ def main() -> None:
     finally:
         late = [m for m in added if m in sys.modules]
         print(f"# run_with_base_modules: build-only modules imported during the run: {late or 'none'}", flush=True)
+        # every injected module must still be THE module under its name: a loader that re-imported it (by path, or a
+        # reload) would have run the build's copy silently
+        swapped = [n for n, m in injected.items() if sys.modules.get(n) is not m]
+        print(f"# run_with_base_modules: injected modules replaced during the run: {swapped or 'none'}", flush=True)
         assert not late, f"a changed module was NOT named, so the build's copy ran: it imported {late}"
+        assert not swapped, f"an injected base module was replaced during the run: {swapped}"
 
 
 if __name__ == "__main__":
