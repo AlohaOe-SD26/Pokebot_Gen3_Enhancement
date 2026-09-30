@@ -14,9 +14,10 @@ ROWS
   F1-F6   PURE `forecast_after_basket`: the post_hm07 numbers (1 Ultra), the complete-basket visit (1), its own output
           (0, the floor binds), the live floor lever (5), above the trigger, and an unreadable stage (fail closed).
   K1      the memo key is `PokemonCenter.SootopolisCity.name` and Sootopolis is NOT in step 9a's whitelist.
-  O1-O7   `sootopolis_ball_forecast` EXECUTED with stubs: OFF (unset, `0`) reads NOTHING and returns None; a typo is
+  O1-O8   `sootopolis_ball_forecast` EXECUTED with stubs: OFF (unset, `0`) reads NOTHING and returns None; a typo is
           OFF with a 9b-specific `why=topoff-flag` line; `observe` never walks; `1` walks; a memo hit and a failed
-          forecast BLOCK (no walk, no counter phase) and a failure is memoised; an abort is re-raised.
+          forecast BLOCK (no walk, no counter phase) and a failure is memoised; an abort is re-raised; the live floor
+          lever reaches the forecast.
   P1-P8   `sootopolis_ball_phase` EXECUTED with a fake bag, a fake shop and a stub `buy_in_shop`: success (and R18's
           report keys untouched: it writes only under `report["balls"]`); a short delta; an empty live plan (no buy, no
           yield); the BALLRAISE fault and a raising `buy_in_shop` (both swallowed and memoised); an abort (re-raised); an
@@ -29,7 +30,10 @@ ROWS
   A1-A4   by AST (comments stripped): the forecast precedes the early return, which precedes the walk; the phase is
           called only from `_shop`; no `yield` inside the phase's GeneratorExit handler; the driver reads the balls'
           end state BEFORE restoring the fixture, prices only unconditional balls, and checks production's forecast.
-  M1-M16  source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red).
+  M1-M25  source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red). Every
+          row except F2, F3, F5 and F6 is reddened by at least one mutant; those four are VALUE rows on the real
+          numbers, and the arithmetic they exercise (`ball_topoff_plan`, `stage`) is pinned by 9a's gate (L-rows,
+          mutants M3-M6 of `probe_stock_topoff.py`).
           ⚠ Gate run 1 (after the predictions) FAILED two written sets: M7 (the abort stubs synthesized a NEW
           exception, which the real `reraise_if_aborting` never does; fixed) and M11 (a typo shares the OFF branch,
           so O3 is red too; the set was incomplete). M15/M16 were then added: no mutant covered P6 or O7's abort.
@@ -319,13 +323,23 @@ def o_rows(tag=""):
         return (out["walk"] is False and out["blocked"] is True and "SootopolisCity" in memo and aborted
                 and len([ln for ln in emitted if "why=topoff-failed" in ln]) == 1), f"out={out} memo={memo} abort={aborted}"
 
+    def o8():
+        emitted: list = []
+        with Patch() as p:
+            _o_env(p, t, lr, flag="1", emitted=emitted)
+            p.setenv(POKEBOT_R23_FAULT_FLOOR="1000")
+            out = t.sootopolis_ball_forecast(PLAN, 67466, BASKET_PRICES)
+        return (out["forecast"] == [("Ultra Ball", 5)] and out["floor"] == 1000 and out["walk"] is True,
+                f"out={out}")
+
     for label, fn in (("O1 OFF (unset) reads NOTHING and returns None", off(None)),
                       ("O2 OFF (`0`) reads NOTHING and returns None", off("0")),
                       ("O3 a typo is OFF with ONE 9b-specific `why=topoff-flag mart=SootopolisCity` line", o3),
                       ("O4 `observe` forecasts 1 Ultra and never walks", mode("observe", False, "topoff-observe")),
                       ("O5 `1` forecasts 1 Ultra and walks", mode("1", True, "topoff-forecast")),
                       ("O6 a memo hit BLOCKS (no walk, no counter phase)", o6),
-                      ("O7 a failed forecast BLOCKS and is memoised; an abort is re-raised", o7)):
+                      ("O7 a failed forecast BLOCKS and is memoised; an abort is re-raised", o7),
+                      ("O8 the forecast honours the live floor lever (1,000): 5 Ultras, walks", o8)):
         row(label, fn, tag, reds)
     return reds
 
@@ -767,6 +781,34 @@ def main() -> int:
         ("M16 the forecast SWALLOWS an abort -> O7", T_PATH,
          "        reraise_if_aborting(error)\n        _memo_add()\n        out[\"blocked\"] = True\n",
          "        _memo_add()\n        out[\"blocked\"] = True\n", {"O7"}),
+        # --- added after gate run 2 by a coverage check (every row needs a mutant that reddens it); the sets were
+        # written BEFORE gate run 3 ---
+        ("M17 the memo is never consulted -> O6", T_PATH,
+         "    if failed is not None and sootopolis_key() in failed:\n", "    if False:\n", {"O6"}),
+        ("M18 `1` walks on an EMPTY forecast -> S4", T_PATH,
+         "               walk=mode == \"1\" and bool(forecast[\"lines\"]))\n", "               walk=mode == \"1\")\n",
+         {"S4"}),
+        ("M19 `_shop` never raises on a Mart selling none of the basket -> S5", LR_PATH,
+         "        raise BotModeError(f\"early basket: this Mart sells none of {list(BUY_ORDER)} ({sorted(sold)}).\")\n",
+         "        pass\n", {"S5"}),
+        ("M20 mode `1` skips the BASKET -> S7 S8", LR_PATH,
+         "    if plan:\n        yield from _buy_basket_lines(",
+         "    if plan and balls.get(\"mode\") != \"1\":\n        yield from _buy_basket_lines(", {"S7", "S8"}),
+        ("M21 the forecast ignores the live floor lever -> O8", T_PATH,
+         "            fault_floor=_fault_floor())\n", "            fault_floor=None)\n", {"O8"}),
+        ("M22 the phase ignores the live floor lever -> P8", T_PATH,
+         "        floor_money = _fault_floor()\n        if floor_money is None:\n",
+         "        floor_money = None\n        if floor_money is None:\n", {"P8"}),
+        ("M23 forecast_after_basket ignores its fault_floor -> F4 O8", T_PATH,
+         "    floor_money = fault_floor if fault_floor is not None else floor(stage_name, missing)\n",
+         "    floor_money = floor(stage_name, missing)\n", {"F4", "O8"}),
+        ("M24 the memo key drifts from the enum name -> K1 O3 O6 O7 P2 P4 P5 P7", T_PATH,
+         "    return PokemonCenter.SootopolisCity.name\n", "    return \"Sootopolis\"\n",
+         {"K1", "O3", "O6", "O7", "P2", "P4", "P5", "P7"}),
+        ("M25 the phase is also called from `_stock_basket_early` (outside `_shop`'s try) -> A2", LR_PATH,
+         "    from modules.story.stock_topoff import sootopolis_ball_forecast\n",
+         "    from modules.story.stock_topoff import sootopolis_ball_forecast, sootopolis_ball_phase\n"
+         "    if False:\n        sootopolis_ball_phase(report)\n", {"A2"}),
         ("N1 a comment edit naming the phase and `blocked` turns NOTHING red", LR_PATH,
          "        # RULINGS 23 + 26 (design v2 step 9b): after the basket, on the same open menu",
          "        # (edited) sootopolis_ball_phase( and blocked named in a comment only; after the basket, same menu",

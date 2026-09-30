@@ -187,3 +187,82 @@ ALL PASS
   ok   NO FALSE POSITIVE: a commented-out filter call does not change R1's verdict
 
 PASS
+
+########## RUN 3 (after a coverage check: every row needs a mutant that reddens it; NEW row O8 and mutants M17-M25, their sets written BEFORE this run) ##########
+F — the pure forecast
+  PASS  F1 post_hm07: 1 Ultra from the POST-basket wallet (22,166) and floor (19,000)  — [('Ultra Ball', 1)] money_after=22166 floor=19000
+  PASS  F2 a complete basket at 22,166, spare 18: 1 Ultra (the ball-only visit)  — [('Ultra Ball', 1)] floor=19000
+  PASS  F3 its own output (20,966, spare 19): nothing, the floor binds (budget 983)  — [] cannot afford one Ultra Ball (budget 983, price 1200)
+  PASS  F4 the live floor lever (1,000): 5 Ultras  — [('Ultra Ball', 5)]
+  PASS  F5 spare 21 > trigger: nothing  — spare 21 > trigger 20
+  PASS  F6 a missing stage flag: nothing (fail closed)  — stage unreadable (fail closed)
+
+K — the memo key
+  PASS  K1 the memo key is the enum name, and Sootopolis is not in 9a's whitelist  — key=SootopolisCity whitelist=['RustboroCity']
+
+O — the forecast, executed
+  PASS  O1 OFF (unset) reads NOTHING and returns None  — out=None emitted=[]
+  PASS  O2 OFF (`0`) reads NOTHING and returns None  — out=None emitted=[]
+  PASS  O3 a typo is OFF with ONE 9b-specific `why=topoff-flag mart=SootopolisCity` line  — out=None emitted=["[BALLS-BUY] why=topoff-flag mart=SootopolisCity reason=POKEBOT_R23_BALLRESTOCK='yes' is not one of ('', '0', 'observe', '1'): treated as OFF"]
+  PASS  O4 `observe` forecasts 1 Ultra and never walks  — out={'mode': 'observe', 'walk': False, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166} emitted=["[BALLS-BUY] why=topoff-observe mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=False reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)"]
+  PASS  O5 `1` forecasts 1 Ultra and walks  — out={'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166} emitted=["[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)"]
+  PASS  O6 a memo hit BLOCKS (no walk, no counter phase)  — out={'mode': '1', 'walk': False, 'blocked': True, 'forecast': [], 'reason': 'a ball phase failed here earlier this run (memo)'} emitted=['[BALLS-BUY] why=topoff-skip mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=a ball phase failed here earlier this run (memo)']
+  PASS  O7 a failed forecast BLOCKS and is memoised; an abort is re-raised  — out={'mode': '1', 'walk': False, 'blocked': True, 'forecast': [], 'reason': "the forecast raised RuntimeError('bag unreadable') (nothing moved)"} memo={'SootopolisCity'} abort=True
+  PASS  O8 the forecast honours the live floor lever (1,000): 5 Ultras, walks  — out={'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 5)], 'reason': 'top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)', 'floor': 1000, 'spare': 18, 'money_after_basket': 22166}
+
+P — the counter phase, executed
+  PASS  P1 success: 1 Ultra, verified by the bag delta; R18's report keys untouched  — balls={'phase': 'done', 'lines': [('Ultra Ball', 1)], 'live_reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'live_floor': 19000, 'bought': 1, 'premier': 0, 'spare_after': 19, 'money_after': 20966, 'ok': True} untouched=True emitted=['[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)']
+  PASS  P2 a short delta is not ok, memoised, one topoff-failed line  — balls={'phase': 'done', 'lines': [('Ultra Ball', 1)], 'live_reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'live_floor': 19000, 'bought': 0, 'premier': 0, 'spare_after': 18, 'money_after': 22166, 'ok': False, 'why': 'bag delta 0 != planned 1'} memo={'SootopolisCity'}
+  PASS  P3 an empty live plan: topoff-none, no buy, ZERO yields  — balls={'phase': 'none', 'lines': [], 'live_reason': 'cannot afford one Ultra Ball (budget 983, price 1200)', 'live_floor': 19000} calls=[] y=0
+  PASS  P4 the BALLRAISE fault is swallowed, memoised, nothing bought  — balls={'phase': 'failed', 'error': "RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)')"} memo={'SootopolisCity'}
+  PASS  P5 a raising buy_in_shop is swallowed and memoised  — balls={'phase': 'failed', 'lines': [('Ultra Ball', 1)], 'live_reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'live_floor': 19000, 'error': "RuntimeError('Task_ShopMenu is not active')"} memo={'SootopolisCity'}
+  PASS  P6 an abort inside the phase is re-raised  — re-raised RuntimeError('ABORT')
+  PASS  P7 an outer close mid-buy: logged, memoised, closes cleanly  — balls={'phase': 'closed', 'lines': [('Ultra Ball', 1)], 'live_reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'live_floor': 19000}
+  PASS  P8 the live floor lever (1,000) plans 5 Ultras  — calls=[('buy', [('Ultra Ball', 5)])]
+
+S — league_reserve's visit, executed
+  PASS  S1 OFF + complete basket: nothing missing, no `balls` key, zero yields, no walk  — report={'readings': set(), 'order': [], 'walked': False, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 22166, 'plan': [], 'early_basket': 'nothing missing'} calls=[] y=0
+  PASS  S2 `1` + complete basket + a buying forecast: a ball-only walk ('balls only')  — report={'readings': {'EB-MART'}, 'order': ['EB-MART'], 'walked': True, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 22166, 'plan': [], 'balls': {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166}, 'early_basket': 'balls only', 'layout_pin': 'pinned', 'waypoint_reached': 'stub', 'route_out_len': 3, 'route_back_len': 3, 'route_back': [namespace(coordinates=(1, 1)), namespace(coordinates=(1, 1)), namespace(coordinates=(1, 1))], 'frames_at_cross': 0, 'crossed': True, 'returned': True} calls=['nav', 'wait', 'nav', 'wait', 'face', ('shop', [], {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166}), 'back']
+  PASS  S3 `observe` + complete basket: no walk  — report={'readings': set(), 'order': [], 'walked': False, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 22166, 'plan': [], 'balls': {'mode': 'observe', 'walk': False, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166}, 'early_basket': 'nothing missing'} calls=[]
+  PASS  S4 `1` + complete basket + an empty forecast (20,966): no walk  — report={'readings': set(), 'order': [], 'walked': False, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 20966, 'plan': [], 'balls': {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'reason': 'cannot afford one Ultra Ball (budget 983, price 1200)', 'floor': 19000, 'spare': 18, 'money_after_basket': 20966}, 'early_basket': 'nothing missing'} calls=[]
+  PASS  S5 `_shop` OFF on a Mart selling none of the basket still raises  — raised early basket: this Mart sells none of ['Revive', 'Full Heal', 'Hyper Potion'] (['Ultra Ball']).
+  PASS  S6 a ball-only `_shop` skips the basket and runs the phase  — calls=['phase']
+  PASS  S7 a BLOCKED forecast: the basket is bought, the phase does not run  — calls=[('basket', [('Revive', 3)])]
+  PASS  S8 basket first, then the phase  — calls=[('basket', [('Revive', 3)]), 'phase']
+  PASS  S9 F1: a second errand on the SAME dict starts clean; the first is archived  — entries=[['budget', 'order', 'readings', 'walked'], ['budget', 'order', 'readings', 'walked']] previous=[{'readings': set(), 'order': [], 'walked': False, 'budget': 20000, 'crossed': True, 'returned': True, 'route_back': ['x'], 'finished': True}]
+
+A — structure (AST, comments stripped)
+  PASS  A1 the forecast precedes the early return, which precedes the walk  — 2151 2259 3219
+  PASS  A2 the ball phase is called only from `_shop` (inside the shop's try)  — called from ['_shop']
+  PASS  A3 the phase's GeneratorExit handler never yields and re-raises  — handlers=1 yields=0
+  PASS  A4 the driver reads the balls BEFORE restoring the fixture, prices only unconditional balls, and checks production's forecast  — end=7042 restore=7395 unconditional=True forecast=True
+
+M — mutants (each must turn EXACTLY its named rows red)
+  PASS  M1 the forecast uses the PRE-basket wallet -> F1 O4 O5  — red ['F1', 'O4', 'O5']
+  PASS  M2 the forecast's floor ignores the basket plan -> F1 O4 O5  — red ['F1', 'O4', 'O5']
+  PASS  M3 the early return ignores the balls (the old `if not plan:`) -> S2 A1  — red ['A1', 'S2']
+  PASS  M4 `observe` walks -> O4 S3  — red ['O4', 'S3']
+  PASS  M5 `_shop` raises on an empty basket plan whatever the balls -> S6  — red ['S6']
+  PASS  M6 a blocked forecast still runs the phase -> S7  — red ['S7']
+  PASS  M7 the phase lets a failure escape -> P4 P5  — red ['P4', 'P5']
+  PASS  M8 no GeneratorExit handler in the phase -> P7 A3  — red ['A3', 'P7']
+  PASS  M9 a short delta is not memoised -> P2  — red ['P2']
+  PASS  M10 F1's archive removed (a second errand inherits the first's keys) -> S9  — red ['S9']
+  PASS  M11 OFF returns a dict (adds a `balls` key) -> O1 O2 O3 S1 (a typo IS OFF: it shares the branch)  — red ['O1', 'O2', 'O3', 'S1']
+  PASS  M12 the phase writes into R18's report root -> P1 P2 P3 P4 P5 P7 P8  — red ['P1', 'P2', 'P3', 'P4', 'P5', 'P7', 'P8']
+  PASS  M13 a failed forecast does not block -> O7  — red ['O7']
+  PASS  M14 the driver reads the balls AFTER restoring the fixture -> A4  — red ['A4']
+  PASS  M15 the phase SWALLOWS an abort -> P6  — red ['P6']
+  PASS  M16 the forecast SWALLOWS an abort -> O7  — red ['O7']
+  PASS  M17 the memo is never consulted -> O6  — red ['O6']
+  PASS  M18 `1` walks on an EMPTY forecast -> S4  — red ['S4']
+  PASS  M19 `_shop` never raises on a Mart selling none of the basket -> S5  — red ['S5']
+  PASS  M20 mode `1` skips the BASKET -> S7 S8  — red ['S7', 'S8']
+  PASS  M21 the forecast ignores the live floor lever -> O8  — red ['O8']
+  PASS  M22 the phase ignores the live floor lever -> P8  — red ['P8']
+  PASS  M23 forecast_after_basket ignores its fault_floor -> F4 O8  — red ['F4', 'O8']
+  PASS  M24 the memo key drifts from the enum name -> K1 O3 O6 O7 P2 P4 P5 P7  — red ['K1', 'O3', 'O6', 'O7', 'P2', 'P4', 'P5', 'P7']
+  PASS  M25 the phase is also called from `_stock_basket_early` (outside `_shop`'s try) -> A2  — red ['A2']
+  PASS  N1 a comment edit naming the phase and `blocked` turns NOTHING red  — red []
+
+ALL PASS
