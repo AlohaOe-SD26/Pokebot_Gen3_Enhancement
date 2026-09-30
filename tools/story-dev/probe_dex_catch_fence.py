@@ -43,7 +43,8 @@ makes that class of failure impossible to ship.
   C12 a species already IN THE PARTY refuses even when unowned.
   C13 the per-species ATTEMPT CAP terminates. A failed catch leaves the species un-owned, so the
       predicate is True again next encounter and nothing else in the tree remembers.
-  C14 a not-at-full-strength party refuses — a catch battle NEVER attacks back (`catch.py:41-62`)
+  C14 a not-at-full-strength party refuses — a catch battle NEVER attacks back (`catch.py:41-62`;
+      with POKEBOT_R25_WEAKEN unset — set, design v2 step 12 allows one bounded weaken damage turn)
       and never flees after a faint (`:38-39`), so entry from weakness is the whiteout vector.
   C15 ⛔ EGGS COUNT TOWARD FULLNESS. 5 mons + 1 egg is a FULL party to the game, so the catch is
       boxed; counting egg-filtered would fire the fence at 5 and consume the sixth PARTY slot —

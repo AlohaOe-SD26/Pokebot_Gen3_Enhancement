@@ -69,12 +69,15 @@ class StoryCatchStrategy(CatchStrategy):
     admits POST-badge dex catches at a full party, so this strategy runs on L30-45
     routes, not only L3-6 ones.
 
-    ⛔⛔ AND THAT MATTERS, BECAUSE A CATCH BATTLE NEVER FIGHTS BACK. `CatchStrategy.decide_turn`
+    ⛔⛔ AND THAT MATTERS, BECAUSE WITH `POKEBOT_R25_WEAKEN` UNSET (THE DEFAULT) A CATCH BATTLE NEVER
+    FIGHTS BACK. `CatchStrategy.decide_turn`
     (`catch.py:41-62`) only ever throws a ball or applies a status move — never a damaging
     move — and `should_flee_after_faint` is unconditionally False (`catch.py:38-39`), which
     removes the base strategy's "party can't battle → flee" escape. So the wild attacks for
     free and the bot does not leave until the balls run out. Pre-gym-1 that was bounded by
     weak wilds; it is not any more.
+    (With the flag SET, design v2 step 12's weaken-to-catch adapter in `decide_turn` below may spend ONE bounded
+    damage turn per battle — never a KO by construction — or a status move; `modules/story/weaken_catch.py`.)
     ⇒ The fence bounds ENTRY (`party_healthy` in `decide_dex_catch`), so a dex catch only ever
     STARTS from full strength. It does NOT bound mid-battle degradation — that needs a
     faint-aware bail-out in a dex-only subclass, filed as `#24-dexcatch-battlebail`.
@@ -90,6 +93,13 @@ class StoryCatchStrategy(CatchStrategy):
                 return TurnAction.run_away()
         except Exception:
             pass
+        # ⭐ design v2 step 12 (USER RULING 25): WEAKEN-TO-CATCH, flag `POKEBOT_R25_WEAKEN` (DEFAULT OFF). AFTER the
+        # out-of-balls flee and BEFORE the parent (D5); a subclass's bails (`StoryDexCatchStrategy`) run before this
+        # method by construction, and the shiny strategy never calls it (it calls `CatchStrategy.decide_turn`
+        # directly). None ⇒ the parent's turn, exactly as with the flag off. Never raises (its own `try`).
+        weaken = _r25_weaken_turn(self, battle_state)
+        if weaken is not None:
+            return weaken
         return super().decide_turn(battle_state)
 
 
@@ -97,9 +107,10 @@ def dex_catch_bail_reason(spare_balls: int, reserve: int, fainted_this_battle: b
     """PURE: why a DISCRETIONARY (post-gym-1 Pokédex) catch should stop NOW, or None to keep throwing.
 
     `#24-dexcatch-battlebail` + USER RULING 20's Phase 0 (`ai-research-notes/2026-09-26-rulings19-20-PLAN.md`):
-    the fence guards only ENTRY (`spare_balls > DEX_CATCH_BALL_RESERVE`, a healthy party), while a catch battle never
-    fights back and throws until caught or empty — MEASURED: one Absol took 23 balls in 26,615 frames and the run later
-    died "Cannot hunt a Dive learner: no Poké Balls and no money". ⇒ stop at the reserve (the mandatory hunts' balls),
+    the fence guards only ENTRY (`spare_balls > DEX_CATCH_BALL_RESERVE`, a healthy party), while a catch battle (with
+    `POKEBOT_R25_WEAKEN` unset) never fights back and throws until caught or empty — MEASURED: one Absol took 23 balls
+    in 26,615 frames and the run later died "Cannot hunt a Dive learner: no Poké Balls and no money". ⇒ stop at the
+    reserve (the mandatory hunts' balls),
     and stop the moment a team member faints (the wild attacks for free).
     """
     if fainted_this_battle:
@@ -1770,8 +1781,9 @@ def dex_catch_expected_throws(catch_rate: int, ball_bonus_x10: int) -> float:
     (`Cmd_handleballthrow`, `src/battle_script_commands.c`): `odds = (rate * bonus / 10) * (3*maxHP - 2*HP) /
     (3*maxHP)` (at full HP: `/ 3`); `odds > 254` ⇒ certain; else `b = 1048560 / Sqrt(Sqrt(16711680 / odds))` and all
     four shake checks `Random() < b` must pass, so p = (b / 65536)^4 and the expectation is 1 / p.
-    ⚠ An UPPER bound for this bot: the catch strategy never damages, but may add a status (x1.5 / x2), which only
-    lowers it. `odds == 0` (a rate so low the integer steps reach 0) returns infinity — never caught."""
+    ⚠ An UPPER bound for this bot: the catch strategy (with `POKEBOT_R25_WEAKEN` unset) never damages, but may add a
+    status (x1.5 / x2), which only lowers it; with the flag set, a weaken damage turn only lowers it further.
+    `odds == 0` (a rate so low the integer steps reach 0) returns infinity — never caught."""
     from math import isqrt
 
     odds = (catch_rate * ball_bonus_x10 // 10) // 3
@@ -2070,7 +2082,8 @@ def decide_dex_catch(
     # `lift_health` (flag `POKEBOT_R24_CATCHHURT`, DEFAULT OFF) skips THIS refusal only; a faint or whiteout during the
     # catch is accepted by the ruling. Its losses are filed apart from map defeats (`on_battle_ended`, C4).
     if not party_healthy and not lift_health:
-        # ⛔ A CATCH BATTLE NEVER FIGHTS BACK. `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
+        # ⛔ WITH `POKEBOT_R25_WEAKEN` UNSET (the default) A CATCH BATTLE NEVER FIGHTS BACK (with it set: one bounded
+        # weaken damage turn at most, never a KO). `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
         # throws a ball or applies a status move, and `should_flee_after_faint` is unconditionally
         # False (`:38-39`) — so the wild attacks freely and the bot does not leave until the balls run
         # out. Pre-gym-1 that was bounded by L3-6 wilds; post-badge it runs against L30-45 ones.
@@ -2373,6 +2386,15 @@ class StoryMode(BotMode):
         self._r25_cap = _os_team6.environ.get("POKEBOT_R25_CAP") == "1"
         self._r25_rare = _os_team6.environ.get("POKEBOT_R25_RARE") == "1"
         self._r25_last_verdict = None
+        # ⭐ USER RULING 25 (design v2 step 12, 2026-09-30): weaken-to-catch (`modules/story/weaken_catch.py`; the adapter
+        # `_r25_weaken_turn`, called from `StoryCatchStrategy.decide_turn`). `POKEBOT_R25_WEAKEN` in {unset, observe, 1}
+        # (any other value is OFF); `POKEBOT_R25_WEAKEN_CALC=1` adds stage 2 (the calculator's bound; OFF in every
+        # acting arm until M1b's acceptance); `POKEBOT_R25_WEAKEN_KINDS` (default dex,team). DEFAULT OFF; read per run.
+        _r25_w = _os_team6.environ.get("POKEBOT_R25_WEAKEN", "").strip()
+        self._r25_weaken = _r25_w if _r25_w in ("observe", "1") else ""
+        self._r25_weaken_calc = _os_team6.environ.get("POKEBOT_R25_WEAKEN_CALC", "").strip() == "1"
+        self._r25_weaken_kinds = tuple(
+            k.strip() for k in _os_team6.environ.get("POKEBOT_R25_WEAKEN_KINDS", "dex,team").split(",") if k.strip())
         # design v2 step 9a (RULINGS 23 + 26): cities whose ball top-off errand FAILED this run (walk, bound, or a bag
         # delta that is not the plan) are not walked again THIS run. ⛔ Reset here, per run: ENDLESS RESET reuses one
         # StoryMode, so a lazily-set attribute would carry one run's failure into every later run.
@@ -6546,6 +6568,223 @@ def _r20_catch_end(mode, outcome) -> None:
         )
     except Exception:  # noqa: BLE001 - defeat counting below must still run
         pass
+
+
+# ⭐ design v2 step 12 (USER RULING 25, 2026-09-30): WEAKEN-TO-CATCH — the ADAPTER between `StoryCatchStrategy` and the
+# PURE module `modules/story/weaken_catch.py` (`ai-research-notes/2026-09-30-weaken12-DESIGN.md` D2, D5, D6).
+# WHY each rule below:
+#  * MODULE-LEVEL functions (the R20 helpers' rule): gates build strategies with `__new__` and stand-in modes.
+#  * The per-run flags are read from the RUNNING mode (`reset_per_run_state`), never from the environment here; a mode
+#    without them (a harness driver, a gate shim) reads OFF.
+#  * The KIND comes from the mode's `_catch_ctx` (filled by `_r20_catch_start` on the line before each catch strategy is
+#    returned), so NO construction line changes (four gates pin them). The target is then identified by PID (rule 3).
+#  * NO `get_battle_state()` call (KI-108): the snapshot is the handler's own `battle_state` plus PURE `read_symbol`
+#    reads — the turn counter above all, which a cached BattleState can hold stale.
+#  * Its OWN log category `WEAKEN`, and not one line with the flag unset (the byte-identical OFF control, D6).
+#  * Any exception ⇒ DEFER (the parent's turn) plus ONE `[WEAKEN] ERR` line.
+def _r25_weaken_log(message: str) -> None:
+    """One `[WEAKEN]` line (its own category). Telemetry never affects a battle."""
+    try:
+        from modules import debug_logger as _w_dl
+
+        _w_dl.event(message, category="WEAKEN")
+    except Exception:  # noqa: BLE001 - telemetry must never affect a battle
+        pass
+
+
+def _r25_weaken_party(ours_pid: int, ours_live: str) -> tuple:
+    """The abilities of every party member able to battle (not an egg, HP > 0), by a PURE read of `gPlayerParty` (no
+    party cache). The lead — matched by PID (rule 3: identity, never position) — gets its LIVE ability."""
+    from modules.memory import read_symbol
+    from modules.pokemon import Pokemon
+
+    count = min(6, read_symbol("gPlayerPartyCount", size=1)[0])
+    raw = read_symbol("gPlayerParty", size=600)
+    out, lead_seen = [], False
+    for i in range(count):
+        mon = Pokemon(raw[i * 100:(i + 1) * 100])
+        if mon.is_empty or not mon.is_valid or mon.is_egg or mon.current_hp <= 0:
+            continue
+        if not lead_seen and mon.personality_value == ours_pid:
+            out.append(ours_live)
+            lead_seen = True
+        else:
+            out.append(mon.ability.name)
+    if not lead_seen:
+        out.insert(0, ours_live)
+    return tuple(out)
+
+
+def _r25_weaken_ranges(battle_state, ours, foe, wmoves) -> tuple:
+    """Stage 2's numbers, per RAW slot: (the calculator's non-crit min, its crit max) for a usable Tier A move, else
+    None. A calculator that raises gives None for that slot (no stage-2 candidate), never a guess."""
+    from modules.battle_strategies import BattleStrategyUtil as _w_bsu
+    from modules.pokemon import get_move_by_index
+    from modules.story import weaken_catch as _wc
+
+    util = _w_bsu(battle_state)
+    out = []
+    for m in wmoves:
+        if m is None or m.effect not in _wc.TIER_A or m.move_id == _wc.MOVE_STRUGGLE or m.pp <= 0:
+            out.append(None)
+            continue
+        try:
+            move = get_move_by_index(m.move_id)
+            lo = util.calculate_move_damage_range(move, ours, foe).min
+            hi = util.calculate_move_damage_range(move, ours, foe, is_critical_hit=True).max
+            out.append((int(lo), int(hi)))
+        except Exception:  # noqa: BLE001 - an unpredictable slot is no candidate
+            out.append(None)
+    return tuple(out)
+
+
+def _r25_weaken_snapshot(battle_state, flag, calc, kind, kinds, ctx, ball_item) -> tuple:
+    """(target, me, party, env) for `decide_weaken_turn`: the handler's own `battle_state` plus PURE `read_symbol`
+    reads. ⛔ Our disable struct is read RAW and decoded by the pure module (`encoredMove` at 0x06): the shared
+    `BattlePokemon.encored_move` reads 0x04 (upstream too); D9 routes that to its own KI, deliberately NOT fixed here."""
+    from modules.items import get_item_bag
+    from modules.memory import read_symbol, unpack_uint16, unpack_uint32
+    from modules.pokemon import get_ability_by_index, get_move_by_index
+    from modules.story import weaken_catch as _wc
+
+    ours = battle_state.own_side.active_battler
+    foe = battle_state.opponent.active_battler
+    if ours is None or foe is None:
+        raise ValueError("no active battler on one side")
+
+    def moves(bp):
+        data, out = bp._data, []
+        for i in range(4):
+            move_id = unpack_uint16(data[0x0C + 2 * i:0x0E + 2 * i])
+            if move_id == 0:
+                out.append(None)
+                continue
+            m = get_move_by_index(move_id)
+            out.append(_wc.WMove(move_id, m.name, m.effect, m.type.name, int(m.base_power), int(data[0x24 + i]),
+                                 bool(m.makes_contact), bool(m.is_sound_move)))
+        return tuple(out)
+
+    def live(bp):
+        return get_ability_by_index(bp.ability_n).name
+
+    status3 = read_symbol("gStatuses3", size=8)
+    fd, od = foe._data, ours._data
+    target = _wc.WTarget(
+        pid=foe.personality_value, species_id=unpack_uint16(fd[0:2]), species=foe.species.name,
+        dex=foe.species.national_dex_number, level=foe.level, hp=foe.current_hp, max_hp=foe.total_hp,
+        types=tuple(t.name for t in foe.types), ability=live(foe), species_ability=foe.ability.name,
+        catch_rate=int(foe.species.catch_rate), moves=moves(foe), status1=unpack_uint32(fd[0x4C:0x50]),
+        status2=unpack_uint32(fd[0x50:0x54]), status3=unpack_uint32(status3[4:8]),
+        item=None if foe.held_item is None else foe.held_item.name)
+    our_live = live(ours)
+    me = _wc.WSelf(
+        pid=ours.personality_value, species=ours.species.name, level=ours.level, hp=ours.current_hp,
+        max_hp=ours.total_hp, types=tuple(t.name for t in ours.types), ability=our_live,
+        species_ability=ours.ability.name, moves=moves(ours), status1=unpack_uint32(od[0x4C:0x50]),
+        status2=unpack_uint32(od[0x50:0x54]), status3=unpack_uint32(status3[0:4]),
+        item=None if ours.held_item is None else ours.held_item.name,
+        item_effect="no_effect" if ours.held_item is None else str(ours.held_item.hold_effect.value),
+        disable=bytes(read_symbol("gDisableStructs", size=0x1C)),
+        # CONSERVATIVE: the boost sits behind gBattleResources; a Flash Fire lead counts as boosted (stage 2 only)
+        flash_fire=our_live == "Flash Fire")
+    party = _wc.WParty(abilities=_r25_weaken_party(me.pid, our_live))
+    bag = tuple((slot.item.name, int(slot.quantity)) for slot in get_item_bag().poke_balls if slot.quantity > 0)
+    try:
+        from modules.catch_balls import allowed_ball_names
+
+        allowed = allowed_ball_names()
+    except Exception:  # noqa: BLE001 - the thrower's own fallback: every ball except the Master Ball
+        allowed = None
+    usable = sum(q for name, q in bag if name != "Master Ball" and (allowed is None or name in allowed))
+    names = {name for name, _q in bag}
+    underwater = owned = False
+    if "Dive Ball" in names:
+        from modules.map import get_map_data_for_current_position
+
+        underwater = get_map_data_for_current_position().map_type == "Underwater"
+    if "Repeat Ball" in names:
+        from modules.pokedex import get_pokedex
+
+        owned = foe.species in get_pokedex().owned_species
+    badge7, ranges = False, ()
+    if _wc.stage2_wanted(calc):
+        from modules.memory import get_event_flag
+
+        badge7 = bool(get_event_flag("BADGE07_GET"))
+        ranges = _r25_weaken_ranges(battle_state, ours, foe, me.moves)
+    sides = read_symbol("gSideStatuses", size=4)
+    env = _wc.WEnv(
+        flag=flag, calc=bool(calc), kinds=tuple(kinds), kind=kind, ctx_sp=ctx.get("sp"),
+        battle_flags=int(battle_state.type.value), turn=read_symbol("gBattleResults", offset=0x13, size=1)[0],
+        weather=unpack_uint16(read_symbol("gBattleWeather", size=2)), side_foe=unpack_uint16(sides[2:4]),
+        safeguard_timer=int(battle_state.opponent.safeguard_timer.turns_remaining),
+        ball=None if ball_item is None else ball_item.name, bag=bag, usable_balls=usable,
+        banned=tuple(context.config.battle.banned_moves), badge7=badge7, underwater=underwater, owned=owned,
+        calc_ranges=ranges)
+    return target, me, party, env
+
+
+def _r25_weaken_bag_ball(name):
+    """The bag's Item named `name` (only a fault arm's THROW can name a ball other than the parent's), else None."""
+    from modules.items import get_item_bag
+
+    for slot in get_item_bag().poke_balls:
+        if slot.item.name == name and slot.quantity > 0:
+            return slot.item
+    return None
+
+
+def _r25_weaken_turn(strategy, battle_state):
+    """THE ADAPTER (D5): the weaken verdict for this turn as a TurnAction, or None for the parent's turn (DEFER, the flag
+    off, an out-of-scope kind, `observe`, or any error). `observe` logs `[WEAKEN-OBS] would=…` and returns None, so
+    the parent's action is taken unchanged; `1` logs `act=…` and acts. Each line carries its snapshot (`snap=`) for
+    replay; `first=1` marks an observe battle's first DAMAGE/STATUS verdict (later ones are counterfactual)."""
+    try:
+        mode = getattr(context, "bot_mode_instance", None)
+        flag = getattr(mode, "_r25_weaken", "") if mode is not None else ""
+    except Exception:  # noqa: BLE001 - an unreadable mode is the flag off
+        return None
+    if flag not in ("observe", "1"):
+        return None
+    try:
+        from modules.story import weaken_catch as _wc
+
+        ctx = getattr(mode, "_catch_ctx", None)
+        kind = ctx.get("kind") if isinstance(ctx, dict) else None
+        kinds = tuple(getattr(mode, "_r25_weaken_kinds", _wc.DEFAULT_KINDS))
+        if not _wc.in_scope(kind, kinds):
+            return None                    # hm / counter / shiny / no context: no read, no line
+        ball_item = strategy._get_best_poke_ball(battle_state)
+        calc = bool(getattr(mode, "_r25_weaken_calc", False))
+        target, me, party, env = _r25_weaken_snapshot(battle_state, flag, calc, kind, kinds, ctx, ball_item)
+        memo = getattr(strategy, "_r25_wmemo", None)
+        d = _wc.decide_weaken_turn(target, me, party, env, memo)
+        snap = _wc.snapshot_json(target, me, party, env, memo)
+        tmv = ",".join("-" if m is None else f"{m.move_id}:{m.pp}" for m in target.moves)
+        head = (f"t={env.turn} sp={target.species}#{target.dex} pid={target.pid:08X} hp={target.hp}/{target.max_hp} "
+                f"st={target.status1:x} tmv={tmv} slot={'-' if d.slot is None else d.slot} "
+                f"move={(d.move or '-').replace(' ', '_')} ball={(d.ball or '-').replace(' ', '_')} "
+                f"reason={d.reason.replace(' ', '_')}")
+        if flag == "observe":
+            first = 0
+            if d.verdict in (_wc.DAMAGE, _wc.STATUS) and not getattr(strategy, "_r25_wobs_first", False):
+                strategy._r25_wobs_first = True
+                first = 1
+            strategy._r25_wmemo = _wc.remember(memo, target, env, d)
+            _r25_weaken_log(f"[WEAKEN-OBS] would={d.verdict} {head} first={first} snap={snap}")
+            return None
+        action = None
+        if d.verdict in (_wc.DAMAGE, _wc.STATUS):
+            action = TurnAction.use_move(d.slot)
+        elif d.verdict == _wc.THROW:
+            item = ball_item if ball_item is not None and d.ball == ball_item.name else _r25_weaken_bag_ball(d.ball)
+            action = None if item is None else TurnAction.use_item(item)
+        strategy._r25_wmemo = _wc.remember(memo, target, env, d)
+        _r25_weaken_log(f"act={d.verdict if action is not None else _wc.DEFER} {head} snap={snap}")
+        return action
+    except Exception as error:  # noqa: BLE001 - any failure is the parent's turn, plus ONE line saying so
+        _r25_weaken_log(f"ERR v=1 err={type(error).__name__}: {error}")
+        return None
 
 
 #: Set to "0" to leave emulation speed/video exactly as the GUI or CLI configured them.

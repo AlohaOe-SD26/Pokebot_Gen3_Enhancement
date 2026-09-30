@@ -5,7 +5,8 @@ WHY: before P2-b the fence refused every post-gym-1 catch below six as "runway" 
 where HM/counter catches land; filling them once cost 36 points of finish rate). The user's RULING 20 asks for a full
 team caught along the way, so P2-b lifts that ONE refusal behind a flag, default OFF. The dangerous way to build it is
 an "open" branch that returns True at once: it would skip the hunt, training, reserve, health, attempt and catch-rate
-gates together, and a catch battle never fights back (`catch.py`), so a hurt party would be caught out. This gate
+gates together, and a catch battle never fights back (`catch.py`; with `POKEBOT_R25_WEAKEN` unset, the default), so a
+hurt party would be caught out. This gate
 proves the lift is exactly one refusal wide.
   O0  flag OFF (the default): post-gym-1 at party 1 is refused as runway (the ordinary case, unchanged).
   O1  ON, party 1, everything clear: admitted, and the reason says "joins the party".

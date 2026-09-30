@@ -1,8 +1,8 @@
 r"""GATE — a DISCRETIONARY Pokédex catch must stop at the ball reserve and on a faint (`#24-dexcatch-battlebail`,
 USER RULING 20 Phase 0, 2026-09-26).
 
-WHY: the fence (`decide_dex_catch`) guards only ENTRY. A catch battle never fights back and throws until caught or empty —
-MEASURED: one Absol took 23 balls in 26,615 frames and the run later died "Cannot hunt a Dive learner: no Poké Balls and
+WHY: the fence (`decide_dex_catch`) guards only ENTRY. A catch battle (with `POKEBOT_R25_WEAKEN` unset; set, it adds at
+most one bounded weaken damage turn, never a KO) never fights back and throws until caught or empty — MEASURED: one Absol took 23 balls in 26,615 frames and the run later died "Cannot hunt a Dive learner: no Poké Balls and
 no money". Before RULING 20 opens the fence, the catch itself must stop spending the mandatory hunts' balls.
 
   D1  `dex_catch_bail_reason` (PURE): a faint ⇒ bail; spare balls AT the reserve ⇒ bail (the boundary is exact); one
