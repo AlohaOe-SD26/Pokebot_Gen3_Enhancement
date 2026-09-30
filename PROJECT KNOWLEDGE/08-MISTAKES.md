@@ -23117,3 +23117,26 @@ BLOCKED it. The code reviewer then showed six adapter mutants that left the whol
 - (1) Grade EVERY pre-registered bullet, gate bullets included, against its own words, one by one, before writing a
   headline.
 - (2) To pin WIRING, execute the production function. A copy of its expression pins only the copy.
+
+## 2026-09-29 — ⛔ TWO PROCESS SLIPS IN ONE STRETCH: A COMMIT MESSAGE CLAIMED FILES GIT HAD SKIPPED, AND GATES WERE INSERTED MID-LIST AGAINST AN APPEND-ONLY RULE
+
+**Symptom (1):** step 8's review-fix commit message said the two raw M0 debug logs were committed. `*.log` is
+gitignored, so `git add` skipped those two paths with a hint while staging the rest, and the commit went through
+without them. The next commit added them as `.txt`.
+**Symptom (2):** `run_gates.py` says "APPEND NEW GATES, NEVER INSERT", because gates are cited by label across the docs.
+This session's gates for design v2 steps 4-8 were inserted after `repro_key_battle_items.py`, mid-list. The step 9
+recon noticed.
+**Root cause:**
+- (1) I checked `git status` for unexpected files, not `git show --stat HEAD` against the message's file list, and an
+  ignored path never appears in status.
+- (2) I followed the neighbourhood of similar gates instead of reading the list's own rule.
+- Nothing was renumbered: the docs cite gates by COMMENT labels ("# #59 — …") and by name, and neither moves when an
+  entry is inserted. That was luck, not design.
+**Fix:**
+- (1) The logs were committed as `.txt`. `git show --stat HEAD` is now read after every commit whose message names
+  files.
+- (2) Step 9a's gate was APPENDED. The earlier inserts stay where they are: moving them now is churn with nothing to
+  repair.
+**Prevention rules:**
+- After committing, compare `git show --stat HEAD` with the files the message names.
+- A new gate goes at the END of `GATES`.

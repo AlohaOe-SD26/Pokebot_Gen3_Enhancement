@@ -8372,3 +8372,32 @@ re-litigated" way:
 without a fresh encounter. Step 14 measures their frequency.
 **Rejected:** a per-species rare cap (it contradicts RULING 25), and changing the `[DEXFENCE]` dedup key (it is pinned
 by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
+
+## 2026-09-29 — RULINGS 23 + 26 / design v2 step 9a (BB): the ball top-off rides the heal, Rustboro first, with bounded defaults (`#26-organiccatch`)
+
+**Decision:**
+- `POKEBOT_R23_BALLRESTOCK` (default OFF; `observe`; `1`): after a Pokémon Center heal in a whitelisted city (9a:
+  Rustboro), the bot walks to the mart and buys the best UNCONDITIONAL ball sold when spare ≤ 20. It buys up to 30
+  spare, at most ₽6,000 and half of (money − floor) per visit. The floor is `CASH_FLOOR`, plus 2 × the missing League
+  basket in the reserve era.
+- **Bounded defaults, shown to the user as Q1** (every number is imported, never copied):
+  - TRIGGER = reserve 10 + max throws 10;
+  - TARGET = `MAX_BALLS_PER_TRIP`;
+  - BATCH_CAP = ₽6,000.
+- The piggyback is three small hunks at the END of the upstream-derived `heal_in_pokemon_center`. All logic is in the
+  new `modules/story/stock_topoff.py`.
+- Step 9 is split: 9a (this) and 9b (the Sootopolis basket consumer).
+**Why:**
+- RULING 23: "bounded batches, topped off periodically the way healing items are; the best ball the current shop
+  sells". RULING 26: maintained all game.
+- The heal piggyback is where the bot already stands in a city ("piggyback, do not detour").
+- Half of (money − floor) per visit: one whiteout halves the money, so a purchase can never be what makes the next heal
+  unaffordable.
+- Rustboro first: its mart sells Poké Balls from the start, and the M0 trajectory reaches a post-badge-1 heal there.
+**Rejected:**
+- An unconditional second stable wait (it changes every OFF heal).
+- A `bot_mode == "Story"` test (it misses the ENDLESS lanes and matches every harness driver).
+- The spec's round-down to 10 (it loses balls and gains no Premier).
+- A lazily-created memo (it leaks across ENDLESS runs).
+- A stage that falls back to MID on an unreadable flag (it drops the basket floor).
+- Buying Poké Balls with `buy_poke_balls` (a separate, unverified path; the errand buys only through `buy_in_shop`).

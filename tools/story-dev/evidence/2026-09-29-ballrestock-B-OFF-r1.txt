@@ -1,0 +1,63 @@
+# design v2 step 9a (BB) arm B-OFF-r1 on 1daec9a4 (branch wt/ballrestock). The M0 command (evidence/2026-09-29-ballrestock-M0.txt) plus: (none), --set-balls 5
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-ballrestock-PREDICTIONS.md. Frames are DEBUG-LOG frames.
+# stdout 'ball top-off' lines:
+# [BALLS-BUY] lines:
+# the rival (opp=600) and 'heading south' lines:
+#   f176385 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+#   f178292 [TRAINER] start opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 double=False two=False money=9940 heal_stock=- map=0,3 enemy_alive=2
+#   f179100 [hb] mode=Story state=4 controllable=False map=RUSTBORO CITY(0,3) pos=(16, 53) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp3963'] owned=2 balls=7 money=9940 box=0 badges=1 msg=
+#   f182700 [hb] mode=Story state=4 controllable=False map=RUSTBORO CITY(0,3) pos=(16, 53) party=['Marshtomp:L18'] ids=['Marshtomp#550A9BE6:L18:exp4140'] owned=2 balls=7 money=9940 box=0 badges=1 msg=
+#   f184993 [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 res=Lost money=9940->9940 delta=0 mult=0 heal_stock=- map=0,3
+# tracked lines:
+f139973 [MAP] RUSTBORO CITY(11,3) -> RUSTBORO CITY(0,3) pos=(5, 19)
+f141583 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144398 [MAP] ROUTE 116(0,31) -> ROUTE 116(0,3) pos=(15, 7)
+f144399 [MAP] ROUTE 116(0,3) -> ROUTE 116(0,31) pos=(15, 7)
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is 1/6 — a catch would consume the HM/counter runway
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160848 [MAP] ROUTE 116(0,31) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f166018 [MAP] RUSTURF TUNNEL(24,4) -> ROUTE 116(0,31) pos=(4, 10)
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is 1/6 — a catch would consume the HM/counter runway
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f168226 [MAP] ROUTE 116(0,31) -> RUSTBORO CITY(0,3) pos=(-1, 8)
+f169144 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,2) pos=(30, 12)
+f173866 [MAP] RUSTBORO CITY(11,2) -> RUSTBORO CITY(11,1) pos=(2, 1)
+f174160 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+f174475 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+f174940 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,5) pos=(16, 38)
+f176275 [MAP] RUSTBORO CITY(11,5) -> RUSTBORO CITY(0,3) pos=(7, 8)
+f178292 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f184993 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f185157 [STORY] WHITEOUT recovery #1 at (0, 3)
+f185516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+f186223 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f188817 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f189563 [MAP] ROUTE 104(0,19) -> PETALBURG WOODS(24,11) pos=(11, 30)
+f190110 [MAP] PETALBURG WOODS(24,11) -> ROUTE 104(0,19) pos=(17, 38)
+f190441 [MAP] ROUTE 104(0,19) -> ROUTE 104(17,0) pos=(17, 50)
+f190444 [MAP] ROUTE 104(17,0) -> ROUTE 104(30,0) pos=(17, 50)
+f190445 [MAP] ROUTE 104(30,0) -> ROUTE 104(17,0) pos=(17, 50)
+f192556 [MAP] ROUTE 104(17,0) -> ROUTE 104(0,19) pos=(6, 2)
+f192926 [MAP] ROUTE 104(0,19) -> ROUTE 105(0,20) pos=(22, 80)
+f194774 [MAP] ROUTE 105(0,20) -> ROUTE 106(0,21) pos=(22, 80)
+f195189 [MAP] ROUTE 106(0,21) -> DEWFORD TOWN(0,11) pos=(72, 20)
+f195937 [MAP] DEWFORD TOWN(0,11) -> DEWFORD TOWN(3,1) pos=(2, 10)
+f197272 [MAP] DEWFORD TOWN(3,1) -> DEWFORD TOWN(0,11) pos=(7, 8)
+f197511 [MAP] DEWFORD TOWN(0,11) -> ROUTE 106(0,21) pos=(6, -1)
+f198075 [BATTLE] started hp=[('Marshtomp', 58, 58)]

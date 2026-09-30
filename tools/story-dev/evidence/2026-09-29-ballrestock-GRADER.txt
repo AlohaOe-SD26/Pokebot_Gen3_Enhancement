@@ -1,0 +1,155 @@
+# design v2 step 9a (BB) GRADER: bb_grade_arms.py (verbatim below) over the arms' debug logs, against M0-5-r1 / M0-25.
+
+=== B-OFF-r1: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  [BALLS-BUY] lines match the prediction: True (0 line(s), want 0)
+
+=== B-OFF-r2: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  [BALLS-BUY] lines match the prediction: True (0 line(s), want 0)
+
+=== B-TYPO: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  [BALLS-BUY] lines match the prediction: True (0 line(s), want 0)
+  stdout carries ["POKEBOT_R23_BALLRESTOCK='yes' is not one of", 'treated as OFF']: True
+
+=== B-OBS: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff-observe mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->7 money=9940->9940 reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+
+=== B-CTRL: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff-none mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=27->27 money=9940->9940 reason=spare 27 > trigger 20
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+
+=== B-FLOOR: PASS
+  tracked vs M0 (whole run: 52 vs 52 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff-none mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->7 money=9940->9940 reason=cannot afford one Poké Ball (budget 170, price 200)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+
+=== B-ON: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+  the run reaches 'heading south' AFTER the errand: True
+
+=== B-FLOOR2: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 exit=16,39 back=16,39 facing=Down reason=top off 2 x Poké Ball (spare 7 <= trigger 20; budget 500)
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+  the run reaches 'heading south' AFTER the errand: True
+
+=== B-BOUND: PASS
+  tracked vs M0 (before f176384: 33 vs 33 tracked lines): identical
+  BALLS [BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=the errand's frame bound expired
+  [BALLS-BUY] lines match the prediction: True (1 line(s), want 1)
+  the run reaches 'heading south' AFTER the errand: True
+
+GRADE: ALL PASS
+
+# Seen, not graded: the errand took f176384 -> f178239 (~1,855 frames; bound 8,000). The rival (opp=600) is LOST in every arm and in M0;
+#   after that whiteout ON holds ₽2,770 (5,540/2) against M0's ₽4,970 (9,940/2), and 31 balls against 7. The window's second heal is Dewford's (not whitelisted: no line).
+# ---- bb_grade_arms.py ----
+"""Grade the design v2 step 9a arms against 2026-09-29-ballrestock-PREDICTIONS.md.
+
+Per arm: the tracked lines (r25_grade.tracked: [DEXFENCE]/[DEXCATCH]/[CATCH]/[MAP]/[BATTLE] started|ended/WHITEOUT,
+minus one-frame (0,0)/(255,255) map reads) against M0 — the WHOLE run where the arm must not move, or the lines before
+the heal's end (f176384) where it does — plus the exact [BALLS-BUY] lines, and, for the arms that walk, that the run
+still reaches 'heading south — the rival is waiting' AFTER the errand.
+"""
+import re
+import sys
+
+sys.path.insert(0, r"C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad")
+from r25_grade import tracked  # noqa: E402
+
+L = "C:/Users/Ripto/AppData/Local/Temp/p2b/bb/"
+HEAL_END = 176384
+FR = re.compile(r"^f(\d+) ")
+M05 = tracked(L + "logs/M0-5-r1.debug.log")
+M025 = tracked(L + "logs/M0-25.debug.log")
+fails = []
+
+
+def raw(name):
+    return open(L + f"logs/{name}.debug.log", encoding="utf-8", errors="replace").read().splitlines()
+
+
+def balls(name):
+    return [l[l.index("[BALLS-BUY]"):] for l in raw(name) if "[BALLS-BUY]" in l]
+
+
+def frame_of(lines, needle):
+    for l in lines:
+        if needle in l:
+            m = FR.match(l)
+            return int(m.group(1)) if m else None
+    return None
+
+
+def grade(name, *, m0, whole, want_balls, stdout_need=None):
+    lines = tracked(L + f"logs/{name}.debug.log")
+    if whole:
+        same = lines == m0
+        scope = f"whole run: {len(lines)} vs {len(m0)} tracked lines"
+    else:
+        a = [l for l in lines if int(FR.match(l).group(1)) < HEAL_END]
+        b = [l for l in m0 if int(FR.match(l).group(1)) < HEAL_END]
+        same = a == b
+        scope = f"before f{HEAL_END}: {len(a)} vs {len(b)} tracked lines"
+    got = balls(name)
+    balls_ok = len(got) == len(want_balls) and all(re.fullmatch(w, g) for w, g in zip(want_balls, got))
+    out = open(L + f"{name}.stdout.txt", encoding="utf-8", errors="replace").read()
+    stdout_ok = stdout_need is None or all(s in out for s in stdout_need)
+    after_ok = True
+    if not whole:
+        r = raw(name)
+        fb = frame_of(r, "[BALLS-BUY]")
+        south = [int(FR.match(l).group(1)) for l in r if "heading south" in l and FR.match(l)]
+        after_ok = fb is not None and any(s > fb for s in south)
+    ok = same and balls_ok and stdout_ok and after_ok
+    print(f"\n=== {name}: {'PASS' if ok else 'FAIL'}")
+    print(f"  tracked vs M0 ({scope}): {'identical' if same else 'DIFFERENT'}")
+    if not same:
+        x = lines if whole else [l for l in lines if int(FR.match(l).group(1)) < HEAL_END]
+        y = m0 if whole else [l for l in m0 if int(FR.match(l).group(1)) < HEAL_END]
+        for i, (p, q) in enumerate(zip(x, y)):
+            if p != q:
+                print(f"    first diff #{i}:\n      arm: {p}\n      M0 : {q}")
+                break
+    for g in got:
+        print(f"  BALLS {g}")
+    print(f"  [BALLS-BUY] lines match the prediction: {balls_ok} ({len(got)} line(s), want {len(want_balls)})")
+    if stdout_need:
+        print(f"  stdout carries {stdout_need}: {stdout_ok}")
+    if not whole:
+        print(f"  the run reaches 'heading south' AFTER the errand: {after_ok}")
+    if not ok:
+        fails.append(name)
+
+
+# whole-run arms: they must not move
+for n in ("B-OFF-r1", "B-OFF-r2"):
+    grade(n, m0=M05, whole=True, want_balls=[])
+grade("B-TYPO", m0=M05, whole=True, want_balls=[],
+      stdout_need=["POKEBOT_R23_BALLRESTOCK='yes' is not one of", "treated as OFF"])
+grade("B-OBS", m0=M05, whole=True, want_balls=[
+    r"\[BALLS-BUY\] why=topoff-observe mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->7 "
+    r"money=9940->9940 reason=top off 22 x Poké Ball \(spare 7 <= trigger 20; budget 4470\)"])
+grade("B-CTRL", m0=M025, whole=True, want_balls=[
+    r"\[BALLS-BUY\] why=topoff-none mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=27->27 "
+    r"money=9940->9940 reason=spare 27 > trigger 20"])
+grade("B-FLOOR", m0=M05, whole=True, want_balls=[
+    r"\[BALLS-BUY\] why=topoff-none mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->7 "
+    r"money=9940->9940 reason=cannot afford one Poké Ball \(budget 170, price 200\)"])
+# arms that walk: identical up to the heal's end, then the errand's line, then the story goes on
+grade("B-ON", m0=M05, whole=False, want_balls=[
+    r"\[BALLS-BUY\] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 "
+    r"exit=(\d+),(\d+) back=\1,\2 facing=Down reason=top off 22 x Poké Ball \(spare 7 <= trigger 20; budget 4470\)"])
+grade("B-FLOOR2", m0=M05, whole=False, want_balls=[
+    r"\[BALLS-BUY\] why=topoff mart=11,7 ball=Poké Ball bought=2 premier=0 spare=7->9 money=9940->9540 "
+    r"exit=(\d+),(\d+) back=\1,\2 facing=Down reason=top off 2 x Poké Ball .*"])
+grade("B-BOUND", m0=M05, whole=False, want_balls=[
+    r"\[BALLS-BUY\] why=topoff-failed mart=RustboroCity ball=Poké Ball .* reason=the errand's frame bound expired"])
+print(f"\nGRADE: {'ALL PASS' if not fails else 'FAILED ' + ', '.join(fails)}")

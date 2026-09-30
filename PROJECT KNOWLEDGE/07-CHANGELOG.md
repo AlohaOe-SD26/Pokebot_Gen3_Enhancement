@@ -37062,3 +37062,19 @@ held:
   - the design note's step 8 body gains an AS-BUILT block;
   - 04's STATE row is re-stamped;
   - the accepted consequences are widened (06, 29).
+
+## 2026-09-29 — USER RULINGS 23 + 26 / DESIGN v2 STEP 9a (BB): THE BALL TOP-OFF AT RUSTBORO, BEHIND `POKEBOT_R23_BALLRESTOCK` (DEFAULT OFF) (`#26-organiccatch`)
+
+**WHY.** RULING 23 (balls in bounded batches, the best ball sold) and RULING 26 (stock maintained all game). The bot
+bought balls only at fixed story points.
+**WHAT** (predictions + M0 `7e7536de`, code `1daec9a4`):
+- NEW `modules/story/stock_topoff.py`: pure planning plus the errand.
+- Three hunks at the end of `heal_in_pokemon_center`.
+- The memo `StoryMode._ball_topoff_failed`, reset per run.
+- Fault arms `POKEBOT_R23_FAULT_FLOOR` and `POKEBOT_R23_FAULT_ERRANDFRAMES`.
+- NEW gate `probe_stock_topoff.py`, APPENDED at the end (suite 133).
+**PROOF** (`ai-research-notes/2026-09-29-ballrestock-GRADED.md`; every prediction held):
+- ON buys 22 Poké + 2 Premier (spare 7→31, ₽9,940→5,540) and returns to its exit tile facing Down.
+- OFF ×2, typo, observe, the spare-27 control and the floor arm are frame-exact with M0.
+- The single-line path buys 2.
+- The bound arm recovers without a drop to Manual.
