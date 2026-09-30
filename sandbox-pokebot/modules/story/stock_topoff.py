@@ -184,6 +184,142 @@ def log_line(tag: str, *, mart: str, ball, bought, premier, spare_before, spare_
             f"spare={spare_before}->{spare_after} money={money_before}->{money_after}{extra} reason={reason}")
 
 
+# ============================================================= the healing kit (design v2 step 10, USER RULING 26)
+# The spec is `ai-research-notes/2026-09-29-kittopoff-SPEC.md` (D1-D12). PURE here; the errand below carries the lines.
+KIT_FLAG = "POKEBOT_R26_KITTOPOFF"
+#: The HP ladder, cheapest first (`#24-provisions`, 03:3556-3559). ⭐ Max Potion is EXCLUDED (spec D3, an interpretation
+#: stated to the user): 2.1x a Hyper Potion's price for at most 55 more HP, and the battle policy spends it FIRST on any
+#: Pokémon under 200 max HP (`battle_items.effective_heal` treats 255 as full). Full Restore is League-only.
+KIT_HP_LADDER = ("Potion", "Super Potion", "Hyper Potion")
+KIT_FULL_HEAL = "Full Heal"
+#: The policy cures only Sleep and Freeze, the specific cure first (`battle_items.py:155-157`, `:254-256`).
+KIT_SLEEP = "Awakening"
+KIT_FREEZE = "Ice Heal"
+KIT_FULL_HEAL_TARGET = 2
+KIT_SPECIFIC_TARGET = 1
+KIT_NAMES = (*KIT_HP_LADDER, KIT_FULL_HEAL, KIT_SLEEP, KIT_FREEZE)
+
+
+def kit_hp_target() -> int:
+    """4 = `MAX_ITEM_USES_PER_BATTLE` (imported, never copied): one battle can never spend more."""
+    from modules.story.battle_items import MAX_ITEM_USES_PER_BATTLE
+
+    return MAX_ITEM_USES_PER_BATTLE
+
+
+def parse_kit_flag(raw) -> "tuple[str, str | None]":
+    """(`mode`, `error`) for `POKEBOT_R26_KITTOPOFF`, exactly as `parse_flag` but naming THIS flag in its error (9a's
+    `parse_flag` stays byte-identical; the step 10 recon's NIT 12)."""
+    value = (raw or "").strip()
+    if value not in VALID_FLAG_VALUES:
+        return "", f"{KIT_FLAG}={value!r} is not one of {VALID_FLAG_VALUES}: treated as OFF"
+    return ("" if value == "0" else value), None
+
+
+def kit_wants(sold, held: dict, hp_target: int) -> "list[tuple[str, int]]":
+    """PURE. What the kit is MISSING at a Mart selling `sold`, as [(name, qty)]: the HP line first, then the status line.
+
+    `held` is the RESERVE VIEW (the raw bag minus `league_reserve.reserved_quantities()`, spec D4). HP: the best ladder
+    tier sold, topped up to `hp_target`; "held" counts that tier AND every higher tier. Status: Full Heal to 2 where
+    sold; otherwise Awakening to 1 and Ice Heal to 1 where sold, a held Full Heal counting toward each. ⛔ Never a
+    quantity <= 0 (`buy_in_shop`'s dial starts at 1: a 0 line would spin to the frame bound; recon finding 10)."""
+    wants: "list[tuple[str, int]]" = []
+    tiers = [name for name in KIT_HP_LADDER if name in sold]
+    if tiers:
+        best = tiers[-1]
+        have = sum(held.get(name, 0) for name in KIT_HP_LADDER[KIT_HP_LADDER.index(best):])
+        if hp_target - have > 0:
+            wants.append((best, hp_target - have))
+    full_heals = held.get(KIT_FULL_HEAL, 0)
+    if KIT_FULL_HEAL in sold:
+        if KIT_FULL_HEAL_TARGET - full_heals > 0:
+            wants.append((KIT_FULL_HEAL, KIT_FULL_HEAL_TARGET - full_heals))
+    else:
+        for name in (KIT_SLEEP, KIT_FREEZE):
+            short = KIT_SPECIFIC_TARGET - (held.get(name, 0) + full_heals)
+            if name in sold and short > 0:
+                wants.append((name, short))
+    return wants
+
+
+def visit_plan(*, spare: int, money: int, ball: "str | None", ball_price: "int | None", stage_name: "str | None",
+               floor_money: "int | None", lim: dict, wants, prices: dict, reserve: int, buy_balls: bool) -> dict:
+    """PURE. One visit's purchase when the kit is ON (spec D5-D6), as {ball_lines, kit, balls_qty, budget, left, reason}.
+
+    ONE budget B = min(BATCH_CAP, (money - floor)//2), computed once and debited in this order: (1) balls up to the
+    reserve + 1 (when spare <= reserve); (2) the kit's lines in `wants` order (HP, then status); (3) the rest of the
+    balls to TARGET (when spare <= TRIGGER). The two ball phases are bought as ONE line set (`plan_lines` on the total),
+    so a total >= 10 still earns its Premier. `buy_balls` False (the ball flag not `1`) buys the kit alone. The refusals
+    are 9a's: an unreadable stage or floor, PRE_GYM1, money at or below the floor."""
+    nothing = {"ball_lines": [], "kit": [], "balls_qty": 0, "budget": 0, "left": 0}
+    if stage_name is None:
+        return {**nothing, "reason": "stage unreadable (fail closed)"}
+    if stage_name == "PRE_GYM1":
+        return {**nothing, "reason": "before gym 1 (no kit, as no balls: the named RULING 26 gap)"}
+    if floor_money is None:
+        return {**nothing, "reason": "floor unreadable (fail closed)"}
+    if floor_money >= money:
+        return {**nothing, "reason": f"money {money} at or below the floor {floor_money}"}
+    budget = min(lim["batch_cap"], (money - floor_money) // 2)
+    left = budget
+    first = 0
+    if buy_balls and ball and ball_price and spare <= reserve:
+        first = min(reserve + 1 - spare, left // ball_price)
+        left -= first * ball_price
+    kit: "list[tuple[str, int]]" = []
+    for name, want in wants:
+        qty = min(want, left // prices[name])
+        if qty > 0:
+            kit.append((name, qty))
+            left -= qty * prices[name]
+    rest = 0
+    if buy_balls and ball and ball_price and spare <= lim["trigger"]:
+        rest = max(0, min(lim["target"] - spare - first, left // ball_price))
+        left -= rest * ball_price
+    balls_qty = first + rest
+    reason = (f"kit {kit or 'none'} and {balls_qty} x {ball} ({first} to the reserve + {rest} after the kit); "
+              f"budget {budget}, {left} left")
+    return {"ball_lines": plan_lines(ball, balls_qty) if balls_qty > 0 else [], "kit": kit, "balls_qty": balls_qty,
+            "budget": budget, "left": left, "reason": reason}
+
+
+def kit_log_line(tag: str, *, mart: str, kit, bought, money_before, money_after, reason: str, extra: str = "") -> str:
+    """`[KIT-BUY] why=<tag> …` (spec D8): `kit`, `kit-observe`, `kit-none`, `kit-skip`, `kit-failed`, `kit-closed`,
+    `kit-recovery`. Separate from `[BALLS-BUY]`, whose lines keep their form."""
+    return (f"[KIT-BUY] why={tag} mart={mart} kit={kit} bought={bought} money={money_before}->{money_after}{extra} "
+            f"reason={reason}")
+
+
+def _kit_held(names=KIT_NAMES) -> dict:
+    """The RESERVE VIEW of the kit's items (spec D4): the raw bag (stacks summed) minus `reserved_quantities()`, which is
+    stage-dependent ({} outside the armed Juan era). `POKEBOT_R26_FAULT_RAWBAG=1` counts the raw bag (the live proof that
+    the reserve is subtracted)."""
+    import os
+
+    from modules.story.league_reserve import _stock_by_name, reserved_quantities
+
+    raw = _stock_by_name(list(names))
+    if os.environ.get("POKEBOT_R26_FAULT_RAWBAG") == "1":
+        return raw
+    reserved = reserved_quantities()
+    return {name: max(0, raw.get(name, 0) - reserved.get(name, 0)) for name in names}
+
+
+def _kit_skip_reason(kit_mode: str) -> "str | None":
+    """Spec D2: kit `1` without `POKEBOT_R27_KEYITEMS=1` buys nothing (ordinary trainers would drain the kit)."""
+    import os
+
+    if kit_mode == "1" and os.environ.get("POKEBOT_R27_KEYITEMS") != "1":
+        return "POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)"
+    return None
+
+
+def _reserve() -> int:
+    from plugins.custom_modes.story_mode import DEX_CATCH_BALL_RESERVE
+
+    return DEX_CATCH_BALL_RESERVE
+
+
 # ================================================================================================ the emulator errand
 #: Cities whose Pokémon Center heal may start the errand, with (mart map, stand tile, facing). Step 9a: Rustboro only.
 def _whitelist() -> dict:
@@ -240,13 +376,22 @@ def _static_sold(center) -> list:
     return ["Poké Ball"]   # Rustboro: basic and expanded lists both start with the Poké Ball (decomp scripts.inc)
 
 
-def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Generator:
+def _static_kit_sold(center) -> tuple:
+    """The kit items the whitelisted mart sells, for the GO/NO-GO only. Rustboro's basic AND expanded lists hold Potion
+    and Super Potion and NO Full Heal, Awakening or Ice Heal (`RustboroCity_Mart/scripts.inc:20-31, :40-53`)."""
+    return ("Potion", "Super Potion")
+
+
+def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool, kit_mode: str = "") -> Generator:
     """Called at the END of `heal_in_pokemon_center`. Returns True iff the avatar MOVED (then the heal runs its stable
-    wait again). ⛔ Returns False with ZERO yields unless every precondition holds."""
+    wait again). ⛔ Returns False with ZERO yields unless every precondition holds.
+
+    Step 10a: `kit_mode` (`POKEBOT_R26_KITTOPOFF`) adds the healing kit to the same errand (spec D6-D10). With the kit
+    OFF, skipped or in `observe`, every ball decision below is exactly step 9a's."""
     from modules.context import context
     from modules.map_data import MapRSE
 
-    if flag_mode not in ("observe", "1"):
+    if flag_mode not in ("observe", "1") and kit_mode not in ("observe", "1"):
         return False
     try:
         from plugins.custom_modes.story_mode import StoryMode
@@ -259,14 +404,23 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Gener
     if center not in wl:
         return False
     city = center.name
+    kit_key = f"{city}:kit"                    # spec D9: a kit-only shortfall blocks only the kit
     failed = getattr(mode, "_ball_topoff_failed", None)
     if failed is None:
         failed = mode._ball_topoff_failed = set()
     if city in failed:
+        flag_mode = ""                         # the balls failed here earlier this run
+    if kit_key in failed:
+        kit_mode = ""
+    if flag_mode not in ("observe", "1") and kit_mode not in ("observe", "1"):
         return False
     if not first_wait_stable:
-        _emit(log_line("topoff-skip", mart=city, ball="-", bought=0, premier=0, spare_before="?", spare_after="?",
-                       money_before="?", money_after="?", reason="the heal's exit never became stable"))
+        if flag_mode in ("observe", "1"):
+            _emit(log_line("topoff-skip", mart=city, ball="-", bought=0, premier=0, spare_before="?", spare_after="?",
+                           money_before="?", money_after="?", reason="the heal's exit never became stable"))
+        if kit_mode in ("observe", "1"):
+            _emit(kit_log_line("kit-skip", mart=city, kit="-", bought="-", money_before="?", money_after="?",
+                               reason="the heal's exit never became stable"))
         return False
     try:
         lim = limits()
@@ -281,20 +435,55 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Gener
             floor_money = int(_fault_floor)   # FAULT ARM: a synthetic floor, to prove the floor gates the purchase live
         lines, reason = ball_topoff_plan(spare=live["spare"], money=live["money"], ball=ball, price=price,
                                          stage_name=live["stage"], floor_money=floor_money, lim=lim)
+        # ---- step 10a: the kit. `observe` plans it as if ON and buys nothing; `1` without key-item mode is a named skip
+        # (spec D2). ⛔ Only a kit that BUYS (`1`, not skipped) changes the balls: then the split order decides both.
+        kit_plan = None
+        kit_skip = _kit_skip_reason(kit_mode)
+        kit_buys = kit_mode == "1" and kit_skip is None
+        kit_reason = ""
+        if kit_mode in ("observe", "1") and kit_skip is None:
+            kit_sold = _static_kit_sold(center)
+            wants = kit_wants(kit_sold, _kit_held(), kit_hp_target())
+            kit_plan = visit_plan(spare=live["spare"], money=live["money"], ball=ball, ball_price=price,
+                                  stage_name=live["stage"], floor_money=floor_money, lim=lim, wants=wants,
+                                  prices={name: live["price_of"](name) for name, _ in wants}, reserve=_reserve(),
+                                  buy_balls=flag_mode == "1")
+            kit_plan["wants"] = wants
+            kit_reason = kit_plan["reason"]
+            if kit_buys and flag_mode == "1":
+                lines, reason = kit_plan["ball_lines"], kit_plan["reason"]
     except Exception as error:  # noqa: BLE001 - a planning failure moved nothing: report it, memoise, no extra wait
         from modules.story.early_game import reraise_if_aborting
 
         reraise_if_aborting(error)
         failed.add(city)
-        _emit(log_line("topoff-failed", mart=city, ball="-", bought=0, premier=0, spare_before="?", spare_after="?",
-                       money_before="?", money_after="?", reason=f"planning raised {error!r} (nothing moved)"))
+        if kit_mode in ("observe", "1"):          # with the kit OFF the memo is exactly step 9a's
+            failed.add(kit_key)
+        # Spec D8: a `[BALLS-BUY]` line only when the balls are on, a `[KIT-BUY]` line when the kit is (the adversarial
+        # pass: a kit-only planning failure logged a ball line and no kit line). With the kit OFF this is 9a's line.
+        if flag_mode in ("observe", "1"):
+            _emit(log_line("topoff-failed", mart=city, ball="-", bought=0, premier=0, spare_before="?",
+                           spare_after="?", money_before="?", money_after="?",
+                           reason=f"planning raised {error!r} (nothing moved)"))
+        if kit_mode in ("observe", "1"):
+            _emit(kit_log_line("kit-failed", mart=city, kit="-", bought="-", money_before="?", money_after="?",
+                               reason=f"planning raised {error!r} (nothing moved)"))
         return False
-    if flag_mode == "observe" or not lines:
+    buy_lines = lines if flag_mode == "1" else []
+    kit_lines = kit_plan["kit"] if (kit_plan and kit_buys) else []
+    if flag_mode in ("observe", "1") and (flag_mode == "observe" or not buy_lines):
         _emit(log_line("topoff-observe" if flag_mode == "observe" else "topoff-none", mart=city, ball=ball or "-",
                        bought=0, premier=0, spare_before=live["spare"],
                        spare_after=live["spare"], money_before=live["money"], money_after=live["money"],
                        reason=reason))
+    if kit_mode in ("observe", "1") and not kit_lines:
+        tag = "kit-skip" if kit_skip else ("kit-observe" if kit_mode == "observe" else "kit-none")
+        _emit(kit_log_line(tag, mart=city, kit=(kit_plan or {}).get("kit", "-"), bought="-", money_before=live["money"],
+                           money_after=live["money"], reason=kit_skip or kit_reason,
+                           extra=f" wants={(kit_plan or {}).get('wants', '-')}"))
+    if not buy_lines and not kit_lines:
         return False
+    lines = buy_lines
 
     from modules.player import get_player_avatar
     from modules.story.early_game import _yield_bounded_by_frames
@@ -304,11 +493,13 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Gener
     report: dict = {}
     mart = wl[center]
     moved_ok = False
+    finished = False
     try:
         import os as _os_bb2
         bound = int(_os_bb2.environ.get("POKEBOT_R23_FAULT_ERRANDFRAMES", "") or ERRAND_FRAMES)
         finished = yield from _yield_bounded_by_frames(
-            _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report), bound)
+            _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report, kit_lines=kit_lines,
+                             kit_reason=kit_reason), bound)
         # ⛔ SUCCESS means bought as planned AND back on the recorded exit tile (the review: `back=` was logged, never
         # compared).
         moved_ok = finished and report.get("ok", False) and report.get("returned", False)
@@ -318,10 +509,16 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Gener
         # the next heal does not walk into the same close, and let the close proceed (the review measured this path
         # silent before).
         failed.add(city)
-        _emit(log_line("topoff-closed", mart=city, ball=ball, bought=report.get("bought", 0),
-                       premier=report.get("premier", 0), spare_before=live["spare"], spare_after="?",
-                       money_before=live["money"], money_after="?",
-                       reason="an outer bound closed the heal mid-errand (no recovery can run while closing)"))
+        if kit_lines:
+            failed.add(kit_key)
+        if lines:
+            _emit(log_line("topoff-closed", mart=city, ball=ball, bought=report.get("bought", 0),
+                           premier=report.get("premier", 0), spare_before=live["spare"], spare_after="?",
+                           money_before=live["money"], money_after="?",
+                           reason="an outer bound closed the heal mid-errand (no recovery can run while closing)"))
+        if kit_lines:
+            _emit(kit_log_line("kit-closed", mart=city, kit=kit_lines, bought="?", money_before=live["money"],
+                               money_after="?", reason="an outer bound closed the heal mid-errand"))
         raise
     except Exception as error:  # noqa: BLE001 - reported below; an abort is re-raised first
         from modules.story.early_game import reraise_if_aborting
@@ -329,23 +526,42 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool) -> Gener
         reraise_if_aborting(error)
         report["error"] = repr(error)
     if not moved_ok:
-        failed.add(city)
+        # Spec D9: a failed WALK (bound, raise, not back, no menu, nothing sold) blocks both keys; a bag-delta shortfall
+        # blocks only the line set that fell short.
+        walk_failed = not finished or "error" in report or not report.get("returned", False)
+        if walk_failed or not report.get("balls_ok", report.get("ok", False)):
+            failed.add(city)
+        if kit_lines and (walk_failed or not report.get("kit_ok", False)):
+            failed.add(kit_key)
         why = (report.get("error") or report.get("why")
                or ("not back on the exit tile" if report.get("ok") else "the errand's frame bound expired"))
-        _emit(log_line("topoff-failed", mart=city, ball=ball, bought=report.get("bought", 0),
-                       premier=report.get("premier", 0), spare_before=live["spare"],
-                       spare_after=report.get("spare_after", "?"), money_before=live["money"],
-                       money_after=report.get("money_after", "?"), reason=why))
+        if lines:
+            _emit(log_line("topoff-failed", mart=city, ball=ball, bought=report.get("bought", 0),
+                           premier=report.get("premier", 0), spare_before=live["spare"],
+                           spare_after=report.get("spare_after", "?"), money_before=live["money"],
+                           money_after=report.get("money_after", "?"), reason=why))
+        if kit_lines:
+            _emit(kit_log_line("kit-failed", mart=city, kit=kit_lines, bought=report.get("kit_got", "?"),
+                               money_before=live["money"], money_after=report.get("money_after", "?"),
+                               reason=report.get("kit_why") or why))
         recovered = yield from _yield_bounded_by_frames(_recover(exit_map, exit_tile, report), RECOVERY_FRAMES)
-        _emit(log_line("topoff-recovery", mart=city, ball=ball, bought=report.get("bought", 0), premier=0,
-                       spare_before="-", spare_after="-", money_before="-", money_after="-",
-                       reason=f"finished={recovered} back_on_exit={report.get('recovered_on_exit')}"))
+        if lines:
+            _emit(log_line("topoff-recovery", mart=city, ball=ball, bought=report.get("bought", 0), premier=0,
+                           spare_before="-", spare_after="-", money_before="-", money_after="-",
+                           reason=f"finished={recovered} back_on_exit={report.get('recovered_on_exit')}"))
+        else:
+            _emit(kit_log_line("kit-recovery", mart=city, kit=kit_lines, bought="-", money_before="-", money_after="-",
+                               reason=f"finished={recovered} back_on_exit={report.get('recovered_on_exit')}"))
     return True
 
 
-def _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report) -> Generator:
+def _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report, kit_lines=(), kit_reason="") -> Generator:
     """Walk to the clerk, buy `lines` (FILTERED against the live list: quantities and the ball are not recomputed),
-    verify by the bag delta, walk back to the exit tile and face Down."""
+    verify by the bag delta, walk back to the exit tile and face Down.
+
+    Step 10a: `kit_lines` ride the same `buy_in_shop` call (its per-transaction cap cannot bind: the plan is at most
+    half the spendable) and are verified PER ITEM NAME (spec D7); `report["balls_ok"]` / `report["kit_ok"]` attribute a
+    shortfall so the errand memoises only the line set that fell short (spec D9). `report["ok"]` is both."""
     from modules.context import context
     from modules.items import get_item_bag, get_item_by_name
     from modules.mart import get_mart_buyable_items
@@ -374,26 +590,42 @@ def _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report) -> 
         yield from _close_shop_and_dialogs(report)
         return
     sold = {item.name for item in get_mart_buyable_items()}   # ⛔ read ONLY with the menu open (sMartInfo is stale after)
+    # ⛔ Verified against the PLAN, bought from the FILTERED lines: a line the live list drops is a SHORTFALL of its own
+    # line set, reported and memoised (the adversarial pass: with both sets planned, a dropped set passed as ok).
+    planned_lines, planned_kit = list(lines), list(kit_lines)
     lines = [(n, q) for n, q in lines if n in sold]
-    if not lines:
+    kit_lines = [(n, q) for n, q in kit_lines if n in sold]
+    if not lines and not kit_lines:
         report["why"] = f"the live list sells none of the plan ({sorted(sold)})"
         yield from _close_shop_and_dialogs(report)
         return
-    names = sorted({n for n, _ in lines} | {"Premier Ball"})
+    names = sorted({n for n, _ in planned_lines} | {n for n, _ in planned_kit} | {"Premier Ball"})
     before = {n: get_item_bag().quantity_of(get_item_by_name(n)) for n in names}
-    yield from buy_in_shop([(get_item_by_name(n), q) for n, q in lines])
+    yield from buy_in_shop([(get_item_by_name(n), q) for n, q in list(lines) + list(kit_lines)])
     yield from _close_shop_and_dialogs(report)                 # close BEFORE any controllable-wait (recon)
     yield                                                        # the bag cache is per frame
     after = {n: get_item_bag().quantity_of(get_item_by_name(n)) for n in names}
-    ball = lines[0][0]
-    report["bought"] = after[ball] - before[ball]
-    report["premier"] = after.get("Premier Ball", 0) - before.get("Premier Ball", 0) if ball != "Premier Ball" else 0
+    ball = planned_lines[0][0] if planned_lines else None
+    if planned_lines:
+        report["bought"] = after[ball] - before[ball]
+        report["premier"] = (after.get("Premier Ball", 0) - before.get("Premier Ball", 0)
+                             if ball != "Premier Ball" else 0)
+        planned = sum(q for _, q in planned_lines)
+        report["balls_ok"] = report["bought"] == planned
+        if not report["balls_ok"]:
+            report["why"] = f"bag delta {report['bought']} != planned {planned}"
+    else:
+        report["bought"], report["premier"], report["balls_ok"] = 0, 0, True
+    kit_want: dict = {}
+    for name, qty in planned_kit:
+        kit_want[name] = kit_want.get(name, 0) + qty
+    report["kit_got"] = {name: after[name] - before[name] for name in kit_want}
+    report["kit_ok"] = report["kit_got"] == kit_want
+    if not report["kit_ok"]:
+        report["kit_why"] = f"kit bag delta {report['kit_got']} != planned {kit_want}"
+    report["ok"] = report["balls_ok"] and report["kit_ok"]
     report["spare_after"] = int(get_item_bag().number_of_balls_except_master_ball)
     report["money_after"] = int(get_player().money)
-    planned = sum(q for _, q in lines)
-    report["ok"] = report["bought"] == planned
-    if not report["ok"]:
-        report["why"] = f"bag delta {report['bought']} != planned {planned}"
     yield from _navigate_riding_out(exit_map, exit_tile)
     yield from wait_until_truly_controllable()
     yield from ensure_facing_direction("Down")                   # OFF leaves the PC facing Down
@@ -406,9 +638,14 @@ def _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report) -> 
     report["returned"] = (tuple(av.map_group_and_number) == tuple(exit_map.value)
                           and tuple(av.local_coordinates) == tuple(exit_tile) and av.facing_direction == "Down")
     if report["ok"] and report["returned"]:
-        _emit(log_line("topoff", mart=exit_map_name(mart_map), ball=ball, bought=report["bought"],
-                       premier=report["premier"], spare_before=live["spare"], spare_after=report["spare_after"],
-                       money_before=live["money"], money_after=report["money_after"], reason=reason, extra=back))
+        if planned_lines:
+            _emit(log_line("topoff", mart=exit_map_name(mart_map), ball=ball, bought=report["bought"],
+                           premier=report["premier"], spare_before=live["spare"], spare_after=report["spare_after"],
+                           money_before=live["money"], money_after=report["money_after"], reason=reason, extra=back))
+        if planned_kit:
+            _emit(kit_log_line("kit", mart=exit_map_name(mart_map), kit=planned_kit, bought=report["kit_got"],
+                               money_before=live["money"], money_after=report["money_after"], reason=kit_reason,
+                               extra=back))
 
 
 def exit_map_name(mart_map) -> str:

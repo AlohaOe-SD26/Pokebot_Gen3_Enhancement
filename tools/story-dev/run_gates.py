@@ -1143,6 +1143,11 @@ GATES: list[tuple[str, bool]] = [
     # (incl. the recon's F1: a second errand on the same dict must start clean), AST rows, the driver's ball grade
     # (`ball_grade.py`), 39 mutants with exact red sets (every non-value row is reddened by one). ‼ APPENDED AT THE END.
     ("probe_stock_topoff_sootopolis.py", False),
+    # USER RULING 26 (design v2 step 10a, HK at Rustboro) — the healing-kit top-off riding step 9a's heal errand: the
+    # pure kit planner and one-budget visit plan, the held view (minus the League reserve), the key-item coupling, the
+    # errand and `_walk_buy_return` EXECUTED with stubs, and the heal's kit-flag parse by AST; mutants with exact red
+    # sets, every row reddened by one. ‼ APPENDED AT THE END, never inserted.
+    ("probe_kit_topoff.py", False),
 ]
 
 

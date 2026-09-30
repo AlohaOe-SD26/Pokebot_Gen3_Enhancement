@@ -526,6 +526,13 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
     _topoff_mode, _topoff_error = _topoff_parse(_os_hla.environ.get("POKEBOT_R23_BALLRESTOCK"))
     if _topoff_error:
         _piggyback_report("the ball top-off", _topoff_error, console_too=True)
+    # FORK (design v2 step 10a, USER RULING 26): the healing kit rides the same errand; its flag is parsed here too,
+    # before any yield, and a typo is OFF WITH an error naming THIS flag.
+    from modules.story.stock_topoff import parse_kit_flag as _kit_parse
+
+    _kit_mode, _kit_error = _kit_parse(_os_hla.environ.get("POKEBOT_R26_KITTOPOFF"))
+    if _kit_error:
+        _piggyback_report("the healing-kit top-off", _kit_error, console_too=True)
     if _fault_arm and _healwalk_fault_state["fired"] < _fault_limit:
         _healwalk_fault_state["fired"] += 1
         _piggyback_report("heal-walk FAULT ARM",
@@ -786,11 +793,12 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         # empty plan it yields NOTHING. It runs only if the exit above reached a stable avatar (a recorded exit tile
         # taken mid-animation could be the door warp). A failure never escapes the heal, but it is never silent.
         _topoff_moved = False
-        if _topoff_mode in ("observe", "1"):
+        if _topoff_mode in ("observe", "1") or _kit_mode in ("observe", "1"):
             try:
                 from modules.story.stock_topoff import ball_topoff_errand
 
-                _topoff_moved = yield from ball_topoff_errand(pokemon_center_door_location, _topoff_mode, stable >= 20)
+                _topoff_moved = yield from ball_topoff_errand(pokemon_center_door_location, _topoff_mode, stable >= 20,
+                                                              kit_mode=_kit_mode)
             except Exception as error:  # noqa: BLE001 - a failed top-off must not destroy a heal that succeeded,
                 # and must not pass silently: `_piggyback_report` says so. A WHITEOUT or abort is re-raised first.
                 from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module

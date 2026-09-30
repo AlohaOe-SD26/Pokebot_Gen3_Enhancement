@@ -1,0 +1,133 @@
+probe_kit_topoff.py gate run 3 (after the adversarial pass), 2026-09-29 9:43 PM LA
+gate sha1 before the run: d073f5281b32b55f1f0a8c26f19e8b4e22cf8722; stock_topoff.py sha1 bb70c1b7fd7a52fdb27736bb83145e66c5f7de45
+cmd: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_kit_topoff.py   (exit 0)
+
+K — kit_wants (pure)
+  PASS  K1 Rustboro: 4 Super Potions from an empty bag  — [('Super Potion', 4)]
+  PASS  K2 held counts the tier AND higher tiers, never lower  — [('Super Potion', 2)] [] [('Super Potion', 4)]
+  PASS  K3 Sootopolis: Hyper Potion (Max Potion EXCLUDED) and Full Heal x2  — [('Hyper Potion', 4), ('Full Heal', 2)]
+  PASS  K4 status: Awakening + Ice Heal where no Full Heal; a held Full Heal counts toward each  — [('Awakening', 1), ('Ice Heal', 1)] [] [('Ice Heal', 1)] [('Full Heal', 1)]
+  PASS  K5 never a quantity <= 0, never a Revive/Antidote/Max Potion (grid)  — 0 bad: []
+  PASS  K6 a Mart selling only Max Potion gives no HP line  — []
+  PASS  K17 a Mart selling Full Heal AND the specific cures buys Full Heal only (D3 'otherwise')  — [('Full Heal', 2)] []
+
+K — visit_plan (pure)
+  PASS  K7 Rustboro: 4 + 4 Poké around 4 Super Potions on ONE budget of 4470, 70 left  — {'ball_lines': [('Poké Ball', 8)], 'kit': [('Super Potion', 4)], 'balls_qty': 8, 'budget': 4470, 'left': 70, 'reason': "kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"}
+  PASS  K8 the kit alone (the ball flag not 1): 4 Super Potions, 1670 left  — {'ball_lines': [], 'kit': [('Super Potion', 4)], 'balls_qty': 0, 'budget': 4470, 'left': 1670, 'reason': "kit [('Super Potion', 4)] and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 4470, 1670 left"}
+  PASS  K8b money tight: the reserve phase FIRST (6 balls), the kit gets nothing  — {'ball_lines': [('Poké Ball', 7)], 'kit': [], 'balls_qty': 7, 'budget': 1500, 'left': 100, 'reason': 'kit none and 7 x Poké Ball (6 to the reserve + 1 after the kit); budget 1500, 100 left'}
+  PASS  K9 Sootopolis post-basket: 1 Hyper Potion, no Full Heal, no Ultra, 383 left  — {'ball_lines': [], 'kit': [('Hyper Potion', 1)], 'balls_qty': 0, 'budget': 1583, 'left': 383, 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left"}
+  PASS  K10 refusals: unreadable stage or floor, PRE_GYM1, money at the floor  — ['stage unreadable (fail closed)', 'before gym 1 (no kit, as no balls: the named RULING 26 gap)', 'floor unreadable (fail closed)', 'money 1000 at or below the floor 1000']
+  PASS  K10b a total >= 10 balls is ONE line set (16 Poké: a Premier is earned)  — {'ball_lines': [('Poké Ball', 16)], 'kit': [('Super Potion', 4)], 'balls_qty': 16, 'budget': 6000, 'left': 0, 'reason': "kit [('Super Potion', 4)] and 16 x Poké Ball (11 to the reserve + 5 after the kit); budget 6000, 0 left"}
+  PASS  K11 spend never exceeds the ONE budget, and left is exact (grid)  — 0 bad: []
+  PASS  K15 the reserve phase fills to EXACTLY reserve + 1, and fires AT the reserve  — {'ball_lines': [('Poké Ball', 8)], 'kit': [('Super Potion', 1)], 'balls_qty': 8, 'budget': 2400, 'left': 100, 'reason': "kit [('Super Potion', 1)] and 8 x Poké Ball (6 to the reserve + 2 after the kit); budget 2400, 100 left"} {'ball_lines': [('Poké Ball', 3)], 'kit': [('Super Potion', 1)], 'balls_qty': 3, 'budget': 1400, 'left': 100, 'reason': "kit [('Super Potion', 1)] and 3 x Poké Ball (1 to the reserve + 2 after the kit); budget 1400, 100 left"}
+  PASS  K16 balls never exceed TARGET, none above TRIGGER, none unless the ball flag is 1 (grid)  — 0 bad: []
+
+K — flag, held view, key-item coupling
+  PASS  K12 parse_kit_flag: a typo is OFF with an error naming POKEBOT_R26_KITTOPOFF  — POKEBOT_R26_KITTOPOFF='yes' is not one of ('', '0', 'observe', '1'): treated as OFF
+  PASS  K13 _kit_held subtracts reserved_quantities(); the RAWBAG fault does not  — view={'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 1, 'Full Heal': 0, 'Awakening': 0, 'Ice Heal': 0} raw={'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 31, 'Full Heal': 8, 'Awakening': 0, 'Ice Heal': 0}
+  PASS  K14 kit `1` without POKEBOT_R27_KEYITEMS=1 is a named skip; observe is not  — POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2) None None
+  PASS  K18 a reserve LARGER than the bag leaves 0 of that item, never a negative  — {'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 0, 'Full Heal': 0, 'Awakening': 0, 'Ice Heal': 0}
+  PASS  K19 _reserve() is story_mode's DEX_CATCH_BALL_RESERVE (unstubbed)  — 10 vs 10
+
+E — the errand, executed
+  PASS  E1 both flags OFF: False, ZERO yields, nothing emitted  — False 0 {'walks': [], 'emitted': [], 'recover': 0}
+  PASS  E2 kit `observe`: the ball purchase is EXACTLY 9a's, one kit-observe line  — {'walks': [([('Poké Ball', 10), ('Poké Ball', 12)], [])], 'emitted': ["[KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"], 'recover': 0}
+  PASS  E3 kit `1` (key items on): 8 Poké + 4 Super Potions in one walk  — {'walks': [([('Poké Ball', 8)], [('Super Potion', 4)])], 'emitted': [], 'recover': 0}
+  PASS  E4 kit `1`, balls OFF: a kit-only walk, no [BALLS-BUY] line  — {'walks': [([], [('Super Potion', 4)])], 'emitted': [], 'recover': 0}
+  PASS  E5 kit `1` WITHOUT key items: 9a's balls and ONE kit-skip line  — {'walks': [([('Poké Ball', 10), ('Poké Ball', 12)], [])], 'emitted': ['[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)'], 'recover': 0}
+  PASS  E6 a kit-only shortfall memoises ONLY the kit key (and recovers)  — memo=['RustboroCity:kit'] {'walks': [([('Poké Ball', 8)], [('Super Potion', 4)])], 'emitted': ["[BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 reason=the errand's frame bound expired", "[KIT-BUY] why=kit-failed mart=RustboroCity kit=[('Super Potion', 4)] bought={'Super Potion': 0} money=9940->5540 reason=kit bag delta short", '[BALLS-BUY] why=topoff-recovery mart=RustboroCity ball=Poké Ball bought=8 premier=0 spare=-->- money=-->- reason=finished=True back_on_exit=True'], 'recover': 1}
+  PASS  E7 a failed WALK (the bound) memoises BOTH keys  — memo=['RustboroCity', 'RustboroCity:kit']
+  PASS  E8 a ball memo leaves a kit-only walk  — {'walks': [([], [('Super Potion', 4)])], 'emitted': [], 'recover': 0}
+  PASS  E9 a FULL kit (held reaches the plan): no walk, ONE [KIT-BUY] kit-none, no ball line  — {'walks': [], 'emitted': ['[KIT-BUY] why=kit-none mart=RustboroCity kit=[] bought=- money=9940->9940 wants=[] reason=kit none and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 4470, 4470 left'], 'recover': 0}
+  PASS  E10 kit `1`, balls OFF, key items UNSET: a named skip, nothing walks  — {'walks': [], 'emitted': ['[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)'], 'recover': 0}
+  PASS  E11 a kit memo blocks the kit only (balls OFF: nothing; balls 1: 9a's walk, no kit line)  — (False, 0, {'walks': [], 'emitted': [], 'recover': 0}, ['RustboroCity:kit']) || (True, 1, {'walks': [([('Poké Ball', 10), ('Poké Ball', 12)], [])], 'emitted': [], 'recover': 0}, ['RustboroCity:kit'])
+  PASS  E12 a planning raise: each flag logs ONLY its own tag; the kit key only when the kit is on  — (False, 0, {'walks': [], 'emitted': ["[BALLS-BUY] why=topoff-failed mart=RustboroCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=planning raised RuntimeError('bag unreadable') (nothing moved)", "[KIT-BUY] why=kit-failed mart=RustboroCity kit=- bought=- money=?->? reason=planning raised RuntimeError('bag unreadable') (nothing moved)"], 'recover': 0}, ['RustboroCity', 'RustboroCity:kit']) || (False, 0, {'walks': [], 'emitted': ["[KIT-BUY] why=kit-failed mart=RustboroCity kit=- bought=- money=?->? reason=planning raised RuntimeError('bag unreadable') (nothing moved)"], 'recover': 0}, ['RustboroCity', 'RustboroCity:kit']) || (False, 0, {'walks': [], 'emitted': ["[BALLS-BUY] why=topoff-failed mart=RustboroCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=planning raised RuntimeError('bag unreadable') (nothing moved)"], 'recover': 0}, ['RustboroCity'])
+  PASS  E13 ₽3,000: the kit alone buys 1 Super Potion, balls OFF or observe (no phantom ball phase)  — {'walks': [([], [('Super Potion', 1)])], 'emitted': [], 'recover': 0} || {'walks': [([], [('Super Potion', 1)])], 'emitted': ['[BALLS-BUY] why=topoff-observe mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->7 money=3000->3000 reason=top off 5 x Poké Ball (spare 7 <= trigger 20; budget 1000)'], 'recover': 0}
+  PASS  E14 the kit-observe line is EXACTLY Arm 3's (prefix, plan, wants, reason)  — ["[KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"]
+  PASS  E15 an outer close mid-walk: kit-closed (+ topoff-closed only with balls), both keys, no raise  — ('CLOSED', 3, {'walks': [([], [('Super Potion', 4)])], 'emitted': ["[KIT-BUY] why=kit-closed mart=RustboroCity kit=[('Super Potion', 4)] bought=? money=9940->? reason=an outer bound closed the heal mid-errand"], 'recover': 0}, ['RustboroCity', 'RustboroCity:kit']) || ('CLOSED', 3, {'walks': [([('Poké Ball', 8)], [('Super Potion', 4)])], 'emitted': ['[BALLS-BUY] why=topoff-closed mart=RustboroCity ball=Poké Ball bought=0 premier=0 spare=7->? money=9940->? reason=an outer bound closed the heal mid-errand (no recovery can run while closing)', "[KIT-BUY] why=kit-closed mart=RustboroCity kit=[('Super Potion', 4)] bought=? money=9940->? reason=an outer bound closed the heal mid-errand"], 'recover': 0}, ['RustboroCity', 'RustboroCity:kit'])
+  PASS  E16 a failed walk (a raise; not back): both keys, recovery, each set logs only its own tags  — (True, 2, {'walks': [([], [('Super Potion', 4)])], 'emitted': ["[KIT-BUY] why=kit-failed mart=RustboroCity kit=[('Super Potion', 4)] bought=? money=9940->? reason=RuntimeError('boom in the walk')", "[KIT-BUY] why=kit-recovery mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=-->- reason=finished=True back_on_exit=True"], 'recover': 1}, ['RustboroCity', 'RustboroCity:kit']) || (True, 2, {'walks': [([('Poké Ball', 8)], [('Super Potion', 4)])], 'emitted': ['[BALLS-BUY] why=topoff-failed mart=RustboroCity ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 reason=not back on the exit tile', "[KIT-BUY] why=kit-failed mart=RustboroCity kit=[('Super Potion', 4)] bought={'Super Potion': 0} money=9940->5540 reason=not back on the exit tile", '[BALLS-BUY] why=topoff-recovery mart=RustboroCity ball=Poké Ball bought=8 premier=0 spare=-->- money=-->- reason=finished=True back_on_exit=True'], 'recover': 1}, ['RustboroCity', 'RustboroCity:kit'])
+  PASS  E17 an unstable exit: each flag logs ONE skip under its own prefix, nothing walks  — (False, 0, {'walks': [], 'emitted': ["[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=?->? reason=the heal's exit never became stable"], 'recover': 0}, []) || (False, 0, {'walks': [], 'emitted': ["[BALLS-BUY] why=topoff-skip mart=RustboroCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the heal's exit never became stable", "[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=?->? reason=the heal's exit never became stable"], 'recover': 0}, [])
+  PASS  E18 the FAULT_FLOOR lever gates the kit (floor 9900: nothing affordable, one kit-none)  — {'walks': [], 'emitted': ["[KIT-BUY] why=kit-none mart=RustboroCity kit=[] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit none and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 20, 20 left"], 'recover': 0}
+
+W — _walk_buy_return, executed
+  PASS  W1 balls and kit verified PER NAME: ok, one topoff line and one kit line  — {'bought': 8, 'premier': 0, 'balls_ok': True, 'kit_got': {'Super Potion': 4}, 'kit_ok': True, 'ok': True, 'spare_after': 15, 'money_after': 5540, 'back': ' exit=16,39 back=16,39 facing=Down', 'returned': True} ['[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=r', "[KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=k"]
+  PASS  W2 a kit shortfall: kit_ok False, balls_ok True, ok False  — {'bought': 8, 'premier': 0, 'balls_ok': True, 'kit_got': {'Super Potion': 3}, 'kit_ok': False, 'kit_why': "kit bag delta {'Super Potion': 3} != planned {'Super Potion': 4}", 'ok': False, 'spare_after': 15, 'money_after': 5540, 'back': ' exit=16,39 back=16,39 facing=Down', 'returned': True}
+  PASS  W3 a kit-only walk, 2 already held: the DELTA (2), ONE [KIT-BUY] line, no ball line  — {'bought': 0, 'premier': 0, 'balls_ok': True, 'kit_got': {'Super Potion': 2}, 'kit_ok': True, 'ok': True, 'spare_after': 7, 'money_after': 5540, 'back': ' exit=16,39 back=16,39 facing=Down', 'returned': True} ["[KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 2)] bought={'Super Potion': 2} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=k"] [('Super Potion', 2)]
+  PASS  W4 a kit line the live list DROPS: not asked of the shop, a KIT shortfall, never a silent ok  — {'bought': 8, 'premier': 0, 'balls_ok': True, 'kit_got': {'Super Potion': 0}, 'kit_ok': False, 'kit_why': "kit bag delta {'Super Potion': 0} != planned {'Super Potion': 4}", 'ok': False, 'spare_after': 15, 'money_after': 5540, 'back': ' exit=16,39 back=16,39 facing=Down', 'returned': True} [] [('Poké Ball', 8)]
+  PASS  W5 a ball line the live list DROPS (kit sold): a BALL shortfall, the kit bought  — {'bought': 0, 'premier': 0, 'balls_ok': False, 'why': 'bag delta 0 != planned 8', 'kit_got': {'Super Potion': 4}, 'kit_ok': True, 'ok': False, 'spare_after': 7, 'money_after': 5540, 'back': ' exit=16,39 back=16,39 facing=Down', 'returned': True} [] [('Super Potion', 4)]
+
+A — the heal (AST)
+  PASS  A1 (AST) the heal parses POKEBOT_R26_KITTOPOFF before its FIRST yield  — parse=[533] first yield=[571]
+  PASS  A2 (AST) a kit-flag typo is REPORTED (`if _kit_error:` -> _piggyback_report under the kit's name)  — ifs=1 calls=["_piggyback_report('the healing-kit top-off', _kit_error, console_too=True)"]
+  PASS  A3 (AST) the errand runs on EITHER flag and is passed kit_mode=_kit_mode  — kw=['kit_mode=_kit_mode'] guard=_topoff_mode in ('observe', '1') or _kit_mode in ('observe', '1')
+
+M — mutants (each must turn EXACTLY its named rows red)
+  PASS  M1 held counts only the best tier (not higher) -> K2  — red ['K2']
+  PASS  M2 Max Potion joins the ladder -> K3 K5 K6  — red ['K3', 'K5', 'K6']
+  PASS  M3 a held Full Heal no longer counts toward the specific cures -> K4  — red ['K4']
+  PASS  M4 the HP line's <= 0 guard removed -> K2 K5  — red ['K2', 'K5']
+  PASS  M5 the kit is not debited from the budget -> K7 K8 K9 K10b K11 E3 K15 E14  — red ['E14', 'E3', 'K10b', 'K11', 'K15', 'K7', 'K8', 'K9']
+  PASS  M6 the kit comes BEFORE the reserve phase -> K8b K15 E14  — red ['E14', 'K15', 'K8b']
+  PASS  M7 the two ball phases bought as separate lines (a total >= 10 loses its Premier) -> K7 K8b K10b E3 K15  — red ['E3', 'K10b', 'K15', 'K7', 'K8b']
+  PASS  M8 parse_kit_flag names the BALL flag -> K12  — red ['K12']
+  PASS  M9 _kit_held ignores the reserve -> K13 K18  — red ['K13', 'K18']
+  PASS  M10 the key-item coupling removed -> K14 E5 E10  — red ['E10', 'E5', 'K14']
+  PASS  M11 an OBSERVE kit changes the balls -> E2  — red ['E2']
+  PASS  M12 a kit-only shortfall memoises the balls too -> E6  — red ['E6']
+  PASS  M13 the kit verification always ok -> W2 W4  — red ['W2', 'W4']
+  PASS  M14 the heal reads a misspelled kit flag -> A1  — red ['A1']
+  PASS  M15 the HP line picks the CHEAPEST tier sold -> K1 K2 E3 E4 E8 E13 E14  — red ['E13', 'E14', 'E3', 'E4', 'E8', 'K1', 'K2']
+  PASS  M16 PRE_GYM1 is not refused -> K10  — red ['K10']
+  PASS  M17 OFF acts as if the ball flag were on -> E1 E4 E9-E13 E15-E18  — red ['E1', 'E10', 'E11', 'E12', 'E13', 'E15', 'E16', 'E17', 'E18', 'E4', 'E9']
+  PASS  M18 a failure never memoises the kit key -> E6 E7 E16  — red ['E16', 'E6', 'E7']
+  PASS  M19 a ball memo blocks the kit too -> E8  — red ['E8']
+  PASS  M20 a successful kit purchase is not logged -> W1 W3  — red ['W1', 'W3']
+  PASS  N1 a comment naming the kit flag and `_kit_mode` in the heal turns NOTHING red  — red []
+  PASS  MA the reserve phase fills to the reserve, not reserve + 1 -> K15 E14  — red ['E14', 'K15']
+  PASS  MB the reserve phase skips spare == reserve -> K15  — red ['K15']
+  PASS  MC the rest phase forgets the reserve phase's balls (overshoots TARGET) -> K16  — red ['K16']
+  PASS  MD the rest phase ignores TRIGGER -> K16  — red ['K16']
+  PASS  MX the specific cures bought ALONGSIDE Full Heal -> K17  — red ['K17']
+  PASS  MT the held view can go negative (a kit-sized buy of the basket's shortfall) -> K18  — red ['K18']
+  PASS  MU _reserve() off by one -> K19  — red ['K19']
+  PASS  MW the errand ignores what is held (buys a full kit again) -> E9  — red ['E9']
+  PASS  MAC the key-item coupling reads the BALL flag -> E10  — red ['E10']
+  PASS  ME a kit memo is ignored -> E11  — red ['E11']
+  PASS  MF a planning failure never memoises the kit -> E12  — red ['E12']
+  PASS  MPF a planning failure memoises the kit even when it is OFF -> E12  — red ['E12']
+  PASS  MSF1 a planning failure logs a ball line with the balls OFF (the pass's side finding) -> E12  — red ['E12']
+  PASS  MSF2 a planning failure logs no kit line -> E12  — red ['E12']
+  PASS  MP an OBSERVE ball flag runs the phantom ball phases -> E13  — red ['E13']
+  PASS  MP2 the ball phases always run -> E13  — red ['E13']
+  PASS  MQ an OBSERVE ball flag buys the balls -> E13  — red ['E13']
+  PASS  MR observe never plans the kit (the line says kit=- wants=-) -> E14  — red ['E14']
+  PASS  MS a kit `1` with nothing to buy logs nothing -> E9 E18  — red ['E18', 'E9']
+  PASS  MO the kit's lines carry the BALL prefix -> E9 E10 E12 E14 E15 E16 E17 E18 W3  — red ['E10', 'E12', 'E14', 'E15', 'E16', 'E17', 'E18', 'E9', 'W3']
+  PASS  MFF the kit plan ignores the FAULT_FLOOR lever -> E18  — red ['E18']
+  PASS  MG1 a close logs no kit-closed line -> E15  — red ['E15']
+  PASS  MG2 a close does not memoise the kit -> E15  — red ['E15']
+  PASS  MG3 a kit-only close logs a ball line -> E15  — red ['E15']
+  PASS  MG4 the close handler YIELDS (close() raises) -> E15  — red ['E15']
+  PASS  MY a kit-only failure recovers silently -> E16  — red ['E16']
+  PASS  MZ a kit-only failure logs a ball line -> E16  — red ['E16']
+  PASS  MI `finished` unset when the walk raises -> E16  — red ['E16']
+  PASS  MH a walk not back on the exit tile counts as ok -> E16  — red ['E16']
+  PASS  MV2 an unstable exit logs no kit line -> E17  — red ['E17']
+  PASS  MV3 an unstable exit logs a ball line with the balls OFF -> E17  — red ['E17']
+  PASS  MJ a kit-only walk reads as 'sells none' -> W3 W5  — red ['W3', 'W5']
+  PASS  MM a kit-only walk never sets balls_ok (KeyError) -> W3  — red ['W3']
+  PASS  MN a kit-only success logs a ball line -> W3  — red ['W3']
+  PASS  ML the kit verified by the COUNT, not the delta -> W3  — red ['W3']
+  PASS  MK the kit line not filtered by the live list -> W4  — red ['W4']
+  PASS  MVK the kit verified against the FILTERED lines (a dropped line reads ok) -> W4  — red ['W4']
+  PASS  MVB the balls verified against the FILTERED lines (a dropped line reads ok) -> W5  — red ['W5']
+  PASS  MQ0 (control) a zero-quantity kit line -> K8b K9 K16 E18  — red ['E18', 'K16', 'K8b', 'K9']
+  PASS  MQB (control) the kit ignores the budget -> K8b K9 K11 K15 E13 E18  — red ['E13', 'E18', 'K11', 'K15', 'K8b', 'K9']
+  PASS  MW1 a kit-flag typo is not reported -> A2  — red ['A2']
+  PASS  MW4 a kit-flag typo reported under the BALL's name -> A2  — red ['A2']
+  PASS  MW2 the errand is not passed kit_mode -> A3  — red ['A3']
+  PASS  MW3 the guard runs on the BALL flag only -> A3  — red ['A3']
+  PASS  N2 the kit hunk's names in a heal COMMENT turn NOTHING red  — red []
+  PASS  N3 a comment in stock_topoff turns NOTHING red  — red []
+
+ALL PASS

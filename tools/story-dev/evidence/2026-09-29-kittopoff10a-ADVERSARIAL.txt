@@ -1,0 +1,79 @@
+design v2 step 10a (HK at Rustboro) — THE ADVERSARIAL MUTANT PASS on probe_kit_topoff.py, and what was done about it
+=====================================================================================================================
+
+WHO / WHEN. A fresh Claude subagent (not a fork), 2026-09-29 ~9:20 PM LA, given the uncommitted worktree
+`C:/Remote Projects/pokebot-wt-ch24` (branch wt/kittopoff at 61c6759e) and asked to build plausible production mutants the
+gate does NOT catch (the step 9b 08 prevention rule: an adversarial mutant pass runs BEFORE a gate is trusted). It edited
+no repository file; it exec'd each mutant as `modules.story.stock_topoff` and ran BOTH gates' row sets
+(`probe_kit_topoff.all_rows` and the 9a gate's a/l/e/e2/e3/e4 rows), with an executed witness per mutant showing the
+behaviour actually changes. Its output is a NOTE; every claim below was re-proven by the gate's own run 3.
+
+ITS RESULT (the gate as of run 2, 41 mutants):
+  caught by the kit gate ............ 2   (MQ0, MQB)
+  caught only by the 9a gate ........ 6   (MH, MI, MQ, MPF, MW2, MW3)
+  caught by NEITHER gate ............ 32  (below)
+  not counted ....................... 1   (MPN: kit_ok by totals, not per name — equivalent at Rustboro, one kit name)
+
+THE 32 (ID: the mutant -> the row that now catches it; gate run 3's red set, which was WRITTEN BEFORE the run)
+  visit_plan (D6 order and budget)
+    MA   reserve phase fills to reserve, not reserve+1 ............ K15 (spare 5, ₽5,800) ; also E14  -> {K15, E14}
+    MB   `spare <= reserve` -> `<` ................................ K15 (spare 10, ₽3,800)          -> {K15}
+    MC   rest phase drops `- first` (30 balls, spare 35 > TARGET) . K16 (grid incl. an EMPTY kit)    -> {K16}
+    MD   rest phase ignores TRIGGER ................................ K16 (spare 21/25 in the grid)    -> {K16}
+  kit_wants / _kit_held / _reserve
+    MX   the status line's `else:` -> `if True:` ................... K17                             -> {K17}
+    MT   `max(0, ...)` dropped (held -20 -> buys Hyper 24, FH 8) ... K18                             -> {K18}
+    MU   `_reserve()` + 1 (E rows stub it) ......................... K19 (unstubbed)                 -> {K19}
+  the errand (D2, D8, D9, observe, held)
+    MW   held ignored (a full kit re-bought every heal) — the most serious miss   E9                 -> {E9}
+    MAC  the coupling reads the BALL flag ......................... E10                              -> {E10}
+    ME   the kit memo ignored ...................................... E11                             -> {E11}
+    MF   planning failure never memoises the kit ................... E12                             -> {E12}
+    MP   buy_balls on `observe` too (phantom reserve phase) ........ E13 (₽3,000)                    -> {E13}
+    MP2  buy_balls always True ..................................... E13                             -> {E13}
+    MR   observe never plans the kit (kit=- wants=-) ............... E14 (Arm 3's exact line)        -> {E14}
+    MS   kit `1` with nothing to buy logs nothing .................. E9, E18                         -> {E9, E18}
+    MO   the kit's lines carry the [BALLS-BUY] prefix .............. prefix-matched rows             -> {E9 E10 E12 E14 E15 E16 E17 E18 W3}
+    MFF  the kit plan ignores POKEBOT_R23_FAULT_FLOOR .............. E18                             -> {E18}
+    MG1  a close logs no kit-closed ................................ E15                             -> {E15}
+    MG2  a close does not memoise the kit .......................... E15                             -> {E15}
+    MG3  a kit-only close logs a [BALLS-BUY] line .................. E15                             -> {E15}
+    MG4  a yield inside the close handler (close() raises) ......... E15                             -> {E15}
+    MY   a kit-only failure recovers silently ...................... E16                             -> {E16}
+    MZ   a kit-only failure logs a [BALLS-BUY] line ................ E16                             -> {E16}
+    MV2  an unstable exit logs no kit line ......................... E17                             -> {E17}
+    MV3  an unstable exit logs a ball line with the balls OFF ...... E17                             -> {E17}
+  _walk_buy_return
+    MJ   a kit-only walk reads as "sells none" ..................... W3 (and W5)                     -> {W3, W5}
+    MM   the no-balls branch deleted (KeyError) .................... W3                              -> {W3}
+    MN   a kit-only success logs a ball line ....................... W3                              -> {W3}
+    ML   kit verified by the COUNT, not the delta .................. W3 (2 already held)             -> {W3}
+    MK   the kit's live-list filter deleted ........................ W4                              -> {W4}
+  the heal (AST)
+    MW1  a kit-flag typo not reported .............................. A2                              -> {A2}
+    MW4  reported under the ball's label ........................... A2                              -> {A2}
+  and the six only 9a caught now also redden THIS gate: MH, MI -> E16; MQ -> E13; MPF -> E12; MW2, MW3 -> A3.
+
+TWO CODE DEFECTS it surfaced (fixed in stock_topoff.py BEFORE the code commit; each has its own mutant):
+  1. (its side finding) A kit-only PLANNING failure logged `[BALLS-BUY] why=topoff-failed ball=-` and no `[KIT-BUY]` line
+     (D8 says a ball line only when the balls were planned; `kit-failed` for the kit). Fixed: each flag logs its own
+     tag. With the kit OFF the line is byte-identical to 9a's (the 9a gate's E2h passes unchanged). Mutants MSF1, MSF2.
+  2. (found while building W4 for MK) `_walk_buy_return` verified against the FILTERED lines: when both sets were
+     planned and the live list dropped one, that set's plan became empty and read as ok — a silent non-purchase. Fixed:
+     buy the filtered lines, VERIFY against the planned ones, so a dropped set is a shortfall of its own set (kit_ok or
+     balls_ok False, D9 memo, a failed line). With the kit OFF nothing changes (one ball per plan: either every line is
+     sold or none is, and "none" is still the "sells none" failure). Mutants MVK, MVB; rows W4, W5.
+  At Rustboro neither path is reachable in the live arms (its list is the static list; no planning raise).
+
+EXISTING SETS WIDENED by the new rows (written before run 3, with the arithmetic in the session):
+  M5 +K15 +E14; M6 +K15 +E14; M7 +K15; M9 +K18; M10 +E10; M13 +W4; M15 +E13 +E14; M17 +E9 +E10 +E11 +E12 +E13 +E15
+  +E16 +E17 +E18; M18 +E16; M20 +W3 (and its anchor now `if planned_kit:`).
+
+RUN 3 (2026-09-29 9:43 PM LA): the gate file hashed BEFORE the run: sha1 d073f5281b32b55f1f0a8c26f19e8b4e22cf8722
+(stock_topoff.py bb70c1b7fd7a52fdb27736bb83145e66c5f7de45). Result: ALL PASS on the first run — 116 checks, every
+mutant red on EXACTLY its written set (full output: 2026-09-29-kittopoff10a-GATE.txt). The 9a, 9b and RULING 18 gates
+were re-run after the two code fixes: ALL PASS / ALL PASS / PASS.
+
+WHAT THIS DOES NOT SHOW. A second adversarial pass on the EXPANDED gate has not run; the three-lens review (v2 step 6)
+includes a gate lens and is the next adversary. Agreement between my arithmetic and the run is a determinism check of
+the sets, not proof the row set is complete.

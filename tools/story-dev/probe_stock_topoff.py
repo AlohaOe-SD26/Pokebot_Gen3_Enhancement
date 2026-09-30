@@ -180,18 +180,20 @@ def a_rows(hsrc, tsrc, smsrc, tag=""):
         and "POKEBOT_R23_BALLRESTOCK" in ast.unparse(parse[0].value), f"parse@{parse[0].lineno if parse else None} "
         f"first yield@{yields[0] if yields else None}")
     ifs = [n for n in ast.walk(heal) if isinstance(n, ast.If)] if heal else []
-    branch = [n for n in ifs if ast.unparse(n.test) == "_topoff_mode in ('observe', '1')"]
+    # Step 10a widened the guard to the kit's flag too (`_kit_mode`, parsed next to the ball flag) and passes it on.
+    branch = [n for n in ifs if ast.unparse(n.test)
+              == "_topoff_mode in ('observe', '1') or _kit_mode in ('observe', '1')"]
     ok2 = False
     if len(branch) == 1:
         body = ast.unparse(branch[0])
         tries = [n for n in ast.walk(branch[0]) if isinstance(n, ast.Try)]
         handler = tries[0].handlers[0] if tries and tries[0].handlers else None
         hsrc_h = ast.unparse(handler) if handler else ""
-        ok2 = ("ball_topoff_errand(pokemon_center_door_location, _topoff_mode, stable >= 20)" in body
-               and handler is not None and ast.unparse(handler.type) == "Exception"
+        ok2 = ("ball_topoff_errand(pokemon_center_door_location, _topoff_mode, stable >= 20, kit_mode=_kit_mode)"
+               in body and handler is not None and ast.unparse(handler.type) == "Exception"
                and hsrc_h.index("reraise_if_aborting(error)") < hsrc_h.index("_piggyback_report("))
-    row("A2", "the errand runs ONLY inside `if _topoff_mode in ('observe', '1')`, given `stable >= 20`, under an "
-        "`except Exception` that re-raises an abort FIRST and then reports", ok2)
+    row("A2", "the errand runs ONLY inside `if _topoff_mode in (…) or _kit_mode in (…)`, given `stable >= 20`, under "
+        "an `except Exception` that re-raises an abort FIRST and then reports", ok2)
     waits = [n for n in ast.walk(heal) if isinstance(n, ast.While) and ast.unparse(n.test) == "stable < 20 and waited < 300"] if heal else []
     guarded = [n for n in ifs if ast.unparse(n.test) == "_topoff_moved"]
     inside = [w for w in waits for g in guarded if any(w is x for x in ast.walk(g))]
@@ -292,7 +294,7 @@ def e2_rows(t, tag=""):
     emitted: list = []
 
     def fake_walk(kind):
-        def walk(mart, exit_map, exit_tile, lines, live, reason, report):
+        def walk(mart, exit_map, exit_tile, lines, live, reason, report, **_kit):   # step 10a: kit_lines/kit_reason
             if kind == "loop":
                 for _ in range(200):          # a bound that is IGNORED hits this cap and raises instead of hanging
                     frames[0] += 100
@@ -616,8 +618,11 @@ def main() -> int:
         # (label, file, anchor, replacement, expected red set)
         ("M1 the second stable wait made unconditional -> A3", H_PATH,
          "        if _topoff_moved:\n", "        if True:  # _topoff_moved\n", {"A3"}),
+        # ⚠ Step 10a moved the anchors of M2, M9, M10, M12 and M15 (the kit rides the errand); their RED SETS are
+        # unchanged from step 9a's and must stay exactly these.
         ("M2 the errand called whatever the flag -> A2", H_PATH,
-         "        if _topoff_mode in (\"observe\", \"1\"):\n", "        if True:  # _topoff_mode\n", {"A2"}),
+         "        if _topoff_mode in (\"observe\", \"1\") or _kit_mode in (\"observe\", \"1\"):\n",
+         "        if True:  # _topoff_mode\n", {"A2"}),
         ("M3 stage fails OPEN (MID on an unreadable flag) -> L3 and E3", T_PATH,
          "    except Exception:  # noqa: BLE001 - an unreadable flag is \"no purchase\", never a stage guessed low\n        return None",
          "    except Exception:  # noqa: BLE001 - an unreadable flag is \"no purchase\", never a stage guessed low\n        return \"MID\"",
@@ -636,17 +641,19 @@ def main() -> int:
          "        return \"\", f\"POKEBOT_R23_BALLRESTOCK={value!r} is not one of {VALID_FLAG_VALUES}: treated as OFF\"",
          "        return \"\", None", {"L8"}),
         ("M9 the errand buys with buy_poke_balls -> A6, E4a, E4b", T_PATH,
-         "    yield from buy_in_shop([(get_item_by_name(n), q) for n, q in lines])",
+         "    yield from buy_in_shop([(get_item_by_name(n), q) for n, q in list(lines) + list(kit_lines)])",
          "    from modules.story.early_game import buy_poke_balls\n    yield from buy_poke_balls(sum(q for _, q in lines))",
          {"A6", "E4a", "E4b"}),
         # --- the step 9a review's invisible mutants of the ACTION path (its X1-X7), now each red on E2/E4 ---
         ("M10 a failed errand is not memoised -> E2b E2c E2d E2e", T_PATH,
-         "    if not moved_ok:\n        failed.add(city)\n", "    if not moved_ok:\n", {"E2b", "E2c", "E2d", "E2e"}),
+         "        if walk_failed or not report.get(\"balls_ok\", report.get(\"ok\", False)):\n            failed.add(city)\n",
+         "        if walk_failed or not report.get(\"balls_ok\", report.get(\"ok\", False)):\n            pass\n",
+         {"E2b", "E2c", "E2d", "E2e"}),
         ("M11 the errand swallows an abort -> E2f", T_PATH,
          "        reraise_if_aborting(error)\n        report[\"error\"] = repr(error)",
          "        report[\"error\"] = repr(error)", {"E2f"}),
         ("M12 the bag-delta check always ok -> E4b", T_PATH,
-         "    report[\"ok\"] = report[\"bought\"] == planned", "    report[\"ok\"] = True", {"E4b"}),
+         "        report[\"balls_ok\"] = report[\"bought\"] == planned", "        report[\"balls_ok\"] = True", {"E4b"}),
         ("M13 the recovery removed -> E2b E2c E2d E2e", T_PATH,
          "        recovered = yield from _yield_bounded_by_frames(_recover(exit_map, exit_tile, report), RECOVERY_FRAMES)",
          "        recovered = None", {"E2b", "E2c", "E2d", "E2e"}),
@@ -654,9 +661,9 @@ def main() -> int:
          "    return True\n\n\ndef _walk_buy_return", "    return False\n\n\ndef _walk_buy_return",
          {"E2a", "E2b", "E2c", "E2d", "E2e"}),
         ("M15 the walk back removed -> E4a", T_PATH,
-         "        report[\"why\"] = f\"bag delta {report['bought']} != planned {planned}\"\n"
-         "    yield from _navigate_riding_out(exit_map, exit_tile)\n",
-         "        report[\"why\"] = f\"bag delta {report['bought']} != planned {planned}\"\n", {"E4a"}),
+         "    yield from _navigate_riding_out(exit_map, exit_tile)\n    yield from wait_until_truly_controllable()\n"
+         "    yield from ensure_facing_direction(\"Down\")                   # OFF leaves the PC facing Down\n",
+         "", {"E4a"}),
         ("M16 the errand's frame bound ignored -> E2d", T_PATH,
          "        bound = int(_os_bb2.environ.get(\"POKEBOT_R23_FAULT_ERRANDFRAMES\", \"\") or ERRAND_FRAMES)",
          "        bound = 10 ** 12", {"E2d"}),
