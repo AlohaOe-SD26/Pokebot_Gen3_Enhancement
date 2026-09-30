@@ -152,9 +152,15 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
       - the target's hp is > 50% of max;
       - hp − X ≥ 1;
       - progress X ≥ 10% of max HP;
-      - **E_gain ≥ 1.0 throw**, where `E_gain = E(hp) − (1 + E(hp − X))` and `E(h) = 1 / catch_p(ball, h, status)`.
-        The ball is THROW's; the status is the target's current one; the 1 is the damage turn itself, which is not
-        spent throwing [review F5, mechanics S3, proof LP3].
+      - **E_gain ≥ 1.0 ball**, where `E_gain = E(hp) − E(hp − X)` and `E(h) = 1 / catch_p(ball, h, status)`: the
+        expected BALLS saved. The ball is THROW's, and the status is the target's current one [review F5, mechanics
+        S3, proof LP3].
+        - *Revised before the predictions:* the first revision netted the damage turn: `E(hp) − (1 + E(hp − X))`.
+          Computed on the arm's own target, that rejects Seismic Toss against a full-HP Taillow (max HP 22, 13
+          damage): the net gain is 0.97. The resource RULING 25 constrains is BALLS (their cost, the reserve, "the
+          best ball"), and the damage turn spends none. So the gain counts balls, which is v2's literal "E-gain ≥ 1.0
+          throw". The turn itself costs the target's one attack on our lead, which the design accepts.
+        - Under the fault that skips hp − X ≥ 1, E is evaluated at max(hp − X, 1).
   - **Stage 2 damage** (only with CALC=1; Tier A whitelist; W = 1, one hit):
     - ub = ceil(crit_max × 1.10) + `WEAKEN_MARGIN` (3, separate from ACCEPT_MARGIN);
     - admissible iff hp − ub ≥ 1, the target is > 50%, PP > 0, and the progress and E_gain at the non-crit MIN clear
