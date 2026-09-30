@@ -1,0 +1,31 @@
+design v2 step 10a REVIEW — the regression re-run: EXPECTED lines, filed and committed BEFORE the re-run
+======================================================================================================
+
+WHY A RE-RUN. The review's fixes change shared code in `stock_topoff.py`:
+- R1: each set is logged by its own verdict, and `_walk_buy_return` logs success per set;
+- R2: the kit is planned in its own try;
+- the ball-key memo on a planning failure is guarded by the ball flag.
+Each touches a path every live arm runs through (the planning, the walk's success emission). None of the arms takes a
+failure path, so the prediction is the strongest one available.
+
+THE COMMAND. Unchanged: all seven arms of `2026-09-29-kittopoff10a-PREDICTIONS.md`, on the review-fix commit, seed 1,
+`saves/r20_badge1_party1_gym.ss1 --driver storyresume --set-balls 5 --frames 60000`, sequential, profile repro-ml, each
+with its own output and the debug log it created (listing diff). The flags are the arms' own.
+
+EXPECTED, per arm:
+  (1) EVERY frame-stamped debug line (`^f<digits> `, heartbeats and errand lines included) IDENTICAL to the graded run
+      of the same arm (b06cbc09; its tracked lines are committed in `2026-09-29-kittopoff10a-<ARM>.txt`).
+      ⚠ This is a DETERMINISM check of one trajectory, not a replication. The grounds for expecting it: K-OFF's 199
+      frame-stamped lines already equal 9a's M0-5-r1, and K-BALL's equal B-ON, byte for byte.
+  (2) The session grader (`hk10a_grade.py`) run on the re-run: 20/20, i.e. the same byte-exact lines:
+      K-OFF   none
+      K-BALL  [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+      K-OBS   that line + [KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+      K-SKIP  that ball line + [KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)
+      K-KEY   that ball line only
+      K-ON    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+              [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+      K-ONLY  [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->7140 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 4470, 1670 left
+FALSIFIER: any frame-stamped line that differs, in any arm.
+
+RESULTS: appended below after the run (this header is not edited).

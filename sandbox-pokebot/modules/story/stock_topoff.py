@@ -435,28 +435,12 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool, kit_mode
             floor_money = int(_fault_floor)   # FAULT ARM: a synthetic floor, to prove the floor gates the purchase live
         lines, reason = ball_topoff_plan(spare=live["spare"], money=live["money"], ball=ball, price=price,
                                          stage_name=live["stage"], floor_money=floor_money, lim=lim)
-        # ---- step 10a: the kit. `observe` plans it as if ON and buys nothing; `1` without key-item mode is a named skip
-        # (spec D2). ⛔ Only a kit that BUYS (`1`, not skipped) changes the balls: then the split order decides both.
-        kit_plan = None
-        kit_skip = _kit_skip_reason(kit_mode)
-        kit_buys = kit_mode == "1" and kit_skip is None
-        kit_reason = ""
-        if kit_mode in ("observe", "1") and kit_skip is None:
-            kit_sold = _static_kit_sold(center)
-            wants = kit_wants(kit_sold, _kit_held(), kit_hp_target())
-            kit_plan = visit_plan(spare=live["spare"], money=live["money"], ball=ball, ball_price=price,
-                                  stage_name=live["stage"], floor_money=floor_money, lim=lim, wants=wants,
-                                  prices={name: live["price_of"](name) for name, _ in wants}, reserve=_reserve(),
-                                  buy_balls=flag_mode == "1")
-            kit_plan["wants"] = wants
-            kit_reason = kit_plan["reason"]
-            if kit_buys and flag_mode == "1":
-                lines, reason = kit_plan["ball_lines"], kit_plan["reason"]
     except Exception as error:  # noqa: BLE001 - a planning failure moved nothing: report it, memoise, no extra wait
         from modules.story.early_game import reraise_if_aborting
 
         reraise_if_aborting(error)
-        failed.add(city)
+        if flag_mode in ("observe", "1"):         # the ball key only when the balls are on (always, with the kit OFF)
+            failed.add(city)
         if kit_mode in ("observe", "1"):          # with the kit OFF the memo is exactly step 9a's
             failed.add(kit_key)
         # Spec D8: a `[BALLS-BUY]` line only when the balls are on, a `[KIT-BUY]` line when the kit is (the adversarial
@@ -469,6 +453,35 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool, kit_mode
             _emit(kit_log_line("kit-failed", mart=city, kit="-", bought="-", money_before="?", money_after="?",
                                reason=f"planning raised {error!r} (nothing moved)"))
         return False
+    # ---- step 10a: the kit. `observe` plans it as if ON and buys nothing; `1` without key-item mode is a named skip
+    # (spec D2). ⛔ Only a kit that BUYS (`1`, not skipped) changes the balls: then the split order decides both.
+    # ⛔ Planned in its OWN try (the review's R2): a raise in a kit-only read (the held view, the reserve) blocks only the
+    # kit key, and the balls stay step 9a's. D6 promises that `observe` buys exactly the kit-OFF purchase.
+    kit_plan = None
+    kit_skip = _kit_skip_reason(kit_mode)
+    kit_buys = kit_mode == "1" and kit_skip is None
+    kit_reason = ""
+    if kit_mode in ("observe", "1") and kit_skip is None:
+        try:
+            kit_sold = _static_kit_sold(center)
+            wants = kit_wants(kit_sold, _kit_held(), kit_hp_target())
+            kit_plan = visit_plan(spare=live["spare"], money=live["money"], ball=ball, ball_price=price,
+                                  stage_name=live["stage"], floor_money=floor_money, lim=lim, wants=wants,
+                                  prices={name: live["price_of"](name) for name, _ in wants}, reserve=_reserve(),
+                                  buy_balls=flag_mode == "1")
+            kit_plan["wants"] = wants
+        except Exception as error:  # noqa: BLE001 - the kit's own planning failed: the kit alone is blocked
+            from modules.story.early_game import reraise_if_aborting
+
+            reraise_if_aborting(error)
+            failed.add(kit_key)
+            _emit(kit_log_line("kit-failed", mart=city, kit="-", bought="-", money_before="?", money_after="?",
+                               reason=f"the kit's planning raised {error!r} (nothing moved; the balls stay 9a's)"))
+            kit_plan, kit_mode, kit_buys = None, "", False
+        else:
+            kit_reason = kit_plan["reason"]
+            if kit_buys and flag_mode == "1":
+                lines, reason = kit_plan["ball_lines"], kit_plan["reason"]
     buy_lines = lines if flag_mode == "1" else []
     kit_lines = kit_plan["kit"] if (kit_plan and kit_buys) else []
     if flag_mode in ("observe", "1") and (flag_mode == "observe" or not buy_lines):
@@ -527,25 +540,30 @@ def ball_topoff_errand(center, flag_mode: str, first_wait_stable: bool, kit_mode
         report["error"] = repr(error)
     if not moved_ok:
         # Spec D9: a failed WALK (bound, raise, not back, no menu, nothing sold) blocks both keys; a bag-delta shortfall
-        # blocks only the line set that fell short.
+        # blocks only the line set that fell short. ⛔ And only a set that FAILED is logged as failed (the review's R1:
+        # the set that bought in full was logged `topoff-failed` with an invented "frame bound expired", and lost its
+        # success line; `_walk_buy_return` now logs each verified set itself).
         walk_failed = not finished or "error" in report or not report.get("returned", False)
-        if walk_failed or not report.get("balls_ok", report.get("ok", False)):
+        balls_failed = walk_failed or not report.get("balls_ok", report.get("ok", False))
+        kit_failed = walk_failed or not report.get("kit_ok", False)
+        if balls_failed:
             failed.add(city)
-        if kit_lines and (walk_failed or not report.get("kit_ok", False)):
+        if kit_lines and kit_failed:
             failed.add(kit_key)
+        # With the kit OFF this is 9a's reason exactly: there `ok` stands for `finished` whenever no why/error is set.
         why = (report.get("error") or report.get("why")
-               or ("not back on the exit tile" if report.get("ok") else "the errand's frame bound expired"))
-        if lines:
+               or ("not back on the exit tile" if (report.get("ok") or finished) else "the errand's frame bound expired"))
+        if lines and balls_failed:
             _emit(log_line("topoff-failed", mart=city, ball=ball, bought=report.get("bought", 0),
                            premier=report.get("premier", 0), spare_before=live["spare"],
                            spare_after=report.get("spare_after", "?"), money_before=live["money"],
                            money_after=report.get("money_after", "?"), reason=why))
-        if kit_lines:
+        if kit_lines and kit_failed:
             _emit(kit_log_line("kit-failed", mart=city, kit=kit_lines, bought=report.get("kit_got", "?"),
                                money_before=live["money"], money_after=report.get("money_after", "?"),
-                               reason=report.get("kit_why") or why))
+                               reason=report.get("error") or report.get("kit_why") or why))
         recovered = yield from _yield_bounded_by_frames(_recover(exit_map, exit_tile, report), RECOVERY_FRAMES)
-        if lines:
+        if lines and balls_failed:
             _emit(log_line("topoff-recovery", mart=city, ball=ball, bought=report.get("bought", 0), premier=0,
                            spare_before="-", spare_after="-", money_before="-", money_after="-",
                            reason=f"finished={recovered} back_on_exit={report.get('recovered_on_exit')}"))
@@ -637,12 +655,14 @@ def _walk_buy_return(mart, exit_map, exit_tile, lines, live, reason, report, kit
     report["back"] = back
     report["returned"] = (tuple(av.map_group_and_number) == tuple(exit_map.value)
                           and tuple(av.local_coordinates) == tuple(exit_tile) and av.facing_direction == "Down")
-    if report["ok"] and report["returned"]:
-        if planned_lines:
+    if report["returned"]:
+        # PER SET (the review's R1): a set verified in full is logged as bought even when the OTHER set fell short. With
+        # the kit OFF `balls_ok` IS `ok`, so this is 9a's line exactly.
+        if planned_lines and report["balls_ok"]:
             _emit(log_line("topoff", mart=exit_map_name(mart_map), ball=ball, bought=report["bought"],
                            premier=report["premier"], spare_before=live["spare"], spare_after=report["spare_after"],
                            money_before=live["money"], money_after=report["money_after"], reason=reason, extra=back))
-        if planned_kit:
+        if planned_kit and report["kit_ok"]:
             _emit(kit_log_line("kit", mart=exit_map_name(mart_map), kit=planned_kit, bought=report["kit_got"],
                                money_before=live["money"], money_after=report["money_after"], reason=kit_reason,
                                extra=back))

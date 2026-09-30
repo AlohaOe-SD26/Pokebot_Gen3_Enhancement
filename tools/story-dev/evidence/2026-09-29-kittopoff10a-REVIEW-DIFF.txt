@@ -1,0 +1,254 @@
+design v2 step 10a REVIEW — the step-9a DIFFERENTIAL: with the kit OFF, skipped or in observe, is every ball decision step 9a's?
+
+Built by the review's spec lens (a fresh subagent); re-run by the author on the FIXED code, 2026-09-29 ~10:30 PM LA.
+OLD = git show 61c6759e:sandbox-pokebot/modules/story/stock_topoff.py (step 9a+9b, before step 10); NEW = the working file
+(sha1 d6d5e58953a2d12b067843adc6f755aae371bfe7). Both exec'd as the module; the walk and recovery are the kit gate's
+report-shaped fakes; compared per state: return value, yield count, the ball lines walked, every [BALLS-BUY] line,
+the city memo, and the recovery count.
+
+State grid: ball mode {'', observe, 1, typo->''} x walk {ok, loop, hang+close, raise, notback, ballshort, nomenu}
+  x city memo x stable exit x money {9940, 1100, 3000} x spare {7, 25, 0} x planning raise x kit-read raise;
+kit modes compared: OFF (key items 1), SKIPPED (kit 1, no key items), observe, observe without key items.
+
+ON THE REVIEWED CODE (b06cbc09), as the lens reported it: 252 differences with the ball flag on, ALL observe with a
+raising kit read (the review's R2: a kit-only raise cancelled 9a's purchase).
+ON THE FIXED CODE, first pass (kit planned in its own try): 0 with the ball flag on; 756 with the ball flag OFF, all
+a shared planning raise memoising the ball key (a state 9a never reaches). Then the ball-key memo was guarded by the
+ball flag. RESULT ON THE FIXED CODE:
+  errand:  compared 16128 (state, kit-mode) pairs; 0 differ from 9a Counter() 
+  walk:    _walk_buy_return with the kit empty: 432 states, 0 differ from 9a
+
+===== diff9a.py (paths: S = the scratch folder holding st_old.py / st_new.py) =====
+# Differential: step 9a's errand (61c6759e) vs 10a's (b06cbc09) with the kit OFF / skipped / observe.
+# Compares, per state: return value, yield count, the BALL lines walked, every [BALLS-BUY] line, and the city memo.
+import sys, types, itertools, pathlib
+sys.path.insert(0, r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+import probe_kit_topoff as g
+from types import SimpleNamespace
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/hk_diff")
+REAL = sys.modules[g.T_NAME]
+
+def load(fname):
+    mod = types.ModuleType(g.T_NAME); mod.__file__ = str(S / fname); mod.__package__ = "modules.story"
+    exec(compile((S / fname).read_text(encoding="utf-8"), fname, "exec"), mod.__dict__)
+    return mod
+OLD, NEW = load("st_old.py"), load("st_new.py")
+
+def run(m, *, pass_kit, ball_mode, kit_mode, keyitems, walk_kind, memo, stable, money, spare, plan_raise,
+        close_after, kit_raise):
+    from modules import player as _player
+    from modules.context import context
+    from modules.map_data import PokemonCenter
+    from modules.story import early_game as _eg
+    from plugins.custom_modes.story_mode import StoryMode
+    rec = {"walks": [], "emitted": [], "recover": 0}
+    frames = [0]
+    def walk(mart, exit_map, exit_tile, lines, live, reason, report, kit_lines=(), kit_reason=""):
+        rec["walks"].append((list(lines), list(kit_lines)))
+        frames[0] += 100
+        yield
+        if walk_kind == "loop":
+            for _ in range(200):
+                frames[0] += 100; yield
+        if walk_kind == "hang":
+            while True:
+                frames[0] += 1; yield
+        if walk_kind == "raise":
+            raise RuntimeError("boom in the walk")
+        if walk_kind == "nomenu":
+            report["why"] = "the clerk's Task_ShopMenu never opened"; return
+        planned = sum(q for _, q in lines)
+        got = planned - (3 if walk_kind == "ballshort" else 0)
+        report.update({"bought": got, "premier": 0, "spare_after": 15, "money_after": 5540,
+                       "returned": walk_kind != "notback", "balls_ok": got == planned, "kit_ok": True,
+                       "kit_got": {n: q for n, q in kit_lines}})
+        if got != planned:
+            report["why"] = f"bag delta {got} != planned {planned}"
+        report["ok"] = report["balls_ok"] and report["kit_ok"]
+    def recover(exit_map, exit_tile, report):
+        rec["recover"] += 1; frames[0] += 100; yield
+        report["recovered_on_exit"] = True
+    story = StoryMode.__new__(StoryMode)
+    story._ball_topoff_failed = set(memo)
+    def inputs(mode):
+        if plan_raise:
+            raise RuntimeError("bag unreadable")
+        return {"stage": "MID", "floor": 1000, "spare": spare, "money": money, "flags": {}, "price_of": lambda n: g.PRICES[n]}
+    def kit_held(names=None):
+        if kit_raise:
+            raise RuntimeError("reserve read broken")
+        return {}
+    with g.Patch() as p:
+        p.setenv(POKEBOT_R27_KEYITEMS=keyitems, POKEBOT_R23_FAULT_FLOOR=None, POKEBOT_R26_FAULT_RAWBAG=None,
+                 POKEBOT_R23_FAULT_ERRANDFRAMES="250" if walk_kind == "loop" else None)
+        sys.modules[g.T_NAME] = m
+        p.set(m, "_emit", lambda line: rec["emitted"].append(line))
+        p.set(m, "_allowed", lambda: {"Poké Ball"})
+        p.set(m, "_inputs", inputs)
+        p.set(m, "_kit_held", kit_held)
+        p.set(m, "_reserve", lambda: 10)
+        p.set(m, "_walk_buy_return", walk)
+        p.set(m, "_recover", recover)
+        p.set(_player, "get_player_avatar", lambda: SimpleNamespace(map_group_and_number=(0, 3), local_coordinates=(16, 39)))
+        p.set(_eg, "reraise_if_aborting", lambda error: None)
+        p.set(context, "emulator", SimpleNamespace(get_frame_count=lambda: frames[0], press_button=lambda b: None))
+        p.set(context, "bot_mode_instance", story)
+        try:
+            if pass_kit:
+                gen = m.ball_topoff_errand(PokemonCenter.RustboroCity, ball_mode, stable, kit_mode=kit_mode)
+            else:
+                gen = m.ball_topoff_errand(PokemonCenter.RustboroCity, ball_mode, stable)
+            yields, out = 0, "NO END"
+            try:
+                while yields < 2000:
+                    next(gen); yields += 1
+                    if close_after is not None and yields >= close_after:
+                        gen.close(); out = "CLOSED"; break
+            except StopIteration as stop:
+                out = stop.value
+        finally:
+            sys.modules[g.T_NAME] = REAL
+    balls = [l for l in rec["emitted"] if l.startswith("[BALLS-BUY]")]
+    return (out, yields, [w[0] for w in rec["walks"]], balls, "RustboroCity" in story._ball_topoff_failed, rec["recover"]), rec
+
+diffs, total = [], 0
+for (ball_mode, walk_kind, memo_city, stable, money, spare, plan_raise, close_after, kit_raise) in itertools.product(
+        ("", "observe", "1", "2"), ("ok", "loop", "hang", "raise", "notback", "ballshort", "nomenu"),
+        (False, True), (True, False), (9940, 1100, 3000), (7, 25, 0), (False, True), (None, 3), (False, True)):
+    if close_after is not None and walk_kind != "hang":
+        continue
+    if walk_kind == "hang" and close_after is None:
+        continue
+    memo = {"RustboroCity"} if memo_city else set()
+    bm = ball_mode if ball_mode != "2" else ""
+    ref, _ = run(OLD, pass_kit=False, ball_mode=bm, kit_mode="", keyitems=None, walk_kind=walk_kind, memo=memo,
+                 stable=stable, money=money, spare=spare, plan_raise=plan_raise, close_after=close_after, kit_raise=False)
+    for kit_mode, keyitems, label in (("", "1", "OFF"), ("1", None, "SKIPPED"), ("observe", "1", "observe"),
+                                      ("observe", None, "observe-nokey")):
+        got, rec = run(NEW, pass_kit=True, ball_mode=bm, kit_mode=kit_mode, keyitems=keyitems, walk_kind=walk_kind,
+                       memo=memo, stable=stable, money=money, spare=spare, plan_raise=plan_raise,
+                       close_after=close_after, kit_raise=kit_raise)
+        total += 1
+        # yields and recover may legitimately differ only if the kit walked; with these modes the kit never buys
+        if got != ref:
+            diffs.append((label, dict(ball_mode=bm, walk=walk_kind, memo=memo_city, stable=stable, money=money,
+                                      spare=spare, plan_raise=plan_raise, kit_raise=kit_raise), ref, got))
+print(f"compared {total} (state, kit-mode) pairs; {len(diffs)} differ from 9a")
+seen = set()
+for label, st, ref, got in diffs:
+    key = (label, st["kit_raise"], st["plan_raise"])
+    if key in seen:
+        continue
+    seen.add(key)
+    print("---", label, st)
+    print("   9a :", ref)
+    print("   10a:", got)
+from collections import Counter
+print(Counter((d[0], d[1]["kit_raise"], d[1]["plan_raise"]) for d in diffs))
+
+===== diff9a_tail.py =====
+import runpy, sys, io, contextlib
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    ns = runpy.run_path(sys.argv[1])
+diffs = ns["diffs"]
+from collections import Counter
+real = [d for d in diffs if d[1]["ball_mode"] in ("1", "observe")]
+print("diffs with the BALL flag on:", len(real))
+print(Counter((d[0], d[1]["ball_mode"], d[1]["kit_raise"], d[1]["plan_raise"]) for d in real))
+shown = set()
+for label, st, ref, got in real:
+    k = (label, st["ball_mode"])
+    if k in shown: continue
+    shown.add(k)
+    print("---", label, st); print("   9a :", ref); print("   10a:", got)
+
+===== diffwalk.py =====
+# Differential of the REAL _walk_buy_return: 9a (61c6759e) vs 10a (b06cbc09, kit_lines empty).
+import sys, types, itertools, pathlib
+sys.path.insert(0, r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+import probe_kit_topoff as g
+from types import SimpleNamespace
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/hk_diff")
+REAL = sys.modules[g.T_NAME]
+def load(fname):
+    mod = types.ModuleType(g.T_NAME); mod.__file__ = str(S / fname); mod.__package__ = "modules.story"
+    exec(compile((S / fname).read_text(encoding="utf-8"), fname, "exec"), mod.__dict__)
+    return mod
+OLD, NEW = load("st_old.py"), load("st_new.py")
+import modules.items as _items, modules.mart as _mart, modules.modes.util as _util
+import modules.modes.util.higher_level_actions as _hla, modules.modes.util.tasks_scripts as _ts
+import modules.modes.util.walking as _walking, modules.player as _player
+from modules.context import context
+from modules.map_data import MapRSE
+from modules.story import early_game as _eg, league_reserve as _lr
+
+def walk(m, *, pass_kit, lines, kit_lines, sold, short, bag, opens, back_ok, short_item="Poké Ball"):
+    state = {}
+    def nav(dest_map, dest_tile, **_kw):
+        if back_ok or tuple(dest_map.value) != (0, 3):
+            state["map"], state["tile"] = tuple(dest_map.value), tuple(dest_tile)
+        else:
+            state["map"], state["tile"] = tuple(dest_map.value), (1, 1)
+        yield
+    def one(*_a, **_kw):
+        yield
+    def face(d):
+        state["facing"] = d; yield
+    def press(b):
+        if b == "A" and opens: state["menu"] = True
+    def buy(ls):
+        for item, qty in ls:
+            state["asked"].append((item.name, qty))
+            got = qty - (short if item.name == short_item else 0)
+            state["bag"][item.name] = state["bag"].get(item.name, 0) + got
+            if item.name == "Poké Ball" and qty >= 10:
+                state["bag"]["Premier Ball"] = state["bag"].get("Premier Ball", 0) + 1
+        yield
+    class Bag:
+        def quantity_of(self, item): return state["bag"].get(item.name, 0)
+        @property
+        def number_of_balls_except_master_ball(self): return sum(q for n, q in state["bag"].items() if "Ball" in n)
+    with g.Patch() as p:
+        sys.modules[g.T_NAME] = m
+        p.set(_eg, "_navigate_riding_out", nav); p.set(_eg, "wait_until_truly_controllable", one)
+        p.set(_eg, "_check_abort", lambda: None); p.set(_walking, "ensure_facing_direction", face)
+        p.set(_ts, "task_is_active", lambda name: bool(state.get("menu")) and name == "Task_ShopMenu")
+        p.set(_mart, "get_mart_buyable_items", lambda: [SimpleNamespace(name=n) for n in sold])
+        p.set(_hla, "buy_in_shop", buy); p.set(_lr, "_close_shop_and_dialogs", lambda report: one())
+        p.set(_items, "get_item_bag", lambda: Bag())
+        p.set(_items, "get_item_by_name", lambda n: SimpleNamespace(name=n, price=g.PRICES.get(n, 200)))
+        p.set(_player, "get_player", lambda: SimpleNamespace(money=5540))
+        p.set(_player, "get_player_avatar", lambda: SimpleNamespace(map_group_and_number=state["map"],
+              local_coordinates=state["tile"], facing_direction=state["facing"]))
+        p.set(_util, "wait_for_n_frames", lambda n: one())
+        emitted = []
+        p.set(m, "_emit", lambda line: emitted.append(line))
+        p.set(context, "emulator", SimpleNamespace(press_button=press, get_frame_count=lambda: 0))
+        state.update({"map": (0, 3), "tile": (16, 39), "facing": "Down", "menu": False, "bag": dict(bag), "asked": []})
+        report = {}
+        args = ((MapRSE.RUSTBORO_CITY_MART, (3, 3), "Left"), MapRSE.RUSTBORO_CITY, (16, 39), list(lines),
+                {"spare": 7, "money": 9940}, "r", report)
+        gen = m._walk_buy_return(*args, kit_lines=list(kit_lines), kit_reason="k") if pass_kit else m._walk_buy_return(*args)
+        n = 0
+        try:
+            for n in range(500): next(gen)
+        except StopIteration:
+            pass
+        sys.modules[g.T_NAME] = REAL
+    return report, emitted, state["asked"], n
+
+diffs = total = 0
+KEYS = ("bought", "premier", "ok", "why", "spare_after", "money_after", "returned", "back")
+for lines, sold, short, bag, opens, back_ok in itertools.product(
+        ([("Poké Ball", 8)], [("Poké Ball", 10), ("Poké Ball", 12)], [("Great Ball", 5)]),
+        (("Poké Ball", "Potion", "Super Potion"), ("Potion",), ("Great Ball",), ()), (0, 1, 3),
+        ({"Poké Ball": 7}, {}, {"Poké Ball": 7, "Premier Ball": 2}), (True, False), (True, False)):
+    a = walk(OLD, pass_kit=False, lines=lines, kit_lines=(), sold=sold, short=short, bag=bag, opens=opens, back_ok=back_ok)
+    b = walk(NEW, pass_kit=True, lines=lines, kit_lines=(), sold=sold, short=short, bag=bag, opens=opens, back_ok=back_ok)
+    total += 1
+    ra = {k: a[0].get(k) for k in KEYS}; rb = {k: b[0].get(k) for k in KEYS}
+    if (ra, a[1], a[2], a[3]) != (rb, b[1], b[2], b[3]):
+        diffs += 1
+        if diffs <= 3: print("DIFF", lines, sold, short, bag, opens, back_ok, "\n  9a", ra, a[1:], "\n  10a", rb, b[1:])
+print(f"_walk_buy_return with the kit empty: {total} states, {diffs} differ from 9a")

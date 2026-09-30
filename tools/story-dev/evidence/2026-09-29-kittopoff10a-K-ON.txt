@@ -1,0 +1,73 @@
+# design v2 step 10a (HK) arm K-ON on b06cbc09 (branch wt/kittopoff). Flags: POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1
+# Command: cd tools/story-dev && env <flags> PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" saves/r20_badge1_party1_gym.ss1 --driver storyresume --set-balls 5 --frames 60000 --log <arm>.log
+# exit=0; debug log Story-debug-20260929-215222.log (the ONE file this run created: listing diff); finished 09:53:11 PM LA, 2026-09-29.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-kittopoff10a-PREDICTIONS.md (bdd07a4d). Frames are DEBUG-LOG frames.
+# stdout errand/flag lines:
+#   [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 
+#   [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 
+# [BALLS-BUY] / [KIT-BUY] lines:
+#   f178117 [BALLS] [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+#   f178117 [BALLS] [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+# the rival (opp=600), its item uses, and 'heading south':
+#   f178138 [STEP] 'Story: heading south — the rival is waiting in Rustboro...'
+#   f180045 [TRAINER] start opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 double=False two=False money=5540 heal_stock=Super_Potion:4 map=0,3 enemy_alive=2
+#   f184271 [BATTLE] [ITEM] using Super Potion on Marshtomp 15/58 (use 1, worst hit 23)
+#   f185989 [BATTLE] [ITEM] using Super Potion on Marshtomp 17/58 (use 2, worst hit 23)
+#   f187706 [BATTLE] [ITEM] using Super Potion on Marshtomp 15/58 (use 3, worst hit 23)
+#   f189427 [BATTLE] [ITEM] using Super Potion on Marshtomp 14/58 (use 4, worst hit 23)
+#   f192179 [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 res=Lost money=5540->5540 delta=0 mult=0 heal_stock=- map=0,3
+# tracked lines (r25_grade.tracked):
+f139973 [MAP] RUSTBORO CITY(11,3) -> RUSTBORO CITY(0,3) pos=(5, 19)
+f141583 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)
+f142089 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f142708 [KEYBATTLE] opp=322 class=0x25 key=False allow=False reason=not_a_key_class
+f144209 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f144398 [MAP] ROUTE 116(0,31) -> ROUTE 116(0,3) pos=(15, 7)
+f144399 [MAP] ROUTE 116(0,3) -> ROUTE 116(0,31) pos=(15, 7)
+f144426 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f144426 [DEXFENCE] skip #290 Nincada — party is 1/6 — a catch would consume the HM/counter runway
+f145612 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mudkip:L16']
+f146142 [BATTLE] started hp=[('Mudkip', 21, 46)]
+f146743 [KEYBATTLE] opp=280 class=0x21 key=False allow=False reason=not_a_key_class
+f150066 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f150617 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f151228 [KEYBATTLE] opp=631 class=0x02 key=False allow=False reason=not_a_key_class
+f152239 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f152670 [BATTLE] started hp=[('Marshtomp', 29, 56)]
+f153291 [KEYBATTLE] opp=754 class=0x25 key=False allow=False reason=not_a_key_class
+f156823 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L17']
+f157249 [BATTLE] started hp=[('Marshtomp', 5, 56)]
+f157861 [KEYBATTLE] opp=753 class=0x02 key=False allow=False reason=not_a_key_class
+f160004 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f160848 [MAP] ROUTE 116(0,31) -> RUSTURF TUNNEL(24,4) pos=(47, 8)
+f161895 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f162506 [KEYBATTLE] opp=16 class=0x03 key=False allow=False reason=not_a_key_class
+f163453 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f166018 [MAP] RUSTURF TUNNEL(24,4) -> ROUTE 116(0,31) pos=(4, 10)
+f166431 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f166431 [DEXFENCE] skip #276 Taillow — party is 1/6 — a catch would consume the HM/counter runway
+f167042 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f167384 [BATTLE] started hp=[('Marshtomp', 7, 58)]
+f167996 [BATTLE] ended (outcome=BattleOutcome.RanAway) party=['Marshtomp:L18']
+f168226 [MAP] ROUTE 116(0,31) -> RUSTBORO CITY(0,3) pos=(-1, 8)
+f169144 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,2) pos=(30, 12)
+f173866 [MAP] RUSTBORO CITY(11,2) -> RUSTBORO CITY(11,1) pos=(2, 1)
+f174160 [MAP] RUSTBORO CITY(11,1) -> RUSTBORO CITY(11,0) pos=(14, 1)
+f174475 [MAP] RUSTBORO CITY(11,0) -> RUSTBORO CITY(0,3) pos=(5, 8)
+f174940 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,5) pos=(16, 38)
+f176275 [MAP] RUSTBORO CITY(11,5) -> RUSTBORO CITY(0,3) pos=(7, 8)
+f176596 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,7) pos=(16, 45)
+f177916 [MAP] RUSTBORO CITY(11,7) -> RUSTBORO CITY(0,3) pos=(3, 7)
+f180045 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f180680 [KEYBATTLE] opp=600 class=0x32 key=True allow=True reason=key_class
+f192179 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+f192335 [STORY] WHITEOUT recovery #1 at (0, 3)
+f192694 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+f193401 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+f194012 [KEYBATTLE] opp=604 class=0x36 key=False allow=False reason=not_a_key_class
+f196740 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+f197486 [MAP] ROUTE 104(0,19) -> PETALBURG WOODS(24,11) pos=(11, 30)
+f198025 [MAP] PETALBURG WOODS(24,11) -> ROUTE 104(0,19) pos=(17, 38)
+f198356 [MAP] ROUTE 104(0,19) -> ROUTE 104(17,0) pos=(17, 50)
+f198359 [MAP] ROUTE 104(17,0) -> ROUTE 104(0,3) pos=(17, 50)
+f198360 [MAP] ROUTE 104(0,3) -> ROUTE 104(17,0) pos=(17, 50)

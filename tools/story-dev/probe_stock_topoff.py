@@ -646,8 +646,8 @@ def main() -> int:
          {"A6", "E4a", "E4b"}),
         # --- the step 9a review's invisible mutants of the ACTION path (its X1-X7), now each red on E2/E4 ---
         ("M10 a failed errand is not memoised -> E2b E2c E2d E2e", T_PATH,
-         "        if walk_failed or not report.get(\"balls_ok\", report.get(\"ok\", False)):\n            failed.add(city)\n",
-         "        if walk_failed or not report.get(\"balls_ok\", report.get(\"ok\", False)):\n            pass\n",
+         "        if balls_failed:\n            failed.add(city)\n",       # step 10a review: the anchor moved
+         "        if balls_failed:\n            pass\n",                   # (the set is unchanged, re-proven)
          {"E2b", "E2c", "E2d", "E2e"}),
         ("M11 the errand swallows an abort -> E2f", T_PATH,
          "        reraise_if_aborting(error)\n        report[\"error\"] = repr(error)",
@@ -670,8 +670,8 @@ def main() -> int:
         ("M17 no GeneratorExit handler (an outer close goes silent again) -> E2g", T_PATH,
          "    except GeneratorExit:\n", "    except ZeroDivisionError:\n", {"E2g"}),
         ("M18 a planning failure escapes the errand -> E2h", T_PATH,
-         "        reraise_if_aborting(error)\n        failed.add(city)\n",
-         "        raise\n        failed.add(city)\n", {"E2h"}),
+         "        reraise_if_aborting(error)\n        if flag_mode in (\"observe\", \"1\"):         # the ball key",
+         "        raise\n        if flag_mode in (\"observe\", \"1\"):         # the ball key", {"E2h"}),  # anchor moved (10a review)
         ("M19 `_inputs` reads a flag missing from the table as False -> E3", T_PATH,
          "for key, name in flag_names().items() if name in _event_flags}", "for key, name in flag_names().items()}",
          {"E3"}),

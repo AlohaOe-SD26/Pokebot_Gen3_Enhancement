@@ -34,7 +34,17 @@ ROWS
   W3-W5   a kit-only walk with the item already held (the DELTA, not the count); a kit line the live list drops, and a
           ball line it drops: each a SHORTFALL of its own set, never a silent ok.
   A2-A3   (AST) a kit-flag typo is REPORTED under the kit's name; the guard runs on EITHER flag and passes `kit_mode`.
-  M1-M20, MA-MW4  source mutants, each with the EXACT set of rows it must turn red; N1-N3 comment-only edits (none red).
+  --- added by the step 10a REVIEW (three lenses; R1, R2 and a second adversarial mutant pass) ---
+  K20     a partly-met HP line does not starve the status line. K13/K14 also pin "0" (no truthiness).
+  E19-E25 a one-sided shortfall logs and memoises ONLY the set that failed (both directions, and with the walk not
+          back); Arm 4's exact skip line; a failed ball walk with no kit lines never memoises the kit; the ball reason
+          is rebound with the lines; `observe` takes kit `1`'s failure branches; a raise in the KIT's own planning
+          blocks only the kit (the balls stay 9a's). E6 was REWRITTEN: it had asserted the R1 defect.
+  W6      a one-sided bag-delta shortfall still logs the other set's success. W4/W5 now expect that line (they had
+          asserted none).
+  A4-A5   (AST) the kit flag is read with no default; it is parsed with `parse_kit_flag`, not 9a's `parse_flag`.
+  M1-M20, MA-MW4, R1a-R2d, X3-Y44  source mutants, each with the EXACT set of rows it must turn red; N1-N3
+          comment-only edits (none red).
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_kit_topoff.py        (exit 1 on any failure)
 """
@@ -251,6 +261,13 @@ def vp_rows(tag=""):
                             bad.append((spare, money, buy, len(wants), n, p["kit"]))
         return not bad, f"{len(bad)} bad: {bad[:3]}"
 
+    def k20():
+        # budget 2000 at spare 18 (no reserve phase): 1 Hyper Potion (the HP line cannot be met in full), then the
+        # status line STILL gets its 1 Full Heal; ₽200 left, no Ultra
+        p = _vp(spare=18, money=5000, ball="Ultra Ball", ball_price=1200, wants=[("Hyper Potion", 4), ("Full Heal", 2)])
+        return (p["kit"] == [("Hyper Potion", 1), ("Full Heal", 1)] and p["ball_lines"] == [] and p["left"] == 200), \
+            str(p)
+
     for label, fn in (("K7 Rustboro: 4 + 4 Poké around 4 Super Potions on ONE budget of 4470, 70 left", k7),
                       ("K8 the kit alone (the ball flag not 1): 4 Super Potions, 1670 left", k8),
                       ("K8b money tight: the reserve phase FIRST (6 balls), the kit gets nothing", k8b),
@@ -259,7 +276,8 @@ def vp_rows(tag=""):
                       ("K10b a total >= 10 balls is ONE line set (16 Poké: a Premier is earned)", k10b),
                       ("K11 spend never exceeds the ONE budget, and left is exact (grid)", k11),
                       ("K15 the reserve phase fills to EXACTLY reserve + 1, and fires AT the reserve", k15),
-                      ("K16 balls never exceed TARGET, none above TRIGGER, none unless the ball flag is 1 (grid)", k16)):
+                      ("K16 balls never exceed TARGET, none above TRIGGER, none unless the ball flag is 1 (grid)", k16),
+                      ("K20 a partly-met HP line does not starve the status line (1 Hyper, then 1 Full Heal)", k20)):
         row(label, fn, tag, reds)
     return reds
 
@@ -283,8 +301,10 @@ def misc_rows(tag=""):
             view = m._kit_held()
             p.setenv(POKEBOT_R26_FAULT_RAWBAG="1")
             raw = m._kit_held()
+            p.setenv(POKEBOT_R26_FAULT_RAWBAG="0")            # the review: "0" must NOT arm the fault (truthiness)
+            zero = m._kit_held()
         return (view["Hyper Potion"] == 1 and view["Full Heal"] == 0 and raw["Hyper Potion"] == 31
-                and raw["Full Heal"] == 8), f"view={view} raw={raw}"
+                and raw["Full Heal"] == 8 and zero == view), f"view={view} raw={raw} zero={zero}"
 
     def k14():
         with Patch() as p:
@@ -293,7 +313,9 @@ def misc_rows(tag=""):
             b = m._kit_skip_reason("observe")
             p.setenv(POKEBOT_R27_KEYITEMS="1")
             c = m._kit_skip_reason("1")
-        return a is not None and b is None and c is None, f"{a} {b} {c}"
+            p.setenv(POKEBOT_R27_KEYITEMS="0")                # the review: "0" is NOT key-item mode (truthiness)
+            d = m._kit_skip_reason("1")
+        return a is not None and b is None and c is None and d is not None, f"{a} {b} {c} {d}"
 
     def k18():
         from modules.story import league_reserve as lr
@@ -321,7 +343,7 @@ def misc_rows(tag=""):
 
 # ------------------------------------------------------------------------------------------ E rows (the errand)
 def _errand(p, *, ball_mode, kit_mode, keyitems, walk_kind="ok", memo=None, held=None, money=9940, stable=True,
-            fault_floor=None, plan_raise=False, close_after=None):
+            fault_floor=None, plan_raise=False, close_after=None, kit_raise=False):
     from modules import player as _player
     from modules.context import context
     from modules.map_data import PokemonCenter
@@ -329,11 +351,12 @@ def _errand(p, *, ball_mode, kit_mode, keyitems, walk_kind="ok", memo=None, held
     from plugins.custom_modes.story_mode import StoryMode
 
     m = t()
-    rec = {"walks": [], "emitted": [], "recover": 0}
+    rec = {"walks": [], "emitted": [], "recover": 0, "reasons": []}
     frames = [0]
 
     def walk(mart, exit_map, exit_tile, lines, live, reason, report, kit_lines=(), kit_reason=""):
         rec["walks"].append((list(lines), list(kit_lines)))
+        rec["reasons"].append((reason, kit_reason))
         frames[0] += 100
         yield
         if walk_kind == "loop":
@@ -347,12 +370,17 @@ def _errand(p, *, ball_mode, kit_mode, keyitems, walk_kind="ok", memo=None, held
                 yield
         if walk_kind == "raise":
             raise RuntimeError("boom in the walk")
+        # the REAL walk's report shape: per-set verdicts, `why` for a ball shortfall, `kit_why` for a kit one
         report.update({"bought": sum(q for _, q in lines), "premier": 0, "spare_after": 15, "money_after": 5540,
-                       "returned": walk_kind != "notback", "balls_ok": True,
-                       "kit_ok": walk_kind != "kitshort", "kit_got": {n: 0 for n, _ in kit_lines}})
+                       "returned": walk_kind not in ("notback", "kitshort_notback"),
+                       "balls_ok": walk_kind != "ballshort",
+                       "kit_ok": walk_kind not in ("kitshort", "kitshort_notback"),
+                       "kit_got": {n: 0 for n, _ in kit_lines}})
         report["ok"] = report["balls_ok"] and report["kit_ok"]
-        if walk_kind == "kitshort":
+        if walk_kind in ("kitshort", "kitshort_notback"):
             report["kit_why"] = "kit bag delta short"
+        if walk_kind == "ballshort":
+            report["why"] = "bag delta 5 != planned 8"
 
     def recover(exit_map, exit_tile, report):
         rec["recover"] += 1
@@ -373,7 +401,12 @@ def _errand(p, *, ball_mode, kit_mode, keyitems, walk_kind="ok", memo=None, held
     p.set(m, "_emit", lambda line: rec["emitted"].append(line))
     p.set(m, "_allowed", lambda: {"Poké Ball"})
     p.set(m, "_inputs", inputs)
-    p.set(m, "_kit_held", lambda names=None: dict(held or {}))
+    def kit_held(names=None):
+        if kit_raise:
+            raise RuntimeError("reserve read broken")
+        return dict(held or {})
+
+    p.set(m, "_kit_held", kit_held)
     p.set(m, "_reserve", lambda: 10)
     p.set(m, "_walk_buy_return", walk)
     p.set(m, "_recover", recover)
@@ -405,6 +438,11 @@ BOTH = ["RustboroCity", "RustboroCity:kit"]
 ARM3 = ("[KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 "
         "wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after "
         "the kit); budget 4470, 70 left")
+
+
+#: the live Arm 4 (K-SKIP) line, byte for byte
+ARM4 = ("[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- "
+        "reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)")
 
 
 def tags(emitted, prefix):
@@ -444,9 +482,14 @@ def e_rows(tag=""):
         return (rec["walks"] == [(NINE_A, [])] and has(rec["emitted"], "why=kit-skip") == 1), str(rec)
 
     def e6():
+        # the step 10a REVIEW (R1): the balls were bought in full, so NO ball line is logged as failed (this row used to
+        # assert one, locking the defect in); the kit's own failure and recovery lines carry the kit's reason
         out, _y, rec, memo = run(ball_mode="1", kit_mode="1", keyitems="1", walk_kind="kitshort")
-        return (memo == ["RustboroCity:kit"] and has(rec["emitted"], "why=kit-failed") == 1
-                and has(rec["emitted"], "why=topoff-failed") == 1 and rec["recover"] == 1), f"memo={memo} {rec}"
+        e = rec["emitted"]
+        kf = [x for x in e if x.startswith("[KIT-BUY] why=kit-failed ")]
+        return (memo == ["RustboroCity:kit"] and tags(e, "[BALLS-BUY]") == []
+                and tags(e, "[KIT-BUY]") == ["why=kit-failed", "why=kit-recovery"]
+                and len(kf) == 1 and "reason=kit bag delta short" in kf[0] and rec["recover"] == 1), f"memo={memo} {rec}"
 
     def e7():
         out, _y, rec, memo = run(ball_mode="1", kit_mode="1", keyitems="1", walk_kind="loop")
@@ -526,6 +569,58 @@ def e_rows(tag=""):
         return (out is False and rec["walks"] == [] and tags(rec["emitted"], B) == []
                 and tags(rec["emitted"], K) == ["why=kit-none"]), str(rec)
 
+    # --- added by the step 10a REVIEW (R1, R2 and the gate lens's second adversarial pass) ---
+    def e19():
+        out, _y, rec, memo = run(ball_mode="1", kit_mode="1", keyitems="1", walk_kind="ballshort")
+        e = rec["emitted"]
+        bf = [x for x in e if x.startswith("[BALLS-BUY] why=topoff-failed ")]
+        return (memo == ["RustboroCity"] and tags(e, B) == ["why=topoff-failed", "why=topoff-recovery"]
+                and len(bf) == 1 and "reason=bag delta 5 != planned 8" in bf[0] and tags(e, K) == []
+                and rec["recover"] == 1), f"memo={memo} {rec}"
+
+    def e20():
+        out, _y, rec, _m = run(ball_mode="1", kit_mode="1", keyitems=None)
+        got = [line for line in rec["emitted"] if line.startswith(K)]
+        return got == [ARM4], str(got)
+
+    def e21():
+        a = run(ball_mode="1", kit_mode="observe", keyitems="1", walk_kind="raise")
+        b = run(ball_mode="1", kit_mode="observe", keyitems="1", walk_kind="hang", close_after=3)
+        c = run(ball_mode="1", kit_mode="1", keyitems="1", walk_kind="raise", held={"Super Potion": 4})
+        return (a[0] is True and a[3] == ["RustboroCity"] and b[0] == "CLOSED" and b[3] == ["RustboroCity"]
+                and c[0] is True and c[2]["walks"] == [(NINE_A, [])] and c[3] == ["RustboroCity"]), \
+            f"{a[3]} {b[0]} {b[3]} {c[0]} {c[3]} {c[2]['walks']}"
+
+    def e22():
+        out, _y, rec, _m = run(ball_mode="1", kit_mode="1", keyitems="1")
+        r = rec["reasons"]
+        return (len(r) == 1 and r[0][0] == r[0][1] and r[0][0].startswith("kit ")), str(r)
+
+    def e23():
+        a = run(ball_mode="", kit_mode="observe", keyitems="1", plan_raise=True)
+        b = run(ball_mode="", kit_mode="observe", keyitems="1", stable=False)
+        return (a[3] == ["RustboroCity:kit"] and tags(a[2]["emitted"], K) == ["why=kit-failed"]
+                and tags(b[2]["emitted"], K) == ["why=kit-skip"]), f"{a} || {b}"
+
+    def e24():
+        a = run(ball_mode="1", kit_mode="observe", keyitems="1", kit_raise=True)
+        b = run(ball_mode="1", kit_mode="1", keyitems="1", kit_raise=True)
+        return (a[0] is True and a[2]["walks"] == [(NINE_A, [])] and a[3] == ["RustboroCity:kit"]
+                and tags(a[2]["emitted"], K) == ["why=kit-failed"] and tags(a[2]["emitted"], B) == []
+                and b[0] is True and b[2]["walks"] == [(NINE_A, [])] and b[3] == ["RustboroCity:kit"]
+                and tags(b[2]["emitted"], K) == ["why=kit-failed"] and tags(b[2]["emitted"], B) == []), \
+            f"{a} || {b}"
+
+    def e25():
+        out, _y, rec, memo = run(ball_mode="1", kit_mode="1", keyitems="1", walk_kind="kitshort_notback")
+        e = rec["emitted"]
+        bf = [x for x in e if x.startswith("[BALLS-BUY] why=topoff-failed ")]
+        kf = [x for x in e if x.startswith("[KIT-BUY] why=kit-failed ")]
+        return (memo == BOTH and tags(e, B) == ["why=topoff-failed", "why=topoff-recovery"]
+                and len(bf) == 1 and "reason=not back on the exit tile" in bf[0]
+                and tags(e, K) == ["why=kit-failed"] and len(kf) == 1 and "reason=kit bag delta short" in kf[0]
+                and rec["recover"] == 1), f"memo={memo} {rec}"
+
     for label, fn in (("E1 both flags OFF: False, ZERO yields, nothing emitted", e1),
                       ("E2 kit `observe`: the ball purchase is EXACTLY 9a's, one kit-observe line", e2),
                       ("E3 kit `1` (key items on): 8 Poké + 4 Super Potions in one walk", e3),
@@ -546,7 +641,17 @@ def e_rows(tag=""):
                       ("E16 a failed walk (a raise; not back): both keys, recovery, each set logs only its own tags",
                        e16),
                       ("E17 an unstable exit: each flag logs ONE skip under its own prefix, nothing walks", e17),
-                      ("E18 the FAULT_FLOOR lever gates the kit (floor 9900: nothing affordable, one kit-none)", e18)):
+                      ("E18 the FAULT_FLOOR lever gates the kit (floor 9900: nothing affordable, one kit-none)", e18),
+                      ("E19 balls SHORT, kit ok: only the ball key, only ball lines, the ball's own reason", e19),
+                      ("E20 the kit-skip line is EXACTLY Arm 4's (a skipped kit is never planned)", e20),
+                      ("E21 a failed ball walk with NO kit lines (observe; a full kit) never memoises the kit", e21),
+                      ("E22 kit `1` rebinds the ball REASON with the ball lines (the walk logs the split plan)", e22),
+                      ("E23 kit `observe` takes the same failure branches as kit `1` (planning raise; unstable exit)",
+                       e23),
+                      ("E24 a raise in the KIT's own planning blocks only the kit: the balls stay 9a's (review R2)",
+                       e24),
+                      ("E25 kit short AND not back: both keys; the ball line says 'not back', never 'bound expired'",
+                       e25)):
         row(label, fn, tag, reds)
     return reds
 
@@ -585,7 +690,8 @@ def w_rows(tag=""):
     def buy(lines):
         for item, qty in lines:
             state["asked"].append((item.name, qty))
-            got = qty - (state["short"] if item.name == "Super Potion" else 0)
+            got = (qty - (state["short"] if item.name == "Super Potion" else 0)
+                   - (state["ball_short"] if item.name == "Poké Ball" else 0))
             state["bag"][item.name] = state["bag"].get(item.name, 0) + got
             if item.name == "Poké Ball" and qty >= 10:
                 state["bag"]["Premier Ball"] = state["bag"].get("Premier Ball", 0) + 1
@@ -600,7 +706,7 @@ def w_rows(tag=""):
             return sum(q for n, q in state["bag"].items() if "Ball" in n)
 
     def walk(short, lines=(("Poké Ball", 8),), kit_lines=(("Super Potion", 4),), bag=None,
-             sold=("Poké Ball", "Potion", "Super Potion")):
+             sold=("Poké Ball", "Potion", "Super Potion"), ball_short=0):
         with Patch() as p:
             p.set(_eg, "_navigate_riding_out", nav)
             p.set(_eg, "wait_until_truly_controllable", one)
@@ -621,7 +727,8 @@ def w_rows(tag=""):
             p.set(context, "emulator", SimpleNamespace(press_button=press, get_frame_count=lambda: 0))
             state.clear()
             state.update({"map": (0, 3), "tile": (16, 39), "facing": "Down", "menu": False,
-                          "bag": dict(bag or {"Poké Ball": 7}), "short": short, "emitted": [], "asked": []})
+                          "bag": dict(bag or {"Poké Ball": 7}), "short": short, "emitted": [], "asked": [],
+                          "ball_short": ball_short})
             report: dict = {}
             gen = m._walk_buy_return((MapRSE.RUSTBORO_CITY_MART, (3, 3), "Left"), MapRSE.RUSTBORO_CITY, (16, 39),
                                      [tuple(x) for x in lines], {"spare": 7, "money": 9940}, "r", report,
@@ -651,24 +758,36 @@ def w_rows(tag=""):
                 and r.get("returned") is True and asked == [("Super Potion", 2)] and len(emitted) == 1
                 and emitted[0].startswith("[KIT-BUY] why=kit ")), f"{r} {emitted} {asked}"
 
+    def one_line(emitted, head):
+        return len(emitted) == 1 and emitted[0].startswith(head)
+
     def w4():
+        # the step 10a REVIEW (R1): the set that WAS bought in full now gets its success line (this row asserted none)
         r, emitted, asked = walk(0, sold=("Poké Ball", "Potion"))
         return (asked == [("Poké Ball", 8)] and r.get("balls_ok") is True and r.get("kit_ok") is False
-                and r.get("kit_got") == {"Super Potion": 0} and r.get("ok") is False and emitted == []), \
-            f"{r} {emitted} {asked}"
+                and r.get("kit_got") == {"Super Potion": 0} and r.get("ok") is False
+                and one_line(emitted, "[BALLS-BUY] why=topoff ")), f"{r} {emitted} {asked}"
 
     def w5():
         r, emitted, asked = walk(0, sold=("Potion", "Super Potion"))
         return (asked == [("Super Potion", 4)] and r.get("balls_ok") is False and r.get("kit_ok") is True
                 and r.get("bought") == 0 and r.get("ok") is False and "bag delta 0 != planned 8" in r.get("why", "")
-                and emitted == []), f"{r} {emitted} {asked}"
+                and one_line(emitted, "[KIT-BUY] why=kit ")), f"{r} {emitted} {asked}"
+
+    def w6():
+        a, ea, _x = walk(1)                  # the kit short by the bag delta (D9's "no more room"), the balls in full
+        b, eb, _y = walk(0, ball_short=2)    # the balls short by the bag delta, the kit in full
+        return (a.get("ok") is False and one_line(ea, "[BALLS-BUY] why=topoff ")
+                and b.get("ok") is False and b.get("balls_ok") is False and one_line(eb, "[KIT-BUY] why=kit ")), \
+            f"{ea} || {eb}"
 
     for label, fn in (("W1 balls and kit verified PER NAME: ok, one topoff line and one kit line", w1),
                       ("W2 a kit shortfall: kit_ok False, balls_ok True, ok False", w2),
                       ("W3 a kit-only walk, 2 already held: the DELTA (2), ONE [KIT-BUY] line, no ball line", w3),
                       ("W4 a kit line the live list DROPS: not asked of the shop, a KIT shortfall, never a silent ok",
                        w4),
-                      ("W5 a ball line the live list DROPS (kit sold): a BALL shortfall, the kit bought", w5)):
+                      ("W5 a ball line the live list DROPS (kit sold): a BALL shortfall, the kit bought", w5),
+                      ("W6 a one-sided bag-delta shortfall: the OTHER set still gets its success line (review R1)", w6)):
         row(label, fn, tag, reds)
     return reds
 
@@ -697,7 +816,9 @@ def a_rows(hsrc, tag=""):
                  if isinstance(c, ast.Call) and getattr(c.func, "id", "") == "_piggyback_report"]
         ok = (len(ifs) == 1 and len(calls) == 1 and len(calls[0].args) >= 2
               and isinstance(calls[0].args[0], ast.Constant) and "kit" in str(calls[0].args[0].value)
-              and isinstance(calls[0].args[1], ast.Name) and calls[0].args[1].id == "_kit_error")
+              and isinstance(calls[0].args[1], ast.Name) and calls[0].args[1].id == "_kit_error"
+              and any(k.arg == "console_too" and isinstance(k.value, ast.Constant) and k.value.value is True
+                      for k in calls[0].keywords))
         return ok, f"ifs={len(ifs)} calls={[ast.unparse(c) for c in calls]}"
 
     def a3():
@@ -714,7 +835,23 @@ def a_rows(hsrc, tag=""):
         return (len(kw) == 1 and isinstance(kw[0].value, ast.Name) and kw[0].value.id == "_kit_mode" and either), \
             f"kw={[ast.unparse(k) for k in kw]} guard={ast.unparse(g.test) if g else None}"
 
+    def a4():
+        heal = heal_of()
+        gets = [c for c in ast.walk(heal) if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+                and c.func.attr == "get" and any(isinstance(a, ast.Constant) and a.value == "POKEBOT_R26_KITTOPOFF"
+                                                 for a in c.args)]
+        return (len(gets) == 1 and len(gets[0].args) == 1 and not gets[0].keywords), \
+            f"{[ast.unparse(g) for g in gets]}"
+
+    def a5():
+        heal = heal_of()
+        names = [(n.module, a.name) for n in ast.walk(heal) if isinstance(n, ast.ImportFrom)
+                 for a in n.names if a.asname == "_kit_parse"]
+        return names == [("modules.story.stock_topoff", "parse_kit_flag")], str(names)
+
     row("A1 (AST) the heal parses POKEBOT_R26_KITTOPOFF before its FIRST yield", a1, tag, reds)
+    row("A4 (AST) the heal reads the kit flag with NO default (unset stays OFF)", a4, tag, reds)
+    row("A5 (AST) the heal parses with parse_kit_flag (a typo names THIS flag), not 9a's parse_flag", a5, tag, reds)
     row("A2 (AST) a kit-flag typo is REPORTED (`if _kit_error:` -> _piggyback_report under the kit's name)", a2, tag,
         reds)
     row("A3 (AST) the errand runs on EITHER flag and is passed kit_mode=_kit_mode", a3, tag, reds)
@@ -748,35 +885,40 @@ def main() -> int:
         ("M4 the HP line's <= 0 guard removed -> K2 K5", T_PATH,
          "        if hp_target - have > 0:\n            wants.append((best, hp_target - have))\n",
          "        wants.append((best, hp_target - have))\n", {"K2", "K5"}),
-        ("M5 the kit is not debited from the budget -> K7 K8 K9 K10b K11 E3 K15 E14", T_PATH,
+        ("M5 the kit is not debited from the budget -> K7 K8 K9 K10b K11 E3 K15 E14 K20", T_PATH,
          "            kit.append((name, qty))\n            left -= qty * prices[name]\n",
-         "            kit.append((name, qty))\n", {"K7", "K8", "K9", "K10b", "K11", "E3", "K15", "E14"}),
+         "            kit.append((name, qty))\n", {"K7", "K8", "K9", "K10b", "K11", "E3", "K15", "E14", "K20"}),
         ("M6 the kit comes BEFORE the reserve phase -> K8b K15 E14", T_PATH,
          "    if buy_balls and ball and ball_price and spare <= reserve:\n",
          "    if False:\n", {"K8b", "K15", "E14"}),
-        ("M7 the two ball phases bought as separate lines (a total >= 10 loses its Premier) -> K7 K8b K10b E3 K15", T_PATH,
+        # ‼ E21 added after gate run 4 (the review round): its case (c) asserts the walk's lines [10, 12] and this mutant
+        # makes them [4, 18]. The set written before run 4 omitted it: a mis-derived set, disclosed, not a gate change.
+        ("M7 the two ball phases bought as separate lines (a total >= 10 loses its Premier) -> K7 K8b K10b E3 K15 E21",
+         T_PATH,
          "    return {\"ball_lines\": plan_lines(ball, balls_qty) if balls_qty > 0 else [], \"kit\": kit, \"balls_qty\": balls_qty,",
          "    return {\"ball_lines\": ([(ball, first)] if first else []) + ([(ball, rest)] if rest else []), \"kit\": kit, \"balls_qty\": balls_qty,",
-         {"K7", "K8b", "K10b", "E3", "K15"}),
+         {"K7", "K8b", "K10b", "E3", "K15", "E21"}),
         ("M8 parse_kit_flag names the BALL flag -> K12", T_PATH,
          "        return \"\", f\"{KIT_FLAG}={value!r} is not one of {VALID_FLAG_VALUES}: treated as OFF\"",
          "        return \"\", f\"POKEBOT_R23_BALLRESTOCK={value!r} is not one of {VALID_FLAG_VALUES}: treated as OFF\"",
          {"K12"}),
         ("M9 _kit_held ignores the reserve -> K13 K18", T_PATH,
          "    reserved = reserved_quantities()\n", "    reserved = {}\n", {"K13", "K18"}),
-        ("M10 the key-item coupling removed -> K14 E5 E10", T_PATH,
+        ("M10 the key-item coupling removed -> K14 E5 E10 E20", T_PATH,
          "    if kit_mode == \"1\" and os.environ.get(\"POKEBOT_R27_KEYITEMS\") != \"1\":\n", "    if False:\n",
-         {"K14", "E5", "E10"}),
+         {"K14", "E5", "E10", "E20"}),
         ("M11 an OBSERVE kit changes the balls -> E2", T_PATH,
          "            if kit_buys and flag_mode == \"1\":\n", "            if flag_mode == \"1\":\n", {"E2"}),
         ("M12 a kit-only shortfall memoises the balls too -> E6", T_PATH,
-         "        if walk_failed or not report.get(\"balls_ok\", report.get(\"ok\", False)):\n",
-         "        if True:\n", {"E6"}),
-        ("M13 the kit verification always ok -> W2 W4", T_PATH,
-         "    report[\"kit_ok\"] = report[\"kit_got\"] == kit_want\n", "    report[\"kit_ok\"] = True\n", {"W2", "W4"}),
-        ("M14 the heal reads a misspelled kit flag -> A1", H_PATH,
+         "        if balls_failed:\n            failed.add(city)\n",
+         "        if True:\n            failed.add(city)\n", {"E6"}),
+        ("M13 the kit verification always ok -> W2 W4 W6", T_PATH,
+         "    report[\"kit_ok\"] = report[\"kit_got\"] == kit_want\n", "    report[\"kit_ok\"] = True\n", {"W2", "W4", "W6"}),
+        # ‼ A4 added after gate run 4: A4 finds the flag's read BY ITS NAME, so a misspelled name leaves it nothing to
+        # find. The set written before run 4 omitted it (disclosed).
+        ("M14 the heal reads a misspelled kit flag -> A1 A4", H_PATH,
          "    _kit_mode, _kit_error = _kit_parse(_os_hla.environ.get(\"POKEBOT_R26_KITTOPOFF\"))\n",
-         "    _kit_mode, _kit_error = _kit_parse(_os_hla.environ.get(\"POKEBOT_R26_KIT\"))\n", {"A1"}),
+         "    _kit_mode, _kit_error = _kit_parse(_os_hla.environ.get(\"POKEBOT_R26_KIT\"))\n", {"A1", "A4"}),
         # --- added by the coverage check (rows no mutant could redden: K1, K10, E1, E4, E7, E8, W1); sets written
         # before gate run 2 ---
         ("M15 the HP line picks the CHEAPEST tier sold -> K1 K2 E3 E4 E8 E13 E14", T_PATH,
@@ -784,21 +926,21 @@ def main() -> int:
         ("M16 PRE_GYM1 is not refused -> K10", T_PATH,
          "        return {**nothing, \"reason\": \"before gym 1 (no kit, as no balls: the named RULING 26 gap)\"}\n",
          "        pass\n", {"K10"}),
-        ("M17 OFF acts as if the ball flag were on -> E1 E4 E9-E13 E15-E18", T_PATH,
+        ("M17 OFF acts as if the ball flag were on -> E1 E4 E9-E13 E15-E18 E23", T_PATH,
          "    if flag_mode not in (\"observe\", \"1\") and kit_mode not in (\"observe\", \"1\"):\n        return False\n"
          "    try:\n        from plugins.custom_modes.story_mode import StoryMode\n",
          "    flag_mode = flag_mode or \"1\"\n"
          "    try:\n        from plugins.custom_modes.story_mode import StoryMode\n",
-         {"E1", "E4", "E9", "E10", "E11", "E12", "E13", "E15", "E16", "E17", "E18"}),
-        ("M18 a failure never memoises the kit key -> E6 E7 E16", T_PATH,
-         "        if kit_lines and (walk_failed or not report.get(\"kit_ok\", False)):\n            failed.add(kit_key)\n",
-         "        if kit_lines and (walk_failed or not report.get(\"kit_ok\", False)):\n            pass\n", {"E6", "E7", "E16"}),
+         {"E1", "E4", "E9", "E10", "E11", "E12", "E13", "E15", "E16", "E17", "E18", "E23"}),
+        ("M18 a failure never memoises the kit key -> E6 E7 E16 E25", T_PATH,
+         "        if kit_lines and kit_failed:\n            failed.add(kit_key)\n",
+         "        if kit_lines and kit_failed:\n            pass\n", {"E6", "E7", "E16", "E25"}),
         ("M19 a ball memo blocks the kit too -> E8", T_PATH,
          "    if city in failed:\n        flag_mode = \"\"                         # the balls failed here earlier this run\n",
          "    if city in failed:\n        return False\n", {"E8"}),
-        ("M20 a successful kit purchase is not logged -> W1 W3", T_PATH,
-         "        if planned_kit:\n            _emit(kit_log_line(\"kit\", mart=exit_map_name(mart_map),",
-         "        if False:\n            _emit(kit_log_line(\"kit\", mart=exit_map_name(mart_map),", {"W1", "W3"}),
+        ("M20 a successful kit purchase is not logged -> W1 W3 W5 W6", T_PATH,
+         "        if planned_kit and report[\"kit_ok\"]:\n            _emit(kit_log_line(\"kit\", mart=exit_map_name(mart_map),",
+         "        if False:\n            _emit(kit_log_line(\"kit\", mart=exit_map_name(mart_map),", {"W1", "W3", "W5", "W6"}),
         ("N1 a comment naming the kit flag and `_kit_mode` in the heal turns NOTHING red", H_PATH,
          "    # before any yield, and a typo is OFF WITH an error naming THIS flag.\n",
          "    # before any yield (edited: POKEBOT_R26_KITTOPOFF and _kit_mode = named in a comment only).\n", set()),
@@ -824,40 +966,41 @@ def main() -> int:
          "    return {name: raw.get(name, 0) - reserved.get(name, 0) for name in names}\n", {"K18"}),
         ("MU _reserve() off by one -> K19", T_PATH,
          "    return DEX_CATCH_BALL_RESERVE\n", "    return DEX_CATCH_BALL_RESERVE + 1\n", {"K19"}),
-        ("MW the errand ignores what is held (buys a full kit again) -> E9", T_PATH,
+        ("MW the errand ignores what is held (buys a full kit again) -> E9 E21 E24", T_PATH,
          "            wants = kit_wants(kit_sold, _kit_held(), kit_hp_target())\n",
-         "            wants = kit_wants(kit_sold, {}, kit_hp_target())\n", {"E9"}),
+         "            wants = kit_wants(kit_sold, {}, kit_hp_target())\n", {"E9", "E21", "E24"}),
         ("MAC the key-item coupling reads the BALL flag -> E10", T_PATH,
-         "        kit_skip = _kit_skip_reason(kit_mode)\n", "        kit_skip = _kit_skip_reason(flag_mode)\n", {"E10"}),
+         "    kit_skip = _kit_skip_reason(kit_mode)\n", "    kit_skip = _kit_skip_reason(flag_mode)\n", {"E10"}),
         ("ME a kit memo is ignored -> E11", T_PATH,
          "    if kit_key in failed:\n        kit_mode = \"\"\n", "", {"E11"}),
-        ("MF a planning failure never memoises the kit -> E12", T_PATH,
+        ("MF a planning failure never memoises the kit -> E12 E23", T_PATH,
          "        if kit_mode in (\"observe\", \"1\"):          # with the kit OFF the memo is exactly step 9a's\n"
-         "            failed.add(kit_key)\n", "", {"E12"}),
+         "            failed.add(kit_key)\n", "", {"E12", "E23"}),
         ("MPF a planning failure memoises the kit even when it is OFF -> E12", T_PATH,
          "        if kit_mode in (\"observe\", \"1\"):          # with the kit OFF the memo is exactly step 9a's\n"
          "            failed.add(kit_key)\n", "        failed.add(kit_key)\n", {"E12"}),
         ("MSF1 a planning failure logs a ball line with the balls OFF (the pass's side finding) -> E12", T_PATH,
          "        if flag_mode in (\"observe\", \"1\"):\n            _emit(log_line(\"topoff-failed\", mart=city, ball=\"-\",",
          "        if True:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=\"-\",", {"E12"}),
-        ("MSF2 a planning failure logs no kit line -> E12", T_PATH,
+        ("MSF2 a planning failure logs no kit line -> E12 E23", T_PATH,
          "        if kit_mode in (\"observe\", \"1\"):\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=\"-\",",
-         "        if False:\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=\"-\",", {"E12"}),
+         "        if False:\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=\"-\",", {"E12", "E23"}),
         ("MP an OBSERVE ball flag runs the phantom ball phases -> E13", T_PATH,
          "buy_balls=flag_mode == \"1\")", "buy_balls=flag_mode in (\"observe\", \"1\"))", {"E13"}),
         ("MP2 the ball phases always run -> E13", T_PATH,
          "buy_balls=flag_mode == \"1\")", "buy_balls=True)", {"E13"}),
         ("MQ an OBSERVE ball flag buys the balls -> E13", T_PATH,
          "    buy_lines = lines if flag_mode == \"1\" else []\n", "    buy_lines = lines if flag_mode else []\n", {"E13"}),
-        ("MR observe never plans the kit (the line says kit=- wants=-) -> E14", T_PATH,
-         "        if kit_mode in (\"observe\", \"1\") and kit_skip is None:\n",
-         "        if kit_mode == \"1\" and kit_skip is None:\n", {"E14"}),
+        ("MR observe never plans the kit (the line says kit=- wants=-) -> E14 E24", T_PATH,
+         "    if kit_mode in (\"observe\", \"1\") and kit_skip is None:\n",
+         "    if kit_mode == \"1\" and kit_skip is None:\n", {"E14", "E24"}),
         ("MS a kit `1` with nothing to buy logs nothing -> E9 E18", T_PATH,
          "    if kit_mode in (\"observe\", \"1\") and not kit_lines:\n",
          "    if (kit_mode == \"observe\" or kit_skip) and not kit_lines:\n", {"E9", "E18"}),
-        ("MO the kit's lines carry the BALL prefix -> E9 E10 E12 E14 E15 E16 E17 E18 W3", T_PATH,
+        ("MO the kit's lines carry the BALL prefix -> E6 E9 E10 E12 E14-E18 E20 E23-E25 W3 W5 W6", T_PATH,
          "    return (f\"[KIT-BUY] why={tag}", "    return (f\"[BALLS-BUY] why={tag}",
-         {"E9", "E10", "E12", "E14", "E15", "E16", "E17", "E18", "W3"}),
+         {"E6", "E9", "E10", "E12", "E14", "E15", "E16", "E17", "E18", "E20", "E23", "E24", "E25", "W3", "W5",
+          "W6"}),
         ("MFF the kit plan ignores the FAULT_FLOOR lever -> E18", T_PATH,
          "floor_money=floor_money, lim=lim, wants=wants,", "floor_money=live[\"floor\"], lim=lim, wants=wants,", {"E18"}),
         ("MG1 a close logs no kit-closed line -> E15", T_PATH,
@@ -873,19 +1016,19 @@ def main() -> int:
          "money_after=\"?\", reason=\"an outer bound closed the heal mid-errand\"))\n        raise\n",
          "money_after=\"?\", reason=\"an outer bound closed the heal mid-errand\"))\n            yield\n        raise\n",
          {"E15"}),
-        ("MY a kit-only failure recovers silently -> E16", T_PATH,
+        ("MY a kit-only failure recovers silently -> E16 E6", T_PATH,
          "        else:\n            _emit(kit_log_line(\"kit-recovery\",", "        elif False:\n            _emit(kit_log_line(\"kit-recovery\",",
-         {"E16"}),
+         {"E16", "E6"}),
         ("MZ a kit-only failure logs a ball line -> E16", T_PATH,
-         "        if lines:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,",
-         "        if True:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,", {"E16"}),
-        ("MI `finished` unset when the walk raises -> E16", T_PATH, "    finished = False\n", "", {"E16"}),
-        ("MH a walk not back on the exit tile counts as ok -> E16", T_PATH,
+         "        if lines and balls_failed:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,",
+         "        if balls_failed:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,", {"E16"}),
+        ("MI `finished` unset when the walk raises -> E16 E21", T_PATH, "    finished = False\n", "", {"E16", "E21"}),
+        ("MH a walk not back on the exit tile counts as ok -> E16 E25", T_PATH,
          "        walk_failed = not finished or \"error\" in report or not report.get(\"returned\", False)\n",
-         "        walk_failed = not finished or \"error\" in report\n", {"E16"}),
-        ("MV2 an unstable exit logs no kit line -> E17", T_PATH,
+         "        walk_failed = not finished or \"error\" in report\n", {"E16", "E25"}),
+        ("MV2 an unstable exit logs no kit line -> E17 E23", T_PATH,
          "        if kit_mode in (\"observe\", \"1\"):\n            _emit(kit_log_line(\"kit-skip\", mart=city, kit=\"-\"",
-         "        if False:\n            _emit(kit_log_line(\"kit-skip\", mart=city, kit=\"-\"", {"E17"}),
+         "        if False:\n            _emit(kit_log_line(\"kit-skip\", mart=city, kit=\"-\"", {"E17", "E23"}),
         ("MV3 an unstable exit logs a ball line with the balls OFF -> E17", T_PATH,
          "        if flag_mode in (\"observe\", \"1\"):\n            _emit(log_line(\"topoff-skip\",",
          "        if True:\n            _emit(log_line(\"topoff-skip\",", {"E17"}),
@@ -894,9 +1037,9 @@ def main() -> int:
          "    if not lines:\n        report[\"why\"] = f\"the live list sells none", {"W3", "W5"}),
         ("MM a kit-only walk never sets balls_ok (KeyError) -> W3", T_PATH,
          "    else:\n        report[\"bought\"], report[\"premier\"], report[\"balls_ok\"] = 0, 0, True\n", "", {"W3"}),
-        ("MN a kit-only success logs a ball line -> W3", T_PATH,
-         "        if planned_lines:\n            _emit(log_line(\"topoff\", mart=exit_map_name(mart_map)",
-         "        if True:\n            _emit(log_line(\"topoff\", mart=exit_map_name(mart_map)", {"W3"}),
+        ("MN a kit-only success logs a ball line -> W3 W5 W6", T_PATH,
+         "        if planned_lines and report[\"balls_ok\"]:\n            _emit(log_line(\"topoff\", mart=exit_map_name(mart_map)",
+         "        if True:\n            _emit(log_line(\"topoff\", mart=exit_map_name(mart_map)", {"W3", "W5", "W6"}),
         ("ML the kit verified by the COUNT, not the delta -> W3", T_PATH,
          "    report[\"kit_got\"] = {name: after[name] - before[name] for name in kit_want}\n",
          "    report[\"kit_got\"] = {name: after[name] for name in kit_want}\n", {"W3"}),
@@ -909,9 +1052,9 @@ def main() -> int:
          "    ball = lines[0][0] if lines else None\n    if lines:\n", {"W5"}),
         ("MQ0 (control) a zero-quantity kit line -> K8b K9 K16 E18", T_PATH,
          "        if qty > 0:\n", "        if qty >= 0:\n", {"K8b", "K9", "K16", "E18"}),
-        ("MQB (control) the kit ignores the budget -> K8b K9 K11 K15 E13 E18", T_PATH,
+        ("MQB (control) the kit ignores the budget -> K8b K9 K11 K15 E13 E18 K20", T_PATH,
          "        qty = min(want, left // prices[name])\n", "        qty = want\n",
-         {"K8b", "K9", "K11", "K15", "E13", "E18"}),
+         {"K8b", "K9", "K11", "K15", "E13", "E18", "K20"}),
         ("MW1 a kit-flag typo is not reported -> A2", H_PATH,
          "    if _kit_error:\n        _piggyback_report(\"the healing-kit top-off\", _kit_error, console_too=True)\n", "",
          {"A2"}),
@@ -921,6 +1064,77 @@ def main() -> int:
         ("MW2 the errand is not passed kit_mode -> A3", H_PATH, "kit_mode=_kit_mode)", ")", {"A3"}),
         ("MW3 the guard runs on the BALL flag only -> A3", H_PATH,
          " or _kit_mode in (\"observe\", \"1\"):", ":", {"A3"}),
+        # --- the step 10a REVIEW (three lenses, 2026-09-29): R1 (a one-sided shortfall), R2 (the kit's own planning
+        # raise) and the gate lens's second adversarial pass. Every set below was written BEFORE the gate's run 4. ---
+        ("R1a the ball set logged FAILED when only the kit fell short -> E6", T_PATH,
+         "        if lines and balls_failed:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,",
+         "        if lines:\n            _emit(log_line(\"topoff-failed\", mart=city, ball=ball,", {"E6"}),
+        ("R1b the kit set logged FAILED when only the balls fell short -> E19", T_PATH,
+         "        if kit_lines and kit_failed:\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=kit_lines,",
+         "        if kit_lines:\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=kit_lines,", {"E19"}),
+        ("R1c a kit shortfall recovers under the BALL prefix -> E6", T_PATH,
+         "        if lines and balls_failed:\n            _emit(log_line(\"topoff-recovery\",",
+         "        if lines:\n            _emit(log_line(\"topoff-recovery\",", {"E6"}),
+        ("R1d the walk logs success only when BOTH sets verified (the old gate) -> W4 W5 W6", T_PATH,
+         "    if report[\"returned\"]:\n", "    if report[\"ok\"] and report[\"returned\"]:\n", {"W4", "W5", "W6"}),
+        ("R1e the kit key memoised on `ok` (a ball shortfall blocks the kit) -> E16 E19", T_PATH,
+         "        if kit_lines and kit_failed:\n            failed.add(kit_key)\n",
+         "        if kit_lines and not report.get(\"ok\", False):\n            failed.add(kit_key)\n", {"E16", "E19"}),
+        ("R1f the fallback reason says 'bound expired' for a finished walk that is not back -> E25", T_PATH,
+         "\"not back on the exit tile\" if (report.get(\"ok\") or finished) else",
+         "\"not back on the exit tile\" if report.get(\"ok\") else", {"E25"}),
+        ("R2a a kit planning raise cancels the balls (the old shared try) -> E24", T_PATH,
+         "            kit_plan, kit_mode, kit_buys = None, \"\", False\n",
+         "            failed.add(city)\n            return False\n", {"E24"}),
+        ("R2b a kit planning raise does not memoise the kit -> E24", T_PATH,
+         "            reraise_if_aborting(error)\n            failed.add(kit_key)\n",
+         "            reraise_if_aborting(error)\n", {"E24"}),
+        ("R2c a kit planning raise leaves the kit mode on (a second kit line) -> E24", T_PATH,
+         "            kit_plan, kit_mode, kit_buys = None, \"\", False\n",
+         "            kit_plan, kit_buys = None, False\n", {"E24"}),
+        ("R2d a kit-only planning raise memoises the BALL key -> E23", T_PATH,
+         "        if flag_mode in (\"observe\", \"1\"):         # the ball key only when the balls are on (always, with the kit OFF)\n"
+         "            failed.add(city)\n",
+         "        failed.add(city)\n", {"E23"}),
+        ("X3 the key-item coupling read by truthiness (KEYITEMS=0 buys) -> K14", T_PATH,
+         "    if kit_mode == \"1\" and os.environ.get(\"POKEBOT_R27_KEYITEMS\") != \"1\":\n",
+         "    if kit_mode == \"1\" and not os.environ.get(\"POKEBOT_R27_KEYITEMS\"):\n", {"K14"}),
+        ("X4 the heal parses the kit flag with 9a's parse_flag -> A5", H_PATH,
+         "from modules.story.stock_topoff import parse_kit_flag as _kit_parse",
+         "from modules.story.stock_topoff import parse_flag as _kit_parse", {"A5"}),
+        ("X5 the heal's kit flag defaults to ON -> A4", H_PATH,
+         "_os_hla.environ.get(\"POKEBOT_R26_KITTOPOFF\"))", "_os_hla.environ.get(\"POKEBOT_R26_KITTOPOFF\", \"1\"))", {"A4"}),
+        ("X6 the kit loop stops at the first line it cannot meet in full -> K20", T_PATH,
+         "            left -= qty * prices[name]\n",
+         "            left -= qty * prices[name]\n        if qty < want:\n            break\n", {"K20"}),
+        ("X7 kit `1` rebinds the ball lines but not the ball reason -> E22", T_PATH,
+         "                lines, reason = kit_plan[\"ball_lines\"], kit_plan[\"reason\"]\n",
+         "                lines = kit_plan[\"ball_lines\"]\n", {"E22"}),
+        ("X8 a SKIPPED kit is still planned -> E20", T_PATH,
+         "    if kit_mode in (\"observe\", \"1\") and kit_skip is None:\n", "    if kit_mode in (\"observe\", \"1\"):\n",
+         {"E20"}),
+        ("X9 the RAWBAG fault read by truthiness (=0 arms it) -> K13", T_PATH,
+         "    if os.environ.get(\"POKEBOT_R26_FAULT_RAWBAG\") == \"1\":\n",
+         "    if os.environ.get(\"POKEBOT_R26_FAULT_RAWBAG\"):\n", {"K13"}),
+        ("Y1 a kit-flag typo reported to the run log only (no console) -> A2", H_PATH,
+         "_piggyback_report(\"the healing-kit top-off\", _kit_error, console_too=True)",
+         "_piggyback_report(\"the healing-kit top-off\", _kit_error)", {"A2"}),
+        ("Y14 a failed walk memoises the kit on its MODE, not its lines -> E21", T_PATH,
+         "        if kit_lines and kit_failed:\n            failed.add(kit_key)\n",
+         "        if kit_mode in (\"observe\", \"1\") and kit_failed:\n            failed.add(kit_key)\n", {"E21"}),
+        ("Y47 a close memoises the kit on its MODE, not its lines -> E21", T_PATH,
+         "        if kit_lines:\n            failed.add(kit_key)\n        if lines:\n            _emit(log_line(\"topoff-closed\"",
+         "        if kit_mode in (\"observe\", \"1\"):\n            failed.add(kit_key)\n        if lines:\n"
+         "            _emit(log_line(\"topoff-closed\"", {"E21"}),
+        ("Y42 a planning raise memoises the kit only for kit `1` (not observe) -> E23", T_PATH,
+         "        if kit_mode in (\"observe\", \"1\"):          # with the kit OFF the memo is exactly step 9a's\n",
+         "        if kit_mode == \"1\":          # with the kit OFF the memo is exactly step 9a's\n", {"E23"}),
+        ("Y43 a planning raise logs the kit only for kit `1` -> E23", T_PATH,
+         "        if kit_mode in (\"observe\", \"1\"):\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=\"-\",",
+         "        if kit_mode == \"1\":\n            _emit(kit_log_line(\"kit-failed\", mart=city, kit=\"-\",", {"E23"}),
+        ("Y44 an unstable exit logs the kit only for kit `1` -> E23", T_PATH,
+         "        if kit_mode in (\"observe\", \"1\"):\n            _emit(kit_log_line(\"kit-skip\", mart=city, kit=\"-\"",
+         "        if kit_mode == \"1\":\n            _emit(kit_log_line(\"kit-skip\", mart=city, kit=\"-\"", {"E23"}),
         ("N2 the kit hunk's names in a heal COMMENT turn NOTHING red", H_PATH,
          "        _topoff_moved = False\n",
          "        # (edited) if _kit_error: _piggyback_report(\"kit\", _kit_error); kit_mode=_kit_mode, a comment only\n"

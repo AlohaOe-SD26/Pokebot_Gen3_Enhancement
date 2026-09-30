@@ -70,7 +70,8 @@ EXISTING SETS WIDENED by the new rows (written before run 3, with the arithmetic
   +E16 +E17 +E18; M18 +E16; M20 +W3 (and its anchor now `if planned_kit:`).
 
 RUN 3 (2026-09-29 9:43 PM LA): the gate file hashed BEFORE the run: sha1 d073f5281b32b55f1f0a8c26f19e8b4e22cf8722
-(stock_topoff.py bb70c1b7fd7a52fdb27736bb83145e66c5f7de45). Result: ALL PASS on the first run — 116 checks, every
+(stock_topoff.py bb70c1b7fd7a52fdb27736bb83145e66c5f7de45). Result: ALL PASS on the first run — 114 checks (47 rows + 64 mutants + 3 no-ops; CORRECTED: this line first
+said 116, a miscount, caught while grading), every
 mutant red on EXACTLY its written set (full output: 2026-09-29-kittopoff10a-GATE.txt). The 9a, 9b and RULING 18 gates
 were re-run after the two code fixes: ALL PASS / ALL PASS / PASS.
 
