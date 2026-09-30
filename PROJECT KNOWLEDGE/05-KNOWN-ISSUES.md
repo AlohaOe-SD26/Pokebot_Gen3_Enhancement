@@ -3199,3 +3199,19 @@ not told Zubat is. Nothing in the story needs either, so the impact is low. The 
 its generator reads the first header.
 **Fix direction:** keep the first header per map in `get_wild_encounters_for_map` (a divergence from upstream, so it
 needs a DIVERGENCE-LOG entry when promoted), then rebuild the cache. Not started.
+
+## KI-114 — ⚠ OPEN (filed 2026-09-30; LATENT, no caller today; upstream code): `BattlePokemon.encored_move` reads the wrong offset
+**Measured** (design v2 step 12's recon, re-checked by the author; `ai-research-notes/2026-09-30-weaken12-DESIGN.md` D9):
+- `sandbox-pokebot/modules/battle_state.py:729-730` reads the Encore move at disable-struct offset 0x04, which is
+  `disabledMove`.
+- The decomp's `struct DisableStruct` puts `encoredMove` at 0x06 (`include/battle.h:70-80`: a u32 at 0x00,
+  `disabledMove` at 0x04, `encoredMove` at 0x06).
+- The upstream mirror has the same line (`40cakes repo/pokebot-gen3/modules/battle_state.py:730`).
+**Consequence:**
+- Its only reader is `can_use_move` (`battle_state.py:547-559`). That treats every move as unusable while an Encore is
+  on and no move is disabled.
+- **`can_use_move` has no caller** in `sandbox-pokebot` (a grep for `can_use_move(` finds only its definition), so
+  nothing is affected today.
+- Design v2 step 12's weaken module reads the raw 0x06 itself and does not use the property.
+**Fix direction:** read 0x06. It is an UPSTREAM divergence (a `DIVERGENCE-LOG` entry when promoted), and needs a gate
+row against a raw disable struct. Low priority while nothing calls it. Not started.

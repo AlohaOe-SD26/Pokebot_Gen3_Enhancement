@@ -12696,3 +12696,22 @@ Flagged STALE by the 2026-09-28 Tier 2 cold-start audit (a month behind: no §Ch
   **`puzzle_solver.py` is a recipe book to COPY FROM, never to drive**; and a chapter's grade
   must include a real `calculate_path` off the END tile — §Ch15/18/19 each PASSED stranded.
 
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+R3 line budget, 2026-09-30: a closed, driven fix; moved whole to make room for #27-encorereader.
+
+- [x] ✅✅ `#24-flymaptype` — **NEW AND FIXED 2026-09-17. `fly_to_destination` HAD NO GUARD FOR “DOES THIS MAP ALLOW FLY AT ALL”, AND THE §Ch24 PARTY IS PARKED IN A CAVE.**
+  ⭐ **HOW IT SURFACED:** the finished gauntlet party `post_e4ice_FINAL.ss1` sits at **VICTORY_ROAD_1F (15,39)** — the grind tile — and the plan for reaching the League door was *“it is ONE Fly away”*. It is not, **from there**: that map is `map_type=Underground`, and Gen 3 refuses Fly on it. ⇒ **the chapter's FIRST MOVE is not a Fly — it is a WALK OUT of Victory Road to EVER_GRANDE_CITY**, and only then a Fly to `PokemonLeague`.
+  ‼‼ **AND THE FUNCTION WOULD NOT HAVE SAID SO.** Its three guards (`pokemon_league.py:1226-1236`) are *knows Fly* / *`BADGE06_GET`* / *destination flag set*. **All three pass inside a cave**, so the failure happened in the field-move menu — far from the cause, with nothing naming it.
+  ⭐ **THE ALLOW-LIST IS NOT “outdoors”, AND GUESSING THAT IS HOW I GOT IT WRONG FIRST.** VERIFIED at `src/overworld.c:1366-1375` `Overworld_MapTypeAllowsTeleportAndFly`: **ROUTE, TOWN, OCEAN_ROUTE, CITY — exactly four.** `Underground` (caves), `Indoor` and `Underwater` are all refused. My first check tested `map_type == "Indoor"` and therefore printed a cheerful **“✅ yes” for a cave** — a FALSE GREEN on the one fixture the question was asked about. The list is now encoded verbatim rather than paraphrased. *(Third time in one day a predicate of mine tested something narrower than the claim — see `08-MISTAKES.md`.)*
+  ✅ **THE FIX:** a fourth guard that reads the current map type and REFUSES with a message naming the type, the tile, the decomp function and the remedy. ⛔ An UNREADABLE map type also refuses — an unknown is treated as NO, never as yes.
+  ✅✅ **DRIVEN BOTH WAYS, on real fixtures:**
+      ARM      post_e4ice_FINAL.ss1  (VICTORY_ROAD_1F, Underground)  → REFUSED in <3,000 frames,
+               `missing=['R-FLYABLE','R-FLOWN','R-CONTINUE']`, `ACCEPTANCE: FAIL` — it refuses
+               BEFORE taking R-FLYABLE, and does not hang in a menu
+      CONTROL  post_ch24ready.ss1    (EVER_GRANDE_CITY, City)        → NOT refused; flies and
+               `R arrived = ((0,8),(18,6))`, `moved=True`, `missing=[]`, `ACCEPTANCE: PASS`
+  ⇒ the guard separates: it blocks the illegal case and is invisible to the legal one. ✅ `probe_fly_allowed_here.py` answers “can I Fly from here?” per fixture, for any future save.
+

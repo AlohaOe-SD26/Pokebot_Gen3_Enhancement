@@ -213,7 +213,7 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
     - **Dragon Rage** (40 fixed): the bound's arm. Against every Route 116 target (max HP 20-28 at L6-8), 40 ≥ max HP,
       so hp − X ≥ 1 BINDS by construction [review LP1].
   - LEVEL_DAMAGE's X is the lead's level AT the catch turn, taken from the Step-0 reads [review LP4].
-- **D9. A new KI for the Encore reader (BS:730, upstream too): filed, NOT fixed here.**
+- **D9. A new KI for the Encore reader (BS:730, upstream too): filed as KI-114 and `#27-encorereader`, NOT fixed here.**
   - It is a shared battle path, and a fix would need its own A/B.
   - The weaken module reads the raw 0x06 itself.
 - **D10. Fences and scope (recorded, not changed):**
