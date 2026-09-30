@@ -1,0 +1,205 @@
+design v2 step 10b REVIEW — probe_kit_topoff_sootopolis.py after the three-lens review's fixes
+===========================================================================================
+Branch wt/kittopoff10b on ea75fe1f + the uncommitted review fixes (this file is committed with them).
+gate sha1 at the run below: 18e231a130d8a1993bf47907e3e23747578c87a7
+cmd: cd tools/story-dev && PYTHONUTF8=1 py -3.12 -u probe_kit_topoff_sootopolis.py   (exit 0)
+
+THE RUNS (this session, 2026-09-30, LA):
+- Run 4 (2:41-2:52 AM, STOPPED by the author): every row passed except A5, and every mutant then read "its set + A5". A5's
+  new pin `kit_ballraise models BALLRAISE` spelled the expression without the parentheses `ast.unparse` puts around
+  the last comparison. A FORMAT error in one pin string, not a mutant set. It was corrected; nothing else changed.
+- Run 5 (2:52-3:10 AM): ALL PASS, 160 checks (69 rows: H1-H3, G1-G8, O1-O13, S1-S14, P1-P26, A1-A5; 88 mutants; 3
+  no-ops). EVERY red set, including the 17 new mutants' sets and the 9 widened ones, equals the set written before
+  the run.
+- ⚠ Run 5 took ~18 minutes, with the 9b/10a/9a/R18 gates running beside it (run 3 on ea75fe1f: 15 minutes). `run_gates.py` kills a FAST gate at 300 s, so the
+  suite would have read it as a FAILURE. Measured (scratch hk10b_profile.py, one all_rows call): 10.0 s, of which 9.7 s
+  was two `ast.parse` calls of the 30,000-line harness (A4 and A5, ~4.9 s each).
+  FIX: A4/A5 parse only the `EarlyBasketMode` class (`_class_source`: from its `class` line to the next column-0
+  statement), and each distinct source text is parsed once (`_parsed`). After: 0.12 s per all_rows call.
+- Run 6 (3:11 AM, after the speed-up): ALL PASS, 160 checks, in 6 SECONDS. Every one of the 91 red sets is IDENTICAL to run 5
+  (compared line by line). The run is below.
+- Run 7 (3:20 AM, after the 9b gate's cache, below): ALL PASS, 160 checks.
+
+THE 9b GATE (`probe_stock_topoff_sootopolis.py`, also registered FAST) had the same cost: 220 s and 216 s measured
+(73% of its timeout). Its `_fn_src` now parses each distinct source text once. After: 26 s, its output
+BYTE-IDENTICAL to the pre-cache run (87 PASS lines, ALL PASS). 9b gate sha1 now: f3da1858eb0be14393e0c993ae1a8c3043bbabee
+
+THE OTHER GATES on the fixed code (run in this session, each exit 0): probe_kit_topoff.py (10a) ALL PASS in 5 s;
+probe_stock_topoff.py (9a) ALL PASS in 4 s; probe_league_reserve.py (RULING 18) PASS.
+
+===== run 6 =====
+H — pure
+  PASS  H1 the held view projects the basket, subtracts the reserve (RAWBAG: not), never negative  — {'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 0, 'Full Heal': 0, 'Awakening': 0, 'Ice Heal': 0} {'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 30, 'Full Heal': 8, 'Awakening': 0, 'Ice Heal': 0} {'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 1, 'Full Heal': 0, 'Awakening': 0, 'Ice Heal': 0} {'Potion': 0, 'Super Potion': 0, 'Hyper Potion': 0, 'Full Heal': 0, 'Awakening': 0, 'Ice Heal': 0}
+  PASS  H2 the kit BUYS only in mode 1, not skipped, not blocked  — [False, False, False, False, True]
+  PASS  H3 the static kit list, the kit key, the exported top-off outcomes ('balls only' first)  — ('Hyper Potion', 'Full Heal') SootopolisCity:kit ('balls only', 'kit only', 'balls and kit only')
+
+G — kit_grade.py, executed
+  PASS  G1 S-ON: the bag's SUM is 31, the kit part 1, priced 1200  — {'delta': {'Full Heal': 8, 'Hyper Potion': 31, 'Revive': 3}, 'expected': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 31}, 'kit': {'Hyper Potion': 1}, 'kit_expected': {'Hyper Potion': 1}, 'kit_cost': 1200}
+  PASS  G2 kit-only; a no-op kit fails; a short basket is never a negative kit; a Max Potion shows  — {'Hyper Potion': 1} {} {} {'Max Potion': 1}
+  PASS  G3 production's kit forecast AND split must equal the driver's; unmade = no kit key  — made/unmade/forecast/split/missing
+  PASS  G4 the attribution: production's got equals the kit and says ok  — got/ok
+  PASS  G5 the kit's before was read AFTER the basket  — after/before/empty/mixed
+  PASS  G6 overlapping names sum per name  — {'delta': {}, 'expected': {'Revive': 3, 'Full Heal': 9, 'Hyper Potion': 31}, 'kit': {}, 'kit_expected': {'Hyper Potion': 1, 'Full Heal': 1}, 'kit_cost': 0}
+  PASS  G7 the kit is priced from the MEASURED delta (none bought -> 0)  — {'delta': {'Full Heal': 8, 'Hyper Potion': 30, 'Revive': 3}, 'expected': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 31}, 'kit': {}, 'kit_expected': {'Hyper Potion': 1}, 'kit_cost': 0}
+  PASS  G8 a consumed stack stays in the delta  — {'delta': {'Hyper Potion': 1, 'Potion': -1}, 'expected': {'Hyper Potion': 1}, 'kit': {'Hyper Potion': 1}, 'kit_expected': {'Hyper Potion': 1}, 'kit_cost': 1200}
+
+O — the kit forecast
+  PASS  O1 OFF (unset, 0, a typo) returns None and reads NOTHING; a typo is one kit-flag line  — (None, [], []) (None, [], []) (None, ["[KIT-BUY] why=kit-flag mart=SootopolisCity kit=- bought=- money=?->? reason=POKEBOT_R26_KITTOPOFF='yes' is not one of ('', '0', 'observe', '1'): treated as OFF"], [])
+  PASS  O2 observe: plans Hyper 1, never walks, one kit-observe line  — {'mode': 'observe', 'walk': False, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} ["[KIT-BUY] why=kit-observe mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=False reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  O3 kit 1: Hyper 1, the split is [] (the kit takes the budget), walks; the line shows the split  — {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} ["[KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  O4 kit 1 WITHOUT key items: a named skip, reads nothing  — {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [], 'reason': 'POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)', 'skip': 'POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)'} ['[KIT-BUY] why=kit-skip mart=SootopolisCity kit=- bought=- money=?->? reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)'] []
+  PASS  O5 the KIT memo blocks the kit (no reads); the BALL memo does not  — ({'mode': '1', 'walk': False, 'blocked': True, 'forecast': [], 'split_balls': [], 'reason': 'a kit phase failed here earlier this run (memo)'}, ['[KIT-BUY] why=kit-skip mart=SootopolisCity kit=- bought=- money=?->? reason=a kit phase failed here earlier this run (memo)'], []) || {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  O6 a raise in the kit's OWN read: kit blocked, only the kit key, the ball forecast untouched  — {'mode': '1', 'walk': False, 'blocked': True, 'forecast': [], 'split_balls': [], 'reason': "the kit's forecast raised RuntimeError('reserve read broken') (nothing moved; the balls stay 9b's)"} {'SootopolisCity:kit'} ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's forecast raised RuntimeError('reserve read broken') (nothing moved; the balls stay 9b's)"]
+  PASS  O7 an abort in the kit's read is re-raised  — re-raised RuntimeError('ABORT')
+  PASS  O8 RAWBAG: raw 30/8 wants nothing, the split is 9b's Ultra  — {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [('Ultra Ball', 1)], 'reason': 'kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left', 'wants': [], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  O9 the floor lever (30000) reaches the kit: nothing affordable  — {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [], 'reason': 'money 22166 at or below the floor 30000', 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 30000, 'money_after_basket': 22166}
+  PASS  O10 balls blocked or OFF: no split (the kit alone)  — {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  O11 a complete basket (eb_after_M0a): Hyper 1 with or without the balls  — {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  O12 the spare threshold: 10 gives the reserve Ultra and no kit, 11 gives Hyper 1  — {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [('Ultra Ball', 1)], 'reason': 'kit none and 1 x Ultra Ball (1 to the reserve + 0 after the kit); budget 1583, 383 left', 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  O13 kit quantities above one: wants Hyper 2 (2 held); the ₽6,000 cap buys Hyper 4 + Full Heal 2  — {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 2)], 'floor': 19000, 'money_after_basket': 22166} || {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 4), ('Full Heal', 2)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 4), ('Full Heal', 2)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 6000, 0 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 1000, 'money_after_basket': 22166}
+
+S — the visit
+  PASS  S1 kit OFF: 9b's 'nothing missing', no kit key  — {'readings': set(), 'order': [], 'walked': False, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 22166, 'plan': [], 'early_basket': 'nothing missing'}
+  PASS  S2 a kit-only walk with the balls OFF: no crash, 'kit only', no balls key  — kit only
+  PASS  S3 S-BOTHKIT: the effective ball walk is the EMPTY split: 'kit only'; 9b's forecast kept  — kit only {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  S4 the kit buys nothing: the split is 9b's Ultra, 'balls only'  — balls only {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [('Ultra Ball', 1)], 'reason': 'kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left', 'wants': [], 'floor': 19000, 'money_after_basket': 22166}
+  PASS  S5 kit observe: 9b decides the walk ('balls only')  — balls only
+  PASS  S6 a D2 skip, balls OFF, complete basket: 'nothing missing', no walk  — {'readings': set(), 'order': [], 'walked': False, 'frame_start': 0, 'floor': 1000, 'stock_before': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'money_before': 22166, 'plan': [], 'kit': {'mode': '1', 'walk': False, 'blocked': False, 'forecast': [], 'split_balls': [], 'reason': 'POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)', 'skip': 'POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)'}, 'early_basket': 'nothing missing'}
+  PASS  S7 the kit memoised: 9b's 'balls only' walk  — {'mode': '1', 'walk': False, 'blocked': True, 'forecast': [], 'split_balls': [], 'reason': 'a kit phase failed here earlier this run (memo)'}
+  PASS  S8 BB9B-1 holds with a buying kit forecast (a basket Mart selling none raises)  — [('raised', "early basket: this Mart sells none of ['Revive', 'Full Heal', 'Hyper Potion'] (['Ultra Ball']).")]
+  PASS  S9 a basket visit carries BOTH forecasts into _shop  — [('shop', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)], {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166}, {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166})]
+  PASS  S10 _shop dispatches: kit buys -> the top-off phase alone; observe/OFF -> 9b's phase  — [('basket', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]), 'topoff_phase'] [('basket', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]), 'ball_phase'] [('basket', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]), 'ball_phase'] ['topoff_phase'] [('basket', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]), 'ball_phase'] [('basket', [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]), 'ball_phase']
+  PASS  S11 observe balls are OFF for the split: a converged kit walks nowhere  — nothing missing
+  PASS  S12 BLOCKED balls are OFF for the split: a converged kit walks nowhere  — nothing missing
+  PASS  S13 both effective walks: 'balls and kit only' (4 Ultras to the reserve, Full Heal 1)  — balls and kit only {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Full Heal', 1)], 'split_balls': [('Ultra Ball', 4)], 'reason': "kit [('Full Heal', 1)] and 4 x Ultra Ball (4 to the reserve + 0 after the kit); budget 5500, 100 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 30000}
+  PASS  S14 the [EARLY_BASKET] line: ' kit=' only when the kit reported (kit OFF = 9b's line)  — ["outcome='balls only' plan=None bought=None money=None->None walked=False finished=True crossed=None returned=None stranded=None balls={'mode': '1', 'walk': True, 'forecast': [('Ultra Ball', 1)]}"] || ["outcome='kit only' plan=None bought=None money=None->None walked=False finished=True crossed=None returned=None stranded=None kit={'mode': '1', 'walk': True, 'forecast': [('Hyper Potion', 1)]}"]
+
+P — the counter phase
+  PASS  P1 S-ON's counter: Hyper 1, before=30 (after the basket), a line per set, R18 untouched  — [[('Hyper Potion', 1)]] {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 9)], 'split_balls': [], 'floor': 19000, 'money_after_basket': 22166, 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'reason': "the forecast's reason (the counter re-plans; it must never read these keys)", 'phase': 'done', 'lines': [('Hyper Potion', 1)], 'live_wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'live_reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'live_floor': 19000, 'before': {'Hyper Potion': 30}, 'got': {'Hyper Potion': 1}, 'ok': True, 'money_after': 20966} ["[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", "[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  P2 S-FH's counter: 1 Full Heal  — [[('Full Heal', 1)]] ["[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=19->19 money=20966->20966 floor=19000 reason=kit [('Full Heal', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 983, 383 left", "[KIT-BUY] why=kit mart=SootopolisCity kit=[('Full Heal', 1)] bought={'Full Heal': 1} money=20966->20366 wants=[('Hyper Potion', 3), ('Full Heal', 2)] floor=19000 reason=kit [('Full Heal', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 983, 383 left"]
+  PASS  P3 the kit short: only the kit key, kit-failed, the balls' own line  — {'SootopolisCity:kit'} ["[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", "[KIT-BUY] why=kit-failed mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 0} money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit bag delta {'Hyper Potion': 0} != planned {'Hyper Potion': 1}"]
+  PASS  P4 both bought, the BALLS short: only the ball key, the kit's line ok  — [[('Ultra Ball', 3), ('Hyper Potion', 2)]] {'SootopolisCity'} ['[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=Ultra Ball bought=2 premier=0 spare=8->10 money=22166->17366 floor=1000 reason=ball bag delta 2 != planned 3', "[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 2)] bought={'Hyper Potion': 2} money=22166->17366 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=1000 reason=kit [('Hyper Potion', 2)] and 3 x Ultra Ball (3 to the reserve + 0 after the kit); budget 6000, 0 left"]
+  PASS  P5 a raising buy: both keys, both failed lines, R18's keys untouched  — {'SootopolisCity:kit', 'SootopolisCity'} ["[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=18->? money=22166->? reason=the top-off phase raised RuntimeError('Task_ShopMenu is not active'); the basket's outcome stands", "[KIT-BUY] why=kit-failed mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->? reason=the top-off phase raised RuntimeError('Task_ShopMenu is not active'); the basket's outcome stands"]
+  PASS  P6 BALLRAISE only with the balls on  — {'SootopolisCity:kit', 'SootopolisCity'} [] || set() [[('Hyper Potion', 1)]]
+  PASS  P7 a close: both keys, both closed lines, no raise from close()  — CLOSED {'SootopolisCity:kit', 'SootopolisCity'} ['[BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=a close reached the top-off phase mid-purchase (R18 walks back only if its own budget closed it: see retry_return/stranded)', "[KIT-BUY] why=kit-closed mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=? money=22166->? reason=a close reached the top-off phase mid-purchase"]
+  PASS  P8 an abort is re-raised  — re-raised RuntimeError('ABORT')
+  PASS  P9 a raise in the kit's OWN read: only the kit key; 9b's ball phase only with the balls ON  — {'SootopolisCity:kit'} [[('Ultra Ball', 5)]] || [] {'SootopolisCity:kit'} || []
+  PASS  P10 a 'kit only' visit that finds no kit: the kit key alone (wasted)  — {'SootopolisCity:kit'} ['[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] floor=19000 reason=kit none and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 1583 left; a top-off-only visit found no kit to buy (memoised)']
+  PASS  P11 S-BOTHKIT: the ball set is not 'wasted' (its effective walk was the empty split)  — set() [[('Hyper Potion', 1)]]
+  PASS  P12 the ball flag OFF: no balls key, no ball line  — ['bought', 'crossed', 'early_basket', 'frame_start', 'kit', 'money_after', 'order', 'readings', 'route_back'] ["[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  P13 the floor lever at the counter: nothing bought  — [] ['[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 floor=30000 reason=money 22166 at or below the floor 30000', "[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=30000 reason=money 22166 at or below the floor 30000"]
+  PASS  P14 the balls blocked: the kit alone, no ball line, the ball dict untouched  — {'mode': '1', 'walk': True, 'blocked': True, 'forecast': [('Ultra Ball', 5)]} ["[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  P15 the counter plans the kit from the LIVE list  — [[('Ultra Ball', 5)]] ['[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=5 premier=0 spare=18->23 money=22166->16166 floor=1000 reason=kit none and 5 x Ultra Ball (0 to the reserve + 5 after the kit); budget 6000, 0 left', '[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] floor=1000 reason=kit none and 5 x Ultra Ball (0 to the reserve + 5 after the kit); budget 6000, 0 left'] set()
+  PASS  P16 observe balls are OFF at the counter: the kit takes the budget, no ball line  — [[('Hyper Potion', 4), ('Full Heal', 2)]] ["[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 4), ('Full Heal', 2)] bought={'Hyper Potion': 4, 'Full Heal': 2} money=22166->16166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=1000 reason=kit [('Hyper Potion', 4), ('Full Heal', 2)] and 0 x None (0 to the reserve + 0 after the kit); budget 6000, 0 left"] set()
+  PASS  P17 a raise with the balls OFF/observe: the kit key alone, no ball line  — {'SootopolisCity:kit'} ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->? reason=the top-off phase raised RuntimeError('Task_ShopMenu is not active'); the basket's outcome stands"] || {'SootopolisCity:kit'}
+  PASS  P18 a close with the balls OFF: the kit key alone, no ball line  — CLOSED {'SootopolisCity:kit'} ["[KIT-BUY] why=kit-closed mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=? money=22166->? reason=a close reached the top-off phase mid-purchase"]
+  PASS  P19 a kit that did not walk is never 'wasted'  — [[('Ultra Ball', 1)]] set() ['[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left', '[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] floor=19000 reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left']
+  PASS  P20 'balls only' is top-off-only: an empty live ball plan memoises the ball key  — [] {'SootopolisCity'} ['[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=- bought=0 premier=0 spare=18->18 money=22166->22166 floor=19000 reason=kit none and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 1583 left; a top-off-only visit found no ball to buy (memoised)', '[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] floor=19000 reason=kit none and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 1583 left']
+  PASS  P21 a converged kit still lets the balls buy  — [[('Ultra Ball', 5)]] set() ['[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=5 premier=0 spare=18->23 money=22166->16166 floor=1000 reason=kit none and 5 x Ultra Ball (0 to the reserve + 5 after the kit); budget 6000, 0 left', '[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] floor=1000 reason=kit none and 5 x Ultra Ball (0 to the reserve + 5 after the kit); budget 6000, 0 left']
+  PASS  P22 PD1: a kit-read raise + an empty ball plan on 'balls and kit only' memoises both  — {'SootopolisCity:kit', 'SootopolisCity'} [] ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's planning raised RuntimeError('reserve read broken') (nothing moved; the balls stay 9b's)", '[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=- bought=0 premier=0 spare=18->18 money=22166->22166 floor=19000 reason=no allowed ball sold here']
+  PASS  P23 a SHORT basket: the live floor (₽43,000) is not the forecast's, nothing bought  — [] set() 43000 ['[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=34166->34166 floor=43000 reason=money 34166 at or below the floor 43000', "[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=34166->34166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=43000 reason=money 34166 at or below the floor 43000"]
+  PASS  P24 PD1's twin: a kit-read raise on a BASKET visit memoises the kit key alone  — {'SootopolisCity:kit'} [] ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's planning raised RuntimeError('reserve read broken') (nothing moved; the balls stay 9b's)", '[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=- bought=0 premier=0 spare=18->18 money=22166->22166 floor=19000 reason=no allowed ball sold here']
+  PASS  P25 no ball on the live list at spare 8: the kit keeps the budget, nothing memoised  — [[('Hyper Potion', 1)]] set() ["[BALLS-BUY] why=topoff-none mart=SootopolisCity ball=- bought=0 premier=0 spare=8->8 money=22166->22166 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 383 left", "[KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x None (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+  PASS  P26 a spare drop on the crossing: the reserve Ultra, and the kit NOT memoised as wasted  — [[('Ultra Ball', 1)]] set() ['[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=10->11 money=22166->20966 floor=19000 reason=kit none and 1 x Ultra Ball (1 to the reserve + 0 after the kit); budget 1583, 383 left', "[KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit none and 1 x Ultra Ball (1 to the reserve + 0 after the kit); budget 1583, 383 left"]
+
+A — AST
+  PASS  A1 (AST) _shop: topoff_only keeps BB9B-1's precedence; the kit dispatch returns BEFORE 9b's  — topo=["ball_only or (not plan and bool(kit.get('walk')))"] disp=1 ball=1
+  PASS  A2 (AST) the kit forecast is called (plan, money, prices, balls) after 9b's, before the return  — kit=['sootopolis_kit_forecast(plan, money, prices, balls)'] early=1
+  PASS  A3 (AST) no yield in the top-off phase's GeneratorExit handler  — handlers=1 yields=0
+  PASS  A4 (AST) the driver's kit forecast never calls _kit_held/reserved_quantities; memo set; kit_end  — forbidden=0 memo=1 kit_end=1 kit_action=1
+  PASS  A5 (AST) the driver's lever rule and kit grade are pinned (RAWBAG never modelled; the kit reads before the restore)  — {}
+
+M — mutants (each must turn EXACTLY its named rows red)
+  PASS  T1 the held view forgets the basket plan -> H1 O8  — red ['H1', 'O8']
+  PASS  T2 the held view can go negative -> H1  — red ['H1']
+  PASS  T3 a SKIPPED kit counts as buying -> H2 S10  — red ['H2', 'S10']
+  PASS  T4 a BLOCKED kit counts as buying -> H2 S7 S10  — red ['H2', 'S10', 'S7']
+  PASS  T5 OFF is not OFF (the forecast runs with the kit unset) -> O1 S1  — red ['O1', 'S1']
+  PASS  KEY the kit's memo key is the BALL key -> H3 O5 O6 S7 P3 P5 P6 P7 P9 P10 P17 P18 P22 P24  — red ['H3', 'O5', 'O6', 'P10', 'P17', 'P18', 'P22', 'P24', 'P3', 'P5', 'P6', 'P7', 'P9', 'S7']
+  PASS  CONST Max Potion in the static kit list -> H3  — red ['H3']
+  PASS  T6 the rejected design: 9b's ball forecast REBOUND to the split -> S3 S9  — red ['S3', 'S9']
+  PASS  T8 the forecast always runs the ball phases (a reserve phase with the balls OFF) -> O10  — red ['O10']
+  PASS  T9 a kit-forecast raise is not memoised -> O6  — red ['O6']
+  PASS  T10 a kit-forecast raise memoises the BALL key -> O6  — red ['O6']
+  PASS  T11 a kit-forecast raise blocks the balls too -> O6  — red ['O6']
+  PASS  T12 the D2 skip removed from the forecast -> O4 S6  — red ['O4', 'S6']
+  PASS  T13 the forecast's memo check reads the BALL key -> O5 S7  — red ['O5', 'S7']
+  PASS  T14 observe walks -> O2 S5  — red ['O2', 'S5']
+  PASS  T15 observe logs the kit-forecast tag -> O2  — red ['O2']
+  PASS  T16 the forecast ignores RAWBAG -> O8  — red ['O8']
+  PASS  T17 the forecast ignores the floor lever -> O9 O13  — red ['O13', 'O9']
+  PASS  T19 'wasted balls' keyed on 9b's walk, not the split -> P11 P25  — red ['P11', 'P25']
+  PASS  T20 'wasted kit' on a basket visit too -> P13 P15 P23  — red ['P13', 'P15', 'P23']
+  PASS  T21 a kit shortfall memoises the balls too (10a's R1 again) -> P3  — red ['P3']
+  PASS  T22 the counter ignores the balls' block -> P9 P14  — red ['P14', 'P9']
+  PASS  T23 the counter creates a balls key with the ball flag OFF -> P9 P12  — red ['P12', 'P9']
+  PASS  T24 a close memoises only the kit -> P7  — red ['P7']
+  PASS  T25 a raise memoises only the kit -> P5 P6  — red ['P5', 'P6']
+  PASS  T26 BALLRAISE fires with the balls OFF -> P6  — red ['P6']
+  PASS  T27 a kit-read raise drops the balls (no fallback to 9b's phase) -> P9 P22 P24  — red ['P22', 'P24', 'P9']
+  PASS  T28 a kit-read raise memoises the balls too -> P9 P24  — red ['P24', 'P9']
+  PASS  T29 the kit verified by the COUNT, not the delta -> P1 P2 P4 P6 P11 P14 P16 P25  — red ['P1', 'P11', 'P14', 'P16', 'P2', 'P25', 'P4', 'P6']
+  PASS  T30 the counter buys the STALE forecast, not the live plan -> P1 P2 P6 P11 P12 P13 P14 P16 P23 P25 P26  — red ['P1', 'P11', 'P12', 'P13', 'P14', 'P16', 'P2', 'P23', 'P25', 'P26', 'P6']
+  PASS  L1 the precedence slip: a kit walk swallows BB9B-1's raise -> S8 A1  — red ['A1', 'S8']
+  PASS  L2 the kit dispatch falls through to 9b's phase -> S10 A1  — red ['A1', 'S10']
+  PASS  L3 any kit dict dispatches the top-off phase -> S10 A1  — red ['A1', 'S10']
+  PASS  L4 the effective ball walk is always 9b's -> S3  — red ['S3']
+  PASS  L5 the early return ignores the kit walk -> S2 S3 A2  — red ['A2', 'S2', 'S3']
+  PASS  L6 the kit forecast is not stored in the report -> S3 S4 S5 S6 S7 S9 S13  — red ['S13', 'S3', 'S4', 'S5', 'S6', 'S7', 'S9']
+  PASS  L7 a kit walk is labelled 'balls only' -> S2 S3  — red ['S2', 'S3']
+  PASS  KG1 the kit part is not net of the basket -> G1 G2 G7  — red ['G1', 'G2', 'G7']
+  PASS  KG2 a short basket reads as a negative kit -> G2 G8  — red ['G2', 'G8']
+  PASS  KG3 the expected total is not summed per name -> G1 G6  — red ['G1', 'G6']
+  PASS  KG4 the forecast check ignores the split -> G3  — red ['G3']
+  PASS  KG5 an unmade forecast passes with a kit key -> G3  — red ['G3']
+  PASS  KG6 the attribution ignores production's ok -> G4  — red ['G4']
+  PASS  KG7 the kit's before is not checked against the basket -> G5  — red ['G5']
+  PASS  D1 the driver's kit forecast calls production's held view -> A4  — red ['A4']
+  PASS  D2 the driver forgets the memo -> A4  — red ['A4']
+  PASS  MA the forecast ignores the balls' block -> O10 S12  — red ['O10', 'S12']
+  PASS  MC2 the forecast counts observe balls as on -> S11  — red ['S11']
+  PASS  ML both walks labelled 'kit only' -> S13  — red ['S13']
+  PASS  MB the counter plans the kit from the STATIC list -> P15  — red ['P15']
+  PASS  MC the counter counts observe balls as on -> P16 P17  — red ['P16', 'P17']
+  PASS  MD1 the kit-read fallback runs 9b's phase with the balls OFF or blocked -> P9  — red ['P9']
+  PASS  MD2 the kit-read fallback forgets the balls' block -> P9  — red ['P9']
+  PASS  PDF the PD1 fix removed (a wasted 'balls and kit only' ball walk after a kit-read raise) -> P22  — red ['P22']
+  PASS  ME the active keys always include the ball key -> P17 P18  — red ['P17', 'P18']
+  PASS  MF 'wasted kit' ignores the kit's own walk -> P19 P20  — red ['P19', 'P20']
+  PASS  MG 'top-off only' excludes 'balls only' -> P20  — red ['P20']
+  PASS  MZ the counter buys only when the kit has lines -> P15 P19 P21 P26  — red ['P15', 'P19', 'P21', 'P26']
+  PASS  MH a raise logs a ball line with the balls OFF -> P17  — red ['P17']
+  PASS  MI a close logs a ball line with the balls OFF -> P18  — red ['P18']
+  PASS  MK the kit suffix keyed on 'balls' (the telemetry line vanishes) -> S14  — red ['S14']
+  PASS  MJ the kit suffix always present (a kit-OFF line is no longer 9b's) -> S14  — red ['S14']
+  PASS  MM the kit priced from the EXPECTED kit -> G7  — red ['G7']
+  PASS  MN the delta drops consumed stacks -> G8  — red ['G8']
+  PASS  MN2 the kit's before checked with any(), not all() -> G5  — red ['G5']
+  PASS  DA the driver models RAWBAG -> A5  — red ['A5']
+  PASS  DB production_kit_forecast hollowed -> A5  — red ['A5']
+  PASS  DC memo_clean hollowed -> A5  — red ['A5']
+  PASS  DD the driver ignores RESERVE_FAULT_RAISE -> A5  — red ['A5']
+  PASS  DE observe expects a purchase -> A5  — red ['A5']
+  PASS  DF the kit's end read after the fixture restore -> A5  — red ['A5']
+  PASS  X1 the PD1 fix without its outcome guard (a BASKET visit memoises the balls) -> P24  — red ['P24']
+  PASS  X2 the counter plans against the FORECAST's floor -> P23  — red ['P23']
+  PASS  X3 the counter re-uses the FORECAST's wants -> P15 P19 P20 P21  — red ['P15', 'P19', 'P20', 'P21']
+  PASS  X4 the forecast's HP target is 1, not kit_hp_target() -> O13  — red ['O13']
+  PASS  X5 the counter picks its ball from the STATIC list -> P25  — red ['P25']
+  PASS  X6 the counter plans against the FORECAST's wallet -> P2  — red ['P2']
+  PASS  WASTE LI-2 reverted: a kit whose wants stand is memoised when a spare drop took its budget -> P26  — red ['P26']
+  PASS  MONEYB DC2 reverted for the balls: a no-ball line carries the kit's cost -> P1  — red ['P1']
+  PASS  MONEYK DC2 reverted for the kit: a no-kit line carries the balls' cost -> P15  — red ['P15']
+  PASS  Z1 production_kit_forecast_ok normalises a missing forecast to [] -> G3  — red ['G3']
+  PASS  DG kit_as_forecast graded under a budget close too -> A5  — red ['A5']
+  PASS  DH the driver ignores BALLRAISE for the kit -> A5  — red ['A5']
+  PASS  DJ ballfail's both-keys check hollowed -> A5  — red ['A5']
+  PASS  DK1 the buy branch's kit_attributed hollowed -> A5  — red ['A5']
+  PASS  DK1b the kit branch's kit_attributed hollowed -> A5  — red ['A5']
+  PASS  DK2 the outcome label taken from production -> A5  — red ['A5']
+  PASS  DW the kit's walk read from the expected PURCHASE (BALLRAISE mislabels) -> A5  — red ['A5']
+  PASS  N1 a comment in stock_topoff naming the kit's code turns NOTHING red  — red []
+  PASS  N2 a comment in league_reserve turns NOTHING red  — red []
+  PASS  N3 a comment in the driver turns NOTHING red  — red []
+
+ALL PASS

@@ -1094,8 +1094,12 @@ def sootopolis_topoff_phase(report: dict) -> Generator:
             balls.update(lines=ball_lines, live_reason=plan["reason"], live_floor=floor_money)
         # "Wasted", per set (design E5): a top-off-only visit whose OWN effective forecast walked, and whose own
         # counter plan is empty, means the forecast and the counter disagree: memoise that set alone.
+        # ⛔ The kit, only when the live view gives it NO want (a static/live list mismatch), or the whole visit buys
+        # nothing. Wants that stand while the budget went to the reserve balls (a spare DROPPED on the crossing, e.g.
+        # a catch en route) are a re-allocation, not a disagreement: the next forecast re-plans from the new spare
+        # (the 10b review's LI-2; memoising there blocked a legitimate kit for the rest of the run).
         topoff_only = report.get("early_basket") in TOPOFF_ONLY_OUTCOMES
-        wasted_kit = topoff_only and bool(kit.get("walk")) and not kit_lines
+        wasted_kit = topoff_only and bool(kit.get("walk")) and not kit_lines and (not wants or not ball_lines)
         wasted_balls = topoff_only and ball_on and bool(kit.get("split_balls")) and not ball_lines
         if wasted_kit:
             _memo_add_kit()
@@ -1112,12 +1116,17 @@ def sootopolis_topoff_phase(report: dict) -> Generator:
 
         money_after = int(get_player().money)
         spare_after = int(get_item_bag().number_of_balls_except_master_ball)
+        # A set that planned no line spent nothing: its line and its report read the wallet UNCHANGED (9b's
+        # `topoff-none` reads X->X), never the other set's cost (the 10b review's DC2). A set that bought reads the
+        # wallet after the ONE call, both sets together (10a's combined line does the same).
+        ball_money_after = money_after if ball_lines else live["money"]
+        kit_money_after = money_after if kit_lines else live["money"]
         if ball_on:
             planned = sum(qty for _, qty in ball_lines)
             balls["bought"] = after[ball] - before[ball] if ball_lines else 0
             balls["premier"] = (after["Premier Ball"] - before["Premier Ball"]
                                 if ball_lines and ball != "Premier Ball" else 0)
-            balls.update(spare_after=spare_after, money_after=money_after, ok=balls["bought"] == planned,
+            balls.update(spare_after=spare_after, money_after=ball_money_after, ok=balls["bought"] == planned,
                          phase="done" if ball_lines else "none")
             if not balls["ok"]:
                 _memo_add()
@@ -1125,7 +1134,7 @@ def sootopolis_topoff_phase(report: dict) -> Generator:
             tag = ("topoff" if balls["ok"] else "topoff-failed") if ball_lines else "topoff-none"
             _emit(log_line(tag, mart=sootopolis_key(), ball=ball or "-", bought=balls["bought"],
                            premier=balls["premier"], spare_before=live["spare"], spare_after=spare_after,
-                           money_before=live["money"], money_after=money_after,
+                           money_before=live["money"], money_after=ball_money_after,
                            reason=(balls.get("why") or plan["reason"])
                            + ("; a top-off-only visit found no ball to buy (memoised)" if wasted_balls else ""),
                            extra=f" floor={floor_money}"))
@@ -1133,13 +1142,13 @@ def sootopolis_topoff_phase(report: dict) -> Generator:
         for name, qty in kit_lines:
             kit_want[name] = kit_want.get(name, 0) + qty
         kit["got"] = {name: after[name] - before[name] for name in kit_want}
-        kit.update(ok=kit["got"] == kit_want, money_after=money_after, phase="done" if kit_lines else "none")
+        kit.update(ok=kit["got"] == kit_want, money_after=kit_money_after, phase="done" if kit_lines else "none")
         if not kit["ok"]:
             _memo_add_kit()
             kit["why"] = f"kit bag delta {kit['got']} != planned {kit_want}"
         tag = ("kit" if kit["ok"] else "kit-failed") if kit_lines else "kit-none"
         _emit(kit_log_line(tag, mart=sootopolis_key(), kit=kit_lines, bought=kit["got"] if kit_lines else "-",
-                           money_before=live["money"], money_after=money_after,
+                           money_before=live["money"], money_after=kit_money_after,
                            reason=(kit.get("why") or plan["reason"])
                            + ("; a top-off-only visit found no kit to buy (memoised)" if wasted_kit else ""),
                            extra=f" wants={wants} floor={floor_money}"))

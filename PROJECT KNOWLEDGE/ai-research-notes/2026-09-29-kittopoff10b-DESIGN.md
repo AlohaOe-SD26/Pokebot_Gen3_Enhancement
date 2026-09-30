@@ -6,8 +6,8 @@
 >   and an adversary) is a NOTE. Every load-bearing code claim below was re-read by the author at the cited place
 >   (marked ✔). The numbers marked ⚙ were executed with the real pure functions.
 > - Branch `wt/kittopoff10b`, cut from `main` `158c0b70` (10a merged).
-> - ⛔ **Nothing here is built yet.** The order is: this design, an adversarial review of it, predictions (after the
->   Step-0 reads), code, gate, arms, review.
+> - ✅ **BUILT** (`ea75fe1f`), graded 49/49 and reviewed by three lenses: `2026-09-30-kittopoff10b-GRADED.md`. The
+>   build's review amended E5 and E8; each amendment is marked **[AMENDED 2026-09-30]** where it applies.
 > - ✅ **The adversarial review of this design has RUN** (a fresh Claude agent, 2026-09-29; `## THE DESIGN REVIEW`
 >   at the end). It found five blockers, all in the DRIVER/ARMS half: the production half survived every attack.
 >   Every finding is folded into E2, E3, E5, E8, E10 and the arms table below, marked **[R<n>]**.
@@ -146,14 +146,22 @@
   - The ball part is planned only when the ball flag is `1` and the balls are not blocked.
   - **It buys the balls and the kit in ONE `buy_in_shop` call**, with its OWN `before` read at the phase's start,
     after the basket. Balls and kit have different names, so per-name verification separates them (10a's D7).
-  - Each set is verified against its PLANNED lines and logged by its own verdict (10a's R1): `[BALLS-BUY]` only when
-    ball lines were planned, `[KIT-BUY]` for the kit.
+  - Each set is verified against its PLANNED lines and logged by its own verdict (10a's R1): `[KIT-BUY]` for the kit,
+    and `[BALLS-BUY]` whenever the ball flag is `1` and the balls are not blocked (`topoff-none` when no ball line
+    was planned). **[AMENDED 2026-09-30, the build's review DC2]** This sentence first said "`[BALLS-BUY]` only when
+    ball lines were planned"; the predictions (P5) and the gate (P1) had pre-registered the `topoff-none` line, as
+    9b logs it. What the review found wrong was its MONEY: it carried the kit's cost. ⇒ A set that planned no line
+    reads the wallet UNCHANGED on its line and in its report; a set that bought reads the wallet after the ONE call
+    (both sets, as 10a's combined line does).
   - Memo:
     - a set's shortfall memoises its own key;
     - a raise or a close inside the phase memoises BOTH planned keys and logs both `-failed`/`-closed` lines;
     - a raise in the kit's own planning blocks only the kit (own try).
   - "Wasted", per set: a set is memoised as wasted only if the visit was top-off-only, ITS forecast walked, and ITS
-    counter plan is empty.
+    counter plan is empty. **[AMENDED 2026-09-30, the build's review LI-2]** For the kit, also: its LIVE wants are
+    empty (a static/live list mismatch), or the visit bought nothing. A spare that DROPS on the crossing (a catch en
+    route) lets the reserve balls take the kit's budget while its wants stand; that is a re-allocation, not a
+    disagreement, and memoising it blocked a legitimate kit for the rest of the run.
   - ⛔ The adversary's case, fault-free on `eb_after_A2ON`: the kit walks for 1 Full Heal while the balls cannot
     afford an Ultra. The ball key must NOT be memoised.
   - It writes only under `report["balls"]` (only when the ball flag is on) and `report["kit"]`.
@@ -184,7 +192,13 @@
     - the D2 skip (`kit_skip`: the forecast is `[]`);
     - `POKEBOT_RESERVE_FAULT_RAISE` (blocked: `[]`);
     - `POKEBOT_R23_FAULT_FLOOR` (the floor);
-    - `POKEBOT_RESERVE_FAULT_NOBUY` (no forecast).
+    - `POKEBOT_RESERVE_FAULT_NOBUY` (no forecast);
+    - **[AMENDED 2026-09-30, the build's review DC1]** `POKEBOT_R23_FAULT_BALLRAISE` with the balls `1`: E5 raises
+      before any purchase, so the kit walks and buys nothing (`R["kit_ballraise"]`, `R["kit_walk"]`). `ballfail`
+      grades a kit-only walk, labels the visit by the effective walks, and asserts the kit's phase failed and both
+      keys memoised. `kit_as_forecast` is graded for every EXPECT EXCEPT `budget`, where the close's point in the
+      visit decides what was bought. (As built first, it sat in `common`: no build could pass `ballfail` with the
+      kit on, and a correct close failed `budget`.)
     It NEVER models a skip-the-fix lever (`POKEBOT_R26_FAULT_RAWBAG`), so a RAWBAG arm must FAIL.
     `R["kit_forecast_made"]` mirrors 9b's gating (the mode in observe/1, in era, in Sootopolis, not NOBUY).
     `R["kit_expected"]` is the forecast only in mode `1` and not skipped: observe never buys.

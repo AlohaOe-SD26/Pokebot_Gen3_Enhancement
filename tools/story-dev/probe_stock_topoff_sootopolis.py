@@ -761,8 +761,15 @@ def s_rows(tag=""):
 
 
 # ---------------------------------------------------------------------------------------------------------- A rows
+_TREES: dict = {}
+
+
 def _fn_src(src, name, cls=None):
-    tree = ast.parse(src)
+    # ⛔ ONE parse per distinct source text: `ast.parse` of the 30,000-line harness takes ~5 s, and A4 did it for every
+    # mutant, putting this gate at 220 s against run_gates' 300 s FAST timeout (08, 2026-09-30). Trees are only read.
+    if src not in _TREES:
+        _TREES[src] = ast.parse(src)
+    tree = _TREES[src]
     body = tree.body
     if cls:
         body = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == cls).body

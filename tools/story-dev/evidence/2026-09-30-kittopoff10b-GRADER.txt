@@ -1,0 +1,94 @@
+# design v2 step 10b arms graded against the committed predictions (3e246e81) by the session grader (scratch
+# hk10b_grade.py). It was fault-tested first on the real outputs: S-BALL's files graded as S-ON, S-OFF's as
+# S-BALL, and S-BALL's as S-KITONLY each FAIL on the right discriminators (Hyper 30 vs 31, an Ultra, no kit
+# line, the outcome label).
+
+=== S-OFF: ACCEPTANCE PASS, failing []
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  R frames 10329, money_end 22166  — 10329 22166
+  PASS  every frame-stamped segment line = 9b's M0a (27 vs 27)
+  PASS  no [KIT-BUY]/[BALLS-BUY]; memo_end []
+=== S-BALL: ACCEPTANCE PASS, failing []
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  R frames 10880, money_end 20966, Ultra +1  — 10880 20966 1
+  PASS  A2-ON's two [BALLS-BUY] lines; no kit line; memo_end []  — ["[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)", '[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)']
+=== S-OBS: ACCEPTANCE PASS, failing []
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    [KIT-BUY] why=kit-observe mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=False reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  money 20966, Ultra +1, Hyper +30  — 20966 1 30
+  PASS  kit_forecast [Hyper 1], balls_split [], kit_expected []
+  PASS  A2-ON's ball lines + ONE kit-observe line (Hyper 1, split [], walk=False)  — ["[KIT-BUY] why=kit-observe mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=False reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left"]
+=== S-SKIP: ACCEPTANCE PASS, failing []
+    [KIT-BUY] why=kit-skip mart=SootopolisCity kit=- bought=- money=?->? reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  money 22166; kit_skip True; kit_forecast []
+  PASS  ONE kit-skip line, no ball line  — ['[KIT-BUY] why=kit-skip mart=SootopolisCity kit=- bought=- money=?->? reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)']
+=== S-ON: ACCEPTANCE PASS, failing []
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->20966 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the 
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  money 20966; Hyper +31, Full Heal +8, Revive +3; Ultra +0  — 20966 31 8 0
+  PASS  kit_expected [Hyper 1], balls_split [], memo_end []
+  PASS  REPORT bought = the plan; kit before {Hyper 30}, got {Hyper 1}  — {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Hyper Potion', 1)], 'split_balls': [], 'reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'floor': 19000, 'money_after_basket': 22166, 'phase': 'done', 'lines': [('Hyper Potion', 1)], 'live_wants': [('Hyper Potion', 4), ('Full Heal', 2)], 'live_reason': "kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 383 left", 'live_floor': 19000, 'before': {'Hyper Potion': 30}, 'got': {'Hyper Potion': 1}, 'ok': True, 'money_after': 20966}
+  PASS  the four lines in order (9b's forecast unchanged; kit-forecast; topoff-none; kit)
+=== S-RAW: ACCEPTANCE FAIL, failing ['bag_delta_equals_plan', 'balls_as_forecast', 'kit_as_forecast', 'kit_attributed', 'kit_before_after_basket', 'production_kit_forecast']
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] split_balls=[('Ultra Ball', 1)] floor=19000 walk=False reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583
+    [KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->20966 wants=[] floor=19000 reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget 1583, 383 left
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE FAIL on EXACTLY the pre-registered set  — ['bag_delta_equals_plan', 'balls_as_forecast', 'kit_as_forecast', 'kit_attributed', 'kit_before_after_basket', 'production_kit_forecast']
+  PASS  Ultra +1, Hyper +30, money 20966, a kit-none line  — 1 30 20966
+  PASS  kit_forecast [Hyper 1] vs kit_forecast_raw []
+=== S-KITONLY: ACCEPTANCE PASS, failing []
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x None (0 to the reserv
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  'kit only'; Hyper +1; money 20966; kit_floor 19000; memo_end []; no balls key  — kit only 1 20966
+=== S-BOTHKIT: ACCEPTANCE PASS, failing []
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->20966 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit mart=SootopolisCity kit=[('Hyper Potion', 1)] bought={'Hyper Potion': 1} money=22166->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to the 
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  'kit only' although 9b's forecast line says walk=True; Hyper +1; Ultra +0; money 20966  — kit only ["[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)"] 1 0
+  PASS  balls_split []; memo_end [] (the ball set not wasted)
+=== S-FH: ACCEPTANCE PASS, failing []
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Full Heal', 1)] bought=- money=20966->20966 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Full Heal', 1)] and 0 x Ultra Ball 
+    [KIT-BUY] why=kit mart=SootopolisCity kit=[('Full Heal', 1)] bought={'Full Heal': 1} money=20966->20366 wants=[('Hyper Potion', 4), ('Full Heal', 2)] floor=19000 reason=kit [('Full Heal', 1)] and 0 x None (0 to the reserve + 0 aft
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  kit_expected [Full Heal 1]; Full Heal +1; Hyper +0; money 20366  — [('Full Heal', 1)] 1 0 20366
+=== S-OBS-RAISE: ACCEPTANCE PASS, failing []
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's forecast raised RuntimeError('POKEBOT_RESERVE_FAULT_RAISE: the reserve read is broken on purpose') (nothing moved; the balls stay 9b's)
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE PASS
+  PASS  A2-ON's purchase: money 20966, Ultra +1, Hyper +30
+  PASS  kit_blocked True, kit_forecast []; ONE kit-failed line; A2-ON's ball lines  — ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's forecast raised RuntimeError('POKEBOT_RESERVE_FAULT_RAISE: the reserve read is broken on purpose') (nothing moved; the balls stay 9b's)"]
+  PASS  memo_end = ['SootopolisCity:kit'] (the kit key alone)  — ['SootopolisCity:kit']
+=== S-VAC: ACCEPTANCE FAIL, failing ['kit_attributed', 'kit_bought_as_forecast', 'kit_floor_kept', 'money_drop_equals_cost', 'no_failure', 'on_gym_1f', 'production_kit_forecast', 'topoff_only_visit', 'walked_and_reheald', 'walked_back_across']
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  PREMISE FAILED ... kit=[] and ACCEPTANCE FAIL
+  PASS  kit_forecast [] and kit_expected []
+=== S-RAWVAC: ACCEPTANCE FAIL, failing ['kit_as_forecast', 'kit_attributed', 'kit_bought_as_forecast', 'meds_delta_is_kit', 'money_drop_equals_cost', 'production_kit_forecast', 'topoff_only_visit', 'walked_and_reheald', 'walked_back_across']
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[] bought=- money=22166->22166 wants=[] split_balls=[] floor=19000 walk=False reason=kit none and 0 x Ultra Ball (0 to the reserve + 0 after the kit); budget 1583, 1583 left
+  PASS  no [BATTLE] started in the driver segment  — []
+  PASS  ACCEPTANCE FAIL on EXACTLY the pre-registered set  — ['kit_as_forecast', 'kit_attributed', 'kit_bought_as_forecast', 'meds_delta_is_kit', 'money_drop_equals_cost', 'production_kit_forecast', 'topoff_only_visit', 'walked_and_reheald', 'walked_back_across']
+  PASS  'nothing missing', no walk, money 22166  — nothing missing 22166
+
+49/49 checks PASS

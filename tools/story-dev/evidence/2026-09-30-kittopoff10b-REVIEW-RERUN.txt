@@ -1,0 +1,75 @@
+design v2 step 10b REVIEW — the regression re-run and four new arms: EXPECTED lines, filed and committed BEFORE any run
+=========================================================================================================================
+
+WHY A RE-RUN. The three-lens review's fixes change code every 10b arm runs through:
+- DC1 (the driver): `kit_as_forecast` leaves `common` (graded after it, for every EXPECT but `budget`); the lever rule
+  models POKEBOT_R23_FAULT_BALLRAISE (new R keys `kit_ballraise`, `kit_walk`); `ballfail` is kit-aware (its premise
+  admits a kit-only walk, its outcome label is the driver's `topoff_label`, and with the kit buying it also grades
+  `kit_phase_failed` and `both_keys_memoised`); the `kit` branch's label moved out of the branch, unchanged in value.
+- DC2 (production, `sootopolis_topoff_phase`): a set that planned no line reads the wallet UNCHANGED on its line and
+  in its report (`ball_money_after`/`kit_money_after`), never the other set's cost.
+- LI-2 (production): the kit is memoised as "wasted" only when its live wants are empty or the visit bought nothing.
+  No graded arm reaches this branch (every 10b arm's counter either buys the kit or is a basket visit).
+
+THE COMMAND. The 10b arms' own (`2026-09-30-kittopoff10b-PREDICTIONS.md`): the seed-1 wrapper, `--driver earlybasket
+--frames 16000`, sequential, profile repro-ml, each with its own output files and the ONE debug log it created (listing
+diff). The flags and fixtures are the arms' own. The "-A" arms run the ea75fe1f DRIVER (`git show
+ea75fe1f:tools/story-dev/story_harness.py`, compiled under the name story_harness.py and run exactly as the wrapper
+runs the file) against the FIXED production, which differs from ea75fe1f only in code a BALLRAISE arm never reaches
+(the raise comes first). So each A/B pair isolates the driver.
+
+EXPECTED, the twelve graded arms (regression):
+  (1) EVERY frame-stamped line of the driver segment IDENTICAL to the graded run (ea75fe1f; committed in
+      `2026-09-30-kittopoff10b-<ARM>.txt`), EXCEPT exactly these, whose new text is given in full:
+      S-ON       f3706032 [BALLS] [BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0
+                 spare=18->18 money=22166->22166 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to
+                 the reserve + 0 after the kit); budget 1583, 383 left
+                 and its `[EARLY_BASKET]` line: the `balls={...}` part ends `'ok': True, 'money_after': 22166}` (was
+                 20966); the `kit={...}` part unchanged (the kit bought: 20966).
+      S-BOTHKIT  f3712193 [BALLS] [BALLS-BUY] why=topoff-none mart=SootopolisCity ball=Ultra Ball bought=0 premier=0
+                 spare=18->18 money=22166->22166 floor=19000 reason=kit [('Hyper Potion', 1)] and 0 x Ultra Ball (0 to
+                 the reserve + 0 after the kit); budget 1583, 383 left
+                 and its `[EARLY_BASKET]` line: `balls={...}` ends `'money_after': 22166}`; `kit={...}` unchanged.
+      S-RAW      f3706022 [BALLS] [KIT-BUY] why=kit-none mart=SootopolisCity kit=[] bought=- money=22166->22166
+                 wants=[] floor=19000 reason=kit none and 1 x Ultra Ball (0 to the reserve + 1 after the kit); budget
+                 1583, 383 left
+                 and its `[EARLY_BASKET]` line: `kit={...}` ends `'ok': True, 'money_after': 22166}`; `balls={...}`
+                 unchanged (the balls bought: 20966).
+      ⚠ A DETERMINISM check of one trajectory, not a replication (DC2 changes log text only, never a frame).
+  (2) The driver's --log: every line identical EXCEPT (a) two new R lines, `R kit_ballraise = False` in every arm and
+      `R kit_walk = True` in S-ON, S-RAW, S-KITONLY, S-BOTHKIT, S-FH, S-RAWVAC (False in S-OFF, S-BALL, S-OBS, S-SKIP,
+      S-OBS-RAISE, S-VAC); (b) the REPORT `balls`/`kit` money_after of S-ON, S-BOTHKIT and S-RAW as in (1).
+      The conjunct dicts are identical, KEY ORDER included (`kit_as_forecast` was the last key of `common` and is
+      now appended right after it). So every verdict and failing set stands: ten PASS; S-RAW FAILs on exactly
+      `bag_delta_equals_plan, balls_as_forecast, kit_as_forecast, kit_attributed, kit_before_after_basket,
+      production_kit_forecast`; S-RAWVAC on exactly its nine; S-VAC `PREMISE FAILED … kit=[]`.
+FALSIFIER: any other difference, in any arm.
+
+EXPECTED, the four NEW arms (the review's DC1, reproduced and then fixed, live). Flags for all four: EB_EXPECT=ballfail
+POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1 POKEBOT_R23_FAULT_BALLRAISE=1.
+  S-BALLFAIL-KIT-A     post_hm07.ss1, the ea75fe1f driver:  ACCEPTANCE FAIL on EXACTLY ['kit_as_forecast'] (the
+                       measured kit {} against an expected {Hyper 1}: the driver did not model BALLRAISE).
+  S-BALLFAIL-KIT       post_hm07.ss1, the fixed driver:     ACCEPTANCE PASS, every conjunct True, including
+                       `kit_phase_failed`, `both_keys_memoised`, `kit_as_forecast`.
+      Both (production is the same): the basket bought (Revive +3, Full Heal +8, Hyper +30), Ultra +0, ₽67,466 ->
+      ₽22,166; `memo_end = ['SootopolisCity', 'SootopolisCity:kit']`; REPORT `early_basket = 'bought'`, `balls.phase`
+      and `kit.phase` 'failed'. Debug lines (the forecast pair = S-ON's two at its frame f3701177, then at the counter):
+        [BALLS-BUY] why=topoff-forecast … plan=[('Ultra Ball', 1)] floor=19000 walk=True …   (S-ON's text)
+        [KIT-BUY] why=kit-forecast … kit=[('Hyper Potion', 1)] … split_balls=[] floor=19000 walk=True …   (S-ON's text)
+        [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the
+          top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu
+          open, nothing bought)'); the basket's outcome stands
+        [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised
+          RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: …'); the basket's outcome stands
+      Fixed driver only: `R kit_ballraise = True`, `R kit_walk = True`, `R kit_expected = []`.
+  S-BALLFAIL-KITONLY-A eb_after_M0a.ss1, the ea75fe1f driver: `PREMISE FAILED for expect=ballfail` (plan [], the
+                       balls' effective walk is the empty split, and the old premise knew no kit walk) and ACCEPTANCE
+                       FAIL; no visit, ₽22,166 unchanged, no REPORT lines.
+  S-BALLFAIL-KITONLY   eb_after_M0a.ss1, the fixed driver:  ACCEPTANCE PASS, every conjunct True. REPORT
+                       `early_basket = 'kit only'` (9b's forecast says walk=True, the effective ball walk is the empty
+                       split: S-BOTHKIT's label); readings [EB-MART]; nothing bought; ₽22,166 -> ₽22,166;
+                       `memo_end = ['SootopolisCity', 'SootopolisCity:kit']`. Debug: S-BOTHKIT's forecast pair (frame
+                       f3710241), then the same topoff-failed + kit-failed pair as above.
+FALSIFIER: a PASS on either -A arm; a FAIL on either fixed arm; any failing set other than the one named.
+
+RESULTS: appended below after the run (this header is not edited).

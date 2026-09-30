@@ -1,0 +1,111 @@
+# design v2 step 10b (HK at Sootopolis) arm S-OBS-RAISE on ea75fe1f (branch wt/kittopoff10b).
+# Fixture saves/post_hm07.ss1. Flags: EB_EXPECT=buy POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=observe POKEBOT_R27_KEYITEMS=1 POKEBOT_RESERVE_FAULT_RAISE=1
+# Command: cd tools/story-dev && env <flags> PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" saves/<fixture> --driver earlybasket --frames 16000 --log <arm>.log
+# exit=0; debug log Story-debug-20260930-013928.log (the ONE file this run created: listing diff); finished 01:41:02 AM LA, 2026-09-30.
+# Predictions: PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-kittopoff10b-PREDICTIONS.md (3e246e81).
+# ---- the driver's lines (its --log): PRE/PRE-BALLS/PRE-KIT, R, REPORT, conjuncts, ACCEPTANCE ----
+[earlybasket] PRE {'start_at': ((0, 7), (31, 34)), 'frame_start': 3699006, 'money_start': 67466, 'stock_start': {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]}
+[earlybasket] PRE-BALLS start={'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1} mode='1' forecast=[('Ultra Ball', 1)] floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+[earlybasket] PRE-KIT start={'Awakening': 0, 'Full Heal': 0, 'Hyper Potion': 0, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 0, 'Super Potion': 0} mode='observe' skip=False blocked=True forecast=[] raw=[] split=[] expected=[] balls_expected=[('Ultra Ball', 1)] floor=None
+[earlybasket] R balls_end = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 1, 'Premier Ball': 1}
+[earlybasket] R balls_expected = [('Ultra Ball', 1)]
+[earlybasket] R balls_floor = 19000
+[earlybasket] R balls_forecast = [('Ultra Ball', 1)]
+[earlybasket] R balls_forecast_made = True
+[earlybasket] R balls_split = []
+[earlybasket] R balls_start = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R bb_mode = '1'
+[earlybasket] R final_at = ((15, 0), (8, 25))
+[earlybasket] R frame_start = 3699006
+[earlybasket] R frames = 10880
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R kit_blocked = True
+[earlybasket] R kit_buys = False
+[earlybasket] R kit_end = {'Awakening': 0, 'Full Heal': 8, 'Hyper Potion': 30, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 3, 'Super Potion': 0}
+[earlybasket] R kit_expected = []
+[earlybasket] R kit_floor = None
+[earlybasket] R kit_forecast = []
+[earlybasket] R kit_forecast_made = True
+[earlybasket] R kit_forecast_raw = []
+[earlybasket] R kit_mode = 'observe'
+[earlybasket] R kit_skip = False
+[earlybasket] R kit_start = {'Awakening': 0, 'Full Heal': 0, 'Hyper Potion': 0, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 0, 'Super Potion': 0}
+[earlybasket] R memo_end = ['SootopolisCity:kit']
+[earlybasket] R money_end = 20966
+[earlybasket] R money_start = 67466
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_after_heal = {187737927: ('Swellow', 115, 115), 868971715: ('Zigzagoon', 48, 48), 2252015895: ('Sceptile', 138, 138), 4199673075: ('Wailmer', 160, 160), 1553394331: ('Mightyena', 130, 130), 3380138318: ('Castform', 103, 103)}
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] R start_at = ((0, 7), (31, 34))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT balls = {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166, 'phase': 'done', 'lines': [('Ultra Ball', 1)], 'live_reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'live_floor': 19000, 'bought': 1, 'premier': 0, 'spare_after': 19, 'money_after': 20966, 'ok': True}
+[earlybasket] REPORT bought = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT budget = 20000
+[earlybasket] REPORT close_presses = 8
+[earlybasket] REPORT crossed = True
+[earlybasket] REPORT early_basket = 'bought'
+[earlybasket] REPORT finished = True
+[earlybasket] REPORT floor = 1000
+[earlybasket] REPORT frame_start = 3701177
+[earlybasket] REPORT frames_at_cross = 535
+[earlybasket] REPORT frames_at_shop_open = 1390
+[earlybasket] REPORT kit = {'mode': 'observe', 'walk': False, 'blocked': True, 'forecast': [], 'split_balls': [], 'reason': "the kit's forecast raised RuntimeError('POKEBOT_RESERVE_FAULT_RAISE: the reserve read is broken on purpose') (nothing moved; the balls stay 9b's)"}
+[earlybasket] REPORT layout_pin = 'SOOTOPOLIS_CITY: planner blockdata 0x083E6A04 -> 0x083E6A04 (pinned to the LIVE header)'
+[earlybasket] REPORT money_after = 22166
+[earlybasket] REPORT money_before = 67466
+[earlybasket] REPORT order = ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT']
+[earlybasket] REPORT plan = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] REPORT return_at = ((0, 7), (31, 34))
+[earlybasket] REPORT return_attempts = [{'from': (17, 30), 'remaining': 22}]
+[earlybasket] REPORT returned = True
+[earlybasket] REPORT route_back_len = 22
+[earlybasket] REPORT route_out_len = 23
+[earlybasket] REPORT shop_menu_open = True
+[earlybasket] REPORT sold_here = ['Full Heal', 'Hyper Potion', 'Max Potion', 'Max Repel', 'Revive', 'Shadow Mail', 'Ultra Ball', 'X Attack', 'X Defend']
+[earlybasket] REPORT stock_after = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT stock_before = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT walked = True
+[earlybasket] REPORT waypoint_reached = ((0, 7), (31, 34))
+[earlybasket] ORDER ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT'] PLAN [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] DELTA {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} COST 46500
+[earlybasket] BALLS expected={'Ultra Ball': 1} forecast=[('Ultra Ball', 1)] delta={'Ultra Ball': 1} bought={'Ultra Ball': 1} ball_cost=1200 floor=19000
+[earlybasket] KIT expected={} kit={} meds_delta={'Full Heal': 8, 'Hyper Potion': 30, 'Revive': 3} kit_cost=0 forecast=[] raw=[] split=[] memo_end=['SootopolisCity:kit']
+[earlybasket] conjuncts = {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'basket_bought_exactly': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True, 'production_kit_forecast': True, 'kit_as_forecast': True}
+[earlybasket] ACCEPTANCE: PASS (expect=buy) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+# ---- the debug log's driver segment (every frame-stamped line up to the fixture restore) ----
+f3698976 ===== DUMP [enable — initial state] =====
+f3699607 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3700021 ===== DUMP [STUCK — 300 frames no progress] =====
+f3700926 [RESUMED] after 1204 frames with no progress
+f3700927 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3701067 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3701177 [BALLS] [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+f3701177 [BALLS] [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the kit's forecast raised RuntimeError('POKEBOT_RESERVE_FAULT_RAISE: the reserve read is broken on purpose') (nothing moved; the balls stay 9b's)
+f3702316 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702319 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(17, 29)
+f3702320 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702576 [hb] mode=Story state=7 controllable=True map=SOOTOPOLIS CITY(15,4) pos=(3, 3) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3702890 ===== DUMP [STUCK — 300 frames no progress] =====
+f3703474 [RESUMED] after 883 frames with no progress
+f3703774 ===== DUMP [STUCK — 300 frames no progress] =====
+f3705494 [RESUMED] after 2019 frames with no progress
+f3705723 [BALLS] 19 -> 20
+f3705794 ===== DUMP [STUCK — 300 frames no progress] =====
+f3705824 [RESUMED] after 329 frames with no progress
+f3706022 [BALLS] [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+f3706176 [hb] mode=Story state=7 controllable=True map=SOOTOPOLIS CITY(15,4) pos=(3, 5) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=20 money=20966 box=0 badges=7 msg=''
+f3706287 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(3, 7)
+f3706922 [EARLY_BASKET] outcome='bought' plan=[('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] bought={'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} money=67466->22166 walked=True finished=True crossed=True returned=True stranded=None balls={'mode': '1', 'walk': True, 'forecast': [('Ultra Ball', 1)], 'phase': 'done', 'lines': [('Ultra Ball', 1)], 'bought': 1, 'premier': 0, 'ok': True, 'money_after': 20966} kit={'mode': 'observe', 'blocked': True, 'walk': False, 'forecast': [], 'split_balls': []}
+f3707524 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3707938 ===== DUMP [STUCK — 300 frames no progress] =====
+f3708843 [RESUMED] after 1204 frames with no progress
+f3708844 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3708984 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3708996 [BALLS] 20 -> 297045
+f3708997 [BALLS] 297045 -> 20
+f3709776 [hb] mode=Story state=7 controllable=False map=SOOTOPOLIS CITY(0,7) pos=(31, 32) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=20 money=20966 box=0 badges=7 msg=''
+f3709821 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+f3709825 [BALLS] 20 -> 239380
+f3709826 [BALLS] 239380 -> 20

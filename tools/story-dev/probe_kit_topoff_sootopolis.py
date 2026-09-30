@@ -20,18 +20,26 @@ passed through those holes; each value below now names the row that REALLY sets 
   memo: none | the kit key (O5, S7) | the ball key (O5, S12)
   kit reads: fine | raise (O6, P9, P22) | abort (O7, P8)
   held view: reserve (O2) | RAWBAG (O8) | above the reserve (H1) | converged, nothing to buy (S11, S12, P19-P21)
-  money/floor: post_hm07 (O3) | complete basket (O11) | floor lever (O9, P13, P15, P16) | spare (O10d, O12, S13)
+  money/floor: post_hm07 (O3) | complete basket (O11) | floor lever (O9, O13, P13, P15, P16) | spare (O10d, O12, S13)
+  kit quantities above one unit: HP target 4, Full Heal 2 (O13)
   visit: basket (S9) | kit only (S2) | both walks (S13) | 9b's walk, the kit's split empty (S3) | BB9B-1 (S8)
   counter: both sets bought (P4) | one set short either way (P3, P4) | nothing to buy (P10, P20) | a kit that did
-           not walk (P19, P21) | the live list vs the static list (P15) | raise (P5, P17) | BALLRAISE (P6) | close
-           (P7, P18) | abort (P8) | the kit's own read raising (P9, P22) | the ball flag OFF (P12)
+           not walk (P19, P21) | the live list vs the static list (P15, and the BALL list: P25) | raise (P5, P17) |
+           BALLRAISE (P6) | close (P7, P18) | abort (P8) | the kit's own read raising (P9, P22, and on a BASKET visit:
+           P24) | the ball flag OFF (P12) | a SHORT basket, so a live floor above the forecast's (P23) | a spare that
+           DROPPED between the forecast and the counter (P26) | the wallet differing from the forecast's (P2)
+  money on the lines: a set that planned nothing reads X->X (P1 the balls, P15 the kit)
   telemetry: the `[EARLY_BASKET]` kit suffix (S14)
+  ⚠ ADDED after the THREE-LENS REVIEW (KT2-STUB1): `_phase`'s kit dict now carries EVERY key production's forecast
+  writes (`FORECAST_KEYS`), and its `_inputs` floor follows the fake bag as the real one does. Before, a counter that
+  read the forecast's floor, wallet or wants passed every row, because no row could make them differ from live.
 
-ROWS: H1-H3 (pure), G1-G8 (`kit_grade.py`, executed), O1-O12 (the forecast, executed), S1-S14 (the visit,
-executed), P1-P22 (the counter phase, executed), A1-A5 (AST), then mutants with EXACT red sets. The stubs keep the
+ROWS: H1-H3 (pure), G1-G8 (`kit_grade.py`, executed), O1-O13 (the forecast, executed), S1-S14 (the visit,
+executed), P1-P26 (the counter phase, executed), A1-A5 (AST), then mutants with EXACT red sets. The stubs keep the
 contracts they replace: the kit-read fault is raised in `reserved_quantities` (the ONLY live lever,
 `POKEBOT_RESERVE_FAULT_RAISE`, raises there), the fake `buy_in_shop` refuses up front exactly where the real one does
-(an unsold item, a quantity outside 1-99, a total above the wallet), and `_inputs` reads the live wallet.
+(an unsold item, a quantity outside 1-99, a total above the wallet), and `_inputs` reads the live wallet and derives
+the live floor from the League basket still missing in the fake bag.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_kit_topoff_sootopolis.py        (exit 1 on any failure)
 """
@@ -62,6 +70,11 @@ PLAN = list(g9.PLAN)                                             # [Revive 3, Fu
 TARGET = {"Hyper Potion": 30, "Full Restore": 3, "Full Heal": 8, "Revive": 3}   # the armed reserve (the basket)
 KIT_KEY, BALL_KEY = "SootopolisCity:kit", "SootopolisCity"
 HYPER1 = [("Hyper Potion", 1)]
+#: ⛔ The rest of the kit dict production's forecast writes (the review's KT2-STUB1), at the values it writes for
+#: post_hm07's counter state. The counter must re-plan from the LIVE floor, wallet and list, so a row whose live state
+#: differs (P2's wallet, P15/P19-P21's list or held view, P23's short basket) catches a counter that reads these.
+FORECAST_KEYS = {"floor": 19000, "money_after_basket": 22166, "wants": [("Hyper Potion", 4), ("Full Heal", 2)],
+                 "reason": "the forecast's reason (the counter re-plans; it must never read these keys)"}
 
 
 def check(label, ok, detail=""):
@@ -152,7 +165,11 @@ def g_rows(tag=""):
                 and not kg.production_kit_forecast_ok(True, [], [], rep)
                 and not kg.production_kit_forecast_ok(True, HYPER1, [("Ultra Ball", 1)], rep)
                 and kg.production_kit_forecast_ok(False, [], [], {"balls": {}})
-                and not kg.production_kit_forecast_ok(False, [], [], rep)), "made/unmade/forecast/split"
+                and not kg.production_kit_forecast_ok(False, [], [], rep)
+                # the review's KT2-Z1: a MADE forecast with NO kit dict, or an empty one, is never agreement (the D2
+                # skip and RESERVE_FAULT_RAISE make the driver's forecast [] while production must still write the key)
+                and not kg.production_kit_forecast_ok(True, [], [], {"balls": {}})
+                and not kg.production_kit_forecast_ok(True, [], [], {"kit": {}})), "made/unmade/forecast/split/missing"
 
     def g4():
         good = {"kit": {"got": {"Hyper Potion": 1}, "ok": True}}
@@ -322,6 +339,16 @@ def o_rows(tag=""):
         return (s10["forecast"] == [] and s10["split_balls"] == [("Ultra Ball", 1)]
                 and s11["forecast"] == HYPER1 and s11["split_balls"] == []), f"{s10} {s11}"
 
+    def o13():  # the review's KT2-X4: the forecast's kit QUANTITIES above one unit (D5: HP to 4, Full Heal to 2)
+        # (a) Hyper 32 / Full Heal 10 held: 2 above the reserve each -> wants Hyper 2 only; ₽1,583 buys one
+        a = fc(ball=None, kit="1", stock={"Hyper Potion": 32, "Full Restore": 0, "Full Heal": 10, "Revive": 3},
+               plan=[], money=22166, balls=None)[0]
+        # (b) post_hm07's plan with the floor lever at 1,000: the budget is the ₽6,000 cap -> Hyper 4 + Full Heal 2
+        b = fc(ball=None, kit="1", floor="1000", balls=None)[0]
+        return (a["wants"] == [("Hyper Potion", 2)] and a["forecast"] == HYPER1 and a["walk"] is True
+                and b["wants"] == [("Hyper Potion", 4), ("Full Heal", 2)]
+                and b["forecast"] == [("Hyper Potion", 4), ("Full Heal", 2)] and b["walk"] is True), f"{a} || {b}"
+
     for label, fn in (("O1 OFF (unset, 0, a typo) returns None and reads NOTHING; a typo is one kit-flag line", o1),
                       ("O2 observe: plans Hyper 1, never walks, one kit-observe line", o2),
                       ("O3 kit 1: Hyper 1, the split is [] (the kit takes the budget), walks; the line shows the split",
@@ -335,7 +362,9 @@ def o_rows(tag=""):
                       ("O9 the floor lever (30000) reaches the kit: nothing affordable", o9),
                       ("O10 balls blocked or OFF: no split (the kit alone)", o10),
                       ("O11 a complete basket (eb_after_M0a): Hyper 1 with or without the balls", o11),
-                      ("O12 the spare threshold: 10 gives the reserve Ultra and no kit, 11 gives Hyper 1", o12)):
+                      ("O12 the spare threshold: 10 gives the reserve Ultra and no kit, 11 gives Hyper 1", o12),
+                      ("O13 kit quantities above one: wants Hyper 2 (2 held); the ₽6,000 cap buys Hyper 4 + Full Heal 2",
+                       o13)):
         row(label, fn, tag, reds)
     return reds
 
@@ -546,7 +575,7 @@ def _phase(*, ball="1", kit_mode="1", bag=None, money=22166, buy="ok", short=Non
     if ball is not None:
         report["balls"] = {"mode": ball, "walk": True, "blocked": ball_blocked, "forecast": [("Ultra Ball", 5)]}
     report["kit"] = dict({"mode": kit_mode, "walk": True, "blocked": False, "forecast": [("Hyper Potion", 9)],
-                          "split_balls": []}, **(kit_extra or {}))
+                          "split_balls": [], **copy.deepcopy(FORECAST_KEYS)}, **(kit_extra or {}))
     root = copy.deepcopy({k: v for k, v in report.items() if k not in ("balls", "kit")})
     out = None
     with g9.Patch() as p:
@@ -598,8 +627,16 @@ def _phase(*, ball="1", kit_mode="1", bag=None, money=22166, buy="ok", short=Non
 
         p.set(lr, "_stock_by_name", stock)
         p.set(lr, "reserved_quantities", reserved)
+        from modules.story.victory_road import LEAGUE_BASKET, basket_to_buy
+
+        def live_floor():
+            # FAITHFUL to the real `_inputs`: CASH_FLOOR + 2 x the League basket still MISSING in the bag, so a SHORT
+            # basket raises it (the review's KT2-STUB1: a constant ₽19,000 equalled every forecast's floor)
+            missing = basket_to_buy({n: fbag.counts.get(n, 0) for n, _q in LEAGUE_BASKET})
+            return sys.modules[T_NAME].floor("BASKET_ERA", sum(PRICES[n] * q for n, q in missing))
+
         # `_inputs` reads the LIVE wallet (9b's `_p_env` kept a private one the fake buy never debited: finding 4)
-        p.set(sys.modules[T_NAME], "_inputs", lambda _m: {"stage": "BASKET_ERA", "floor": 19000,
+        p.set(sys.modules[T_NAME], "_inputs", lambda _m: {"stage": "BASKET_ERA", "floor": live_floor(),
                                                          "spare": fbag.number_of_balls_except_master_ball,
                                                          "money": wallet["money"], "flags": dict(g9.ERA),
                                                          "price_of": lambda n: PRICES[n]})
@@ -636,9 +673,12 @@ def p_rows(tag=""):
     def p1():   # S-ON's counter: Hyper 1, no ball; the kit's before = 30 (after the basket); both lines, per set
         r = _phase()
         kf = [x for x in r.emitted if x.startswith(K + " why=kit ")]
+        bl = [x for x in r.emitted if x.startswith(B)]
+        # the review's DC2: the ball set planned nothing, so ITS line reads the wallet unchanged (never the kit's ₽1,200)
         return (buys(r) == [HYPER1] and r.report["kit"]["got"] == {"Hyper Potion": 1} and r.report["kit"]["ok"]
                 and r.report["kit"]["before"] == {"Hyper Potion": 30} and tags(r.emitted, B) == ["why=topoff-none"]
                 and tags(r.emitted, K) == ["why=kit"] and "bought={'Hyper Potion': 1}" in kf[0]
+                and " money=22166->22166 " in bl[0] and r.report["balls"]["money_after"] == 22166
                 and r.memo == set() and r.isolated), f"{buys(r)} {r.report['kit']} {r.emitted}"
 
     def p2():   # S-FH's counter (money 20,966, a Hyper already above the reserve): 1 Full Heal
@@ -722,8 +762,11 @@ def p_rows(tag=""):
 
     def p15():  # E5: the counter plans the kit from the LIVE list (a Mart without the kit's items buys the balls)
         r = _phase(sold=["Ultra Ball", "Revive"], floor_env="1000")
+        kl = [x for x in r.emitted if x.startswith(K)]
+        # the review's DC2, the kit's half: the kit planned nothing, so ITS line reads the wallet unchanged
         return (buys(r) == [[("Ultra Ball", 5)]] and tags(r.emitted, B) == ["why=topoff"]
-                and tags(r.emitted, K) == ["why=kit-none"] and r.memo == set()), f"{buys(r)} {r.emitted} {r.memo}"
+                and tags(r.emitted, K) == ["why=kit-none"] and " money=22166->22166 " in kl[0]
+                and r.report["kit"]["money_after"] == 22166 and r.memo == set()), f"{buys(r)} {r.emitted} {r.memo}"
 
     def p16():  # E5: `observe` balls are OFF at the counter: the whole budget goes to the kit, no ball line
         r = _phase(ball="observe", bag={"Hyper Potion": 30, "Full Heal": 8, "Revive": 3, "Poké Ball": 2},
@@ -762,6 +805,32 @@ def p_rows(tag=""):
                    held_raise=RuntimeError("reserve read broken"), sold=["Hyper Potion", "Revive", "Full Heal"])
         return r.memo == {KIT_KEY, BALL_KEY} and buys(r) == [], f"{r.memo} {buys(r)} {r.emitted}"
 
+    # --- added after the THREE-LENS REVIEW (its KT2-X2, KT2-X1, KT2-X5 and LI-2); expectations from E5, derived by hand
+    def p23():  # KT2-X2: a SHORT basket (Hyper 20 of 30) leaves ₽12,000 more missing: the LIVE floor is ₽43,000
+        r = _phase(early="partial", bag={"Hyper Potion": 20, "Full Heal": 8, "Revive": 3, "Potion": 1}, money=34166)
+        return (buys(r) == [] and r.memo == set() and r.report["kit"]["live_floor"] == 43000
+                and tags(r.emitted, K) == ["why=kit-none"] and tags(r.emitted, B) == ["why=topoff-none"]), \
+            f"{buys(r)} {r.memo} {r.report['kit'].get('live_floor')} {r.emitted}"
+
+    def p24():  # KT2-X1: PD1's negative twin: a kit-read raise on a BASKET visit wasted no walk: the kit key alone
+        r = _phase(early="bought", kit_extra={"split_balls": [("Ultra Ball", 1)]},
+                   held_raise=RuntimeError("reserve read broken"), sold=["Hyper Potion", "Revive", "Full Heal"])
+        return (r.memo == {KIT_KEY} and buys(r) == [] and tags(r.emitted, B) == ["why=topoff-none"]
+                and tags(r.emitted, K) == ["why=kit-failed"]), f"{r.memo} {buys(r)} {r.emitted}"
+
+    def p25():  # KT2-X5: no ball on the LIVE list at spare 8 (<= the reserve): the kit keeps the budget
+        r = _phase(early="kit only", sold=["Hyper Potion", "Revive", "Full Heal"],
+                   bag={"Hyper Potion": 30, "Full Heal": 8, "Revive": 3, "Potion": 1, "Poké Ball": 6})
+        return (buys(r) == [HYPER1] and r.memo == set() and tags(r.emitted, K) == ["why=kit"]), \
+            f"{buys(r)} {r.memo} {r.emitted}"
+
+    def p26():  # LI-2: a spare that DROPPED to 10 on the crossing: the reserve Ultra takes the budget, the kit's wants
+        # stand, so the kit is NOT memoised as wasted (the next forecast re-plans from the new spare)
+        r = _phase(early="kit only", bag={"Hyper Potion": 30, "Full Heal": 8, "Revive": 3, "Potion": 1, "Poké Ball": 8})
+        kl = [x for x in r.emitted if x.startswith(K)]
+        return (buys(r) == [[("Ultra Ball", 1)]] and r.memo == set() and tags(r.emitted, K) == ["why=kit-none"]
+                and tags(r.emitted, B) == ["why=topoff"] and "(memoised)" not in kl[0]), f"{buys(r)} {r.memo} {r.emitted}"
+
     for label, fn in (("P1 S-ON's counter: Hyper 1, before=30 (after the basket), a line per set, R18 untouched", p1),
                       ("P2 S-FH's counter: 1 Full Heal", p2),
                       ("P3 the kit short: only the kit key, kit-failed, the balls' own line", p3),
@@ -784,17 +853,45 @@ def p_rows(tag=""):
                       ("P19 a kit that did not walk is never 'wasted'", p19),
                       ("P20 'balls only' is top-off-only: an empty live ball plan memoises the ball key", p20),
                       ("P21 a converged kit still lets the balls buy", p21),
-                      ("P22 PD1: a kit-read raise + an empty ball plan on 'balls and kit only' memoises both", p22)):
+                      ("P22 PD1: a kit-read raise + an empty ball plan on 'balls and kit only' memoises both", p22),
+                      ("P23 a SHORT basket: the live floor (₽43,000) is not the forecast's, nothing bought", p23),
+                      ("P24 PD1's twin: a kit-read raise on a BASKET visit memoises the kit key alone", p24),
+                      ("P25 no ball on the live list at spare 8: the kit keeps the budget, nothing memoised", p25),
+                      ("P26 a spare drop on the crossing: the reserve Ultra, and the kit NOT memoised as wasted", p26)):
         row(label, fn, tag, reds)
     return reds
 
 
 # ------------------------------------------------------------------------------------ A rows (AST)
+_TREES: dict = {}
+
+
+def _parsed(src):
+    """`ast.parse`, once per distinct source text (every mutant that leaves a file alone reuses its tree)."""
+    if src not in _TREES:
+        _TREES[src] = ast.parse(src)
+    return _TREES[src]
+
+
+def _class_source(src, cls):
+    """The text of TOP-LEVEL class `cls`: from its `class` line to the next column-0 statement (a column-0 comment does
+    not end it). Raises if the class is missing, so a row can never pass on an empty tree."""
+    import re
+
+    start = src.index(f"\nclass {cls}(") + 1
+    nxt = re.compile(r"^(?=[^\s#])", re.M).search(src, src.index("\n", start) + 1)
+    return src[start:nxt.start() if nxt else len(src)]
+
+
 def a_rows(tsrc, lrsrc, hsrc, tag=""):
     reds: list = []
 
     def fn(src, name, cls=None):
-        tree = ast.parse(src)
+        if cls:
+            # ⛔ Parse the CLASS, not the file: `ast.parse` of the 30,000-line harness took ~5 s, and A4 and A5 did it
+            # for every mutant, so the gate took 15 min against run_gates' 300 s FAST timeout (08, 2026-09-30).
+            src = _class_source(src, cls)
+        tree = _parsed(src)
         if cls:
             tree = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == cls)
         return next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
@@ -867,13 +964,46 @@ def a_rows(tsrc, lrsrc, hsrc, tag=""):
             "the raw view is printed": (one("R['kit_forecast_raw']") or "").startswith("kit_forecast(True)"),
             "blocked models RESERVE_FAULT_RAISE": "POKEBOT_RESERVE_FAULT_RAISE" in (one("R['kit_blocked']") or ""),
             "kit_buys": one("R['kit_buys']") == "R['kit_mode'] == '1' and kfc is not None",
-            "kit_expected": one("R['kit_expected']") == "R['kit_forecast'] if R['kit_buys'] else []",
+            "kit_expected": one("R['kit_expected']") == "R['kit_forecast'] if R['kit_buys'] and (not R['kit_ballraise']) else []",
             "production_kit_forecast is the call": (len(pkf) == 1 and isinstance(pkf[0], ast.Call)
                                                     and getattr(pkf[0].func, "id", None) == "production_kit_forecast_ok"),
             "memo_clean": len(memo_clean) == 1 and ast.unparse(memo_clean[0]) == "not R.get('memo_end')",
             "kit_end before the restore": (len(kit_end) == 1 and len(restore) == 1
                                            and kit_end[0].lineno < restore[0].lineno),
         }
+        # --- the THREE-LENS REVIEW: DC1 (the lever rule models BALLRAISE; `kit_as_forecast` everywhere but a budget
+        # close; a kit-aware ballfail), KT2-D1 (the kit's attribution) and KT2-D2 (the outcome label is the driver's)
+        def body_of(test):
+            got = [n for n in ast.walk(run) if isinstance(n, ast.If) and ast.unparse(n.test) == test]
+            return got[0].body if len(got) == 1 else []
+
+        def texts(key):
+            return [ast.unparse(v) for v in entries.get(key, [])]
+
+        kaf = assigns.get("conj['kit_as_forecast']", [])
+        both = assigns.get("conj['both_keys_memoised']", [])
+        attributed = assigns.get("conj['kit_attributed']", [])
+        checks.update({
+            "kit_ballraise models BALLRAISE": one("R['kit_ballraise']") == (
+                "R['kit_buys'] and R['bb_mode'] == '1' and (_os.environ.get('POKEBOT_R23_FAULT_BALLRAISE') == '1')"),
+            "kit_walk is the kit's own walk": one("R['kit_walk']") == "R['kit_buys'] and bool(R['kit_forecast'])",
+            "kit_as_forecast only outside a budget close": (
+                len(kaf) == 1 and kaf[0] in body_of("EXPECT != 'budget'") and not entries.get("kit_as_forecast")
+                and ast.unparse(kaf[0].value) == "kact['kit'] == kact['kit_expected']"),
+            "ballfail with the kit: both keys": (
+                len(both) == 1 and both[0] in body_of("R.get('kit_ballraise')")
+                and ast.unparse(both[0].value)
+                == "R.get('memo_end') == sorted([BB.sootopolis_key(), BB.sootopolis_kit_key()])"),
+            "the kit's attribution (buy branch and kit branch)": (
+                len(attributed) == 1 and ast.unparse(attributed[0].value) == "kit_attributed(rep, kact['kit_expected'])"
+                and texts("kit_attributed") == ["kit_attributed(rep, kact['kit_expected'])"]),
+            "the outcome label is the driver's": (
+                one("topoff_label") == "TOPOFF_ONLY_OUTCOMES[2 if ball_walk and kit_walk else 1 if kit_walk else 0]"
+                and one("(ball_walk, kit_walk)") == "(bool(R.get('balls_expected')), bool(R.get('kit_walk')))"
+                and texts("topoff_only_visit")
+                == ["rep.get('early_basket') == topoff_label and (not plan) and (order == [AT_MART])"]
+                and texts("basket_outcome_kept") == ["rep.get('early_basket') == ('bought' if basket_visit else topoff_label)"]),
+        })
         return all(checks.values()), str({k: v for k, v in checks.items() if not v})
 
     for label, f in (("A1 (AST) _shop: topoff_only keeps BB9B-1's precedence; the kit dispatch returns BEFORE 9b's", a1),
@@ -908,9 +1038,9 @@ CASES: list = [
     ("T5 OFF is not OFF (the forecast runs with the kit unset) -> O1 S1", T_PATH,
      '    if mode == "":                           # OFF', '    if mode == "0":                          # OFF',
      {"O1", "S1"}),
-    ("KEY the kit's memo key is the BALL key -> H3 O5 O6 S7 P3 P5 P6 P7 P9 P10 P17 P18 P22", T_PATH,
+    ("KEY the kit's memo key is the BALL key -> H3 O5 O6 S7 P3 P5 P6 P7 P9 P10 P17 P18 P22 P24", T_PATH,
      '    return f"{sootopolis_key()}:kit"', "    return sootopolis_key()",
-     {"H3", "O5", "O6", "S7", "P3", "P5", "P6", "P7", "P9", "P10", "P17", "P18", "P22"}),
+     {"H3", "O5", "O6", "S7", "P3", "P5", "P6", "P7", "P9", "P10", "P17", "P18", "P22", "P24"}),
     ("CONST Max Potion in the static kit list -> H3", T_PATH,
      'SOOTOPOLIS_STATIC_KIT_SOLD = ("Hyper Potion", "Full Heal")',
      'SOOTOPOLIS_STATIC_KIT_SOLD = ("Hyper Potion", "Max Potion", "Full Heal")', {"H3"}),
@@ -945,16 +1075,16 @@ CASES: list = [
      '    _emit(kit_log_line("kit-forecast",', {"O2"}),
     ("T16 the forecast ignores RAWBAG -> O8", T_PATH,
      '        rawbag = os.environ.get("POKEBOT_R26_FAULT_RAWBAG") == "1"\n', "        rawbag = False\n", {"O8"}),
-    ("T17 the forecast ignores the floor lever -> O9", T_PATH,
-     "            fault_floor=lever)", "            fault_floor=None)", {"O9"}),
+    ("T17 the forecast ignores the floor lever -> O9 O13", T_PATH,
+     "            fault_floor=lever)", "            fault_floor=None)", {"O9", "O13"}),
     # --- stock_topoff: the counter phase
-    ("T19 'wasted balls' keyed on 9b's walk, not the split -> P11", T_PATH,
+    ("T19 'wasted balls' keyed on 9b's walk, not the split -> P11 P25", T_PATH,
      '        wasted_balls = topoff_only and ball_on and bool(kit.get("split_balls")) and not ball_lines',
      '        wasted_balls = topoff_only and ball_on and bool((report.get("balls") or {}).get("walk")) '
-     'and not ball_lines', {"P11"}),
-    ("T20 'wasted kit' on a basket visit too -> P13 P15", T_PATH,
+     'and not ball_lines', {"P11", "P25"}),
+    ("T20 'wasted kit' on a basket visit too -> P13 P15 P23", T_PATH,
      '        wasted_kit = topoff_only and bool(kit.get("walk")) and not kit_lines',
-     '        wasted_kit = bool(kit.get("walk")) and not kit_lines', {"P13", "P15"}),
+     '        wasted_kit = bool(kit.get("walk")) and not kit_lines', {"P13", "P15", "P23"}),
     ("T21 a kit shortfall memoises the balls too (10a's R1 again) -> P3", T_PATH,
      '        if not kit["ok"]:\n            _memo_add_kit()\n',
      '        if not kit["ok"]:\n            _memo_add_kit()\n            _memo_add()\n', {"P3"}),
@@ -973,21 +1103,21 @@ CASES: list = [
     ("T26 BALLRAISE fires with the balls OFF -> P6", T_PATH,
      '        if ball_on and os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1":',
      '        if os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1":', {"P6"}),
-    ("T27 a kit-read raise drops the balls (no fallback to 9b's phase) -> P9 P22", T_PATH,
+    ("T27 a kit-read raise drops the balls (no fallback to 9b's phase) -> P9 P22 P24", T_PATH,
      "        if ball_on:\n            yield from sootopolis_ball_phase(report)\n            # 9b's phase memoises",
      "        if False:\n            yield from sootopolis_ball_phase(report)\n            # 9b's phase memoises",
-     {"P9", "P22"}),
-    ("T28 a kit-read raise memoises the balls too -> P9", T_PATH,
+     {"P9", "P22", "P24"}),
+    ("T28 a kit-read raise memoises the balls too -> P9 P24", T_PATH,
      '        reraise_if_aborting(error)\n        _memo_add_kit()\n        kit.update(phase="failed", error=repr(error))',
      '        reraise_if_aborting(error)\n        _memo_add_kit()\n        _memo_add()\n'
-     '        kit.update(phase="failed", error=repr(error))', {"P9"}),
-    ("T29 the kit verified by the COUNT, not the delta -> P1 P2 P4 P6 P11 P14 P16", T_PATH,
+     '        kit.update(phase="failed", error=repr(error))', {"P9", "P24"}),
+    ("T29 the kit verified by the COUNT, not the delta -> P1 P2 P4 P6 P11 P14 P16 P25", T_PATH,
      '        kit["got"] = {name: after[name] - before[name] for name in kit_want}',
-     '        kit["got"] = {name: after[name] for name in kit_want}', {"P1", "P2", "P4", "P6", "P11", "P14", "P16"}),
-    ("T30 the counter buys the STALE forecast, not the live plan -> P1 P2 P6 P11 P12 P13 P14 P16", T_PATH,
+     '        kit["got"] = {name: after[name] for name in kit_want}', {"P1", "P2", "P4", "P6", "P11", "P14", "P16", "P25"}),
+    ("T30 the counter buys the STALE forecast, not the live plan -> P1 P2 P6 P11 P12 P13 P14 P16 P23 P25 P26", T_PATH,
      '        kit_lines = [(n, q) for n, q in plan["kit"] if n in sold]',
      '        kit_lines = [(n, q) for n, q in kit.get("forecast", []) if n in sold]',
-     {"P1", "P2", "P6", "P11", "P12", "P13", "P14", "P16"}),
+     {"P1", "P2", "P6", "P11", "P12", "P13", "P14", "P16", "P23", "P25", "P26"}),
     # --- league_reserve
     ("L1 the precedence slip: a kit walk swallows BB9B-1's raise -> S8 A1", LR_PATH,
      '    topoff_only = ball_only or (not plan and bool(kit.get("walk")))',
@@ -1065,8 +1195,8 @@ CASES: list = [
     ("MG 'top-off only' excludes 'balls only' -> P20", T_PATH,
      '        topoff_only = report.get("early_basket") in TOPOFF_ONLY_OUTCOMES\n',
      '        topoff_only = report.get("early_basket") in TOPOFF_ONLY_OUTCOMES[1:]\n', {"P20"}),
-    ("MZ the counter buys only when the kit has lines -> P15 P19 P21", T_PATH,
-     "        if ball_lines or kit_lines:\n", "        if kit_lines:\n", {"P15", "P19", "P21"}),
+    ("MZ the counter buys only when the kit has lines -> P15 P19 P21 P26", T_PATH,
+     "        if ball_lines or kit_lines:\n", "        if kit_lines:\n", {"P15", "P19", "P21", "P26"}),
     ("MH a raise logs a ball line with the balls OFF -> P17", T_PATH,
      '        if ball_on:\n            balls.update(phase="failed", error=repr(error))',
      '        if balls is not None:\n            balls.update(phase="failed", error=repr(error))', {"P17"}),
@@ -1098,8 +1228,8 @@ CASES: list = [
     ("DD the driver ignores RESERVE_FAULT_RAISE -> A5", HARNESS,
      'and _os.environ.get("POKEBOT_RESERVE_FAULT_RAISE") == "1")', "and False)", {"A5"}),
     ("DE observe expects a purchase -> A5", HARNESS,
-     'R["kit_expected"] = R["kit_forecast"] if R["kit_buys"] else []',
-     'R["kit_expected"] = R["kit_forecast"] if R["kit_forecast_made"] else []', {"A5"}),
+     'R["kit_expected"] = R["kit_forecast"] if R["kit_buys"] and not R["kit_ballraise"] else []',
+     'R["kit_expected"] = R["kit_forecast"] if R["kit_forecast_made"] and not R["kit_ballraise"] else []', {"A5"}),
     ("DF the kit's end read after the fixture restore -> A5", HARNESS,
      '                R["kit_end"] = _stock_by_name(MEDS)\n'
      '                R["memo_end"] = sorted(getattr(self, "_ball_topoff_failed", set()))\n'
@@ -1117,6 +1247,62 @@ CASES: list = [
      '                if _fixture_bytes:\n'
      '                    context.emulator.load_save_state(_fixture_bytes)\n'
      '                    R["kit_end"] = _stock_by_name(MEDS)\n', {"A5"}),
+    # --- the THREE-LENS REVIEW (2026-09-30): its confirmed gate misses (KT2-X1..X6, Z1, D1, D2) and the fixes to DC1,
+    # DC2 and LI-2. Every set below was derived row by row from the design and written BEFORE the gate's run.
+    ("X1 the PD1 fix without its outcome guard (a BASKET visit memoises the balls) -> P24", T_PATH,
+     '            if (report.get("early_basket") == TOPOFF_ONLY_OUTCOMES[2] and report["balls"].get("phase") == "none"',
+     '            if (report["balls"].get("phase") == "none"', {"P24"}),
+    ("X2 the counter plans against the FORECAST's floor -> P23", T_PATH,
+     '        floor_money = live["floor"] if lever is None else lever',
+     '        floor_money = kit.get("floor", live["floor"]) if lever is None else lever', {"P23"}),
+    ("X3 the counter re-uses the FORECAST's wants -> P15 P19 P20 P21", T_PATH,
+     "        wants = kit_wants(sold, held, kit_hp_target())",
+     '        wants = kit.get("wants") or kit_wants(sold, held, kit_hp_target())', {"P15", "P19", "P20", "P21"}),
+    ("X4 the forecast's HP target is 1, not kit_hp_target() -> O13", T_PATH,
+     "        wants = kit_wants(SOOTOPOLIS_STATIC_KIT_SOLD, held, kit_hp_target())",
+     "        wants = kit_wants(SOOTOPOLIS_STATIC_KIT_SOLD, held, KIT_SPECIFIC_TARGET)", {"O13"}),
+    ("X5 the counter picks its ball from the STATIC list -> P25", T_PATH,
+     '        ball = (best_ball(sold, _allowed(), {name: live["price_of"](name) for name in sold if name in UNCONDITIONAL})',
+     '        ball = (best_ball(SOOTOPOLIS_STATIC_SOLD, _allowed(), {name: live["price_of"](name) '
+     'for name in SOOTOPOLIS_STATIC_SOLD})', {"P25"}),
+    ("X6 the counter plans against the FORECAST's wallet -> P2", T_PATH,
+     '        plan = visit_plan(spare=live["spare"], money=live["money"], ball=ball,',
+     '        plan = visit_plan(spare=live["spare"], money=kit.get("money_after_basket", live["money"]), ball=ball,',
+     {"P2"}),
+    ("WASTE LI-2 reverted: a kit whose wants stand is memoised when a spare drop took its budget -> P26", T_PATH,
+     " and not kit_lines and (not wants or not ball_lines)", " and not kit_lines", {"P26"}),
+    ("MONEYB DC2 reverted for the balls: a no-ball line carries the kit's cost -> P1", T_PATH,
+     '        ball_money_after = money_after if ball_lines else live["money"]', "        ball_money_after = money_after",
+     {"P1"}),
+    ("MONEYK DC2 reverted for the kit: a no-kit line carries the balls' cost -> P15", T_PATH,
+     '        kit_money_after = money_after if kit_lines else live["money"]', "        kit_money_after = money_after",
+     {"P15"}),
+    ("Z1 production_kit_forecast_ok normalises a missing forecast to [] -> G3", KG_PATH,
+     '    return kit.get("forecast") == driver_kit and kit.get("split_balls") == driver_split',
+     '    return (kit.get("forecast") or []) == (driver_kit or []) and (kit.get("split_balls") or []) == '
+     '(driver_split or [])', {"G3"}),
+    ("DG kit_as_forecast graded under a budget close too -> A5", HARNESS,
+     '        if EXPECT != "budget":\n            # step 10b: no medicine moved beyond the basket plan',
+     '        if True:\n            # step 10b: no medicine moved beyond the basket plan', {"A5"}),
+    ("DH the driver ignores BALLRAISE for the kit -> A5", HARNESS,
+     '                                  and _os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1")',
+     "                                  and False)", {"A5"}),
+    ("DJ ballfail's both-keys check hollowed -> A5", HARNESS,
+     '                conj["both_keys_memoised"] = R.get("memo_end") == sorted([BB.sootopolis_key(), '
+     'BB.sootopolis_kit_key()])',
+     '                conj["both_keys_memoised"] = True', {"A5"}),
+    ("DK1 the buy branch's kit_attributed hollowed -> A5", HARNESS,
+     '                conj["kit_attributed"] = kit_attributed(rep, kact["kit_expected"])',
+     '                conj["kit_attributed"] = True', {"A5"}),
+    ("DK1b the kit branch's kit_attributed hollowed -> A5", HARNESS,
+     '                "kit_attributed": kit_attributed(rep, kact["kit_expected"]),',
+     '                "kit_attributed": True,', {"A5"}),
+    ("DK2 the outcome label taken from production -> A5", HARNESS,
+     "        topoff_label = TOPOFF_ONLY_OUTCOMES[2 if ball_walk and kit_walk else (1 if kit_walk else 0)]",
+     '        topoff_label = rep.get("early_basket")', {"A5"}),
+    ("DW the kit's walk read from the expected PURCHASE (BALLRAISE mislabels) -> A5", HARNESS,
+     '            R["kit_walk"] = R["kit_buys"] and bool(R["kit_forecast"])',
+     '            R["kit_walk"] = bool(R.get("kit_expected"))', {"A5"}),
     # --- comment-only edits: NOTHING red
     ("N1 a comment in stock_topoff naming the kit's code turns NOTHING red", T_PATH,
      "#: The kit items the Sootopolis Mart sells",

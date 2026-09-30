@@ -1,0 +1,222 @@
+design v2 step 10b REVIEW — E7's differential RE-RUN on the fixed production (with the kit OFF / skipped / observe,
+is the Sootopolis visit still step 9b's?)
+====================================================================================================================
+Run by the author 2026-09-30 3:20-3:23 AM LA on the uncommitted review fixes: stock_topoff.py sha1 5f8591eeca37,
+league_reserve.py 5ebde7ec6786 (unchanged by the review). OLD = `git show 158c0b70:` of both files (9b as graded).
+The script is the committed one (`2026-09-30-kittopoff10b-DIFF.txt`) with its SHOP control now IN the script: the
+first run's `_shop` control ('if kit:' in place of kit_buys_here(kit)) had been run separately and was not saved.
+
+RESULTS (the script's own output, below):
+  shopcontrol: _shop 80 pairs, 27 differ        -> the _shop half SEES a planted change (as the first run: 27)
+  control:     the visit 1620 pairs, 108 differ -> the visit half SEES a planted change (as the first run: 108)
+  NEW:         the visit 1620 pairs, 0 differ from 9b; _shop 80 pairs, 0 differ
+⚠ What it does NOT cover: the review's production changes are inside `sootopolis_topoff_phase`, which runs only when
+the kit BUYS; this differential stubs that phase out. They are covered by the gate's P rows and the re-run.
+
+===== output =====
+shopcontrol: _shop 80 pairs, 27 differ
+control: the visit 1620 (state, kit-mode) pairs, 108 differ from 9b; _shop 80 pairs, 0 differ
+   visit diff: ('OFF', '1', 'full', 67466, None, 18)
+   visit diff: ('zero', '1', 'full', 67466, None, 18)
+   visit diff: ('typo', '1', 'full', 67466, None, 18)
+new: the visit 1620 (state, kit-mode) pairs, 0 differ from 9b; _shop 80 pairs, 0 differ
+
+===== hk10b_diff.py =====
+"""Design v2 step 10b, E7: with the kit OFF / skipped / observe, is the Sootopolis visit step 9b's?
+
+OLD = `git show 158c0b70:` stock_topoff.py + league_reserve.py (9b as graded; the design's recon showed the Sootopolis path
+byte-identical to 61c6759e there). NEW = the working files. Both pairs are exec'd as the modules, under the SAME stubs
+(9b's `_s_env` for `_stock_basket_early`, and a recording `_shop` harness), over a state grid. Compared per state:
+  the visit: the whole report minus the `kit` key, every `[BALLS-BUY]` line, the stub call log (the walk, the shop's
+  plan and ball dict, the walk back);
+  `_shop`: the call log (the basket lines, which phase ran) and a raise.
+A PLANTED control mutant (NEW with 9b's walk decision ignoring the balls) must be caught, or the differential is blind.
+"""
+import copy
+import itertools
+import pathlib
+import subprocess
+import sys
+import types
+from types import SimpleNamespace
+
+HERE = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+sys.path.insert(0, str(HERE))
+import probe_stock_topoff_sootopolis as g9  # noqa: E402
+
+REPO = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24")
+T_NAME, LR_NAME = g9.T_NAME, g9.LR_NAME
+REAL = {n: sys.modules[n] for n in (T_NAME, LR_NAME)}
+
+
+def old_src(rel):
+    return subprocess.run(["git", "-C", str(REPO), "show", f"158c0b70:{rel}"], capture_output=True, text=True,
+                          encoding="utf-8", check=True).stdout
+
+
+SRC = {
+    "old": {T_NAME: old_src("sandbox-pokebot/modules/story/stock_topoff.py"),
+            LR_NAME: old_src("sandbox-pokebot/modules/story/league_reserve.py")},
+    "new": {T_NAME: (REPO / "sandbox-pokebot/modules/story/stock_topoff.py").read_text(encoding="utf-8"),
+            LR_NAME: (REPO / "sandbox-pokebot/modules/story/league_reserve.py").read_text(encoding="utf-8")},
+}
+# the planted control: NEW, with the early return ignoring the balls (9b's M3 shape) — must be caught
+SRC["control"] = {T_NAME: SRC["new"][T_NAME],
+                  LR_NAME: SRC["new"][LR_NAME].replace("    if not plan and not ball_walk and not kit_walk:\n",
+                                                       "    if not plan and not kit_walk:\n")}
+assert SRC["control"][LR_NAME] != SRC["new"][LR_NAME]
+# the planted SHOP control: NEW, with `_shop` dispatching on any kit dict (the gate's L3) — the `_shop` half must see it
+SRC["shopcontrol"] = {T_NAME: SRC["new"][T_NAME],
+                      LR_NAME: SRC["new"][LR_NAME].replace("    if kit_buys_here(kit):\n", "    if kit:\n")}
+assert SRC["shopcontrol"][LR_NAME] != SRC["new"][LR_NAME]
+
+
+def install(which):
+    for name, src in SRC[which].items():
+        mod = types.ModuleType(name)
+        mod.__file__ = f"<{which} {name}>"
+        mod.__package__ = "modules.story"
+        sys.modules[name] = mod
+        exec(compile(src, f"<{which} {name}>", "exec"), mod.__dict__)
+    return sys.modules[T_NAME], sys.modules[LR_NAME]
+
+
+def restore():
+    for name, mod in REAL.items():
+        sys.modules[name] = mod
+
+
+PRICES = dict(g9.PRICES)
+TARGET = {"Hyper Potion": 30, "Full Restore": 3, "Full Heal": 8, "Revive": 3}
+
+
+def visit(which, *, ball, kit, keyitems, stock, money, memo, spare):
+    t, lr = install(which)
+    emitted, calls = [], []
+    report = {"readings": set(), "order": [], "walked": False}
+    try:
+        with g9.Patch() as p:
+            g9._s_env(p, t, lr, flag=ball, money=money, stock=stock, emitted=emitted, calls=calls,
+                      memo=set(memo) if memo is not None else None)
+            p.setenv(POKEBOT_R26_KITTOPOFF=kit, POKEBOT_R27_KEYITEMS=keyitems)
+            p.set(lr, "reserved_quantities", lambda: dict(TARGET))
+            p.set(t, "_inputs", lambda _m: {"stage": "BASKET_ERA", "floor": 0, "spare": spare, "money": money,
+                                            "flags": dict(g9.ERA), "price_of": lambda n: PRICES[n]})
+
+            def shop(report_, plan, names, before, money_, _take):
+                calls.append(("shop", list(plan), copy.deepcopy(report_.get("balls"))))
+                _take("EB-MART")
+                yield
+
+            p.set(lr, "_shop", shop)
+            raised = None
+            try:
+                g9.drain(lr._stock_basket_early(report))
+            except Exception as error:  # noqa: BLE001 - compared, not judged
+                raised = repr(error)
+    finally:
+        restore()
+    rep = {k: v for k, v in report.items() if k != "kit"}
+    return (rep, [x for x in emitted if x.startswith("[BALLS-BUY]")], calls, raised)
+
+
+def shop_run(which, *, balls, kit, plan, sold):
+    t, lr = install(which)
+    calls = []
+    try:
+        with g9.Patch() as p:
+            from modules import mart as _mart
+            from modules.context import context
+            from modules.modes.util import tasks_scripts as _ts
+            from modules.story import victory_road as vr
+
+            def basket_lines(report, plan_, names, before, money, _take):
+                calls.append(("basket", list(plan_)))
+                yield
+
+            def ball_phase(report):
+                calls.append("ball_phase")
+                yield
+
+            def topoff_phase(report):
+                calls.append("topoff_phase")
+                yield
+
+            p.set(_ts, "task_is_active", lambda name: True)
+            p.set(_mart, "get_mart_buyable_items", lambda: [SimpleNamespace(name=n) for n in sold])
+            p.set(vr, "_where", lambda: "stub")
+            p.set(context, "emulator", SimpleNamespace(get_frame_count=lambda: 0, press_button=lambda b: None))
+            p.set(lr, "_buy_basket_lines", basket_lines)
+            p.set(t, "sootopolis_ball_phase", ball_phase)
+            if hasattr(t, "sootopolis_topoff_phase"):
+                p.set(t, "sootopolis_topoff_phase", topoff_phase)
+            report = {"readings": set(), "order": [], "frame_start": 0}
+            if balls is not None:
+                report["balls"] = copy.deepcopy(balls)
+            if kit is not None:
+                report["kit"] = copy.deepcopy(kit)
+            try:
+                g9.drain(lr._shop(report, plan, ["Revive", "Full Heal", "Hyper Potion"], {}, 22166,
+                                  lambda r: report["order"].append(r)))
+            except Exception as error:  # noqa: BLE001
+                calls.append(("raised", str(error)[:60]))
+    finally:
+        restore()
+    return calls
+
+
+RICH = dict(g9.FULL_BASKET, **{"Hyper Potion": 34, "Full Heal": 10})
+STOCKS = {"empty": dict(g9.EMPTY_BASKET), "full": dict(g9.FULL_BASKET), "rich": RICH}
+KITS = [("OFF", None, "1"), ("zero", "0", "1"), ("typo", "yes", "1"), ("skip", "1", None),
+        ("observe", "observe", "1"), ("observe-nokey", "observe", None)]
+
+
+def run_visits(against):
+    diffs, total = [], 0
+    for ball, stock_name, money, memo, spare in itertools.product(
+            (None, "observe", "1"), STOCKS, (67466, 30000, 22166, 20966, 12000), (None, frozenset({"SootopolisCity"})),
+            (18, 10, 5)):
+        ref = visit("old", ball=ball, kit=None, keyitems=None, stock=STOCKS[stock_name], money=money, memo=memo,
+                    spare=spare)
+        for label, kit, keyitems in KITS:
+            got = visit(against, ball=ball, kit=kit, keyitems=keyitems, stock=STOCKS[stock_name], money=money,
+                        memo=memo, spare=spare)
+            total += 1
+            if got != ref:
+                diffs.append((label, ball, stock_name, money, memo, spare, ref, got))
+    return total, diffs
+
+
+def run_shops(against):
+    diffs, total = [], 0
+    PLAN = list(g9.PLAN)
+    balls_cases = [None, {"mode": "1", "walk": True, "blocked": False, "forecast": [("Ultra Ball", 1)]},
+                   {"mode": "1", "walk": False, "blocked": False, "forecast": []},
+                   {"mode": "1", "walk": True, "blocked": True, "forecast": []},
+                   {"mode": "observe", "walk": False, "blocked": False, "forecast": [("Ultra Ball", 1)]}]
+    kits = [None, {"mode": "1", "skip": "no key items", "walk": False, "forecast": [], "split_balls": []},
+            {"mode": "observe", "walk": False, "forecast": [("Hyper Potion", 1)], "split_balls": []},
+            {"mode": "1", "blocked": True, "walk": False, "forecast": [], "split_balls": []}]
+    for balls, plan, sold in itertools.product(balls_cases, (PLAN, []),
+                                               (["Ultra Ball", "Hyper Potion", "Revive", "Full Heal"], ["Ultra Ball"])):
+        ref = shop_run("old", balls=balls, kit=None, plan=plan, sold=sold)
+        for kit in kits:
+            got = shop_run(against, balls=balls, kit=kit, plan=plan, sold=sold)
+            total += 1
+            if got != ref:
+                diffs.append((kit, balls, plan, sold, ref, got))
+    return total, diffs
+
+
+if __name__ == "__main__":
+    ts, ds = run_shops("shopcontrol")
+    print(f"shopcontrol: _shop {ts} pairs, {len(ds)} differ")
+    for which in ("control", "new"):
+        tv, dv = run_visits(which)
+        ts, ds = run_shops(which)
+        print(f"{which}: the visit {tv} (state, kit-mode) pairs, {len(dv)} differ from 9b; "
+              f"_shop {ts} pairs, {len(ds)} differ")
+        for d in dv[:3]:
+            print("   visit diff:", d[:6])
+        for d in ds[:3]:
+            print("   shop diff:", d[:4])
