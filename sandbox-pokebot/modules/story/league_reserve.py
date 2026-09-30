@@ -73,6 +73,10 @@ EARLY_BASKET_READINGS = (
     "EB-BOUGHT",    # the bag's per-line delta equals the plan
 )
 
+#: The outcomes of a visit made for the top-off alone (no basket line needed). "balls only" is step 9b's, exactly;
+#: the two kit outcomes are design v2 step 10b's. ⛔ The counter phase and the driver IMPORT this — never a private copy.
+TOPOFF_ONLY_OUTCOMES = ("balls only", "kit only", "balls and kit only")
+
 _warned: set = set()
 
 
@@ -254,7 +258,8 @@ def stock_basket_early(report: dict) -> Generator:
                            f"{report.get('money_after')} walked={report['walked']} finished={report.get('finished')} "
                            f"crossed={report.get('crossed')} returned={report.get('returned')} "
                            f"stranded={report.get('stranded')}"
-                           + (f" balls={_balls_summary(report['balls'])}" if "balls" in report else ""),
+                           + (f" balls={_balls_summary(report['balls'])}" if "balls" in report else "")
+                           + (f" kit={_kit_summary(report['kit'])}" if "kit" in report else ""),
                            category="EARLY_BASKET")
     except Exception:  # noqa: BLE001 - telemetry must never break the chapter; a missing line is visible
         pass
@@ -270,6 +275,14 @@ def _balls_summary(balls: dict) -> dict:
     """The ball top-off's part of the `[EARLY_BASKET]` line (design v2 step 9b; present only with the flag set)."""
     keys = ("mode", "walk", "forecast", "phase", "lines", "bought", "premier", "ok", "money_after", "error")
     return {key: balls[key] for key in keys if key in balls}
+
+
+def _kit_summary(kit: dict) -> dict:
+    """The kit's part of the `[EARLY_BASKET]` line (design v2 step 10b; present only with the kit flag set, so a
+    kit-OFF line is step 9b's byte for byte)."""
+    keys = ("mode", "skip", "blocked", "walk", "forecast", "split_balls", "phase", "lines", "got", "ok", "money_after",
+            "error")
+    return {key: kit[key] for key in keys if key in kit}
 
 
 def _stock_basket_early(report: dict) -> Generator:
@@ -317,7 +330,17 @@ def _stock_basket_early(report: dict) -> Generator:
     balls = sootopolis_ball_forecast(plan, money, prices)
     if balls is not None:
         report["balls"] = balls
-    if not plan and not (balls and balls.get("walk")):
+    # ---- design v2 step 10b: the kit rides the same visit. With `POKEBOT_R26_KITTOPOFF` unset the forecast reads
+    # nothing but that variable and returns None: no key, and every line below is step 9b's. When the kit BUYS, the
+    # EFFECTIVE ball walk is D6's split (`split_balls`); 9b's own forecast is never overwritten (design E2, review R1).
+    from modules.story.stock_topoff import kit_buys_here, sootopolis_kit_forecast
+
+    kit = sootopolis_kit_forecast(plan, money, prices, balls)
+    if kit is not None:
+        report["kit"] = kit
+    ball_walk = bool(kit.get("split_balls")) if kit_buys_here(kit) else bool(balls and balls.get("walk"))
+    kit_walk = bool(kit and kit.get("walk"))
+    if not plan and not ball_walk and not kit_walk:
         missing = {n: q - before.get(n, 0) for n, q in basket().items() if n in names and before.get(n, 0) < q}
         report["early_basket"] = "nothing missing" if not missing else f"cannot afford one unit (₽{money:,})"
         return
@@ -326,9 +349,15 @@ def _stock_basket_early(report: dict) -> Generator:
         console.print(f"[cyan]Story: RULING 18 — buying {plan} at the Sootopolis Mart (₽{money:,}, floor "
                       f"₽{CASH_FLOOR:,}).[/]")
     else:
-        report["early_basket"] = "balls only"
-        console.print(f"[cyan]Story: RULING 23 — the basket is complete; a ball-only visit to the Sootopolis Mart for "
-                      f"{balls.get('forecast')} (₽{money:,}).[/]")
+        report["early_basket"] = TOPOFF_ONLY_OUTCOMES[2 if ball_walk and kit_walk else (1 if kit_walk else 0)]
+        if kit_walk:
+            console.print(f"[cyan]Story: RULING 26 — the basket is complete; a top-off-only visit to the Sootopolis "
+                          f"Mart for the kit {kit.get('forecast')}"
+                          + (f" and {kit.get('split_balls')}" if ball_walk else "") + f" (₽{money:,}).[/]")
+        else:
+            console.print(f"[cyan]Story: RULING 23 — the basket is complete; a ball-only visit to the Sootopolis "
+                          f"Mart for {kit.get('split_balls') if kit_buys_here(kit) else balls.get('forecast')} "
+                          f"(₽{money:,}).[/]")
 
 
     # ---- to the waypoint on the PC side. ⛔ Re-pin the live layout first: §Ch21 pins the LEGENDS layout into the
@@ -411,11 +440,24 @@ def _shop(report: dict, plan, names, before, money, _take) -> Generator:
     # visit whose Mart sells none of the basket must still raise by name, whatever the forecast says (the 9b review,
     # BB9B-1: keyed on `walk` alone, a buying forecast silently swallowed this raise and left the outcome unset).
     ball_only = not plan and bool(balls.get("walk"))
+    # Design v2 step 10b (E4): a kit-only walk is a top-off-only visit too. ⛔ The parentheses are load-bearing: without
+    # them a buying kit forecast would swallow BB9B-1's raise on a basket visit whose Mart sells none of the basket.
+    kit = report.get("kit") or {}
+    topoff_only = ball_only or (not plan and bool(kit.get("walk")))
     plan = [(n, q) for n, q in plan if n in sold]
-    if not plan and not ball_only:
+    if not plan and not topoff_only:
         raise BotModeError(f"early basket: this Mart sells none of {list(BUY_ORDER)} ({sorted(sold)}).")
     if plan:
         yield from _buy_basket_lines(report, plan, names, before, money, _take)
+    from modules.story.stock_topoff import kit_buys_here
+
+    if kit_buys_here(kit):
+        # Design v2 step 10b (E5): the kit and the balls, AFTER the basket lines, in their own `buy_in_shop` call with
+        # their own `before`: the basket's same-name verification is already done and cannot see a kit item.
+        from modules.story.stock_topoff import sootopolis_topoff_phase
+
+        yield from sootopolis_topoff_phase(report)
+        return
     if balls.get("mode") == "1" and not balls.get("blocked"):
         # RULINGS 23 + 26 (design v2 step 9b): after the basket, on the same open menu (`buy_in_shop` ends on the shop's
         # main menu). It raises only an abort or a close; on a normal return the caller closes the menu and walks back.

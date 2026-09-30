@@ -1148,6 +1148,11 @@ GATES: list[tuple[str, bool]] = [
     # errand and `_walk_buy_return` EXECUTED with stubs, and the heal's kit-flag parse by AST; mutants with exact red
     # sets, every row reddened by one. ‼ APPENDED AT THE END, never inserted.
     ("probe_kit_topoff.py", False),
+    # USER RULING 26 (design v2 step 10b, HK at Sootopolis) — the healing kit inside RULING 18's League-basket visit:
+    # the held view, the kit forecast (its own try; 9b's ball forecast never overwritten), the effective walk, `_shop`'s
+    # dispatch, the counter phase (one purchase AFTER the basket, per-set verdicts and memo keys), and the driver's
+    # `kit_grade.py`; mutants with exact red sets. ‼ APPENDED AT THE END, never inserted.
+    ("probe_kit_topoff_sootopolis.py", False),
 ]
 
 

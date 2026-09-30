@@ -249,7 +249,9 @@ def _o_env(p, t, lr, *, flag, inputs_raise=None, memo=None, emitted=None):
     from modules.context import context
     from modules.story import early_game as eg
 
-    p.setenv(POKEBOT_R23_BALLRESTOCK=flag, POKEBOT_R23_FAULT_FLOOR=None)
+    p.setenv(POKEBOT_R23_BALLRESTOCK=flag, POKEBOT_R23_FAULT_FLOOR=None,   # 10b: the kit's env isolated (E10)
+             POKEBOT_R26_KITTOPOFF=None, POKEBOT_R27_KEYITEMS=None, POKEBOT_R26_FAULT_RAWBAG=None,
+             POKEBOT_RESERVE_FAULT_RAISE=None)
 
     def inputs(_mode):
         if inputs_raise:
@@ -379,7 +381,9 @@ def _p_env(p, t, *, money=22166, buy="ok", emitted, memo, floor_env=None, raise_
 
     bag = FakeBag({"Poké Ball": 16, "Premier Ball": 1, "Great Ball": 1, "Ultra Ball": 0})
     wallet = {"money": money}
-    p.setenv(POKEBOT_R23_FAULT_FLOOR=floor_env, POKEBOT_R23_FAULT_BALLRAISE=raise_env, POKEBOT_R23_BALLRESTOCK="1")
+    p.setenv(POKEBOT_R23_FAULT_FLOOR=floor_env, POKEBOT_R23_FAULT_BALLRAISE=raise_env, POKEBOT_R23_BALLRESTOCK="1",
+             POKEBOT_R26_KITTOPOFF=None, POKEBOT_R27_KEYITEMS=None, POKEBOT_R26_FAULT_RAWBAG=None,
+             POKEBOT_RESERVE_FAULT_RAISE=None)
 
     def inputs(_mode):
         return {"stage": "BASKET_ERA", "floor": 19000, "spare": bag.number_of_balls_except_master_ball,
@@ -566,7 +570,8 @@ def _s_env(p, t, lr, *, flag, money, stock, emitted, calls, memo=None):
                 "price_of": lambda n: PRICES[n]}
 
     p.setenv(POKEBOT_R23_BALLRESTOCK=flag, POKEBOT_R23_FAULT_FLOOR=None, POKEBOT_RESERVE_FAULT_NOBUY=None,
-             POKEBOT_RESERVE_FAULT_FLOOR=None)
+             POKEBOT_RESERVE_FAULT_FLOOR=None, POKEBOT_R26_KITTOPOFF=None, POKEBOT_R27_KEYITEMS=None, POKEBOT_R26_FAULT_RAWBAG=None,
+             POKEBOT_RESERVE_FAULT_RAISE=None)
     p.set(lr, "in_early_basket_era", lambda: True)
     p.set(lr, "_stock_by_name", lambda names: {n: stock.get(n, 0) for n in names})
     p.set(lr, "_shop", shop)
@@ -780,12 +785,17 @@ def a_rows(tsrc, lrsrc, hsrc, tag=""):
         node, _code = _fn_src(lrsrc, "_stock_basket_early")
         calls = _calls(node, "sootopolis_ball_forecast")
         args_ok = len(calls) == 1 and [ast.unparse(a) for a in calls[0].args] == ["plan", "money", "prices"]
+        # Step 10b (design E3) re-derived this row BEFORE the gate's first 10b run: the early return is now on the
+        # EFFECTIVE ball walk and the kit walk, and the effective walk must be 9b's `balls.walk` unless the kit buys.
         early = [n for n in ast.walk(node) if isinstance(n, ast.If)
-                 and ast.unparse(n.test) == "not plan and (not (balls and balls.get('walk')))"]
+                 and ast.unparse(n.test) == "not plan and (not ball_walk) and (not kit_walk)"]
+        eff = [n for n in ast.walk(node) if isinstance(n, ast.Assign) and ast.unparse(n.targets[0]) == "ball_walk"
+               and ast.unparse(n.value) == ("bool(kit.get('split_balls')) if kit_buys_here(kit) else "
+                                            "bool(balls and balls.get('walk'))")]
         walked = [n for n in ast.walk(node) if isinstance(n, ast.Assign)
                   and ast.unparse(n.targets[0]) == "report['walked']" and ast.unparse(n.value) == "True"]
-        ok = (args_ok and len(early) == 1 and len(walked) == 1
-              and calls[0].lineno < early[0].lineno < walked[0].lineno)
+        ok = (args_ok and len(early) == 1 and len(eff) == 1 and len(walked) == 1
+              and calls[0].lineno < eff[0].lineno < early[0].lineno < walked[0].lineno)
         return ok, (f"forecast calls={[ast.unparse(c) for c in calls]} early={[e.lineno for e in early]} "
                     f"walked={[w.lineno for w in walked]}")
 
@@ -896,12 +906,12 @@ def main() -> int:
          "    for name, qty in basket_plan:\n        post[name] = post.get(name, 0) + qty\n", "",
          {"F1", "O4", "O5", "S14"}),
         ("M3 the early return ignores the balls (the old `if not plan:`) -> S2 A1", LR_PATH,
-         '    if not plan and not (balls and balls.get("walk")):\n', "    if not plan:\n", {"S2", "A1"}),
+         '    if not plan and not ball_walk and not kit_walk:\n', "    if not plan:\n", {"S2", "A1"}),  # 10b: re-anchored
         ("M4 `observe` walks -> O4 S3", T_PATH,
          '               walk=mode == "1" and bool(forecast["lines"]))\n',
          '               walk=bool(forecast["lines"]))\n', {"O4", "S3"}),
         ("M5 `_shop` raises on an empty basket plan whatever the balls -> S6", LR_PATH,
-         '    if not plan and not ball_only:\n', "    if not plan:\n", {"S6"}),
+         '    if not plan and not topoff_only:\n', "    if not plan:\n", {"S6"}),   # 10b: re-anchored (E4)
         ("M6 a blocked forecast still runs the phase -> S7", LR_PATH,
          '    if balls.get("mode") == "1" and not balls.get("blocked"):\n', '    if balls.get("mode") == "1":\n',
          {"S7"}),

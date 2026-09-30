@@ -916,3 +916,263 @@ def sootopolis_ball_phase(report: dict) -> Generator:
                        spare_before=live["spare"] if live else "?", spare_after="?",
                        money_before=live["money"] if live else "?", money_after="?",
                        reason=f"the ball phase raised {error!r}; the basket's outcome stands"))
+
+
+# ========================================================================= the kit at Sootopolis (design v2 step 10b)
+# `ai-research-notes/2026-09-29-kittopoff10b-DESIGN.md` (E1-E11, after a recon and an adversarial review). ⛔ The kit
+# and the League basket buy the SAME item names here (Hyper Potion, Full Heal), and the basket verifies by a per-name
+# bag delta read before the walk, so the two are separated by TIME: the kit is bought after the basket's lines, with
+# its own `before`. With the kit OFF, skipped or in `observe`, every ball decision below this line is step 9b's.
+
+#: The kit items the Sootopolis Mart sells (the spec's ✔ list; Max Potion excluded by D3). The forecast only; the
+#: counter re-reads the live list. ⛔ Never `_static_kit_sold(center)`: it ignores `center` and returns Rustboro's.
+SOOTOPOLIS_STATIC_KIT_SOLD = ("Hyper Potion", "Full Heal")
+
+
+def sootopolis_kit_key() -> str:
+    """The kit's memo key here (spec D9), next to the ball key `sootopolis_key()`."""
+    return f"{sootopolis_key()}:kit"
+
+
+def _memo_add_kit() -> None:
+    failed = _memo()
+    if failed is not None:
+        failed.add(sootopolis_kit_key())
+
+
+def kit_held_after_basket(raw: dict, basket_plan, reserved: dict, rawbag: bool) -> dict:
+    """PURE. The kit's held view (spec D4) once `basket_plan` is in the bag: the raw stock plus the plan, minus the
+    reserve (with the RAWBAG fault, the raw stock plus the plan). Without a fault the result does not depend on WHEN it
+    is read, because the reserve is the basket's TARGET; with RAWBAG it does, hence the projection."""
+    projected = dict(raw)                    # (worded unlike `forecast_after_basket`: the 9b gate's anchors are unique)
+    for item, count in basket_plan:
+        projected[item] = projected.get(item, 0) + count
+    if rawbag:
+        return {name: projected.get(name, 0) for name in KIT_NAMES}
+    return {name: max(0, projected.get(name, 0) - reserved.get(name, 0)) for name in KIT_NAMES}
+
+
+def kit_buys_here(kit: "dict | None") -> bool:
+    """The kit BUYS at this visit: mode `1`, not a D2 skip, not blocked (a memo hit or a failed forecast)."""
+    return bool(kit) and kit.get("mode") == "1" and not kit.get("skip") and not kit.get("blocked")
+
+
+def sootopolis_kit_forecast(basket_plan, money: int, basket_prices: dict, balls: "dict | None") -> "dict | None":
+    """Called by `league_reserve._stock_basket_early` BEFORE any walk, AFTER 9b's ball forecast (design E1-E2).
+
+    Returns None when `POKEBOT_R26_KITTOPOFF` is OFF, having read nothing but that variable: no report key, no yield,
+    no move. Otherwise a dict for `report["kit"]`: `forecast` (the kit lines), `split_balls` (D6's ball lines when the
+    kit buys and the balls are `1`; ⛔ 9b's ball forecast is NEVER overwritten, the driver compares it), `walk`.
+    A D2 skip is `skip`; a memo hit or a failed forecast is `blocked`. ⛔ Its reads run in their OWN try: a raise here
+    memoises only the kit key and leaves the balls exactly 9b's (10a's R2; a live lever is POKEBOT_RESERVE_FAULT_RAISE)."""
+    import os
+
+    mode, error = parse_kit_flag(os.environ.get(KIT_FLAG))
+    if error:
+        _emit(kit_log_line("kit-flag", mart=sootopolis_key(), kit="-", bought="-", money_before="?", money_after="?",
+                           reason=error))
+    if mode == "":                           # OFF, `0` or a typo (`parse_kit_flag` maps each to "")
+        return None
+    out = {"mode": mode, "walk": False, "blocked": False, "forecast": [], "split_balls": [], "reason": ""}
+    skip = _kit_skip_reason(mode)
+    if skip:
+        out.update(skip=skip, reason=skip)
+        _emit(kit_log_line("kit-skip", mart=sootopolis_key(), kit="-", bought="-", money_before="?",
+                           money_after="?", reason=skip))
+        return out
+    failed = _memo()
+    if failed is not None and sootopolis_kit_key() in failed:
+        out.update(blocked=True, reason="a kit phase failed here earlier this run (memo)")
+        _emit(kit_log_line("kit-skip", mart=sootopolis_key(), kit="-", bought="-", money_before="?",
+                           money_after="?", reason=out["reason"]))
+        return out
+    ball_on = bool(balls) and balls.get("mode") == "1" and not balls.get("blocked")
+    try:
+        from modules.story.league_reserve import _stock_by_name, reserved_quantities
+        from modules.story.victory_road import LEAGUE_BASKET
+
+        live = _inputs(None)
+        names = [name for name, _ in LEAGUE_BASKET]
+        lever = _fault_floor()               # (a local: the 9b gate's anchors must stay unique in this file)
+        fc = forecast_after_basket(
+            raw_basket_stock=_stock_by_name(names), basket_plan=basket_plan, basket_prices=basket_prices,
+            league_prices={name: live["price_of"](name) for name in names}, money=money, spare=live["spare"],
+            flags=live["flags"], sold=SOOTOPOLIS_STATIC_SOLD, allowed=_allowed(),
+            ball_prices={name: live["price_of"](name) for name in SOOTOPOLIS_STATIC_SOLD}, lim=limits(),
+            fault_floor=lever)
+        rawbag = os.environ.get("POKEBOT_R26_FAULT_RAWBAG") == "1"
+        held = kit_held_after_basket(_stock_by_name(list(KIT_NAMES)), basket_plan,
+                                     {} if rawbag else reserved_quantities(), rawbag)
+        wants = kit_wants(SOOTOPOLIS_STATIC_KIT_SOLD, held, kit_hp_target())
+        plan = visit_plan(spare=fc["spare"], money=fc["money_after_basket"], ball=fc["ball"],
+                          ball_price=live["price_of"](fc["ball"]) if fc["ball"] else None, stage_name=fc["stage"],
+                          floor_money=fc["floor"], lim=limits(), wants=wants,
+                          prices={name: live["price_of"](name) for name, _ in wants}, reserve=_reserve(),
+                          buy_balls=ball_on)
+    except Exception as error:  # noqa: BLE001 - the kit's forecast failed: the kit alone is blocked, the balls stand
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        _memo_add_kit()
+        out.update(blocked=True, reason=f"the kit's forecast raised {error!r} (nothing moved; the balls stay 9b's)")
+        _emit(kit_log_line("kit-failed", mart=sootopolis_key(), kit="-", bought="-", money_before="?",
+                           money_after="?", reason=out["reason"]))
+        return out
+    out.update(forecast=plan["kit"], split_balls=plan["ball_lines"] if ball_on else [], wants=wants,
+               reason=plan["reason"], floor=fc["floor"], money_after_basket=fc["money_after_basket"],
+               walk=mode == "1" and bool(plan["kit"]))
+    _emit(kit_log_line("kit-observe" if mode == "observe" else "kit-forecast", mart=sootopolis_key(), kit=plan["kit"],
+                       bought="-", money_before=fc["money_after_basket"], money_after=fc["money_after_basket"],
+                       reason=plan["reason"],
+                       extra=f" wants={wants} split_balls={out['split_balls']} floor={fc['floor']} walk={out['walk']}"))
+    return out
+
+
+def sootopolis_topoff_phase(report: dict) -> Generator:
+    """At the Sootopolis clerk, on the shop's main menu, AFTER RULING 18's basket lines, when the kit BUYS (design E5;
+    otherwise `_shop` runs 9b's `sootopolis_ball_phase`, unchanged).
+
+    Re-plans from the LIVE post-basket state (D6's order on one budget: balls to the dex reserve + 1, the kit, the rest
+    of the balls; the ball part only while the ball flag is `1` and the balls are not blocked), buys BOTH sets in ONE
+    `buy_in_shop` call with its OWN `before` read here, after the basket (so the basket's verification, already done,
+    cannot see a kit item), and verifies each set per name against its planned lines. Each set is logged and memoised
+    by its OWN verdict (10a's R1). ⛔ Writes only under `report["kit"]` and, while the ball flag is on, `report["balls"]`.
+    ⛔ NEVER raises, except an abort (re-raised) or a close (both active keys memoised and logged, then re-raised).
+    A raise in the kit's OWN reads blocks only the kit, and the balls then go on as 9b's phase would."""
+    import os
+
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.mart import get_mart_buyable_items
+    from modules.modes.util.higher_level_actions import buy_in_shop
+    from modules.story.league_reserve import TOPOFF_ONLY_OUTCOMES
+
+    kit = report.setdefault("kit", {})
+    ball_on = (report.get("balls") or {}).get("mode") == "1" and not (report.get("balls") or {}).get("blocked")
+    balls = report["balls"] if ball_on else {}          # ⛔ never create a `balls` key with the ball flag off
+    kit["phase"] = "started"
+    try:
+        held = _kit_held()                              # the kit's OWN reads (the raw bag and the reserve)
+    except Exception as error:  # noqa: BLE001 - the kit alone is blocked; the balls go on as 9b's phase would
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        _memo_add_kit()
+        kit.update(phase="failed", error=repr(error))
+        _emit(kit_log_line("kit-failed", mart=sootopolis_key(), kit="-", bought="-", money_before="?",
+                           money_after="?", reason=f"the kit's planning raised {error!r} (nothing moved; the balls "
+                                                   f"stay 9b's)"))
+        if ball_on:
+            yield from sootopolis_ball_phase(report)
+            # 9b's phase memoises a wasted walk only on "balls only"; a "balls and kit only" visit whose ball plan came
+            # out empty wasted its ball walk just the same (the adversarial pass's PD1): memoise it here.
+            if (report.get("early_basket") == TOPOFF_ONLY_OUTCOMES[2] and report["balls"].get("phase") == "none"
+                    and kit.get("split_balls")):
+                _memo_add()
+        return
+    active = [sootopolis_kit_key()] + ([sootopolis_key()] if ball_on else [])
+    live = None
+    try:
+        if ball_on and os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1":
+            raise RuntimeError("POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing "
+                               "bought)")
+        live = _inputs(None)
+        lever = _fault_floor()                  # the live floor lever, as 9b's phase honours it
+        floor_money = live["floor"] if lever is None else lever
+        sold = [item.name for item in get_mart_buyable_items()]   # ⛔ the menu is open: `sMartInfo` is current
+        ball = (best_ball(sold, _allowed(), {name: live["price_of"](name) for name in sold if name in UNCONDITIONAL})
+                if ball_on else None)
+        wants = kit_wants(sold, held, kit_hp_target())
+        plan = visit_plan(spare=live["spare"], money=live["money"], ball=ball,
+                          ball_price=live["price_of"](ball) if ball else None, stage_name=live["stage"],
+                          floor_money=floor_money, lim=limits(), wants=wants,
+                          prices={name: live["price_of"](name) for name, _ in wants}, reserve=_reserve(),
+                          buy_balls=ball_on)
+        ball_lines = [(n, q) for n, q in plan["ball_lines"] if n in sold] if ball_on else []
+        kit_lines = [(n, q) for n, q in plan["kit"] if n in sold]
+        kit.update(lines=kit_lines, live_wants=wants, live_reason=plan["reason"], live_floor=floor_money)
+        if ball_on:
+            balls.update(lines=ball_lines, live_reason=plan["reason"], live_floor=floor_money)
+        # "Wasted", per set (design E5): a top-off-only visit whose OWN effective forecast walked, and whose own
+        # counter plan is empty, means the forecast and the counter disagree: memoise that set alone.
+        topoff_only = report.get("early_basket") in TOPOFF_ONLY_OUTCOMES
+        wasted_kit = topoff_only and bool(kit.get("walk")) and not kit_lines
+        wasted_balls = topoff_only and ball_on and bool(kit.get("split_balls")) and not ball_lines
+        if wasted_kit:
+            _memo_add_kit()
+        if wasted_balls:
+            _memo_add()
+        counted = sorted({name for name, _ in kit_lines} | ({ball, "Premier Ball"} if ball_lines else set()))
+        before = {name: get_item_bag().quantity_of(get_item_by_name(name)) for name in counted}
+        kit["before"] = {name: before[name] for name, _ in kit_lines}
+        if ball_lines or kit_lines:
+            yield from buy_in_shop([(get_item_by_name(name), qty) for name, qty in ball_lines + kit_lines])
+            yield                                                    # the bag cache is per frame
+        after = {name: get_item_bag().quantity_of(get_item_by_name(name)) for name in counted}
+        from modules.player import get_player
+
+        money_after = int(get_player().money)
+        spare_after = int(get_item_bag().number_of_balls_except_master_ball)
+        if ball_on:
+            planned = sum(qty for _, qty in ball_lines)
+            balls["bought"] = after[ball] - before[ball] if ball_lines else 0
+            balls["premier"] = (after["Premier Ball"] - before["Premier Ball"]
+                                if ball_lines and ball != "Premier Ball" else 0)
+            balls.update(spare_after=spare_after, money_after=money_after, ok=balls["bought"] == planned,
+                         phase="done" if ball_lines else "none")
+            if not balls["ok"]:
+                _memo_add()
+                balls.update(why=f"ball bag delta {balls['bought']} != planned {planned}")
+            tag = ("topoff" if balls["ok"] else "topoff-failed") if ball_lines else "topoff-none"
+            _emit(log_line(tag, mart=sootopolis_key(), ball=ball or "-", bought=balls["bought"],
+                           premier=balls["premier"], spare_before=live["spare"], spare_after=spare_after,
+                           money_before=live["money"], money_after=money_after,
+                           reason=(balls.get("why") or plan["reason"])
+                           + ("; a top-off-only visit found no ball to buy (memoised)" if wasted_balls else ""),
+                           extra=f" floor={floor_money}"))
+        kit_want: dict = {}
+        for name, qty in kit_lines:
+            kit_want[name] = kit_want.get(name, 0) + qty
+        kit["got"] = {name: after[name] - before[name] for name in kit_want}
+        kit.update(ok=kit["got"] == kit_want, money_after=money_after, phase="done" if kit_lines else "none")
+        if not kit["ok"]:
+            _memo_add_kit()
+            kit["why"] = f"kit bag delta {kit['got']} != planned {kit_want}"
+        tag = ("kit" if kit["ok"] else "kit-failed") if kit_lines else "kit-none"
+        _emit(kit_log_line(tag, mart=sootopolis_key(), kit=kit_lines, bought=kit["got"] if kit_lines else "-",
+                           money_before=live["money"], money_after=money_after,
+                           reason=(kit.get("why") or plan["reason"])
+                           + ("; a top-off-only visit found no kit to buy (memoised)" if wasted_kit else ""),
+                           extra=f" wants={wants} floor={floor_money}"))
+    except GeneratorExit:  # a close reached the phase mid-purchase: memoise the active keys, log, let it proceed
+        failed = _memo()
+        if failed is not None:
+            failed.update(active)
+        kit["phase"] = "closed"
+        if ball_on:
+            balls.update(phase="closed")
+            _emit(log_line("topoff-closed", mart=sootopolis_key(), ball="-", bought="?", premier="?",
+                           spare_before=live["spare"] if live else "?", spare_after="?",
+                           money_before=live["money"] if live else "?", money_after="?",
+                           reason="a close reached the top-off phase mid-purchase (R18 walks back only if its own "
+                                  "budget closed it: see retry_return/stranded)"))
+        _emit(kit_log_line("kit-closed", mart=sootopolis_key(), kit=kit.get("lines", "?"), bought="?",
+                           money_before=live["money"] if live else "?", money_after="?",
+                           reason="a close reached the top-off phase mid-purchase"))
+        raise
+    except Exception as error:  # noqa: BLE001 - the basket's outcome stands; the failure is logged and memoised
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        failed = _memo()
+        if failed is not None:
+            failed.update(active)
+        kit.update(phase="failed", error=repr(error))
+        if ball_on:
+            balls.update(phase="failed", error=repr(error))
+            _emit(log_line("topoff-failed", mart=sootopolis_key(), ball="-", bought=0, premier=0,
+                           spare_before=live["spare"] if live else "?", spare_after="?",
+                           money_before=live["money"] if live else "?", money_after="?",
+                           reason=f"the top-off phase raised {error!r}; the basket's outcome stands"))
+        _emit(kit_log_line("kit-failed", mart=sootopolis_key(), kit=kit.get("lines", "-"), bought="-",
+                           money_before=live["money"] if live else "?", money_after="?",
+                           reason=f"the top-off phase raised {error!r}; the basket's outcome stands"))

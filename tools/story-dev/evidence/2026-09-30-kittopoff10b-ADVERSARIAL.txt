@@ -1,0 +1,67 @@
+design v2 step 10b — THE ADVERSARIAL MUTANT PASS on probe_kit_topoff_sootopolis.py, and what was done about it
+=====================================================================================================================
+
+WHO / WHEN. A fresh Claude subagent (not a fork), 2026-09-30 ~12:20-12:45 AM LA, given the uncommitted 10b code in the
+worktree `C:/Remote Projects/pokebot-wt-ch24` (branch wt/kittopoff10b) and asked to build plausible production mutants
+that neither this gate nor 9b's `probe_stock_topoff_sootopolis.py` catches, with an executed witness for each, and to
+audit the gate's stubs. It edited no repository file. Its output is a NOTE; every claim below was re-proven by the gate.
+
+THE GATE BEFORE IT (run 1, 12:15 AM, sha1 3cdb83a6…): 49 rows + 46 mutants + 3 no-ops, ALL PASS, every set exact.
+⛔ AND ITS HEADER CLAIMED A TABLE OF INPUT DIMENSIONS THAT THE ROWS DID NOT EXERCISE: `_phase` always had a walking kit,
+never `observe` balls, never a raise or close with the balls off; 9b's `_s_env` pinned spare 18, so no S-row could
+produce both walks. 23 mutants passed through exactly those holes. (Recorded in 08: a coverage table written from the
+design, not read back from the rows.)
+
+ITS FINDINGS (ID: the mutant -> the row that now catches it; each red set written BEFORE gate run 2)
+  the forecast   MA  ignores the balls' block ........................ O10d (added in run 3, see below), S12
+                 MC2 counts observe balls as on ....................... S11
+  the visit      ML  both walks labelled "kit only" ................... S13 (a spare override in the visit harness)
+                 MK  the [EARLY_BASKET] kit suffix keyed on "balls" .... S14 (the telemetry line, executed)
+                 MJ  the kit suffix always present ..................... S14
+  the counter    MB  the kit planned from the STATIC list ............. P15
+                 MC  observe balls counted as on ...................... P16, P17
+                 MD1 the kit-read fallback runs 9b's phase, balls OFF .. P9 (extended: balls OFF, balls blocked)
+                 MD2 the fallback forgets the balls' block ............ P9
+                 ME  the active keys always include the ball key ...... P17, P18
+                 MF  'wasted kit' ignores the kit's own walk .......... P19, P20
+                 MG  'top-off only' excludes "balls only" ............. P20
+                 MZ  the counter buys only when the kit has lines ..... P15, P19, P21
+                 MH  a raise logs a ball line with the balls OFF ...... P17
+                 MI  a close logs a ball line with the balls OFF ...... P18
+  kit_grade.py   MM  the kit priced from the EXPECTED kit ............. G7
+                 MN  the delta drops consumed stacks .................. G8
+                 MN2 the kit's before checked with any() .............. G5 (extended)
+  the driver     DA  the driver models RAWBAG ......................... A5 (AST pins of the lever rule and the grade)
+                 DB  production_kit_forecast hollowed ................. A5
+                 DC  memo_clean hollowed .............................. A5
+                 DD  kit_blocked ignores RESERVE_FAULT_RAISE .......... A5
+                 DE  observe expects a purchase ....................... A5
+                 DF  the kit's end read after the fixture restore ..... A5
+
+A PRODUCTION DEFECT it witnessed, FIXED (mutant PDF, row P22): after a raise in the kit's OWN read, the counter falls
+back to 9b's ball phase, whose "wasted" check matches only "balls only". So a "balls and kit only" visit whose live ball
+plan came out empty did not memoise its wasted ball walk (one extra crater crossing on the next attempt). The fallback
+now memoises it.
+
+STUB FINDINGS, FIXED: the kit-read fault is raised in `reserved_quantities` (the one live lever,
+POKEBOT_RESERVE_FAULT_RAISE, raises there), no longer in `_stock_by_name`; the fake `buy_in_shop` refuses up front where
+the real one does (an unsold item, a quantity outside 1-99, a total above the wallet); `_inputs` reads the live wallet.
+(Latent, recorded, not exploited by any mutant: 9b's `_p_env` returns a constant floor of ₽19,000.)
+
+EXISTING SETS WIDENED by the new rows (written before run 2): KEY +P17 +P18 +P22; T20 +P15; T22 +P9; T23 +P9;
+T27 re-anchored +P22; T29 +P16; T30 +P16; L6 +S13; KG1 +G7; KG2 +G8.
+
+RUN 2 (12:48 AM, gate sha1 fbe7475b…, stock_topoff.py fbf92971…): 137 PASS, 1 FAIL:
+  FAIL  MA the forecast ignores the balls' block -> O10 S12  — red ['S12'] (want ['O10', 'S12'])
+  ⛔ The cause was MINE, and it is not a set error: MA's set was derived against an O10 case (blocked balls at spare 10)
+  that the edit never wrote into O10 (only the ball-OFF spare-10 case went in). Fixed by adding exactly that case (O10d);
+  MA's set STANDS as written. Checked row by row: no other mutant's set changes (T8 already reddens O10).
+
+RUN 3: see the appended result below (this header is not edited).
+
+===== RUN 3 (appended after the run) =====
+2026-09-30 1:02:04 AM -> 1:17:05 AM LA; gate sha1 917f2ceff1c7483a3db979eeeafae1a13b64d497; stock_topoff.py fbf92971a3c8.
+Result: ALL PASS — 138 checks (64 rows + 71 mutants + 3 comment-only edits), every mutant red on EXACTLY its written set,
+MA included (O10d now exists). Full output: 2026-09-30-kittopoff10b-GATE.txt.
+The 9a, 9b, 10a and RULING 18 gates pass on the same code (re-run after the PD1 fix).
+⛔ Not a second pass: an adversarial pass on THIS revision of the gate has not run; the build review's gate lens is next.
