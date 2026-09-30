@@ -37124,3 +37124,39 @@ bought balls only at fixed story points.
 - **Daily upstream check:** `upstream-pokebot/main` = `fe68b4f4`, 8 commits ahead of the mirrored `5dd898f8` (#828
   HTTP server races, #829 a flattened control flow). Nothing pulled (the user's "not now, keep it parked" stands);
   recorded in `40cakes repo/UPDATE-LOG.md` and the handoff's upstream row.
+
+## 2026-09-29 — design v2 step 9b (BB at Sootopolis) BUILT AND GRADED: the League-basket visit tops off Ultra Balls; a latent RULING 18 stranding fixed (`#26-organiccatch`)
+
+- **Order of commits** (branch `wt/ballrestock9b`):
+  - predictions `c7cf1bbd`, with the Step-0 reads and the M0 ×2, which were IDENTICAL;
+  - code `2f082d04`;
+  - gate fix `23ce266d` (P13 FAILED on run 1);
+  - gate coverage `a2781f30`;
+  - addendum P12b `8ea30ea8`;
+  - the graded docs.
+- **Code:**
+  - `stock_topoff.py` consumer (b): `forecast_after_basket` (PURE), `sootopolis_ball_forecast` and
+    `sootopolis_ball_phase`;
+  - `league_reserve.py`: the early return allows a ball-only visit; `_shop` runs the phase in the same menu session;
+    `_buy_basket_lines` is extracted unchanged; `stock_basket_early` archives a previous errand (the recon's F1);
+  - `story_harness.py` `EarlyBasketMode`: its own ball reads and forecast, new conjuncts, expectations `balls` and
+    `ballfail`;
+  - fault `POKEBOT_R23_FAULT_BALLRAISE`.
+- **Gate** `probe_stock_topoff_sootopolis.py`: F1-F6, K1, O1-O8, P1-P8, S1-S9, A1-A4, and M1-M25 with exact red sets;
+  APPENDED at the end of `run_gates.py` (suite 134 = 130 enforcing + 4 advisory).
+- **PROOF** (`ai-research-notes/2026-09-29-ballrestock9b-GRADED.md`):
+  - A2-OFF ×2 and A2-RAISE are identical to M0a on every frame-stamped line; A2-OBS is identical apart from its one
+    log line.
+  - A2-ON buys 1 Ultra (₽22,166 → 20,966) after the basket in the same menu session; its first divergence is its own
+    ball phase.
+  - A2-FLOOR buys 5.
+  - A2b-ON makes a ball-only visit; A2b-OFF/TYPO do nothing; A2b-RAISE walks back.
+  - A2c (its own output) does nothing, and A2c′ fails its premise.
+  - B3′ closes the phase mid-purchase and walks back.
+  - ⚠ P12 FAILED (the budget premise needs a basket plan) and P13 FAILED (two mutant sets); both are explained in the
+    note.
+- **Docs:**
+  - 01, 02, 03, 04 and 29 current;
+  - 05 KI-103 gains the F1 note;
+  - the v2 note gains its 9b AS-BUILT block;
+  - 06 decision, 08 two entries.

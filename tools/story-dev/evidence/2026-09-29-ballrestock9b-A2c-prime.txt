@@ -1,0 +1,41 @@
+# design v2 step 9b arm A2c-prime — graded against P11 (ai-research-notes/2026-09-29-ballrestock9b-PREDICTIONS.md).
+# Code 23ce266d (no production code changed after it). Seeded wrapper, sequential, profile repro-ml, from tools/story-dev:
+#   EB_EXPECT=balls POKEBOT_R23_BALLRESTOCK=1 PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" <scratch>/eb_after_A2ON.ss1 --driver earlybasket --frames 16000 --log <scratch>
+# Fixture: <scratch>/eb_after_A2ON.ss1 (946e3b05). Debug-log frames.
+
+=== the driver's verdict lines ===
+[earlybasket] PRE {'start_at': ((0, 7), (43, 32)), 'frame_start': 3709123, 'money_start': 20966, 'stock_start': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': []}
+[earlybasket] PRE-BALLS start={'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 1, 'Premier Ball': 1} mode='1' forecast=[] floor=19000 reason=cannot afford one Ultra Ball (budget 983, price 1200)
+[earlybasket] FAILURE BotModeError: earlybasket: PREMISE FAILED for expect=balls (in_era=True, in_sootopolis=True, plan=[], balls=[]) — this run would pass having done nothing.
+[earlybasket] R balls_end = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 1, 'Premier Ball': 1}
+[earlybasket] R balls_expected = []
+[earlybasket] R balls_floor = 19000
+[earlybasket] R balls_forecast = []
+[earlybasket] R balls_forecast_made = True
+[earlybasket] R balls_start = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 1, 'Premier Ball': 1}
+[earlybasket] R bb_mode = '1'
+[earlybasket] R final_at = ((0, 7), (43, 32))
+[earlybasket] R frame_start = 3709123
+[earlybasket] R frames = 0
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R money_end = 20966
+[earlybasket] R money_start = 20966
+[earlybasket] R on_gym_1f = False
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = []
+[earlybasket] R start_at = ((0, 7), (43, 32))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] ORDER [] PLAN [] DELTA {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} COST 0
+[earlybasket] BALLS forecast={} delta={} bought={} ball_cost=0 floor=19000
+[earlybasket] conjuncts = {'ball_only_visit': False, 'balls_as_forecast': False, 'basket_untouched': True, 'money_drop_equals_cost': False, 'balls_floor_kept': True, 'walked_and_reheald': False, 'walked_back_across': False, 'on_gym_1f': False, 'no_failure': False, 'no_whiteout': True, 'production_forecast': False}
+[earlybasket] ACCEPTANCE: FAIL (expect=balls) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+
+=== [BALLS-BUY] lines (debug log) ===
+
+=== the driver segment (tracked lines + [EARLY_BASKET], up to the fixture restore) ===
+f3712080 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3717364 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+
+=== first divergence from M0a (frame-stamped lines, [BALLS-BUY] skipped): f3709093: arm 'f3709093 ===== DUMP [enable — initial state] =====' vs M0a 'f3698976 ===== DUMP [enable — initial state] ====='

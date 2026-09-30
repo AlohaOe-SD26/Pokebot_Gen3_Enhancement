@@ -222,11 +222,18 @@ STATICALLY from the tracked ROM (no emulator; the gitignored encounter cache hol
 KI-113). Its one production reader is `StoryMode._should_catch` (design v2 step 8), and only with `POKEBOT_R25_RARE`. Gate: `probe_rarity_predicate.py` (runs `--check`).
 
 ### `modules/story/stock_topoff.py`: OURS, new 2026-09-29 (SANDBOX ONLY; behind `POKEBOT_R23_BALLRESTOCK`, default OFF)
-The ball top-off (design v2 step 9a; USER RULINGS 23 + 26). PURE planning (`limits`, `best_ball`, `stage`, `floor`,
-`ball_topoff_plan`, `plan_lines`) plus one emulator errand, `ball_topoff_errand`, called from ONE place: the end of
-`heal_in_pokemon_center` (`modules/modes/util/higher_level_actions.py`, an UPSTREAM-derived function; three small
-hunks: the flag parsed before the first yield, the guarded call, and a second stable wait ONLY if the errand moved).
-Step 9a whitelists Rustboro only. OFF, `observe` and an empty plan yield nothing. Gate: `probe_stock_topoff.py`.
+The ball top-off (design v2 steps 9a and 9b; USER RULINGS 23 + 26). PURE planning (`limits`, `best_ball`, `stage`,
+`floor`, `ball_topoff_plan`, `plan_lines`, `forecast_after_basket`) plus two consumers:
+- **(a), step 9a:** one emulator errand, `ball_topoff_errand`, called from ONE place: the end of
+  `heal_in_pokemon_center` (`modules/modes/util/higher_level_actions.py`, an UPSTREAM-derived function; three small
+  hunks: the flag parsed before the first yield, the guarded call, and a second stable wait ONLY if the errand moved).
+  Rustboro is the only whitelisted city.
+- **(b), step 9b:** RULING 18's Sootopolis League-basket visit (`modules/story/league_reserve.py`) calls
+  `sootopolis_ball_forecast` before any walk (in `_stock_basket_early`; a buying forecast can make a ball-only visit)
+  and `sootopolis_ball_phase` at the counter after the basket lines (in `_shop`, inside the shop's try, so RULING 18's
+  walk back always runs). The phase writes only under `report["balls"]` and never raises.
+OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a) and
+`probe_stock_topoff_sootopolis.py` (9b).
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:
@@ -497,6 +504,9 @@ done
   guarded call in `StoryItemBattleStrategy._maybe_use_item` hides `LEAGUE_BASKET` quantities from in-battle use while
   armed (state-derived: Juan era → entering the Elite Four / champion / a sealed §Ch24 map); fails UNLOCKED; no bag
   reader sees it. Driver `--driver earlybasket`; gate `probe_league_reserve.py`; inputs `probe_reserve_inputs.py`.
+  Since design v2 step 9b the visit also carries the ball top-off's consumer (b) (see `stock_topoff.py` above), and
+  `stock_basket_early` ARCHIVES a previous errand's report keys (`previous_errands`) before starting: §Ch22 passes one
+  dict to every Juan attempt, and a stale `returned` would skip the walk back on a second walk.
 * **`modules/story/gym_tm_teach.py`** — USER RULING 19 (2026-09-26): when a named single-battle boss (Winona, Juan)
   has beaten us twice, teach a TM the bag already holds. Called from `StoryMode._prepare_for_fight` (after the laggard
   maintenance, before boss mode / the hopeless test / the counter ladder). THE WALL is by identity: the [TURN]

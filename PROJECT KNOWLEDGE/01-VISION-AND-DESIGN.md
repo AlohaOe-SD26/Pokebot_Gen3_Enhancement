@@ -285,11 +285,15 @@ it.
 - **Purpose:** keep the bot able to catch all game long (USER RULINGS 23 + 26: balls in bounded batches, the best
   ball the current shop sells, stock maintained throughout). It rides a Pokémon Center heal the story was making anyway
   ("piggyback, do not detour"): when spare balls fall to 20, it walks to that city's mart and tops off to about 30.
+  At Sootopolis it rides RULING 18's League-basket visit instead, buying Ultra Balls after the basket lines; there it
+  may visit for the balls alone when the basket is already complete.
 - **Must do:** never spend below the floor (RULING 18's League basket stands); never change a heal when OFF, in
   `observe`, or with nothing to buy; end the heal where it would have ended (the exit tile, facing Down); never fail
-  silently, and never walk into the same failure twice in a run.
-- **Where it stands:** 9a is built behind `POKEBOT_R23_BALLRESTOCK` (default OFF; Rustboro only). 9b (the Sootopolis
-  League-basket visit) is next. The amounts are a bounded default pending the user's Q1.
+  silently, and never walk into the same failure twice in a run. At Sootopolis a ball failure must never change the
+  basket's outcome or skip RULING 18's walk back across the city.
+- **Where it stands:** 9a (Rustboro) and 9b (the Sootopolis League-basket visit) are built behind
+  `POKEBOT_R23_BALLRESTOCK` (default OFF), each live-graded. The amounts are a bounded default pending the user's Q1;
+  under RULING 18's Juan-era floor the Sootopolis visit buys about one Ultra Ball per run.
 
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness

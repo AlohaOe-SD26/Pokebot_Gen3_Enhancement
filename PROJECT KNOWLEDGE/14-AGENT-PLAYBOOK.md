@@ -150,6 +150,19 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
 * ✅ **TWO READERS OF THE SAME DATA: KEEP BOTH AND ASSERT THE EXACT DIFF** (added 2026-09-29, KI-113). The static ROM
   read of the wild tables and the runtime cache agree everywhere except Altering Cave, and the generator asserts
   exactly that. A new difference then turns a check red instead of silently changing a verdict.
+* ⛔ **A STUB MUST KEEP THE CONTRACT OF WHAT IT REPLACES, AND EVERY ROW NEEDS A MUTANT THAT REDDENS IT** (added
+  2026-09-29, 08; step 9b).
+  - The step 9b gate's abort stub raised a NEW exception, but `reraise_if_aborting` re-raises the one it was given.
+    A pre-registered mutant set exposed it.
+  - Before a gate's first run, list the rows outside the union of the mutant red sets. Give each a mutant, or name it
+    as a value row and say where its logic is pinned. `probe_stock_topoff_sootopolis.py` M17-M25 is the worked
+    example.
+* ⛔ **TO SAY WHERE AN ARM DIVERGES FROM ITS CONTROL, FIND THE FIRST DIFFERENT LINE; DO NOT CUT AT A LOG LINE**
+  (added 2026-09-29, step 9b).
+  - A purchase is LOGGED hundreds of frames after its first button press. Cutting "before the purchase line" compared
+    the arm with lines the control had already moved past.
+  - Compare every frame-stamped debug line (heartbeats and watchdog lines included) and report the first difference.
+    It should be the gate's own first action (A2-ON: f3705494 `RESUMED` against the control's f3705558).
 
 ---
 

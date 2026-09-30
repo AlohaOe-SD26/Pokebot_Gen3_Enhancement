@@ -1,0 +1,78 @@
+# design v2 step 9b arm A2-RAISE — graded against P5 (ai-research-notes/2026-09-29-ballrestock9b-PREDICTIONS.md).
+# Code 23ce266d (no production code changed after it). Seeded wrapper, sequential, profile repro-ml, from tools/story-dev:
+#   EB_EXPECT=ballfail POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R23_FAULT_BALLRAISE=1 PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" saves/post_hm07.ss1 --driver earlybasket --frames 16000 --log <scratch>
+# Fixture: saves/post_hm07.ss1. Debug-log frames.
+
+=== the driver's verdict lines ===
+[earlybasket] PRE {'start_at': ((0, 7), (31, 34)), 'frame_start': 3699006, 'money_start': 67466, 'stock_start': {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]}
+[earlybasket] PRE-BALLS start={'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1} mode='1' forecast=[('Ultra Ball', 1)] floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+[earlybasket] R balls_end = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R balls_expected = [('Ultra Ball', 1)]
+[earlybasket] R balls_floor = 19000
+[earlybasket] R balls_forecast = [('Ultra Ball', 1)]
+[earlybasket] R balls_forecast_made = True
+[earlybasket] R balls_start = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R bb_mode = '1'
+[earlybasket] R final_at = ((15, 0), (8, 25))
+[earlybasket] R frame_start = 3699006
+[earlybasket] R frames = 10329
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 67466
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_after_heal = {187737927: ('Swellow', 115, 115), 868971715: ('Zigzagoon', 48, 48), 2252015895: ('Sceptile', 138, 138), 4199673075: ('Wailmer', 160, 160), 1553394331: ('Mightyena', 130, 130), 3380138318: ('Castform', 103, 103)}
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] R start_at = ((0, 7), (31, 34))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT balls = {'mode': '1', 'walk': True, 'blocked': False, 'forecast': [('Ultra Ball', 1)], 'reason': 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)', 'floor': 19000, 'spare': 18, 'money_after_basket': 22166, 'phase': 'failed', 'error': "RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)')"}
+[earlybasket] REPORT bought = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT budget = 20000
+[earlybasket] REPORT close_presses = 8
+[earlybasket] REPORT crossed = True
+[earlybasket] REPORT early_basket = 'bought'
+[earlybasket] REPORT finished = True
+[earlybasket] REPORT floor = 1000
+[earlybasket] REPORT frame_start = 3701177
+[earlybasket] REPORT frames_at_cross = 535
+[earlybasket] REPORT frames_at_shop_open = 1390
+[earlybasket] REPORT layout_pin = 'SOOTOPOLIS_CITY: planner blockdata 0x083E6A04 -> 0x083E6A04 (pinned to the LIVE header)'
+[earlybasket] REPORT money_after = 22166
+[earlybasket] REPORT money_before = 67466
+[earlybasket] REPORT order = ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT']
+[earlybasket] REPORT plan = [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+[earlybasket] REPORT return_at = ((0, 7), (31, 34))
+[earlybasket] REPORT return_attempts = [{'from': (17, 30), 'remaining': 22}]
+[earlybasket] REPORT returned = True
+[earlybasket] REPORT route_back_len = 22
+[earlybasket] REPORT route_out_len = 23
+[earlybasket] REPORT shop_menu_open = True
+[earlybasket] REPORT sold_here = ['Full Heal', 'Hyper Potion', 'Max Potion', 'Max Repel', 'Revive', 'Shadow Mail', 'Ultra Ball', 'X Attack', 'X Defend']
+[earlybasket] REPORT stock_after = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT stock_before = {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}
+[earlybasket] REPORT walked = True
+[earlybasket] REPORT waypoint_reached = ((0, 7), (31, 34))
+[earlybasket] ORDER ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT'] PLAN [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] DELTA {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} COST 45300
+[earlybasket] BALLS forecast={'Ultra Ball': 1} delta={} bought={} ball_cost=0 floor=19000
+[earlybasket] conjuncts = {'ball_phase_failed': True, 'basket_outcome_kept': True, 'readings_as_basket': True, 'bag_delta_equals_plan': True, 'no_ball_delta': True, 'money_drop_equals_cost': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+[earlybasket] ACCEPTANCE: PASS (expect=ballfail) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+
+=== [BALLS-BUY] lines (debug log) ===
+f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+f3705471 [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the ball phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands
+
+=== the driver segment (tracked lines + [EARLY_BASKET], up to the fixture restore) ===
+f3699607 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3701067 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3702316 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702319 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(17, 29)
+f3702320 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3705736 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(3, 7)
+f3706371 [EARLY_BASKET] outcome='bought' plan=[('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] bought={'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} money=67466->22166 walked=True finished=True crossed=True returned=True stranded=None balls={'mode': '1', 'walk': True, 'forecast': [('Ultra Ball', 1)], 'phase': 'failed', 'error': "RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)')"}
+f3706973 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3708433 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3709270 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+
+=== first divergence from M0a (frame-stamped lines, [BALLS-BUY] skipped): NONE — every line identical

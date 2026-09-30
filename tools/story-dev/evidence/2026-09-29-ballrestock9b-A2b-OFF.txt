@@ -1,0 +1,53 @@
+# design v2 step 9b arm A2b-OFF — graded against P7 (ai-research-notes/2026-09-29-ballrestock9b-PREDICTIONS.md).
+# Code 23ce266d (no production code changed after it). Seeded wrapper, sequential, profile repro-ml, from tools/story-dev:
+#   EB_EXPECT=nothing PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" <scratch>/eb_after_M0a.ss1 --driver earlybasket --frames 16000 --log <scratch>
+# Fixture: <scratch>/eb_after_M0a.ss1 (4eb75e57). Debug-log frames.
+
+=== the driver's verdict lines ===
+[earlybasket] PRE {'start_at': ((0, 7), (43, 32)), 'frame_start': 3708572, 'money_start': 22166, 'stock_start': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': []}
+[earlybasket] PRE-BALLS start={'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1} mode='' forecast=[] floor=None reason=-
+[earlybasket] R balls_end = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R balls_expected = []
+[earlybasket] R balls_floor = None
+[earlybasket] R balls_forecast = []
+[earlybasket] R balls_forecast_made = False
+[earlybasket] R balls_start = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R bb_mode = ''
+[earlybasket] R final_at = ((15, 0), (8, 25))
+[earlybasket] R frame_start = 3708572
+[earlybasket] R frames = 2462
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 22166
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_after_heal = {187737927: ('Swellow', 115, 115), 868971715: ('Zigzagoon', 48, 48), 2252015895: ('Sceptile', 138, 138), 4199673075: ('Wailmer', 160, 160), 1553394331: ('Mightyena', 130, 130), 3380138318: ('Castform', 103, 103)}
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = []
+[earlybasket] R start_at = ((0, 7), (43, 32))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT budget = 20000
+[earlybasket] REPORT early_basket = 'nothing missing'
+[earlybasket] REPORT finished = True
+[earlybasket] REPORT floor = 1000
+[earlybasket] REPORT frame_start = 3710241
+[earlybasket] REPORT money_before = 22166
+[earlybasket] REPORT order = []
+[earlybasket] REPORT plan = []
+[earlybasket] REPORT stock_before = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] REPORT walked = False
+[earlybasket] ORDER [] PLAN [] DELTA {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} COST 0
+[earlybasket] BALLS forecast={} delta={} bought={} ball_cost=0 floor=None
+[earlybasket] conjuncts = {'named_nothing': True, 'no_walk': True, 'no_spend': True, 'on_gym_1f': True, 'no_ball_delta': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+[earlybasket] ACCEPTANCE: PASS (expect=nothing) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+
+=== [BALLS-BUY] lines (debug log) ===
+
+=== the driver segment (tracked lines + [EARLY_BASKET], up to the fixture restore) ===
+f3708672 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3710132 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3710241 [EARLY_BASKET] outcome='nothing missing' plan=[] bought=None money=22166->None walked=False finished=True crossed=None returned=None stranded=None
+f3710969 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+
+=== first divergence from M0a (frame-stamped lines, [BALLS-BUY] skipped): f3708542: arm 'f3708542 ===== DUMP [enable — initial state] =====' vs M0a 'f3698976 ===== DUMP [enable — initial state] ====='

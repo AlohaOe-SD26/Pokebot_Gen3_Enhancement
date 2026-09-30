@@ -8402,3 +8402,34 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
 - A lazily-created memo (it leaks across ENDLESS runs).
 - A stage that falls back to MID on an unreadable flag (it drops the basket floor).
 - Buying Poké Balls with `buy_poke_balls` (a separate, unverified path; the errand buys only through `buy_in_shop`).
+
+## 2026-09-29 — Design v2 step 9b (BB consumer b, Sootopolis): how the ball top-off rides RULING 18's visit (`#26-organiccatch`)
+
+- **The forecast plans from the POST-basket wallet and floor.**
+  - The go/no-go decision is made before any walk, when the basket is not yet bought. So the forecast models the
+    moment after it: the wallet minus the plan's cost, and the floor from the basket still missing once the plan is in
+    the bag.
+  - The counter re-plans from the live state after the basket. A short basket purchase then raises the floor by
+    itself.
+  - Rejected:
+    - the pre-basket wallet (step 0: 5 Ultras against the right 1);
+    - the pre-basket floor (0: 1,000 + 2 × 54,300 is above any wallet here);
+    - buying the balls in the SAME `buy_in_shop` call as the basket, which would plan them before the basket's
+      delta is verified.
+- **Two `buy_in_shop` calls in one menu session.** The first ends on the shop's main menu, and the basket block's
+  1,800-frame wait presses nothing. The ball phase therefore buys from the same open menu, with no new walk. It fails
+  safe: a missing `Task_ShopMenu` raises, and the raise is swallowed.
+- **The ball phase never raises and writes only under `report["balls"]`.** RULING 18's report keys drive its walk back
+  and its grade; step 9a's errand pattern writes `returned` and `bought`, and a truthy `returned` there would skip the
+  walk back (recon F3).
+- **A memo hit or a failed forecast BLOCKS the counter phase too**, not just the ball-only walk (recon F8). A
+  Sootopolis failure is not retried in the same run.
+- **The latent RULING 18 stranding (recon F1) is fixed inside this item.** It is a two-line archive at the top of
+  `stock_basket_early`, and step 9b's periodic visits are what make it reachable. So it could not wait for a
+  separate item without shipping a known path to a stranded bot behind the new flag.
+  - Rejected: a fresh dict in the caller (`heal_and_stock_before_the_gym`). It fixes one caller only.
+- **Deferred, named:** v2's split visit order ("basket, then balls while spare ≤ 10, then the kit, then the rest of the
+  balls"; recon F13) needs the kit, which is step 10. Step 9b fills to the target in one phase.
+- **Finding for Q1 and step 14, not a defect:** under RULING 18's floor (1,000 + 2 × the missing League basket, i.e.
+  ₽19,000 in the Juan era), the Sootopolis visit buys 1 Ultra once, and a Juan loss halves the wallet below the floor.
+  The periodic top-off at Sootopolis is therefore mostly theoretical until the League.

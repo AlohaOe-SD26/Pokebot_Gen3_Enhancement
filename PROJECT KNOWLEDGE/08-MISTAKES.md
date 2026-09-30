@@ -23157,3 +23157,59 @@ that `get_event_flag` could never trigger.
 - M10-M20 cover every listed property. The two unreachable protections were removed or made real.
 **Prevention rule:** when a docstring lists safety properties, enumerate them and map each to a row that EXECUTES it,
 and give each row a mutant that turns it red. A property with no row is a claim to delete, not to keep.
+
+## 2026-09-29 — ⛔ A STOPPED RUNNER STILL STARTED ITS NEXT RUN, ON CODE I WAS EDITING; AND TWO RUNS SHARED ONE LOG
+
+- **Symptom.** Design v2 step 9b needed M0 ×2 on the UNCHANGED code, from a runner script that ran M0a, then M0b.
+  - While M0a idled to its frame cap, I started editing the 9b code in the same worktree.
+  - I then TaskStopped the runner, so that M0b would not load the edits. M0a had exited ONE SECOND earlier, and the
+    runner had already launched M0b.
+  - TaskStop killed only the bash runner; the python child ran on as an orphan, on the half-edited code.
+  - A clean M0b, started later, wrote to the SAME `--log`/stdout paths, and the two runs' driver logs interleaved.
+  - A "newest debug log by mtime" copy then labelled the orphan's log as M0a's, because the orphan was still writing
+    to it.
+  - Found by listing the harness processes with their start times and `--log` paths. Killing the orphan was refused
+    by the permission layer, so it was left to reach its own cap and its outputs were discarded.
+- **Root cause.** Three assumptions, each wrong:
+  - that stopping a runner stops its current child;
+  - that a queued run loads the code as it was when the runner STARTED (it loads it when the run starts);
+  - that the newest-modified debug log belongs to the run that just ended.
+- **The fix that worked.**
+  - Each run is identified by its own `--log` path and by the debug log it CREATED (a directory-listing diff), never
+    by mtime.
+  - A runner refuses to start while any `story_harness` process is alive.
+  - An unchanged-code control in a dirty worktree swaps in the committed files, checked by content
+    (`git hash-object` equals the HEAD blob; `git status` can report stale-stat "M" for identical content), and a
+    trap restores the edits, verified by md5.
+- **Prevention rule:** never edit code in a worktree while a runner there still has QUEUED runs; after any TaskStop,
+  list the `story_harness` processes before trusting that nothing is running; give every run its own output paths.
+- ⚠ **The same item broke a STANDING rule again.** The rule is that text with escapes or backticks never goes through
+  a heredoc (08, the 2026-09 heredoc entries). A `\\n` written through a Python heredoc became a real newline in the
+  9b gate file. `py_compile` caught it before any run, and the lines were rewritten with the Edit tool.
+  - Prose has now failed repeatedly for this rule. The gate-shaped fix is a PreToolUse hook that refuses a heredoc
+    containing a backslash escape.
+  - It is PROPOSED to the user, not installed, because the project's hooks are user-approved.
+
+## 2026-09-29 — ⛔ A GATE STUB CONTRADICTED THE CONTRACT OF THE FUNCTION IT REPLACED; PRE-REGISTERED MUTANT SETS CAUGHT IT, AND A COVERAGE CHECK FOUND ROWS NO MUTANT COULD REDDEN
+
+- **Symptom.** The step 9b gate (`probe_stock_topoff_sootopolis.py`) was run for the first time AFTER its predictions
+  (P13: every mutant red on EXACTLY its written set). Two sets did not match:
+  - M7 (the ball phase lets a failure escape) turned the abort row P6 red as well;
+  - M11 (OFF returns a dict) turned the typo row O3 red as well.
+- **Root cause.**
+  - M7: the gate's `reraise_if_aborting` stub raised a NEW exception. The real function's docstring says it
+    "RE-RAISES THE ERROR IT WAS GIVEN, not a synthesized one". So P6 was testing the stub's conversion, not the code:
+    under M7 the real abort still propagates.
+  - M11: my written set was simply incomplete. A typo IS OFF and takes the same branch.
+  - ⚠ The step 9a gate's E2 uses the same synthesizing stub (`probe_stock_topoff.py`, `raise _Abort(str(error))`).
+    It is noted here and not changed by 9b.
+- **Then a coverage check** (every row needs at least one mutant that turns it red) found rows no mutant could redden:
+  K1, O6, S4, S5, S8, A2, P6 and O7's abort half. The forecast's floor lever had no row at all.
+  - Each now has a mutant (M15-M25, their sets written before their run) and a row (O8).
+  - F2, F3, F5 and F6 remain VALUE rows on the real numbers; the arithmetic under them is pinned by 9a's gate.
+- **The fix that worked.** Faithful stubs; M11's set corrected WITH its reason in the label (not silently);
+  P13 graded FAILED, as filed.
+- **Prevention rule:**
+  - read the docstring of every function you stub, and make the stub keep its contract;
+  - before a gate's first run, list the rows NOT in the union of the mutant red sets: each is either given a mutant
+    or named as a value row, with where its logic is pinned.

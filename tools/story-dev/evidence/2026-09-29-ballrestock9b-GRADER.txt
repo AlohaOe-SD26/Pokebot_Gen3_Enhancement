@@ -5,6 +5,7 @@
 #   purchase LOG frame (f3706022), ~530 frames after the phase starts and after M0a's own Mart exit (f3705736), and so read 5 vs 6.
 #   The honest test is the first divergence, which is the ball phase's first action (f3705494 vs M0a's f3705558 'RESUMED'),
 #   between the basket's shared 1,800-frame wait and M0a's Mart exit. Both versions are disclosed in the graded note.
+# FINAL run, after B3′ (P12b). B3's 3 FAILED checks are P12, failed on its premise, kept as they are.
 
 === A2-OFF-a: ACCEPTANCE [('PASS', 'buy')]  R frames=10329 money_end=22166
     driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 45300
@@ -97,8 +98,18 @@
   FAIL  PASS (expect=budget)  — {'budget_expired': False, 'expired_shop': False, 'retry_walked_back': False, 'not_stranded': True, 'healed_and_entered': False, 'no_failure': False, 'no_whiteout': True, 'production_forecast': False}
   FAIL  exactly one topoff-closed line  — []
   FAIL  not stranded, back, gym 1F
+=== B3prime: ACCEPTANCE [('PASS', 'budget')]  R frames=10801 money_end=22166
+    f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    f3705535 [BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=the basket visit's budget closed the ball phase mid-purchase (R18 walks back)
+    driver BALLS forecast={'Ultra Ball': 1} delta={} bought={} ball_cost=0 floor=19000  COST 45300
+  PASS  PASS (expect=budget)  — {'budget_expired': True, 'expired_shop': True, 'retry_walked_back': True, 'not_stranded': True, 'healed_and_entered': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  exactly one topoff-closed line (with the forecast line before it, nothing else)  — ["[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)", "[BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=the basket visit's budget closed the ball phase mid-purchase (R18 walks back)"]
+  PASS  the basket bought (3/8/30, 'bought'), NO Ultra, money_end 22166
+  PASS  retry walked back, not stranded, gym 1F
+  PASS  identical to A2-ON until the close  — first divergence from A2-ON f3706176 ('f3706176 [hb] mode=Story state=7 controllable=True map=SOOTOPOLIS CITY'); close f3705535
+  PASS  no 'generator ignored GeneratorExit'
 
-GRADE: 3 FAILED (52 checks)
+GRADE: 3 FAILED (58 checks)
   - B3: PASS (expect=budget)
   - B3: exactly one topoff-closed line
   - B3: not stranded, back, gym 1F
@@ -325,6 +336,29 @@ def grade(arm):
         check(arm, "PREMISE FAILED ... balls=[] and ACCEPTANCE FAIL (expect=balls)",
               bool(d["premise"]) and "balls=[]" in d["premise"][0] and d["acc"] == [("FAIL", "balls")],
               f"{d['premise'][:1]} {d['acc']}")
+    elif arm == "B3prime":
+        check(arm, "PASS (expect=budget)", d["acc"] == [("PASS", "budget")], d["conj"][:400])
+        closed = [t for t in texts if "why=topoff-closed" in t]
+        check(arm, "exactly one topoff-closed line (with the forecast line before it, nothing else)",
+              len(closed) == 1 and bool(CLOSED.match(closed[0]))
+              and texts == [FC1.format(tag="topoff-forecast", walk="True"), closed[0]], str(texts))
+        check(arm, "the basket bought (3/8/30, 'bought'), NO Ultra, money_end 22166",
+              d["R"].get("stock_end") == "{'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}"
+              and d["REP"].get("early_basket") == "'bought'" and d["R"].get("balls_end") == d["R"].get("balls_start")
+              and d["R"].get("money_end") == "22166")
+        check(arm, "retry walked back, not stranded, gym 1F", d["REP"].get("retry_return") == "True"
+              and d["REP"].get("returned") == "True" and d["REP"].get("stranded") == "False"
+              and d["R"].get("on_gym_1f") == "True")
+        on = B / "A2-ON.debug.txt"
+        a_lines, o_lines = frame_lines(dbg), frame_lines(on)
+        div = next((i for i, (x, y) in enumerate(zip(a_lines, o_lines)) if x != y), None)
+        fclose = next((f for f, t in bb if "why=topoff-closed" in t), None)
+        fdiv = int(FR.match(a_lines[div]).group(1)) if div is not None else None
+        check(arm, "identical to A2-ON until the close", fdiv is not None and fclose is not None and fdiv >= fclose - 1,
+              f"first divergence from A2-ON f{fdiv} ('{a_lines[div][:70] if div is not None else ''}'); close f{fclose}")
+        txt = (B / f"{arm}.log").read_text(encoding="utf-8", errors="replace")
+        check(arm, "no 'generator ignored GeneratorExit'", "ignored GeneratorExit" not in txt
+              and "ignored GeneratorExit" not in (B / f"{arm}.stdout.txt").read_text(encoding="utf-8", errors="replace"))
     elif arm == "B3":
         check(arm, "PASS (expect=budget)", d["acc"] == [("PASS", "budget")], d["conj"][:400])
         closed = [t for t in texts if "why=topoff-closed" in t]
@@ -337,7 +371,7 @@ if __name__ == "__main__":
     arms = sys.argv[1:]
     if arms == ["all"]:
         arms = ["A2-OFF-a", "A2-OFF-b", "A2-OBS", "A2-ON", "A2-FLOOR", "A2-RAISE", "A2b-ON", "A2b-OFF", "A2b-TYPO",
-                "A2b-RAISE", "A2c", "A2c-prime", "B3"]
+                "A2b-RAISE", "A2c", "A2c-prime", "B3", "B3prime"]
     for a in arms:
         grade(a)
     bad = [(a, l) for a, l, ok in RESULTS if not ok]
