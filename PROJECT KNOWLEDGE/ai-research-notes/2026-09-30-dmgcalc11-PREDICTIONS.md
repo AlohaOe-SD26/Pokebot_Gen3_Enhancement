@@ -127,3 +127,34 @@ decision rule applies, and the per-turn table is graded only on a reproducing tr
 **Falsifiers:** an ON run that differs from a reproducing OFF run on any line without `DMGAUDIT`; a `DMGAUDIT` line in
 an OFF run or under `[BATTLE]`; an accepted sample the table calls excluded (or the reverse) on a reproducing run;
 FAULT not above ON; a Group B or D literal that the gate's port or calculator does not reproduce.
+
+## ADDENDUM (2026-09-30, ~8:05 AM LA): the BASE-vs-build divergence A/B, filed AFTER the five arms ran and BEFORE this A/B
+
+⚠ **This section is NOT part of the pre-registration above.** It was written after the arms had run. It predicts only
+the A/B below, and it changes no row above.
+
+- **What the arms showed (build `c44b1def`):**
+  - OFF-r1 = OFF-r2 on all 371 frame-stamped lines.
+  - ON-r1 and ON-r2 each equal them on every line without `DMGAUDIT`.
+  - All four follow the Step-0 trajectory EXACTLY to f3215340 (Route 119, the `[hb]` at (35, 90)).
+  - At that point the Step-0 run met a wild Linoone at (22, 127) (f3215905); the four build runs walked on to Route 118
+    at f3215976.
+  - So the per-turn table's two Linoone rows (f3216950, f3217980) are on a branch the build's runs never reach.
+- **The A/B:** the BASE code (`241929d7`'s two production modules, loaded in place of the build's by scratch
+  `run_base_off.py`, in the SAME worktree, profile and caches), run twice exactly like the OFF arms.
+- **H1 (predicted): the build is not the cause.** BASE-r1 = BASE-r2 = OFF-r1 on every frame-stamped line (no Linoone).
+  Then the Step-0 run is the odd trajectory: either its wrapper probe's own overhead or KI-112's wall-clock input. Its
+  cause is NOT decided by this A/B.
+- **H2 (the falsifier of "the build is inert"):** a BASE run follows the Step-0 lines past f3215340 (the Linoone).
+- **H3:** the BASE runs differ from each other. Then this point is KI-112-unstable, and neither trajectory is "the"
+  prediction.
+- **The grading rule for the per-turn table, already filed above ("graded only on a reproducing trajectory"), applied:**
+  - the 15 rows f3173282 … f3210218 are graded as filed;
+  - the two Linoone rows are NOT REACHED, never counted as PASS;
+  - singles exits past the divergence were never pre-registered, and are reported, not graded.
+- **What this changes, and what it does not:**
+  - Non-vacuity's "the three named clean hits" loses f3216950. The two others stand.
+  - "A CTL line at each of the 15 battle starts" becomes 14 on the build's trajectory (the Linoone battle is absent).
+  - The FAULT arm's named turns are the two reached (f3190263, f3198642).
+  - The accepted count is 8, inside the predicted 7 to 10. The "9 or 10 on this trajectory" count in the design's AS
+    BUILT section assumed the Linoone rows.
