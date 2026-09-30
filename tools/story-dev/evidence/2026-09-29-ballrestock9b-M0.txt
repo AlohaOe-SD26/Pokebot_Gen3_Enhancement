@@ -1,0 +1,97 @@
+# design v2 step 9b (BB consumer b, Sootopolis): STEP 0 and the M0 x2, on UNCHANGED code, BEFORE the predictions commit.
+# Fixture tools/story-dev/saves/post_hm07.ss1 = bc3686118ac70a9aa1aa6501618adbac (PINNED).
+# Command (seeded wrapper, from tools/story-dev):
+#   EB_EXPECT=buy EB_SAVE_AFTER=<scratch>/eb_after_<run>.ss1 PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" saves/post_hm07.ss1 --driver earlybasket --frames <N> --log <scratch>/<run>.log
+# M0a: code e50441de, --frames 80000 (process started 5:39:42 PM, before any 9b edit). Debug log Story-debug-20260929-173949.log.
+# M0b: the COMMITTED code swapped into the dirty worktree, content-verified (git hash-object == HEAD blob for league_reserve.py,
+#       stock_topoff.py and story_harness.py; git diff empty), --frames 30000. Debug log Story-debug-20260929-180532.log.
+#       Its --log/stdout paths were shared with a discarded ORPHAN run (see the predictions file and 08), so it is graded from its
+#       own debug log; its verdict lines below were read from the shared --log and agree with the debug log's [EARLY_BASKET] line.
+# The A2b fixture = M0a's EB_SAVE_AFTER output eb_after_M0a.ss1 = 4eb75e57aa38f2ebc5415d52f7a25ba5 (scratch; not in saves/).
+#   (M0b's eb_after_M0b.ss1 = 4cacfca03cefc9c4424c2f526d92c90f differs in bytes; the tracked lines are identical.)
+
+=== STEP 0 on post_hm07.ss1 (the control: money 67,466 = RULING 18's recorded money_start) ===
+save post_hm07.ss1
+money 67466
+at (0, 7) (31, 34)
+poke_balls pocket [('Poké Ball', 16), ('Premier Ball', 1), ('Great Ball', 1), ('Master Ball', 1)]
+spare (number_of_balls_except_master_ball) 18
+items pocket slots used 4 [('Nugget', 1), ('X Attack', 2), ('Potion', 1), ('Escape Rope', 1)]
+flag IS_CHAMPION True False
+flag ENTERED_ELITE_FOUR True False
+flag SOOTOPOLIS_ARCHIE_MAXIE_LEAVE True True
+flag BADGE01_GET True True
+flag BADGE08_GET True False
+allowed balls ['Dive Ball', 'Great Ball', 'Luxury Ball', 'Nest Ball', 'Net Ball', 'Poké Ball', 'Premier Ball', 'Repeat Ball', 'Safari Ball', 'Timer Ball', 'Ultra Ball']
+basket stock (BUY_ORDER) {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} plan [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] cost 45300
+missing basket cost now 54300 after the plan 9000 [('Full Restore', 3)]
+stage BASKET_ERA floor(after plan) 19000 limits {'trigger': 20, 'target': 30, 'batch_cap': 6000} ultra price 1200
+ball plan post-basket ([('Ultra Ball', 1)], 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)')
+ball plan pre-basket (wrong wallet) ([('Ultra Ball', 5)], 'top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)')
+ball plan, floor = CASH_FLOOR (no basket guard) ([('Ultra Ball', 5)], 'top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)')
+
+=== STEP 0 on eb_after_M0a.ss1 (the A2b fixture) ===
+save eb_after_M0a.ss1
+money 22166
+at (0, 7) (43, 32)
+poke_balls pocket [('Poké Ball', 16), ('Premier Ball', 1), ('Great Ball', 1), ('Master Ball', 1)]
+spare (number_of_balls_except_master_ball) 18
+items pocket slots used 7 [('Nugget', 1), ('X Attack', 2), ('Potion', 1), ('Escape Rope', 1), ('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+flag IS_CHAMPION True False
+flag ENTERED_ELITE_FOUR True False
+flag SOOTOPOLIS_ARCHIE_MAXIE_LEAVE True True
+flag BADGE01_GET True True
+flag BADGE08_GET True False
+allowed balls ['Dive Ball', 'Great Ball', 'Luxury Ball', 'Nest Ball', 'Net Ball', 'Poké Ball', 'Premier Ball', 'Repeat Ball', 'Safari Ball', 'Timer Ball', 'Ultra Ball']
+basket stock (BUY_ORDER) {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} plan [] cost 0
+missing basket cost now 9000 after the plan 9000 [('Full Restore', 3)]
+stage BASKET_ERA floor(after plan) 19000 limits {'trigger': 20, 'target': 30, 'batch_cap': 6000} ultra price 1200
+ball plan post-basket ([('Ultra Ball', 1)], 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)')
+ball plan pre-basket (wrong wallet) ([('Ultra Ball', 1)], 'top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)')
+ball plan, floor = CASH_FLOOR (no basket guard) ([('Ultra Ball', 5)], 'top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)')
+
+=== M0a: driver segment (tracked lines + [EARLY_BASKET], up to the fixture restore): 10 lines ===
+f3699607 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3701067 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3702316 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702319 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(17, 29)
+f3702320 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3705736 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(3, 7)
+f3706371 [EARLY_BASKET] outcome='bought' plan=[('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] bought={'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} money=67466->22166 walked=True finished=True crossed=True returned=True stranded=None
+f3706973 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3708433 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3709270 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+--- M0a verdict lines ---
+[earlybasket] R frames = 10329
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 67466
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_full_end = True
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] ORDER ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT'] PLAN [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] DELTA {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} COST 45300
+[earlybasket] conjuncts = {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True}
+[earlybasket] ACCEPTANCE: PASS (expect=buy) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+
+=== M0b: driver segment (tracked lines + [EARLY_BASKET], up to the fixture restore): 10 lines ===
+f3699607 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3701067 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3702316 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702319 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(17, 29)
+f3702320 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3705736 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(3, 7)
+f3706371 [EARLY_BASKET] outcome='bought' plan=[('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] bought={'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} money=67466->22166 walked=True finished=True crossed=True returned=True stranded=None
+f3706973 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3708433 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3709270 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+--- M0b verdict lines ---
+[earlybasket] R frames = 10329
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 67466
+[earlybasket] R on_gym_1f = True
+[earlybasket] R party_full_end = True
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] ORDER ['EB-PLANNED', 'EB-MART', 'EB-BOUGHT'] PLAN [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] DELTA {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} COST 45300
+[earlybasket] conjuncts = {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True}
+[earlybasket] ACCEPTANCE: PASS (expect=buy) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+
+=== GRADE: M0a vs M0b driver segments: IDENTICAL (10 vs 10) — one trajectory, replayed (a determinism check, not a replication) ===

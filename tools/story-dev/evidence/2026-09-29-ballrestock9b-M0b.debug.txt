@@ -1,0 +1,343 @@
+=== DEBUG LOG START 2026-09-29T18:05:32 ===
+    log: C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\debug-logs\Story-debug-20260929-180532.log
+--- RUN HEADER (build, config, experiment) ---
+    build:         not a git checkout
+    bot:           PokéBot Gen3 dev
+    python:        3.12.4 on Windows 11
+    mode:          Story
+    profile:       repro-ml
+    rom:           Pokémon Emerald (E) (E) rev 0
+    emulation:     speed=0 video=False audio=False
+    fodder-rule:   xp_rate (default) ratio=2.0
+    env:           (no behaviour env vars set)
+    env-all:       (no POKEBOT_* env vars set)
+--- END RUN HEADER ---
+f3698976 ===== DUMP [enable — initial state] =====
+    mode=Story  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3699607 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3700021 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(15,2)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=['EarlyBasketMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['SootopolisCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> EarlyBasketMode.run  @ story_harness.py:25180
+      -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:956
+      -> _heal_before_the_gym  @ sootopolis_gym.py:983
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:621
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f3700926 [RESUMED] after 1204 frames with no progress
+f3700927 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3701067 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3702316 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702319 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(17, 29)
+f3702320 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,4) pos=(17, 29)
+f3702576 [hb] mode=Story state=7 controllable=True map=SOOTOPOLIS CITY(15,4) pos=(3, 3) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3702890 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message=''
+    game_state=18  controllable=False
+    map=SOOTOPOLIS CITY(15,4)  pos=(3, 3)  facing=Left
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 115/115', 'Zigzagoon L19 48/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=['EarlyBasketMode.run']
+    tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+    scripts=['SootopolisCity_Mart_EventScript_Clerk']
+    generator call stack (where the bot is waiting):
+      -> EarlyBasketMode.run  @ story_harness.py:25180
+      -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:958
+      -> stock_basket_early  @ league_reserve.py:226
+      -> _yield_bounded_by_frames  @ early_game.py:1832
+      -> _stock_basket_early  @ league_reserve.py:339
+      -> _shop  @ league_reserve.py:382
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> buy_in_shop  @ higher_level_actions.py:990
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_until_task_is_active  @ tasks_scripts.py:21
+f3703474 [RESUMED] after 883 frames with no progress
+f3703774 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message=''
+    game_state=7  controllable=False
+    map=SOOTOPOLIS CITY(15,4)  pos=(3, 3)  facing=Left
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 115/115', 'Zigzagoon L19 48/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=['EarlyBasketMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_ShopMenu']
+    scripts=['SootopolisCity_Mart_EventScript_Clerk']
+    generator call stack (where the bot is waiting):
+      -> EarlyBasketMode.run  @ story_harness.py:25180
+      -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:958
+      -> stock_basket_early  @ league_reserve.py:226
+      -> _yield_bounded_by_frames  @ early_game.py:1832
+      -> _stock_basket_early  @ league_reserve.py:339
+      -> _shop  @ league_reserve.py:383
+      -> wait_until_truly_controllable  @ early_game.py:1310
+f3705558 [RESUMED] after 2083 frames with no progress
+f3705736 [MAP] SOOTOPOLIS CITY(15,4) -> SOOTOPOLIS CITY(0,7) pos=(3, 7)
+f3706176 [hb] mode=Story state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(22, 36) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=22166 box=0 badges=7 msg=''
+f3706371 [EARLY_BASKET] outcome='bought' plan=[('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)] bought={'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} money=67466->22166 walked=True finished=True crossed=True returned=True stranded=None
+f3706973 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,2) pos=(43, 31)
+f3707387 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Story  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(15,2)  pos=(7, 4)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 115/115', 'Zigzagoon L19 48/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=['EarlyBasketMode.run']
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_DrawFieldMessage', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent']
+    scripts=['SootopolisCity_PokemonCenter_1F_EventScript_Nurse', 'Common_EventScript_PkmnCenterNurse', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> EarlyBasketMode.run  @ story_harness.py:25180
+      -> heal_and_stock_before_the_gym  @ sootopolis_gym.py:960
+      -> _heal_before_the_gym  @ sootopolis_gym.py:983
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> heal_in_pokemon_center  @ higher_level_actions.py:621
+      -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+      -> wait_for_yes_no_question  @ tasks_scripts.py:100
+f3708292 [RESUMED] after 1204 frames with no progress
+f3708293 [PC] Story: PC — none withdraw: SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is still sitting in the PC.
+f3708433 [MAP] SOOTOPOLIS CITY(15,2) -> SOOTOPOLIS CITY(0,7) pos=(7, 8)
+f3708445 [BALLS] 19 -> 138321
+f3708446 [BALLS] 138321 -> 19
+f3709270 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
+f3709274 [BALLS] 19 -> 150689
+f3709275 [BALLS] 150689 -> 19
+f3698977 [MODE] Story -> Manual   (message='')
+f3698977 [MAP] SOOTOPOLIS CITY(15,0) -> SOOTOPOLIS CITY(0,7) pos=(31, 34)
+f3699277 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['B']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3699408 [RESUMED] after 430 frames with no progress
+f3699724 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['EventScript_UseSurf', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3700208 [RESUMED] after 783 frames with no progress
+f3700509 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3702576 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(31, 36) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3703509 ===== DUMP [STUCK — 3300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3706176 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(31, 36) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3706509 ===== DUMP [STUCK — 6300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_HandleYesNoInput']
+    scripts=['EventScript_UseSurf', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3706562 [RESUMED] after 6352 frames with no progress
+f3706863 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(31, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['Down']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3707427 [RESUMED] after 863 frames with no progress
+f3707775 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(29, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['SootopolisCity_EventScript_StevenMaxieArchieLeft', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3709093 [RESUMED] after 1617 frames with no progress
+f3709394 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(29, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+    scripts=['SootopolisCity_EventScript_StevenMaxieArchieLeft', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3709776 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(29, 34) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3711302 [RESUMED] after 2207 frames with no progress
+f3711712 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(32, 34)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['SootopolisCity_EventScript_GymSign', 'Std_MsgboxSign']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3712364 [RESUMED] after 951 frames with no progress
+f3712665 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(32, 34)  facing=Right
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['Down']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['SootopolisCity_EventScript_GymSign', 'Std_MsgboxSign']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3712755 [RESUMED] after 389 frames with no progress
+f3713056 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(32, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['A']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3713376 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(32, 34) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3714003 [RESUMED] after 1246 frames with no progress
+f3714383 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(32, 34)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['A']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['SootopolisCity_EventScript_GoToGym', 'Std_MsgboxDefault']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3715507 [RESUMED] after 1423 frames with no progress
+f3716086 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(28, 32)  facing=Up
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['A']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3716603 [RESUMED] after 816 frames with no progress
+f3716976 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(27, 36) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=67466 box=0 badges=7 msg=''
+f3717132 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(27, 36)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=[]
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+    scripts=['EventScript_UseSurf', 'Std_MsgboxYesNo']
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3717452 [RESUMED] after 619 frames with no progress
+f3718152 ===== DUMP [STUCK — 300 frames no progress] =====
+    mode=Manual  message=''
+    game_state=7  controllable=True
+    map=SOOTOPOLIS CITY(0,7)  pos=(27, 34)  facing=Down
+    battle: active=False  callback=ReturnFromBattleToOverworld  instr=BattleScript_GotAwaySafely
+    battle_text='Got away safely!'  learn_state=LearnMoveState.DialogueNotActive
+    party=['Swellow L41 52/115', 'Zigzagoon L19 46/48', 'Sceptile L50 138/138', 'Wailmer L40 160/160', 'Mightyena L44 130/130', 'Castform L36 103/103']
+    held_buttons=['A']
+    controllers=[]
+    tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+    scripts=[]
+    generator call stack (where the bot is waiting):
+      -> <no controller on the stack (Manual mode / dropped out)>
+f3718476 [RESUMED] after 623 frames with no progress
