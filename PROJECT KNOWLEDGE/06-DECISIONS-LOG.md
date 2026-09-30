@@ -8687,3 +8687,30 @@ that were contested, and the rulings on the gaps the builder had to fill.
   - Rejected: leaving the latent ones (PD2-PD4) for later. Each is one line, and each closes a KO path.
 - **The Encore reader bug (KI-114) was filed, not fixed.** It is a shared, upstream path with no caller; the module
   reads the raw offset itself.
+
+## 2026-09-30 — Design v2 step 12's BUILD REVIEW: its rulings, and a correction to the entry above (`#26-organiccatch`)
+
+- **CORRECTION (review F5): the entry above over-justified one gap ruling.** It said "Each rule only ever adds a THROW
+  or a DEFER". That is false for the per-branch caps: a spent damage cap still permits the status branch. One battle
+  can therefore see one damage turn AND up to three status tries, where one reading of the design would have made it
+  THROW-ONLY.
+  - The ruling stands, on a different reason: a status move cannot KO, and any later damage is still held by
+    hp − X ≥ 1 and the 50% rule.
+  - 01 now says "one damage turn and up to three status tries per battle".
+- **The Struggle horizon bounds the THROW phase only; the residual is RECORDED, not fixed** (review W12-S1).
+  - A trapped Run costs no turn, and ordinary failed flees are unbounded (the u8 speedVar wrap). So after a catch is
+    ABANDONED (out of balls, or the dex reserve/faint bail), a PP-exhausted target could Struggle into its own recoil.
+  - Rejected: a finite slack. None covers unbounded flees.
+  - Rejected: refusing damage whenever an abandonment is possible. That is every battle, since balls run out.
+  - The KO risk exists only after the bot has given the catch up.
+  - A future grader of an acting arm must separate a `res=Won` whose `[CATCH] end` carries a bail or out-of-balls mark
+    from a weaken KO. `_r20_catch_end` already records that mark.
+  - No acting arm here had any `res=Won` without a fault.
+- **DAMAGE honours `banned_moves`** (review W12-N1). A move the user banned is never chosen, whether to damage or to
+  put the target to sleep.
+- **COVERAGE stays the weak form** (review F10; the adversarial pass's suggestion). Instead, each vacuous row names the
+  row that isolates its rule.
+  - The strong form needs a map from every rule to its rows, which the gate does not carry.
+- **Seeds 2-3 (v2's L0) were DROPPED for the seed-1 arms plus a test lever** (review F6).
+  - Stage 1 is vacuous on every pinned party, so more observe-only seeds show inertness again and nothing more.
+  - The lever arms show the ACTING path, which L0 could not.

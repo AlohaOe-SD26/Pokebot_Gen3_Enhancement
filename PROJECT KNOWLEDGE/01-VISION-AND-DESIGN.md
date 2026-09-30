@@ -345,17 +345,17 @@ it.
 
 ### Weaken-to-catch (`modules/story/weaken_catch.py` + the adapter in `story_mode.py`, new 2026-09-30, design v2 step 12)
 - **Purpose:** USER RULING 25 ("implement that weaken to catch pokemon logic so it increases its catch rate"). Before
-  throwing at a WANTED wild target, spend at most ONE bounded damage turn, or a sleep/paralysis try, when the expected
-  BALLS saved justify it.
+  throwing at a WANTED wild target, spend at most ONE bounded damage turn and up to three sleep/paralysis tries per battle,
+  when the expected BALLS saved justify them.
 - **Must do:**
-  - **never KO the target.** Damage is allowed only when the target can hurt itself in NO way for the rest of the
-    battle, and only while hp − X ≥ 1.
+  - **never KO the target while the catch is attempted.** Damage is allowed only when the target can hurt itself in
+    NO way for the rest of the battle, and only while hp − X ≥ 1. (A recorded residual: after a catch is ABANDONED,
+    unbounded failed flees could let a PP-exhausted target Struggle into its own recoil; see `06`.)
   - **never act on a move the game might replace:** it throws while an Encore, Torment, Disable or Imprison is in
     play, and it deals no damage against a target that knows Encore or Transform;
   - **act only in wild team/dex catch battles**, the target identified by PID;
   - **change NOTHING with the flag unset.**
-- **Where it stands:** built and graded on `wt/weaken12` (2026-09-30), behind `POKEBOT_R25_WEAKEN` (default OFF). The
-  build's three-lens review is still to come.
+- **Where it stands:** built, graded, reviewed and merged (2026-09-30), behind `POKEBOT_R25_WEAKEN` (default OFF).
   - With the flag set, stage 1 (exact-damage and status moves) almost never acts in a real run: no pinned party lead
     holds such a move. The live proof used a test lever.
   - Stage 2 (plain hits, `POKEBOT_R25_WEAKEN_CALC`) is built OFF until step 11's calculator is cleared.

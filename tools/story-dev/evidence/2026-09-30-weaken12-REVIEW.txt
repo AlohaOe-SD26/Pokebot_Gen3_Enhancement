@@ -1,0 +1,408 @@
+design v2 step 12 (weaken-to-catch) — the BUILD'S THREE-LENS REVIEW (production safety, the game against the module, the grade and the docs), 2026-09-30 LA
+Model output (subagent returns), VERBATIM: each finding, its refuter's verdict where one ran (blocker/should-fix only), and
+what each lens checked and found true. A NOTE, never truth: each fix was re-checked by the author before it landed.
+
+# LENS production
+
+## production:W12-S1 [should-fix] sandbox-pokebot/modules/story/weaken_catch.py:73-76 (HORIZON_SLACK comment) and :488-491; PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-DESIGN.md D4 'Struggle' bullet and AS BUILT PD5; story_mode.py:79-80 ('never a KO by construction')
+CLAIM: The Struggle-horizon slack of 8 is documented as covering 'the flee turns that can FAIL once the balls run out (a trapped target keeps acting through them)'. The decomp contradicts both halves. A trapped Run uses up no turn, and ordinary failed flees are unbounded. So no finite slack covers them, and a Struggle-recoil KO of the weakened target stays reachable in the flee phase.
+EVIDENCE: (1) Trapped: pret src/battle_main.c:4339-4346. When IsRunningFromBattleImpossible() != SUCCESS (:4021-4076: Shadow Tag, Arena Trap, Magnet Pull, ESCAPE_PREVENTION, WRAPPED, ROOTED), the Run is refused at SELECTION (BattleScript_PrintCantEscapeFromBattle, stateIdAfterSelScript = STATE_BEFORE_ACTION_CHOSEN). No turn passes and the target does not act. (2) Not trapped: pret src/battle_util.c:412 declares `u8 speedVar;`, and :464-467 computes `speedVar = speed*128/foeSpeed + runTries*30; if (speedVar > (Random() & 0xFF)) effect++`, with runTries++ at :475. For a slower lead the u8 sum wraps from runTries 5 onward (e.g. base 10: 250, then 280 -> 24), so success is never guaranteed. Each failure is a full turn in which the target uses a move. (3) weaken_catch.py:488 H = 2*(usable+8) budgets usable throws plus 8 turns at 2 PP/turn. After 1 damage turn and up to 3 status tries, a Pressure lead leaves room for only 4 failed flees before the target can reach 0 PP and Struggle. Struggle is effect RECOIL in modules/data/moves.json, and its recoil falls on a target the damage turn left at hp - X. Without Pressure it needs >= usable+13 consecutive failures. (4) Scope: reachable only after the catch is abandoned, either by the out-of-balls flee (story_mode.py:90-93) or by the dex reserve/faint bail (:208-223). So it never costs a catch still being attempted. But it can produce `[CATCH] end ... res=Won` on an acting run with no fault set, which is D6's primary safety readout, and it contradicts 'never a KO by construction'.
+FIX: Correct the HORIZON_SLACK comment, D4 and the PD5 bullet. Trapped Runs cost no turn. Ordinary failed flees are unbounded (the u8 speedVar wrap), so the slack bounds the throw phase only. State the residual (Struggle recoil during a post-abandonment flee) and qualify 'never a KO by construction' to the catch phase. Have the grader classify a res=Won whose [CATCH] end carries end=bail/out_of_balls separately from a weaken KO. (_r20_catch_end already records that mark: story_mode.py:6535-6538.)
+VERDICT: refuted=False corrected=should-fix
+REASONING: The core of the finding holds. The documented rationale for HORIZON_SLACK = 8 is wrong on mechanics, and the "to cover the flee turns" wording claims more than any finite slack can deliver. Three sub-claims are overstated, though, so should-fix stays and no upgrade is warranted.
+
+WHAT SURVIVES:
+(1) The trapped half is wrong. weaken_catch.py:73-74 says "a trapped target keeps acting through them". In the decomp, when IsRunningFromBattleImpossible() != SUCCESS, the Run is refused at selection: BattleScript_PrintCantEscapeFromBattle runs and the state returns to STATE_BEFORE_ACTION_CHOSEN. No turn passes, so the target uses no PP. The bot's RunAway executor (battle_action_selection.py:959-963) only presses Run, so a trapped out-of-balls catch re-selects Run with no turn passing. That is D10's separate GEM-7 lead. It is not a Struggle path.
+(2) Ordinary failed flees are unbounded. speedVar is a u8 (battle_util.c:412). The formula at :464-467 wraps, and runTries++ comes at :475. Each failure is a full target turn. So DESIGN.md:135-136, "the slack is 8 … to cover the flee turns that can FAIL once the balls run out", overclaims.
+(3) The arithmetic is right. H = 2(U+8), total PP ≥ 2U+17, and at most 1 + 3 + U target turns come before the flee. With a Pressure lead, about 6 consecutive failed flees reach a Struggle turn. Without Pressure it takes U+14 or more. Struggle recoil is gHpDealt/4 with a minimum of 1 (bsc.c:2636-2639), so it can KO a target the damage turn left at hp−X.
+
+OVERSTATED:
+(a) "Contradicts 'never a KO by construction'" is wrong. At story_mode.py:79-80 (and :2085-2086) that phrase qualifies "ONE bounded damage turn", and hp−X ≥ 1 makes it true. The broader overclaim is the append-only 07-CHANGELOG.md:37343 headline, "acts only when it can never KO the target". It would be corrected with a new entry, not in place.
+(b) The grader change in the proposed fix is not needed. A post-abandonment res=Won after a weaken damage turn really is a KO the weaken turn made possible, so reading it as a failure is conservative and correct. The line already separates the case with end=/bail= (story_mode.py:6536-6538, :6564-6566).
+(c) Reach is much narrower than stated:
+- Only the team kind is practical. The dex path bails at spare ≤ DEX_CATCH_BALL_RESERVE = 10 (story_mode.py:118, :1692), which adds about 10 required flees. The faint bail usually swaps in a lead without Pressure.
+- A realistic hit needs all of these at once: a Pressure lead that holds a stage-1 move, a lead slower than the target, every ball failing, and a target acting every turn with total PP in about [2U+17, 2U+22].
+- Pressure adds a PP only when the move targets the Pressure battler (bsc.c:1224-1225).
+- The changelog itself says "no pinned party lead holds an exact-damage … move".
+- Conditional on those, P(≥6 consecutive fails) is 9.6% at base 0 and 6.6% at base 10. Needing 16 fails is about 4e-6 or less.
+- The adversarial pass already rated this PD5 "very low" and wrote honestly that the slack "normally covers it" (ADVERSARIAL.txt:49-51). The overclaim came in at the fold.
+- A post-abandonment KO is also an accepted outcome elsewhere in the code: `_fight_if_trapped_and_empty` (story_mode.py:228-246) and the shiny fight-through deliberately attack after abandonment.
+
+Net result: a doc and comment accuracy fix. Correct the wrong mechanism at weaken_catch.py:73-74, turn "to cover" into "reduces" plus the stated residual (DESIGN.md:135-136; PD5 at :322-323), and note the changelog headline in a new entry. This is not a blocker, because the misstatement explains a constant rather than a status that readers act on, and no finite slack could fix the behaviour anyway.
+V-EVIDENCE: Worktree C:/Remote Projects/pokebot-wt-ch24 @ e6a18ce9.
+- weaken_catch.py:73-76: `#: PD5 … 4 -> 8, for the flee turns that can FAIL once the balls run out (a trapped target keeps acting through them).` At :488-491: `horizon = PRESSURE_FACTOR * (env.usable_balls + HORIZON_SLACK)` … `if total_pp <= horizon: return "struggle-pp…"`.
+- DESIGN.md:133-136: "(As built … the slack is 8, not 4, to cover the flee turns that can FAIL once the balls run out.)" At :322-323: "PD5, very low: … failed flee turns throw no ball. ⇒ … the horizon slack is 8."
+- tools/story-dev/evidence/2026-09-30-weaken12-ADVERSARIAL.txt:49-51: "failed flee attempts after the balls run out (possible against any faster wild Pokémon) … The +4 slack … normally covers it."
+- pret/pokeemerald src/battle_main.c, the Run branch (~:4339-4346): `else if (IsRunningFromBattleImpossible() != BATTLE_RUN_SUCCESS && …B_ACTION_RUN) { gSelectionBattleScripts[..] = BattleScript_PrintCantEscapeFromBattle; … stateIdAfterSelScript = STATE_BEFORE_ACTION_CHOSEN; return; }`. IsRunningFromBattleImpossible covers Shadow Tag, Arena Trap, Magnet Pull, ESCAPE_PREVENTION, WRAPPED and ROOTED.
+- src/battle_util.c TryRunFromBattle: `u8 speedVar;` … `speedVar = (speed * 128) / foeSpeed + (gBattleStruct->runTries * 30); if (speedVar > (Random() & 0xFF)) effect++;` … `gBattleStruct->runTries++;`. The "same speed or faster" case always succeeds.
+- src/battle_script_commands.c:2636-2639: `case MOVE_EFFECT_RECOIL_25: gBattleMoveDamage = (gHpDealt) / 4; if (== 0) = 1;`. At :1224-1225, Pressure adds a PP only when `gBattleMons[gBattlerTarget].ability == ABILITY_PRESSURE`.
+- sandbox-pokebot/modules/battle_action_selection.py:959-963: RunAway only scrolls to action 3 and presses A. A refused Run returns to selection and no turn passes.
+- story_mode.py:79-80: "may spend ONE bounded damage turn per battle — never a KO by construction". It qualifies the turn, and hp−X ≥ 1 holds.
+- story_mode.py:90-93: the out-of-balls flee.
+- story_mode.py:118 and :1692: bail at `spare_balls <= reserve`, with DEX_CATCH_BALL_RESERVE = 10.
+- story_mode.py:6536-6538 and :6564-6566: `[CATCH] end … end={end} res={nm} … bail={…}`. It already carries end=out_of_balls/bail beside res.
+- 07-CHANGELOG.md:37343 headline: "a bounded weaken turn that acts only when it can never KO the target". This is the broader overclaim, in an append-only file.
+- Computed P(≥6 consecutive failed flees): base 0 = 0.0964, 10 = 0.0663, 40 = 0.0178. P(≥16) is 4.4e-6 or less.
+
+## production:W12-N1 [nit] sandbox-pokebot/modules/story/weaken_catch.py:537-604 (_damage) vs :624 (_status)
+CLAIM: The DAMAGE verdict ignores the user's `battle.banned_moves` in both stage 1 and stage 2, while the STATUS verdict and the base strategies honour it. A user-banned exact-damage or Tier A move can still be chosen.
+EVIDENCE: _status skips `m.name in env.banned` (weaken_catch.py:624-626), and the adapter fills env.banned from context.config.battle.banned_moves (story_mode.py:6723). _damage never reads env.banned. The base strategies exclude banned moves from damaging choices (modules/battle_strategies/_util.py:255, :594). No default-config impact: none of Seismic Toss, Night Shade, Sonicboom, Dragon Rage or Super Fang is in the default list (modules/config/templates/battle.yml:21-60, schemas_v1.py:32).
+FIX: Apply the same `m.name in env.banned` skip in both _damage loops, with a W-row and a mutant. Or record in D4 why the DAMAGE verdict deliberately overrides a user ban.
+VERDICT: (none: a nit, not sent to a refuter)
+
+### checked and found true
+- The raw offsets match pret. BattlePokemon (include/pokemon.h:260-295): species 0x00, moves 0x0C, ability 0x20, types 0x21/0x22, pp 0x24, hp 0x28, level 0x2A, maxHP 0x2C, item 0x2E, personality 0x48, status1 0x4C, status2 0x50. DisableStruct (include/battle.h:70-102): disabledMove 0x04, encoredMove 0x06, disableTimer 0x0B, encoreTimer 0x0E, tauntTimer 0x13. BattleResults.battleTurnCounter is at 0x13 (battle.h:247). pokeemerald.sym sizes: gSideStatuses u16[2] (4 bytes), gSideTimers 0x18 (12 per side, so safeguardTimer is at side offset 6), gStatuses3 u32[4] (the foe at [4:8]), gDisableStructs 0x70 (battler 0 at [0:0x1C]), gBattleWeather u16.
+- Every status, side, weather and battle-type bit constant in weaken_catch.py:79-94 matches include/constants/battle.h:59-244. NON_SINGLE_WILD excludes only IS_MASTER and RECORDED_IS_MASTER.
+- The _CHART type table equals the decomp's gTypeEffectiveness entry for entry (111 rows, including the FORESIGHT marker), checked programmatically against src/battle_main.c:335.
+- moves.json effect, makes_contact and base_power match src/data/battle_moves.h for all 355 moves (0 mismatches). So the effect-keyed dispatch, the contact flags behind the retaliation clause, and power 1 for all five exact-damage moves (the Taunt refusal and Wonder Guard key) are correct. Every ability, type and ball name the module string-matches exists verbatim in the data files.
+- catch_p follows Cmd_handleballthrow (battle_script_commands.c:9936-10028) in its integer order: the ball table, the u8 Timer Ball wrap, Net Ball on live types, sleep/freeze x2, other statuses x15/10, odds > 254, then 4 checks of Random() < b.
+- Dream Eater has no Liquid Ooze check in Gen 3 (data/battle_scripts_1.s:425-462), so DRAIN_EFFECTS = {ABSORB, LEECH_SEED} is complete (Liquid Ooze sites :345, :3271). No wild learns Skill Swap by level-up, so the Trace-shaped ability transfer the retaliation clause does not model is unreachable. Role Play (Kadabra, Mr. Mime) only copies our ability onto the target.
+- The game cannot refuse a weaken DAMAGE/STATUS pick at selection (TrySetCantSelectMoveBattleScript, battle_util.c:976-1066: disabled, torment, taunt+power 0, imprison, choice, 0 PP). Each case is a THROW-only or DEFER rule, or a PP/Taunt filter, before the pick, so the handler's KI-93 re-pick (battle_action_selection.py:390-420) and the no-PP override cannot swap in another move. The execution-time overrides (battle_util.c:100-125: Struggle, a locked move, Encore) are excluded by the Encore-knower rule and by weaken never choosing a multi-turn move.
+- The exact damage is fixed at execution. dmgtolevel uses the attacker's level; Sonicboom is 20 and Dragon Rage 40; Super Fang is hp/2 of the target at execution, which only a self-harm move could lower (excluded) or a same-turn Substitute redirect. SELF_HARM/ENDER/CALLING/ACQUIRE cover every self-damage move class present in moves.json (Struggle via the horizon).
+- Adapter: no get_battle_state() call on its path. It uses only BattleState fields that KI-108's __eq__ compares (battler data, type flags, side timers), plus pure read_symbol reads for the turn, status3, disable struct, side status, weather and gPlayerParty. The party is decoded as 100-byte Pokemon structs, eggs and fainted members are excluded, and the lead is matched by PID and given its live ability.
+- With POKEBOT_R25_WEAKEN unset: _r25_weaken_turn returns None after one getattr (story_mode.py:6743-6749). weaken_catch is never imported and no WEAKEN line is written. The only other change is the per-run attribute reads in reset_per_run_state (full diff against cdb49f83 checked), consistent with W-OFF x2 = base.
+- Exceptions: everything after the flag check sits in one try/except Exception and returns None (the parent's turn) plus an ERR line (story_mode.py:6750-6791). An exception before the memo write leaves the memo unchanged, so no cap is miscounted.
+- Observe mode always returns None, so the parent's action is taken unchanged. Its only writes are strategy._r25_wmemo and _r25_wobs_first. The extra reads (bag, pokedex, map, allowlist) are side-effect-free.
+- Per-battle state cannot leak across battles. on_battle_started builds a new strategy instance each battle (story_mode.py:4037/4150/4260) and resets _catch_ctx = None at every battle start (:4060). _r20_catch_end clears it at the end. The pure module has no module-level mutable state.
+- Scope: the shiny strategy calls CatchStrategy.decide_turn directly (story_mode.py:285). hm/counter are out of the default kinds, and the adapter returns before any read (:6756-6757). Trainer, double, safari, roamer, legendary and tutorial battles DEFER on the battle-type bits. The first decision must name the ctx species; later ones DEFER on a PID mismatch or throw on a species change (Transform).
+- StoryDexCatchStrategy's bails, trapped fight-out and the out-of-balls flee all run before the adapter (story_mode.py:88-103, 208-228). THROW is always the parent's _get_best_poke_ball item, never the Master Ball, and never a healing item.
+- The --set-lead-move lever writes gPlayerParty/gPlayerPartyCount in RAM only (debug_utilities.py:476-492), with a read-back assert (story_harness.py:29035-29092). The pinned fixture is never rewritten: the arms hash-assert it with verify_fixtures.py (ARMS.txt:356). The only persistence is incidental to every harness run: the repro-ml profile's current_state.ss1 at shutdown (libmgba.py:231-241), current_save.sav on an in-game save, and gitignored saves/stalls captures. Every harness run loads an explicit state over these (story_harness.py:154).
+# LENS mechanics
+
+## mechanics:W12-GAME-1 [blocker] sandbox-pokebot/modules/story/weaken_catch.py:73-76 (PRESSURE_FACTOR, HORIZON_SLACK and the PD5 comment), :488-491 (the struggle-pp rule); PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-DESIGN.md:133-136
+CLAIM: REFUTED: the folded PD5 rationale is wrong. The comment says slack 8 covers 'the flee turns that can FAIL once the balls run out (a trapped target keeps acting through them)'. The decomp contradicts both parts. First, failed flee turns have no upper bound. Second, a trapped player never gets a failed-flee turn, because Run is refused before any turn passes. With our active mon holding Pressure, the horizon allows only about 4-5 failed flees before the target has 0 PP and must Struggle. Struggle recoil (at least 1 HP) can then knock out a target the damage turn left at low HP. This is a residual KO path for a wanted target (low reach), and the doc claim is contradicted, so it is a blocker under the rubric.
+EVIDENCE: pret/pokeemerald src/battle_util.c:412 declares `u8 speedVar`. :465 sets `speedVar = (speed * 128) / foeSpeed + (runTries * 30)` and escapes only if speedVar > (Random() & 0xFF). :475 does runTries++, and runTries is a u8 (include/battle.h:382). At runTries=9, x + 270 wraps to x + 14 in a u8, so escape is never guaranteed and failed flees are unbounded. Even before the wrap, runTries 0..8 allows 9 failures when x <= 15. A trapped player (Shadow Tag, Arena Trap, Magnet Pull, Mean Look, Wrap, Ingrain; IsRunningFromBattleImpossible, src/battle_main.c:4021-4077) is sent back to STATE_BEFORE_ACTION_CHOSEN at :4339-4346, so no turn passes and the target does not act. Pressure adds exactly 1 PP per use (src/battle_script_commands.c:1224-1225, applied :1234-1237). With the factor 2, H = 2*(usable+8) buys usable + 8 non-throw target turns (plus 1 from rounding). Up to CAP_DAMAGE_TURNS + CAP_STATUS_TRIES = 4 of those are acting turns (weaken_catch.py:70-71, counted from the damage decision where total_pp is read). That leaves about 4-5 failed flees, after which AreAllMovesUnusable (battle_main.c:4184; battle_util.c:1082-1140) forces Struggle. Its recoil is gHpDealt/4 with a minimum of 1 (battle_script_commands.c:2636-2639), and Rock Head does not stop it (battle_scripts_1.s:3939-3940). Reach: it needs a Pressure mon active and slower than the target, since a faster or equal-speed mon always escapes (battle_util.c:469-472). Example: Dusclops, speed 25, whose pre-evolution Duskull is wild at Mt Pyre. Against a speed-80 target (x=40), P(>=5 consecutive failures) = .84*.73*.61*.49*.38 ~= 0.07. It also needs the balls to run out and total PP within about 10 of H. Without Pressure the factor 2 leaves at least usable+12 spare turns, which is effectively safe. Mitigating factor: a wild mon picks a random slot, including 0-PP slots, which waste the turn without using PP (battle_controller_opponent.c:1593-1600; battle_script_commands.c:934-937). That slows depletion but does not bound it.
+FIX: Correct the comment and DESIGN D4. The slack is not a bound on failed flees: TryRunFromBattle's u8 speedVar and runTries wrap. A trapped player cannot choose Run at all, so no turn passes. Count the acting caps explicitly, e.g. H = PRESSURE_FACTOR * (usable + CAP_DAMAGE_TURNS + CAP_STATUS_TRIES + F). Then either state the residual P(more than F failed flees) for the slowest Pressure case as an accepted risk, or refuse DAMAGE whenever a party member able to battle has Pressure (WParty already carries the abilities). Add a gate row at the boundary.
+VERDICT: refuted=True corrected=nit
+REASONING: The decomp facts in the finding check out. Failed flees have no upper bound: speedVar is a u8, runTries is a u8, and the sum wraps. A trapped player's Run is refused before any turn passes. Pressure adds at most 1 PP per use. Struggle recoil is at least 1. The blocker still does not survive, for three reasons.
+
+(1) The finding missed where the default kinds send the bot, and so it overstates the reach. POKEBOT_R25_WEAKEN_KINDS defaults to dex,team.
+- "team" is returned only before badge 1 (story_mode.py:4030, :4036-4037). No Pressure Pokémon can be obtained before Roxanne: every starter and every wild on Routes 101-104, 116 and Petalburg Woods lacks it. Without Pressure, the factor 2 covers about usable+13 failed flees, which is what the finding itself calls effectively safe.
+- "dex" (after badge 1, where Absol or Dusclops could lead) runs StoryDexCatchStrategy. Its decide_turn bails when number_of_balls_except_master_ball <= DEX_CATCH_BALL_RESERVE = 10 (story_mode.py:1692, :215, :118). The adapter's usable_balls is the same count under the default allowlist, which blocks only the Master Ball (story_mode.py:6699; catch_balls.py:30-33; items.py:447-448). So a dex battle throws at most usable-10 balls and flees with 10 left, and those 10 are extra target turns inside H.
+- Recount for dex with Pressure. The damage verdict needs total_pp >= 2(u+8)+1, which gives at least u+9 target move uses. Before the first flee there are at most 1 damage turn + 3 status turns + (u-10) throws = u-6 turns. So at least 15 failed flees are covered, and Struggle can come no earlier than the 16th consecutive failure from runTries 0. With the real u8 wrap, the worst case over every x in 0..127 is about 7e-6. At x=40 it computes to 0.
+- The finding's regime of about 4-5 failed flees exists only in a non-default setup: KINDS set to hm or counter (plain StoryCatchStrategy, no reserve) with a slower Pressure lead. Even there the finding is off by one. With 4 acting turns, 5 flees are covered and Struggle comes on the 6th. P(>=6) is 0.018 at x=40, not the 0.07 it quotes. Several conditions must also hold together:
+  - total_pp sits in a narrow band just above H;
+  - every ball misses;
+  - the target's HP is at or below the recoil.
+
+(2) Even when it is reached, the KO happens only after the last usable ball is gone. StoryCatchStrategy flees at 0 balls (story_mode.py:88-93). The design already scopes the horizon to one battle because "never given up" spans encounters (DESIGN.md:133-135). A KO at that point ends the battle without a catch, exactly as the flee the bot was attempting would. No catch opportunity is lost, so this is not the KO of a wanted target that the blocker class means.
+
+(3) No doc claim is contradicted in a load-bearing way. The comment and DESIGN D4 say the slack is FOR, or covers, the failed flee turns. They never claim a bound, and under the default kinds the coverage is 15+ flees (dex) or u+13 (team). What remains is wording. The parenthetical "a trapped target keeps acting through them" is garbled: a trapped PLAYER gets no turn (battle_main.c:4339-4346). "Cover" should read as probabilistic, since failed flees are unbounded (the u8 wrap). That is a comment/doc nit, not a blocker.
+V-EVIDENCE: Confirmed decomp facts (pret/pokeemerald):
+- src/battle_util.c:412 declares `u8 speedVar`.
+- src/battle_util.c:465-475 is the flee roll: `speedVar = (speed*128)/foeSpeed + runTries*30`, then `runTries++`.
+- include/battle.h:382 declares `u8 runTries`.
+- src/battle_main.c:4339-4346: a trapped player's Run goes through BattleScript_PrintCantEscapeFromBattle and then back to STATE_BEFORE_ACTION_CHOSEN, so no turn passes.
+- src/battle_script_commands.c:1224-1225 and :1231-1234 (Cmd_ppreduce): Pressure adds at most 1 PP per use.
+- src/battle_script_commands.c:2636-2638: MOVE_EFFECT_RECOIL_25 does gHpDealt/4, with a minimum of 1.
+- src/battle_controller_opponent.c:1593-1600: a wild Pokémon picks a random non-NONE slot, even one with 0 PP.
+
+What the finding missed:
+- sandbox-pokebot/modules/story/weaken_catch.py:37 sets DEFAULT_KINDS = ("dex", "team").
+- sandbox-pokebot/plugins/custom_modes/story_mode.py:4030 and :4036-4037 give "team" / StoryCatchStrategy only when BADGE01_GET is unset. No Pressure Pokémon is obtainable before gym 1.
+- story_mode.py:215-216 and :118 (dex_catch_bail_reason): a dex battle bails at spare <= DEX_CATCH_BALL_RESERVE, set to 10 at :1692.
+- story_mode.py:6699: usable = every non-Master ball on the allowlist. catch_balls.py:30-33 blocks only the Master Ball by default, and items.py:447-448 counts spare the same way. So usable == spare, and a dex battle throws at most usable-10 balls.
+- Coverage with Pressure: at least (u+9) - (1+3+u-10) = 15 failed flees before any Struggle.
+- Computed worst case of P(16 consecutive failed flees) over x in 0..127, with the u8 wrap: 7e-6 (x=16). At x=40 it computes to 0.
+- In the non-default hm/counter case, P(>=6 failures) is 0.018 at x=40 and 0.096 at x=0. The finding's 0.07 is P(>=5), which is off by one.
+- story_mode.py:88-93: the bot flees at 0 balls, so any Struggle KO comes after the catch is already lost.
+- DESIGN.md:133-136 and weaken_catch.py:74-75 claim only that the slack "covers" the flee turns (06-DECISIONS-LOG.md:8686 says only "slack is 8"). The one wrong phrase is the "trapped target" parenthetical, which should say a trapped player gets no turn. That is a nit.
+
+## mechanics:W12-GAME-2 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-DESIGN.md:37
+CLAIM: REFUTED (doc wording only): 'Wonder Guard blocks all four (power 1)' is wrong for Night Shade. A move whose final result is super-effective passes Wonder Guard. The same file's D4 (:151-152) and the code (weaken_catch.py:555) state the rule correctly. Review N4 was folded into D4, but :37 was never updated.
+EVIDENCE: src/battle_script_commands.c:1409-1411: Wonder Guard blocks only when the result is not super-effective, or is both super-effective and not very effective. Night Shade is Ghost: Ghost vs Ghost is super-effective (battle_main.c:431) and Ghost vs Bug is not in the chart, so it hits Shedinja. There is zero behavioural reach, because hp - X >= 1 then fails on 1 max HP and Shedinja is not wild.
+FIX: Reword :37 to 'Wonder Guard blocks each of them unless super-effective (Night Shade vs Shedinja passes)', matching D4.
+VERDICT: (none: a nit, not sent to a refuter)
+
+### checked and found true
+- VERIFIED catch_p against Cmd_handleballthrow (src/battle_script_commands.c:9905-10050), in its integer order. odds = (rate*mult/10)*(3max-2hp)/(3max). Sleep or freeze doubles it; poison, burn, paralysis or toxic multiply it by 15/10. odds > 254 means caught. b = 1048560/Sqrt(Sqrt(16711680/odds)), with 4 Random() checks (BALL_3_SHAKES_SUCCESS = 4, include/battle_controllers.h:135-139). Hand-recomputed three of the notes' numbers exactly: 0.624 (Taillow 11/22), 0.785 (6/21) and the 0.97 net gain.
+- VERIFIED every ball condition: sBallCatchBonuses (bsc.c:841-847: Ultra 20, Great 15, Poke 10, Safari 15). Net Ball uses LIVE Water/Bug types; Dive Ball needs MAP_TYPE_UNDERWATER; Nest Ball is 40-level with anything <= 9 raised to 10; Repeat Ball reads FLAG_GET_CAUGHT of the live species; Timer Ball is u8 turn+10, capped at 40 and wrapping; Luxury and Premier are 10; the Master Ball is forced. Safari's catch factor never applies, because safari battles DEFER. All at bsc.c:9936-9985.
+- VERIFIED the exact-damage effects. LEVEL_DAMAGE is the attacker's live level (Cmd_dmgtolevel bsc.c:7926-7929). Sonicboom is 20 and Dragon Rage 40 (battle_scripts_1.s:1720-1729, :819-827). Super Fang is hp/2 with a minimum of 1 (Cmd_damagetohalftargethp bsc.c:7577-7583). All four run typecalc and then clear the SE/NVE flags, so STAB and type multipliers are overwritten (bs1.s:809-827, :1195-1204). adjustsetdamage only ever lowers damage (Focus Band, Endure; bsc.c:5861-5898). None of these scripts runs critcalc.
+- VERIFIED immunities: the module's _CHART equals gTypeEffectiveness entry for entry (battle_main.c:335-449, 111 entries; compared programmatically). That includes the Foresight marker ordering: Normal/Fighting vs Ghost come after it, Ghost vs Normal comes before it. A type listed twice counts once (bsc.c:1392-1400). The Wonder Guard predicate `not se or nve` is equivalent to bsc.c:1409-1411 under ModulateDmgByType's cancellation (:1321-1353).
+- VERIFIED the move data the module keys on: moves.json effect, makes_contact, base_power and type match src/data/battle_moves.h for all 355 moves (0 mismatches). is_sound_move matches sSoundMovesTable exactly (battle_util.c:688-692).
+- VERIFIED the no-self-harm list is complete against the end-turn loops. Field: battle_util.c:1168-1178. Battler: :1438-1457. Every HP reducer is covered: Leech Seed, poison, toxic, burn, nightmare, curse, wrap, weather. Weather damage exempts Rock/Ground/Steel or Sand Veil for sand, and Ice for hail (Cmd_weatherdamage bsc.c:7602-7652). Overworld weather is applied only at battle start (battle_main.c:3864).
+- VERIFIED the self-harm effect ids: Thrash, Petal Dance and Outrage are RAMPAGE; Jump Kick and Hi Jump Kick are RECOIL_IF_MISS; Double-Edge and Volt Tackle are DOUBLE_EDGE; Take Down, Submission and Struggle are RECOIL; Selfdestruct and Explosion are EXPLOSION; Belly Drum, Pain Split and Memento have their own effects. Ghost Curse checks the attacker's live type (bs1.s:1483) and costs maxHP/2, so it can KO (Cmd_cursetarget bsc.c:8468-8483). Substitute cannot KO (Cmd_setsubstitute bsc.c:7808-7822), and neither can Belly Drum on its own (Cmd_maxattackhalvehp bsc.c:8785-8796).
+- VERIFIED the contact retaliators (ABILITYEFFECT_ON_DAMAGE battle_util.c:2735-2858). Rough Skin chips maxHP/16. Effect Spore gives sleep, poison or paralysis (burn is remapped). Poison Point poisons and Flame Body burns. Static and Cute Charm do no damage. Synchronize reflects to the attacker (:2957-2988). Trace copies the opposing live ability on switch-in (:2558-2564, :3003-3058), which confirms PD1. Liquid Ooze is checked only for the Absorb family (bs1.s:345) and Leech Seed (:3271), and Dream Eater has no Ooze branch (:425-461), so DRAIN_EFFECTS = {ABSORB, LEECH_SEED} is exact.
+- VERIFIED not a path: Thief/Covet and Trick cannot move items between a wild opponent and the player. MOVE_EFFECT_STEAL_ITEM skips an opponent attacker outside link/frontier/e-reader/secret-base battles (bsc.c:2746-2755), and Cmd_tryswapitems has the same block (:9191-9199). A player's confusion berry or Choice Band can never reach the target.
+- VERIFIED benign: Nature Power only calls Stun Spore, Razor Leaf, Earthquake, Hydro Pump, Surf, BubbleBeam, Rock Slide, Shadow Ball or Swift (bsc.c:759-771). None of these is self-harming, contact or drain, so leaving NATURE_POWER out of CALLING_EFFECTS is correct. Rollout, Ice Ball and Bide have no self-damage; Bide is a contact move, which the generic contact check already covers. Rage does not lock the user in Gen 3 (battle_util.c:1964-1965).
+- VERIFIED no reach: Skill Swap has no opponent restriction (Cmd_tryswapabilities bsc.c:9392-9409), so a target could hand its retaliator ability to our active mon. But no species learns Skill Swap by level-up (species.json), so no wild target knows it. Color Change can retype Kecleon to Ghost via Night Shade (battle_util.c:2738-2750), but no wild Kecleon knows Curse. No wild species holds a confuse_* berry or a Choice Band (species.json held_items_rse).
+- VERIFIED the Struggle trigger: Struggle happens only when all four moves are unusable (AreAllMovesUnusable battle_main.c:4184; CheckMoveLimitations battle_util.c:1082-1140; forced at battle_util.c:100-106). A wild mon picks a random non-empty slot, including a 0-PP one (battle_controller_opponent.c:1593-1600), and that turn fails without using PP (bsc.c:934-937), so total_pp is a conservative horizon apart from W12-GAME-1. Pressure adds at most 1 PP per use in singles (bsc.c:1213-1237).
+- VERIFIED the Encore execution override (battle_util.c:111-117). It justifies the encore-knower rule. The other refusal reasons are Disable, Torment, Taunt (which blocks only power-0 moves, so exact damage at power 1 is allowed), Imprison, Choice and 0 PP (battle_util.c:1100-1121). Each is covered by THROW-ONLY, DEFER or _usable_slots, so the KI-93 re-pick cannot replace a module pick with a second hit.
+- VERIFIED the THROW-ONLY list. The ball throw has no semi-invulnerable or Substitute test (bsc.c:9905-10050). Whirlwind and Roar are EFFECT_ROAR, and Teleport, Perish Song and Memento are enders. Damp blocks Explosion for any battler. The disable-struct offsets match include/battle.h:70-102: disabledMove 0x04, encoredMove 0x06, disableTimer 0x0B, encoreTimer 0x0E, tauntTimer 0x13. Every STATUS1/2/3, SIDE, WEATHER and BATTLE_TYPE constant matches include/constants/battle.h:59-244. battleTurnCounter is at 0x13 (include/battle.h:247) and is incremented once per turn in BattleTurnPassed (battle_main.c:3995-3997).
+- VERIFIED the status skip list against the sleep script (bs1.s:284-298) and the paralyze script (:1007-1025). Sleep: Substitute, already asleep, Uproar or Insomnia/Vital Spirit (Cmd_jumpifcantmakeasleep bsc.c:6828-6848; UproarWakeUpCheck :6801-6826 also exempts a Soundproof target, so the module's skip is conservative), any status, Safeguard. Paralysis: Limber, Substitute, typecalc immunity (Thunder Wave vs Ground, Glare vs Ghost without Foresight), any status, Safeguard. Soundproof blocks sound moves (battle_util.c:2645-2660). Volt Absorb absorbs only damaging Electric moves (:2667), so it does not stop Thunder Wave. Taunt blocks power-0 moves (:1109-1110).
+# LENS grade
+
+## grade:F1 [blocker] PROJECT KNOWLEDGE/03-PUNCH-LIST.md:125; PROJECT KNOWLEDGE/04-HANDOFF.md:313 and :384; PROJECT KNOWLEDGE/07-CHANGELOG.md:37366; PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:1
+CLAIM: The status lines in the punch list, the handoff and the changelog say "ST-ON acted once with Seismic Toss for exactly 15", and the GRADED title says "the weaken turn acted exactly once where predicted". The evidence shows ST-ON acted twice, and the second hit did 17, not 15.
+EVIDENCE: ARMS.txt:91 and RERUN.txt:72 both read "PASS ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level". ST-ON-debug.txt:579-580 shows a second act: `f202781 [WEAKEN] act=DAMAGE t=0 sp=Skitty#300 ... hp=25/25 ... move=Seismic_Toss` / `[TURN 0] Marshtomp L17 44/56 -> UseMove:Seismic Toss(pp20) vs Skitty L7 25/25`. ST-ON-debug.txt:583 then shows `hp=8/25`, so that hit did 17. The GRADED note's own body (GRADED.md:31) says "Both DAMAGE turns in the run did exactly the lead's level", which contradicts its title and the three status docs.
+FIX: In 03:125, 04:313, 04:384 and 07:37366, write: "ST-ON acted twice, both times with Seismic Toss and neither a KO: at the pre-registered f165971 for exactly 15 (Taillow 21→6), and later on a Skitty for exactly 17 (the lead's level, 25→8)". Retitle GRADED.md:1 to match (for example, "acted where predicted, and at every DAMAGE turn for exactly the lead's level").
+VERDICT: refuted=False corrected=blocker
+REASONING: I read the cited lines and the evidence, and the finding holds. All four status lines say "ST-ON acted once with Seismic Toss for exactly 15". The ST-ON raw log has two act=DAMAGE decisions, both with Seismic Toss. The first is the pre-registered f165971 act on the Taillow, for 15. The second is at f202781 on a Skitty, with the lead now Marshtomp L17. That hit did 17: HP went 25→8, and DMGAUDIT bide[1] went from 998 to 1015. The grader's own line counts "every DAMAGE (2)". RERUN.txt says the acting arms are byte-identical on 378a33b3, so the second act is also in the current build.
+
+Nothing already handles this. The only text that gets it right is GRADED.md:31 ("Both DAMAGE turns in the run did exactly the lead's level"). The punch list, handoff and changelog, which a cold reader acts from, all repeat the one-act claim and do not qualify it.
+
+The GRADED title ("acted exactly once where predicted") can just about be read as "one DAMAGE decision at the predicted battle", which is true: the next decision in the Taillow battle was THROW. That reading does not rescue the three status docs. Their wording ("acted once ... for exactly 15") is plainly false.
+
+Mitigation I checked: this is not a safety problem. The second act was predicted as a conditional in PREDICTIONS.md:157 ("Anywhere later ... every DAMAGE verdict is Seismic Toss with Δbide = the lead's level exactly and no KO"). It passed that check, it did not KO the Skitty, and there were 0 res=Won. So the error understates the evidence rather than hiding a KO.
+
+Even so, the task's severity rubric lists "a claim in the docs that the evidence contradicts" as a blocker, and this claim sits in the handoff's if-stopped-mid-task line and in NEXT ACTIONS. So it stays a blocker.
+
+Two notes on the proposed fix. First, 07-CHANGELOG is append-only history under the project rules, so the 07:37366 correction should probably be an appended correction line, not an in-place rewrite. That is for the doc owner to decide. Second, commit message a6a34e2c carries the same wording and cannot be changed. Otherwise the proposed wording is accurate: both acts, 15 and 17, each the lead's level, neither a KO.
+V-EVIDENCE: Paths below are relative to the worktree, C:/Remote Projects/pokebot-wt-ch24.
+
+The two acts in the ST-ON log (tools/story-dev/evidence/2026-09-30-weaken12-ST-ON-debug.txt):
+- :257 `f165971 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 ... hp=21/21 ... move=Seismic_Toss`
+- :258 `[TURN 0] Mudkip L15 21/44 -> UseMove:Seismic Toss(pp2) vs Taillow L6 21/21`
+- :261 `f166671 ... act=THROW t=1 sp=Taillow ... hp=6/21` (the first hit did 15)
+- :579 `f202781 [WEAKEN] act=DAMAGE t=0 sp=Skitty#300 pid=0B7CB920 hp=25/25 ... move=Seismic_Toss`
+- :580 `[TURN 0] Marshtomp L17 44/56 -> UseMove:Seismic Toss(pp20) vs Skitty L7 25/25`
+- :581 DMGAUDIT BEFORE `bide=116,998,...`; :582 AFTER `bide=119,1015,...` (Δ17)
+- :583 `f203331 ... act=THROW t=1 sp=Skitty ... hp=8/25` (the second hit did 17)
+
+The grader, the rerun and the prediction:
+- tools/story-dev/evidence/2026-09-30-weaken12-ARMS.txt:91 and RERUN.txt:72: `PASS ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level`.
+- PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-PREDICTIONS.md:157 predicted later DAMAGE turns conditionally ("Anywhere later ... every DAMAGE verdict is Seismic Toss with Δbide = the lead's level exactly"). So the second act is expected and graded, and the status docs simply omit it.
+
+The contradicted claims, all in PROJECT KNOWLEDGE/:
+- 03-PUNCH-LIST.md:125, 04-HANDOFF.md:313 and 04-HANDOFF.md:384: "ST-ON acted once with Seismic Toss for exactly 15".
+- 07-CHANGELOG.md:37366: "ST-ON acted once with Seismic Toss for exactly 15, leaving the Taillow at 6/21."
+- ai-research-notes/2026-09-30-weaken12-GRADED.md:1: "the weaken turn acted exactly once where predicted". That note's own line 31 says "Both DAMAGE turns in the run did exactly the lead's level."
+- Commit a6a34e2c's message carries the same "acted once" wording.
+
+A grep of PROJECT KNOWLEDGE/ finds no other place that corrects the claim.
+
+## grade:F2 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:7-8
+CLAIM: The GRADED headline section says "This grade shows three things: the machinery is SAFE and INERT". That grade was taken on 18b32bcc, and the adversarial pass later found a real KO path in that same build. The live grade covers one fixture and two DAMAGE turns, so it cannot show general safety.
+EVIDENCE: GRADED.md:15 names the build as 18b32bcc. ADVERSARIAL.txt:24-33 finds, at 18b32bcc: "PD1 (a real knockout path, reachable in Emerald): Trace on a party member who is not the lead ... The real verdict is DAMAGE(Seismic Toss)". PD1 was fixed only in 378a33b3 (FOLD.txt, PD1 row). The SAFE sentence was never re-scoped after the fold. The only live evidence is the two ST-ON DAMAGE turns plus DR-ON and DR-FAULT on a single fixture.
+FIX: Re-scope the line, for example: "on this fixture, no DAMAGE turn KO'd and the bound is load-bearing (DR-FAULT). General safety rests on the gate as folded in 378a33b3; the grade's build 18b32bcc still had PD1, a real KO path".
+VERDICT: refuted=False corrected=should-fix
+REASONING: I could not refute the finding. The headline says, with no scope, that "This grade shows three things: the machinery is SAFE and INERT". The grade names its build as 18b32bcc, and the adversarial pass found a real knockout path in that same build.
+
+1. **The claim is general.** GRADED.md:7-10 says the grade shows "the machinery is SAFE and INERT". Line 11 then lists what it does NOT show: the catch-rate gain and stage 2's safety. By leaving stage 1 off that list, it implies stage 1 was shown safe in general.
+
+2. **The evidence contradicts it for 18b32bcc.** GRADED.md:15 gives "Build: `18b32bcc`". ADVERSARIAL.txt, written against 18b32bcc, calls PD1 "a real knockout path, reachable in Emerald": a Trace member that faint-switches in copies Rough Skin, and the real verdict is DAMAGE(Seismic Toss). I checked the mechanism in pret/pokeemerald src/battle_util.c:
+   - Trace is armed on switch-in (:2561-2566) and copied by ABILITYEFFECT_TRACE (:3003).
+   - Rough Skin deals maxHP/16, at least 1, to a contact attacker (:2753-2766).
+   - A low-HP wanted target that attacks our Traced mon with Bite therefore loses HP every throw turn.
+
+   FOLD.txt:120 and :304-306 show PD1 fixed only in 378a33b3, by the WPtrace row. The reverting mutant MR1 (:495) turns that row red.
+
+3. **The headline was never re-scoped.** Commit e6a18ce9 only appended the section from GRADED.md:70 onward, and 378a33b3 does not touch GRADED.md. Lines 1-11 still date from a6a34e2c.
+
+4. **Nothing already handles it.**
+   - GRADED.md:74-75 does disclose "PD1 … a real KO path", and the DESIGN's AS BUILT section (DESIGN.md:314-316) repeats it. That is 60+ lines below a headline that line 3 calls "THE CAVEAT IS THE HEADLINE". CLAUDE.md rule 2 and pair P2 say a heading must not claim more than its body supports.
+   - The one defence I found: DESIGN.md:200 defines "The primary safety readout: 0 `[CATCH] end … res=Won` in any acting arm without a fault". "SAFE" could be read as shorthand for that readout. But the headline neither cites nor scopes it. And the readout is one fixture with two DAMAGE turns (GRADED.md:31), plus DR-ON and DR-FAULT (:32-33), so it cannot show general safety.
+
+**Correction to the finding.** Live evidence also exists on 378a33b3: GRADED.md:87-88 re-ran the arms, and ST-ON, DR-ON and DR-FAULT were byte-identical. It is still the same single fixture, so the finding's point stands. The re-scope should say "one fixture, on both 18b32bcc and 378a33b3". Safety beyond that rests on the folded gate (211 rows, 196 mutants), not on the live grade.
+
+**Severity.** Read strictly, "a claim the evidence contradicts" would make this a blocker, since 18b32bcc was not safe. I kept it at should-fix because:
+- the same note discloses PD1 and its fix;
+- no evidence contradicts safety for the current code (378a33b3);
+- the flag defaults to OFF.
+
+The damage is a skim-level overclaim, not a wrong fact in the body.
+V-EVIDENCE: - **GRADED.md:7-8:** "This grade shows three things: - the machinery is SAFE and INERT;"
+- **GRADED.md:11:** "It does NOT show that weakening raises the catch rate in a real run (that is step 14's), or that stage 2 is safe." Stage 1 is left off this list, so it reads as shown safe.
+- **GRADED.md:15:** "Build: `18b32bcc`."
+- **GRADED.md:31:** ST-ON, 0 KOs, "Both DAMAGE turns in the run did exactly the lead's level." This is the single fixture.
+- **GRADED.md:74-75** (appended in e6a18ce9, below the headline): "PD1, a Trace faint-switch copying the target's Rough Skin: a real KO path".
+- **GRADED.md:87-88:** the re-run on 378a33b3 is byte-identical, on the same fixture.
+- **tools/story-dev/evidence/2026-09-30-weaken12-ADVERSARIAL.txt:** the pass ran at 18b32bcc. "PD1 (a real knockout path, reachable in Emerald) … The real verdict is DAMAGE(Seismic Toss)."
+- **tools/story-dev/evidence/2026-09-30-weaken12-FOLD.txt:**
+  - :120, PD1 row: "If "Trace" is among the party subjects, the target's live ability is added"
+  - :304 PASS WPtrace → THROW, "reason=dmg:retaliation:Rough Skin"
+  - :495, MR1 "PD1 reverted … red ['WPtrace']"
+- **DESIGN.md:200:** "The primary safety readout: 0 `[CATCH] end … res=Won` in any acting arm without a fault". This is the only possible narrow meaning of "SAFE", and the headline never cites it.
+- **DESIGN.md:314-316:** AS BUILT records PD1 as a real KO path.
+- **Git history:**
+  - `git show e6a18ce9` changes GRADED.md only from @@ -66 onward, appending the adversarial section; lines 1-11 are untouched.
+  - `git show 378a33b3 -- GRADED.md` is empty.
+- **Decomp (pret/pokeemerald src/battle_util.c):**
+  - :2561-2566: `case ABILITY_TRACE: … gStatuses3[battler] |= STATUS3_TRACE`
+  - :3003: `case ABILITYEFFECT_TRACE`
+  - :2753-2766: `case ABILITY_ROUGH_SKIN: … FLAG_MAKES_CONTACT … gBattleMoveDamage = gBattleMons[gBattlerAttacker].maxHP / 16; if (gBattleMoveDamage == 0) gBattleMoveDamage = 1;`
+
+## grade:F3 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:87; tools/story-dev/evidence/2026-09-30-weaken12-RERUN.txt:34; PROJECT KNOWLEDGE/07-CHANGELOG.md:37378
+CLAIM: These three places say that ST-ON, DR-ON and DR-FAULT on 378a33b3 are "BYTE-IDENTICAL" to their runs on 18b32bcc. The hashes only cover lines with WEAKEN and DMGAUDIT removed, and the WEAKEN lines do differ between the two builds.
+EVIDENCE: RERUN.txt:23 says the hashes were taken with "WEAKEN and DMGAUDIT lines dropped". FOLD.txt's PD3 row adds a new snapshot field, `WTarget.item_effect`, and every WEAKEN line carries the snapshot. I compared the scratchpad logs w12arms/ST-ON.debug.txt and w12arms2/ST-ON.debug.txt: the WEAKEN lines hash differently (md5 43049414… vs 07435930…), and the only differing field is `.target.item_effect` (absent → "no_effect"). DR-ON and DR-FAULT differ the same way. With `snap=` stripped, the verdict heads are identical in all three arms. The conclusion (the fixes changed no decision) holds; only the wording overclaims.
+FIX: Replace "BYTE-IDENTICAL" with: "identical on every frame-stamped line outside WEAKEN/DMGAUDIT, and every [WEAKEN] verdict head (act, move, reason) identical; only the snapshot JSON differs, by the new item_effect field".
+VERDICT: refuted=False corrected=should-fix
+REASONING: The finding survives. I checked the logs myself. "BYTE-IDENTICAL" is literally false for these runs, because every [WEAKEN] line in ST-ON, DR-ON and DR-FAULT changed between 18b32bcc and 378a33b3. The hashes quoted as proof were computed only after those lines were dropped. RERUN.txt:23 says so, and the grading helper `plain()` in ARMS.txt:178-179 filters out any line containing "WEAKEN" or "DMGAUDIT". So the hashes never looked at the WEAKEN lines. GRADED.md:87 and 07-CHANGELOG.md:37378 repeat the claim without even that scope.
+
+The difference is the snapshot field that PD3 added (FOLD.txt:122, "New field `WTarget.item_effect` (default "no_effect")"). The committed 18b32bcc evidence shows it too: in evidence/2026-09-30-weaken12-ST-ON-debug.txt:257 the target snapshot ends `"status3":0,"item":null}` with no item_effect, while the "me" block already had one.
+
+The substantive conclusion still holds, so this is not a blocker. On all three arms these are identical across the two builds: the non-WEAKEN/DMGAUDIT lines, all DMGAUDIT lines, and every WEAKEN verdict head (the text before " snap="). A decision change would have shown up in the heads or in the trajectory. So "the fixes change nothing on these trajectories" is true, and only the wording overclaims. That is a violation of the project's "headline carries the caveat" rule, not a wrong conclusion.
+
+Should-fix is the right severity. If a later agent takes "byte-identical" at face value and compares WEAKEN lines or snapshot hashes across the builds, those comparisons will fail. Nothing else in the tree repeats the claim: 04, 06, 03 and 05 have no such line for weaken12. The commit message of e6a18ce9 ("the acting arms byte-identical to the unfixed build's") carries the same wording, but it is published history and cannot be changed.
+
+One refinement to the proposed fix: DMGAUDIT lines are identical too, so the wording can be stronger. Suggested: "every frame-stamped line except the [WEAKEN] lines is identical (DMGAUDIT included); every [WEAKEN] verdict head is identical; the snapshots differ only by the new target.item_effect field (PD3)". The DR-ON snapshot that shows "psychic_power" is a new target reading in that same field, not a decision change. Its head is identical.
+V-EVIDENCE: Recomputed from the scratchpad logs w12arms/ (WT HEAD 18b32bcc, per w12arms_runner.txt:1) and w12arms2/ (WT HEAD 378a33b3, per w12arms2_runner.txt:1), using the grader's own definitions (FR=^f(\d+) , plain() drops WEAKEN/DMGAUDIT, sha256[:16]):
+- ST-ON: plain 2f628cd76e216075 == 2f628cd76e216075 (equal). All stamped lines: NOT equal (1519 vs 1519 lines). WEAKEN 7 vs 7 lines, sha 11ee88b99a2c0707 vs 2877a8e86339ce55 (DIFFER). Heads before " snap=": equal. DMGAUDIT (471 lines): equal. Only snapshot diff: .target.item_effect <absent> -> "no_effect".
+- DR-ON: plain 414d58ba95536d55 on both builds. WEAKEN 17/17, 5d3663b717b7754e vs 8e7fccc52876ce05 (DIFFER). Heads: equal. DMGAUDIT: equal. Only diff: .target.item_effect <absent> -> "no_effect" / "psychic_power".
+- DR-FAULT: plain 1808b21bc90fd64c on both builds. WEAKEN 13/13, 5931da992b304bd4 vs 7ff9de81e16bbeb5 (DIFFER). Heads: equal. DMGAUDIT: equal. Only diff: .target.item_effect.
+- Doc lines: GRADED.md:87 "ST-ON, DR-ON and DR-FAULT are BYTE-IDENTICAL to their runs on the unfixed build". RERUN.txt:34 "BYTE-IDENTICAL to their runs on the unfixed build 18b32bcc (2f628cd76e216075, 414d58ba95536d55, 1808b21bc90fd64c)", whose hashes are scoped at RERUN.txt:23 "(WEAKEN and DMGAUDIT lines dropped)". 07-CHANGELOG.md:37378 "The acting arms are byte-identical to the unfixed build's."
+- ARMS.txt:178-179: `def plain(lines): return [l for l in lines if "WEAKEN" not in l and "DMGAUDIT" not in l]`.
+- FOLD.txt:122: PD3 "New field `WTarget.item_effect` (default `"no_effect"`) ... the adapter now reads the target's hold effect".
+- evidence/2026-09-30-weaken12-ST-ON-debug.txt:257 (18b32bcc): target snapshot `...,"status3":0,"item":null},"me":...` has no item_effect.
+- Scratchpad dir: C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/w12arms{,2}/
+
+## grade:F4 [should-fix] tools/story-dev/evidence/2026-09-30-weaken12-ARMS.txt:237-281 (grader); PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:30
+CLAIM: W-OBSCALC runs the same eight checks as W-OBS. None of them would fail if POKEBOT_R25_WEAKEN_CALC were ignored, so the arm cannot show that stage 2 ran. GRADED's "(no stage-2 plain hit was admissible on this trajectory)" is not supported by any check or committed evidence.
+EVIDENCE: The grader loops `for t in ("W-OBS", "W-OBSCALC")` with identical checks: count 11, would=THROW, 0 first=1, inside a battle, raw-record match, and replay. None reads `reason=`. The difference only appears in the uncommitted scratchpad logs: W-OBSCALC reasons are `dmg:bound@0,progress@2,bound@3` (Taillow) and `dmg:bound@0,bound@1,bound@2,bound@3` (Skitty), while W-OBS reasons are `dmg:no-damage-move`. Neither ARMS.txt nor RERUN.txt records these reason fields.
+FIX: Add a W-OBSCALC check that every non-ender OBS line's dmg reason is not `no-damage-move` (proof that stage 2 was evaluated), and paste the 11 reason fields into the evidence file. Until then, mark the parenthetical in GRADED:30 as read from logs, not graded.
+VERDICT: refuted=False corrected=should-fix
+REASONING: I tried to refute F4 and could not. It stands at should-fix.
+
+**1. The two arms get identical checks.** The grader (ARMS.txt:238-281) runs the same eight checks on W-OBS and W-OBSCALC, and none of them reads `reason=`.
+
+**2. None of those checks would fail if CALC were ignored.**
+- The adapter reads CALC into the snapshot (story_mode.py:6759-6760; weaken_catch.py:575 `if stage2_wanted(env.calc)`).
+- If CALC were ignored, the snapshot would carry `calc=false` and empty ranges. The replay check (ARMS.txt:272-281) would then replay a THROW and still pass.
+- The same happens if CALC were read but every range came back None: those slots are skipped silently (weaken_catch.py:580 `continue`), and the reason falls back to `no-damage-move` (:604).
+- The line count (11), `would=THROW`, `first=1`, the inside-battle check, the raw-record match and the line-equality check are all identical in both cases.
+- So the arm cannot tell "stage 2 evaluated and rejected" from "stage 2 never ran". That is the vacuity this project's rule 4 forbids.
+
+**3. The reason fields are real, but only in the scratchpad.** I read the uncommitted scratchpad logs (w12arms/ and w12arms2/, W-OBS vs W-OBSCALC). They confirm the finding's numbers exactly:
+- W-OBSCALC, Taillow ×7: `dmg:bound@0,progress@2,bound@3`
+- W-OBSCALC, Skitty ×3: `dmg:bound@0,bound@1,bound@2,bound@3`
+- W-OBS, the same ten decisions: `dmg:no-damage-move`
+- Both arms: Abra `ender:TELEPORT`
+
+So the parenthetical in GRADED:30 is TRUE. It is not contradicted, which is why this is not a blocker.
+
+**4. Nothing committed records them.** `git grep` finds no committed file with W-OBSCALC reason fields (RERUN.txt:57-65 and :103-111 repeat the same eight checks). The scratchpad is session-specific, so the arm's filed purpose would have no durable record once it is gone. That purpose is "the stage-2 would= verdicts measured (a frequency only)" (DESIGN:265; GRADED:30 "stage-2 verdicts measured").
+
+**5. A filed prediction was never graded.** PREDICTIONS:156 filed a reason-level claim: "Every plain hit's ub ≥ the target's HP … Mud-slap is 0 against the Flying Taillow". No check graded it, yet GRADED:30 says "as predicted".
+
+**Partial mitigation (it lowers the stakes, not the finding).** The plumbing is gate-covered outside the live arm:
+- probe_weaken_catch.py:1120-1144 (wbflags) asserts that POKEBOT_R25_WEAKEN_CALC=1 sets `_r25_weaken_calc=True` through `reset_per_run_state` (story_mode.py:2395).
+- FOLD.txt:368 (WXAcharge) and :370 (WXAb7) run the adapter with CALC=1 and the real calculator, and get stage-2 divergence reasons.
+
+So the finding's "flag ignored" scenario would be caught by the gate. What remains unproven is the live arm's own claim. Stage 2 stays OFF and nothing acts, so there is no KO or behaviour risk. The proposed fix is cheap and correct: assert that non-ender OBSCALC reasons are not `no-damage-move` (better still, that they match the filed bound/progress pattern), and paste the 11 reason fields into the evidence file.
+V-EVIDENCE: - **Identical checks.** tools/story-dev/evidence/2026-09-30-weaken12-ARMS.txt:238 `for t in ("W-OBS", "W-OBSCALC"):`. The checks at :242-281 read only `would=`, `first=1`, hp/st/tmv and the snapshot replay, never `reason=`. The same eight checks are repeated in RERUN.txt:57-65 and :103-111.
+- **The replay cannot tell.** weaken_catch.py:575 `if stage2_wanted(env.calc):`; :580 skips a slot whose range is None with no rejection; :604 returns `"no-damage-move"` when nothing was rejected. story_mode.py:6759-6760 put calc into the snapshot, so a calc-ignored snapshot replays to THROW as well.
+- **Filed vs graded.** PREDICTIONS.md:156 files "Every plain hit's ub ≥ the target's HP at L15-17 vs L6-7; Mud-slap is 0 against the Flying Taillow". That was never graded. GRADED.md:30: "✅ every check; all 11 `would=THROW`, as predicted (no stage-2 plain hit was admissible on this trajectory)".
+- **Scratchpad only (uncommitted), identical in w12arms and w12arms2.** W-OBSCALC shows Taillow f159870..f164582 `dmg:bound@0,progress@2,bound@3|st:no-status-move` ×7 and Skitty f206155/f206909/f207815 `dmg:bound@0,bound@1,bound@2,bound@3` ×3. W-OBS shows `dmg:no-damage-move` on the same ten; Abra f202712 is `ender:TELEPORT` in both.
+- **Not committed.** `git grep "bound@0,progress@2"` finds no match in the worktree.
+- **Mitigation in the gate.** probe_weaken_catch.py:1120-1144 (wbflags: CALC=1 → `_r25_weaken_calc` True via story_mode.py:2395). FOLD.txt:368 WXAcharge and :370 WXAb7 run the adapter with CALC=1 and the real calculator, giving `divergence:*@N` reasons.
+
+## grade:F5 [should-fix] PROJECT KNOWLEDGE/06-DECISIONS-LOG.md:8680; PROJECT KNOWLEDGE/01-VISION-AND-DESIGN.md:348
+CLAIM: 06 accepts the builder's gap rulings because "Each rule only ever adds a THROW or a DEFER". That is false for the rule that each cap blocks only its own branch, which allows actions the design would have refused. 01 also understates what the module can do in one battle ("at most ONE bounded damage turn, or a sleep/paralysis try").
+EVIDENCE: The design says "the per-battle caps are spent: 1 damage turn, 3 status tries ... 2 no-progress turns" leads to THROW-ONLY (DESIGN.md:123). In the code, `_damage` returns (None, "damage-cap") at weaken_catch.py:539-540, and control then falls through to `_status` (weaken_catch.py:721-727). With `CAP_STATUS_TRIES = 3` (weaken_catch.py:71), a battle can have one damage turn plus up to three sleep or paralysis tries. The design would have made that battle THROW-ONLY, so the rule relaxes the design rather than adding a THROW. It is still safe, because status cannot KO (ADVERSARIAL.txt:66); only the recorded justification is wrong.
+FIX: 06: state that the per-branch caps rule RELAXES the design (it permits a STATUS after the DAMAGE turn, and a DAMAGE after status tries), and that it is accepted because status cannot KO and any later damage is still held by hp − X ≥ 1 and the 50% rule. 01:348: "at most one bounded damage turn and up to three sleep/paralysis tries per battle".
+VERDICT: refuted=False corrected=should-fix
+REASONING: The finding survives, but its framing is overstated. It says the design would have made that battle THROW-ONLY, so the rule "relaxes the design". That is only one of two readings of DESIGN.md:123 ("the per-battle caps are spent: 1 damage turn, 3 status tries ..., 2 no-progress turns"). The design review flagged that line as ambiguous three times (w12_design_review.md:31, :537, :564). The design's own lineage also defines the caps per action: v2:732 lists "3 damage turns at most; 2 no-progress turns; 3 status tries", v2's STATUS branch says "at most 3 tries", and the ourcode recon (w12_recon_ourcode.md:130) keeps per-battle counters. That is why the builder filed it as a gap to rule on (FOLD.txt:48) and did not treat it as a deviation.
+
+The core claim still holds. 06:8680 justifies all the gap rules with one sentence: "Each rule only ever adds a THROW or a DEFER, or chooses among moves that already cleared the bound." That is true of the no-progress cap, the battle-type DEFER, the stage-2 exclusions and the move choice. It is not true of the per-branch caps decision compared with its alternative. In code, a spent damage cap only returns (None, "damage-cap") (weaken_catch.py:539-540), and control then falls through to `_status` (:725-727), which is capped only by `tries >= CAP_STATUS_TRIES` (3) (:609-610, :71). A spent status cap likewise leaves DAMAGE open. So a battle can have 1 damage turn plus up to 3 sleep/paralysis tries, in either order. The no-progress cap of 2 still applies (:718-719).
+
+The source 06 cites for its rulings ("the adversarial pass judged each for safety") does not use the 06 reason for this rule. ADVERSARIAL.txt:65 says rule 1 "only ever adds THROW-ONLY". For rule 2, ADVERSARIAL.txt:66 gives a different argument: "Status can't knock anything out. A later damage turn ... is still held by the floor and the 50% rule, and the damage cap is still 1 per battle." That argument concedes the rule allows actions, so the 06 summary reports the wrong safety reason.
+
+01:348 ("spend at most ONE bounded damage turn, or a sleep/paralysis try, when the expected BALLS saved justify it") misdescribes a current-state behaviour in two ways. First, 3 tries are allowed, and damage and status can both happen in one battle. Second, the status path has no E_gain test at all; it is gated only by the odds < 0.5 rule (weaken_catch.py:607-652, no E_gain in `_status`).
+
+This is not a blocker. Nothing about the behaviour is unsafe, the ruling stands, and the damage cap stays at 1 per battle under hp - X >= 1 and the 50% rule.
+
+Corrected fix. 06 should not say the rule "RELAXES the design". It should say the rule resolves the ambiguous DESIGN:123 in the permissive, per-action direction (as v2:732 and the ourcode recon read it): it permits a STATUS after the DAMAGE turn, and a DAMAGE after status tries. The reason it is accepted is ADVERSARIAL.txt:66's argument: status cannot KO, and the one damage turn is still held by hp - X >= 1 and the 50% rule. The "only ever adds a THROW or a DEFER" sentence should be limited to the other rules. 01:348 should read roughly: "at most one bounded damage turn (when the expected balls saved justify it) and up to three sleep/paralysis tries per battle; two no-progress turns end it".
+V-EVIDENCE: Code (worktree C:/Remote Projects/pokebot-wt-ch24):
+- sandbox-pokebot/modules/story/weaken_catch.py:70-72 sets CAP_DAMAGE_TURNS = 1, CAP_STATUS_TRIES = 3 and CAP_NO_PROGRESS = 2.
+- :425-426: damage_spent counts only DAMAGE entries, and tries counts only STATUS entries.
+- :539-540: `if damage_spent: return None, "damage-cap"`, with no THROW-ONLY.
+- :609-610: `if tries >= CAP_STATUS_TRIES: return None, "status-cap"`.
+- :717-727: the no-progress cap sends THROW; then `_damage`, and if that returns None, `_status`, and only then THROW.
+- `_status` (:607-652) contains no E_gain check.
+
+Docs:
+- 06-DECISIONS-LOG.md:8674 lists "the damage and status caps each block only their own branch".
+- 06-DECISIONS-LOG.md:8680 says "Each rule only ever adds a THROW or a DEFER, or chooses among moves that already cleared the bound."
+- 01-VISION-AND-DESIGN.md:348 says "spend at most ONE bounded damage turn, or a sleep/paralysis try, when the expected BALLS saved justify it."
+
+Safety argument actually given: tools/story-dev/evidence/2026-09-30-weaken12-ADVERSARIAL.txt:65 says rule 1 "only ever adds THROW-ONLY". For rule 2, :66 says "Status can't knock anything out. A later damage turn ... is still held by the floor and the 50% rule, and the damage cap is still 1 per battle". That is a different reason from the one 06 records.
+
+Why "relaxes the design" is overstated:
+- weaken12-DESIGN.md:123 is ambiguous ("the per-battle caps are spent: 1 damage turn, 3 status tries ..., 2 no-progress turns").
+- w12_design_review.md:31 says "(4) The cap line (:109) does not say whether spending the 1-damage-turn cap makes EVERY later turn THROW-ONLY. v2 defined the caps per action (v2:732)."
+- w12_design_review.md:537 says "This reads the caps at :109 per branch, as the ourcode recon's per-battle counters do (w12_recon_ourcode.md:130). If 'caps are spent' meant ANY cap ... The line is ambiguous."
+- 2026-09-29-r23-27-DESIGN-v2.md:732 says "3 damage turns at most; 2 no-progress turns; 3 status tries", and its STATUS branch says "at most 3 tries".
+- 2026-09-30-weaken12-FOLD.txt:48 lists this under "Design gaps I had to decide (please rule)".
+
+Existing gate: probe_weaken_catch.py:315 pins only DAMAGE followed by THROW with reason damage-cap. No row shows DAMAGE followed by STATUS.
+
+## grade:F6 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-29-r23-27-DESIGN-v2.md:27 and :660-661; PROJECT KNOWLEDGE/04-HANDOFF.md:384
+CLAIM: The v2 note does not tell the truth about step 12's state and does not point to the design that supersedes it. The handoff's queue head still quotes v2's L0 (seeds 1-3) as step 12's live proof, even though the step-12 design ran seed 1 only and never says so.
+EVIDENCE: v2:27 still reads "⇒ NEXT: v2 Step 12 (W, weaken-to-catch): stage 1 and `observe`". A grep of the v2 note for `weaken12` finds nothing, whereas step 11 got a "DESIGN … superseded §Step 11" line in the same status block. v2:660-661 says "L0, observe, seeds 1-3 … stage 1 ships pure-only". What was built instead is a live test lever (D8) and single-seed arms (DESIGN.md:257: "seed 1"). The step-12 design never states that seeds 2-3 were dropped. 04:384 still quotes "its live proof L0 (observe, seeds 1-3, plus an OFF control)".
+FIX: Add to the v2 status block: "Step 12 IN PROGRESS on wt/weaken12: built, graded, folded; its DESIGN 2026-09-30-weaken12-DESIGN.md supersedes §Step 12 (L0's seeds 1-3 → the seed-1 arms; pure-only → the --set-lead-move lever); GRADED …". In the step-12 design, state the seeds 2-3 narrowing and its reason (or run them).
+VERDICT: refuted=True corrected=nit
+REASONING: The finding is overstated. Its two load-bearing claims are already handled or follow the project's established practice. Only a small documentation gap remains.
+
+1. The handoff claim is refuted. 04-HANDOFF.md:384 does not present L0 as step 12's live proof. The same sentence first says "READ ITS DESIGN FIRST, `ai-research-notes/2026-09-30-weaken12-DESIGN.md` (it supersedes v2's §Step 12 where they differ...)". Only after that does it quote "v2's text for context: ... its live proof L0 (observe, seeds 1-3...)". The same sentence also says step 12 is GRADED 34 of 34 on the reproducing runs and that "its three-lens review and the merge are next". The other copies frame the quote the same way:
+   - 04-HANDOFF.md:6 labels it "v2's text:" after pointing at the GRADED note.
+   - 03-PUNCH-LIST.md:125 says "(...weaken12-DESIGN.md supersedes v2's §Step 12 where they differ...) — v2's text:".
+   Every doc pointer to v2 §Step 12 carries this supersede pointer, so a cold reader is not sent to run L0.
+
+2. The status-block claim at v2:27 follows the established practice. The v2 status block is changed only when a step is DONE (reviewed and merged). While step 11 was built and graded, v2 still read "⇒ NEXT: v2 Step 11" at commits c44b1def, c0039855 and e06da0ae. Its DONE line and "DESIGN ... superseded §Step 11" line were added only in the review commit cdb49f83. Step 12 is not DONE: its three-lens review is still pending, which is the review this finding belongs to. So "NEXT: v2 Step 12" is not false, and the status update is due in the review/merge commit, as it was for step 11.
+
+What survives, at nit severity:
+   (a) v2 §Step 12 (:599) has no forward "SUPERSEDED" banner. Step 11 got one at its design-review fold (6eeaeba0, v2:570-574), before its build. No commit on wt/weaken12 touches the v2 note. The DESIGN's back-pointer also cites a stale range, "v2 ... :595-666". At its parent cdb49f83, §Step 12 is :599-667.
+   (b) The DESIGN narrows its arms to "seed 1" (DESIGN:257) without saying so. The narrowing is harmless:
+       - v2's seeds 1-3 existed partly to find "the seed that met a Skitty" for L1/L2 (v2:~662-663). Seed 1 already met Taillow, Abra and Skitty (PREDICTIONS:116-121).
+       - L1/L2 wait for M1b anyway.
+       - The design replaced L0 with the stronger W-OFF×2 / W-BASE / W-OBS / ST / DR / DR-FAULT arms.
+       - v2's own "Does NOT show: frequency" means extra seeds bought no frequency claim.
+   Neither gap sends a reader to wrong work, since every pointer routes through the DESIGN first. The fix is cheap and can go in the merge commit: add a step-11-style banner under v2 §Step 12, and add one sentence in the DESIGN saying why seed 1 is enough.
+V-EVIDENCE: - 04-HANDOFF.md:384 (worktree HEAD e6a18ce9): "...its three-lens review and the merge are next: READ ITS DESIGN FIRST, `ai-research-notes/2026-09-30-weaken12-DESIGN.md` (it supersedes v2's §Step 12 where they differ; ...). v2's text for context: (...) its live proof L0 (observe, seeds 1-3, plus an OFF control)". 04-HANDOFF.md:6 and 03-PUNCH-LIST.md:125 give the same "supersedes ... — v2's text:" framing.
+- The v2 status block is updated only at DONE. `git show <c>:.../2026-09-29-r23-27-DESIGN-v2.md` lines 20-32 read "⇒ NEXT: v2 Step 11" at c44b1def (build), c0039855 (graded) and e06da0ae (docs). The step-11 DONE line and "DESIGN `2026-09-30-dmgcalc11-DESIGN.md` superseded §Step 11" first appear at cdb49f83 (v2:23-26, the review commit).
+- The surviving gap: v2 has had a step-11 banner since 6eeaeba0, "> ⚠ **SUPERSEDED where they differ by `ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md`**" (now v2:574). §Step 12 (v2:599) has no such line. `grep -n weaken12` over the v2 note finds nothing, and `git diff --stat cdb49f83 HEAD` shows the v2 note untouched on wt/weaken12.
+- DESIGN:3: "It supersedes v2's §Step 12 (`2026-09-29-r23-27-DESIGN-v2.md` :595-666)". §Step 12 is at :599 and §Step 13 at :668 in cdb49f83/HEAD. :595/:664 held only at the older 6eeaeba0.
+- DESIGN:257: "## THE ARMS (... seed 1, DMGAUDIT=1)". No sentence in DESIGN, PREDICTIONS or GRADED mentions seeds 2-3.
+- PREDICTIONS:116-121 (the seed-1 Step-0 reads): Taillow L6 (7 decisions), Abra L7 (1), Skitty L7 25/25 (3) give 11 in-scope decisions. So the Skitty that v2's L1/L2 conditional needed ("on the seed that met a Skitty", v2 Step 12 live-proof block) was met on seed 1.
+
+## grade:F7 [nit] PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md:3188
+CLAIM: The KI-112 third-event bullet says "Every flag-unset or observe run logs a one-frame garbage ball count … at f272106-7". The fourth-event bullet in the same entry refutes that.
+EVIDENCE: 05:3196-3199: "W-OFF1 missed that same transient" with every flag unset. RERUN.txt:24 shows W-OFF1 with `transient 24720 logged: False`. The flag-unset ST and DR trajectories also never log it (RERUN.txt:29-31, logged: False).
+FIX: Scope the sentence: "on the NL trajectory, 10 of 12 runs log …; the first W-OBS run (18b32bcc) and W-OFF1 (378a33b3) did not".
+VERDICT: (none: a nit, not sent to a refuter)
+
+## grade:F8 [nit] PROJECT KNOWLEDGE/03-PUNCH-LIST.md:650 and :2957; PROJECT KNOWLEDGE/08-MISTAKES.md:23488
+CLAIM: The 18b32bcc citation re-point moved the START of two ranges and left their ENDs behind. That is the exact mistake 08 records as fixed ("(c) re-mapped both ends").
+EVIDENCE: 03:650 now reads `SwapTrainBattleStrategy (story_mode.py:1215-1262)`; it was 1204-1262 at cdb49f83. The class moved +11 and now runs to line 1277, so the end should be about 1273. 03:2957 reads `_should_catch (story_mode.py:2614-2668)`; it was 2592-2668, a +22 shift, so the end should be about 2690. `git log -S"1215-1262"` points at 18b32bcc. Neither range is inverted, which is presumably why probe_citation_ranges did not flag them.
+FIX: Re-map both ends (1215-1273, 2614-2690) and soften 08 (c) to "inverted ranges were re-mapped; non-inverted half-remaps need a check".
+VERDICT: (none: a nit, not sent to a refuter)
+
+## grade:F9 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:50
+CLAIM: GRADED's "PREDICTION SLIPS FOUND AFTER FILING (none changes a verdict)" leaves out that the fold changed a filed W-row. That change is disclosed only in the DESIGN's AS BUILT section and in FOLD.txt.
+EVIDENCE: PREDICTIONS (1f52cfd9):54 filed "W42 / W42b | total PP 60 / 70 (H = 2·(30+4) = 68) | THROW (struggle) / DAMAGE". FOLD.txt:129 says: "W42b … with H = 76, 70 is now THROW (struggle). I moved the snapshot to 78". DESIGN.md:326 says the same. The filed ST discriminator's H = 70 (PREDICTIONS:135) is now 78.
+FIX: Add W42b and the H change (slack 4 → 8, PD5) to GRADED's slips/departures list, stating that the filed snapshot's verdict flipped and the row was moved.
+VERDICT: (none: a nit, not sent to a refuter)
+
+## grade:F10 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:27; tools/story-dev/probe_weaken_catch.py:2318-2320
+CLAIM: G-W reports COVERAGE ("0 uncovered") as a pass with no caveat. The adversarial pass found that check is met trivially, and neither the fold nor the grade addressed that finding or recorded it as declined.
+EVIDENCE: ADVERSARIAL.txt:87: "COVERAGE is met trivially. For example, W51's only covering job is M35 ('admit everything')". In the gate, COVERAGE only requires each row to appear in some fault's or mutant's set (probe_weaken_catch.py:2318-2320). FOLD.txt relabels W38/W51/W52/W58f but says nothing about COVERAGE.
+FIX: Either implement the suggestion (every row reddened by a mutant of its own claimed rule) or record in GRADED/06 that COVERAGE is a weak check and was left as is, with the reason.
+VERDICT: (none: a nit, not sent to a refuter)
+
+## grade:F11 [nit] tools/story-dev/evidence/2026-09-30-weaken12-RERUN.txt; PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-weaken12-GRADED.md:13-21
+CLAIM: The re-run's grade cannot be audited from committed files. RERUN.txt omits the verbatim runner and grader that ARMS.txt includes, and GRADE-3 changed the reference run. GRADED's Inputs still list only build 18b32bcc and three evidence files.
+EVIDENCE: ARMS.txt:149-383 carries the grader and runner verbatim; RERUN.txt carries neither. The GRADE-3 change (`off1 = stamped(A / "W-OFF2.debug.txt")`, plus a W-OFF3 loop) exists only in scratchpad/w12_grade3.py. GRADED:13-21 lists STEP0, ARMS and ST-ON-debug, but not RERUN, ADVERSARIAL or FOLD, and gives the build as 18b32bcc.
+FIX: Append the GRADE-3 grader and the re-run and W-OFF3 runners verbatim to RERUN.txt. Add 378a33b3 and the RERUN, ADVERSARIAL and FOLD files to GRADED's Inputs.
+VERDICT: (none: a nit, not sent to a refuter)
+
+## grade:F12 [nit] PROJECT KNOWLEDGE/04-HANDOFF.md:6 and :313
+CLAIM: Leftover step-11 wording in the handoff sits next to the new state (a P1 wording clash). The banner opens "NEXT is v2 step 12, see NEXT ACTIONS" and later says "the item IN PROGRESS is v2 step 12". The if-stopped cell says step 12 is IN PROGRESS, then ends "The next item is v2 step 12".
+EVIDENCE: 04:6 contains both "NEXT is v2 step 12, see `NEXT ACTIONS` ➡➡➡)" and "⇒ **the item IN PROGRESS is v2 step 12, on branch `wt/weaken12` …". 04:313 opens "v2 step 12 (weaken-to-catch) IS IN PROGRESS …" and later reads "The next item is v2 step 12 (see `NEXT ACTIONS` ➡➡➡)." The queue head (04:384) is right (review, then merge).
+FIX: Replace both leftovers with "v2 step 12 is IN PROGRESS (review next)", and lead the banner's first clause with step 12's state rather than step 11's.
+VERDICT: (none: a nit, not sent to a refuter)
+
+### checked and found true
+- The PREDICTIONS file is byte-unchanged since 1f52cfd9 (git diff 1f52cfd9 HEAD is empty), and 1f52cfd9 precedes the build commit 18b32bcc.
+- The first W-OBS divergence was handled under the filed rule D15 (DESIGN.md:250-255: 'a lone divergent run is re-run, never graded'). It was reported literally as FAIL (ARMS.txt:61-68, 33/34), and the re-run W-OBS-r2 equals W-OFF1 on every line and is the graded run (ARMS.txt:105-147, 34/34). The divergence is two [BALLS] telemetry lines; without [BALLS], all five runs share sha 604d29c10ae293d5 (ARMS.txt:26-36).
+- The re-run on 378a33b3 IS graded and cited. W-OFF1 diverged, so a third OFF run was made per D15's 'else a third'. W-OFF2 = W-OFF3 = e444a33991bd7720, the base NL hash. The observe arms were graded against W-OFF2: 35/36, the one failure being W-OFF1's literal hash (RERUN.txt:86-130). This is cited in GRADED.md:80-88, 04:313/384, 03:125, 07 and 05:3196.
+- The counts match their evidence: 34 = 4+8+8+6+4+4; 36 in GRADE-3; 211 rows = 127 + 72 + 12 WP rows; 196 mutants = 103 + 8 + 85; 205 sets = 9 + 196; 37 caught = 139 − 102; KI-112's '2 of the 12 runs' = 2 base NL + 5 + 5; the suite is 135 of 135 (FOLD.txt §4); the Gemini recon is 48 of 187 ≈ 26%.
+- The ST-ON pre-registered point holds: at f165971, act=DAMAGE Seismic_Toss, BEFORE mv[0]=69, Δbide 15, Taillow 21→6, and 0 res=Won (ARMS.txt:86-91). DR-ON's whole run equals DR Step-0 (sha 414d58ba95536d55), with reason `dmg:floor@1|st:no-status-move`. DR-FAULT is Dragon Rage, mv[0]=82, Δbide 40, `[CATCH] end … res=Won` at f141324.
+- On 18b32bcc, W-OFF ×2 equals the base-code NL Step-0 hash e444a33991bd7720 with 0 WEAKEN lines. The W-BASE ×2 → NL Step-0 ×2 substitution was stated in PREDICTIONS:112-113, before the code.
+- The prediction slips for W52, W38, W51, W58f, the 115252 arithmetic and ST-ON's later THROW reason ('odds') are disclosed in GRADED.md:50-58. W42b's snapshot move is disclosed in DESIGN.md:326 and FOLD.txt:129.
+- P1/P5: the START HERE queue head (04:384), the if-stopped cell (04:313) and the punch list (03:125) all agree that step 12 is built, graded and folded, and that the three-lens review and then the merge come next. 01:357-358 agrees ('three-lens review is still to come').
+- The headline caveat is present in GRADED.md:3-11, the DESIGN headline, 04:313/384, 03:125, 01:357-360, 07's first bullet, and the 29 registry rows 197-198: stage 1 almost never acts in a real run, and stage 2 (CALC) stays OFF.
+- KI-114 was verified against the decomp: pret/pokeemerald include/battle.h DisableStruct has a u32 at 0x00, disabledMove at 0x04, and encoredMove at 0x06. sandbox battle_state.py:730 and the upstream mirror at :730 read [0x04:0x06]. `can_use_move(` has no caller in sandbox-pokebot.
+- The 29 registry fault-set sizes match the gate's FAULT_SETS ∪ FAULT_ADDITIONS (probe_weaken_catch.py:1503-): ACTIVEONLY 11, NOPP 44, NETGAIN 32, NAMEDISPATCH 6, CALCLEAK 4, NOFLOOR {W53, WXfloor0}.
+- With the flag unset, the adapter returns before any read (story_mode.py:6745-6748). The [BALLS] transient at f272106 is a map transition outside any battle, so attributing it to the harness rather than the weaken code is logically sound.
+- The W-OBSCALC logs (scratchpad, uncommitted) do show that stage 2 was evaluated: the reasons are bound@ and progress@ rather than no-damage-move, consistent with the filed W-OBSCALC prediction.
+- #24-flymaptype was archived verbatim to 28-HANDOFF-ARCHIVE.md: all 11 removed lines were found there.

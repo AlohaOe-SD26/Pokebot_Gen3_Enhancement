@@ -34,7 +34,8 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
 - **Exact-damage moves run `typecalc`** [R:DEC-D2]:
   - Ghost is immune to Seismic Toss, Sonicboom and Super Fang (unless Foresight is on the target);
   - Normal is immune to Night Shade;
-  - Wonder Guard blocks all four (power 1).
+  - Wonder Guard blocks each of them unless the result is super-effective (Night Shade vs Shedinja
+    passes; Shedinja's 1 max HP then fails hp − X ≥ 1).
   - Our calculator returns the fixed value anyway (U:204-228).
 - **Status** [R:DEC-S2..S5]:
   - Sleep has no `typecalc`, so there is no Grass or Electric immunity in Gen 3.
@@ -132,8 +133,10 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
     - **Weather moves:** none of Sandstorm or Hail, unless it is immune to them (RULING 25 names them) [review F7].
     - **Struggle:** its total PP must exceed the in-battle horizon H = 2 × (usable balls + 8). The 2 covers our
       Pressure. It is bounded by balls, because RULING 25's "never given up" spans encounters, not one battle [review
-      F3, mechanics S2]. *(As built, after the gate's adversarial pass: the slack is 8, not 4, to cover the flee turns
-      that can FAIL once the balls run out.)*
+      F3, mechanics S2]. *(As built: the slack is 8. ⚠ Corrected by the build review (W12-S1): it bounds the THROW phase only. A
+      trapped Run costs no turn (`battle_main.c:4339-4346`), and ordinary failed flees are UNBOUNDED
+      (`battle_util.c:464-475`, the u8 speedVar wrap). So a Struggle-recoil KO stays reachable AFTER a catch is
+      abandoned (out of balls, or the dex reserve/faint bail): a recorded residual, never during the catch.)*
     - **Weather:** no damaging weather it is not immune to (sand or hail, whether or not Cloud Nine or Air Lock is
       present, since the suppressor may leave).
     - **Our party's retaliation:** no member of our party able to battle (any faint-switch) has Rough Skin, Poison

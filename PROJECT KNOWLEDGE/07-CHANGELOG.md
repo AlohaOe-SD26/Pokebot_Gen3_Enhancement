@@ -37380,3 +37380,25 @@ bought balls only at fixed story points.
 - **Also filed:**
   - KI-114 and `#27-encorereader`: the Encore reader's wrong offset; latent, upstream.
   - `#24-flymaptype` archived verbatim, for the punch list's line budget.
+
+## 2026-09-30 — design v2 step 12 REVIEWED (production safety, the game against the module, the grade and the docs; each should-fix put to a refuter), and MERGED (`#26-organiccatch`)
+
+- **The review** (`evidence/2026-09-30-weaken12-REVIEW.txt`) found no production KO path. Its one BLOCKER was a
+  DOC claim.
+- **CORRECTION to the entry above:** "ST-ON acted once with Seismic Toss for exactly 15" was wrong. It acted TWICE:
+  15 on the Taillow, then 17 on a later Skitty, each exactly the lead's level, neither a KO. The grader had counted
+  both.
+- **Also corrected:**
+  - "byte-identical" names what the hashes compare;
+  - the SAFE claim is scoped;
+  - a grader check shows stage 2 ran in W-OBSCALC;
+  - 06's cap justification is corrected;
+  - the Struggle horizon bounds the throw phase only (a post-abandonment residual, recorded in 06);
+  - two half-remapped citation ranges;
+  - the handoff's leftover wording.
+- **Code** (proof: `evidence/2026-09-30-weaken12-REVIEW-FIX.txt`):
+  - DAMAGE honours `banned_moves` (W12-N1);
+  - the horizon comment and the "never a KO" docstrings are scoped to the catch.
+  - The gate: 213 rows, 9 faults, 198 mutants, the new sets exact on the first run.
+  - The author's replay: all 59 logged verdicts of the arms on `378a33b3` are unchanged by the fix.
+- **Merged to `main`** with the full suite green. Next: v2 step 13 (KB-2, healing items in DOUBLE battles).

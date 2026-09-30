@@ -23491,3 +23491,34 @@ and give each row a mutant that turns it red. A property with no row is a claim 
     level, HP, moves, catch rate.
   - An arm's pass column has no escape clause: "declared vacuous" is a FAIL.
   - A re-point of `file:A-B` maps both A and B.
+
+## 2026-09-30 — ⛔ STEP 12's BUILD REVIEW: A STATUS LINE THAT CONTRADICTED ITS OWN GRADER, A "BYTE-IDENTICAL" PROVEN ON HASHES THAT DROPPED THE LINES THAT DIFFERED, AN ARM THAT COULD NOT SHOW STAGE 2 RAN, AND A HALF-REMAP NO GATE SEES
+
+- **Symptoms** (`evidence/2026-09-30-weaken12-REVIEW.txt`):
+  - **(a) BLOCKER.** 03, 04 and 07 said "ST-ON acted once … for exactly 15". The grader's own line read "every
+    DAMAGE (2)": a second act, on a Skitty, did 17.
+  - **(b)** The re-run was called "BYTE-IDENTICAL" to the unfixed build's. Its hashes dropped the `[WEAKEN]` lines, and
+    those differed, by a new snapshot field.
+  - **(c)** W-OBSCALC ran W-OBS's checks. None could fail if CALC were ignored.
+  - **(d)** Two citation ranges moved their START and left their END behind, still in order. `probe_citation_ranges`
+    only catches an INVERTED range, and 08's "re-mapped both ends" was untrue for them.
+  - **(e)** A code comment claimed the slack covered failed flee turns. The decomp says a trapped Run costs no turn,
+    and other flees are unbounded.
+- **Root causes:**
+  - (a) a status line written from the PREDICTION ("acts at f165971"), not from the grader's output;
+  - (b) a claim worded more strongly than the hash that backed it;
+  - (c) the observe arms were copied without asking what distinguishes them;
+  - (d) the remap script's mapping was applied to only one side, and the gate saw nothing because the range was still
+    ascending;
+  - (e) a mechanic asserted in a comment without reading the decomp.
+- **The fixes that worked:**
+  - (a) every status line now says "twice, 15 then 17, never a KO";
+  - (b) reworded to what the hashes cover;
+  - (c) a reason check: W-OBSCALC must show stage 2's own rejections, and W-OBS `no-damage-move`;
+  - (d) both ends re-mapped (1215-1273, 2617-2693);
+  - (e) the comment corrected, and the residual recorded in 06.
+- **Prevention rules:**
+  - A status line quotes the GRADER'S output, never the prediction.
+  - "Identical" names exactly what was compared.
+  - Two arms that differ only by a flag need a check that reads that flag's EFFECT.
+  - After any re-point of ranges, diff each range's END against the source's line map; order is not correctness.

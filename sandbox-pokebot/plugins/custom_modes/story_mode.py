@@ -77,7 +77,9 @@ class StoryCatchStrategy(CatchStrategy):
     free and the bot does not leave until the balls run out. Pre-gym-1 that was bounded by
     weak wilds; it is not any more.
     (With the flag SET, design v2 step 12's weaken-to-catch adapter in `decide_turn` below may spend ONE bounded
-    damage turn per battle — never a KO by construction — or a status move; `modules/story/weaken_catch.py`.)
+    damage turn per battle — never a KO while the catch is attempted; after an abandoned catch, a failed-flee phase can
+    let a PP-exhausted target Struggle into its own recoil (a residual, recorded) — or a status move;
+    `modules/story/weaken_catch.py`.)
     ⇒ The fence bounds ENTRY (`party_healthy` in `decide_dex_catch`), so a dex catch only ever
     STARTS from full strength. It does NOT bound mid-battle degradation — that needs a
     faint-aware bail-out in a dex-only subclass, filed as `#24-dexcatch-battlebail`.
@@ -2083,7 +2085,8 @@ def decide_dex_catch(
     # catch is accepted by the ruling. Its losses are filed apart from map defeats (`on_battle_ended`, C4).
     if not party_healthy and not lift_health:
         # ⛔ WITH `POKEBOT_R25_WEAKEN` UNSET (the default) A CATCH BATTLE NEVER FIGHTS BACK (with it set: one bounded
-        # weaken damage turn at most, never a KO). `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
+        # weaken damage turn at most, never a KO while the catch is attempted; the post-abandonment Struggle residual is
+        # in 06). `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
         # throws a ball or applies a status move, and `should_flee_after_faint` is unconditionally
         # False (`:38-39`) — so the wild attacks freely and the bot does not leave until the balls run
         # out. Pre-gym-1 that was bounded by L3-6 wilds; post-badge it runs against L30-45 ones.

@@ -71,8 +71,13 @@ CAP_DAMAGE_TURNS = 1        # per battle
 CAP_STATUS_TRIES = 3        # per battle; a berry cure counts as a try
 CAP_NO_PROGRESS = 2         # acting turns after which neither HP nor status moved -> throw-only
 PRESSURE_FACTOR = 2         # Struggle horizon H = 2 * (usable balls + slack): the 2 covers our Pressure
-#: PD5 (the adversarial pass, 2026-09-30): 4 -> 8, for the flee turns that can FAIL once the balls run out (a trapped
-#: target keeps acting through them). With 30 usable balls H is now 76 (it was 68).
+#: PD5 (the adversarial pass, 2026-09-30) raised the slack from 4 to 8: with 30 usable balls H is 76 (it was 68).
+#: ⚠ WHAT IT BOUNDS (corrected by the build review, W12-S1): the THROW phase only, never a flee phase. A trapped Run is
+#: refused at SELECTION and costs no turn (battle_main.c:4339-4346), and ordinary failed flees are UNBOUNDED
+#: (battle_util.c:464-475: the u8 speedVar wraps from runTries 5, so success is never guaranteed). ⇒ While the catch is
+#: attempted, the target cannot Struggle into its own recoil within the horizon; once the catch is ABANDONED (the
+#: out-of-balls flee, or the dex reserve / faint bail), a failed-flee phase can still let a PP-exhausted target Struggle
+#: into its own recoil. That residual is recorded, and no slack value can bound it.
 HORIZON_SLACK = 8
 
 # --- raw bits (include/constants/battle.h)
@@ -549,6 +554,9 @@ def _damage(target: WTarget, me: WSelf, party: WParty, env: WEnv, damage_spent: 
         if x is None:
             continue
         immune, se, nve = type_effect(m.type, target.types, foresight)
+        if m.name in env.banned:          # W12-N1 (the build review): banned_moves binds DAMAGE as it binds STATUS
+            rejected.append(f"banned@{slot}")
+            continue
         if immune:
             rejected.append(f"immune@{slot}")
             continue
@@ -578,6 +586,10 @@ def _damage(target: WTarget, me: WSelf, party: WParty, env: WEnv, damage_spent: 
                 rejected.append(f"recharge@{slot}")
                 continue
             if m.move_id == MOVE_STRUGGLE or slot >= len(env.calc_ranges) or env.calc_ranges[slot] is None:
+                continue
+            # W12-N1 (the build review): banned_moves binds stage 2 as it binds stage 1 and STATUS
+            if m.name in env.banned:
+                rejected.append(f"banned@{slot}")
                 continue
             div = _stage2_divergence(target, me, env, m)
             if div is not None:

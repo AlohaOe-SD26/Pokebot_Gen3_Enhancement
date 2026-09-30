@@ -3185,8 +3185,8 @@ timing in the idle/recovery path; it is consistent with the watchdog candidate, 
   two Linoone rows. Take such a table from two identical runs SEPARATED IN TIME, not back to back.
 **A THIRD EVENT, CONFINED TO TELEMETRY (2026-09-30, design v2 step 12; `evidence/2026-09-30-weaken12-ARMS.txt`):**
 - The runs: 6 at the base code plus 8 on the build, all `r20_pregym1_party4_r116.ss1` with seed 1.
-- Every flag-unset or observe run logs a one-frame garbage ball count (`[BALLS] 21 -> 24720 -> 21`) at f272106-7,
-  during a map transition. The first W-OBS run did not.
+- On the NL trajectory, 10 of the 12 runs log a one-frame garbage ball count (`[BALLS] 21 -> 24720 -> 21`) at
+  f272106-7, during a map transition. The first W-OBS run (on `18b32bcc`) and W-OFF1 (on `378a33b3`) did not.
 - Its gameplay was identical: with the `[BALLS]` lines removed, all five such runs match frame for frame. Its re-run
   logged the transient.
 - **A lead, UNVERIFIED:** `[BALLS]` compares `debug_logger.on_frame`'s per-frame samples. Missing a one-frame value
