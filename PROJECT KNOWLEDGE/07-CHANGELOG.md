@@ -37402,3 +37402,25 @@ bought balls only at fixed story points.
   - The gate: 213 rows, 9 faults, 198 mutants, the new sets exact on the first run.
   - The author's replay: all 59 logged verdicts of the arms on `378a33b3` are unchanged by the fix.
 - **Merged to `main`** with the full suite green. Next: v2 step 13 (KB-2, healing items in DOUBLE battles).
+
+## 2026-09-30 — design v2 step 13 (KB-2, healing items in DOUBLE battles): recon, DESIGN (reviewed and folded) and Step 0; KI-115 and two punch items filed (`#26-organiccatch`)
+
+- **Recon** (six angles, each a NOTE: `ai-research-notes/2026-09-30-doubleitems13-recon/`). Its main finding: the item
+  executor reads only the LEFT battler's action cursor, so any item in a double would break the partner's same-turn
+  action. Latent today: 0 of 4,520 batch logs show it.
+- **Design** `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md`, reviewed by three lenses with refuters (1 blocker
+  and 10 should-fix upheld, 5 refuted to nits; all folded). v1: non-multi doubles, self-only, HP items only, behind
+  `POKEBOT_R27_DOUBLEITEMS` (default OFF); an in-menu PID guard; a raw post-menu read the arms grade on; the cursor fix
+  unconditional.
+- **Step 0** (`tools/story-dev/evidence/2026-09-30-doubleitems13-STEP0.txt`):
+  - the fixture `d13_tateliza.ss1` pinned (copied from the re-captured `at_mossdeep_leaders.ss1`);
+  - `storyresume` fights Tate & Liza with production's strategy;
+  - `battlerPartyOrders` is at `*gBattleStruct + 0x60`, confirmed live;
+  - both natural trajectories discriminate. Route 123's first double acts at f3149372 (the default policy), Tate & Liza
+    at f3456183 (fraction 0.8).
+- **Filed:**
+  - KI-115 and `#27-battlestructptr`: two upstream `gBattleStruct` misreads (a pointer read as a struct; one wrong
+    offset too);
+  - `#27-itemprobes`: step 14's item instrument matches a line no code prints;
+  - `03`'s "Tate & Liza is the story's one double" corrected.
+- **Predictions filed BEFORE any code:** `ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md`. No production code yet. Next: the build.

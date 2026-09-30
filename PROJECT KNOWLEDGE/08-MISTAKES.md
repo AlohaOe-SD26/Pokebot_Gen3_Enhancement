@@ -23522,3 +23522,25 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - "Identical" names exactly what was compared.
   - Two arms that differ only by a flag need a check that reads that flag's EFFECT.
   - After any re-point of ranges, diff each range's END against the source's line map; order is not correctness.
+
+## 2026-09-30 — ⛔ A MERGE RAN WITHOUT THE ANCESTRY CHECK MEANT TO GUARD IT (a `;` after a failing command)
+
+- **Symptom:** step 12's merge command chained `git rev-parse --short HEAD origin/main && … && git merge-base
+  --is-ancestor … ; git merge --ff-only wt/weaken12`. `rev-parse --short` with two revisions fails ("Needed a single
+  revision"), so the `&&` chain stopped before the ancestry check, and the `;` ran the merge anyway.
+- **Why it did no harm:** `--ff-only` refuses anything that is not a fast-forward, and ancestry had been checked
+  earlier the same session. The result was verified afterwards (`main` = `origin/main` = `f7ae9878`).
+- **Root cause:** the guard and the action it guards were joined by `;`, so the action did not depend on the guard.
+- **Prevention rule:** a guard and its action go in ONE `&&` chain, or the action must be its own guard
+  (`--ff-only`, `--force-with-lease`). Read a compound command's separators before running it.
+
+## 2026-09-30 — ⛔ THE HEREDOC RULE'S SIBLING: TWO DOC EDITS WENT THROUGH SHELL-QUOTED `python -c` STRINGS WITH ESCAPED BACKTICKS (a near-miss)
+
+- **Symptom:** during step 13, KI-115's struct-offset paragraph and the predictions' PID fill were written by
+  `py -3.12 -c "…"` inside bash double quotes, with every backtick escaped as a backslash-backtick. Both outputs were
+  checked afterwards and are clean; nothing was harmed.
+- **Why it is the same hazard:** the 08 heredoc rule exists because shell quoting silently rewrites backslashes and
+  backticks. A double-quoted `-c` string is the same shell layer, and backticks are live command substitution there, so
+  one missed escape would have RUN a command and pasted its output into a doc.
+- **Prevention rule (widens the heredoc rule):** documentation text never passes through ANY shell-quoted string: not a
+  heredoc, not `-c "…"`, not `echo`. Use Write/Edit, or a script file written with Write and then run.

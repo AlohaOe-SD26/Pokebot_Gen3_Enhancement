@@ -3229,3 +3229,27 @@ needs a DIVERGENCE-LOG entry when promoted), then rebuild the cache. Not started
 - Design v2 step 12's weaken module reads the raw 0x06 itself and does not use the property.
 **Fix direction:** read 0x06. It is an UPSTREAM divergence (a `DIVERGENCE-LOG` entry when promoted), and needs a gate
 row against a raw disable struct. Low priority while nothing calls it. Not started.
+
+## KI-115 — ⚠ OPEN (filed 2026-09-30; consequence NOT measured; upstream code): two reads of `gBattleStruct` read the bytes NEXT TO the pointer, not the struct
+**Verified by the author** (design v2 step 13's recon found it; `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md` §1):
+- `gBattleStruct` is a 4-byte POINTER at `0x0202449c` (`sandbox-pokebot/modules/data/symbols/pokeemerald.sym:181`;
+  the pointer is declared at pret `src/battle_main.c:221`).
+- `read_symbol(name, offset, size)` reads `address + offset` and does not dereference (`modules/memory.py:66-70`).
+- So `battle_move_replacing.py:147` (`read_symbol("gBattleStruct", 16, 1)`, meant as `expGetterMonId`, the party index
+  of the Pokémon learning a move) reads `0x020244ac`, which is `gActionSelectionCursor[0]` (`pokeemerald.sym:185`).
+  That is 0 whenever battler 0's last action was FIGHT.
+- And `battle_strategies/_util.py:93` (`offset=0x4C`, meant as the run-attempt count) reads `0x020244e8`, which is
+  `sLearningMoveTableID`.
+- The upstream mirror has both lines.
+- **The escape read's OFFSET is wrong too.** From the field list of `struct BattleStruct` (pret `include/battle.h`, natural
+  alignment, derived by the author): `expGetterMonId` is at +0x10, so the move-learn read has the right offset and
+  lacks only the dereference; but +0x4C is `switchInAbilitiesCounter`, and `runTries` is at +0x6C. (+0x60 is
+  `battlerPartyOrders`, which design v2 step 13 reads; its live self-check is that step's S0-4.)
+**Consequence (INFERRED, not measured):**
+- In battle, when a Pokémon that is NOT battler 0's learns a move (a switched-out trainee, a benched participant), the
+  forget-a-move policy may be shown the WRONG Pokémon's moves, while the game applies the chosen slot to the real
+  learner. The value also goes through `map_battle_party_index`.
+- The escape-chance estimate ignores prior run attempts. That is minor.
+**Fix direction:** dereference the pointer (read the u32, then the field). Measure first with an observe-only probe
+(CLAUDE.md rule 10) that logs the current value beside the true `expGetterMonId` at each in-battle move offer. It is an
+UPSTREAM divergence (`DIVERGENCE-LOG` when promoted). `#27-battlestructptr`. Not started.

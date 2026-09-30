@@ -361,6 +361,19 @@ it.
   - Stage 2 (plain hits, `POKEBOT_R25_WEAKEN_CALC`) is built OFF until step 11's calculator is cleared.
   - Graded note: `ai-research-notes/2026-09-30-weaken12-GRADED.md`.
 
+### Healing items in DOUBLE battles (`modules/story/double_items.py` + `StoryItemBattleStrategy`, design v2 step 13; designed 2026-09-30)
+- **Purpose:** USER RULING 27 names gym leaders, and Tate & Liza plus all 32 gym-leader rematches are DOUBLE battles.
+  Today a double never reaches the item check at all, so the bot heals in no double. This makes each battler able to
+  heal ITSELF in a double, under the same item policy (and the same key-battle gate) as a single.
+- **Must do:**
+  - **never put an item on the wrong Pokémon:** the executor checks, inside the party menu, that the Pokémon under the
+    cursor is the requester (by PID) before pressing A, and backs out otherwise;
+  - **never break the partner's turn:** the menu driver reads each battler's OWN action cursor;
+  - **change nothing with the flag unset**, apart from that cursor fix (inert there, because both cursors stay on FIGHT).
+- **Where it stands:** designed, reviewed, Step-0-read and its predictions filed on `wt/doubleitems13`; NOT built. Flag
+  `POKEBOT_R27_DOUBLEITEMS` (default OFF). v1 excludes the Space Center multi, partner heals and status cures.
+  - Design: `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md`.
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

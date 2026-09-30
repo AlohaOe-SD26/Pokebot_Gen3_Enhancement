@@ -8714,3 +8714,30 @@ that were contested, and the rulings on the gaps the builder had to fill.
 - **Seeds 2-3 (v2's L0) were DROPPED for the seed-1 arms plus a test lever** (review F6).
   - Stage 1 is vacuous on every pinned party, so more observe-only seeds show inertness again and nothing more.
   - The lever arms show the ACTING path, which L0 could not.
+
+## 2026-09-30 — Design v2 step 13 (KB-2, items in DOUBLE battles): the design's rulings, and their rejected alternatives (`#26-organiccatch`)
+
+Design: `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md` (reviewed by three lenses, each finding put to a
+refuter: `2026-09-30-doubleitems13-recon/d13_design_review.md`). The author's calls, recorded so they are not re-asked;
+the user may overturn any of them.
+- **D1. The Space Center multi is OUT of v1** (`super()` there). The bot controls battler 0 only, Steven's Pokémon sit in
+  the party array, and it is measured low-value (0 losses of 16, 2 of 24, 4 of 56 in three batches). Rejected: including
+  it now; its party layout and ownership need their own design.
+- **D2. Self-only: each battler heals only its own active Pokémon.** Rejected: partner heals in v1. They need a
+  cross-battler identity binding and reopen the stale-HP hazard (battler 2 decides on the state read before battler
+  0's item).
+- **D6. `POKEBOT_R27_DOUBLEITEMS` and `POKEBOT_R27_KEYITEMS` are ORTHOGONAL.** Doubles follow the singles item policy,
+  including whatever KEYITEMS decides. Rejected: DOUBLEITEMS requiring KEYITEMS (the kit's D2 rule), because a flag
+  whose meaning depends on another composes less safely. ⚠ With KEYITEMS unset, DOUBLEITEMS alone uses items in every
+  trainer double (~856 per batch), as singles do today; step 14 runs both ON.
+- **D7. The battler-aware action cursor (C1) is UNCONDITIONAL**, not behind the flag. It is a correctness fix of a
+  latent upstream defect that never fired (0 of 4,520 batch logs), and it is inert with the flag unset because both
+  cursor bytes stay 0. Rejected: gating it, which would leave the flag-unset build carrying a defect that any future
+  double-battle item or switch would trip. It needs a `DIVERGENCE-LOG` entry when promoted.
+- **D10. HP items only in doubles (v1).** Rejected: status cures in v1, because a guard refusal on a parameter-0 cure is
+  not counted by the retry/disable logic (only the 4-use cap bounds it; review S13-P2). Tate & Liza's Hypnosis makes a
+  cure reachable, so this is a real, recorded limit.
+- **D11. The Struggle loop stops at battler 2's menu, behind the flag** (review S13-P1, upheld): with the flag unset the
+  blind FIGHT for battler 2 stays byte for byte; with it set, battler 2 makes its own decision.
+- **Dropped before any code:** the `--set-party-hp` and `--set-bag-item` levers. Step 0 showed both natural trajectories
+  discriminate (Route 123's first double from turn 0; Tate & Liza from turn 1 after the faint replacement).
