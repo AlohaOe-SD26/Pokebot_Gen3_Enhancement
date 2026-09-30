@@ -29,7 +29,10 @@ ROWS
   A1-A4   by AST (comments stripped): the forecast precedes the early return, which precedes the walk; the phase is
           called only from `_shop`; no `yield` inside the phase's GeneratorExit handler; the driver reads the balls'
           end state BEFORE restoring the fixture, prices only unconditional balls, and checks production's forecast.
-  M1-M14  source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red).
+  M1-M16  source mutants, each with the EXACT set of rows it must turn red; N1 a comment-only edit (none red).
+          ⚠ Gate run 1 (after the predictions) FAILED two written sets: M7 (the abort stubs synthesized a NEW
+          exception, which the real `reraise_if_aborting` never does; fixed) and M11 (a typo shares the OFF branch,
+          so O3 is red too; the set was incomplete). M15/M16 were then added: no mutant covered P6 or O7's abort.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_stock_topoff_sootopolis.py        (exit 1 on any failure)
 """
@@ -68,10 +71,6 @@ EMPTY_BASKET = {"Hyper Potion": 0, "Full Restore": 0, "Full Heal": 0, "Revive": 
 FULL_BASKET = {"Hyper Potion": 30, "Full Restore": 0, "Full Heal": 8, "Revive": 3}
 ALL_BALLS = {"Ultra Ball", "Great Ball", "Poké Ball", "Premier Ball", "Net Ball", "Nest Ball", "Dive Ball",
              "Repeat Ball", "Timer Ball", "Luxury Ball"}
-
-
-class _Abort(Exception):
-    pass
 
 
 def check(label: str, ok: bool, detail: str = "") -> None:
@@ -243,8 +242,10 @@ def _o_env(p, t, lr, *, flag, inputs_raise=None, memo=None, emitted=None):
                 "price_of": lambda n: PRICES[n]}
 
     def reraise(error):
+        # FAITHFUL to `early_game.reraise_if_aborting`: it re-raises the error it was GIVEN, never a synthesized one
+        # (a stub that raised a new exception made mutant M7 look like it broke abort propagation: gate run 1).
         if "ABORT" in str(error):
-            raise _Abort(str(error))
+            raise error
 
     p.set(t, "_inputs", inputs)
     p.set(t, "_allowed", lambda: set(ALL_BALLS))
@@ -313,8 +314,8 @@ def o_rows(tag=""):
             try:
                 _o_env(p, t, lr, flag="1", emitted=emitted, memo=set(), inputs_raise=RuntimeError("ABORT"))
                 t.sootopolis_ball_forecast(PLAN, 67466, BASKET_PRICES)
-            except _Abort:
-                aborted = True
+            except RuntimeError as error:
+                aborted = "ABORT" in str(error)
         return (out["walk"] is False and out["blocked"] is True and "SootopolisCity" in memo and aborted
                 and len([ln for ln in emitted if "why=topoff-failed" in ln]) == 1), f"out={out} memo={memo} abort={aborted}"
 
@@ -374,8 +375,9 @@ def _p_env(p, t, *, money=22166, buy="ok", emitted, memo, floor_env=None, raise_
             wallet["money"] -= got * PRICES[item.name]
 
     def reraise(error):
+        # FAITHFUL to `early_game.reraise_if_aborting` (see `_o_env`).
         if "ABORT" in str(error):
-            raise _Abort(str(error))
+            raise error
 
     p.set(t, "_inputs", inputs)
     p.set(t, "_allowed", lambda: set(ALL_BALLS))
@@ -442,8 +444,8 @@ def p_rows(tag=""):
     def p6():
         try:
             run(buy="abort")
-        except _Abort:
-            return True, "abort re-raised"
+        except RuntimeError as error:
+            return "ABORT" in str(error), f"re-raised {error!r}"
         return False, "abort swallowed"
 
     def p7():
@@ -727,7 +729,7 @@ def main() -> int:
          "    money_after = int(money)\n", {"F1", "O4", "O5"}),
         ("M2 the forecast's floor ignores the basket plan -> F1 O4 O5", T_PATH,
          "    for name, qty in basket_plan:\n        post[name] = post.get(name, 0) + qty\n", "", {"F1", "O4", "O5"}),
-        ("M3 the early return ignores the balls (the old `if not plan:`) -> S2", LR_PATH,
+        ("M3 the early return ignores the balls (the old `if not plan:`) -> S2 A1", LR_PATH,
          '    if not plan and not (balls and balls.get("walk")):\n', "    if not plan:\n", {"S2", "A1"}),
         ("M4 `observe` walks -> O4 S3", T_PATH,
          '               walk=mode == "1" and bool(forecast["lines"]))\n',
@@ -747,10 +749,10 @@ def main() -> int:
          "        if not balls[\"ok\"]:\n            _memo_add()\n", "        if not balls[\"ok\"]:\n", {"P2"}),
         ("M10 F1's archive removed (a second errand inherits the first's keys) -> S9", LR_PATH,
          "    if any(key != \"previous_errands\" for key in report):\n", "    if False:\n", {"S9"}),
-        ("M11 OFF returns a dict (adds a `balls` key) -> O1 O2 S1", T_PATH,
+        ("M11 OFF returns a dict (adds a `balls` key) -> O1 O2 O3 S1 (a typo IS OFF: it shares the branch)", T_PATH,
          "    if mode not in (\"observe\", \"1\"):\n        return None\n    out = ",
          "    if mode not in (\"observe\", \"1\"):\n        return {\"mode\": mode, \"walk\": False}\n    out = ",
-         {"O1", "O2", "S1"}),
+         {"O1", "O2", "O3", "S1"}),
         ("M12 the phase writes into R18's report root -> P1 P2 P3 P4 P5 P7 P8", T_PATH,
          "    balls = report.setdefault(\"balls\", {})\n    balls[\"phase\"] = \"started\"\n",
          "    balls = report\n    balls[\"phase\"] = \"started\"\n", {"P1", "P2", "P3", "P4", "P5", "P7", "P8"}),
@@ -759,6 +761,12 @@ def main() -> int:
          "        _memo_add()\n        out[\"reason\"] = f\"the forecast raised", {"O7"}),
         ("M14 the driver reads the balls AFTER restoring the fixture -> A4", HARNESS,
          "                R[\"balls_end\"] = _stock_by_name(BALLS)\n", "", {"A4"}),
+        ("M15 the phase SWALLOWS an abort -> P6", T_PATH,
+         "        reraise_if_aborting(error)\n        _memo_add()\n        balls[\"phase\"] = \"failed\"\n",
+         "        _memo_add()\n        balls[\"phase\"] = \"failed\"\n", {"P6"}),
+        ("M16 the forecast SWALLOWS an abort -> O7", T_PATH,
+         "        reraise_if_aborting(error)\n        _memo_add()\n        out[\"blocked\"] = True\n",
+         "        _memo_add()\n        out[\"blocked\"] = True\n", {"O7"}),
         ("N1 a comment edit naming the phase and `blocked` turns NOTHING red", LR_PATH,
          "        # RULINGS 23 + 26 (design v2 step 9b): after the basket, on the same open menu",
          "        # (edited) sootopolis_ball_phase( and blocked named in a comment only; after the basket, same menu",
