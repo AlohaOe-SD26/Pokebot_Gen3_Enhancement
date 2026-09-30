@@ -3193,6 +3193,10 @@ timing in the idle/recovery path; it is consistent with the watchdog candidate, 
   suggests that frame was never sampled, i.e. emulated with no Python observer (a frame batch). That would explain a
   decision made "one frame late" (the first event). `#27-determinism` should test whether every frame reaches
   `on_frame`.
+- **A fourth event, the same frame, WITH EVERY FLAG UNSET** (`evidence/2026-09-30-weaken12-RERUN.txt`): on the folded
+  build, W-OFF1 missed that same transient while W-OFF2, W-OFF3 and both observe runs logged it. So the weaken code is
+  not involved: in 2 of the 12 runs on this trajectory (2 base-code Step-0, 5 on 18b32bcc, 5 on 378a33b3), the harness failed to sample one frame's garbage read. It is a
+  reproducible point for `#27-determinism` to probe.
 
 ## KI-113 — ⚠ OPEN (filed 2026-09-29; low impact, upstream code): the runtime encounter reader holds the DEAD Altering Cave table (Smeargle), not the live one (Zubat)
 **Measured** (design v2 step 7; `tools/story-dev/rare_species_dataset.py`, check "the static ROM read equals the cache

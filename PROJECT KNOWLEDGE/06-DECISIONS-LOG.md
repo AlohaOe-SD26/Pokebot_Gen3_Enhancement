@@ -8645,3 +8645,45 @@ choices made while BUILDING and GRADING it (the design's AS BUILT section, and `
   nothing, and unknown is the safe reading.
 - **The status docs were held back while the reviewers read them.** That produced the grade lens's F1; the prevention
   rule is in `08`.
+
+## 2026-09-30 — Design v2 step 12 (W, weaken-to-catch, RULING 25) as built: a BINARY no-self-harm rule, gain counted in BALLS, the kind read from the mode, a test lever, and the builder's gap decisions ruled (`#26-organiccatch`)
+
+The design's D1-D15 (`ai-research-notes/2026-09-30-weaken12-DESIGN.md`) are the decisions; this entry records those
+that were contested, and the rulings on the gaps the builder had to fill.
+
+- **No-self-harm is BINARY, not a numeric floor.** Damage is admissible only if the target can hurt itself in NO way
+  for the rest of the battle; then the only bound is the hit itself (hp − X ≥ 1).
+  - Rejected: v2's per-turn hazard floor. The hazards repeat on every throw turn.
+  - Rejected: a floor summed over the horizon. It is sound, but needs every hazard's per-turn cost.
+- **E_gain counts expected BALLS saved:** E(hp) − E(hp − X) ≥ 1.0.
+  - Rejected: the netted form E(hp) − (1 + E(hp − X)). Computed on the arm's own target, it rejected Seismic Toss
+    against a full-HP Taillow (0.97).
+  - RULING 25 constrains balls, and the damage turn spends none.
+- **The kind comes from the mode's `_catch_ctx`, checked against the opponent's species at the first decision; the
+  target is identified by PID.** Rejected: a constructor argument. It would rewrite three construction lines that four
+  gates pin.
+- **THROW is the parent's own ball** (`_get_best_poke_ball`, never the Master Ball), and a DEFER is the parent's whole
+  turn.
+- **A TEST lever (`--set-lead-move`) makes stage 1 live.** No pinned party lead holds a stage-1 move.
+  - It is a state write, read back and asserted, and applied in BOTH arms.
+  - Dragon Rage (40) was chosen by computation so that the KO bound BINDS; a fault arm that removes only the bound
+    produced the KO.
+- **Stage 2 is built and OFF.** Its observe verdicts were measured live (all THROW on the fixture). Its release waits
+  on M1b's acceptance.
+- **The builder's gap decisions, RULED ACCEPTED** (the adversarial pass judged each for safety):
+  - the damage and status caps each block only their own branch;
+  - "no progress" = an acting turn after which, at a later turn, the target's HP is not lower and it has no new status;
+    two such turns ⇒ THROW-ONLY;
+  - the battle-type DEFER covers every flag except IS_MASTER and RECORDED_IS_MASTER;
+  - stage 2's divergence exclusions are the broader (conservative) forms;
+  - among admissible moves, the largest guaranteed damage wins, and a tie goes to the lowest slot.
+  - Each rule only ever adds a THROW or a DEFER, or chooses among moves that already cleared the bound.
+- **After the gate's adversarial pass: five production fixes**, each with a row red on the old code:
+  - PD1: a Trace member copying the target's ability; a real KO path;
+  - PD2: Pain Split;
+  - PD3: confusion berries;
+  - PD4: a Sand Stream member;
+  - PD5: RECHARGE moves are out of stage 2, and the horizon slack is 8.
+  - Rejected: leaving the latent ones (PD2-PD4) for later. Each is one line, and each closes a KO path.
+- **The Encore reader bug (KI-114) was filed, not fixed.** It is a shared, upstream path with no caller; the module
+  reads the raw offset itself.

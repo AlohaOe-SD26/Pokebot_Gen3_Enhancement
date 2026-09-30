@@ -66,3 +66,23 @@
 - The battle-type DEFER covers every flag except IS_MASTER and RECORDED_IS_MASTER (wider than the design's list).
 - Stage 2's divergence exclusions are conservative: any live Flash Fire, any Charge, and badge 7 with a special move.
 - Among admissible moves, the largest guaranteed damage wins, and a tie goes to the lowest slot.
+
+## THE ADVERSARIAL PASS ON THE GATE, ITS FIXES, AND THE ARMS RE-RUN ON THE FIXED COMMIT (`378a33b3`)
+
+- **The pass** (`evidence/2026-09-30-weaken12-ADVERSARIAL.txt`): the gate caught 37 of 139 mutants. The worst miss
+  was the KO floor's off-by-one.
+- **It found five production defects, all FIXED** (the design's AS BUILT section; `-FOLD.txt`):
+  - PD1, a Trace faint-switch copying the target's Rough Skin: a real KO path;
+  - PD2 Pain Split, PD3 confusion berries, PD4 a Sand Stream member: latent;
+  - PD5 RECHARGE in stage 2 and the horizon slack.
+  - The gate is now 211 rows, 9 faults and 196 mutants; all 205 pre-written sets matched on the first run.
+  - The full suite: 135 of 135.
+- **The arms re-run on `378a33b3`** (`evidence/2026-09-30-weaken12-RERUN.txt`): **every arm passes against the
+  reproducing OFF run (35 of 36 checks).**
+  - **The one failure is W-OFF1's literal hash, and W-OFF1 is the lone divergent OFF run.** It missed the same one-frame
+    garbage `[BALLS]` read that the first W-OBS run missed on `18b32bcc`, this time with every flag UNSET.
+  - W-OFF2 and W-OFF3 reproduce each other (sha `e444a33991bd7720`, the base code's own hash) under the filed rule
+    ("the two OFF runs must match each other first, else a third").
+  - ⇒ The telemetry divergence is the harness's (KI-112), not the weaken code's.
+  - ST-ON, DR-ON and DR-FAULT are BYTE-IDENTICAL to their runs on the unfixed build, so the fixes change nothing on
+    these trajectories, as predicted.

@@ -1,0 +1,130 @@
+design v2 step 12 (weaken-to-catch) — the live arms RE-RUN on the folded commit 378a33b3 (the adversarial pass's
+five production fixes), 2026-09-30 LA. Same fixture, flags, frames and seed as 2026-09-30-weaken12-ARMS.txt.
+======================================================================================================================
+
+===== the runners =====
+WT HEAD 378a33b3c5bffc5869de4eae62bfb0fbdfb4a7c4 branch wt/weaken12 dirty-code=0
+  OK         r20_pregym1_party4_r116.ss1 = 9710585350be
+W-OFF1 exit=0 debug=Story-debug-20260930-142003.log 02:23:43 PM
+W-OBS exit=0 debug=Story-debug-20260930-142349.log 02:27:28 PM
+ST-ON exit=0 debug=Story-debug-20260930-142734.log 02:31:12 PM
+DR-ON exit=0 debug=Story-debug-20260930-143118.log 02:34:57 PM
+W-OFF2 exit=0 debug=Story-debug-20260930-143503.log 02:38:42 PM
+W-OBSCALC exit=0 debug=Story-debug-20260930-143848.log 02:42:27 PM
+DR-FAULT exit=0 debug=Story-debug-20260930-144234.log 02:46:12 PM
+W12-ARMS-DONE
+
+(the third OFF run, under the filed decision rule "the two OFF runs must match each other first, else a third":)
+WT HEAD 378a33b3c5bffc5869de4eae62bfb0fbdfb4a7c4 branch wt/weaken12 dirty-code=0
+  OK         r20_pregym1_party4_r116.ss1 = 9710585350be
+W-OFF3 exit=0 debug=Story-debug-20260930-144653.log 02:50:32 PM
+W12-OFF3-DONE
+
+===== every run's frame-stamped lines (WEAKEN and DMGAUDIT lines dropped) =====
+  W-OFF1      1019 lines sha 9c75bafecb3bd38c   without [BALLS]:  922 sha 604d29c10ae293d5   transient 24720 logged: False
+  W-OFF2      1021 lines sha e444a33991bd7720   without [BALLS]:  922 sha 604d29c10ae293d5   transient 24720 logged: True
+  W-OFF3      1021 lines sha e444a33991bd7720   without [BALLS]:  922 sha 604d29c10ae293d5   transient 24720 logged: True
+  W-OBS       1021 lines sha e444a33991bd7720   without [BALLS]:  922 sha 604d29c10ae293d5   transient 24720 logged: True
+  W-OBSCALC   1021 lines sha e444a33991bd7720   without [BALLS]:  922 sha 604d29c10ae293d5   transient 24720 logged: True
+  ST-ON       1041 lines sha 2f628cd76e216075   without [BALLS]:  954 sha a084c457206db8c0   transient 24720 logged: False
+  DR-ON       1181 lines sha 414d58ba95536d55   without [BALLS]: 1045 sha f29c2d4724d057db   transient 24720 logged: False
+  DR-FAULT    1152 lines sha 1808b21bc90fd64c   without [BALLS]: 1037 sha c8dcb64585df3572   transient 24720 logged: False
+
+READING:
+- ST-ON, DR-ON and DR-FAULT are BYTE-IDENTICAL to their runs on the unfixed build 18b32bcc (2f628cd76e216075,
+  414d58ba95536d55, 1808b21bc90fd64c): the five fixes change nothing on these trajectories, as the builder's replay of
+  the Step-0 decisions predicted.
+- W-OFF1 missed the same one-frame garbage [BALLS] read (21 -> 24720 -> 21 at f272106-7) that the first W-OBS run
+  missed on 18b32bcc. This time the run with the flags UNSET missed it, so the weaken code is NOT involved; it is the
+  harness (KI-112). W-OFF2 and W-OFF3 reproduce each other (e444a33991bd7720, the base code's NL Step-0 hash).
+- Without [BALLS], all five flag-unset/observe runs share one trajectory (604d29c10ae293d5).
+
+===== GRADE as filed (against W-OFF1, the literal text): =====
+== W-OFF x2: = NL Step-0 (sha e444a33991bd7720), 0 WEAKEN lines ==
+  FAIL  W-OFF1: non-DMGAUDIT lines sha == e444a33991bd7720  — 9c75bafecb3bd38c
+  PASS  W-OFF1: 0 lines contain WEAKEN
+  PASS  W-OFF2: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF2: 0 lines contain WEAKEN
+== W-OBS ==
+  FAIL  W-OBS: every line without WEAKEN/DMGAUDIT == W-OFF1  — #642: 'f272106 [BALLS] 21 -> 24720' | 'f272516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)'
+  PASS  W-OBS: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBS: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBS: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBS: 0 first=1
+  PASS  W-OBS: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBS: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBS: every OBS snapshot replays to the same verdict (determinism only)  — []
+== W-OBSCALC ==
+  FAIL  W-OBSCALC: every line without WEAKEN/DMGAUDIT == W-OFF1  — #642: 'f272106 [BALLS] 21 -> 24720' | 'f272516 [MAP] RUSTBORO CITY(0,3) -> ROUTE 116(0,31) pos=(40, 9)'
+  PASS  W-OBSCALC: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBSCALC: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBSCALC: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBSCALC: 0 first=1
+  PASS  W-OBSCALC: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBSCALC: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBSCALC: every OBS snapshot replays to the same verdict (determinism only)  — []
+== ST-ON: = ST Step-0 up to f165971; DAMAGE Seismic Toss, dbide 15, the Taillow at 6/21; 0 res=Won ==
+  PASS  ST-ON: every line before f165971 == ST Step-0
+  PASS  ST-ON: the first act is DAMAGE with Seismic Toss, before the f165971 turn line  — f165971 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=206887A5 hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Seismic_Toss ball=- reason=stage1:LEVEL_DAMAGE snap={"target":{"pid":543721381,"species_i
+  PASS  ST-ON: the f165971 [TURN 0] line shows UseMove:Seismic Toss  — f165971 [BATTLE] [TURN 0] Mudkip L15 21/44 -> UseMove:Seismic Toss(pp2)  vs Taillow L6 21/21
+  PASS  ST-ON: DMGAUDIT BEFORE mv[0]=69, dbide 15, the Taillow at 6 after  — mv=(69, 45, 0, 0) dbide=15 after_hp=6
+  PASS  ST-ON: 0 [CATCH] end ... res=Won  — []
+  PASS  ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level  — []
+== DR-ON: = DR Step-0 on EVERY line without WEAKEN; THROW (floor) at f140685; 0 res=Won ==
+  PASS  DR-ON: every line without WEAKEN/DMGAUDIT == DR Step-0 (the whole run)
+  PASS  DR-ON: the first act (the f140685 decision) is THROW with the floor as its reason  — f140685 [WEAKEN] act=THROW t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=- move=- ball=Poké_Ball reason=dmg:floor@1|st:no-status-move snap={"target":{"pid":2973106956,"sp
+  PASS  DR-ON: no act=DAMAGE anywhere
+  PASS  DR-ON: 0 res=Won
+== DR-FAULT: = DR Step-0 up to f140685; DAMAGE Dragon Rage, dbide 40, the Taillow faints (res=Won) ==
+  PASS  DR-FAULT: every line before f140685 == DR Step-0
+  PASS  DR-FAULT: the first act is DAMAGE with Dragon Rage  — f140685 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Dragon_Rage ball=- reason=stage1:DRAGON_RAGE snap={"target":{"pid":2973106956,"species_id
+  PASS  DR-FAULT: DMGAUDIT BEFORE mv[0]=82 and dbide 40  — mv=(82, 45, 0, 0) dbide=40
+  PASS  DR-FAULT: [CATCH] end kind=team sp=Taillow#276 ... res=Won  — f141324 [CATCH] end kind=team sp=Taillow#276 end=other res=Won thrown=0 frames=1079 dest=none pid=- party=4/6 box=0 spare=31 badges=0 bail=-
+
+31/34 checks PASS
+
+===== GRADE-3 (the observe arms against the REPRODUCING OFF, W-OFF2 = W-OFF3; all three OFF runs reported): =====
+== W-OFF x2: = NL Step-0 (sha e444a33991bd7720), 0 WEAKEN lines ==
+  FAIL  W-OFF1: non-DMGAUDIT lines sha == e444a33991bd7720  — 9c75bafecb3bd38c
+  PASS  W-OFF1: 0 lines contain WEAKEN
+  PASS  W-OFF2: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF2: 0 lines contain WEAKEN
+  PASS  W-OFF3: non-DMGAUDIT lines sha == e444a33991bd7720  — e444a33991bd7720
+  PASS  W-OFF3: 0 lines contain WEAKEN
+== W-OBS ==
+  PASS  W-OBS: every line without WEAKEN/DMGAUDIT == the reproducing W-OFF2
+  PASS  W-OBS: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBS: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBS: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBS: 0 first=1
+  PASS  W-OBS: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBS: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBS: every OBS snapshot replays to the same verdict (determinism only)  — []
+== W-OBSCALC ==
+  PASS  W-OBSCALC: every line without WEAKEN/DMGAUDIT == the reproducing W-OFF2
+  PASS  W-OBSCALC: exactly 11 [WEAKEN-OBS] lines  — 11
+  PASS  W-OBSCALC: every WEAKEN line is an OBS line (no act=, no ERR)  — []
+  PASS  W-OBSCALC: every OBS line would=THROW  — ['THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW', 'THROW']
+  PASS  W-OBSCALC: 0 first=1
+  PASS  W-OBSCALC: every OBS line inside a team/dex [CATCH] battle  — [(159430, 165755, 'team'), (202229, 203731, 'team'), (205680, 208985, 'team')]
+  PASS  W-OBSCALC: each OBS line's target values == DMGAUDIT's raw record (independent reader)  — []
+  PASS  W-OBSCALC: every OBS snapshot replays to the same verdict (determinism only)  — []
+== ST-ON: = ST Step-0 up to f165971; DAMAGE Seismic Toss, dbide 15, the Taillow at 6/21; 0 res=Won ==
+  PASS  ST-ON: every line before f165971 == ST Step-0
+  PASS  ST-ON: the first act is DAMAGE with Seismic Toss, before the f165971 turn line  — f165971 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=206887A5 hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Seismic_Toss ball=- reason=stage1:LEVEL_DAMAGE snap={"target":{"pid":543721381,"species_i
+  PASS  ST-ON: the f165971 [TURN 0] line shows UseMove:Seismic Toss  — f165971 [BATTLE] [TURN 0] Mudkip L15 21/44 -> UseMove:Seismic Toss(pp2)  vs Taillow L6 21/21
+  PASS  ST-ON: DMGAUDIT BEFORE mv[0]=69, dbide 15, the Taillow at 6 after  — mv=(69, 45, 0, 0) dbide=15 after_hp=6
+  PASS  ST-ON: 0 [CATCH] end ... res=Won  — []
+  PASS  ST-ON: every DAMAGE (2) ran Seismic Toss with dbide == the lead's level  — []
+== DR-ON: = DR Step-0 on EVERY line without WEAKEN; THROW (floor) at f140685; 0 res=Won ==
+  PASS  DR-ON: every line without WEAKEN/DMGAUDIT == DR Step-0 (the whole run)
+  PASS  DR-ON: the first act (the f140685 decision) is THROW with the floor as its reason  — f140685 [WEAKEN] act=THROW t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=- move=- ball=Poké_Ball reason=dmg:floor@1|st:no-status-move snap={"target":{"pid":2973106956,"sp
+  PASS  DR-ON: no act=DAMAGE anywhere
+  PASS  DR-ON: 0 res=Won
+== DR-FAULT: = DR Step-0 up to f140685; DAMAGE Dragon Rage, dbide 40, the Taillow faints (res=Won) ==
+  PASS  DR-FAULT: every line before f140685 == DR Step-0
+  PASS  DR-FAULT: the first act is DAMAGE with Dragon Rage  — f140685 [WEAKEN] act=DAMAGE t=0 sp=Taillow#276 pid=B136030C hp=21/21 st=0 tmv=64:35,45:40,116:30,- slot=1 move=Dragon_Rage ball=- reason=stage1:DRAGON_RAGE snap={"target":{"pid":2973106956,"species_id
+  PASS  DR-FAULT: DMGAUDIT BEFORE mv[0]=82 and dbide 40  — mv=(82, 45, 0, 0) dbide=40
+  PASS  DR-FAULT: [CATCH] end kind=team sp=Taillow#276 ... res=Won  — f141324 [CATCH] end kind=team sp=Taillow#276 end=other res=Won thrown=0 frames=1079 dest=none pid=- party=4/6 box=0 spare=31 badges=0 bail=-
+
+35/36 checks PASS

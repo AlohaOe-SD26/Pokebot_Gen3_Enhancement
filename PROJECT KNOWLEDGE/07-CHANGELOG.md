@@ -37339,3 +37339,44 @@ bought balls only at fixed story points.
   - "1 of 10" is not a rate: the divergent run was the only early one.
 - **Merged to `main`.** Step 12 is next: its stage 1 and `observe`, with stage 2 OFF and its live arms waiting on M1b's
   acceptance.
+
+## 2026-09-30 — design v2 step 12 (W, weaken-to-catch, RULING 25) BUILT, GRADED and its gate's adversarial pass FOLDED: a bounded weaken turn that acts only when it can never KO the target, behind `POKEBOT_R25_WEAKEN` (default OFF) (`#26-organiccatch`)
+
+- **What it is for:** RULING 25. Before throwing at a WANTED wild target, spend at most one bounded damage turn (or a
+  sleep/paralysis try) when the expected balls saved justify it.
+  - ⛔ **Stage 1 will almost never act in a real run:** no pinned party lead holds an exact-damage, sleep or paralysis
+    move.
+  - Stage 2 (plain hits, `POKEBOT_R25_WEAKEN_CALC`) is built OFF until step 11's calculator is cleared.
+- **The path to the build:**
+  - a five-angle recon (incl. a Gemini fan-out validated against the decomp: ~26% of its claims wrong);
+  - a design;
+  - a three-lens design review: 1 blocker (a fault arm that could not bind), plus Encore at execution, Transform, a
+    faint-switch retaliator, PP, and the ball and gain, all folded;
+  - the test lever `--set-lead-move`;
+  - the Step-0 reads: six runs at the base code, three pairs, each identical;
+  - the PREDICTIONS, filed before any code.
+- **Built (`18b32bcc`):**
+  - `modules/story/weaken_catch.py` (pure);
+  - the adapter in `StoryCatchStrategy.decide_turn`: the kind from `_catch_ctx`, identity by PID, pure reads, no
+    `get_battle_state`, its own `WEAKEN` category;
+  - the gate `probe_weaken_catch.py`;
+  - the "a catch never damages" statements scoped to the flag unset.
+- **Graded** (`ai-research-notes/2026-09-30-weaken12-GRADED.md`): 34 of 34 on the reproducing runs.
+  - OFF equals the base code.
+  - ST-ON acted once with Seismic Toss for exactly 15, leaving the Taillow at 6/21.
+  - DR-ON equals DR-OFF for the whole run.
+  - DR-FAULT KO'd the Taillow, so the bound is load-bearing.
+  - The first W-OBS run missed one garbage `[BALLS]` read (telemetry only); its re-run passed, under the filed rule.
+- **The gate's adversarial pass** (`evidence/2026-09-30-weaken12-ADVERSARIAL.txt`) caught 37 of 139 mutants, missing
+  the KO floor's off-by-one.
+  - It found five production defects, all fixed (`378a33b3`): PD1, a Trace faint-switch copying the target's Rough
+    Skin, a real KO path; PD2-PD4, latent; PD5.
+  - The gate is now 211 rows, 9 faults and 196 mutants; all 205 pre-written sets were exact on the first run.
+  - The gate is registered; the full suite passes, 135 of 135 (465.7 s).
+- **The arms re-run on `378a33b3`** (`evidence/2026-09-30-weaken12-RERUN.txt`): every arm passes against the
+  reproducing OFF run.
+  - The acting arms are byte-identical to the unfixed build's.
+  - An OFF run missed the same `[BALLS]` transient, so the weaken code is not involved (KI-112's fourth event).
+- **Also filed:**
+  - KI-114 and `#27-encorereader`: the Encore reader's wrong offset; latent, upstream.
+  - `#24-flymaptype` archived verbatim, for the punch list's line budget.
