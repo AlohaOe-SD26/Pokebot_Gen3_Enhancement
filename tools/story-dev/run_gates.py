@@ -1138,6 +1138,11 @@ GATES: list[tuple[str, bool]] = [
     # UPSTREAM-derived file): pure planning, the heal's three hunks by AST, the errand executed with stubs, 9 mutants.
     # ‼ APPENDED AT THE END, never inserted (the ordinal rule above; the step 9 recon flagged it).
     ("probe_stock_topoff.py", False),
+    # USER RULINGS 23 + 26 (design v2 step 9b, BB consumer b) — the ball top-off inside RULING 18's Sootopolis
+    # League-basket visit: the post-basket forecast, the counter phase and `league_reserve`'s visit EXECUTED with stubs
+    # (incl. the recon's F1: a second errand on the same dict must start clean), AST rows, 14 mutants with exact red
+    # sets. ‼ APPENDED AT THE END, never inserted.
+    ("probe_stock_topoff_sootopolis.py", False),
 ]
 
 

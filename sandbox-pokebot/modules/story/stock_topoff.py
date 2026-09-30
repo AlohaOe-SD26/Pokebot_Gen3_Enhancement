@@ -1,7 +1,7 @@
 """
-USER RULINGS 23 + 26, design v2 step 9a (BB): top off the BALL stock with the best ball the mart sells, in BOUNDED
-batches, as a piggyback on a Pokémon Center heal. Behind `POKEBOT_R23_BALLRESTOCK` (default OFF; `observe` plans and
-logs without walking; `1` buys).
+USER RULINGS 23 + 26, design v2 step 9 (BB): top off the BALL stock with the best ball the mart sells, in BOUNDED
+batches: as a piggyback on a Rustboro Pokémon Center heal (9a), and inside RULING 18's Sootopolis League-basket visit
+(9b). Behind `POKEBOT_R23_BALLRESTOCK` (default OFF; `observe` plans and logs without walking; `1` buys).
 
 RULING 23 (06, 2026-09-29): no per-run spending ceiling; purchases in bounded batches, topped off periodically the way
 healing items are; the BEST ball the current shop sells; RULING 18's League basket and reserve still stand.
@@ -10,8 +10,11 @@ RULING 26: stock is maintained all game.
 WHAT THIS FILE IS
   * PURE planning (`limits`, `best_ball`, `stage`, `floor`, `ball_topoff_plan`, `plan_lines`), importable with no
     emulator and gated by `tools/story-dev/probe_stock_topoff.py`.
-  * The emulator ERRAND (`ball_topoff_errand`), called from ONE place: the end of `heal_in_pokemon_center`
-    (`modules/modes/util/higher_level_actions.py`), after the heal's own stable-exit wait.
+  * Consumer (a), step 9a: the emulator ERRAND (`ball_topoff_errand`), called from ONE place: the end of
+    `heal_in_pokemon_center` (`modules/modes/util/higher_level_actions.py`), after the heal's own stable-exit wait.
+  * Consumer (b), step 9b: RULING 18's Sootopolis League-basket visit (`league_reserve._stock_basket_early` and
+    `_shop`) calls `sootopolis_ball_forecast` before any walk and `sootopolis_ball_phase` at the counter. It walks for
+    the balls alone only when the basket is complete and the forecast buys; OFF, it reads nothing but the flag.
 
 THE NUMBERS (a bounded DEFAULT; the batch size is the user's Q1, shown to them — v2 note §4):
   * TRIGGER = DEX_CATCH_BALL_RESERVE + DEX_CATCH_MAX_EXPECTED_THROWS = 20: top off exactly when the bot can no longer
@@ -39,6 +42,10 @@ THE NUMBERS (a bounded DEFAULT; the batch size is the user's Q1, shown to them �
     run. An OUTER bound that closes the heal mid-errand is logged (`topoff-closed`) and memoised too; no recovery can
     run while a generator is closing, so the avatar may be left in the Mart for the caller's next navigate.
   * Whitelist: Rustboro only (step 9a). Its mart sells Poké Balls from the start (`RustboroCity_Mart/scripts.inc`).
+    Sootopolis is NOT whitelisted (KI-103): it is consumer (b), which rides RULING 18's round trip.
+  * Consumer (b) (gate `probe_stock_topoff_sootopolis.py`): OFF reads nothing but the flag and adds no report key; the
+    forecast plans from the POST-basket wallet and floor; the ball phase re-plans live, never raises (the basket's own
+    outcome stands), memoises a failure, and logs an outer close; `observe` never walks for balls.
   * ⚠ No minimum batch: a money-limited purchase can buy 1-2 balls and re-walk at the next eligible heal (bounded:
     each walk's budget halves). Part of the user's Q1.
 """
@@ -426,3 +433,215 @@ def _recover(exit_map, exit_tile, report) -> Generator:
     av = get_player_avatar()
     report["recovered_on_exit"] = (tuple(av.map_group_and_number) == tuple(exit_map.value)
                                    and tuple(av.local_coordinates) == tuple(exit_tile))
+
+
+# ================================================================================ consumer (b): Sootopolis (step 9b)
+# RULING 18's League-basket visit to the Sootopolis Mart (`league_reserve._stock_basket_early`, §Ch22 L1, on every Juan
+# attempt) also tops off the balls: in the SAME visit when the basket needs a walk, and as a BALL-ONLY walk when the
+# basket is complete and the forecast buys. The early return there used to fire on "nothing missing" alone, so lines
+# merely appended to the basket would be bought about once per run, not "topped off periodically" (v2 `[A-S9]`).
+# Whitelisting Sootopolis in consumer (a) is wrong on purpose (KI-103: the planner cannot see the bridge from the Mart
+# side), so this rides R18's proven round trip instead.
+
+#: The balls the Sootopolis Mart sells: recorded live by RULING 18's drives (`sold_here`, e.g.
+#: `evidence/2026-09-26-earlybasket-E1c-BUY.txt`). Used for the GO/NO-GO forecast only; the counter re-reads the live
+#: list with the menu open.
+SOOTOPOLIS_STATIC_SOLD = ("Ultra Ball",)
+
+
+def sootopolis_key() -> str:
+    """This consumer's key in the run's failed-walk memo and the `mart=` label of its lines: the Pokémon Center's
+    enum name, exactly as step 9a keys a city (`center.name`), so the two consumers can never share or miss a key."""
+    from modules.map_data import PokemonCenter
+
+    return PokemonCenter.SootopolisCity.name
+
+
+def forecast_after_basket(*, raw_basket_stock: dict, basket_plan, basket_prices: dict, league_prices: dict, money: int,
+                          spare: int, flags: dict, sold, allowed, ball_prices: dict, lim: dict,
+                          fault_floor: "int | None" = None) -> dict:
+    """PURE. The ball plan for the moment AFTER RULING 18's `basket_plan` is bought: the wallet minus that plan's cost,
+    and the floor from the League basket still MISSING once the plan is in the bag.
+
+    ⛔ Both halves matter, and step 0 measured each on `post_hm07.ss1`: the wallet BEFORE the basket with the right
+    floor forecasts 5 Ultras (₽67,466), a floor read from the bag before the basket forecasts 0 (₽1,000 + 2 × ₽54,300
+    is above any wallet here), and the right pair forecasts 1 (₽22,166 against a floor of ₽19,000)."""
+    from modules.story.victory_road import basket_to_buy
+
+    post = dict(raw_basket_stock)
+    for name, qty in basket_plan:
+        post[name] = post.get(name, 0) + qty
+    money_after = int(money) - sum(basket_prices[name] * qty for name, qty in basket_plan)
+    stage_name = stage(flags)
+    missing = None
+    if stage_name in ("BASKET_ERA", "LEAGUE"):
+        missing = sum(league_prices[name] * qty for name, qty in basket_to_buy(post))
+    floor_money = fault_floor if fault_floor is not None else floor(stage_name, missing)
+    ball = best_ball(sold, allowed, ball_prices)
+    price = ball_prices.get(ball) if ball else None
+    lines, reason = ball_topoff_plan(spare=spare, money=money_after, ball=ball, price=price, stage_name=stage_name,
+                                     floor_money=floor_money, lim=lim)
+    return {"lines": lines, "reason": reason, "money_after_basket": money_after, "floor": floor_money,
+            "stage": stage_name, "ball": ball, "spare": spare}
+
+
+def _fault_floor() -> "int | None":
+    """`POKEBOT_R23_FAULT_FLOOR=<₽>`: the live floor lever, honoured by consumer (b) exactly as by consumer (a)."""
+    import os
+
+    raw = os.environ.get("POKEBOT_R23_FAULT_FLOOR", "").strip()
+    return int(raw) if raw else None
+
+
+def _memo() -> "set | None":
+    """The run's failed-walk memo (`StoryMode._ball_topoff_failed`, reset per run), or None outside a StoryMode run (a
+    harness driver makes one visit, so it needs none)."""
+    from modules.context import context
+
+    failed = getattr(context.bot_mode_instance, "_ball_topoff_failed", None)
+    return failed if isinstance(failed, set) else None
+
+
+def _memo_add() -> None:
+    failed = _memo()
+    if failed is not None:
+        failed.add(sootopolis_key())
+
+
+def sootopolis_ball_forecast(basket_plan, money: int, basket_prices: dict) -> "dict | None":
+    """Called by `league_reserve._stock_basket_early` BEFORE any walk, with RULING 18's basket plan.
+
+    Returns None when `POKEBOT_R23_BALLRESTOCK` is OFF, having read nothing but that variable: the OFF path gains no
+    report key, no yield and no move. Otherwise a dict whose `walk` is True only in mode `1` with a non-empty forecast:
+    the caller may then walk for the balls alone. `observe` logs the forecast and never walks for it. Never raises: a
+    failed forecast is a named `topoff-failed` line, memoised, and no ball walk.
+    ⛔ `blocked` (a memo hit, or this forecast failing) stops the COUNTER phase too, not only the ball-only walk: a
+    failure at Sootopolis is not retried in the same run, even on a visit the basket makes anyway (the 9b recon, F8)."""
+    import os
+
+    mode, error = parse_flag(os.environ.get("POKEBOT_R23_BALLRESTOCK"))
+    if error:
+        _emit(f"[BALLS-BUY] why=topoff-flag mart={sootopolis_key()} reason={error}")
+    if mode not in ("observe", "1"):
+        return None
+    out = {"mode": mode, "walk": False, "blocked": False, "forecast": [], "reason": ""}
+    failed = _memo()
+    if failed is not None and sootopolis_key() in failed:
+        out["reason"] = "a ball phase failed here earlier this run (memo)"
+        out["blocked"] = True
+        _emit(log_line("topoff-skip", mart=sootopolis_key(), ball="-", bought=0, premier=0, spare_before="?",
+                       spare_after="?", money_before="?", money_after="?", reason=out["reason"]))
+        return out
+    try:
+        from modules.story.league_reserve import _stock_by_name
+        from modules.story.victory_road import LEAGUE_BASKET
+
+        live = _inputs(None)
+        names = [name for name, _ in LEAGUE_BASKET]
+        forecast = forecast_after_basket(
+            raw_basket_stock=_stock_by_name(names), basket_plan=basket_plan, basket_prices=basket_prices,
+            league_prices={name: live["price_of"](name) for name in names}, money=money, spare=live["spare"],
+            flags=live["flags"], sold=SOOTOPOLIS_STATIC_SOLD, allowed=_allowed(),
+            ball_prices={name: live["price_of"](name) for name in SOOTOPOLIS_STATIC_SOLD}, lim=limits(),
+            fault_floor=_fault_floor())
+    except Exception as error:  # noqa: BLE001 - a forecast failure moves nothing: it is reported, memoised, no ball walk
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        _memo_add()
+        out["blocked"] = True
+        out["reason"] = f"the forecast raised {error!r} (nothing moved)"
+        _emit(log_line("topoff-failed", mart=sootopolis_key(), ball="-", bought=0, premier=0, spare_before="?",
+                       spare_after="?", money_before="?", money_after="?", reason=out["reason"]))
+        return out
+    out.update(forecast=forecast["lines"], reason=forecast["reason"], floor=forecast["floor"],
+               spare=forecast["spare"], money_after_basket=forecast["money_after_basket"],
+               walk=mode == "1" and bool(forecast["lines"]))
+    _emit(log_line("topoff-observe" if mode == "observe" else "topoff-forecast", mart=sootopolis_key(),
+                   ball=forecast["ball"] or "-", bought=0, premier=0, spare_before=forecast["spare"],
+                   spare_after=forecast["spare"], money_before=forecast["money_after_basket"],
+                   money_after=forecast["money_after_basket"], reason=forecast["reason"],
+                   extra=f" plan={forecast['lines']} floor={forecast['floor']} walk={out['walk']}"))
+    return out
+
+
+def sootopolis_ball_phase(report: dict) -> Generator:
+    """At the Sootopolis clerk, on the shop's main menu, AFTER RULING 18's basket lines (or instead of them, on a
+    ball-only visit). Mode `1` only; the caller decides that.
+
+    Re-plans from the LIVE wallet, bag and stock list (so a short basket purchase, which leaves more of the basket
+    missing, raises the floor by itself), buys through `buy_in_shop`, and verifies by the bag delta of the ball bought.
+    ⛔ It writes ONLY under `report["balls"]`: R18's keys (`returned`, `bought`, `money_after`, the readings) drive the
+    walk back and the basket's grade, and step 9a's errand pattern writes those very names (the 9b recon, F3).
+    ⛔ NEVER raises: a failure is a `topoff-failed` line and a memo entry, and the basket's own outcome stands. The caller
+    (`_stock_basket_early`) always closes the menu and walks back across afterwards. An outer close mid-purchase is
+    logged (`topoff-closed`) and memoised, then allowed to proceed."""
+    import os
+
+    from modules.items import get_item_bag, get_item_by_name
+    from modules.mart import get_mart_buyable_items
+    from modules.modes.util.higher_level_actions import buy_in_shop
+
+    balls = report.setdefault("balls", {})
+    balls["phase"] = "started"
+    live = None
+    try:
+        if os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1":
+            raise RuntimeError("POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)")
+        live = _inputs(None)
+        floor_money = _fault_floor()
+        if floor_money is None:
+            floor_money = live["floor"]
+        sold = [item.name for item in get_mart_buyable_items()]   # ⛔ the menu is open: `sMartInfo` is current
+        ball = best_ball(sold, _allowed(), {name: live["price_of"](name) for name in sold if name in UNCONDITIONAL})
+        price = live["price_of"](ball) if ball else None
+        lines, reason = ball_topoff_plan(spare=live["spare"], money=live["money"], ball=ball, price=price,
+                                         stage_name=live["stage"], floor_money=floor_money, lim=limits())
+        balls.update(lines=lines, live_reason=reason, live_floor=floor_money)
+        if not lines:
+            balls["phase"] = "none"
+            _emit(log_line("topoff-none", mart=sootopolis_key(), ball=ball or "-", bought=0, premier=0,
+                           spare_before=live["spare"], spare_after=live["spare"], money_before=live["money"],
+                           money_after=live["money"], reason=reason, extra=f" floor={floor_money}"))
+            return
+        counted = sorted({ball, "Premier Ball"})
+        before = {name: get_item_bag().quantity_of(get_item_by_name(name)) for name in counted}
+        shopping = [(get_item_by_name(name), qty) for name, qty in lines]
+        yield from buy_in_shop(shopping)
+        yield                                                        # the bag cache is per frame
+        after = {name: get_item_bag().quantity_of(get_item_by_name(name)) for name in counted}
+        planned = sum(qty for _, qty in lines)
+        balls["bought"] = after[ball] - before[ball]
+        balls["premier"] = after["Premier Ball"] - before["Premier Ball"] if ball != "Premier Ball" else 0
+        balls["spare_after"] = int(get_item_bag().number_of_balls_except_master_ball)
+        from modules.player import get_player
+
+        balls["money_after"] = int(get_player().money)
+        balls["ok"] = balls["bought"] == planned
+        balls["phase"] = "done"
+        if not balls["ok"]:
+            _memo_add()
+            balls["why"] = f"bag delta {balls['bought']} != planned {planned}"
+        _emit(log_line("topoff" if balls["ok"] else "topoff-failed", mart=sootopolis_key(), ball=ball,
+                       bought=balls["bought"], premier=balls["premier"], spare_before=live["spare"],
+                       spare_after=balls["spare_after"], money_before=live["money"], money_after=balls["money_after"],
+                       reason=reason if balls["ok"] else balls["why"], extra=f" floor={floor_money}"))
+    except GeneratorExit:  # an OUTER bound (R18's EARLY_BASKET_BUDGET) closed the visit mid-purchase
+        _memo_add()
+        balls["phase"] = "closed"
+        _emit(log_line("topoff-closed", mart=sootopolis_key(), ball="-", bought="?", premier="?",
+                       spare_before=live["spare"] if live else "?", spare_after="?",
+                       money_before=live["money"] if live else "?", money_after="?",
+                       reason="the basket visit's budget closed the ball phase mid-purchase (R18 walks back)"))
+        raise
+    except Exception as error:  # noqa: BLE001 - the basket's outcome stands; the failure is logged and memoised
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
+        _memo_add()
+        balls["phase"] = "failed"
+        balls["error"] = repr(error)
+        _emit(log_line("topoff-failed", mart=sootopolis_key(), ball="-", bought=0, premier=0,
+                       spare_before=live["spare"] if live else "?", spare_after="?",
+                       money_before=live["money"] if live else "?", money_after="?",
+                       reason=f"the ball phase raised {error!r}; the basket's outcome stands"))

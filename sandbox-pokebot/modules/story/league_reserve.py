@@ -215,6 +215,15 @@ def stock_basket_early(report: dict) -> Generator:
     re-heal. Frame-bounded by `EARLY_BASKET_BUDGET`."""
     from modules.story.early_game import _yield_bounded_by_frames, reraise_if_aborting
 
+    # ⛔ ONE ERRAND PER CALL. §Ch22 passes the SAME dict on every Juan attempt (`heal_and_stock_before_the_gym` does
+    # `report.setdefault("early_basket", {})` on a report made once, above the attempt loop), and
+    # `return_across_from_the_mart` returns at once when `returned` is already True: a SECOND walk would skip the walk
+    # back and strand the bot on the Mart side with the menu open (KI-103). Latent in RULING 18 (attempt 2 rarely has a
+    # basket plan); reachable once step 9b walks for balls on a later attempt (found by the 9b recon, F1). ARCHIVED, never
+    # discarded, as §Ch22 archives its own per-attempt readings.
+    if any(key != "previous_errands" for key in report):
+        previous = {key: report.pop(key) for key in list(report) if key != "previous_errands"}
+        report.setdefault("previous_errands", []).append(previous)
     report.setdefault("readings", set())
     report.setdefault("order", [])
     report["walked"] = False
@@ -244,7 +253,9 @@ def stock_basket_early(report: dict) -> Generator:
                            f"bought={report.get('bought')} money={report.get('money_before')}->"
                            f"{report.get('money_after')} walked={report['walked']} finished={report.get('finished')} "
                            f"crossed={report.get('crossed')} returned={report.get('returned')} "
-                           f"stranded={report.get('stranded')}", category="EARLY_BASKET")
+                           f"stranded={report.get('stranded')}"
+                           + (f" balls={_balls_summary(report['balls'])}" if "balls" in report else ""),
+                           category="EARLY_BASKET")
     except Exception:  # noqa: BLE001 - telemetry must never break the chapter; a missing line is visible
         pass
     if report.get("stranded"):
@@ -253,6 +264,12 @@ def stock_basket_early(report: dict) -> Generator:
         raise BotModeError(f"early basket: STRANDED on the Mart side of Sootopolis after the retry "
                            f"({report.get('retry_return_error')}); the planner cannot see the bridge from there "
                            f"(KI-103).")
+
+
+def _balls_summary(balls: dict) -> dict:
+    """The ball top-off's part of the `[EARLY_BASKET]` line (design v2 step 9b; present only with the flag set)."""
+    keys = ("mode", "walk", "forecast", "phase", "lines", "bought", "premier", "ok", "money_after", "error")
+    return {key: balls[key] for key in keys if key in balls}
 
 
 def _stock_basket_early(report: dict) -> Generator:
@@ -291,12 +308,27 @@ def _stock_basket_early(report: dict) -> Generator:
     report["floor"] = floor
     plan = early_basket_plan(before, money, prices, floor=floor)
     report.update(stock_before=before, money_before=money, plan=plan)
-    if not plan:
+    # ---- RULINGS 23 + 26 (design v2 step 9b): the ball top-off rides this visit. ⛔ With `POKEBOT_R23_BALLRESTOCK`
+    # unset the forecast reads nothing but that variable and returns None: no report key, no yield, no move. In mode `1`
+    # a complete basket no longer ends the visit by itself: a forecast that buys walks for the balls alone
+    # (`stock_topoff.sootopolis_ball_forecast`).
+    from modules.story.stock_topoff import sootopolis_ball_forecast
+
+    balls = sootopolis_ball_forecast(plan, money, prices)
+    if balls is not None:
+        report["balls"] = balls
+    if not plan and not (balls and balls.get("walk")):
         missing = {n: q - before.get(n, 0) for n, q in basket().items() if n in names and before.get(n, 0) < q}
         report["early_basket"] = "nothing missing" if not missing else f"cannot afford one unit (₽{money:,})"
         return
-    _take("EB-PLANNED")
-    console.print(f"[cyan]Story: RULING 18 — buying {plan} at the Sootopolis Mart (₽{money:,}, floor ₽{CASH_FLOOR:,}).[/]")
+    if plan:
+        _take("EB-PLANNED")
+        console.print(f"[cyan]Story: RULING 18 — buying {plan} at the Sootopolis Mart (₽{money:,}, floor "
+                      f"₽{CASH_FLOOR:,}).[/]")
+    else:
+        report["early_basket"] = "balls only"
+        console.print(f"[cyan]Story: RULING 23 — the basket is complete; a ball-only visit to the Sootopolis Mart for "
+                      f"{balls.get('forecast')} (₽{money:,}).[/]")
 
 
     # ---- to the waypoint on the PC side. ⛔ Re-pin the live layout first: §Ch21 pins the LEGENDS layout into the
@@ -349,15 +381,13 @@ def _stock_basket_early(report: dict) -> Generator:
 
 
 def _shop(report: dict, plan, names, before, money, _take) -> Generator:
-    """At the clerk: open the Mart, buy the plan, verify by the bag delta. Raises on a menu problem."""
-    from modules.console import console
-    from modules.items import get_item_by_name
+    """At the clerk: open the Mart, buy the plan and verify it by the bag delta (`_buy_basket_lines`), then, in
+    `POKEBOT_R23_BALLRESTOCK=1`, top off the balls (design v2 step 9b). Raises on a menu problem, and on a Mart that
+    sells none of the basket unless this is a ball-only visit."""
     from modules.mart import get_mart_buyable_items
     from modules.modes.util import wait_for_n_frames
-    from modules.modes.util.higher_level_actions import buy_in_shop
     from modules.modes.util.tasks_scripts import task_is_active
-    from modules.player import get_player
-    from modules.story.early_game import _check_abort, wait_until_truly_controllable
+    from modules.story.early_game import _check_abort
     from modules.story.victory_road import _where
 
     opened = False
@@ -377,8 +407,28 @@ def _shop(report: dict, plan, names, before, money, _take) -> Generator:
     sold = {item.name for item in get_mart_buyable_items()}
     report["sold_here"] = sorted(sold)
     plan = [(n, q) for n, q in plan if n in sold]
-    if not plan:
+    balls = report.get("balls") or {}
+    if not plan and not balls.get("walk"):
         raise BotModeError(f"early basket: this Mart sells none of {list(BUY_ORDER)} ({sorted(sold)}).")
+    if plan:
+        yield from _buy_basket_lines(report, plan, names, before, money, _take)
+    if balls.get("mode") == "1" and not balls.get("blocked"):
+        # RULINGS 23 + 26 (design v2 step 9b): after the basket, on the same open menu (`buy_in_shop` ends on the shop's
+        # main menu). It never raises; the caller closes the menu and walks back across either way.
+        from modules.story.stock_topoff import sootopolis_ball_phase
+
+        yield from sootopolis_ball_phase(report)
+
+
+def _buy_basket_lines(report: dict, plan, names, before, money, _take) -> Generator:
+    """RULING 18's lines on the open Mart menu: buy them, then verify by the bag delta. Moved out of `_shop` UNCHANGED by
+    design v2 step 9b, so a ball-only visit can skip it."""
+    from modules.console import console
+    from modules.items import get_item_by_name
+    from modules.modes.util.higher_level_actions import buy_in_shop
+    from modules.player import get_player
+    from modules.story.early_game import wait_until_truly_controllable
+
     yield from buy_in_shop([(get_item_by_name(name), qty) for name, qty in plan])
     yield from wait_until_truly_controllable()
 

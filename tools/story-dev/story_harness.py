@@ -25096,6 +25096,18 @@ class EarlyBasketMode(BotMode):
                 `before` = before crossing to the Mart side (nothing to walk back); `shop` = after crossing, inside the
                 Mart — the outer retry must walk back along the stored path. Either way the chapter must still heal
                 and enter the gym (the adversarial review's kick-back, 2026-09-26).
+      `balls`   — design v2 step 9b, with `POKEBOT_R23_BALLRESTOCK=1`: premise: the basket is COMPLETE and the ball
+                forecast buys. A ball-only visit: EB-MART only, the basket untouched, the ball delta equals the forecast,
+                money drops by exactly the balls' cost and stays >= the forecast's floor, and we end on the gym's 1F.
+      `ballfail` — step 9b, with `POKEBOT_R23_BALLRESTOCK=1` and `POKEBOT_R23_FAULT_BALLRAISE=1`: the ball phase raises
+                with the menu open and must be SWALLOWED — the basket's outcome and readings stand, no ball is bought,
+                and the visit walks back, re-heals and enters the gym.
+    ⭐ THE BALLS (step 9b), graded by the driver's OWN bag reads: every ball stack is read after the PRE line and at the
+    end; the balls' cost (price × measured delta) joins `money_drop_equals_cost`; `buy`/`partial` require the delta to
+    equal the forecast (`stock_topoff.forecast_after_basket` from the driver's own reads; [] unless the flag is `1`), and
+    `nothing`/`nobuy`/`skip` require no ball delta at all. Every arm requires production's forecast to equal the
+    driver's (`observe` included), and with the flag OFF no `balls` report key at all; `buy`/`partial` also require the
+    outcome "bought" (a raise after EB-BOUGHT used to pass as a fail-open).
     `EB_SAVE_AFTER=<path>` saves the state after the purchase + re-heal (before the gym) — the own-output input.
     """
 
@@ -25136,12 +25148,35 @@ class EarlyBasketMode(BotMode):
             in_early_basket_era,
             stock_basket_early,
         )
+        from modules.story import stock_topoff as BB
         from modules.story.sootopolis_gym import GYM_1F, enter_gym, heal_and_stock_before_the_gym
 
         TAG = "earlybasket"
         EXPECT = _os.environ.get("EB_EXPECT", "buy")
-        if EXPECT not in ("buy", "nothing", "partial", "nobuy", "skip", "budget"):
-            raise BotModeError(f"{TAG}: EB_EXPECT={EXPECT!r} is not buy|nothing|partial|nobuy|skip|budget")
+        if EXPECT not in ("buy", "nothing", "partial", "nobuy", "skip", "budget", "balls", "ballfail"):
+            raise BotModeError(f"{TAG}: EB_EXPECT={EXPECT!r} is not buy|nothing|partial|nobuy|skip|budget|balls|"
+                               f"ballfail")
+        BALLS = sorted(BB.UNCONDITIONAL) + ["Premier Ball"]
+        ball_prices = {n: get_item_by_name(n).price for n in BB.UNCONDITIONAL}
+
+        def ball_forecast() -> dict:
+            """The driver's OWN forecast: its own reads through `stock_topoff`'s pure planner (the basket's
+            `plan_predicted` is made the same way). The ACTION is graded separately, by the measured bag delta."""
+            from modules.catch_balls import allowed_ball_names
+            from modules.items import get_item_bag
+            from modules.memory import _event_flags, get_event_flag
+            from modules.story.victory_road import LEAGUE_BASKET
+
+            names = [n for n, _q in LEAGUE_BASKET]
+            fault = _os.environ.get("POKEBOT_R23_FAULT_FLOOR", "").strip()
+            return BB.forecast_after_basket(
+                raw_basket_stock=_stock_by_name(names), basket_plan=R["plan_predicted"], basket_prices=prices,
+                league_prices={n: get_item_by_name(n).price for n in names}, money=R["money_start"],
+                spare=int(get_item_bag().number_of_balls_except_master_ball),
+                flags={k: bool(get_event_flag(n)) for k, n in BB.flag_names().items() if n in _event_flags},
+                sold=BB.SOOTOPOLIS_STATIC_SOLD, allowed=set(allowed_ball_names()),
+                ball_prices={n: ball_prices[n] for n in BB.SOOTOPOLIS_STATIC_SOLD}, lim=BB.limits(),
+                fault_floor=int(fault) if fault else None)
         BUDGET_AT = _os.environ.get("EB_BUDGET_AT", "before")
         PLANNED, AT_MART, BOUGHT = EARLY_BASKET_READINGS
         floor = int(_os.environ.get("POKEBOT_RESERVE_FAULT_FLOOR") or CASH_FLOOR)
@@ -25162,16 +25197,34 @@ class EarlyBasketMode(BotMode):
                 MapRSE.SOOTOPOLIS_CITY_POKEMON_CENTER_1F)
             R["plan_predicted"] = early_basket_plan(R["stock_start"], R["money_start"], prices, floor=floor)
             log(f"[{TAG}] PRE {R}")
+            # ---- step 9b: the balls, read AFTER the PRE line so that line stays comparable with pre-9b runs.
+            R["balls_start"] = _stock_by_name(BALLS)
+            R["bb_mode"] = BB.parse_flag(_os.environ.get("POKEBOT_R23_BALLRESTOCK"))[0]
+            fc = ball_forecast() if (R["bb_mode"] in ("observe", "1") and R["in_era"] and R["in_sootopolis"]
+                                     and _os.environ.get("POKEBOT_RESERVE_FAULT_NOBUY") != "1") else None
+            R["balls_forecast_made"] = fc is not None
+            R["balls_forecast"] = fc["lines"] if fc else []
+            R["balls_expected"] = R["balls_forecast"] if R["bb_mode"] == "1" else []   # observe never buys
+            R["balls_floor"] = fc["floor"] if fc and R["bb_mode"] == "1" else None
+            log(f"[{TAG}] PRE-BALLS start={R['balls_start']} mode={R['bb_mode']!r} forecast={R['balls_forecast']} "
+                f"floor={R['balls_floor']} reason={fc['reason'] if fc else '-'}")
             if EXPECT in ("buy", "partial", "budget"):
                 premise = R["in_era"] and R["in_sootopolis"] and bool(R["plan_predicted"])
             elif EXPECT in ("nothing", "nobuy"):
                 premise = R["in_era"] and R["in_sootopolis"] and (EXPECT == "nobuy" or not R["plan_predicted"])
+            elif EXPECT == "balls":
+                premise = (R["in_era"] and R["in_sootopolis"] and not R["plan_predicted"]
+                           and bool(R["balls_expected"]))
+            elif EXPECT == "ballfail":
+                premise = (R["in_era"] and R["in_sootopolis"] and R["bb_mode"] == "1"
+                           and _os.environ.get("POKEBOT_R23_FAULT_BALLRAISE") == "1"
+                           and bool(R["plan_predicted"] or R["balls_expected"]))
             else:
                 premise = True
             if not premise:
                 raise BotModeError(f"{TAG}: PREMISE FAILED for expect={EXPECT} (in_era={R['in_era']}, in_sootopolis="
-                                   f"{R['in_sootopolis']}, plan={R['plan_predicted']}) — this run would pass having "
-                                   f"done nothing.")
+                                   f"{R['in_sootopolis']}, plan={R['plan_predicted']}, balls={R['balls_forecast']}) — "
+                                   f"this run would pass having done nothing.")
             if EXPECT == "skip":
                 rep = {}
                 yield from stock_basket_early(rep)
@@ -25197,6 +25250,7 @@ class EarlyBasketMode(BotMode):
                 R["money_end"] = get_player().money
                 R["stock_end"] = _stock_by_name(list(BUY_ORDER))
                 R["party_full_end"] = all(m.current_hp == m.total_hp for m in get_party() if m is not None)
+                R["balls_end"] = _stock_by_name(BALLS)
             except Exception as read_error:  # noqa: BLE001 - an unreadable end state FAILS the grade
                 reraise_if_aborting(read_error)
                 R["read_error"] = f"<unreadable {type(read_error).__name__}: {read_error}>"
@@ -25214,9 +25268,25 @@ class EarlyBasketMode(BotMode):
         order = rep.get("order") or []
         plan = rep.get("plan") or []
         delta = {n: R.get("stock_end", {}).get(n, 0) - R.get("stock_start", {}).get(n, 0) for n in BUY_ORDER}
-        cost = sum(prices[n] * q for n, q in plan)
+        # ---- step 9b: the ball ACTION, from the driver's own bag reads (never from the production report).
+        ball_delta = {n: R.get("balls_end", {}).get(n, 0) - R.get("balls_start", {}).get(n, 0) for n in BALLS}
+        ball_delta = {n: q for n, q in ball_delta.items() if q}
+        bought_balls = {n: q for n, q in ball_delta.items() if n in BB.UNCONDITIONAL}
+        ball_cost = sum(ball_prices[n] * q for n, q in bought_balls.items())
+        forecast = {}
+        for n, q in R.get("balls_expected") or []:
+            forecast[n] = forecast.get(n, 0) + q
+        balls_floor_kept = R.get("balls_floor") is None or R.get("money_end", -1) >= R["balls_floor"]
+        cost = sum(prices[n] * q for n, q in plan) + ball_cost
+        # ⛔ The production forecast must equal the driver's own (so an ON arm that walks for the basket anyway still
+        # checks the forecast's arithmetic), and OFF must add no `balls` key at all (the 9b recon, F8 and F2).
+        if R.get("balls_forecast_made"):
+            production_forecast_ok = (rep.get("balls") or {}).get("forecast") == R.get("balls_forecast")
+        else:
+            production_forecast_ok = "balls" not in rep
         common = {"no_failure": failure is None and "read_error" not in R,
-                  "no_whiteout": getattr(self, "whiteouts", 0) == 0}
+                  "no_whiteout": getattr(self, "whiteouts", 0) == 0,
+                  "production_forecast": production_forecast_ok}
         if EXPECT in ("buy", "partial"):
             conj = {
                 "readings_in_order": order == list(EARLY_BASKET_READINGS),
@@ -25227,10 +25297,39 @@ class EarlyBasketMode(BotMode):
                 "walked_and_reheald": rep.get("walked") is True and R.get("party_full_end") is True,
                 "walked_back_across": rep.get("returned") is True,
                 "on_gym_1f": R.get("on_gym_1f") is True,
+                "balls_as_forecast": bought_balls == forecast,
+                "balls_floor_kept": balls_floor_kept,
+                "outcome_bought": rep.get("early_basket") == "bought",
             }
             if EXPECT == "partial":
                 names = [n for n, _q in plan]
                 conj["cheapest_to_leak_prefix"] = names == list(BUY_ORDER)[:len(names)] and len(names) < len(BUY_ORDER)
+        elif EXPECT == "balls":
+            conj = {
+                "ball_only_visit": (rep.get("early_basket") == "balls only" and not plan and order == [AT_MART]),
+                "balls_as_forecast": bought_balls == forecast and bool(bought_balls),
+                "basket_untouched": not any(delta.values()),
+                "money_drop_equals_cost": R.get("money_start", 0) - R.get("money_end", 0) == ball_cost > 0,
+                "balls_floor_kept": balls_floor_kept,
+                "walked_and_reheald": rep.get("walked") is True and R.get("party_full_end") is True,
+                "walked_back_across": rep.get("returned") is True,
+                "on_gym_1f": R.get("on_gym_1f") is True,
+            }
+        elif EXPECT == "ballfail":
+            # `POKEBOT_R23_FAULT_BALLRAISE=1`: the ball phase raises with the menu open. It must be SWALLOWED: the basket's
+            # outcome and readings stand, nothing is bought, and the visit still walks back (the 9b recon, F4).
+            basket_visit = bool(R.get("plan_predicted"))
+            conj = {
+                "ball_phase_failed": (rep.get("balls") or {}).get("phase") == "failed",
+                "basket_outcome_kept": rep.get("early_basket") == ("bought" if basket_visit else "balls only"),
+                "readings_as_basket": order == (list(EARLY_BASKET_READINGS) if basket_visit else [AT_MART]),
+                "bag_delta_equals_plan": {n: q for n, q in delta.items() if q} == dict(plan),
+                "no_ball_delta": not ball_delta,
+                "money_drop_equals_cost": R.get("money_start", 0) - R.get("money_end", 0) == cost,
+                "walked_and_reheald": rep.get("walked") is True and R.get("party_full_end") is True,
+                "walked_back_across": rep.get("returned") is True,
+                "on_gym_1f": R.get("on_gym_1f") is True,
+            }
         elif EXPECT == "budget":
             conj = {
                 "budget_expired": rep.get("finished") is False,
@@ -25247,6 +25346,7 @@ class EarlyBasketMode(BotMode):
                 "no_walk": rep.get("walked") is False and AT_MART not in order,
                 "no_spend": R.get("money_end") == R.get("money_start"),
                 "on_gym_1f": R.get("on_gym_1f") is True,
+                "no_ball_delta": not ball_delta,
             }
         elif EXPECT == "nobuy":
             conj = {
@@ -25254,6 +25354,7 @@ class EarlyBasketMode(BotMode):
                 "no_walk": rep.get("walked") is False and PLANNED not in order,
                 "no_spend": R.get("money_end") == R.get("money_start"),
                 "still_heals_and_enters": R.get("party_full_end") is True and R.get("on_gym_1f") is True,
+                "no_ball_delta": not ball_delta,
             }
         else:  # skip
             conj = {
@@ -25262,10 +25363,13 @@ class EarlyBasketMode(BotMode):
                 "no_walk": rep.get("walked") is False and PLANNED not in order,
                 "did_not_move": R.get("final_at") == R.get("start_at"),
                 "no_spend": R.get("money_end") == R.get("money_start"),
+                "no_ball_delta": not ball_delta,
             }
         conj.update(common)
         ok = all(conj.values())
         log(f"[{TAG}] ORDER {order} PLAN {plan} DELTA {delta} COST {cost}")
+        log(f"[{TAG}] BALLS forecast={forecast} delta={ball_delta} bought={bought_balls} ball_cost={ball_cost} "
+            f"floor={R.get('balls_floor')}")
         log(f"[{TAG}] conjuncts = {conj}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}) SCOPE: §Ch22 L1 (heal, buy, re-heal, "
             f"enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.")
