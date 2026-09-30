@@ -25269,21 +25269,18 @@ class EarlyBasketMode(BotMode):
         plan = rep.get("plan") or []
         delta = {n: R.get("stock_end", {}).get(n, 0) - R.get("stock_start", {}).get(n, 0) for n in BUY_ORDER}
         # ---- step 9b: the ball ACTION, from the driver's own bag reads (never from the production report).
-        ball_delta = {n: R.get("balls_end", {}).get(n, 0) - R.get("balls_start", {}).get(n, 0) for n in BALLS}
-        ball_delta = {n: q for n, q in ball_delta.items() if q}
-        bought_balls = {n: q for n, q in ball_delta.items() if n in BB.UNCONDITIONAL}
-        ball_cost = sum(ball_prices[n] * q for n, q in bought_balls.items())
-        forecast = {}
-        for n, q in R.get("balls_expected") or []:
-            forecast[n] = forecast.get(n, 0) + q
+        # ⛔ The ball grade is the PURE `ball_grade` module (the 9b review, G4: the gate EXECUTES it, where it used to pin
+        # this block by text). The action is the driver's own bag delta; the cost prices unconditional balls only.
+        from ball_grade import ball_action, production_forecast_ok as _forecast_ok
+
+        act = ball_action(R.get("balls_start", {}), R.get("balls_end", {}), R.get("balls_expected"), ball_prices,
+                          BB.UNCONDITIONAL)
+        ball_delta, bought_balls, ball_cost, forecast = act["delta"], act["bought"], act["cost"], act["expected"]
         balls_floor_kept = R.get("balls_floor") is None or R.get("money_end", -1) >= R["balls_floor"]
         cost = sum(prices[n] * q for n, q in plan) + ball_cost
         # ⛔ The production forecast must equal the driver's own (so an ON arm that walks for the basket anyway still
         # checks the forecast's arithmetic), and OFF must add no `balls` key at all (the 9b recon, F8 and F2).
-        if R.get("balls_forecast_made"):
-            production_forecast_ok = (rep.get("balls") or {}).get("forecast") == R.get("balls_forecast")
-        else:
-            production_forecast_ok = "balls" not in rep
+        production_forecast_ok = _forecast_ok(bool(R.get("balls_forecast_made")), R.get("balls_forecast"), rep)
         common = {"no_failure": failure is None and "read_error" not in R,
                   "no_whiteout": getattr(self, "whiteouts", 0) == 0,
                   "production_forecast": production_forecast_ok}
@@ -25368,7 +25365,8 @@ class EarlyBasketMode(BotMode):
         conj.update(common)
         ok = all(conj.values())
         log(f"[{TAG}] ORDER {order} PLAN {plan} DELTA {delta} COST {cost}")
-        log(f"[{TAG}] BALLS forecast={forecast} delta={ball_delta} bought={bought_balls} ball_cost={ball_cost} "
+        log(f"[{TAG}] BALLS expected={forecast} forecast={R.get('balls_forecast')} delta={ball_delta} "
+            f"bought={bought_balls} ball_cost={ball_cost} "
             f"floor={R.get('balls_floor')}")
         log(f"[{TAG}] conjuncts = {conj}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (expect={EXPECT}) SCOPE: §Ch22 L1 (heal, buy, re-heal, "

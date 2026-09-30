@@ -1,0 +1,27 @@
+# design v2 step 9b: regression re-run AFTER the three-lens review's fixes, with the EXPECTED lines filed and COMMITTED
+# (with the fixes) BEFORE any re-run. The fixes that can change a live arm:
+#   * league_reserve._shop: "ball-only" is decided from the CALLER's plan before the live filter (BB9B-1);
+#   * stock_topoff.sootopolis_ball_phase: a ball-only visit whose live plan is empty is memoised (BB9B-2), and the
+#     topoff-closed reason no longer promises a walk back (BB9B-3);
+#   * story_harness.EarlyBasketMode: the ball grade goes through tools/story-dev/ball_grade.py (G4); the driver's BALLS
+#     line prints `expected=` and `forecast=` (E12).
+# Same commands as the graded arms (seed-1 wrapper, --driver earlybasket --frames 16000, profile repro-ml, sequential).
+#
+# EXPECTED (the grader compares against these):
+#   R-OFF     (post_hm07, flag unset, EB_EXPECT=buy): ACCEPTANCE PASS; R frames 10329; money_end 22166; EVERY
+#             frame-stamped debug line identical to M0a; no SootopolisCity [BALLS-BUY] line.
+#   R-RAISE   (post_hm07, =1, FAULT_BALLRAISE=1, EB_EXPECT=ballfail): ACCEPTANCE PASS; R frames 10329; every frame-stamped
+#             line identical to M0a; exactly the forecast line and the same topoff-failed line as A2-RAISE.
+#   R-ON      (post_hm07, =1, EB_EXPECT=buy): ACCEPTANCE PASS; money_end 20966; exactly
+#             [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#             [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#             and every frame-stamped line identical to the graded A2-ON's.
+#   R-A2b-ON  (eb_after_M0a.ss1, =1, EB_EXPECT=balls): ACCEPTANCE PASS; "balls only"; money 22166 -> 20966; the same two
+#             lines as R-ON; every frame-stamped line identical to the graded A2b-ON's.
+#   R-B3prime (post_hm07, =1, POKEBOT_RESERVE_FAULT_BUDGET=4357, EB_EXPECT=budget EB_BUDGET_AT=shop): ACCEPTANCE PASS;
+#             exactly one
+#             [BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=a close reached the ball phase mid-purchase (R18 walks back only if its own budget closed it: see retry_return/stranded)
+#             at f3705535; the basket bought, no Ultra, money 22166, retry walked back, gym 1F; every frame-stamped line
+#             identical to the graded B3prime's.
+#
+# RESULTS (appended by the re-run below)

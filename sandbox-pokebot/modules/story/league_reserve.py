@@ -406,15 +406,19 @@ def _shop(report: dict, plan, names, before, money, _take) -> Generator:
 
     sold = {item.name for item in get_mart_buyable_items()}
     report["sold_here"] = sorted(sold)
-    plan = [(n, q) for n, q in plan if n in sold]
     balls = report.get("balls") or {}
-    if not plan and not balls.get("walk"):
+    # ⛔ A ball-only visit is decided by the CALLER's plan (empty) and the forecast, BEFORE the live filter: a basket
+    # visit whose Mart sells none of the basket must still raise by name, whatever the forecast says (the 9b review,
+    # BB9B-1: keyed on `walk` alone, a buying forecast silently swallowed this raise and left the outcome unset).
+    ball_only = not plan and bool(balls.get("walk"))
+    plan = [(n, q) for n, q in plan if n in sold]
+    if not plan and not ball_only:
         raise BotModeError(f"early basket: this Mart sells none of {list(BUY_ORDER)} ({sorted(sold)}).")
     if plan:
         yield from _buy_basket_lines(report, plan, names, before, money, _take)
     if balls.get("mode") == "1" and not balls.get("blocked"):
         # RULINGS 23 + 26 (design v2 step 9b): after the basket, on the same open menu (`buy_in_shop` ends on the shop's
-        # main menu). It never raises; the caller closes the menu and walks back across either way.
+        # main menu). It raises only an abort or a close; on a normal return the caller closes the menu and walks back.
         from modules.story.stock_topoff import sootopolis_ball_phase
 
         yield from sootopolis_ball_phase(report)

@@ -44,8 +44,9 @@ THE NUMBERS (a bounded DEFAULT; the batch size is the user's Q1, shown to them �
   * Whitelist: Rustboro only (step 9a). Its mart sells Poké Balls from the start (`RustboroCity_Mart/scripts.inc`).
     Sootopolis is NOT whitelisted (KI-103): it is consumer (b), which rides RULING 18's round trip.
   * Consumer (b) (gate `probe_stock_topoff_sootopolis.py`): OFF reads nothing but the flag and adds no report key; the
-    forecast plans from the POST-basket wallet and floor; the ball phase re-plans live, never raises (the basket's own
-    outcome stands), memoises a failure, and logs an outer close; `observe` never walks for balls.
+    forecast plans from the POST-basket wallet and floor; the ball phase re-plans live, never raises except an abort
+    or a close (the basket's own outcome stands), memoises a failure and a wasted ball-only visit, and logs a close;
+    `observe` never walks for balls.
   * ⚠ No minimum batch: a money-limited purchase can buy 1-2 balls and re-walk at the next eligible heal (bounded:
     each walk's budget halves). Part of the user's Q1.
 """
@@ -573,9 +574,10 @@ def sootopolis_ball_phase(report: dict) -> Generator:
     missing, raises the floor by itself), buys through `buy_in_shop`, and verifies by the bag delta of the ball bought.
     ⛔ It writes ONLY under `report["balls"]`: R18's keys (`returned`, `bought`, `money_after`, the readings) drive the
     walk back and the basket's grade, and step 9a's errand pattern writes those very names (the 9b recon, F3).
-    ⛔ NEVER raises: a failure is a `topoff-failed` line and a memo entry, and the basket's own outcome stands. The caller
-    (`_stock_basket_early`) always closes the menu and walks back across afterwards. An outer close mid-purchase is
-    logged (`topoff-closed`) and memoised, then allowed to proceed."""
+    ⛔ NEVER raises, except an abort (re-raised) or a close (GeneratorExit, logged as `topoff-closed`, memoised, then
+    re-raised): a failure is a `topoff-failed` line and a memo entry, and the basket's own outcome stands. On a normal
+    return the caller (`_stock_basket_early`) closes the menu and walks back across; after a close only R18's own
+    budget path walks back."""
     import os
 
     from modules.items import get_item_bag, get_item_by_name
@@ -600,9 +602,17 @@ def sootopolis_ball_phase(report: dict) -> Generator:
         balls.update(lines=lines, live_reason=reason, live_floor=floor_money)
         if not lines:
             balls["phase"] = "none"
+            # A walk made for the balls ALONE that finds nothing to buy means the forecast and the counter disagree (a
+            # static/live list mismatch): memoise, or every later Juan attempt re-crosses the crater for nothing (the 9b
+            # review, BB9B-2). A basket visit that also buys no ball wasted no walk, so it is not memoised.
+            wasted = report.get("early_basket") == "balls only"
+            if wasted:
+                _memo_add()
             _emit(log_line("topoff-none", mart=sootopolis_key(), ball=ball or "-", bought=0, premier=0,
                            spare_before=live["spare"], spare_after=live["spare"], money_before=live["money"],
-                           money_after=live["money"], reason=reason, extra=f" floor={floor_money}"))
+                           money_after=live["money"],
+                           reason=reason + ("; a ball-only visit found nothing to buy (memoised)" if wasted else ""),
+                           extra=f" floor={floor_money}"))
             return
         counted = sorted({ball, "Premier Ball"})
         before = {name: get_item_bag().quantity_of(get_item_by_name(name)) for name in counted}
@@ -626,13 +636,17 @@ def sootopolis_ball_phase(report: dict) -> Generator:
                        bought=balls["bought"], premier=balls["premier"], spare_before=live["spare"],
                        spare_after=balls["spare_after"], money_before=live["money"], money_after=balls["money_after"],
                        reason=reason if balls["ok"] else balls["why"], extra=f" floor={floor_money}"))
-    except GeneratorExit:  # an OUTER bound (R18's EARLY_BASKET_BUDGET) closed the visit mid-purchase
+    except GeneratorExit:  # a close reached the phase mid-purchase (R18's EARLY_BASKET_BUDGET, or a stop from above)
         _memo_add()
         balls["phase"] = "closed"
+        # ⚠ The reason does NOT promise a walk back: R18 walks back only when ITS OWN budget closed the visit (see its
+        # `retry_return` / `stranded`); a close from above (the mode stopping) runs this at finalization with no walk
+        # (the 9b review, BB9B-3, simulated).
         _emit(log_line("topoff-closed", mart=sootopolis_key(), ball="-", bought="?", premier="?",
                        spare_before=live["spare"] if live else "?", spare_after="?",
                        money_before=live["money"] if live else "?", money_after="?",
-                       reason="the basket visit's budget closed the ball phase mid-purchase (R18 walks back)"))
+                       reason="a close reached the ball phase mid-purchase (R18 walks back only if its own budget "
+                              "closed it: see retry_return/stranded)"))
         raise
     except Exception as error:  # noqa: BLE001 - the basket's outcome stands; the failure is logged and memoised
         from modules.story.early_game import reraise_if_aborting
