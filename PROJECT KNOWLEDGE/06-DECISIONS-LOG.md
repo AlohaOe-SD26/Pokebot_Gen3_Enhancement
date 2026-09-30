@@ -8447,3 +8447,46 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
   whatever the ball forecast says.
 - **A ball-only visit that finds nothing to buy is memoised** (BB9B-2), like a failure: the forecast and the counter
   disagreed, and re-walking the crater on every Juan attempt cannot fix that.
+
+## 2026-09-29 — Design v2 step 10 (HK, the healing-kit top-off): the spec as it will be built (`#26-organiccatch`)
+
+**Context.**
+- A five-angle recon (code audit, decomp, battle policy, fixtures, adversarial) found v2's step 10 body unbuildable
+  as written: the step 9 errand cannot carry non-ball lines, and the Rustboro arm had no discriminator.
+- The spec that replaces it is `ai-research-notes/2026-09-29-kittopoff-SPEC.md` (D1-D12). The load-bearing facts were
+  re-read by the author: the decomp mart lists, `items.json` prices, `battle_items.py`, the key-item gate, and the
+  Items pocket at the Rustboro heal (`heal_stock=-` on the first battle after it).
+
+**Decisions:**
+- **The kit's own flag, `POKEBOT_R26_KITTOPOFF`, coupled IN CODE to `POKEBOT_R27_KEYITEMS`.** Kit `1` without
+  key-item mode is a named skip: ordinary trainers would otherwise drain the kit and force re-buys. v2 had this only as
+  prose, and rule 6 says prose that guards is a gate waiting to be written.
+- **HP tiers:** Potion < Super Potion < Hyper Potion, topped up to 4.
+  - "Held" counts the tier and every higher tier.
+  - **Max Potion is excluded.** It costs 2.1× a Hyper Potion for at most 55 more HP, and the battle policy spends it
+    first on any Pokémon under 200 max HP. `#24-provisions`' ladder omits it too.
+  - This is an INTERPRETATION, stated to the user and reversible.
+- **Status:** Full Heal ×2 where sold; otherwise Awakening ×1 AND Ice Heal ×1 where sold. The policy cures only Sleep
+  and Freeze, specific cure first. Never Revive, Antidote, Parlyz Heal or Burn Heal.
+- **"Held" is the raw bag minus `reserved_quantities()`** (stage-dependent), not a constant basket subtraction. The
+  constant reading would re-buy the basket's lines at a future mid-game Mart where nothing is reserved.
+- **One budget per visit** (min(₽6,000, half the spendable), computed once and debited by every phase), so 06:8394's
+  "at most half of what is spendable" holds for balls and kit together.
+- **Order with the kit ON** (v2's, stated as an INTERPRETATION of RULING 26's "more heavily on balls post Elite 4"):
+  1. balls up to the reserve + 1 (11);
+  2. the kit's HP line;
+  3. the kit's status line;
+  4. the rest of the balls.
+  - Ball quantities from the two ball phases are bought as ONE line set, so a total ≥ 10 still earns its Premier.
+  - With the kit OFF or skipped, 9a/9b are unchanged: this is a regression arm.
+  - Consequence, stated to the user: at Sootopolis the kit takes the budget first, so 1 Hyper Potion instead of
+    step 9b's 1 Ultra.
+- **Separate memo keys for the kit** (`<city>:kit`). A kit-only shortfall blocks only the kit; a failed walk blocks
+  both.
+- **No kit before gym 1**, like balls: the named build gap v2 already records, not a policy.
+
+**Rejected:**
+- appending kit lines to the ball lines (the single-ball verification would read "short" and memoise the city);
+- the kit sharing what the balls leave (vacuous: ₽70 at Rustboro, ₽383 at Sootopolis);
+- per-phase half-budgets (a visit could spend about 87.5% of the spendable);
+- a constant basket subtraction.
