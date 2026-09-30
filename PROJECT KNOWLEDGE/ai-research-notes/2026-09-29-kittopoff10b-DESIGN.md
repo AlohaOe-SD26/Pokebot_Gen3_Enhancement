@@ -8,6 +8,9 @@
 > - Branch `wt/kittopoff10b`, cut from `main` `158c0b70` (10a merged).
 > - ⛔ **Nothing here is built yet.** The order is: this design, an adversarial review of it, predictions (after the
 >   Step-0 reads), code, gate, arms, review.
+> - ✅ **The adversarial review of this design has RUN** (a fresh Claude agent, 2026-09-29; `## THE DESIGN REVIEW`
+>   at the end). It found five blockers, all in the DRIVER/ARMS half: the production half survived every attack.
+>   Every finding is folded into E2, E3, E5, E8, E10 and the arms table below, marked **[R<n>]**.
 
 ## WHY D11-D12 CANNOT BE BUILT AS WRITTEN
 
@@ -67,13 +70,16 @@
   | post_hm07, both `1` + RAWBAG (S-RAW) | 1,583 | none (raw 30/8 ≥ 4/2) | Ultra 1 | 67,466 → 20,966 |
   | eb_after_M0a, kit `1` only (S-KITONLY) | 1,583 | Hyper 1 | — | 22,166 → 20,966 |
   | eb_after_A2ON, kit `1` only (S-FH) | 983 | Full Heal 1 | — | 20,966 → 20,366 |
-  | eb_after_A2ON, both `1` (S-FHBOTH) | 983 | Full Heal 1 | none | 20,966 → 20,366 |
+  | eb_after_A2ON, both `1` | 983 | Full Heal 1 | none | 20,966 → 20,366 |
+  | eb_after_M0a, both `1` (S-BOTHKIT; the review's R6) | 1,583 | Hyper 1 | none (9b's forecast alone: Ultra 1) | 22,166 → 20,966 |
 
   - ⚠ **S-ON, S-BALL and S-RAW end on the SAME money:** a Hyper Potion and an Ultra Ball both cost ₽1,200. The
     discriminator is the ITEMS, never the money. Every grade must assert per-name deltas from literals written
     before the run.
   - ⚠ **A kit arm pointed at its own output does NOT do nothing** (unlike 9b's A2c). After S-ON or S-KITONLY
-    (₽20,966, held Hyper 1) the next visit buys 1 Full Heal. That is S-FH's situation, and it is why S-FH exists.
+    (₽20,966, held Hyper 1) the next visit buys 1 Full Heal. S-FH runs on A2-ON's output instead (held Hyper 0), and
+    its purchase happens to be the same, 1 Full Heal; it is NOT a test of "pointed at its own output" (the review's
+    R11).
 
 ## THE DESIGN (E1-E11; each also a `06` decision when built)
 
@@ -90,10 +96,17 @@
     9b's mutants M25, N1b and N2.
   - It projects the post-basket state: money and spare as `forecast_after_basket` does, and held = the raw kit stock
     plus the basket plan, minus `reserved_quantities()` (RAWBAG: no subtraction).
-  - It plans with `visit_plan(buy_balls = the ball flag is 1 and the balls are not blocked)`.
-  - **When the kit BUYS, it rebinds the ball forecast to `visit_plan`'s ball lines** (as 10a's errand does): S-ON's
-    `report["balls"]["forecast"]` becomes `[]` with `walk` False.
-  - In observe or skip, 9b's ball forecast is untouched.
+  - It plans with `visit_plan(buy_balls = the ball flag is 1 and the balls are not blocked)`, honouring
+    `POKEBOT_R23_FAULT_FLOOR` as 9b's forecast and 10a's errand do **[R13]**.
+  - ⛔ **It NEVER overwrites 9b's ball forecast [R1, R7].** `report["balls"]` keeps 9b's `forecast`, `walk` and
+    `[BALLS-BUY] why=topoff-forecast` line exactly: the driver's `production_forecast` compares it with ITS 9b
+    forecast, so a rebind would FAIL the right build and PASS a build that skipped it.
+    - The SPLIT (D6's ball lines when the kit buys) is published as `report["kit"]["split_balls"]`.
+    - The kit's forecast line prints it, so the log never reads "forecast 1 Ultra, walk=True, then silence".
+  - **The EFFECTIVE ball walk** is `bool(split_balls)` when the kit buys, and 9b's `walk` otherwise. It is what E3 and
+    E5 use.
+  - Tags per mode **[R10]**: `why=kit-forecast` when the kit is `1`, `why=kit-observe` when it is `observe` (9b's
+    `topoff-forecast`/`topoff-observe` convention; 10a's `kit-observe`).
   - ⛔ **It runs in its OWN try** (10a's R2 lesson, and the adversary found a live lever):
     `POKEBOT_RESERVE_FAULT_RAISE=1` raises only on the kit's path, through `reserved_quantities` → `reserve_active`.
     A kit raise memoises only `SootopolisCity:kit`, logs one `[KIT-BUY] why=kit-failed`, sets `report["kit"]` with
@@ -101,7 +114,11 @@
   - The kit key `SootopolisCity:kit` in the memo blocks the kit alone.
   - Logs one `[KIT-BUY] why=kit-forecast …` line, the twin of 9b's `topoff-forecast`.
 - **E3, the walk decision.**
-  - The visit walks if the basket plan, the ball walk OR the kit walk says so.
+  - The visit walks if the basket plan, the EFFECTIVE ball walk (E2) OR the kit walk says so.
+  - `TOPOFF_ONLY_OUTCOMES = ("balls only", "kit only", "balls and kit only")` is exported from `league_reserve`, and
+    E5 and the driver IMPORT it **[R15]**.
+  - The `[EARLY_BASKET]` line gains a ` kit=…` summary only when `"kit" in report`, so a kit-OFF line is 9b's byte for
+    byte **[R14]**.
   - The outcome of a top-off-only visit:
     - EXACTLY `"balls only"` when the balls alone walk (9b's string, which the driver's `ball_only_visit`, gate rows S2
       and P9, and the phase's `wasted` check all match);
@@ -116,6 +133,12 @@
     - if the kit BUYS (kit `1`, not skipped, not blocked) → the new counter phase (E5);
     - elif balls `1` and not blocked → 9b's `sootopolis_ball_phase`, byte for byte;
     - kit `observe` → no counter work at all. Its one line is the forecast's.
+  - **Shape it to keep 9b's gate anchors [R9]:** keep 9b's `ball_only = …` line and its
+    `if balls.get("mode") == "1" and not balls.get("blocked"):` line byte-identical. Add
+    `topoff_only = ball_only or (not plan and bool(kit.get("walk")))`, and put the kit's dispatch BEFORE 9b's with
+    its own `return`.
+    - The raise's condition (9b's M5 anchor) must change to `not topoff_only`. Re-anchor M5 with its set unchanged, and
+      re-derive A1/M3 (the early return) before the first run.
 - **E5, the counter phase when the kit buys** (a new `sootopolis_topoff_phase`, after the basket lines, on the same
   open menu):
   - It re-plans from the LIVE post-basket state: the live list, the wallet, and the held view read NOW. It uses
@@ -134,8 +157,16 @@
   - ⛔ The adversary's case, fault-free on `eb_after_A2ON`: the kit walks for 1 Full Heal while the balls cannot
     afford an Ultra. The ball key must NOT be memoised.
   - It writes only under `report["balls"]` (only when the ball flag is on) and `report["kit"]`.
-  - It never raises, except an abort or a close (9b's contract). `POKEBOT_R23_FAULT_BALLRAISE` raises inside it too:
-    both keys are memoised, which matches 10a, where a walk failure blocks both.
+  - It publishes `report["kit"]["before"]`, its own read. The driver asserts it equals the PRE stock plus the basket
+    plan, which proves the kit's `before` was read AFTER the basket **[R8]**.
+  - It never raises, except an abort or a close (9b's contract).
+  - **Defined terms [R15]:**
+    - "the active keys" of a raise or a close are the kit key, plus the ball key when the ball flag is `1` and the
+      balls are not blocked. Both are memoised; each set planned logs its `-failed`/`-closed` line.
+    - `POKEBOT_R23_FAULT_BALLRAISE` raises in E5 only when the ball flag is `1` (it is the BALL fault).
+    - "Wasted" uses the EFFECTIVE walks and `TOPOFF_ONLY_OUTCOMES`: a set is wasted only when the outcome is one of
+      them, ITS effective forecast walked, and ITS counter plan is empty.
+  - It honours `POKEBOT_R23_FAULT_FLOOR` **[R13]**.
 - **E6, the static list.** A new `SOOTOPOLIS_STATIC_KIT_SOLD = ("Hyper Potion", "Full Heal")`. ⛔ Never
   `_static_kit_sold(center)`, which ignores `center` and returns Rustboro's list.
 - **E7, kit OFF / skipped / observe is 9b.**
@@ -149,15 +180,34 @@
   - **Its own kit forecast**, computed INDEPENDENTLY of production: raw + basket plan − `LEAGUE_BASKET` (never
     production's `_kit_held` or `reserved_quantities`, which would make a RAWBAG arm grade itself correct).
   - `R["kit_forecast_raw"]` is always printed, so every S arm shows its D4 discriminator.
-  - `R["balls_expected"]` is rebound to the split when the kit buys and balls are `1`.
+  - **THE LEVER RULE [R4].** The driver MODELS every lever whose correct production response is defined:
+    - the D2 skip (`kit_skip`: the forecast is `[]`);
+    - `POKEBOT_RESERVE_FAULT_RAISE` (blocked: `[]`);
+    - `POKEBOT_R23_FAULT_FLOOR` (the floor);
+    - `POKEBOT_RESERVE_FAULT_NOBUY` (no forecast).
+    It NEVER models a skip-the-fix lever (`POKEBOT_R26_FAULT_RAWBAG`), so a RAWBAG arm must FAIL.
+    `R["kit_forecast_made"]` mirrors 9b's gating (the mode in observe/1, in era, in Sootopolis, not NOBUY).
+    `R["kit_expected"]` is the forecast only in mode `1` and not skipped: observe never buys.
+  - `R["balls_forecast"]` stays 9b's, so `production_forecast` is unchanged **[R1]**. The driver's own split is
+    `R["balls_split"]`, graded against `report["kit"]["split_balls"]`. `R["balls_expected"]` is the split when the
+    kit buys and the balls are `1`, else 9b's.
+  - **The kit is priced from the MEASURED delta** (the per-name delta minus the basket plan, positive entries), as 9b
+    prices balls, and only when a kit was expected. 9b's money values stay exact **[R3]**.
+  - **A basket-only conjunct [R8]:** `rep["bought"] == dict(plan)` (production's basket delta, read before any kit).
+    It catches a build that folds the kit into the basket call with a merged verification. It holds on every 9b arm.
+  - **The memo is made OBSERVABLE [R5]:** the driver sets `self._ball_topoff_failed = set()` at its start, which is
+    exactly what `_memo()` looks for, and records `R["memo_end"]`. A single visit starts empty, so 9b's paths are
+    unchanged. Memo claims can then be graded live.
   - **A pure `kit_grade.py`** in `ball_grade.py`'s style:
     - `kit_action`: the per-name delta; the expected TOTAL per name (basket plan + kit, summed, because the names
       overlap); the kit part; the kit's cost;
     - `production_kit_forecast_ok`.
   - **The conjuncts become kit-aware:**
     - `bag_delta_equals_plan` compares against the per-name total;
-    - the money identities add the kit's cost only when a kit was expected (9b's values stay exact);
-    - `balls_as_forecast` uses the rebound expectation.
+    - the money identities add the kit's MEASURED cost only when a kit was expected (9b's values stay exact);
+    - `balls_as_forecast` compares with `R["balls_expected"]`: the driver's split when the kit buys, 9b's otherwise;
+    - `common` gains `production_kit_forecast` (production's kit forecast AND `split_balls` equal the driver's; with no
+      kit forecast made, no `kit` key) and `rep["bought"] == dict(plan)` on basket visits.
   - **A new expectation `kit`:**
     - premise: in era, in Sootopolis, no basket plan, a NON-EMPTY driver kit forecast;
     - conjuncts: a top-off-only visit whose outcome equals a constant IMPORTED from `league_reserve`; the kit bought as
@@ -171,6 +221,8 @@
 - **E10, the gates.**
   - 9b's gate (`probe_stock_topoff_sootopolis.py`):
     - its A1 pins the early-return condition by exact text, and its mutants' anchors must each occur exactly once;
+    - the anchors the build must move **[R9]**: A1 and M3 (the early return) and M5 (the raise). E4's shape keeps
+      M6, M31, M32 and M33 byte-identical;
     - ⇒ write A1's new pinned text and every affected red set BEFORE the first run;
     - add the kit's env vars (`POKEBOT_R26_KITTOPOFF`, `POKEBOT_R27_KEYITEMS`, `POKEBOT_R26_FAULT_RAWBAG`,
       `POKEBOT_RESERVE_FAULT_RAISE`) to both of its `setenv` calls, because rows like S1 depend on the shell they run
@@ -186,33 +238,76 @@
 
 ## THE ARMS (to pre-register after the Step-0 reads; KEYITEMS `1` whenever the kit is `1`)
 
-All on the seed-1 wrapper with `--driver earlybasket`, as 9b's arms ran; each arm's `EB_EXPECT` is named.
+All on the seed-1 wrapper with `--driver earlybasket --frames 16000`, as 9b's arms ran; each arm's `EB_EXPECT` is
+named. Revised by the design review (the arms marked **[R]**). ⛔ The predictions file must carry the HAND arithmetic
+under each literal, not only the ⚙ table: the driver shares the pure functions with production, so literals computed by
+them are not independent **[R16]**.
 
 | Arm | Fixture | Flags | Expect | Must show |
 |---|---|---|---|---|
-| **S-OFF** | post_hm07 | none | buy | every frame-stamped line = 9b's M0a |
+| **S-OFF** | post_hm07 | none | buy | every frame-stamped line = 9b's M0a (the `[EARLY_BASKET]` line has no `kit=`) |
 | **S-BALL** | post_hm07 | balls `1` | buy | = 9b's A2-ON (1 Ultra, R frames 10,880) |
-| **S-OBS** | post_hm07 | balls `1`, kit `observe` | buy | A2-ON's purchase and lines + ONE `kit-forecast` line |
-| **S-SKIP** | eb_after_M0a | kit `1`, no key items | nothing | A2b-OFF's "nothing missing", no walk + ONE `kit-skip` line |
-| **S-ON** | post_hm07 | both `1` | buy | basket; Hyper **+31**; Ultra **+0**; ₽67,466 → 20,966; `[KIT-BUY] why=kit … bought={'Hyper Potion': 1}` |
-| **S-RAW** | post_hm07 | both `1` + RAWBAG | buy | Ultra **+1**; Hyper +30; a `kit-none` line; kit_forecast [] vs kit_forecast_raw… |
+| **S-OBS** | post_hm07 | balls `1`, kit `observe` | buy | A2-ON's purchase and lines + ONE `[KIT-BUY] why=kit-observe` line |
+| **S-SKIP** | eb_after_M0a | kit `1`, no key items | nothing | A2b-OFF's "nothing missing", no walk + ONE `kit-skip` line; the driver's kit forecast `[]` (it models D2) |
+| **S-ON** | post_hm07 | both `1` | buy | basket; Hyper **+31** (30 basket + 1 kit); Ultra **+0**; ₽67,466 → 20,966; `rep["bought"]` = the plan; `kit.before` Hyper = 30; `[KIT-BUY] why=kit … bought={'Hyper Potion': 1}`; 9b's forecast line still `[('Ultra Ball', 1)] walk=True`, and the kit line shows `split_balls=[]` |
+| **S-RAW** [R3] | post_hm07 | both `1` + RAWBAG | buy | ⛔ **ACCEPTANCE FAIL, by design** (a skip-the-fix arm: the driver never models RAWBAG). Production buys Ultra **+1**, Hyper +30 and logs `kit-none`; FAILS exactly `bag_delta_equals_plan` (Hyper 30 vs 31), `balls_as_forecast` (Ultra 1 vs 0) and `production_kit_forecast`; money PASSES (measured pricing). This is D4's live proof: one fault flips S-ON's Hyper into an Ultra |
 | **S-KITONLY** | eb_after_M0a | kit `1` | kit | outcome `kit only`; Hyper **+1**; ₽22,166 → 20,966 |
+| **S-BOTHKIT** [R6] | eb_after_M0a | both `1` | kit | outcome **`kit only`** (the EFFECTIVE ball walk is the empty split, though 9b's forecast says 1 Ultra); Hyper **+1**; Ultra **+0**; ₽22,166 → 20,966; `SootopolisCity` NOT in `memo_end` |
 | **S-FH** | eb_after_A2ON | kit `1` | kit | Full Heal **+1**; ₽20,966 → 20,366: the FIRST live drive of the status line |
-| **S-FHBOTH** | eb_after_A2ON | both `1` | kit | Full Heal +1; Ultra +0; `SootopolisCity` NOT memoised |
-| **S-OBS-RAISE** | post_hm07 | balls `1`, kit `observe`, `POKEBOT_RESERVE_FAULT_RAISE=1` | buy | = A2-ON's purchase + ONE `kit-failed`; the balls unharmed |
-| **S-VAC** | eb_after_M0a | kit `1` + RAWBAG, `EB_EXPECT=kit` | kit | `PREMISE FAILED` (the grade cannot pass having done nothing) |
+| **S-OBS-RAISE** | post_hm07 | balls `1`, kit `observe`, `POKEBOT_RESERVE_FAULT_RAISE=1` | buy | = A2-ON's purchase + ONE `kit-failed`; `memo_end` = {`SootopolisCity:kit`} only; the driver models the lever (kit blocked, `[]`) |
+| **S-VAC** [R2] | eb_after_M0a | kit `1`, `POKEBOT_R23_FAULT_FLOOR=30000`, `EB_EXPECT=kit` | kit | `PREMISE FAILED`: budget 0, so both forecasts are `[]` (the grade cannot pass having done nothing) |
+| **S-RAWVAC** [R2] | eb_after_M0a | kit `1` + RAWBAG, `EB_EXPECT=kit` | kit | ⛔ **ACCEPTANCE FAIL, by design**: the driver forecasts Hyper 1; production (raw 30/8) plans nothing, "nothing missing", no walk |
 
-- ⚠ **To verify at Step 0, before the predictions:**
-  - that `POKEBOT_RESERVE_FAULT_RAISE=1` touches ONLY the kit's path in this driver: that R18's own flow never
-    calls `reserve_active` on the way (S-OBS-RAISE's premise);
-  - that no trainer battle happens in the segment (KEYITEMS differs between S-ON and S-BALL; assert
-    `R["battles"] == 0` or add an S-KEY control);
-  - the exact `[BALLS-BUY]`/`[KIT-BUY]` lines of each arm, in 10a's AS-BUILT form.
+- ✅ **Step-0 premises checked statically (2026-09-29, by the author):**
+  - `POKEBOT_RESERVE_FAULT_RAISE` touches only the kit. `reserve_active` has exactly two callers:
+    `reserved_quantities` (the kit's held view) and `filter_medicine_for_reserve`, which runs only in battle and
+    fails unlocked. R18's visit never calls it.
+  - **No battle of any kind** happens in a 16,000-frame earlybasket segment **[R12]**. The only battle in 9b's M0a log
+    (f3709657) comes AFTER the driver handed the run to Manual mode, under its `--frames 80000`. The driver counts
+    `self.battles`, so the predictions assert `battles == 0`.
+- **Still to read at Step 0:** the exact `[BALLS-BUY]`/`[KIT-BUY]` lines of each arm, in 10a's AS-BUILT form, as each
+  arm's own pre-registered literal.
 - The budget-close arm (9b's B3′ with the kit on) is optional. The kit changes the phase's frame offsets, so the
   close frame must be re-derived, not copied.
+- **[R11] corrected:** S-FH runs on A2-ON's output (held Hyper 0, spare 19), NOT on S-ON's. A kit arm pointed at its
+  own output walks again: S-FH's own output (Full Heal 9, ₽20,366, budget 683) buys another Full Heal. The kit
+  converges only after two more visits.
 
 ## OPEN, NOT DECIDED HERE
 
 - Whether a ball phase that RAISES should also block the kit when the kit did not buy in that visit. E5 answers
   only for the combined phase; in 9b's own phase (kit off) nothing changes.
 - The user's Q1 (batch sizes) still bounds every number here.
+
+## THE DESIGN REVIEW (a fresh adversarial Claude agent, 2026-09-29; its output is a NOTE, and each finding below was
+## checked by the author against the code before it was folded in)
+
+- **Verdict:** the production half (E1-E6) survived every attack.
+  - Separating the two purchases by time is correct.
+  - The ⚙ table reproduced exactly.
+  - No attack made a kit-OFF, observe or skip visit change 9b's purchase or R18's walk back.
+  - Attacks that FAILED: a full Items pocket (a refusal returns to the buy menu uncharged, and the sets sit in
+    different pockets); S-OBS-RAISE's premise; the "balls only" matchers; the reserve view's time invariance; the
+    static list; the memo when the balls are blocked and the kit buys.
+- **Blockers, all in the driver/arms half, each folded in:**
+  - **R1:** a rebind of 9b's ball forecast inverts `production_forecast` (✔ `ball_grade.production_forecast_ok`
+    compares `report["balls"]["forecast"]` with the driver's 9b forecast). Resolved: no rebind; the split goes to
+    `report["kit"]["split_balls"]`; the effective walk (E2).
+  - **R2:** S-VAC's "PREMISE FAILED" was impossible under E8's own rule, because a driver that ignores RAWBAG forecasts
+    Hyper 1. Resolved: S-VAC uses the floor lever; the RAWBAG run is S-RAWVAC, an expected FAIL.
+  - **R3:** S-RAW had no verdict, and its money conjunct hung on an unstated pricing choice. Resolved: S-RAW is an
+    expected FAIL with its exact failing set; the kit is priced from the measured delta.
+  - **R4:** the kit-forecast comparison was undefined for skip, blocked and observe, and would have FAILED the correct
+    S-SKIP and S-OBS-RAISE. Resolved: the lever rule (E8).
+  - **R5:** the memo was invisible in the driver (✔ `_memo()` returns None unless the bot mode carries a
+    `_ball_topoff_failed` set; EarlyBasketMode carries none). Resolved: the driver sets one and records `memo_end`.
+- **Defect-risks folded in:**
+  - R6, S-BOTHKIT added: it is the only arm that tests the effective walk on a top-off-only visit;
+  - R7, no observe erasure;
+  - R8, `rep["bought"] == plan` and the kit's `before`;
+  - R9, the anchor-preserving shape of `_shop`.
+- **Nits folded in:** R10 (tags per mode), R11 (S-FH's wording), R12 (no battle of ANY kind), R13 (the floor lever),
+  R14 (the `[EARLY_BASKET]` kit suffix), R15 (defined terms and `TOPOFF_ONLY_OUTCOMES`), R16 (hand arithmetic in the
+  predictions).
+- ⛔ **Not a second pass.** A second adversarial pass on THIS revision has not run. The predictions file's own review
+  and the build's three-lens review are the next adversaries.
