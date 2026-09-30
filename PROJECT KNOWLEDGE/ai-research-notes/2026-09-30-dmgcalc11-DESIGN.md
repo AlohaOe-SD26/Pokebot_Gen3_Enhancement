@@ -12,8 +12,8 @@
 >   audit, scope/records/arms; `## THE DESIGN REVIEW` at the end). It found 4 blockers and about 30 should-fix
 >   findings. Every one is folded in below, marked **[R:<id>]**.
 > - ✅ **The Step-0 live reads (F6) have RUN** and held on every question (`tools/story-dev/evidence/2026-09-30-dmgcalc11-STEP0.txt`).
-> - ⛔ **Nothing here is built yet.** Next: predictions (the hand-derived anchors first), code, the gate's adversarial
->   mutant pass, the gates, the arms, the review.
+> - ✅ **The PREDICTIONS are filed** (`2026-09-30-dmgcalc11-PREDICTIONS.md`, before any code).
+> - ⛔ **Nothing here is built yet.** Next: the code, the gates' adversarial mutant passes, the gates, the arms, the review.
 
 ## WHY THE v2 STEP 11 BODY CANNOT BE BUILT AS WRITTEN
 
