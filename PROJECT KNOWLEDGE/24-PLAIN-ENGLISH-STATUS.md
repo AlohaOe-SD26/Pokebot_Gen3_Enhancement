@@ -1,5 +1,7 @@
 # Plain-English Status — what the bot does, what we fixed, what is still stuck
 
+> ⚠ **STALE AGAIN, found 2026-09-29 by a Tier 2 cold-start audit:** this file was last brought current on 2026-09-03. Nothing from USER RULINGS 18-27 or design v2 (the League basket bought early, the catch and training changes, the rare-species list, the catch cap, the ball top-off) is in it yet, and its "0 files differ" line is wrong (`promote.py --check` prints the live drift). For the current state read `04-HANDOFF.md`. A refresh is owed.
+
 > **Current-state file: edit in place.** Written for a human reading it cold — in GAME terms, not
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),

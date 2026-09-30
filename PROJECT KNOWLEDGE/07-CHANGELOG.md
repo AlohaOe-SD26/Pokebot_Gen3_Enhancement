@@ -37105,3 +37105,22 @@ bought balls only at fixed story points.
   - the suite output is committed;
   - the queue keeps Q1;
   - the v2 note's step 9 has an AS-BUILT block; a 01 entry; KI-72's citation; the registry row; a HOW TO RUN entry.
+
+## 2026-09-29 — the Tier 2 cold-start audit after step 9a: stale handoff lines fixed; the daily upstream check (docs only)
+
+- **The audit's first action was right** (the ritual, then the single `➡➡➡` marker, then v2 step 9b), and P1 and P5
+  passed. Its other findings, all fixed in `04-HANDOFF.md`:
+  - the queue presented the replaced v1 build order as current, and listed B's gaps that step 9a had closed;
+  - HOW TO RUN pointed the next build at v1 step 2 (done);
+  - the ritual still told a reader to expect a RED suite (superseded 2026-09-11);
+  - a state line said the fork is FROZEN (retired 2026-09-16) and that three decisions await a ruling the queue no
+    longer lists;
+  - the `#24-sanitycheck` heading was ambiguous against `#24-sanitycheck2`, and KI-66's bullet read OPEN under a
+    PARTLY FIXED heading;
+  - a HOW TO RUN line quoted the suite size against the file's own rule;
+  - the resume pointer did not name the v2 step 9b worktree branch (`wt/ballrestock9b`).
+- `24-PLAIN-ENGLISH-STATUS.md` is 26 days stale: it now says so in a banner, and `00-README.md` says so in its row.
+  The refresh is owed, not done. The README's `05` row now says a few CLOSED entries stay on purpose.
+- **Daily upstream check:** `upstream-pokebot/main` = `fe68b4f4`, 8 commits ahead of the mirrored `5dd898f8` (#828
+  HTTP server races, #829 a flattened control flow). Nothing pulled (the user's "not now, keep it parked" stands);
+  recorded in `40cakes repo/UPDATE-LOG.md` and the handoff's upstream row.

@@ -11,7 +11,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
 | 4 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |
 | 5 | `03-PUNCH-LIST.md` | The work queue | current-state |
-| 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps | current-state |
+| 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps (a few CLOSED entries stay, each marked CLOSED or FIXED in its header, where an auditor would otherwise re-flag them) | current-state |
 | 7 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
 | 8 | `06-DECISIONS-LOG.md` | Why things are the way they are | append-only |
 | 9 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
@@ -33,7 +33,7 @@ following the reading order above, which stopped at 16.*
 
 | File | What it tells you | Type |
 |---|---|---|
-| `24-PLAIN-ENGLISH-STATUS.md` | **START HERE FOR A HUMAN ANSWER** — what the bot does, what we fixed, what is stuck, in GAME terms with no jargon. Written for reading cold. | current-state |
+| `24-PLAIN-ENGLISH-STATUS.md` | **START HERE FOR A HUMAN ANSWER** — what the bot does, what we fixed, what is stuck, in GAME terms with no jargon. Written for reading cold. ⚠ **Last brought current 2026-09-03** (its banner says what it misses); `04-HANDOFF.md` is current. | current-state |
 | `09-FEATURE-BRAINSTORM.md` | the full future-idea catalog the punch list draws from | reference |
 | `10-DEX-RESEARCH.md` / `11-LIVINGDEX-DESIGN.md` | Living-Dex feature research + design (#23) | reference |
 | `17-PORTABLE-ORCHESTRATION-GUIDE.md` | running this orchestration setup on another machine/project | reference |
