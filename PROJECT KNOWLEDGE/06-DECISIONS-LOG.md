@@ -8615,3 +8615,33 @@ choices made while BUILDING and GRADING it (the design's AS BUILT section, and `
   - Rejected: trimming rows to get under 300 s. The rows are the ones the adversarial pass showed were needed.
 - **`ACCEPT_MARGIN = 3` stays a PROPOSAL for the user, and step 12's stage 2 stays OFF** (F8). 8 samples cannot decide
   it. The verdict on the calculator needs step 14's batch with the flag on in both arms.
+
+## 2026-09-30 — Design v2 step 11's review: which classifier exclusions to tighten, and which to RELAX (`#26-organiccatch`)
+
+- **Tightened** (each could admit a sample the calculator is not comparable on, or hide an over):
+  - the FOE's Marvel Scale with EITHER battler statused (ours never counts);
+  - `foe-called-move` (Metronome, Mirror Move, Assist, Sleep Talk, Nature Power);
+  - SECRET_POWER moved to Tier B;
+  - `our-flash-fire-unobservable` at a battle-end read;
+  - `ability-not-species`;
+  - `our-burn-changed`;
+  - Skull Bash as a foe self-state move;
+  - False Swipe's band to crit_max + margin + 1;
+  - Future Sight out of the self-check.
+- **RELAXED, only after the decomp confirmed it** (F9a, pret/pokeemerald @ f90719c4): Tier B's faint and AFTER-status
+  exclusions now apply only to a CONFUSING secondary (CONFUSE_HIT, SECRET_POWER).
+  - A burn or poison tick runs in `DoBattlerEndTurnEffects` under HITMARKER_IGNORE_BIDE (battle_util.c:1464, re-entered
+    per effect), and `Cmd_datahpupdate` skips the bide record under that flag (battle_script_commands.c:1905-1907). So
+    Ember or Poison Sting can never move Δbide.
+  - Rejected: keeping every Tier B exclusion. It drained samples for nothing, for example every Torchic-line Ember KO.
+- **Superpower's -1 Atk and Overheat's -2 SpA no longer exclude,** but only when the change is EXACTLY that self-drop.
+  Any other change still excludes, so a foe's Growl first is caught.
+- **`ability-not-species` skips a fainted (HP 0) record.**
+  - A faint resets the ability byte. On the graded log, all 20 mismatches were such records, including our own fainted
+    Swellow.
+  - Rejected: comparing every record. That would exclude every battle in which we fainted after our hit.
+  - Unloadable species data fails the INSTRUMENT (exit 3). It is never a silent skip.
+- **Nature Power joins `foe-called-move`** although in Gen 3 it calls only plain moves. Excluding a rare turn costs
+  nothing, and unknown is the safe reading.
+- **The status docs were held back while the reviewers read them.** That produced the grade lens's F1; the prevention
+  rule is in `08`.

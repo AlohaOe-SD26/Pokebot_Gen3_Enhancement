@@ -3179,8 +3179,10 @@ timing in the idle/recovery path; it is consistent with the watchdog candidate, 
 - **This one is on an OVERWORLD walk, not at a warp,** and no event line sits between the last common line and the
   divergence (no `[RESUMED]`, no battle). It is consistent with a timing input on the walk path. The cause is still NOT
   measured.
+- ⚠ **Not a rate:** the divergent run was also the ONLY one made before 7:46 AM. The other nine ran back to back, 7:46
+  to 8:12 AM. A time-of-day or accumulated-state input fits as well as a random event does (the step 11 review, F9).
 - **New consequence:** a pre-registered per-turn table taken from ONE live run can lose its tail. Step 11's lost its
-  two Linoone rows.
+  two Linoone rows. Take such a table from two identical runs SEPARATED IN TIME, not back to back.
 
 ## KI-113 — ⚠ OPEN (filed 2026-09-29; low impact, upstream code): the runtime encounter reader holds the DEAD Altering Cave table (Smeargle), not the live one (Zubat)
 **Measured** (design v2 step 7; `tools/story-dev/rare_species_dataset.py`, check "the static ROM read equals the cache

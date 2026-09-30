@@ -1,0 +1,574 @@
+design v2 step 11 (M1) — the REVIEW'S CLASSIFIER FIXES: the gate after them, and the re-audit of the graded log, 2026-09-30 LA
+====================================================================================================================
+The fixes answer tools/story-dev/evidence/2026-09-30-dmgcalc11-REVIEW.txt's audit lens: F1-F9, with F9a implemented only
+after its decomp claim was verified. Built by the agent that built the audit (its report below is MODEL OUTPUT, a NOTE).
+The author re-ran both checks below on the fixed code:
+- probe_dmgaudit.py (the author's run): ALL PASS (191 rows, 220 mutants), ~7.7 s with the pool.
+- audit_damage_calc.py on evidence/2026-09-30-dmgcalc11-M1B-ON-r1-debug.txt: exit 2 (INSUFFICIENT), and its whole report
+  is BYTE-IDENTICAL to the graded audit (M1B-GRADE §6). So no graded number moves.
+
+===== the builder's report (verbatim) =====
+All nine review fixes are in (F9a after confirming it in the decomp), and the gate passes. One mutant's pre-written set was wrong on the first run (A05, details below); I corrected the set, not the code. I edited only `tools/story-dev/audit_damage_calc.py` and `tools/story-dev/probe_dmgaudit.py`; no production, doc, git or emulator changes. The other modified files in the tree are not mine.
+
+**Results:**
+- Gate with the pool: `ALL PASS (191 rows, 220 mutants) in 7.6 s`.
+- Gate in-process: forced by making the pool unavailable, it passes in 40.3 s.
+- COVERAGE: every one of the 191 rows is in at least one mutant's expected set.
+
+**F9a verified first, in pret/pokeemerald @ f90719c4:**
+- `DoBattlerEndTurnEffects` sets `HITMARKER_IGNORE_BIDE` on every call (battle_util.c:1464).
+- It returns after launching each effect's script (`if (effect != 0) return effect;`), and `BattleTurnPassed` re-enters it per effect (battle_main.c:3965). So every burn or poison tick runs under the flag, not only the first.
+- `Cmd_datahpupdate` skips the bide record under the flag (battle_script_commands.c:1905-1907).
+- A confusion self-hit's `datahpupdate BS_ATTACKER` has no such flag, so it is recorded.
+- Conclusion: only CONFUSE_HIT and SECRET_POWER can move `gBideDmg[1]` on the same turn. The citations are in the `TIER_B_BIDE` comment.
+- F9b's premise also holds: Superpower is Atk −1 then Def −1 on the user, Overheat SpA −2, both after the hit (battle_scripts_1.s:2388-2389, 2648-2649).
+
+**Classifier changes:**
+
+| Fix | Change |
+|---|---|
+| F1 | Clause is now `foe.ability == AB_MARVEL_SCALE and (foe.status1 or me.status1)` |
+| F2 | SECRET_POWER moved from Tier A to Tier B |
+| F3 | New BEFORE reason `foe-called-move` for METRONOME, MIRROR_MOVE, ASSIST, SLEEP_TALK and NATURE_POWER; fires whether or not the foe fainted |
+| F4 | False Swipe excluded while the foe's HP ≤ pred[3] + margin + 1; the audit's margin now reaches the classifier, ACCEPT_MARGIN still the default |
+| F5 | New `our-flash-fire-unobservable` at a battle-end read |
+| F6 | New `ability-not-species`: live byte vs the species ability, with bit 31 of the IV word choosing the second one; species data read from `species.json` and `abilities.json`; unloadable data is an instrument failure (exit 3) |
+| F7 | New `our-burn-changed` before a physical-type hit; SKULL_BASH added to `FOE_SELF_STATE` |
+| F8 | Self-check returns `n/a: future attack` on side bit 0x40 (confirmed as `SIDE_STATUS_FUTUREATTACK (1 << 6)`, battle.h:215) |
+| F9a | Only `TIER_B_BIDE` moves trigger the faint rule; for other Tier B moves, a foe status that appears only at AFTER is dropped |
+| F9b | Superpower's −1 Atk and Overheat's −2 SpA (clamped at stage 0) are the move's own drop and no longer exclude |
+
+Plus a speedup with no behavior change: `parse_line` is memoized on (line, line number). A fresh-module pass went from 0.29 s to 0.15 s, which brought in-process from 66.6 s (over the limit) to 40 s.
+
+**Where I departed from the spec:**
+- **F6 skips records with HP 0.** On the real ON-r1 log, all 20 live-vs-species mismatches were fainted records reset to ability 0, including our own fainted Swellow. Without the skip, every battle where we fainted after our hit would be excluded.
+- **F3 also includes NATURE_POWER.** It also calls another move; including it can only exclude more.
+- An unknown species index counts as a mismatch (conservative).
+- **Still open, deliberately not handled:** if WE faint after our hit, our reset record can also trigger `our-burn-changed` or `our-attack-stage-changed`. Both only exclude more.
+
+**Rows:**
+- **14 added:** Q07b, Q09b, Q09c, Q12, G09b, G12b, G12c, G13, G14, G15, G16, S15, S16, C5.
+- **Rewritten:** Q09 (now B-MS1), G09 (Psybeam), G12 (Psybeam confusion).
+- **Extended:** W1 (Secret Power → B); the gate's literal tier copy (SECRET_POWER in B) and self-state copy (SKULL_BASH).
+- **Species-corrected:** G07, NR-hp-rolled-type and NR-faint-* now use species that really carry the ability they test, so the new check doesn't fire on them.
+- **Red before, green after:** run against the c44b1def classifier in memory, exactly 16 rows fail, covering every fix:
+
+| Fix | Rows red on c44b1def |
+|---|---|
+| F1 | Q09b, Q09c |
+| F2 | W1, NR-whitelist-table, G13 |
+| F3 | Q12 |
+| F4 | Q07b |
+| F5 | G14 |
+| F6 | S15, S16 |
+| F7 | G15, NR-unobservable |
+| F8 | C5 |
+| F9a | G09b, G12b |
+| F9b | G16 |
+
+**Mutants: 220 total, 27 new** in REVIEW_CASES, every set written before its first run:
+- RF1a {Q09b}; RF1b {Q09, Q09b}
+- RF2a {W1, NR-whitelist-table}; RF2b {G12c, G13}
+- RF3a, RF3b {Q12}
+- RF4a, RF4b {Q07b}
+- RF5a, RF5b {G14}
+- RF6a, RF6b, RF6c {S15}; RF6d {S16}
+- RF7a, RF7c {G15}; RF7b {NR-unobservable}
+- RF8a, RF8b, RF8c {C5}
+- RF9a1 {G09b}; RF9a2 {G12b}; RF9a3 {G09}
+- RF9b1, RF9b2, RF9b3 {G16}
+- RF0 (a comment edit): nothing red
+
+**Existing mutants re-derived (four anchors updated because their lines changed: M20, MX17, MX19, and the pass's A30):**
+
+| Mutant | Change |
+|---|---|
+| MX19 | rewritten as "the F1 fix reverted" → {Q09b, Q09c} |
+| M20 | → {G09, G13} |
+| A30 | → {Q07b} |
+| M05 | + Q12, G13, G14, S15 |
+| M06 | + G09b |
+| M18 | + G12c |
+| MF1 | + G13 |
+| MX17 | + Q07b |
+| MX24 | + G16 |
+| MX32 | + G14 |
+| A42 | + G14 |
+
+**First-run result:** 219 of 220 matched. **A05** (confusion mask 0x1): I wrote {NR-counters}; the run gave {G12, NR-counters}. My derivation missed that the rewritten G12 confuses the foe with status2 0x2, which a 0x1 mask cannot see. I corrected the set to include G12 and left a comment in the gate recording the mismatch. The re-run and the in-process run both matched all 220.
+
+**Re-audit of `evidence/2026-09-30-dmgcalc11-M1B-ON-r1-debug.txt`:** the whole report is byte-identical before and after. No verdict changed.
+- Raw 86 = parsed 86.
+- ACCEPTED 8 → 8 (trainer 6, wild 2).
+- EXCLUDED 14:
+
+| Reason | Count |
+|---|---|
+| doubles | 7 |
+| no-damage | 5 |
+| no-prediction | 3 |
+| foe-held-item | 2 |
+| foe-after-unobservable | 1 |
+| foe-item-action | 1 |
+| foe-move-zero | 1 |
+| foe-self-hurt-move | 1 |
+| our-status-changed-guts-facade | 1 |
+
+- NOT-A-SAMPLE 13; REJECTED 1.
+- Self-check: 8 eligible, 0 disagreements. Port control: 8 of 8 inside.
+- Acceptance: INSUFFICIENT, exit 2.
+
+**For you:** the gate's literal tier copy now has SECRET_POWER in Tier B, and DESIGN.md F2 (line ~97) still lists it in Tier A. That doc line needs updating. A44 and A64 are still left out as uncatchable.
+
+===== the gate, the author's run on the fixed code =====
+I — instrument
+  PASS  I1 CTL + a clean pair: raw 3 == parsed 3, INSTRUMENT OK, exit 2 (INSUFFICIENT)  — raw 3 parsed 3 exit 2
+  PASS  I2 a malformed [DMGAUDIT] line (7 shapes, one a BEFORE without base=) counts raw, not parsed: INSTRUMENT FAIL, exit 3  — [(4, 3, 3, True), (4, 3, 3, True), (4, 3, 3, True), (4, 3, 3, True), (4, 3, 3, True), (4, 3, 3, True), (4, 3, 3, True)]
+  PASS  I3 the logger's 30 MB cap marker: INSTRUMENT FAIL, exit 3  — capped True exit 3
+  PASS  I4 CAP_MARKER is the text debug_logger.py writes at its cap  — 'event log size cap reached'
+  PASS  I5 the CLI: one over-bound hit exits 1 at the default margin, 2 (n=1) at --margin 4  — margin 3 -> 1, margin 4 -> 2
+  PASS  I6 an ERR line parses and is reported  — errs 1
+
+P — pairing
+  PASS  P1 the battle-end pair (counter still T, outcome 1): ACCEPTED 'KO'  — ACCEPTED kind='KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90
+  PASS  P2 a battle-end read with outcome 0: REJECTED end-without-outcome  — REJECTED kind='' reasons=['end-without-outcome'] tags=[] sc='' d=90
+  PASS  P3 a battle-end read with the counter moved: REJECTED end-turn-moved  — REJECTED kind='' reasons=['end-turn-moved'] tags=[] sc='' d=90
+  PASS  P4 the trainer-KO pair (Koffing -> Koffing, a new PID): ACCEPTED 'trainer KO'  — ACCEPTED kind='trainer KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  P5 a changed foe with Δbide < its HP (a switch): REJECTED foe-changed-not-ko  — REJECTED kind='' reasons=['foe-changed-not-ko'] tags=[] sc='n/a: foe changed' d=30
+  PASS  P6 a changed foe whose old PID's party HP is not 0: REJECTED foe-changed-old-hp-not-0  — REJECTED kind='' reasons=['foe-changed-old-hp-not-0'] tags=[] sc='n/a: foe changed' d=90
+  PASS  P7 a trainer KO with Spikes on the foe's side at BEFORE: REJECTED foe-changed-spikes  — REJECTED kind='' reasons=['foe-changed-spikes'] tags=[] sc='n/a: foe changed' d=90
+  PASS  P7a the same with Spikes at AFTER only  — REJECTED kind='' reasons=['foe-changed-spikes'] tags=[] sc='n/a: foe changed' d=90
+  PASS  P8 a turn gap (the entry read at T+2): REJECTED turn-gap  — REJECTED kind='' reasons=['turn-gap'] tags=[] sc='' d=65
+  PASS  P9 a double BEFORE: the latest wins, the first is SUPERSEDED  — SUPERSEDED kind='' reasons=['a-later-before'] tags=[] sc='' d=None || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  P10 a CTL clears a pending BEFORE (UNPAIRED); the next AFTER is an orphan  — UNPAIRED kind='' reasons=['no-after-before-ctl'] tags=[] sc='' d=None orphans 1
+  PASS  P11 a BEFORE at the log's end is UNPAIRED  — UNPAIRED kind='' reasons=['no-after-at-log-end'] tags=[] sc='' d=None
+
+S — samples
+  PASS  S1 a clean hit: ACCEPTED turn, trainer, tier A, untagged, self-check agrees  — ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  S2 our chosen move's PP unchanged: NOT-A-SAMPLE our-pp-unchanged  — NOT-A-SAMPLE kind='' reasons=['our-pp-unchanged'] tags=[] sc='agree' d=0
+  PASS  S3 the chosen move != the slot whose PP dropped (matched by move id): NOT-A-SAMPLE  — NOT-A-SAMPLE kind='' reasons=['our-pp-unchanged'] tags=[] sc='agree' d=65
+  PASS  S4 our PID changed (same species): REJECTED our-identity-changed  — REJECTED kind='' reasons=['our-identity-changed'] tags=[] sc='agree' d=65
+  PASS  S5 our action not a move (an item; or move 0): NOT-A-SAMPLE  — NOT-A-SAMPLE kind='' reasons=['our-action-not-a-move'] tags=[] sc='agree' d=65 || NOT-A-SAMPLE kind='' reasons=['our-action-not-a-move'] tags=[] sc='agree' d=65
+  PASS  S6 the chosen move is not in our moveset (Struggle): NOT-A-SAMPLE  — NOT-A-SAMPLE kind='' reasons=['our-move-not-in-moveset'] tags=[] sc='agree' d=65
+  PASS  S7 a negative Δbide: EXCLUDED instrument-fault (not no-damage)  — EXCLUDED kind='turn' reasons=['instrument-fault'] tags=[] sc='DISAGREE' d=-40
+  PASS  S8 Δbide 0 with PP spent: EXCLUDED no-damage  — EXCLUDED kind='turn' reasons=['no-damage'] tags=[] sc='agree' d=0
+  PASS  S9 doubles (flags bit 0x1): EXCLUDED doubles  — EXCLUDED kind='turn' reasons=['doubles'] tags=[] sc='n/a: doubles' d=65
+  PASS  S10 max == 0: EXCLUDED predicted-immune  — EXCLUDED kind='turn' reasons=['predicted-immune'] tags=['over-crit_max+65', 'OVER-ACCEPTANCE-BOUND'] sc='agree' d=65
+  PASS  S11 pred=none / pred=err: EXCLUDED no-prediction  — EXCLUDED kind='turn' reasons=['no-prediction'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['no-prediction'] tags=[] sc='agree' d=65
+  PASS  S12 crit ambiguity: obs=max untagged, max+1 ambiguous, crit_max+1 over  — [(), ('crit-or-under-prediction (ambiguous)',), ('over-crit_max+1',)]
+  PASS  S13 a hit below the non-crit min is ACCEPTED and tagged  — ACCEPTED kind='turn' reasons=[] tags=['below-noncrit-min'] sc='agree' d=55
+  PASS  S14 wild vs trainer: flags 0x4 reads 'wild'  — ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  S15 a live ability that is not the species' (either battler): ability-not-species; bit 31's second ability and a fainted record are not  — EXCLUDED kind='turn' reasons=['ability-not-species'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['ability-not-species'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || ACCEPTED kind='battle end (outcome 2)' reasons=[] tags=[] sc='n/a: battle end' d=65
+  PASS  S16 species data that cannot be loaded: INSTRUMENT FAIL, exit 3  — exit 3
+
+W — whitelist tiers
+  PASS  W1 tier_of: Surf C and Struggle OUT by INDEX; the rest by effect (Secret Power B)  — {}
+  PASS  W2 the whitelist names exist in moves.json, are disjoint, and hold every stat *_HIT  — missing [] overlap [] stat *_HIT outside A []
+  PASS  W3 samples by tier: Fury Attack EXCLUDED outside-whitelist; Ember B and Surf C ACCEPTED  — EXCLUDED kind='turn' reasons=['outside-whitelist'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 B || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 C
+
+R — per-read strata (b: at BEFORE only; a: at AFTER only)
+  PASS  R01b foe-status at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R01a foe-status at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R02b foe-confused at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65
+  PASS  R02a foe-confused at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65
+  PASS  R03b foe-trapped at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R03a foe-trapped at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R04b foe-leech-seed at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-leech-seed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R04a foe-leech-seed at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-leech-seed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R05b foe-cursed at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-cursed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R05a foe-cursed at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-cursed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R06b foe-nightmare at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-nightmare'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R06a foe-nightmare at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-nightmare'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R07b foe-substitute at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-substitute'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R07a foe-substitute at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-substitute'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R08b foe-focus-band at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-focus-band', 'foe-held-item'] tags=[] sc='n/a: foe held item' d=65
+  PASS  R08a foe-focus-band at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-focus-band', 'foe-held-item'] tags=[] sc='agree' d=65
+  PASS  R09b foe-held-item at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-held-item'] tags=[] sc='n/a: foe held item' d=65
+  PASS  R09a foe-held-item at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['foe-held-item'] tags=[] sc='agree' d=65
+  PASS  R10b C:surf-underwater at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:surf-underwater'] tags=[] sc='agree' d=65
+  PASS  R10a C:surf-underwater at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:surf-underwater'] tags=[] sc='agree' d=65
+  PASS  R11b C:earthquake-underground at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:earthquake-underground'] tags=[] sc='agree' d=65
+  PASS  R11a C:earthquake-underground at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:earthquake-underground'] tags=[] sc='agree' d=65
+  PASS  R12b C:gust-in-the-air at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:gust-in-the-air'] tags=[] sc='agree' d=65
+  PASS  R12a C:gust-in-the-air at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:gust-in-the-air'] tags=[] sc='agree' d=65
+  PASS  R13b C:minimized at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:minimized'] tags=[] sc='agree' d=65
+  PASS  R13a C:minimized at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:minimized'] tags=[] sc='agree' d=65
+  PASS  R14b C:smellingsalt-paralysis at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:smellingsalt-paralysis', 'foe-status'] tags=[] sc='agree' d=65
+  PASS  R14a C:smellingsalt-paralysis at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:smellingsalt-paralysis', 'foe-status'] tags=[] sc='agree' d=65
+  PASS  R15b C:facade-status at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:facade-status', 'our-status-changed-guts-facade'] tags=[] sc='agree' d=65
+  PASS  R15a C:facade-status at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:facade-status', 'our-status-changed-guts-facade'] tags=[] sc='agree' d=65
+  PASS  R16b C:weather-ball-weather at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:weather-ball-weather', 'weather-changed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R16a C:weather-ball-weather at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:weather-ball-weather', 'weather-changed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  R17b C:brick-break-screens at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:brick-break-screens', 'foe-screens-changed'] tags=[] sc='agree' d=65
+  PASS  R17a C:brick-break-screens at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:brick-break-screens', 'foe-screens-changed'] tags=[] sc='agree' d=65
+  PASS  R18b C:sport at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65
+  PASS  R18a C:sport at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65
+  PASS  R19b our-pinch at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-pinch'] tags=[] sc='agree' d=65
+  PASS  R19a our-pinch at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-pinch'] tags=[] sc='agree' d=65
+  PASS  R20b our-flash-fire at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['our-flash-fire', 'persistent:flash-fire'] tags=[] sc='agree' d=65
+  PASS  R20a our-flash-fire at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['our-flash-fire'] tags=[] sc='agree' d=65
+  PASS  R21b our-rough-skin at BEFORE only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-rough-skin'] tags=[] sc='agree' d=65
+  PASS  R21a our-rough-skin at AFTER only: EXCLUDED with that reason  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-rough-skin'] tags=[] sc='agree' d=65
+
+Q — BEFORE-only strata
+  PASS  Q01 the foe's action is an item: foe-item-action  — EXCLUDED kind='turn' reasons=['foe-item-action'] tags=[] sc='n/a: foe item action' d=65
+  PASS  Q02 the foe's chosen move reads 0 (Struggle / a lock): foe-move-zero  — EXCLUDED kind='turn' reasons=['foe-move-zero'] tags=[] sc='agree' d=65
+  PASS  Q03 the foe's chosen move hurts itself (Selfdestruct, Take Down, Substitute): foe-self-hurt-move  — EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65
+  PASS  Q04 Curse by a Ghost-type foe hurts itself; by a non-Ghost it does not  — EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  Q05 the foe's Protect / Endure / Bide: foe-protect-endure-bide  — EXCLUDED kind='turn' reasons=['foe-protect-endure-bide'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-protect-endure-bide'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-protect-endure-bide'] tags=[] sc='agree' d=65
+  PASS  Q06 our Pursuit vs a switching foe: C:pursuit-switch  — EXCLUDED kind='turn' reasons=['C:pursuit-switch'] tags=[] sc='agree' d=65
+  PASS  Q07 False Swipe with the foe's HP before <= crit_max: C:false-swipe-hp (above it: ACCEPTED)  — EXCLUDED kind='turn' reasons=['C:false-swipe-hp'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  Q07b False Swipe's band ends at crit_max + margin + 1, and the audit's margin moves it  — EXCLUDED kind='turn' reasons=['C:false-swipe-hp'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['C:false-swipe-hp'] tags=[] sc='agree' d=65
+  PASS  Q08 PERSISTENT Guts + burn at BEFORE  — EXCLUDED kind='turn' reasons=['ability-not-species', 'persistent:guts-burn'] tags=[] sc='agree' d=65
+  PASS  Q09 PERSISTENT the foe's Marvel Scale while the FOE is statused (M1a's B-MS1)  — EXCLUDED kind='turn' reasons=['foe-status', 'persistent:marvel-scale'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  Q09b PERSISTENT the foe's Marvel Scale healthy while WE are poisoned (M1a's B-MS2): EXCLUDED  — EXCLUDED kind='turn' reasons=['persistent:marvel-scale'] tags=[] sc='agree' d=65
+  PASS  Q09c our own Marvel Scale, us statused, a foe without it: no marvel-scale reason (ACCEPTED)  — ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  Q10 PERSISTENT Cloud Nine (foe) / Air Lock (ours)  — EXCLUDED kind='turn' reasons=['ability-not-species', 'persistent:cloud-nine-air-lock'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['ability-not-species', 'persistent:cloud-nine-air-lock'] tags=[] sc='agree' d=65
+  PASS  Q11 PERSISTENT Flash Fire set at BEFORE  — EXCLUDED kind='turn' reasons=['our-flash-fire', 'persistent:flash-fire'] tags=[] sc='agree' d=65
+  PASS  Q12 the foe CHOSE a move that calls another (Metronome, Mirror Move, Assist, Sleep Talk, Nature Power; after a battle-end KO too; Winona's Swablu): foe-called-move  — EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='KO' reasons=['foe-called-move'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90 || EXCLUDED kind='turn' reasons=['foe-called-move'] tags=[] sc='agree' d=65
+
+G — strata only the pair shows
+  PASS  G01 the foe's Def or SpD stage changed: foe-def-stage-changed  — EXCLUDED kind='turn' reasons=['foe-def-stage-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-def-stage-changed'] tags=[] sc='agree' d=65
+  PASS  G02 the foe's types changed (Conversion): foe-profile-changed  — EXCLUDED kind='turn' reasons=['foe-profile-changed'] tags=[] sc='agree' d=65
+  PASS  G03 the foe side's screens changed: foe-screens-changed  — EXCLUDED kind='turn' reasons=['foe-screens-changed'] tags=[] sc='agree' d=65
+  PASS  G04 our Atk or SpA stage changed: our-attack-stage-changed  — EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65
+  PASS  G05 a status change with Guts: our-status-changed-guts-facade (without Guts: ACCEPTED)  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-status-changed-guts-facade'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65
+  PASS  G06 the weather changed: weather-changed  — EXCLUDED kind='turn' reasons=['weather-changed'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  G07 our HP dipped to <= max/3 mid-turn (HP before - Δbide[0]) with Blaze + a Fire move: our-pinch  — EXCLUDED kind='turn' reasons=['our-pinch'] tags=[] sc='agree' d=65
+  PASS  G08 our Liquid Ooze vs a draining foe (Absorb; Leech Seed on us): our-liquid-ooze  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-liquid-ooze'] tags=[] sc='n/a: foe drain or heal move' d=65 || EXCLUDED kind='turn' reasons=['ability-not-species', 'our-liquid-ooze'] tags=[] sc='n/a: leech seed on us' d=65
+  PASS  G09 a trainer KO by a CONFUSING Tier B move (Psybeam): foe-after-unobservable  — EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  G09b a trainer KO by Ember (its secondary cannot move gBideDmg[1]): ACCEPTED  — ACCEPTED kind='trainer KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  G10 a trainer KO after the foe's Harden: foe-after-unobservable  — EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  G11 a trainer KO: the REPLACEMENT's status and item are not judged (ACCEPTED)  — ACCEPTED kind='trainer KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  G12 Psybeam whose confusion shows at AFTER: EXCLUDED foe-confused  — EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65
+  PASS  G12b Ember whose burn shows at AFTER only: ACCEPTED (the tick is end-of-turn, under IGNORE_BIDE)  — ACCEPTED kind='turn' reasons=[] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  G12c Secret Power whose secondary status shows at AFTER: EXCLUDED foe-status  — EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  G13 a Secret Power battle-end KO: foe-after-unobservable  — EXCLUDED kind='KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90
+  PASS  G14 a Flash Fire mon's Fire hit at a battle-END read after the foe's Fire move: our-flash-fire-unobservable (at an entry read, vs a non-Fire foe move, without Flash Fire, or a non-Fire hit: ACCEPTED)  — EXCLUDED kind='KO' reasons=['our-flash-fire-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || ACCEPTED kind='KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90 || ACCEPTED kind='KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90 || ACCEPTED kind='KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90
+  PASS  G15 a burn between the reads before a PHYSICAL hit: our-burn-changed (a special hit: ACCEPTED)  — EXCLUDED kind='turn' reasons=['our-burn-changed'] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-burn-changed', 'our-status-changed-guts-facade'] tags=[] sc='agree' d=65
+  PASS  G16 Superpower -1 Atk / Overheat -2 SpA (clamped) are the move's own: ACCEPTED; any other change excludes  — ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || ACCEPTED kind='turn' reasons=[] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-attack-stage-changed'] tags=[] sc='agree' d=65
+
+C — self-check
+  PASS  C1 a Δbide/HP disagreement on a clean turn is counted, with its frame  — ACCEPTED kind='turn' reasons=[] tags=[] sc='DISAGREE' d=65 [3190263]
+  PASS  C2 the masked heal (the foe's item action) is not a disagreement  — EXCLUDED kind='turn' reasons=['foe-item-action'] tags=[] sc='n/a: foe item action' d=65
+  PASS  C3 each enumerated heal/tick exclusion holds (held item, Leech Seed on us, heal move, tick, weather, KO, doubles)  — {'n/a: foe held item': 'n/a: foe held item', 'n/a: leech seed on us': 'n/a: leech seed on us', 'n/a: foe drain or heal move': 'n/a: foe drain or heal move', 'n/a: end-of-turn tick': 'n/a: end-of-turn tick', 'n/a: KO': 'n/a: KO', 'n/a: doubles': 'n/a: doubles'} weather=n/a: end-of-turn tick
+  PASS  C4 a trainer KO and a battle end are not self-checked  — n/a: foe changed || n/a: battle end
+  PASS  C5 a pending Future Sight (side bit 0x40, at BEFORE or AFTER) is not self-checked  — n/a: future attack || n/a: future attack
+
+X — acceptance
+  PASS  X1 300 clean + one clean at crit_max + ACCEPT_MARGIN + 1: FAIL  — FAIL n=301
+  PASS  X2 the same sample in an excluded stratum (held item): PASS  — PASS n=300
+  PASS  X3 exactly at crit_max + ACCEPT_MARGIN: PASS  — PASS n=301
+  PASS  X4 299 clean samples: INSUFFICIENT  — INSUFFICIENT n=299
+  PASS  X5 299 clean + one EXCLUDED hit: INSUFFICIENT (an excluded hit never counts)  — INSUFFICIENT n=299
+  PASS  X6 a single over-bound hit (n=1): FAIL, not INSUFFICIENT (one fails it for good)  — FAIL exit 1
+  PASS  X7 the margin is a parameter: +4 fails at 3, passes at 4; 300 clean alone PASS  — FAIL PASS PASS
+
+O — outputs
+  PASS  O1 the outputs: raw/parsed, strata, per-effect and per-stratum error, self-check with frames, one line per BEFORE, port control, acceptance  — missing []; per-pair lines 4
+  PASS  O2 the error numbers: max(obs-cmax), max(obs/cmax), over counts, below-min  —   ACCEPTED (the acceptance set)                   3             +2          1.015         0          0      1
+  PASS  O3 the M1a bound is 8 for a charged Electric move, 4 otherwise, and is counted  — bounds [8, 4, 4]   ACCEPTED (the acceptance set)                   3             +7          1.053         3          2      0
+
+PC — port control
+  PASS  PC1 no port module: 'port control: unavailable'  — ['port control: unavailable (no dmgcalc_port module: import of dmgcalc_port halted; None in sys.modules)']
+  PASS  PC2 a port module without after_base: 'port control: unavailable'  — ['port control: unavailable (dmgcalc_port has no after_base)']
+  PASS  PC3 the adapter's EXACT calls: non-crit from b, crit from bcrit, listed Normal, our types, the foe's types in ROM order  — [{'B': 40, 'crit': False, 'move_type': 'Normal', 'attacker_types': ('Dark', 'Normal'), 'defender_types_rom': ('Electric', 'Water'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}, {'B': 44, 'crit': True, 'move_type': 'Normal', 'attacker_types': ('Dark', 'Normal'), 'defender_types_rom': ('Electric', 'Water'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}] ["port control: 1 clean hits: 1 replayed, 0 unreplayable [], 0 outside the port's [non-crit min, crit max]"]
+  PASS  PC4 Charge = our s3 0x200 AND a LISTED-Electric move (Spark)  — [{'B': 40, 'crit': False, 'move_type': 'Electric', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': True, 'struggle': False, 'foresight': False}, {'B': 44, 'crit': True, 'move_type': 'Electric', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': True, 'struggle': False, 'foresight': False}]
+  PASS  PC5 Hidden Power: move_type is the ROLLED type (Electric, Dark); Charge never applies (listed Normal)  — [{'B': 40, 'crit': False, 'move_type': 'Electric', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}, {'B': 44, 'crit': True, 'move_type': 'Electric', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}, {'B': 40, 'crit': False, 'move_type': 'Dark', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}, {'B': 44, 'crit': True, 'move_type': 'Dark', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': False}]
+  PASS  PC6 foresight = the foe's status2 FORESIGHT bit  — [{'B': 40, 'crit': False, 'move_type': 'Normal', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': True}, {'B': 44, 'crit': True, 'move_type': 'Normal', 'attacker_types': ('Dark', 'Dark'), 'defender_types_rom': ('Electric', 'Electric'), 'charge_listed_electric': False, 'struggle': False, 'foresight': True}]
+  PASS  PC7 the REAL port: an inside and two outside observations, listed with their frames  — ["port control: 3 clean hits: 3 replayed, 0 unreplayable [], 2 outside the port's [non-crit min, crit max]: f20 obs 89 port [34,88], f30 obs 33 port [34,88]"]
+  PASS  PC8 base=none / a type id outside 0..17: unreplayable  — ["port control: 2 clean hits: 0 replayed, 2 unreplayable [10, 20], 0 outside the port's [non-crit min, crit max]"]
+  PASS  PC9 the adapter's type names equal the port's ROM_TYPE_IDS; the Hidden Power roll  — Electric
+
+T — the Step-0 table
+  PASS  T1 the PREDICTIONS' 17-turn table from the Step-0 reads (a KO's end read RESET, as live): every verdict, the self-check's named turns (0 disagreements), INSUFFICIENT with 9 accepted  — n=17 bad=[] elig=[3190263, 3198642, 3216950] acc=INSUFFICIENT hits=9
+  PASS  T2 the FAULT arm offline (bide[1] := bide[0]): the self-check disagrees on exactly the named turns  — FAULT disagreements at [3190263, 3198642, 3216950]
+
+PIN — production (modules/dmgaudit.py executed; the hook sites by AST)
+  PASS  PIN-a1 flag UNSET: on_battle_start reads nothing and logs nothing (with a BEFORE pending)  — reads [] events []
+  PASS  PIN-a2 flag UNSET: on_selection_entry reads nothing and logs nothing (with a BEFORE pending)  — reads [] events []
+  PASS  PIN-a3 flag UNSET: on_selection_exit reads nothing and logs nothing (with a BEFORE pending)  — reads [] events []
+  PASS  PIN-a4 flag UNSET: on_battle_end reads nothing and logs nothing (with a BEFORE pending)  — reads [] events []
+  PASS  PIN-b1 flag SET: ZERO get_battle_state() calls across the four hooks, while the calculator path ran (pred and base are numbers)  — get_battle_state calls 0; [True, True]
+  PASS  PIN-b2 flag SET: all 5 lines are category DMGAUDIT  — ['DMGAUDIT', 'DMGAUDIT', 'DMGAUDIT', 'DMGAUDIT', 'DMGAUDIT']
+  PASS  PIN-b3 flag SET: start/exit/entry/exit/end log CTL, BEFORE, AFTER(entry), BEFORE, AFTER(end)  — ['CTL', 'BEFORE', 'AFTER', 'BEFORE', 'AFTER'] ['entry', 'end']
+  PASS  PIN-b4 the FAULT switch makes the logged bide position 1 equal position 0  — ['27201,67667,297,3722', '27201,67667,297,3722'] ['27201,27201,297,3722', '27201,27201,297,3722']
+  PASS  PIN-b5 every line production writes parses under this audit's v=1 parser (raw 5 == parsed 5)  — raw 5 parsed 5 []
+  PASS  PIN-b6 a BEFORE with pred=none carries base=none and parses (the contract's 'base on every BEFORE')  — [' pred=none base=none eff=-', ' pred=none base=none eff=-'] unparsed []
+  PASS  PIN-c1 (AST) exactly one on_selection_entry(), the statement right after battle_state = get_battle_state()  — battle_state = get_battle_state() || _dmgaudit.on_selection_entry()
+  PASS  PIN-c2 (AST) exactly one on_selection_exit(battle_state), the LAST statement, after the while  — last: _dmgaudit.on_selection_exit(battle_state)
+  PASS  PIN-c3 (AST) handle_battle: on_battle_start() is the statement immediately before the main loop  — loops [16]; before: _dmgaudit.on_battle_start()
+  PASS  PIN-c4 (AST) handle_battle: on_battle_end() is the statement immediately after the main loop  — loops [16]; after: _dmgaudit.on_battle_end()
+  PASS  PIN-c5 (AST) dmgaudit.py never names get_battle_state (Name, Attribute or import; comments ignored)  — []
+  PASS  PIN-c6 (AST) every debug_logger.event call in dmgaudit.py passes category='DMGAUDIT'  — 1 event calls; not DMGAUDIT: []
+
+N — the adversarial pass's rows, the faint reset, Hidden Power's rolled type
+  PASS  NR-faint-reset a battle-end KO whose AFTER foe record is RESET (ability 0, stages neutral, item 0): ACCEPTED  — ACCEPTED kind='KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90
+  PASS  NR-faint-harden the same, the foe having chosen Harden: foe-after-unobservable  — EXCLUDED kind='KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: battle end' d=90
+  PASS  NR-hp-rolled-type Hidden Power's ROLLED type drives the pinch (per read and the dip) and the sports  — EXCLUDED kind='turn' reasons=['our-pinch'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['our-pinch'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65
+  PASS  NR-sport the foe's Water Sport, our Mud Sport (Spark), the foe's at AFTER  — EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['C:sport'] tags=[] sc='agree' d=65
+  PASS  NR-twister Twister vs a foe in the air  — EXCLUDED kind='turn' reasons=['C:gust-in-the-air'] tags=[] sc='agree' d=65
+  PASS  NR-counters every confusion counter value and every wrap counter value  — EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-confused'] tags=[] sc='agree' d=65 ## EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65 || EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65 || EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65 || EXCLUDED kind='turn' reasons=['foe-trapped'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  NR-foestatus every status1 kind (sleep, freeze, paralysis, toxic, burn) is foe-status  — EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='n/a: end-of-turn tick' d=65 || EXCLUDED kind='turn' reasons=['foe-status'] tags=[] sc='n/a: end-of-turn tick' d=65
+  PASS  NR-brick Brick Break vs Light Screen  — EXCLUDED kind='turn' reasons=['C:brick-break-screens', 'foe-screens-changed'] tags=[] sc='agree' d=65
+  PASS  NR-pinch-edges HP exactly maxHP/3, at AFTER and by the dip  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-pinch'] tags=[] sc='agree' d=65 ## EXCLUDED kind='turn' reasons=['ability-not-species', 'our-pinch'] tags=[] sc='agree' d=65
+  PASS  NR-selfhurt every F4 self-hurt effect (the first move of each)  — EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='n/a: foe drain or heal move' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-self-hurt-move'] tags=[] sc='agree' d=65
+  PASS  NR-falseswipe-edge False Swipe with the foe's HP exactly crit_max  — EXCLUDED kind='turn' reasons=['C:false-swipe-hp'] tags=[] sc='agree' d=65
+  PASS  NR-unobservable a trainer KO after each FOE_SELF_STATE move  — EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || EXCLUDED kind='trainer KO' reasons=['foe-after-unobservable'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  NR-profile the foe's ability, Def, SpD changed  — EXCLUDED kind='turn' reasons=['ability-not-species', 'foe-profile-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-profile-changed'] tags=[] sc='agree' d=65 || EXCLUDED kind='turn' reasons=['foe-profile-changed'] tags=[] sc='agree' d=65
+  PASS  NR-ooze Liquid Ooze: Leech Seed on us at BEFORE only; the foe's Absorb and Dream Eater  — EXCLUDED kind='turn' reasons=['ability-not-species', 'our-liquid-ooze'] tags=[] sc='n/a: leech seed on us' d=65 || EXCLUDED kind='turn' reasons=['ability-not-species', 'our-liquid-ooze'] tags=[] sc='n/a: foe drain or heal move' d=65 || EXCLUDED kind='turn' reasons=['ability-not-species', 'our-liquid-ooze'] tags=[] sc='n/a: foe drain or heal move' d=65
+  PASS  NR-facade-sleep Facade with our status going 0 -> sleep  — EXCLUDED kind='turn' reasons=['our-status-changed-guts-facade'] tags=[] sc='agree' d=65
+  PASS  NR-selfcheck-halves each self-check exclusion at the read that carries it; a disagreement of 1  — {}
+  PASS  NR-same-turn-entry an entry read with the counter unchanged: turn-gap  — REJECTED kind='' reasons=['turn-gap'] tags=[] sc='' d=65
+  PASS  NR-tko-identity the old PID found in party slot 2; Δbide == its HP exactly  — ACCEPTED kind='trainer KO' reasons=[] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90 || ACCEPTED kind='trainer KO' reasons=[] tags=['below-noncrit-min'] sc='n/a: foe changed' d=55
+  PASS  NR-tko-after-ff a trainer KO still judges OUR Flash Fire at AFTER  — EXCLUDED kind='trainer KO' reasons=['our-flash-fire'] tags=['crit-or-under-prediction (ambiguous)'] sc='n/a: foe changed' d=90
+  PASS  NR-accept-kinds an over-bound hit FAILS as a battle-end KO, a trainer KO, wild, Tier B, Tier C  — {'battle-end KO': ('FAIL', ['ACCEPTED'], ['KO']), 'trainer KO': ('FAIL', ['ACCEPTED'], ['trainer KO']), 'wild': ('FAIL', ['ACCEPTED'], ['turn']), 'Tier B (Ember)': ('FAIL', ['ACCEPTED'], ['turn']), 'Tier C (Surf)': ('FAIL', ['ACCEPTED'], ['turn'])}
+  PASS  NR-output-edges obs == min untagged; the charged bound (+8) edge; max(obs-cmax) over a KO  — at-min True charged True ko True ['2', '+2', '1.015', '0', '0', '0']
+  PASS  NR-hp-mystery-skip a Hidden Power roll of 9 skips TYPE_MYSTERY (Fire)  — Fire
+  PASS  NR-port-edges observations exactly at the port's ends are inside  — ["port control: 2 clean hits: 2 replayed, 0 unreplayable [], 0 outside the port's [non-crit min, crit max]"]
+  PASS  NR-whitelist-table every moves.json effect's tier equals the gate's OWN literal F2 lists  — []
+  PASS  NR-parser 6 more contract deviations count raw, not parsed (exit 3)  — [(4, 3, 3), (4, 3, 3), (4, 3, 3), (4, 3, 3), (4, 3, 3), (4, 3, 3)]
+  PASS  NP-fields distinct bytes in every RAW field: both lines parsed and every field asserted; badges; the inner EWRAM guard  — []
+  PASS  NP-pred-exact pred and base equal the calculator's own on a STAGED fixture (foe Def +2, base != bcrit)  — got ('17,21,69,82', '21,41') want ('17,21,69,82', '21,41') discriminates True gbs 0
+  PASS  NP-exit-guard no BEFORE while selecting (both states) or when the battle is inactive  — [('HandleTurnActionSelectionState', True, 0, False), ('sub_8012324', True, 0, False), ('SetActionsAndBattlersTurnOrder', False, 0, False)]
+  PASS  NP-pending a stale BEFORE is dropped; the first entry, a re-entry and the end log nothing without one  — {'stale': ['CTL'], 'seq': ['CTL', 'BEFORE', 'AFTER']}
+  PASS  NP-raise a read failure is ONE ERR line per hook, never raised, never leaves a BEFORE pending  — raised [] got ['ERR v=1 where=before err=KeyError', 'ERR v=1 where=after-entry err=KeyError', 'ERR v=1 where=after-end err=KeyError'] parsed 3 pending-after-a-failed-BEFORE False
+  PASS  NP-end-no-ff the battle-end read never touches gBattleResources (ff=null)  — reads ['gBideDmg', 'gChosenMoveByBattler', 'gSideStatuses', 'gStatuses3', 'gDisableStructs', 'gBattleMons', 'gBattleResults', 'gBattleOutcome', 'gBattleTypeFlags', 'gChosenActionByBattler', 'gBattleWeather', 'gEnemyParty'] emu []
+  PASS  NP-ff-null-resources a NULL or non-EWRAM gBattleResources: ff=null, nothing dereferenced  — [('0x0', 'null', []), ('0x3000000', 'null', [])]
+  PASS  NP-flag-values '0', 'true', ' ' are OFF: no read, no line  — [('0', 0, 0), ('true', 0, 0), (' ', 0, 0)]
+  PASS  NP-pred-err a raising calculator logs pred=err:<Name> base=none  — 256 badges=0 pred=err:ZeroDivisionError base=none eff=RECOIL
+  PASS  NH-gbs-count BAS holds exactly 5 get_battle_state() calls (the base commit's count: step 11 added none)  — get_battle_state() calls in BAS: 5 (5 at the base commit 241929d7 and now)
+  PASS  NH-no-dmgaudit-literal no string in BAS or the battle handler contains DMGAUDIT  — []
+
+M — mutants (each must turn EXACTLY its named rows red; 220 mutants, run in a pool of 8 processes)
+  PASS  M01 '>=' for '>' in the acceptance bound -> I5 X3 X7 (a sample exactly at crit_max + margin)  — red ['I5', 'X3', 'X7']
+  PASS  M02 excluded strata counted in the verdict -> X2 X5 T1  — red ['T1', 'X2', 'X5']
+  PASS  M03 the 300 floor ignored -> I1 I5 X4 X5 O1 T1  — red ['I1', 'I5', 'O1', 'T1', 'X4', 'X5']
+  PASS  M04 INSUFFICIENT decided before FAIL (one over-bound hit reads INSUFFICIENT) -> I5 X6 NR-accept-kinds  — red ['I5', 'NR-accept-kinds', 'X6']
+  PASS  M05 pairing on turn+1 only (no battle-end pair) -> P1 P2 P3 C4 T1 NR-faint-* NR-accept-kinds NR-output-edges  — red ['C4', 'G13', 'G14', 'NR-accept-kinds', 'NR-faint-harden', 'NR-faint-reset', 'NR-output-edges', 'P1', 'P2', 'P3', 'Q12', 'S15', 'T1']
+  PASS  M06 the foe's identity on SPECIES only -> P4 P5 P6 P7 P7a G09 G10 G11 T1 NR-unobservable NR-tko-identity  — red ['G09', 'G09b', 'G10', 'G11', 'NR-tko-identity', 'NR-unobservable', 'P4', 'P5', 'P6', 'P7', 'P7a', 'T1']
+  PASS  M07 OUR identity on species only -> S4  — red ['S4']
+  PASS  M08 the latest BEFORE does not win (the first stays pending) -> P9  — red ['P9']
+  PASS  M09 a CTL does not clear a pending BEFORE -> P10  — red ['P10']
+  PASS  M10 the trainer KO's Δbide >= HP check dropped -> P5  — red ['P5']
+  PASS  M11 the trainer KO's old-PID party HP 0 check dropped -> P6  — red ['P6']
+  PASS  M12 the trainer KO's Spikes check dropped -> P7 P7a  — red ['P7', 'P7a']
+  PASS  M13 the PP check by SLOT (the slot whose PP dropped) instead of move id -> S3  — red ['S3']
+  PASS  M14 a negative Δbide is not an instrument fault -> S7  — red ['S7']
+  PASS  M15 a Δbide of 0 is not 'no damage' -> S8 T1  — red ['S8', 'T1']
+  PASS  M16 doubles not stratified -> S9  — red ['S9']
+  PASS  M17 max == 0 not stratified -> S10  — red ['S10']
+  PASS  M18 every stratum check evaluated at BEFORE only -> R01a..R21a G12 NR-sport NR-pinch-edges NR-hp-rolled-type NR-tko-after-ff  — red ['G12', 'G12c', 'NR-hp-rolled-type', 'NR-pinch-edges', 'NR-sport', 'NR-tko-after-ff', 'R01a', 'R02a', 'R03a', 'R04a', 'R05a', 'R06a', 'R07a', 'R08a', 'R09a', 'R10a', 'R11a', 'R12a', 'R13a', 'R14a', 'R15a', 'R16a', 'R17a', 'R18a', 'R19a', 'R20a', 'R21a']
+  PASS  M19 a trainer KO's REPLACEMENT judged by the per-mon foe checks -> G11  — red ['G11']
+  PASS  M20 a confusing Tier B KO (Psybeam, Secret Power) is not unobservable -> G09 G13  — red ['G09', 'G13']
+  PASS  M21 the pinch dip (HP before - Δbide[0]) not checked -> G07 NR-pinch-edges NR-hp-rolled-type  — red ['G07', 'NR-hp-rolled-type', 'NR-pinch-edges']
+  PASS  M22 the foe's Def/SpD stage change not stratified -> G01  — red ['G01']
+  PASS  M23 the foe's chosen move 0 read as a clean move -> Q02 T1  — red ['Q02', 'T1']
+  PASS  M24 Surf keyed on its effect (HIT -> Tier A) -> W1 W3 NR-whitelist-table  — red ['NR-whitelist-table', 'W1', 'W3']
+  PASS  M25 Struggle keyed on its effect (RECOIL -> Tier A) -> W1 NR-whitelist-table  — red ['NR-whitelist-table', 'W1']
+  PASS  M26 the self-check keeps the foe's item action (the masked heal) -> C2 T1 T2  — red ['C2', 'T1', 'T2']
+  PASS  M27 the self-check keeps a held item at BEFORE -> C3 T1 T2 NR-selfcheck-halves  — red ['C3', 'NR-selfcheck-halves', 'T1', 'T2']
+  PASS  M28 the crit-ambiguity tag includes obs == max -> S12  — red ['S12']
+  PASS  M29 the raw count taken from the parsed records (a mismatch hidden) -> I2 NR-parser  — red ['I2', 'NR-parser']
+  PASS  M30 the logger's cap marker ignored -> I3  — red ['I3']
+  PASS  MP1 the adapter passes Hidden Power's LISTED type (Normal) as move_type -> PC5  — red ['PC5']
+  PASS  MP2 Charge read from the ROLLED type (a Hidden Power that rolled Electric gets doubled) -> PC5  — red ['PC5']
+  PASS  MP3 the crit replayed from b instead of bcrit -> PC3 PC4 PC5 PC6 PC7 NR-port-edges  — red ['NR-port-edges', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7']
+  PASS  MP4 the port's top taken from the NON-crit call -> PC3 PC4 PC5 PC6 PC7 NR-port-edges  — red ['NR-port-edges', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7']
+  PASS  MP5 the foe's types passed in reversed order -> PC3  — red ['PC3']
+  PASS  MP6 the defender's types taken from OUR record -> PC3 PC4 PC5 PC6 PC8  — red ['PC3', 'PC4', 'PC5', 'PC6', 'PC8']
+  PASS  MP7 foresight never passed -> PC6  — red ['PC6']
+  PASS  MP8 an unreplayable record counted as replayed (inside) -> PC8  — red ['PC8']
+  PASS  MF1 the faint rule dropped (only a changed PID skips the AFTER foe record) -> NR-faint-reset NR-faint-harden T1  — red ['G13', 'NR-faint-harden', 'NR-faint-reset', 'T1']
+  PASS  MT1 the per-read pinch and the sports read the LISTED type -> NR-hp-rolled-type  — red ['NR-hp-rolled-type']
+  PASS  MT2 the pinch DIP reads the LISTED type -> NR-hp-rolled-type  — red ['NR-hp-rolled-type']
+  PASS  MX1 CAP_MARKER is not the logger's text -> I3 I4  — red ['I3', 'I4']
+  PASS  MX2 ERR lines not reported -> I6  — red ['I6']
+  PASS  MX3 the entry pairing never rejects -> P8 NR-same-turn-entry  — red ['NR-same-turn-entry', 'P8']
+  PASS  MX4 a BEFORE left at the log's end is dropped silently -> P11  — red ['P11']
+  PASS  MX5 wild and trainer swapped -> S1 S14 T1 O1  — red ['O1', 'S1', 'S14', 'T1']
+  PASS  MX6 an unchanged PP counts as run -> S2 S3 T1 O1  — red ['O1', 'S2', 'S3', 'T1']
+  PASS  MX7 a chosen move 0 is not 'not a move' -> S5  — red ['S5']
+  PASS  MX8 the not-in-moveset guard removed -> S6  — red ['S6']
+  PASS  MX9 no-prediction not stratified -> S11  — red ['S11']
+  PASS  MX10 the below-min tag dropped -> S13  — red ['S13']
+  PASS  MX11 Tier C and Tier A overlap (HIT in both) -> W2  — red ['W2']
+  PASS  MX12 Blaze keyed on Water -> R19b R19a G07 NR-pinch-edges  — red ['G07', 'NR-pinch-edges', 'R19a', 'R19b']
+  PASS  MX13 the foe's item action not stratified -> Q01 T1  — red ['Q01', 'T1']
+  PASS  MX14 EXPLOSION dropped from FOE_SELF_HURT -> Q03 NR-selfhurt T1  — red ['NR-selfhurt', 'Q03', 'T1']
+  PASS  MX15 ENDURE dropped from FOE_PROTECT -> Q05  — red ['Q05']
+  PASS  MX16 Pursuit's condition dropped -> Q06  — red ['Q06']
+  PASS  MX17 False Swipe's condition dropped -> Q07 NR-falseswipe-edge  — red ['NR-falseswipe-edge', 'Q07', 'Q07b']
+  PASS  MX18 Guts + burn dropped -> Q08  — red ['Q08']
+  PASS  MX19 the review-F1 fix reverted (OUR Marvel Scale + our status; B-MS2 unexcluded) -> Q09b Q09c  — red ['Q09b', 'Q09c']
+  PASS  MX20 Air Lock's id off by one (76, Cacophony) -> Q10  — red ['Q10']
+  PASS  MX21 persistent Flash Fire dropped -> Q11  — red ['Q11']
+  PASS  MX22 foe-profile-changed dropped -> G02 NR-profile  — red ['G02', 'NR-profile']
+  PASS  MX23 foe-screens-changed dropped -> G03  — red ['G03']
+  PASS  MX24 our-attack-stage-changed dropped -> G04  — red ['G04', 'G16']
+  PASS  MX25 the status change counted with Facade only (Guts dropped) -> G05  — red ['G05']
+  PASS  MX26 Liquid Ooze's draining-move half dropped -> G08 NR-ooze  — red ['G08', 'NR-ooze']
+  PASS  MX27 the self-check always agrees -> C1 T2 NR-selfcheck-halves O1  — red ['C1', 'NR-selfcheck-halves', 'O1', 'T2']
+  PASS  MX28 the over list always empty -> I5 X1 X6 X7 NR-accept-kinds  — red ['I5', 'NR-accept-kinds', 'X1', 'X6', 'X7']
+  PASS  MX29 max(obs/cmax) divided by the non-crit max -> O2  — red ['O2']
+  PASS  MX30 a missing port module reported as nothing -> PC1  — red ['PC1']
+  PASS  MX31 a port without after_base reported as nothing -> PC2  — red ['PC2']
+  PASS  MX32 Fire and Water swapped in TYPE_NAMES -> PC3 PC9 NR-hp-rolled-type NR-hp-mystery-skip  — red ['G14', 'NR-hp-mystery-skip', 'NR-hp-rolled-type', 'PC3', 'PC9']
+  PASS  M31 a comment edit naming the code turns NOTHING red  — red []
+  PASS  PM1 the entry hook reads (the party) BEFORE its flag check -> PIN-a2 NP-flag-values  — red ['NP-flag-values', 'PIN-a2']
+  PASS  PM2 a get_battle_state() call added at the top of _prediction -> PIN-b1 PIN-c5 NP-pred-exact  — red ['NP-pred-exact', 'PIN-b1', 'PIN-c5']
+  PASS  PM3 the category BATTLE -> PIN-b2 PIN-b5 PIN-b6 PIN-c6  — red ['PIN-b2', 'PIN-b5', 'PIN-b6', 'PIN-c6']
+  PASS  PM4 the exit hook removed -> PIN-c2  — red ['PIN-c2']
+  PASS  PM5 the exit hook moved INSIDE the while body -> PIN-c2  — red ['PIN-c2']
+  PASS  PM6 on_battle_end() placed BEFORE the loop -> PIN-c4  — red ['PIN-c4']
+  PASS  PM7 a comment in dmgaudit.py that NAMES get_battle_state turns NOTHING red  — red []
+  PASS  PM8 the entry hook runs BEFORE battle_state = get_battle_state() -> PIN-c1  — red ['PIN-c1']
+  PASS  PM9 the flag read ONCE at import, not per call -> PIN-b1..b6 and every NP row that needs the flag ON  — red ['NP-end-no-ff', 'NP-ff-null-resources', 'NP-fields', 'NP-pending', 'NP-pred-err', 'NP-pred-exact', 'NP-raise', 'PIN-b1', 'PIN-b2', 'PIN-b3', 'PIN-b4', 'PIN-b5', 'PIN-b6']
+  PASS  PM10 the FAULT switch ignored -> PIN-b4  — red ['PIN-b4']
+  PASS  PMX1 the start hook logs BEFORE its flag check -> PIN-a1 PIN-b2 PIN-b3 PIN-b5 NP-flag-values NP-pending  — red ['NP-flag-values', 'NP-pending', 'PIN-a1', 'PIN-b2', 'PIN-b3', 'PIN-b5']
+  PASS  PMX2 the exit hook reads BEFORE its flag check -> PIN-a3 NP-flag-values  — red ['NP-flag-values', 'PIN-a3']
+  PASS  PMX3 the end hook reads BEFORE its flag check -> PIN-a4 NP-flag-values  — red ['NP-flag-values', 'PIN-a4']
+  PASS  PMX4 on_battle_start() removed -> PIN-c3  — red ['PIN-c3']
+  PASS  A01 C:sport foe half dropped (only OUR s3 checked)  — red ['NR-hp-rolled-type', 'NR-sport']
+  PASS  A02 C:sport for Fire only (Electric dropped)  — red ['NR-sport']
+  PASS  A03 S3_SPORTS = Water Sport only (Mud Sport bit dropped)  — red ['NR-sport']
+  PASS  A04 Tier C Gust/Twister: Twister's condition dropped  — red ['NR-twister']
+  PASS  A05 confusion mask 0x1 (not 0x7)  — red ['G12', 'NR-counters']
+  PASS  A06 wrapped mask 0x2000 (not 0xE000)  — red ['NR-counters', 'NR-selfcheck-halves']
+  PASS  A07 foe-status only for ticking statuses (sleep/para/freeze admitted)  — red ['NR-foestatus']
+  PASS  A08 Brick Break vs Reflect only (Light Screen dropped)  — red ['NR-brick']
+  PASS  A09 per-read pinch '<' (hp == maxhp//3 admitted)  — red ['NR-pinch-edges']
+  PASS  A10 pinch DIP '<'  — red ['NR-pinch-edges']
+  PASS  A33 per-read strata at AFTER only (the BEFORE call removed; M18's mirror)  — red ['NR-brick', 'NR-counters', 'NR-foestatus', 'NR-hp-rolled-type', 'NR-sport', 'NR-twister', 'R01b', 'R02b', 'R03b', 'R04b', 'R05b', 'R06b', 'R07b', 'R08b', 'R09b', 'R10b', 'R11b', 'R12b', 'R13b', 'R14b', 'R15b', 'R16b', 'R17b', 'R18b', 'R20b', 'R21b', 'T1']
+  PASS  A61 field-level Tier C moved under foe_ok (skipped on a trainer KO's AFTER)  — red ['NR-tko-after-ff']
+  PASS  A11 FOE_SELF_HURT loses DOUBLE_EDGE  — red ['NR-selfhurt']
+  PASS  A12 FOE_SELF_HURT loses RECOIL_IF_MISS (Jump Kick crash)  — red ['NR-selfhurt']
+  PASS  A13 FOE_SELF_HURT loses BELLY_DRUM  — red ['NR-selfhurt']
+  PASS  A14 FOE_SELF_HURT loses PAIN_SPLIT  — red ['NR-selfhurt']
+  PASS  A15 FOE_SELF_HURT loses MEMENTO  — red ['NR-selfhurt']
+  PASS  A30 False Swipe '<' (foe hp == crit_max admitted)  — red ['Q07b']
+  PASS  A62 foe-move-zero checked only when the foe did not switch (loosened: dropped for a foe item)  — red ['Q02', 'T1']
+  PASS  A63 Ghost Curse read from the foe's AFTER types? no: Curse self-hurt for ANY type (conservative)  — red ['Q04']
+  PASS  A16 FOE_SELF_STATE loses SEMI_INVULNERABLE  — red ['NR-unobservable']
+  PASS  A17 FOE_SELF_STATE loses DEFENSE_UP_2 (Barrier/Iron Defense)  — red ['NR-unobservable']
+  PASS  A18 foe-profile-changed on types only (ability/Def/SpD dropped)  — red ['NR-profile']
+  PASS  A19 Liquid Ooze: Leech Seed on us read at AFTER only  — red ['NR-ooze']
+  PASS  A20 FOE_DRAIN loses DREAM_EATER  — red ['NR-ooze']
+  PASS  A21 status change counted with Guts only (Facade dropped)  — red ['NR-facade-sleep']
+  PASS  A65 weather-changed dropped  — red ['G06']
+  PASS  A22 self-check held item read at AFTER (not BEFORE)  — red ['NR-selfcheck-halves']
+  PASS  A23 self-check: foe DRAIN dropped (heal only)  — red ['NR-selfcheck-halves']
+  PASS  A24 self-check: Leech Seed on us at BEFORE only  — red ['NR-selfcheck-halves']
+  PASS  A24b self-check: Leech Seed on us at AFTER only  — red ['NR-selfcheck-halves']
+  PASS  A25 self-check: tick status at BEFORE only  — red ['NR-selfcheck-halves']
+  PASS  A26 self-check: foe Leech Seed / Ingrain dropped  — red ['NR-selfcheck-halves']
+  PASS  A27 self-check: foe status2 ticks (curse/nightmare/wrap/sub) dropped  — red ['NR-selfcheck-halves']
+  PASS  A28 self-check: weather at BEFORE only  — red ['NR-selfcheck-halves']
+  PASS  A50 self-check tolerance +-1  — red ['NR-selfcheck-halves']
+  PASS  A29 entry pairing loosened: counter T or T+1  — red ['NR-same-turn-entry']
+  PASS  A31 trainer KO: old mon's party HP read by POSITION (slot 0)  — red ['NR-tko-identity']
+  PASS  A32 trainer KO: d_bide <= hp rejected (boundary, conservative)  — red ['NR-tko-identity']
+  PASS  A66 trainer KO: the 'old PID' taken from the AFTER foe (identity check vacuous)  — red ['P6']
+  PASS  A67 end pairing: outcome check dropped  — red ['P2']
+  PASS  A46 acceptance counts Tier A only (an over in Tier B/C ignored)  — red ['NR-accept-kinds']
+  PASS  A47 acceptance: over checked on non-KO turns only  — red ['NR-accept-kinds']
+  PASS  A68 acceptance: over checked on trainer battles only  — red ['NR-accept-kinds']
+  PASS  A69 acceptance: over uses the ACCEPT_MARGIN constant, not the parameter  — red ['I5', 'X7']
+  PASS  A34 below-min tag '<='  — red ['NR-output-edges']
+  PASS  A35 >cmax+M1a count '>='  — red ['NR-output-edges']
+  PASS  A36 stats below-min '<='  — red ['NR-output-edges']
+  PASS  A43 M1a bound: Charge regardless of the move's type  — red ['O3']
+  PASS  A70 stats row n: hits restricted to d_bide>0 but NOT pred[3]>0 filter... (per-stratum max over KO only)  — red ['NR-output-edges']
+  PASS  A37 parser: a repeated field accepted (the last wins)  — red ['NR-parser']
+  PASS  A38 parser: AFTER kind unchecked  — red ['NR-parser']
+  PASS  A39 parser: party length unchecked  — red ['NR-parser']
+  PASS  A40 parser: dis unchecked  — red ['NR-parser']
+  PASS  A71 parser: pred of any 4 fields accepted incl. a malformed err  — red ['NR-parser']
+  PASS  A72 parser: ERR where unchecked  — red ['NR-parser']
+  PASS  A41 port control: open interval  — red ['NR-port-edges']
+  PASS  A42 Hidden Power: TYPE_MYSTERY skip '>' (t==9 -> '???')  — red ['G14', 'NR-hp-mystery-skip', 'NR-hp-rolled-type']
+  PASS  A73 port adapter: attacker types swapped (STAB-equivalent)  — red ['PC3']
+  PASS  A74 port adapter: foresight from OUR status2  — red ['PC6']
+  PASS  A75 port adapter: Charge from the FOE's s3  — red ['PC4']
+  PASS  D01 bide read UNSIGNED  — red ['NP-fields']
+  PASS  D02 Flash Fire: inner EWRAM guard dropped  — red ['NP-fields']
+  PASS  D03 Flash Fire: outer EWRAM guard dropped  — red ['NP-ff-null-resources']
+  PASS  D04 Flash Fire: flags pointer read at +0 (secretBase) not +4  — red ['NP-fields']
+  PASS  D05 Flash Fire: flags[b] read as bytes (stride 1)  — red ['NP-fields']
+  PASS  D06 party HP offset 0x54 (level/mail) not 0x56  — red ['NP-fields']
+  PASS  D07 party PID offset +4 (OT id) not +0  — red ['NP-fields']
+  PASS  D08 turn counter at +0x12 not +0x13  — red ['NP-fields']
+  PASS  D09 mons written in (foe, ours) order  — red ['NP-fields']
+  PASS  D10 mv read as u8 (not u16)  — red ['NP-fields']
+  PASS  D11 side written in reversed order  — red ['NP-fields']
+  PASS  D12 s3 written in reversed order  — red ['NP-fields']
+  PASS  D13 act written reversed  — red ['NP-fields']
+  PASS  D14 weather read as the low byte only  — red ['NP-fields']
+  PASS  D15 prediction attacker/defender SWAPPED  — red ['NP-pred-exact']
+  PASS  D16 crit prediction WITHOUT is_critical_hit=True  — red ['NP-pred-exact']
+  PASS  D17 bcrit computed with crit False  — red ['NP-pred-exact']
+  PASS  D18 exit guard dropped (BEFORE written while still selecting)  — red ['NP-exit-guard']
+  PASS  D19 exit guard: sub_8012324 not a selection state  — red ['NP-exit-guard']
+  PASS  D20 battle start does not drop a stale BEFORE  — red ['NP-pending']
+  PASS  D21 entry does not consume the BEFORE (every re-entry logs an AFTER)  — red ['NP-pending']
+  PASS  D22 entry logs without a pending BEFORE  — red ['NP-pending']
+  PASS  D23 end logs without a pending BEFORE  — red ['NP-pending']
+  PASS  D24 the end read dereferences Flash Fire  — red ['NP-end-no-ff']
+  PASS  D25 flag loosened: any non-empty value turns it on  — red ['NP-flag-values']
+  PASS  D26 _pending set BEFORE the log (a failed BEFORE leaves a pending)  — red ['NP-raise']
+  PASS  D27 entry hook's try/except removed (a read failure propagates into the battle)  — red ['NP-raise']
+  PASS  D28 ERR where name drifts from the contract ('entry')  — red ['NP-raise']
+  PASS  D29 prediction error logged as pred=none (err: path lost)  — red ['NP-pred-err']
+  PASS  D30 badges: 7 badges only  — red ['NP-fields']
+  PASS  H01 BAS: a SECOND get_battle_state() right before the exit hook  — red ['NH-gbs-count']
+  PASS  H02 BAS: a DMGAUDIT event emitted from BAS itself  — red ['NH-no-dmgaudit-literal']
+  PASS  W01 an OUT effect admitted to Tier A: DOUBLE_HIT (Double Kick: two hits in one Δbide)  — red ['NR-whitelist-table']
+  PASS  W02 an OUT effect admitted: LEVEL_DAMAGE (Night Shade / Seismic Toss)  — red ['NR-whitelist-table']
+  PASS  W03 an OUT effect admitted: OHKO  — red ['NR-whitelist-table']
+  PASS  W04 an OUT effect admitted: FLAIL (dynamic power)  — red ['NR-whitelist-table']
+  PASS  W05 an OUT effect admitted: TRAP (Whirlpool)  — red ['NR-whitelist-table']
+  PASS  W06 an OUT effect admitted: TWINEEDLE  — red ['NR-whitelist-table']
+  PASS  W07 Tier B -> A: POISON_FANG moved (trainer KO no longer unobservable)  — red ['NR-whitelist-table']
+  PASS  W08 Tier B -> A: CONFUSE_HIT moved  — red ['NR-whitelist-table']
+  PASS  W09 Tier C -> A: PURSUIT moved (label only)  — red ['NR-whitelist-table']
+  PASS  W10 a Tier A entry dropped: THUNDER -> OUT (samples lost)  — red ['NR-whitelist-table']
+  PASS  W11 a Tier C entry dropped: SNORE -> OUT  — red ['NR-whitelist-table']
+  PASS  W12 Surf by index removed from C AND Struggle kept (only Surf's index moved to 58)  — red ['NR-whitelist-table', 'R10a', 'R10b', 'W1', 'W3']
+  PASS  RF1a the F1 clause without 'our status' (B-MS2 unexcluded) -> Q09b  — red ['Q09b']
+  PASS  RF1b persistent:marvel-scale dropped -> Q09 Q09b  — red ['Q09', 'Q09b']
+  PASS  RF2a SECRET_POWER back in Tier A -> W1 NR-whitelist-table  — red ['NR-whitelist-table', 'W1']
+  PASS  RF2b SECRET_POWER dropped from TIER_B_BIDE -> G12c G13  — red ['G12c', 'G13']
+  PASS  RF3a foe-called-move dropped -> Q12  — red ['Q12']
+  PASS  RF3b MIRROR_MOVE dropped from FOE_CALLS_MOVE -> Q12  — red ['Q12']
+  PASS  RF4a False Swipe's band back to crit_max -> Q07b  — red ['Q07b']
+  PASS  RF4b the audit's margin not threaded to the classifier -> Q07b  — red ['Q07b']
+  PASS  RF5a our-flash-fire-unobservable dropped -> G14  — red ['G14']
+  PASS  RF5b the battle-END condition dropped (fires at an entry read too) -> G14  — red ['G14']
+  PASS  RF6a ability-not-species never fires -> S15  — red ['S15']
+  PASS  RF6b a fainted record (HP 0) judged too -> S15  — red ['S15']
+  PASS  RF6c the IV word's bit 31 ignored (always the first ability) -> S15  — red ['S15']
+  PASS  RF6d missing species data not an instrument failure -> S16  — red ['S16']
+  PASS  RF7a our-burn-changed dropped -> G15  — red ['G15']
+  PASS  RF7b SKULL_BASH dropped from FOE_SELF_STATE -> NR-unobservable  — red ['NR-unobservable']
+  PASS  RF7c our-burn-changed for any damage type (a special hit too) -> G15  — red ['G15']
+  PASS  RF8a the future-attack exclusion dropped -> C5  — red ['C5']
+  PASS  RF8b the future-attack bit read at BEFORE only -> C5  — red ['C5']
+  PASS  RF8c the wrong bit (0x20, Safeguard) -> C5  — red ['C5']
+  PASS  RF9a1 every Tier B KO unobservable again (tier == 'B') -> G09b  — red ['G09b']
+  PASS  RF9a2 a non-confusing Tier B status at AFTER excluded again -> G12b  — red ['G12b']
+  PASS  RF9a3 CONFUSE_HIT dropped from TIER_B_BIDE -> G09  — red ['G09']
+  PASS  RF9b1 the own-drop exemption removed -> G16  — red ['G16']
+  PASS  RF9b2 Overheat's drop not clamped at stage 0 -> G16  — red ['G16']
+  PASS  RF9b3 Superpower's own drop taken as -2 -> G16  — red ['G16']
+  PASS  RF0 a comment edit naming the review code turns NOTHING red  — red []
+  PASS  COVERAGE every row appears in at least one mutant's expected red set  — 191 rows; uncovered []
+
+ALL PASS (191 rows, 220 mutants) in 7.7 s
+
+===== the full standing suite after the fixes (run_gates.py, finished ~9:41 AM LA) =====
+  PASS  probe_kit_topoff_sootopolis.py     exit=0     6.3s
+  PASS  probe_damage_calc_decomp.py        exit=0    71.5s
+  PASS  probe_dmgaudit.py                  exit=0     8.3s
+============================================================================================
+ALL 134 ENFORCING GATES PASS  (458.5s total)   [+4 ADVISORY probe(s) — run, NOT gated]
+============================================================================================

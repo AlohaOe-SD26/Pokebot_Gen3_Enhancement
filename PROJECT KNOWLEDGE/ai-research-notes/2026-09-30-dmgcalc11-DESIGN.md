@@ -95,11 +95,15 @@
   - **The whitelist**, a constant keyed on `moves.json` `effect`, never on names, except Surf and Struggle, which
     need the move index [R:M1A N3]:
     - Tier A (plain: one hit, fixed power, no condition): HIT, HIGH_CRITICAL, ALWAYS_HIT, QUICK_ATTACK, VITAL_THROW,
-      PAY_DAY, SECRET_POWER, SKY_UPPERCUT, THUNDER, KNOCK_OFF, THIEF, RAPID_SPIN, FLINCH_HIT, PARALYZE_HIT,
+      PAY_DAY, SKY_UPPERCUT, THUNDER, KNOCK_OFF, THIEF, RAPID_SPIN, FLINCH_HIT, PARALYZE_HIT,
       FREEZE_HIT, the stat-down and stat-up *_HIT effects, SUPERPOWER, OVERHEAT, RECHARGE, DOUBLE_EDGE, RECOIL (not
       Struggle), RECOIL_IF_MISS, ABSORB, RAGE, HIDDEN_POWER.
-    - Tier B (a secondary that can move the FOE's HP the same turn): BURN_HIT, BLAZE_KICK, THAW_HIT, TRI_ATTACK,
-      POISON_HIT, POISON_TAIL, POISON_FANG, CONFUSE_HIT. Valid only when the AFTER read passes F4's status rules.
+    - Tier B (a secondary that can move the FOE's HP the same turn): SECRET_POWER, BURN_HIT, BLAZE_KICK, THAW_HIT,
+      TRI_ATTACK, POISON_HIT, POISON_TAIL, POISON_FANG, CONFUSE_HIT. Valid only when the AFTER read passes F4's status
+      rules. *(Changed after the review: SECRET_POWER moved here from Tier A (audit F2: its mountain secondary is
+      confusion). And only the CONFUSING ones, CONFUSE_HIT and SECRET_POWER, keep the faint and AFTER-status
+      exclusions (audit F9a, verified in the decomp): a burn or poison tick runs under HITMARKER_IGNORE_BIDE, so it never
+      reaches gBideDmg. See `audit_damage_calc.py`'s `TIER_B_BIDE`.)*
     - Tier C (conditional; valid only while the condition is observably false at BOTH reads): Surf vs Underwater;
       EARTHQUAKE vs Underground; GUST and TWISTER vs InTheAir; FLINCH_MINIMIZE_HIT vs Minimized; FACADE;
       SMELLINGSALT; WEATHER_BALL; BRICK_BREAK; PURSUIT; any Fire or Electric move while Mud Sport or Water Sport is on
@@ -123,15 +127,18 @@
     actions and moves, both battlers' raw `gBattleMons` records (0x58 bytes), `gStatuses3`, `gDisableStructs`, the
     weather, both side statuses, both `gBideDmg` slots, and the Flash Fire flag (a `gBattleResources` double
     dereference [R:M1b-8]). And the LIVE prediction for `gChosenMoveByBattler[0]`: min, max, and crit_max with
-    `is_critical_hit=True`, computed on the handler's EXISTING `battle_state` object (BAS:115), valid because nothing
-    in `gBattleMons` changes during selection [R:M1b-11c, SR N7]. ⛔ It adds no `get_battle_state()` call (KI-108).
-  - **AFTER, at the next selection entry** (reusing the BAS:115 object), and **at the battle's end** (the
+    `is_critical_hit=True`, computed on the handler's EXISTING `battle_state` object, valid because nothing in
+    `gBattleMons` changes during selection [R:M1b-11c, SR N7]. ⛔ It adds no `get_battle_state()` call (KI-108).
+    *(Corrected after the review, production F1: that object is the entry snapshot OR the handler's own refresh at
+    the decision, BAS:577-579, both taken within the same selection; it was written as "the BAS:115 object".)*
+  - **AFTER, at the next selection entry** (pure reads; no battle_state object), and **at the battle's end** (the
     battle-handler loop's exit, with pure reads; ⚠ whether `gBattleMons` survives there is F6's question) [R:M1b-11d]:
     the same raw fields.
   - **Where BEFORE lives [R:M1b-12]:** at module level (the handler is re-entered within one selection, and a
     function local dies across re-entries: BAS:26-28); the latest exit overwrites it; it is cleared at battle start.
-    There are other exits (BAS:193, :886, :981, raises, the KI-47 abandonment): only the `while` fall-through writes
-    a BEFORE.
+    There are other exits (BAS:193, :886, raises, the KI-47 abandonment) that write no BEFORE. *(Corrected after the
+    review, production F1: the Safari Pokéblock `break`, base BAS:981, leaves the `while` and so DOES reach the exit
+    hook, whose guard decides; such a BEFORE carries a non-move action and the audit makes it NOT-A-SAMPLE.)*
   - A `[DMGAUDIT] CTL` line at battle start. ⛔ With the flag unset, NO line contains `DMGAUDIT` [R:SR-3].
   - The flag is read per handler call, like BAS's census flags (BAS:150): a THIRD stated exception to v2:151's
     "read per run in `reset_per_run_state`", because BAS has no StoryMode and the harness drivers bypass it
@@ -341,4 +348,22 @@ acceptance, on the live arms, still to run.
   - with the flag unset, zero reads and zero logs;
   - with the flag set, zero `get_battle_state()` calls, and the exact CTL/BEFORE/AFTER sequence, which proves each hook
     body ran to its log call.
+  - ⚠ *Corrected after the review (production F2, grade F4):* the flag-set half of that file never reaches the
+    calculator branch; its fake reads return `pred=none` first. A raising calculator also logs an ordinary BEFORE
+    (`pred=err:<Name>`), not an `ERR` line. The branch is covered by gate PIN-b1, NP-pred-exact and NH-gbs-count, and
+    live by ON-r1's 22 numeric `pred=` BEFOREs (`…-GRADED.md`, the M1b-DIFF/EXEC row).
 - **The full suite: ALL 134 ENFORCING GATES PASS in 469.3 s** (`evidence/2026-09-30-dmgcalc11-GATES.txt`).
+- **After the three-lens review (`evidence/2026-09-30-dmgcalc11-REVIEW.txt`), the classifier gained nine fixes.**
+  - The Marvel Scale stratum is now the FOE's, with either battler statused.
+  - SECRET_POWER moved to Tier B.
+  - New reasons: `foe-called-move` (Metronome, Mirror Move, Assist, Sleep Talk, Nature Power),
+    `our-flash-fire-unobservable` (at a battle-end read), `ability-not-species` (Trace, Role Play, Skill Swap; a
+    fainted record is skipped; unloadable species data fails the instrument) and `our-burn-changed`.
+  - SKULL_BASH joined the foe's self-state moves.
+  - The False Swipe band widened to crit_max + margin + 1.
+  - The self-check skips a pending Future Sight.
+  - Tier B's exclusions now apply only to confusing secondaries (F9a).
+  - Superpower's and Overheat's own drops no longer exclude.
+  - The gate grew to 191 rows and 220 mutants: 14 new rows, each red on the pre-review classifier, and 27 new mutants.
+    Every set was written before its run; one (A05) was corrected after its first run and disclosed.
+  - Re-auditing the graded log gives a byte-identical report: none of these cases occurs in it.

@@ -569,7 +569,10 @@ Step 11's arms left the trajectory its per-turn table was taken from. Was that t
   is what made it a KI-112 event and not a probe effect.
 - **Then grade the table by its filed rule:** reached rows as filed, unreached rows NOT REACHED (never PASS),
   unregistered rows reported.
-- **Before this happens again:** take a live per-turn table from TWO identical runs (08).
+- **Before this happens again:** take a live per-turn table from TWO identical runs SEPARATED IN TIME (or with an
+  unrelated run between them). Back-to-back runs cannot expose a time-of-day or accumulated-state input (08).
+- **A live grade that re-uses the trajectory a gate row was built from is NOT an independent test of the
+  classifier.** Say so in the grade. Step 11's gate T1 already asserted the same table on the same states.
 - **Observe-only instruments get a LIVE SMOKE before their classifier is final.** The faint reset (08) was invisible
   to a gate built on the design's own model of memory.
 

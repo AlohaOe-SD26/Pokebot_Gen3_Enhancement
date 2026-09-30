@@ -1,0 +1,423 @@
+design v2 step 11 (M1) — the THREE-LENS REVIEW (production safety, the audit against the decomp, the grade's honesty), 2026-09-30 LA
+Model output (subagent returns), VERBATIM: each finding, its refuter's verdict where one ran (blocker/should-fix only), and
+what each lens checked and found true. A NOTE, never truth: every fix was re-checked by the author before it landed.
+(The audit lens's three refuters first failed on a session limit and were re-run by resuming the same workflow.)
+
+# LENS production
+
+## F1 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md:132-133
+CLAIM: F3 lists the Safari Pokeblock `break` (base BAS:981) among the exits that do NOT write a BEFORE. That is wrong: `break` leaves the `while` and reaches the exit hook, so a BEFORE is written whenever the main callback has already left the selection states. The same paragraph (lines 126 and 128) also says the prediction runs on the 'BAS:115 object'. At the exit, `battle_state` is normally the object refreshed at the decision (build BAS:578), not the entry snapshot.
+EVIDENCE: DESIGN.md:132-133: "There are other exits (BAS:193, :886, :981, raises, the KI-47 abandonment): only the `while` fall-through writes a BEFORE." The base file at `git show 241929d7:.../battle_action_selection.py`, lines 980-981, reads `yield from battle_action_use_pokeblock(index)` then `break`. In the build this `break` is BAS:984, and it falls through to `_dmgaudit.on_selection_exit(battle_state)` at BAS:1012. The guard at dmgaudit.py:163 is the only thing that decides whether the line is written. For the second point: build BAS:577-579 read `if previous_battler_index != battler_index: battle_state = get_battle_state()`, so the object passed at BAS:1012 is that refresh whenever a decision was made. The effect is bounded. Such a BEFORE carries act[0]=6 and pred=none, and the audit makes it NOT-A-SAMPLE (audit_damage_calc.py:565-566, `our-action-not-a-move`). Both objects are same-selection snapshots, and the fields the prediction uses are all compared in `BattleState.__eq__` (battle_state.py:249-260), so the second point is a doc inaccuracy, not a wrong prediction.
+FIX: In F3, drop ':981' from the no-BEFORE exits and say that the Pokeblock `break` reaches the exit hook, whose guard decides. Replace 'the BAS:115 object' with 'the handler's current `battle_state` (the entry snapshot, or the refresh at the decision)'.
+VERDICT: (none)
+
+## F2 [nit] tools/story-dev/evidence/2026-09-30-dmgcalc11-DIFF.txt:(c) block of the verbatim script
+CLAIM: The M1b-DIFF/EXEC check (c), 'flag SET: zero get_battle_state() calls', never executed the prediction's calculator branch. That branch is the only path in the hooks that calls into external code (BattleStrategyUtil, get_move_by_index), so its zero is vacuous exactly where it matters. The GRADED table cites this file for the claim. The fact itself is true: it rests on gate PIN-b1, which does run the calculator, and on a static read of _util.py, which has no reference to get_battle_state.
+EVIDENCE: In DIFF.txt, `M.read_symbol = lambda *a, **k: reads.append(a) or bytes(k.get("size", 4) or 4)` returns zero bytes. `_prediction` therefore reads action=0 and move_id=0 and returns at dmgaudit.py:105-106 (`if action != 0 or move_id == 0: return "pred=none base=none eff=-"`). That is before the BattleStrategyUtil import at :107. `fake_state` also has `left_battler=None`. GRADED.md:30 ('M1b-DIFF / EXEC ... flag set, 0 `get_battle_state()` calls') cites `-DIFF.txt`. The check that actually ran the calculator is probe_dmgaudit.py:1201-1205 (PIN-b1). It asserts `pred=\d+,\d+,\d+,\d+ base=\d+,\d+` on both BEFOREs and `log.gbs == []`.
+FIX: In GRADED.md's M1b-DIFF/EXEC row, cite gate PIN-b1 for 'flag set, 0 get_battle_state() calls'. Alternatively, note in DIFF.txt that its (c) world returns at pred=none, so the calculator path is not exercised there.
+VERDICT: (none)
+
+### checked and found true
+- Only the 3 sandbox-pokebot files differ across the whole branch (241929d7..c0039855). custom-pokebot/ and the '40cakes repo' mirror are untouched (git diff --stat). c44b1def..HEAD changes nothing under sandbox-pokebot.
+- The hook diff is exactly: the `from modules import dmgaudit as _dmgaudit` import plus one call each at BAS:118 (entry), BAS:1012 (exit, function level after the while), BH:325 (immediately before the main loop) and BH:418 (immediately after it).
+- dmgaudit.py has no yield, no press_button, no memory write and no get_battle_state reference (lines 1-181). Its only top-level import is `os`, so importing it cannot fail or cycle.
+- Flag unset: every hook tests `_on()` first and returns before any read or log (dmgaudit.py:133, 145, 158, 175). The call-site arguments are bare names, so the call sites perform no reads either.
+- Nothing can raise out of a hook. Every read and log sits inside try/except Exception (lines 136-139, 148-151, 160-168, 178-181), and `_err` has its own try (41-44). The only statements outside a try are `_on()` and the `_pending` assignments, which cannot raise. `_prediction` raising at get_move_by_index loses only that BEFORE, as one ERR line.
+- Every read is pure. read_symbol, context.emulator.read_bytes (both pointers range-checked against EWRAM), get_event_flag -> get_save_block (memory.py:336-343, 139-149), get_move_by_index (a static list, pokemon.py:1449-1450) and debug_logger.event (a no-op when logging is off; `_event` only writes, debug_logger.py:332-338, 463-469).
+- The prediction triggers no cache refresh and no hidden get_battle_state(). BattleState, BattleStateSide and BattlePokemon properties only parse stored bytes (battle_state.py:265-440), and _util.py never names get_battle_state. Gate PIN-b1 executes the calculator with get_battle_state rebound and counts zero calls.
+- The selection-entry snapshot is not stale at the exit for the fields the prediction uses. The handler cannot span turns, because its while needs the main callback in selection (BAS:176). gBattleMons, the side timers, gStatuses3, gDisableStructs and the weather do not change during selection. Even a KI-108 'kept old object' is byte-equal on all of them, since __eq__ compares every one (battle_state.py:249-260).
+- The exit guard is evaluated in the same frame as the loop's failing condition, with no yield between them. The action sub-generators return within about 1 frame of the controller leaving its menu. gBattleMainFunc advances one step per frame (HandleTurnActionSelectionState -> SetActionsAndBattlersTurnOrder -> CheckFocusPunch -> RunTurnActionsFunctions, battle_main.c:4541/4811/4930). gBideDmg is only accumulated at datahpupdate (battle_script_commands.c:1912). So a BEFORE cannot be taken inside selection or after an action has run.
+- A cross-battle AFTER is impossible. The hooks are reachable only through handle_battle (its only callers are modes/_listeners.py:219/273/294). on_battle_start clears _pending before any selection entry of that invocation. on_battle_end pairs only with a BEFORE from the same invocation. An early exit (Manual, fault break) writes kind=end with out=0, which the audit rejects as 'end-without-outcome' (audit_damage_calc.py:375-376).
+- Re-entry within one selection cannot duplicate a BEFORE. The early returns (BAS:196, :889) skip the exit hook, and every entry clears _pending. The evidence log (ON-r1) shows a strict CTL, (BEFORE, AFTER)* sequence across all 14 battles, with every kind=end at out != 0.
+- The per-turn cost is small. The 88 DMGAUDIT lines in ON-r1 average 578 bytes (max 722), about 1.2 KB per turn, against the 30 MB cap (debug_logger.py:44). The largest existing debug log in the repo is about 6 MB, and the audit FAILs on the cap marker anyway.
+- The line layout matches the decomp. battleTurnCounter is at gBattleResults+0x13, BattleResources->flags is at +4, gEnemyParty HP is at +0x56, and there are 2x0x58 gBattleMons, 2x0x1C gDisableStructs and 4 s32 gBideDmg. BattleTurnPassed resets the chosen action/move to NONE, which explains the entry reads act=255 mv=0.
+# LENS audit
+
+## F1 [should-fix] tools/story-dev/audit_damage_calc.py:477-478
+CLAIM: persistent:marvel-scale checks the wrong battler, so M1a's pre-registered UNDER-prediction row B-MS2 (foe has Marvel Scale and is healthy, WE are statused) goes into the acceptance set. The calculator gets this case wrong in the direction that matters for step 12, and here it can produce a FAIL.
+EVIDENCE: The classifier's clause is `if (foe.ability == AB_MARVEL_SCALE and foe.status1) or (me.ability == AB_MARVEL_SCALE and me.status1)`. The second half is about OUR Marvel Scale, which only affects damage we take. The calculator keys the foe's Marvel Scale on OUR status (`_util.py:399-400`: `defender.ability.name == "Marvel Scale" and attacker_status is not StatusCondition.Healthy`). The game keys it on the defender's own status (pokeemerald src/pokemon.c:3213 `defender->ability == ABILITY_MARVEL_SCALE && defender->status1`). PREDICTIONS.md:32 pre-registers exactly this case: B-MS2 'Marvel Scale wrongly on our (poisoned) attacker', game [14,17] vs ours (10,12). DESIGN.md:158 lists Marvel Scale among the PERSISTENT strata that are 'never the acceptance set'. Computed with the real classifier (scratch copy of the gate's builders): BEFORE with foe ability 63 and status1 0, and our status1 0x8 -> ACCEPTED, reasons=[]. On that row every game crit (28..34) is above ours crit_max 24 + ACCEPT_MARGIN 3, so it is a FAIL. The gate pins the wrong clause: probe_dmgaudit.py:590-592 (Q09 uses `me: ability 63, status1 0x8`) and mutant MX19 at :1927-1929.
+FIX: Make the second clause `foe.ability == AB_MARVEL_SCALE and me.status1` (keep the first, B-MS1). Rewrite Q09 to the B-MS1/B-MS2 states and add a row with a healthy foe Marvel Scale and a poisoned us that must be EXCLUDED.
+VERDICT: refuted=False corrected=should-fix
+REASONING: The finding holds up. The audit only measures damage WE deal (Δ gBideDmg[1]), so `me` is always the attacker and `foe` the defender. Neither the game nor our calculator ever reads the ATTACKER's Marvel Scale, so the classifier's second clause (`me.ability == AB_MARVEL_SCALE and me.status1`) excludes a state where the two agree. The state where they really diverge goes unexcluded: the foe has Marvel Scale and is healthy while we are statused. That is B-MS2 as the rowspec actually defines it (ours POISONED, foe Marvel Scale healthy). The ambiguous label "Marvel Scale wrongly on our (poisoned) attacker" appears to have been read as "OUR Marvel Scale". The first clause is also redundant, because "foe-status" already excludes any statused foe.
+
+I reproduced it with the real classifier on a scratch copy. That state is ACCEPTED with no reasons, and a game crit produces a FAIL. Nothing else excludes it: our own status is only a reason for Facade (`C:facade-status`) or for a Guts/Facade status CHANGE.
+
+What I tried and failed to use as a refutation (it narrows reachability but does not remove it):
+(1) In vanilla Emerald, Marvel Scale is on exactly one species (species_info.h:9203, the only ABILITY_MARVEL_SCALE hit). The only trainer Milotic is Wallace's (trainer_parties.h:4453), and it holds ITEM_SITRUS_BERRY, so every sample is EXCLUDED by `foe-held-item` (audit_damage_calc.py:423-424) until the berry is eaten.
+(2) After the berry is eaten, the item byte reads 0. Wallace's Milotic and Tentacruel both carry MOVE_TOXIC, so "us statused, Milotic healthy, no item" is a likely state in that fight.
+(3) Step 11's own M1b arms (post_mtpyre, 90000 frames) never reach the Champion, so the GRADED result is unaffected.
+(4) Step 14's batch (DESIGN.md:171, "the data is step 14's") audits the same classifier over full runs, so the defect is latent, not dead. Non-crit hits in that state are also silently ACCEPTED as "crit-or-under-prediction (ambiguous)", which contaminates the per-effect error distributions promised to step 12 (DESIGN.md:243 F9).
+
+Why should-fix and not blocker: the defect is offline and cannot affect a battle. The only trigger is one end-game foe after its berry is consumed. Step 11's graded result does not move. And the FAIL it could produce would flag a real calculator divergence, only filed in the wrong stratum. The gate also pins the wrong clause: Q09 row 2 and mutant MX19 both treat "our Marvel Scale" as the known divergence, so they would go red if the clause were fixed.
+V-EVIDENCE: Classifier: tools/story-dev/audit_damage_calc.py:477-478 `if (foe.ability == AB_MARVEL_SCALE and foe.status1) or (me.ability == AB_MARVEL_SCALE and me.status1): out.add("persistent:marvel-scale")`; the first clause is already covered by :412-413 (`if foe.status1: out.add("foe-status")`, in _state_reasons).
+
+Calculator: sandbox-pokebot/modules/battle_strategies/_util.py:399 `if defender.ability.name == "Marvel Scale" and attacker_status is not StatusCondition.Healthy:`.
+
+Decomp (fetched): pokeemerald src/pokemon.c:3213-3214 `if (defender->ability == ABILITY_MARVEL_SCALE && defender->status1) defense = (150 * defense) / 100;`.
+
+Pre-registered row: PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-recon/m1_rowspec.md:26 `B-MS2 | ours, L50, Atk 100, Water, POISONED | foe, Def 100, HP 200, Water, Marvel Scale, healthy`. The design says these states are "their own stratum, never the acceptance set" (DESIGN.md:158-159).
+
+Logged prediction: dmgaudit.py:117-118 `calculate_move_damage_range(move, attacker, defender[, is_critical_hit=True])`, with our mon as attacker.
+
+Gate: probe_dmgaudit.py:590-592 (Q09 row 2 = `me: ability 63, status1 0x8`) and :1927-1929 (MX19) pin the wrong clause. evidence/2026-09-30-dmgcalc11-GATES.txt:228 and :397 show them passing.
+
+Scratch reproduction (the real audit_damage_calc.py plus the gate's builders, copied from probe_dmgaudit.py:107-236; nothing written to the worktree). Inputs: Tackle, me status1=0x8, foe ability 63, status1 0, pred (10,12,20,24).
+- obs=28 -> `ACCEPTED [] ['over-crit_max+4','OVER-ACCEPTANCE-BOUND'] acceptance: FAIL`
+- obs=34 -> FAIL
+- obs=17 -> `ACCEPTED [] ['crit-or-under-prediction (ambiguous)']`
+- Control: foe Marvel Scale burned -> EXCLUDED ['foe-status','persistent:marvel-scale'].
+The game's crit range from the rows note is [28,34] (base 15+2=17, x2=34, x85%=28), which is above 24+3.
+
+Reachability limits: trainer_parties.h:4414-4458 has sParty_Wallace's Milotic with `.heldItem = ITEM_SITRUS_BERRY` and moves {RECOVER, SURF, ICE_BEAM, TOXIC}; it is the only SPECIES_MILOTIC in the file. species_info.h has a single ABILITY_MARVEL_SCALE (line 9203). While the berry is held, `foe-held-item` (audit_damage_calc.py:423-424) excludes every sample.
+
+## F2 [should-fix] tools/story-dev/audit_damage_calc.py:113-115
+CLAIM: SECRET_POWER is in Tier A, but in the mountain environment its secondary is CONFUSION. A confusion self-hit on the same turn adds to gBideDmg[1]. When that self-hit KOs the foe, the per-mon AFTER checks are skipped and Tier A adds no foe-after-unobservable, so our damage plus the self-hit is accepted as one observation.
+EVIDENCE: pokeemerald src/battle_script_commands.c:9641-9642 `case BATTLE_ENVIRONMENT_MOUNTAIN: ... MOVE_EFFECT_CONFUSION` (BattleScript_EffectSecretPower, data/battle_scripts_1.s:2563-2565). Confusion lasts 2-5 turns (BSC:2541), so after the canceler's decrement the foe can still hit itself that turn (src/battle_util.c:2142-2160). The self-hit is `datahpupdate BS_ATTACKER` without HITMARKER_IGNORE_BIDE (battle_scripts_1.s:3809-3811), and datahpupdate adds it to gBideDmg (BSC:1912). The classifier adds foe-after-unobservable only for `tier == "B" or foe_eff in FOE_SELF_STATE` (:501), and skips the AFTER foe-confused check when the foe fainted (:608-610). Computed: Secret Power, foe 136 HP, our 66 plus a 70 self-hit KO -> ACCEPTED tier=A, d_bide=136 > crit_max 132+3, acceptance=FAIL. The same shape with Psybeam (CONFUSE_HIT) -> EXCLUDED foe-after-unobservable. This is reachable: the story bot's TM teacher counts SECRET_POWER as a plain hit (sandbox-pokebot/modules/story/gym_tm_teach.py:129-130). DESIGN.md:103's Tier A definition ('no condition') is wrong for this move.
+FIX: Move SECRET_POWER to TIER_B, which is what the design's own Tier B definition says it is (the gate's literal copy of F2's tiers needs the same edit).
+VERDICT: refuted=False corrected=nit
+REASONING: I tried to refute F2 and could not. The mechanism holds in every step, and the classifier accepts the case. What does not hold is the claim that it is reachable, so I am lowering the severity to nit.
+
+Mechanism, checked against the real decomp:
+(1) In the MOUNTAIN environment Secret Power's secondary effect is confusion (bsc.c:9641-9642). The effect lasts 2-5 turns (bsc.c:2541).
+(2) The foe's confusion check subtracts one turn first and then tests whether it is still confused, so a 2-5 value can still self-hit on the same turn (battle_util.c:2145-2160).
+(3) The self-hit script sets only IGNORE_SUBSTITUTE|PASSIVE_HP_UPDATE before `datahpupdate BS_ATTACKER` (battle_scripts_1.s:3809-3811). Nothing in the confusion check or that script sets HITMARKER_IGNORE_BIDE, so the self-hit takes the `gBideDmg[gActiveBattler] += gBattleMoveDamage` branch (bsc.c:1905-1912). The only code that sets IGNORE_BIDE is the end-of-turn and Wish/Perish handlers (battle_util.c:1464, :1783).
+(4) When the foe faints, the classifier skips every AFTER per-mon check (audit_damage_calc.py:608-610). It adds foe-after-unobservable only for `tier == "B" or foe_eff in FOE_SELF_STATE` (:501), and SECRET_POWER is in TIER_A (:114).
+(5) I found no other place that handles this. DESIGN.md:42/:44 (B5) says the design means to cover "our own move can ... confuse", but the tier table (:97-102) never applies that to Secret Power.
+(6) I reproduced the claimed counterexample in scratch Python (worktree untouched): Secret Power ACCEPTED, tier A, KO, reasons (), d_bide 136, tagged OVER-ACCEPTANCE-BOUND, acceptance FAIL. Psybeam on the same pair is EXCLUDED with foe-after-unobservable.
+
+So the defect is real.
+
+Why the severity drops:
+- The finding's evidence for reachability does not show reachability. gym_tm_teach.py:129-130 only lists effects. The teacher can only teach TMs already in the bag (owned_tms, gym_tm_teach.py:464-480, from get_item_bag().tms_hms).
+- Our side can only learn move 290 (Secret Power) from TM43. A scan of species.json finds no species that learns 290 by level-up, egg or tutor.
+- TM43 comes from two places in Emerald: an optional Route 111 NPC gift (data/scripts/secret_power_tm.inc) and the Slateport Power-TMs mart (SlateportCity/scripts.inc:517-519). No story module picks up TM43 or goes through either: grep for TM43/SECRET_POWER in sandbox-pokebot/modules/story finds only the teacher's tuple.
+- No step-11 evidence file contains SECRET_POWER or Secret Power.
+- Even with TM43, the case needs all of these at once: battle environment MOUNTAIN (only MB_MOUNTAIN_TOP tiles, battle_setup.c:677-678, metatile_behavior.c:845-851); our move goes first; the ~30% secondary rolls confusion; the foe lacks Own Tempo; the 50% self-hit happens; and the self-hit is what knocks the foe out.
+- The effect is on an offline audit that can be re-run from the log (audit_damage_calc.py:6-8: "a classifier bug ... costs a re-audit, not a re-batch"). It cannot affect battles.
+
+Result: a latent mis-tiering with no reach in the current measurement population. The proposed fix is still correct and cheap: move SECRET_POWER to TIER_B at :114 and in the gate's copy at probe_dmgaudit.py:1322. The only cost is that Secret Power KOs are excluded. Minor citation error: the Tier A definition is at DESIGN.md:97, not :103.
+V-EVIDENCE: Decomp: bsc.c:9641-9642 `case BATTLE_ENVIRONMENT_MOUNTAIN: gBattleCommunication[MOVE_EFFECT_BYTE] = MOVE_EFFECT_CONFUSION;`. bsc.c:2541 `STATUS2_CONFUSION_TURN(((Random()) % 4) + 2); // 2-5 turns`. battle_util.c:2145-2160: the confusion check does `status2 -= STATUS2_CONFUSION_TURN(1); if (... & STATUS2_CONFUSION) { if (Random() & 1) ... else { gBattleMoveDamage = CalculateBaseDamage(...MOVE_POUND...)`. battle_scripts_1.s:3809-3811: `orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_PASSIVE_HP_UPDATE / healthbarupdate BS_ATTACKER / datahpupdate BS_ATTACKER`. bsc.c:1905-1912: `if (gHitMarker & HITMARKER_IGNORE_BIDE) {...} else { gBideDmg[gActiveBattler] += gBattleMoveDamage;`. IGNORE_BIDE is set only at battle_util.c:1464 and :1783.
+
+Classifier: audit_damage_calc.py:114 (SECRET_POWER in TIER_A), :501 `if tier == "B" or foe_eff in FOE_SELF_STATE:`, :608 `foe_fainted = not same_foe or foe_a.hp == 0`, :610 `_state_reasons(a, ..., foe_ok=not foe_fainted)`.
+
+Scratch reproduction (sys.dont_write_bytecode, worktree unchanged): `Secret Power ACCEPTED A KO () d_bide 136 ('over-crit_max+4', 'OVER-ACCEPTANCE-BOUND') acceptance: FAIL` against `Psybeam EXCLUDED B KO ('foe-after-unobservable',) ... acceptance: INSUFFICIENT`.
+
+Against reachability:
+- gym_tm_teach.py:464-480: owned_tms() iterates `get_item_bag().tms_hms` with quantity > 0.
+- species.json: no species has move 290 in level_up, tutor or egg.
+- TM43 sources: data/scripts/secret_power_tm.inc (Route111 "I'll give you this TM") and SlateportCity/scripts.inc:517-519 `SlateportCity_Pokemart_PowerTMs: ... ITEM_TM_SECRET_POWER`.
+- `grep -rn -i "TM43|SECRET_POWER" sandbox-pokebot/modules/story` hits only gym_tm_teach.py:130.
+- No tools/story-dev/evidence/2026-09-30-dmgcalc11-*.txt contains SECRET_POWER or Secret Power.
+- The MOUNTAIN environment requires MB_MOUNTAIN_TOP tiles (battle_setup.c:677-678; metatile_behavior.c:847).
+
+Citation: the Tier A definition is at DESIGN.md:97, not :103.
+
+## F3 [should-fix] tools/story-dev/audit_damage_calc.py:460-470
+CLAIM: The foe-move strata key on the CHOSEN move's effect, so when the foe chooses a move that calls another move (Metronome 118, Mirror Move 119, Assist 274), no stratum fires. If the called move is recoil, Explosion, Belly Drum, Substitute, Pain Split or a Def boost, it contaminates Δ gBideDmg[1] or the defender's state. The self-check cannot see this: HP and bide move together.
+EVIDENCE: `feff = move_info(foe_mv)["effect"]` is tested against FOE_SELF_HURT, FOE_PROTECT and FOE_SELF_STATE (:129-139), which do not contain METRONOME, MIRROR_MOVE or ASSIST. Recoil to the foe is `datahpupdate BS_ATTACKER` without IGNORE_BIDE (battle_scripts_1.s:3941-3944), so it is recorded in gBideDmg[1]. Mirror Move copies the move that just hit the foe, and in the committed run that move is our Take Down (RECOIL, the bot's main move). Computed: foe chose Mirror Move, Assist or Metronome, obs = our 66 + 12 foe recoil -> ACCEPTED, reasons=[]. Control with the foe choosing Take Down directly -> EXCLUDED foe-self-hurt-move. Foe Mirror Move with our crit 132 + 12 recoil -> ACCEPTED, acceptance=FAIL (over-crit_max+12), although the calculator was exact.
+FIX: Treat a foe's chosen move with effect in {METRONOME, MIRROR_MOVE, ASSIST, SLEEP_TALK} as unknown and exclude it (e.g. 'foe-called-move'), like foe-move-zero. Include it in the foe-fainted FOE_SELF_STATE logic too.
+VERDICT: refuted=False corrected=should-fix
+REASONING: The core claim holds. I could not refute it, and it is reachable on the bot's next mandatory Gym battle. A few items in its list of contaminating moves are overstated, and one part of the proposed fix is redundant.
+
+1. The code does what the finding says. `_before_reasons` tests `feff = move_info(foe_mv)["effect"]` (audit_damage_calc.py:462) against FOE_SELF_HURT and FOE_PROTECT (:129-131). In the fainted branch, `_change_reasons` tests `foe_eff` against FOE_SELF_STATE (:485-487, set at :136-139). None of these sets holds METRONOME, MIRROR_MOVE or ASSIST. probe_dmgaudit.py has no case for a called move. Its Q03 (:580-581) and NR-selfhurt (:1454) pass only direct self-hurt moves.
+
+2. The decomp confirms that recoil is recorded. BattleScript_DoRecoil runs `datahpupdate BS_ATTACKER` without IGNORE_BIDE (battle_scripts_1.s:3941-3944, pret master). Cmd_datahpupdate then adds `gBideDmg[gActiveBattler] += gBattleMoveDamage` unless HITMARKER_IGNORE_BIDE is set (battle_script_commands.c:1905-1912). Cmd_trymirrormove sets `gCurrentMove = lastTakenMove[attacker]` and runs that move's effect script (battle_script_commands.c:6657-6664). So a foe's Mirror Move copying our Take Down carries its recoil.
+
+3. I reproduced the counterexample on a real committed pair: evidence M1B-ON-r1-debug line 322, our Take Down (36), obs 65, pred (64,76,129,152), ACCEPTED. On a scratch copy I set the foe's chosen move to 118, 119 or 274 and added 12 recoil to both bide[1] and the foe's HP drop. The result was ACCEPTED, reasons=(), selfcheck=agree. The control with the foe's move set to 36 was EXCLUDED foe-self-hurt-move. With Mirror Move and obs = crit_max 152 + 12 the result was ACCEPTED, over-crit_max+12, acceptance=FAIL. The same pair with a direct Take Down was EXCLUDED, acceptance=INSUFFICIENT. The self-check reads "agree" in every arm, so nothing flags the contamination.
+
+4. It is reachable in practice. Our main move is Take Down: 14 of 36 BEFOREs in the committed run are eff=RECOIL. The run stopped on Route 119, so the Fortree Gym is next. sParty_Winona1 (trainer_parties.h:3508-3515) holds a Swablu, lvl 29, with custom moves {PERISH_SONG, MIRROR_MOVE, SAFEGUARD, AERIAL_ACE}. Called moves also appear in other trainer parties: Assist on Skitty and Delcatty (tp.h:3899-3934, 6762, 8765-8864).
+
+5. Overstated parts, which do not rescue the finding:
+   - Explosion does not contaminate Δbide. Cmd_setatkhptozero writes hp=0 directly (battle_script_commands.c:6577-6588), with no datahpupdate.
+   - Sleep Talk is already covered. It needs the foe asleep (battle_scripts_1.s:1311-1316), so `foe.status1` is nonzero at BEFORE and the foe-status stratum fires (audit_damage_calc.py:407-408). Adding SLEEP_TALK to the fix is redundant.
+   - A called Substitute or Def boost on a foe that did NOT faint is already caught by foe-substitute (:421-422) and foe-def-stage-changed (:480-481).
+   - What really slips through: recoil, Belly Drum and Pain Split HP recorded in gBideDmg[1], and any state change when the foe faints (the FOE_SELF_STATE branch).
+
+6. Why should-fix and not blocker:
+   - The audit runs offline on raw reads. The module docstring says a classifier bug "costs a re-audit, not a re-batch" (audit_damage_calc.py:7-8).
+   - The graded run has no called-move turns. Foe moves in the evidence are 0, 21, 23, 46, 48, 51, 78, 79, 83, 85, 93, 104, 106, 108, 109, 120, 139, 180, 184, 209, 248, 253, 316 and 336, so the graded result is unaffected.
+   - The effect is bounded but real. A contaminated sample is either admitted as an "ambiguous crit" (biasing the stats) or, after a crit, turns into a false FAIL. The design says one over is a FAIL "for good" (docstring :23-24).
+V-EVIDENCE: audit_damage_calc.py:461-468 `if foe_act == ACTION_USE_MOVE: feff = move_info(foe_mv)["effect"] ... elif feff in FOE_SELF_HURT or (...CURSE...)`; FOE_SELF_HURT at :129-130 = {RECOIL, DOUBLE_EDGE, RECOIL_IF_MISS, SUBSTITUTE, BELLY_DRUM, PAIN_SPLIT, EXPLOSION, MEMENTO}. There is no METRONOME, MIRROR_MOVE or ASSIST in it, or in FOE_SELF_STATE (:136-139).
+Decomp (pret master): battle_scripts_1.s:3941-3944 `orword gHitMarker, HITMARKER_IGNORE_SUBSTITUTE | HITMARKER_PASSIVE_HP_UPDATE / healthbarupdate BS_ATTACKER / datahpupdate BS_ATTACKER`. battle_script_commands.c:1905-1912 `if (gHitMarker & HITMARKER_IGNORE_BIDE) {...} else { gBideDmg[gActiveBattler] += gBattleMoveDamage;`. :6657-6664 Cmd_trymirrormove `move = ...lastTakenMove...; gCurrentMove = move; ... gBattlescriptCurrInstr = gBattleScriptsForMoveEffects[gBattleMoves[gCurrentMove].effect];`.
+Reachability: trainer_parties.h:3508-3514 sParty_Winona1 `.lvl = 29, .species = SPECIES_SWABLU, .moves = {MOVE_PERISH_SONG, MOVE_MIRROR_MOVE, MOVE_SAFEGUARD, MOVE_AERIAL_ACE}`. Committed run: 14 BEFOREs with eff=RECOIL (Take Down, 36).
+Scratch reproduction (pure import of the audit, pair from evidence line 322): foe_mv=118/119/274 with obs=77 -> ACCEPTED () selfcheck=agree; foe_mv=36 -> EXCLUDED ('foe-self-hurt-move',); foe_mv=119 with obs=164 (crit_max 152 + 12) -> ACCEPTED, tags over-crit_max+12, acceptance=FAIL; foe_mv=36 with obs=164 -> EXCLUDED, acceptance=INSUFFICIENT.
+Overstated parts: battle_script_commands.c:6577-6588 Cmd_setatkhptozero sets hp=0 directly (no gBideDmg); battle_scripts_1.s:1311-1316 Sleep Talk fails unless STATUS1_SLEEP (so foe-status at audit_damage_calc.py:407-408 already fires); a non-fainted Substitute or Def change is caught at :421-422 and :480-481.
+
+## F4 [nit] tools/story-dev/audit_damage_calc.py:473-474
+CLAIM: C:false-swipe-hp uses our crit_max to decide whether the hp-1 clamp can bind. The clamp binds whenever foe HP <= the GAME's damage, and that damage can exceed crit_max, which is what the acceptance is testing. A clamped sample within ACCEPT_MARGIN of crit_max is accepted and hides a larger over.
+EVIDENCE: `if mv["effect"] == "FALSE_SWIPE" and b.pred is not None and foe.hp <= b.pred[3]`. gBideDmg records the clamped gBattleMoveDamage (datahpupdate BSC:1912 runs after adjustnormaldamage's clamp). Computed: False Swipe, foe hp = crit_max+2 = 134, obs clamped to 133 -> ACCEPTED (tier C, tag over-crit_max+1, not over the bound), whatever the true roll was.
+FIX: Exclude while foe.hp <= crit_max + ACCEPT_MARGIN + 1 (or crit_max + M1a's bound), so a clamped observation can never sit inside the acceptance band.
+VERDICT: (none)
+
+## F5 [nit] sandbox-pokebot/modules/dmgaudit.py:171-179
+CLAIM: Flash Fire that turns on during a battle's LAST turn cannot be observed: the end read logs ff=null, and the classifier has no stand-in. A Fire-typed Tier A hit (Hidden Power rolled Fire) boosted x1.5 is accepted.
+EVIDENCE: on_battle_end logs `_raw(flash_fire=False)`, so the classifier's Flash Fire checks (:448-449 at AFTER, :481-482 at BEFORE) see None or 0. The game sets the flag mid-turn when the foe's Fire move hits us (src/battle_util.c:2689-2700) and applies it to our Fire damage (src/pokemon.c:3367). Computed: our ability 18, Hidden Power with IVs rolling Fire, the foe chose Ember, battle-end KO -> ACCEPTED, reasons=[]. Narrow in practice: the other Tier A Fire move, Overheat, is already excluded by its own SpA drop.
+FIX: At a kind=end AFTER, exclude when me.ability == 18, damage_type is Fire, and the foe's chosen move (BEFORE) is Fire-typed ('our-flash-fire-unobservable').
+VERDICT: (none)
+
+## F6 [nit] tools/story-dev/audit_damage_calc.py:446-480
+CLAIM: Every per-ability stratum reads the LIVE ability byte (0x20), but the calculator uses the SPECIES ability. No stratum covers a live ability that differs from the species one (Trace, Role Play, Skill Swap). With our Trace copying Huge Power, Pure Power or Hustle, a physical hit is under-predicted by 1.5-2x and is accepted. The recon filed this (m1_recon_ourcode.md:199) but F4 never picked it up.
+EVIDENCE: sandbox-pokebot/modules/battle_state.py:565-570 returns `self.species.abilities[0 or 1]` by the abilityNum bit, and `ability_n` (the live byte) is separate (:572-574). The classifier uses `me.ability` / `foe.ability` parsed from 0x20 (:450, :475-480). Computed: live me.ability = 37 (Huge Power) -> ACCEPTED, reasons=[].
+FIX: Add a stratum 'ability-not-species' when the live byte differs from species.abilities[IV-word bit 31] for either battler. The species data is already in sandbox-pokebot/modules/data.
+VERDICT: (none)
+
+## F7 [nit] tools/story-dev/audit_damage_calc.py:507
+CLAIM: Some same-turn changes that make our damage non-comparable are not excluded. Both lower the observation (they cannot cause a FAIL) but they distort the reported 'below the non-crit min' count (step 12's progress side): (a) we are burned before our physical hit without Guts; (b) a faster foe's Skull Bash first turn (Def +1) followed by our KO.
+EVIDENCE: `our-status-changed-guts-facade` fires only with Guts or Facade, but the game halves physical damage whenever we are burned (src/pokemon.c burn branch after the Def divide). SKULL_BASH is not in FOE_SELF_STATE (:136-139), although its first turn runs `setstatchanger STAT_DEF, 1` (battle_scripts_1.s:1811-1817). Computed: our status 0 -> 0x10 across a Take Down pair with the foe choosing Will-o-Wisp -> ACCEPTED. Foe chose Skull Bash, then KO'd -> ACCEPTED, while the Harden control -> EXCLUDED foe-after-unobservable.
+FIX: Add 'our-burn-changed' for a physical damage_type, and add SKULL_BASH to FOE_SELF_STATE.
+VERDICT: (none)
+
+## F8 [nit] tools/story-dev/audit_damage_calc.py:535-543
+CLAIM: The self-check's heal/tick list misses a pending Future Sight (and Wish) that lands at the end of the turn. It then reports a false DISAGREE, and a DISAGREE is the M1b-FAULT arm's instrument-failure signal. The Future Sight bit is already logged in side[1] but not used.
+EVIDENCE: Future Sight sets SIDE_STATUS_FUTUREATTACK (0x40) on the target's side (BSC:8937), and its hit is not recorded in gBideDmg because HandleWishPerishSongOnTurnEnd sets HITMARKER_IGNORE_BIDE (src/battle_util.c:1783). Computed: BEFORE side=(0,64), foe HP down 95, Δbide 65 -> self-check DISAGREE, disagreements=1.
+FIX: Return 'n/a: future attack' when (b.side[1] | a.side[1]) & 0x40.
+VERDICT: (none)
+
+## F9 [nit] tools/story-dev/audit_damage_calc.py:501-506
+CLAIM: Two exclusions discard samples that cannot be contaminated. (a) Every Tier B KO is excluded as foe-after-unobservable, and every Tier B status is excluded at AFTER. For the Δbide measure only CONFUSE_HIT's secondary can move gBideDmg[1]: burn and poison ticks are end-of-turn and carry IGNORE_BIDE. (b) SUPERPOWER and OVERHEAT are whitelisted in Tier A, yet their own drop after the hit always trips our-attack-stage-changed, so they can never be accepted. This drains the 300-hit floor, for example on the Torchic line's Ember, Flamethrower and Blaze Kick KOs.
+EVIDENCE: The end-of-turn effects set HITMARKER_IGNORE_BIDE (src/battle_util.c:1464), and datahpupdate skips the bide record under it (BSC:1905-1907). Computed: Superpower (Atk 6->5) -> EXCLUDED our-attack-stage-changed; Overheat (SpA 6->4) -> EXCLUDED; Ember KO -> EXCLUDED foe-after-unobservable. This is not a correctness risk.
+FIX: Restrict the Tier B faint/status exclusion to CONFUSE_HIT (plus SECRET_POWER, F2). Ignore our stage drop that SUPERPOWER or OVERHEAT itself causes. Or record the choice in the design as a deliberate sample cost.
+VERDICT: (none)
+
+### checked and found true
+- struct BattlePokemon offsets (pokeemerald include/pokemon.h:260-295): species 0x00, the five stats 0x02-0x0A, moves 0x0C, IV word 0x14 (HP,Atk,Def,Spe,SpA,SpD 5-bit fields, abilityNum bit 31), statStages 0x18, ability 0x20, types 0x21/0x22, pp 0x24, hp 0x28, level 0x2A, maxHP 0x2C, item 0x2E, personality 0x48, status1 0x4C, status2 0x50, size 0x58. _MON_HEAD '<6H4HI8s3Bx4sHBxHH' and _MON_TAIL at 0x48 match (audit_damage_calc.py:213-214).
+- gDisableStructs stride 0x1C: the fields sum to 0x1A, padded to 4-byte alignment by the u32 first member (include/battle.h:70-102).
+- STATUS1/STATUS2/STATUS3 constants, SIDE_STATUS_REFLECT/LIGHTSCREEN/SPIKES (1,2,0x10), BATTLE_TYPE_DOUBLE 1<<0 and TRAINER 1<<3, and B_ACTION_USE_MOVE/USE_ITEM/SWITCH 0/1/2 all match include/constants/battle.h:59-217 and include/battle.h:27-29. Ability ids (13,24,62-68,77) and ITEM_FOCUS_BAND=196 match the decomp.
+- gBattleResults+0x13 is battleTurnCounter (include/battle.h:247). It is not incremented on a battle's last turn (src/battle_main.c:3988-3997, return before the increment), and chosen actions and moves reset to 0xFF/0 at the turn change (:4001-4005). Caveat: it saturates at 0xFF, so turns past 255 would pair as 'turn-gap'.
+- gBideDmg[i] is the damage TAKEN by battler i. It is added in Cmd_datahpupdate before the HP clamp, so it is uncapped (BSC:1905-1917), and skipped for Substitute hits, heals and under HITMARKER_IGNORE_BIDE (end-turn effects battle_util.c:1464/1783, the weather script). Its only other writer is Cmd_setbide (=0, BSC:7125). It is cumulative across turns and battles, never reset per turn. Recoil, confusion self-hits, Rough Skin, Liquid Ooze and Spikes ARE recorded.
+- gEnemyParty: struct Pokemon is 100 bytes, with personality at +0 and hp at +0x56 (include/pokemon.h:196-232).
+- Flash Fire chain: gBattleResources->flags (+4) -> ResourceFlags.flags[battler] (u32 each), RESOURCE_FLAG_FLASH_FIRE=1 (include/battle.h:63-68, 222-232).
+- Hidden Power type matches Cmd_hiddenpowercalc (BSC:8889-8912). The pinch abilities and sports key on the rolled type, and Charge on the listed type, as in pokemon.c CalculateBaseDamage and BSC:1298.
+- No multi-hit, fixed-damage, OHKO or variable-power effect is in Tier A (every move under each Tier A/B/C effect enumerated from moves.json).
+- Weather: every rain state carries B_WEATHER_RAIN_TEMPORARY (battle_util.c:1343-1344, 2486, 2521), so the calculator's any-rain check equals the game's TEMPORARY-only check. The calculator's crit stage-ignoring matches pokemon.c:3234-3310.
+- Re-audit of evidence/2026-09-30-dmgcalc11-M1B-ON-r1-debug.txt (python -B, no files written): raw 86 = parsed 86, 8 ACCEPTED, 0 over the bound, 0 self-check disagreements, INSUFFICIENT, exit 2, and the port control 8/8 inside. These match the GRADED note.
+- f3193320's prediction equals the Manectric one (pred 64,76,129,152). This is not a stale battle_state: the raw records show both foes at L29 with Def 43 (both base Def 60) and neutral Take Down effectiveness.
+# LENS grade
+
+## F1 [should-fix] PROJECT KNOWLEDGE/04-HANDOFF.md:313 (HEAD e06da0ae); also 03-PUNCH-LIST.md:124 and 01-VISION-AND-DESIGN.md:341
+CLAIM: At HEAD, 03, 04 and 01 still say step 11 is NOT graded and that the live arms are next. That contradicts the GRADED note committed in c0039855 (a P1/P5 pair break). A cold reader would re-run five finished live arms.
+EVIDENCE: 04:313 says: "Its BUILD is committed there, gated but NOT yet graded ... NEXT on it: the live arms (M1b-OFF ×2, M1b-ON ×2 and M1b-FAULT ...), graded against the PREDICTIONS; then the graded note, the three-lens review and the merge." 03:124 (#26-organiccatch) says: "its BUILD committed and gated, NOT yet graded; the live arms are next". 01:341 says: "The live arms are NOT yet graded." `git log 241929d7..HEAD -- 03 04` shows 04/03 were last touched by c44b1def (07:46). Neither c0039855 (GRADED) nor e06da0ae updated them.
+FIX: In the same commit, restamp 04's mid-task row, 03's #26-organiccatch and 01's 'Where it stands' to 'graded (GRADED.md, c0039855); next: the three-lens review and the merge'. Then grep the tree for 'dmgcalc11' and 'step 11' and re-read every hit (P5).
+VERDICT: refuted=False corrected=should-fix
+REASONING: The finding holds. I read every cited line at HEAD e06da0ae and could not refute it.
+
+1. 04:313 (the 'if stopped mid-task' row) says: "Its BUILD is committed there, gated but NOT yet graded ... NEXT on it: the live arms (M1b-OFF ×2, M1b-ON ×2 and M1b-FAULT on `post_mtpyre`, 90,000 frames ...), graded against the PREDICTIONS; then the graded note ..."
+2. 03:124 (#26-organiccatch) says: "its BUILD committed and gated, NOT yet graded; the live arms are next".
+3. 01:341 says: "The live arms are NOT yet graded."
+
+All three contradict what the branch itself says:
+- The GRADED note (c0039855) opens: "M1b-OFF ×2 ... ✅ PASS. 371 = 371 lines", "M1b-ON ×2 ... ✅ PASS", "M1b-FAULT ... ✅ PASS".
+- The e06da0ae entry in 07 is headed "step 11 ... BUILT AND GRADED".
+
+So P1, P3 and P5 are all broken.
+
+It is worse than the finding says in one respect. c0039855 did not merely leave 01 stale: that same GRADED commit ADDED the sentence "The live arms are NOT yet graded." (in its diff to 01-VISION-AND-DESIGN.md, the new "Where it stands" bullet). The commit that filed the grade also wrote that nothing was graded.
+
+History confirms that 03 and 04 were last touched by c44b1def, the BUILD commit at 07:46. c0039855 touched only 01 and 02. e06da0ae touched only 05, 06, 07, 08 and 14.
+
+The finding also misses stale sentences in two more places in 04, and both command the same wrong next action:
+- 04:6, the top banner: "its BUILD committed (gated, NOT yet graded) and its live arms next".
+- 04:384, the START HERE queue: "its BUILD committed (gated, NOT yet graded) and its live arms NEXT".
+
+The fix therefore has to cover 04's banner, the mid-task row and the queue head, plus 03 and 01, and not only line 313.
+
+One refutation angle fails: "03 and 04 are updated only when the item completes." The 'if stopped mid-task' row exists for exactly this mid-item state. The user's own message in this run ("I hit my usage limit while you were working") shows that an interruption actually happens. Precedent also goes against it: 10a's GRADED commit 158c0b70 did update 04.
+
+Severity stays should-fix, not blocker. This is stale documentation that under-claims (it says less is done than really is), not an overclaim or a wrong code result. Its cost is bounded: a cold reader would re-run five finished live arms (90,000 frames each), or at worst mistake the step for unfinished. It does not affect battle behaviour. It must be fixed before the merge.
+V-EVIDENCE: - PROJECT KNOWLEDGE/04-HANDOFF.md:313: "Its BUILD is committed there, gated but NOT yet graded ... NEXT on it: the live arms (M1b-OFF ×2, M1b-ON ×2 and M1b-FAULT on `post_mtpyre`, 90,000 frames, seeded, at ONE build commit), graded against the PREDICTIONS; then the graded note, the three-lens review and the merge."
+- 04-HANDOFF.md:6: "its BUILD committed (gated, NOT yet graded) and its live arms next".
+- 04-HANDOFF.md:384: "its BUILD committed (gated, NOT yet graded) and its live arms NEXT".
+- 03-PUNCH-LIST.md:124: "its BUILD committed and gated, NOT yet graded; the live arms are next".
+- 01-VISION-AND-DESIGN.md:341: "OFF). The live arms are NOT yet graded." This line was introduced BY c0039855; `git show c0039855 -- 01-VISION-AND-DESIGN.md` shows "+  OFF). The live arms are NOT yet graded."
+- Against these, ai-research-notes/2026-09-30-dmgcalc11-GRADED.md (c0039855) has the table rows "M1b-OFF ×2 | ... | ✅ PASS. 371 = 371 lines", "M1b-ON ×2 ... ✅ PASS" and "M1b-FAULT ... ✅ PASS on the 2 REACHED named turns".
+- The 07-CHANGELOG entry from e06da0ae: "## 2026-09-30 — design v2 step 11 (M1, damage-calculator fidelity) BUILT AND GRADED".
+- `git show --stat` per commit: c44b1def touched 02, 03 and 04; c0039855 touched only 01 and 02; e06da0ae touched only 05, 06, 07 and 08; `git log -- 04-HANDOFF.md` has c44b1def (07:46) as the last touch.
+- Precedent: 158c0b70 ("step 10a ... GRADED 20/20 and REVIEWED") did update 04-HANDOFF.md.
+
+## F2 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:92-93 (also M1B-GRADE.txt:76, PREDICTIONS addendum:157)
+CLAIM: The explanation for the failed CTL literal (15 as filed, 14 seen) is false. The Linoone was NOT the Step-0 trajectory's 15th battle. The 14 is not '15 minus the Linoone'; the numbers only happen to agree.
+EVIDENCE: GRADED:92-93: "The literal counted the Step-0 trajectory, whose 15th battle was the Linoone." M1B-GRADE.txt:76: "(The Step-0 trajectory started 15 battles: its 15th was the Linoone.)" Addendum:157: "becomes 14 ... (the Linoone battle is absent)". STEP0.txt lists BATTLE-START reads at f3144418 ... f3209384 (12, shared), then f3215934 (line 351, the Linoone = the 13th), f3228351 (line 357; ended outcome=7) and f3231535 (line 361). That makes 15 = 12 + 3 after the divergence. ON-r1-debug.txt has 12 shared starts plus f3225465 (line 658) and f3229980 (line 705), so 14 = 12 + 2. The tails after f3215340 are entirely different battle sets.
+FIX: Correct all three places to 'Step-0: 12 shared + 3 after the divergence (Linoone 13th, f3228351, f3231535); build: 12 + 2 (f3225465, f3229980)'. Keep the FAIL-as-filed wording.
+VERDICT: refuted=True corrected=nit
+REASONING: The finding is only partly right. Its core claim is wrong. The correct part is the ordinal: the Linoone was Step-0's 13th battle start, not its 15th. So "whose 15th battle was the Linoone" (GRADED.md:92-93) and "its 15th was the Linoone" (M1B-GRADE.txt:76) are literally false.
+
+The finding's substantive claims are refuted by the evidence:
+- "The 14 is not '15 minus the Linoone'; the numbers only happen to agree."
+- "The tails after f3215340 are entirely different battle sets."
+
+The two tails after the divergence match slot for slot, except for the Linoone:
+- **Step-0:** 12 shared, then the Linoone (wild), then a wild battle ending in a catch, then a Team Magma trainer battle.
+- **Build:** 12 shared, then a wild battle ending in a catch, then the same trainer battle.
+
+The trainer battle is the SAME battle by identity. Step-0's 15th battle and the build's 14th both face a Poochyena with foe PID 0x000ae288, L29, 59/59 HP, moves [316, 46, 207, 184]. The wild-catch slot differs only in species (Geodude in Step-0, Torkoal in the build). So 15 - 14 is exactly the Linoone battle, and PREDICTIONS.md:157 ("becomes 14 on the build's trajectory (the Linoone battle is absent)") is accurate and needs no change.
+
+What survives is a wrong ordinal in two places. The conclusion drawn from it is right, so this is a nit, not a should-fix. The fix is narrower than proposed: change "15th" to "13th" (or say "Step-0 = the build's 14 plus the Linoone") in GRADED.md:93 and M1B-GRADE.txt:76. Leave PREDICTIONS.md:157 alone. Do not add "entirely different" wording, because the evidence contradicts it.
+V-EVIDENCE: **Step-0 battle starts.** tools/story-dev/evidence/2026-09-30-dmgcalc11-STEP0.txt:28 says "BATTLE-START=15". The 15 starts are at lines 263, 267, 271, 281, 291, 297, 303, 313, 323, 333, 343, 347, 351, 357 and 361.
+- **Line 351, f3215934 (the 13th start), is the Linoone.** The next read, line 352, has "b1:sp=289 hp=82/82 pid=a6fd085c". Species 289 is Linoone, and M1B-GRADE.txt:66 has "f3215934 [DEXFENCE] skip #264 Linoone".
+- **Line 357, f3228351 (the 14th start), is a wild catch.** Line 358 has "b1:sp=74 hp=64/64 pid=14509729 moves=[88, 222, 120, 205]" (a Geodude), and line 360 has the BATTLE-END with "outcome=7" (caught).
+- **Line 361, f3231535 (the 15th start), is a trainer battle** (flags=c). Line 362 has "b1:sp=286 hp=59/59 pid=000ae288 moves=[316, 46, 207, 184]".
+
+**Build battle starts.** In M1B-ON-r1-debug.txt there are 12 shared starts, ending at f3209384 (line 518), then two more:
+- **Line 658, f3225465, is a wild catch:** "[DEXFENCE] CATCH #324 Torkoal", ended at f3228974 with "outcome=BattleOutcome.Caught".
+- **Line 705, f3229980, is a trainer battle:** "[TRAINER] start opp=717 class=0x09(TEAM_MAGMA)", against "Poochyena L29 59/59".
+
+**Same foe in both trainer battles.** I decoded the build's second mon record from the f3230902 "[DMGAUDIT] BEFORE ... mons=" field with a scratch Python script (struct BattlePokemon: personality at offset 0x48). It gives species 286, moves (316, 46, 207, 184), hp 59, level 29, pid 0xae288. That is identical to Step-0 line 362's pid=000ae288.
+
+**Result.** Step-0's 15 starts are 12 shared + Linoone + wild catch + the same grunt. The build's 14 are 12 shared + wild catch + the same grunt. The difference is exactly the Linoone, as PREDICTIONS.md:157 says. The only error is the ordinal: "15th" in GRADED.md:93 and M1B-GRADE.txt:76 should be "13th".
+
+## F3 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:1, 58-61
+CLAIM: '15 of 15 REACHED ROWS EXACT' is presented as confirmation of the table, but the classifier had already been made to reproduce this exact table offline, on the same game states, by gate row T1. The note never says so. Because the live prefix is byte-identical to Step-0, the live 15/15 tests production's reader and the live-only fields. It does not independently test the classifier's verdict logic.
+EVIDENCE: probe_dmgaudit.py:920 `TABLE = {...}` holds the filed 17 rows. t_rows() at :1005-1033 is labelled "T1 the PREDICTIONS' 17-turn table from the Step-0 reads ... every verdict" and asserts `not bad` and `len(rep.hits) == 9`. Its synthetic preds are fitted to each observation: `hi = max(obs, 0) + 2` (:996). The builder's hand-back says (ADVERSARIAL-AUDIT.txt:407): "T1 grades f3193320 (Shiftry ...) as ACCEPTED only because my synthetic record keeps its Def stage unchanged." The Shiftry flip was found there, before the arms. M1B-GRADE §2 shows the prefix lines identical to Step-0 through f3215340. GRADED contains no mention of T1.
+FIX: Add a sentence under the per-turn table saying the gate's T1 row already asserts these verdicts on the Step-0 reads (neutral stats, fitted preds). The live 15/15 therefore shows that the live reader and the real records (types, abilities, items, statuses) leave every verdict unchanged. It is not a second test of the classifier.
+VERDICT: refuted=False corrected=should-fix
+REASONING: I could not refute the core claim. In both committed versions of the GRADED note (c0039855 and branch head e06da0ae), the per-turn table section reports the 15 of 15 as a pass of the pre-registered table and says nothing about the classifier having been fitted to that table beforehand. `git show <c>:...GRADED.md | grep "T1\|smoke\|independent"` returns 0 hits in both.
+
+Gate row T1 (probe_dmgaudit.py:1008-1033) asserts every verdict in TABLE (probe_dmgaudit.py:920-938) on the Step-0 reads. Those reads use neutral stats and types (_s0_mon sets type1=0 and type2=0) and predictions fitted to each observation (probe_dmgaudit.py:996 `hi = max(obs, 0) + 2 if obs > 0 else 48`). M1B-GRADE.txt:47-56 shows the arms' trajectory is identical to Step-0's up to f3215340. So for the fields Step-0 read, the live verdicts were set by construction. The live 15 of 15 adds two things: the production reader reproduces Step-0's values, and the live-only fields (types, abilities, items, real predictions) flip no verdict.
+
+The finding's supporting evidence has one error, and it also understates the case:
+(1) T1 did NOT find the Shiftry flip. The builder's hand-back says T1 then graded f3193320 as ACCEPTED (ADVERSARIAL-AUDIT.txt:407). The flip came from the faint rule, and the faint rule came from the LIVE smoke (SMOKE.txt:8-16; DESIGN.md:211-216 and :322-323; the gate's own comment at probe_dmgaudit.py:931).
+(2) The fitting went beyond T1. The smoke ran the pre-faint-rule classifier on the LIVE records of the same trajectory. It paired 9 table rows, f3173282 through f3191967 (SMOKE.txt:77-89). On f3174185, which the table calls ACCEPTED, it read `EXCLUDED ... reasons=foe-profile-changed` (SMOKE.txt:78). The classifier was then changed until that row matched. So for those 9 rows even the live-only fields had been seen before the arms. Only the 6 rows f3193320 to f3210218 were first graded on live records in the arms.
+
+On severity: the headline "15 of 15 REACHED ROWS EXACT" is literally true. The evidence files it cites (GATES.txt:278 for T1, and SMOKE.txt) contain the facts. No decision rests on the table: acceptance is INSUFFICIENT and step 12's stage 2 stays OFF. That is why this is should-fix and not a blocker. It stays should-fix because it presents a result that is largely true by construction as confirmation of a pre-registered table. It also omits that one of the "exact" rows had contradicted the table on first live contact.
+
+Note: the worktree currently holds an UNCOMMITTED edit to GRADED.md (git status: M) that already applies this fix, at working-tree lines 83-93 ("This is NOT an independent test of the classifier (review F3)"). It is not committed, so it does not refute the finding against the branch. It also has one small inaccuracy: it says the smoke aligned "the first 10 rows", but the smoke paired only 9. f3193320 is `UNPAIRED reasons=no-after-at-log-end` (SMOKE.txt:90).
+V-EVIDENCE: Committed GRADED (c0039855 and e06da0ae): per-turn section "## THE PER-TURN TABLE: 15 of 15 REACHED ROWS EXACT, 2 NOT REACHED" / "Each reached row matches its filed verdict, its reasons, ... EXACTLY". `git show c0039855:"PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md" | grep -c "T1\|smoke"` -> 0. The same grep on e06da0ae finds nothing.
+
+probe_dmgaudit.py:996 `hi = max(obs, 0) + 2 if obs > 0 else 48` (fitted predictions). probe_dmgaudit.py:1019 `... rep.acceptance == "INSUFFICIENT" and len(rep.hits) == 9`. GATES.txt:278 `PASS  T1 the PREDICTIONS' 17-turn table from the Step-0 reads ... n=17 bad=[]`. M1B-GRADE.txt:47 `STEP0 ... first difference at line #293: 'f3215905 [MAP] ROUTE 119...'`.
+
+Correction to the finding's evidence: ADVERSARIAL-AUDIT.txt:407 "T1 grades f3193320 (Shiftry, which chose Harden) as ACCEPTED only because my synthetic record keeps its Def stage unchanged", so T1 did not find the flip. SMOKE.txt:8 "THE FINDING — a faint RESETS the foe's gBattleMons record". SMOKE.txt:78 `f3174185 foe=109 hp=55->0 dbide=87 EXCLUDED kind=KO ... reasons=foe-profile-changed` (the table says ACCEPTED). SMOKE.txt:11-13 "The classifier then read "foe-profile-changed" on EVERY battle-end KO pair (f3174185 ..., which the pre-registered table calls ACCEPTED). Fixed in the classifier (the faint rule...)". SMOKE.txt:89-90: the smoke's last table row paired is f3191967, and f3193320 is `UNPAIRED reasons=no-after-at-log-end`.
+
+The uncommitted worktree GRADED.md:83-90 already adds "⚠ This is NOT an independent test of the classifier (review F3)... Live, on the first 10 rows, by the smoke." The count should be 9 paired rows.
+
+## F4 [should-fix] tools/story-dev/evidence/2026-09-30-dmgcalc11-DIFF.txt:3-7, 86-88, 103-106 (cited by GRADED.md:29 and the DESIGN's AS BUILT section)
+CLAIM: The cited DIFF/EXEC evidence could not have failed on the calculator branch, and its reasoning is false there. The 'equal or stronger' claim is really carried by the gate's PIN-b1 and by the live logs. GRADED cites neither.
+EVIDENCE: DIFF.txt:86 stubs `M.read_symbol = lambda *a, **k: ... bytes(k.get("size", 4) or 4)` (all zeros). So in (c), dmgaudit.py:103-106 reads action 0 and move_id 0 and returns "pred=none base=none eff=-" before BattleStrategyUtil and calculate_move_damage_range (dmgaudit.py:107-126). The `fake_state` with left_battler=None (DIFF.txt:103) is never consulted. DIFF.txt:7 claims "an exception in a hook logs an ERR line instead of its BEFORE or AFTER (no hook swallows silently), so the exact sequence proves every hook body RAN". But dmgaudit.py:124-126 catches a calculator exception and still logs a normal BEFORE with `pred=err:<Name>`, so a raising calculator passes the sequence check. That is the filed EXEC concern ('a recorder that never ran inside a swallowing try'). DIFF.txt:88 also rebinds get_battle_state only on modules.battle_state. The branch is actually covered by PIN-b1 (probe_dmgaudit.py:1202-1206, real_state, requires `pred=\d+,\d+,\d+,\d+ base=\d+,\d+` and 0 gbs with get_battle_state rebound everywhere) and by the ON-r1 log (27 numeric pred= BEFOREs).
+FIX: In GRADED:29 and AS BUILT, cite PIN-b1, NP-pred-exact, NH-gbs-count and the live numeric preds as the EXEC and get_battle_state evidence. Correct DIFF.txt's line-7 reasoning to note the inner except at dmgaudit.py:124.
+VERDICT: refuted=False corrected=should-fix
+REASONING: I could not refute F4, and it survives on its substance. I ran the (c) section of DIFF.txt, verbatim, on a scratch copy of sandbox-pokebot/modules (PYTHONDONTWRITEBYTECODE=1, so nothing was written to the worktree).
+
+- **The calculator branch is never reached.** The stub at DIFF.txt:86 returns zero bytes. So dmgaudit.py:103-106 reads action 0 and move_id 0 and returns early. Both BEFORE lines end in ` badges=0 pred=none base=none eff=-`, and the fake_state at DIFF.txt:103 is never consulted.
+- **(c) cannot fail on that branch.** I made two scratch mutants:
+  - a `get_battle_state()` call inserted right after `move = get_move_by_index(move_id)`;
+  - `plain = 1 / 0` in place of the calculator call.
+
+  Under both, (c) still prints ALL PASS with 0 gbs.
+- **The line-7 reasoning is false for the calculator exception.** I made a second variant in which the calculator branch IS reached: the stub returns move 36, and the battlers are non-None. It logs `pred=err:ZeroDivisionError` (and `pred=err:AttributeError` unmutated) inside an ordinary BEFORE. The CTL/BEFORE/AFTER sequence still passes. So "an exception in a hook logs an ERR line instead of its BEFORE" is false for the branch caught at dmgaudit.py:124-126.
+
+**The underlying claims are TRUE, and are carried by evidence the committed GRADED:29 row does not cite:**
+- PIN-b1 (probe_dmgaudit.py:1202-1206) runs real_state() through world(). That rebinds get_battle_state in every module that bound it (:1117-1119) and requires numeric `pred=`/`base=`.
+- The live ON-r1 log has numeric preds. The finding's count of 27 is wrong: 36 BEFOREs = 22 numeric, 10 `pred=none`, 4 `pred=err:Absent`, and 0 `err:<ExceptionName>`.
+
+So this is an evidence and citation overclaim, not a wrong result or a battle risk: should-fix, not blocker.
+
+**Already partly handled, but not in the committed state.** The worktree holds an UNCOMMITTED edit to GRADED.md:29 (`git status`: ` M .../GRADED.md`). It reads "PASS, but on evidence the first version of this row did NOT cite (review F4)" and now cites PIN-b1, NP-pred-exact, NH-gbs-count and the 22 numeric preds. Three copies of the false reasoning are still unchanged:
+- DIFF.txt:6-7;
+- the DESIGN AS BUILT section (DESIGN.md:342, "which proves each hook body ran to its log call");
+- 06-DECISIONS-LOG.md:8604, committed in e06da0ae (a commit after the one the finding cites): "M1b-EXEC is met by the exact CTL/BEFORE/AFTER sequence: each hook's `except` logs an `ERR` line, never silently." 06 is append-only, so it needs a correcting appended entry rather than an edit.
+V-EVIDENCE: DIFF.txt:86 `M.read_symbol = lambda *a, **k: reads.append(a) or bytes(k.get("size", 4) or 4)`
+dmgaudit.py:103-106: `action = read_symbol("gChosenActionByBattler", size=1)[0]` / `move_id = unpack_uint16(read_symbol("gChosenMoveByBattler", size=2))` / `if action != 0 or move_id == 0: return "pred=none base=none eff=-"`
+dmgaudit.py:124-126: `except Exception as error: ... pred = f"err:{type(error).__name__}"` (still returns a normal BEFORE body)
+
+Scratch runs (scratchpad/f4/diff_c.py, verbatim DIFF (c), printing the messages):
+  MUT none         gbs 0 kinds [CTL,BEFORE,AFTER,BEFORE,AFTER]  BEFORE tail: badges=0 pred=none base=none eff=-   (c) ALL PASS
+  MUT gbs-in-calc  gbs 0 ... pred=none base=none eff=-   (c) ALL PASS
+  MUT calc-raises  gbs 0 ... pred=none base=none eff=-   (c) ALL PASS
+Branch reached (diff_c_reach.py: gChosenMoveByBattler=36, battlers non-None):
+  MUT none         BEFORE tail: badges=0 pred=err:AttributeError base=none eff=RECOIL      (c) ALL PASS
+  MUT calc-raises  BEFORE tail: badges=0 pred=err:ZeroDivisionError base=none eff=RECOIL   (c) ALL PASS
+=> DIFF.txt:6-7 "an exception in a hook logs an ERR line instead of its BEFORE or AFTER ... the exact sequence proves every hook body RAN" is false for the calculator branch.
+
+Where the claim IS carried: probe_dmgaudit.py:1202-1206 (PIN-b1: run_seq() with real_state(), regex ` pred=\d+,\d+,\d+,\d+ base=\d+,\d+ eff=RECOIL$`, `log.gbs == []`), with world() rebinding get_battle_state in every module that holds ORIG_GBS (:1117-1119).
+
+ON-r1 live log (evidence/2026-09-30-dmgcalc11-M1B-ON-r1-debug.txt): 36 BEFOREs; 22 with numeric pred and base; 10 pred=none; 4 pred=err:Absent; 0 other err (the finding's "27" is wrong; the correct count is 22).
+
+Committed GRADED:29 (`git show HEAD:...GRADED.md`, line 29) cites only `-DIFF.txt`: "✅ PASS, in the AS BUILT form, which is equal or stronger (`-DIFF.txt`): ... flag set, 0 `get_battle_state()` calls; the exact CTL/BEFORE/AFTER sequence."
+
+Still-uncorrected copies:
+- DESIGN.md:342 "the exact CTL/BEFORE/AFTER sequence, which proves each hook body ran to its log call";
+- 06-DECISIONS-LOG.md:8604 (e06da0ae) "M1b-EXEC is met by the exact CTL/BEFORE/AFTER sequence: each hook's `except` logs an `ERR` line, never silently."
+
+In progress: GRADED.md:29 in the working tree is modified but uncommitted, and already cites PIN-b1, NP-pred-exact, NH-gbs-count and "22 numeric pred=".
+
+## F5 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:35, 40-44 (evidence M1B-GRADE.txt:20-27, 53-56; playbook 14:564)
+CLAIM: Nothing in the record shows that the BASE and S0BASE runs actually executed the base modules. A substitution that failed silently would run the build with the flag unset, which is OFF, and would give exactly the observed 'BASE = OFF'. As recorded, the A/B cannot tell the two cases apart.
+EVIDENCE: The runner that was actually used (scratch run_base_off.py / run_step0_base.py) is in no commit. M1B-GRADE.txt:20-27 records only exit codes and log names, with no loader output and no 'build-only modules imported: none' line. The guarded tool (run_with_base_modules.py, which asserts that modules.dmgaudit is not imported) was committed in e06da0ae at 08:18:43. That is after BASE (08:03:19-08:07:19) and S0BASE (08:08:10-08:12:05). Playbook 14:564 credits its fault test ('naming only one ... fails on modules.dmgaudit') to the method. GRADED:40 rests H1 on 'BASE = OFF'. GRADED:41 says m1_step0.py was 'unchanged', but no hash is recorded.
+FIX: Either re-run BASE ×2 (and S0BASE) with the committed tool, whose guard line then appears in the evidence, or embed the scratch runners verbatim with their load prints. In GRADED:40, cite DIFF (a)'s AST equality as the primary proof that the build is not the cause, with BASE as corroboration.
+VERDICT: refuted=True corrected=nit
+REASONING: The finding's main claim is that the A/B cannot tell "base modules ran" apart from "substitution silently failed, so the build ran with the flag OFF". That claim is false. The runners actually used had a post-run guard, and the build's copy of either changed module cannot load without setting it off:
+- Both build modules import dmgaudit at module top level: sandbox-pokebot/modules/battle_action_selection.py:15 and sandbox-pokebot/modules/battle_handler.py:20 (`from modules import dmgaudit as _dmgaudit`).
+- The scratch run_base_off.py asserts that no dmgaudit module is imported, both before the run (:42) and after it (:46). run_step0_base.py does the same after the run (:37).
+- The harness has no sys.exit and does not touch sys.modules (tools/story-dev/story_harness.py:54 is its only sys.path edit), so the post-run assert does execute.
+- A failed substitution (any path that loads the build's file, a reload included) would therefore end in an AssertionError with rc=1. The committed M1B-GRADE.txt:21-22 and :26-27 record exit=0 for all four runs.
+- The runners' stdout captures still exist, and each shows the substitution and the guard directly. BASE-r1 and BASE-r2 show `# run_base_off: modules.battle_action_selection loaded from 241929d7 (78201 chars)`, then `...battle_handler loaded from 241929d7 (53149 chars)`, then at line 1639 `# run_base_off: no dmgaudit module was imported`. S0BASE-r1 and S0BASE-r2 carry the same three lines from run_step0_base.
+- H1 also does not rest on BASE alone. DIFF.txt (a) gives AST equality with the base once the hooks are removed, for both modules, and (b) shows 0 reads and 0 logs per hook with the flag unset. That is independent proof that the build cannot move the trajectory. GRADED:31 already cites it.
+
+The sub-claim that "unchanged" for m1_step0.py cannot be checked is also refuted. The committed STEP0.txt:67-164 (commit 22867e74) embeds the probe's source, and it is byte-identical, after normalising line endings, to the scratch m1_step0.py that S0BASE re-ran. That file's mtime is 05:27:22, before the re-run.
+
+On playbook 14:564: it describes the committed tool, and that tool's fault test is recorded in the e06da0ae commit message. It does not say the BASE runs used that tool.
+
+What survives is a provenance gap. The runners and their load and guard prints live only in the temp scratchpad, not in any commit. The committed evidence records rc=0 but does not quote the guard line, so a reader of the record alone has to take it on trust. Embedding the two runners and the four guard lines in M1B-GRADE.txt would close that gap. It is a record-keeping nit, not a wrong result or an overclaimed headline.
+V-EVIDENCE: sandbox-pokebot/modules/battle_action_selection.py:15 `from modules import dmgaudit as _dmgaudit`; battle_handler.py:20 (same line). Scratch run_base_off.py:46 `assert not any("dmgaudit" in k for k in sys.modules), "the build's dmgaudit was imported during the base run"`, then :47 prints the guard line; run_step0_base.py:37-38 has the same guard and print. Scratch m1b_arms/BASE-r1.stdout.txt:1-2 and :1639: `# run_base_off: modules.battle_action_selection loaded from 241929d7 (78201 chars)` / `...battle_handler loaded from 241929d7 (53149 chars)` / `# run_base_off: no dmgaudit module was imported`. BASE-r2 is identical. S0BASE-r1 and S0BASE-r2 have the same lines as `# run_step0_base: ...` at :1-2 and :1639. M1B-GRADE.txt:21-22 and :26-27 record exit=0 for all four. The runner scripts base_arms_runner.txt and s0base_runner.txt match those lines verbatim. DIFF.txt:11-12: `PASS battle_action_selection.py: AST with the hooks removed == the base's` and the same for battle_handler.py. The committed STEP0.txt:68-164 is IDENTICAL (diff, after CRLF normalisation) to scratch m1_step0.py (mtime 2026-09-30 05:27:22, sha256 0584cae7...). story_harness.py has no sys.exit and no sys.modules manipulation; its only sys.path edit is :54. Residual: none of the runners or stdout captures are committed. They live only in the session scratchpad (…/scratchpad/run_base_off.py, run_step0_base.py, m1b_arms/*.stdout.txt).
+
+## F6 [should-fix] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:1, 20-30 (commit c0039855 subject)
+CLAIM: The headline and the arm table show only ✅ PASS. The literal-text grader's own verdict, 57/70 with 13 FAILs, is never quoted, and the headline and commit subject do not say that a filed non-vacuity literal failed. The DESIGN's arms table also counts non-vacuity and the per-turn table as part of M1b-ON's pass.
+EVIDENCE: M1B-GRADE.txt:160 says "57/70 checks PASS". The FAILs include :83 "FAIL ON-r1: a CTL line at each of the 15 battle starts — 14 CTL" and :101 "FAIL no singles BEFORE outside the pre-registered 17 (a new one = a different trajectory)". DESIGN arms table: "M1b-ON ×2 | ... | each equals a reproducing OFF run ...; the category rules; non-vacuity; the per-turn verdict table". GRADED:27 marks M1b-ON ✅ PASS on the narrower criterion. The CTL failure appears only at GRADED:92. The title reads '... matches the table on every REACHED row ...'.
+FIX: Quote '57/70 as filed' in the result section and break down the 13 FAILs (10 unreached or unregistered Linoone-branch checks, 3 CTL literals). Add 'one filed non-vacuity literal (CTL 15) failed' to the title or first paragraph.
+VERDICT: refuted=True corrected=nit
+REASONING: F6 is overstated. What it gets right: the string "57/70" appears nowhere in the GRADED note, and neither the note's title nor the commit subject mentions the CTL literal. But the note does not claim more than its evidence, and every one of the 13 FAILs is disclosed and has its cause stated.
+
+(1) The 13 FAILs all come from one fact, which the headline already carries with "every REACHED row" and the subject with "2 not reached": the build's trajectory never reached the Linoone. They break down as the two Linoone rows "present" in both ON runs (4), "no singles BEFORE outside the 17" in both ON runs (2), f3216950 among the named clean hits in both ON runs (2), the self-check on f3216950 in both ON runs (2), and CTL 15 vs 14 in ON-r1, ON-r2 and FAULT (3). The note covers each one: GRADED:53 (Linoone rows NOT REACHED, not counted), GRADED:54-56 (the two extra exits reported, not graded), GRADED:86-87 (f3216950 NOT REACHED), GRADED:28 (FAULT "PASS on the 2 REACHED named turns") and GRADED:92-94 (a ⚠ saying the CTL literal "FAILS as filed: 14").
+
+(2) The CTL miss is a counting artifact. The property it guards held: there is a CTL line at every battle start, 14 of 14, at the same frames in all three flagged runs (GRADE:73-75). The title claims four things: inert, every reached row matches, acceptance insufficient, measured but not cleared. The CTL miss contradicts none of them.
+
+(3) The CTL failure is disclosed outside the note body too. The c0039855 commit body says "non-vacuity (the CTL literal 15 FAILS as filed: 14 on this trajectory ...)". The 07-CHANGELOG entry says "⚠ Two filed literals missed ... the CTL count (15 as filed, 14 on this trajectory)".
+
+(4) The claim about the DESIGN's arms table does not hold against the filed text. The DESIGN table is headed "THE ARMS (to pre-register after the Step-0 reads)", so it is not the pre-registration. GRADED:20 grades "each against its filed line". In the filed PREDICTIONS (c21ec8df), the ON ×2 line at :86-88 is only the equality and category rules. Non-vacuity (:89) and the per-turn table (:94) are separate filed bullets, and GRADED grades each in its own section. GRADED:27's "Filed" column quotes PREDICTIONS:86-88 faithfully.
+
+(5) "57/70" is the grader script's own total. It counts each failure once per run and includes checks that were never filed. "No singles BEFORE outside the pre-registered 17" is not a filed literal or a filed falsifier (PREDICTIONS:127-129). The rule "graded only on a reproducing trajectory" was filed before any arm ran (PREDICTIONS:83).
+
+What is left is a nit. The note never maps the evidence file's "57/70 checks PASS" line to its sections, so a reader who opens the evidence sees 13 FAILs with no cross-reference. A one-line note ("the grader prints 57/70; all 13 FAILs are the Linoone branch or its CTL count, see the sections below") would close that gap.
+V-EVIDENCE: - M1B-GRADE.txt :83, :99, :100, :101, :103, :110 (ON-r1), :118, :134-136, :138, :145 (ON-r2) and :153 (FAULT) are the 13 FAILs. All are Linoone-branch checks (f3216950, f3217980, CTL 15, and the extra exits f3230902/f3231644 that exist only because the trajectory diverged).
+- M1B-GRADE.txt:73-75: "ON-r1: 14 `[BATTLE] started`, 14 CTL, same frames: True" (the same in ON-r2 and FAULT).
+- GRADED.md:92: "⚠ "A CTL line at each of the 15 battle starts" FAILS as filed: 14. The literal counted the Step-0 trajectory, whose 15th battle was the Linoone."
+- GRADED.md:53: "the two Linoone rows (f3216950, f3217980) are NOT REACHED, and are not counted as PASS".
+- GRADED.md:86-87: "The third named one, f3216950, is NOT REACHED."
+- GRADED.md:28: "✅ PASS on the 2 REACHED named turns".
+- c0039855 commit body: "non-vacuity (the CTL literal 15 FAILS as filed: 14 on this trajectory, each with its CTL at its battle start)".
+- 07-CHANGELOG.md (2026-09-30 step 11 entry): "⚠ Two filed literals missed, both explained in the note: the CTL count (15 as filed, 14 on this trajectory)".
+- PREDICTIONS.md:86-88 (the filed ON ×2 line): "each equals a reproducing OFF run ... every DMGAUDIT line matches ... no [BATTLE] line contains DMGAUDIT". Non-vacuity is a separate bullet at :89 and the per-turn table at :94.
+- PREDICTIONS.md:83, filed before the arms: "the per-turn table is graded only on a reproducing trajectory".
+- DESIGN.md: the arms table heading reads "THE ARMS (to pre-register after the Step-0 reads)".
+
+## F7 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:60-61, 71, 78
+CLAIM: 'Each reached row matches its filed verdict, its reasons ... EXACTLY' is false for f3193320, whose reason differs from the filed one.
+EVIDENCE: The filed row (c21ec8df) says: "ACCEPTED if our hit came first, else excluded: the foe's Def stage changed". The graded row is `foe-after-unobservable` (M1B-GRADE.txt §4 "PASS f3193320: EXCLUDED kind=KO reasons=foe-after-unobservable"). The row list says only '(see below)'.
+FIX: Say 'every reached row's verdict, kind and values exact; 14 of 15 reasons exact; f3193320's reason changed as recorded in AS BUILT'. Optionally add that the live BEFORE settles it: our Mightyena has status1 0x40 (STATUS1_PARALYSIS, battle.h:120), so its speed is 85/4 = 21 < Shiftry's 54 (battle_main.c:4650). Harden therefore ran first, and the table's own conditional predicts EXCLUDED.
+VERDICT: (none)
+
+## F8 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:24
+CLAIM: G-M1a 'mutants exact' leaves out two departures from the filed M1a mutant text. The filed m2 prediction says every Group B row stays green, but the gate's m2 reddens two B- rows. And one mutant set (u7) plus the SW check were corrected after their first run.
+EVIDENCE: PREDICTIONS (c21ec8df):67 says: "every Group B row stays green". GATES.txt:89 shows the m2 red set as ['B-CRIT-REFL', 'B-STAGE-CRIT', 'BK-C', 'BK-CC', 'BK-NCC', 'D-A1', 'D-A2', 'D-A3']. ADVERSARIAL-M1A.txt:329 says: "The u7 (U23) miss: my pre-written set was {...}; the run also reddened BK-C and BK-CC". ADVERSARIAL-M1A.txt:274 says: "On the first run every mutant's set was its expected set plus SW, and SW was also red on the unmutated code" (then rewritten). The filed text is "sets written in the gate before its first run".
+FIX: Add one line to G-M1a: 'm2 also reddens the two post-filing crit rows B-STAGE-CRIT and B-CRIT-REFL; u7's set and the SW total were corrected after their first run (ADVERSARIAL-M1A.txt:274, :329)'.
+VERDICT: (none)
+
+## F9 [nit] PROJECT KNOWLEDGE/ai-research-notes/2026-09-30-dmgcalc11-GRADED.md:44-50 (also 05-KNOWN-ISSUES KI-112 addition at HEAD)
+CLAIM: '1 of 10 runs', set next to 'the first was ... 1 of 3 runs', reads as a random-event rate. The timing does not support that reading over a time-of-day or accumulated-state input, and the prevention rule would not catch such an input.
+EVIDENCE: STEP0.txt:3 says the Step-0 run 'finished 5:29 AM'. It is the only run made before 07:46. All nine agreeing runs are contiguous from 07:46:41 to 08:12:05 (M1B-GRADE.txt:12-27). GRADED:48-50 prescribes "Derive such a table from TWO identical runs". If the two runs are back-to-back, that would not expose a time- or state-dependent input.
+FIX: Add: 'the only divergent run is also the only run made before 07:46; a time-of-day or accumulated-state input fits this pattern as well as a random 1-in-10 event.' Extend the rule to two runs separated in time, or runs made after an unrelated run.
+VERDICT: (none)
+
+### checked and found true
+- (1) The 'graded only on a reproducing trajectory' rule is applied faithfully, not stretched. The design's decision rule (DESIGN.md:220-222) uses 'reproducing' for runs that reproduce each other. The nine-run trajectory is that one, so grading the 15 shared rows, marking the Linoone rows NOT REACHED (never PASS) and reporting the two new rows is a literal reading. The ADDENDUM giving that reading was written after the audit outputs were known, and the note discloses its timing.
+- (2) DIFF (a) and (b) together really are at least as strong as the filed 'identical yields and lines' for flag unset. Every hook call's arguments are bare names (the `git diff` shows `on_selection_entry()`, `on_selection_exit(battle_state)`, `on_battle_start()` and `on_battle_end()`), and each hook returns at `if not _on()` before any read (dmgaudit.py:133, 145, 158, 175). NH-gbs-count, PIN-c5 and PIN-b1 cover the flag-set get_battle_state count. See F4 for the cited-evidence gap.
+- (3) The Shiftry reason change was committed before the arms: c44b1def at 07:46:21, and OFF-r1's log starts at 07:46:41 (Story-debug-20260930-074641.log, M1B-GRADE.txt:12). The filed row says '(either is correct; the read decides)'. The live BEFORE also shows our Mightyena paralysed (status1 0x40), so Shiftry moved first and EXCLUDED is the table's own conditional answer.
+- (4) The CTL count itself is right: 14 `[BATTLE] started` lines and 14 CTL at the same frames in ON-r1, ON-r2 and FAULT (M1B-GRADE §3). Only its explanation is wrong (F2).
+- (5) The 'five doubles exits' slip is real and correctly measured: STEP0.txt has 9 dbl=T USE_MOVE rows (26 − 17), and the build shows 7 EXCLUDED doubles, f3157762 REJECTED and f3165221 NOT-A-SAMPLE (M1B-GRADE §5 and §6).
+- (6) H1's conclusion (the build did not move the trajectory) holds. It follows from DIFF (a)'s AST equality with the hooks removed plus (b)'s zero reads and zero logs with the flag unset, regardless of how reliable the BASE run is (F5).
+- (7) The count '1 of 10' is right: the Step-0 run plus OFF×2, ON×2, FAULT, BASE×2 and S0BASE×2, with nine identical at sha256[:16] 928db5621b3d2f7c (M1B-GRADE.txt:48-56).
+- (8) The first paragraph does carry the sample-size caveat (8 of 300, 'proves nothing about step 12's KO-safety', stage 2 stays OFF), and the title says 'REACHED' and 'NOT yet CLEARED'.
+- (9) All 21 filed three-literal rows (D-A1..D-O1, B-MS1..B-SF) and all four bucket bounds, (1,1,1), (4,0,4), (4,0,4) and (8,0,7), match c21ec8df exactly in GATES.txt. The OURS values were pins and the bounds had been measured by the design review before filing, and the PREDICTIONS disclose both.
+- The ADDENDUM predates the BASE A/B: 82e34755 was committed at 08:03:03 and BASE-r1's log starts at 08:03:19.
+- Re-running the audit offline in scratch on the committed ON-r1-debug.txt reproduces M1B-GRADE §6 byte for byte (86 lines, exit 2).
+- Every number in the GRADED note matches its evidence: 83 checks and 71.9 s; 177 rows and 193 mutants; 371 = 371 lines; 86 = 86 DMGAUDIT lines; 0 ERR; FAULT 16 vs 65 and 27 vs 64; 8 accepted, all inside the non-crit [min, max]; max(obs/cmax) 0.495; port control 8 of 8; the per-row HP and Δbide values; 142 against cmax 152.
+- The OFF, ON and FAULT arms ran at c44b1def with dirty-code=0, and BASE ran at 82e34755 (docs-only on top of the build).

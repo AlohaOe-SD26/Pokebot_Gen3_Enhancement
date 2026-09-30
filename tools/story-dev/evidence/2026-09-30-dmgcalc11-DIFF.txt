@@ -6,6 +6,20 @@ zero reads and zero log calls; (c) flag set, zero get_battle_state() calls (KI-1
 CTL/BEFORE/AFTER sequence is also M1b-EXEC: an exception in a hook logs an ERR line instead of its BEFORE or AFTER
 (no hook swallows silently), so the exact sequence proves every hook body RAN to its log call.
 
+⚠ CORRECTION (the three-lens review, 2026-09-30; production F2 and grade F4, both confirmed). The paragraph above
+over-claims for (c), and the output below is left exactly as it ran:
+- (c)'s fake read_symbol returns zero bytes. So `_prediction` reads action 0 and move 0 and returns `pred=none` BEFORE
+  the calculator (dmgaudit.py:105-106). (c) therefore never reaches the calculator branch, and its "0
+  get_battle_state() calls" says nothing about that branch.
+- "an exception logs an ERR line" is false for the calculator. A raising calculator is caught inside `_prediction`
+  (dmgaudit.py:124-126) and logs an ordinary BEFORE with `pred=err:<Name>`, so the sequence check passes over it.
+- The branch IS covered, elsewhere:
+  - gate PIN-b1: a real BattleState, a numeric pred= and base=, and 0 get_battle_state() calls with it rebound in
+    every module;
+  - gate rows NP-pred-exact and NH-gbs-count (2026-09-30-dmgcalc11-GATES.txt);
+  - live, ON-r1's 22 numeric pred= BEFOREs, and 0 pred=err:<Name> among its 36 BEFOREs.
+- (a) and (b), the flag-unset half, stand as written.
+
 ===== output =====
 (a) the new modules = the base + the hooks only
   PASS  battle_action_selection.py: AST with the hooks removed == the base's  — 2 hook call(s)

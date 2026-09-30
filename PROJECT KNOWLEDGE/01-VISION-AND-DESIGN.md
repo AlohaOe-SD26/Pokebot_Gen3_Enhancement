@@ -337,8 +337,11 @@ it.
   - never raise: a failure is one `ERR` line;
   - never discard a turn silently: every pair gets a verdict and every exclusion a named reason.
   - Every judgement lives in the audit, which is gated. A classifier bug therefore costs a re-audit, not a re-run.
-- **Where it stands:** BUILT and gated on branch `wt/dmgcalc11` (2026-09-30), behind `POKEBOT_R25_DMGAUDIT` (default
-  OFF). The live arms are NOT yet graded. `ACCEPT_MARGIN = 3` is a proposal for the user (the design's F8).
+- **Where it stands:** built, graded, reviewed and merged (2026-09-30; `ai-research-notes/2026-09-30-dmgcalc11-GRADED.md`), behind
+  `POKEBOT_R25_DMGAUDIT` (default OFF). The recorder is inert (ON = OFF on every line) and matched every reached row of its
+  pre-registered table. The calculator is MEASURED, NOT cleared: 8 clean hits against a floor of 300, all inside the
+  non-crit range. The verdict is step 14's, with the flag on in both arms. `ACCEPT_MARGIN = 3` is a proposal for the
+  user (the design's F8).
 
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness

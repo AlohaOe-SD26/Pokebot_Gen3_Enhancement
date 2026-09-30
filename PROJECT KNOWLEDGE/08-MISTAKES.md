@@ -23427,3 +23427,42 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **The fix that worked:** each result was verified, and the remaining scripts went through Write.
 - **Prevention rule:** unchanged. The PROPOSED hook (refuse a Bash command whose heredoc body contains a backslash)
   goes to the user with these two occurrences added to its evidence.
+
+## 2026-09-30 — ⛔ STEP 11's THREE-LENS REVIEW: A CHECK WHOSE FAKE READS SKIPPED THE BRANCH IT WAS CITED FOR, A STRATUM BUILT FROM A ROW'S LABEL, AND A STATUS LINE THE GRADING COMMIT ITSELF MADE FALSE
+
+- **Symptoms** (`tools/story-dev/evidence/2026-09-30-dmgcalc11-REVIEW.txt`):
+  - **(a)** The graded note cited `-DIFF.txt` (c) for "0 `get_battle_state()` calls with the flag set; every hook body
+    ran". (c)'s fake `read_symbol` returned zero bytes, so `_prediction` returned `pred=none` before the calculator: the
+    one branch that calls external code never ran. Its "an exception logs an ERR line" was also false there.
+  - **(b)** The classifier's Marvel Scale stratum excluded OUR Marvel Scale and missed the FOE's with us statused.
+    That is exactly M1a's pre-registered under-prediction row, B-MS2.
+  - **(c)** A foe's called move (Mirror Move copying our Take Down) put its recoil into Δbide with no stratum.
+  - **(d)** 01/03/04 said "NOT yet graded" at the graded commit. 01's line was WRITTEN by that commit.
+  - **(e)** The 15 of 15 was presented as a test of the classifier, although gate T1 and the smoke had already aligned
+    it to that table.
+- **Root causes:**
+  - (a) the check proved its sequence, never that the branch EXECUTED;
+  - (b) the stratum's condition was built from the row's LABEL ("Marvel Scale wrongly on our … attacker"), not from the
+    calculator's actual line (`_util.py:399-400`) and the game's (`pokemon.c:3213`);
+  - (c) the foe-move strata key on the CHOSEN move's effect, and a calling move has its own effect;
+  - (d) 03/04 were held back on purpose while the reviewers read them, and 01 was written with the pre-grade wording and
+    never re-read (P5);
+  - (e) the independence of a live re-test from its own gate was never asked.
+- **The fixes that worked:**
+  - (a) the grade now cites PIN-b1, NP-pred-exact, NH-gbs-count and ON-r1's 22 numeric `pred=` lines; `-DIFF.txt` carries
+    a correction block;
+  - (b) and (c) were fixed in the classifier, each with a row that fails on the old code and a reverting mutant (07);
+  - (d) the status docs are restamped in the fix commit;
+  - (e) the grade says what the 15 of 15 does and does not test.
+- **Prevention rules:**
+  - A check cited for a BRANCH must assert something only that branch produces (here: a numeric `pred=`). A passing
+    sequence is not execution.
+  - A stratum that mirrors a known-divergence row takes its condition from the two code lines that diverge (ours and
+    the decomp's), never from the row's name.
+  - A classifier keyed on a chosen move must treat a calling move (Metronome, Mirror Move, Assist, Sleep Talk) as
+    unknown.
+  - Never commit a status sentence that the same commit makes false. If a status doc is deliberately held back, the
+    commit message says so and names the line.
+  - **Correction to this morning's "two identical runs" rule (08, the one-run table entry):** the two runs must be
+    SEPARATED IN TIME, or have an unrelated run between them. Step 11's nine agreeing runs were back to back, and the
+    one divergent run was the only early one (review F9).

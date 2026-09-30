@@ -73,7 +73,10 @@ The 5:27 AM Step-0 run alone left it, and its own probe re-run on the same code 
   ON-r1: 14 `[BATTLE] started`, 14 CTL, same frames: True
   ON-r2: 14 `[BATTLE] started`, 14 CTL, same frames: True
   FAULT: 14 `[BATTLE] started`, 14 CTL, same frames: True
-(The Step-0 trajectory started 15 battles: its 15th was the Linoone.)
+(The Step-0 trajectory started 15 battles: the 12 shared ones, then the Linoone (its 13th), a Magma Hideout dex catch
+and the Team Magma grunt opp 717. The build's 14 are the same 12, the same dex catch map (24,86) and the same grunt:
+Step-0's 15 minus the Linoone. Corrected after the review (F2): the first version of this line called the Linoone the
+15th.)
 
 ===== 4. the per-turn table, the non-vacuity items and FAULT (m1b_turns.py, the literal filed text) =====
 == ON-r1 ==
@@ -287,3 +290,161 @@ The 5:27 AM Step-0 run alone left it, and its own probe re-run on the same code 
 == independent control ==
   port control: 8 clean hits: 8 replayed, 0 unreplayable [], 0 outside the port's [non-crit min, crit max]
 ACCEPTANCE: INSUFFICIENT — 8 clean whitelisted hits (floor 300); 0 over crit_max + 3 (ACCEPT_MARGIN 3, a PROPOSAL for the user)
+
+===== 7. the BASE and S0BASE runners (scratch; embedded after the review, F5) and each run's loader lines =====
+The committed successor of run_base_off.py is tools/story-dev/run_with_base_modules.py (fault-tested).
+  BASE-r1.stdout.txt: # run_base_off: modules.battle_action_selection loaded from 241929d7 (78201 chars)
+  BASE-r1.stdout.txt: # run_base_off: modules.battle_handler loaded from 241929d7 (53149 chars)
+  BASE-r1.stdout.txt: # run_base_off: no dmgaudit module was imported
+  BASE-r2.stdout.txt: # run_base_off: modules.battle_action_selection loaded from 241929d7 (78201 chars)
+  BASE-r2.stdout.txt: # run_base_off: modules.battle_handler loaded from 241929d7 (53149 chars)
+  BASE-r2.stdout.txt: # run_base_off: no dmgaudit module was imported
+  S0BASE-r1.stdout.txt: # run_step0_base: modules.battle_action_selection loaded from 241929d7
+  S0BASE-r1.stdout.txt: # run_step0_base: modules.battle_handler loaded from 241929d7
+  S0BASE-r1.stdout.txt: # run_step0_base: no dmgaudit module was imported
+  S0BASE-r2.stdout.txt: # run_step0_base: modules.battle_action_selection loaded from 241929d7
+  S0BASE-r2.stdout.txt: # run_step0_base: modules.battle_handler loaded from 241929d7
+  S0BASE-r2.stdout.txt: # run_step0_base: no dmgaudit module was imported
+----- run_base_off.py (verbatim) -----
+"""Run the harness with the BASE (241929d7) code, in the same worktree, profile and caches as the build's arms.
+
+The build commit (c44b1def) changed exactly two production modules under sandbox-pokebot (the hooks) and added
+dmgaudit.py; everything else the harness imports is byte-identical to the base. So this loads the BASE source of those
+two modules (`git show 241929d7:<path>`) into sys.modules under their real names and file paths BEFORE the harness
+imports them, asserts that no `dmgaudit` reference survives, then runs the harness exactly as the seeded wrapper does
+(random.seed(1) immediately before runpy). No tracked file is touched.
+
+Run from tools/story-dev:
+  PYTHONUTF8=1 py -3.12 -u run_base_off.py saves/post_mtpyre.ss1 --driver storyresume --frames 90000 --log <log>
+"""
+import importlib.util
+import os
+import random
+import runpy
+import subprocess
+import sys
+from pathlib import Path
+
+BASE = "241929d7"
+REPO = Path(os.getcwd()).resolve().parents[1]
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+os.environ.pop("POKEBOT_R25_DMGAUDIT", None)
+os.environ.pop("POKEBOT_R25_FAULT_DMGAUDIT_BIDE0", None)
+
+import modules  # noqa: E402  (the package, so the submodules can be registered on it)
+
+for name, rel in (("modules.battle_action_selection", "sandbox-pokebot/modules/battle_action_selection.py"),
+                  ("modules.battle_handler", "sandbox-pokebot/modules/battle_handler.py")):
+    src = subprocess.run(["git", "-C", str(REPO), "show", f"{BASE}:{rel}"], capture_output=True, text=True,
+                         encoding="utf-8", check=True).stdout
+    assert "dmgaudit" not in src, name
+    path = str(REPO / rel)
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    setattr(modules, name.rsplit(".", 1)[1], mod)
+    exec(compile(src, path, "exec"), mod.__dict__)
+    print(f"# run_base_off: {name} loaded from {BASE} ({len(src)} chars)", flush=True)
+
+assert not any("dmgaudit" in k for k in sys.modules), [k for k in sys.modules if "dmgaudit" in k]
+random.seed(1)
+sys.argv = ["story_harness.py"] + sys.argv[1:]
+runpy.run_path("story_harness.py", run_name="__main__")
+assert not any("dmgaudit" in k for k in sys.modules), "the build's dmgaudit was imported during the base run"
+print("# run_base_off: no dmgaudit module was imported", flush=True)
+
+----- run_base_arms.sh (verbatim) -----
+#!/usr/bin/env bash
+# The divergence A/B for step 11's live arms: the BASE code (241929d7, loaded by run_base_off.py) in the SAME worktree,
+# profile and caches, run twice, exactly like run_m1b_arms.sh's OFF arms (seed 1, post_mtpyre, 90,000 frames).
+S="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad"
+OUT="$S/m1b_arms"
+WT="C:/Remote Projects/pokebot-wt-ch24"
+DL="$WT/sandbox-pokebot/profiles/repro-ml/debug-logs"
+cd "$WT/tools/story-dev" || exit 2
+echo "WT HEAD $(git rev-parse HEAD) dirty-code=$(git status --short -- ../../sandbox-pokebot story_harness.py | wc -l)"
+PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_mtpyre.ss1=80602159694b | tail -1
+busy=$(powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name like 'py%'\" | Where-Object { \$_.CommandLine -like '*story_harness*' -or \$_.CommandLine -like '*run_base_off*' }).Count" | tr -d '\r')
+if [ "$busy" != "0" ]; then echo "!!! $busy harness process(es) already running: refusing to start"; exit 5; fi
+run() {
+  tag=$1
+  before=$(ls "$DL")
+  env -u POKEBOT_R25_DMGAUDIT -u POKEBOT_R25_FAULT_DMGAUDIT_BIDE0 PYTHONUTF8=1 timeout 3000 py -3.12 -u \
+    "$S/run_base_off.py" saves/post_mtpyre.ss1 --driver storyresume --frames 90000 \
+    --log "$OUT/$tag.log" > "$OUT/$tag.stdout.txt" 2>&1
+  rc=$?
+  new=$(comm -13 <(echo "$before" | sort) <(ls "$DL" | sort))
+  n=$(echo "$new" | grep -c .)
+  if [ "$n" = "1" ]; then cp "$DL/$new" "$OUT/$tag.debug.txt"; else echo "!!! $tag: $n new debug logs ($new)"; fi
+  echo "$tag exit=$rc debug=$new $(date '+%I:%M:%S %p')"
+}
+run BASE-r1
+run BASE-r2
+echo "BASE-ARMS-DONE"
+
+----- run_step0_base.py (verbatim) -----
+"""Re-run the Step-0 probe (m1_step0.py, unchanged) on the BASE code: the base source of the two changed modules is
+loaded first (as run_base_off.py does), then m1_step0.py runs exactly as it did at 5:27 AM (it seeds, wraps, runs the
+harness). The question (for #27-determinism, not step 11): does the wrapper probe reproduce the Linoone branch?
+Env M1_STEP0_OUT = the reads file. Run from tools/story-dev with the harness's arguments."""
+import importlib.util
+import os
+import runpy
+import subprocess
+import sys
+from pathlib import Path
+
+BASE = "241929d7"
+S = Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+REPO = Path(os.getcwd()).resolve().parents[1]
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+os.environ.pop("POKEBOT_R25_DMGAUDIT", None)
+os.environ.pop("POKEBOT_R25_FAULT_DMGAUDIT_BIDE0", None)
+
+import modules  # noqa: E402
+
+for name, rel in (("modules.battle_action_selection", "sandbox-pokebot/modules/battle_action_selection.py"),
+                  ("modules.battle_handler", "sandbox-pokebot/modules/battle_handler.py")):
+    src = subprocess.run(["git", "-C", str(REPO), "show", f"{BASE}:{rel}"], capture_output=True, text=True,
+                         encoding="utf-8", check=True).stdout
+    assert "dmgaudit" not in src, name
+    path = str(REPO / rel)
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    setattr(modules, name.rsplit(".", 1)[1], mod)
+    exec(compile(src, path, "exec"), mod.__dict__)
+    print(f"# run_step0_base: {name} loaded from {BASE}", flush=True)
+
+sys.argv = [str(S / "m1_step0.py")] + sys.argv[1:]
+runpy.run_path(str(S / "m1_step0.py"), run_name="__main__")
+assert not any("dmgaudit" in k for k in sys.modules), "the build's dmgaudit was imported"
+print("# run_step0_base: no dmgaudit module was imported", flush=True)
+
+----- run_step0_base.sh (verbatim) -----
+#!/usr/bin/env bash
+# #27-determinism evidence: the Step-0 wrapper probe re-run twice on the base code (same worktree/profile/caches).
+S="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad"
+OUT="$S/m1b_arms"
+WT="C:/Remote Projects/pokebot-wt-ch24"
+DL="$WT/sandbox-pokebot/profiles/repro-ml/debug-logs"
+cd "$WT/tools/story-dev" || exit 2
+busy=$(powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name like 'py%'\" | Where-Object { \$_.CommandLine -like '*story_harness*' -or \$_.CommandLine -like '*run_base_off*' -or \$_.CommandLine -like '*run_step0_base*' }).Count" | tr -d '\r')
+if [ "$busy" != "0" ]; then echo "!!! $busy harness process(es) already running: refusing to start"; exit 5; fi
+run() {
+  tag=$1
+  before=$(ls "$DL")
+  env -u POKEBOT_R25_DMGAUDIT -u POKEBOT_R25_FAULT_DMGAUDIT_BIDE0 M1_STEP0_OUT="$OUT/$tag.reads.txt" PYTHONUTF8=1 \
+    timeout 3000 py -3.12 -u "$S/run_step0_base.py" saves/post_mtpyre.ss1 --driver storyresume --frames 90000 \
+    --log "$OUT/$tag.log" > "$OUT/$tag.stdout.txt" 2>&1
+  rc=$?
+  new=$(comm -13 <(echo "$before" | sort) <(ls "$DL" | sort))
+  n=$(echo "$new" | grep -c .)
+  if [ "$n" = "1" ]; then cp "$DL/$new" "$OUT/$tag.debug.txt"; else echo "!!! $tag: $n new debug logs ($new)"; fi
+  echo "$tag exit=$rc debug=$new $(date '+%I:%M:%S %p')"
+}
+run S0BASE-r1
+run S0BASE-r2
+echo "S0BASE-DONE"

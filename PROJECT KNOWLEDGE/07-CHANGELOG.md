@@ -37309,3 +37309,33 @@ bought balls only at fixed story points.
     "five doubles exits" slip in the filed text (nine).
 - **A second KI-112 event:** the table's source run (Step-0, 5:27 AM) met a wild Linoone that none of nine later runs
   met. That includes the base code's (a base A/B filed BEFORE it ran) and the Step-0 probe's own re-runs (05 KI-112).
+
+## 2026-09-30 — design v2 step 11 REVIEWED (production safety, the audit against the decomp, the grade's honesty; each should-fix put to a refuter): nine classifier fixes, the grade corrected in place, merged (`#26-organiccatch`)
+
+- **The review** (`evidence/2026-09-30-dmgcalc11-REVIEW.txt`): no blocker, and the production lens found no defect in
+  the recorder.
+- **The audit lens:**
+  - CONFIRMED should-fix:
+    - F1: the Marvel Scale stratum keyed on the wrong battler, so M1a's B-MS2 state was accepted;
+    - F3: a foe's called move (Mirror Move copying our Take Down) put recoil into Δbide unexcluded. Reachable at the
+      Fortree Gym.
+  - F2 (Secret Power in Tier A) is confirmed, and a nit.
+  - Six nits.
+- **All nine fixed in `audit_damage_calc.py`** by the agent that built it. F9a was implemented only after its decomp
+  claim was verified.
+  - The gate is now 191 rows and 220 mutants. Every new row is red on the pre-review classifier. The pre-written
+    mutant sets matched on the first run except one, A05, which was corrected and disclosed.
+  - The re-audit of the graded log is byte-identical: no graded number moved.
+  - The full suite: 134 of 134 enforcing gates pass, 458.5 s (`-REVIEW-GATE.txt`).
+- **The grade lens,** each fixed in place and marked:
+  - 01/03/04 said "not graded" at the graded commit;
+  - the 15 of 15 is a re-test of a table the classifier had been aligned to (gate T1, the smoke), not an independent
+    test;
+  - the DIFF/EXEC evidence never reached the calculator branch. It now cites PIN-b1, NP-pred-exact, NH-gbs-count and
+    the live numeric preds, and `-DIFF.txt` carries a correction block;
+  - the Linoone was the 13th battle, not the 15th;
+  - the base runners are embedded in `-M1B-GRADE.txt` §7;
+  - the 57 of 70 tally is quoted;
+  - "1 of 10" is not a rate: the divergent run was the only early one.
+- **Merged to `main`.** Step 12 is next: its stage 1 and `observe`, with stage 2 OFF and its live arms waiting on M1b's
+  acceptance.

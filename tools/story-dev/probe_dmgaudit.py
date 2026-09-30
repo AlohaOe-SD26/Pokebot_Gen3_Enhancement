@@ -20,7 +20,10 @@ from the ADVERSARIAL MUTANT PASS of 2026-09-30, plus the rows for the live-found
 Power's ROLLED type: the classifier's edges and the gate's OWN literal copy of F2's tiers (NR-*), production executed
 with DISTINCT bytes in every RAW field and a valid EWRAM chain, a staged fixture for the prediction (NP-*), and two more
 hook-file AST pins (NH-*)). Every world that runs production REBINDS `get_battle_state` wherever it is bound.
-Then the mutants (CASES, PROD_CASES, PASS_CASES): each is an exec'd source edit (of the classifier, of dmgaudit.py, or a
+The step-11 REVIEW fixes (review11.md, LENS audit F1-F9) added Q07b, Q09b, Q09c, Q12, G09b, G12b, G12c, G13-G16, S15,
+S16 and C5, rewrote Q09, G09 and G12, and gave G07, NR-hp-rolled-type and NR-faint-* species that really carry the
+ability they test (the classifier now checks the live ability against the species').
+Then the mutants (CASES, PROD_CASES, PASS_CASES, REVIEW_CASES): each is an exec'd source edit (of the classifier, of dmgaudit.py, or a
 text edit of a hook file; never written to disk) with the EXACT set of rows it must turn red, derived row by row and
 written before that mutant's first run; they run in a process pool (in-process if none can be made), and a COVERAGE
 check fails if any row is in no mutant's expected set. A row red WITHOUT any mutant (a production defect) is reported as
@@ -442,6 +445,33 @@ def s_rows(tag=""):
         v, _ = one(pair({"flags": 0x4}))
         return v.status == ACC and v.battle == "wild", vtxt(v)
 
+    def s15():  # (review F6) the LIVE ability byte vs the species' (the IV word's bit 31 picks the second)
+        huge = one(pair({"me": {"ability": 37}}))[0]                      # our Mightyena reads Huge Power (Intimidate)
+        trace = one(pair({"foe": {"ability": 36}}))[0]                    # the foe's Manectric reads Trace (Static)
+        rod = one(pair({"foe": {"ability": 31, "ivs": 1 << 31}}))[0]      # Manectric's SECOND ability, by bit 31
+        fainted = one(pair({"t": 3}, {"out": 2, "me": {"ability": 0}}, obs=65, d0=89, kind="end"))[0]   # we fainted
+        return (huge.status == EXC and huge.reasons == ("ability-not-species",)
+                and trace.status == EXC and trace.reasons == ("ability-not-species",) and rod.status == ACC
+                and fainted.status == ACC and "ability-not-species" not in fainted.reasons), \
+            " || ".join(vtxt(v) for v in (huge, trace, rod, fainted))
+
+    def s16():  # (review F6) species data that cannot be loaded fails the INSTRUMENT (exit 3), never silently
+        mod = A()
+        try:
+            mod._load_species_abilities(pathlib.Path(tempfile.gettempdir()) / "no-such-species.json")
+            loader_raises = False
+        except OSError:
+            loader_raises = True
+        saved = (mod.SPECIES_ABILITIES, mod.SPECIES_ERROR)
+        try:
+            mod.SPECIES_ABILITIES, mod.SPECIES_ERROR = None, "FileNotFoundError: species.json"
+            rep = audit(CLEAN)
+            lines = mod.render(rep)
+        finally:
+            mod.SPECIES_ABILITIES, mod.SPECIES_ERROR = saved
+        return (loader_raises and rep.exit_code == 3 and not rep.instrument_ok
+                and any("species data could not be loaded" in ln for ln in lines)), f"exit {rep.exit_code}"
+
     for label, fn in (("S1 a clean hit: ACCEPTED turn, trainer, tier A, untagged, self-check agrees", s1),
                       ("S2 our chosen move's PP unchanged: NOT-A-SAMPLE our-pp-unchanged", s2),
                       ("S3 the chosen move != the slot whose PP dropped (matched by move id): NOT-A-SAMPLE", s3),
@@ -455,7 +485,10 @@ def s_rows(tag=""):
                       ("S11 pred=none / pred=err: EXCLUDED no-prediction", s11),
                       ("S12 crit ambiguity: obs=max untagged, max+1 ambiguous, crit_max+1 over", s12),
                       ("S13 a hit below the non-crit min is ACCEPTED and tagged", s13),
-                      ("S14 wild vs trainer: flags 0x4 reads 'wild'", s14)):
+                      ("S14 wild vs trainer: flags 0x4 reads 'wild'", s14),
+                      ("S15 a live ability that is not the species' (either battler): ability-not-species; bit 31's "
+                       "second ability and a fainted record are not", s15),
+                      ("S16 species data that cannot be loaded: INSTRUMENT FAIL, exit 3", s16)):
         row(label, fn, tag, reds)
     return reds
 
@@ -472,9 +505,11 @@ def w_rows(tag=""):
         got = {name: t(i, MOVES[i]["effect"]) for name, i in (("Tackle", 33), ("Take Down", 36), ("Struggle", 165),
                                                                ("Surf", 57), ("Ember", 52), ("Facade", 263),
                                                                ("Twister", 239), ("Fury Attack", 31),
-                                                               ("Selfdestruct", 120), ("Metal Claw", 232))}
+                                                               ("Selfdestruct", 120), ("Metal Claw", 232),
+                                                               ("Secret Power", 290))}
         want = {"Tackle": "A", "Take Down": "A", "Struggle": "OUT", "Surf": "C", "Ember": "B", "Facade": "C",
-                "Twister": "C", "Fury Attack": "OUT", "Selfdestruct": "OUT", "Metal Claw": "A"}
+                "Twister": "C", "Fury Attack": "OUT", "Selfdestruct": "OUT", "Metal Claw": "A",
+                "Secret Power": "B"}                    # review F2: its mountain secondary is confusion
         return got == want, str({k: v for k, v in got.items() if want[k] != v})
 
     def w2():
@@ -494,7 +529,7 @@ def w_rows(tag=""):
         return (f.status == EXC and f.reasons == ("outside-whitelist",) and e.status == ACC and e.tier == "B"
                 and s.status == ACC and s.tier == "C"), f"{vtxt(f)} || {vtxt(e)} {e.tier} || {vtxt(s)} {s.tier}"
 
-    for label, fn in (("W1 tier_of: Surf C and Struggle OUT by INDEX; the rest by effect", w1),
+    for label, fn in (("W1 tier_of: Surf C and Struggle OUT by INDEX; the rest by effect (Secret Power B)", w1),
                       ("W2 the whitelist names exist in moves.json, are disjoint, and hold every stat *_HIT", w2),
                       ("W3 samples by tier: Fury Attack EXCLUDED outside-whitelist; Ember B and Surf C ACCEPTED", w3)):
         row(label, fn, tag, reds)
@@ -572,6 +607,28 @@ def q_rows(tag=""):
         return (low.status == EXC and "C:false-swipe-hp" in low.reasons and high.status == ACC), \
             f"{vtxt(low)} || {vtxt(high)}"
 
+    def q07b():  # (review F4) the band's edge: HP == crit_max + margin + 1 excluded, one more accepted; at margin +2 the
+        #              band moves with it (the audit's margin reaches the classifier)
+        cm, m = PRED[3], A().ACCEPT_MARGIN
+        fs = mv_setup(206)
+        edge = one(pair({"foe": {"hp": cm + m + 1, "maxhp": 200}}, setup=fs))[0]
+        above = one(pair({"foe": {"hp": cm + m + 2, "maxhp": 200}}, setup=fs))[0]
+        wide = one(pair({"foe": {"hp": cm + m + 2, "maxhp": 200}}, setup=fs), margin=m + 2)[0]
+        return (edge.status == EXC and "C:false-swipe-hp" in edge.reasons and above.status == ACC
+                and wide.status == EXC and "C:false-swipe-hp" in wide.reasons), \
+            f"{vtxt(edge)} || {vtxt(above)} || {vtxt(wide)}"
+
+    MILOTIC = {"species": 329, "ability": 63}             # the only Marvel Scale species (Wallace's)
+
+    def q09b():  # (review F1) M1a's B-MS2: the FOE's Marvel Scale HEALTHY while WE are poisoned (our calculator raises
+        #              its Def, the game does not)
+        v = one(pair({"foe": MILOTIC, "me": {"status1": 0x8}}))[0]
+        return v.status == EXC and v.reasons == ("persistent:marvel-scale",), vtxt(v)
+
+    def q09c():  # (review F1) OUR Marvel Scale while we are statused, vs a foe without it: nothing to exclude
+        v = one(pair({"me": dict(MILOTIC, status1=0x8)}))[0]
+        return v.status == ACC and "persistent:marvel-scale" not in v.reasons, vtxt(v)
+
     cases = (
         ("Q01 the foe's action is an item: foe-item-action",
          lambda: has([pair({"act": (0, 1, 255, 255), "mv": (36, 0, 0, 0)})], "foe-item-action")),
@@ -585,16 +642,24 @@ def q_rows(tag=""):
         ("Q06 our Pursuit vs a switching foe: C:pursuit-switch",
          lambda: has([pair({"act": (0, 2, 255, 255)}, setup=mv_setup(228, foe_move=0))], "C:pursuit-switch")),
         ("Q07 False Swipe with the foe's HP before <= crit_max: C:false-swipe-hp (above it: ACCEPTED)", q07),
+        ("Q07b False Swipe's band ends at crit_max + margin + 1, and the audit's margin moves it", q07b),
         ("Q08 PERSISTENT Guts + burn at BEFORE",
          lambda: has([pair({"me": {"ability": 62, "status1": 0x10}})], "persistent:guts-burn")),
-        ("Q09 PERSISTENT Marvel Scale + a status, on the foe and on us",
-         lambda: has([pair({"foe": {"ability": 63, "status1": 0x8}}), pair({"me": {"ability": 63, "status1": 0x8}})],
-                     "persistent:marvel-scale")),
+        ("Q09 PERSISTENT the foe's Marvel Scale while the FOE is statused (M1a's B-MS1)",
+         lambda: has([pair({"foe": dict(MILOTIC, status1=0x8)})], "persistent:marvel-scale")),
+        ("Q09b PERSISTENT the foe's Marvel Scale healthy while WE are poisoned (M1a's B-MS2): EXCLUDED", q09b),
+        ("Q09c our own Marvel Scale, us statused, a foe without it: no marvel-scale reason (ACCEPTED)", q09c),
         ("Q10 PERSISTENT Cloud Nine (foe) / Air Lock (ours)",
          lambda: has([pair({"foe": {"ability": 13}}), pair({"me": {"ability": 77}})],
                      "persistent:cloud-nine-air-lock")),
         ("Q11 PERSISTENT Flash Fire set at BEFORE",
          lambda: has([pair({"ff": (1, 0)}, {"ff": (0, 0)})], "persistent:flash-fire")),
+        ("Q12 the foe CHOSE a move that calls another (Metronome, Mirror Move, Assist, Sleep Talk, Nature Power; after a "
+         "battle-end KO too; Winona's Swablu): foe-called-move",
+         lambda: has([pair({"mv": (36, m, 0, 0)}) for m in (118, 119, 274, 214, 267)]
+                     + [pair({"t": 3, "mv": (36, 119, 0, 0)}, obs=90, kind="end"),
+                        pair({"mv": (36, 119, 0, 0), "foe": {"species": 358, "ability": 30, "type1": 2, "type2": 0}})],
+                     "foe-called-move")),
     )
     for label, fn in cases:
         row(label, fn, tag, reds)
@@ -615,13 +680,58 @@ def g_rows(tag=""):
         return (guts.status == EXC and "our-status-changed-guts-facade" in guts.reasons and plain.status == ACC), \
             f"{vtxt(guts)} || {vtxt(plain)}"
 
-    def g07():  # the dip: 60 - 30 = 30 <= 127 // 3 = 42, though both reads show 60 (drained back up)
-        v = one(pair({"me": {"ability": 66, "hp": 60}}, {"me": {"hp": 60}}, d0=30, setup=mv_setup(52)))[0]
+    def g07():  # the dip: 60 - 30 = 30 <= 127 // 3 = 42, though both reads show 60 (drained back up); a Blaziken, so
+        #             the live Blaze byte is its species ability
+        v = one(pair({"me": {"species": 282, "ability": 66, "hp": 60}}, {"me": {"hp": 60}}, d0=30,
+                     setup=mv_setup(52)))[0]
         return v.status == EXC and v.reasons == ("our-pinch",), vtxt(v)
+
+    def g09b():  # (review F9a) a trainer KO by Ember: its burn cannot move gBideDmg[1] this turn -> ACCEPTED
+        v = one(tko(our_move=52))[0]
+        return v.status == ACC and v.kind == "trainer KO", vtxt(v)
 
     def g11():  # the replacement's own status and item say nothing about our hit
         v = one(tko(a={"foe": {"status1": 0x8, "item": 139}}))[0]
         return v.status == ACC and v.kind == "trainer KO", vtxt(v)
+
+    def g12b():  # (review F9a) Ember's burn at AFTER only (none at BEFORE): its tick runs under HITMARKER_IGNORE_BIDE
+        v = one(pair(a={"foe": {"status1": 0x10}}, setup=mv_setup(52)))[0]
+        return v.status == ACC and v.reasons == (), vtxt(v)
+
+    def g13():  # (review F2 + F9a) a Secret Power battle-end KO: its secondary may be confusion -> unobservable
+        v = one(pair({"t": 3}, obs=90, kind="end", setup=mv_setup(290)))[0]
+        return v.status == EXC and v.reasons == ("foe-after-unobservable",), vtxt(v)
+
+    def g14():  # (review F5) a Flash Fire Ninetales, Hidden Power rolled Fire, the foe chose Ember, a battle-END read
+        nine = {"species": 38, "ability": 18, "ivs": ivs(30, 31, 30, 30, 30, 31)}
+        hp_fire = mv_setup(237, foe_move=52)
+        fire_ko = one(pair({"t": 3, "me": nine}, obs=90, kind="end", setup=hp_fire))[0]
+        at_entry = one(pair({"me": nine}, setup=hp_fire))[0]                               # Flash Fire IS readable
+        foe_tackle = one(pair({"t": 3, "me": nine}, obs=90, kind="end", setup=mv_setup(237, foe_move=33)))[0]
+        not_ff = one(pair({"t": 3, "me": {"ivs": nine["ivs"]}}, obs=90, kind="end", setup=hp_fire))[0]
+        take_down = one(pair({"t": 3, "me": nine, "mv": (36, 52, 0, 0)}, obs=90, kind="end"))[0]
+        return (fire_ko.status == EXC and fire_ko.reasons == ("our-flash-fire-unobservable",)
+                and all(v.status == ACC for v in (at_entry, foe_tackle, not_ff, take_down))), \
+            " || ".join(vtxt(v) for v in (fire_ko, at_entry, foe_tackle, not_ff, take_down))
+
+    def g15():  # (review F7) the foe's Will-o-Wisp burns us before our PHYSICAL hit: whatever our ability
+        burned = one(pair({"mv": (36, 261, 0, 0)}, {"me": {"status1": 0x10}}))[0]
+        special = one(pair(None, {"me": {"status1": 0x10}}, setup=mv_setup(55, foe_move=261)))[0]    # Water Gun
+        guts = one(pair({"me": {"species": 217, "ability": 62}, "mv": (36, 261, 0, 0)}, {"me": {"status1": 0x10}}))[0]
+        return (burned.status == EXC and burned.reasons == ("our-burn-changed",) and special.status == ACC
+                and guts.status == EXC and "our-burn-changed" in guts.reasons), \
+            f"{vtxt(burned)} || {vtxt(special)} || {vtxt(guts)}"
+
+    def g16():  # (review F9b) Superpower's -1 Atk / Overheat's -2 SpA are the move's own; anything else still excludes
+        sp, oh = mv_setup(276), mv_setup(315)
+        st = lambda atk, spa: {"me": {"stages": (6, atk, 6, 6, spa, 6, 6, 6)}}  # noqa: E731
+        own = [one(pair(None, st(5, 6), setup=sp))[0], one(pair(None, st(6, 4), setup=oh))[0],
+               one(pair(st(6, 1), st(6, 0), setup=oh))[0]]                                # clamped at stage 0
+        other = [one(pair(None, st(4, 6), setup=sp))[0], one(pair(None, st(6, 5), setup=oh))[0],
+                 one(pair(None, st(5, 5), setup=sp))[0], one(pair(None, st(5, 6)))[0]]    # the last: Take Down
+        return (all(v.status == ACC for v in own)
+                and all(v.status == EXC and "our-attack-stage-changed" in v.reasons for v in other)), \
+            " || ".join(vtxt(v) for v in own + other)
 
     cases = (
         ("G01 the foe's Def or SpD stage changed: foe-def-stage-changed",
@@ -640,13 +750,23 @@ def g_rows(tag=""):
         ("G08 our Liquid Ooze vs a draining foe (Absorb; Leech Seed on us): our-liquid-ooze",
          lambda: has([pair({"me": {"ability": 64}, "mv": (36, 71, 0, 0)}),
                       pair({"me": {"ability": 64}}, {"s3": (0x4, 0)})], "our-liquid-ooze")),
-        ("G09 a trainer KO by a Tier B move (Ember): foe-after-unobservable",
-         lambda: has([tko(our_move=52)], "foe-after-unobservable")),
+        ("G09 a trainer KO by a CONFUSING Tier B move (Psybeam): foe-after-unobservable",
+         lambda: has([tko(our_move=60)], "foe-after-unobservable")),
+        ("G09b a trainer KO by Ember (its secondary cannot move gBideDmg[1]): ACCEPTED", g09b),
         ("G10 a trainer KO after the foe's Harden: foe-after-unobservable",
          lambda: has([tko(foe_move=106)], "foe-after-unobservable")),
         ("G11 a trainer KO: the REPLACEMENT's status and item are not judged (ACCEPTED)", g11),
-        ("G12 Tier B (Ember) whose secondary shows at AFTER (foe burned): EXCLUDED foe-status",
-         lambda: has([pair(a={"foe": {"status1": 0x10}}, setup=mv_setup(52))], "foe-status")),
+        ("G12 Psybeam whose confusion shows at AFTER: EXCLUDED foe-confused",
+         lambda: has([pair(a={"foe": {"status2": 0x2}}, setup=mv_setup(60))], "foe-confused")),
+        ("G12b Ember whose burn shows at AFTER only: ACCEPTED (the tick is end-of-turn, under IGNORE_BIDE)", g12b),
+        ("G12c Secret Power whose secondary status shows at AFTER: EXCLUDED foe-status",
+         lambda: has([pair(a={"foe": {"status1": 0x8}}, setup=mv_setup(290))], "foe-status")),
+        ("G13 a Secret Power battle-end KO: foe-after-unobservable", g13),
+        ("G14 a Flash Fire mon's Fire hit at a battle-END read after the foe's Fire move: our-flash-fire-unobservable "
+         "(at an entry read, vs a non-Fire foe move, without Flash Fire, or a non-Fire hit: ACCEPTED)", g14),
+        ("G15 a burn between the reads before a PHYSICAL hit: our-burn-changed (a special hit: ACCEPTED)", g15),
+        ("G16 Superpower -1 Atk / Overheat -2 SpA (clamped) are the move's own: ACCEPTED; any other change excludes",
+         g16),
     )
     for label, fn in cases:
         row(label, fn, tag, reds)
@@ -686,11 +806,18 @@ def c_rows(tag=""):
         b_ = one(pair({"t": 3}, obs=90, kind="end"))[0].selfcheck
         return a_ == "n/a: foe changed" and b_ == "n/a: battle end", f"{a_} || {b_}"
 
+    def c5():   # (review F8) a pending Future Sight on the foe's side (SIDE_STATUS_FUTUREATTACK) at either read: its hit
+        #             lands under IGNORE_BIDE, so HP 83 -> 30 vs Δbide 65 is not a disagreement
+        at_b = one(pair({"side": (0, 0x40)}, {"foe": {"hp": 30}}))[0].selfcheck
+        at_a = one(pair(None, {"side": (0, 0x40), "foe": {"hp": 30}}))[0].selfcheck
+        return at_b == at_a == "n/a: future attack", f"{at_b} || {at_a}"
+
     for label, fn in (("C1 a Δbide/HP disagreement on a clean turn is counted, with its frame", c1),
                       ("C2 the masked heal (the foe's item action) is not a disagreement", c2),
                       ("C3 each enumerated heal/tick exclusion holds (held item, Leech Seed on us, heal move, "
                        "tick, weather, KO, doubles)", c3),
-                      ("C4 a trainer KO and a battle end are not self-checked", c4)):
+                      ("C4 a trainer KO and a battle end are not self-checked", c4),
+                      ("C5 a pending Future Sight (side bit 0x40, at BEFORE or AFTER) is not self-checked", c5)):
         row(label, fn, tag, reds)
     return reds
 
@@ -1318,11 +1445,13 @@ def pin_rows(tag, srcs):
 # Integrated from the ADVERSARIAL MUTANT PASS (2026-09-30, `proposed.py`: each row was validated there to pass on the real
 # code and to redden its target mutants), plus the rows for the live-found faint reset and Hidden Power's rolled type.
 #: The design's OWN literal lists (F2's tiers; F4's self-hurt list; the classifier's documented FOE_SELF_STATE and drain
-#: sets), held BY THE GATE and never read from the module under test.
-F2_A = {"HIT", "HIGH_CRITICAL", "ALWAYS_HIT", "QUICK_ATTACK", "VITAL_THROW", "PAY_DAY", "SECRET_POWER", "SKY_UPPERCUT",
+#: sets), held BY THE GATE and never read from the module under test. SECRET_POWER is in Tier B since step 11's review
+#: (F2: its mountain secondary is confusion); SKULL_BASH joined the self-state list with it (F7).
+F2_A = {"HIT", "HIGH_CRITICAL", "ALWAYS_HIT", "QUICK_ATTACK", "VITAL_THROW", "PAY_DAY", "SKY_UPPERCUT",
         "THUNDER", "KNOCK_OFF", "THIEF", "RAPID_SPIN", "FLINCH_HIT", "PARALYZE_HIT", "FREEZE_HIT", "SUPERPOWER",
         "OVERHEAT", "RECHARGE", "DOUBLE_EDGE", "RECOIL", "RECOIL_IF_MISS", "ABSORB", "RAGE", "HIDDEN_POWER"}
-F2_B = {"BURN_HIT", "BLAZE_KICK", "THAW_HIT", "TRI_ATTACK", "POISON_HIT", "POISON_TAIL", "POISON_FANG", "CONFUSE_HIT"}
+F2_B = {"BURN_HIT", "BLAZE_KICK", "THAW_HIT", "TRI_ATTACK", "POISON_HIT", "POISON_TAIL", "POISON_FANG", "CONFUSE_HIT",
+        "SECRET_POWER"}
 F2_C = {"EARTHQUAKE", "GUST", "TWISTER", "FLINCH_MINIMIZE_HIT", "FACADE", "SMELLINGSALT", "WEATHER_BALL", "BRICK_BREAK",
         "PURSUIT", "FALSE_SWIPE", "FAKE_OUT", "FOCUS_PUNCH", "SNORE", "DREAM_EATER"}
 F4_SELF_HURT = {"RECOIL", "DOUBLE_EDGE", "RECOIL_IF_MISS", "SUBSTITUTE", "BELLY_DRUM", "PAIN_SPLIT", "EXPLOSION",
@@ -1330,8 +1459,8 @@ F4_SELF_HURT = {"RECOIL", "DOUBLE_EDGE", "RECOIL_IF_MISS", "SUBSTITUTE", "BELLY_
 SELF_STATE = {"DEFENSE_UP", "DEFENSE_UP_2", "SPECIAL_DEFENSE_UP_2", "DEFENSE_CURL", "COSMIC_POWER", "CALM_MIND",
               "BULK_UP", "CURSE", "SUPERPOWER", "DEFENSE_UP_HIT", "ALL_STATS_UP_HIT", "PSYCH_UP", "HAZE",
               "SEMI_INVULNERABLE", "MINIMIZE", "MUD_SPORT", "WATER_SPORT", "CONVERSION", "CONVERSION_2", "CAMOUFLAGE",
-              "TRANSFORM", "SKILL_SWAP", "ROLE_PLAY"}
-DRAIN = {"ABSORB", "DREAM_EATER"}                       # (LEECH_SEED is observed through our s3 instead)
+              "TRANSFORM", "SKILL_SWAP", "ROLE_PLAY", "SKULL_BASH"}
+DRAIN = {"ABSORB", "DREAM_EATER"}                      # (LEECH_SEED is observed through our s3 instead)
 FIRST: dict = {}
 for _i, _m in enumerate(MOVES):
     FIRST.setdefault(_m["effect"], _i)                  # the first move index carrying each effect
@@ -1399,7 +1528,8 @@ def n_rows(tag, srcs):
 
     # ------------------------------------------------------------------ the live-found faint reset (DESIGN F6 ⚠)
     RESET = {"foe": {"ability": 0, "stages": (6,) * 8, "item": 0}}
-    B_KO = {"t": 3, "foe": {"ability": 26, "stages": (6, 6, 7, 6, 6, 7, 6, 8)}}   # Levitate, Def/SpD +1, Evasion +2
+    B_KO = {"t": 3, "foe": {"species": 109, "ability": 26,                        # a Koffing: Levitate by species
+                            "stages": (6, 6, 7, 6, 6, 7, 6, 8)}}                  # Def/SpD +1, Evasion +2
 
     def nr_faint_reset():
         v = one(pair(B_KO, RESET, obs=90, kind="end"))[0]              # 83 -> 0: the record reset at the AFTER read
@@ -1413,9 +1543,11 @@ def n_rows(tag, srcs):
     GRASS, FIRE = ivs(30, 31, 30, 31, 30, 31), ivs(30, 31, 30, 30, 30, 31)   # bits 42 -> Grass; 34 -> Fire
 
     def nr_hp_rolled_type():
-        dip = one(pair({"me": {"ability": 65, "hp": 60, "ivs": GRASS}}, {"me": {"hp": 60}}, d0=30,
+        # a Sceptile: the live Overgrow byte is its species ability
+        dip = one(pair({"me": {"species": 279, "ability": 65, "hp": 60, "ivs": GRASS}}, {"me": {"hp": 60}}, d0=30,
                        setup=mv_setup(237)))[0]                            # the dip only (60 - 30 = 30 <= 42)
-        per_read = one(pair({"me": {"ability": 65, "ivs": GRASS}}, {"me": {"hp": 40}}, setup=mv_setup(237)))[0]
+        per_read = one(pair({"me": {"species": 279, "ability": 65, "ivs": GRASS}}, {"me": {"hp": 40}},
+                            setup=mv_setup(237)))[0]
         sport = one(pair({"me": {"ivs": FIRE}, "s3": (0, 0x20000)}, {"s3": (0, 0)}, setup=mv_setup(237)))[0]
         return (A().hidden_power_type(GRASS) == "Grass" and A().hidden_power_type(FIRE) == "Fire"
                 and dip.reasons == ("our-pinch",) and per_read.reasons == ("our-pinch",)
@@ -1783,10 +1915,11 @@ CASES: list = [
     # --- the pairing
     ("M05 pairing on turn+1 only (no battle-end pair) -> P1 P2 P3 C4 T1 NR-faint-* NR-accept-kinds NR-output-edges",
      "        pairing = _end_pairing(b, a)", "        pairing = _entry_pairing(b, a)",
-     {"P1", "P2", "P3", "C4", "T1", "NR-faint-reset", "NR-faint-harden", "NR-accept-kinds", "NR-output-edges"}),
+     {"P1", "P2", "P3", "C4", "T1", "NR-faint-reset", "NR-faint-harden", "NR-accept-kinds", "NR-output-edges",
+      "Q12", "G13", "G14", "S15"}),
     ("M06 the foe's identity on SPECIES only -> P4 P5 P6 P7 P7a G09 G10 G11 T1 NR-unobservable NR-tko-identity",
      "    same_foe = foe_b.pid == foe_a.pid", "    same_foe = foe_b.species == foe_a.species",
-     {"P4", "P5", "P6", "P7", "P7a", "G09", "G10", "G11", "T1", "NR-unobservable", "NR-tko-identity"}),
+     {"P4", "P5", "P6", "P7", "P7a", "G09", "G09b", "G10", "G11", "T1", "NR-unobservable", "NR-tko-identity"}),
     ("M07 OUR identity on species only -> S4",
      "    same_me = me_b.pid == me_a.pid", "    same_me = me_b.species == me_a.species", {"S4"}),
     ("M08 the latest BEFORE does not win (the first stays pending) -> P9",
@@ -1816,12 +1949,13 @@ CASES: list = [
     # --- the strata
     ("M18 every stratum check evaluated at BEFORE only -> R01a..R21a G12 NR-sport NR-pinch-edges NR-hp-rolled-type NR-tko-after-ff",
      "    reasons |= _state_reasons(a, v.move, mv, foe_ok=not foe_fainted)\n", "",
-     R_AFTER | {"G12", "NR-sport", "NR-pinch-edges", "NR-hp-rolled-type", "NR-tko-after-ff"}),
+     R_AFTER | {"G12", "G12c", "NR-sport", "NR-pinch-edges", "NR-hp-rolled-type", "NR-tko-after-ff"}),
     ("M19 a trainer KO's REPLACEMENT judged by the per-mon foe checks -> G11",
      "    reasons |= _state_reasons(a, v.move, mv, foe_ok=not foe_fainted)",
      "    reasons |= _state_reasons(a, v.move, mv, foe_ok=True)", {"G11"}),
-    ("M20 a Tier B trainer KO is not unobservable -> G09",
-     "        if tier == \"B\" or foe_eff in FOE_SELF_STATE:", "        if foe_eff in FOE_SELF_STATE:", {"G09"}),
+    ("M20 a confusing Tier B KO (Psybeam, Secret Power) is not unobservable -> G09 G13",
+     "        if mv[\"effect\"] in TIER_B_BIDE or foe_eff in FOE_SELF_STATE:", "        if foe_eff in FOE_SELF_STATE:",
+     {"G09", "G13"}),
     ("M21 the pinch dip (HP before - Δbide[0]) not checked -> G07 NR-pinch-edges NR-hp-rolled-type",
      "    if me_b.hp - d_bide0 <= me_b.maxhp // 3 and PINCH.get(me_b.ability) == damage_type(move_id, me_b):",
      "    if False:", {"G07", "NR-pinch-edges", "NR-hp-rolled-type"}),
@@ -1873,7 +2007,7 @@ CASES: list = [
     # --- the faint rule (DESIGN F6 ⚠) and Hidden Power's rolled type (added with them; sets written before their run)
     ("MF1 the faint rule dropped (only a changed PID skips the AFTER foe record) -> NR-faint-reset NR-faint-harden T1",
      "    foe_fainted = not same_foe or foe_a.hp == 0", "    foe_fainted = not same_foe",
-     {"NR-faint-reset", "NR-faint-harden", "T1"}),
+     {"NR-faint-reset", "NR-faint-harden", "T1", "G13"}),
     ("MT1 the per-read pinch and the sports read the LISTED type -> NR-hp-rolled-type",
      "    eff, mtype = mv[\"effect\"], damage_type(move_id, me)", "    eff, mtype = mv[\"effect\"], mv[\"type\"]",
      {"NR-hp-rolled-type"}),
@@ -1920,13 +2054,14 @@ CASES: list = [
     ("MX16 Pursuit's condition dropped -> Q06",
      '    if mv["effect"] == "PURSUIT" and foe_act == ACTION_SWITCH:', "    if False:", {"Q06"}),
     ("MX17 False Swipe's condition dropped -> Q07 NR-falseswipe-edge",
-     '    if mv["effect"] == "FALSE_SWIPE" and b.pred is not None and foe.hp <= b.pred[3]:', "    if False:",
-     {"Q07", "NR-falseswipe-edge"}),
+     '    if mv["effect"] == "FALSE_SWIPE" and b.pred is not None and foe.hp <= b.pred[3] + margin + 1:',
+     "    if False:", {"Q07", "NR-falseswipe-edge", "Q07b"}),
     ("MX18 Guts + burn dropped -> Q08",
      "    if me.ability == AB_GUTS and me.status1 & S1_BURN:", "    if False:", {"Q08"}),
-    ("MX19 Marvel Scale on OUR side dropped -> Q09",
+    ("MX19 the review-F1 fix reverted (OUR Marvel Scale + our status; B-MS2 unexcluded) -> Q09b Q09c",
+     "    if foe.ability == AB_MARVEL_SCALE and (foe.status1 or me.status1):",
      "    if (foe.ability == AB_MARVEL_SCALE and foe.status1) or (me.ability == AB_MARVEL_SCALE and me.status1):",
-     "    if foe.ability == AB_MARVEL_SCALE and foe.status1:", {"Q09"}),
+     {"Q09b", "Q09c"}),
     ("MX20 Air Lock's id off by one (76, Cacophony) -> Q10",
      "AB_CLOUD_NINE, AB_AIR_LOCK = 13, 77", "AB_CLOUD_NINE, AB_AIR_LOCK = 13, 76", {"Q10"}),
     ("MX21 persistent Flash Fire dropped -> Q11",
@@ -1937,7 +2072,7 @@ CASES: list = [
     ("MX23 foe-screens-changed dropped -> G03",
      "    if (b.side[1] ^ a.side[1]) & SIDE_SCREENS:", "    if False:", {"G03"}),
     ("MX24 our-attack-stage-changed dropped -> G04",
-     '        out.add("our-attack-stage-changed")', "        pass", {"G04"}),
+     '        out.add("our-attack-stage-changed")', "        pass", {"G04", "G16"}),
     ("MX25 the status change counted with Facade only (Guts dropped) -> G05",
      '(me_b.ability == AB_GUTS or mv["effect"] == "FACADE")', '(mv["effect"] == "FACADE")', {"G05"}),
     ("MX26 Liquid Ooze's draining-move half dropped -> G08 NR-ooze",
@@ -1959,7 +2094,7 @@ CASES: list = [
      "    if fn is None:\n        return []", {"PC2"}),
     ("MX32 Fire and Water swapped in TYPE_NAMES -> PC3 PC9 NR-hp-rolled-type NR-hp-mystery-skip",
      '"???", "Fire",\n              "Water",', '"???", "Water",\n              "Fire",',
-     {"PC3", "PC9", "NR-hp-rolled-type", "NR-hp-mystery-skip"}),
+     {"PC3", "PC9", "NR-hp-rolled-type", "NR-hp-mystery-skip", "G14"}),
     # --- a comment-only edit: NOTHING red
     ("M31 a comment edit naming the code turns NOTHING red",
      "#: Fewer clean whitelisted hits than this is INSUFFICIENT, never PASS (F4).",
@@ -2049,9 +2184,12 @@ PASS_CASES: list = [
     ("A04 Tier C Gust/Twister: Twister's condition dropped", 'audit',
      [('if eff in ("GUST", "TWISTER") and', 'if eff in ("GUST",) and')],
      {'NR-twister'}),
+    # ⚠ FIRST-RUN MISMATCH, reported (step-11 review round): the set written before the run was {NR-counters}; the run
+    # also turned G12 red. The derivation missed that the rewritten G12 confuses the foe with status2 0x2 (a counter of
+    # 2), which a 0x1 mask cannot see. The set below is the corrected one; the code was not changed to fit it.
     ('A05 confusion mask 0x1 (not 0x7)', 'audit',
      [('S2_CONFUSION, S2_WRAPPED, S2_SUBSTITUTE = 0x7, 0xE000, 0x1000000', 'S2_CONFUSION, S2_WRAPPED, S2_SUBSTITUTE = 0x1, 0xE000, 0x1000000')],
-     {'NR-counters'}),
+     {'G12', 'NR-counters'}),
     ('A06 wrapped mask 0x2000 (not 0xE000)', 'audit',
      [('S2_CONFUSION, S2_WRAPPED, S2_SUBSTITUTE = 0x7, 0xE000, 0x1000000', 'S2_CONFUSION, S2_WRAPPED, S2_SUBSTITUTE = 0x7, 0x2000, 0x1000000')],
      {'NR-counters', 'NR-selfcheck-halves'}),
@@ -2089,8 +2227,8 @@ PASS_CASES: list = [
      [('"EXPLOSION", "MEMENTO"})', '"EXPLOSION"})')],
      {'NR-selfhurt'}),
     ("A30 False Swipe '<' (foe hp == crit_max admitted)", 'audit',
-     [('foe.hp <= b.pred[3]:', 'foe.hp < b.pred[3]:')],
-     {'NR-falseswipe-edge'}),
+     [('foe.hp <= b.pred[3] + margin + 1:', 'foe.hp < b.pred[3] + margin + 1:')],
+     {'Q07b'}),
     ('A62 foe-move-zero checked only when the foe did not switch (loosened: dropped for a foe item)', 'audit',
      [('        if foe_mv == 0:\n            out.add("foe-move-zero")', '        if foe_mv == 0 and b.mv[0] == 0:\n            out.add("foe-move-zero")')],
      {'Q02', 'T1'}),
@@ -2210,7 +2348,7 @@ PASS_CASES: list = [
      {'NR-port-edges'}),
     ("A42 Hidden Power: TYPE_MYSTERY skip '>' (t==9 -> '???')", 'audit',
      [('    if t >= 9:', '    if t > 9:')],
-     {'NR-hp-mystery-skip', 'NR-hp-rolled-type'}),
+     {'G14', 'NR-hp-mystery-skip', 'NR-hp-rolled-type'}),
     ('A73 port adapter: attacker types swapped (STAB-equivalent)', 'audit',
      [('attacker_types=(TYPE_NAMES[me.type1], TYPE_NAMES[me.type2]),', 'attacker_types=(TYPE_NAMES[me.type2], TYPE_NAMES[me.type1]),')],
      {'PC3'}),
@@ -2354,6 +2492,91 @@ PASS_CASES: list = [
      {'NR-whitelist-table', 'R10a', 'R10b', 'W1', 'W3'}),
 ]
 
+#: STEP 11 REVIEW fixes (review11.md, LENS audit F1-F9): each mutant reverts or breaks one fix; (label, target, edits,
+#: the EXACT red set). Sets written before the first run of these mutants.
+REVIEW_CASES: list = [
+    # F1 — the foe's Marvel Scale (MX19 in CASES reverts the whole fix)
+    ("RF1a the F1 clause without 'our status' (B-MS2 unexcluded) -> Q09b", "audit",
+     [("    if foe.ability == AB_MARVEL_SCALE and (foe.status1 or me.status1):",
+       "    if foe.ability == AB_MARVEL_SCALE and foe.status1:")], {"Q09b"}),
+    ("RF1b persistent:marvel-scale dropped -> Q09 Q09b", "audit",
+     [("    if foe.ability == AB_MARVEL_SCALE and (foe.status1 or me.status1):", "    if False:")], {"Q09", "Q09b"}),
+    # F2 — Secret Power in Tier B
+    ("RF2a SECRET_POWER back in Tier A -> W1 NR-whitelist-table", "audit",
+     [('TIER_B = frozenset({"SECRET_POWER",\n', "TIER_B = frozenset({\n"),
+      ('"PAY_DAY", "SKY_UPPERCUT",', '"PAY_DAY", "SECRET_POWER", "SKY_UPPERCUT",')], {"W1", "NR-whitelist-table"}),
+    ("RF2b SECRET_POWER dropped from TIER_B_BIDE -> G12c G13", "audit",
+     [('TIER_B_BIDE = frozenset({"CONFUSE_HIT", "SECRET_POWER"})', 'TIER_B_BIDE = frozenset({"CONFUSE_HIT"})')],
+     {"G12c", "G13"}),
+    # F3 — a called move
+    ("RF3a foe-called-move dropped -> Q12", "audit",
+     [('            out.add("foe-called-move")', "            pass")], {"Q12"}),
+    ("RF3b MIRROR_MOVE dropped from FOE_CALLS_MOVE -> Q12", "audit",
+     [('FOE_CALLS_MOVE = frozenset({"METRONOME", "MIRROR_MOVE", "ASSIST",',
+       'FOE_CALLS_MOVE = frozenset({"METRONOME", "ASSIST",')], {"Q12"}),
+    # F4 — False Swipe's band
+    ("RF4a False Swipe's band back to crit_max -> Q07b", "audit",
+     [("foe.hp <= b.pred[3] + margin + 1:", "foe.hp <= b.pred[3]:")], {"Q07b"}),
+    ("RF4b the audit's margin not threaded to the classifier -> Q07b", "audit",
+     [("                verdicts.append(classify_pair(pending, r, margin))",
+       "                verdicts.append(classify_pair(pending, r))")], {"Q07b"}),
+    # F5 — Flash Fire at a battle's end
+    ("RF5a our-flash-fire-unobservable dropped -> G14", "audit",
+     [('        out.add("our-flash-fire-unobservable")', "        pass")], {"G14"}),
+    ("RF5b the battle-END condition dropped (fires at an entry read too) -> G14", "audit",
+     [('    if (a.after_kind == "end" and me_b.ability == AB_FLASH_FIRE',
+       "    if (me_b.ability == AB_FLASH_FIRE")], {"G14"}),
+    # F6 — the live ability vs the species'
+    ("RF6a ability-not-species never fires -> S15", "audit",
+     [("    return species_ability(m) != m.ability", "    return False")], {"S15"}),
+    ("RF6b a fainted record (HP 0) judged too -> S15", "audit",
+     [("    if m.hp == 0 or SPECIES_ABILITIES is None:", "    if SPECIES_ABILITIES is None:")], {"S15"}),
+    ("RF6c the IV word's bit 31 ignored (always the first ability) -> S15", "audit",
+     [("    return abilities[1] if len(abilities) > 1 and m.ivs >> 31 & 1 else abilities[0]",
+       "    return abilities[0]")], {"S15"}),
+    ("RF6d missing species data not an instrument failure -> S16", "audit",
+     [('    rep.species_error = "" if SPECIES_ABILITIES is not None else (SPECIES_ERROR or "the species table is '
+       'missing")', '    rep.species_error = ""')], {"S16"}),
+    # F7 — our burn; Skull Bash
+    ("RF7a our-burn-changed dropped -> G15", "audit",
+     [('        out.add("our-burn-changed")', "        pass")], {"G15"}),
+    ("RF7b SKULL_BASH dropped from FOE_SELF_STATE -> NR-unobservable", "audit",
+     [('"TRANSFORM", "SKILL_SWAP", "ROLE_PLAY",\n                            "SKULL_BASH"})',
+       '"TRANSFORM", "SKILL_SWAP", "ROLE_PLAY"})')], {"NR-unobservable"}),
+    ("RF7c our-burn-changed for any damage type (a special hit too) -> G15", "audit",
+     [("    if (me_b.status1 ^ me_a.status1) & S1_BURN and damage_type(move_id, me_b) in PHYSICAL_TYPES:",
+       "    if (me_b.status1 ^ me_a.status1) & S1_BURN:")], {"G15"}),
+    # F8 — the self-check and a pending Future Sight
+    ("RF8a the future-attack exclusion dropped -> C5", "audit",
+     [("    if (b.side[1] | a.side[1]) & SIDE_FUTURE_ATTACK:", "    if False:")], {"C5"}),
+    ("RF8b the future-attack bit read at BEFORE only -> C5", "audit",
+     [("    if (b.side[1] | a.side[1]) & SIDE_FUTURE_ATTACK:", "    if b.side[1] & SIDE_FUTURE_ATTACK:")], {"C5"}),
+    ("RF8c the wrong bit (0x20, Safeguard) -> C5", "audit",
+     [("SIDE_FUTURE_ATTACK = 0x40", "SIDE_FUTURE_ATTACK = 0x20")], {"C5"}),
+    # F9a — only a confusing Tier B secondary (M20 in CASES drops TIER_B_BIDE from the faint branch)
+    ("RF9a1 every Tier B KO unobservable again (tier == 'B') -> G09b", "audit",
+     [('        if mv["effect"] in TIER_B_BIDE or foe_eff in FOE_SELF_STATE:',
+       '        if tier == "B" or foe_eff in FOE_SELF_STATE:')], {"G09b"}),
+    ("RF9a2 a non-confusing Tier B status at AFTER excluded again -> G12b", "audit",
+     [('        reasons.discard("foe-status")', "        pass")], {"G12b"}),
+    ("RF9a3 CONFUSE_HIT dropped from TIER_B_BIDE -> G09", "audit",
+     [('TIER_B_BIDE = frozenset({"CONFUSE_HIT", "SECRET_POWER"})', 'TIER_B_BIDE = frozenset({"SECRET_POWER"})')],
+     {"G09"}),
+    # F9b — Superpower / Overheat's own drop
+    ("RF9b1 the own-drop exemption removed -> G16", "audit",
+     [("    if stages_a != stages_b and stages_a != own_drop:", "    if stages_a != stages_b:")], {"G16"}),
+    ("RF9b2 Overheat's drop not clamped at stage 0 -> G16", "audit",
+     [('"OVERHEAT": (stages_b[0], max(0, stages_b[1] - 2))', '"OVERHEAT": (stages_b[0], stages_b[1] - 2)')], {"G16"}),
+    ("RF9b3 Superpower's own drop taken as -2 -> G16", "audit",
+     [('"SUPERPOWER": (max(0, stages_b[0] - 1), stages_b[1])', '"SUPERPOWER": (max(0, stages_b[0] - 2), stages_b[1])')],
+     {"G16"}),
+    # a comment-only edit in the review code: NOTHING red
+    ("RF0 a comment edit naming the review code turns NOTHING red", "audit",
+     [("#: a foe move that CALLS another move (review F3)",
+       "#: (edited, a comment only: foe-called-move, TIER_B_BIDE, own_drop)\n#: a foe move that CALLS another move (review F3)")],
+     set()),
+]
+
 PATHS = {"dmgaudit": D_PATH, "bas": BAS_PATH, "bh": BH_PATH}
 
 
@@ -2374,9 +2597,10 @@ def _install(name: str, path, package: str, source: str, i: int):
     exec(compile(source, f"<mutant {i}>", "exec"), mod.__dict__)
 
 
-#: Every mutant as (label, target, edits, want): the classifier's (CASES), production's (PROD_CASES), the pass's.
+#: Every mutant as (label, target, edits, want): the classifier's (CASES), production's (PROD_CASES), the pass's, and
+#: the step-11 review fixes'.
 JOBS: list = ([(label, "audit", [(old, new)], want) for label, old, new, want in CASES] + list(PROD_CASES)
-              + list(PASS_CASES))
+              + list(PASS_CASES) + list(REVIEW_CASES))
 _SRCS: dict = {}
 
 

@@ -36,6 +36,16 @@ Def/SpD stages, types, a semi-invulnerable or minimized state, a sport).
 TYPES: the pinch abilities and the sports key on the type a move DEALS its damage as — Hidden Power's ROLLED type
 (`damage_type`) — while Charge reads the LISTED type (the port's contract; M1a's B-HPC).
 
+STEP 11 REVIEW FIXES (review11.md, LENS audit; each pinned by rows and mutants in probe_dmgaudit.py):
+  F1 persistent:marvel-scale is the FOE's Marvel Scale with the foe OR us statused (B-MS1, B-MS2); ours never counts.
+  F2 SECRET_POWER is Tier B (its mountain secondary is confusion). F3 `foe-called-move` (Metronome, Mirror Move,
+  Assist, Sleep Talk, Nature Power), fainted or not. F4 False Swipe excluded while the foe's HP <= crit_max + margin
+  + 1 (the audit's margin reaches the classifier). F5 `our-flash-fire-unobservable` at a battle-END read. F6
+  `ability-not-species` (live byte vs the species', IV bit 31; HP-0 records skipped; unloadable species data fails the
+  INSTRUMENT). F7 `our-burn-changed` before a physical hit; SKULL_BASH in FOE_SELF_STATE. F8 the self-check skips a
+  pending Future Sight. F9a (verified in the decomp: see TIER_B_BIDE) only a confusing Tier B secondary keeps the Tier B
+  faint and AFTER-status exclusions. F9b Superpower's -1 Atk / Overheat's -2 SpA (clamped) are the move's own drop.
+
 CHOICES WHERE F4 IS SILENT (each is conservative: it can only EXCLUDE more, never accept more):
   - `foe-profile-changed` (the foe's types, ability, Def or SpD stat differ between reads: Conversion, Camouflage,
     Transform) is the same idea as F4's "Def/SpD stage changed", for what else our calculator reads from the foe.
@@ -60,6 +70,7 @@ import re
 import struct
 import sys
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -97,10 +108,17 @@ S3_LEECHSEED, S3_ON_AIR, S3_UNDERGROUND, S3_MINIMIZED = 0x4, 0x40, 0x80, 0x100
 S3_CHARGED, S3_ROOTED, S3_UNDERWATER = 0x200, 0x400, 0x40000
 S3_SPORTS = 0x10000 | 0x20000                                      # Mud Sport | Water Sport
 SIDE_SCREENS, SIDE_SPIKES = 0x1 | 0x2, 0x10                        # Reflect | Light Screen; Spikes
+#: SIDE_STATUS_FUTUREATTACK (1 << 6): include/constants/battle.h:215 (pret/pokeemerald @ f90719c4). Its hit lands in
+#: HandleWishPerishSongOnTurnEnd under HITMARKER_IGNORE_BIDE (src/battle_util.c:1783), so it moves the foe's HP but
+#: not gBideDmg: the self-check cannot compare that turn.
+SIDE_FUTURE_ATTACK = 0x40
 ST_ATK, ST_DEF, ST_SPATK, ST_SPDEF = 1, 2, 4, 5                    # statStages index (6 = neutral)
 TYPE_GHOST = 7
+AB_FLASH_FIRE = 18
 AB_ROUGH_SKIN, AB_GUTS, AB_MARVEL_SCALE, AB_LIQUID_OOZE = 24, 62, 63, 64
 AB_CLOUD_NINE, AB_AIR_LOCK = 13, 77
+#: Gen 3 splits physical and special by TYPE: these deal physical damage (a burn halves them: pokemon.c's burn branch)
+PHYSICAL_TYPES = frozenset({"Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel"})
 PINCH = {65: "Grass", 66: "Fire", 67: "Water", 68: "Bug"}          # Overgrow, Blaze, Torrent, Swarm
 ITEM_FOCUS_BAND = 196
 MOVE_SURF, MOVE_STRUGGLE, MOVE_HIDDEN_POWER = 57, 165, 237
@@ -111,16 +129,27 @@ TYPE_NAMES = ("Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug",
 
 # --- the WHITELIST (F2), keyed on moves.json `effect`, except Surf and Struggle, keyed on the move index
 TIER_A = frozenset({
-    "HIT", "HIGH_CRITICAL", "ALWAYS_HIT", "QUICK_ATTACK", "VITAL_THROW", "PAY_DAY", "SECRET_POWER", "SKY_UPPERCUT",
+    "HIT", "HIGH_CRITICAL", "ALWAYS_HIT", "QUICK_ATTACK", "VITAL_THROW", "PAY_DAY", "SKY_UPPERCUT",
     "THUNDER", "KNOCK_OFF", "THIEF", "RAPID_SPIN", "FLINCH_HIT", "PARALYZE_HIT", "FREEZE_HIT",
     # the stat-down and stat-up *_HIT effects (every one moves.json holds)
     "ACCURACY_DOWN_HIT", "ALL_STATS_UP_HIT", "ATTACK_DOWN_HIT", "ATTACK_UP_HIT", "DEFENSE_DOWN_HIT",
     "DEFENSE_UP_HIT", "SPECIAL_ATTACK_DOWN_HIT", "SPECIAL_DEFENSE_DOWN_HIT", "SPEED_DOWN_HIT",
     "SUPERPOWER", "OVERHEAT", "RECHARGE", "DOUBLE_EDGE", "RECOIL", "RECOIL_IF_MISS", "ABSORB", "RAGE", "HIDDEN_POWER",
 })
-#: a secondary that can move the FOE's HP the same turn: valid only when the AFTER read passes the status rules
-TIER_B = frozenset({"BURN_HIT", "BLAZE_KICK", "THAW_HIT", "TRI_ATTACK", "POISON_HIT", "POISON_TAIL", "POISON_FANG",
+#: a secondary that can move the FOE's HP the same turn: valid only when the AFTER read passes the status rules.
+#: SECRET_POWER is here, not in Tier A (review F2): in the MOUNTAIN environment its secondary is CONFUSION
+#: (battle_script_commands.c:9641-9642), and a same-turn confusion self-hit is recorded in gBideDmg.
+TIER_B = frozenset({"SECRET_POWER",
+                    "BURN_HIT", "BLAZE_KICK", "THAW_HIT", "TRI_ATTACK", "POISON_HIT", "POISON_TAIL", "POISON_FANG",
                     "CONFUSE_HIT"})
+#: The Tier B secondaries that CAN move gBideDmg[1] on the same turn (review F9a, verified in pret/pokeemerald @
+#: f90719c4): only CONFUSION does, through the foe's self-hit in its own move (battle_util.c:2145-2160, then
+#: `datahpupdate BS_ATTACKER` with no HITMARKER_IGNORE_BIDE, battle_scripts_1.s:3809-3811). A burn or poison TICK
+#: runs in DoBattlerEndTurnEffects, which sets HITMARKER_IGNORE_BIDE on every call (battle_util.c:1464; BattleTurnPassed
+#: re-enters it per effect, battle_main.c:3965), and Cmd_datahpupdate skips the bide record under that flag
+#: (battle_script_commands.c:1905-1907). Paralysis and freeze move no HP. So only these two keep the Tier B faint and
+#: AFTER-status exclusions; the other Tier B moves are judged like Tier A.
+TIER_B_BIDE = frozenset({"CONFUSE_HIT", "SECRET_POWER"})
 #: conditional: valid only while the condition is observably false at BOTH reads (Surf joins by index)
 TIER_C = frozenset({"EARTHQUAKE", "GUST", "TWISTER", "FLINCH_MINIMIZE_HIT", "FACADE", "SMELLINGSALT", "WEATHER_BALL",
                     "BRICK_BREAK", "PURSUIT", "FALSE_SWIPE", "FAKE_OUT", "FOCUS_PUNCH", "SNORE", "DREAM_EATER"})
@@ -136,7 +165,12 @@ FOE_HEAL = frozenset({"RESTORE_HP", "SOFTBOILED", "MOONLIGHT", "MORNING_SUN", "S
 FOE_SELF_STATE = frozenset({"DEFENSE_UP", "DEFENSE_UP_2", "SPECIAL_DEFENSE_UP_2", "DEFENSE_CURL", "COSMIC_POWER",
                             "CALM_MIND", "BULK_UP", "CURSE", "SUPERPOWER", "DEFENSE_UP_HIT", "ALL_STATS_UP_HIT",
                             "PSYCH_UP", "HAZE", "SEMI_INVULNERABLE", "MINIMIZE", "MUD_SPORT", "WATER_SPORT",
-                            "CONVERSION", "CONVERSION_2", "CAMOUFLAGE", "TRANSFORM", "SKILL_SWAP", "ROLE_PLAY"})
+                            "CONVERSION", "CONVERSION_2", "CAMOUFLAGE", "TRANSFORM", "SKILL_SWAP", "ROLE_PLAY",
+                            "SKULL_BASH"})                     # Skull Bash's first turn: Def +1 (review F7)
+#: a foe move that CALLS another move (review F3): what it runs, and so whether it hurts the foe or changes its state,
+#: cannot be read from the chosen move (Mirror Move copies our Take Down and its recoil). Sleep Talk is redundant with
+#: foe-status and Nature Power calls only plain moves in Gen 3; both are here for completeness (they only exclude more).
+FOE_CALLS_MOVE = frozenset({"METRONOME", "MIRROR_MOVE", "ASSIST", "SLEEP_TALK", "NATURE_POWER"})
 
 
 def _load_moves(path: Path = MOVES_JSON) -> list[dict]:
@@ -145,6 +179,44 @@ def _load_moves(path: Path = MOVES_JSON) -> list[dict]:
 
 
 MOVES = _load_moves()
+
+SPECIES_JSON = REPO / "sandbox-pokebot" / "modules" / "data" / "species.json"
+ABILITIES_JSON = REPO / "sandbox-pokebot" / "modules" / "data" / "abilities.json"
+
+
+def _load_species_abilities(species_path: Path = SPECIES_JSON, abilities_path: Path = ABILITIES_JSON) -> list:
+    """Each ROM species index -> its ability ids, from the SAME files the bot loads (modules/pokemon.py:
+    `species.json`'s list index IS the ROM species index; `abilities.json`'s index IS the ability id). A name that
+    abilities.json does not hold raises: the table is never silently partial."""
+    with open(abilities_path, encoding="utf-8") as fh:
+        ids = {a["name"]: i for i, a in enumerate(json.load(fh))}
+    with open(species_path, encoding="utf-8") as fh:
+        return [tuple(ids[name] for name in s["abilities"]) for s in json.load(fh)]
+
+
+#: (review F6) None + the error when the species data cannot be loaded: `audit_text` then fails the INSTRUMENT (exit 3).
+try:
+    SPECIES_ABILITIES, SPECIES_ERROR = _load_species_abilities(), ""
+except Exception as _error:  # noqa: BLE001 - reported as an instrument failure by every audit, never swallowed
+    SPECIES_ABILITIES, SPECIES_ERROR = None, f"{type(_error).__name__}: {_error}"
+
+
+def species_ability(m) -> int | None:
+    """The ability the SPECIES gives this record: the second one when the IV word's bit 31 (abilityNum) is set and the
+    species has two (the bot's own rule, battle_state.py `ability`); None when the species is unknown."""
+    if SPECIES_ABILITIES is None or not 0 <= m.species < len(SPECIES_ABILITIES):
+        return None
+    abilities = SPECIES_ABILITIES[m.species]
+    return abilities[1] if len(abilities) > 1 and m.ivs >> 31 & 1 else abilities[0]
+
+
+def _ability_not_species(m) -> bool:
+    """(review F6) The LIVE ability byte (0x20) differs from the species ability (Trace, Role Play, Skill Swap): our
+    calculator reads the SPECIES one. A fainted record (HP 0) is skipped: a faint resets the byte to 0 (DESIGN F6 ⚠;
+    every mismatch in the first live log, ours included, was such a record)."""
+    if m.hp == 0 or SPECIES_ABILITIES is None:
+        return False
+    return species_ability(m) != m.ability
 
 
 def move_info(move_id: int) -> dict:
@@ -422,6 +494,8 @@ def _state_reasons(rd: Rec, move_id: int, mv: dict, foe_ok: bool) -> set:
             out.add("foe-focus-band")
         if foe.item:
             out.add("foe-held-item")
+        if _ability_not_species(foe):
+            out.add("ability-not-species")
         # Tier C, the foe's half
         if move_id == MOVE_SURF and rd.s3[1] & S3_UNDERWATER:
             out.add("C:surf-underwater")
@@ -449,10 +523,12 @@ def _state_reasons(rd: Rec, move_id: int, mv: dict, foe_ok: bool) -> set:
         out.add("our-flash-fire")
     if me.ability == AB_ROUGH_SKIN:
         out.add("our-rough-skin")
+    if _ability_not_species(me):
+        out.add("ability-not-species")
     return out
 
 
-def _before_reasons(b: Rec, move_id: int, mv: dict) -> set:
+def _before_reasons(b: Rec, move_id: int, mv: dict, margin: int = ACCEPT_MARGIN) -> set:
     """What only BEFORE carries: the chosen actions (the entry read resets them), and the PERSISTENT known-divergence
     states at BEFORE (M1a's rows) [R:M1b-8]."""
     out: set = set()
@@ -468,13 +544,20 @@ def _before_reasons(b: Rec, move_id: int, mv: dict) -> set:
             out.add("foe-self-hurt-move")
         if feff in FOE_PROTECT:
             out.add("foe-protect-endure-bide")
+        if feff in FOE_CALLS_MOVE:
+            out.add("foe-called-move")                  # (review F3) a BEFORE reason: it fires whether or not the foe fainted
     if mv["effect"] == "PURSUIT" and foe_act == ACTION_SWITCH:
         out.add("C:pursuit-switch")
-    if mv["effect"] == "FALSE_SWIPE" and b.pred is not None and foe.hp <= b.pred[3]:
-        out.add("C:false-swipe-hp")                     # the hp-1 clamp can bind [R:M1A-8]
+    # the hp-1 clamp can bind [R:M1A-8] whenever the foe's HP is at most the GAME's damage, which may exceed crit_max:
+    # while it is within crit_max + margin + 1, a clamped observation could sit inside the acceptance band (review F4)
+    if mv["effect"] == "FALSE_SWIPE" and b.pred is not None and foe.hp <= b.pred[3] + margin + 1:
+        out.add("C:false-swipe-hp")
     if me.ability == AB_GUTS and me.status1 & S1_BURN:
         out.add("persistent:guts-burn")
-    if (foe.ability == AB_MARVEL_SCALE and foe.status1) or (me.ability == AB_MARVEL_SCALE and me.status1):
+    # (review F1) only the FOE's Marvel Scale touches damage WE deal. The game raises its Def when the FOE is statused
+    # (pokemon.c:3213); our calculator does it when WE are (_util.py:399-400). Either state is a known divergence
+    # (M1a's rows B-MS1 and B-MS2); our own Marvel Scale never affects our attack.
+    if foe.ability == AB_MARVEL_SCALE and (foe.status1 or me.status1):
         out.add("persistent:marvel-scale")
     if {me.ability, foe.ability} & {AB_CLOUD_NINE, AB_AIR_LOCK}:
         out.add("persistent:cloud-nine-air-lock")
@@ -498,14 +581,27 @@ def _change_reasons(b: Rec, a: Rec, move_id: int, mv: dict, tier: str, foe_faint
             out.add("foe-profile-changed")
     else:
         foe_eff = move_info(b.mv[1])["effect"] if b.act[1] == ACTION_USE_MOVE else ""
-        if tier == "B" or foe_eff in FOE_SELF_STATE:
-            out.add("foe-after-unobservable")
+        if mv["effect"] in TIER_B_BIDE or foe_eff in FOE_SELF_STATE:
+            out.add("foe-after-unobservable")           # (review F9a: only a secondary that can move gBideDmg[1])
     if (b.side[1] ^ a.side[1]) & SIDE_SCREENS:
         out.add("foe-screens-changed")
-    if (me_b.stages[ST_ATK], me_b.stages[ST_SPATK]) != (me_a.stages[ST_ATK], me_a.stages[ST_SPATK]):
+    stages_b = (me_b.stages[ST_ATK], me_b.stages[ST_SPATK])
+    stages_a = (me_a.stages[ST_ATK], me_a.stages[ST_SPATK])
+    # (review F9b) Superpower drops our Atk by 1 and Overheat our SpA by 2, AFTER the hit (battle_scripts_1.s:2388-2389
+    # and :2648-2649, clamped at stage 0 by statbuffchange): exactly that drop is the move's own, not a change the hit met
+    own_drop = {"SUPERPOWER": (max(0, stages_b[0] - 1), stages_b[1]),
+                "OVERHEAT": (stages_b[0], max(0, stages_b[1] - 2))}.get(mv["effect"])
+    if stages_a != stages_b and stages_a != own_drop:
         out.add("our-attack-stage-changed")
     if me_b.status1 != me_a.status1 and (me_b.ability == AB_GUTS or mv["effect"] == "FACADE"):
         out.add("our-status-changed-guts-facade")
+    if (me_b.status1 ^ me_a.status1) & S1_BURN and damage_type(move_id, me_b) in PHYSICAL_TYPES:
+        out.add("our-burn-changed")                     # (review F7) a burn halves a physical hit, whatever our ability
+    # (review F5) the battle-end read cannot read Flash Fire (gBattleResources is freed): a Flash Fire mon's Fire hit
+    # after the foe's Fire move this turn may have been boosted, unobservably
+    if (a.after_kind == "end" and me_b.ability == AB_FLASH_FIRE and damage_type(move_id, me_b) == "Fire"
+            and b.act[1] == ACTION_USE_MOVE and move_info(b.mv[1])["type"] == "Fire"):
+        out.add("our-flash-fire-unobservable")
     if b.weather != a.weather:
         out.add("weather-changed")
     if me_b.hp - d_bide0 <= me_b.maxhp // 3 and PINCH.get(me_b.ability) == damage_type(move_id, me_b):
@@ -540,10 +636,12 @@ def _selfcheck(b: Rec, a: Rec) -> str:
             or (foe_b.status2 | foe_a.status2) & (S2_CURSED | S2_NIGHTMARE | S2_WRAPPED | S2_SUBSTITUTE)
             or b.weather or a.weather):
         return "n/a: end-of-turn tick"
+    if (b.side[1] | a.side[1]) & SIDE_FUTURE_ATTACK:
+        return "n/a: future attack"                     # (review F8) it lands under HITMARKER_IGNORE_BIDE
     return "agree" if a.bide[1] - b.bide[1] == foe_b.hp - foe_a.hp else "DISAGREE"
 
 
-def classify_pair(b: Rec, a: Rec) -> Verdict:
+def classify_pair(b: Rec, a: Rec, margin: int = ACCEPT_MARGIN) -> Verdict:
     v = Verdict(before=b, after=a)
     me_b, foe_b = b.mons
     me_a, foe_a = a.mons
@@ -608,8 +706,13 @@ def classify_pair(b: Rec, a: Rec) -> Verdict:
     foe_fainted = not same_foe or foe_a.hp == 0
     reasons |= _state_reasons(b, v.move, mv, foe_ok=True)
     reasons |= _state_reasons(a, v.move, mv, foe_ok=not foe_fainted)
-    reasons |= _before_reasons(b, v.move, mv)
+    reasons |= _before_reasons(b, v.move, mv, margin)
     reasons |= _change_reasons(b, a, v.move, mv, v.tier, foe_fainted, v.d_bide0)
+    # (review F9a) a Tier B secondary other than confusion cannot move gBideDmg[1] this turn (its burn/poison ticks run
+    # under HITMARKER_IGNORE_BIDE: see TIER_B_BIDE), so the status it leaves at AFTER is not a reason. The foe had none
+    # at BEFORE, so "foe-status" can only have come from the AFTER read.
+    if v.tier == "B" and v.effect not in TIER_B_BIDE and not foe_b.status1:
+        reasons.discard("foe-status")
     v.reasons = tuple(sorted(reasons))
     v.status = EXCLUDED if reasons else ACCEPTED
     return v
@@ -647,6 +750,7 @@ class Report:
     parsed_count: int = 0
     unparsed: list = field(default_factory=list)       # (line_no, error, line)
     capped: bool = False
+    species_error: str = ""                             # (review F6) the species data could not be loaded
     by_kind: dict = field(default_factory=dict)
     errs: list = field(default_factory=list)
     orphans: list = field(default_factory=list)        # AFTERs with no pending BEFORE
@@ -659,7 +763,7 @@ class Report:
 
     @property
     def instrument_ok(self) -> bool:
-        return self.raw_count == self.parsed_count and not self.capped
+        return self.raw_count == self.parsed_count and not self.capped and not self.species_error
 
     @property
     def selfcheck_disagreements(self) -> list:
@@ -672,9 +776,10 @@ class Report:
         return {PASS: 0, FAIL: 1, INSUFFICIENT: 2}[self.acceptance]
 
 
-def pair_records(recs: list) -> tuple[list, list]:
+def pair_records(recs: list, margin: int = ACCEPT_MARGIN) -> tuple[list, list]:
     """Log order. A BEFORE is pending until the next AFTER consumes it; a later BEFORE supersedes it (the latest
-    wins); a CTL (battle start) clears it. Returns (verdicts for every BEFORE, orphan AFTERs)."""
+    wins); a CTL (battle start) clears it. Returns (verdicts for every BEFORE, orphan AFTERs). `margin` reaches the
+    classifier (False Swipe's band, review F4)."""
     verdicts, orphans = [], []
     pending = None
     for r in recs:
@@ -691,7 +796,7 @@ def pair_records(recs: list) -> tuple[list, list]:
             if pending is None:
                 orphans.append(r)
             else:
-                verdicts.append(classify_pair(pending, r))
+                verdicts.append(classify_pair(pending, r, margin))
                 pending = None
     if pending is not None:
         verdicts.append(Verdict(before=pending, after=None, status=UNPAIRED, reasons=("no-after-at-log-end",)))
@@ -709,6 +814,13 @@ def acceptance(verdicts: list, margin: int) -> tuple[str, list, list]:
     return PASS, hits, over
 
 
+@lru_cache(maxsize=1 << 16)
+def _parse_memo(line: str, line_no: int) -> Rec:
+    """`parse_line`, memoised on (line, line number): the gate re-audits the same 300-sample block many times per pass.
+    A failure is not cached (lru_cache re-raises every time); nothing downstream mutates a Rec."""
+    return parse_line(line, line_no)
+
+
 def audit_text(text: str, margin: int = ACCEPT_MARGIN) -> Report:
     rep = Report(margin=margin)
     lines = text.splitlines()
@@ -717,18 +829,19 @@ def audit_text(text: str, margin: int = ACCEPT_MARGIN) -> Report:
         if TAG not in ln:
             continue
         try:
-            recs.append(parse_line(ln, i))
+            recs.append(_parse_memo(ln, i))
         except ValueError as error:
             rep.unparsed.append((i, str(error), ln))
     rep.raw_count = sum(1 for ln in lines if TAG in ln)
     rep.parsed_count = len(recs)
     rep.capped = any(CAP_MARKER in ln for ln in lines)
+    rep.species_error = "" if SPECIES_ABILITIES is not None else (SPECIES_ERROR or "the species table is missing")
     for r in recs:
         rep.by_kind[r.kind] = rep.by_kind.get(r.kind, 0) + 1
     rep.errs = [r for r in recs if r.kind == "ERR"]
     rep.eff_mismatch = [r for r in recs if r.kind == "BEFORE" and r.eff != "-"
                         and r.eff != move_info(r.mv[0])["effect"]]
-    rep.verdicts, rep.orphans = pair_records(recs)
+    rep.verdicts, rep.orphans = pair_records(recs, margin)
     for v in rep.verdicts:
         if v.status in (ACCEPTED, EXCLUDED):
             v.tags = _tags(v, margin)
@@ -860,6 +973,8 @@ def render(rep: Report) -> list[str]:
             why.append(f"raw {rep.raw_count} != parsed {rep.parsed_count}")
         if rep.capped:
             why.append("the logger hit its 30 MB cap (events after it are missing)")
+        if rep.species_error:
+            why.append(f"the species data could not be loaded ({rep.species_error}): ability-not-species is unchecked")
         out.append("  INSTRUMENT: FAIL — " + "; ".join(why))
 
     out.append("== strata (a pair carries every reason that applies; each reason is counted) ==")
