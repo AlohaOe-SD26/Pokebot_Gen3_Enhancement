@@ -321,6 +321,25 @@ it.
     Heal. The budget is what RULING 18's floor leaves; whether that is enough to matter against Juan is step 14's
     question.
 
+### Damage-calculator fidelity audit (`modules/dmgaudit.py` + `tools/story-dev/audit_damage_calc.py`, new 2026-09-30, design v2 step 11)
+- **Purpose:** MEASURE how far the bot's damage prediction (`calculate_move_damage_range` in
+  `battle_strategies/_util.py`) strays from the damage the game really deals, BEFORE anything trusts it with a
+  wanted Pokémon's life. Step 12 (weaken-to-catch) will rely on the crit maximum not KO-ing the target. It is
+  measurement only; fixing the calculator is `#27-dmgcalcfix`.
+- **Two halves:**
+  - **M1a, offline:** a port of the decomp's damage order, checked against the calculator. It gives the worst-case
+    bound the ORDER alone costs.
+  - **M1b, live:** a raw `[DMGAUDIT]` log read at each turn's selection exit and the next entry, and a pure offline
+    audit that pairs the reads, classifies each turn and decides the acceptance.
+- **Must do:**
+  - change NOTHING about a battle, flag on or off: pure memory reads, no button, no yield, no `get_battle_state()`;
+  - log nothing with the flag unset;
+  - never raise: a failure is one `ERR` line;
+  - never discard a turn silently: every pair gets a verdict and every exclusion a named reason.
+  - Every judgement lives in the audit, which is gated. A classifier bug therefore costs a re-audit, not a re-run.
+- **Where it stands:** BUILT and gated on branch `wt/dmgcalc11` (2026-09-30), behind `POKEBOT_R25_DMGAUDIT` (default
+  OFF). The live arms are NOT yet graded. `ACCEPT_MARGIN = 3` is a proposal for the user (the design's F8).
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

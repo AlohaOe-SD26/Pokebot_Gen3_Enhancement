@@ -1,0 +1,289 @@
+design v2 step 11 (M1b) — the LIVE ARMS, GRADED against the pre-registered predictions, 2026-09-30 (LA)
+=====================================================================================================
+Build c44b1def (the code; HEAD at the BASE A/B was 82e34755, a docs-only commit on top). Fixture post_mtpyre.ss1
+(md5 80602159694b asserted before each batch), storyresume --frames 90000, random.seed(1) immediately before the
+harness, sequential, one debug log per run (the listing diff). Predictions: ai-research-notes/2026-09-30-dmgcalc11-
+PREDICTIONS.md (c21ec8df, 5:45 AM, BEFORE the code) and its ADDENDUM (82e34755, committed 8:03:03 AM, AFTER the five arms
+and BEFORE the BASE A/B; its text says "~8:05", an estimate written before the commit).
+
+===== the runners =====
+WT HEAD c44b1def2e6035eb6d23ef2ed013622510650dc6 branch wt/dmgcalc11 dirty-code=0
+  OK         post_mtpyre.ss1 = 80602159694b
+OFF-r1 exit=0 debug=Story-debug-20260930-074641.log 07:48:35 AM
+OFF-r2 exit=0 debug=Story-debug-20260930-074841.log 07:50:50 AM
+ON-r1 exit=0 debug=Story-debug-20260930-075056.log 07:52:49 AM
+ON-r2 exit=0 debug=Story-debug-20260930-075255.log 07:54:53 AM
+FAULT exit=0 debug=Story-debug-20260930-075459.log 07:56:52 AM
+M1B-ARMS-DONE
+
+WT HEAD 82e3475561204ba48ee5d6c508fce5fcd1110829 dirty-code=0
+  OK         post_mtpyre.ss1 = 80602159694b
+BASE-r1 exit=0 debug=Story-debug-20260930-080319.log 08:05:20 AM
+BASE-r2 exit=0 debug=Story-debug-20260930-080526.log 08:07:19 AM
+BASE-ARMS-DONE
+
+(the Step-0 probe m1_step0.py, unchanged, re-run on the base modules by run_step0_base.py, for #27-determinism:)
+S0BASE-r1 exit=0 debug=Story-debug-20260930-080810.log 08:10:03 AM
+S0BASE-r2 exit=0 debug=Story-debug-20260930-081010.log 08:12:05 AM
+S0BASE-DONE
+
+===== 1. inertness and the category rules (m1b_grade.py) =====
+  PASS  OFF-r1 == OFF-r2 on every frame-stamped line (371 vs 371)
+  PASS  OFF-r1: 0 lines contain DMGAUDIT  — 0
+  PASS  OFF-r2: 0 lines contain DMGAUDIT  — 0
+  PASS  ON-r1: every line without DMGAUDIT == a reproducing OFF run (371 lines)
+  PASS  ON-r1: every DMGAUDIT line is category DMGAUDIT (86 lines)
+  PASS  ON-r1: no [BATTLE] line contains DMGAUDIT
+  PASS  ON-r2: every line without DMGAUDIT == a reproducing OFF run (371 lines)
+  PASS  ON-r2: every DMGAUDIT line is category DMGAUDIT (86 lines)
+  PASS  ON-r2: no [BATTLE] line contains DMGAUDIT
+  (audit ON-r1: exit 2; saved ON-r1.audit.txt)
+  (audit ON-r2: exit 2; saved ON-r2.audit.txt)
+  (audit FAULT: exit 2; saved FAULT.audit.txt)
+
+9/9 checks PASS
+
+===== 2. every run's frame-stamped lines, against OFF-r1 (the BASE A/B and the Step-0 divergence) =====
+  STEP0 (5:27 AM, the wrapper probe at base 241929d7)   368 lines  sha256[:16] f177027f7685eb44  first difference at line #293: 'f3215905 [MAP] ROUTE 119(0,34) -> ROUTE 119(0,0) pos=(22, 127)'
+  OFF-r1 (build)                                        371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  OFF-r2 (build)                                        371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  ON-r1 (build) minus DMGAUDIT lines                    371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  ON-r2 (build) minus DMGAUDIT lines                    371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  FAULT (build) minus DMGAUDIT lines                    371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  BASE-r1 (base modules, same worktree)                 371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  BASE-r2 (base modules, same worktree)                 371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  S0BASE-r1 (the Step-0 probe re-run on base)           371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+  S0BASE-r2 (the Step-0 probe re-run on base)           371 lines  sha256[:16] 928db5621b3d2f7c  IDENTICAL to OFF-r1
+⇒ H1 of the ADDENDUM holds: BASE-r1 = BASE-r2 = OFF-r1 = OFF-r2 = ON-r1/ON-r2/FAULT minus DMGAUDIT. One trajectory,
+replayed nine times (the Step-0 probe's own re-runs included): a DETERMINISM check, never a replication.
+The 5:27 AM Step-0 run alone left it, and its own probe re-run on the same code did NOT (a second KI-112 event):
+  the last common line:
+    f3215340 [hb] mode=Story state=7 controllable=True map=ROUTE 119(0,34) pos=(35, 90) party=['Mightyena:L43', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzag
+  STEP0 continues:
+    f3215905 [MAP] ROUTE 119(0,34) -> ROUTE 119(0,0) pos=(22, 127)
+    f3215906 [MAP] ROUTE 119(0,0) -> ROUTE 119(0,34) pos=(22, 127)
+    f3215934 [BATTLE] started hp=[('Mightyena', 112, 127), ('Sceptile', 120, 120), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Zigzagoon', 34, 34), ('Castform', 10
+    f3215934 [DEXFENCE] skip #264 Linoone — party is not at full strength
+    f3216231 [STEP] 'Encountered Linoone ♀.\n\nNature:\xa0Naughty | Ability:\xa0Pickup | Item:\xa0- | IV\xa0sum:\xa093 | SV:\xa012,044'
+  every build and base run continues:
+    f3215976 [MAP] ROUTE 119(0,34) -> ROUTE 118(0,33) pos=(17, 140)
+    f3216954 [MAP] ROUTE 118(0,33) -> MAUVILLE CITY(0,2) pos=(-1, 7)
+    f3217201 [MAP] MAUVILLE CITY(0,2) -> MAUVILLE CITY(10,5) pos=(22, 5)
+===== 3. the CTL lines against the battles this trajectory starts =====
+  ON-r1: 14 `[BATTLE] started`, 14 CTL, same frames: True
+  ON-r2: 14 `[BATTLE] started`, 14 CTL, same frames: True
+  FAULT: 14 `[BATTLE] started`, 14 CTL, same frames: True
+(The Step-0 trajectory started 15 battles: its 15th was the Linoone.)
+
+===== 4. the per-turn table, the non-vacuity items and FAULT (m1b_turns.py, the literal filed text) =====
+== ON-r1 ==
+  PASS  ON-r1: raw [DMGAUDIT] count == parsed (86 == 86)
+  PASS  ON-r1: the logger never hit its 30 MB cap
+  PASS  ON-r1: 0 ERR lines  — {'CTL': 14, 'BEFORE': 36, 'AFTER': 36}
+  FAIL  ON-r1: a CTL line at each of the 15 battle starts  — 14 CTL
+  PASS  f3173282: EXCLUDED kind=trainer KO reasons=foe-self-hurt-move dbide=90
+  PASS  f3174185: ACCEPTED kind=KO reasons=- dbide=87
+  PASS  f3185457: NOT-A-SAMPLE kind=- reasons=our-pp-unchanged dbide=0
+  PASS  f3186160: NOT-A-SAMPLE kind=- reasons=our-pp-unchanged dbide=0
+  PASS  f3186810: EXCLUDED kind=turn reasons=foe-held-item,no-damage dbide=0
+  PASS  f3187609: EXCLUDED kind=KO reasons=foe-held-item dbide=128
+  PASS  f3190263: ACCEPTED kind=turn reasons=- dbide=65
+  PASS  f3191078: EXCLUDED kind=turn reasons=foe-item-action dbide=65
+  PASS  f3191967: ACCEPTED kind=trainer KO reasons=- dbide=69
+  PASS  f3193320: EXCLUDED kind=KO reasons=foe-after-unobservable dbide=142
+  PASS  f3197066: ACCEPTED kind=trainer KO reasons=- dbide=97
+  PASS  f3198642: ACCEPTED kind=turn reasons=- dbide=64
+  PASS  f3199547: EXCLUDED kind=KO reasons=foe-move-zero dbide=61
+  PASS  f3208167: ACCEPTED kind=KO reasons=- dbide=107
+  PASS  f3210218: ACCEPTED kind=KO reasons=- dbide=198
+  FAIL  f3216950: present  — no BEFORE at this frame
+  FAIL  f3217980: present  — no BEFORE at this frame
+  FAIL  no singles BEFORE outside the pre-registered 17 (a new one = a different trajectory)  — [3230902, 3231644]
+  PASS  non-vacuity: >= 1 ACCEPTED clean non-KO hit with Δbide == the foe's HP difference  — [3190263, 3198642]
+  FAIL  non-vacuity: the three named clean hits are among them  — [3190263, 3198642, 3216950]
+  PASS  non-vacuity: >= 1 ACCEPTED battle-end KO pair  — [3174185, 3208167, 3210218, 3231644]
+  PASS  non-vacuity: the doubles stratum on the three Route 123 doubles (3 distinct battles)  — 7 pairs in battles starting [3148510, 3156846, 3168023]
+  PASS  non-vacuity: the foe-item-action stratum at f3191078
+  PASS  non-vacuity: the held-item stratum on Vanessa's Pikachu (f3186810, f3187609)
+  PASS  ON self-check agrees on the named clean turn f3190263  — agree
+  PASS  ON self-check agrees on the named clean turn f3198642  — agree
+  FAIL  ON self-check agrees on the named clean turn f3216950  — missing
+    accepted 8 (predicted 7 to 10; 9 or 10 on this trajectory); over crit_max + 3: 0 (expected 0); acceptance INSUFFICIENT
+  PASS  F8: 0 accepted samples over crit_max + ACCEPT_MARGIN
+    f3193320 (Shiftry, Harden): EXCLUDED reasons=('foe-after-unobservable',) — the table allowed either
+== ON-r2 ==
+  PASS  ON-r2: raw [DMGAUDIT] count == parsed (86 == 86)
+  PASS  ON-r2: the logger never hit its 30 MB cap
+  PASS  ON-r2: 0 ERR lines  — {'CTL': 14, 'BEFORE': 36, 'AFTER': 36}
+  FAIL  ON-r2: a CTL line at each of the 15 battle starts  — 14 CTL
+  PASS  f3173282: EXCLUDED kind=trainer KO reasons=foe-self-hurt-move dbide=90
+  PASS  f3174185: ACCEPTED kind=KO reasons=- dbide=87
+  PASS  f3185457: NOT-A-SAMPLE kind=- reasons=our-pp-unchanged dbide=0
+  PASS  f3186160: NOT-A-SAMPLE kind=- reasons=our-pp-unchanged dbide=0
+  PASS  f3186810: EXCLUDED kind=turn reasons=foe-held-item,no-damage dbide=0
+  PASS  f3187609: EXCLUDED kind=KO reasons=foe-held-item dbide=128
+  PASS  f3190263: ACCEPTED kind=turn reasons=- dbide=65
+  PASS  f3191078: EXCLUDED kind=turn reasons=foe-item-action dbide=65
+  PASS  f3191967: ACCEPTED kind=trainer KO reasons=- dbide=69
+  PASS  f3193320: EXCLUDED kind=KO reasons=foe-after-unobservable dbide=142
+  PASS  f3197066: ACCEPTED kind=trainer KO reasons=- dbide=97
+  PASS  f3198642: ACCEPTED kind=turn reasons=- dbide=64
+  PASS  f3199547: EXCLUDED kind=KO reasons=foe-move-zero dbide=61
+  PASS  f3208167: ACCEPTED kind=KO reasons=- dbide=107
+  PASS  f3210218: ACCEPTED kind=KO reasons=- dbide=198
+  FAIL  f3216950: present  — no BEFORE at this frame
+  FAIL  f3217980: present  — no BEFORE at this frame
+  FAIL  no singles BEFORE outside the pre-registered 17 (a new one = a different trajectory)  — [3230902, 3231644]
+  PASS  non-vacuity: >= 1 ACCEPTED clean non-KO hit with Δbide == the foe's HP difference  — [3190263, 3198642]
+  FAIL  non-vacuity: the three named clean hits are among them  — [3190263, 3198642, 3216950]
+  PASS  non-vacuity: >= 1 ACCEPTED battle-end KO pair  — [3174185, 3208167, 3210218, 3231644]
+  PASS  non-vacuity: the doubles stratum on the three Route 123 doubles (3 distinct battles)  — 7 pairs in battles starting [3148510, 3156846, 3168023]
+  PASS  non-vacuity: the foe-item-action stratum at f3191078
+  PASS  non-vacuity: the held-item stratum on Vanessa's Pikachu (f3186810, f3187609)
+  PASS  ON self-check agrees on the named clean turn f3190263  — agree
+  PASS  ON self-check agrees on the named clean turn f3198642  — agree
+  FAIL  ON self-check agrees on the named clean turn f3216950  — missing
+    accepted 8 (predicted 7 to 10; 9 or 10 on this trajectory); over crit_max + 3: 0 (expected 0); acceptance INSUFFICIENT
+  PASS  F8: 0 accepted samples over crit_max + ACCEPT_MARGIN
+    f3193320 (Shiftry, Harden): EXCLUDED reasons=('foe-after-unobservable',) — the table allowed either
+== FAULT ==
+  PASS  FAULT: raw [DMGAUDIT] count == parsed (86 == 86)
+  PASS  FAULT: the logger never hit its 30 MB cap
+  PASS  FAULT: 0 ERR lines  — {'CTL': 14, 'BEFORE': 36, 'AFTER': 36}
+  FAIL  FAULT: a CTL line at each of the 15 battle starts  — 14 CTL
+    FAULT f3190263: self-check DISAGREE (dbide 16 vs HP diff 65)
+    FAULT f3198642: self-check DISAGREE (dbide 27 vs HP diff 64)
+    FAULT f3216950: self-check MISSING
+  PASS  FAULT: self-check disagreements on the named clean turns > 0  — [3190263, 3198642]
+  PASS  ON-r1 and ON-r2 give identical verdicts (a determinism check, not a replication)  — 36 vs 36
+
+57/70 checks PASS
+
+===== 5. FAULT's self-check (the audit's own output) =====
+== self-check (clean singles non-KO turns: Δ gBideDmg[1] == the foe's HP difference) ==
+  eligible 8 at [3179920, 3180684, 3181880, 3190263, 3196843, 3198642, 3226431, 3230902]; disagreements 4: [(3190263, 16, 65), (3196843, 9, 0), (3198642, 27, 64), (3226431, 5, 0)]
+  not eligible: {'n/a: battle end': 14, 'n/a: doubles': 7, 'n/a: foe changed': 3, 'n/a: foe held item': 3, 'n/a: foe item action': 1}
+  f3144982 foe=377 hp=68->68 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3147358 foe=377 hp=64->64 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3149434 foe=361 hp=52->0 (party; replaced by 377) dbide=7 REJECTED reasons=foe-changed-not-ko tags=- self-check=n/a: doubles
+  f3151009 foe=377 hp=66->0 dbide=0 EXCLUDED kind=turn trainer tier=C eff=PURSUIT pred=[102,120] cmax=240 reasons=doubles,no-damage tags=- self-check=n/a: doubles
+  f3153347 foe=377 hp=0->0 dbide=0 EXCLUDED kind=turn trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: doubles
+  f3154509 foe=377 hp=0->0 dbide=0 EXCLUDED kind=KO trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: battle end
+  f3157762 foe=337 hp=64->0 (party; replaced by 371) dbide=48 REJECTED reasons=our-identity-changed tags=- self-check=n/a: doubles
+  f3160033 foe=371 hp=90->0 dbide=0 EXCLUDED kind=turn trainer tier=A eff=HIT pred=[3,4] cmax=8 reasons=doubles,no-damage tags=- self-check=n/a: doubles
+  f3162349 foe=371 hp=0->0 dbide=0 EXCLUDED kind=turn trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: doubles
+  f3165221 foe=371 hp=0->0 dbide=0 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: battle end
+  f3168915 foe=64 hp=64->0 (party; replaced by 348) dbide=17 REJECTED reasons=foe-changed-not-ko tags=- self-check=n/a: doubles
+  f3170997 foe=348 hp=80->80 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3173282 foe=109 hp=55->0 (party; replaced by 109) dbide=0 REJECTED reasons=foe-changed-not-ko tags=- self-check=n/a: foe changed
+  f3174185 foe=109 hp=55->0 dbide=0 EXCLUDED kind=KO trainer tier=A eff=FLINCH_HIT pred=[77,91] cmax=182 reasons=no-damage tags=- self-check=n/a: battle end
+  f3179920 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3180684 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3181880 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3182618 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3185457 foe=25 hp=61->61 dbide=0 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: foe held item
+  f3186160 foe=25 hp=61->61 dbide=23 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: foe held item
+  f3186810 foe=25 hp=61->61 dbide=0 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[119,141] cmax=282 reasons=foe-held-item,no-damage tags=- self-check=n/a: foe held item
+  f3187609 foe=25 hp=61->0 dbide=15 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[119,141] cmax=282 reasons=foe-held-item tags=below-noncrit-min self-check=n/a: battle end
+  f3190263 foe=338 hp=83->18 dbide=16 ACCEPTED kind=turn trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=- tags=below-noncrit-min self-check=DISAGREE
+  f3191078 foe=338 hp=18->18 dbide=16 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=foe-item-action tags=below-noncrit-min self-check=n/a: foe item action
+  f3191967 foe=338 hp=18->0 (party; replaced by 300) dbide=4 REJECTED reasons=foe-changed-not-ko tags=- self-check=n/a: foe changed
+  f3193320 foe=300 hp=94->0 dbide=23 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=foe-after-unobservable tags=below-noncrit-min self-check=n/a: battle end
+  f3196843 foe=371 hp=91->91 dbide=9 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=DISAGREE
+  f3197066 foe=371 hp=91->0 (party; replaced by 365) dbide=22 REJECTED reasons=foe-changed-not-ko tags=- self-check=n/a: foe changed
+  f3198642 foe=365 hp=88->24 dbide=27 ACCEPTED kind=turn trainer tier=A eff=RECOIL pred=[57,68] cmax=136 reasons=- tags=below-noncrit-min self-check=DISAGREE
+  f3199547 foe=365 hp=24->0 dbide=17 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[57,68] cmax=136 reasons=foe-move-zero tags=below-noncrit-min self-check=n/a: battle end
+  f3208167 foe=286 hp=60->0 dbide=15 ACCEPTED kind=KO wild tier=A eff=RECOIL pred=[106,125] cmax=250 reasons=- tags=below-noncrit-min self-check=n/a: battle end
+  f3210218 foe=377 hp=68->0 dbide=0 EXCLUDED kind=KO wild tier=A eff=FLINCH_HIT pred=[170,200] cmax=400 reasons=no-damage tags=- self-check=n/a: battle end
+  f3226431 foe=321 hp=85->85 dbide=5 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=DISAGREE
+  f3227733 foe=321 hp=85->85 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3230902 foe=286 hp=59->59 dbide=0 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[110,130] cmax=260 reasons=no-damage tags=- self-check=agree
+  f3231644 foe=286 hp=59->0 dbide=14 ACCEPTED kind=KO trainer tier=A eff=RECOIL pred=[110,130] cmax=260 reasons=- tags=below-noncrit-min self-check=n/a: battle end
+
+===== 6. ON-r1's audit (ON-r2's is byte-identical) =====
+== instrument ==
+  [DMGAUDIT] lines: raw 86, parsed 86 (CTL 14, BEFORE 36, AFTER 36, ERR 0)
+  logger cap marker ('event log size cap reached'): absent
+  INSTRUMENT: OK
+== strata (a pair carries every reason that applies; each reason is counted) ==
+  ACCEPTED                                        8   (trainer 6, wild 2; tier A 8; KO 4, trainer KO 2, turn 2)
+  EXCLUDED                                       14
+    doubles                                       7
+    foe-after-unobservable                        1
+    foe-held-item                                 2
+    foe-item-action                               1
+    foe-move-zero                                 1
+    foe-self-hurt-move                            1
+    no-damage                                     5
+    no-prediction                                 3
+    our-status-changed-guts-facade                1
+  NOT-A-SAMPLE                                   13
+    our-action-not-a-move                        10
+    our-pp-unchanged                              3
+  REJECTED                                        1
+    our-identity-changed                          1
+  UNPAIRED                                        0
+  SUPERSEDED                                      0
+== error vs the LIVE prediction (hits with a prediction; M = ACCEPT_MARGIN 3; M1a bound 4, 8 with Charge) ==
+  group                                           n  max(obs-cmax)  max(obs/cmax)   >cmax+M  >cmax+M1a   <min
+  ACCEPTED (the acceptance set)                   8            -72          0.495         0          0      0
+    effect FLINCH_HIT                             2            -95          0.495         0          0      0
+    effect RECOIL                                 6            -72          0.490         0          0      0
+  stratum doubles                                 4           +137         18.125         1          1      0
+  stratum foe-after-unobservable                  1            -10          0.934         0          0      0
+  stratum foe-held-item                           1           -154          0.454         0          0      0
+  stratum foe-item-action                         1            -87          0.428         0          0      0
+  stratum foe-move-zero                           1            -75          0.449         0          0      0
+  stratum foe-self-hurt-move                      1            -92          0.495         0          0      0
+  stratum no-damage                               0  -
+  stratum no-prediction                           0  -
+  stratum our-status-changed-guts-facade          1           -193          0.500         0          0      0
+  excluded effect FLINCH_HIT                      1            -92          0.495         0          0      0
+  excluded effect HIT                             2           +137         18.125         1          1      0
+  excluded effect PURSUIT                         2            -11          0.885         0          0      0
+  excluded effect RECOIL                          4            -10          0.934         0          0      0
+  crit or under-prediction, ambiguous (max < obs <= crit_max), accepted: 0: []
+  hits below the non-crit min (step 12's progress side), accepted: 0: []
+== self-check (clean singles non-KO turns: Δ gBideDmg[1] == the foe's HP difference) ==
+  eligible 8 at [3179920, 3180684, 3181880, 3190263, 3196843, 3198642, 3226431, 3230902]; disagreements 0: []
+  not eligible: {'n/a: battle end': 14, 'n/a: doubles': 7, 'n/a: foe changed': 3, 'n/a: foe held item': 3, 'n/a: foe item action': 1}
+== one line per BEFORE (frame, foe species, HP before->after, Δbide, verdict, reasons) ==
+  f3144982 foe=377 hp=68->68 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3147358 foe=377 hp=64->64 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3149434 foe=361 hp=52->0 (party; replaced by 377) dbide=85 EXCLUDED kind=trainer KO trainer tier=C eff=PURSUIT pred=[40,48] cmax=96 reasons=doubles tags=crit-or-under-prediction (ambiguous) self-check=n/a: doubles
+  f3151009 foe=377 hp=66->0 dbide=108 EXCLUDED kind=turn trainer tier=C eff=PURSUIT pred=[102,120] cmax=240 reasons=doubles tags=- self-check=n/a: doubles
+  f3153347 foe=377 hp=0->0 dbide=0 EXCLUDED kind=turn trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: doubles
+  f3154509 foe=377 hp=0->0 dbide=0 EXCLUDED kind=KO trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: battle end
+  f3157762 foe=337 hp=64->0 (party; replaced by 371) dbide=147 REJECTED reasons=our-identity-changed tags=- self-check=n/a: doubles
+  f3160033 foe=371 hp=90->0 dbide=145 EXCLUDED kind=turn trainer tier=A eff=HIT pred=[3,4] cmax=8 reasons=doubles tags=over-crit_max+137,OVER-ACCEPTANCE-BOUND self-check=n/a: doubles
+  f3162349 foe=371 hp=0->0 dbide=0 EXCLUDED kind=turn trainer tier=A eff=HIT pred=none reasons=doubles,no-damage,no-prediction tags=- self-check=n/a: doubles
+  f3165221 foe=371 hp=0->0 dbide=0 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: battle end
+  f3168915 foe=64 hp=64->0 (party; replaced by 348) dbide=193 EXCLUDED kind=trainer KO trainer tier=A eff=HIT pred=[164,193] cmax=386 reasons=doubles,our-status-changed-guts-facade tags=- self-check=n/a: doubles
+  f3170997 foe=348 hp=80->80 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3173282 foe=109 hp=55->0 (party; replaced by 109) dbide=90 EXCLUDED kind=trainer KO trainer tier=A eff=FLINCH_HIT pred=[77,91] cmax=182 reasons=foe-self-hurt-move tags=- self-check=n/a: foe changed
+  f3174185 foe=109 hp=55->0 dbide=87 ACCEPTED kind=KO trainer tier=A eff=FLINCH_HIT pred=[77,91] cmax=182 reasons=- tags=- self-check=n/a: battle end
+  f3179920 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3180684 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3181880 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3182618 foe=43 hp=67->67 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3185457 foe=25 hp=61->61 dbide=0 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: foe held item
+  f3186160 foe=25 hp=61->61 dbide=0 NOT-A-SAMPLE reasons=our-pp-unchanged tags=- self-check=n/a: foe held item
+  f3186810 foe=25 hp=61->61 dbide=0 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[119,141] cmax=282 reasons=foe-held-item,no-damage tags=- self-check=n/a: foe held item
+  f3187609 foe=25 hp=61->0 dbide=128 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[119,141] cmax=282 reasons=foe-held-item tags=- self-check=n/a: battle end
+  f3190263 foe=338 hp=83->18 dbide=65 ACCEPTED kind=turn trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=- tags=- self-check=agree
+  f3191078 foe=338 hp=18->18 dbide=65 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=foe-item-action tags=- self-check=n/a: foe item action
+  f3191967 foe=338 hp=18->0 (party; replaced by 300) dbide=69 ACCEPTED kind=trainer KO trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=- tags=- self-check=n/a: foe changed
+  f3193320 foe=300 hp=94->0 dbide=142 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[64,76] cmax=152 reasons=foe-after-unobservable tags=crit-or-under-prediction (ambiguous) self-check=n/a: battle end
+  f3196843 foe=371 hp=91->91 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3197066 foe=371 hp=91->0 (party; replaced by 365) dbide=97 ACCEPTED kind=trainer KO trainer tier=A eff=RECOIL pred=[84,99] cmax=198 reasons=- tags=- self-check=n/a: foe changed
+  f3198642 foe=365 hp=88->24 dbide=64 ACCEPTED kind=turn trainer tier=A eff=RECOIL pred=[57,68] cmax=136 reasons=- tags=- self-check=agree
+  f3199547 foe=365 hp=24->0 dbide=61 EXCLUDED kind=KO trainer tier=A eff=RECOIL pred=[57,68] cmax=136 reasons=foe-move-zero tags=- self-check=n/a: battle end
+  f3208167 foe=286 hp=60->0 dbide=107 ACCEPTED kind=KO wild tier=A eff=RECOIL pred=[106,125] cmax=250 reasons=- tags=- self-check=n/a: battle end
+  f3210218 foe=377 hp=68->0 dbide=198 ACCEPTED kind=KO wild tier=A eff=FLINCH_HIT pred=[170,200] cmax=400 reasons=- tags=- self-check=n/a: battle end
+  f3226431 foe=321 hp=85->85 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=agree
+  f3227733 foe=321 hp=85->85 dbide=0 NOT-A-SAMPLE reasons=our-action-not-a-move tags=- self-check=n/a: battle end
+  f3230902 foe=286 hp=59->59 dbide=0 EXCLUDED kind=turn trainer tier=A eff=RECOIL pred=[110,130] cmax=260 reasons=no-damage tags=- self-check=agree
+  f3231644 foe=286 hp=59->0 dbide=117 ACCEPTED kind=KO trainer tier=A eff=RECOIL pred=[110,130] cmax=260 reasons=- tags=- self-check=n/a: battle end
+== independent control ==
+  port control: 8 clean hits: 8 replayed, 0 unreplayable [], 0 outside the port's [non-crit min, crit max]
+ACCEPTANCE: INSUFFICIENT — 8 clean whitelisted hits (floor 300); 0 over crit_max + 3 (ACCEPT_MARGIN 3, a PROPOSAL for the user)

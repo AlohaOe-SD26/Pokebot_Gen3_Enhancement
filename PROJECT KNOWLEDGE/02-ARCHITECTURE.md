@@ -233,8 +233,7 @@ The ball top-off (design v2 steps 9a and 9b; USER RULINGS 23 + 26). PURE plannin
   and `sootopolis_ball_phase` at the counter after the basket lines (in `_shop`, inside the shop's try, so RULING 18's
   walk back runs on a normal return). The phase writes only under `report["balls"]` and never raises except an
   abort or a close.
-OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a) and
-`probe_stock_topoff_sootopolis.py` (9b).
+OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a), `probe_stock_topoff_sootopolis.py` (9b).
 - **The healing kit, step 10a (behind `POKEBOT_R26_KITTOPOFF`, default OFF; its fault `POKEBOT_R26_FAULT_RAWBAG`):**
   - PURE `kit_wants` (what is missing) and `visit_plan` (one budget: balls to the dex reserve + 1, the kit, then the
     rest of the balls);
@@ -254,6 +253,10 @@ OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (
     its own verdict (`SootopolisCity`, `SootopolisCity:kit`). The outcome labels are `TOPOFF_ONLY_OUTCOMES`.
   - The earlybasket driver's kit grade is `tools/story-dev/kit_grade.py` (pure). Gate:
     `probe_kit_topoff_sootopolis.py`. Kit OFF/skipped/observe is 9b's visit (a differential: 0 differ).
+
+### `modules/dmgaudit.py`: OURS, new 2026-09-30 (SANDBOX ONLY; behind `POKEBOT_R25_DMGAUDIT`, default OFF)
+Design v2 step 11's RAW `[DMGAUDIT]` reads (`ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md`, AS BUILT): 4 hooks in `battle_handler.handle_battle` and `handle_battle_action_selection`; pure `read_symbol` reads, no yield, no `get_battle_state()` (KI-108), a failure = one `ERR` line.
+Offline in `tools/story-dev/`: `audit_damage_calc.py <debug log>` (pure; exit 0 PASS, 1 FAIL, 2 INSUFFICIENT, 3 instrument failed), `dmgcalc_port.py`; gates `probe_damage_calc_decomp.py`, `probe_dmgaudit.py`.
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:
