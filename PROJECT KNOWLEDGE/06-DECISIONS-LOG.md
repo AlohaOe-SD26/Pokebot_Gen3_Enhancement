@@ -8526,3 +8526,54 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
 - logging a one-sided shortfall as "both failed" (it contradicts the memo, which blocks one key);
 - amending the code to D8's `hp=`/`status=` form (the built form was pre-registered, graded byte-exact, and has no
   consumer yet; changing it would invalidate evidence for no reader).
+
+## 2026-09-30 — Design v2 step 10b (HK at Sootopolis) as built, and its review: the kit separated from the basket by TIME, the driver's lever rule completed, each set's line carrying only its own money (`#26-organiccatch`)
+
+The design is `ai-research-notes/2026-09-29-kittopoff10b-DESIGN.md` (E1-E11, after a recon and an adversarial review).
+The graded note is `ai-research-notes/2026-09-30-kittopoff10b-GRADED.md`, with its REVIEW section.
+
+**As built (`ea75fe1f`):**
+- **The kit rides RULING 18's League-basket visit at Sootopolis, bought AFTER the basket's lines, with its own
+  `before`.** The kit and the basket buy the SAME names (Hyper Potion, Full Heal), and the basket verifies by a
+  per-name delta. TIME is therefore the only separation that verification cannot see. Rejected: one merged purchase
+  (the spec's D11-D12), where the basket would have counted the kit as its own.
+- **9b's ball forecast is never overwritten.** The D6 split lives in `report["kit"]["split_balls"]`, and the
+  effective ball walk is that split whenever the kit buys. Rejected: rebinding 9b's forecast. The design review showed
+  it would INVERT the driver's check: the right build would fail and a build without it would pass.
+- **`TOPOFF_ONLY_OUTCOMES` is exported by `league_reserve` and imported by production and the driver**, never copied.
+- **The driver models every lever whose production response is defined**: the D2 skip, RESERVE_FAULT_RAISE,
+  FAULT_FLOOR, NOBUY and, after the review, BALLRAISE. It never models RAWBAG, so S-RAW and S-RAWVAC fail by design,
+  on sets pre-registered in the predictions.
+- **The memo is made observable** (`self._ball_topoff_failed = set()` in the driver), because every memo write in
+  that driver had been a silent no-op.
+
+**The review's decisions (three lenses, each finding put to a refuter):**
+- **DC1 (the driver).**
+  - BALLRAISE is modelled: `R["kit_ballraise"]` means the kit walks and buys nothing.
+  - `ballfail` is kit-aware:
+    - its premise admits a kit-only walk;
+    - its outcome label is the driver's `topoff_label` (the effective walks);
+    - it asserts `kit_phase_failed` and `both_keys_memoised`.
+  - `kit_as_forecast` is graded for every EXPECT except `budget`, appended after `common`, so every other arm's
+    conjunct order is unchanged.
+  - Rejected: keeping it in `common` and modelling the close, because where a close lands in the visit decides what
+    was bought, so no single expectation is right.
+  - Rejected: dropping it from `ballfail`, because with the lever modelled, "no kit bought" is exactly E5's response
+    and worth asserting.
+- **DC2 (production).**
+  - A set that planned no line reads the wallet UNCHANGED on its line and in its report (9b's `topoff-none` X->X).
+  - A set that bought reads the wallet after the ONE call, as 10a's combined line does.
+  - Rejected: dropping the no-ball line, as E5's sentence said. P5/P1 had pre-registered the line, and 9b's log
+    readers know `topoff-none`; E5 was amended instead.
+  - Rejected: pricing each set's own cost into its line. It would be a computed number in a line of measured reads.
+- **LI-2 (production).**
+  - The kit is "wasted" only when its live wants are empty or the visit bought nothing.
+  - Rejected: re-planning at the forecast's spare just to decide the memo.
+  - Rejected: the rule as designed. After a spare drop en route, it blocked a legitimate kit for the rest of the run.
+  - The loop bound still holds. A walk that buys the reserve balls raises the spare, so the next forecast re-plans. A
+    walk that buys nothing is still memoised.
+- **The gate's stub carries production's whole forecast dict (`FORECAST_KEYS`) and a floor that follows the bag.** A
+  stub that cannot express a divergence cannot test for one.
+- **Not taken:** a live arm that buys balls and kit in one call at Sootopolis. Neither fixture reaches a non-empty
+  split next to a kit, because the kit's full want costs the whole ₽6,000 cap. The call is proven live at Rustboro
+  (10a K-ON) and by gate row P4 here.

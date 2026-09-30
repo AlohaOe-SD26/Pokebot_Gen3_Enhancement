@@ -311,7 +311,15 @@ it.
   reviewed. At Rustboro it turns 9a's 22 Poké Balls into 8 Poké Balls + 4 Super Potions for the same ₽4,400.
   - On the graded seed the kit was spent in the rival fight (4 uses, the cap) and did not flip that loss. Whether the
     kit pays for itself is a step 14 question.
-  - 10b (Sootopolis) is not built.
+- **10b (Sootopolis, 2026-09-30) is built behind the same flag, graded live 49/49 and reviewed**
+  (`ai-research-notes/2026-09-30-kittopoff10b-GRADED.md`). The kit rides RULING 18's League-basket visit before Juan.
+  - The kit and the basket buy the SAME names there (Hyper Potion, Full Heal), so the kit is bought AFTER the basket's
+    lines, with its own count read after them. The basket's own check can never see a kit item.
+  - Both must-dos above hold here with 9b in place of 9a. With the kit OFF, skipped or in `observe`, the visit is 9b's
+    (a differential: 0 differ; live, every line of 9b's arms). A set that bought nothing logs no cost.
+  - On the graded fixtures it buys 1 Hyper Potion (post_hm07's ₽22,166 after the basket, floor ₽19,000) or 1 Full
+    Heal. The budget is what RULING 18's floor leaves; whether that is enough to matter against Juan is step 14's
+    question.
 
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness

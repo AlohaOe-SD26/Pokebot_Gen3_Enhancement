@@ -23296,3 +23296,85 @@ and give each row a mutant that turns it red. A property with no row is a claim 
     target by NAME;
   - after rewriting a status claim, grep the tree for the OLD phrase and require ZERO hits outside dated history. A
     `04` line can hold the same claim twice.
+
+## 2026-09-30 — ⛔ THE 10b GATE'S HEADER CLAIMED INPUT DIMENSIONS ITS ROWS DID NOT EXERCISE, AND THE NEW CODE REPEATED OLD GATES' MUTANT ANCHORS
+
+- **Symptoms:**
+  1. The first `probe_kit_topoff_sootopolis.py` had an INPUT DIMENSIONS table (10a's rule, applied up front), but some
+     of its values were set by no row. `_phase` always had a walking kit, never `observe` balls, and never a raise or
+     close with the balls off. 9b's `_s_env` pinned spare 18. The adversarial pass then found 23 mutants that no gate
+     caught, and a production defect (PD1).
+  2. In gate run 2, mutant MA turned {S12} red where its set said {O10, S12}. The O10d case the set was derived
+     against had never been written into O10.
+  3. The new production code repeated 9b gate anchors as SUBSTRINGS (the `projected` loop, `mode == ""`, the `lever`
+     locals, `balls.update(why=…)`, `balls.update(phase="closed")`). 9b's mutants found their anchor twice and could
+     not run.
+- **Root cause:**
+  - The table was written as a plan and never read back against the rows.
+  - An anchor matches a substring at any indent, so a new line that contains an old anchor breaks the old gate.
+- **The fix that worked:**
+  - Every value in the table now names the row that really sets it.
+  - O10d was written in, and disclosed.
+  - The new code was reworded so every anchor stays unique; 9b's A1, M3 and M5 were re-derived and re-anchored.
+- **Prevention rule:**
+  - Read the dimension table BACK from the rows: grep the row that sets each value.
+  - After new code lands in a file an old gate mutates, run the OLD gate before trusting anything.
+
+## 2026-09-30 — ⛔ THE THREE-LENS REVIEW OF 10b: A DRIVER CONJUNCT NO BUILD COULD PASS, A STUB THAT COULD NOT EXPRESS A DIVERGENCE, AND A RULE THAT BLOCKED A LEGITIMATE KIT
+
+- **Symptoms:**
+  1. **DC1.** `kit_as_forecast` sat in the driver's `common`, and the lever rule did not model BALLRAISE. With the kit
+     on, `ballfail` could never pass, and `budget` failed a correct close. The design review's R4 named exactly this
+     class, and the build still left one lever out.
+  2. **KT2-STUB1.** The gate's `_phase` kit dict lacked production's `floor`, `money_after_basket` and `wants`, and
+     its floor was a constant ₽19,000. Three plausible counter mutants passed every row: reading the forecast's floor,
+     its wallet, or its wants. After a short basket, one of them would spend ₽14,834 below the League floor.
+  3. **DC2.** A set that planned nothing logged the OTHER set's money (`topoff-none … money=22166->20966`). P5 and P1
+     had pre-registered the line without anyone reading its money.
+  4. **LI-2.** E5's "wasted" rule, followed word for word, memoised the kit after a spare drop en route.
+- **Root cause:**
+  1. The lever rule listed the levers its author thought of; it was not derived for each EXPECT. A conjunct in
+     `common` must hold for EVERY expectation.
+  2. The stub was written from what the rows needed, not from what production writes. With every live value equal
+     to the forecast's, no row could tell them apart.
+  3. The prediction pinned the line's tag, not its fields.
+  4. The rule was written for the disagreement it meant to catch. Nobody asked what ELSE empties a kit plan.
+- **The fix that worked:** the driver models BALLRAISE and grades `kit_as_forecast` outside `budget`. A set that
+  planned nothing reads X->X. The kit is "wasted" only when its live wants are empty or the visit bought nothing. The
+  stub carries production's whole dict. Rows P23-P26, O13 and G3's two negatives were added, with 17 new mutants whose
+  sets were written before the run. The re-run's expected lines were filed before the re-run (06 and the graded note).
+- **Prevention rule:**
+  - Derive every conjunct in a driver's `common` for EVERY EXPECT and every lever; walk the EXPECT list.
+  - A stub of a dict that production produces carries production's WHOLE shape, at stale values the live path
+    contradicts.
+  - A pre-registered log line pins its money and count fields, not only its tag.
+  - For every memo or "wasted" rule, list what else empties the plan, such as a state change between the forecast and
+    the counter.
+
+## 2026-09-30 — ⛔ A SCRIPT WITH BACKSLASHES WENT THROUGH A BASH HEREDOC A FOURTH TIME, ONE DAY AFTER THE RULE WAS WRITTEN
+
+- **Symptom:** the step that applied the review's mutant sets was a `cat > f.py <<'PYEOF'` script. An anchor that
+  contains a backslash-n did not match. The script asserted before writing, so nothing was damaged.
+- **Root cause:** the rule ("never pass a backslash through a Bash heredoc") is in `08` and in this session's standing
+  constraints, and it did not fire. CLAUDE.md's rule 6: a rule broken twice belongs in a gate. (Why the quoted
+  heredoc failed to match was not isolated. The rewrite made the question moot.)
+- **The fix that worked:** the same script was written with the Write tool, and it applied cleanly.
+- **Prevention rule:** the PROPOSED hook (refuse a Bash command whose heredoc body contains a backslash) goes to the
+  user again, with this entry as its evidence. Until then: every script file goes through Write, with no exceptions.
+
+## 2026-09-30 — ⛔ A GATE THAT TAKES TENS OF MINUTES WAS ADDED TO A SUITE THAT KILLS A FAST GATE AT 300 SECONDS
+
+- **Symptom:** `probe_kit_topoff_sootopolis.py`, registered FAST in `run_gates.py`, took 15 minutes on `ea75fe1f`
+  and 18 after the review's rows, against `TIMEOUT_FAST = 300`. In the suite it would have read as a timeout FAILURE.
+  The build commit registered it without timing it or running the full suite. The 9b gate, also FAST, took 220 s:
+  73% of its limit.
+- **Root cause (profiled):** one `all_rows` call took 10.0 s, and 9.7 s of that was two `ast.parse` calls of the
+  30,000-line harness (A4 and A5, about 4.9 s each), repeated for every mutant. The 9b gate's A4 did the same.
+- **The fix that worked:**
+  - A4/A5 parse only the driver's class (`_class_source`), once per distinct source text: 0.12 s per call, the gate
+    in 6 s, and every one of its 91 red sets identical.
+  - The 9b gate got a parse cache: 26 s, with output byte-identical to before.
+  - The full suite then passed: 132 enforcing gates in 384 s.
+- **Prevention rule:**
+  - Before registering a gate, time it against its suite timeout.
+  - A gate that re-reads a large file per mutant parses it once per distinct text.

@@ -73,3 +73,166 @@ POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1 POKEBOT
 FALSIFIER: a PASS on either -A arm; a FAIL on either fixed arm; any failing set other than the one named.
 
 RESULTS: appended below after the run (this header is not edited).
+
+===== RESULTS (appended after the run; the header above was committed in 592bddcf before it) =====
+Run: 2026-09-30 3:32-4:13 AM LA on 592bddcf (the runner printed: WT HEAD 592bddcf, dirty-code=0, and the ea75fe1f
+driver's sha1). The runner's log:
+WT HEAD 592bddcf branch wt/kittopoff10b dirty-code=0
+OLD driver sha1 613f5bb110c3 (want 613f5bb110c3)
+S-BALLFAIL-KIT-A exit=0 debug=Story-debug-20260930-033202.log 03:33:46 AM
+S-BALLFAIL-KIT exit=0 debug=Story-debug-20260930-033352.log 03:35:36 AM
+S-BALLFAIL-KITONLY-A exit=0 debug=Story-debug-20260930-033542.log 03:40:09 AM
+S-BALLFAIL-KITONLY exit=0 debug=Story-debug-20260930-034015.log 03:42:52 AM
+S-OFF exit=0 debug=Story-debug-20260930-034258.log 03:44:41 AM
+S-BALL exit=0 debug=Story-debug-20260930-034448.log 03:46:22 AM
+S-OBS exit=0 debug=Story-debug-20260930-034628.log 03:48:03 AM
+S-SKIP exit=0 debug=Story-debug-20260930-034809.log 03:51:57 AM
+S-ON exit=0 debug=Story-debug-20260930-035203.log 03:53:38 AM
+S-RAW exit=0 debug=Story-debug-20260930-035344.log 03:55:18 AM
+S-KITONLY exit=0 debug=Story-debug-20260930-035524.log 03:57:53 AM
+S-BOTHKIT exit=0 debug=Story-debug-20260930-035759.log 04:00:27 AM
+S-FH exit=0 debug=Story-debug-20260930-040033.log 04:03:02 AM
+S-OBS-RAISE exit=0 debug=Story-debug-20260930-040308.log 04:04:42 AM
+S-VAC exit=0 debug=Story-debug-20260930-040449.log 04:09:15 AM
+S-RAWVAC exit=0 debug=Story-debug-20260930-040921.log 04:13:09 AM
+HK10B-RERUN-DONE
+
+[exited with code 0]
+
+THE GRADER (scratch hk10b_rerun_grade.py). (1) compares every frame-stamped driver-segment line of each graded arm
+with the committed graded run, after applying ONLY the substitutions filed above, each of which must apply to exactly
+one line; (2) compares the driver's --log lines the same way, plus the two new R lines with their filed values, and
+the verdict and failing set; (3) checks the four new arms against their filed verdicts, failing sets, R values, memo,
+money and failure lines.
+FAULT-TESTED FIRST, pointed at the ORIGINAL graded run (ea75fe1f's outputs, as if they were the re-run): it FAILED (1)
+exactly on S-ON, S-RAW and S-BOTHKIT, at the DC2 lines (the old text), and (2) on every arm, for the missing R lines
+and the old REPORT money, while every verdict and failing set passed. Its summary:
+30/49 checks PASS
+  FAIL S-BALLFAIL-KIT-A: has a log
+  FAIL S-BALLFAIL-KIT: has a log
+  FAIL S-BALLFAIL-KITONLY-A: has a log
+  FAIL S-BALLFAIL-KITONLY: has a log
+  FAIL S-OFF: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-BALL: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-OBS: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-SKIP: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-ON: (1) every frame-stamped line = the graded run, DC2 lines as filed (34 vs 34)
+  FAIL S-ON: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-RAW: (1) every frame-stamped line = the graded run, DC2 lines as filed (35 vs 35)
+  FAIL S-RAW: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-KITONLY: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-BOTHKIT: (1) every frame-stamped line = the graded run, DC2 lines as filed (31 vs 31)
+  FAIL S-BOTHKIT: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-FH: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-OBS-RAISE: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-VAC: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+  FAIL S-RAWVAC: (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed
+
+THE GRADE (66/66):
+=== S-BALLFAIL-KIT-A
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing b
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outc
+  PASS  ACCEPTANCE FAIL on EXACTLY ['kit_as_forecast']  — ['kit_as_forecast']
+  PASS  the old driver: kit_expected [Hyper 1], no kit_ballraise key
+  PASS  the basket bought (Revive +3, Full Heal +8, Hyper +30), Ultra +0, 67466 -> 22166, 'bought'  — (3, 8, 30, 0) 22166
+  PASS  memo_end = both keys  — ['SootopolisCity', 'SootopolisCity:kit']
+  PASS  REPORT balls.phase and kit.phase 'failed'
+  PASS  debug: the forecast pair, then EXACTLY the topoff-failed + kit-failed pair  — ["[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"] ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"]
+=== S-BALLFAIL-KIT
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing b
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outc
+  PASS  ACCEPTANCE PASS, every conjunct True  — []
+  PASS  kit_phase_failed, both_keys_memoised, kit_as_forecast graded
+  PASS  R kit_ballraise True, kit_walk True, kit_expected []
+  PASS  the basket bought (Revive +3, Full Heal +8, Hyper +30), Ultra +0, 67466 -> 22166, 'bought'  — (3, 8, 30, 0) 22166
+  PASS  memo_end = both keys  — ['SootopolisCity', 'SootopolisCity:kit']
+  PASS  REPORT balls.phase and kit.phase 'failed'
+  PASS  debug: the forecast pair, then EXACTLY the topoff-failed + kit-failed pair  — ["[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"] ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"]
+=== S-BALLFAIL-KITONLY-A
+  PASS  PREMISE FAILED for expect=ballfail and ACCEPTANCE FAIL  — [earlybasket] FAILURE BotModeError: earlybasket: PREMISE FAILED for expect=ballfail (in_era=True, in_sootopolis=True, plan=[], balls=[('Ultra Ball', 1)], kit=[('Hyper Potion', 1)]) — this run would pa
+  PASS  no visit: no REPORT lines, money 22166 unchanged  — []
+=== S-BALLFAIL-KITONLY
+    [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 15
+    [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing b
+    [KIT-BUY] why=kit-forecast mart=SootopolisCity kit=[('Hyper Potion', 1)] bought=- money=22166->22166 wants=[('Hyper Potion', 4), ('Full Heal', 2)] split_balls=[] floor=19000 walk=True reason=kit [('Hyper Potion', 1)] and 0 x Ultra
+    [KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outc
+  PASS  ACCEPTANCE PASS, every conjunct True  — []
+  PASS  'kit only', readings [EB-MART], nothing bought, money 22166 -> 22166  — kit only ['EB-MART'] 22166 0 0
+  PASS  R kit_ballraise True, kit_walk True, kit_expected []
+  PASS  memo_end = both keys  — ['SootopolisCity', 'SootopolisCity:kit']
+  PASS  REPORT balls.phase and kit.phase 'failed'
+  PASS  debug: the forecast pair, then EXACTLY the topoff-failed + kit-failed pair  — ["[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"] ["[KIT-BUY] why=kit-failed mart=SootopolisCity kit=- bought=- money=?->? reason=the top-off phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the top-off phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands"]
+=== S-OFF
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (27 vs 27)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-BALL
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (33 vs 33)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-OBS
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (34 vs 34)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-SKIP
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (13 vs 13)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-ON
+  PASS  segment: the filed substitution applies to exactly one line ([BALLS-BUY] why=topoff-none money=22166->20966...)  — 1 lines
+  PASS  segment: the filed substitution applies to exactly one line ([EARLY_BASKET] 'bought': 0, 'premier': 0, 'ok': True, '...)  — 1 lines
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (34 vs 34)
+  PASS  driver log: the filed substitution applies to exactly one line (REPORT balls = 'money_after': 20966...)  — 1 lines
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-RAW
+  PASS  segment: the filed substitution applies to exactly one line ([KIT-BUY] why=kit-none money=22166->20966...)  — 1 lines
+  PASS  segment: the filed substitution applies to exactly one line ([EARLY_BASKET] 'got': {}, 'ok': True, 'money_after': 20...)  — 1 lines
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (35 vs 35)
+  PASS  driver log: the filed substitution applies to exactly one line (REPORT kit = 'money_after': 20966...)  — 1 lines
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE FAIL on exactly its pre-registered set  — ['bag_delta_equals_plan', 'balls_as_forecast', 'kit_as_forecast', 'kit_attributed', 'kit_before_after_basket', 'production_kit_forecast']
+=== S-KITONLY
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (29 vs 29)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-BOTHKIT
+  PASS  segment: the filed substitution applies to exactly one line ([BALLS-BUY] why=topoff-none money=22166->20966...)  — 1 lines
+  PASS  segment: the filed substitution applies to exactly one line ([EARLY_BASKET] 'bought': 0, 'premier': 0, 'ok': True, '...)  — 1 lines
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (31 vs 31)
+  PASS  driver log: the filed substitution applies to exactly one line (REPORT balls = 'money_after': 20966...)  — 1 lines
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-FH
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (31 vs 31)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-OBS-RAISE
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (34 vs 34)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE PASS  — []
+=== S-VAC
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (12 vs 12)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) PREMISE FAILED … kit=[] and ACCEPTANCE FAIL
+=== S-RAWVAC
+  PASS  (1) every frame-stamped line = the graded run, DC2 lines as filed (13 vs 13)
+  PASS  (2) the driver's lines = the graded run's + the two new R lines, REPORT money as filed  — extra present: [True, True]
+  PASS  (2) ACCEPTANCE FAIL on exactly its pre-registered set  — ['kit_as_forecast', 'kit_attributed', 'kit_bought_as_forecast', 'meds_delta_is_kit', 'money_drop_equals_cost', 'production_kit_forecast', 'topoff_only_visit', 'walked_and_reheald', 'walked_back_across']
+
+66/66 checks PASS
+
+READING:
+- The twelve graded arms: every frame-stamped line is IDENTICAL to the graded run except exactly the filed DC2 lines
+  (S-ON and S-BOTHKIT's ball line and `[EARLY_BASKET]` balls part, S-RAW's kit line and `[EARLY_BASKET]` kit part),
+  which now read the wallet unchanged. Every verdict and failing set stands. ⚠ A determinism check of one trajectory,
+  not a replication.
+- DC1, reproduced live and then fixed (an A/B of the DRIVER; production identical in both arms):
+  - post_hm07: the ea75fe1f driver FAILs on exactly ['kit_as_forecast'] a build that did precisely what E5 defines
+    (basket bought, kit and balls raised and memoised). The fixed driver PASSes it, all 16 conjuncts True.
+  - eb_after_M0a (a kit-only walk): the ea75fe1f driver cannot even start (PREMISE FAILED). The fixed driver PASSes:
+    'kit only', nothing bought, both keys memoised, ₽22,166 unchanged.

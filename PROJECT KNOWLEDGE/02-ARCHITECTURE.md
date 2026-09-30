@@ -245,7 +245,15 @@ OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (
     The errand plans the kit in its own try, buys balls and kit in ONE `buy_in_shop` call, verifies each set per item
     name against its planned lines, and memoises `<city>` and `<city>:kit` separately.
   - With the kit OFF, skipped or in `observe`, every ball decision is 9a's (a 16,128-state differential: 0 differ).
-  - Gate: `probe_kit_topoff.py`. Consumer (b) (10b) is not built.
+  - Gate: `probe_kit_topoff.py`.
+- **The healing kit, step 10b (consumer (b), same flags; `ai-research-notes/2026-09-29-kittopoff10b-DESIGN.md`):**
+  - `sootopolis_kit_forecast` runs right after 9b's forecast, in its own try, and writes `report["kit"]` (the D6 ball
+    split in `split_balls`; 9b's forecast is never rewritten). The effective ball walk is that split when the kit buys.
+  - `_shop` dispatches to `sootopolis_topoff_phase` when the kit buys, before 9b's dispatch: one live re-plan, one
+    `buy_in_shop` for both sets, the kit's `before` read AFTER the basket, each set verified, logged and memoised by
+    its own verdict (`SootopolisCity`, `SootopolisCity:kit`). The outcome labels are `TOPOFF_ONLY_OUTCOMES`.
+  - The earlybasket driver's kit grade is `tools/story-dev/kit_grade.py` (pure). Gate:
+    `probe_kit_topoff_sootopolis.py`. Kit OFF/skipped/observe is 9b's visit (a differential: 0 differ).
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:

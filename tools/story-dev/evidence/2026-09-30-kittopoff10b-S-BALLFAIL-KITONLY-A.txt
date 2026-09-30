@@ -1,0 +1,61 @@
+# design v2 step 10b REVIEW, new arm S-BALLFAIL-KITONLY-A (the ea75fe1f driver; production = 592bddcf's fixed code).
+# Fixture saves/eb_after_M0a.ss1. Flags: EB_EXPECT=ballfail POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1 POKEBOT_R23_FAULT_BALLRAISE=1
+# Command: the 10b arms' seed-1 wrapper, --driver earlybasket --frames 16000 (the -A arms run the ea75fe1f harness source, compiled as story_harness.py; see -REVIEW-RERUN.txt).
+# exit=0; debug log Story-debug-20260930-033542.log (the ONE file this run created: listing diff); 2026-09-30.
+# Expected lines: -REVIEW-RERUN.txt (committed in 592bddcf BEFORE the run).
+# ---- the driver's lines (its --log) ----
+[earlybasket] PRE {'start_at': ((0, 7), (43, 32)), 'frame_start': 3708572, 'money_start': 22166, 'stock_start': {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': []}
+[earlybasket] PRE-BALLS start={'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1} mode='1' forecast=[('Ultra Ball', 1)] floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+[earlybasket] PRE-KIT start={'Awakening': 0, 'Full Heal': 8, 'Hyper Potion': 30, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 3, 'Super Potion': 0} mode='1' skip=False blocked=False forecast=[('Hyper Potion', 1)] raw=[] split=[] expected=[('Hyper Potion', 1)] balls_expected=[] floor=19000
+[earlybasket] FAILURE BotModeError: earlybasket: PREMISE FAILED for expect=ballfail (in_era=True, in_sootopolis=True, plan=[], balls=[('Ultra Ball', 1)], kit=[('Hyper Potion', 1)]) — this run would pass having done nothing.
+[earlybasket] R balls_end = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R balls_expected = []
+[earlybasket] R balls_floor = 19000
+[earlybasket] R balls_forecast = [('Ultra Ball', 1)]
+[earlybasket] R balls_forecast_made = True
+[earlybasket] R balls_split = []
+[earlybasket] R balls_start = {'Dive Ball': 0, 'Great Ball': 1, 'Luxury Ball': 0, 'Nest Ball': 0, 'Net Ball': 0, 'Poké Ball': 16, 'Repeat Ball': 0, 'Timer Ball': 0, 'Ultra Ball': 0, 'Premier Ball': 1}
+[earlybasket] R bb_mode = '1'
+[earlybasket] R final_at = ((0, 7), (43, 32))
+[earlybasket] R frame_start = 3708572
+[earlybasket] R frames = 0
+[earlybasket] R in_era = True
+[earlybasket] R in_sootopolis = True
+[earlybasket] R kit_blocked = False
+[earlybasket] R kit_buys = True
+[earlybasket] R kit_end = {'Awakening': 0, 'Full Heal': 8, 'Hyper Potion': 30, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 3, 'Super Potion': 0}
+[earlybasket] R kit_expected = [('Hyper Potion', 1)]
+[earlybasket] R kit_floor = 19000
+[earlybasket] R kit_forecast = [('Hyper Potion', 1)]
+[earlybasket] R kit_forecast_made = True
+[earlybasket] R kit_forecast_raw = []
+[earlybasket] R kit_mode = '1'
+[earlybasket] R kit_skip = False
+[earlybasket] R kit_start = {'Awakening': 0, 'Full Heal': 8, 'Hyper Potion': 30, 'Ice Heal': 0, 'Max Potion': 0, 'Potion': 1, 'Revive': 3, 'Super Potion': 0}
+[earlybasket] R memo_end = []
+[earlybasket] R money_end = 22166
+[earlybasket] R money_start = 22166
+[earlybasket] R on_gym_1f = False
+[earlybasket] R party_full_end = True
+[earlybasket] R plan_predicted = []
+[earlybasket] R start_at = ((0, 7), (43, 32))
+[earlybasket] R stock_end = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] R stock_start = {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}
+[earlybasket] ORDER [] PLAN [] DELTA {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0} COST 0
+[earlybasket] BALLS expected={} forecast=[('Ultra Ball', 1)] delta={} bought={} ball_cost=0 floor=19000
+[earlybasket] KIT expected={'Hyper Potion': 1} kit={} meds_delta={} kit_cost=0 forecast=[('Hyper Potion', 1)] raw=[] split=[] memo_end=[]
+[earlybasket] conjuncts = {'ball_phase_failed': False, 'basket_outcome_kept': False, 'readings_as_basket': False, 'bag_delta_equals_plan': True, 'no_ball_delta': True, 'money_drop_equals_cost': True, 'walked_and_reheald': False, 'walked_back_across': False, 'on_gym_1f': False, 'no_failure': False, 'no_whiteout': True, 'production_forecast': False, 'production_kit_forecast': False, 'kit_as_forecast': False}
+[earlybasket] ACCEPTANCE: FAIL (expect=ballfail) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
+# ---- the debug log's driver segment (every frame-stamped line up to the fixture restore) ----
+f3708542 ===== DUMP [enable — initial state] =====
+f3708543 [MODE] Story -> Manual   (message='')
+f3708812 ===== DUMP [STUCK — 300 frames no progress] =====
+f3711812 ===== DUMP [STUCK — 3300 frames no progress] =====
+f3712142 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(43, 32) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=22166 box=0 badges=7 msg=''
+f3714812 ===== DUMP [STUCK — 6300 frames no progress] =====
+f3715742 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(43, 32) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=22166 box=0 badges=7 msg=''
+f3717812 ===== DUMP [STUCK — 9300 frames no progress] =====
+f3719342 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(43, 32) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=22166 box=0 badges=7 msg=''
+f3720812 ===== DUMP [STUCK — 12300 frames no progress] =====
+f3722942 [hb] mode=Manual state=7 controllable=True map=SOOTOPOLIS CITY(0,7) pos=(43, 32) party=['Swellow:L41', 'Zigzagoon:L19', 'Sceptile:L50', 'Wailmer:L40', 'Mightyena:L44', 'Castform:L36'] ids=['Swellow#0B30A747:L41:exp64229', 'Zigzagoon#33CB74C3:L19:exp7035', 'Sceptile#863B0917:L50:exp119908', 'Wailmer#FA51ECF3:L40:exp68951', 'Mightyena#5C96EA9B:L44:exp88688', 'Castform#C978D14E:L36:exp47020'] owned=10 balls=19 money=22166 box=0 badges=7 msg=''
+f3723812 ===== DUMP [STUCK — 15300 frames no progress] =====

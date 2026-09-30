@@ -1,4 +1,4 @@
-# 2026-09-30 — USER RULING 26, design v2 step 10b (HK at Sootopolis) GRADED: the kit rides RULING 18's League-basket visit, bought AFTER the basket; kit OFF/skip/observe is 9b exactly; all twelve predictions held (49/49), the two FAIL-by-design arms on exactly their pre-registered conjuncts
+# 2026-09-30 — USER RULING 26, design v2 step 10b (HK at Sootopolis) GRADED: the kit rides RULING 18's League-basket visit, bought AFTER the basket; kit OFF/skip/observe is 9b exactly; all twelve predictions held (49/49), the two FAIL-by-design arms on exactly their pre-registered conjuncts; REVIEWED: two driver/production defects and a narrower rule fixed, the gate made fast enough for its suite, the fixes re-run 66/66 as filed
 
 > Predictions: `2026-09-30-kittopoff10b-PREDICTIONS.md` (`3e246e81`), committed BEFORE the code commit (`ea75fe1f`)
 > and before any graded arm. The design: `2026-09-29-kittopoff10b-DESIGN.md` (`f52e1e5c`, after a recon and an
@@ -62,7 +62,11 @@
 ## WHAT THIS DOES NOT SHOW
 
 - Whether the kit wins Juan or the League (step 14). A second seed: every arm is one trajectory, replayed.
-- The budget-close arm with the kit on (optional in the design; not run; gate rows P7/P18 cover the close).
+- The budget-close arm with the kit on (optional in the design; not run; gate rows P7/P18 cover the close). After the
+  review, `EB_EXPECT=budget` grades no kit conjunct at all; that removal is pinned by A5 (mutant DG), not live.
+- A live purchase of balls AND kit in one call at Sootopolis: neither fixture reaches a non-empty split next to a kit
+  (the kit's full want costs the ₽6,000 cap). Gate row P4 here; live only at Rustboro (10a K-ON).
+- LI-2's rule change (a spare drop on the crossing) is gate-proven (P26, mutant WASTE) and reached by no live arm.
 
 ## THE REVIEW
 
@@ -97,5 +101,13 @@ refuted.
   30,000-line harness, twice per mutant. A4/A5 now parse the driver's class only, once per source text: 6 SECONDS,
   every red set identical. The 9b gate had the same cost (220 s, 73% of its timeout); a parse cache took it to 26 s,
   with its output byte-identical.
-- **The re-run and the four new arms** (DC1 reproduced on the `ea75fe1f` driver, then fixed): EXPECTED lines filed
-  first in `tools/story-dev/evidence/2026-09-30-kittopoff10b-REVIEW-RERUN.txt` (pending: not yet run).
+- **The re-run and the four new arms: 66/66, every expectation held** (`evidence/…-REVIEW-RERUN.txt`, its expected
+  lines committed in `592bddcf` BEFORE the run; the grader was fault-tested on the original run first).
+  - The twelve graded arms: every frame-stamped line is identical to the graded run except exactly the filed DC2
+    lines, which now read the wallet unchanged. Every verdict and failing set stands. (One trajectory, replayed.)
+  - **DC1, reproduced live and then fixed** (an A/B of the DRIVER; production identical in both arms):
+    - on post_hm07 (`S-BALLFAIL-KIT`), the `ea75fe1f` driver FAILs on exactly `['kit_as_forecast']` a build that did
+      precisely what E5 defines. The fixed driver PASSes, all 16 conjuncts True;
+    - on eb_after_M0a (`S-BALLFAIL-KITONLY`, a kit-only walk), the old driver cannot start (PREMISE FAILED). The fixed
+      driver PASSes: 'kit only', nothing bought, both keys memoised, ₽22,166 unchanged.
+    - Evidence: `evidence/2026-09-30-kittopoff10b-S-BALLFAIL-*.txt`.

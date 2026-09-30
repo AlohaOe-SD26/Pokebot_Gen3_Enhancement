@@ -174,6 +174,26 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
   rows asserted the defect the review then fixed. A row copied from the implementation cannot find a bug in it.
 * ⛔ **TABULATE THE INPUT DIMENSIONS BEFORE WRITING ROWS; MATCH LOG LINES BY PREFIX** (added 2026-09-29, 08). One
   fixture per errand row let 32 mutants through a gate that passed its coverage check.
+* ⛔ **A GATE STUB OF A DICT THAT PRODUCTION WRITES CARRIES PRODUCTION'S WHOLE SHAPE, AT STALE VALUES** (added
+  2026-09-30, 08; the step 10b review's KT2-STUB1). The 10b counter stub seeded only the kit keys the rows read, and
+  its live floor was a constant equal to the forecast's. So a counter that read the FORECAST's floor, wallet or wants
+  passed every row, while live it would spend below the League floor after a short basket. Seed every key production
+  writes (`FORECAST_KEYS`), make the live reads follow the fake state as the real reads do, and add a row where they
+  differ (P23: a short basket).
+* ⛔ **A CONJUNCT IN A DRIVER'S `common` MUST HOLD FOR EVERY EXPECT AND EVERY LEVER** (added 2026-09-30, 08; DC1). The
+  10b driver's `kit_as_forecast` sat in `common` while the lever rule did not model BALLRAISE: no build could pass
+  `ballfail` with the kit on. Walk the EXPECT list for each common conjunct; a lever with a defined response is
+  modelled, and a grade whose outcome depends on WHEN a close lands (`budget`) does not carry it.
+* ⛔ **A MUTANT ANCHOR IS A SUBSTRING: WHEN NEW CODE LANDS IN A FILE AN OLD GATE MUTATES, RUN THE OLD GATE FIRST**
+  (added 2026-09-30, 08). Five phrases of the 10b code repeated 9b anchors at a deeper indent; 9b's mutants could not
+  run until the new code was reworded.
+* ⛔ **READ THE INPUT-DIMENSION TABLE BACK FROM THE ROWS** (added 2026-09-30, 08). The 10b gate's header named values
+  no row set; 23 mutants passed through them. For each value, grep the row that sets it before the first run.
+* ⛔ **TIME A NEW GATE AGAINST ITS SUITE TIMEOUT BEFORE REGISTERING IT** (added 2026-09-30, 08). `run_gates.py` kills
+  a FAST gate at 300 s. The 10b gate took 15 minutes and would have read as a FAILURE in the suite. Profiling showed
+  97% of the time was `ast.parse` of the 30,000-line harness, twice per mutant. It now parses the driver's CLASS once
+  per source text and runs in 6 s; `probe_kit_topoff_sootopolis.py` `_class_source`/`_parsed` is the worked example.
+  Run long gates with `py -u` in the background, because buffered output looks like a hang.
 
 ---
 

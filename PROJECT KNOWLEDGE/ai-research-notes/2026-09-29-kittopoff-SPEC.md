@@ -21,6 +21,10 @@
 > - **The kit is planned in its own try:** a raise in a kit-only read blocks only `<city>:kit`, and the balls stay
 >   9a's. This keeps D6's "observe buys exactly the kit-OFF purchase" true under a fault.
 
+> ⚠ **10b (2026-09-30): D11-D12 were NOT built as written.** They cannot be: the kit and the League basket buy
+> the same item names at Sootopolis. `2026-09-29-kittopoff10b-DESIGN.md` (E1-E11) superseded them; results in
+> `2026-09-30-kittopoff10b-GRADED.md`.
+
 ## WHY THE v2 BODY CANNOT BE BUILT AS WRITTEN (the recon's two blockers)
 
 1. **The step 9 errand cannot carry non-ball lines.**

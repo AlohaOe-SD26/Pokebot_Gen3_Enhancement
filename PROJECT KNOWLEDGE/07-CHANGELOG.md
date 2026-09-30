@@ -37243,3 +37243,46 @@ bought balls only at fixed story points.
   line form is recorded as not built.
 - **Regression re-run** (`evidence/2026-09-29-kittopoff10a-REVIEW-RERUN.txt`, its expected lines committed in
   `5e841f2c` BEFORE the run): see its RESULTS section.
+
+## 2026-09-30 — design v2 step 10b (HK at Sootopolis) BUILT AND GRADED: the healing kit rides RULING 18's League-basket visit, bought AFTER the basket (`#26-organiccatch`)
+
+- **Design** `ai-research-notes/2026-09-29-kittopoff10b-DESIGN.md` (E1-E11, after a four-angle recon and an adversarial
+  review, `f52e1e5c`). It supersedes the spec's D11-D12: the kit and the basket buy the same names, so they are
+  separated by TIME. **Predictions** `2026-09-30-kittopoff10b-PREDICTIONS.md` (`3e246e81`, before the code).
+- **Code (`ea75fe1f`), behind `POKEBOT_R26_KITTOPOFF` (default OFF, buying only with `POKEBOT_R27_KEYITEMS=1`):**
+  - `stock_topoff.py`: `sootopolis_kit_forecast` (its own try; `report["kit"]`, the D6 split in `split_balls`; 9b's
+    forecast never rebound), `sootopolis_topoff_phase` (the counter: the live re-plan, ONE `buy_in_shop` for both sets,
+    the kit's `before` read after the basket, per-set verdicts, lines and memo), `kit_held_after_basket`,
+    `kit_buys_here`, `SOOTOPOLIS_STATIC_KIT_SOLD`, the kit key `SootopolisCity:kit`.
+  - `league_reserve.py`: `TOPOFF_ONLY_OUTCOMES` exported; the effective walks and labels; `_shop` dispatches to the
+    top-off phase when the kit buys, before 9b's unchanged dispatch; a ` kit=` suffix on `[EARLY_BASKET]` only with a
+    kit key.
+  - The `--driver earlybasket` kit grade (`EB_EXPECT=kit`; `kit_grade.py`, pure); the memo made observable.
+- **Gate** `probe_kit_topoff_sootopolis.py` (registered in `run_gates.py`), after an adversarial mutant pass that found
+  23 misses and a production defect (PD1, fixed with row P22). **Differential:** 1,620 visit pairs and 80 `_shop` pairs
+  with the kit OFF/skipped/observe, 0 differ from 9b, planted controls caught (`evidence/…-DIFF.txt`).
+- **Graded, 49/49** (`2026-09-30-kittopoff10b-GRADED.md`, `evidence/2026-09-30-kittopoff10b-S-*.txt`): all twelve
+  predictions held, including the two FAIL-by-design arms (S-RAW, S-RAWVAC) on exactly their pre-registered sets. S-ON:
+  ₽67,466 → ₽20,966, Hyper +31 (basket 30 + kit 1). S-FH: the first live Full Heal. S-OFF/S-BALL: 9b's lines exactly.
+
+## 2026-09-30 — design v2 step 10b REVIEWED (design conformance, a second gate adversary, live integration; each finding put to a refuter): the driver's lever rule completed, each set's line carrying only its own money, a narrower "wasted" rule (`#26-organiccatch`)
+
+- **DC1 / LI-1 (CONFIRMED, medium):** the driver's `kit_as_forecast` was in `common` and BALLRAISE was not modelled:
+  with the kit on, `ballfail` could never pass and `budget` failed a correct close. Fixed in the driver (06).
+- **DC2 (CONFIRMED, low):** a set that planned no line logged the other set's cost. Fixed in production; E5 amended.
+- **KT2-STUB1 / X2 (CONFIRMED, medium) and X1, X3-X6, Z1, D1, D2 (low):** gate misses. The stub now carries
+  production's whole forecast dict and a floor that follows the bag; rows P23-P26, O13 and G3 +2; 17 new mutants
+  (sets written before the run); the review found no production defect behind them except where named.
+- **LI-2 (PLAUSIBLE, low):** a spare drop on the crossing memoised a legitimate kit. Fixed (the rule); E5 amended.
+- **LI-3:** refuted.
+- **Gate after the review:** ALL PASS, 160 checks (69 rows, 88 mutants, 3 no-ops); every red set equal to the one written before the
+  run (`evidence/2026-09-30-kittopoff10b-REVIEW-GATE.txt`). E7's differential re-run: 0 differ, both planted
+  controls caught (`-REVIEW-DIFF.txt`).
+- **Also:** the gate took 15 minutes against the suite's 300 s FAST timeout (it would have read as a suite FAILURE);
+  profiled, 97% was `ast.parse` of the 30,000-line harness twice per mutant. A4/A5 parse the driver's class
+  once per source text: 6 s, every red set identical. The 9b gate (220 s) got a parse cache: 26 s, output
+  byte-identical. The full suite then passed: 132 enforcing gates, 384 s (`-SUITE.txt`).
+- **The re-run and four new arms** (`evidence/2026-09-30-kittopoff10b-REVIEW-RERUN.txt`, its expected lines committed
+  BEFORE the run): **66/66, every expectation held.** The twelve graded arms are frame-identical except exactly the filed DC2
+  lines; DC1 reproduced on the `ea75fe1f` driver (FAIL on exactly `kit_as_forecast`; a kit-only walk could
+  not even start) and fixed (both PASS).
