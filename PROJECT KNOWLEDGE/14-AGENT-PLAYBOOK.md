@@ -554,6 +554,25 @@ once Wally is beaten, so the rest of the real leg-5 walk loses. Three things mad
   that calls through. Callers do `from modules import debug_logger; debug_logger.event(...)`, so a module-attribute
   rebind catches every line exactly as written.
 
+### 3e. ‼ A LIVE RUN LEFT THE PREDICTED TRAJECTORY: ATTRIBUTE IT WITH A BASE RUN IN THE SAME WORKTREE (added 2026-09-30)
+
+Step 11's arms left the trajectory its per-turn table was taken from. Was that the build, or KI-112?
+- **Run the BASE code where the build ran.** Load the base source of each changed module (`git show <base>:<path>`)
+  into `sys.modules` under its real name, before the harness imports it; then seed and run exactly as the arms did.
+  - The tool is `tools/story-dev/run_with_base_modules.py <base> <path>[,<path>...] <harness args>`. It FAILS if a
+    module the build added under `sandbox-pokebot/modules` gets imported, which is how a changed module you forgot to
+    name shows itself. Fault-tested: naming only one of step 11's two modules fails on `modules.dmgaudit`.
+  - Do not check out the base, and do not use another worktree: the untracked profile and caches must stay the SAME.
+    Only the code may differ.
+- **File the A/B's prediction BEFORE it runs**, as a dated ADDENDUM that changes no earlier row.
+- **Re-run the source run's own script too.** Step 11's 5:27 AM divergence did not reproduce under its own probe; that
+  is what made it a KI-112 event and not a probe effect.
+- **Then grade the table by its filed rule:** reached rows as filed, unreached rows NOT REACHED (never PASS),
+  unregistered rows reported.
+- **Before this happens again:** take a live per-turn table from TWO identical runs (08).
+- **Observe-only instruments get a LIVE SMOKE before their classifier is final.** The faint reset (08) was invisible
+  to a gate built on the design's own model of memory.
+
 ## 4. Story-mapping method (how to build a new chapter)
 
 **MAP FIRST, then build, then validate.** (Hard-won: Rustboro cost us dearly by building

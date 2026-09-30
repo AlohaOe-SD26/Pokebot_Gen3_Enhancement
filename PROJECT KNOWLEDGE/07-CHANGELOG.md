@@ -37286,3 +37286,26 @@ bought balls only at fixed story points.
   BEFORE the run): **66/66, every expectation held.** The twelve graded arms are frame-identical except exactly the filed DC2
   lines; DC1 reproduced on the `ea75fe1f` driver (FAIL on exactly `kit_as_forecast`; a kit-only walk could
   not even start) and fixed (both PASS).
+
+## 2026-09-30 — design v2 step 11 (M1, damage-calculator fidelity) BUILT AND GRADED: an inert, flag-gated `[DMGAUDIT]` recorder, a pure offline audit, and the decomp-ordered port; the calculator MEASURED, not yet cleared (`#26-organiccatch`)
+
+- **What it is for:** step 12 (weaken-to-catch) will trust the calculator's crit maximum not to KO a wanted Pokémon.
+  Step 11 measures how far real damage strays from it. It is measurement only; the fixes are `#27-dmgcalcfix`.
+- **Built (`c44b1def`):**
+  - `sandbox-pokebot/modules/dmgaudit.py`: raw reads behind `POKEBOT_R25_DMGAUDIT` (default OFF), hooked in
+    `battle_handler` and `battle_action_selection`;
+  - `tools/story-dev/audit_damage_calc.py` (pure) and `dmgcalc_port.py`;
+  - gates `probe_damage_calc_decomp.py` (M1a: 45 rows + 38 mutant cases) and `probe_dmgaudit.py` (177 rows + 193
+    mutants).
+  - Both gates went through an adversarial mutant pass first. The audit gate's first version missed 96 of 107 mutants.
+  - The full suite: 134 of 134 enforcing gates pass (469 s).
+- **Graded (`ai-research-notes/2026-09-30-dmgcalc11-GRADED.md`, `evidence/2026-09-30-dmgcalc11-M1B-GRADE.txt`):**
+  - Inert: ON = OFF on all 371 frame-stamped lines, and OFF = OFF.
+  - The per-turn table: 15 of 15 reached rows exact; 2 NOT REACHED.
+  - FAULT above ON on both reached named turns; raw = parsed (86 = 86); 0 `ERR`.
+  - 8 accepted hits, every one inside the non-crit [min, max], 0 over crit_max + 3. ACCEPTANCE INSUFFICIENT (8 of 300),
+    as predicted.
+  - ⚠ Two filed literals missed, both explained in the note: the CTL count (15 as filed, 14 on this trajectory), and the
+    "five doubles exits" slip in the filed text (nine).
+- **A second KI-112 event:** the table's source run (Step-0, 5:27 AM) met a wild Linoone that none of nine later runs
+  met. That includes the base code's (a base A/B filed BEFORE it ran) and the Step-0 probe's own re-runs (05 KI-112).

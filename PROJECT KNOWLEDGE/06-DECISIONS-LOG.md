@@ -8577,3 +8577,41 @@ The graded note is `ai-research-notes/2026-09-30-kittopoff10b-GRADED.md`, with i
 - **Not taken:** a live arm that buys balls and kit in one call at Sootopolis. Neither fixture reaches a non-empty
   split next to a kit, because the kit's full want costs the whole ₽6,000 cap. The call is proven live at Rustboro
   (10a K-ON) and by gate row P4 here.
+
+## 2026-09-30 — Design v2 step 11 (M1, damage-calculator fidelity) as built and graded: raw reads in production, every verdict offline, the faint rule, and how a diverged trajectory is graded (`#26-organiccatch`)
+
+The design's F1-F10 (`ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md`) are its decisions; this entry records the
+choices made while BUILDING and GRADING it (the design's AS BUILT section, and `…-GRADED.md`).
+
+- **Production logs RAW reads only; every verdict is offline and pure** (`audit_damage_calc.py`, gated by
+  `probe_dmgaudit.py`). A classifier bug then costs a re-audit, never a re-run. The committed raw log
+  (`evidence/…-M1B-ON-r1-debug.txt`) re-audits byte for byte.
+  - Rejected: verdicts computed in the battle loop, which put judgement code in the every-battle path.
+- **`base=` is logged beside `pred=`.** It is the calculator's own base term, plain and crit. It lets the audit replay
+  the decomp-ordered port from the LIVE base, which makes SR-7's independent control a live check.
+  - Rejected: controlling only against the calculator's own output. That is circular.
+- **The FAINT RULE** (found by the live smoke). When the foe fainted, no per-mon foe comparison runs on the AFTER
+  record, because the game resets it; the pair keys on the foe's chosen move.
+  - Rejected: excluding KO pairs, which throws away the evidence B4 keeps and step 12 needs.
+  - Rejected: reading the fainted foe's record from somewhere else. The reset is the game's own behaviour, and there
+    is no second copy to read.
+- **An absent left battler (a fainted slot in a double) logs `pred=err:Absent`**, never an exception name. Doubles
+  are outside the acceptance anyway.
+- **M1b-DIFF was built as AST equality with the hooks removed, plus 0 reads and 0 logs with the flag unset, plus 0
+  `get_battle_state()` calls with it set.** That covers every path, not one driven path.
+  - Rejected: only the filed form, identical yields through `repro_ki46`'s fake readers (that repro still passes in
+    the suite).
+  - M1b-EXEC is met by the exact CTL/BEFORE/AFTER sequence: each hook's `except` logs an `ERR` line, never silently.
+- **When the live trajectory leaves the one the table was taken from,** the filed rule ("graded only on a reproducing
+  trajectory") is applied as written: reached rows are graded, unreached rows are NOT REACHED (never PASS), and
+  unregistered rows are reported.
+  - The divergence is attributed only by an A/B filed BEFORE it runs: the base code's modules loaded in place of the
+    build's in the SAME worktree (scratch `run_base_off.py`, now the tool `run_with_base_modules.py`), because a
+    checkout or another worktree changes the untracked
+    profile and caches too.
+  - Rejected: re-deriving the table from the build's trajectory after the fact. That would be grading against a
+    prediction written after the result.
+- **The M1a gate keeps its no-pool fallback (~295 s) as a KNOWN LIMIT.** The pool works on this machine.
+  - Rejected: trimming rows to get under 300 s. The rows are the ones the adversarial pass showed were needed.
+- **`ACCEPT_MARGIN = 3` stays a PROPOSAL for the user, and step 12's stage 2 stays OFF** (F8). 8 samples cannot decide
+  it. The verdict on the calculator needs step 14's batch with the flag on in both arms.

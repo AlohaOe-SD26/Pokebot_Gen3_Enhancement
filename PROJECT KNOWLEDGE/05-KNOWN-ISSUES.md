@@ -3165,6 +3165,22 @@ or a standalone item if it is wanted sooner.
 every `[BATTLE]` line. After their shared `[MODE] Story -> Manual` drop, their `[RESUMED] after N frames` lines differ
 (1815, 1820 and 1806 frames). The same holds for two `magmahideout` runs (304 and 353). That points at wall-clock
 timing in the idle/recovery path; it is consistent with the watchdog candidate, and still NOT measured as the cause.
+**A SECOND MEASURED EVENT (2026-09-30, design v2 step 11; `tools/story-dev/evidence/2026-09-30-dmgcalc11-M1B-GRADE.txt`
+§2):**
+- The runs: `storyresume` on `post_mtpyre.ss1`, 90,000 frames, `random.seed(1)`, ten runs in one worktree:
+  - the Step-0 probe (5:27 AM, base code);
+  - OFF ×2, ON ×2 and FAULT on the build (`c44b1def`);
+  - BASE ×2: the base modules loaded in place of the build's;
+  - the Step-0 probe re-run twice on the base.
+- Nine are identical on all 371 frame-stamped lines.
+- The 5:27 AM run shares them to f3215340 (Route 119, the `[hb]` at (35, 90)). It then met a wild Linoone at (22, 127),
+  at f3215905; the other nine walked on to Route 118 at f3215976.
+- Its own script, re-run twice on the same code, did NOT reproduce it. So neither the code nor the probe decides it.
+- **This one is on an OVERWORLD walk, not at a warp,** and no event line sits between the last common line and the
+  divergence (no `[RESUMED]`, no battle). It is consistent with a timing input on the walk path. The cause is still NOT
+  measured.
+- **New consequence:** a pre-registered per-turn table taken from ONE live run can lose its tail. Step 11's lost its
+  two Linoone rows.
 
 ## KI-113 — ⚠ OPEN (filed 2026-09-29; low impact, upstream code): the runtime encounter reader holds the DEAD Altering Cave table (Smeargle), not the live one (Zubat)
 **Measured** (design v2 step 7; `tools/story-dev/rare_species_dataset.py`, check "the static ROM read equals the cache
