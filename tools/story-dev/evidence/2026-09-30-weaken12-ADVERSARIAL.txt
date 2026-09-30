@@ -1,0 +1,313 @@
+design v2 step 12 (weaken-to-catch) — the ADVERSARIAL MUTANT PASS on the gate (probe_weaken_catch.py) at build 18b32bcc, 2026-09-30 LA
+==============================================================================================================
+A fresh agent that never built the gate; MODEL OUTPUT (a NOTE), verbatim. It changed no repository file. Its harness, mutants and
+proposed rows (scratch) are summarised below; the fold-in and its results are in 2026-09-30-weaken12-FOLD.txt.
+
+## Adversarial mutant pass on design v2 step 12's gate (`probe_weaken_catch.py`): report
+
+**Scope.** I tested the worktree `C:/Remote Projects/pokebot-wt-ch24` at build commit `18b32bcc`. HEAD moved to `a6a34e2c` while I worked, but that commit is docs only: `git diff 18b32bcc HEAD` is empty for `weaken_catch.py`, `story_mode.py` and the gate. I changed nothing in the worktree and made no state-changing git calls. The status is the same as at the start (the two pre-existing `M` files).
+
+**Method.** Each mutant is applied in memory with the gate's own `G._apply`/`G._install`, and the gate's own `G.all_rows("m", …)` decides its red set, against a clean baseline (0 red). My proposed rows ran under every mutant too, and all 72 pass on the real code (baseline red = []). The gate's own 9 faults and 103 mutants were also run against my rows, so a fold-in can write exact expected sets.
+
+### Headline
+- **139 mutants tried. The gate caught 37 and missed 102.**
+  - 85 of the misses are caught by the 72 proposed rows.
+  - The other 17 are all equivalent, only more conservative, or unreachable (argued in the table).
+- **The most important miss is V02: the floor `hp - X >= 1` changed to `>= 0`, which admits a knockout when hp == X.**
+  - W53 is the gate's only floor row, and it sits 18 HP from the boundary (22 − 40).
+  - An off-by-one in the one rule that prevents a KO is invisible to the gate.
+  - P-floor0 / P-floor1 pin the boundary.
+- **The adapter's reads are mostly untested.** `aworld` feeds zeros for gStatuses3, gSideStatuses and gBattleWeather, a healthy foe, a lead whose live and species abilities are the same, flags = 4 and no held item. So reading the wrong slot or offset reads zeros either way. 11 of these adapter mutants are missed and are real safety holes (A01/03/04/05/06/07/08/09/14/18/21). Example: A08 never reads the Choice Band, which re-opens the second-hit-via-KI-93-re-pick path that the Choice DEFER exists to close.
+
+### Production defects (the real code gives a verdict that is unsafe or breaks D4's premise that the target "can hurt itself in NO way")
+
+**PD1 (a real knockout path, reachable in Emerald): Trace on a party member who is not the lead.**
+- The retaliation clause reads each non-lead's ability as stored in the party. A Trace mon that comes in after a faint copies the target's live ability:
+  - Trace is set on switch-in (`battle_util.c:2561-2566`) and copied from the opposing battler (`:3003-3043`).
+  - Rough Skin then does maxHP/16 per contact (`:2753-2766`), on every throw turn — the "repeats every turn" hazard D4 rejected numeric floors over.
+- Snapshot: S0 + `party=("Torrent","Trace")` + target live ability Rough Skin, types Water/Dark, moves Leer/Bite/Rage/Focus Energy. The real verdict is **DAMAGE(Seismic Toss)**. The control with `party=("Torrent","Rough Skin")` gives THROW (retaliation).
+- Reach:
+  - Our side: Ralts, Kirlia or Gardevoir with Trace (Ralts is wild on Route 102).
+  - Targets: Carvanha (Rough Skin), Qwilfish (Poison Point), Shroomish (Effect Spore) with contact moves. Synchronize targets work the same way.
+  - It needs the lead to faint after the hit.
+- Suggested fix, in `_self_harm_reason`: if any party subject is "Trace", add `target.ability` to the subjects. A Trace lead is already covered by its live ability.
+
+**PD2 (latent; no wild Pokémon in Emerald has it): Pain Split is missing from the no-self-harm list.**
+- If the target moves first, Pain Split sets its own HP to (ours + its)/2 before our hit lands (`battle_script_commands.c:8049-8066`; `battle_scripts_1.s:1239-1252`). X was bounded against the HP at the start of the turn.
+- Snapshot: S0 + target move slot 2 = Pain Split + our hp = 5. Verdict: DAMAGE, X = 13. After Pain Split the target is at (22+5)/2 = 13, so 13 − 13 = 0 and it faints.
+- Only Misdreavus learns it by level (L37, per `species.json`), and it is not wild in Emerald.
+- Step 11's classifier already counts PAIN_SPLIT as the foe hurting itself.
+- Fix: add `"PAIN_SPLIT"` to `SELF_HARM_EFFECTS`.
+
+**PD3 (latent; no reach): confusion berries.**
+- Figy, Wiki, Mago, Aguav and Iapapa (`confuse_*` hold effects) trigger at hp ≤ max/2, heal 1/8, and confuse the holder on a disliked flavour (`battle_util.c:3213-3228`). The weaken hit is what takes the target to ≤ 50%, and the confusion self-hit can then knock it out.
+- `held_items_rse` has no wild Pokémon holding one, so reach is zero.
+- `target.item` is in the snapshot but no damage rule uses it.
+
+**PD4 (no reach): a party member with Sand Stream** (Tyranitar, trade-only) would start a sandstorm when it comes in after a faint. The weather rule only looks at the weather in effect and at the target's moves.
+
+**PD5 (very low): the Struggle horizon H does not count some turns where no ball is thrown.**
+- Uncounted: failed flee attempts after the balls run out (possible against any faster wild Pokémon), and a stage-2 RECHARGE turn (Hyper Beam is in Tier A).
+- The result would be Struggle recoil of at least 1 on a 1-HP target. The +4 slack, usually 3 unused status tries, normally covers it.
+
+**Checked and NOT a defect:**
+- **Dream Eater + Liquid Ooze.** Emerald's Dream Eater script (`battle_scripts_1.s:425-461`) has no Liquid Ooze branch. Only the Absorb family (`:345`) and Leech Seed (`:3271`) check it, so `DRAIN_EFFECTS={ABSORB,LEECH_SEED}` is exactly right.
+- **Verified against the decomp:**
+  - the DisableStruct offsets (`include/battle.h:70-102`);
+  - every STATUS1/2/3, SIDE, WEATHER and BATTLE_TYPE constant (`include/constants/battle.h`);
+  - Wonder Guard (`bsc.c:1409-1411`) and Super Fang's minimum of 1 (`:7579-7581`);
+  - the ball table and the status multipliers (`:9935-9995`; the catch rate comes from the live species);
+  - `gBattleResults` zeroed per battle (`battle_main.c:3142-3144`) and the turn increment (`:3995-3997`);
+  - the Encore/Disable fields being set and cleared together (`bsc.c:8006-8039`; `bu.c:1698-1727`, `:111-128`).
+- **A grading nit, not a safety issue:** when a THROW verdict can't find its ball in the bag, the log says `act=DEFER` but the memo records THROW. Replaying that line gives THROW.
+
+### The builder's own design-gap decisions (safety verdict for each)
+1. **No-progress cap (two acting turns with no progress → throw-only). Safe.** It only ever adds THROW-ONLY, and a ball can't knock anything out. It is conservative: a hit that landed but was healed back counts as no progress.
+2. **Damage and status caps each block only their own branch. Safe.** Status can't knock anything out. A later damage turn (for example after a faint brings in a new lead) is still held by the floor and the 50% rule, and the damage cap is still 1 per battle.
+3. **Battle-type DEFER on every flag except IS_MASTER and RECORDED_IS_MASTER. Safe and conservative.** A DEFER is the parent's baseline turn. The gate pinned only 5 bits; P-btsweep pins all 32.
+4. **Stage 2's divergence rules. Conservative, since they are broader than step 11's list**: Charge on any move, badge 7 also covering Hidden Power, Marvel Scale with either side statused. But only Guts-with-a-burn was gated; the other five were unpinned (V98–V105).
+5. **The MASTERBALL, NOFLOOR and NOPP fault scopes. They match their names:** NOFLOOR and NOPP apply to stage 1 only. All faults are unreachable with the flag unset, because `decide` DEFERs first and the adapter returns before building the snapshot. NOFLOOR is a knockout switch by design. It is read from the environment on every call, which is the project's usual pattern.
+6. **Move choice (largest guaranteed damage; ties go to the lowest slot). Safe.** Every admissible candidate already passed the floor or the stage-2 bound. But it was unpinned (V73, V74, V97); P-max, P-tie and P-s2max pin it.
+7. **An in-scope DEFER writes a log line. Harmless.** It is telemetry only: the flag is set, the action returned is None, and D6's "no line with the flag unset" still holds.
+
+### Vacuous and weak rows
+- **Confirmed vacuous for the rule each one claims to test:**
+  - W38: Seismic Toss is already Ghost-immune.
+  - W51: the floor also blocks.
+  - W52: the odds check fires first.
+  - W58f: sleep is always preferred, so Synchronize's paralysis skip can't be seen.
+- **Weak (blind at the boundary or to half of a clause):**
+  - W53: the only floor row, 18 HP from the boundary.
+  - W56: even HP, so Super Fang's rounding can't show.
+  - W63b: only one stage-2 candidate is admissible, so the bound's ceil and margin and the move choice can't show.
+  - W12, W12b, W57f: each clause is pinned only as a whole. Its halves are equivalent in-game.
+  - W61: pins the pure module's pass-through of `env.ball`, not the adapter's Master Ball guard (A23).
+  - W67: never reaches the Ultra/Great/Safari/Dive/Repeat branches or the freeze and toxic multipliers.
+  - The adapter rows: blind to status3, side, weather, status1, live ability, types, flags and item reads.
+- **COVERAGE is met trivially.** For example, W51's only covering job is M35 ("admit everything"). Suggestion: require every row to be turned red by a mutant of its own claimed rule.
+
+### Every mutant tried (id | edit | gate result)
+Key: `MISS → [row]` is a real miss, caught by that proposed row. `MISS (…)` is equivalent, more conservative or unreachable, with the argument.
+```
+V01 floor hp-X>=1 -> >0 | MISS (eq: integer hp-X>0 is hp-X>=1)
+V02 floor >=1 -> >=0 (admits a KO) | MISS -> [P-floor0]
+V03 floor >=1 -> >=2 | MISS -> [P-floor1]
+V04 stage-1 50% > -> >= | CAUGHT [WB52]
+V05 stage-2 50% rule removed | MISS -> [P-s2half]
+V06 stage-2 50% > -> >= | MISS -> [P-s2half]
+V07 stage-1 progress >= -> > | MISS -> [P-prog10]
+V08 progress vs CURRENT hp | MISS -> [P-progmax]
+V09 E_gain sign flipped | CAUGHT [W01,W33b,W38b,...14]
+V10 E_gain without max(.,1) | MISS (eq: <1 only under NOFLOOR; DR-FAULT verdict unchanged)
+V11 EGAIN_MIN 0.5 | CAUGHT [W55]
+V12 E_gain >= -> > | MISS (eq: exactly 1.0 never occurs)
+V13 E_gain ignores status | MISS -> [P-egst]
+V14 odds threshold 0.6 | MISS -> [P-odds15]
+V15 odds at full hp | CAUGHT [W32,W52]
+V16 odds >= -> > | MISS (eq: p never exactly 0.5)
+V20 Encore timer half dropped | MISS (eq in-game: set/cleared together)
+V21 Encore move half dropped | CAUGHT [W12,WBencore]
+V22 Disable timer half dropped | MISS (eq in-game)
+V23 Disable move half dropped | MISS (eq in-game)
+V24 semi-invuln = Fly only | MISS -> [P-dig,P-dive]
+V25 confusion mask 0x3 | MISS -> [P-conf4]
+V26 tick: burn dropped | MISS -> [P-burn]
+V27 tick: toxic dropped | MISS -> [P-toxic]
+V28 tick: status2 clause dropped | MISS -> [P-wrap,P-cursed,P-nightmare]
+V29/V30/V31 wrap/curse/nightmare dropped | MISS -> [P-wrap]/[P-cursed]/[P-nightmare]
+V32 enders: Teleport dropped | CAUGHT [W24]
+V33 calling: Sleep Talk dropped | CAUGHT [W31]
+V34 target's own Damp ignored | MISS (cons)
+V35 our Damp ignored | CAUGHT [W23]
+V36 STATUS before DAMAGE | CAUGHT [W59]
+V37 mask loses Kyogre/Groudon/Regi/Pike/Pyramid/28-30 | MISS -> [P-btsweep]
+V38 mask loses FIRST_BATTLE | MISS -> [P-btsweep]
+V39 mask includes IS_MASTER | CAUGHT [nearly every row]
+V40 damage cap 2 | CAUGHT [W33,WBact]
+V41 status cap 4 | CAUGHT [W57h]
+V42 no-progress cap 3 | CAUGHT [WBnp]
+V43 landed status not progress | CAUGHT [W57h]
+V44 no-progress counts THROW turns | CAUGHT [W57h]
+V45 remember() every call (cons) | MISS -> [P-capseq]
+V46 remember() ctx_ok=True | MISS -> [PA-ctx2]
+V47 memo PID slot = species | CAUGHT [WBact]
+V48 damage cap only if hit landed | CAUGHT [W33,WBact]
+V50 DOUBLE_EDGE dropped | MISS -> [P-dedge]
+V51 Hail-knower dropped | MISS -> [P-hailk]
+V52 everything hail-immune | MISS -> [P-hailk,P-hailw,PA-weather]
+V53 hail-in-effect dropped | MISS -> [P-hailw,PA-weather]
+V54 sand mask loses TEMPORARY | MISS -> [P-sandtemp]
+V55 hail mask = sun bit | MISS -> [P-hailw,PA-weather]
+V56 Normal sand-immune | CAUGHT [W41,W43,W43c]
+V57/V58/V59 Poison Point/Flame Body/Effect Spore dropped | MISS -> [P-ppoint]/[P-fbody]/[P-espore]
+V60 Liquid Ooze: Leech Seed dropped | MISS -> [P-oozeseed]
+V61 self-harm calling clause dropped | MISS (unreachable: THROW-ONLY calling first)
+V62 horizon <= -> < | MISS -> [P-h68]
+V63 horizon slack 0 | MISS -> [P-h68]
+V64 Pressure factor 1 | CAUGHT [W42]
+V65 contact read off OUR moves | CAUGHT [W44b]
+V66 Synchronize retaliation dropped | CAUGHT [W46]
+V67 encore-knower dropped (source) | CAUGHT [W39]
+V70 Wonder Guard removed | MISS -> [P-wg-block]
+V71 WG: SE+NVE passes | MISS -> [P-wg-block]
+V72 WG blocks every exact move (cons) | MISS -> [P-wg-pass,P-wg-nshade]
+V73 stage-1 smallest X | MISS -> [P-max,P-tie]
+V74 stage-1 ties to highest slot | MISS -> [P-tie]
+V75 Super Fang rounds up | MISS -> [P-sfodd]
+V76 Super Fang hp1 -> 0 | MISS (eq: X=0 fails the 10% rule)
+V77 LEVEL_DAMAGE +1 | CAUGHT [W01]
+V78 Foresight never lifts Ghost | CAUGHT [W49b,W58d]
+V79 chart Normal->Ghost dropped | CAUGHT [W58c]
+V80 slot filter keeps disabled move | MISS (eq: THROW-ONLY disabled first)
+V81 PP <= 0 -> < 0 | CAUGHT [W47,W57..., 22 rows]
+V82 doubled type counted twice | MISS (eq: membership only)
+V90 ub floor not ceil | MISS -> [P-s2bound0]
+V91 WEAKEN_MARGIN 2 | MISS -> [P-s2bound0]
+V92 ub without the 10% | MISS -> [P-s2bound0]
+V93 stage-2 bound >=0 | MISS -> [P-s2bound0]
+V94 stage-2 E_gain at crit_max | MISS -> [P-s2egain]
+V95 stage-2 progress at crit_max | MISS -> [P-s2prog]
+V96 stage 2 ignores Tier A | MISS -> [P-s2tier]
+V97 stage 2 smallest MIN | MISS -> [P-s2max]
+V98 Marvel Scale divergence removed | MISS -> [P-div-ms]
+V99 Marvel Scale: target status only | MISS -> [P-div-ms]
+V100 Flash Fire divergence removed | MISS -> [P-div-ff]
+V101 Charge divergence removed | MISS -> [P-div-charge,PA-charge]
+V102 badge-7 divergence removed | MISS -> [P-div-b7,PA-b7]
+V103 badge 7 on every move (cons) | MISS -> [P-div-b7phys]
+V104 live!=species divergence removed | MISS -> [P-div-abil]
+V105 only OUR ability compared | MISS -> [P-div-abil]
+V106 Struggle exclusion dropped | MISS (eq: never in a slot)
+V110 Vital Spirit dropped | MISS -> [P-vspirit]
+V111 Uproar: target only | MISS -> [P-uproar-us]
+V112 Safeguard: bit only | MISS -> [PA-safeguard]
+V113 Safeguard: timer only | MISS (eq in-game)
+V114 Soundproof blocks all status (cons) | MISS -> [P-hypno-sp]
+V115 Synchronize skips sleep (cons) | CAUGHT [W58f]
+V116 status Substitute skip dropped | MISS (unreachable)
+V117 has-status misses freeze | MISS -> [P-frozen]
+V118 Taunt read at 0x0E | CAUGHT [W57g]
+V119 status typecalc always Foresight | CAUGHT [W58c]
+V120 Ultra 15 | MISS -> [P-balls]
+V121 Great/Safari 20 | MISS -> [P-balls]
+V122 Dive inverted | MISS -> [P-balls]
+V123 Repeat inverted | MISS -> [P-balls]
+V124 freeze not x2 | MISS -> [P-cpstatus]
+V125 toxic not x1.5 | MISS -> [P-cpstatus]
+V126 Timer cap 30 | CAUGHT [W67h]
+V127 3 shake checks | CAUGHT [W63b,W67*]
+V130 ctx by species name only | MISS (eq)
+V131 PID mismatch tolerated if species matches | CAUGHT [W05]
+A01 target status3 from OUR slot | MISS -> [PA-st3,PA-st3ours]
+A02 OUR status3 from target slot | MISS -> [PA-charge]
+A03 target side read as ours | MISS -> [PA-side,PA-sideours]
+A04 weather never read | MISS -> [PA-weather]
+A05 target status1 at 0x50 | MISS -> [PA-s1]
+A06 live ability -> species | MISS -> [PA-liveab]
+A07 battle flags never read | MISS -> [PA-flags]
+A08 hold effect never read (Choice) | MISS -> [PA-choice]
+A09 usable balls 0 | MISS -> [PA-usable]
+A10 mode's kinds ignored | MISS -> [PA-kinds]
+A11 act-mode DEFER throws a ball | MISS -> [PA-flags,PA-choice,PA-ctx2]
+A12 observe never stores memo | MISS -> [PA-obs2]
+A13 observe falls through to act | CAUGHT [W62]
+A14 party gives lead its species ability | MISS -> [PA-liveab]
+A15 fainted members counted | MISS (cons)
+A16 banned_moves never read | MISS -> [PA-banned]
+A17 Safeguard timer off OUR side | MISS -> [PA-safeguard]
+A18 target SPECIES types | MISS -> [PA-types]
+A19 PP read one byte off | CAUGHT [W62]
+A20 acting slot one low | CAUGHT [WBact]
+A21 gStatuses3 never read | MISS -> [PA-st3,PA-charge]
+A22 exception acts (slot 0) | CAUGHT [W65c]
+A23 THROW item = bag's first ball (Master) | MISS -> [PA-master]
+A24 default kinds include hm | CAUGHT [WBflags]
+A25 ctx sp = live foe's (never fails) | MISS -> [PA-ctx2]
+A26 badge 7 never read | MISS -> [PA-b7]
+```
+
+### Proposed rows (all 72 pass on the real code; each change is from S0)
+Almost every row also turns red under the broad V39. Some also go red under V09, V81 or V127; those are left out of the lists below.
+
+**Stage-1 boundaries**
+- P-floor0: lead L22 → THROW(floor). Reddens V02.
+- P-floor1: lead L21 → DAMAGE, x=21. Reddens V03, V77.
+- P-prog10: Sonicboom vs a rate-45 target at 200/200 → DAMAGE, x=20. Reddens V07.
+- P-progmax: same move, target at 150/250 → THROW(progress). Reddens V08.
+- P-odds15: target hp 15 (one-throw 0.5028) → THROW(odds). Reddens V14, V15.
+- P-sfodd: Super Fang at hp 21 → x=10. Reddens V75.
+- P-egst: paralysed rate-45 target at 14/22, lead L5 → THROW(egain). Reddens V13, V11.
+
+**THROW-ONLY clauses**
+- P-dig (status3 1<<7) and P-dive (1<<18) → THROW(semi-invulnerable). Redden V24.
+- P-conf4: status2 = 4 → THROW(confused). Reddens V25.
+- P-burn: status1 0x10 → THROW(ticking). Reddens V26.
+- P-toxic: status1 0x180 → THROW(ticking). Reddens V27.
+- P-wrap (0x2000), P-cursed (1<<28), P-nightmare (1<<27) → THROW(ticking:status2). Redden V28, plus V29, V30, V31 respectively.
+- P-btsweep: each of the 32 bits OR'd with 4 → DEFER except bits 2 and 31; flags 0 → DAMAGE. Reddens V37, V38.
+
+**No-self-harm**
+- P-dedge: target knows Double-edge → THROW(self-harm:DOUBLE_EDGE). Reddens V50.
+- P-hailk: knows Hail → THROW. Reddens V51, V52. P-hailk-ice: an Ice target that knows Hail → DAMAGE.
+- P-hailw: weather 0x80 → THROW. Reddens V52, V53, V55. P-hailw-ice: hail with an Ice target → DAMAGE.
+- P-sandtemp: weather 0x08 → THROW. Reddens V54.
+- P-ppoint, P-fbody, P-espore: that ability on a party member → THROW(retaliation). Redden V57, V58, V59.
+- P-oozeseed: Liquid Ooze on a party member, target knows Leech Seed → THROW. Reddens V60.
+- P-h68: target's total PP exactly 68 → THROW(struggle). Reddens V62, V63, V64.
+
+**Wonder Guard and move choice**
+- P-wg-block: WG on the Normal/Flying S0 target → THROW(wonder-guard). Reddens V70, V71.
+- P-wg-pass: WG on a pure-Normal target → DAMAGE. Reddens V72.
+- P-wg-nshade: Night Shade vs a WG Bug/Ghost target at 50/50 → DAMAGE, x=13. Reddens V72.
+- P-max: Seismic Toss plus Sonicboom vs 40/40 → Sonicboom, slot 2. Reddens V73.
+- P-tie: Night Shade (slot 1) plus Seismic Toss (slot 2) vs a Water target → slot 1. Reddens V73, V74.
+
+**Status**
+- P-vspirit (V110), P-uproar-us: our status2 0x20 (V111), P-hypno-sp: Hypnosis vs Soundproof → STATUS (V114).
+- P-frozen: a rate-45 frozen target with LEAD_SING → THROW(has-status). Reddens V117.
+
+**Stage 2 (CALC=1)**
+- P-s2bound0: rate-45 target at 19/30, Tackle range (5, crit 14) → ub 19 → THROW(bound). Reddens V90, V91, V92, V93.
+- P-s2bound1: same at 20/30 → DAMAGE(Tackle).
+- P-s2half: rate-45 target at 11/22, range (3, 4) → THROW(half). Reddens V05, V06.
+- P-s2egain: range (3, 10) → THROW(egain). Reddens V94.
+- P-s2prog: rate-3 target at 51/100, range (1, 20) → THROW(progress). Reddens V95.
+- P-s2tier: Flail given a range → THROW. Reddens V96.
+- P-s2max: Tackle (5,10) plus Water Gun (6,10) → Water Gun. Reddens V97.
+- Divergences: P-div-ms (V98, V99), P-div-ff (V100), P-div-charge (V101), P-div-b7 (V102), P-div-b7phys (V103), P-div-abil (V104, V105).
+
+**Memo and catch_p**
+- P-capseq: remember() through turn 0, a turn-0 re-entry, then turn 1 → DAMAGE, DAMAGE, THROW(damage-cap). Reddens V40, V45, V47.
+- P-balls: the full ball table. Reddens V120–V123.
+- P-cpstatus: freeze ×2 and toxic ×1.5 anchors. Reddens V124, V125.
+
+**Adapter rows (real classes, a generalised world)**
+- PA-st3: the target's gStatuses3 has Leech Seed → act=THROW. Reddens A01, A21.
+- PA-st3ours: the same bit on our slot → DAMAGE. Reddens A01, A20.
+- PA-side (A03), PA-sideours (A03), PA-weather: hail (A04, V52, V53, V55).
+- PA-s1: foe poisoned. Reddens A05.
+- PA-liveab: our ability_n = Rough Skin. Reddens A06, A14.
+- PA-types: foe type bytes read Ghost → immune. Reddens A18.
+- PA-flags: trainer flag → PARENT + act=DEFER. Reddens A07, A11.
+- PA-choice: Choice Band held (item 186) → PARENT. Reddens A08, A11.
+- PA-usable: foe PP 15×4 → THROW(struggle). Reddens A09.
+- PA-kinds: the mode's kinds = ("dex",) → PARENT, no reads. Reddens A10.
+- PA-obs2: observe at turn 0 then turn 1 → would=DAMAGE first=1, then would=THROW damage-cap. Reddens A12, A13, V48.
+- PA-ctx2: ctx sp Poochyena, two turns → both DEFER. Reddens V46, A11, A25.
+- PA-banned: Sing banned → THROW. Reddens A16. PA-bannedctl is its control.
+- PA-safeguard: the opponent's side timer → THROW. Reddens A17, V112.
+- PA-charge: CALC=1 through the real calculator with our status3 Charge → THROW(divergence:charge). Reddens A02, A21, V101.
+- PA-master: bag with a Master Ball first, then Poké Balls → throws the Poké Ball. Reddens A23.
+- PA-b7: CALC=1 with the BADGE07 flag set → THROW(divergence:badge7-special). Reddens A26, V102.
+
+**Effect on the gate's own fault and mutant expected sets.** Adding these rows grows the exact red sets of several existing faults and mutants (e.g. NOFLOOR adds P-floor0; NOPP adds 21 rows; NETGAIN adds 15; MA2/MA14 add 19 PA rows each). The full list is in `cross_out.txt`.
+
+**Needed when folding the PA rows in.** They do not assert that `get_battle_state` was never called. Add that check, as the gate's own adapter rows do, or MA6 will not redden them.
+
+### Files are in `C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/w12m/`
+- `w12m.py` — the harness. `PYTHONUTF8=1 py -3.12 -u w12m.py [ids…]` runs everything in about 25 s.
+- `mutants.py` — the 139 mutants with exact old/new anchors.
+- `proposed.py` — the 72 rows, with their builders and world.
+- `cross.py` and `cross_out.txt` — the gate's own jobs against my rows, plus the reverse map from each row to the mutants it catches.
+- `run_full.txt` and `table.txt` — the full run and the table above.
+- `decomp/` — the decomp source files I checked against, fetched with `gh api`.

@@ -130,9 +130,10 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
       S1: the execution-time override, `battle_util.c:111-117`].
     - **Acquired moves:** none of Transform, Mimic or Sketch [review mechanics B2].
     - **Weather moves:** none of Sandstorm or Hail, unless it is immune to them (RULING 25 names them) [review F7].
-    - **Struggle:** its total PP must exceed the in-battle horizon H = 2 × (usable balls + 4). The 2 covers our
+    - **Struggle:** its total PP must exceed the in-battle horizon H = 2 × (usable balls + 8). The 2 covers our
       Pressure. It is bounded by balls, because RULING 25's "never given up" spans encounters, not one battle [review
-      F3, mechanics S2].
+      F3, mechanics S2]. *(As built, after the gate's adversarial pass: the slack is 8, not 4, to cover the flee turns
+      that can FAIL once the balls run out.)*
     - **Weather:** no damaging weather it is not immune to (sand or hail, whether or not Cloud Nine or Air Lock is
       present, since the suppressor may leave).
     - **Our party's retaliation:** no member of our party able to battle (any faint-switch) has Rough Skin, Poison
@@ -300,3 +301,29 @@ Tags: [R:ADV-B2] = the adversary's finding B2; [R:DEC-H5] = the decomp report's 
   try); N4 (the Wonder Guard wording); LP9 (pairing by battle and turn); LP11 (non-full-HP catch rows).
 - **Nits left as recorded scope:** N3 (one damage turn is conservative); LP8 (the exclusion clauses are exercised by
   the pure gate, not live).
+
+## AS BUILT, AFTER THE GATE'S ADVERSARIAL MUTANT PASS (2026-09-30; `tools/story-dev/evidence/2026-09-30-weaken12-ADVERSARIAL.txt`)
+
+- **The pass.** 139 mutants: the gate caught 37 and missed 102. The worst miss was the KO floor's off-by-one
+  (`hp − X ≥ 0`), invisible to a gate whose only floor row sat 18 HP from the boundary.
+  - 85 of the misses were caught by its 72 proposed rows. The 17 others were argued equivalent, only more
+    conservative, or unreachable.
+  - After the fold, the gate is 211 rows, 9 faults and 196 mutants. Every one of its 205 pre-written sets matched on
+    the first run.
+- **Five production defects it found, each FIXED with a row that failed on the old code and a reverting mutant:**
+  - **PD1, a real KO path:** a NON-lead party member with Trace that faint-switches in copies the TARGET's ability (e.g.
+    Rough Skin), which then chips the target every throw turn. ⇒ With Trace in the party, the target's own live ability
+    counts among the retaliation subjects.
+  - **PD2, latent:** Pain Split before our hit resets the target's HP. ⇒ Self-harm.
+  - **PD3, no reach:** a confusion berry (Figy, Wiki, Mago, Aguav, Iapapa) fires at half HP, where our hit leaves the
+    target. ⇒ No damage.
+  - **PD4, no reach:** a Sand Stream party member would start a sandstorm on a faint-switch. ⇒ No damage unless the
+    target is sand-immune.
+  - **PD5, very low:** a stage-2 RECHARGE turn and failed flee turns throw no ball. ⇒ Stage 2 excludes RECHARGE moves,
+    and the horizon slack is 8.
+  - **A grading nit:** a THROW with no ball to name was logged DEFER but remembered as THROW. ⇒ The memo records what
+    was done.
+- **No filed verdict changed,** except W42b's snapshot, which moved to total PP 78 to stay just above H.
+- **Every live arm's Step-0 decision is unchanged:** ST DAMAGE, DR THROW, NL THROW (the builder replayed each).
+- **The arms are RE-RUN on the fixed commit** (`…-GRADED.md`).
+

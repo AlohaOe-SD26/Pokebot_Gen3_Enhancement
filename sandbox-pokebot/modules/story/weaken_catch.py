@@ -70,8 +70,10 @@ WEAKEN_MARGIN = 3           # stage 2: ub = ceil(crit_max * 1.10) + WEAKEN_MARGI
 CAP_DAMAGE_TURNS = 1        # per battle
 CAP_STATUS_TRIES = 3        # per battle; a berry cure counts as a try
 CAP_NO_PROGRESS = 2         # acting turns after which neither HP nor status moved -> throw-only
-PRESSURE_FACTOR = 2         # Struggle horizon H = 2 * (usable balls + 4): the 2 covers our Pressure
-HORIZON_SLACK = 4
+PRESSURE_FACTOR = 2         # Struggle horizon H = 2 * (usable balls + slack): the 2 covers our Pressure
+#: PD5 (the adversarial pass, 2026-09-30): 4 -> 8, for the flee turns that can FAIL once the balls run out (a trapped
+#: target keeps acting through them). With 30 usable balls H is now 76 (it was 68).
+HORIZON_SLACK = 8
 
 # --- raw bits (include/constants/battle.h)
 S1_SLEEP, S1_POISON, S1_BURN, S1_FREEZE, S1_PARALYSIS, S1_TOXIC = 0x7, 0x8, 0x10, 0x20, 0x40, 0x80
@@ -95,7 +97,10 @@ BT_DOUBLE, BT_TRAINER, BT_SAFARI, BT_ROAMER, BT_LEGENDARY = 1 << 0, 1 << 3, 1 <<
 EXACT_EFFECTS = frozenset({"LEVEL_DAMAGE", "SONICBOOM", "DRAGON_RAGE", "SUPER_FANG"})
 #: the calculator's NAMES (`_util.py` :215-224) — only the NAMEDISPATCH fault uses them ("Sonic Boom" != "Sonicboom")
 CALC_EXACT_NAMES = ("Dragon Rage", "Sonic Boom", "Super Fang", "Night Shade", "Seismic Toss")
-SELF_HARM_EFFECTS = frozenset({"RECOIL", "DOUBLE_EDGE", "RECOIL_IF_MISS", "RAMPAGE", "BELLY_DRUM", "EXPLOSION"})
+#: PAIN_SPLIT (PD2, the adversarial pass): the target's Pain Split before our hit sets its HP to the average of the
+#: two, while our X was bounded on its start-of-turn HP.
+SELF_HARM_EFFECTS = frozenset({"RECOIL", "DOUBLE_EDGE", "RECOIL_IF_MISS", "RAMPAGE", "BELLY_DRUM", "EXPLOSION",
+                               "PAIN_SPLIT"})
 ENDER_EFFECTS = frozenset({"TELEPORT", "ROAR", "PERISH_SONG", "MEMENTO"})
 CALLING_EFFECTS = frozenset({"METRONOME", "MIRROR_MOVE", "ASSIST", "SLEEP_TALK"})
 ACQUIRE_EFFECTS = frozenset({"TRANSFORM", "MIMIC", "SKETCH"})
@@ -112,6 +117,9 @@ TIER_A = frozenset({
     "DEFENSE_UP_HIT", "SPECIAL_ATTACK_DOWN_HIT", "SPECIAL_DEFENSE_DOWN_HIT", "SPEED_DOWN_HIT",
     "SUPERPOWER", "OVERHEAT", "RECHARGE", "DOUBLE_EDGE", "RECOIL", "RECOIL_IF_MISS", "ABSORB", "RAGE", "HIDDEN_POWER",
 })
+#: PD5 (the adversarial pass): Tier A members stage 2 never admits. A RECHARGE move's recharge turn throws no ball and
+#: is not counted by the Struggle horizon. (TIER_A itself stays the step-11 whitelist, verbatim.)
+STAGE2_EXCLUDED = frozenset({"RECHARGE"})
 #: Gen 3's special types (a type's split decides physical/special; the badge-7 boost divergence is special-side)
 SPECIAL_TYPES = frozenset({"Fire", "Water", "Grass", "Electric", "Psychic", "Ice", "Dragon", "Dark"})
 
@@ -201,6 +209,7 @@ class WTarget:
     status2: int = 0
     status3: int = 0
     item: str | None = None
+    item_effect: str = "no_effect"  # the held item's hold effect (PD3: a confuse_* berry); a default for old snapshots
 
 
 @dataclass(frozen=True)
@@ -466,6 +475,10 @@ def _self_harm_reason(target: WTarget, me: WSelf, party: WParty, env: WEnv) -> s
         return "encore-knower"
     for m in _knows(target, ACQUIRE_EFFECTS):
         return f"acquires:{m.effect}"
+    # PD3 (the adversarial pass): a confusion berry (Figy, Wiki, Mago, Aguav, Iapapa: hold effects confuse_*) fires at
+    # half HP, where our hit leaves it, and can confuse it; a confused self-hit can KO.
+    if target.item_effect.startswith("confuse_"):
+        return f"self-harm:confusion-berry:{target.item}"
     sand_immune = bool({"Rock", "Ground", "Steel"} & set(target.types)) or target.ability == "Sand Veil"
     hail_immune = "Ice" in target.types
     if _knows(target, {"SANDSTORM"}) and not sand_immune:
@@ -482,6 +495,11 @@ def _self_harm_reason(target: WTarget, me: WSelf, party: WParty, env: WEnv) -> s
     if env.weather & WEATHER_HAIL and not hail_immune:
         return "weather:hail"
     subjects = (me.ability,) if _fault(FAULT_ACTIVEONLY) else tuple(party.abilities)
+    if "Trace" in subjects:
+        # PD1 (the adversarial pass; a real KO path): a Trace member that faint-switches in copies the TARGET's live
+        # ability (battle_util.c:2561-2566, :3003-3043), e.g. its Rough Skin, which then chips the target every time
+        # it makes contact on a throw turn. So the target's own ability is a subject too.
+        subjects = subjects + (target.ability,)
     contact = any(m is not None and m.contact for m in target.moves)
     drain = bool(_knows(target, DRAIN_EFFECTS))
     for ab in subjects:
@@ -491,6 +509,10 @@ def _self_harm_reason(target: WTarget, me: WSelf, party: WParty, env: WEnv) -> s
             return "retaliation:Liquid Ooze"
         if ab == "Synchronize":
             return "retaliation:Synchronize"
+        # PD4 (the adversarial pass): a faint-switch to a Sand Stream member starts a sandstorm that chips a target
+        # that is not sand-immune on every later turn
+        if ab == "Sand Stream" and not sand_immune:
+            return "retaliation:Sand Stream"
     return None
 
 
@@ -552,6 +574,9 @@ def _damage(target: WTarget, me: WSelf, party: WParty, env: WEnv, damage_spent: 
         return WDecision(DAMAGE, f"stage1:{m.effect}", slot=slot, move=m.name, stage=1, x=x), ""
     if stage2_wanted(env.calc):
         for slot, m in _usable_slots(me, TIER_A):
+            if m.effect in STAGE2_EXCLUDED:
+                rejected.append(f"recharge@{slot}")
+                continue
             if m.move_id == MOVE_STRUGGLE or slot >= len(env.calc_ranges) or env.calc_ranges[slot] is None:
                 continue
             div = _stage2_divergence(target, me, env, m)

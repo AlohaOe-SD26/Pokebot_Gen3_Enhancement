@@ -1163,6 +1163,12 @@ GATES: list[tuple[str, bool]] = [
     # raw reads `modules/dmgaudit.py` with its four hooks (execution and AST pins; no `get_battle_state()`).
     # ‼ APPENDED AT THE END, never inserted.
     ("probe_dmgaudit.py", False),
+    # design v2 step 12 (W, weaken-to-catch, USER RULING 25) — the pure `modules/story/weaken_catch.py` (every
+    # pre-registered W-row, the KO floor at its boundary, the no-self-harm clauses incl. the Trace faint-switch, the
+    # catch_p anchors) and the adapter in `story_mode.py` on the REAL classes (no `get_battle_state()`, placement AST
+    # pins, flags off = the parent's turn). 9 production faults + 196 mutants with exact sets; ~8 s with a pool.
+    # ‼ APPENDED AT THE END, never inserted.
+    ("probe_weaken_catch.py", False),
 ]
 
 

@@ -1,0 +1,598 @@
+design v2 step 12 (weaken-to-catch) — the BUILD and the ADVERSARIAL PASS's FOLD, 2026-09-30 LA
+==========================================================================================
+The builder's two reports (MODEL OUTPUT, a NOTE; verbatim), then the author's own gate run on the folded code, then the
+full standing suite with the gate registered. The adversarial pass itself: 2026-09-30-weaken12-ADVERSARIAL.txt.
+
+===== 1. the build's report (at 18b32bcc) =====
+## Step 12 (weaken-to-catch): built and gated. Nothing run live, nothing committed, not registered in run_gates.py.
+
+The new gate `probe_weaken_catch.py` passes: 127 rows, 9 faults, 103 mutants, 0 uncovered. It takes 4.0 s with a pool of 8 processes and 16.8–17.9 s in-process (`--inprocess`). Every existing gate you listed passes. The one exception is `audit_doc_consistency.py`, which exits 1, and my change is the cause (explained under the gates below).
+
+### Files
+- **NEW** `sandbox-pokebot/modules/story/weaken_catch.py` (pure; stdlib imports only)
+  - Frozen snapshots WTarget, WSelf, WParty and WEnv, plus helpers WMove, WMemo and WDecision.
+  - `catch_p`: the integer order of battle_script_commands.c:9987-10028, with the full ball table, including the Timer Ball's u8 wrap and the Net Ball on LIVE types.
+  - `decide_weaken_turn`, following D4's order.
+  - `remember`: the per-battle memo (identity, and the first decision of each turn).
+  - `snapshot_json` / `snapshot_from_json`, for replaying a logged verdict.
+  - The disable struct is decoded here from raw bytes (encoredMove at 0x06), so the gate pins the offset.
+  - All 9 fault envs are read inside this module.
+- **EDIT** `sandbox-pokebot/plugins/custom_modes/story_mode.py` (+253/−10)
+  - (a) Three flags read in `reset_per_run_state`. A WEAKEN value other than `observe`/`1` counts as OFF.
+  - (b) The adapter call sits in `StoryCatchStrategy.decide_turn` after the flee and before `super()`. The module-level helpers are `_r25_weaken_turn/_snapshot/_party/_ranges/_bag_ball/_log`:
+    - no `get_battle_state` call, and the turn comes from a pure read of `gBattleResults+0x13`;
+    - the disable struct and party are read raw;
+    - stage-2 ranges are computed only when stage 2 is wanted;
+    - logs use their own category `WEAKEN`; any exception gives DEFER plus one `ERR` line.
+  - (c) D7: the four statements are scoped to "with `POKEBOT_R25_WEAKEN` unset". No code behaviour changed there, and no construction line was touched.
+- **NEW** `tools/story-dev/probe_weaken_catch.py`
+- **EDIT (docstring only)** `probe_dexcatch_bail.py:4-5` and `probe_dex_open_fence.py:8-9`: the "never fights back" sentence is now scoped to the flag being unset. Neither gate pins the text, and I found no gate that pins any text D7 rewords.
+- **EDIT** `29-DISABLED-FEATURES-REGISTRY.md`: 12 rows (3 flags and 9 faults). lint R6 reads 241 flags, 241 documented.
+
+### Rows
+- **Pre-registered:** all of W01–W64, W62, W65a-e, W66 (split a–h: no gbs, the placement plus a single call site, construction lines equal to cdb49f83 (checked with `git show`), shiny, purity, category, no environ reads), W67a–l and W68.
+- **Builder-added (labelled `[builder]`, not pre-registered):**
+  - pure: WB38, WB52, WB54s, WBnp, WBball, WBctx, WBorder, WBlimber;
+  - adapter: WBact (acting path, memo, pure turn read), WBthrow, WBkind, WBencore (raw 0x06 through the adapter), WBparty (real encrypted party records);
+  - WBflags (the per-run parse).
+- **W67 anchors:** hand-derived integer chains are written in the gate and re-checked by the gate's own arithmetic, and `catch_p` must equal (b/65536)^4 exactly.
+
+### Where the filed table does not fit the design (verdict implemented as filed; the design owner decides)
+1. **W52:** filed as "THROW (half)". Under D4's order the one-throw check runs before damage, and S0 at 11/22 has p = 0.624 ≥ 0.5, so the reason is "odds". The gate asserts THROW with reason "odds" and a comment. WB52 (rate 45) pins the half rule itself.
+2. **W38 is blocked twice:** Seismic Toss is immune to Ghost, and the Ghost-Curse rule also applies. So it cannot test the Curse rule; WB38 (Ghost with Foresight) does, and only the two-edit mutant M34b reddens W38. W51 is similarly triple-blocked.
+3. **PREDICTIONS arithmetic slip:** 16711680//145 is 115252, not 115253. No later step changes.
+4. **ST-ON live prediction:** it says "every later decision THROW (the damage cap)". After the hit the Taillow is at 6/21 with p = 0.785, so the logged reason will be `odds`. The verdict is still THROW.
+5. **W58f cannot isolate Synchronize,** because sleep wins anyway. W58e does isolate it, and WBorder pins sleep over paralysis.
+
+### Design gaps I had to decide (please rule)
+- **Caps:** the damage cap and the status cap each block only their own branch. The no-progress cap makes the rest of the battle throw-only.
+- **"No-progress" is undefined in the design.** My definition: a DAMAGE or STATUS turn after which, at the next decision on a later turn, the target's HP is not lower and it has gained no status.
+  - Consequence: two missed actions trigger throw-only before 3 status tries can be spent.
+  - So W57h is built from 3 tries that each landed and then woke.
+- **`first=1`** marks the first DAMAGE or STATUS verdict; a DEFER does not count.
+- **Battle-type DEFER** covers every flag except IS_MASTER (bit 2) and RECORDED_IS_MASTER (bit 31). That is wider than the design's list.
+- **Stage-2 divergence rules:**
+  - Flash Fire: any lead with a live Flash Fire ability counts as boosted, because I don't read the boost bit.
+  - Charge: any Charge on our lead counts, which also covers "Hidden Power under Charge".
+  - Badge 7: counts when we hold badge 7 and the move is a special type or Hidden Power.
+- **Fault scopes:**
+  - MASTERBALL changes only the ball a THROW returns, not the ball used for the odds check or E_gain.
+  - NOFLOOR and NOPP apply to stage 1 only.
+- **Choosing between admissible moves:** the largest guaranteed damage wins, ties go to the lowest slot.
+- **Log format:**
+  - lines: `act=<V> t= sp= pid= hp= st= tmv= slot= move= ball= reason= snap=<json>`, and `[WEAKEN-OBS] would=… first=`;
+  - spaces inside values become `_`;
+  - an out-of-scope kind makes no read and logs nothing;
+  - an in-scope DEFER does log a line.
+
+### Faults
+All 9 exact sets were written before the first run, and all 9 matched on that first run:
+- NOFLOOR: {W53}
+- NOENCORE: {W39}
+- CALCLEAK: {W63}
+- ACTIVEONLY: {W44, W45, W46, WBparty}
+- NOPP: 22 rows (W47, W57 through W57j, W58/b/d/e/f, W60, W63, W63b, W64, WBorder, WBlimber)
+- MASTERBALL: {W61}
+- SPECIESID: {W05, W06}
+- NETGAIN: 14 rows (W01, W33b, W38b, W41b, W42b, W43b, W44b, W49b, W56, W59, W62, W63b, WB54s, WBact)
+- NAMEDISPATCH: {W54, W55, WB54s}
+
+### Mutants
+- 103 in all: 84 edit the module, 19 edit story_mode.py (MA1–MA18 plus MN1). MN1 and MN2 are mention-only edits in comments and must turn nothing red; they don't.
+- On the first run 102 of 103 matched. **M42** (stage 2 never runs) was written as {W63b} and reddened {W63b, W64}. W64 asserts the reason "divergence", which only stage 2 produces. I corrected the set openly, with a comment in the gate.
+
+### Existing gates (PYTHONUTF8=1 py -3.12)
+- PASS: probe_dexcatch_bail, probe_r20_telemetry, probe_dex_open_fence, probe_dex_catch_nofaintbail, probe_dex_catch_oversurvival, probe_r25_catch_cap.
+- probe_dmgaudit: ALL PASS (191 rows, 220 mutants).
+- lint_docs: ALL PASS.
+- **audit_doc_consistency: FAIL, exit 1, caused by my change.** The sandbox↔custom drift is now 26, because the new module has no custom-pokebot copy (the check reports it as `MISSING modules\story\weaken_catch.py`). `04-HANDOFF.md:312` and `:624` still claim 25 and need updating in the commit. That file is outside my edit scope.
+
+### Not done
+- Not done, per instructions:
+  - the gate is not registered in run_gates.py;
+  - no emulator or harness runs;
+  - no git command that changes state.
+- Not in my edit scope, so left for you:
+  - D9's KI for the encored_move reader is not filed.
+  - D14 is not done.
+  - `probe_dex_catch_fence.py:46` still says "a catch battle NEVER attacks back". It is not pinned and not in D7's list, so I left it.
+- The pre-existing ` M` on the ledger and `magma_1f_fail.ss1` is untouched: the ledger's last write is from the Step-0 run at 11:36.
+
+===== 2. the fold's report =====
+## Step 12 adversarial-pass fold: done; the gate passes, including every set on its first run
+
+The gate `probe_weaken_catch.py` passes: **211 rows, 9 faults, 196 mutants, 0 uncovered.** It takes 7.9 s with a pool of 8 processes and 34.4 s in-process. All six catch gates you listed pass, and so does lint_docs. Nothing is committed, nothing is registered in run_gates.py, and nothing ran on the emulator.
+
+**Files changed:**
+- `sandbox-pokebot/modules/story/weaken_catch.py` (+31/−)
+- `sandbox-pokebot/plugins/custom_modes/story_mode.py`: +10/−, adapter region only (the flags region is untouched)
+- `tools/story-dev/probe_weaken_catch.py` (+919/−)
+
+The untracked `evidence/2026-09-30-weaken12-ADVERSARIAL.txt` is not mine; I left it alone.
+
+### Production changes, each with its row and a reverting mutant
+Every fix row was **red on the unfixed code before any fix**. I measured that by running only the rows against a6a34e2c's production code. The red set was {W68, WPtrace, WPpainsplit, WPberry, WPberryA, WPberryctl, WPsandstream, WPrecharge, WPh76, WPnit}, which is exactly what I predicted:
+- W68 and WPberryctl were red only because the old `WTarget` has no `item_effect` field, so their builders raised.
+- All 72 of the pass's rows were green on the old code.
+
+| Fix | Change | Row(s) | Revert mutant |
+|---|---|---|---|
+| PD1 | If "Trace" is among the party subjects, the target's live ability is added to them | WPtrace; controls WPtracectl (our own Rough Skin → THROW) and WPtraceguts (Trace against Guts → DAMAGE) | MR1 {WPtrace} |
+| PD2 | `PAIN_SPLIT` added to `SELF_HARM_EFFECTS` | WPpainsplit | MR2 {WPpainsplit} |
+| PD3 | New field `WTarget.item_effect` (default `"no_effect"`); a `confuse_*` hold effect means no damage; the adapter now reads the target's hold effect | WPberry; control WPberryctl (Oran Berry → DAMAGE); adapter row WPberryA (Figy Berry, item 143) | MR3 (module) {WPberry, WPberryA}; MR3b (adapter read) {WPberryA} |
+| PD4 | A party member with Sand Stream means no damage unless the target is sand-immune | WPsandstream; control WPsandstreamctl (Ground target → DAMAGE) | MR4 {WPsandstream} |
+| PD5 | Stage 2 never admits a RECHARGE move (`STAGE2_EXCLUDED`; TIER_A itself stays verbatim) | WPrecharge | MR5a {WPrecharge} |
+| PD5 | `HORIZON_SLACK` raised from 4 to 8, so H = 76 with 30 usable balls | WPh76 (exactly H → THROW) | MR5b {WPh76} |
+| Memo nit | The adapter remembers `done`: a THROW with no ball it can name is recorded as DEFER, and the line logs `act={done.verdict}` | WPnit (module stubbed to name a Premier Ball the bag lacks) | MR6 {WPnit} |
+
+### Row verdicts that changed
+- **W42b** (filed as total PP 70 → DAMAGE): with H = 76, 70 is now THROW (struggle). I moved the snapshot to **78**, the first total above H, to keep its purpose, and noted this in the row.
+- No other verdict changed. Comparing the old module (via `git show a6a34e2c`) with the new one:
+  - every filed W-row gives the same verdict (with W42b's new snapshot);
+  - the live arms' Step-0 snapshots are unchanged: ST f165971 → DAMAGE slot 1, DR f140685 → THROW, the NL Taillow → THROW, Abra → THROW. ST's total PP of 105 still exceeds the new H of 78.
+- None of the pass's 72 row verdicts changed; each is kept as the pass derived it.
+
+### What the gate now contains
+- **Pass rows:** all 72, renamed `WX*` (pure) and `WXA*` (adapter). All 20 adapter rows also assert that `get_battle_state` is never called.
+- **Honest relabels:** W38, W51, W52 and W58f are now marked vacuous for the rule in question, and each names the row that isolates that rule: WB38, WXwgblock, WB52, and W58e (plus WBorder).
+- **Pass mutants:** the 85 that the pass had missed and that are now caught. Their anchors are copied verbatim, except V50 and V63, which I re-anchored for PD2 and PD5.
+  - The 17 it argued equivalent, conservative or unreachable are listed in a comment with its argument, and not run.
+  - I did not add the 37 the gate already caught; your instruction covered only the newly caught misses.
+- **Existing sets updated before the run:** 9 faults (`FAULT_ADDITIONS`) and 103 mutants (`MUTANT_ADDITIONS`), from `cross_out.txt` plus my own derivations:
+  - MA6 now covers every adapter row that reaches the snapshot, since they all assert zero `get_battle_state` calls;
+  - the WP rows were added wherever they apply.
+- **Re-anchored for the fixes:** M26, M26b and MA15; M31d's label now says H = 78.
+
+### First-run results of the pre-written sets
+**All 205 matched on the first run, with no corrections:** 9 faults, 103 existing mutants, 8 reverts, 85 pass mutants, plus COVERAGE.
+
+Three sets I derived myself rather than taking from the pass:
+- **V62** is now {WPh76}: at H = 76 the boundary row moved, so the pass's P-h68 no longer sits on it.
+- **V63** (slack 8 → 0) is {WXh68, WPh76}.
+- **A23** also reddens WPnit.
+
+### Not done (outside my three files)
+- `29-DISABLED-FEATURES-REGISTRY.md`: the fault rows' red-set summaries are now stale. For example NOFLOOR is now {W53, WXfloor0}, ACTIVEONLY has 11 rows, NOPP 44 (was 22), NETGAIN 32 (was 14), and MASTERBALL, CALCLEAK and NAMEDISPATCH each grew.
+- The design note's D4 still says H = 2 × (usable balls + 4); PD5 made it +8.
+
+===== 3. the author's gate run on the folded code =====
+W — the pre-registered W-rows (and the builder's WB rows), the pure module executed
+  PASS  W01 S0 (Seismic Toss X=13: hp-X 9, progress 13, E_gain ~1.97)  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W02 the flag unset  — DEFER slot=None move=None ball=None reason=off
+  PASS  W03 kind hm  — DEFER slot=None move=None ball=None reason=kind
+  PASS  W04 the context's sp names another species at the first decision  — DEFER slot=None move=None ball=None reason=context
+  PASS  W05 a later decision with a different PID  — DEFER slot=None move=None ball=None reason=pid
+  PASS  W06 a later decision, the same PID, a different species (Transform)  — THROW slot=None move=None ball=Poké Ball reason=transformed
+  PASS  W07 the TRAINER flag  — DEFER slot=None move=None ball=None reason=battle-type:0x8
+  PASS  W08 the DOUBLE flag  — DEFER slot=None move=None ball=None reason=battle-type:0x1
+  PASS  W09 the LEGENDARY flag  — DEFER slot=None move=None ball=None reason=battle-type:0x2000
+  PASS  W10a the ROAMER flag  — DEFER slot=None move=None ball=None reason=battle-type:0x400
+  PASS  W10b the SAFARI flag  — DEFER slot=None move=None ball=None reason=battle-type:0x80
+  PASS  W11 our item a Choice Band  — DEFER slot=None move=None ball=None reason=choice
+  PASS  W12 our disable struct: the Encore move at 0x06 (no timer)  — THROW slot=None move=None ball=Poké Ball reason=encore-on-us
+  PASS  W12b 0x04 (disabledMove) with a timer, 0x06 = 0 — pins the offset  — THROW slot=None move=None ball=Poké Ball reason=disabled
+  PASS  W14 our Torment  — THROW slot=None move=None ball=Poké Ball reason=torment
+  PASS  W15 the target's Imprison  — THROW slot=None move=None ball=Poké Ball reason=imprison
+  PASS  W16 the target semi-invulnerable (Fly)  — THROW slot=None move=None ball=Poké Ball reason=semi-invulnerable
+  PASS  W17 the target behind a Substitute  — THROW slot=None move=None ball=Poké Ball reason=substitute
+  PASS  W18 the target confused  — THROW slot=None move=None ball=Poké Ball reason=confused
+  PASS  W19 the target poisoned  — THROW slot=None move=None ball=Poké Ball reason=ticking:status1
+  PASS  W20 the target Leech Seeded  — THROW slot=None move=None ball=Poké Ball reason=ticking:leech-seed
+  PASS  W21 our Future Sight pending on its side  — THROW slot=None move=None ball=Poké Ball reason=ticking:future-sight
+  PASS  W22 the target knows Self-Destruct, no Damp  — THROW slot=None move=None ball=Poké Ball reason=explosion
+  PASS  W23 the same, with our lead's Damp  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:EXPLOSION|st:no-status-move
+  PASS  W24 the target knows Teleport  — THROW slot=None move=None ball=Poké Ball reason=ender:TELEPORT
+  PASS  W25 the target knows Roar  — THROW slot=None move=None ball=Poké Ball reason=ender:ROAR
+  PASS  W26 the target knows Perish Song  — THROW slot=None move=None ball=Poké Ball reason=ender:PERISH_SONG
+  PASS  W27 the target knows Memento  — THROW slot=None move=None ball=Poké Ball reason=ender:MEMENTO
+  PASS  W28 the target knows Metronome  — THROW slot=None move=None ball=Poké Ball reason=calling:METRONOME
+  PASS  W29 the target knows Mirror Move  — THROW slot=None move=None ball=Poké Ball reason=calling:MIRROR_MOVE
+  PASS  W30 the target knows Assist  — THROW slot=None move=None ball=Poké Ball reason=calling:ASSIST
+  PASS  W31 the target knows Sleep Talk  — THROW slot=None move=None ball=Poké Ball reason=calling:SLEEP_TALK
+  PASS  W32 a Great Ball and the target at 7/22 (30%)  — THROW slot=None move=None ball=Great Ball reason=odds
+  PASS  W33 a DAMAGE verdict at turn 0; now turn 1  — THROW slot=None move=None ball=Poké Ball reason=dmg:damage-cap|st:no-status-move
+  PASS  W33b decide again in the SAME turn after a DAMAGE verdict at that turn  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W34 the target knows Take Down  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:RECOIL|st:no-status-move
+  PASS  W35 the target knows Belly Drum  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:BELLY_DRUM|st:no-status-move
+  PASS  W36 the target knows Thrash  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:RAMPAGE|st:no-status-move
+  PASS  W37 the target knows Jump Kick  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:RECOIL_IF_MISS|st:no-status-move
+  PASS  W38 a GHOST target knows Curse [VACUOUS for the Curse rule: Seismic Toss is already Ghost-immune; WB38 (Ghost + Foresight) isolates the Ghost-Curse rule]  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:GHOST_CURSE|st:no-status-move
+  PASS  W38b a non-Ghost target knows Curse  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W39 the target knows Encore  — THROW slot=None move=None ball=Poké Ball reason=dmg:encore-knower|st:no-status-move
+  PASS  W40 the target knows Transform  — THROW slot=None move=None ball=Poké Ball reason=dmg:acquires:TRANSFORM|st:no-status-move
+  PASS  W40b the target knows Mimic  — THROW slot=None move=None ball=Poké Ball reason=dmg:acquires:MIMIC|st:no-status-move
+  PASS  W40c the target knows Sketch  — THROW slot=None move=None ball=Poké Ball reason=dmg:acquires:SKETCH|st:no-status-move
+  PASS  W41 the target knows Sandstorm (Normal/Flying)  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather-move:SANDSTORM|st:no-status-move
+  PASS  W41b the same target Ground-type  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W42 the target's total PP 60 (H = 2*(30+8) = 76 since PD5; filed with 2*(30+4) = 68)  — THROW slot=None move=None ball=Poké Ball reason=dmg:struggle-pp:60<=76|st:no-status-move
+  PASS  W42b the target's total PP 78 (the first total above H = 76; filed at 70 against H = 68 — REPORTED)  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W43 sandstorm on  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather:sandstorm|st:no-status-move
+  PASS  W43b sandstorm on, a Ground target  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W43c sandstorm on, our Cloud Nine  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather:sandstorm|st:no-status-move
+  PASS  W44 a party member (not the lead) with Rough Skin; the target knows a contact move (Peck)  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Rough Skin|st:no-status-move
+  PASS  W44b the same, the target knows no contact move  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W45 a party member with Liquid Ooze; the target knows Absorb  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Liquid Ooze|st:no-status-move
+  PASS  W46 a party member with Synchronize  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Synchronize|st:no-status-move
+  PASS  W47 Seismic Toss at PP 0  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:no-status-move
+  PASS  W49 a Ghost target  — THROW slot=None move=None ball=Poké Ball reason=dmg:immune@1|st:no-status-move
+  PASS  W49b the same with Foresight on it  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W50 Night Shade in slot 1, a Normal target  — THROW slot=None move=None ball=Poké Ball reason=dmg:immune@1|st:no-status-move
+  PASS  W51 a Wonder Guard target with max HP 1 [VACUOUS for Wonder Guard: the floor and a zero E_gain also block at max HP 1; WXwgblock isolates Wonder Guard]  — THROW slot=None move=None ball=Poké Ball reason=dmg:wonder-guard@1|st:no-status-move
+  PASS  W52 the target at hp 11/22 [VACUOUS for the 50% rule: the one-throw odds (0.624) fire first; filed reason 'half', operative 'odds' — REPORTED; WB52 isolates the 50% rule]  — THROW slot=None move=None ball=Poké Ball reason=odds
+  PASS  W53 Dragon Rage in slot 1 (40 >= 22)  — THROW slot=None move=None ball=Poké Ball reason=dmg:floor@1|st:no-status-move
+  PASS  W54 Sonicboom, a target with max HP 250 at 250 (20 < 25)  — THROW slot=None move=None ball=Poké Ball reason=dmg:progress@1|st:no-status-move
+  PASS  W55 Sonicboom, a rate-255 target, max 100 at 100 (E_gain ~0.98)  — THROW slot=None move=None ball=Poké Ball reason=dmg:egain@1|st:no-status-move
+  PASS  W56 Super Fang (X = 11 at hp 22)  — DAMAGE slot=1 move=Super Fang ball=None reason=stage1:SUPER_FANG
+  PASS  W57 Sing in slot 2, Seismic Toss at PP 0  — STATUS slot=2 move=Sing ball=None reason=status:SLEEP
+  PASS  W57b as W57, the target's live Soundproof  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:soundproof@2
+  PASS  W57c as W57, Uproar on a battler (the target)  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:uproar@2
+  PASS  W57d as W57, the target's live Insomnia  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:insomnia@2
+  PASS  W57e as W57, the target already paralysed  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:has-status
+  PASS  W57f as W57, Safeguard on its side  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:safeguard
+  PASS  W57g as W57, Taunt on us  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:taunt
+  PASS  W57h as W57, 3 status tries spent (each one landed, then woke)  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:status-cap
+  PASS  W57i as W57, the target holds a Chesto Berry (a berry is a try)  — STATUS slot=2 move=Sing ball=None reason=status:SLEEP
+  PASS  W57j as W57, the target knows Magic Coat  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:magic-coat
+  PASS  W58 Thunder Wave only; a Ground target  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:immune@2
+  PASS  W58b Thunder Wave only; an Electric target  — STATUS slot=2 move=Thunder Wave ball=None reason=status:PARALYZE
+  PASS  W58c Glare only; a Ghost target  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:immune@2
+  PASS  W58d Glare only; the same with Foresight  — STATUS slot=2 move=Glare ball=None reason=status:PARALYZE
+  PASS  W58e Thunder Wave only vs Synchronize (no ender)  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:synchronize@2
+  PASS  W58f Thunder Wave AND Sing vs Synchronize [VACUOUS for Synchronize: sleep is always preferred; W58e isolates the Synchronize skip, WBorder the sleep-first order]  — STATUS slot=3 move=Sing ball=None reason=status:SLEEP
+  PASS  W59 Seismic Toss AND Sing, the target at full HP  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  W60 as W57, Sing in banned_moves  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:banned@2
+  PASS  W61 bag: Master Ball x1 + Poké x30; the target at 7/22 (THROW)  — THROW slot=None move=None ball=Poké Ball reason=odds
+  PASS  W63 CALC unset; Seismic Toss at PP 0, Tackle admissible by the calculator's bound  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:no-status-move
+  PASS  W63b CALC=1, the same  — DAMAGE slot=0 move=Tackle ball=None reason=stage2:HIT
+  PASS  W64 CALC=1, as W63b, our lead burned with Guts (its species' ability too)  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:guts-burn@0,divergence:guts-burn@2,divergence:guts-burn@3|st:no-status-move
+  PASS  WB38 [builder] a Ghost target WITH Foresight knows Curse (only the Ghost-Curse rule can stop the hit)  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:GHOST_CURSE|st:no-status-move
+  PASS  WB52 [builder] a rate-45 target at 11/22 (one-throw 0.12): the 50% rule is the operative one  — THROW slot=None move=None ball=Poké Ball reason=dmg:half@1|st:no-status-move
+  PASS  WB54s [builder] Sonicboom on a 40/40 target: DAMAGE with X = 20 (by EFFECT; moves.json says 'Sonicboom')  — DAMAGE slot=1 move=Sonicboom ball=None reason=stage1:SONICBOOM
+  PASS  WBnp [builder] 2 no-progress acting turns (a missed hit, a missed Sing) -> throw-only  — THROW slot=None move=None ball=Poké Ball reason=no-progress
+  PASS  WBball [builder] no ball to throw -> DEFER  — DEFER slot=None move=None ball=None reason=no-ball
+  PASS  WBctx [builder] the first decision's context did not match -> every later decision DEFERs  — DEFER slot=None move=None ball=None reason=context
+  PASS  WBorder [builder] Thunder Wave AND Sing, no Synchronize: sleep over paralysis  — STATUS slot=3 move=Sing ball=None reason=status:SLEEP
+  PASS  WBlimber [builder] Thunder Wave only vs a live Limber  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:limber@2
+  PASS  WXfloor0 [adv] lead L22 (Seismic Toss X=22) vs 22/22: hp - X = 0 -> the floor refuses  — THROW slot=None move=None ball=Poké Ball reason=dmg:floor@1|st:no-status-move
+  PASS  WXfloor1 [adv] lead L21 (X=21) vs 22/22: hp - X = 1 -> admissible (E_gain 3.575-1.275=2.30)  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXprog10 [adv] Sonicboom (20) vs a rate-45 200/200 target: exactly 10% -> DAMAGE (E_gain 1.91)  — DAMAGE slot=1 move=Sonicboom ball=None reason=stage1:SONICBOOM
+  PASS  WXprogmax [adv] Sonicboom vs a rate-45 target at 150/250: 20 < 10% of MAX (25) -> THROW progress  — THROW slot=None move=None ball=Poké Ball reason=dmg:progress@1|st:no-status-move
+  PASS  WXodds15 [adv] Taillow 15/22 (one-throw 0.5028 >= 0.5) -> THROW for the ODDS  — THROW slot=None move=None ball=Poké Ball reason=odds
+  PASS  WXdig [adv] the target underground (Dig, status3 1<<7)  — THROW slot=None move=None ball=Poké Ball reason=semi-invulnerable
+  PASS  WXdive [adv] the target underwater (Dive, status3 1<<18)  — THROW slot=None move=None ball=Poké Ball reason=semi-invulnerable
+  PASS  WXconf4 [adv] the target confused, counter 4 (status2 = 4: bit 2 only)  — THROW slot=None move=None ball=Poké Ball reason=confused
+  PASS  WXburn [adv] the target burned (status1 0x10)  — THROW slot=None move=None ball=Poké Ball reason=ticking:status1
+  PASS  WXtoxic [adv] the target badly poisoned (status1 0x80 | counter 0x100)  — THROW slot=None move=None ball=Poké Ball reason=ticking:status1
+  PASS  WXwrap [adv] the target wrapped (status2 0x2000)  — THROW slot=None move=None ball=Poké Ball reason=ticking:status2
+  PASS  WXcursed [adv] the target cursed (status2 1<<28)  — THROW slot=None move=None ball=Poké Ball reason=ticking:status2
+  PASS  WXnightmare [adv] the target under Nightmare (status2 1<<27)  — THROW slot=None move=None ball=Poké Ball reason=ticking:status2
+  PASS  WXdedge [adv] the target knows Double-edge (DOUBLE_EDGE; also Volt Tackle)  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:DOUBLE_EDGE|st:no-status-move
+  PASS  WXhailk [adv] the target knows Hail (Normal/Flying)  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather-move:HAIL|st:no-status-move
+  PASS  WXhailkice [adv] an ICE target knows Hail -> immune -> DAMAGE  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXhailw [adv] hail in effect (gBattleWeather 0x80)  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather:hail|st:no-status-move
+  PASS  WXhailwice [adv] hail in effect, an Ice target -> DAMAGE  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXsandtemp [adv] a TEMPORARY sandstorm (0x08, the Sandstorm move's bit)  — THROW slot=None move=None ball=Poké Ball reason=dmg:weather:sandstorm|st:no-status-move
+  PASS  WXppoint [adv] a party member with Poison Point; the target knows Peck (contact)  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Poison Point|st:no-status-move
+  PASS  WXfbody [adv] a party member with Flame Body; contact  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Flame Body|st:no-status-move
+  PASS  WXespore [adv] a party member with Effect Spore; contact  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Effect Spore|st:no-status-move
+  PASS  WXoozeseed [adv] a party member with Liquid Ooze; the target knows Leech Seed (no Absorb)  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Liquid Ooze|st:no-status-move
+  PASS  WXh68 [adv] the target's total PP 68 (the pass's H; below H = 76 since PD5 -> still THROW, struggle)  — THROW slot=None move=None ball=Poké Ball reason=dmg:struggle-pp:68<=76|st:no-status-move
+  PASS  WXwgblock [adv] Wonder Guard on a 22/22 Normal/Flying target: Seismic Toss is SE+NVE -> blocked (isolates the Wonder Guard rule W51 cannot)  — THROW slot=None move=None ball=Poké Ball reason=dmg:wonder-guard@1|st:no-status-move
+  PASS  WXwgpass [adv] Wonder Guard on a 22/22 pure-Normal target: Seismic Toss SE only -> DAMAGE  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXwgnshade [adv] Night Shade vs a Wonder Guard Bug/Ghost target at 50/50 (Ghost vs Ghost SE) -> DAMAGE x=13  — DAMAGE slot=1 move=Night Shade ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXmax [adv] Seismic Toss (13) slot 1 AND Sonicboom (20) slot 2 vs 40/40 -> the largest X: Sonicboom  — DAMAGE slot=2 move=Sonicboom ball=None reason=stage1:SONICBOOM
+  PASS  WXtie [adv] Night Shade (slot 1) AND Seismic Toss (slot 2), both X=13, vs a Water 22/22 -> the LOWEST slot  — DAMAGE slot=1 move=Night Shade ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WXsfodd [adv] Super Fang at an ODD hp 21/22 -> X = 21 // 2 = 10  — DAMAGE slot=1 move=Super Fang ball=None reason=stage1:SUPER_FANG
+  PASS  WXvspirit [adv] as W57, the target's live Vital Spirit  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:insomnia@2
+  PASS  WXuproarus [adv] as W57, Uproar on OUR lead (status2 0x20)  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:uproar@2
+  PASS  WXhypnosp [adv] Hypnosis (not a sound move) vs a live Soundproof -> STATUS(Hypnosis)  — STATUS slot=2 move=Hypnosis ball=None reason=status:SLEEP
+  PASS  WXs2bound0 [adv] CALC=1, rate-45 target 19/30, Tackle (5, crit 14): ub = ceil(15.4)+3 = 19 -> hp-ub 0 -> THROW  — THROW slot=None move=None ball=Poké Ball reason=dmg:bound@0|st:no-status-move
+  PASS  WXs2bound1 [adv] CALC=1, the same at 20/30: hp-ub = 1 -> DAMAGE(Tackle)  — DAMAGE slot=0 move=Tackle ball=None reason=stage2:HIT
+  PASS  WXs2half [adv] CALC=1, rate-45 target at 11/22 (exactly 50%), Tackle (3, 4) -> the stage-2 50% rule refuses  — THROW slot=None move=None ball=Poké Ball reason=dmg:half@0|st:no-status-move
+  PASS  WXs2egain [adv] CALC=1, Tackle (3, 10) vs 22/22: E_gain at the MIN 3 is 0.61 < 1 -> THROW egain  — THROW slot=None move=None ball=Poké Ball reason=dmg:egain@0|st:no-status-move
+  PASS  WXs2prog [adv] CALC=1, a rate-3 target at 51/100, Tackle (1, 20): the MIN 1 < 10% -> THROW progress  — THROW slot=None move=None ball=Poké Ball reason=dmg:progress@0|st:no-status-move
+  PASS  WXs2tier [adv] CALC=1, a range supplied for a NON-Tier-A move (Flail) -> never a stage-2 candidate  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:no-status-move
+  PASS  WXs2max [adv] CALC=1, Tackle (5, 10) slot 0 AND Water Gun (6, 10) slot 3 -> the larger MIN: Water Gun  — DAMAGE slot=3 move=Water Gun ball=None reason=stage2:HIT
+  PASS  WXdivms [adv] CALC=1, as W63b, the TARGET's Marvel Scale and OUR lead burned (not Guts): divergence  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:marvel-scale@0,divergence:marvel-scale@2,divergence:marvel-scale@3|st:no-status-move
+  PASS  WXdivff [adv] CALC=1, as W63b, our Flash Fire boost may be on  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:flash-fire@0,divergence:flash-fire@2,divergence:flash-fire@3|st:no-status-move
+  PASS  WXdivcharge [adv] CALC=1, as W63b, our Charge (status3 1<<9)  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:charge@0,divergence:charge@2,divergence:charge@3|st:no-status-move
+  PASS  WXdivb7 [adv] CALC=1, badge 7, the only candidate a SPECIAL move (Water Gun 5-10)  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:badge7-special@3|st:no-status-move
+  PASS  WXdivb7phys [adv] CALC=1, badge 7, the only candidate PHYSICAL (Tackle 5-10) -> DAMAGE (no divergence)  — DAMAGE slot=0 move=Tackle ball=None reason=stage2:HIT
+  PASS  WXdivabil [adv] CALC=1, as W63b, the target's LIVE ability (Keen Eye) differs from its species' (Guts)  — THROW slot=None move=None ball=Poké Ball reason=dmg:divergence:ability-not-species@0,divergence:ability-not-species@2,divergence:ability-not-species@3|st:no-status-move
+  PASS  WXfrozen [adv] as W57, a rate-45 target FROZEN (0x20; one-throw 0.12): the status skip is the operative rule  — THROW slot=None move=None ball=Poké Ball reason=dmg:no-damage-move|st:has-status
+  PASS  WXegst [adv] a PARALYSED rate-45 target at 14/22, lead L5 (X=5): E_gain AT the status is 0.90 < 1 -> THROW egain (ignoring the status it would be 2.41)  — THROW slot=None move=None ball=Poké Ball reason=dmg:egain@1|st:has-status
+  PASS  WPtrace [PD1] a NON-lead Trace member (a faint-switch copies the target's LIVE Rough Skin, which then chips it every throw turn) -> THROW  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Rough Skin|st:no-status-move
+  PASS  WPtracectl [PD1 control] our own non-lead Rough Skin vs the same target -> THROW (the pre-fix rule)  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Rough Skin|st:no-status-move
+  PASS  WPtraceguts [PD1 control] a Trace member vs a Guts target (a harmless copy) -> DAMAGE (the fix is scoped)  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WPpainsplit [PD2] the target knows Pain Split (it averages the HP before our hit) -> THROW  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:PAIN_SPLIT|st:no-status-move
+  PASS  WPberry [PD3] the target holds a Figy Berry (confuse_spicy) -> no damage  — THROW slot=None move=None ball=Poké Ball reason=dmg:self-harm:confusion-berry:Figy Berry|st:no-status-move
+  PASS  WPberryctl [PD3 control] the target holds an Oran Berry (restore_hp) -> DAMAGE (only confuse_* refuses)  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WPsandstream [PD4] a party member with Sand Stream, the target not sand-immune -> THROW  — THROW slot=None move=None ball=Poké Ball reason=dmg:retaliation:Sand Stream|st:no-status-move
+  PASS  WPsandstreamctl [PD4 control] the same vs a Ground (sand-immune) target -> DAMAGE  — DAMAGE slot=1 move=Seismic Toss ball=None reason=stage1:LEVEL_DAMAGE
+  PASS  WPrecharge [PD5] CALC=1, Hyper Beam (RECHARGE) the only ranged slot -> never a stage-2 candidate  — THROW slot=None move=None ball=Poké Ball reason=dmg:recharge@0|st:no-status-move
+  PASS  WPh76 [PD5] the target's total PP exactly H = 2*(30+8) = 76 -> THROW (struggle)  — THROW slot=None move=None ball=Poké Ball reason=dmg:struggle-pp:76<=76|st:no-status-move
+
+WX — the adversarial pass's function rows
+  PASS  WXbtsweep [adv] every gBattleTypeFlags bit but IS_MASTER / RECORDED_IS_MASTER DEFERs; flags 0 acts  — bad []
+  PASS  WXcapseq [adv] the damage cap through remember(): a same-turn re-entry repeats DAMAGE; the next turn caps  — DAMAGE DAMAGE THROW/dmg:damage-cap|st:no-status-move hist ((0, 'DAMAGE', 22, 0),)
+  PASS  WXballs [adv] the ball table: Ultra 20, Great/Safari 15, Dive 35 underwater, Repeat 30 owned, Nest 10 at L35+  — {'Ultra': 20, 'Great': 15, 'Safari': 15, 'Poke': 10, 'Dive-under': 35, 'Dive-land': 10, 'Repeat-owned': 30, 'Repeat-new': 10, 'Luxury': 10, 'Premier': 10, 'Nest-L45': 10, 'Nest-L35': 10}
+  PASS  WXcpstatus [adv] catch_p: freeze x2, toxic x15//10  — freeze 0.6242426856909148 toxic 0.40957500057219876
+
+W67 — catch_p anchors, hand-derived in integers
+  PASS  W67a catch_p Poké, Taillow 22/22: b 47661 (hand-derived)  — W67a: catch_p(200, 10, 22, 22, 0) = 0.27972602799249063 (want 0.27972602799249063)
+  PASS  W67b catch_p at hp 9/22: b 58253 (non-full HP)  — W67b: catch_p(200, 10, 22, 9, 0) = 0.6242426856909148 (want 0.6242426856909148)
+  PASS  W67c sleep x2 at full HP: odds 132, b 58253  — W67c: catch_p(200, 10, 22, 22, 2) = 0.6242426856909148 (want 0.6242426856909148)
+  PASS  W67d paralysis x15//10: odds 99, b 52428  — W67d: catch_p(200, 10, 22, 22, 64) = 0.40957500057219876 (want 0.40957500057219876)
+  PASS  W67e odds 254 is NOT certain (b 65535); odds 255 is 1.0  — W67e: catch_p(255, 10, 200, 1, 0) = 0.9999389662407197 (want 0.9999389662407197) | W67e2: catch_p(255, 15, 200, 99, 0) = 1.0 (want 1.0)
+  PASS  W67f the Nest Ball at L6: bonus 34, odds 226  — bonus 34; W67f: catch_p(200, 34, 22, 22, 0) = 0.9999389662407197 (want 0.9999389662407197); catch_p_ball 0.9999389662407197
+  PASS  W67g the Net Ball vs a LIVE Bug type: 30 (10 otherwise)  — bug 30, plain 10; W67g: catch_p(200, 30, 22, 22, 0) = 0.7846170435166222 (want 0.7846170435166222); live-Bug catch_p_ball 0.7846170435166222
+  PASS  W67h the Timer Ball: turn 5 -> 15; 0 -> 10; capped at 40  — {0: 10, 5: 15, 30: 40, 45: 40}
+  PASS  W67i the Master Ball: forced success, 1.0  — bonus None, p 1.0
+  PASS  W67k the live arms' anchors: 21/21 -> b 47661; 6/21 -> b 61680  — W67k: catch_p(200, 10, 21, 21, 0) = 0.27972602799249063 (want 0.27972602799249063) | W67k2: catch_p(200, 10, 21, 6, 0) = 0.7846170435166222 (want 0.7846170435166222)
+  PASS  W67l the integer order: Great, rate 45, 8/22 -> odds 50 (not 51), b 43690  — W67l: catch_p(45, 15, 22, 8, 0) = 0.197518808146315 (want 0.197518808146315)
+
+W68 — the sweep
+  PASS  W68 every snapshot: only a defined verdict; a THROW names only a Poké Ball (RULING 27)  — 154 snapshots; bad []
+
+W62 / W65 / WB — the ADAPTER on the real classes
+  PASS  W62 observe: the parent's action unchanged; ONE [WEAKEN-OBS] would=DAMAGE … first=1 (its snapshot: HP, status, moves, the party read; it replays)  — action ('PARENT', None); [WEAKEN] [WEAKEN-OBS] would=DAMAGE t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=1 move=Seismic_Toss ball=- reason=stage1:LEV…; party ['Torrent', 'Run Away', 'Compoundeyes', 'Soundproof']; replay DAMAGE; gbs 0
+  PASS  W65a the dex reserve bail fires first (the adapter is never reached)  — action (<TurnAction.RunAway: 6>, None); weaken lines []; module calls 0
+  PASS  W65b the out-of-balls flee fires first (the adapter is never reached)  — action (<TurnAction.RunAway: 6>, None); weaken lines []; module calls 0
+  PASS  W65c an exception in the module -> DEFER (the parent's action) plus exactly ONE [WEAKEN] ERR line  — action ('PARENT', None); lines [('WEAKEN', 'ERR v=1 err=RuntimeError: the module raised')]
+  PASS  W65d the flag unset -> the parent's action, 0 lines containing WEAKEN, 0 reads  — action ('PARENT', None); lines []; reads []; module calls 0
+  PASS  W65e the shiny strategy never reaches the adapter (flag 1, kind team)  — action ('PARENT', None); lines []; module calls 0
+  PASS  WBact [builder] flag 1: turn 0 -> use_move(1) + act=DAMAGE; turn 1 (the PURE turn read) -> the damage cap: use_item(Poké Ball) + act=THROW  — turn 0 (<TurnAction.UseMove: 1>, 1) ['act=DAMAGE t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv']; turn 1 (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) ['act=THROW t=1 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=']
+  PASS  WBthrow [builder] flag 1, the target at 7/22 -> use_item(the parent's ball) + act=THROW  — action (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)); lines [('WEAKEN', 'act=THROW t=0 sp=Taillow#276 pid=0BADF00D hp=7/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=- move=- ball=Poké_Ball reason=odds snap={"target":{"pid":195948557,"species_id":304,"species":"Taillow","dex":276,"level":6,"hp":7,"max_hp":22,"types":["Normal","Flying"],"ability":"Guts","species_ability":"Guts","catch_rate":200,"moves":[{"move_id":64,"name":"Peck","effect":"HIT","type":"Flying","power":35,"pp":35,"contact":true,"sound":false},{"move_id":45,"name":"Growl","effect":"ATTACK_DOWN","type":"Normal","power":0,"pp":40,"contact":false,"sound":true},{"move_id":116,"name":"Focus Energy","effect":"FOCUS_ENERGY","type":"Normal","power":0,"pp":30,"contact":false,"sound":false},{"move_id":98,"name":"Quick Attack","effect":"QUICK_ATTACK","type":"Normal","power":40,"pp":30,"contact":true,"sound":false}],"status1":0,"status2":0,"status3":0,"item":null,"item_effect":"no_effect"},"me":{"pid":1426758630,"species":"Mudkip","level":13,"hp":40,"max_hp":40,"types":["Water"],"ability":"Torrent","species_ability":"Torrent","moves":[{"move_id":33,"name":"Tackle","effect":"HIT","type":"Normal","power":35,"pp":31,"contact":true,"sound":false},{"move_id":69,"name":"Seismic Toss","effect":"LEVEL_DAMAGE","type":"Fighting","power":1,"pp":20,"contact":true,"sound":false},{"move_id":189,"name":"Mud-slap","effect":"ACCURACY_DOWN_HIT","type":"Ground","power":20,"pp":10,"contact":false,"sound":false},{"move_id":55,"name":"Water Gun","effect":"HIT","type":"Water","power":40,"pp":7,"contact":false,"sound":false}],"status1":0,"status2":0,"status3":0,"item":null,"item_effect":"no_effect","disable":{"__bytes__":"00000000000000000000000000000000000000000000000000000000"},"flash_fire":false},"party":{"abilities":["Torrent","Run Away","Compoundeyes","Soundproof"]},"env":{"flag":"1","calc":false,"kinds":["dex","team"],"kind":"team","ctx_sp":"Taillow#276","battle_flags":4,"turn":0,"weather":0,"side_foe":0,"safeguard_timer":0,"ball":"Pok\\u00e9 Ball","bag":[["Pok\\u00e9 Ball",30]],"usable_balls":30,"banned":["None","Bounce","Dig","Dive","Fly","Sky Attack","Razor Wind","Doom Desire","Solar Beam","Fake Out","False Swipe","Nature Power","Present","Destiny Bond","Wrap","Snore","Spit Up","Bide","Bind","Counter","Future Sight","Mirror Coat","Grudge","Snatch","Spite","Curse","Endeavor","Revenge","Assist","Focus Punch","Eruption","Flail","Roar","Whirlwind","Selfdestruct","Perish Song","Explosion","Memento"],"badge7":false,"underwater":false,"owned":false,"calc_ranges":[],"read_error":null},"memo":null}')]
+  PASS  WBkind [builder] kind hm -> no read, no line, the parent's action  — action ('PARENT', None); lines []; reads []
+  PASS  WBencore [builder] the RAW gDisableStructs read: encoredMove at 0x06 -> act=THROW encore-on-us  — action (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)); lines ['act=THROW t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=- move=- ball=Poké_Ball reason']
+  PASS  WBparty [builder] the party read: a non-lead Rough Skin (Carvanha) -> act=THROW retaliation  — action (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)); lines ['act=THROW t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=- move=- ball=Poké_Ball reason=dmg:retaliation:Rou']
+  PASS  WBflags [builder] reset_per_run_state parses the three flags once per run ('0'/'yes' are OFF)  — {None: ('', False, ('dex', 'team')), 'observe': ('observe', True, ('dex', 'team', 'hm')), '1': ('1', True, ('dex', 'team', 'hm')), '0': ('', True, ('dex', 'team', 'hm')), 'yes': ('', True, ('dex', 'team', 'hm'))}
+  PASS  WPberryA [PD3] the adapter reads the target's hold effect: a Figy Berry -> act=THROW (confusion-berry)  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:self-harm:confusion-berry:Figy_Berry|st:no-status-move gbs 0
+  PASS  WXAst3 [adv] the target's status3 read from ITS slot: Leech Seed -> THROW ticking  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) ticking:leech-seed gbs 0
+  PASS  WXAst3ours [adv] OUR status3 Leech Seed is no tick on the target -> DAMAGE  — (<TurnAction.UseMove: 1>, 1) stage1:LEVEL_DAMAGE gbs 0
+  PASS  WXAside [adv] the target's side: our Future Sight pending -> THROW  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) ticking:future-sight gbs 0
+  PASS  WXAsideours [adv] OUR side's Future Sight (the target's) -> DAMAGE  — (<TurnAction.UseMove: 1>, 1) stage1:LEVEL_DAMAGE gbs 0
+  PASS  WXAweather [adv] gBattleWeather read: hail -> THROW  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:weather:hail|st:no-status-move gbs 0
+  PASS  WXAs1 [adv] the target's status1 at 0x4C: poisoned -> THROW ticking  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) ticking:status1 gbs 0
+  PASS  WXAliveab [adv] our lead's LIVE ability (Rough Skin; species Torrent) -> THROW retaliation  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:retaliation:Rough_Skin|st:no-status-move gbs 0
+  PASS  WXAtypes [adv] the target's LIVE types (Ghost) -> THROW immune  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:immune@1|st:no-status-move gbs 0
+  PASS  WXAflags [adv] the battle flags read: a trainer flag -> act=DEFER, the parent's action  — ('PARENT', None) [('WEAKEN', 'act=DEFER t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=- move=- ball=- reason=battle-type:0x8 snap={"target":{"pid":195948557,"species_id":304,"species":"Taillow","dex":276,"level":6,"hp":22,"max_hp":22,"types":["Normal","Flying"],"ability":"Guts","species_ability":"Guts","catch_rate":200,"moves":[{"move_id":64,"name":"Peck","effect":"HIT","type":"Flying","power":35,"pp":35,"contact":true,"sound":false},{"move_id":45,"name":"Growl","effect":"ATTACK_DOWN","type":"Normal","power":0,"pp":40,"contact":false,"sound":true},{"move_id":116,"name":"Focus Energy","effect":"FOCUS_ENERGY","type":"Normal","power":0,"pp":30,"contact":false,"sound":false},{"move_id":98,"name":"Quick Attack","effect":"QUICK_ATTACK","type":"Normal","power":40,"pp":30,"contact":true,"sound":false}],"status1":0,"status2":0,"status3":0,"item":null,"item_effect":"no_effect"},"me":{"pid":1426758630,"species":"Mudkip","level":13,"hp":40,"max_hp":40,"types":["Water"],"ability":"Torrent","species_ability":"Torrent","moves":[{"move_id":33,"name":"Tackle","effect":"HIT","type":"Normal","power":35,"pp":31,"contact":true,"sound":false},{"move_id":69,"name":"Seismic Toss","effect":"LEVEL_DAMAGE","type":"Fighting","power":1,"pp":20,"contact":true,"sound":false},{"move_id":189,"name":"Mud-slap","effect":"ACCURACY_DOWN_HIT","type":"Ground","power":20,"pp":10,"contact":false,"sound":false},{"move_id":55,"name":"Water Gun","effect":"HIT","type":"Water","power":40,"pp":7,"contact":false,"sound":false}],"status1":0,"status2":0,"status3":0,"item":null,"item_effect":"no_effect","disable":{"__bytes__":"00000000000000000000000000000000000000000000000000000000"},"flash_fire":false},"party":{"abilities":["Torrent","Run Away","Compoundeyes","Soundproof"]},"env":{"flag":"1","calc":false,"kinds":["dex","team"],"kind":"team","ctx_sp":"Taillow#276","battle_flags":12,"turn":0,"weather":0,"side_foe":0,"safeguard_timer":0,"ball":"Pok\\u00e9 Ball","bag":[["Pok\\u00e9 Ball",30]],"usable_balls":30,"banned":["None","Bounce","Dig","Dive","Fly","Sky Attack","Razor Wind","Doom Desire","Solar Beam","Fake Out","False Swipe","Nature Power","Present","Destiny Bond","Wrap","Snore","Spit Up","Bide","Bind","Counter","Future Sight","Mirror Coat","Grudge","Snatch","Spite","Curse","Endeavor","Revenge","Assist","Focus Punch","Eruption","Flail","Roar","Whirlwind","Selfdestruct","Perish Song","Explosion","Memento"],"badge7":false,"underwater":false,"owned":false,"calc_ranges":[],"read_error":null},"memo":null}')] gbs 0
+  PASS  WXAchoice [adv] our hold effect read: a Choice Band -> act=DEFER  — ('PARENT', None) [('WEAKEN', 'act=DEFER t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0 tmv=64:35,45:40,116:30,98:30 slot=- move=- ball=- reason=choice snap={"target":{"pid":195948557,"species_id":304,"species":"Taillow","dex":276,"level":6,"hp":22,"max_hp":22,"types":["Normal","Flying"],"ability":"Guts","species_ability":"Guts","catch_rate":200,"moves":[{"move_id":64,"name":"Peck","effect":"HIT","type":"Flying","power":35,"pp":35,"contact":true,"sound":false},{"move_id":45,"name":"Growl","effect":"ATTACK_DOWN","type":"Normal","power":0,"pp":40,"contact":false,"sound":true},{"move_id":116,"name":"Focus Energy","effect":"FOCUS_ENERGY","type":"Normal","power":0,"pp":30,"contact":false,"sound":false},{"move_id":98,"name":"Quick Attack","effect":"QUICK_ATTACK","type":"Normal","power":40,"pp":30,"contact":true,"sound":false}],"status1":0,"status2":0,"status3":0,"item":null,"item_effect":"no_effect"},"me":{"pid":1426758630,"species":"Mudkip","level":13,"hp":40,"max_hp":40,"types":["Water"],"ability":"Torrent","species_ability":"Torrent","moves":[{"move_id":33,"name":"Tackle","effect":"HIT","type":"Normal","power":35,"pp":31,"contact":true,"sound":false},{"move_id":69,"name":"Seismic Toss","effect":"LEVEL_DAMAGE","type":"Fighting","power":1,"pp":20,"contact":true,"sound":false},{"move_id":189,"name":"Mud-slap","effect":"ACCURACY_DOWN_HIT","type":"Ground","power":20,"pp":10,"contact":false,"sound":false},{"move_id":55,"name":"Water Gun","effect":"HIT","type":"Water","power":40,"pp":7,"contact":false,"sound":false}],"status1":0,"status2":0,"status3":0,"item":"Choice Band","item_effect":"choice_band","disable":{"__bytes__":"00000000000000000000000000000000000000000000000000000000"},"flash_fire":false},"party":{"abilities":["Torrent","Run Away","Compoundeyes","Soundproof"]},"env":{"flag":"1","calc":false,"kinds":["dex","team"],"kind":"team","ctx_sp":"Taillow#276","battle_flags":4,"turn":0,"weather":0,"side_foe":0,"safeguard_timer":0,"ball":"Pok\\u00e9 Ball","bag":[["Pok\\u00e9 Ball",30]],"usable_balls":30,"banned":["None","Bounce","Dig","Dive","Fly","Sky Attack","Razor Wind","Doom Desire","Solar Beam","Fake Out","False Swipe","Nature Power","Present","Destiny Bond","Wrap","Snore","Spit Up","Bide","Bind","Counter","Future Sight","Mirror Coat","Grudge","Snatch","Spite","Curse","Endeavor","Revenge","Assist","Focus Punch","Eruption","Flail","Roar","Whirlwind","Selfdestruct","Perish Song","Explosion","Memento"],"badge7":false,"underwater":false,"owned":false,"calc_ranges":[],"read_error":null},"memo":null}')] gbs 0
+  PASS  WXAusable [adv] the usable balls read: total PP 60 <= H -> THROW struggle  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:struggle-pp:60<=76|st:no-status-move gbs 0
+  PASS  WXAkinds [adv] the mode's kinds (dex only) exclude team -> no read, no line  — ('PARENT', None) lines [] reads []
+  PASS  WXAobs2 [adv] observe stores the memo: turn 0 would=DAMAGE first=1; turn 1 would=THROW (the damage cap) first=0  — ('PARENT', None) ('PARENT', None) | ['[WEAKEN-OBS] would=DAMAGE t=0 sp=Taillow#276 pid=0BADF00D hp=22/22 st=', '[WEAKEN-OBS] would=THROW t=1 sp=Taillow#276 pid=0BADF00D hp=22/22 st=0']
+  PASS  WXActx2 [adv] a failed first-decision context DEFERs this turn AND the next  — [(('PARENT', None), 'context'), (('PARENT', None), 'context')]
+  PASS  WXAbanned [adv] banned_moves read: Sing banned -> THROW  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:no-damage-move|st:banned@2 gbs 0
+  PASS  WXAbannedctl [adv] nothing banned -> STATUS(Sing), use_move(2)  — (<TurnAction.UseMove: 1>, 2) status:SLEEP gbs 0
+  PASS  WXAsafeguard [adv] the OPPONENT side's Safeguard timer -> THROW  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:no-damage-move|st:safeguard gbs 0
+  PASS  WXAcharge [adv] CALC=1, the real calculator, our Charge (gStatuses3[0]) -> THROW divergence  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:divergence:charge@0,divergence:charge@2,divergence:charge@3|st:no-status-move gbs 0
+  PASS  WXAmaster [adv] a Master Ball first in the pocket: THROW still uses the parent's Poké Ball  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) odds gbs 0
+  PASS  WXAb7 [adv] CALC=1, badge 7 read, a special move only -> THROW divergence  — (<TurnAction.UseItem: 5>, Item(index=4, name='Poké Ball', sprite_name='Poké Ball', price=200, type='poke_ball', battle_use=<ItemBattleUse.Catch: 'catch'>, field_use=<ItemFieldUse.NotUsable: 'not_usable'>, pocket=<ItemPocket.PokeBalls: 'poke_balls'>, hold_effect=<ItemHoldEffect.NoEffect: 'no_effect'>, parameter=0, extra_parameter=3, tm_hm_move_id=None)) dmg:divergence:badge7-special@3|st:no-status-move gbs 0
+  PASS  WPnit [nit] a THROW whose ball the bag lacks: act=DEFER, and the memo records DEFER (what was done)  — ('PARENT', None) ['act=DEFER t=0 sp=Taillow#276 pid=0BADF00'] hist ((0, 'DEFER', 22, 0),)
+
+W66 — AST pins
+  PASS  W66a no get_battle_state in the adapter (StoryCatchStrategy.decide_turn + the _r25_weaken_* helpers) nor in the pure module (KI-108)  — adapter hits []; pure module hit False
+  PASS  W66b the adapter sits after the out-of-balls flee and before super(), at ONE call site  — body ['try:', 'weaken = _r25_weaken_turn(self, battle_state)', 'if weaken is not None:', 'return super().decide_turn(battle_state)']; flee True; guard True; call sites 1
+  PASS  W66c the catch-strategy construction lines are unchanged from cdb49f83  — [("_r20_catch_start(self, 'dex' if _post_badge else 'team', encounter, dex=dex)", 'return StoryDexCatchStrategy() if _post_badge else StoryCatchStrategy()'), ("_r20_catch_start(self, 'shiny', encounter)", 'return StoryShinyCatchStrategy()'), ("_r20_catch_start(self, 'hm', encounter)", 'return StoryCatchStrategy()'), ("_r20_catch_start(self, 'counter', encounter)", 'return StoryCatchStrategy()')]
+  PASS  W66d the shiny strategy does not reach it (it returns CatchStrategy.decide_turn directly)  — last 'return CatchStrategy.decide_turn(self, battle_state)'; bases ['StoryCatchStrategy']; adapter refs set(); super() 0
+  PASS  W66e the pure module imports only the standard library (no random, no emulator)  — imports ['__future__', 'dataclasses', 'json', 'math', 'os'] (allowed ['__future__', 'dataclasses', 'json', 'math', 'os'])
+  PASS  W66g the adapter logs in its OWN category WEAKEN, from one helper  — categories ["'WEAKEN'"]; other logger calls 0
+  PASS  W66h the adapter reads no environment variable (the flags come from the mode, per run)  — environment reads in []
+
+F/M — faults and mutants (each must turn EXACTLY its named rows red; 9 faults, 196 mutants (103 own, 8 fix reverts, 85 from the adversarial pass), run in a pool of 8 processes, 7.2 s)
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_NOFLOOR  — red ['W53', 'WXfloor0']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_NOENCORE  — red ['W39']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_CALCLEAK  — red ['W63', 'WXAbanned', 'WXAbannedctl', 'WXAsafeguard']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_ACTIVEONLY  — red ['W44', 'W45', 'W46', 'WBparty', 'WPsandstream', 'WPtrace', 'WPtracectl', 'WXespore', 'WXfbody', 'WXoozeseed', 'WXppoint']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_NOPP  — red ['W47', 'W57', 'W57b', 'W57c', 'W57d', 'W57e', 'W57f', 'W57g', 'W57h', 'W57i', 'W57j', 'W58', 'W58b', 'W58d', 'W58e', 'W58f', 'W60', 'W63', 'W63b', 'W64', 'WBlimber', 'WBorder', 'WPrecharge', 'WXAb7', 'WXAbanned', 'WXAbannedctl', 'WXAcharge', 'WXAsafeguard', 'WXdivabil', 'WXdivb7', 'WXdivb7phys', 'WXdivcharge', 'WXdivff', 'WXdivms', 'WXfrozen', 'WXhypnosp', 'WXs2bound0', 'WXs2bound1', 'WXs2egain', 'WXs2max', 'WXs2prog', 'WXs2tier', 'WXuproarus', 'WXvspirit']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_MASTERBALL  — red ['W61', 'WXAmaster']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_SPECIESID  — red ['W05', 'W06']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_NETGAIN  — red ['W01', 'W33b', 'W38b', 'W41b', 'W42b', 'W43b', 'W44b', 'W49b', 'W56', 'W59', 'W62', 'W63b', 'WB54s', 'WBact', 'WPberryctl', 'WPsandstreamctl', 'WPtraceguts', 'WXAobs2', 'WXAsideours', 'WXAst3ours', 'WXbtsweep', 'WXdivb7phys', 'WXhailkice', 'WXhailwice', 'WXmax', 'WXprog10', 'WXs2bound1', 'WXs2max', 'WXsfodd', 'WXtie', 'WXwgnshade', 'WXwgpass']
+  PASS  FAULT POKEBOT_R25_FAULT_WEAKEN_NAMEDISPATCH  — red ['W54', 'W55', 'WB54s', 'WXmax', 'WXprog10', 'WXprogmax']
+  PASS  M01 the flag check removed  — red ['W02']
+  PASS  M02 the kind check removed (the module's)  — red ['W03']
+  PASS  M02b in_scope always True (the module's and the adapter's)  — red ['W03', 'WBkind', 'WXAkinds']
+  PASS  M03 the first decision's context check removed  — red ['W04', 'WXActx2']
+  PASS  M03b a later decision ignores a failed context  — red ['WBctx', 'WXActx2']
+  PASS  M04 the PID check removed  — red ['W05']
+  PASS  M05 the battle-type check removed  — red ['W07', 'W08', 'W09', 'W10a', 'W10b', 'WXAflags', 'WXbtsweep']
+  PASS  M05b the battle-type mask = the trainer bit only  — red ['W08', 'W09', 'W10a', 'W10b', 'WXbtsweep']
+  PASS  M06 the Choice item check removed  — red ['W11', 'WXAchoice']
+  PASS  M07 the no-ball DEFER removed  — red ['WBball']
+  PASS  M08 the Transform (same PID, other species) check removed  — red ['W06']
+  PASS  M09 encoredMove read at 0x04 (the shared property's bug)  — red ['W12', 'W12b', 'WBencore']
+  PASS  M10 the Encore-on-us check removed  — red ['W12', 'WBencore']
+  PASS  M11 the Torment check removed  — red ['W14']
+  PASS  M12 the Disable check removed (the slot filter still drops the disabled move: the reason changes)  — red ['W12b']
+  PASS  M13 the Imprison check removed  — red ['W15']
+  PASS  M14 the semi-invulnerable check removed  — red ['W16', 'WXdig', 'WXdive']
+  PASS  M15 the Substitute THROW-ONLY removed  — red ['W17']
+  PASS  M16 the confusion check removed  — red ['W18', 'WXconf4']
+  PASS  M17 the status1 tick check removed  — red ['W19', 'WXAs1', 'WXburn', 'WXtoxic']
+  PASS  M18 the Leech Seed tick check removed  — red ['W20', 'WXAst3']
+  PASS  M19 the Future Sight check removed  — red ['W21', 'WXAside']
+  PASS  M20 the Explosion THROW-ONLY removed (the self-harm rule still refuses damage: the reason changes)  — red ['W22']
+  PASS  M20b Damp ignored  — red ['W23']
+  PASS  M21 the enders removed  — red ['W24', 'W25', 'W26', 'W27']
+  PASS  M22 the calling THROW-ONLY removed (the self-harm rule still refuses damage: the reason changes)  — red ['W28', 'W29', 'W30', 'W31']
+  PASS  M23 the one-throw odds check removed  — red ['W32', 'W52', 'WXodds15']
+  PASS  M24 the no-progress cap removed  — red ['WBnp']
+  PASS  M25 the damage cap never spent  — red ['W33', 'WBact', 'WXAobs2', 'WXcapseq']
+  PASS  M25b this turn's own decision spends the cap (a re-entry would flip DAMAGE to THROW)  — red ['W33b', 'WXcapseq']
+  PASS  M26 recoil / crash / rampage / Belly Drum dropped from the self-harm moves  — red ['W34', 'W35', 'W36', 'W37', 'WXdedge']
+  PASS  M26b Explosion dropped from the self-harm moves  — red ['W23']
+  PASS  M27 the Ghost-Curse rule removed  — red ['WB38']
+  PASS  M27b every Curse-knower refused (not only a Ghost)  — red ['W38b']
+  PASS  M28 the acquired-move rule removed  — red ['W40', 'W40b', 'W40c']
+  PASS  M30 the Sandstorm-knower rule removed  — red ['W41']
+  PASS  M30b sand immunity by Sand Veil only (types ignored)  — red ['W41b', 'W43b', 'WPsandstreamctl']
+  PASS  M31 the Struggle horizon removed  — red ['W42', 'WPh76', 'WXAusable', 'WXh68']
+  PASS  M31d the horizon 2 larger (78 since PD5): W42b's 78 no longer exceeds it  — red ['W42b']
+  PASS  M32 the weather-in-effect rule removed  — red ['W43', 'W43c', 'WXsandtemp']
+  PASS  M32b Cloud Nine trusted to suppress the sand  — red ['W43c']
+  PASS  M33 a contact retaliator refuses even with no contact move  — red ['W44b']
+  PASS  M34 the stage-1 type immunity ignored  — red ['W49', 'W50', 'WXAtypes']
+  PASS  M34b the immunity AND the Ghost-Curse rule removed (W38's two independent blockers)  — red ['W38', 'W49', 'W50', 'WB38', 'WXAtypes']
+  PASS  M35 every exact candidate admitted unchecked  — red ['W49', 'W50', 'W51', 'W53', 'W54', 'W55', 'WB52', 'WXAtypes', 'WXegst', 'WXfloor0', 'WXprogmax', 'WXwgblock']
+  PASS  M36 the stage-1 50% rule removed  — red ['WB52']
+  PASS  M37 the stage-1 progress rule removed  — red ['W54', 'WXprogmax']
+  PASS  M38 the stage-1 E_gain rule removed  — red ['W55', 'WXegst']
+  PASS  M39a Super Fang deals the whole HP  — red ['W56', 'WXsfodd']
+  PASS  M39b Dragon Rage deals 20  — red ['W53']
+  PASS  M39c Sonicboom deals 25  — red ['W54', 'WB54s', 'WXmax', 'WXprog10', 'WXprogmax']
+  PASS  M39d LEVEL_DAMAGE uses the TARGET's level  — red ['W01', 'WXegst', 'WXfloor0', 'WXfloor1', 'WXtie', 'WXwgnshade']
+  PASS  M40 stage 2's bound without the 10% and the margin (ub = crit_max)  — red ['W63b', 'WXs2bound0']
+  PASS  M41 the Guts-with-a-burn divergence removed  — red ['W64']
+  PASS  M42 stage 2 never runs  — red ['W63b', 'W64', 'WPrecharge', 'WXAb7', 'WXAcharge', 'WXdivabil', 'WXdivb7', 'WXdivb7phys', 'WXdivcharge', 'WXdivff', 'WXdivms', 'WXs2bound0', 'WXs2bound1', 'WXs2egain', 'WXs2half', 'WXs2max', 'WXs2prog']
+  PASS  M43 the status cap removed  — red ['W57h']
+  PASS  M44 Taunt on us ignored  — red ['W57g']
+  PASS  M45 an existing status ignored  — red ['W57e', 'WXfrozen']
+  PASS  M46 Safeguard ignored  — red ['W57f', 'WXAsafeguard']
+  PASS  M47 Magic Coat ignored  — red ['W57j']
+  PASS  M48 banned_moves ignored  — red ['W60', 'WXAbanned']
+  PASS  M49 Soundproof ignored  — red ['W57b']
+  PASS  M50 Uproar ignored  — red ['W57c', 'WXuproarus']
+  PASS  M51 Insomnia / Vital Spirit ignored  — red ['W57d', 'WXvspirit']
+  PASS  M52 the paralysis type immunity ignored  — red ['W58', 'W58c']
+  PASS  M52b the status check ignores Foresight  — red ['W58d']
+  PASS  M53 Synchronize ignored  — red ['W58e']
+  PASS  M54 paralysis over sleep  — red ['WBorder']
+  PASS  M55 Limber ignored  — red ['WBlimber']
+  PASS  M56 a held berry made a skip (it is a try, not a skip)  — red ['W57i']
+  PASS  M58 THROW names a ball the parent did not choose  — red ['W61', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WXAb7', 'WXAbanned', 'WXAcharge', 'WXAliveab', 'WXAmaster', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAst3', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  M58b THROW names an item that is not a ball  — red ['W61', 'W68', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WXAb7', 'WXAbanned', 'WXAcharge', 'WXAliveab', 'WXAmaster', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAst3', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  Mcp1 the constant 1048576 for 1048560 (b rounds up where Sqrt^2 = 16/18/22)  — red ['W67a', 'W67b', 'W67c', 'W67e', 'W67f', 'W67k', 'WXcpstatus']
+  PASS  Mcp2 the float order (rate * bonus / 10 not floored first)  — red ['W67l']
+  PASS  Mcp3 sleep x1  — red ['W67c', 'WXcpstatus']
+  PASS  Mcp4 paralysis x2  — red ['W67d', 'WXcpstatus', 'WXegst']
+  PASS  Mcp5 odds 254 counted as certain  — red ['W67e']
+  PASS  Mcp6 the Nest Ball one point high  — red ['W67f']
+  PASS  Mcp7 the Net Ball ignores Bug  — red ['W67g']
+  PASS  Mcp8 the Timer Ball one point high  — red ['W67h']
+  PASS  Mcp9 the Master Ball not forced  — red ['W67i']
+  PASS  M66e the pure module imports random  — red ['W66e']
+  PASS  M66a the pure module imports get_battle_state  — red ['W66a', 'W66e']
+  PASS  MN2 a comment-only edit in the pure module naming random / get_battle_state turns NOTHING red  — red []
+  PASS  MA1 the adapter BEFORE the out-of-balls flee  — red ['W65b', 'W66b']
+  PASS  MA2 the adapter call removed  — red ['W62', 'W65c', 'W66b', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WPnit', 'WXAb7', 'WXAbanned', 'WXAbannedctl', 'WXAcharge', 'WXAchoice', 'WXActx2', 'WXAflags', 'WXAliveab', 'WXAmaster', 'WXAobs2', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAsideours', 'WXAst3', 'WXAst3ours', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  MA3 the adapter's flag gate removed (flag unset reaches the reads)  — red ['W65d']
+  PASS  MA4 observe returns the verdict's action  — red ['W62', 'WXAobs2']
+  PASS  MA5 the category BATTLE  — red ['W62', 'W65c', 'W66g', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WPnit', 'WXAb7', 'WXAbanned', 'WXAcharge', 'WXAchoice', 'WXActx2', 'WXAflags', 'WXAliveab', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAst3', 'WXAst3ours', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  MA6 a get_battle_state() call in the snapshot  — red ['W62', 'W65c', 'W66a', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WPnit', 'WXAb7', 'WXAbanned', 'WXAbannedctl', 'WXAcharge', 'WXAchoice', 'WXActx2', 'WXAflags', 'WXAliveab', 'WXAmaster', 'WXAobs2', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAsideours', 'WXAst3', 'WXAst3ours', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  MA7 first=1 never set  — red ['W62', 'WXAobs2']
+  PASS  MA8 the ERR line dropped  — red ['W65c']
+  PASS  MA9 the adapter's own scope check removed (hm reaches the reads and logs)  — red ['WBkind', 'WXAkinds']
+  PASS  MA10 the shiny strategy calls StoryCatchStrategy.decide_turn (reaching the adapter)  — red ['W65e', 'W66d']
+  PASS  MA11 the dex strategy runs the adapter BEFORE its bails  — red ['W65a', 'W66b']
+  PASS  MA12 a construction line edited (hm)  — red ['W66c']
+  PASS  MA13 reset_per_run_state keeps any flag value  — red ['WBflags']
+  PASS  MA14 the adapter reads the flag from the environment, not the mode  — red ['W62', 'W65c', 'W66h', 'WBact', 'WBencore', 'WBparty', 'WBthrow', 'WPberryA', 'WPnit', 'WXAb7', 'WXAbanned', 'WXAbannedctl', 'WXAcharge', 'WXAchoice', 'WXActx2', 'WXAflags', 'WXAliveab', 'WXAmaster', 'WXAobs2', 'WXAs1', 'WXAsafeguard', 'WXAside', 'WXAsideours', 'WXAst3', 'WXAst3ours', 'WXAtypes', 'WXAusable', 'WXAweather']
+  PASS  MA15 the acting memo never stored (no per-battle cap)  — red ['WBact', 'WPnit']
+  PASS  MA16 the turn from the cached BattleState, not the pure read (KI-108)  — red ['WBact', 'WXAobs2']
+  PASS  MA17 the raw disable struct not read (zeros)  — red ['WBencore']
+  PASS  MA18 the party read replaced by the lead alone  — red ['W62', 'WBparty']
+  PASS  MN1 a comment-only edit in the adapter naming get_battle_state / environ / category='BATTLE' turns NOTHING red  — red []
+  PASS  MR1 PD1 reverted: a Trace member no longer adds the target's live ability  — red ['WPtrace']
+  PASS  MR2 PD2 reverted: Pain Split dropped from the self-harm moves  — red ['WPpainsplit']
+  PASS  MR3 PD3 reverted in the module: a confusion berry no longer refuses damage  — red ['WPberry', 'WPberryA']
+  PASS  MR3b PD3 reverted in the adapter: the target's hold effect not read  — red ['WPberryA']
+  PASS  MR4 PD4 reverted: a Sand Stream member no longer refuses damage  — red ['WPsandstream']
+  PASS  MR5a PD5 reverted: stage 2 admits a RECHARGE move again  — red ['WPrecharge']
+  PASS  MR5b PD5 reverted: the horizon slack back to 4 (H = 68)  — red ['WPh76']
+  PASS  MR6 the memo nit reverted: the memo records the verdict, not what was done  — red ['WPnit']
+  PASS  V02 [adv] floor >=1 -> >=0 (admits a KO)  — red ['WXfloor0']
+  PASS  V03 [adv] floor >=1 -> >=2  — red ['WXfloor1']
+  PASS  V05 [adv] stage-2 50% rule removed  — red ['WXs2half']
+  PASS  V06 [adv] stage-2 50% rule > -> >=  — red ['WXs2half']
+  PASS  V07 [adv] stage-1 progress >= -> >  — red ['WXprog10']
+  PASS  V08 [adv] stage-1 progress vs CURRENT hp, not max  — red ['WXprogmax']
+  PASS  V13 [adv] E_gain ignores the target's status  — red ['WXegst']
+  PASS  V14 [adv] one-throw threshold 0.5 -> 0.6  — red ['WXodds15']
+  PASS  V24 [adv] semi-invulnerable = Fly only (Dig, Dive dropped)  — red ['WXdig', 'WXdive']
+  PASS  V25 [adv] confusion mask 0x7 -> 0x3  — red ['WXconf4']
+  PASS  V26 [adv] ticking: burn dropped  — red ['WXburn']
+  PASS  V27 [adv] ticking: toxic dropped  — red ['WXtoxic']
+  PASS  V28 [adv] ticking: the whole status2 clause dropped  — red ['WXcursed', 'WXnightmare', 'WXwrap']
+  PASS  V29 [adv] ticking: wrap dropped  — red ['WXwrap']
+  PASS  V30 [adv] ticking: curse dropped  — red ['WXcursed']
+  PASS  V31 [adv] ticking: nightmare dropped  — red ['WXnightmare']
+  PASS  V37 [adv] battle-type mask loses Kyogre/Groudon, Regi, Pike, Pyramid, Groudon/Kyogre/Rayquaza  — red ['WXbtsweep']
+  PASS  V38 [adv] battle-type mask loses FIRST_BATTLE  — red ['WXbtsweep']
+  PASS  V45 [adv] remember() records every call, not the first per turn (cons)  — red ['WXcapseq']
+  PASS  V46 [adv] remember(): a failed first-decision context is forgotten (later turns act)  — red ['WXActx2']
+  PASS  V50 [adv] self-harm: DOUBLE_EDGE dropped (Double-Edge, Volt Tackle)  — red ['WXdedge']
+  PASS  V51 [adv] Hail-knower rule dropped  — red ['WXhailk']
+  PASS  V52 [adv] every target hail-immune  — red ['WXAweather', 'WXhailk', 'WXhailw']
+  PASS  V53 [adv] hail-in-effect rule dropped  — red ['WXAweather', 'WXhailw']
+  PASS  V54 [adv] sand mask loses the TEMPORARY bit  — red ['WXsandtemp']
+  PASS  V55 [adv] hail mask = the permanent-SUN bit  — red ['WXAweather', 'WXhailw']
+  PASS  V57 [adv] Poison Point dropped  — red ['WXppoint']
+  PASS  V58 [adv] Flame Body dropped  — red ['WXfbody']
+  PASS  V59 [adv] Effect Spore dropped  — red ['WXespore']
+  PASS  V60 [adv] Liquid Ooze: Leech Seed dropped  — red ['WXoozeseed']
+  PASS  V62 [adv] Struggle horizon <= -> <  — red ['WPh76']
+  PASS  V63 [adv] horizon slack -> 0 (the pass wrote 4 -> 0; re-anchored at 8 since PD5)  — red ['WPh76', 'WXh68']
+  PASS  V70 [adv] Wonder Guard rule removed  — red ['WXwgblock']
+  PASS  V71 [adv] Wonder Guard: SE+NVE passes  — red ['WXwgblock']
+  PASS  V72 [adv] Wonder Guard blocks every exact move (cons)  — red ['WXwgnshade', 'WXwgpass']
+  PASS  V73 [adv] stage 1 picks the SMALLEST X  — red ['WXmax', 'WXtie']
+  PASS  V74 [adv] stage-1 ties to the HIGHEST slot  — red ['WXtie']
+  PASS  V75 [adv] Super Fang rounds UP  — red ['WXsfodd']
+  PASS  V90 [adv] stage-2 ub floor(1.1x) not ceil  — red ['WXs2bound0']
+  PASS  V91 [adv] WEAKEN_MARGIN 3 -> 2  — red ['WXs2bound0']
+  PASS  V92 [adv] stage-2 ub without the 10%  — red ['WXs2bound0']
+  PASS  V93 [adv] stage-2 bound >=1 -> >=0  — red ['WXs2bound0']
+  PASS  V94 [adv] stage-2 E_gain at crit_max  — red ['WXs2egain']
+  PASS  V95 [adv] stage-2 progress at crit_max  — red ['WXs2prog']
+  PASS  V96 [adv] stage 2 ignores the Tier A whitelist  — red ['WXs2tier']
+  PASS  V97 [adv] stage 2 picks the smallest MIN  — red ['WXs2max']
+  PASS  V98 [adv] divergence: Marvel Scale removed  — red ['WXdivms']
+  PASS  V99 [adv] divergence: Marvel Scale on the TARGET's status only (the calculator's bug reads OUR status)  — red ['WXdivms']
+  PASS  V100 [adv] divergence: Flash Fire removed  — red ['WXdivff']
+  PASS  V101 [adv] divergence: Charge removed  — red ['WXAcharge', 'WXdivcharge']
+  PASS  V102 [adv] divergence: badge 7 removed  — red ['WXAb7', 'WXdivb7']
+  PASS  V103 [adv] divergence: badge 7 on every move (cons)  — red ['WXdivb7phys']
+  PASS  V104 [adv] divergence: live-ability != species removed  — red ['WXdivabil']
+  PASS  V105 [adv] divergence: only OUR ability compared  — red ['WXdivabil']
+  PASS  V110 [adv] Vital Spirit dropped  — red ['WXvspirit']
+  PASS  V111 [adv] Uproar: the target only  — red ['WXuproarus']
+  PASS  V112 [adv] Safeguard: the side bit only (eq in-game: set together)  — red ['WXAsafeguard']
+  PASS  V114 [adv] Soundproof blocks every status move (cons)  — red ['WXhypnosp']
+  PASS  V117 [adv] has-status misses freeze (poison/burn/toxic THROW-ONLY first)  — red ['WXfrozen']
+  PASS  V120 [adv] Ultra Ball 20 -> 15  — red ['WXballs']
+  PASS  V121 [adv] Great/Safari 15 -> 20  — red ['WXballs']
+  PASS  V122 [adv] Dive Ball inverted  — red ['WXballs']
+  PASS  V123 [adv] Repeat Ball inverted  — red ['WXballs']
+  PASS  V124 [adv] freeze not x2  — red ['WXcpstatus']
+  PASS  V125 [adv] toxic not x1.5  — red ['WXcpstatus']
+  PASS  A01 [adv] the target's status3 read from OUR slot  — red ['WXAst3', 'WXAst3ours']
+  PASS  A02 [adv] OUR status3 read from the target's slot  — red ['WXAcharge']
+  PASS  A03 [adv] the target's side read as OURS  — red ['WXAside', 'WXAsideours']
+  PASS  A04 [adv] weather never read  — red ['WXAweather']
+  PASS  A05 [adv] the target's status1 read at 0x50  — red ['WXAs1']
+  PASS  A06 [adv] the LIVE ability replaced by the species'  — red ['WXAliveab']
+  PASS  A07 [adv] battle flags never read  — red ['WXAflags']
+  PASS  A08 [adv] our hold effect never read (Choice)  — red ['WXAchoice']
+  PASS  A09 [adv] usable balls 0 (the Struggle horizon collapses)  — red ['WXAusable']
+  PASS  A10 [adv] the mode's kinds ignored  — red ['WXAkinds']
+  PASS  A11 [adv] a DEFER verdict (act) throws the parent's ball  — red ['WXAchoice', 'WXActx2', 'WXAflags']
+  PASS  A12 [adv] observe never stores the memo  — red ['WXAobs2']
+  PASS  A14 [adv] the party read gives the lead its SPECIES ability  — red ['WXAliveab']
+  PASS  A16 [adv] banned_moves never read  — red ['WXAbanned']
+  PASS  A17 [adv] Safeguard timer read off OUR side  — red ['WXAsafeguard']
+  PASS  A18 [adv] the target's SPECIES types  — red ['WXAtypes']
+  PASS  A21 [adv] gStatuses3 never read  — red ['WXAcharge', 'WXAst3']
+  PASS  A23 [adv] THROW's item = the bag's FIRST ball (a Master Ball first in the pocket)  — red ['WPnit', 'WXAmaster']
+  PASS  A25 [adv] the context's sp replaced by the live foe's (the context check can never fail)  — red ['WXActx2']
+  PASS  A26 [adv] badge 7 never read (stage 2)  — red ['WXAb7']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 211 rows; uncovered []
+
+ALL PASS (211 rows, 9 faults, 196 mutants) in 7.4 s
+
+===== 4. the full standing suite, the gate registered =====
+  PASS  probe_damage_calc_decomp.py        exit=0    71.1s
+  PASS  probe_dmgaudit.py                  exit=0     8.1s
+  PASS  probe_weaken_catch.py              exit=0     8.1s
+============================================================================================
+ALL 135 ENFORCING GATES PASS  (465.7s total)   [+4 ADVISORY probe(s) — run, NOT gated]
+============================================================================================
