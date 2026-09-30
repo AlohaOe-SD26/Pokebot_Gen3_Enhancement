@@ -1,0 +1,363 @@
+design v2 step 11 (M1) — F6, the Step-0 LIVE reads (observe-only; production unchanged)
+========================================================================================
+Run: 2026-09-30, finished 5:29 AM LA, on branch wt/dmgcalc11 at 6eeaeba0 (code = main 241929d7; this branch holds docs
+only). Code dirty at the run: none.
+Fixture saves/post_mtpyre.ss1 (md5 asserted 80602159694b), `storyresume --frames 90000`, seed 1 set before the harness.
+The probe (below) wraps battle_handler.handle_battle_action_selection and _listeners.handle_battle BY THE NAMES THE
+CALLERS USE and takes PURE read_symbol reads at selection ENTRY, selection EXIT and the battle's END; it adds no yield
+and presses nothing. 101 reads, 0 READ-FAILED.
+
+RESULTS (the analyser's output is below; each answer is read from the numbers):
+- Q1 gBideDmg[1]'s difference equals the foe's HP difference on a clean non-KO singles turn: 6 of 7. The 7th, f3191078
+  (Marcel's Manectric 18 -> 18), is the MASKED HEAL: the foe's action that turn was 1 (USE_ITEM; its Hyper Potion), our
+  hit dealt 65, and the HP difference reads 0. gBideDmg recorded the hit; the HP difference cannot. The foe's item
+  action is READABLE at EXIT (gChosenActionByBattler[1] == 1).
+- Q2 on a KO, d(gBideDmg[1]) >= the foe's HP before: 7 of 7 battle-end KOs (e.g. Linoone 8 HP, the hit 73), and 3 of 3
+  trainer KOs where the foe's identity changed (55/90, 18/69, 91/97). The uncapped roll IS recorded.
+- Q3 the chosen move is final at EXIT: its PP dropped by 1 whenever it ran; by 0 on our Mightyena's two sleep turns
+  (f3185457, f3186160; d_bide 0). f3186810: PP down 1, d_bide 0 = a MISS (Take Down vs the foe's Double Team turns).
+- Q4 the turn counter: ENTRY == EXIT + 1 on every non-final turn (0 violations); at a battle's end it equals EXIT's
+  (0 violations: the game does not increment it on a battle's last turn, battle_main.c:3988-3997).
+- Q5 gBattleMons is readable at all 14 battle-end reads (the foe's record present).
+- Q6 the Flash Fire dereference (gBattleResources -> flags -> flags[battler]) reads [0, 0] at every selection ENTRY
+  and EXIT, and gBattleResources is NULL at every battle-END read (freed): the battle-end read must not dereference it.
+- Doubles (flags & 1) meet the same reads; d_bide exceeds d_hp there (f3151009: 108 vs 66), which is why doubles stay
+  out of the acceptance set.
+
+===== the analyser's output =====
+101 reads parsed; tags: BATTLE-START=15, ENTRY=36, EXIT=36, BATTLE-END=14
+ff values seen: ['[0, 0]', 'null']
+
+26 of our USE_MOVE exits, each paired with the next read:
+ frame     kind    dbl turn(E->N) out  our_mv foe_act/mv foe_sp  hp(before->after)  d_bide  d_hp  pp_drop  foe_st1
+ f3149434  SWITCH  T    0->1     0    228  0/109      361   (52, '-')            85  None      1    (0, '-')
+ f3151009  TURN    T    1->2     0    228  0/180      377   (66, 0)             108    66      1    (0, 0)
+ f3153347  TURN    T    2->3     0     21  13/0        377   (0, 0)                0     0      1    (0, 0)
+ f3154509  KO-END  T    3->3     1     21  13/0        377   (0, 0)                0     0      1    (0, 0)
+ f3157762  SWITCH  T    0->1     0     21  0/316      337   (64, '-')           147  None   None    (0, '-')
+ f3160033  TURN    T    1->2     0     33  0/48       371   (90, 0)             145    90      1    (0, 0)
+ f3162349  TURN    T    2->3     0     33  13/0        371   (0, 0)                0     0      1    (0, 0)
+ f3165221  KO-END  T    3->3     1     33  13/0        371   (0, 0)                0     0      0    (0, 0)
+ f3168915  SWITCH  T    0->1     0     17  0/248       64   (64, '-')           193  None      1    (0, '-')
+ f3173282  SWITCH  F    0->1     0     44  0/120      109   (55, '-')            90  None      1    (0, '-')
+ f3174185  KO-END  F    1->1     1     44  0/139      109   (55, 0)              87    55      1    (0, 0)
+ f3185457  TURN    F    0->1     0     36  0/104       25   (61, 61)              0     0      0    (0, 0)
+ f3186160  TURN    F    1->2     0     36  0/85        25   (61, 61)              0     0      0    (0, 0)
+ f3186810  TURN    F    2->3     0     36  0/104       25   (61, 61)              0     0      1    (0, 0)
+ f3187609  KO-END  F    3->3     1     36  0/21        25   (61, 0)             128    61      1    (0, 0)
+ f3190263  TURN    F    0->1     0     36  0/336      338   (83, 18)             65    65      1    (0, 0)
+ f3191078  TURN    F    1->2     0     36  1/0        338   (18, 18)             65     0      1    (0, 0)
+ f3191967  SWITCH  F    2->3     0     36  0/209      338   (18, '-')            69  None      1    (0, '-')
+ f3193320  KO-END  F    3->3     1     36  0/106      300   (94, 0)             142    94      1    (0, 0)
+ f3197066  SWITCH  F    1->2     0     36  0/336      371   (91, '-')            97  None      1    (0, '-')
+ f3198642  TURN    F    2->3     0     36  0/253      365   (88, 24)             64    64      1    (0, 0)
+ f3199547  KO-END  F    3->3     1     36  0/0        365   (24, 0)              61    24      1    (0, 0)
+ f3208167  KO-END  F    0->0     1     36  0/46       286   (60, 0)             107    60      1    (0, 0)
+ f3210218  KO-END  F    0->0     1     44  0/180      377   (68, 0)             198    68      1    (0, 0)
+ f3216950  TURN    F    0->1     0     36  0/28       289   (82, 8)              74    74      1    (0, 0)
+ f3217980  KO-END  F    1->1     1     36  0/316      289   (8, 0)               73     8      1    (0, 0)
+
+Q1 clean singles non-KO turns: 7; d_bide == d_hp on 6; disagreements: [(3191078, 65, 0)]
+Q2 battle-end KO pairs: 7; d_bide >= hp_before on 7: [(3174185, 55, 87), (3187609, 61, 128), (3193320, 94, 142), (3199547, 24, 61), (3208167, 60, 107), (3210218, 68, 198), (3217980, 8, 73)]
+   trainer-KO (foe identity changed) pairs: 3: [(3173282, 55, 90), (3191967, 18, 69), (3197066, 91, 97)]
+Q3 our chosen move's PP drop per pair: [0, 1] (1 = the chosen move ran; 0 = it did not; n=17)
+Q4 ENTRY turn == EXIT + 1: violations []; battle-end turn == EXIT's: violations []
+Q5 battle-end reads: 14; foe record present (maxhp > 0) on 14
+
+===== m1_step0.py (the probe) =====
+"""Design v2 step 11, F6: the Step-0 LIVE reads (observe-only; nothing in production changes).
+
+Wraps two call sites BY THE NAMES THE CALLERS USE (both are from-imports):
+  modules.battle_handler.handle_battle_action_selection   -> reads at selection ENTRY and at its EXIT;
+  modules.modes._listeners.handle_battle                  -> a read at the battle's END.
+Each read is PURE `read_symbol` (never `get_battle_state()`, KI-108). The wrappers add NO yield and press nothing:
+`result = yield from inner(...)` passes every frame through. One line per read goes to OUT, stamped with the frame.
+
+Run from tools/story-dev (the harness's own cwd), exactly as the seeded wrapper runs the harness:
+  PYTHONUTF8=1 py -3.12 -u <this> saves/post_mtpyre.ss1 --driver storyresume --frames 90000 --log <log>
+with env M1_STEP0_OUT=<path of the reads file>.
+"""
+import os
+import random
+import runpy
+import sys
+from pathlib import Path
+
+random.seed(1)
+REPO = Path(os.getcwd()).resolve().parents[1]
+sys.path.insert(0, os.getcwd())                  # tools/story-dev, as `py -c` would have it
+sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+OUT = Path(os.environ["M1_STEP0_OUT"])
+_fh = OUT.open("w", encoding="utf-8")
+
+
+def _raw_reads(tag: str) -> None:
+    try:
+        from modules.context import context
+        from modules.memory import read_symbol, unpack_uint16, unpack_uint32
+
+        frame = context.emulator.get_frame_count()
+        turn = read_symbol("gBattleResults", offset=0x13, size=1)[0]
+        outcome = read_symbol("gBattleOutcome", size=1)[0]
+        bide = read_symbol("gBideDmg", size=0x10)
+        bide4 = [int.from_bytes(bide[i * 4:i * 4 + 4], "little", signed=True) for i in range(4)]
+        act = list(read_symbol("gChosenActionByBattler", size=4))
+        mv = read_symbol("gChosenMoveByBattler", size=8)
+        mv4 = [unpack_uint16(mv[i * 2:i * 2 + 2]) for i in range(4)]
+        mons = read_symbol("gBattleMons", size=0x160)
+        cnt = read_symbol("gBattlersCount", size=1)[0]
+        flags = unpack_uint32(read_symbol("gBattleTypeFlags", size=4))
+        # Flash Fire: gBattleResources -> flags (+0x04) -> u32 flags[battler] (a double dereference; EWRAM-guarded)
+        res = unpack_uint32(read_symbol("gBattleResources", size=4))
+        ff = "null"
+        if 0x02000000 <= res < 0x02040000:
+            fptr = unpack_uint32(context.emulator.read_bytes(res + 4, 4))
+            ff = (f"{[unpack_uint32(context.emulator.read_bytes(fptr + 4 * b, 4)) for b in range(2)]}"
+                  if 0x02000000 <= fptr < 0x02040000 else f"bad-flags-ptr:{fptr:08x}")
+        parts = []
+        for b in range(2):
+            rec = mons[b * 0x58:(b + 1) * 0x58]
+            parts.append(
+                f"b{b}:sp={unpack_uint16(rec[0:2])} hp={unpack_uint16(rec[0x28:0x2A])}/{unpack_uint16(rec[0x2C:0x2E])}"
+                f" pid={unpack_uint32(rec[0x48:0x4C]):08x} moves={[unpack_uint16(rec[0x0C + 2 * i:0x0E + 2 * i]) for i in range(4)]}"
+                f" pp={list(rec[0x24:0x28])} st1={unpack_uint32(rec[0x4C:0x50]):x}")
+    except Exception as error:  # noqa: BLE001 - a scratch probe: record the failure, never break the run
+        _fh.write(f"{tag} READ-FAILED {error!r}\n")
+        _fh.flush()
+        return
+    try:
+        from modules.battle_state import get_main_battle_callback
+        cb = get_main_battle_callback()
+    except Exception as error:  # noqa: BLE001
+        cb = f"?{error!r}"
+    _fh.write(f"f{frame} {tag} turn={turn} outcome={outcome} bide={bide4} act={act} mv={mv4} count={cnt} "
+              f"flags={flags:x} ff={ff} cb={cb} " + " | ".join(parts) + "\n")
+    _fh.flush()
+
+
+import modules.battle_handler as _bh  # noqa: E402
+import modules.modes._listeners as _ls  # noqa: E402
+
+_orig_sel = _bh.handle_battle_action_selection
+_orig_battle = _ls.handle_battle
+
+
+def _sel_wrapper(*args, **kwargs):
+    _raw_reads("ENTRY")
+    result = yield from _orig_sel(*args, **kwargs)
+    _raw_reads("EXIT")
+    return result
+
+
+def _battle_wrapper(*args, **kwargs):
+    _raw_reads("BATTLE-START")
+    result = yield from _orig_battle(*args, **kwargs)
+    _raw_reads("BATTLE-END")
+    return result
+
+
+_bh.handle_battle_action_selection = _sel_wrapper
+_ls.handle_battle = _battle_wrapper
+_fh.write("# m1_step0 armed: battle_handler.handle_battle_action_selection and _listeners.handle_battle wrapped\n")
+_fh.flush()
+sys.argv = ["story_harness.py"] + sys.argv[1:]
+runpy.run_path("story_harness.py", run_name="__main__")
+
+===== m1_step0_analyze.py (the analyser) =====
+"""Analyse the Step-0 reads (design v2 step 11, F6). Each EXIT where our action is USE_MOVE (0) with a nonzero chosen
+move is paired with the NEXT read (an ENTRY or a BATTLE-END), and the design's questions are answered from the numbers:
+  Q1 on a clean non-KO hit, d(gBideDmg[1]) == the foe's HP difference;
+  Q2 on a KO, d(gBideDmg[1]) >= the foe's HP before (the uncapped roll);
+  Q3 the chosen move is final at EXIT (our chosen move's PP dropped by 1 when a turn ran);
+  Q4 the turn counter at a battle-end read equals EXIT's turn (and is EXIT's + 1 at the next ENTRY);
+  Q5 gBattleMons is readable at the battle's end (the foe's record is present);
+  Q6 the Flash Fire dereference reads a sane value.
+"""
+import re
+import sys
+from pathlib import Path
+
+LINE = re.compile(r"^f(\d+) (\S+) turn=(\d+) outcome=(\d+) bide=\[([^\]]*)\] act=\[([^\]]*)\] mv=\[([^\]]*)\] "
+                  r"count=(\d+) flags=([0-9a-f]+) (?:ff=(\[[^\]]*\]|\S+) )?cb=(\S+) (.*)$")
+MON = re.compile(r"b(\d):sp=(\d+) hp=(\d+)/(\d+) pid=([0-9a-f]+) moves=\[([^\]]*)\] pp=\[([^\]]*)\] st1=([0-9a-f]+)")
+
+
+def ints(s):
+    return [int(x) for x in s.split(",") if x.strip()]
+
+
+def parse(path):
+    out = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        m = LINE.match(line)
+        if not m:
+            continue
+        mons = {}
+        for mm in MON.finditer(m.group(12)):
+            mons[int(mm.group(1))] = dict(sp=int(mm.group(2)), hp=int(mm.group(3)), maxhp=int(mm.group(4)),
+                                          pid=mm.group(5), moves=ints(mm.group(6)), pp=ints(mm.group(7)),
+                                          st1=int(mm.group(8), 16))
+        out.append(dict(f=int(m.group(1)), tag=m.group(2), turn=int(m.group(3)), outcome=int(m.group(4)),
+                        bide=ints(m.group(5)), act=ints(m.group(6)), mv=ints(m.group(7)), count=int(m.group(8)),
+                        flags=int(m.group(9), 16), ff=m.group(10), cb=m.group(11), mons=mons))
+    return out
+
+
+def main(path):
+    rs = parse(path)
+    print(f"{len(rs)} reads parsed; tags: " + ", ".join(f"{t}={sum(r['tag'] == t for r in rs)}"
+                                                      for t in ("BATTLE-START", "ENTRY", "EXIT", "BATTLE-END")))
+    print("ff values seen:", sorted({r["ff"] for r in rs}))
+    rows = []
+    for i, r in enumerate(rs):
+        if r["tag"] != "EXIT" or r["act"][0] != 0 or r["mv"][0] == 0:
+            continue
+        nxt = next((x for x in rs[i + 1:] if x["tag"] in ("ENTRY", "BATTLE-END")), None)
+        if nxt is None:
+            continue
+        me0, foe0 = r["mons"][0], r["mons"][1]
+        me1, foe1 = nxt["mons"][0], nxt["mons"][1]
+        double = bool(r["flags"] & 1)
+        dbide = nxt["bide"][1] - r["bide"][1]
+        same_foe = foe0["pid"] == foe1["pid"]
+        dhp = foe0["hp"] - foe1["hp"] if same_foe else None
+        slot = me0["moves"].index(r["mv"][0]) if r["mv"][0] in me0["moves"] else None
+        pp_drop = (me0["pp"][slot] - me1["pp"][slot]) if (slot is not None and me0["pid"] == me1["pid"]) else None
+        kind = ("KO-END" if nxt["tag"] == "BATTLE-END" and nxt["outcome"] else
+                "SWITCH" if not same_foe else "TURN")
+        rows.append(dict(f=r["f"], kind=kind, double=double, turn=(r["turn"], nxt["turn"]), outcome=nxt["outcome"],
+                         mv=r["mv"][0], foe_mv=r["mv"][1], act_foe=r["act"][1], foe=foe0["sp"],
+                         hp=(foe0["hp"], foe1["hp"] if same_foe else "-"), dbide=dbide, dhp=dhp, pp_drop=pp_drop,
+                         foe_st=(foe0["st1"], foe1["st1"] if same_foe else "-")))
+    print(f"\n{len(rows)} of our USE_MOVE exits, each paired with the next read:")
+    print(" frame     kind    dbl turn(E->N) out  our_mv foe_act/mv foe_sp  hp(before->after)  d_bide  d_hp  pp_drop  foe_st1")
+    for x in rows:
+        print(f" f{x['f']:<8} {x['kind']:<7} {str(x['double'])[0]}  {x['turn'][0]:>3}->{x['turn'][1]:<3}   {x['outcome']}  "
+              f"{x['mv']:>5}  {x['act_foe']}/{x['foe_mv']:<5}  {x['foe']:>5}   {str(x['hp']):<16} {x['dbide']:>6} "
+              f"{str(x['dhp']):>5}   {str(x['pp_drop']):>4}    {x['foe_st']}")
+    singles = [x for x in rows if not x["double"]]
+    clean = [x for x in singles if x["kind"] == "TURN" and x["dhp"] is not None and x["dhp"] >= 0 and x["foe_st"][0] == 0
+             and x["foe_st"][1] == 0]
+    q1 = [(x["f"], x["dbide"], x["dhp"]) for x in clean if x["dbide"] != x["dhp"]]
+    print(f"\nQ1 clean singles non-KO turns: {len(clean)}; d_bide == d_hp on {len(clean) - len(q1)}; disagreements: {q1}")
+    kos = [x for x in singles if x["kind"] == "KO-END"]
+    print(f"Q2 battle-end KO pairs: {len(kos)}; d_bide >= hp_before on "
+          f"{sum(x['dbide'] >= x['hp'][0] for x in kos)}: " + str([(x['f'], x['hp'][0], x['dbide']) for x in kos]))
+    sw = [x for x in singles if x["kind"] == "SWITCH"]
+    print(f"   trainer-KO (foe identity changed) pairs: {len(sw)}: " + str([(x['f'], x['hp'][0], x['dbide']) for x in sw]))
+    ran = [x for x in singles if x["pp_drop"] is not None]
+    print(f"Q3 our chosen move's PP drop per pair: " + str(sorted({x['pp_drop'] for x in ran})) +
+          f" (1 = the chosen move ran; 0 = it did not; n={len(ran)})")
+    q4a = [(x["f"], x["turn"]) for x in singles if x["kind"] == "TURN" and x["turn"][1] != x["turn"][0] + 1]
+    q4b = [(x["f"], x["turn"]) for x in kos if x["turn"][1] != x["turn"][0]]
+    print(f"Q4 ENTRY turn == EXIT + 1: violations {q4a}; battle-end turn == EXIT's: violations {q4b}")
+    ends = [r for r in rs if r["tag"] == "BATTLE-END"]
+    print(f"Q5 battle-end reads: {len(ends)}; foe record present (maxhp > 0) on {sum(r['mons'][1]['maxhp'] > 0 for r in ends)}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+
+===== the raw reads =====
+# m1_step0 armed: battle_handler.handle_battle_action_selection and _listeners.handle_battle wrapped
+f3144418 BATTLE-START turn=3 outcome=1 bide=[27091, 66684, 199, 3292] act=[0, 13, 0, 0] mv=[98, 0, 17, 17] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=330 hp=0/67 pid=0014e888 moves=[116, 184, 242, 103] pp=[30, 10, 15, 40] st1=0
+f3144968 ENTRY turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=68/68 pid=c6a05658 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3144982 EXIT turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=68/68 pid=c6a05658 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3145128 BATTLE-END turn=0 outcome=4 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=68/68 pid=c6a05658 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3146795 BATTLE-START turn=0 outcome=4 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=68/68 pid=c6a05658 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3147344 ENTRY turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=64/64 pid=fd4f964f moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3147358 EXIT turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=64/64 pid=fd4f964f moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3147504 BATTLE-END turn=0 outcome=4 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=64/64 pid=fd4f964f moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3148510 BATTLE-START turn=0 outcome=4 bide=[27091, 66684, 199, 3292] act=[3, 0, 255, 255] mv=[0, 180, 0, 0] count=4 flags=800d ff=[0, 0] cb=BeginBattleIntro b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=377 hp=64/64 pid=fd4f964f moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3149365 ENTRY turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=361 hp=52/52 pid=000a0f78 moves=[193, 310, 109, 228] pp=[40, 15, 10, 20] st1=0
+f3149434 EXIT turn=0 outcome=0 bide=[27091, 66684, 199, 3292] act=[0, 0, 0, 0] mv=[228, 109, 17, 210] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=21/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 19, 0, 25] st1=0 | b1:sp=361 hp=52/52 pid=000a0f78 moves=[193, 310, 109, 228] pp=[40, 15, 10, 20] st1=0
+f3150949 ENTRY turn=1 outcome=0 bide=[27098, 66769, 199, 3292] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=14/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 18, 0, 25] st1=0 | b1:sp=377 hp=66/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3151009 EXIT turn=1 outcome=0 bide=[27098, 66769, 199, 3292] act=[0, 0, 0, 0] mv=[228, 180, 17, 14] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=14/117 pid=863b0917 moves=[249, 228, 348, 98] pp=[11, 18, 0, 25] st1=0 | b1:sp=377 hp=66/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3153289 ENTRY turn=2 outcome=0 bide=[27098, 66877, 199, 3360] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 20] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3153347 EXIT turn=2 outcome=0 bide=[27098, 66877, 199, 3360] act=[0, 13, 0, 0] mv=[21, 0, 17, 228] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 20] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3154452 ENTRY turn=3 outcome=0 bide=[27098, 66877, 199, 3420] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 19] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3154509 EXIT turn=3 outcome=0 bide=[27098, 66877, 199, 3420] act=[0, 13, 0, 0] mv=[21, 0, 17, 137] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 19] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3155932 BATTLE-END turn=3 outcome=1 bide=[27098, 66877, 199, 3547] act=[0, 13, 0, 0] mv=[21, 0, 17, 137] count=4 flags=800d ff=null cb=ReturnFromBattleToOverworld b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 18] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3156846 BATTLE-START turn=3 outcome=1 bide=[27098, 66877, 199, 3547] act=[0, 13, 0, 0] mv=[21, 0, 17, 137] count=4 flags=800d ff=[0, 0] cb=BeginBattleIntro b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 18] st1=0 | b1:sp=377 hp=0/66 pid=00142378 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3157697 ENTRY turn=0 outcome=0 bide=[27098, 66877, 199, 3547] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 18] st1=0 | b1:sp=337 hp=64/64 pid=000cff88 moves=[98, 209, 316, 46] pp=[30, 20, 40, 20] st1=0
+f3157762 EXIT turn=0 outcome=0 bide=[27098, 66877, 199, 3547] act=[0, 0, 0, 0] mv=[21, 316, 98, 17] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=279 hp=17/120 pid=863b0917 moves=[249, 228, 348, 21] pp=[11, 17, 0, 18] st1=0 | b1:sp=337 hp=64/64 pid=000cff88 moves=[98, 209, 316, 46] pp=[30, 20, 40, 20] st1=0
+f3159995 ENTRY turn=1 outcome=0 bide=[27146, 67024, 199, 3547] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=288 hp=16/16 pid=33cb74c3 moves=[33, 45, 57, 0] pp=[35, 40, 15, 0] st1=0 | b1:sp=371 hp=90/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 20, 20] st1=0
+f3160033 EXIT turn=1 outcome=0 bide=[27146, 67024, 199, 3547] act=[0, 0, 0, 0] mv=[33, 48, 17, 48] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=288 hp=16/16 pid=33cb74c3 moves=[33, 45, 57, 0] pp=[35, 40, 15, 0] st1=0 | b1:sp=371 hp=90/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 20, 20] st1=0
+f3162310 ENTRY turn=2 outcome=0 bide=[27146, 67169, 199, 3550] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=288 hp=24/24 pid=33cb74c3 moves=[33, 45, 57, 39] pp=[34, 40, 15, 30] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3162349 EXIT turn=2 outcome=0 bide=[27146, 67169, 199, 3550] act=[0, 13, 0, 0] mv=[33, 0, 17, 54] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=288 hp=24/24 pid=33cb74c3 moves=[33, 45, 57, 39] pp=[34, 40, 15, 30] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3165183 ENTRY turn=3 outcome=0 bide=[27146, 67169, 199, 3627] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=288 hp=28/28 pid=33cb74c3 moves=[33, 45, 57, 29] pp=[33, 40, 15, 15] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3165221 EXIT turn=3 outcome=0 bide=[27146, 67169, 199, 3627] act=[0, 13, 0, 0] mv=[33, 0, 17, 64] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=288 hp=28/28 pid=33cb74c3 moves=[33, 45, 57, 29] pp=[33, 40, 15, 15] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3166828 BATTLE-END turn=3 outcome=1 bide=[27146, 67169, 209, 3722] act=[0, 13, 0, 0] mv=[33, 0, 17, 64] count=4 flags=800d ff=null cb=ReturnFromBattleToOverworld b0:sp=288 hp=32/32 pid=33cb74c3 moves=[33, 45, 57, 29] pp=[33, 40, 15, 15] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3168023 BATTLE-START turn=3 outcome=1 bide=[27146, 67169, 209, 3722] act=[0, 13, 0, 0] mv=[33, 0, 17, 64] count=4 flags=800d ff=[0, 0] cb=BeginBattleIntro b0:sp=288 hp=32/32 pid=33cb74c3 moves=[33, 45, 57, 29] pp=[33, 40, 15, 15] st1=0 | b1:sp=371 hp=0/90 pid=00188188 moves=[310, 336, 48, 23] pp=[15, 40, 19, 20] st1=0
+f3168840 ENTRY turn=0 outcome=0 bide=[27146, 67169, 209, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=305 hp=11/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 17, 20, 29] st1=40 | b1:sp=64 hp=64/64 pid=00090078 moves=[60, 115, 105, 248] pp=[20, 20, 20, 15] st1=0
+f3168915 EXIT turn=0 outcome=0 bide=[27146, 67169, 209, 3722] act=[0, 0, 0, 0] mv=[17, 248, 29, 233] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=305 hp=11/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 17, 20, 29] st1=40 | b1:sp=64 hp=64/64 pid=00090078 moves=[60, 115, 105, 248] pp=[20, 20, 20, 15] st1=0
+f3170955 ENTRY turn=1 outcome=0 bide=[27163, 67362, 209, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=4 flags=800d ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=305 hp=0/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 16, 20, 29] st1=0 | b1:sp=348 hp=80/82 pid=0012fa78 moves=[93, 88, 95, 149] pp=[25, 15, 20, 15] st1=0
+f3170997 EXIT turn=1 outcome=0 bide=[27163, 67362, 209, 3722] act=[13, 0, 0, 0] mv=[0, 93, 57, 233] count=4 flags=800d ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=305 hp=0/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 16, 20, 29] st1=0 | b1:sp=348 hp=80/82 pid=0012fa78 moves=[93, 88, 95, 149] pp=[25, 15, 20, 15] st1=0
+f3171883 BATTLE-END turn=1 outcome=2 bide=[27163, 67362, 297, 3722] act=[13, 0, 0, 0] mv=[0, 93, 57, 233] count=4 flags=800d ff=null cb=ReturnFromBattleToOverworld b0:sp=305 hp=0/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 16, 20, 29] st1=0 | b1:sp=348 hp=80/82 pid=0012fa78 moves=[93, 88, 95, 149] pp=[24, 15, 20, 15] st1=0
+f3172378 BATTLE-START turn=1 outcome=2 bide=[27163, 67362, 297, 3722] act=[13, 0, 0, 0] mv=[0, 93, 57, 233] count=2 flags=c ff=[0, 0] cb=BeginBattleIntro b0:sp=305 hp=0/112 pid=0b30a747 moves=[64, 17, 332, 98] pp=[35, 16, 20, 29] st1=0 | b1:sp=348 hp=80/82 pid=0012fa78 moves=[93, 88, 95, 149] pp=[24, 15, 20, 15] st1=0
+f3173260 ENTRY turn=0 outcome=0 bide=[27163, 67362, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=124/124 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 25] st1=0 | b1:sp=109 hp=55/55 pid=00092588 moves=[33, 120, 124, 108] pp=[35, 5, 20, 20] st1=0
+f3173282 EXIT turn=0 outcome=0 bide=[27163, 67362, 297, 3722] act=[0, 0, 255, 255] mv=[44, 120, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=124/124 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 25] st1=0 | b1:sp=109 hp=55/55 pid=00092588 moves=[33, 120, 124, 108] pp=[35, 5, 20, 20] st1=0
+f3174166 ENTRY turn=1 outcome=0 bide=[27163, 67452, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=124/124 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 24] st1=0 | b1:sp=109 hp=55/55 pid=00124a88 moves=[33, 139, 124, 108] pp=[35, 40, 20, 20] st1=0
+f3174185 EXIT turn=1 outcome=0 bide=[27163, 67452, 297, 3722] act=[0, 0, 255, 255] mv=[44, 139, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=124/124 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 24] st1=0 | b1:sp=109 hp=55/55 pid=00124a88 moves=[33, 139, 124, 108] pp=[35, 40, 20, 20] st1=0
+f3175134 BATTLE-END turn=1 outcome=1 bide=[27163, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[44, 139, 0, 0] count=2 flags=c ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=109 hp=0/55 pid=00124a88 moves=[33, 139, 124, 108] pp=[35, 40, 20, 20] st1=0
+f3178965 BATTLE-START turn=1 outcome=1 bide=[27163, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[44, 139, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=109 hp=0/55 pid=00124a88 moves=[33, 139, 124, 108] pp=[35, 40, 20, 20] st1=0
+f3179742 ENTRY turn=0 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 30, 15, 30] st1=0
+f3179920 EXIT turn=0 outcome=0 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 78, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 30, 15, 30] st1=0
+f3180540 ENTRY turn=1 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 29, 15, 30] st1=0
+f3180684 EXIT turn=1 outcome=0 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 79, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=0 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 29, 15, 30] st1=0
+f3181736 ENTRY turn=2 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 29, 14, 30] st1=0
+f3181880 EXIT turn=2 outcome=0 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 78, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 29, 14, 30] st1=0
+f3182474 ENTRY turn=3 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 28, 14, 30] st1=0
+f3182618 EXIT turn=3 outcome=0 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 51, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 28, 14, 30] st1=0
+f3183854 BATTLE-END turn=3 outcome=7 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 51, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 28, 14, 30] st1=0
+f3184504 BATTLE-START turn=3 outcome=7 bide=[27163, 67539, 297, 3722] act=[1, 0, 255, 255] mv=[0, 51, 0, 0] count=2 flags=c ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=43 hp=67/67 pid=1251a575 moves=[77, 78, 79, 51] pp=[35, 28, 14, 30] st1=0
+f3185419 ENTRY turn=0 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 15, 20, 15] st1=0
+f3185457 EXIT turn=0 outcome=0 bide=[27163, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[36, 104, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=3 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 15, 20, 15] st1=0
+f3186122 ENTRY turn=1 outcome=0 bide=[27163, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=2 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 14, 20, 15] st1=0
+f3186160 EXIT turn=1 outcome=0 bide=[27163, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[36, 85, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=2 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 14, 20, 15] st1=0
+f3186773 ENTRY turn=2 outcome=0 bide=[27186, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=104/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=1 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 14, 20, 14] st1=0
+f3186810 EXIT turn=2 outcome=0 bide=[27186, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[36, 104, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=104/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 20, 23] st1=1 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 14, 20, 14] st1=0
+f3187571 ENTRY turn=3 outcome=0 bide=[27186, 67539, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=104/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 19, 23] st1=0 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 13, 20, 14] st1=0
+f3187609 EXIT turn=3 outcome=0 bide=[27186, 67539, 297, 3722] act=[0, 0, 255, 255] mv=[36, 21, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=104/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 19, 23] st1=0 | b1:sp=25 hp=61/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 13, 20, 14] st1=0
+f3188617 BATTLE-END turn=3 outcome=1 bide=[27201, 67667, 297, 3722] act=[0, 0, 255, 255] mv=[36, 21, 0, 0] count=2 flags=c ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=89/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 18, 23] st1=0 | b1:sp=25 hp=0/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 13, 20, 14] st1=0
+f3189301 BATTLE-START turn=3 outcome=1 bide=[27201, 67667, 297, 3722] act=[0, 0, 255, 255] mv=[36, 21, 0, 0] count=2 flags=c ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=89/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 18, 23] st1=0 | b1:sp=25 hp=0/61 pid=000ac278 moves=[98, 104, 21, 85] pp=[30, 13, 20, 14] st1=0
+f3190224 ENTRY turn=0 outcome=0 bide=[27201, 67667, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=89/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 18, 23] st1=0 | b1:sp=338 hp=83/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[40, 30, 20, 40] st1=0
+f3190263 EXIT turn=0 outcome=0 bide=[27201, 67667, 297, 3722] act=[0, 0, 255, 255] mv=[36, 336, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=89/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 18, 23] st1=0 | b1:sp=338 hp=83/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[40, 30, 20, 40] st1=0
+f3191058 ENTRY turn=1 outcome=0 bide=[27217, 67732, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=73/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 17, 23] st1=0 | b1:sp=338 hp=18/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[39, 30, 20, 40] st1=0
+f3191078 EXIT turn=1 outcome=0 bide=[27217, 67732, 297, 3722] act=[0, 1, 255, 255] mv=[36, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=73/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 17, 23] st1=0 | b1:sp=338 hp=18/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[39, 30, 20, 40] st1=0
+f3191928 ENTRY turn=2 outcome=0 bide=[27233, 67797, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=57/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 16, 23] st1=0 | b1:sp=338 hp=18/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[39, 30, 20, 40] st1=0
+f3191967 EXIT turn=2 outcome=0 bide=[27233, 67797, 297, 3722] act=[0, 0, 255, 255] mv=[36, 209, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=57/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 16, 23] st1=0 | b1:sp=338 hp=18/83 pid=000b7088 moves=[336, 98, 209, 316] pp=[39, 30, 20, 40] st1=0
+f3193301 ENTRY turn=3 outcome=0 bide=[27237, 67866, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=53/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 15, 23] st1=40 | b1:sp=300 hp=94/94 pid=00157f88 moves=[1, 106, 74, 267] pp=[35, 30, 40, 20] st1=0
+f3193320 EXIT turn=3 outcome=0 bide=[27237, 67866, 297, 3722] act=[0, 0, 255, 255] mv=[36, 106, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=53/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 15, 23] st1=40 | b1:sp=300 hp=94/94 pid=00157f88 moves=[1, 106, 74, 267] pp=[35, 30, 40, 20] st1=0
+f3194848 BATTLE-END turn=3 outcome=1 bide=[27260, 68008, 297, 3722] act=[0, 0, 255, 255] mv=[36, 106, 0, 0] count=2 flags=c ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=30/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=300 hp=0/94 pid=00157f88 moves=[1, 106, 74, 267] pp=[35, 29, 40, 20] st1=0
+f3195397 BATTLE-START turn=3 outcome=1 bide=[27260, 68008, 297, 3722] act=[0, 0, 255, 255] mv=[36, 106, 0, 0] count=2 flags=c ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=30/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=300 hp=0/94 pid=00157f88 moves=[1, 106, 74, 267] pp=[35, 29, 40, 20] st1=0
+f3196412 ENTRY turn=0 outcome=0 bide=[27260, 68008, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=30/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=371 hp=91/91 pid=000ad778 moves=[310, 336, 48, 23] pp=[15, 40, 20, 20] st1=0
+f3196843 EXIT turn=0 outcome=0 bide=[27260, 68008, 297, 3722] act=[1, 0, 255, 255] mv=[0, 23, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=371 hp=91/91 pid=000ad778 moves=[310, 336, 48, 23] pp=[15, 40, 20, 20] st1=0
+f3197042 ENTRY turn=1 outcome=0 bide=[27269, 68008, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=118/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=371 hp=91/91 pid=000ad778 moves=[310, 336, 48, 23] pp=[15, 40, 20, 19] st1=0
+f3197066 EXIT turn=1 outcome=0 bide=[27269, 68008, 297, 3722] act=[0, 0, 255, 255] mv=[36, 336, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=118/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 14, 23] st1=40 | b1:sp=371 hp=91/91 pid=000ad778 moves=[310, 336, 48, 23] pp=[15, 40, 20, 19] st1=0
+f3198604 ENTRY turn=2 outcome=0 bide=[27291, 68105, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=96/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 13, 23] st1=40 | b1:sp=365 hp=88/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 10, 15, 10] st1=0
+f3198642 EXIT turn=2 outcome=0 bide=[27291, 68105, 297, 3722] act=[0, 0, 255, 255] mv=[36, 253, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=96/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 13, 23] st1=40 | b1:sp=365 hp=88/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 10, 15, 10] st1=0
+f3199529 ENTRY turn=3 outcome=0 bide=[27318, 68169, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=69/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 12, 23] st1=40 | b1:sp=365 hp=24/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 9, 15, 10] st1=0
+f3199547 EXIT turn=3 outcome=0 bide=[27318, 68169, 297, 3722] act=[0, 0, 255, 255] mv=[36, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=69/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 12, 23] st1=40 | b1:sp=365 hp=24/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 9, 15, 10] st1=0
+f3200707 BATTLE-END turn=3 outcome=1 bide=[27335, 68230, 297, 3722] act=[0, 0, 255, 255] mv=[36, 0, 0, 0] count=2 flags=c ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=52/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 11, 23] st1=40 | b1:sp=365 hp=0/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 9, 15, 10] st1=0
+f3207367 BATTLE-START turn=3 outcome=1 bide=[27335, 68230, 297, 3722] act=[0, 0, 255, 255] mv=[36, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=52/127 pid=5c96ea9b moves=[33, 269, 36, 44] pp=[35, 20, 11, 23] st1=40 | b1:sp=365 hp=0/88 pid=00168b78 moves=[227, 253, 154, 203] pp=[5, 9, 15, 10] st1=0
+f3208148 ENTRY turn=0 outcome=0 bide=[27335, 68230, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=286 hp=60/60 pid=42d50515 moves=[44, 316, 46, 207] pp=[25, 40, 20, 15] st1=0
+f3208167 EXIT turn=0 outcome=0 bide=[27335, 68230, 297, 3722] act=[0, 0, 255, 255] mv=[36, 46, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=286 hp=60/60 pid=42d50515 moves=[44, 316, 46, 207] pp=[25, 40, 20, 15] st1=0
+f3208879 BATTLE-END turn=0 outcome=1 bide=[27350, 68337, 297, 3722] act=[0, 0, 255, 255] mv=[36, 46, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 25] st1=0 | b1:sp=286 hp=0/60 pid=42d50515 moves=[44, 316, 46, 207] pp=[25, 40, 20, 15] st1=0
+f3209384 BATTLE-START turn=0 outcome=1 bide=[27350, 68337, 297, 3722] act=[0, 0, 255, 255] mv=[36, 46, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 25] st1=0 | b1:sp=286 hp=0/60 pid=42d50515 moves=[44, 316, 46, 207] pp=[25, 40, 20, 15] st1=0
+f3210197 ENTRY turn=0 outcome=0 bide=[27350, 68337, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 25] st1=0 | b1:sp=377 hp=68/68 pid=9bc50e70 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3210218 EXIT turn=0 outcome=0 bide=[27350, 68337, 297, 3722] act=[0, 0, 255, 255] mv=[44, 180, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 25] st1=0 | b1:sp=377 hp=68/68 pid=9bc50e70 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3210830 BATTLE-END turn=0 outcome=1 bide=[27350, 68535, 297, 3722] act=[0, 0, 255, 255] mv=[44, 180, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 24] st1=0 | b1:sp=377 hp=0/68 pid=9bc50e70 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3215934 BATTLE-START turn=0 outcome=1 bide=[27350, 68535, 297, 3722] act=[0, 0, 255, 255] mv=[44, 180, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 24] st1=0 | b1:sp=377 hp=0/68 pid=9bc50e70 moves=[103, 101, 174, 180] pp=[40, 15, 10, 10] st1=0
+f3216931 ENTRY turn=0 outcome=0 bide=[27350, 68535, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 24] st1=0 | b1:sp=289 hp=82/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 15, 40, 15] st1=0
+f3216950 EXIT turn=0 outcome=0 bide=[27350, 68535, 297, 3722] act=[0, 0, 255, 255] mv=[36, 28, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=112/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 19, 24] st1=0 | b1:sp=289 hp=82/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 15, 40, 15] st1=0
+f3217962 ENTRY turn=1 outcome=0 bide=[27368, 68609, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=94/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 18, 24] st1=0 | b1:sp=289 hp=8/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 14, 40, 15] st1=0
+f3217980 EXIT turn=1 outcome=0 bide=[27368, 68609, 297, 3722] act=[0, 0, 255, 255] mv=[36, 316, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=94/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 18, 24] st1=0 | b1:sp=289 hp=8/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 14, 40, 15] st1=0
+f3218629 BATTLE-END turn=1 outcome=1 bide=[27370, 68682, 297, 3722] act=[0, 0, 255, 255] mv=[36, 316, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=92/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 17, 24] st1=0 | b1:sp=289 hp=0/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 14, 40, 15] st1=0
+f3228351 BATTLE-START turn=1 outcome=1 bide=[27370, 68682, 297, 3722] act=[0, 0, 255, 255] mv=[36, 316, 0, 0] count=2 flags=4 ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=92/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 17, 24] st1=0 | b1:sp=289 hp=0/82 pid=a6fd085c moves=[29, 28, 316, 300] pp=[15, 14, 40, 15] st1=0
+f3229148 ENTRY turn=0 outcome=0 bide=[27370, 68682, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=4 ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=74 hp=64/64 pid=14509729 moves=[88, 222, 120, 205] pp=[15, 30, 5, 20] st1=0
+f3229320 EXIT turn=0 outcome=0 bide=[27370, 68682, 297, 3722] act=[1, 0, 255, 255] mv=[0, 222, 0, 0] count=2 flags=4 ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=74 hp=64/64 pid=14509729 moves=[88, 222, 120, 205] pp=[15, 30, 5, 20] st1=0
+f3230562 BATTLE-END turn=0 outcome=7 bide=[27370, 68682, 297, 3722] act=[1, 0, 255, 255] mv=[0, 222, 0, 0] count=2 flags=4 ff=null cb=ReturnFromBattleToOverworld b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=74 hp=64/64 pid=14509729 moves=[88, 222, 120, 205] pp=[15, 30, 5, 20] st1=0
+f3231535 BATTLE-START turn=0 outcome=7 bide=[27370, 68682, 297, 3722] act=[1, 0, 255, 255] mv=[0, 222, 0, 0] count=2 flags=c ff=[0, 0] cb=BeginBattleIntro b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=74 hp=64/64 pid=14509729 moves=[88, 222, 120, 205] pp=[15, 30, 5, 20] st1=0
+f3232438 ENTRY turn=0 outcome=0 bide=[27370, 68682, 297, 3722] act=[255, 255, 255, 255] mv=[0, 0, 0, 0] count=2 flags=c ff=[0, 0] cb=HandleTurnActionSelectionState b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=286 hp=59/59 pid=000ae288 moves=[316, 46, 207, 184] pp=[40, 20, 15, 10] st1=0
+f3232457 EXIT turn=0 outcome=0 bide=[27370, 68682, 297, 3722] act=[0, 0, 255, 255] mv=[36, 207, 0, 0] count=2 flags=c ff=[0, 0] cb=SetActionsAndBattlersTurnOrder b0:sp=287 hp=127/127 pid=5c96ea9b moves=[33, 70, 36, 44] pp=[35, 15, 20, 25] st1=0 | b1:sp=286 hp=59/59 pid=000ae288 moves=[316, 46, 207, 184] pp=[40, 20, 15, 10] st1=0

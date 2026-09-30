@@ -11,8 +11,9 @@
 > - ✅ **The design's adversarial review has RUN** (three fresh Claude agents, 2026-09-30: the M1a gate, the M1b
 >   audit, scope/records/arms; `## THE DESIGN REVIEW` at the end). It found 4 blockers and about 30 should-fix
 >   findings. Every one is folded in below, marked **[R:<id>]**.
-> - ⛔ **Nothing here is built yet.** Next: the Step-0 live reads (F6), then predictions, code, the gate's
->   adversarial mutant pass, the gate, the arms, the review.
+> - ✅ **The Step-0 live reads (F6) have RUN** and held on every question (`tools/story-dev/evidence/2026-09-30-dmgcalc11-STEP0.txt`).
+> - ⛔ **Nothing here is built yet.** Next: predictions (the hand-derived anchors first), code, the gate's adversarial
+>   mutant pass, the gates, the arms, the review.
 
 ## WHY THE v2 STEP 11 BODY CANNOT BE BUILT AS WRITTEN
 
@@ -193,6 +194,20 @@
   - `gBattleMons[0]` and `[1]` (our PP too) and `gBideDmg` are readable at the battle's end [R:SR-1];
   - the Flash Fire dereference reads a sane value.
   - If `gBideDmg` fails, F4 falls back to the HP difference and faints become a censored stratum.
+  - ✅ **RESULTS (2026-09-30, `evidence/2026-09-30-dmgcalc11-STEP0.txt`; an observe-only probe at the base code,
+    post_mtpyre, 90,000 frames, 101 reads, 0 failed).** Every question held:
+    - Q1: Δ`gBideDmg[1]` = the foe's HP difference on 6 of 7 clean singles turns. The 7th is the MASKED HEAL (Marcel's
+      Manectric reads 18 → 18 while our hit dealt 65, because the foe used its Hyper Potion first): `gBideDmg` records
+      the hit, the HP difference cannot, and the foe's item action is READABLE at the selection exit
+      (`gChosenActionByBattler[1] == 1`).
+    - Q2: the uncapped roll on every KO: 7 of 7 battle-end KOs (a Linoone at 8 HP took 73) and 3 of 3 trainer KOs
+      whose foe identity changed.
+    - Q3: the chosen move is final at the exit: its PP drops by 1 when it ran, by 0 on our sleep turns; PP down with
+      Δ`gBideDmg` 0 is a miss (Take Down vs Double Team).
+    - Q4: the turn counter is EXIT + 1 at the next entry, and EQUAL to EXIT's at a battle's end (0 violations).
+    - Q5: `gBattleMons` is readable at all 14 battle-end reads.
+    - Q6: the Flash Fire flags read `[0, 0]` at every selection entry and exit, and `gBattleResources` is NULL at every
+      battle-end read (freed). ⇒ **The battle-end AFTER read must not dereference it.**
 - **F7, inertness and correctness (M1b), on `post_mtpyre.ss1` (PINNED, md5 asserted), `storyresume --frames 90000`,
   seeded, at the SAME HEAD.** The runner writes `git rev-parse HEAD` and "clean tree" into each evidence file (a
   worktree log cannot) [R:SR N3].
