@@ -1,4 +1,4 @@
-# 2026-09-29 — USER RULINGS 23 + 26, design v2 step 9b (BB at Sootopolis) GRADED: the League-basket visit tops off 1 Ultra Ball after the basket in the same menu session, and walks for balls alone when the basket is complete; OFF, observe and a swallowed ball failure are frame-exact with M0; a close mid-purchase is logged and walked back. TWO PREDICTIONS FAILED (P12 on its premise, P13 on two mutant sets); a latent RULING 18 stranding is fixed
+# 2026-09-29 — USER RULINGS 23 + 26, design v2 step 9b (BB at Sootopolis) GRADED: the League-basket visit tops off 1 Ultra Ball after the basket in the same menu session, and walks for balls alone when the basket is complete; OFF, observe and a swallowed ball failure are frame-exact with M0; a close mid-purchase is logged and walked back. TWO PREDICTIONS FAILED (P12 on its premise, P13 on two mutant sets); a latent RULING 18 stranding is fixed (gate-proven, not driven live); the three-lens review's fixes re-ran clean
 
 > Predictions: `2026-09-29-ballrestock9b-PREDICTIONS.md` (`c7cf1bbd`, with the Step-0 reads and M0 ×2, before the
 > code commit `2f082d04`). The gate was first run after both. The live arms ran on `23ce266d` (the gate fix; no
@@ -18,7 +18,7 @@
 |---|---|---|---|
 | P1 | **A2-OFF ×2** | `R frames = 10329`, ₽22,166, PASS with the new conjuncts; **every frame-stamped debug line identical to M0a** (both runs); no Sootopolis `[BALLS-BUY]` | ✅ OFF unchanged |
 | P2 | **A2-OBS** | the exact line `why=topoff-observe … plan=[('Ultra Ball', 1)] floor=19000 walk=False …`; every other line identical to M0a | ✅ |
-| P3 | **A2-ON** | `why=topoff-forecast … walk=True`, then `f3706022 why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000`; ₽67,466 → 20,966 (`COST 46500`); first divergence from M0a = the ball phase's first action (f3705494 vs M0a's f3705558), before M0a's Mart exit | ✅ the discriminator; two `buy_in_shop` calls in one menu session work (the recon's F15) |
+| P3 | **A2-ON** | `why=topoff-forecast … walk=True`, then `f3706022 why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000`; ₽67,466 → 20,966 (`COST 46500`); first divergence from M0a = the ball phase's first action (f3705494 vs M0a's f3705558), before M0a's Mart exit (a RE-OPERATIONALIZED check: see GRADING NOTES) | ✅ the discriminator; two `buy_in_shop` calls in one menu session work (the recon's F15) |
 | P4 | **A2-FLOOR** | `bought=5 premier=0 spare=18->23 money=22166->16166 floor=1000`; the forecast said 5 | ✅ the basket floor is what limits A2 to one |
 | P5 | **A2-RAISE** | PASS (`ballfail`): `early_basket='bought'`, 3/8/30, one `why=topoff-failed … the basket's outcome stands`; **every frame-stamped line identical to M0a** | ✅ a ball failure costs no frame and never touches the basket |
 | P6 | **A2b-ON** | PASS (`balls`): "balls only", order `['EB-MART']`, basket untouched, `bought=1 … money=22166->20966` | ✅ the periodic visit |
@@ -70,9 +70,9 @@
   The watchdog's "no progress" dumps show it in M0a and every arm. It is bounded and harmless, but it is 1,800 wasted
   frames per Juan attempt: a candidate cleanup, not built.
 - **A2-ON took 551 frames more than M0** (10,880 vs 10,329), for one Ultra Ball.
-- **The realistic periodic visit buys nothing.** After a Juan loss the money halves (₽20,966 → ₽10,483), below the
-  ₽19,000 floor. Under RULING 18's floor the Sootopolis top-off is about one Ultra per run until the League: a finding
-  for Q1 and step 14.
+- **On post_hm07's wallet the periodic visit then buys nothing.** After a Juan loss the money halves (₽20,966 →
+  ₽10,483), below the ₽19,000 floor. That is one fixture's wallet: the per-run count is UNMEASURED (step 14), and
+  A2-FLOOR shows the same planner buying 5 when the margin is larger. A finding for Q1 and step 14.
 
 ## GRADING NOTES (disclosed)
 
@@ -81,11 +81,59 @@
     after M0a's own Mart exit (f3705736), so it read 5 lines against 6.
   - The honest test is the first divergence. It is the ball phase's first action (f3705494 `RESUMED after 2019`
     against M0a's f3705558 `RESUMED after 2083`), sitting between the basket's shared wait and M0a's exit.
-  - Both versions are in `-GRADER.txt`.
+  - The first version is described in `-GRADER.txt`'s header; the final grader's source is at its end.
 - **The grader checked more than some predictions said** (e.g. "exactly the forecast line AND the failed line" for
   P5/P9, where the prediction named only the failed line). Every such extra check passed.
-- **KI-112:** every OFF arm and M0b replayed M0a exactly. Every ON arm's first divergence is its own ball phase. This
+- **KI-112:** both A2-OFF runs, A2-RAISE and M0b replayed M0a exactly. Every post_hm07 ON arm's first divergence is
+  its own ball phase. This
   is one trajectory, replayed: a determinism check, not a replication.
+
+- **E4 (the review): the addendum's arithmetic, corrected here (the filed addendum is left as it is).** The ball
+  phase is ENTERED at +4,294 frames (A2-RAISE's raise, f3705471, costs no frame). Its first observable input is at
+  +4,317 (A2-ON's first divergence, f3705494). B3′'s close came at +4,358: 64 frames after entry and 41 after the
+  first input, not "40 frames into the phase". It is still well inside `buy_in_shop` (the purchase would have
+  logged at +4,845).
+- **E5: the orphaned first M0b was partly SEEN before P1 was written.** Its debug log's `[EARLY_BASKET]` line was
+  read, in the same grep as M0a's; it was identical and at the same frame (f3706371). Its verdict and frames were not
+  read. It ran the then-uncommitted 9b code with the flag unset, so it was a partial, known OFF outcome for P1. P1's
+  stronger claims (every frame-stamped line and `R frames`) were not known.
+- **E9: the arms ran with `--frames 16000`, not the pre-registered 30,000.** The cap only ends the Manual idle tail
+  after the verdict (the longest arm's driver used 10,885 frames). It was changed in the runner to save time, and
+  it is disclosed here.
+
+## THE REVIEW (three lenses; each serious finding checked by an independent refuter)
+
+- **Code: PASS_WITH_NITS.**
+  - BB9B-1 (confirmed): `_shop` keyed its "sells none" raise on the forecast's `walk`, so a basket visit with a
+    buying forecast silently lost it. "Ball-only" is now decided from the caller's plan before the live filter.
+  - BB9B-2 (a nit, taken): a ball-only visit that finds nothing to buy is now memoised, so the next Juan attempt
+    does not re-cross the crater.
+  - BB9B-3 (a nit, taken): the `topoff-closed` reason no longer promises a walk back.
+  - BB9B-4 (a nit): "OFF unchanged" holds per first call; the F1 archive deliberately changes a repeated call.
+- **Gate: FAIL.** Five findings, all confirmed, all fixed:
+  - G1: no row ran an OFF or observe BASKET visit;
+  - G2: the P rows never saw the report shape production gives the phase, so "re-plans live" was unguarded
+    against buying the stale forecast;
+  - G3: the phase's key isolation was checked on a subset of keys and rows, so a close-path `returned` (the KI-103
+    stranding) went unseen;
+  - G4: the driver's ball grade was pinned by text only;
+  - G5: N1 was vacuous, and A1/A2 were substring searches that a string literal could satisfy.
+  - The fixes: rows S10-S14, P9 and D1-D3; the P rows get the production report shape and whole-report
+    isolation; A1, A2 and A4 are AST checks; N1b and N2.
+  - Mutants M26-M39, plus the re-derived sets of M1, M2, M5, M11, M12, M19 and M24, were all written before gate
+    run 4. Run 4 passed ALL on its first run (87 checks: 45 rows and 42 mutant/N rows).
+- **Evidence: PASS_WITH_NITS.** Taken:
+  - E2: `04` still said "9b is next" in five places;
+  - E3: "about one Ultra per run" generalized one fixture;
+  - the nits E4-E12, all addressed in this note, the evidence files and the docs.
+  - E1 was REFUTED by its verifier: the re-operationalized check is an honest reading of "up to the purchase".
+- **Regression re-run** (`evidence/2026-09-29-ballrestock9b-REVIEW-RERUN.txt`): its expected lines were committed
+  with the fixes (`880c080a`, 20:05:21) BEFORE any re-run (the first started at 20:05:39). **ALL PASS, 20 of 20:**
+  - R-OFF and R-RAISE are identical to M0a on every frame-stamped line.
+  - R-ON, R-A2b-ON and R-B3prime are identical line for line to their graded arms.
+  - R-B3prime logs the NEW close reason at the same frame, f3705535.
+- **E8, the full suite** (`evidence/2026-09-29-ballrestock9b-SUITE.txt`), run after the fixes: **ALL 130 ENFORCING
+  GATES PASS** (556 s). Before the review it had not been run, and P13's fourth bullet stays graded as filed.
 
 ## WHAT THIS DOES NOT SHOW
 

@@ -37160,3 +37160,30 @@ bought balls only at fixed story points.
   - 05 KI-103 gains the F1 note;
   - the v2 note gains its 9b AS-BUILT block;
   - 06 decision, 08 two entries.
+
+## 2026-09-29 — design v2 step 9b REVIEWED: code PASS_WITH_NITS, gate FAIL, evidence PASS_WITH_NITS; every confirmed finding fixed; regression re-run clean (`#26-organiccatch`)
+
+- **Code:**
+  - `_shop` decides "ball-only" from the caller's plan before the live filter (BB9B-1);
+  - a wasted ball-only visit is memoised (BB9B-2);
+  - the `topoff-closed` reason no longer promises a walk back (BB9B-3).
+- **Gate** (`probe_stock_topoff_sootopolis.py`, run 4 ALL PASS on its first run; 87 checks):
+  - the P rows get the production report shape (a stale forecast) and whole-report isolation (G2, G3);
+  - OFF and observe basket-visit rows S11-S13, plus S14 (G1);
+  - D1-D3 execute the new `ball_grade.py` (G4);
+  - A1, A2 and A4 are AST checks, with N1b and N2 (G5);
+  - S10 and P9 cover BB9B-1 and BB9B-2;
+  - mutants M26-M39, plus seven re-derived sets, all written before the run.
+- **Evidence and docs:**
+  - five "9b is next" lines in `04` fixed (E2);
+  - the per-run Ultra count reworded as one fixture's wallet (E3);
+  - the addendum's arithmetic corrected in the graded note (E4);
+  - the orphan's partial visibility disclosed (E5);
+  - debug-log names and a commit timeline in every arm's evidence (E6);
+  - A2c's Step-0 read committed (E7);
+  - the full suite run (E8);
+  - `--frames 16000` disclosed (E9);
+  - wording (E10, E11);
+  - the driver's BALLS line labels `expected=` (E12).
+- **Regression re-run** (`evidence/2026-09-29-ballrestock9b-REVIEW-RERUN.txt`): the expected lines were committed with
+  the fixes (`880c080a`) before R-OFF, R-RAISE, R-ON, R-A2b-ON and R-B3prime ran.

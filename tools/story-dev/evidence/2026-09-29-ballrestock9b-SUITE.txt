@@ -1,0 +1,62 @@
+# design v2 step 9b: the full standing suite (run_gates.py), run on 880c080a + the re-run evidence (no code change after 880c080a), after the review's fixes. The review's E8: P13's fourth bullet had no evidence before this.
+
+  PASS  repro_withdraw_pid_source.py       exit=0     0.5s
+  PASS  repro_roamer_outcome.py            exit=0     0.1s
+  PASS  probe_abort_swallowing.py          exit=0     0.6s
+  PASS  audit_doc_citations.py             exit=0    13.4s
+  PASS  selftest_git_add_hook.py           exit=0     0.3s
+  PASS  selftest_commit_over_gates_hook.py exit=0     0.4s
+  PASS  selftest_destructive_git_hook.py   exit=0     0.5s
+  PASS  repro_loop_head_abort.py           exit=0     0.8s
+  PASS  repro_ch20_constants.py            exit=0     0.6s
+  PASS  repro_flee_trap_delegate.py        exit=0     0.5s
+  PASS  probe_ch23_fault_arms.py           exit=0     0.1s
+  PASS  probe_closed_item_refs.py          exit=0     0.1s
+  PASS  repro_overworld_items.py           exit=0     0.1s
+  PASS  probe_item_header_body.py          exit=0     0.1s
+  PASS  repro_ki90_absent_left_slot.py     exit=0     0.5s
+  PASS  probe_faint_chooser_rank.py        exit=0     0.6s
+  PASS  grade_ki93_drive.py                exit=0     0.4s
+  PASS  repro_x4_headless.py               exit=0     0.1s
+  PASS  grade_ki97_drive.py                exit=0     0.5s
+  PASS  probe_hm_coverage.py               exit=0     1.2s
+  PASS  probe_whiteout_budget.py           exit=0     0.2s
+  PASS  probe_name_resolution.py           exit=0     5.1s
+  PASS  probe_drift_restatement.py         exit=0     0.1s
+  PASS  probe_promoted_pair.py             exit=0     0.1s
+  PASS  probe_runrecipe_fixtures.py        exit=0     0.0s
+  PASS  probe_e4_entry_seal.py             exit=0     1.3s
+  PASS  probe_learn_hm_coverage.py         exit=0     1.2s
+  PASS  probe_derail_grouping.py           exit=0     0.1s
+  PASS  probe_empty_battler_guard.py       exit=0     0.5s
+  PASS  probe_dex_catch_fence.py           exit=0     0.6s
+  ADVIS probe_dexfence_opportunity.py      exit=1     0.1s
+  PASS  probe_league_leg4_guard.py         exit=0     0.5s
+  PASS  probe_late_boss_configs.py         exit=0     0.2s
+  PASS  probe_gate_unthrottled.py          exit=0     0.1s
+  PASS  probe_maintenance_decision.py      exit=0     0.6s
+  PASS  probe_yield_in_finally.py          exit=0     0.5s
+  PASS  probe_maintain_unreachable.py      exit=0     0.5s
+  PASS  probe_yesno_guard.py               exit=0     0.1s
+  PASS  repro_battle_items.py              exit=0     0.1s
+  PASS  repro_item_noop_detector.py        exit=0     0.6s
+  PASS  probe_punchlist_step_status.py     exit=0     0.0s
+  PASS  selftest_promote_drift.py          exit=0     0.1s
+  ADVIS probe_retraction_coverage.py       exit=0     0.6s
+  PASS  probe_doc_control_chars.py         exit=0     1.0s
+  PASS  probe_caps_resolve_every_gate.py   exit=0     0.4s
+  PASS  probe_picker_allow_required.py     exit=0     1.3s
+  PASS  probe_citation_ranges.py           exit=0     6.5s
+  PASS  probe_fly_disjunct.py              exit=0     1.3s
+  PASS  probe_flyanchor_refusal.py         exit=0     0.6s
+  PASS  probe_lead_pp_scope.py             exit=0     0.5s
+  PASS  probe_ch24_owns_run.py             exit=0     0.1s
+  PASS  probe_predictions_gradeable.py     exit=0     0.1s
+  PASS  probe_item_names_resolve.py        exit=0     0.2s
+  PASS  probe_ch23_done_winstate.py        exit=0     0.2s
+  PASS  repro_content_end_classifier.py    exit=0     0.0s
+  PASS  probe_stock_topoff.py              exit=0     3.1s
+  PASS  probe_stock_topoff_sootopolis.py   exit=0   211.6s
+============================================================================================
+ALL 130 ENFORCING GATES PASS  (556.1s total)   [+4 ADVISORY probe(s) — run, NOT gated]
+============================================================================================

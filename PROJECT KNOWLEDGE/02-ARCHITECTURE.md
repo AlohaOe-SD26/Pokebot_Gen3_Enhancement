@@ -231,7 +231,8 @@ The ball top-off (design v2 steps 9a and 9b; USER RULINGS 23 + 26). PURE plannin
 - **(b), step 9b:** RULING 18's Sootopolis League-basket visit (`modules/story/league_reserve.py`) calls
   `sootopolis_ball_forecast` before any walk (in `_stock_basket_early`; a buying forecast can make a ball-only visit)
   and `sootopolis_ball_phase` at the counter after the basket lines (in `_shop`, inside the shop's try, so RULING 18's
-  walk back always runs). The phase writes only under `report["balls"]` and never raises.
+  walk back runs on a normal return). The phase writes only under `report["balls"]` and never raises except an
+  abort or a close.
 OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a) and
 `probe_stock_topoff_sootopolis.py` (9b).
 

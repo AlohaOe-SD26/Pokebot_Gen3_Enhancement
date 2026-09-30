@@ -293,7 +293,7 @@ it.
   basket's outcome or skip RULING 18's walk back across the city.
 - **Where it stands:** 9a (Rustboro) and 9b (the Sootopolis League-basket visit) are built behind
   `POKEBOT_R23_BALLRESTOCK` (default OFF), each live-graded. The amounts are a bounded default pending the user's Q1;
-  under RULING 18's Juan-era floor the Sootopolis visit buys about one Ultra Ball per run.
+  under RULING 18's Juan-era floor, on post_hm07's wallet (₽67,466) the Sootopolis visit buys 1 Ultra Ball, and a Juan loss then drops the wallet below the ₽19,000 floor; the per-run count is unmeasured (step 14).
 
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness

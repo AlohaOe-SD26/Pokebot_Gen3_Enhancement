@@ -2933,9 +2933,9 @@ side back east ⇒ NO PATH (`BLOCKED`) — which stranded a drive after it had b
 `tools/story-dev/evidence/2026-09-26-earlybasket-{E1-FAILED-NOPATH,E1b-STRANDED,E1c-BUY}.txt`.
 **Workaround shipped (merged to `main` 2026-09-27):** `league_reserve.py` plans BOTH legs from (31,34) and walks back along the stored path;
 gate `probe_league_reserve.py` R7.
-⚠ **A hole in that workaround, closed 2026-09-29 by design v2 step 9b (found by its recon, F1; on branch `wt/ballrestock9b` until it merges):** §Ch22 passes ONE report dict
+⚠ **A hole in that workaround, closed 2026-09-29 by design v2 step 9b (found by its recon, F1):** §Ch22 passes ONE report dict
 to every Juan attempt, so a second errand inherited `returned=True` and `return_across_from_the_mart` skipped the walk back,
-stranding the bot on the Mart side with the menu open. `stock_basket_early` now archives the previous errand first (gate
+which would strand the bot on the Mart side with the menu open (code-read; proven by gate row S9, not driven live). `stock_basket_early` now archives the previous errand first (gate
 `probe_stock_topoff_sootopolis.py` S9; mutant M10).
 **Real fix — NOT BUILT (a shared-path change; needs an A/B on ordinary navigation):** read object positions from the
 RAM templates instead of the ROM ones. ⚠ Any other map whose scripts `setobjectxyperm` an NPC onto a new tile can hide

@@ -23213,3 +23213,27 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - read the docstring of every function you stub, and make the stub keep its contract;
   - before a gate's first run, list the rows NOT in the union of the mutant red sets: each is either given a mutant
     or named as a value row, with where its logic is pinned.
+
+## 2026-09-29 — ⛔ THE GATE-COVERAGE LESSON, WRITTEN TWO HOURS EARLIER, DID NOT STOP FIVE MORE GATE GAPS: THE REVIEW BUILT PLAUSIBLE MUTANTS NO ROW CAUGHT (G1-G5)
+
+- **Symptom.** The step 9b gate had just passed a coverage check: every row was reddened by some mutant (08, the
+  entry above). The review's gate lens and its verifiers still built about a dozen plausible mutants of the
+  production code that turned NOTHING red. Their labels X1-X12b overlap between agents, so the findings G1-G5 are the
+  count of record. Among them:
+  - OFF and observe running the ball phase on a basket visit;
+  - the phase buying the stale forecast instead of re-planning;
+  - a close writing `returned` (the KI-103 stranding);
+  - a hollowed driver check;
+  - a forecast that ignored the basket plan while its old call survived in a string.
+- **Root cause.** The coverage check asked "can every ROW fail?", not "does every plausible REGRESSION fail a row?".
+  The rows ran the production code on stub-SHAPED inputs (an empty report where production passes one carrying a
+  forecast), checked a key SUBSET instead of the whole dict, and three "AST" rows were substring searches. A row can
+  be reddened by some mutant and still miss the ones that matter.
+- **The fix that worked.**
+  - Give every executing row the input SHAPE production gives the code (here: R18's keys plus a stale forecast).
+  - Assert invariants over the WHOLE structure (the report minus the phase's own key).
+  - Match AST nodes, never source text.
+  - Have an adversarial agent construct mutants BEFORE the gate is trusted, and register every mutant it finds.
+- **Prevention rule:** before a new gate's first run, spawn ONE adversarial agent whose only job is to write
+  plausible production mutants the gate misses. A row list that every mutant of your own can redden is not evidence
+  of coverage: your own mutants share your blind spots.

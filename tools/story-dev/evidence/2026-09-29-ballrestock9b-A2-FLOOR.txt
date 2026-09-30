@@ -1,7 +1,9 @@
 # design v2 step 9b arm A2-FLOOR — graded against P4 (ai-research-notes/2026-09-29-ballrestock9b-PREDICTIONS.md).
 # Code 23ce266d (no production code changed after it). Seeded wrapper, sequential, profile repro-ml, from tools/story-dev:
 #   EB_EXPECT=buy POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R23_FAULT_FLOOR=1000 PYTHONUTF8=1 py -3.12 -u -c "import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')" saves/post_hm07.ss1 --driver earlybasket --frames 16000 --log <scratch>
-# Fixture: saves/post_hm07.ss1. Debug-log frames.
+# Fixture: saves/post_hm07.ss1. Debug-log frames. Debug log: Story-debug-20260929-183428.log (its name is its start time, 2026-09-29 18:34:28).
+# The runner used --frames 16000 (the predictions said 30,000; the cap only ends the Manual idle tail after the verdict; disclosed in the graded note).
+# Timeline (commit times; each debug log's name is its start time): predictions c7cf1bbd 18:14:31, code 2f082d04 18:17:04, gate fix 23ce266d 18:26:39, the first arm 18:27:01; addendum P12b 8ea30ea8 19:11:11, B3prime 19:11:31.
 
 === the driver's verdict lines ===
 [earlybasket] PRE {'start_at': ((0, 7), (31, 34)), 'frame_start': 3699006, 'money_start': 67466, 'stock_start': {'Revive': 0, 'Full Heal': 0, 'Hyper Potion': 0}, 'in_era': True, 'in_sootopolis': True, 'plan_predicted': [('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]}

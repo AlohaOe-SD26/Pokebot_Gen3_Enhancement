@@ -8433,3 +8433,17 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
 - **Finding for Q1 and step 14, not a defect:** under RULING 18's floor (1,000 + 2 × the missing League basket, i.e.
   ₽19,000 in the Juan era), the Sootopolis visit buys 1 Ultra once, and a Juan loss halves the wallet below the floor.
   The periodic top-off at Sootopolis is therefore mostly theoretical until the League.
+
+## 2026-09-29 — Design v2 step 9b review: where the driver's ball grade lives (`#26-organiccatch`)
+
+- **The earlybasket driver's ball grade moved into `tools/story-dev/ball_grade.py`**, a pure module the gate
+  executes (the review's G4: it had been pinned by text, and a hollowed check passed).
+  - Rejected: a function in `stock_topoff.py`. It is test-only code, and a production module would carry it into
+    `custom-pokebot` drift at promotion.
+  - Rejected: executing the driver class in the gate. `story_harness.py` parses arguments and boots an emulator at
+    import.
+- **"Ball-only" is decided from the caller's basket plan, before the live stock filter**, not from the forecast's
+  `walk` (BB9B-1). A basket visit's own failure mode (a Mart that sells none of the basket) must keep its named raise
+  whatever the ball forecast says.
+- **A ball-only visit that finds nothing to buy is memoised** (BB9B-2), like a failure: the forecast and the counter
+  disagreed, and re-walking the crater on every Juan attempt cannot fix that.

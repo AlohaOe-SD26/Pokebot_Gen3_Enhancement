@@ -25,3 +25,127 @@
 #             identical to the graded B3prime's.
 #
 # RESULTS (appended by the re-run below)
+# Ran on 880c080a (the commit holding these EXPECTED lines), sequential. Debug logs: R-OFF Story-debug-20260929-200539.log, R-RAISE -200729, R-ON -200919, R-A2b-ON -201100, R-B3prime -201335 (each name is its start time; 880c080a was committed at 20:05:21, before the first re-run started at 20:05:39).
+#
+# === R-OFF: [('PASS', 'buy')] R frames=10329 money_end=22166
+#   PASS  PASS (buy)
+#   PASS  R frames 10329, money_end 22166
+#   PASS  every frame-stamped line identical to M0a
+#   PASS  no SootopolisCity [BALLS-BUY] line
+# === R-RAISE: [('PASS', 'ballfail')] R frames=10329 money_end=22166
+#     f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#     f3705471 [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the ball phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands
+#   PASS  PASS (ballfail)
+#   PASS  R frames 10329
+#   PASS  every frame-stamped line identical to M0a
+#   PASS  the forecast line and the same topoff-failed line as A2-RAISE
+# === R-ON: [('PASS', 'buy')] R frames=10880 money_end=20966
+#     f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#     f3706022 [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#   PASS  PASS (buy)
+#   PASS  money_end 20966
+#   PASS  exactly the two expected lines
+#   PASS  every frame-stamped line identical to the graded A2-ON's  — 31 vs 31 lines
+# === R-A2b-ON: [('PASS', 'balls')] R frames=7476 money_end=20966
+#     f3710241 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#     f3712183 [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#   PASS  PASS (balls)
+#   PASS  'balls only', money_end 20966
+#   PASS  exactly the two expected lines
+#   PASS  every frame-stamped line identical to the graded A2b-ON's  — 28 vs 28 lines
+# === R-B3prime: [('PASS', 'budget')] R frames=10801 money_end=22166
+#     f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+#     f3705535 [BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=a close reached the ball phase mid-purchase (R18 walks back only if its own budget closed it: see retry_return/stranded)
+#   PASS  PASS (budget)
+#   PASS  exactly one topoff-closed line with the NEW reason, at f3705535  — ['[BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? reason=a close reached the ball phase mid-purchase (R18 walks back only if its own budget closed it: see retry_return/stranded)']
+#   PASS  basket bought, no Ultra, money_end 22166, retry walked back, gym 1F
+#   PASS  every frame-stamped line identical to the graded B3prime's  — 28 vs 28 lines
+# 
+# GRADE: ALL PASS (20 checks)
+#
+# The grader's source:
+#   """Grade the post-review re-run against the EXPECTED lines committed in 880c080a
+#   (tools/story-dev/evidence/2026-09-29-ballrestock9b-REVIEW-RERUN.txt)."""
+#   import pathlib
+#   import re
+#   import sys
+#   
+#   S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+#   sys.path.insert(0, str(S))
+#   import bb9b_grade as g  # noqa: E402
+#   
+#   B = g.B
+#   FC1_T = g.FC1.format(tag="topoff-forecast", walk="True")
+#   CLOSED_NEW = ("[BALLS-BUY] why=topoff-closed mart=SootopolisCity ball=- bought=? premier=? spare=18->? money=22166->? "
+#                 "reason=a close reached the ball phase mid-purchase (R18 walks back only if its own budget closed it: "
+#                 "see retry_return/stranded)")
+#   RESULTS = []
+#   
+#   
+#   def check(arm, label, ok, detail=""):
+#       RESULTS.append((arm, label, ok))
+#       print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  — {detail}" if detail else ""))
+#   
+#   
+#   def same_lines(arm, ref):
+#       a, b = g.frame_lines(B / f"{arm}.debug.txt"), g.frame_lines(B / f"{ref}.debug.txt")
+#       for i, (x, y) in enumerate(zip(a, b)):
+#           if x != y:
+#               return False, f"first difference at #{i}: {x[:90]!r} vs {y[:90]!r}"
+#       return len(a) == len(b), f"{len(a)} vs {len(b)} lines"
+#   
+#   
+#   def grade(arm):
+#       d = g.driver(arm)
+#       texts = [t for _f, t in g.balls(B / f"{arm}.debug.txt")]
+#       frames = {t: f for f, t in g.balls(B / f"{arm}.debug.txt")}
+#       print(f"=== {arm}: {d['acc']} R frames={d['R'].get('frames')} money_end={d['R'].get('money_end')}")
+#       for t in texts:
+#           print(f"    f{frames[t]} {t}")
+#       if arm == "R-OFF":
+#           check(arm, "PASS (buy)", d["acc"] == [("PASS", "buy")])
+#           check(arm, "R frames 10329, money_end 22166", d["R"].get("frames") == "10329" and d["R"].get("money_end") == "22166")
+#           check(arm, "every frame-stamped line identical to M0a", g.first_divergence(B / f"{arm}.debug.txt") is None)
+#           check(arm, "no SootopolisCity [BALLS-BUY] line", texts == [])
+#       elif arm == "R-RAISE":
+#           check(arm, "PASS (ballfail)", d["acc"] == [("PASS", "ballfail")])
+#           check(arm, "R frames 10329", d["R"].get("frames") == "10329")
+#           check(arm, "every frame-stamped line identical to M0a", g.first_divergence(B / f"{arm}.debug.txt") is None)
+#           check(arm, "the forecast line and the same topoff-failed line as A2-RAISE", texts == [FC1_T, g.RAISE])
+#       elif arm == "R-ON":
+#           check(arm, "PASS (buy)", d["acc"] == [("PASS", "buy")])
+#           check(arm, "money_end 20966", d["R"].get("money_end") == "20966")
+#           check(arm, "exactly the two expected lines", texts == [FC1_T, g.BUY1])
+#           ok, det = same_lines(arm, "A2-ON")
+#           check(arm, "every frame-stamped line identical to the graded A2-ON's", ok, det)
+#       elif arm == "R-A2b-ON":
+#           check(arm, "PASS (balls)", d["acc"] == [("PASS", "balls")])
+#           check(arm, "'balls only', money_end 20966", d["REP"].get("early_basket") == "'balls only'"
+#                 and d["R"].get("money_end") == "20966")
+#           check(arm, "exactly the two expected lines", texts == [FC1_T, g.BUY1])
+#           ok, det = same_lines(arm, "A2b-ON")
+#           check(arm, "every frame-stamped line identical to the graded A2b-ON's", ok, det)
+#       elif arm == "R-B3prime":
+#           check(arm, "PASS (budget)", d["acc"] == [("PASS", "budget")])
+#           closed = [t for t in texts if "why=topoff-closed" in t]
+#           check(arm, "exactly one topoff-closed line with the NEW reason, at f3705535",
+#                 closed == [CLOSED_NEW] and frames.get(CLOSED_NEW) == 3705535, str(closed))
+#           check(arm, "basket bought, no Ultra, money_end 22166, retry walked back, gym 1F",
+#                 d["R"].get("stock_end") == "{'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}"
+#                 and d["R"].get("balls_end") == d["R"].get("balls_start") and d["R"].get("money_end") == "22166"
+#                 and d["REP"].get("retry_return") == "True" and d["REP"].get("returned") == "True"
+#                 and d["R"].get("on_gym_1f") == "True")
+#           ok, det = same_lines(arm, "B3prime")
+#           check(arm, "every frame-stamped line identical to the graded B3prime's", ok, det)
+#   
+#   
+#   if __name__ == "__main__":
+#       for arm in sys.argv[1:] or ["R-OFF", "R-RAISE", "R-ON", "R-A2b-ON", "R-B3prime"]:
+#           if (B / f"{arm}.debug.txt").exists():
+#               grade(arm)
+#           else:
+#               print(f"=== {arm}: not run yet")
+#       bad = [(a, l) for a, l, ok in RESULTS if not ok]
+#       print(f"\nGRADE: {'ALL PASS' if not bad else f'{len(bad)} FAILED'} ({len(RESULTS)} checks)")
+#       for a, l in bad:
+#           print(f"  - {a}: {l}")

@@ -1140,8 +1140,8 @@ GATES: list[tuple[str, bool]] = [
     ("probe_stock_topoff.py", False),
     # USER RULINGS 23 + 26 (design v2 step 9b, BB consumer b) — the ball top-off inside RULING 18's Sootopolis
     # League-basket visit: the post-basket forecast, the counter phase and `league_reserve`'s visit EXECUTED with stubs
-    # (incl. the recon's F1: a second errand on the same dict must start clean), AST rows, 25 mutants with exact red
-    # sets (every non-value row is reddened by one). ‼ APPENDED AT THE END, never inserted.
+    # (incl. the recon's F1: a second errand on the same dict must start clean), AST rows, the driver's ball grade
+    # (`ball_grade.py`), 39 mutants with exact red sets (every non-value row is reddened by one). ‼ APPENDED AT THE END.
     ("probe_stock_topoff_sootopolis.py", False),
 ]
 

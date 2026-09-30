@@ -95,3 +95,23 @@ f3709270 [MAP] SOOTOPOLIS CITY(0,7) -> SOOTOPOLIS CITY(15,0) pos=(31, 32)
 [earlybasket] ACCEPTANCE: PASS (expect=buy) SCOPE: §Ch22 L1 (heal, buy, re-heal, enter the gym) — the RESERVE's effect in battle is graded by the reserve arms, not here.
 
 === GRADE: M0a vs M0b driver segments: IDENTICAL (10 vs 10) — one trajectory, replayed (a determinism check, not a replication) ===
+
+=== STEP 0 on eb_after_A2ON.ss1 = 946e3b05e0e1c56c47cb2786658c5240 (A2-ON's EB_SAVE_AFTER output; read BEFORE A2c ran, appended here after the review's E7) ===
+save eb_after_A2ON.ss1
+money 20966
+at (0, 7) (43, 32)
+poke_balls pocket [('Poké Ball', 16), ('Premier Ball', 1), ('Great Ball', 1), ('Master Ball', 1), ('Ultra Ball', 1)]
+spare (number_of_balls_except_master_ball) 19
+items pocket slots used 7 [('Nugget', 1), ('X Attack', 2), ('Potion', 1), ('Escape Rope', 1), ('Revive', 3), ('Full Heal', 8), ('Hyper Potion', 30)]
+flag IS_CHAMPION True False
+flag ENTERED_ELITE_FOUR True False
+flag SOOTOPOLIS_ARCHIE_MAXIE_LEAVE True True
+flag BADGE01_GET True True
+flag BADGE08_GET True False
+allowed balls ['Dive Ball', 'Great Ball', 'Luxury Ball', 'Nest Ball', 'Net Ball', 'Poké Ball', 'Premier Ball', 'Repeat Ball', 'Safari Ball', 'Timer Ball', 'Ultra Ball']
+basket stock (BUY_ORDER) {'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30} plan [] cost 0
+missing basket cost now 9000 after the plan 9000 [('Full Restore', 3)]
+stage BASKET_ERA floor(after plan) 19000 limits {'trigger': 20, 'target': 30, 'batch_cap': 6000} ultra price 1200
+ball plan post-basket ([], 'cannot afford one Ultra Ball (budget 983, price 1200)')
+ball plan pre-basket (wrong wallet) ([], 'cannot afford one Ultra Ball (budget 983, price 1200)')
+ball plan, floor = CASH_FLOOR (no basket guard) ([('Ultra Ball', 5)], 'top off 5 x Ultra Ball (spare 19 <= trigger 20; budget 6000)')
