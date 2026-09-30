@@ -218,6 +218,38 @@ GRADED-BY: frames
 - **FALSIFIER:** any red row, or a mutant red on a set other than the written one. A wrong set is graded FAILED here,
   not "fixed" by editing the expectation.
 
+## ADDENDUM — filed AFTER P12 failed on its premise and BEFORE B3′ ran (2026-09-29, 7:10 PM)
+
+- **What happened to P12:** B3 ran on the ball-only fixture and never started. The driver refused it:
+  `PREMISE FAILED for expect=budget (… plan=[], balls=[('Ultra Ball', 1)])`.
+  - The `budget` expectation's premise (RULING 18's) requires a non-empty BASKET plan, and my prediction missed it.
+  - **P12 is graded FAILED**, on the instrument: the code under test never ran.
+  - The premise itself is right: without a basket plan a budget arm would, for R18, pass having done nothing. It is
+    left unchanged.
+- **B3′ tests the same thing on `post_hm07.ss1`, where the basket plan is non-empty.** The budget is set to expire
+  40 frames into the ball phase, computed from MEASURED frames:
+  - A2-ON's and A2-FLOOR's `REPORT frame_start = 3701177`, both;
+  - the ball phase's first action is A2-ON's first divergence from M0a, at f3705494
+    (`evidence/2026-09-29-ballrestock9b-GRADER.txt`);
+  - so the phase starts 4,317 frames in, and `POKEBOT_RESERVE_FAULT_BUDGET = 4317 + 40 = 4357`.
+  - The purchase logged ~530 frames after the phase start (f3706022), so the close lands inside `buy_in_shop`,
+    before the confirm.
+
+### P12b — B3′ (`post_hm07.ss1`, `=1`, `POKEBOT_RESERVE_FAULT_BUDGET=4357`, `EB_EXPECT=budget EB_BUDGET_AT=shop`)
+GRADED-BY: money_end, stock_end, balls_end, on_gym_1f
+- `ACCEPTANCE: PASS (expect=budget)`: budget expired, crossed with `frames_at_shop_open` present, the retry walked back
+  (`retry_return` and `returned` both True), not stranded, re-healed and on the gym's 1F.
+- The basket is bought (`R stock_end` 3/8/30, `REPORT early_basket = 'bought'`) and **no Ultra Ball** is bought
+  (`R balls_end == R balls_start`), so `R money_end = 22166`.
+- Exactly one `[BALLS-BUY] why=topoff-closed mart=SootopolisCity … reason=the basket visit's budget closed the ball phase mid-purchase (R18 walks back)`.
+- Every frame-stamped line is identical to A2-ON's until the close.
+- **FALSIFIER:**
+  - no `topoff-closed` line (a silent close);
+  - a RuntimeError ("generator ignored GeneratorExit": the handler yielded);
+  - stranded;
+  - an Ultra Ball bought, which would mean the close missed the phase;
+  - a basket outcome other than "bought".
+
 ## WHAT THIS DOES NOT SHOW
 
 - Whether the top-off is worth ₽1,200 per visit, or how often the Sootopolis visit buys in real runs (step 14).

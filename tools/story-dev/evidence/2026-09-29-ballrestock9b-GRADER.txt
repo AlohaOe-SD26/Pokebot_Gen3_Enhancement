@@ -1,0 +1,346 @@
+# design v2 step 9b: the grader's output for every graded arm (code 23ce266d; predictions c7cf1bbd). Grader source at the end.
+# Frames are debug-log (emulator) frames. 'first divergence' = the first frame-stamped debug-log line that differs from M0a's
+# ([BALLS-BUY] lines are log-only and graded exactly, so they are skipped; [EARLY_BASKET] is compared up to ' balls=').
+# ⚠ The A2-ON 'identical until the ball phase' check was RE-OPERATIONALIZED after its first run: the first version cut at the
+#   purchase LOG frame (f3706022), ~530 frames after the phase starts and after M0a's own Mart exit (f3705736), and so read 5 vs 6.
+#   The honest test is the first divergence, which is the ball phase's first action (f3705494 vs M0a's f3705558 'RESUMED'),
+#   between the basket's shared 1,800-frame wait and M0a's Mart exit. Both versions are disclosed in the graded note.
+
+=== A2-OFF-a: ACCEPTANCE [('PASS', 'buy')]  R frames=10329 money_end=22166
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 45300
+  PASS  PASS (expect=buy), incl. the new conjuncts  — {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failur
+  PASS  R frames 10329, money_end 22166
+  PASS  driver segment IDENTICAL to M0a (EARLY_BASKET byte-identical)  — 10 vs 10
+  PASS  EVERY frame-stamped line identical to M0a  — None
+  PASS  no SootopolisCity [BALLS-BUY] line
+  PASS  balls_end == balls_start
+=== A2-OFF-b: ACCEPTANCE [('PASS', 'buy')]  R frames=10329 money_end=22166
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 45300
+  PASS  PASS (expect=buy), incl. the new conjuncts  — {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failur
+  PASS  R frames 10329, money_end 22166
+  PASS  driver segment IDENTICAL to M0a (EARLY_BASKET byte-identical)  — 10 vs 10
+  PASS  EVERY frame-stamped line identical to M0a  — None
+  PASS  no SootopolisCity [BALLS-BUY] line
+  PASS  balls_end == balls_start
+=== A2-OBS: ACCEPTANCE [('PASS', 'buy')]  R frames=10329 money_end=22166
+    f3701177 [BALLS-BUY] why=topoff-observe mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=False reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 45300
+  PASS  PASS (expect=buy)  — {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failur
+  PASS  R frames 10329, money_end 22166
+  PASS  driver segment identical to M0a (EARLY_BASKET up to ' balls=')
+  PASS  exactly the predicted observe line
+  PASS  no ball delta
+=== A2-ON: ACCEPTANCE [('PASS', 'buy')]  R frames=10880 money_end=20966
+    f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    f3706022 [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    driver BALLS forecast={'Ultra Ball': 1} delta={'Ultra Ball': 1} bought={'Ultra Ball': 1} ball_cost=1200 floor=19000  COST 46500
+  PASS  PASS (expect=buy)  — {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  money_end 20966, COST 46500
+  PASS  the forecast line, then the purchase line, exactly
+  PASS  every line identical to M0a until the ball phase's first action (between the basket's wait and M0a's Mart exit), then the purchase  — first divergence f3705494: arm 'f3705494 [RESUMED] after 2019 frames with no progress' vs M0a 'f3705558 [RESUMED] after 2083 frames with no progress'
+  PASS  driver BALLS bought={'Ultra Ball': 1} ball_cost=1200
+  PASS  on the gym's 1F
+=== A2-FLOOR: ACCEPTANCE [('PASS', 'buy')]  R frames=10885 money_end=16166
+    f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 5)] floor=1000 walk=True reason=top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)
+    f3706027 [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=5 premier=0 spare=18->23 money=22166->16166 floor=1000 reason=top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)
+    driver BALLS forecast={'Ultra Ball': 5} delta={'Ultra Ball': 5} bought={'Ultra Ball': 5} ball_cost=6000 floor=1000  COST 51300
+  PASS  PASS (expect=buy)  — {'readings_in_order': True, 'plan_as_predicted': True, 'bag_delta_equals_plan': True, 'money_drop_equals_cost': True, 'floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'balls_as_forecast': True, 'balls_floor_kept': True, 'outcome_bought': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  the 5-Ultra forecast and purchase lines, exactly
+  PASS  money_end 16166
+  PASS  identical to M0a until the ball phase's first action  — first divergence f3705494
+=== A2-RAISE: ACCEPTANCE [('PASS', 'ballfail')]  R frames=10329 money_end=22166
+    f3701177 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    f3705471 [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the ball phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands
+    driver BALLS forecast={'Ultra Ball': 1} delta={} bought={} ball_cost=0 floor=19000  COST 45300
+  PASS  PASS (expect=ballfail)  — {'ball_phase_failed': True, 'basket_outcome_kept': True, 'readings_as_basket': True, 'bag_delta_equals_plan': True, 'no_ball_delta': True, 'money_drop_equals_cost': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  exactly the forecast line and the predicted topoff-failed line
+  PASS  R frames 10329 (the raise costs no frame)
+  PASS  driver segment identical to M0a for the WHOLE segment (EARLY_BASKET up to ' balls=')  — 10 vs 10
+  PASS  EVERY frame-stamped line identical to M0a (the raise costs no frame)  — None
+  PASS  money_end 22166, basket 3/8/30
+=== A2b-ON: ACCEPTANCE [('PASS', 'balls')]  R frames=7476 money_end=20966
+    f3710241 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    f3712183 [BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    driver BALLS forecast={'Ultra Ball': 1} delta={'Ultra Ball': 1} bought={'Ultra Ball': 1} ball_cost=1200 floor=19000  COST 1200
+  PASS  PASS (expect=balls)  — {'ball_only_visit': True, 'balls_as_forecast': True, 'basket_untouched': True, 'money_drop_equals_cost': True, 'balls_floor_kept': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  the forecast line (walk=True), then the purchase line, exactly
+  PASS  money_end 20966
+  PASS  early_basket 'balls only'
+=== A2b-OFF: ACCEPTANCE [('PASS', 'nothing')]  R frames=2462 money_end=22166
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 0
+  PASS  PASS (expect=nothing)  — {'named_nothing': True, 'no_walk': True, 'no_spend': True, 'on_gym_1f': True, 'no_ball_delta': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  no SootopolisCity [BALLS-BUY] line, no `balls` key
+=== A2b-TYPO: ACCEPTANCE [('PASS', 'nothing')]  R frames=2462 money_end=22166
+    f3710241 [BALLS-BUY] why=topoff-flag mart=SootopolisCity reason=POKEBOT_R23_BALLRESTOCK='yes' is not one of ('', '0', 'observe', '1'): treated as OFF
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=None  COST 0
+  PASS  PASS (expect=nothing)  — {'named_nothing': True, 'no_walk': True, 'no_spend': True, 'on_gym_1f': True, 'no_ball_delta': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  exactly one 9b typo line
+  PASS  driver segment identical to A2b-OFF
+  PASS  R frames identical to A2b-OFF
+=== A2b-RAISE: ACCEPTANCE [('PASS', 'ballfail')]  R frames=6924 money_end=22166
+    f3710241 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 plan=[('Ultra Ball', 1)] floor=19000 walk=True reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)
+    f3711631 [BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? reason=the ball phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose (menu open, nothing bought)'); the basket's outcome stands
+    driver BALLS forecast={'Ultra Ball': 1} delta={} bought={} ball_cost=0 floor=19000  COST 0
+  PASS  PASS (expect=ballfail)  — {'ball_phase_failed': True, 'basket_outcome_kept': True, 'readings_as_basket': True, 'bag_delta_equals_plan': True, 'no_ball_delta': True, 'money_drop_equals_cost': True, 'walked_and_reheald': True, 'walked_back_across': True, 'on_gym_1f': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  the forecast line and the topoff-failed line, exactly
+  PASS  early_basket 'balls only', money unchanged
+=== A2c: ACCEPTANCE [('PASS', 'nothing')]  R frames=2462 money_end=20966
+    f3710792 [BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=19->19 money=20966->20966 plan=[] floor=19000 walk=False reason=cannot afford one Ultra Ball (budget 983, price 1200)
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=19000  COST 0
+  PASS  PASS (expect=nothing)  — {'named_nothing': True, 'no_walk': True, 'no_spend': True, 'on_gym_1f': True, 'no_ball_delta': True, 'no_failure': True, 'no_whiteout': True, 'production_forecast': True}
+  PASS  exactly the own-output forecast line
+=== A2c-prime: ACCEPTANCE [('FAIL', 'balls')]  R frames=0 money_end=20966
+    driver BALLS forecast={} delta={} bought={} ball_cost=0 floor=19000  COST 0
+  PASS  PREMISE FAILED ... balls=[] and ACCEPTANCE FAIL (expect=balls)  — ['PREMISE FAILED for expect=balls (in_era=True, in_sootopolis=True, plan=[], balls=[]) — this run would pass having done nothing.'] [('FAIL', 'balls')]
+=== B3: ACCEPTANCE [('FAIL', 'budget')]  R frames=0 money_end=22166
+    driver BALLS forecast={'Ultra Ball': 1} delta={} bought={} ball_cost=0 floor=19000  COST 0
+  FAIL  PASS (expect=budget)  — {'budget_expired': False, 'expired_shop': False, 'retry_walked_back': False, 'not_stranded': True, 'healed_and_entered': False, 'no_failure': False, 'no_whiteout': True, 'production_forecast': False}
+  FAIL  exactly one topoff-closed line  — []
+  FAIL  not stranded, back, gym 1F
+
+GRADE: 3 FAILED (52 checks)
+  - B3: PASS (expect=budget)
+  - B3: exactly one topoff-closed line
+  - B3: not stranded, back, gym 1F
+
+########## the grader's source ##########
+"""Grade the design v2 step 9b arms against ai-research-notes/2026-09-29-ballrestock9b-PREDICTIONS.md (P1-P12).
+
+Per arm, from its OWN files (bb9b/<ARM>.log = the driver's --log, bb9b/<ARM>.debug.txt = the debug log it created):
+  * the driver segment of the debug log (tracked [MAP]/[BATTLE]/WHITEOUT lines + [EARLY_BASKET], up to the fixture
+    restore, where the frame counter drops), compared with M0a's — the whole segment, or the lines before the arm's
+    discriminator;
+  * the [BALLS-BUY] lines (from the debug log), matched EXACTLY or by the regex the prediction states;
+  * the driver's verdict (ACCEPTANCE) and R lines.
+Usage: py bb9b_grade.py <ARM> [<ARM> ...]    (or `all`)
+"""
+import re
+import sys
+import pathlib
+
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+sys.path.insert(0, str(S))
+from r25_grade import tracked  # noqa: E402
+
+B = S / "bb9b"
+FR = re.compile(r"^f(\d+) ")
+TYPO = ("[BALLS-BUY] why=topoff-flag mart=SootopolisCity reason=POKEBOT_R23_BALLRESTOCK='yes' is not one of "
+        "('', '0', 'observe', '1'): treated as OFF")
+RAISE = ("[BALLS-BUY] why=topoff-failed mart=SootopolisCity ball=- bought=0 premier=0 spare=?->? money=?->? "
+         "reason=the ball phase raised RuntimeError('POKEBOT_R23_FAULT_BALLRAISE: the ball phase raises on purpose "
+         "(menu open, nothing bought)'); the basket's outcome stands")
+FC1 = ("[BALLS-BUY] why={tag} mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 money=22166->22166 "
+       "plan=[('Ultra Ball', 1)] floor=19000 walk={walk} reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; "
+       "budget 1583)")
+BUY1 = ("[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=1 premier=0 spare=18->19 "
+        "money=22166->20966 floor=19000 reason=top off 1 x Ultra Ball (spare 18 <= trigger 20; budget 1583)")
+FC5 = ("[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=18->18 "
+       "money=22166->22166 plan=[('Ultra Ball', 5)] floor=1000 walk=True reason=top off 5 x Ultra Ball (spare 18 <= "
+       "trigger 20; budget 6000)")
+BUY5 = ("[BALLS-BUY] why=topoff mart=SootopolisCity ball=Ultra Ball bought=5 premier=0 spare=18->23 "
+        "money=22166->16166 floor=1000 reason=top off 5 x Ultra Ball (spare 18 <= trigger 20; budget 6000)")
+FC_OWN = ("[BALLS-BUY] why=topoff-forecast mart=SootopolisCity ball=Ultra Ball bought=0 premier=0 spare=19->19 "
+          "money=20966->20966 plan=[] floor=19000 walk=False reason=cannot afford one Ultra Ball (budget 983, price "
+          "1200)")
+CLOSED = re.compile(r"\[BALLS-BUY\] why=topoff-closed mart=SootopolisCity .* reason=the basket visit's budget closed "
+                    r"the ball phase mid-purchase \(R18 walks back\)$")
+
+
+def seg(path):
+    keep = set(tracked(str(path)))
+    out, last = [], -1
+    for line in open(path, encoding="utf-8", errors="replace"):
+        line = line.rstrip("\n")
+        m = FR.match(line)
+        if not m:
+            continue
+        f = int(m.group(1))
+        if f < last:
+            break
+        last = f
+        if "[EARLY_BASKET]" in line or line in keep:
+            out.append(line)
+    return out
+
+
+def frame_lines(path):
+    """Every frame-stamped line of the driver segment (heartbeats and watchdog lines included), up to the restore.
+    `[BALLS-BUY]` lines are LOG-ONLY (graded separately, exactly), so they are skipped; `[EARLY_BASKET]` is compared
+    up to its ` balls=` suffix (present only with the flag set)."""
+    out, last = [], -1
+    for line in open(path, encoding="utf-8", errors="replace"):
+        line = line.rstrip("\n")
+        m = FR.match(line)
+        if not m:
+            continue
+        f = int(m.group(1))
+        if f < last:
+            break
+        last = f
+        if "[BALLS-BUY]" in line:
+            continue
+        out.append(line.split(" balls=")[0] if "[EARLY_BASKET]" in line else line)
+    return out
+
+
+def first_divergence(path):
+    """(frame, arm line, M0a line) at the first frame-stamped line that differs from M0a's, or None."""
+    a, b = frame_lines(path), frame_lines(B / "M0a.debug.txt")
+    for x, y in zip(a, b):
+        if x != y:
+            return int(FR.match(x).group(1)), x, y
+    return None
+
+
+#: M0a's last line before the basket's wait ended, and its first line after (the Mart exit). A ball phase starts in
+#: between: the basket's `wait_until_truly_controllable` (1,800 frames, nothing pressed) is the last shared act.
+BASKET_WAIT_DUMP, M0A_MART_EXIT = 3703774, 3705736
+
+
+def strip_balls(lines):
+    return [l.split(" balls=")[0] if "[EARLY_BASKET]" in l else l for l in lines]
+
+
+def balls(path):
+    out = []
+    for line in open(path, encoding="utf-8", errors="replace"):
+        if "[BALLS-BUY]" in line and "SootopolisCity" in line:
+            m = FR.match(line)
+            out.append((int(m.group(1)) if m else None, line.rstrip("\n")[line.index("[BALLS-BUY]"):]))
+    return out
+
+
+def driver(name):
+    txt = (B / f"{name}.log").read_text(encoding="utf-8", errors="replace")
+    acc = re.findall(r"ACCEPTANCE: (PASS|FAIL) \(expect=(\w+)\)", txt)
+    r = dict(re.findall(r"\[earlybasket\] R (\w+) = (.+)", txt))
+    rep = dict(re.findall(r"\[earlybasket\] REPORT (\w+) = (.+)", txt))
+    conj = re.findall(r"\[earlybasket\] conjuncts = (.+)", txt)
+    bl = re.findall(r"\[earlybasket\] BALLS (.+)", txt)
+    cost = re.findall(r"COST (\d+)", txt)
+    pre = re.findall(r"PREMISE FAILED[^\n]*", txt)
+    return {"acc": acc, "R": r, "REP": rep, "conj": conj[-1] if conj else "", "balls_line": bl[-1] if bl else "",
+            "cost": cost[-1] if cost else None, "premise": pre}
+
+
+M0A = seg(B / "M0a.debug.txt")
+RESULTS = []
+
+
+def check(arm, label, ok, detail=""):
+    RESULTS.append((arm, label, ok))
+    print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  — {detail}" if detail else ""))
+
+
+def grade(arm):
+    dbg = B / f"{arm}.debug.txt"
+    if not dbg.exists():
+        print(f"=== {arm}: NO DEBUG LOG"); RESULTS.append((arm, "debug log exists", False)); return
+    d = driver(arm)
+    s = seg(dbg)
+    bb = balls(dbg)
+    texts = [t for _f, t in bb]
+    print(f"=== {arm}: ACCEPTANCE {d['acc']}  R frames={d['R'].get('frames')} money_end={d['R'].get('money_end')}")
+    for f, t in bb:
+        print(f"    f{f} {t}")
+    if d["balls_line"]:
+        print(f"    driver BALLS {d['balls_line']}  COST {d['cost']}")
+    if arm.startswith("A2-OFF"):
+        check(arm, "PASS (expect=buy), incl. the new conjuncts", d["acc"] == [("PASS", "buy")], d["conj"][:300])
+        check(arm, "R frames 10329, money_end 22166", d["R"].get("frames") == "10329" and d["R"].get("money_end") == "22166")
+        check(arm, "driver segment IDENTICAL to M0a (EARLY_BASKET byte-identical)", s == M0A, f"{len(s)} vs {len(M0A)}")
+        check(arm, "EVERY frame-stamped line identical to M0a", first_divergence(dbg) is None,
+              str(first_divergence(dbg))[:200])
+        check(arm, "no SootopolisCity [BALLS-BUY] line", texts == [])
+        check(arm, "balls_end == balls_start", d["R"].get("balls_end") == d["R"].get("balls_start"))
+    elif arm == "A2-OBS":
+        check(arm, "PASS (expect=buy)", d["acc"] == [("PASS", "buy")], d["conj"][:300])
+        check(arm, "R frames 10329, money_end 22166", d["R"].get("frames") == "10329" and d["R"].get("money_end") == "22166")
+        check(arm, "driver segment identical to M0a (EARLY_BASKET up to ' balls=')", strip_balls(s) == M0A)
+        check(arm, "exactly the predicted observe line", texts == [FC1.format(tag="topoff-observe", walk="False")])
+        check(arm, "no ball delta", d["R"].get("balls_end") == d["R"].get("balls_start"))
+    elif arm == "A2-ON":
+        check(arm, "PASS (expect=buy)", d["acc"] == [("PASS", "buy")], d["conj"][:400])
+        check(arm, "money_end 20966, COST 46500", d["R"].get("money_end") == "20966" and d["cost"] == "46500")
+        check(arm, "the forecast line, then the purchase line, exactly",
+              texts == [FC1.format(tag="topoff-forecast", walk="True"), BUY1])
+        fbuy = bb[1][0] if len(bb) > 1 else None
+        # ⚠ REFINED AFTER THE FIRST GRADING (disclosed in the graded note): the first version cut at the purchase LOG
+        # frame, which is ~500 frames after the ball phase STARTS, and after M0a's own Mart exit. The honest test is
+        # where the runs first differ: that must be the ball phase's first action, between the basket's shared wait
+        # and M0a's Mart exit, with the purchase logged after it.
+        div = first_divergence(dbg)
+        ok = bool(div) and BASKET_WAIT_DUMP < div[0] < M0A_MART_EXIT and fbuy is not None and div[0] < fbuy
+        check(arm, "every line identical to M0a until the ball phase's first action (between the basket's wait and "
+              "M0a's Mart exit), then the purchase", ok,
+              f"first divergence f{div[0] if div else None}: arm '{div[1][:80] if div else ''}' vs M0a "
+              f"'{div[2][:80] if div else ''}'")
+        check(arm, "driver BALLS bought={'Ultra Ball': 1} ball_cost=1200",
+              "bought={'Ultra Ball': 1} ball_cost=1200" in d["balls_line"])
+        check(arm, "on the gym's 1F", d["R"].get("on_gym_1f") == "True")
+    elif arm == "A2-FLOOR":
+        check(arm, "PASS (expect=buy)", d["acc"] == [("PASS", "buy")], d["conj"][:400])
+        check(arm, "the 5-Ultra forecast and purchase lines, exactly", texts == [FC5, BUY5])
+        check(arm, "money_end 16166", d["R"].get("money_end") == "16166")
+        div = first_divergence(dbg)
+        check(arm, "identical to M0a until the ball phase's first action", bool(div)
+              and BASKET_WAIT_DUMP < div[0] < M0A_MART_EXIT, f"first divergence f{div[0] if div else None}")
+    elif arm == "A2-RAISE":
+        check(arm, "PASS (expect=ballfail)", d["acc"] == [("PASS", "ballfail")], d["conj"][:400])
+        check(arm, "exactly the forecast line and the predicted topoff-failed line",
+              texts == [FC1.format(tag="topoff-forecast", walk="True"), RAISE])
+        check(arm, "R frames 10329 (the raise costs no frame)", d["R"].get("frames") == "10329")
+        check(arm, "driver segment identical to M0a for the WHOLE segment (EARLY_BASKET up to ' balls=')",
+              strip_balls(s) == M0A, f"{len(s)} vs {len(M0A)}")
+        check(arm, "EVERY frame-stamped line identical to M0a (the raise costs no frame)",
+              first_divergence(dbg) is None, str(first_divergence(dbg))[:200])
+        check(arm, "money_end 22166, basket 3/8/30", d["R"].get("money_end") == "22166"
+              and d["R"].get("stock_end") == "{'Revive': 3, 'Full Heal': 8, 'Hyper Potion': 30}")
+    elif arm == "A2b-ON":
+        check(arm, "PASS (expect=balls)", d["acc"] == [("PASS", "balls")], d["conj"][:400])
+        check(arm, "the forecast line (walk=True), then the purchase line, exactly",
+              texts == [FC1.format(tag="topoff-forecast", walk="True"), BUY1])
+        check(arm, "money_end 20966", d["R"].get("money_end") == "20966")
+        check(arm, "early_basket 'balls only'", d["REP"].get("early_basket") == "'balls only'")
+    elif arm == "A2b-OFF":
+        check(arm, "PASS (expect=nothing)", d["acc"] == [("PASS", "nothing")], d["conj"][:300])
+        check(arm, "no SootopolisCity [BALLS-BUY] line, no `balls` key", texts == [] and "balls" not in d["REP"])
+    elif arm == "A2b-TYPO":
+        check(arm, "PASS (expect=nothing)", d["acc"] == [("PASS", "nothing")], d["conj"][:300])
+        check(arm, "exactly one 9b typo line", texts == [TYPO])
+        off = B / "A2b-OFF.debug.txt"
+        if off.exists():
+            check(arm, "driver segment identical to A2b-OFF", s == seg(off))
+            check(arm, "R frames identical to A2b-OFF", d["R"].get("frames") == driver("A2b-OFF")["R"].get("frames"))
+    elif arm == "A2b-RAISE":
+        check(arm, "PASS (expect=ballfail)", d["acc"] == [("PASS", "ballfail")], d["conj"][:400])
+        check(arm, "the forecast line and the topoff-failed line, exactly",
+              texts == [FC1.format(tag="topoff-forecast", walk="True"), RAISE])
+        check(arm, "early_basket 'balls only', money unchanged", d["REP"].get("early_basket") == "'balls only'"
+              and d["R"].get("money_end") == d["R"].get("money_start"))
+    elif arm == "A2c":
+        check(arm, "PASS (expect=nothing)", d["acc"] == [("PASS", "nothing")], d["conj"][:300])
+        check(arm, "exactly the own-output forecast line", texts == [FC_OWN])
+    elif arm == "A2c-prime":
+        check(arm, "PREMISE FAILED ... balls=[] and ACCEPTANCE FAIL (expect=balls)",
+              bool(d["premise"]) and "balls=[]" in d["premise"][0] and d["acc"] == [("FAIL", "balls")],
+              f"{d['premise'][:1]} {d['acc']}")
+    elif arm == "B3":
+        check(arm, "PASS (expect=budget)", d["acc"] == [("PASS", "budget")], d["conj"][:400])
+        closed = [t for t in texts if "why=topoff-closed" in t]
+        check(arm, "exactly one topoff-closed line", len(closed) == 1 and bool(CLOSED.match(closed[0])),
+              str(closed))
+        check(arm, "not stranded, back, gym 1F", d["REP"].get("stranded") == "False" and d["R"].get("on_gym_1f") == "True")
+
+
+if __name__ == "__main__":
+    arms = sys.argv[1:]
+    if arms == ["all"]:
+        arms = ["A2-OFF-a", "A2-OFF-b", "A2-OBS", "A2-ON", "A2-FLOOR", "A2-RAISE", "A2b-ON", "A2b-OFF", "A2b-TYPO",
+                "A2b-RAISE", "A2c", "A2c-prime", "B3"]
+    for a in arms:
+        grade(a)
+    bad = [(a, l) for a, l, ok in RESULTS if not ok]
+    print(f"\nGRADE: {'ALL PASS' if not bad else f'{len(bad)} FAILED'} ({len(RESULTS)} checks)")
+    for a, l in bad:
+        print(f"  - {a}: {l}")
