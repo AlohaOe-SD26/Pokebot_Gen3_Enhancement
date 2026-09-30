@@ -163,6 +163,17 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
     the arm with lines the control had already moved past.
   - Compare every frame-stamped debug line (heartbeats and watchdog lines included) and report the first difference.
     It should be the gate's own first action (A2-ON: f3705494 `RESUMED` against the control's f3705558).
+* ⭐ **PROVE "OFF CHANGES NOTHING" WITH A DIFFERENTIAL AGAINST THE PREVIOUS COMMIT'S MODULE** (added 2026-09-29,
+  step 10a review).
+  - Exec `git show <old>:<module>` and the new module side by side, with the gate's report-shaped fakes, over a grid
+    of states. Compare every observable: the return, yields, walks, every log line, the memo.
+  - 16,128 states ran in seconds and found R2 (252 differences) where every row and all seven live arms saw nothing.
+    The scripts are in `evidence/2026-09-29-kittopoff10a-REVIEW-DIFF.txt`.
+  - Use it whenever a change claims "with the flag OFF, byte-identical".
+* ⛔ **DERIVE A ROW'S EXPECTED LINE FROM THE SPEC, NEVER FROM THE CODE'S OUTPUT** (added 2026-09-29, 08). Three step 10a
+  rows asserted the defect the review then fixed. A row copied from the implementation cannot find a bug in it.
+* ⛔ **TABULATE THE INPUT DIMENSIONS BEFORE WRITING ROWS; MATCH LOG LINES BY PREFIX** (added 2026-09-29, 08). One
+  fixture per errand row let 32 mutants through a gate that passed its coverage check.
 
 ---
 

@@ -37187,3 +37187,59 @@ bought balls only at fixed story points.
   - the driver's BALLS line labels `expected=` (E12).
 - **Regression re-run** (`evidence/2026-09-29-ballrestock9b-REVIEW-RERUN.txt`): the expected lines were committed with
   the fixes (`880c080a`) before R-OFF, R-RAISE, R-ON, R-A2b-ON and R-B3prime ran.
+
+## 2026-09-29 — design v2 step 10a (HK at Rustboro) BUILT AND GRADED: the healing kit rides step 9a's heal on one budget (`#26-organiccatch`)
+
+- **Order of commits** (branch `wt/kittopoff`):
+  - the spec `61c6759e`;
+  - predictions `bdd07a4d`, BEFORE the code;
+  - code and gate `b06cbc09`;
+  - review fixes `5e841f2c`, with the expected re-run lines filed first;
+  - the graded docs.
+- **Code** (`sandbox-pokebot/modules/story/stock_topoff.py`):
+  - PURE `kit_wants` and `visit_plan` (one budget: balls to the dex reserve + 1, the kit, then the rest of the
+    balls);
+  - `parse_kit_flag`, `kit_log_line` (`[KIT-BUY]`), `_kit_held` (the reserve view; fault
+    `POKEBOT_R26_FAULT_RAWBAG`) and `_kit_skip_reason` (kit `1` needs `POKEBOT_R27_KEYITEMS=1`);
+  - the kit branch of the errand, with the memo key `<city>:kit`;
+  - `_walk_buy_return` buys both sets in ONE `buy_in_shop` call, verified per name against the planned lines.
+  - The heal (`higher_level_actions.py`, UPSTREAM-derived) parses the kit flag before its first yield and enters the
+    errand on either flag.
+- **Gate `probe_kit_topoff.py`**, APPENDED to `run_gates.py` (135 entries):
+  - an ADVERSARIAL mutant pass ran before it was trusted: of 41 mutants the gate caught 2, and 32 were caught by no
+    gate;
+  - each now has a row, and the pass surfaced two code defects, fixed before the code commit;
+  - the 9a gate's A2 and five anchors were updated, with their sets unchanged.
+- **PROOF** (`ai-research-notes/2026-09-29-kittopoff10a-GRADED.md`), seven live arms graded 20/20 with every
+  predicted line byte-exact:
+  - K-OFF is 52/52 tracked lines of 9a's M0, and all 199 frame-stamped lines are identical;
+  - K-BALL, K-OBS and K-SKIP are 9a's B-ON (the kit observe and skip lines exact);
+  - K-ON buys 8 Poké + 4 Super Potions for B-ON's ₽4,400;
+  - K-ONLY buys 4 Super Potions (₽2,800).
+  - Seen, not graded: the bot spent all 4 Super Potions (the per-battle cap) on the rival and still lost.
+- **Docs:** 01 (a new component), 02, 03, 04, 29 (two flags); the v2 note's step 10 AS-BUILT block; the spec's
+  AS-BUILT note; 06, 08, 14.
+
+## 2026-09-29 — design v2 step 10a REVIEWED (spec, gate adversary, live integration; each finding put to a refuter): two code defects fixed, 23 more mutants, regression re-run clean (`#26-organiccatch`)
+
+- **R1 (CONFIRMED by all three lenses):** when one set fell short, the set that bought in full was logged as failed,
+  with an invented "frame bound expired" reason, and lost its success line. Gate row E6 asserted that. Fixed: each
+  set is logged by its own verdict.
+- **R2 (PLAUSIBLE; only a fault arm reaches it live):** a raise in the kit's own planning under `observe` cancelled
+  9a's balls. Fixed: the kit is planned in its own try.
+- **Proof that the kit OFF/skipped/observe is 9a:** the spec lens's differential, re-run on the fix: 16,128 states,
+  0 differ (the reviewed code had 252); the walk, 432 states, 0 differ
+  (`evidence/2026-09-29-kittopoff10a-REVIEW-DIFF.txt`).
+- **Gate:**
+  - E6, W4 and W5 were rewritten: each had asserted a defect;
+  - new rows K20, E19-E25, W6, A4 and A5; K13 and K14 pin "0";
+  - 23 new mutants (R1a-R2d, X3-X9, Y1, Y14, Y47, Y42-Y44), seven re-anchored.
+  - Run 4 missed on two sets I had mis-derived (M7 omitted E21, M14 omitted A4). Both reds are legitimate catches;
+    the sets were corrected with the reason in the gate. Run 5: ALL PASS, 148 checks
+    (`evidence/2026-09-29-kittopoff10a-REVIEW-GATE.txt`).
+  - The lens's stub audit: the `_kit_held` stub can now raise (E24), the fake walk can be "balls short" (E19), and
+    its `kit_got` reports the planned quantity when the kit verified. Run 6 is identical to run 5 in every red set.
+- **Not taken:** the spec lens's F3 (a kit-only "sells none" blocks the balls), refuted as unreachable. The spec's D8
+  line form is recorded as not built.
+- **Regression re-run** (`evidence/2026-09-29-kittopoff10a-REVIEW-RERUN.txt`, its expected lines committed in
+  `5e841f2c` BEFORE the run): see its RESULTS section.

@@ -29,3 +29,104 @@ EXPECTED, per arm:
 FALSIFIER: any frame-stamped line that differs, in any arm.
 
 RESULTS: appended below after the run (this header is not edited).
+
+===== RESULTS (appended after the run; the header above was committed in 5e841f2c before it) =====
+Run: 2026-09-29 10:36-10:42 PM LA on 5e841f2c (the runner printed: WT HEAD 5e841f2c, dirty-code=0). The runner's log:
+  WT HEAD 5e841f2c branch wt/kittopoff dirty-code=0
+  K-OFF exit=0 debug=Story-debug-20260929-223603.log 10:36:56 PM
+  K-BALL exit=0 debug=Story-debug-20260929-223702.log 10:37:51 PM
+  K-OBS exit=0 debug=Story-debug-20260929-223757.log 10:38:47 PM
+  K-SKIP exit=0 debug=Story-debug-20260929-223853.log 10:39:43 PM
+  K-KEY exit=0 debug=Story-debug-20260929-223949.log 10:40:38 PM
+  K-ON exit=0 debug=Story-debug-20260929-224044.log 10:41:34 PM
+  K-ONLY exit=0 debug=Story-debug-20260929-224141.log 10:42:30 PM
+  HK10A-RERUN-DONE
+
+The grader (scratch hk10a_rerun_grade.py: (1) is a line-by-line comparison of every ^f<digits> line; (2) is hk10a_grade.py pointed at the re-run):
+(1) every frame-stamped line vs the graded run (b06cbc09):
+  PASS  K-OFF: 199 vs 199 frame-stamped lines
+  PASS  K-BALL: 207 vs 207 frame-stamped lines
+  PASS  K-OBS: 208 vs 208 frame-stamped lines
+  PASS  K-SKIP: 208 vs 208 frame-stamped lines
+  PASS  K-KEY: 215 vs 215 frame-stamped lines
+  PASS  K-ON: 246 vs 246 frame-stamped lines
+  PASS  K-ONLY: 249 vs 249 frame-stamped lines
+
+(2) the session grader on the re-run:
+=== K-OFF
+  PASS  tracked lines identical to 9a's M0-5-r1, whole run (52 vs 52)
+  PASS  no [BALLS-BUY] and no [KIT-BUY] line
+=== K-BALL
+    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+  PASS  tracked lines identical to 9a's B-ON, whole run (48 vs 48)
+  PASS  exactly one [BALLS-BUY] line, B-ON's text  — ['[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)']
+  PASS  no [KIT-BUY] line
+=== K-OBS
+    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+    [KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+  PASS  tracked lines identical to 9a's B-ON, whole run (48 vs 48)
+  PASS  exactly one [BALLS-BUY] line, B-ON's text  — ['[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)']
+  PASS  exactly one [KIT-BUY] line, Arm 3's text  — ["[KIT-BUY] why=kit-observe mart=RustboroCity kit=[('Super Potion', 4)] bought=- money=9940->9940 wants=[('Super Potion', 4)] reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"]
+=== K-SKIP
+    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+    [KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)
+  PASS  tracked lines identical to 9a's B-ON, whole run (48 vs 48)
+  PASS  exactly one [BALLS-BUY] line, B-ON's text  — ['[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)']
+  PASS  exactly one [KIT-BUY] line, Arm 4's text  — ['[KIT-BUY] why=kit-skip mart=RustboroCity kit=- bought=- money=9940->9940 wants=- reason=POKEBOT_R27_KEYITEMS is not 1: ordinary trainers would drain the kit (spec D2)']
+=== K-KEY
+    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)
+  PASS  exactly one [BALLS-BUY] line, B-ON's text  — ['[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=22 premier=2 spare=7->31 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=top off 22 x Poké Ball (spare 7 <= trigger 20; budget 4470)']
+  PASS  [KEYBATTLE] lines at trainer battles  — 8 lines
+  PASS  no [KIT-BUY] line
+    INFO (not predicted) tracked minus [KEYBATTLE] vs B-ON: IDENTICAL
+=== K-ON
+    [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+    [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left
+  PASS  tracked lines identical to K-KEY up to AND INCLUDING the Mart entry (40 vs 40)
+  PASS  exactly the two predicted lines (Arm 6)  — balls=["[BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=8 premier=0 spare=7->15 money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"] kits=["[KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->5540 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 8 x Poké Ball (4 to the reserve + 4 after the kit); budget 4470, 70 left"]
+  PASS  no falsifier (22 balls, a Premier, a failed line)  — []
+    INFO K-ON: [STEP] heading south lines=1; Story->Manual lines=0
+    INFO   [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 res=Lost money=5540->5540 delta=0 mult=0 heal_stock=- map=0,3
+    INFO   [TRAINER] end opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 res=Won money=2770->2866 delta=96 mult=1 heal_stock=- map=0,19
+    INFO   f184271 [BATTLE] [ITEM] using Super Potion on Marshtomp 15/58 (use 1, worst hit 23)
+    INFO   f184271 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Super Potion
+    INFO   f184307 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Super Potion
+    INFO   f184312 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f184334 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f184339 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f180045 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+    INFO   f180680 [KEYBATTLE] opp=600 class=0x32 key=True allow=True reason=key_class
+    INFO   f192179 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+    INFO   f192335 [STORY] WHITEOUT recovery #1 at (0, 3)
+    INFO   f192694 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+    INFO   f193401 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+    INFO   f194012 [KEYBATTLE] opp=604 class=0x36 key=False allow=False reason=not_a_key_class
+    INFO   f196740 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+=== K-ONLY
+    [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->7140 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 4470, 1670 left
+  PASS  tracked lines identical to K-KEY up to AND INCLUDING the Mart entry (40 vs 40)
+  PASS  no [BALLS-BUY] line  — []
+  PASS  exactly one [KIT-BUY] line, Arm 7's text  — ["[KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 4)] bought={'Super Potion': 4} money=9940->7140 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 4)] and 0 x Poké Ball (0 to the reserve + 0 after the kit); budget 4470, 1670 left"]
+    INFO K-ONLY: [STEP] heading south lines=1; Story->Manual lines=0
+    INFO   [TRAINER] end opp=600 class=0x32(PkMn_TRAINER) value=15 lvl_last=15 first=True base=900 res=Lost money=7140->7140 delta=0 mult=0 heal_stock=- map=0,3
+    INFO   [TRAINER] end opp=604 class=0x36(LASS) value=4 lvl_last=6 first=True base=96 res=Won money=3570->3666 delta=96 mult=1 heal_stock=- map=0,19
+    INFO   f185369 [BATTLE] [ITEM] using Super Potion on Marshtomp 5/58 (use 1, worst hit 24)
+    INFO   f185369 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Super Potion
+    INFO   f185405 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Super Potion
+    INFO   f185409 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f185431 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f185436 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Super Potion
+    INFO   f179779 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+    INFO   f180414 [KEYBATTLE] opp=600 class=0x32 key=True allow=True reason=key_class
+    INFO   f193192 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Marshtomp:L18']
+    INFO   f193348 [STORY] WHITEOUT recovery #1 at (0, 3)
+    INFO   f193707 [MAP] RUSTBORO CITY(0,3) -> ROUTE 104(0,19) pos=(16, 60)
+    INFO   f194414 [BATTLE] started hp=[('Marshtomp', 58, 58)]
+    INFO   f195025 [KEYBATTLE] opp=604 class=0x36 key=False allow=False reason=not_a_key_class
+    INFO   f196913 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Marshtomp:L18']
+
+(1) 7/7 arms frame-identical; (2) 20/20 checks PASS
+
+VERDICT: EXPECTED (1) and (2) BOTH HELD — 7/7 arms frame-identical to their graded runs, 20/20 grader checks. The
+review's fixes changed nothing on the paths the live arms take. (One trajectory per arm, replayed: a determinism
+check, not a replication.)

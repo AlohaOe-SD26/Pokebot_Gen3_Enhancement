@@ -295,6 +295,24 @@ it.
   `POKEBOT_R23_BALLRESTOCK` (default OFF), each live-graded. The amounts are a bounded default pending the user's Q1;
   under RULING 18's Juan-era floor, on post_hm07's wallet (₽67,466) the Sootopolis visit buys 1 Ultra Ball, and a Juan loss then drops the wallet below the ₽19,000 floor; the per-run count is unmeasured (step 14).
 
+### Healing-kit top-off (the same module, `stock_topoff.py`, new 2026-09-29, design v2 step 10)
+- **Purpose:** keep a small healing kit in the bag for the fights that matter (USER RULING 26: maintain healing items
+  as well as balls). It rides the SAME visit and the SAME budget as the ball top-off. The kit is HP (4 of the best
+  potion tier the mart sells, 4 being the per-battle item-use cap) plus a status cure (Full Heal ×2, else Awakening
+  and Ice Heal ×1). It buys only what is MISSING, counted above RULING 18's League basket.
+- **Must do:**
+  - never change the ball top-off when the kit is OFF, skipped or in `observe` (step 9a byte for byte, proven over a
+    16,128-state differential);
+  - buy nothing unless `POKEBOT_R27_KEYITEMS=1`, because ordinary trainers would otherwise drain the kit;
+  - keep balls first up to the League-dex reserve + 1;
+  - never let a kit failure cost the balls, or a ball failure block the kit, unless the walk itself failed;
+  - log each set by its own verdict.
+- **Where it stands:** 10a (Rustboro) is built behind `POKEBOT_R26_KITTOPOFF` (default OFF), graded live 20/20 and
+  reviewed. At Rustboro it turns 9a's 22 Poké Balls into 8 Poké Balls + 4 Super Potions for the same ₽4,400.
+  - On the graded seed the kit was spent in the rival fight (4 uses, the cap) and did not flip that loss. Whether the
+    kit pays for itself is a step 14 question.
+  - 10b (Sootopolis) is not built.
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

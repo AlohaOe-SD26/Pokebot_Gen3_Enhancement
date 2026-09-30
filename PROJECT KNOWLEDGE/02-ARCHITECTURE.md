@@ -235,6 +235,17 @@ The ball top-off (design v2 steps 9a and 9b; USER RULINGS 23 + 26). PURE plannin
   abort or a close.
 OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a) and
 `probe_stock_topoff_sootopolis.py` (9b).
+- **The healing kit, step 10a (behind `POKEBOT_R26_KITTOPOFF`, default OFF; its fault `POKEBOT_R26_FAULT_RAWBAG`):**
+  - PURE `kit_wants` (what is missing) and `visit_plan` (one budget: balls to the dex reserve + 1, the kit, then the
+    rest of the balls);
+  - `_kit_held`, the reserve view: the raw bag minus `league_reserve.reserved_quantities()`;
+  - `_kit_skip_reason`: kit `1` needs `POKEBOT_R27_KEYITEMS=1`;
+  - `kit_log_line` (`[KIT-BUY]`).
+  - It rides consumer (a): the heal parses the kit flag next to the ball flag and enters the errand on EITHER flag.
+    The errand plans the kit in its own try, buys balls and kit in ONE `buy_in_shop` call, verifies each set per item
+    name against its planned lines, and memoises `<city>` and `<city>:kit` separately.
+  - With the kit OFF, skipped or in `observe`, every ball decision is 9a's (a 16,128-state differential: 0 differ).
+  - Gate: `probe_kit_topoff.py`. Consumer (b) (10b) is not built.
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:

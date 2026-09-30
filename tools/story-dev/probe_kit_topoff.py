@@ -375,7 +375,10 @@ def _errand(p, *, ball_mode, kit_mode, keyitems, walk_kind="ok", memo=None, held
                        "returned": walk_kind not in ("notback", "kitshort_notback"),
                        "balls_ok": walk_kind != "ballshort",
                        "kit_ok": walk_kind not in ("kitshort", "kitshort_notback"),
-                       "kit_got": {n: 0 for n, _ in kit_lines}})
+                       # the real walk's kit_got is the planned quantity when the kit verified (the review's stub audit:
+                       # this fake reported 0 on every path)
+                       "kit_got": {n: (0 if walk_kind in ("kitshort", "kitshort_notback") else q)
+                                   for n, q in kit_lines}})
         report["ok"] = report["balls_ok"] and report["kit_ok"]
         if walk_kind in ("kitshort", "kitshort_notback"):
             report["kit_why"] = "kit bag delta short"

@@ -23237,3 +23237,62 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rule:** before a new gate's first run, spawn ONE adversarial agent whose only job is to write
   plausible production mutants the gate misses. A row list that every mutant of your own can redden is not evidence
   of coverage: your own mutants share your blind spots.
+
+## 2026-09-29 — ⛔ THREE GATE ROWS ASSERTED THE DEFECT: THEIR EXPECTED LINES WERE COPIED FROM THE CODE'S OUTPUT, NOT DERIVED FROM THE SPEC (E6, W4, W5)
+
+- **Symptom.** The step 10a review found (all three lenses independently) that when the kit fell short, the balls,
+  bought in full, were logged `topoff-failed … reason=the errand's frame bound expired`. The bound never fired, and
+  the balls lost their success line. Gate row E6 asserted exactly that line (`why=topoff-failed == 1`). W4 and W5
+  asserted "no success line at all" when one set fell short. The gate therefore LOCKED THE DEFECT IN: a fix would have
+  turned it red.
+- **Root cause.** The rows' expected lines were written from what the code emitted, which I had just written, rather
+  than from the spec's sentence (D9: a kit-only shortfall blocks only the kit). A row that restates the
+  implementation cannot find a defect in it, and it punishes the fix.
+- **The fix that worked.** Each set is logged by its own verdict. E6, W4 and W5 were rewritten from D8/D9, and E19,
+  E25 and W6 were added for the mirror case and the "not back" case.
+- **Prevention rule:** derive every expected FAILURE line from the spec and ask "did THIS set actually fail?". Put the
+  spec sentence in the row's comment. When a row asserts that something failed, check the thing really failed in that
+  input.
+
+## 2026-09-29 — ⛔ AN ADVERSARIAL PASS FOUND 32 MUTANTS NO GATE CAUGHT, IN A GATE THAT HAD PASSED ITS OWN COVERAGE CHECK: EVERY ERRAND ROW USED ONE FIXTURE
+
+- **Symptom.** Before the step 10a gate was trusted (the 9b rule), a fresh agent built 41 plausible mutants. The new
+  gate caught 2, the 9a gate 6, and 32 turned nothing red. They included:
+  - the errand ignoring what is held (a full kit re-bought every heal);
+  - the key-item coupling reading the ball flag;
+  - an ignored kit memo;
+  - every close/recovery/unstable-exit line;
+  - the `[KIT-BUY]` prefix itself.
+- **Root cause.** Every E row ran ONE stubbed state (stage MID, spare 7, ₽9,940, a stable exit, nothing held), so
+  each input dimension had exactly one value. Lines were matched by a `why=` SUBSTRING, never by their prefix. The
+  coverage check ("can every row fail?") passed, because each row was reddened by some mutant of MY choosing.
+- **The fix that worked.** Rows E9-E18, K15-K19, W3-W5 and A2-A3, one per missing input value, with lines matched by
+  prefix. The review's second pass then found 11 more (E19-E25 and others), all now rows.
+- **Prevention rule:** before writing a gate's rows, TABULATE the function's input dimensions: each flag value, memo
+  state, failure kind (planning raise, walk raise, bound, close, not back, short), money tight or ample, held empty
+  or full, live list full or dropping. Require a row per value. Match log lines by their full prefix. The adversarial
+  pass stays mandatory: it found 32 here after the coverage check passed.
+
+## 2026-09-29 — ⛔ THREE SMALL INSTRUMENT ERRORS IN ONE ROUND: A HEREDOC ATE BACKSLASHES AGAIN, A CHECK COUNT WRITTEN BY HAND, AND TWO MUTANT SETS DERIVED FROM THE ROWS I HAD IN MIND
+
+- **Symptoms:**
+  1. A `cat > f.py <<'EOF'` script lost its `\\` pairs even with a QUOTED delimiter, so the anchors did not match. It
+     exited before writing, so nothing was damaged. This is the third time this session's environment has done it.
+  2. The adversarial evidence file said the gate ran "116 checks"; `grep -c` says 114.
+  3. Gate run 4 missed on two sets written before the run: M7 also reddens E21, whose case (c) asserts the walk's
+     lines; M14 also reddens A4, which finds the flag read BY NAME.
+  4. (Caught by Tier 1.) Updating `04` for "the next build is 10b", I fixed the FIRST "step 10 (HK)" in each of three
+     long lines. The banner, the if-stopped row and START HERE each carried the claim a SECOND time, the last as a
+     verbatim copy of the punch-list's old text. A cold reader would have met "build step 10 (HK)" right after "10b".
+- **Root cause:** each number, set or fix was produced by reasoning about the rows or sentences I was thinking of, not
+  by reading every row's assertion or every hit of the old phrase.
+- **The fix that worked:** script files only through the Write tool. The count corrected in place, with a note. Both
+  sets corrected WITH the reason in the gate, and disclosed (run 5: ALL PASS). The three clauses fixed, with the OLD
+  phrase re-grepped to zero hits.
+- **Prevention rule:**
+  - never pass a backslash through a Bash heredoc here;
+  - take every count in evidence from a command (`grep -c`), never by hand;
+  - when writing a mutant's set, walk EVERY row's assertion, especially rows that assert walk contents or locate their
+    target by NAME;
+  - after rewriting a status claim, grep the tree for the OLD phrase and require ZERO hits outside dated history. A
+    `04` line can hold the same claim twice.

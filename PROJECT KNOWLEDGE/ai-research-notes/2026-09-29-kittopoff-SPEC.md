@@ -4,6 +4,22 @@
 > five-angle recon (code audit, decomp, battle policy, fixtures, adversarial) came first. Its output is a note, and
 > every load-bearing fact below was re-read by the author at the cited place (marked ✔).
 > Branch `wt/kittopoff`, cut from `main` `8c6d0da0`.
+>
+> ⚠ **AS BUILT for 10a (2026-09-29), superseding D7-D9 below where they differ** (the review; results in
+> `2026-09-29-kittopoff10a-GRADED.md`):
+> - **D8's line form was NOT built.** The line is `[KIT-BUY] why=<tag> mart=… kit=[(name, qty), …] bought={name:
+>   delta} money=a->b [wants=[…]] reason=…`, with no `hp=`/`status=`. The tags add `kit-recovery`. The predictions
+>   pinned this form byte for byte before the code commit. ⛔ **A 10b grader must be written from THIS form, not from
+>   D8's.**
+> - **A kit-only visit with the balls `1` still logs `[BALLS-BUY] why=topoff-none`** (the ball plan is empty) and
+>   then walks for the kit. In 9a, `topoff-none` also meant "no walk"; it no longer does.
+> - **D7/D9:**
+>   - Each set is verified against its PLANNED lines, so a line the live list drops is a shortfall of its own set.
+>   - Each set is LOGGED by its own verdict: the set that bought in full keeps its success line.
+>   - A kit-only "sells none" is a walk failure and blocks both keys (unreachable at Rustboro, where the live list is
+>     the static list).
+> - **The kit is planned in its own try:** a raise in a kit-only read blocks only `<city>:kit`, and the balls stay
+>   9a's. This keeps D6's "observe buys exactly the kit-OFF purchase" true under a fault.
 
 ## WHY THE v2 BODY CANNOT BE BUILT AS WRITTEN (the recon's two blockers)
 
@@ -97,7 +113,7 @@
   - **With the kit in `observe`:** the purchase is exactly the kit-OFF purchase, and the kit plan is only logged.
 - **D7, verification by bag delta PER ITEM NAME** (lines of the same name summed: 22 Poké = [10, 12]). A visit is ok only
   if every name's delta equals its planned total. The ball's own `[BALLS-BUY]` figures are unchanged.
-- **D8, logging.**
+- **D8, logging.** (⚠ The line form was NOT built as written: see the AS-BUILT note at the top.)
   - A new `[KIT-BUY] why=kit|kit-observe|kit-none|kit-skip|kit-failed|kit-closed mart=… hp=<item>+<n> status=<…>
     bought={name: delta} money=a->b reason=…` line.
   - `[BALLS-BUY]` lines are unchanged in form, and are emitted only when balls were planned or bought.

@@ -173,3 +173,7 @@ M — mutants (each must turn EXACTLY its named rows red)
   PASS  N3 a comment in stock_topoff turns NOTHING red  — red []
 
 ALL PASS
+
+RUN 6 (after the review's STUB AUDIT: the E-row fake walk's kit_got now reports the planned quantity when the kit
+verified, as the real walk does; it reported 0 on every path). probe_kit_topoff.py sha1 021ff7ff6e98d27a2a6d6dc1c5fad13696d78dc2.
+Result: ALL PASS, 148 checks; every mutant verdict and every red set IDENTICAL to run 5 (diffed).

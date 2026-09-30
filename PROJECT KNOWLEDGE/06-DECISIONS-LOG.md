@@ -8490,3 +8490,39 @@ by `probe_dexcatch_rate` R6, and `[DEXCATCH]` already carries the verdict).
 - the kit sharing what the balls leave (vacuous: ₽70 at Rustboro, ₽383 at Sootopolis);
 - per-phase half-budgets (a visit could spend about 87.5% of the spendable);
 - a constant basket subtraction.
+
+## 2026-09-29 — Design v2 step 10a (HK at Rustboro) as built, and its review: how each set is logged, and where the kit is planned (`#26-organiccatch`)
+
+**Context.** The spec (the entry above) was built as 10a, graded 20/20 live (`ai-research-notes/2026-09-29-kittopoff10a-GRADED.md`) and reviewed by three lenses. The review found that a one-sided shortfall logged the set that had succeeded as failed (R1), and that a kit-only raise under `observe` cancelled 9a's balls (R2).
+
+**Decisions:**
+- **Each set is logged by its OWN verdict.**
+  - `_walk_buy_return` logs the success line of every set it verified in full, even when the other set fell short.
+  - The errand logs as failed only the set that failed; a walk failure means both.
+  - The fallback reason separates "not back on the exit tile" (the walk finished) from "the errand's frame bound
+    expired" (it did not).
+  - Recovery is logged under the prefix of a set that failed.
+  - With the kit OFF this is 9a's output exactly: there `balls_ok` IS `ok`.
+- **The kit is planned in its own try, after the ball plan.** A kit-only raise memoises only `<city>:kit`, logs one
+  `kit-failed`, and leaves 9a's ball plan standing. A SHARED planning raise (`_inputs`) still blocks both. This makes
+  D6's "observe buys exactly the kit-OFF purchase" true under a fault, not only on the happy path.
+- **A planning failure memoises the ball key only when the balls are on.** With the kit OFF they always are, so 9a
+  is unchanged. With the balls OFF, a ball key would block nothing, and it made the errand differ from 9a in a state 9a
+  never reaches.
+- **Verification is against the PLANNED lines; purchase is of the FILTERED lines.** A set the live list drops is a
+  shortfall of that set (from the first adversarial pass).
+- **The `[KIT-BUY]` line form is as built:** `kit=[…] bought={…} money=a->b [wants=[…]] reason=`, plus
+  `kit-recovery`. D8's `hp=`/`status=` form was never built, and the predictions pinned the built form first. The
+  spec now carries an AS-BUILT note, so 10b's grader is written from the real form.
+- **Kept, NOT changed:** a kit-only visit whose live list sells none of the plan is a WALK failure that blocks both
+  keys. The review's verifier refuted the finding against it: unreachable at Rustboro (its live list is its static
+  list), and the comment at the memo says so.
+- **"Kit OFF is 9a" is proven by a DIFFERENTIAL, not by rows alone.** The previous commit's module
+  (`git show 61c6759e:…`) and the new one are exec'd side by side over 16,128 (state, kit-mode) pairs; 0 differ. The
+  review's spec lens built it, and it found R2 (252 differences) where every row and every live arm saw nothing.
+
+**Rejected:**
+- keeping one shared try with a narrower except (a kit raise would still abandon 9a's plan mid-block);
+- logging a one-sided shortfall as "both failed" (it contradicts the memo, which blocks one key);
+- amending the code to D8's `hp=`/`status=` form (the built form was pre-registered, graded byte-exact, and has no
+  consumer yet; changing it would invalidate evidence for no reader).
