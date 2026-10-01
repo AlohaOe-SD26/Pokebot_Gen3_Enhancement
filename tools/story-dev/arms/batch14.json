@@ -1,0 +1,80 @@
+{
+  "comment": "design v2 step 14 (USER RULING 28): arm A = every R20-R27 flag 0; arm B = the package + DOUBLEITEMS. The 18 variables are ai-research-notes/2026-10-01-batch14-DESIGN.md section 1 verbatim (pinned by repro_x4_headless.py section F). Monitor: STOP-1 (forbid, both directions) and STOP-2 (require) of the DESIGN's section 4; expect = the smoke run's positive controls.",
+  "arms": {
+    "A": {
+      "POKEBOT_R25_DMGAUDIT": "1",
+      "POKEBOT_R25_WEAKEN": "observe",
+      "POKEBOT_R25_WEAKEN_CALC": "1",
+      "POKEBOT_MAINTAIN": "1",
+      "POKEBOT_BOX_OVERFLOW_CATCH": "1",
+      "POKEBOT_R24_CATCHHURT": "0",
+      "POKEBOT_R24_CATCHTRAIN": "0",
+      "POKEBOT_R24_OVERSURVIVAL": "0",
+      "POKEBOT_R24_NOFAINTBAIL": "0",
+      "POKEBOT_R25_CAP": "0",
+      "POKEBOT_R25_RARE": "0",
+      "POKEBOT_R23_BALLRESTOCK": "0",
+      "POKEBOT_R27_KEYITEMS": "0",
+      "POKEBOT_R26_KITTOPOFF": "0",
+      "POKEBOT_R27_DOUBLEITEMS": "0",
+      "POKEBOT_R20_OPENFENCE": "0",
+      "POKEBOT_R20_TEAM6": "0",
+      "POKEBOT_R20_HUNTFIRST": "0"
+    },
+    "B": {
+      "POKEBOT_R25_DMGAUDIT": "1",
+      "POKEBOT_R25_WEAKEN": "observe",
+      "POKEBOT_R25_WEAKEN_CALC": "1",
+      "POKEBOT_MAINTAIN": "1",
+      "POKEBOT_BOX_OVERFLOW_CATCH": "1",
+      "POKEBOT_R24_CATCHHURT": "1",
+      "POKEBOT_R24_CATCHTRAIN": "1",
+      "POKEBOT_R24_OVERSURVIVAL": "1",
+      "POKEBOT_R24_NOFAINTBAIL": "1",
+      "POKEBOT_R25_CAP": "1",
+      "POKEBOT_R25_RARE": "1",
+      "POKEBOT_R23_BALLRESTOCK": "1",
+      "POKEBOT_R27_KEYITEMS": "1",
+      "POKEBOT_R26_KITTOPOFF": "1",
+      "POKEBOT_R27_DOUBLEITEMS": "1",
+      "POKEBOT_R20_OPENFENCE": "1",
+      "POKEBOT_R20_TEAM6": "0",
+      "POKEBOT_R20_HUNTFIRST": "0"
+    }
+  },
+  "monitor": {
+    "A": {
+      "forbid": [
+        "[KEYBATTLE]",
+        "[KIT-BUY]",
+        "[DBLITEM]",
+        "why=topoff",
+        " rare=",
+        "[DEXCATCH-NOBAIL]",
+        "[CATCH] trainee",
+        "[CATCH] loss-filed",
+        ["dex catch #", "(joins the party)"]
+      ],
+      "expect": [
+        "consume the HM/counter runway"
+      ]
+    },
+    "B": {
+      "forbid": [
+        "consume the HM/counter runway",
+        "a training grind is in progress",
+        "party is not at full strength"
+      ],
+      "require": {
+        " rare=": 3600,
+        "[KEYBATTLE]": 3600
+      },
+      "expect": [
+        " rare=",
+        "[KEYBATTLE]",
+        "why=topoff",
+        "[KIT-BUY]"
+      ]
+    }
+  }
+}

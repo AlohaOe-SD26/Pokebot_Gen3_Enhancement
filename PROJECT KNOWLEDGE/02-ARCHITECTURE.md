@@ -274,8 +274,8 @@ Offline in `tools/story-dev/`: `audit_damage_calc.py <debug log>` (pure; exit 0 
 
 ### Running the bot
 ```powershell
-cd sandbox-pokebot         # ★ the ACTIVE copy — use custom-pokebot for the promoted build,
-                           #   or "40cakes repo/pokebot-gen3" for pristine upstream
+cd sandbox-pokebot         # ★ the ACTIVE copy — custom-pokebot = the promoted build, "40cakes repo/pokebot-gen3" = upstream
+py -3.12 ..\tools\story-dev\x4_headless.py --build sandbox --lanes 16 --minutes 780 --arms ..\tools\story-dev\arms\batch14.json --profile-tag <new>   # headless A/B: per-lane arms, fresh profiles, live arm/leak/freeze checks (step 14 T1)
 py -3.12 pokebot.py                    # dashboard GUI (default); first run self-installs deps
 py -3.12 pokebot.py <profile> -m Spin    # straight into a mode
 py -3.12 pokebot.py <profile> --classic-gui   # upstream's original window (OpenGL/stepping)

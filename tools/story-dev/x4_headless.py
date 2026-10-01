@@ -74,6 +74,8 @@ comparison you were trying to make.
 from __future__ import annotations
 
 import argparse
+import ast
+import hashlib
 import json
 import os
 import re
@@ -82,6 +84,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -132,15 +135,269 @@ def lane_tag(slot: int) -> str:
     return f"H{slot + 1}"
 
 
-def lane_profile_name(slot: int) -> str:
+def lane_profile_name(slot: int, tag: str | None = None) -> str:
     """Namespaced away from the GUI's `endless-P{n}-…` lanes ON PURPOSE.
 
     Two bot processes must never share a profile directory (they clash on
     `current_save.sav` / `current_state.ss1` / `stats.db` — `livetest.py` learned this
     the hard way). The user can be running their own GUI x4 batch on this box at the
     same time as a headless batch, so the two families must not overlap.
+    ⭐ `tag` (`--profile-tag`, design v2 step 14 T1): `endless-<tag>-H{n}-<starter>`, a FRESH family per A/B batch, so no
+    lane inherits `stats.db` / `badge-log.json` / a save from an earlier batch (the old `endless-H*` profiles carry them).
     """
+    if tag:
+        return f"endless-{tag}-{lane_tag(slot)}-{lane_starter(slot)}"
     return f"endless-{lane_tag(slot)}-{lane_starter(slot)}"
+
+
+# ---------------------------------------------------------------------------
+# Per-lane ARMS (design v2 step 14, T1 — `ai-research-notes/2026-10-01-batch14-DESIGN.md` §3 and
+# `…-batch14-T1-PREDICTIONS.md`). Pure, covered by `repro_x4_headless.py` section F.
+# ⛔ WHY: every lane used to inherit the launching shell's environment, so a concurrent A/B was impossible, and an
+# inherited flag silently turned BOTH arms on (the result then reads as "the feature does nothing").
+# ---------------------------------------------------------------------------
+#: A key matching this is a fault arm or a §B switch (`29-DISABLED-FEATURES-REGISTRY.md`) and never belongs in an arm.
+#: `FAULT` anywhere, not `_FAULT_`: `POKEBOT_PCPINGPONG_FAULT` and `POKEBOT_CH24ROOM_FAULT` have no trailing underscore.
+_FORBIDDEN_KEY_RE = re.compile(r"FAULT|_ARM\d*$|_A$")
+#: A fixed decorrelation value makes every run of a lane the same trajectory (`modules/story/intro.py:70-89`).
+_FORBIDDEN_KEYS = frozenset({"POKEBOT_RNG_DECORRELATION_FRAMES"})
+#: D6: behaviour or trace variables WITHOUT the `POKEBOT_` prefix that the sandbox reads (grep, 2026-10-01). They are
+#: stripped from every lane of an `--arms` batch, since `env-all:` records only `POKEBOT_*` and could not show a leak.
+#: ‼ The gate scans the build for any other such name, so a new one cannot slip past this list.
+STRIP_UNPREFIXED: tuple[str, ...] = ("TEACH_TRACE", "TEACH_MISS_WINDOW", "TEACH_CANCEL_FORGET", "STORY_TALK_DEBUG",
+                                     "KI15_TRACE", "FW_TRACE", "CAPTURE_FORCE", "SAVE_POST_RIVAL")
+STRIP_UNPREFIXED_PREFIXES: tuple[str, ...] = ("CH21_CAPTURE_",)
+_TAG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+_POKEBOT_TOKEN_RE = re.compile(r"POKEBOT_[A-Za-z0-9_]+")
+#: The run header's `env-all:` line (`modules/debug_logger.py:262-266`): a dict repr, or a "(no POKEBOT_* …)" note.
+_ENV_ALL_RE = re.compile(r"^\s*env-all:\s+(.*)$", re.MULTILINE)
+#: The run header's `build:` line holds HEAD's first 12 hex digits (`modules/debug_logger.py:128-170`).
+_BUILD_RE = re.compile(r"^\s*build:\s+([0-9a-f]{7,40})\b", re.MULTILINE)
+
+
+def build_source_text(build_root: Path) -> str:
+    """Every `*.py` under the build's `modules/` and `plugins/`, concatenated: the text an arm key must appear in."""
+    parts = []
+    for sub in ("modules", "plugins"):
+        for f in sorted((build_root / sub).rglob("*.py")):
+            try:
+                parts.append(f.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                pass
+    return "\n".join(parts)
+
+
+def validate_tag(tag: str | None) -> str | None:
+    """None if `tag` is a usable `--profile-tag`, else why not. It must not start with `P`: `endless-P*` is the GUI's
+    namespace, and `battle_log.scan_logs` globs it."""
+    if not tag or not _TAG_RE.fullmatch(tag):
+        return f"--profile-tag {tag!r} must be non-empty and use only [A-Za-z0-9_-], starting with a letter or digit"
+    if tag[0] in "Pp":
+        return f"--profile-tag {tag!r} must not start with P (the GUI's endless-P* namespace)"
+    return None
+
+
+def _monitor_errors(monitor, arm_names) -> list[str]:
+    errors: list[str] = []
+    if monitor is None:
+        return errors
+    if not isinstance(monitor, dict):
+        return ["`monitor` must be an object keyed by arm name"]
+    for arm, cfg in monitor.items():
+        if arm not in arm_names:
+            errors.append(f"monitor names an unknown arm {arm!r}")
+            continue
+        if not isinstance(cfg, dict) or set(cfg) - {"forbid", "require", "expect"}:
+            errors.append(f"monitor[{arm!r}] must be an object with only forbid / require / expect")
+            continue
+        for entry in cfg.get("forbid", []):
+            ok = (isinstance(entry, str) and entry) or (
+                isinstance(entry, list) and entry and all(isinstance(s, str) and s for s in entry))
+            if not ok:
+                errors.append(f"monitor[{arm!r}].forbid entry {entry!r} must be a non-empty string or list of strings")
+        req = cfg.get("require", {})
+        if not isinstance(req, dict) or not all(
+                isinstance(k, str) and k and isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+                for k, v in req.items()):
+            errors.append(f"monitor[{arm!r}].require must map non-empty strings to positive seconds")
+        exp = cfg.get("expect", [])
+        if not isinstance(exp, list) or not all(isinstance(s, str) and s for s in exp):
+            errors.append(f"monitor[{arm!r}].expect must be a list of non-empty strings")
+    return errors
+
+
+def validate_arms(spec, n_lanes: int, source_text: str) -> list[str]:
+    """PURE pre-flight for an `--arms` file. [] means valid; otherwise every reason it is refused (all of them, so one
+    run of the launcher shows the whole problem)."""
+    if not isinstance(spec, dict) or not isinstance(spec.get("arms"), dict):
+        return ["the file must be an object with an `arms` object"]
+    if set(spec) - {"arms", "monitor", "comment"}:
+        return [f"unknown top-level keys: {sorted(set(spec) - {'arms', 'monitor', 'comment'})}"]
+    arms = spec["arms"]
+    errors: list[str] = []
+    # ⛔ WHOLE TOKENS, not substrings: the gate's typo row caught `POKEBOT_R26_KITTOPOF` passing a substring test,
+    # because it sits inside `POKEBOT_R26_KITTOPOFF` (2026-10-01).
+    tokens = set(_POKEBOT_TOKEN_RE.findall(source_text))
+    if len(arms) < 2:
+        errors.append("an A/B needs at least 2 arms")
+    keysets = []
+    for name, env in arms.items():
+        if not isinstance(env, dict) or not env:
+            errors.append(f"arm {name!r} must be a non-empty object of variables")
+            continue
+        keysets.append(frozenset(env))
+        for key, value in env.items():
+            if not isinstance(value, str):
+                errors.append(f"arm {name!r}: {key} must be a string, not {type(value).__name__}")
+            if not key.startswith("POKEBOT_"):
+                errors.append(f"arm {name!r}: {key} is not a POKEBOT_ variable")
+            if _FORBIDDEN_KEY_RE.search(key) or key in _FORBIDDEN_KEYS:
+                errors.append(f"arm {name!r}: {key} is a fault arm, a §B switch or a determinism override")
+            elif key not in tokens:
+                errors.append(f"arm {name!r}: {key} appears nowhere in the build's source (a typo?)")
+    if len(set(keysets)) > 1:
+        errors.append("every arm must list the SAME variables (each arm is literal and complete)")
+    envs = [tuple(sorted(e.items())) for e in arms.values() if isinstance(e, dict)]
+    if len(envs) != len(set(envs)):
+        errors.append("two arms are identical — the A/B would be vacuous")
+    k = len(arms)
+    if k and n_lanes % k:
+        errors.append(f"--lanes {n_lanes} does not divide evenly into {k} arms")
+    elif k:
+        per = n_lanes // k
+        for i in range(per):
+            starters = {lane_starter(a * per + i) for a in range(k)}
+            if len(starters) > 1:
+                errors.append(f"within-arm position {i} has different starters across arms: {sorted(starters)} "
+                              f"(lanes per arm must be a multiple of {len(LANE_STARTERS)})")
+                break
+    errors += _monitor_errors(spec.get("monitor"), set(arms))
+    return errors
+
+
+def arms_preflight(arms_path, tag, n_lanes: int, build_name: str, build_root: Path,
+                   profiles: Path, repo_root: Path | None = None) -> tuple[list[str], dict | None, str]:
+    """(errors, the parsed arms spec or None, its text). Every refusal `main` makes before a directory exists or a lane
+    spawns, in one function a gate can drive without ever launching a lane."""
+    errors: list[str] = []
+    if tag is not None:
+        why = validate_tag(tag)
+        if why:
+            errors.append(why)
+    # ⛔ review R11: a fault variable left in the shell after the live fault run would abort the REAL batch ~90 s in,
+    # after the operator has gone. It may only arm a batch whose tag SAYS it is a fault run.
+    if os.environ.get("X4H_FAULT_ENVLEAK") == "1" and "fault" not in (tag or ""):
+        errors.append("X4H_FAULT_ENVLEAK=1 is set in this shell but the --profile-tag does not contain 'fault': unset "
+                      "it (a stale fault variable would abort a real batch)")
+    spec, text = None, ""
+    if arms_path:
+        if build_name != "sandbox":
+            errors.append("--arms needs --build sandbox (the custom fork has none of the flags an arm sets, and no "
+                          "env-all header line to verify them)")
+        if not tag:
+            errors.append("--arms needs --profile-tag (an A/B starts from FRESH lane profiles)")
+        # ⛔ review R9: from a git WORKTREE `.git` is a file, the lanes' `build:` header reads "not a git checkout", and
+        # the build check would abort on the first header with a misleading reason. Run an A/B from a main checkout.
+        root = repo_root if repo_root is not None else REPO_ROOT
+        if not (root / ".git").is_dir():
+            errors.append(f"--arms must run from a MAIN checkout ({root} has no .git directory: a worktree's lane "
+                          f"headers cannot name their commit)")
+        try:
+            text = Path(arms_path).read_text(encoding="utf-8")
+            spec = json.loads(text)
+        except (OSError, ValueError) as exc:
+            return errors + [f"cannot read the arms file {arms_path}: {exc}"], None, ""
+        errors += [f"arms file: {e}" for e in validate_arms(spec, n_lanes, build_source_text(build_root))]
+    if tag and not validate_tag(tag):
+        taken = [lane_profile_name(s, tag) for s in range(n_lanes) if (profiles / lane_profile_name(s, tag)).exists()]
+        if taken:
+            errors.append(f"--profile-tag {tag}: these lane profiles already exist (pick a new tag): {taken}")
+    return errors, (spec if not errors else None), text
+
+
+def arm_of_slot(slot: int, n_lanes: int, arm_names: list[str]) -> str:
+    """Arms take CONTIGUOUS blocks: arm k owns slots [k*per, (k+1)*per)."""
+    return arm_names[slot // (n_lanes // len(arm_names))]
+
+
+def lane_name(slot: int, n_lanes: int, n_arms: int) -> str:
+    """The in-game player name. ⭐ PAIRED ACROSS ARMS (design §2, review R10): slot i of every arm gets the same name, so
+    each starter's A and B lanes draw from one seed pool (name entry is part of the seed, `intro.py`). Names differ
+    WITHIN an arm."""
+    return lane_tag(slot % (n_lanes // n_arms))
+
+
+def strip_inherited(environ: dict) -> tuple[dict, list[str]]:
+    """PURE: (a copy of `environ` without any `POKEBOT_*` or D6 variable, the sorted names removed)."""
+    env, removed = {}, []
+    for k, v in environ.items():
+        if (k.startswith("POKEBOT_") or k in STRIP_UNPREFIXED
+                or any(k.startswith(p) for p in STRIP_UNPREFIXED_PREFIXES)):
+            removed.append(k)
+        else:
+            env[k] = v
+    return env, sorted(removed)
+
+
+def arm_header_verdict(header_text: str, expect_env: dict, expect_build: str | None) -> tuple[str, str]:
+    """('ok'|'bad'|'unknown', reason) for ONE run log's header against its lane's arm. FAIL-CLOSED (review R8/AI-5):
+    once the header is complete, a missing / unparseable / non-dict `env-all:` is BAD, never "unknown" — the emulation
+    check's "unknown" is what let a header that does not say pass silently."""
+    if _HEADER_END not in header_text:
+        return "unknown", "run header not written yet"
+    head = header_text.split(_HEADER_END)[0]
+    m = _ENV_ALL_RE.search(head)
+    if not m:
+        return "bad", "complete run header has NO `env-all:` line"
+    raw = m.group(1).strip()
+    try:
+        got = ast.literal_eval(raw)
+    except (ValueError, SyntaxError):
+        return "bad", f"`env-all:` is not a dict: {raw[:120]!r}"
+    if not isinstance(got, dict):
+        return "bad", f"`env-all:` is not a dict: {raw[:120]!r}"
+    if got != expect_env:
+        extra = sorted(set(got) - set(expect_env))
+        missing = sorted(set(expect_env) - set(got))
+        differ = sorted(k for k in set(got) & set(expect_env) if got[k] != expect_env[k])
+        return "bad", f"env-all differs from the arm: extra={extra} missing={missing} differ={differ}"
+    if expect_build:
+        b = _BUILD_RE.search(head)
+        if not b:
+            return "bad", "complete run header has no readable `build:` commit"
+        n = min(len(b.group(1)), len(expect_build))
+        if b.group(1)[:n] != expect_build[:n]:
+            return "bad", f"build {b.group(1)} is not the batch's commit {expect_build[:12]}"
+    return "ok", "env-all == arm" + (" and build matches" if expect_build else "")
+
+
+def line_hit(line: str, entry) -> bool:
+    """A monitor entry matches a line: a string as a plain SUBSTRING of the whole line (review AI-4: three markers sit
+    outside the category slot), a list when EVERY string is on that one line."""
+    if isinstance(entry, str):
+        return entry in line
+    return all(s in line for s in entry)
+
+
+def scan_lines(lines, forbid, watch) -> tuple[list, set]:
+    """PURE: ([(entry, line) for every forbid hit], {watched substrings seen})."""
+    hits, seen = [], set()
+    for line in lines:
+        for entry in forbid:
+            if line_hit(line, entry):
+                hits.append((entry, line))
+        for sub in watch:
+            if sub in line:
+                seen.add(sub)
+    return hits, seen
+
+
+def freeze_verdict(start, now) -> str:
+    """'ok' | 'broken' | 'unknown'. A snapshot is (HEAD, porcelain) or None when git failed. ⛔ A git hiccup is
+    'unknown', never 'broken': a false alarm would kill a 13-hour batch (the `build_provenance_lines` precedent)."""
+    if start is None or now is None:
+        return "unknown"
+    return "ok" if tuple(start) == tuple(now) else "broken"
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +613,20 @@ def lane_summary(lane: "Lane", stdout_text: str, debug_text: str, n_logs: int) -
     s["debug_logs_collected"] = n_logs
     #: ⭐ #24-lane-respawn-build — the commits this lane's PROCESSES actually loaded.
     s["build_commits"] = list(lane.build_commits)
+    # ⭐ design v2 step 14 T1: the facts an A/B grade needs, carried off the Lane (the JOURNEY, not just the shape).
+    s["arm"] = lane.arm
+    s["name"] = lane.name
+    s["spawns"] = [dict(sp) for sp in lane.spawns]
+    s["alive_at_deadline"] = lane.alive_at_deadline
+    s["alive_at_stop"] = lane.alive_at_stop
+    s["cut_log"] = lane.cut_log
+    s["monitor"] = {"first_seen": dict(lane.first_seen)}
+    # ⛔ review R7: "checked" counts only headers that SETTLED ok; a run cut before its header completed is unknown.
+    _av = [v for v, _ in lane.arm_headers.values()]
+    s["arm_headers_checked"] = sum(v == "ok" for v in _av)
+    s["arm_headers_unknown"] = sum(v == "unknown" for v in _av)
+    s["arm_header_verdict"] = (None if lane.arm_env is None else
+                               "BAD" if "bad" in _av else ("ok" if "ok" in _av else "unknown"))
     return s
 
 
@@ -428,24 +699,40 @@ def render_manifest(batch: dict) -> str:
         "",
         "LANES",
         "-" * 72,
-        f"{'tag':<5} {'starter':<9} {'profile':<26} {'runs':>5} {'fin':>4} {'header':<8} restarts",
+        f"{'tag':<5} {'starter':<9} {'profile':<26} {'runs':>5} {'fin':>4} {'header':<8} restarts  arm  armhdr",
     ]
     for ln in batch["lane_rows"]:
         lines.append(
             f"{ln['tag']:<5} {ln['starter']:<9} {ln['profile']:<26} "
-            f"{ln['runs_ended']:>5} {ln['finished']:>4} {ln['header_verdict']:<8} {ln['restarts']}"
+            f"{ln['runs_ended']:>5} {ln['finished']:>4} {ln['header_verdict']:<8} {ln['restarts']:<8}  "
+            f"{ln.get('arm') or '-':<4} {ln.get('arm_header_verdict') or '-'}"
         )
+    if batch.get("arms"):
+        # ⭐ design v2 step 14 T1: an A/B batch. Its arms file and hash identify exactly what each arm ran.
+        lines += ["", f"ARMS           {'/'.join(batch['arms'])}  file {batch.get('arms_file', '?')}  "
+                      f"sha256 {str(batch.get('arms_sha256', '?'))[:16]}", f"profile_tag    {batch.get('profile_tag')}"]
     lines += [
         "",
         "EMULATION ASSERTION",
         "-" * 72,
         "Every run's debug-log RUN HEADER must read `emulation: speed=0 video=True`.",
-        f"headers checked: {batch['headers_checked']}   violations: {len(batch['header_violations'])}",
     ]
-    for v in batch["header_violations"]:
+    # ⭐ review R8: each violation under the heading of its OWN kind (an arm leak is not an emulation failure).
+    _emu = [v for v in batch["header_violations"] if v.get("kind", "emulation") == "emulation"]
+    _other = [v for v in batch["header_violations"] if v.get("kind", "emulation") != "emulation"]
+    lines.append(f"headers checked: {batch['headers_checked']}   violations: {len(_emu)}")
+    for v in _emu:
         lines.append(f"  !! {v['tag']}  {Path(v['log']).name}  {v['reason']}")
-    if not batch["header_violations"]:
+    if not _emu:
         lines.append("  all clean.")
+    if batch.get("arms") or _other:
+        lines += ["", "A/B INTEGRITY (arm headers, the monitor, the freeze watch)", "-" * 72,
+                  f"violations: {len(_other)}   lanes lost: {batch.get('lanes_lost') or 'none'}   "
+                  f"stop: {batch.get('stop_reason', '?')}"]
+        for v in _other:
+            lines.append(f"  !! [{v.get('kind')}] {v['tag']}  {Path(v['log']).name if v.get('log') else ''}  {v['reason']}")
+        if not _other:
+            lines.append("  all clean.")
     lines += [
         "",
         "READ NEXT",
@@ -482,10 +769,12 @@ def index_row(stamp: str, summary: dict) -> dict:
     lanes = summary.get("lanes_detail", {})
     runs = sum(l.get("runs_ended", 0) for l in lanes.values())
     fin = sum(l.get("finished", 0) for l in lanes.values())
+    arms = summary.get("arms")
     return {
         "stamp": stamp,
         "commit": summary.get("code_commit", "?"),
-        "lanes": summary.get("lanes", "?"),
+        # ⭐ an A/B batch says so: its pooled runs/rate mix arms, and must never be read as one sample.
+        "lanes": f"{summary.get('lanes', '?')} ({'/'.join(arms)})" if arms else summary.get("lanes", "?"),
         "bound": f"{summary.get('runs_per_lane') or 'inf'}r/{summary.get('minutes') or 'inf'}m",
         "runs": runs,
         "finished": fin,
@@ -512,15 +801,18 @@ def rebuild_index(runs_root: Path) -> None:
 # ---------------------------------------------------------------------------
 # Profiles
 # ---------------------------------------------------------------------------
-def ensure_lane_profile(slot: int) -> Path:
+def ensure_lane_profile(slot: int, tag: str | None = None, name: str | None = None) -> Path:
     """Create/refresh a headless lane profile without importing the bot.
 
     ‼ `story.yml` is REWRITTEN on every batch launch, exactly as `modules/endless_x4.py`
     does it and for the same reason: these are bot-managed profiles whose whole purpose
     is "H2 is always the Mudkip lane", and a stale hand-edit turning H2 into a second
     Torchic would silently corrupt the starter coverage the batch exists to provide.
+    ⭐ `tag` / `name` (design v2 step 14 T1): the profile family, and the in-game player name (`lane_name`, paired
+    across arms); both default to today's behaviour.
     """
-    name = lane_profile_name(slot)
+    character_name = name or lane_tag(slot)
+    name = lane_profile_name(slot, tag)
     path = PROFILES / name
     path.mkdir(parents=True, exist_ok=True)
 
@@ -549,7 +841,7 @@ def ensure_lane_profile(slot: int) -> Path:
     (path / "story.yml").write_text(
         "# Managed by tools/story-dev/x4_headless.py — REWRITTEN on every batch launch.\n"
         "# Edit LANE_STARTERS in x4_headless.py, not this file.\n"
-        f"character_name: {lane_tag(slot)}\n"
+        f"character_name: {character_name}\n"
         "gender: boy\n"
         f"starter: {lane_starter(slot)}\n"
         "starter_nickname: none\n",
@@ -591,21 +883,56 @@ class Lane:
     build_commits: list[str] = field(default_factory=list)
     #: debug-log path -> ('ok'|'bad'|'unknown', reason); one entry per run.
     headers: dict[str, tuple[str, str]] = field(default_factory=dict)
+    # --- design v2 step 14 T1: per-lane ARMS (all None / empty without `--arms`) -------------------
+    arm: str | None = None
+    arm_env: dict | None = None
+    name: str | None = None
+    #: debug-log path -> ('ok'|'bad'|'unknown', reason) for the env-all/build check.
+    arm_headers: dict[str, tuple[str, str]] = field(default_factory=dict)
+    #: one record per spawn: start / end (epoch s), exit code, commit.
+    spawns: list[dict] = field(default_factory=list)
+    first_spawn: float | None = None
+    #: the monitor's incremental read position per log, and the partial last line (bytes) not yet scanned.
+    log_offsets: dict[str, int] = field(default_factory=dict)
+    log_partial: dict[str, bytes] = field(default_factory=dict)
+    #: watched substring -> seconds after `first_spawn` it was first seen.
+    first_seen: dict[str, float] = field(default_factory=dict)
+    alive_at_deadline: bool | None = None
+    #: alive when the batch stopped for ANY reason (a park, an abort, the deadline) — review R2.
+    alive_at_stop: bool | None = None
+    cut_log: str | None = None
 
     @property
     def alive(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
 
 
-def git_commit() -> str:
+def git_commit(scope: list[str] | None = None) -> str:
+    """The short HEAD, `-dirty` if the working tree has changes. ⭐ `scope` (an `--arms` batch): only changes under
+    those paths count as dirty. The main checkout ALWAYS carries two volatile tool files, so the unscoped check called
+    every batch unattributable; the full porcelain is recorded in `ARMS.json` regardless."""
     try:
         rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT,
                              capture_output=True, text=True, timeout=15).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT,
-                               capture_output=True, text=True, timeout=15).stdout.strip()
+        cmd = ["git", "status", "--porcelain"] + (["--untracked-files=all", "--"] + scope if scope else [])
+        dirty = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=15).stdout.strip()
         return f"{rev}{'-dirty' if dirty else ''}" if rev else "unknown"
     except Exception:
         return "unknown"
+
+
+def freeze_snapshot(scope: list[str]) -> tuple[str, str] | None:
+    """(HEAD's full hash, `git status --porcelain --untracked-files=all -- <scope>`), or None if git failed."""
+    try:
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True,
+                              timeout=30)
+        por = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--"] + scope, cwd=REPO_ROOT,
+                             capture_output=True, text=True, timeout=60)
+        if head.returncode != 0 or por.returncode != 0 or not head.stdout.strip():
+            return None
+        return head.stdout.strip(), por.stdout
+    except Exception:
+        return None
 
 
 def lane_command(lane: Lane, runs_per_lane: int) -> list[str]:
@@ -625,8 +952,12 @@ def lane_command(lane: Lane, runs_per_lane: int) -> list[str]:
     ]
 
 
-def lane_env() -> dict:
-    env = dict(os.environ)
+def lane_env(lane: "Lane | None" = None) -> dict:
+    """The lane process's environment. Without an arm: the launching shell's, as always. ⭐ With an arm (design v2
+    step 14 T1): the shell's MINUS every `POKEBOT_*` and D6 variable, PLUS the arm's literal dict — so a variable left in
+    the shell can no longer turn both arms on."""
+    armed = lane is not None and lane.arm_env is not None
+    env = strip_inherited(dict(os.environ))[0] if armed else dict(os.environ)
     env["PYTHONUTF8"] = "1"
     # ‼ Without this a lane's stdout is block-buffered at 8 KiB because it is a FILE, not
     # a console — a lane can run for many minutes with nothing on disk, which reads
@@ -639,17 +970,23 @@ def lane_env() -> dict:
     # mitigation only; `_RUN_END_RE` is wrap-tolerant because ANY width can be exceeded.
     env["COLUMNS"] = "20000"
     env.pop("SAVE_POST_RIVAL", None)     # never clobber committed checkpoints from a sweep
+    if armed:
+        env.update(lane.arm_env)
+        # ⛔ FAULT ARM `X4H_FAULT_ENVLEAK=1` (T1-3; never set in a real run; `29`): a leaked variable the strip missed,
+        # on the FIRST lane only. The live header check must abort the batch on that lane's first run.
+        if os.environ.get("X4H_FAULT_ENVLEAK") == "1" and lane.slot == 0:
+            env["POKEBOT_X4H_LEAK"] = "1"
     return env
 
 
-def spawn(lane: Lane, runs_per_lane: int) -> None:
+def spawn(lane: Lane, runs_per_lane: int, scope: list[str] | None = None) -> None:
     stdout_path = lane.out_dir / "stdout.txt"
     lane.fh = open(stdout_path, "a", encoding="utf-8", errors="replace")
     creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
     lane.proc = subprocess.Popen(
         lane_command(lane, runs_per_lane),
         cwd=str(BUILD_ROOT),
-        env=lane_env(),
+        env=lane_env(lane),
         stdout=lane.fh,
         stderr=subprocess.STDOUT,
         stdin=subprocess.DEVNULL,
@@ -658,17 +995,25 @@ def spawn(lane: Lane, runs_per_lane: int) -> None:
     # ⭐ PROVENANCE PER SPAWN, not per batch. A respawned lane loads the CURRENT on-disk code, so
     # this is the only moment the truth is available. Printed as well as stored, because the reader
     # who needs it most is someone scanning stdout after a surprising result.
-    _spawn_commit = git_commit()
+    _spawn_commit = git_commit(scope)
     lane.build_commits.append(_spawn_commit)
-    print(f"[x4h] {lane.tag} ({lane.starter}) started — pid {lane.proc.pid}, "
+    now = time.time()
+    if lane.first_spawn is None:
+        lane.first_spawn = now
+    in_job = _JOB.assign(lane.proc) if _JOB is not None else False
+    lane.spawns.append({"start": round(now, 1), "end": None, "exit": None, "commit": _spawn_commit,
+                        "pid": lane.proc.pid, "in_job": in_job})
+    print(f"[x4h] {lane.tag} ({lane.starter}{', arm ' + lane.arm if lane.arm else ''}) started — pid {lane.proc.pid}, "
           f"profile `{lane.profile}`, build {_spawn_commit}", flush=True)
 
 
-def check_headers(lane: Lane, since: float, on_bad: str) -> list[dict]:
+def check_headers(lane: Lane, since: float, on_bad: str, expect_build: str | None = None) -> list[dict]:
     """Assert `speed=0 video=True` on every NEW debug log this lane has produced.
 
     Checked continuously for the whole batch — not once at the start — because the
     failure being guarded against is "run 1 was unthrottled and run 2 crawled at 1x".
+    ⭐ With an arm (design v2 step 14 T1(b)): every header's `env-all:` must also EQUAL the lane's arm and its `build:`
+    the batch's commit. Those violations carry `kind: "arm"` and abort whatever `--on-bad-header` says.
     """
     violations = []
     log_dir = lane.profile_dir / "debug-logs"
@@ -681,20 +1026,83 @@ def check_headers(lane: Lane, since: float, on_bad: str) -> list[dict]:
         except OSError:
             continue
         key = str(log)
-        if lane.headers.get(key, ("unknown", ""))[0] in ("ok", "bad"):
+        emu_done = lane.headers.get(key, ("unknown", ""))[0] in ("ok", "bad")
+        arm_done = lane.arm_env is None or lane.arm_headers.get(key, ("unknown", ""))[0] in ("ok", "bad")
+        if emu_done and arm_done:
             continue
         try:
-            head = log.open("r", encoding="utf-8", errors="replace").read(8192)
+            with log.open("r", encoding="utf-8", errors="replace") as fh:
+                head = fh.read(8192)
         except OSError:
             continue
-        verdict, reason = header_verdict(parse_run_header(head))
-        lane.headers[key] = (verdict, reason)
-        if verdict == "bad":
-            print(f"\n{'!' * 72}\n[x4h] EMULATION ASSERTION FAILED — {lane.tag} — {log.name}\n"
-                  f"       {reason}\n{'!' * 72}\n", flush=True)
-            violations.append({"tag": lane.tag, "log": key, "reason": reason})
-        elif verdict == "ok":
-            print(f"[x4h] {lane.tag} header OK ({reason}) — {log.name}", flush=True)
+        if not emu_done:
+            verdict, reason = header_verdict(parse_run_header(head))
+            lane.headers[key] = (verdict, reason)
+            if verdict == "bad":
+                print(f"\n{'!' * 72}\n[x4h] EMULATION ASSERTION FAILED — {lane.tag} — {log.name}\n"
+                      f"       {reason}\n{'!' * 72}\n", flush=True)
+                violations.append({"tag": lane.tag, "log": key, "reason": reason, "kind": "emulation"})
+            elif verdict == "ok":
+                print(f"[x4h] {lane.tag} header OK ({reason}) — {log.name}", flush=True)
+        if not arm_done:
+            averdict, areason = arm_header_verdict(head, lane.arm_env, expect_build)
+            lane.arm_headers[key] = (averdict, areason)
+            if averdict == "bad":
+                print(f"\n{'!' * 72}\n[x4h] ARM HEADER ASSERTION FAILED — {lane.tag} (arm {lane.arm}) — {log.name}\n"
+                      f"       {areason}\n{'!' * 72}\n", flush=True)
+                violations.append({"tag": lane.tag, "log": key, "reason": areason, "kind": "arm"})
+            elif averdict == "ok":
+                print(f"[x4h] {lane.tag} arm {lane.arm} header OK — {log.name}", flush=True)
+    return violations
+
+
+def monitor_lane(lane: Lane, since: float, cfg: dict, now: float, require_active: bool = True) -> list[dict]:
+    """design v2 step 14 T1(g): read each of this lane's logs INCREMENTALLY (whole lines only) and apply the arm's
+    `monitor` config. Returns violations: `leak` for a `forbid` hit, `vacuity` for a `require` substring not seen by its
+    deadline (seconds after the lane's first spawn). First-seen times of `require` and `expect` substrings are recorded on
+    the lane. ⛔ NEVER RAISES: a monitor fault must not kill a 13-hour batch; it is reported once instead."""
+    violations: list[dict] = []
+    forbid = cfg.get("forbid", [])
+    require = cfg.get("require", {})
+    watch = set(require) | set(cfg.get("expect", []))
+    log_dir = lane.profile_dir / "debug-logs"
+    try:
+        logs = sorted(log_dir.glob("*.log")) if log_dir.exists() else []
+    except OSError:
+        logs = []
+    for log in logs:
+        key = str(log)
+        try:
+            if log.stat().st_mtime < since - 5:
+                continue
+            with log.open("rb") as fh:
+                fh.seek(lane.log_offsets.get(key, 0))
+                chunk = fh.read()
+        except OSError:
+            continue
+        if not chunk:
+            continue
+        lane.log_offsets[key] = lane.log_offsets.get(key, 0) + len(chunk)
+        data = lane.log_partial.pop(key, b"") + chunk
+        complete, _, rest = data.rpartition(b"\n")
+        if rest:
+            lane.log_partial[key] = rest
+        if not complete and not _:
+            continue
+        lines = complete.decode("utf-8", errors="replace").split("\n")
+        hits, seen = scan_lines(lines, forbid, watch)
+        for entry, line in hits:
+            violations.append({"tag": lane.tag, "log": key, "kind": "leak",
+                               "reason": f"arm {lane.arm} printed a forbidden {entry!r}: {line.strip()[:200]}"})
+        for sub in seen:
+            if sub not in lane.first_seen and lane.first_spawn is not None:
+                lane.first_seen[sub] = round(now - lane.first_spawn, 1)
+    if require_active and lane.first_spawn is not None:
+        for sub, secs in require.items():
+            if sub not in lane.first_seen and now - lane.first_spawn >= secs:
+                violations.append({"tag": lane.tag, "log": "", "kind": "vacuity",
+                                   "reason": f"arm {lane.arm} has not printed {sub!r} within {secs} s of its first "
+                                             f"spawn — the arm's flags are not reaching the code"})
     return violations
 
 
@@ -822,7 +1230,15 @@ def status(target: str) -> int:
     # batch into a false alarm. `summarize_lane` is the SAME logic the batch summary and the gate
     # use, so this figure and the recorded one can never disagree.
     # ‹ `debug_text=""` is deliberate: runs/finished derive from `_RUN_END_RE` over stdout alone.
-    print(f"\n  {'lane':<6} {'runs':>5} {'fin':>4} {'rate':>6}  last activity")
+    # ⭐ design v2 step 14 T1: an A/B batch shows each lane's arm (from the start manifest, written before any spawn).
+    arm_of = {}
+    try:
+        _arms = json.loads((batch_dir / "ARMS.json").read_text(encoding="utf-8"))
+        arm_of = {f"L{ln['slot'] + 1:02d}": ln["arm"] for ln in _arms.get("lanes", [])}
+        print(f"\n  A/B batch: arms {'/'.join(_arms.get('arm_names', []))}, tag {_arms.get('profile_tag')}")
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    print(f"\n  {'lane':<6} {'arm':<4} {'runs':>5} {'fin':>4} {'rate':>6}  last activity")
     print("  " + "-" * 72)
     total_runs = total_fin = 0
     reasons: Counter = Counter()
@@ -840,7 +1256,7 @@ def status(target: str) -> int:
             if line.strip():
                 tail = line.strip()[:58]
                 break
-        print(f"  {d.name:<6} {runs:>5} {fin:>4} {rate:>6}  {tail}")
+        print(f"  {d.name:<6} {arm_of.get(d.name, '-'):<4} {runs:>5} {fin:>4} {rate:>6}  {tail}")
     overall = f"{(100 * total_fin / total_runs):.0f}%" if total_runs else "-"
     print("  " + "-" * 72)
     print(f"  {'TOTAL':<6} {total_runs:>5} {total_fin:>4} {overall:>6}")
@@ -905,7 +1321,10 @@ def resummarise(batch_dir: Path) -> int:
         # Carry forward the facts that come from the RUN, not from parsing.
         for key in ("build_commits", "header_verdict", "headers_checked", "restarts", "starter",
                     "profile",
-                    "debug_logs_collected"):
+                    "debug_logs_collected",
+                    # ⭐ design v2 step 14 T1: run facts, not parse results — re-parsing must never lose them.
+                    "arm", "name", "spawns", "alive_at_deadline", "cut_log", "monitor", "arm_headers_checked",
+                    "alive_at_stop", "arm_headers_unknown", "arm_header_verdict"):
             s[key] = previous.get(key, row.get(key))
         lanes_detail[tag] = s
         lane_rows.append({**row, "runs_ended": s["runs_ended"], "finished": s["finished"]})
@@ -982,6 +1401,13 @@ def main() -> int:
                     help="re-parse a stored batch's logs and rewrite its summary/MANIFEST, "
                          "without running anything. Use after fixing a parser bug: the raw "
                          "logs are the data, the summary is only a reading of them.")
+    # ⭐ design v2 step 14 T1 (`ai-research-notes/2026-10-01-batch14-DESIGN.md` §3; `…-T1-PREDICTIONS.md`).
+    ap.add_argument("--arms", default=None, metavar="FILE",
+                    help="a per-lane A/B: a JSON file of arms (each a literal, complete set of POKEBOT_* variables) "
+                         "and an optional live monitor. Lanes are split into contiguous blocks, one per arm; each lane "
+                         "gets ONLY its arm's POKEBOT_* variables. Needs --profile-tag and --build sandbox.")
+    ap.add_argument("--profile-tag", default=None, metavar="TAG",
+                    help="put the lanes in a FRESH profile family endless-TAG-H{n}-<starter>; refuses an existing one")
     args = ap.parse_args()
 
     if args.status:
@@ -1009,10 +1435,160 @@ def main() -> int:
               flush=True)
         return 2
 
+    # ⭐ design v2 step 14 T1: every refusal happens HERE, before a directory is made or a lane is spawned.
+    tag = args.profile_tag
+    errors, arms_spec, arms_text = arms_preflight(args.arms, tag, args.lanes, BUILD_NAME, BUILD_ROOT, PROFILES)
+    if errors:
+        print("[x4h] FATAL: refused before any lane started:", flush=True)
+        for e in errors:
+            print(f"[x4h]   - {e}", flush=True)
+        return 2
+    arm_names = list(arms_spec["arms"]) if arms_spec else []
+    scope = [BUILD_ROOT.name, "tools/story-dev/x4_headless.py"] if arms_spec else None
+
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_root = Path(args.out) if args.out else RUNS_ROOT / stamp
     out_root.mkdir(parents=True, exist_ok=True)
-    commit = git_commit()
+    # ⭐ T1(e): the console is ALSO written to the batch dir, so a lane death or an abort is on disk, not only on a
+    # console window that may be closed.
+    tee = _Tee(out_root / "x4h.txt")
+    sys.stdout = tee
+    try:
+        return _run_batch(args, stamp, out_root, tag, arms_spec, arms_text, arm_names, scope)
+    finally:
+        sys.stdout = tee.console
+        tee.close()
+
+
+class _Tee:
+    """stdout to the console AND a file (T1(e)). Never raises from `write`: a full disk must not kill the batch."""
+
+    def __init__(self, path: Path):
+        self.console = sys.stdout
+        try:
+            self.fh = open(path, "a", encoding="utf-8", errors="replace")
+        except OSError:
+            self.fh = None
+
+    def write(self, s):
+        # ⛔ BOTH halves guarded (review R6): a dead console must not turn a print inside the loop's `except` into a
+        # second exception that skips summary.json.
+        try:
+            self.console.write(s)
+        except (OSError, ValueError):
+            pass
+        if self.fh is not None:
+            try:
+                self.fh.write(s)
+            except OSError:
+                pass
+        return len(s)
+
+    def flush(self):
+        try:
+            self.console.flush()
+        except (OSError, ValueError):
+            pass
+        if self.fh is not None:
+            try:
+                self.fh.flush()
+            except OSError:
+                pass
+
+    def close(self):
+        if self.fh is not None:
+            try:
+                self.fh.close()
+            except OSError:
+                pass
+
+
+class _KillOnCloseJob:
+    """design v2 step 14 T1 (review R4): a Windows Job Object with KILL_ON_JOB_CLOSE. Every lane is assigned to it, so
+    the lanes die WITH x4h however x4h dies — a closed console, an external kill, a killed parent task — instead of
+    running unbounded with no summary. ⛔ Best effort and never fatal: off Windows, or if any call fails, it reports once
+    and the batch runs as before (the try/finally still stops the lanes on every exit x4h itself sees)."""
+
+    def __init__(self):
+        self.handle = None
+        self.note = "not Windows"
+        if os.name != "nt":
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            k32.CreateJobObjectW.restype = wintypes.HANDLE
+            k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+            k32.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+            k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+
+            class _BASIC(ctypes.Structure):
+                _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                            ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                            ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                            ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                            ("SchedulingClass", wintypes.DWORD)]
+
+            class _IO(ctypes.Structure):
+                _fields_ = [(n, ctypes.c_uint64) for n in ("ReadOperationCount", "WriteOperationCount",
+                                                            "OtherOperationCount", "ReadTransferCount",
+                                                            "WriteTransferCount", "OtherTransferCount")]
+
+            class _EXT(ctypes.Structure):
+                _fields_ = [("BasicLimitInformation", _BASIC), ("IoInfo", _IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                            ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                            ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+            handle = k32.CreateJobObjectW(None, None)
+            if not handle:
+                self.note = f"CreateJobObject failed ({ctypes.get_last_error()})"
+                return
+            info = _EXT()
+            info.BasicLimitInformation.LimitFlags = 0x2000          # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            if not k32.SetInformationJobObject(handle, 9, ctypes.byref(info), ctypes.sizeof(info)):  # Extended (9)
+                self.note = f"SetInformationJobObject failed ({ctypes.get_last_error()})"
+                return
+            self._k32, self.handle, self.note = k32, handle, "kill-on-close job active"
+        except Exception as exc:  # noqa: BLE001 - best effort, reported
+            self.note = f"job object unavailable: {type(exc).__name__}: {exc}"
+
+    def assign(self, proc) -> bool:
+        """Put a REAL Popen in the job (a stand-in without a Windows handle is skipped). False when not assigned."""
+        h = getattr(proc, "_handle", None)
+        if self.handle is None or h is None:
+            return False
+        try:
+            return bool(self._k32.AssignProcessToJobObject(self.handle, int(h)))
+        except Exception:  # noqa: BLE001 - best effort
+            return False
+
+
+#: The batch's job (set by `_run_batch`; None outside a batch). `spawn` assigns each new lane to it.
+_JOB: "_KillOnCloseJob | None" = None
+
+
+def _sha256_files(paths) -> dict:
+    out = {}
+    for p in paths:
+        try:
+            out[p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
+        except OSError:
+            out[p.name] = "unreadable"
+    return out
+
+
+def _newest_log(lane: Lane, since: float) -> str | None:
+    try:
+        logs = [p for p in (lane.profile_dir / "debug-logs").glob("*.log") if p.stat().st_mtime >= since - 5]
+    except OSError:
+        return None
+    return max(logs, key=lambda p: p.stat().st_mtime).name if logs else None
+
+
+def _run_batch(args, stamp, out_root, tag, arms_spec, arms_text, arm_names, scope) -> int:
+    commit = git_commit(scope)
     started = datetime.now()
     since = time.time()
 
@@ -1024,44 +1600,158 @@ def main() -> int:
         print("[x4h] ‼ WORKING TREE IS DIRTY — this batch cannot be attributed to a commit.",
               flush=True)
 
+    # ⭐ design v2 step 14 T1(f): the freeze snapshot is taken BEFORE any lane profile exists, so a refusal here leaves
+    # nothing behind under the tag.
+    freeze_start = None
+    if arms_spec is not None:
+        freeze_start = freeze_snapshot(scope)
+        if freeze_start is None:
+            # ⛔ Without the start snapshot neither the build check nor the freeze watch can work: refuse to start.
+            print("[x4h] FATAL: git could not snapshot HEAD and the code's status; an A/B cannot be frozen.", flush=True)
+            return 2
+        if freeze_start[1].strip():
+            # ⛔ review R5: porcelain shows STATUS, not content, so the watch could not see a dirty file being edited
+            # AGAIN mid-batch. An A/B starts from committed code or not at all.
+            print(f"[x4h] FATAL: the frozen code is not clean at the start — commit or remove these first:\n"
+                  f"{freeze_start[1]}", flush=True)
+            return 2
+
     lanes: list[Lane] = []
     for slot in range(args.lanes):
-        prof_dir = ensure_lane_profile(slot)
+        arm = arm_of_slot(slot, args.lanes, arm_names) if arm_names else None
+        name = lane_name(slot, args.lanes, len(arm_names)) if arm_names else None
+        prof_dir = ensure_lane_profile(slot, tag, name)
         if args.wipe_saves:
-            for name in ("current_save.sav", "current_state.ss1"):
-                f = prof_dir / name
+            for fname in ("current_save.sav", "current_state.ss1"):
+                f = prof_dir / fname
                 if f.exists():
                     f.unlink()
         out_dir = out_root / f"L{slot + 1:02d}"
         out_dir.mkdir(exist_ok=True)
         lanes.append(Lane(slot=slot, tag=lane_tag(slot), starter=lane_starter(slot),
-                          profile=lane_profile_name(slot), profile_dir=prof_dir,
-                          out_dir=out_dir))
+                          profile=lane_profile_name(slot, tag), profile_dir=prof_dir,
+                          out_dir=out_dir, arm=arm, name=name,
+                          arm_env=dict(arms_spec["arms"][arm]) if arm else None))
 
     header_violations: list[dict] = []
     aborted = ""
     deadline = since + args.minutes * 60 if args.minutes > 0 else None
+    monitor_cfg = (arms_spec or {}).get("monitor") or {}
+    expect_build = None
+    freeze_unknown = 0
+    lanes_lost: list[str] = []
+    stop_reason = ""
+    if arms_spec is not None:
+        expect_build = freeze_start[0][:12]
+        stripped = strip_inherited(dict(os.environ))[1]
+        until = (datetime.fromtimestamp(since + args.minutes * 60).strftime("%Y-%m-%d %I:%M %p")
+                 if args.minutes > 0 else "the batch ends")
+        try:
+            porcelain_full = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, capture_output=True,
+                                            text=True, timeout=60).stdout
+        except Exception as exc:  # noqa: BLE001 - recorded, never fatal: the scoped snapshot above is the guard
+            porcelain_full = f"(git status failed: {exc})"
+        # ⭐ T1(d): the START manifest, written BEFORE any lane spawns — the batch dir has a lane→arm record from its
+        # first second, and an abort or a crash cannot lose it.
+        start_manifest = {
+            "stamp": stamp, "started": started.isoformat(timespec="seconds"), "code_commit": commit,
+            "head": freeze_start[0], "build": BUILD_NAME, "build_root": str(BUILD_ROOT),
+            "profile_tag": tag, "minutes": args.minutes, "runs_per_lane": args.runs, "lanes_n": args.lanes,
+            "arms_file": str(Path(args.arms).resolve()), "arms_sha256": hashlib.sha256(arms_text.encode("utf-8")).hexdigest(),
+            "arms_text": arms_text, "arm_names": arm_names,
+            "lanes": [{"tag": ln.tag, "slot": ln.slot, "arm": ln.arm, "starter": ln.starter, "name": ln.name,
+                       "profile": ln.profile} for ln in lanes],
+            "stripped_inherited": stripped,
+            "config_sha256": _sha256_files(sorted(PROFILES.glob("*.yml")) + [PROFILES / "customcatchfilters.py"]),
+            "porcelain_full": porcelain_full, "freeze_scope": scope, "freeze_start": list(freeze_start),
+            "fault_envleak": os.environ.get("X4H_FAULT_ENVLEAK") == "1",
+            "do_not_touch_until": until,
+        }
+        (out_root / "ARMS.json").write_text(json.dumps(start_manifest, indent=2), encoding="utf-8")
+        print(f"[x4h] A/B batch: arms {'/'.join(arm_names)} — "
+              + ", ".join(f"{ln.tag}={ln.arm}" for ln in lanes), flush=True)
+        if stripped:
+            print(f"[x4h] stripped from every lane (inherited from this shell): {stripped}", flush=True)
+        # ⛔ review R3: ANY commit, pull or merge in this checkout changes HEAD, and the freeze watch then (correctly)
+        # aborts the whole batch. Said loudly, once, where the operator is looking.
+        print(f"\n{'#' * 78}\n# DO NOT COMMIT, PULL OR MERGE IN {REPO_ROOT}\n# until {until}: the freeze watch aborts "
+              f"this A/B if HEAD or the code moves.\n# Commit docs on a WORKTREE branch instead.\n{'#' * 78}\n", flush=True)
 
-    for i, lane in enumerate(lanes):
-        spawn(lane, args.runs)
-        if i < len(lanes) - 1 and args.stagger > 0:
-            time.sleep(args.stagger)
+    # ⭐ review R4: a kill-on-close job, so the lanes cannot outlive x4h however x4h dies.
+    global _JOB
+    _JOB = _KillOnCloseJob()
+    print(f"[x4h] lane job object: {_JOB.note}", flush=True)
+    # ⭐ review R12: spawn the arms INTERLEAVED (slot 0, N/K, 1, N/K+1, …) so no arm gets a head start every time.
+    if arm_names:
+        per = args.lanes // len(arm_names)
+        spawn_order = sorted(lanes, key=lambda ln: (ln.slot % per, ln.slot // per))
+    else:
+        spawn_order = list(lanes)
 
+    last_freeze = time.time()
     try:
+        for i, lane in enumerate(spawn_order):
+            spawn(lane, args.runs, scope)
+            if i < len(spawn_order) - 1 and args.stagger > 0:
+                time.sleep(args.stagger)
+
         while True:
             time.sleep(5)
             now = time.time()
 
             for lane in lanes:
-                header_violations.extend(check_headers(lane, since, args.on_bad_header))
+                header_violations.extend(check_headers(lane, since, args.on_bad_header, expect_build))
 
+            # ⛔ An ARM violation aborts whatever --on-bad-header says: a contaminated A/B is void, not "noisy".
+            if any(v.get("kind") == "arm" for v in header_violations):
+                aborted = "ARM HEADER ASSERTION FAILED"
+                break
             if header_violations and args.on_bad_header == "abort":
                 aborted = "EMULATION ASSERTION FAILED"
                 break
 
+            # ⭐ T1(g): the live monitor (STOP-1 leaks, STOP-2 vacuity), every tick.
+            mon_violations = []
+            for lane in lanes:
+                cfg = monitor_cfg.get(lane.arm) if lane.arm else None
+                if not cfg:
+                    continue
+                try:
+                    # ⛔ review R1: `require` only for a LIVE lane. A dead lane is not "flags not reaching the code"; it
+                    # is a lost lane, recorded below.
+                    mon_violations.extend(monitor_lane(lane, since, cfg, now, require_active=lane.alive))
+                except Exception as exc:  # noqa: BLE001 - a monitor bug must not kill the batch; it is reported
+                    print(f"[x4h] ‼ monitor error on {lane.tag}: {type(exc).__name__}: {exc}", flush=True)
+            if mon_violations:
+                for v in mon_violations:
+                    print(f"\n{'!' * 72}\n[x4h] {v['kind'].upper()} — {v['tag']} — {Path(v['log']).name if v['log'] else ''}"
+                          f"\n       {v['reason']}\n{'!' * 72}\n", flush=True)
+                header_violations.extend(mon_violations)
+                aborted = "ARM LEAK" if any(v["kind"] == "leak" for v in mon_violations) else "VACUITY"
+                break
+
+            # ⭐ T1(f): the freeze watch, every 60 s.
+            if freeze_start is not None and now - last_freeze >= 60:
+                last_freeze = now
+                fv = freeze_verdict(freeze_start, freeze_snapshot(scope))
+                if fv == "broken":
+                    aborted = "FREEZE BROKEN"
+                    print(f"\n{'!' * 72}\n[x4h] FREEZE BROKEN — HEAD or the code under {scope} changed mid-batch; the "
+                          f"lanes may be running different code.\n{'!' * 72}\n", flush=True)
+                    header_violations.append({"tag": "-", "log": "", "kind": "freeze",
+                                              "reason": "HEAD or the scoped porcelain changed"})
+                    break
+                if fv == "unknown":
+                    freeze_unknown += 1
+                    print(f"[x4h] ‼ freeze watch: git did not answer ({freeze_unknown}x); not counted as broken.",
+                          flush=True)
+
             for lane in lanes:
                 if lane.alive:
                     continue
+                if lane.spawns and lane.spawns[-1]["end"] is None:
+                    lane.spawns[-1]["end"] = round(now, 1)
+                    lane.spawns[-1]["exit"] = lane.proc.returncode if lane.proc is not None else None
                 try:
                     text = (lane.out_dir / "stdout.txt").read_text(encoding="utf-8", errors="replace")
                 except OSError:
@@ -1081,41 +1771,87 @@ def main() -> int:
                 if lane.restarts >= args.max_restarts or deadline is None or now >= deadline:
                     print(f"[x4h] ‼ {lane.tag} died (exit {code}) and will NOT be restarted "
                           f"(restarts={lane.restarts}).", flush=True)
+                    if not (deadline is not None and now >= deadline):
+                        # ⭐ review R1: a lane gone for good is a DEGRADED batch, said in the verdict and the summary.
+                        lanes_lost.append(f"{lane.tag} (arm {lane.arm or '-'}) after {len(lane.spawns)} spawn(s)")
                     continue
                 lane.restarts += 1
                 print(f"[x4h] ‼ {lane.tag} died (exit {code}); restart "
                       f"{lane.restarts}/{args.max_restarts}.", flush=True)
-                spawn(lane, args.runs)
+                spawn(lane, args.runs, scope)
 
             if all(not l.alive and l.proc is None for l in lanes):
+                stop_reason = "all lanes stopped"
                 print("[x4h] all lanes have stopped.", flush=True)
                 break
             if deadline is not None and now >= deadline:
+                # ⭐ T1(e): which runs the deadline CUT — recorded before anything is stopped.
+                for lane in lanes:
+                    lane.alive_at_deadline = lane.alive
+                    lane.cut_log = _newest_log(lane, since) if lane.alive else None
+                stop_reason = "deadline"
                 print(f"[x4h] time bound reached ({args.minutes} min) — stopping lanes.", flush=True)
                 break
     except KeyboardInterrupt:
         aborted = "interrupted by user (Ctrl-C)"
         print("\n[x4h] interrupted — stopping lanes and summarising what we have.", flush=True)
-
-    for lane in lanes:
-        stop_lane(lane)
+    except Exception as exc:  # noqa: BLE001 - T1(e): an x4h bug must never leave 16 lanes running unbounded
+        aborted = f"x4h error: {type(exc).__name__}: {exc}"
+        print(f"\n[x4h] ‼ UNEXPECTED ERROR — stopping every lane.\n{traceback.format_exc()}", flush=True)
+    finally:
+        stop_reason = stop_reason or aborted or "stopped"
+        stop_t = round(time.time(), 1)
+        for lane in lanes:
+            # ⭐ review R2: the CUT runs are recorded for EVERY exit (a park, an abort), not only the deadline, and a
+            # spawn x4h ends is marked, so its exit code is never read as a crash.
+            try:
+                lane.alive_at_stop = lane.alive
+                if lane.alive:
+                    lane.cut_log = lane.cut_log or _newest_log(lane, since)
+                    if lane.spawns and lane.spawns[-1]["end"] is None:
+                        lane.spawns[-1]["end"] = stop_t
+                        lane.spawns[-1]["stopped_by"] = "x4h"
+            except Exception:  # noqa: BLE001 - recording must never prevent the stop below
+                pass
+            stop_lane(lane)
+            if lane.spawns and lane.spawns[-1]["exit"] is None and lane.proc is not None:
+                lane.spawns[-1]["exit"] = lane.proc.returncode
+    # ⭐ review R10: a PROVISIONAL summary from the Lane records alone (no log parsing), so an interrupted copy of
+    # 13 hours of logs cannot leave the batch without a summary.json.
+    _provisional = {"stamp": stamp, "provisional": True, "stop_reason": stop_reason,
+                    "verdict": "FAILED — " + aborted if aborted else "OK (provisional)", "lanes_lost": lanes_lost,
+                    "header_violations": header_violations, "arms": arm_names or None,
+                    "lanes": {ln.tag: {"arm": ln.arm, "alive_at_stop": ln.alive_at_stop, "cut_log": ln.cut_log,
+                                       "spawns": ln.spawns, "first_seen": ln.first_seen} for ln in lanes}}
+    try:
+        (out_root / "summary.json").write_text(json.dumps(_provisional, indent=2), encoding="utf-8")
+    except OSError:
+        pass
     # Give the OS a moment to flush the line-buffered debug logs before they are read.
     time.sleep(2)
 
     lanes_detail: dict[str, dict] = {}
     lane_rows = []
+    collect_interrupted = False
     for lane in lanes:
         try:
             stdout_text = (lane.out_dir / "stdout.txt").read_text(encoding="utf-8", errors="replace")
         except OSError:
             stdout_text = ""
-        n_logs = collect_logs(lane, since) if args.collect == "full" else 0
-        debug_text = ""
-        for f in sorted((lane.out_dir / "debug-logs").glob("*.log")) if n_logs else []:
+        n_logs, debug_text = 0, ""
+        if args.collect == "full" and not collect_interrupted:
+            # ⭐ review R10: a second Ctrl-C during the copy must not cost the summary; the logs stay in the profiles.
             try:
-                debug_text += f.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                pass
+                n_logs = collect_logs(lane, since)
+                for f in sorted((lane.out_dir / "debug-logs").glob("*.log")) if n_logs else []:
+                    try:
+                        debug_text += f.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        pass
+            except KeyboardInterrupt:
+                collect_interrupted = True
+                print("\n[x4h] ‼ log collection interrupted — summarising without the remaining logs (they are still "
+                      "in each lane's profile debug-logs/).", flush=True)
         s = lane_summary(lane, stdout_text, debug_text, n_logs)
         lanes_detail[lane.tag] = s
         lane_rows.append({
@@ -1124,12 +1860,16 @@ def main() -> int:
             "header_verdict": s["header_verdict"], "restarts": lane.restarts,
             # ‼ carried here too so `resummarise()`'s `row` fallback can find it.
             "build_commits": list(lane.build_commits),
+            "arm": lane.arm,
+            "arm_header_verdict": s.get("arm_header_verdict"),
         })
 
     ended = datetime.now()
     total_runs = sum(s["runs_ended"] for s in lanes_detail.values())
     total_fin = sum(s["finished"] for s in lanes_detail.values())
     verdict = "FAILED — " + aborted if aborted else "OK"
+    if not aborted and lanes_lost:
+        verdict = f"OK — DEGRADED: lanes lost: {'; '.join(lanes_lost)}"
     batch = {
         "stamp": stamp,
         "code_commit": commit,
@@ -1169,6 +1909,21 @@ def main() -> int:
         "lane_rows": lane_rows,
         "lanes_detail": lanes_detail,
     }
+    if arms_spec is not None:
+        # ⭐ design v2 step 14 T1: what makes the A/B's numbers attributable. `ARMS.json` holds the same, from the start.
+        batch.update({
+            "arms": arm_names,
+            "arms_file": str(Path(args.arms).resolve()),
+            "arms_sha256": hashlib.sha256(arms_text.encode("utf-8")).hexdigest(),
+            "profile_tag": tag,
+            "freeze_start": list(freeze_start) if freeze_start else None,
+            "freeze_unknown_checks": freeze_unknown,
+            "violation_kinds": dict(Counter(v.get("kind", "emulation") for v in header_violations)),
+            "lanes_lost": lanes_lost,
+            "stop_reason": stop_reason,
+            "collect_interrupted": collect_interrupted,
+            "job_object": _JOB.note if _JOB is not None else None,
+        })
     (out_root / "summary.json").write_text(json.dumps(batch, indent=2), encoding="utf-8")
     (out_root / "MANIFEST.txt").write_text(render_manifest(batch), encoding="utf-8")
 
@@ -1181,8 +1936,9 @@ def main() -> int:
     print("\n" + render_manifest(batch), flush=True)
     print(f"[x4h] batch summary: {out_root / 'summary.json'}", flush=True)
     if header_violations:
-        print(f"[x4h] ‼ {len(header_violations)} EMULATION ASSERTION VIOLATION(S) — "
-              f"this batch's timings are NOT comparable.", flush=True)
+        kinds = dict(Counter(v.get("kind", "emulation") for v in header_violations))
+        print(f"[x4h] ‼ {len(header_violations)} VIOLATION(S) {kinds} — this batch is NOT a clean measurement.",
+              flush=True)
         return 3
     return 1 if aborted else 0
 

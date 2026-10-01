@@ -1,0 +1,357 @@
+# 2026-10-01 — design v2 step 14 T1: the ADVERSARIAL PASS (mutant hunter + runtime reviewer), verbatim
+# A NOTE, NOT TRUTH: two read-only subagents (workflow t1-adversarial). How each finding was folded is in the
+# T1 PREDICTIONS note's GRADED section.
+
+====================================================================================================
+mut: I tested the existing gate against 155 mutants of the T1 code in x4_headless.py. It killed 103: 96 turned rows red and 7 crashed the gate. 52 survived. 8 of those are equivalent, so 44 are real gaps. That falsifies prediction T1-2, and the spec's own launch rule (PREDICTIONS line 123: the batch starts only if T1-2's survivors are closed) blocks tonight's run until rows are added.
+
+The pure helpers are well pinned. Every refusal in validate_arms, validate_tag, arm_of_slot/lane_name, strip_inherited, lane_env, arm_header_verdict's main branches, line_hit, freeze_verdict and the resummarise carry-forward of arm/spawns/cut_log/monitor kills its mutants.
+
+The holes are almost all WIRING:
+- _run_batch is only checked by F14's source-text and AST shape rows, and those pass on broken behaviour.
+- arms_preflight is only fed a valid file and valid tags.
+- scan_lines and monitor_lane are only tested with one forbid entry and one log.
+- The fail-closed non-dict branch is never reached.
+
+I wrote 44 proposed rows. All pass on the current code, and they kill all 44 non-equivalent survivors (re-run verified: 0 non-equivalent survivors left). They are in C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/t1adv/mut/g_rows.py and run in about 1.4 s. The core is a driven _run_batch that launches nothing: x4.subprocess is replaced by a namespace whose Popen is a FakePopen (asserted before each drive), x4.time is a fake clock, git is faked, and PROFILES is a temp dir. FakePopen writes a debug log whose env-all is the POKEBOT_* set it was actually handed, with arm-dependent body lines.
+
+The 8 equivalent survivors:
+- VA-starter-pos0: whether starters match depends only on a*per mod 4, never on the position i.
+- VA-empty-arm: an empty arm is still refused, by the keyset or identical-arms check.
+- LE-armed-arm: arm and arm_env are always set together.
+- MO-vacuity-gt: changes the deadline by at most one 5 s tick out of 3600 s.
+- MO-no-mtime: equivalent because arms_preflight refuses existing tag profiles.
+- CH-arm-skip-after-emu and CH-arm-only-if-emu-pending: both verdicts come from the same 8 KiB head in the same pass, and both settle exactly when the header END marker is present. Measured: 300 real sandbox logs end their header at 758 bytes or less. debug_logger prints env-all as an untruncated str(dict), and nothing in sandbox-pokebot sets a POKEBOT_* variable itself.
+- PF-spec-on-error: main returns on errors before it uses spec. D10's 's15 is None' clause is optional.
+
+Safety: no worktree file was touched. git status is identical before and after, and the scratch x4 copy was restored and is byte-identical to the worktree. No pokebot process ran.
+
+Harness files: C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/t1adv/run_mutants.py, plus results_all.json and results_g_subset.json beside it.
+
+--- MH-1 [BLOCKER]
+WHAT: F14 checks _run_batch's live safety net by its source shape only, and accepts broken behaviour. Under these mutants the batch keeps running, or never arms a lane, while every row passes: arm violations gated on --on-bad-header or never breaking; the monitor off or never breaking; the freeze watch off or never breaking; the finally block stopping only the first lane; the except block re-raising; lanes built with arm_env=None; first_spawn never set (which silently turns off the STOP-2 vacuity check and first_seen).
+EVIDENCE: Surviving mutants (existing gate all PASS):
+- RB-arm-gated-onbad: `if any(v.get("kind") == "arm" ...) and args.on_bad_header == "abort":`. The F14 row passes because str.find finds 'v.get("kind") == "arm"' earlier on the SAME line, so the row's own claim 'independent of --on-bad-header' is never actually tested.
+- RB-arm-nobreak: removed the `break` after aborted = "ARM HEADER ASSERTION FAILED".
+- RB-monitor-off: cfg = None.
+- RB-monitor-nobreak.
+- RB-freeze-off: `if False:`.
+- RB-freeze-nobreak.
+- RB-finally-first-lane: `for lane in lanes[:1]:` in the finally block.
+- RB-except-reraise.
+- RB-arm-env-none: `arm_env=None))`.
+- RB-arm-modulo.
+- RB-name-none.
+- SP-no-firstspawn.
+- SP-no-spawn-record.
+- RB-deadline-facts.
+- RB-summary-noarms.
+- RB-row-noarm.
+
+With the driven rows: under RB-arm-gated-onbad, G2 got (rc 3, verdict 'OK'), and every no-break mutant ran to the bound (elapsed 602.0 fake seconds instead of under 200). Note that T1-3 runs with the default --on-bad-header abort, so the live fault run cannot catch RB-arm-gated-onbad either.
+FIX: Add a driven section to repro_x4_headless.py, as in scratchpad/t1adv/mut/g_rows.py 'G-drive':
+- Replace x4.subprocess with a SimpleNamespace(Popen=fake_popen, run=fake_run, DEVNULL, STDOUT, CREATE_NO_WINDOW). Assert `x4.subprocess.Popen is fake_popen` before every call. Also point x4.BUILD_ROOT at a temp dir with no pokebot.py as a second guard, because in the real gate BUILD_ROOT has a pokebot.py.
+- Use a fake x4.time clock, fake git_commit/freeze_snapshot, and a temp x4.PROFILES holding the template metadata.yml.
+- Call x4._run_batch(...).
+
+Rows:
+- G1 clean, 16 lanes, minutes=2. Expect: rc 0; the POKEBOT_* env handed to Popen == the arm by block; story.yml character_name paired; ARMS.json lanes; summary arms/sha256/freeze_start; lane_rows arm; spawns with pid/end/exit; alive_at_deadline plus cut_log; monitor first_seen for both arms' markers; arm_headers_checked >= 1; freeze polled >= 2 times; all procs stopped; --status shows each arm; resummarise keeps name and arm_headers_checked.
+- G2 X4H_FAULT_ENVLEAK=1 under --on-bad-header WARN: rc 3, 'ARM HEADER', elapsed < 200, names H1 and POKEBOT_X4H_LEAK, all stopped.
+- G3 one lane's header carries another build: aborts.
+- G4 a [KEYBATTLE] line in an A lane: ARM LEAK on the first tick.
+- G5 the second freeze snapshot changes: FREEZE BROKEN on the first poll.
+- G6 check_headers raises on its 17th call: rc 1, verdict 'FAILED — x4h error', summary written, all 16 lanes stopped.
+
+Verified: all pass on the current code and kill all 16 mutants listed above.
+
+--- MH-2 [SHOULD-FIX]
+WHAT: arms_preflight's own wiring is untested. It could skip validate_arms entirely, validate at a hard-coded 16 lanes, or never call validate_tag, and F11 stays green. F11 only feeds the valid committed file at 16 lanes with valid tags.
+EVIDENCE: Survivors:
+- PF-no-validate: removed the `errors += [... validate_arms(spec, n_lanes, ...)]` line.
+- PF-fixed-lanes: `validate_arms(spec, 16, ...)`.
+- PF-no-tag-validate: removed the `if tag is not None: why = validate_tag(tag)` block.
+
+Under PF-fixed-lanes, a --lanes 12 run would pass preflight and run A=H1-H6 against B=H7-H12 with different starters, silently. Under PF-no-tag-validate, a 'P1' tag lands in the GUI's endless-P* namespace.
+FIX: Add these rows:
+- D10: `x4.arms_preflight(str(_ARMS_FILE), 'g14', 15, 'sandbox', SANDBOX, _prof)` must contain 'divide evenly'.
+- D10: the same call at 12 lanes must contain 'different starters'.
+- D11: `arms_preflight(None, 'P1', 4, 'custom', ...)` and `arms_preflight(_ARMS_FILE, 'p9', 16, 'sandbox', ...)` must both contain 'must not start with P'.
+
+Verified: these kill all three mutants.
+
+--- MH-3 [SHOULD-FIX]
+WHAT: Three monitor holes. scan_lines is only tested with ONE forbid entry, so it could check just forbid[0] (8 of arm A's 9 leak markers unwatched). monitor_lane is only tested with ONE log, so it could read only the first run's log. first_seen could be overwritten with the last sighting.
+EVIDENCE: Survivors:
+- SC-first-forbid: `for entry in forbid[:1]:`. F8's scan_lines row has forbid=['[KEYBATTLE]'] and F9's cfg has one forbid.
+- MO-first-log-only: `for log in logs[:1]:`.
+- MO-firstseen-overwrite: `if lane.first_spawn is not None:`, which dropped `sub not in lane.first_seen`.
+FIX: Add these rows:
+- D1: `x4.scan_lines(['x [KIT-BUY] y'], ['[KEYBATTLE]', '[KIT-BUY]'], set())` returns `[('[KIT-BUY]', 'x [KIT-BUY] y')]`.
+- D3: write a second log (a later stamp) containing a forbid line; monitor_lane returns kind 'leak'.
+- D2: append a second ' rare=' line at t=1020; first_seen stays 10.0.
+
+Verified: these kill all three.
+
+--- MH-4 [SHOULD-FIX]
+WHAT: The fail-closed non-dict branch of arm_header_verdict is never reached. Both F7 'non-dict' rows use strings that are not Python literals, so they exercise the SyntaxError branch. A literal non-dict (None, a list, an int) could return 'unknown' or 'ok'. 'unknown' means the arm check never settles, which is fail-OPEN.
+EVIDENCE: Survivors:
+- AH-nondict-unknown: `if not isinstance(got, dict): return "unknown"`.
+- AH-nondict-ok.
+
+F7's _none uses '(no POKEBOT_* env vars set)' and _junk uses "{'POKEBOT_R25_CAP': ". Both raise SyntaxError in ast.literal_eval.
+FIX: Add row D4: for raw in ('None', "['POKEBOT_R25_CAP']", '1'), substitute raw for the env-all value and assert arm_header_verdict(...)[0] == 'bad'. Verified: kills both.
+
+--- MH-5 [SHOULD-FIX]
+WHAT: Monitor validation accepts silent-disable configs once the matching checks are mutated away. With the extra-key check removed, a typo'd key such as 'requires' or 'forbids' is ignored, turning that part of the monitor off. With the empty-key check removed, a require of '' matches every line, so STOP-2 vacuity can never fire.
+EVIDENCE: Survivors:
+- MV-cfg-keys: dropped the `set(cfg) - {forbid, require, expect}` test.
+- MV-require-emptykey: dropped `and k`.
+
+Fail-loud or pre-spawn-crash survivors (NIT):
+- MV-require-bool: True becomes a 1 s deadline.
+- MV-forbid-emptystr: '' matches every line, so the batch aborts at once.
+- MV-expect: records only.
+- MV-monitor-notdict and VA-shape: crash in preflight before any lane, instead of refusing cleanly.
+FIX: Add these rows:
+- D6: B cfg plus 'requires' is refused with 'only forbid'.
+- D7: require {'': 60} refused, and require {' rare=': True} refused.
+- D8: forbid [''] refused; expect [''] and expect 'abc' refused; monitor [] refused without crashing.
+- D9: validate_arms([]) and validate_arms({'arms': []}) refuse without crashing.
+
+Verified: these kill all 7 listed.
+
+--- MH-6 [SHOULD-FIX]
+WHAT: The gate never exercises freeze_snapshot (F13 only feeds freeze_verdict hand-made tuples). Dropping --untracked-files=all survives, and then a new file inside an already-untracked directory under the sandbox is invisible: porcelain shows '?? sb/' both before and after.
+EVIDENCE: Survivor FS-no-untracked-all. D12 on a temp repo under the mutant gave two equal snapshots, (('8f5204ab…', '?? sb/\n'), ('8f5204ab…', '?? sb/\n')).
+FIX: Add row D12: in a TemporaryDirectory, run git init and an empty commit; create sb/newdir/a.py. Set x4.REPO_ROOT to the temp repo (restore it in finally). Take s1 = freeze_snapshot(['sb']), add sb/newdir/b.py, take s2, and assert freeze_verdict(s1, s2) == 'broken'. Verified: passes on the current code and kills the mutant.
+
+--- MH-7 [NIT]
+WHAT: The build check is only tested against a commit that differs at its FIRST hex digit, so weakening the compare to 1 or 7 digits survives.
+EVIDENCE: Survivors:
+- AH-build-len1: `n = 1`.
+- AH-build-len7: `n = min(..., 7)`.
+
+F7's mismatch row uses 'deadbeef…' against '21b420ce…'.
+FIX: Add row D5: arm_header_verdict(header with build 'aaaaaaaaaaab', arm, 'a'*40)[0] == 'bad'. Verified: kills both.
+
+--- MH-8 [NIT]
+WHAT: Some record facts are never asserted: lane_summary arm_headers_checked, resummarise carry of name and arm_headers_checked, and --status's arm column. Separately, F12's lane_summary row uses subscripts (_ls["arm"]), so a dropped key CRASHES the gate with a KeyError and hides every later row (F12 manifest, F13, F14) instead of printing a FAIL.
+EVIDENCE: Survivors:
+- LS-drop-arm_headers_checked.
+- RS-drop-name and RS-drop-arm_headers_checked: the F12 fixture already contains 'name' and 'arm_headers_checked' but never asserts them.
+- ST-status-noarm.
+
+LS-drop-arm, -name, -spawns, -alive_at_deadline, -cut_log and -monitor were all killed only by a traceback ('KeyError: arm').
+FIX: In the F12 resummarise row, also assert _new.get('name') == 'H1' and _new.get('arm_headers_checked') == 3. In the lane_summary row, use _ls.get(...) and assert arm_headers_checked. G1 covers --status (lines 'L01    A' and 'L09    B').
+
+--- MH-9 [NIT]
+WHAT: Two minor survivors. Over-refusal by an unanchored `_A` survives: it is fail-loud, but it would refuse a legitimate key. The SAVE_POST_RIVAL pop for unarmed lanes is unpinned; that is pre-existing, not T1.
+EVIDENCE: Survivors:
+- VA-A-unanchored: `FAULT|_ARM\d*$|_A`. A real sandbox token, POKEBOT_HEAL_AT_FRACTION, would be refused.
+- LE-saveposrival.
+FIX: Add these rows:
+- D13: validate_arms with POKEBOT_HEAL_AT_FRACTION in both arms returns no 'fault arm' error.
+- D14: with SAVE_POST_RIVAL=1 in os.environ, 'SAVE_POST_RIVAL' is not in x4.lane_env().
+
+Verified: both kill their mutants.
+
+killed 103 of tried 155
+survivor: RB-arm-env-none: Lane(... arm_env=None) in _run_batch. No lane gets its arm: no strip, no arm header check, both arms run the shell env. No row drives _run_batch.
+survivor: RB-arm-gated-onbad: the arm abort also requires on_bad_header == 'abort'. F14's str.find order check passes because 'v.get("kind") == "arm"' comes first on the same line.
+survivor: RB-arm-nobreak: removed the break after aborted='ARM HEADER ASSERTION FAILED'. F14 only checks text order.
+survivor: RB-monitor-off: cfg = None in the batch loop. No row drives the loop.
+survivor: RB-monitor-nobreak: an ARM LEAK or VACUITY sets the reason but the batch runs on. No row drives the loop.
+survivor: RB-freeze-off: the freeze watch never runs. F13 tests only freeze_verdict.
+survivor: RB-freeze-nobreak: FREEZE BROKEN does not stop the batch. No row drives the loop.
+survivor: RB-expect-build-none: expect_build = None. The build check is pure-tested only.
+survivor: RB-check-no-build: check_headers called without expect_build. Not driven.
+survivor: CH-no-build: check_headers passes None as the build. F10 uses a header that already fails on env.
+survivor: RB-finally-first-lane: the finally block stops only lanes[:1]. F14 only asserts some stop_lane call exists in finalbody.
+survivor: RB-except-reraise: the except Exception handler re-raises, so no summary is written. F14 only checks that the handler exists.
+survivor: RB-name-none: _run_batch passes name=None, so in-game names are unpaired. Only the pure lane_name is tested.
+survivor: RB-arm-modulo: _run_batch assigns arms by modulo instead of arm_of_slot. Only the pure function is tested.
+survivor: ELP-name-ignored: ensure_lane_profile ignores name. Never called by the gate.
+survivor: SP-no-firstspawn: spawn never sets first_spawn, which silently turns off STOP-2 vacuity and first_seen. spawn is never driven.
+survivor: SP-no-spawn-record: spawn appends no spawns record. F12 builds the spawns by hand.
+survivor: RB-deadline-facts: alive_at_deadline and cut_log are never set. F12 sets them by hand.
+survivor: RB-summary-noarms: summary.json lacks arms, sha256, tag and freeze_start. Not driven.
+survivor: RB-row-noarm: lane_rows lacks arm. Not driven.
+survivor: PF-no-validate: arms_preflight never calls validate_arms. F11 feeds only the valid file.
+survivor: PF-fixed-lanes: preflight validates at 16 lanes regardless of --lanes. F11 uses 16 only.
+survivor: PF-no-tag-validate: preflight never calls validate_tag. F3 tests validate_tag directly; F11 uses only valid tags.
+survivor: SC-first-forbid: scan_lines checks only forbid[0]. Every F8/F9 config has a single forbid entry.
+survivor: MO-first-log-only: monitor_lane reads only the first log. F9 has one log.
+survivor: MO-firstseen-overwrite: first_seen is overwritten by later sightings. F9 never re-sights a watched substring.
+survivor: AH-nondict-unknown: a literal non-dict env-all returns 'unknown' (fail-open). F7's non-dict rows hit the SyntaxError branch instead.
+survivor: AH-nondict-ok: a literal non-dict env-all returns 'ok'. Same reason.
+survivor: AH-build-len1: build compare cut to 1 hex digit. F7's mismatch differs at digit 1.
+survivor: AH-build-len7: build compare cut to 7 digits. Same reason.
+survivor: FS-no-untracked-all: freeze_snapshot without --untracked-files=all. freeze_snapshot is never exercised.
+survivor: MV-cfg-keys: a monitor cfg with an unknown key ('requires') is accepted. No row.
+survivor: MV-require-emptykey: a require of '' is accepted, which turns vacuity off. No row.
+survivor: MV-require-bool: require True is accepted (a 1 s deadline, fail-loud). No row.
+survivor: MV-forbid-emptystr: forbid '' is accepted (matches every line, fail-loud). No row.
+survivor: MV-expect: expect is not validated (records only). No row.
+survivor: MV-monitor-notdict: a non-dict monitor crashes preflight instead of refusing cleanly. No row.
+survivor: VA-shape: a non-dict spec or arms crashes instead of refusing cleanly. No row.
+survivor: VA-A-unanchored: _A$ becomes _A, which over-refuses legitimate keys (e.g. POKEBOT_HEAL_AT_FRACTION); fail-loud. No row with an _A mid-name key.
+survivor: LS-drop-arm_headers_checked: lane_summary drops arm_headers_checked. The F12 row does not assert it.
+survivor: RS-drop-name: resummarise drops name. The fixture has it; the row does not assert it.
+survivor: RS-drop-arm_headers_checked: resummarise drops it. Same reason.
+survivor: ST-status-noarm: --status shows no arm. status() is never called.
+survivor: LE-saveposrival: the unarmed SAVE_POST_RIVAL pop is removed (pre-existing, not T1). No row.
+
+====================================================================================================
+rev: I found no BLOCKER. None of T1's checks gives a false abort on tonight's real paths, and I found no way for a contaminated A/B to pass unnoticed. Below are 5 SHOULD-FIX and 7 NIT findings, mostly about records, dead lanes and external kills.
+
+What I checked and found clean:
+
+- **Monitor (forbid) strings.** I traced every forbid string to the code that prints it.
+  - Arm A's markers print only when their flag is "1" or "observe". Explicit "0" is silent: `parse_flag` maps it to OFF with no error (stock_topoff.py:88-95, :780-783). The same holds for `_r25_log_suffix` (story_mode.py:1966-1975), `_r24_trainee_record` (:6358), loss-filed (:2563-2571), KEYBATTLE (:880-881) and the DBLITEM flag-first return (:845-846).
+  - Arm B's three texts are returned only by `decide_dex_catch`, and only when `open_fence`, `lift_training` or `lift_health` is False (:2106-2110, :2140-2141, :2149-2158). These are wired to the B flags (:2432-2443, :2763-2771). No `context.message` carries them.
+  - The header lines (log path, env-all) produced no hits in 32 logs.
+- **Freeze watch.** Every runtime write by the bot lands in `profiles/` (gitignored by `profiles/*`) or in the ignored `cache/`, `logs/`, `crash-*.log` and `__pycache__`; `git check-ignore` confirmed this. In the main checkout, `git status --porcelain --untracked-files=all -- sandbox-pokebot` is 0 lines. The headless lanes never run `update_check` (it is GUI-only).
+- **Environment and header.**
+  - No sandbox code writes any `POKEBOT_*` variable (grep came back empty).
+  - The run header is about 0.66 KB plus about 0.7 KB for the 18 variables, well under the 8 KiB read.
+  - The `build:` line comes from main's loose ref file, which holds `f052d657e81a…`.
+- **Setup.** The template `sandbox-pokebot/profiles/endless-P1-torchic/metadata.yml` exists, and no `endless-s14*` profiles exist yet.
+- **Speed.**
+  - Scoped git status took 0.043-0.055 s and full git status 0.063 s.
+  - At 16 lanes × 60 logs in steady state, `check_headers` plus `monitor_lane` cost 0.16 s per tick.
+  - The power plan never sleeps (AC 0).
+
+End-to-end runs, done in scratchpad `t1adv/` with a copy of `x4_headless.py` and dummy lanes (`fake_lane.py`, never pokebot):
+
+- **clean:** VERDICT OK, every header OK, first-seen times recorded.
+- **leak:** aborted in 9 s with "env-all differs from the arm: extra=['POKEBOT_X4H_LEAK']".
+- **crash:** VERDICT OK and RC 0 with one A lane dead.
+- **ctrlc:** the cut-run records were None.
+
+Neither checkout was modified, and no dummy lane processes were left running.
+
+--- R1 [SHOULD-FIX]
+WHAT: A lane that dies for good is handled differently by arm, and quietly. A dead A lane leaves the verdict OK with exit code 0. A dead B lane trips VACUITY at 3600 s with a wrong diagnosis ("the arm's flags are not reaching the code") and aborts 15 healthy lanes. A B lane that dies after the first hour is not reported at all.
+EVIDENCE: x4_headless.py:1069-1074: `if lane.first_spawn is not None: for sub, secs in require.items(): if sub not in lane.first_seen and now - lane.first_spawn >= secs:` makes no liveness check. :1696 `verdict = "FAILED — " + aborted if aborted else "OK"` has no lane-lost state. Dummy-lane run `harness.py crash` (lane H1 exits 1 at startup): `RC 0`, `VERDICT OK violations {}`, `H1 A hdr unknown armhdr 0 alive@dl False cut None first_seen {} spawns [(1, 6.8), (1, 5.0), (1, 5.0), (1, 5.0)] restarts 3`. Likelihood is low: the 7 most recent 32-lane sandbox batches recorded 0 restarts on every lane.
+FIX: Track lanes that are no longer alive and will not be restarted. Put them in the verdict and summary (for example `OK — DEGRADED: H1 (arm A) lost after 4 spawns`, and a `lanes_lost` key). Skip `require` for a lane that is not alive or has never produced an OK arm header, and report it as LANE LOST instead of VACUITY.
+
+--- R2 [SHOULD-FIX]
+WHAT: The cut-run records exist only when the batch ends at its deadline. If the user parks the batch with Ctrl-C, or any abort ends it, `alive_at_deadline` and `cut_log` stay None, yet DESIGN §4 says a user park stands and gets graded. Every spawn that x4h terminates also records exit=1, which is the same code a crashed lane records, so `spawns` cannot tell "cut by x4h" from "lane died".
+EVIDENCE: x4_headless.py:1645-1649 sets `lane.alive_at_deadline` and `lane.cut_log` only inside `if deadline is not None and now >= deadline`. :1659-1664 runs `stop_lane(lane)` and then `lane.spawns[-1]["exit"] = lane.proc.returncode`; on Windows `Popen.terminate()` is `TerminateProcess(handle, 1)`. Dummy runs: `harness.py ctrlc` gave `VERDICT FAILED — interrupted by user (Ctrl-C)` with every lane `alive@dl None cut None spawns [(1, 26.9)]`. `harness.py clean` (killed at the deadline) gave `spawns [(1, 77.3)]`. `harness.py crash` gave the genuinely crashed H1 `spawns [(1, 6.8), (1, 5.0), ...]`, the same exit 1. DESIGN §4 says "a user park stands, with the MDD for the realized n", and T2(d) takes cut runs from T1's records.
+FIX: In the `finally`, before `stop_lane`, record `alive_at_stop` and `cut_log` for every exit reason, not only the deadline, and say why the batch stopped. Mark spawns that x4h terminated, for example `"stopped_by": "x4h"`, so exit=1 is never read as a crash.
+
+--- R3 [SHOULD-FIX]
+WHAT: The freeze watch and the header build check both key on the HEAD of the whole repo. Any commit in the main checkout during the 13 hours therefore kills the batch, even a docs-only one. That includes the launching session's own wrap-up or handoff commit, or the SessionStart hook's `git pull --ff-only` if the checkout ever becomes clean. The code matches the spec (DESIGN §4: "No merge to main, and no Claude session started in the main checkout"). The risk is that this project's commit-and-push-per-item routine wastes the night.
+EVIDENCE: x4_headless.py:894-905 snapshots `git rev-parse HEAD` plus porcelain, and :384-389 returns `"ok" if tuple(start) == tuple(now) else "broken"`. :358-359 aborts when the header's `build` is not `expect_build[:12]`, and the header's build is HEAD from `.git/refs/heads/main` (debug_logger.py:142-170). `.claude/hooks/session-sync.ps1:52` runs `& git pull --ff-only` when the checkout is clean and behind; the hook matcher is `startup|resume|clear|compact`. The only thing keeping it from pulling is the ledger file (`git status --porcelain` in the main checkout shows ` M tools/story-dev/party_accounting_ledger.jsonl`).
+FIX: Cheapest: print a loud banner at launch and write it into ARMS.json: "DO NOT COMMIT, PULL OR MERGE IN <REPO_ROOT> UNTIL <deadline clock time>; commit docs on the worktree branch". Sturdier: freeze on `git rev-parse HEAD:sandbox-pokebot` plus the runner's blob instead of HEAD, and accept a header build whose `<commit>:sandbox-pokebot` tree equals the start tree.
+
+--- R4 [SHOULD-FIX]
+WHAT: Lanes are orphaned if the x4h process itself is killed from outside: its console window closed, Ctrl-Break, or the background task that launched it killed. The try/finally never runs, and the 16 lanes keep running indefinitely with no bound and no summary. T1(e) promises the lanes are always stopped, but that holds only for exceptions inside x4h.
+EVIDENCE: x4_headless.py:955-964 starts each lane with only `creationflags=CREATE_NO_WINDOW`: no Job Object and no process group. :921 passes `"--endless-target", str(runs_per_lane)`, which is 0 (forever) when `--runs 0`, as tonight's `--minutes 780` run uses. The lanes have no parent-death watch: in pokebot.py, `getppid` appears only in the atexit pause logic at :28.
+FIX: Create a Windows Job Object with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (ctypes, about 25 lines) and assign each lane after Popen. Windows then kills every lane when x4h's handle closes, however x4h dies.
+
+--- R5 [SHOULD-FIX]
+WHAT: The freeze watch cannot see further edits to a file that was already dirty in scope when the batch started, because porcelain shows status codes, not content. T1 only warns when the scoped tree is dirty, so an A/B could start dirty, have its code edited mid-batch and respawn lanes on different code without tripping the freeze or the HEAD-based build check. This is not a problem tonight if the tree is clean at launch: the main checkout's scoped porcelain is 0 lines now.
+EVIDENCE: x4_headless.py:1493-1495: `if commit.endswith("-dirty"): print("[x4h] ‼ WORKING TREE IS DIRTY …")` is a warning only. :899 `git status --porcelain --untracked-files=all -- <scope>` keeps reporting ` M sandbox-pokebot/x.py` however many times x.py changes. The header build line is HEAD-only (debug_logger.py:156-158).
+FIX: In an `--arms` batch, refuse to start when the scoped porcelain (`freeze_start[1]`) is non-empty. Alternatively, add a content hash of every dirty or untracked scoped file to the snapshot.
+
+--- R6 [NIT]
+WHAT: `_Tee.write` does not guard the console write, although its docstring says it never raises. A broken stdout (a dead pipe reader) raises inside the loop and is caught as an abort. The `except` block's own `print` then raises again, so `summary.json` and `MANIFEST.txt` are never written, and `--resummarise` cannot recover without `summary.json`.
+EVIDENCE: x4_headless.py:1441-1442 `def write(self, s): self.console.write(s)` has no try; only the file half is guarded (:1443-1447). :1655-1657 `except Exception as exc: … print(f"\n[x4h] ‼ UNEXPECTED ERROR …")`. :1266-1268: `resummarise` returns 2 with "no summary.json".
+FIX: Wrap `self.console.write` and `self.console.flush` in `try/except (OSError, ValueError)`, as the file half already is.
+
+--- R7 [NIT]
+WHAT: `arm_headers_checked` (like the older `headers_checked`) counts logs whose verdict is still 'unknown'. A run cut at the deadline before its header completed therefore counts as a checked header, so the summary over-states how many headers were verified.
+EVIDENCE: x4_headless.py:1017-1018 stores every verdict, including 'unknown' (`lane.arm_headers[key] = (averdict, areason)`). :612 then counts them all: `s["arm_headers_checked"] = len(lane.arm_headers)`.
+FIX: Count only 'ok' (`sum(v == 'ok' for v, _ in lane.arm_headers.values())`), and add a separate `arm_headers_unknown` count.
+
+--- R8 [NIT]
+WHAT: The MANIFEST mislabels what went wrong. It lists arm, leak, vacuity and freeze violations under "EMULATION ASSERTION … must read `emulation: speed=0 video=True`". Its per-lane `header` column shows only the emulation verdict, so the leaking lane's row reads `ok`.
+EVIDENCE: Dummy run `harness.py leak`: the MANIFEST shows `EMULATION ASSERTION … headers checked: 8   violations: 1` / `!! H1 … env-all differs from the arm: extra=['POKEBOT_X4H_LEAK']`, while lane H1's row reads `ok` (`H1 A hdr ok armhdr 1`). render_manifest at x4_headless.py:697-707 prints every `header_violations` entry under that heading.
+FIX: Group violations by `kind` under their own headings, and add an `armhdr` column (ok/BAD/unknown) to the lane table.
+
+--- R9 [NIT]
+WHAT: Running `--arms` from a git worktree (for example pokebot-wt-ch24) aborts on the first header with a misleading reason ("no readable `build:` commit"). `debug_logger._git_facts` needs `.git` to be a directory, but in a worktree it is a file. The abort is loud, so it costs minutes, not a night.
+EVIDENCE: debug_logger.py:142-149 `candidate = parent / ".git"; if candidate.is_dir(): …` and `return {"repo": "not a git checkout"}`. `cat "C:/Remote Projects/pokebot-wt-ch24/.git"` prints `gitdir: C:/Remote Projects/Pokebot_Gen3_Enhancement/.git/worktrees/pokebot-wt-ch24`, and there is no `.git` in `C:/Remote Projects` or `C:/`. x4_headless.py:355-356 returns `"bad", "complete run header has no readable \`build:\` commit"`.
+FIX: In `arms_preflight`, refuse with a clear message unless `(REPO_ROOT / ".git").is_dir()`, because the lane header cannot name a commit from a worktree.
+
+--- R10 [NIT]
+WHAT: A Ctrl-C after the loop, during the copy of 13 hours of logs (`collect_logs`, which can be GBs over 16 lanes) or the `time.sleep(2)`, loses `summary.json` and `MANIFEST.txt`. The post-loop section has no interrupt handling, and an impatient second Ctrl-C after a park is exactly this case.
+EVIDENCE: x4_headless.py:1665-1748: `time.sleep(2)`, then the per-lane `collect_logs` and `lane_summary`, then `summary.json` written at :1747, all outside any try. `resummarise` needs `summary.json` (:1266-1268).
+FIX: Write a provisional `summary.json` (from the `Lane` records, with no log parsing) right after the `finally`, and/or catch KeyboardInterrupt around `collect_logs` so the summary is still written.
+
+--- R11 [NIT]
+WHAT: If `X4H_FAULT_ENVLEAK=1` is left set in the shell after the T1-3 fault run, the real batch aborts about 90 s after launch. That would cost the night if the operator has already left. x4h records it in ARMS.json but does not refuse or loudly warn at start. The smoke run (T1-4) would normally catch it first.
+EVIDENCE: x4_headless.py:947-948 `if os.environ.get("X4H_FAULT_ENVLEAK") == "1" and lane.slot == 0: env["POKEBOT_X4H_LEAK"] = "1"`. :1547 records `"fault_envleak": os.environ.get("X4H_FAULT_ENVLEAK") == "1"`. No preflight check exists.
+FIX: At start, print a `!!!` banner when the fault is set. Better, require an explicit `--fault envleak` flag so a stale shell variable cannot arm it.
+
+--- R12 [NIT]
+WHAT: Contiguous arm blocks plus a sequential stagger mean the 8 arm-A lanes always spawn first, and the B lanes start 48-96 s later. That is about 0.1% of 780 minutes, so negligible, but it is the same direction every time.
+EVIDENCE: x4_headless.py:1557-1560 `for i, lane in enumerate(lanes): spawn(...); time.sleep(args.stagger)`, with slots 0-7 = A from `arm_of_slot` (:307-309). Default `--stagger 6.0` (:1357).
+FIX: Spawn in interleaved order (slot 0, 8, 1, 9, …) so neither arm gets a head start.
+
+====================================================================================================
+SECOND MUTANT PASS (an independent agent, after the first fold; its rows are section H)
+====================================================================================================
+**Second, independent mutant pass on x4_headless.py T1: 196 of 236 mutants killed. 32 of the 40 survivors are real gate gaps, all in the gate rather than the code. The other 8 are equivalent or harmless.**
+
+Nothing inside `C:/Remote Projects/pokebot-wt-ch24` or `Pokebot_Gen3_Enhancement` was modified. The real `x4_headless.py`, `repro_x4_headless.py` and `arms/batch14.json` are byte-identical to the snapshot I tested. While I ran, `PROJECT KNOWLEDGE/02-ARCHITECTURE.md` and `04-HANDOFF.md` became modified in that worktree; that is someone else's edit, not mine.
+
+**Setup.** Everything is in `...\scratchpad\t1adv2\`. The copy in `mut\` has only its `REPO_ROOT` constant changed, so it imports the scratch `x4_headless.py` and reads the real sandbox. The unmutated copy printed ALL PASS (229 rows). The runner is `run_mutants2.py`, using 6 parallel worker copies with TEMP redirected into scratch. Results are in `results2_all.json`. Nothing launched pokebot; G10's sleeper was the only real process started.
+
+**(1) The earlier hunter's 155 mutants: 148 killed, 7 survived.** All 155 re-applied. Six had moved and were re-anchored: RB-expect-build-none, RB-finally-first-lane, RB-armsjson-after, SP-no-spawn-record, LS-drop-arm_headers_checked, MF-no-lane-arm. None could not be re-applied. Section G kills 45 of the earlier 52 survivors, and the same 7 the earlier hunter could not kill remain:
+- **VA-starter-pos0 — EQUIVALENT.** `lane_starter` is `slot % 4`, so starters differ at some position exactly when they differ at position 0.
+- **VA-empty-arm — EQUIVALENT.** An empty arm is still refused, by the "SAME variables" check (one arm empty) or the "identical" check (all empty). Only the message changes.
+- **LE-armed-arm — EQUIVALENT.** `_run_batch` always sets `arm` and `arm_env` together.
+- **MO-no-mtime — EQUIVALENT while preflight holds.** The monitor only runs on armed lanes, and an arms batch needs a fresh tag whose profiles must not exist, so no older log can be present.
+- **CH-arm-skip-after-emu and CH-arm-only-if-emu-pending — EQUIVALENT.** Both checks read the same header text and settle in the same pass, when `--- END RUN HEADER ---` appears. "Emulation settled, arm not settled" cannot happen.
+- **MO-vacuity-gt — harmless boundary.** Vacuity fires one 5 s tick late. Optional row H-P17 kills it.
+
+**(2) 81 new mutants for R1–R12: 48 killed, 33 survived.**
+
+| Fix | Killed/tried | Survivors |
+|---|---|---|
+| R1 lanes lost | 6/9 | R1-e, g, i |
+| R2 stop facts | 7/10 | R2-f, i, j |
+| R3 banner | 3/5 | R3-c, e |
+| R4 job object | 6/10 | R4-a, f, g, j |
+| R5 dirty start | 4/6 | R5-d, f |
+| R6 `_Tee` | 0/4 | all four |
+| R7 header counts | 2/6 | R7-b, d, e, f |
+| R8 MANIFEST | 3/7 | R8-c, d, e, g |
+| R9 worktree | 4/5 | R9-e |
+| R10 provisional summary | 3/7 | R10-a, c, e, f |
+| R11 fault env | 4/5 | R11-e |
+| R12 spawn order | 6/7 | R12-e |
+
+Two of these are EQUIVALENT:
+- **R4-j:** without the `h is None` guard, `int(None)` raises TypeError, which is caught and returns False — the same result.
+- **R12-e:** one extra 6 s stagger after the last spawn changes nothing else.
+
+The other 31 are REAL GAPS. The exact code for each proposed row is in `t1adv2\extra_rows.py` (a new section H). It uses `_hdrive`, which is `_gdrive` plus three knobs: `die_at`, `collect_exc` and `stub_job`. Fold those into `_gdrive`.
+
+The most serious gaps:
+- **R4-a** (spawn never assigns the lane to the job): R4's whole protection can be switched off with the gate green.
+- **R6**: no row exercises `_Tee` at all.
+- **R10-a**: deleting the provisional summary is invisible.
+
+Proposed rows, with what each kills:
+- **H-P1** (R10-a/e/f, R1-i, R2-j): fault abort, then a RuntimeError at the first log copy. Assert `summary.json` is the provisional one: verdict starts "FAILED", contains "ARM HEADER", `lanes_lost == []`, and all 16 lanes have `alive_at_stop` True and a `.log` cut_log.
+- **H-P2** (R1-g): H10 dies, then the freeze breaks on the second poll. Verdict starts "FAILED — FREEZE BROKEN" and `lanes_lost` names H10. Under the mutant an aborted batch reads "OK — DEGRADED".
+- **H-P3** (R1-e): H5 dies at clock 1116 with a 2-minute bound, so in the deadline tick. Verdict "OK" and `lanes_lost == []`.
+- **H-P4** (R2-i): in G8's setup, H10 has 4 spawns, each exit 1 and none with `stopped_by`.
+- **H-P13** (R8-g): the MANIFEST contains `lanes lost: ['H10 (arm B)`.
+- **H-P5** (R2-f, R7-e): after `--resummarise` on a driven batch, all 10 T1 keys (including `alive_at_stop` and `arm_headers_unknown`) are unchanged.
+- **H-P6** (R3-c/e): `do_not_touch_until` and the banner's `# until …` equal `fromtimestamp(1000 + 120)` formatted.
+- **H-P7** (R4-a/f/g): with a stub job class, all 16 fake processes are assigned in spawn order (checked by identity) and every `spawns[0]["in_job"]` is True.
+- **H-P8** (R5-d): a start snapshot containing an untracked `?? sandbox-pokebot/modules/new.py` refuses the start (rc 2, nothing launched, no profiles).
+- **H-P9** (R5-f): `freeze_seq=[None]` (git fails at the start) refuses the same way.
+- **H-P10** (R6-a/b/c/d): a `_Tee` whose console raises ValueError on write and OSError on flush raises nothing, and the file still gets the text.
+- **H-P11** (R7-b/d/f): `lane_summary` with one ok, one unknown and one bad header gives checked 1, unknown 1, verdict "BAD".
+- **H-P12** (R8-c/d/e): `render_manifest` with one emulation, one kind-less (old-style) and one leak violation. The EMULATION section counts 2 including the kind-less one; A/B INTEGRITY counts 1 and lists only `[leak] H3`.
+- **H-P14** (R9-e): no row covers the call `main()` actually makes (no `repo_root`). Set `x4.REPO_ROOT` to a main checkout (accepted) and then to a worktree (refused "MAIN checkout").
+- **H-P15** (R10-c): G9 with an extra assertion that log collection stops after the interrupt (`calls["collect"] == 3`, not 16).
+- **H-P16** (R11-e): with `X4H_FAULT_ENVLEAK=0`, `lane_env(slot 0)` has no `POKEBOT_X4H_LEAK`. Preflight lets "0" through, so `lane_env` must agree.
+- **H-P17** (optional, MO-vacuity-gt): `require` fires at exactly `first_spawn + secs`.
+
+**Rows verified.** The gate plus section H prints ALL PASS on the unmutated code, so none of these gaps hides a bug in the code. Re-running the 40 survivors against it (`t1adv2\mutplus\`, results in `results2_mutplus_subset.json`) kills 32. The 8 left are exactly the equivalents above: six old ones, R4-j and R12-e.

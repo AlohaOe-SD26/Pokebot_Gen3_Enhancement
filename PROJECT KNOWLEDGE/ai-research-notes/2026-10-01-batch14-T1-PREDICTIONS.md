@@ -122,3 +122,28 @@ inherited leak that the strip missed, so the live header check must abort.
 
 The batch starts tonight (tag `s14`, 16 lanes, `--minutes 780`) only if T1-1, T1-3 and T1-4 hold, T1-2's survivors
 are closed, and T1 is merged to `main` at the commit the batch runs (USER RULING 28).
+
+## GRADED — the build phase (2026-10-01; the live arms T1-3 and T1-4 follow)
+
+- **T1-1 HELD:** the gate passes (sections F-H, 246 rows), the existing rows unchanged, and the full suite passes
+  (`run_gates.py`: all 137 enforcing gates).
+- **T1-2 FAILED AS FILED:** the first independent mutant pass killed only 103 of 155 mutants. 44 real gaps survived,
+  almost all WIRING: F14 checked `_run_batch` by its source SHAPE, and that passed with the arm abort gated on
+  `--on-bad-header`, the monitor or the freeze off, and the lanes built without their arm. The gate's own typo row also
+  caught a real bug on its first run: the "key appears in the source" test was a SUBSTRING test (`…KITTOPOF` passed
+  inside `…KITTOPOFF`); it now matches whole tokens.
+- **Folded:**
+  - section G, which DRIVES the real `_run_batch` with a fake Popen (asserted in place), a fake clock, fake git and a
+    bot-less `BUILD_ROOT`;
+  - the runtime review's twelve findings R1-R12: lost lanes are DEGRADED, never VACUITY; cut runs are recorded on every
+    exit; the do-not-commit banner; a kill-on-close job, measured on a real sleeper; a dirty start is refused; and more.
+- **A SECOND independent pass** (236 mutants) re-applied every earlier mutant: the only survivors are the six the first
+  pass called equivalent. It killed 48 of 81 mutants of the new fixes, and its section H closes the 31 real gaps (the
+  job assignment, the tee and the provisional summary could each be deleted with the gate green). What remains is 8
+  EQUIVALENT mutants, each argued in the evidence.
+- **One launch decision measured:**
+  - This session's processes sit in a kill-on-close job, so a background task would die with the session and take
+    the batch with it.
+  - A WMI-created `python.exe` is in no job and its parent is `WmiPrvSE`.
+  - ⇒ the night run is launched through WMI (`tools/story-dev/launch_x4h_detached.ps1 -Tag <tag> -Minutes <m>`, run
+    from the MAIN checkout; the recipe is in `04`).
