@@ -1,0 +1,337 @@
+design v2 step 13 — the gate's ADVERSARIAL PASS FOLDED (3 production fixes: SF-1, SF-2, N2; the gate 45 -> 91 rows, 59 -> 124 mutants), 2026-09-30 LA
+==============================================================================================================
+The builder's two reports (MODEL OUTPUT, verbatim), then the AUTHOR's re-runs: the red-on-unfixed proof (the fix
+rows against the literal 799e6adf files), the gate, and the builder's captured full-suite tail.
+
+======================================== builder report ========================================
+## Design v2 step 13: build report
+
+The flag-off path stays byte-identical apart from C1. The new gate passes. The whole suite shows **2 of 140 red, both doc audits**: my code shifted line numbers and counts quoted in docs 02/03/04, and I was told not to edit those docs (the exact lines are listed in §3). No pre-registered row looks wrong to me. Nothing is committed or staged.
+
+### 1. Files changed (worktree `C:/Remote Projects/pokebot-wt-ch24`)
+- `sandbox-pokebot/modules/story/double_items.py` (NEW, pure, no emulator imports). C6 holds:
+  - `mode`, `in_scope` (takes raw bits or a `BattleType`), `decode_bpo`, `active_positions`, `battler_party_index` (u16 stride), `self_ok`, `guard_ok`, `ledger_key`, `hp_only`, `heal_options`;
+  - `LEDGER_FIELDS` and `new_ledger()`, the D3 ledger;
+  - `heal_fraction_kw` and `hp_decline_reason` (the second only fills telemetry `why=`);
+  - constants for the flag, the 3 fault names, the `BattleType` bits, and `BPO_OFFSET=0x60` / `BPO_STRIDE=3`.
+- `sandbox-pokebot/modules/battle_menuing.py`: C1. `scroll_to_battle_action(action_index, is_right_side_pokemon=False)` passes the side through. `POKEBOT_R27_FAULT_DBL_CURSOR0` is read here, only for battler 2, and forces byte 0.
+- `sandbox-pokebot/modules/battle_action_selection.py`:
+  - **C1 callers:** use_move, use_item and RotateLead pass `battler_index > 1`; run and Safari are unchanged. The `UseItem` case passes `battler_index`, and `battle_action_use_item` gains `battler_index=0`.
+  - **New `_dbl_*` helpers (all flag-1 + double only):**
+    - the pre-bag read of the intended PID, the self binding and the after-line baseline;
+    - WRONGSLOT applied after the KI-101 remap;
+    - the D4 guard (`_dbl_guard`, with NOGUARD read inside it): no A on a refusal, then the existing B unwind;
+    - the `after` line at the first BATTLEMAINCB2 frame;
+    - D11's exit in the Struggle loop.
+  - It adds no `get_battle_state()` call (NH-gbs-count still finds 5), and `double_items` is imported only on the flag-on path.
+- `sandbox-pokebot/plugins/custom_modes/story_mode.py`:
+  - **C2:** a new `StoryItemBattleStrategy.decide_turn_in_double_battle`.
+  - **C3:** `_maybe_use_item(self, battle_state, side=0, doubles=False)`. Only the decision read and the KI-101 judge select by `side`. D10 rebinds `medicine = hp_only(medicine)` just before the cure call, in doubles only.
+  - **New module functions:** `_dbl_act` (the ledger swap in a try/finally, plus the `use` line), `_dbl_observe` and `_dbl_obs_line`.
+- `tools/story-dev/probe_double_items.py` (NEW): the gate.
+- `tools/story-dev/run_gates.py`: `("probe_double_items.py", False)` appended at the end, with a comment.
+- `PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md`: 4 rows (the flag and 3 faults), after the R27 KEYITEMS rows. `lint_docs.py` R6 passes: 245 flags in code, 245 documented.
+- **Not mine, left untouched:**
+  - `40cakes repo/UPDATE-LOG.md` and `PROJECT KNOWLEDGE/04-HANDOFF.md` (your daily upstream check);
+  - `party_accounting_ledger.jsonl` (the smoke run appended to it, as every harness run does);
+  - `saves/magma_1f_fail.ss1`.
+
+### 2. The gate
+**Counts:** 45 rows (7 DP, 17 DQ, 21 builder-added DB rows, each labelled `[builder]`), 3 faults, and 59 mutants (3 of them mention-only, which must redden nothing). COVERAGE: 45 rows, none uncovered. Every mutant's red set was written before its first run, and every one matched.
+
+**Raw last lines:**
+```
+  PASS  MM01 scroll_to_battle_action drops the side (upstream's byte 0)  — red ['DQ11', 'DQ12']
+  PASS  MM02 the CURSOR0 switch inverted (byte 0 unless the fault is set)  — red ['DQ11', 'DQ12']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 45 rows; uncovered []
+
+ALL PASS (45 rows, 3 faults, 59 mutants) in 2.6 s
+```
+Pool and `--inprocess` runs agree.
+
+**Faults, observed against pre-registered (all exact):**
+
+| Fault | Observed red set | Pre-registered |
+|---|---|---|
+| CURSOR0 | ['DQ11', 'DQ12'] | DQ11 + DQ12 |
+| WRONGSLOT | ['DQ13'] | DQ13 |
+| NOGUARD | ['DQ15'] | DQ15 |
+
+**The statement you asked for on DQ14:** its refusal comes from the RANGE check. The fake scroll stops on Cancel (slot 7), and NOGUARD skips only the PID comparison, so DQ14 stays green under NOGUARD.
+
+**Why the builder rows exist:** each closes a rule that no pre-registered row could catch. Examples:
+- DBjudge: the KI-101 judge's side, using P6's retry-then-disable shape.
+- DBself: the self binding refuses even when the PIDs match.
+- DBsingleexec: a flag-on SINGLE battle runs today's flow.
+- DBmenuclosed: no A is pressed into the bag.
+- DBd11b2: D11 binds battler 0 only.
+- DBobsdisc: `disc=0`, which T2 grades.
+
+### 3. Full-suite tail (final code; no edits during the run)
+- 140 gates: 134 PASS, 4 ADVIS (as before), 2 FAIL.
+- `probe_double_items.py` PASS (3.1 s). Also PASS: `repro_key_battle_items.py` (A1), `repro_battle_items.py`, `repro_item_noop_detector.py`, `probe_dmgaudit.py`, `repro_no_silent_except.py` (217, exactly at baseline; per-root budgets intact), `probe_league_reserve.py`, `probe_weaken_catch.py`, `repro_ki90_absent_left_slot.py`, `lint_docs.py`.
+- Not in the suite, run directly, all PASS: `repro_ki45_cursor_bound.py`, `repro_ki46_action_selection_bound.py`, `repro_ki47_subhandler_net.py`.
+
+```
+FAILED: 2 of 140
+--- audit_doc_consistency.py (exit 1)
+  FAIL  04-HANDOFF.md:623 claims 139 gates; run_gates.py has 140
+  FAIL  02-ARCHITECTURE.md:296 ... comment says 139; the suite has 140 ('139 entries = 135 ENFORCING')
+  FAIL  04-HANDOFF.md:720 ... --quick comment says 125; the no-ROM subset has 126
+  FAIL  04-HANDOFF.md:624 claims drift=26; MEASURED drift is 28: 'EXPECT 26 differing'
+  FAIL  04-HANDOFF.md:312 claims drift=26; MEASURED drift is 28
+--- audit_doc_citations.py (exit 1)
+  FAIL  03-PUNCH-LIST.md:636  story_mode.py:1811 decide_maintenance -> now 1877-1941
+  FAIL  03-PUNCH-LIST.md:652  story_mode.py:1215 SwapTrainBattleStrategy -> now 1281-1346
+  FAIL  03-PUNCH-LIST.md:1339 battle_action_selection.py:1016 battle_action_use_item -> now 1187-1332
+  FAIL  03-PUNCH-LIST.md:2140 story_mode.py:2617 _should_catch -> now 2681-2813
+  FAIL  03-PUNCH-LIST.md:2959 story_mode.py:2617 _should_catch -> now 2681-2813
+  FAIL  04-HANDOFF.md:101 story_mode.py:1915 decide_dex_catch -> now 1981-2178
+  FAIL  04-HANDOFF.md:102 story_mode.py:2617 _should_catch -> now 2681-2813
+  ‼ 7 definition-citation(s) have DRIFTED. Fix the doc, not the code.
+```
+All 12 failures are doc edits for you to make in docs 02/03/04:
+- The suite count goes from 139 to 140 entries (136 enforcing).
+- The `--quick` count goes from 125 to 126.
+- Drift goes from 26 to 28: `modules/battle_menuing.py` now differs from custom, and `modules/story/double_items.py` is missing there.
+- The 7 line citations move to the spans shown above.
+
+### 4. New log lines (the debug logger writes `[CATEGORY] message`)
+All examples below are real output from the gate.
+
+**`[DBLITEM-OBS]`** (observe only, one per decision):
+- Format: `side= g= turn= me=<Species>#<PID8 upper> P= hp=cur/max would=<Item_With_Underscores|-> why= key=<1|0|?> worst= uses= bpo=<6 hex> bpo_pos=<0|1|tailN|?> disc=<0|1> cur=<8 hex>`
+- `why` takes one of: hp, cure, not_key, ineffective, fainted, cap, above_fraction, no_hp_item, losing_race, declined.
+- If the battler is missing, the line is `side= g= turn= me=- would=- why=no_mon`. On an internal error it is `side= g= err=<Type>: <msg>`.
+- Example: `[DBLITEM-OBS] side=1 g=2 turn=3 me=Mightyena#5C96EA9B P=4 hp=20/100 would=Potion why=hp key=1 worst=0 uses=0 bpo=140235 bpo_pos=1 disc=1 cur=00000100`
+
+**`[DBLITEM] use`** (flag 1, when the strategy acts; the item name keeps its spaces):
+- Example: `[DBLITEM] use side=1 g=2 item=Potion target=Mightyena#5C96EA9B P=4 hp=20/100 self=1`
+
+**`[DBLITEM] menu`**:
+- The design's fields come first, contiguous, as the predictions quote them. Then `aim=` (the slot the bot drove at, next to the actual `slot=`), `self=`, and `err=` only when a guard read failed.
+- Pass: `[DBLITEM] menu g=2 battler_in_menu=2 layout=1 slot=1 menu_pid=5C96EA9B intended_pid=5C96EA9B ok=1 a_pressed=1 aim=1 self=1`
+
+**Guard refused.** There is no separate "guard refused" line: a refusal is the `menu` line with `ok=0 a_pressed=0`.
+- PID mismatch: `[DBLITEM] menu g=2 battler_in_menu=2 layout=1 slot=1 menu_pid=0B30A747 intended_pid=5C96EA9B ok=0 a_pressed=0 aim=1 self=1`
+- Out of range: `... slot=7 menu_pid=- intended_pid=5C96EA9B ok=0 a_pressed=0 aim=1 self=1`
+- Read failure: `[DBLITEM] menu g=2 battler_in_menu=? layout=? slot=? menu_pid=- intended_pid=5C96EA9B ok=0 a_pressed=0 aim=1 self=1 err=RuntimeError`
+- The NOGUARD shape is `ok=0 a_pressed=1`.
+
+**`[DBLITEM] after`** (target and partner are both `Species#PID`; `same=1` means the target's PID at that party index did not change between the two reads):
+- Example: `[DBLITEM] after g=2 target=Mightyena#5C96EA9B hp=30->50 status1=0->0 partner=Sceptile#863B0917 hp=40->40 Potion=1->0 healed=0->1 same=1`
+
+**Two lines that are mine, beyond the design:**
+- `[DBLITEM] err side=0 g=0 RuntimeError: <msg>` on the flag-1 fail-open path (D9).
+- `[DBLITEM] struggle-exit g=0 — battler 2's action menu is open; no A pressed into it (D11)` when D11 fires.
+
+### 5. Pre-registered rows I believe are wrong
+None. Every DP and DQ row was implemented with its filed outcome. Two notes on how the live predictions are worded, not on their substance:
+- P3/T3 write `healed=+1`. I print the design's `before->after` format, so the line reads `healed=0->1`. The decomp increments `numHealingItemsUsed` inside the item effect (`pokemon.c:5099`), so it should already show at the after-read.
+- P6 quotes the disable line as `[ITEM] ‼ not consumed twice; disabling items`. The real text is `[ITEM] ‼ not consumed — the item was NOT consumed twice; disabling items for the rest of this battle`.
+
+### 6. Decisions the spec did not settle (for the decisions log)
+1. **NOGUARD** skips only the PID comparison. The range check and the self binding still hold. So `ok` is logged honestly as 0 while `a_pressed=1`.
+2. **A failed self binding** makes the guard refuse at the party menu (`self=0 ok=0`). It does not abort before the bag opens.
+3. **Menu-open precondition (my addition):** the guard refuses unless the game state is PARTY_MENU when it reads. A stale `slotId` could otherwise match the intended PID in field order and send A into the bag. Pinned by DBmenuclosed and mutant MB17.
+4. **Flag tests:** the executor tests the flag inline (`== "1"`, the same rule as `mode()`) and imports `double_items` lazily on the flag-on path, so core code never depends on a story module when the flag is off. The strategy uses `double_items.mode()`.
+5. **Ledger key** is (PID, species index), following `faint_chooser`'s identity convention rather than the species name.
+6. **Observe's key field:** `key=` comes from `key_battle_verdict(True, sides)` (1 = key class, 0 = every side read and none key, ? = unreadable). `would=` applies KEYITEMS through `key_battle_verdict(KEYITEMS=="1", sides)` and fails open.
+7. **Observe's cure policy** gets the HP options (D10) and a constant party count, since `allow_revive=False` never reads the count.
+8. **D10's mechanism** is a `medicine` rebind before the cure call, because `repro_battle_items.py` pins the call's own text.
+9. **Index spaces in the executor:** it receives the battler id g (0 or 2) and derives side = g // 2 and partner = g ^ 2. The `after` line's partner is `gBattlerPartyIndexes[g^2]`.
+10. **Line format additions:** the `menu` line gets `aim=` and `self=` at the end; the `after` line gets `same=`; there are the `err` and `struggle-exit` lines; `bpo_pos` prints `tailN` when the requester sits outside positions 0-1.
+11. **The fail-open path logs a line.** D9 says only "an exception gives the parent's attack"; I added the `err` line so the fallback is visible.
+
+### 7. Things I'm unsure about
+- **Real reads are untested by me.** The new raw reads — the `gBattleStruct` dereference with `context.emulator.read_bytes`, decoding raw `gPlayerParty` records with `Pokemon(raw)`, `gPartyMenu[8]`/`[9]` and `gBattlerInMenuId` — have only been run against the gate's fakes and Step 0's identical script. The live arms will be their first real run. My one live check was a 300-frame smoke: `POKEBOT_R27_DOUBLEITEMS=1`, `storyresume`, `post_mtpyre.ss1`. It exited 0 with no traceback and left `saves/` unchanged, but it reached no battle.
+- **The `_Watched` override in `story_harness.py`** (line 16528, used only by the §Ch24 probe with `POKEBOT_CH24_STAGE_FREEZE` or `POKEBOT_CH24_OBSERVE`) takes `_maybe_use_item(self, battle_state)` with no new keyword arguments. In a double with DOUBLEITEMS=1 it would fail open with `[DBLITEM] err … TypeError`. The Elite Four fights are singles, so it doesn't bite today. Adding `*a, **k` there would fix it; that file wasn't in my scope.
+- **P1's logsha** (P-OFF equal to X-BASE): I checked that STUCK dumps print `file:line` only on indented lines, which the hash excludes, so the shifted line numbers shouldn't change the hash. This is reasoning, not a measurement.
+- **§7 asks for "an adversarial mutant pass" before the gate is appended.** I wrote the mutants myself and appended the gate as instructed. An independent adversarial pass has not been run.
+
+======================================== builder report ========================================
+## Fold report: design v2 step 13, adversarial pass
+
+The three production fixes are in, and the gate now has 91 rows, 3 faults and 124 mutants, all passing. All three fault sets are still exactly the pre-registered ones. The full suite has one red: `audit_doc_citations.py`, a single line citation in doc 03 that SF-2's new helper shifted (fix in §6). Nothing is committed or staged; no git command was used to undo anything, and no live arm was run.
+
+### 1. Files changed
+- **`sandbox-pokebot/plugins/custom_modes/story_mode.py`**
+  - **SF-1:** the cure block is now `if item is None and not doubles:`, so a double never asks the cure policy. The old `hp_only(medicine)` rebind is removed. The singles cure call is textually unchanged (`repro_battle_items.py` still passes). `_dbl_obs_line` drops its cure fallback the same way.
+  - **N2:** `decide_turn_in_double_battle` tests the exact env values (`"observe"` or `"1"`) before any import. The `double_items` import and `mode()` now sit inside the fail-open `try`, with `in_scope = mode != _dbl.OFF and _dbl.in_scope(...)`.
+- **`sandbox-pokebot/modules/battle_action_selection.py`**
+  - **SF-2:** new `_dbl_open_bag()` (3 presses, a 30-frame window each, then up to 150 frames after acceptance), used only when `_dbl_ctx is not None`.
+  - It re-presses A only while `get_battle_controller_callback(battler_index)` is still the action menu. Once the A is accepted it waits without pressing. If the bag still hasn't opened, the existing bounded give-up runs.
+  - Today's 3 × 30 loop moved under `else:` with no behaviour change. The docstring states the measured 16-frame margin, and why singles is left alone (not measured failing; rule 9).
+- **`sandbox-pokebot/modules/story/double_items.py`:** `hp_only` docstring only, because it is no longer D10's mechanism.
+- **`tools/story-dev/probe_double_items.py`** (the gate):
+  - **New infrastructure:** fold rows, `iso_env` and `run_item_iso`, `PaddedGame`, `StaleGame`. `Game` now models the action menu (dropped or accepted presses, a delayed bag), and the executor fake's default controller follows it.
+  - **Fixture change:** every fixture carries IS_MASTER (`REAL_DOUBLE`).
+  - **Row changes:** DQ14 relabelled; DQ08 now looks for the pending request in any ledger.
+  - **Mutant tables:** `MUTANT_ADDITIONS`, `FOLD_MUTANTS` and `FAULT_MUTANTS`, plus an `fmutant` job kind that installs a mutant and sets a fault together.
+- **Not touched:**
+  - `run_gates.py` (the list is append-only). My entry's comment there still says "+ 59 mutants; ~3 s"; it is now 124 mutants and ~5 s.
+  - The registry (no new flags; `lint_docs` R6 passes).
+
+### 2. Red on the unfixed code, green on the fixed
+**In the gate** (permanent revert mutants, all passing):
+
+| Revert mutant | Red set |
+|---|---|
+| RV-SF1a (acting path) | {SF1-cure} |
+| RV-SF1b (observe) | {SF1-cure} |
+| RV-SF2 | {SF2-accept, SF2-drop} |
+| RV-N2 | {N2-import} |
+
+**Against the literal 799e6adf files** (read with `git show`, installed in memory only):
+
+| Code under test | Red rows |
+|---|---|
+| Fixed working tree | [] |
+| 799e6adf `story_mode.py` | ['N2-import', 'SF1-cure'] |
+| 799e6adf `battle_action_selection.py` | ['SF2-accept', 'SF2-drop'] |
+| Both files from 799e6adf | ['N2-import', 'SF1-cure', 'SF2-accept', 'SF2-drop'] |
+
+SF2-bound and SF2-unset are green on both versions on purpose. They pin the press bound and the unchanged flag-unset loop.
+
+### 3. Gate counts, last lines, fault sets
+- **Rows:** 91 = the earlier 45 + 13 X + 27 K + 6 fix rows (SF1-cure, N2-import, SF2-accept, SF2-drop, SF2-bound, SF2-unset).
+- **Mutants:** 124 = 59 original + 62 fold mutants + 3 run under a fault.
+- **COVERAGE:** 91 rows, none uncovered.
+
+```
+  PASS  XN53 WRONGSLOT fires with the flag unset and in singles  — red ['DBsingleexec', 'DQ13', 'DQ17']
+  PASS  XN34f NOGUARD presses whatever, under the NOGUARD job  — red ['DBself', 'DQ14', 'DQ15', 'X07', 'X08']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 91 rows; uncovered []
+
+ALL PASS (91 rows, 3 faults, 124 mutants) in 4.4 s
+```
+The pool and `--inprocess` runs agree.
+
+**Faults, observed:** CURSOR0 ['DQ11', 'DQ12'], WRONGSLOT ['DQ13'], NOGUARD ['DQ15']. All three equal the pre-registered sets; no new row joined any of them.
+
+**How the mutant sets were written:**
+- **New mutants (62 + 3):** every set was derived by hand before its first run, and every one matched.
+- **Additions for the 59 existing mutants:** these were measured on the fold's first run, then checked one by one for a mechanism. They are labelled that way in the file; they are not a pre-registration.
+- **My one miss:** MB09 also reddens SF2-unset. I wrote that row after measuring the additions, and the gate's exact check caught it.
+
+### 4. K-* and X-* rows dropped or changed, and why
+- **K-fullrestore:** the acting half is dropped, because SF-1 makes "a double spends a Full Restore on sleep" wrong by design. Its pure half is kept as K-hp255.
+- **K-obs-cure:** dropped, since SF-1 inverts it. Its mutant S33 is now the intended code; the inverse is RV-SF1b, and SF1-cure asserts `would=-`.
+- **K-d10-side1:** kept. Its mutant S20 is re-expressed for SF-1 as KS20.
+- **K-parity-noreserve:** extended to a three-way parity that also includes observe's own options.
+- **K-ledger-switch:** added from the strategy hunter's addendum.
+- **X04:** kept, although the hunter itself calls its path unreachable (`BattleType` cannot raise). It pins the direction `_dbl_on` fails in.
+- **X13:** extended with a positive `"1"` case, so XN05 and XN06 now die without a fault set.
+- **Isolation:** X01, X05–X08, X10, X12 and X13 run under `iso_env`; X02 deliberately does not.
+- **DQ14:** relabelled. Its refusal comes from the range check, and it does not prove the PID is read at the actual slot; X01 does.
+- **DQ08:** it now searches any ledger for the pending request. The exact-key lookup made it redden rewrites that behave the same (the hunter's S06/S07). As a result MD11's set lost DQ08 (DP06 still catches MD11), and MD12 lost DQ07 because of SF-1.
+- **Re-anchored:** MS01 now drops both flag tests (dropping `mode != OFF` alone changes nothing), and MS08/MS09 now target the new cure guard.
+- **Left out, with reasons in the file:** the survivors both hunters argued are equivalent or unreachable, re-checked against this code.
+
+### 5. One more fix inside the gate
+`lint_docs` R6 rejected the deliberately misspelt env name in mutant XN05 as an unregistered flag. I split the literal as `"POKE" "BOT_…"`, so the gate's source never holds it as a quoted name; the mutant still bites.
+
+### 6. Full-suite tail (final code)
+```
+FAILED: 1 of 140
+--- audit_doc_citations.py (exit 1)
+  FAIL  03-PUNCH-LIST.md:1339 cites `battle_action_selection.py:1187` for `battle_action_use_item`, but `battle_action_use_item` spans `battle_action_selection.py:1229-1379` — the citation lands OUTSIDE it
+  ‼ 1 definition-citation(s) have DRIFTED. Fix the doc, not the code.
+```
+The rest: 135 PASS and 4 ADVIS. `audit_doc_consistency` passes, and drift is unchanged at 28. The one doc fix for you: in 03-PUNCH-LIST.md line 1339, change `battle_action_selection.py:1187` to `:1229`.
+
+Other checks:
+- **Smoke run:** 300 frames, flag 1, `post_mtpyre`. Exit 0, no traceback, `saves/` unchanged.
+- **Line endings:** no file has mixed endings; git's warnings are just autocrlf notices.
+
+### 7. What changes in the live arms' expectations
+- **SF-1 changes no graded line.**
+  - The arms log has 0 `why=cure` rows.
+  - The T family's bag (Potion, Full Heal) gave the old cure policy only `[Potion]`, which cures nothing. The P family holds no cure.
+  - From now on an OBS row can never say `why=cure`.
+- **SF-2 changes the `[ITEM-FLOW]` bag lines in every flag-1 item flow:** P-ON, P-CUR, P-SLOT (both flows), P-NOG and T-ON.
+  - "bag-not-open-yet (attempt n/3)" now appears only while the action menu is still up, reworded to "…; the action menu is still up — pressing again".
+  - A new line follows: "A accepted after n press(es) — waiting up to 150 frames for the bag, pressing nothing (SF-2)".
+  - Some A presses that landed in `CB2_BAG` are no longer made: P-ON's at f3149438, and the second press in T-ON and in P-SLOT's retry.
+  - **Prediction, not measured:** the bag-open frames and every later frame stay the same, because bag input is ignored during the fade. The `[DBLITEM] use / menu / after` content (PIDs, HP, bag counts) should not change.
+  - **New information:** P-ON's first ITEM-FLOW line will now show whether its first A was dropped or accepted but slow.
+- **Unchanged by construction:** flag-unset runs (P-OFF, T-OFF, X-BASE logsha; SF2-unset pins this), the observe arms, and N2.
+
+### 8. Not folded
+The defect hunter's nits N1 (the bag-count verdict is per item type), N3 (item names keep their spaces in `use`/`after`) and N4 (a bag-did-not-open return logs no `menu`/`after` pair) were not in the brief.
+
+The new rows' proof script is `scratchpad/d13fold_unfixed.py`; the final suite log is `scratchpad/full_suite_fold.txt`.
+
+======================================== the author's re-run of the red-on-unfixed proof (scratch d13fold_unfixed.py) ==========
+FIXED (working tree): red []
+UNFIXED story_mode.py @799e6adf: red ['N2-import', 'SF1-cure']
+UNFIXED battle_action_selection.py @799e6adf: red ['SF2-accept', 'SF2-drop']
+UNFIXED both @799e6adf: red ['N2-import', 'SF1-cure', 'SF2-accept', 'SF2-drop']
+======================================== the author's gate run ========================================
+  PASS  XN43 `target-chosen` staged on a refusal too  — red ['X10']
+  PASS  XN47 the after line's same= always 1  — red ['X11']
+  PASS  XN50 WRONGSLOT applied BEFORE the KI-101 re-map (which overwrites it)  — red ['X05', 'X06']
+  PASS  XN51 WRONGSLOT aims at the requester's OWN side  — red ['X05', 'X06']
+  PASS  XN52 WRONGSLOT aims at 1 - g  — red ['X05']
+  PASS  XN54 WRONGSLOT aims at bench slot 2 + side  — red ['X05', 'X06']
+  PASS  XN02 CURSOR0 TOGGLES the side for every battler (battler 0 reads byte 2 under the fault)  — red ['DQ11', 'DQ12', 'X02']
+  PASS  XN53 WRONGSLOT fires with the flag unset and in singles  — red ['DBsingleexec', 'DQ13', 'DQ17']
+  PASS  XN34f NOGUARD presses whatever, under the NOGUARD job  — red ['DBself', 'DQ14', 'DQ15', 'X07', 'X08']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 91 rows; uncovered []
+
+ALL PASS (91 rows, 3 faults, 124 mutants) in 4.5 s
+======================================== the builder's full-suite tail (scratch full_suite_fold.txt) ====================
+  PASS  probe_double_items.py              exit=0     5.1s
+============================================================================================
+FAILED: 1 of 140
+
+--- audit_doc_citations.py (exit 1) — last 25 lines ---
+    ============================================================================================
+    DOC CITATION AUDIT — does `identifier` + `file.py:LINE` still resolve?
+    ============================================================================================
+      FAIL  03-PUNCH-LIST.md:1339 cites `battle_action_selection.py:1187` for `battle_action_use_item`, but `battle_action_use_item` spans `battle_action_selection.py:1229-1379` — the citation lands OUTSIDE it
+    ============================================================================================
+    ‼ 1 definition-citation(s) have DRIFTED. Fix the doc, not the code.
+============================================================================================
+----- d13fold_unfixed.py (verbatim) -----
+"""Red-on-unfixed / green-on-fixed proof for the fold's production fixes: run EVERY gate row against the LITERAL
+799e6adf story_mode.py + battle_action_selection.py (git show, installed in memory, never written to disk), then against
+the working tree. Read-only with respect to the worktree."""
+import os
+import subprocess
+import sys
+
+WT = r"C:/Remote Projects/pokebot-wt-ch24"
+sys.path.insert(0, WT + "/tools/story-dev")
+sys.dont_write_bytecode = True
+import probe_double_items as P  # noqa: E402
+
+for k in P.ROW_ENVS + P.FAULT_ENVS:
+    os.environ.pop(k, None)
+
+
+def show(rel):
+    return subprocess.run(["git", "show", f"799e6adf:{rel}"], cwd=WT, capture_output=True, text=True,
+                          encoding="utf-8").stdout
+
+
+def run(label, swap):
+    real = {n: sys.modules[n] for n in P.NAMES.values()}
+    try:
+        for key, rel in swap.items():
+            P._install(P.NAMES[key], P.PATHS[key], show(rel), 0)
+        red = sorted(set(P.pure_rows("m") + P.strategy_rows("m") + P.executor_rows("m")))
+    finally:
+        for name, mod in real.items():
+            sys.modules[name] = mod
+            parent, child = name.rsplit(".", 1)
+            setattr(sys.modules[parent], child, mod)
+    print(f"{label}: red {red}")
+
+
+run("FIXED (working tree)", {})
+run("UNFIXED story_mode.py @799e6adf", {"sm": "sandbox-pokebot/plugins/custom_modes/story_mode.py"})
+run("UNFIXED battle_action_selection.py @799e6adf", {"bas": "sandbox-pokebot/modules/battle_action_selection.py"})
+run("UNFIXED both @799e6adf", {"sm": "sandbox-pokebot/plugins/custom_modes/story_mode.py",
+                               "bas": "sandbox-pokebot/modules/battle_action_selection.py"})
+

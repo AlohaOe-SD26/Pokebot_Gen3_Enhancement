@@ -1158,6 +1158,48 @@ def _dbl_guard(ctx: dict, aim: int) -> bool:
     return press
 
 
+#: SF-2 (the adversarial pass, 2026-09-30) — the doubles bag-open budget, see `_dbl_open_bag`.
+_DBL_BAG_PRESSES = 3                  # A presses while the action menu is still up (today's three attempts)
+_DBL_BAG_PRESS_WINDOW = 30            # frames each press is given before the menu is looked at again (today's 30)
+_DBL_BAG_WAIT_AFTER_ACCEPT = 150      # frames to wait for BAG_MENU, pressing nothing, once the A was accepted
+
+
+def _dbl_open_bag(battler_index: int, stage) -> Generator:
+    """design v2 step 13, SF-2 — open the bag for battler `battler_index` (0 or 2) in a flag-on DOUBLE; returns True once
+    `BAG_MENU` is seen, False when it gives up (today's bounded give-up then runs). At most 3 × 30 + 150 frames.
+
+    ‼ WHY (MEASURED, `evidence/2026-09-30-doubleitems13-ARMS.txt`, P-ON): battler 0's first item of a turn opened the
+    bag 74 frames after entry — attempt 1 timed out still in `BATTLEMAINCB2`, attempt 2 in `CB2_BAG` — against today's
+    budget of 3 × 30 = 90: a MARGIN OF 16 FRAMES. Once an A is accepted the bag takes 34-38 frames (P-SLOT's retry,
+    T-ON). ~17 more frames of delay and the flow returns while the bag is still opening; nothing then re-decides
+    battler 0 (its controller sits in `CompleteWhenChoseItem`), so the handler idles into a KI-46 derail with the bag
+    left open. ⇒ press again ONLY while the action menu is still up (`get_battle_controller_callback(battler_index)` is
+    the action-menu callback: the press was dropped); once it has left, the A was ACCEPTED, so wait for the bag
+    without pressing, bounded.
+    ⛔ FLAG-ON DOUBLES ONLY. The flag-unset and singles path keeps today's loop press for press: singles was not measured
+    failing, and changing it would put a shared path in this step's scope without an A/B (rule 9)."""
+    presses = 0
+    while presses < _DBL_BAG_PRESSES:
+        context.emulator.press_button("A")
+        presses += 1
+        for _ in range(_DBL_BAG_PRESS_WINDOW):
+            yield
+            if get_game_state() == GameState.BAG_MENU:
+                return True
+        if get_battle_controller_callback(battler_index) not in _DBL_CHOOSE_ACTION:
+            break                                   # the action menu let go: this A was ACCEPTED
+        stage(f"bag-not-open-yet (attempt {presses}/{_DBL_BAG_PRESSES}; the action menu is still up — pressing again)")
+    else:
+        return False                                # three presses and the action menu never let go
+    stage(f"A accepted after {presses} press(es) — waiting up to {_DBL_BAG_WAIT_AFTER_ACCEPT} frames for the bag, "
+          f"pressing nothing (SF-2)")
+    for _ in range(_DBL_BAG_WAIT_AFTER_ACCEPT):
+        yield
+        if get_game_state() == GameState.BAG_MENU:
+            return True
+    return False
+
+
 def _dbl_after(ctx: dict, item) -> None:
     """C5's `[DBLITEM] after` line, at the executor's first `BATTLEMAINCB2` frame (the `returned-to-battle` stage, before
     any move runs), from RAW gPlayerParty (field order again) and the save block (reviews M4/F2). ⛔ The arms grade HP
@@ -1218,16 +1260,21 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
     # re-decides next pass, and a re-decided turn beats a wedge. (The deeper item-flow
     # reliability work stays `#24-battleitems`; this closes only the HANG.)
     _bag_open = False
-    for _attempt in range(3):
-        context.emulator.press_button("A")
-        for _ in range(30):
-            yield
-            if get_game_state() == GameState.BAG_MENU:
-                _bag_open = True
+    if _dbl_ctx is not None:
+        # design v2 step 13, SF-2: in a flag-on double, re-press only while the action menu is up, then wait for the bag
+        # without pressing (`_dbl_open_bag` has the measured 16-frame margin this closes).
+        _bag_open = yield from _dbl_open_bag(battler_index, _stage)
+    else:
+        for _attempt in range(3):
+            context.emulator.press_button("A")
+            for _ in range(30):
+                yield
+                if get_game_state() == GameState.BAG_MENU:
+                    _bag_open = True
+                    break
+            if _bag_open:
                 break
-        if _bag_open:
-            break
-        _stage(f"bag-not-open-yet (attempt {_attempt + 1}/3)")
+            _stage(f"bag-not-open-yet (attempt {_attempt + 1}/3)")
     if not _bag_open:
         _stage("bag-did-not-open after 3 bounded attempts — returning; the strategy will re-decide")
         return

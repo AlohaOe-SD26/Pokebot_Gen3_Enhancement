@@ -1,0 +1,202 @@
+design v2 step 13 (KB-2) — the ADVERSARIAL PASS on the gate (probe_double_items.py) and a production-defect hunt, at build 799e6adf, 2026-09-30 LA
+==============================================================================================================
+Three fresh agents that never built the gate (two mutant hunters, one defect hunter); MODEL OUTPUT (a NOTE),
+verbatim. They changed no repository file. The fold and its proof are in -FOLD.txt.
+
+======================================== angle: mut-strategy ========================================
+## Mutant pass on G-D13: strategy half and pure module
+
+This is a NOTE, not a verdict. I made no changes to the worktree. Mutants were applied in memory through the gate's own `_apply` / `_install` / `_job_red` (`probe_double_items.py:1356-1405`), in-process, with `-B` so no bytecode was written. `git status` shows only files I did not create: the two pre-existing `M` files, plus `doubleitems13-GRADED.md` and `evidence/...-ARMS.txt`, which the live arms wrote while I worked. The gate's baseline is green: 45 rows, 3 faults, 59 mutants.
+
+### Counts
+- **Tried:** 77 new mutants (31 on `double_items.py`, 46 on `story_mode.py`).
+- **Caught by the current gate:** 34.
+- **Survived:** 43. Of those:
+  - **14 are equivalent or unreachable** (arguments below).
+  - **29 are real misses.** All 29 are killed by 27 proposed rows. Each row passes on the real code and fails on its target mutant (kill matrix checked against every survivor).
+
+### Survivors and the row that kills each
+All proposed rows reuse the gate's own fixtures (`sworld`, `dstate`, `new_strategy`, `Bag`). `st2` is a new helper that builds a `BattleState` with both sides configurable.
+
+| Mutant | Code | Proposed row (inputs → expected on the real code) |
+|---|---|---|
+| N01/N02/N03: `mode` accepts `OBSERVE`, `1…`-prefixed values, or strips trailing space | `double_items.py:66-71` | **K-mode:** `mode()` of `OBSERVE`, `Observe`, `observe `, `1 `, `10`, `1\n` → all `off` |
+| N06: `in_scope` excludes TwoOpponents; N07: it requires bits == Trainer\|Double exactly | `double_items.py:79-81` | **K-scope-real:** `in_scope(T\|D\|IsMaster)` and `in_scope(T\|D\|IsMaster\|TwoOpp)` → True; flag `1`, those flags, side 0 at 20/100 → `UseItem(Potion, 1)` |
+| N12: `active_positions` sorted | `:96` | **K-active:** `active_positions([3,1,0,2,4,5])` → `(3,1)` |
+| N21: `guard_ok` drops the slot/count None checks (raises instead of returning False) | `:117` | **K-guardnone:** `guard_ok(a,a,None,6)` and `guard_ok(a,a,0,None)` → False. The executor can't reach this (it catches the raise and fails closed, `battle_action_selection.py:1148`); only the pure contract can. |
+| N22: PID compared on its low 16 bits only | `:121` | **K-guardhigh:** `guard_ok(a, a^0x10000, 0, 6)` → False |
+| N23: `hp_only` also drops 255 (Full Restore, Max Potion) | `:133` | **K-fullrestore:** `hp_only` keeps both 255 items; flag `1`, left asleep at 100/100, bag Full Restore only → `UseItem(Full Restore, 1)`. **K-parity-noreserve:** DQ03 with an identity reserve → Potion and Full Restore on both sides. |
+| N25: `heal_options` fails CLOSED when the reserve raises | `:148-151` | **K-reserve-raise:** a raising reserve → the same list as with no reserve |
+| N31: `_is_healing` also accepts `pp_recovery` (Max Ether has parameter 255) | `:136-138` | **K-ether:** a bag of Potion, Ether and Max Ether → `[Potion]` |
+| N28: `hp_decline_reason` uses `>=` for the fraction | `:174` | **K-why-boundary:** `(35, 100, Potion, worst 50)` → `losing_race` (reachable: `choose_healing_item` returns None there) |
+| S14: the swap omits `_worst_hit` | `story_mode.py:6495-6503` | **K-worst-per-mon:** flag `1`: side 1 at 90, then side 1 at 30 (a 60 hit), then side 0 at 30 → `UseItem(Potion, 1)` |
+| S15: `_item_uses` swapped per Pokémon (cap 4 per Pokémon, 8 per battle) | same | **K-cap-shared:** `_item_uses=4`, side 0 at 20 → the parent's action; a fresh strategy whose side 1 acts → instance `_item_uses == 1` |
+| S17: `_r27_verdict` swapped per Pokémon | same | **K-key-once:** flag `1` + KEYITEMS=1, class 0x20, side 0 acts then side 1 acts → exactly one `[KEYBATTLE]` line |
+| S20: the D10 filter applies only when `doubles and side == 0` | `:1186` | **K-d10-side1:** DQ07 mirrored: right asleep at 100/100, Full Heal only, side 1 → the parent's action |
+| S24: observe's tracker keyed by side | `:6557` | **K-obs-switch:** observe side 0 Sceptile at 90, then Swellow (another PID, party 2) at 30 → `worst=0 would=Potion` |
+| S26: worst = the latest drop, not the max | `:6559` | **K-obs-maxworst:** left at 90, 60, 50 → third row `worst=30` |
+| S27: HP rises counted as hits | `:6558-6559` | **K-obs-rise:** left at 30, 90, 80 → third row `worst=10` |
+| S29: observe ignores the cap | `:6579` | **K-obs-cap:** `_item_uses=4`, left at 20 → `would=- why=cap uses=4` |
+| S30: observe ignores `_items_ineffective` | `:6583` | **K-obs-ineff:** → `would=- why=ineffective` |
+| S31: observe ignores `POKEBOT_HEAL_AT_FRACTION` | `:6586` | **K-obs-frac:** FRAC=0.8, left at 70/100 → `would=Potion why=hp`. T2's prediction depends on this. |
+| S32: observe reads opponent A only | `:6564` | **K-obs-two:** TwoOpponents + KEYITEMS=1; the reader returns (300, 271) with classes 0x05 and 0x20 → `key=1 would=Potion` |
+| S33: observe drops the cure fallback | `:6588-6593` | **K-obs-cure:** left asleep at 100/100, bag Full Restore → `would=Full_Restore why=cure` |
+| S34: observe writes `_worst_hit` | `:6560` | **K-obs-dict:** two observe decisions (60, then 30) → `__dict__` minus `_dbl_obs` unchanged. DQ02 can't see this: it makes one decision, so worst stays 0. |
+| S41: the EWRAM range check on `*gBattleStruct` dropped | `:6600-6601` | **K-obs-null:** `gBattleStruct` = 0 → `bpo=? bpo_pos=?` |
+| S42: the `mon is None` early return dropped | `:6489-6490` | **K-absent:** absent flag 0b0100, side 1 → the parent's action and no DBLITEM line |
+| S43: `key = allow` | `:6568` | **K-obs-key0:** KEYITEMS unset, class 0x05 → `key=0 would=Potion` |
+| S46: observe treats KEYITEMS as truthy (acting path uses `== "1"`, `:878`) | `:6569` | **K-obs-keyitems0:** KEYITEMS=0, class 0x05 → `would=Potion why=hp` |
+
+### Equivalent or unreachable (14)
+- **N04** (env None reads as ON): the only caller passes `os.environ` (`story_mode.py:825`).
+- **N10, N11** (decode_bpo variants): the read is always exactly 3 bytes (`:6602`), and party indexes ≤ 5 never set a nibble's top bit.
+- **N15** (low byte only): `gBattlerPartyIndexes` is u16 holding 0..5, so the high byte is always 0 (pret `src/battle_main.c:158`).
+- **N24** (also drops quantity 0): both policies already drop quantity 0 (`battle_items.py:88`, and the `held` loop).
+- **N26** (accepts stat_increase): every stat_increase item has parameter 0, which `hp_only` removes (measured over the item table).
+- **N27** (empty-string guard dropped): `float("")` raises ValueError, which returns `{}` anyway.
+- **N29** (`<=` for losing_race): at best == worst the HP policy acts, so the reason is never computed.
+- **S01** (scope read before the flag test): `BattleState.type` decodes bytes already held, with no memory read (`battle_state.py:280-281`).
+- **S02** (an unreadable type fails into scope): `BattleType` is `boundary=KEEP`, so `.type` cannot raise.
+- **S18** (the swap omits `_hp_seen`): it is keyed by party index, and `gPlayerParty` field order is fixed during a battle. `SwitchPartyMonSlots` only permutes order nibbles (pret `src/party_menu.c:6051-6056`).
+- **S37** (bpo read at the partner's array, g^2): in a non-multi double the two player arrays are always equal. `SwitchPartyOrder` writes the battler's and `BATTLE_PARTNER`'s arrays identically (`src/battle_main.c:4099-4105`), and the battle-start buffer is per battler with flank 0, built from the left and right positions (`src/battle_controllers.c:99-102`, `src/party_menu.c:5900-5913`). The asymmetric writes are LINK‖MULTI only (`src/battle_main.c:4575-4584`). S0-4 also measured the two player arrays equal.
+- **S39** (`order.index`): that branch is reached only when the index is in the actives, where it equals `active.index`.
+- **S44** (the `P=` field from `mon.party_index`): equal to the acted target by construction (`story_mode.py:1278`).
+
+**Caught, but only through an implementation detail.** S06 (ledger keyed by party index) and S07 (keyed by species name) are equivalent in behaviour. DQ08 reddens on them only because it looks up `_dbl_ledgers[(R_PID, species_index)]` directly (`probe:453`). S08 (keyed by side) is likewise caught only by that lookup. A behavioural row, **K-ledger-switch**, kills S08 and S09 and passes S06 and S07: side 1 takes a 60 hit, then a different PID holds side 1 at 30 → `UseItem(Potion, 2)`. I validated it.
+
+### The most important miss: N06/N07
+The gate's fixture battle-type word is always `TRAINER | DOUBLE` (`probe_double_items.py:193`). A real battle carries more bits:
+- `IS_MASTER` is set in every non-link battle (pret `src/battle_main.c:1009-1010`).
+- Every two-trainer double also has `TWO_OPPONENTS` (`src/battle_setup.c:1274-1275`). That includes Route 123's battle, which is where every P-family acting arm runs (P-ON, P-SLOT, P-NOG).
+- Tate & Liza gets Double from `doubleBattle` (`src/battle_main.c:2072`).
+
+So two `in_scope` mutants pass all 45 rows and all 59 mutants:
+- **N07** (exact match) makes the feature dead in every real battle.
+- **N06** (excludes TwoOpponents) makes it dead across the whole P family.
+
+Only the live arms would notice, as "no act at f3149372". That would cost a live round and could be misread as a harness problem. The fix is K-scope-real, and putting `IS_MASTER` (and `TWO_OPPONENTS` in one row) into `dstate`'s default flags.
+
+**A related blind spot:** DQ03's reserve deletes Full Restore (`probe:392-397`), the one item that tests `hp_only`'s 255 boundary, so the parity row cannot see N23.
+
+Files are in `C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/d13mut/`:
+- `mutants.py` — the 77 mutants
+- `run_mutants.py` — runs them through the gate's machinery
+- `results.json` — red sets per mutant
+- `kill_rows.py` — the 27 proposed rows plus the validation runner
+- `matrix.py` — every proposed row against every survivor
+- `ledger_switch.py` — the K-ledger-switch row
+
+======================================== angle: mut-executor ========================================
+The gate misses one thing that matters: no row proves the guard reads the Pokémon's PID at the cursor's actual slot. A mutant that reads it at the slot we aimed for survives, and in that state battler 2's Potion goes to its living partner.
+
+I wrote 67 new mutants (N01–N67) on the executor half and the cursor fix, and ran every one against the gate. Nothing inside the worktree was changed. I ran a copy of the code in my scratchpad, and the mutants were exec'd in memory using the gate's own `_apply`, `_install` and `all_rows`. `git status` afterwards shows only the two pre-existing modified files, plus `doubleitems13-GRADED.md` and `evidence/2026-09-30-doubleitems13-ARMS.txt`, which the arms run created.
+
+**How a mutant was judged.** I installed each mutant as production and ran the rows once with no fault and once under each of the three faults. It counts as killed if any row turns red, or if any fault's red set differs from the pre-registered `FAULT_SETS` (`probe_double_items.py:1136`). That is what the full gate would report on such code. The builder's own mutant runner, `_job_red` (`:1377-1405`), never runs a mutant with a fault set, so I added that combination.
+
+## Counts
+- **42 killed** by the gate as shipped:
+  - 28 by its rows directly.
+  - 14 only through a fault job: N01, N05, N06, N08, N17, N18, N32, N33, N34 and N50–N54. So the exact fault sets are doing real work, but the builder's mutant table can't see fault-arm code.
+  - N09, N11 and N12 die only to the source-text checks DBc1ast/DBc4ast. N09 (`>= 1`) behaves identically for battlers 0 and 2, so those checks also fail on harmless rewrites. Nothing exercises RotateLead for battler 2 by behaviour.
+- **25 survive.** 13 are equivalent or unreachable; 12 are real gaps. All 12 die to 13 proposed rows (X01–X13). Every proposed row passes on the real code with no fault and under each of the three faults, so the pre-registered fault sets do not change.
+
+## Survivors
+| Mutant | Verdict | Killed by |
+|---|---|---|
+| **N37** the guard reads the PID at the aim (`offset=100*aim`, `battle_action_selection.py:1143`); the range check still uses the real slot | **REAL** | **X01**: battler 2, aim 1, scroll stopped on slot 0. Expects `slot=0 menu_pid=863B0917 intended_pid=5C96EA9B ok=0 a_pressed=0`, no A press, Sceptile HP 40, `Potion=1->1` |
+| N35 `ok=` logged from the press; N36 `a_pressed=` logged from the verdict (`:1156`) | REAL. P-NOG's graded `ok=0 a_pressed=1` line would lie, and N36 makes "ok=0 with a_pressed=1 in a non-NOGUARD arm" impossible to see | X06: WRONGSLOT+NOGUARD on battler 0 gives `slot=1 ok=0 a_pressed=1`, partner `hp=30->50`, `Potion=1->0`. X12: NOGUARD with a PID mismatch gives `ok=0 a_pressed=1` |
+| N13 `_dbl_env` also accepts `observe` (`:1041`) | REAL. In observe mode the Struggle exit (D11) fires and the item guard runs, which breaks the prediction that observe changes no gameplay (P-OBS = P-OFF) | X03: flag `observe`. The item flow makes no reads and logs no DBLITEM; the Struggle loop presses A on every frame ≥ 10 and reads controller 2 zero times |
+| N30 range check `<=`; N31 range check dropped (`:1141`) | REAL, but only under NOGUARD. Without a fault, `guard_ok` re-checks the range (`double_items.py:119`). N31 survives even the NOGUARD job because the gate's fake `gPlayerParty` is exactly 600 bytes (`probe:683`) and an out-of-range read raises, while the real `read_symbol` just reads the next bytes (`memory.py:66-70`) | X07, under isolated NOGUARD with a padded party read: battler aimed at the partner, slot 7, and slot 6 = count each give `a_pressed=0` |
+| N02 CURSOR0 flips the side for every battler, so battler 0 reads byte 2 (`battle_menuing.py:103-107`) | REAL. P-CUR would derail on battler 0's bag scroll instead | X02: battler 0's real `scroll_to_battle_action(1, False)` on cursor [0,3,1,3] presses Right once and ends at [1,3,1,3]. No current row runs battler 0's real scroll; it fails under the CURSOR0 job |
+| N25 `_dbl_before`'s except branch keeps `self=True` (`:1111`) | REAL under NOGUARD only | X08: raise on `gBattlerPartyIndexes`, with and without NOGUARD; expects `self=0 a_pressed=0`, no A |
+| N04 CURSOR0 switched on by any value | Low | X13: values `0`, empty and `yes` still read byte 2 |
+| N39 `battler_in_menu` logs our battler id instead of `gBattlerInMenuId` (`:1139`) | Logging only | X09: a fake game sets the in-menu battler to 0 while battler 2 acts; expects `battler_in_menu=0` |
+| N43 `target-chosen` logged on a refusal too | Logging only (rule 7) | X10: no `target-chosen` line on a refusal |
+| N47 `same=` always 1 (`:1176`) | Logging only. The real game restores field order before returning to battle (`party_menu.c:1235-1236`) | X11: a fake that keeps the party permuted after the menu closes; expects `same=0` |
+| N03, N26, N59, N63 | EQUIVALENT: both forms are the same for battlers {0, 2}, or set False when it is already False; N59's `break` is followed by `return` at `:1417` | — |
+| N14 `is_double_battle` read before the env test; N15 `_dbl_on` fails open | UNREACHABLE: `BattleType` is declared `boundary=KEEP` (`battle_state.py:42`), so the property cannot raise. The handler reads it first anyway (`:202`) | X04 kills both, but only with a fake state that raises |
+| N24 intended PID read after the bag opens | EQUIVALENT: only the party menus permute `gPlayerParty` (`party_menu.c:2781, 5778, 5785`); the bag does not | — |
+| N27 context built even when the item has no target | EQUIVALENT: the context is never used, and the doubles path only requests HP items with a target | — |
+| N29 party count hard-coded to 6 (`:1140`) | UNREACHABLE: the double-layout cursor skips empty slots (`party_menu.c:1686-1696`) | — |
+| N40 layout read from the low nibble | EQUIVALENT in scope: `PARTY_MENU_TYPE_IN_BATTLE` and `PARTY_LAYOUT_DOUBLE` are both 1 (`constants/party_menu.h:48,55`; `party_menu.c:5765-5772, 5783`) | — |
+| N60 `sub_802C098` dropped from the action-menu set | EQUIVALENT on Emerald: the symbol exists only in the Ruby/Sapphire symbol files | — |
+| N66 range check on the aim, N67 compare against t0's PID | EQUIVALENT: the PID read is already gated by the slot being in range, and t0 is the same bytes read in the same frame | — |
+
+The other listed shapes all die: the byte-stride and partner self binding (N19–N21), the intended PID read in menu order (N22, N23), the press inverted (N41), the B unwind skipped (N42), the after-read before returning to battle (N45, N46), every WRONGSLOT miscalculation (N50–N54, through the fault job), every D11 shape (N55–N58, N61, N62), and every new read on the flag-unset path (N62, N64, N65).
+
+## The most important miss
+In the gate, DQ14 stops the scroll on Cancel (slot 7), so the range check refuses it no matter whose PID is read. The gate's own docstring says so (`probe:32-34`), yet the row's label still claims "refused by the guard's own slotId read" (`probe:976`). That headline claims more than the row proves (rule 2). The prediction "the guard reads slotId" is pinned only for the range half.
+
+This path is reachable live:
+- `scroll_to_party_menu_index` returns quietly when its KI-38 limit fires under StoryMode (`menuing.py:197-206`, `battle_fault.py:33-44`; `story_mode.py:2187` sets `handles_battle_faults`).
+- The menu opens with the cursor on slot 0 (`party_menu.c:524-525`).
+- For battler 2, which aims at slot 1, slot 0 is battler 0's Pokémon: the living partner. That is exactly the adversary's F3 case.
+
+With N37 in production, the guard passes, A goes in on slot 0, and the partner silently eats the item while the bag-count check logs `✔ CONSUMED`. X01 kills it.
+
+X01 and X10 must save and restore the fault envs themselves, because the gate's `_env` (`probe:247-248`) restores only `ROW_ENVS`. Without that, WRONGSLOT and NOGUARD redden them and the pre-registered fault sets change. X05–X08 and X12–X13 already use the same isolated env, `iso_env` (`adv_mutants.py:257`).
+
+Files are in `C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\`:
+- `wt\tools\story-dev\adv_mutants.py` (the mutants, the proposed rows, `PaddedGame`, `StaleGame`)
+- `wt\tools\story-dev\adv_run2.txt` (full output)
+- `wt\tools\story-dev\adv_results.json`
+- `d13x\` (the pret/pokeemerald sources cited above)
+
+======================================== angle: prod-defects ========================================
+No blocker found. Nothing in the built code puts an item on a Pokémon other than the requester, loops or double-spends inside one selection, hangs the B unwind, or logs a `[DBLITEM]` line with the flag unset. I found two should-fix defects and four nits. The worktree is unmodified: `git status` shows only the two files that were already modified at start, plus `…-GRADED.md` and `…-ARMS.txt`, which the grading agent created.
+
+## Should-fix
+
+**SF-1: in doubles, the D10 filter turns "no status cures" into "cure only with a Full Restore". Confirmed in memory.**
+- **Sequence:** flag `1`, in-scope double. Our active Pokémon is asleep or frozen, and the HP policy declines (above the fraction, losing race, or no HP item). The bag holds Full Heal ×1 and Full Restore ×1.
+- **What happens:** `story_mode.py:1186-1189` hands `hp_only(medicine)` to `choose_status_or_revive_item`. That list still contains Full Restore (parameter 255, kept by `double_items.py:129-133`). Rule 1 then walks `(*specific, "Full Heal", "Lava Cookie", "Full Restore")` (`battle_items.py:256`) and returns the Full Restore.
+- **Measured** with the gate's own fakes (`scratchpad/d13hunt/cure_probe.py`), Sceptile asleep at 100/100 and at 90/100:
+  - double, side 0 → `UseItem(Full Restore, 1)`;
+  - singles, same Pokémon → `UseItem(Full Heal, 1)`;
+  - bag with Full Heal only → double gives the parent's attack.
+- **Why it matters:** D10 says "a status cure … is not requested in a double", and battle_items rule 3 says "the scarce Full Restore last". Both are inverted: the cheaper cure is filtered out and the scarcest item is spent on sleep. This is reachable at Tate & Liza (Hypnosis) whenever a Full Restore is held, and in the rematch era.
+- **Safety is unaffected:** parameter > 0 sends it to the bag-count verdict (`story_mode.py:1215-1219`), so a refusal is still counted.
+- **Gate gap:** DQ07 (`probe_double_items.py:439-444`) only tests a Full-Heal-only bag.
+- **Fix:** in doubles, skip the cure policy entirely (`if doubles: item = None` instead of calling it), mirror that in observe (`story_mode.py:6591`), and add a row: asleep at 100/100 with Full Heal + Full Restore → the parent's action.
+
+**SF-2: the bag-open budget (3 tries × 30 frames, `battle_action_selection.py:1220-1233`) has 16 frames of margin for battler 0's first item request of a turn in a double. Latent, not observed failing.**
+- **Measured live** in `evidence/2026-09-30-doubleitems13-ARMS.txt`:
+  - P-ON (`:119-122`): enter f3149372; attempt 1 times out still in `BATTLEMAINCB2`; attempt 2 times out in `CB2_BAG`; bag opens f3149446. That is 74 of the 90 budget frames.
+  - Once an A is accepted, the bag takes 34-38 frames (P-SLOT retry `:200-202`; T-ON `:336-338`). Singles evidence is similar, e.g. `2026-09-28-r20T-CONTROL.txt:212-214` (43 frames).
+  - So attempt 1 always times out, and here the first A of the turn was either dropped or held about 36 frames. The P-ON timing fits a dropped A better than design S0-3's "Fight menu opens late"; both readings leave the same margin.
+- **Failure path:** about 17 more frames of delay and the executor returns ("bag-did-not-open … the strategy will re-decide") while the bag is still opening.
+  - Controller 0 then sits in `CompleteWhenChoseItem` (pret `battle_controller_player.c:1379,1386-1392`). Nothing re-decides it.
+  - The bag and party menu never touch callback1, so `battle_is_active()` stays true and the handler loops in its else-branch (`battle_action_selection.py:373-376`).
+  - Result: a KI-46 derail at 600 frames (`:177`) with the bag left open.
+- **The extra A presses are harmless:** each lands before or at the first `CB2_BagMenuRun` frame, and bag input is ignored while the fade is active (pret `item_menu.c:1217`).
+- **Fix:** re-press A only while `get_battle_controller_callback(battler_index)` is still the action-menu callback. Once it has left (the A was accepted), wait a bounded ~150 frames for `BAG_MENU` without pressing.
+
+## Nits
+- **N1:** the bag-count verdict is per item type, not per requester. If one battler's flow fails without its own menu re-opening, and its partner then uses the same item, the next verdict reads "✔ CONSUMED" for the wrong Pokémon. The usual failures re-open the requester's menu before the partner decides, so this is reachable only via the SF-2 path.
+- **N2:** `decide_turn_in_double_battle` imports `modules.story.double_items` at `story_mode.py:823`, before the OFF test at `:825-827`. An import error would raise out of the flag-unset path instead of returning `super()`.
+- **N3:** item names keep their spaces in the `use` and `after` lines (`item=Hyper Potion`, `Hyper Potion=1->0`), while the OBS line writes `Hyper_Potion`. The gate's own `field()` parser would read `item=Hyper`.
+- **N4:** the bag-did-not-open return at `:1231-1233` skips both the `menu` and `after` lines, so a grader expecting a `menu`/`after` pair for every `use` would miss that attempt.
+
+## Checked and clean
+- **Wrong target is impossible once A is pressed.**
+  - The party is permuted to menu order at menu open (pret `party_menu.c:5781-5786`, `:6078-6087`).
+  - Medicine applies to `gPlayerParty[gPartyMenu.slotId]` (`party_menu.c:4396-4434`).
+  - The guard reads that slot (`slotId` at +9, PID from `gPlayerParty[slot]`) and requires `0 <= slot < count` (`battle_action_selection.py:1134-1144`). PIDs are unique.
+  - Live P-ON, T-ON, P-SLOT and P-NOG all agree.
+- **The ledger swap cannot leak.** There is no `yield` between swap-in and swap-out (`story_mode.py:6495-6503`), `_maybe_use_item` is a plain function, and the `finally` restores every field.
+- **The B unwind after a refusal always reaches `BATTLEMAINCB2`.** Path:
+  - party menu, B → cancel, slot 7 (`party_menu.c:1378-1405`);
+  - fade, then field order restored (`:1231-1247`);
+  - back to the bag via `CB2_ReturnToBagMenu` (`:4276-4282`);
+  - bag, B → item 0 and close (`item_menu.c:1249-1258`, `:1080-1092`);
+  - reshow screen, then battle;
+  - item 0 sends the same battler back to choosing (`battle_main.c:4406-4409`).
+
+  P-SLOT took 117 frames. A "won't have any effect" message (`party_menu.c:4413-4419`, which ends in PAUSE_UNTIL_PRESS) closes back to the bag, so B still gets out.
+- **No double-spend from deciding battler 0 twice.** Its menu never re-opens after a successful item, because B on battler 2's menu is refused after a non-ball item (`battle_controller_player.c:306-318`). A refusal re-opens the requester's own menu before the partner decides.
+- **Self binding and fainting mid-turn are not reachable.** In the selection phase no HP or `gBattlerPartyIndexes` change happens; switches and faints happen in the action phase.
+- **C1 is inert with the flag unset.** The cursor is reset every battle (`battle_controllers.c:52`) and on switch-in or faint (`battle_main.c:3203`, `:3285`), and a trainer double with the flag unset only ever FIGHTs.
+- **Space Center multi is out of scope.** Its flags are set at `battle_tower.c:2123`, and `in_scope` excludes Multi and InGamePartner. D11 cannot fire there: battler 2's controller is the in-game partner's controller, never `HandleInputChooseAction`.
+- **Two-trainer double, KEYITEMS=1, one key class:** items are allowed through `any()` (`trainer_identity.py:83-84`), opponent B is read only in a TwoOpponents battle, and the verdict is cached once per battle.
+- **Memory reads are right:** `gBattlerPartyIndexes` is u16, `gPartyMenu` slot at +9 and layout in bits 4-5 of byte 8, `gBattleResults` +3 is the healing counter (incremented at selection, `pokemon.c:5099`), and `battlerPartyOrders` sits at `*gBattleStruct + 0x60` (`battle.h:354-381`).
+

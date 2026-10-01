@@ -820,14 +820,16 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         """
         import os as _os_dbl
 
-        from modules.story import double_items as _dbl
-
-        mode = _dbl.mode(_os_dbl.environ)
-        if mode == _dbl.OFF:
+        # ⛔ THE FLAG TEST COMES FIRST, BEFORE ANY IMPORT (the adversarial pass's N2, 2026-09-30): the flag-unset path must
+        # be unable to raise, so it touches nothing but the env. The exact values are `double_items.mode()`'s (DP01).
+        if _os_dbl.environ.get("POKEBOT_R27_DOUBLEITEMS") not in ("observe", "1"):
             return super().decide_turn_in_double_battle(battle_state, battler_index)
         try:
-            in_scope = _dbl.in_scope(battle_state.type)
-        except Exception:  # noqa: BLE001 - an unreadable battle type is OUT of scope: the parent's turn, as with the flag off
+            from modules.story import double_items as _dbl
+
+            mode = _dbl.mode(_os_dbl.environ)
+            in_scope = mode != _dbl.OFF and _dbl.in_scope(battle_state.type)
+        except Exception:  # noqa: BLE001 - a broken import or an unreadable battle type is OUT of scope: the parent's turn
             in_scope = False
         if not in_scope:
             return super().decide_turn_in_double_battle(battle_state, battler_index)
@@ -848,8 +850,8 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # ⛔⛔ NO DOCSTRING HERE: gate A1 (`repro_key_battle_items.py`) pins `import os as _os` as the FIRST statement.
         # design v2 step 13 (C3, `doubleitems13-DESIGN.md` D3/D10): `side` is the STRATEGY index of the deciding battler
         # (0 = left, 1 = right; the game's battler id is 2 * side) and selects ONLY the two `own_side` reads below — the
-        # decision and the KI-101 judge. `doubles=True` (from `decide_turn_in_double_battle`, flag `1` only) applies
-        # D10's HP-only filter to the status-cure policy. ⛔ The singles call is `_maybe_use_item(battle_state)`: side 0,
+        # decision and the KI-101 judge. `doubles=True` (from `decide_turn_in_double_battle`, flag `1` only) skips the
+        # status-cure policy entirely (D10). ⛔ The singles call is `_maybe_use_item(battle_state)`: side 0,
         # doubles False — the same statements as before, so every singles gate keeps its meaning.
         # ⛔⛔ `_os` IS BOUND ONCE, HERE, AT THE TOP — AND THAT POSITION IS LOAD-BEARING.
         # `os` is NOT imported at module scope in this file (local-import convention). It was
@@ -1156,7 +1158,15 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             uses_so_far=self._item_uses,
             **_frac_kw,
         )
-        if item is None:
+        # ⛔ design v2 step 13, D10 — NO STATUS CURE IN A DOUBLE (v1): the cure policy is not ASKED there at all.
+        # ‼ FIXED 2026-09-30 (the adversarial pass's SF-1, re-derived on this code): the first build handed the cure
+        # policy `hp_only(medicine)`, which still holds a Full Restore (parameter 255) — so a sleeping Pokémon in a double
+        # got the SCARCEST item where singles spends a Full Heal (battle_items' rule 3 says "Full Restore last"). D10's
+        # intent is no cure request in a double: a guard refusal on a cure is not counted by the retry/disable logic
+        # below (review S13-P2). ⚠ A REAL, RECORDED LIMIT: Tate & Liza's Hypnosis makes a sleep cure reachable.
+        # ⛔ Singles (`doubles=False`) run this block exactly as before; the call inside is textually unchanged
+        # (`repro_battle_items.py` pins it).
+        if item is None and not doubles:
             # ‼ `#24-e4healing` step 3 — the parameter==0 half. Asked ONLY after the HP policy has
             # declined, so an HP emergency always outranks a status cure.
             # ⛔ `allow_revive=False` IS LOAD-BEARING, NOT TIMIDITY (`KI-100`). A cure targets the
@@ -1176,17 +1186,6 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             from modules.pokemon_party import get_party as _party
             from modules.story.battle_items import choose_status_or_revive_item
 
-            # ⛔ design v2 step 13, D10 — HP ITEMS ONLY IN DOUBLES (v1). A double passes the cure policy only the
-            # `parameter > 0` items, so Awakening / Full Heal / Ice Heal are never requested there: a D4 guard refusal on
-            # a cure would not be counted by the retry/disable logic above (a cure banks no HP and no bag count), so it
-            # would be bounded only by the 4-use cap (review S13-P2). A Full Restore (255) stays — it is judged by the bag
-            # count like any HP item. ⚠ A REAL, RECORDED LIMIT: Tate & Liza's Hypnosis makes a sleep cure reachable.
-            # ⛔ Rebinding `medicine` here leaves the call below textually unchanged, which `repro_battle_items.py` pins
-            # (the UNFILTERED list reaches the cure policy in singles).
-            if doubles:
-                from modules.story.double_items import hp_only as _dbl_hp_only
-
-                medicine = _dbl_hp_only(medicine)
             item = choose_status_or_revive_item(
                 mon.status_permanent,
                 sum(1 for m in _party() if m is not None and not m.is_egg and m.current_hp > 0),
@@ -6542,7 +6541,7 @@ def _dbl_obs_line(strategy, battle_state, side: int) -> str:
     from modules.memory import read_symbol, unpack_uint32
     from modules.story import double_items as _dbl
     from modules.story import trainer_identity as _ti
-    from modules.story.battle_items import choose_healing_item, choose_status_or_revive_item
+    from modules.story.battle_items import choose_healing_item
 
     g = 2 * side
     head = f"side={side} g={g} turn={battle_state.current_turn}"
@@ -6585,12 +6584,8 @@ def _dbl_obs_line(strategy, battle_state, side: int) -> str:
     else:
         item = choose_healing_item(cur, mx, options, worst_hit_taken=rec["worst"], uses_so_far=uses, **frac_kw)
         why = "hp"
-        if item is None:
-            # D10: the cure policy sees the HP items only. The non-fainted count is never read with
-            # `allow_revive=False` (battle_items.py, rule 2), so a constant stands in for a party read.
-            item = choose_status_or_revive_item(mon.status_permanent, 2, options, uses_so_far=uses,
-                                                allow_revive=False)
-            why = "cure"
+        # D10 (SF-1, 2026-09-30): the acting path asks NO cure policy in a double, so neither does this mirror — a
+        # sleeping Pokémon above the fraction reads `would=-`, never a Full Restore.
         if item is None:
             why = _dbl.hp_decline_reason(cur, mx, options, worst_hit_taken=rec["worst"], uses_so_far=uses, **frac_kw)
     would = "-" if item is None else "_".join(str(item.name).split())

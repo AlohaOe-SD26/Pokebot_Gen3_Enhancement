@@ -1,0 +1,792 @@
+design v2 step 13 (KB-2, healing items in DOUBLE battles) — the graded ARMS (d13arms), 2026-09-30 LA
+==============================================================================================================
+Predictions: ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md (filed in ab398449, BEFORE the code).
+Each section is VERBATIM: the runner's output, each arm's step-13 lines inside its battle window, the hashes, the
+grade, and the scripts. HP and bag values are graded ONLY from the `[DBLITEM] after` lines.
+
+======================================== the runner's output ========================================
+WT HEAD 799e6adf221a9a90b6c9a3c7398940cd3a33f352 branch wt/doubleitems13 dirty-code=0
+  OK         post_mtpyre.ss1 = 80602159694b
+  OK         d13_tateliza.ss1 = 1d8f604694b9
+P-OFF1 start 07:55:16 PM fixture=post_mtpyre.ss1 frames=90000 env=[]
+P-OFF1 exit=0 debug=Story-debug-20260930-195522.log 07:57:35 PM
+T-OFF1 start 07:57:35 PM fixture=d13_tateliza.ss1 frames=20000 env=[POKEBOT_R27_KEYITEMS=1 POKEBOT_HEAL_AT_FRACTION=0.8]
+T-OFF1 exit=0 debug=Story-debug-20260930-195743.log 07:58:02 PM
+P-OBS start 07:58:02 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=observe]
+P-OBS exit=0 debug=Story-debug-20260930-195809.log 07:58:40 PM
+P-ON start 07:58:40 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=1]
+P-ON exit=0 debug=Story-debug-20260930-195848.log 07:59:16 PM
+P-KEY start 07:59:16 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_KEYITEMS=1]
+P-KEY exit=0 debug=Story-debug-20260930-195922.log 07:59:50 PM
+P-CUR start 07:59:50 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_CURSOR0=1]
+P-CUR exit=0 debug=Story-debug-20260930-195957.log 08:00:21 PM
+P-SLOT start 08:00:21 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_WRONGSLOT=1]
+P-SLOT exit=0 debug=Story-debug-20260930-200028.log 08:00:56 PM
+P-NOG start 08:00:56 PM fixture=post_mtpyre.ss1 frames=30000 env=[POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_WRONGSLOT=1 POKEBOT_R27_FAULT_DBL_NOGUARD=1]
+P-NOG exit=0 debug=Story-debug-20260930-200102.log 08:01:31 PM
+T-OBS start 08:01:31 PM fixture=d13_tateliza.ss1 frames=20000 env=[POKEBOT_R27_KEYITEMS=1 POKEBOT_HEAL_AT_FRACTION=0.8 POKEBOT_R27_DOUBLEITEMS=observe]
+T-OBS exit=0 debug=Story-debug-20260930-200137.log 08:01:55 PM
+T-ON start 08:01:55 PM fixture=d13_tateliza.ss1 frames=20000 env=[POKEBOT_R27_KEYITEMS=1 POKEBOT_HEAL_AT_FRACTION=0.8 POKEBOT_R27_DOUBLEITEMS=1]
+T-ON exit=0 debug=Story-debug-20260930-200201.log 08:02:19 PM
+T-OFF2 start 08:02:19 PM fixture=d13_tateliza.ss1 frames=20000 env=[POKEBOT_R27_KEYITEMS=1 POKEBOT_HEAL_AT_FRACTION=0.8]
+T-OFF2 exit=0 debug=Story-debug-20260930-200225.log 08:02:43 PM
+P-OFF2 start 08:02:43 PM fixture=post_mtpyre.ss1 frames=90000 env=[]
+P-OFF2 exit=0 debug=Story-debug-20260930-200250.log 08:04:44 PM
+done 08:04:44 PM
+
+======================================== hashes (every frame-stamped line, minus [PARTY-ACCT]) ====================
+P-OFF1  logsha 928db5621b3d2f7c over 371 lines
+P-OFF2  logsha 928db5621b3d2f7c over 371 lines
+P-OBS   logsha 832a0fc08da79db7 over 161 lines
+P-ON    logsha 910aea1e1b2317e1 over 142 lines
+P-KEY   logsha 170423552ef1feed over 139 lines
+P-CUR   logsha c49c603fcb11b6cf over 64 lines
+P-SLOT  logsha ba5d61465b7804ae over 212 lines
+P-NOG   logsha 92dda7371c4876cf over 133 lines
+T-OFF1  logsha f0fe5b25459a5596 over 68 lines
+T-OFF2  logsha f0fe5b25459a5596 over 68 lines
+T-OBS   logsha 816c3c449cd74b85 over 83 lines
+T-ON    logsha 4075e6f8ceee1b04 over 83 lines
+============================== P-OFF1: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149400 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149418 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3150955 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150977 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150994 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3153296 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153315 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153332 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3154458 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154477 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154494 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3155931 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3155931 [TRAINER] end opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 res=Won money=14804->17324 delta=2520 mult=1 heal_stock=Hyper_Potion:1 map=0,38
+============================== P-OFF2: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149400 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149418 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3150955 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150977 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150994 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3153296 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153315 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153332 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3154458 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154477 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154494 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3155931 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3155931 [TRAINER] end opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 res=Won money=14804->17324 delta=2520 mult=1 heal_stock=Hyper_Potion:1 map=0,38
+============================== P-OBS: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [DBLITEM-OBS] side=0 g=0 turn=0 me=Sceptile#863B0917 P=1 hp=21/117 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149400 [DBLITEM-OBS] side=0 g=0 turn=0 me=Sceptile#863B0917 P=1 hp=21/117 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3149400 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149418 [DBLITEM-OBS] side=1 g=2 turn=0 me=Swellow#0B30A747 P=2 hp=18/109 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=1 disc=1 cur=00000000
+f3149418 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3150955 [DBLITEM-OBS] side=0 g=0 turn=1 me=Sceptile#863B0917 P=1 hp=14/117 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3150955 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150977 [DBLITEM-OBS] side=0 g=0 turn=1 me=Sceptile#863B0917 P=1 hp=14/117 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3150977 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150994 [DBLITEM-OBS] side=1 g=2 turn=1 me=Swellow#0B30A747 P=2 hp=18/109 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=1 disc=1 cur=00000000
+f3150994 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3153296 [DBLITEM-OBS] side=0 g=0 turn=2 me=Sceptile#863B0917 P=1 hp=17/120 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3153296 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153315 [DBLITEM-OBS] side=0 g=0 turn=2 me=Sceptile#863B0917 P=1 hp=17/120 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3153315 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153332 [DBLITEM-OBS] side=1 g=2 turn=2 me=Swellow#0B30A747 P=2 hp=18/109 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=1 disc=1 cur=00000000
+f3153332 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3154458 [DBLITEM-OBS] side=0 g=0 turn=3 me=Sceptile#863B0917 P=1 hp=17/120 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3154458 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154477 [DBLITEM-OBS] side=0 g=0 turn=3 me=Sceptile#863B0917 P=1 hp=17/120 would=Hyper_Potion why=hp key=0 worst=7 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+f3154477 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154494 [DBLITEM-OBS] side=1 g=2 turn=3 me=Swellow#0B30A747 P=2 hp=18/109 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=1 disc=1 cur=00000000
+f3154494 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3155931 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3155931 [TRAINER] end opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 res=Won money=14804->17324 delta=2520 mult=1 heal_stock=Hyper_Potion:1 map=0,38
+============================== P-ON: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [ITEM] using Hyper Potion on Sceptile 21/117 (use 1, worst hit 0)
+f3149372 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseItem  vs Duskull L30 52/52
+f3149372 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3149408 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='BATTLEMAINCB2' item=Hyper Potion
+f3149438 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 2/3) state='CB2_BAG' item=Hyper Potion
+f3149446 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3149520 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149525 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149574 [BATTLE] [ITEM-FLOW] party-menu target=1 -> menu slot 0 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149596 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=0 menu_pid=863B0917 intended_pid=863B0917 ok=1 a_pressed=1 aim=0 self=1
+f3149597 [BATTLE] [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149839 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3149839 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->117 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->0 healed=0->1 same=1
+f3149862 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3151053 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 110/117 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f3151053 [BATTLE] [TURN 1] Sceptile L42 110/117 [Confused] -> UseMove:Pursuit(pp19)  vs Duskull L30 5/52
+f3151079 [BATTLE] [TURN 1] Sceptile L42 110/117 [Confused] -> UseMove:Pursuit(pp19)  vs Duskull L30 5/52
+f3151097 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Duskull L30 5/52
+f3154183 [BATTLE] [TURN 2] Sceptile L43 113/120 [Confused] -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3154202 [BATTLE] [TURN 2] Sceptile L43 113/120 [Confused] -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3154220 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3155506 [BATTLE] [TURN 3] Sceptile L43 113/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155525 [BATTLE] [TURN 3] Sceptile L43 113/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155542 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+============================== P-KEY: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [KEYBATTLE] opp=106+13 class=0x0E+0x07 key=False allow=False reason=not_a_key_class
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149400 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3149418 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3150955 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150977 [BATTLE] [TURN 1] Sceptile L42 14/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3150994 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3153296 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153315 [BATTLE] [TURN 2] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153332 [BATTLE] [TURN 2] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3154458 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154477 [BATTLE] [TURN 3] Sceptile L43 17/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3154494 [BATTLE] [TURN 3] Swellow L39 18/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3155931 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']
+f3155931 [TRAINER] end opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 res=Won money=14804->17324 delta=2520 mult=1 heal_stock=Hyper_Potion:1 map=0,38
+============================== P-CUR: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [ITEM] using Hyper Potion on Sceptile 21/117 (use 1, worst hit 0)
+f3149372 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseItem  vs Duskull L30 52/52
+f3149372 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3149408 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='BATTLEMAINCB2' item=Hyper Potion
+f3149438 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 2/3) state='CB2_BAG' item=Hyper Potion
+f3149446 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3149520 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149525 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149574 [BATTLE] [ITEM-FLOW] party-menu target=1 -> menu slot 0 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149596 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=0 menu_pid=863B0917 intended_pid=863B0917 ok=1 a_pressed=1 aim=0 self=1
+f3149597 [BATTLE] [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149839 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3149839 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->117 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->0 healed=0->1 same=1
+f3149862 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3149999 [STORY] DERAIL #1: Story: battle handler gave up — KI-45: cursor 'gActionSelectionCursor' never reached index 0 after 60 steps (last read: 1). The menu is probably not open.
+--- P-CUR stdout lines naming KI-45 ---
+Story localization — derail #1: Story: battle handler gave up — KI-45: cursor 
+============================== P-SLOT: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [ITEM] using Hyper Potion on Sceptile 21/117 (use 1, worst hit 0)
+f3149372 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseItem  vs Duskull L30 52/52
+f3149372 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3149408 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='BATTLEMAINCB2' item=Hyper Potion
+f3149438 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 2/3) state='CB2_BAG' item=Hyper Potion
+f3149446 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3149520 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149525 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149574 [BATTLE] [ITEM-FLOW] party-menu target=1 -> menu slot 1 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149598 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=1 menu_pid=0B30A747 intended_pid=863B0917 ok=0 a_pressed=0 aim=1 self=1
+f3149715 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3149715 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->1 healed=0->0 same=1
+f3149738 [BATTLE] [ITEM] ‼ not consumed — the item was NOT consumed — retrying once
+f3149738 [BATTLE] [ITEM] using Hyper Potion on Sceptile 21/117 (use 2, worst hit 0)
+f3149738 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+f3149738 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseItem  vs Duskull L30 52/52
+f3149738 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3149769 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Hyper Potion
+f3149774 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3149796 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149801 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149850 [BATTLE] [ITEM-FLOW] party-menu target=1 -> menu slot 1 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149874 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=1 menu_pid=0B30A747 intended_pid=863B0917 ok=0 a_pressed=0 aim=1 self=1
+f3149991 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3149991 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->1 healed=0->0 same=1
+f3150014 [BATTLE] [ITEM] ‼ not consumed — the item was NOT consumed twice; disabling items for the rest of this battle
+f3150014 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseMove:Pursuit(pp19)  vs Duskull L30 52/52
+f3150033 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3151660 [BATTLE] [TURN 1] Sceptile L42 15/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3151682 [BATTLE] [TURN 1] Sceptile L42 15/117 -> UseMove:Pursuit(pp18)  vs Shuppet L30 66/66
+f3151699 [BATTLE] [TURN 1] Swellow L39 18/109 -> UseMove:Wing Attack(pp23)  vs Shuppet L30 66/66
+f3153852 [BATTLE] [TURN 2] Sceptile L43 18/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153871 [BATTLE] [TURN 2] Sceptile L43 18/120 -> UseMoveAgainstRightSideOpponent:Slam(pp20)  vs ?
+f3153889 [BATTLE] [TURN 2] Swellow L39 10/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp22)  vs ?
+f3155017 [BATTLE] [TURN 3] Sceptile L43 18/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155036 [BATTLE] [TURN 3] Sceptile L43 18/120 -> UseMoveAgainstRightSideOpponent:Slam(pp19)  vs ?
+f3155053 [BATTLE] [TURN 3] Swellow L39 10/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+============================== P-NOG: the battle window f3148510..f3156000 ==============================
+f3148510 [BATTLE] started hp=[('Mightyena', 0, 124), ('Sceptile', 21, 117), ('Swellow', 18, 109), ('Skitty', 0, 45), ('Zigzagoon', 16, 16), ('Castform', 0, 100)]
+f3148510 [TRAINER] start opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 double=True two=True money=14804 heal_stock=Hyper_Potion:1 map=0,38 enemy_alive=4
+f3149372 [BATTLE] [ITEM] using Hyper Potion on Sceptile 21/117 (use 1, worst hit 0)
+f3149372 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+f3149372 [BATTLE] [TURN 0] Sceptile L42 21/117 -> UseItem  vs Duskull L30 52/52
+f3149372 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Hyper Potion
+f3149408 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='BATTLEMAINCB2' item=Hyper Potion
+f3149438 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 2/3) state='CB2_BAG' item=Hyper Potion
+f3149446 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Hyper Potion
+f3149520 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149525 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Hyper Potion
+f3149574 [BATTLE] [ITEM-FLOW] party-menu target=1 -> menu slot 1 (KI-101 remap after 49 frame(s); pre-menu value was 0) state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149598 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=1 menu_pid=0B30A747 intended_pid=863B0917 ok=0 a_pressed=1 aim=1 self=1
+f3149599 [BATTLE] [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Hyper Potion
+f3149835 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Hyper Potion
+f3149835 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->109 Hyper Potion=1->0 healed=0->1 same=1
+f3149858 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52
+f3151045 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 15/117 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f3151045 [BATTLE] [TURN 1] Sceptile L42 15/117 [Confused] -> UseMove:Pursuit(pp19)  vs Duskull L30 8/52
+f3151071 [BATTLE] [TURN 1] Sceptile L42 15/117 [Confused] -> UseMove:Pursuit(pp19)  vs Duskull L30 8/52
+f3151089 [BATTLE] [TURN 1] Swellow L39 109/109 -> UseMove:Wing Attack(pp23)  vs Duskull L30 8/52
+f3153817 [BATTLE] [TURN 2] Swellow L39 109/109 -> UseMove:Wing Attack(pp22)  vs Shuppet L30 66/66
+f3153836 [BATTLE] [TURN 2] Swellow L39 109/109 -> UseMove:Wing Attack(pp22)  vs Shuppet L30 66/66
+f3154608 [BATTLE] [TURN 3] Swellow L39 100/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3154628 [BATTLE] [TURN 3] Swellow L39 100/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp21)  vs ?
+f3155302 [BATTLE] [TURN 4] Swellow L39 100/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp20)  vs ?
+f3155322 [BATTLE] [TURN 4] Swellow L39 100/109 -> UseMoveAgainstRightSideOpponent:Wing Attack(pp20)  vs ?
+============================== T-OFF1: the battle window f3452776..f3464700 ==============================
+f3452776 [BATTLE] started hp=[('Sceptile', 130, 130), ('Zigzagoon', 40, 40), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Mightyena', 127, 127), ('Castform', 103, 103)]
+f3452776 [TRAINER] start opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 double=True two=False money=37654 heal_stock=Potion:1,Full_Heal:1 map=14,0 enemy_alive=4
+f3453544 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453573 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453591 [BATTLE] [TURN 0] Zigzagoon L15 40/40 -> UseMove:Surf(pp15)  vs Claydol L41 112/112
+f3456147 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456166 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456183 [BATTLE] [TURN 1] Mightyena L43 99/127 -> UseMove:Bite(pp25)  vs Claydol L41 22/112
+f3458752 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458781 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458798 [BATTLE] [TURN 2] Mightyena L43 99/127 -> UseMove:Bite(pp24)  vs Solrock L42 123/123
+f3460826 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460849 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460866 [BATTLE] [TURN 3] Mightyena L43 99/127 -> UseMove:Bite(pp23)  vs Lunatone L42 68/123
+f3462572 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462591 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462611 [BATTLE] [TURN 4] Mightyena L44 102/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp20)  vs ?
+f3464107 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L48', 'Zigzagoon:L15', 'Swellow:L40', 'Skitty:L17', 'Mightyena:L44', 'Castform:L36']
+f3464107 [TRAINER] end opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 res=Won money=37654->46054 delta=8400 mult=1 heal_stock=Potion:1,Full_Heal:1 map=14,0
+============================== T-OFF2: the battle window f3452776..f3464700 ==============================
+f3452776 [BATTLE] started hp=[('Sceptile', 130, 130), ('Zigzagoon', 40, 40), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Mightyena', 127, 127), ('Castform', 103, 103)]
+f3452776 [TRAINER] start opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 double=True two=False money=37654 heal_stock=Potion:1,Full_Heal:1 map=14,0 enemy_alive=4
+f3453544 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453573 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453591 [BATTLE] [TURN 0] Zigzagoon L15 40/40 -> UseMove:Surf(pp15)  vs Claydol L41 112/112
+f3456147 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456166 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456183 [BATTLE] [TURN 1] Mightyena L43 99/127 -> UseMove:Bite(pp25)  vs Claydol L41 22/112
+f3458752 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458781 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458798 [BATTLE] [TURN 2] Mightyena L43 99/127 -> UseMove:Bite(pp24)  vs Solrock L42 123/123
+f3460826 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460849 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460866 [BATTLE] [TURN 3] Mightyena L43 99/127 -> UseMove:Bite(pp23)  vs Lunatone L42 68/123
+f3462572 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462591 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462611 [BATTLE] [TURN 4] Mightyena L44 102/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp20)  vs ?
+f3464107 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L48', 'Zigzagoon:L15', 'Swellow:L40', 'Skitty:L17', 'Mightyena:L44', 'Castform:L36']
+f3464107 [TRAINER] end opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 res=Won money=37654->46054 delta=8400 mult=1 heal_stock=Potion:1,Full_Heal:1 map=14,0
+============================== T-OBS: the battle window f3452776..f3464700 ==============================
+f3452776 [BATTLE] started hp=[('Sceptile', 130, 130), ('Zigzagoon', 40, 40), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Mightyena', 127, 127), ('Castform', 103, 103)]
+f3452776 [TRAINER] start opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 double=True two=False money=37654 heal_stock=Potion:1,Full_Heal:1 map=14,0 enemy_alive=4
+f3453544 [DBLITEM-OBS] side=0 g=0 turn=0 me=Sceptile#863B0917 P=0 hp=130/130 would=- why=above_fraction key=1 worst=0 uses=0 bpo=012345 bpo_pos=0 disc=0 cur=00000000
+f3453544 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453573 [DBLITEM-OBS] side=0 g=0 turn=0 me=Sceptile#863B0917 P=0 hp=130/130 would=- why=above_fraction key=1 worst=0 uses=0 bpo=012345 bpo_pos=0 disc=0 cur=00000000
+f3453573 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453591 [DBLITEM-OBS] side=1 g=2 turn=0 me=Zigzagoon#33CB74C3 P=1 hp=40/40 would=- why=above_fraction key=1 worst=0 uses=0 bpo=012345 bpo_pos=1 disc=0 cur=00000000
+f3453591 [BATTLE] [TURN 0] Zigzagoon L15 40/40 -> UseMove:Surf(pp15)  vs Claydol L41 112/112
+f3456147 [DBLITEM-OBS] side=0 g=0 turn=1 me=Sceptile#863B0917 P=0 hp=116/130 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3456147 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456166 [DBLITEM-OBS] side=0 g=0 turn=1 me=Sceptile#863B0917 P=0 hp=116/130 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3456166 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456183 [DBLITEM-OBS] side=1 g=2 turn=1 me=Mightyena#5C96EA9B P=4 hp=99/127 would=Potion why=hp key=1 worst=0 uses=0 bpo=042315 bpo_pos=1 disc=1 cur=00000000
+f3456183 [BATTLE] [TURN 1] Mightyena L43 99/127 -> UseMove:Bite(pp25)  vs Claydol L41 22/112
+f3458752 [DBLITEM-OBS] side=0 g=0 turn=2 me=Sceptile#863B0917 P=0 hp=119/133 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3458752 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458781 [DBLITEM-OBS] side=0 g=0 turn=2 me=Sceptile#863B0917 P=0 hp=119/133 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3458781 [BATTLE] [TURN 2] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp7)  vs Solrock L42 123/123
+f3458798 [DBLITEM-OBS] side=1 g=2 turn=2 me=Mightyena#5C96EA9B P=4 hp=99/127 would=Potion why=hp key=1 worst=0 uses=0 bpo=042315 bpo_pos=1 disc=1 cur=00000000
+f3458798 [BATTLE] [TURN 2] Mightyena L43 99/127 -> UseMove:Bite(pp24)  vs Solrock L42 123/123
+f3460826 [DBLITEM-OBS] side=0 g=0 turn=3 me=Sceptile#863B0917 P=0 hp=119/133 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3460826 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460849 [DBLITEM-OBS] side=0 g=0 turn=3 me=Sceptile#863B0917 P=0 hp=119/133 would=- why=above_fraction key=1 worst=14 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3460849 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Lunatone L42 68/123
+f3460866 [DBLITEM-OBS] side=1 g=2 turn=3 me=Mightyena#5C96EA9B P=4 hp=99/127 would=Potion why=hp key=1 worst=0 uses=0 bpo=042315 bpo_pos=1 disc=1 cur=00000000
+f3460866 [BATTLE] [TURN 3] Mightyena L43 99/127 -> UseMove:Bite(pp23)  vs Lunatone L42 68/123
+f3462572 [DBLITEM-OBS] side=0 g=0 turn=4 me=Sceptile#863B0917 P=0 hp=46/133 would=- why=losing_race key=1 worst=73 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3462572 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462591 [DBLITEM-OBS] side=0 g=0 turn=4 me=Sceptile#863B0917 P=0 hp=46/133 would=- why=losing_race key=1 worst=73 uses=0 bpo=042315 bpo_pos=0 disc=0 cur=00000000
+f3462591 [BATTLE] [TURN 4] Sceptile L48 46/133 -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3462611 [DBLITEM-OBS] side=1 g=2 turn=4 me=Mightyena#5C96EA9B P=4 hp=102/130 would=Potion why=hp key=1 worst=0 uses=0 bpo=042315 bpo_pos=1 disc=1 cur=00000000
+f3462611 [BATTLE] [TURN 4] Mightyena L44 102/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp20)  vs ?
+f3464107 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Sceptile:L48', 'Zigzagoon:L15', 'Swellow:L40', 'Skitty:L17', 'Mightyena:L44', 'Castform:L36']
+f3464107 [TRAINER] end opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 res=Won money=37654->46054 delta=8400 mult=1 heal_stock=Potion:1,Full_Heal:1 map=14,0
+============================== T-ON: the battle window f3452776..f3464700 ==============================
+f3452776 [BATTLE] started hp=[('Sceptile', 130, 130), ('Zigzagoon', 40, 40), ('Swellow', 112, 112), ('Skitty', 45, 45), ('Mightyena', 127, 127), ('Castform', 103, 103)]
+f3452776 [TRAINER] start opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 double=True two=False money=37654 heal_stock=Potion:1,Full_Heal:1 map=14,0 enemy_alive=4
+f3453544 [KEYBATTLE] opp=271 class=0x20 key=True allow=True reason=key_class
+f3453544 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453573 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112
+f3453591 [BATTLE] [TURN 0] Zigzagoon L15 40/40 -> UseMove:Surf(pp15)  vs Claydol L41 112/112
+f3456147 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456166 [BATTLE] [TURN 1] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp8)  vs Claydol L41 22/112
+f3456183 [BATTLE] [ITEM] using Potion on Mightyena 99/127 (use 1, worst hit 0)
+f3456183 [DBLITEM] use side=1 g=2 item=Potion target=Mightyena#5C96EA9B P=4 hp=99/127 self=1
+f3456183 [BATTLE] [TURN 1] Mightyena L43 99/127 -> UseItem  vs Claydol L41 22/112
+f3456183 [BATTLE] [ITEM-FLOW] enter state='BATTLEMAINCB2' item=Potion
+f3456215 [BATTLE] [ITEM-FLOW] bag-not-open-yet (attempt 1/3) state='CB2_BAG' item=Potion
+f3456220 [BATTLE] [ITEM-FLOW] opened-bag state='CB2_BAGMENURUN' item=Potion
+f3456248 [BATTLE] [ITEM-FLOW] scrolled-to-item state='CB2_BAGMENURUN' item=Potion
+f3456253 [BATTLE] [ITEM-FLOW] confirmed-item state='CB2_BAGMENURUN' item=Potion
+f3456302 [BATTLE] [ITEM-FLOW] party-menu target=4 -> menu slot 1 (KI-101 remap after 49 frame(s); pre-menu value was 1) state='CB2_UPDATEPARTYMENU' item=Potion
+f3456326 [DBLITEM] menu g=2 battler_in_menu=2 layout=1 slot=1 menu_pid=5C96EA9B intended_pid=5C96EA9B ok=1 a_pressed=1 aim=1 self=1
+f3456327 [BATTLE] [ITEM-FLOW] target-chosen state='CB2_UPDATEPARTYMENU' item=Potion
+f3456495 [BATTLE] [ITEM-FLOW] returned-to-battle state='BATTLEMAINCB2' item=Potion
+f3456495 [DBLITEM] after g=2 target=Mightyena#5C96EA9B hp=99->119 status1=0->0 partner=Sceptile#863B0917 hp=116->116 Potion=1->0 healed=0->1 same=1
+f3457986 [BATTLE] [TURN 2] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp7)  vs Claydol L41 20/112
+f3458005 [BATTLE] [TURN 2] Sceptile L47 116/130 -> UseMove:Leaf Blade(pp7)  vs Claydol L41 20/112
+f3458022 [BATTLE] [ITEM] ✔ CONSUMED (bag count dropped) — the item applied. HP reads 119/127 (a post-turn value, NOT the heal's result — see KI-101 blocker 1)
+f3458022 [BATTLE] [TURN 2] Mightyena L43 119/127 -> UseMove:Bite(pp25)  vs Claydol L41 20/112
+f3460594 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Solrock L42 123/123
+f3460623 [BATTLE] [TURN 3] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp6)  vs Solrock L42 123/123
+f3460640 [BATTLE] [TURN 3] Mightyena L43 119/127 -> UseMove:Bite(pp24)  vs Solrock L42 123/123
+f3462668 [BATTLE] [TURN 4] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp5)  vs Lunatone L42 70/123
+f3462691 [BATTLE] [TURN 4] Sceptile L48 119/133 -> UseMove:Leaf Blade(pp5)  vs Lunatone L42 70/123
+f3462708 [BATTLE] [TURN 4] Mightyena L43 119/127 -> UseMove:Bite(pp23)  vs Lunatone L42 70/123
+f3464544 [BATTLE] [TURN 5] Sceptile L48 119/133 [Confused] -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3464563 [BATTLE] [TURN 5] Sceptile L48 119/133 [Confused] -> UseMoveAgainstRightSideOpponent:Strength(pp8)  vs ?
+f3464583 [BATTLE] [TURN 5] Mightyena L44 122/130 -> UseMoveAgainstRightSideOpponent:Take Down(pp20)  vs ?
+======================================== the grade (d13_grade.py) ========================================
+grading C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms
+P1  X-BASE ×2 = P-OFF ×2 (logsha 928db5621b3d2f7c); no DBLITEM with the flag unset
+  PASS  P1 P-OFF1 logsha  — 928db5621b3d2f7c over 371; 
+  PASS  P1 P-OFF1 no DBLITEM line
+  PASS  P1 P-OFF2 logsha  — 928db5621b3d2f7c over 371; 
+  PASS  P1 P-OFF2 no DBLITEM line
+P2  P-OBS
+  PASS  P2 = P-OFF1 on every line without DBLITEM
+  PASS  P2 first would≠- = f3149372 side 0 Sceptile Hyper_Potion  — f3149372 [DBLITEM-OBS] side=0 g=0 turn=0 me=Sceptile#863B0917 P=1 hp=21/117 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=0 disc=1 cur=00000000
+  PASS  P2 bpo_pos = side on every OBS row  — 26 rows; 0 bad: []
+  PASS  P2 disc=1 on every row of the first double  — 12 rows
+P3  P-ON
+  PASS  P3 = P-OFF1 before f3149372
+  PASS  P3 use at f3149372: side=0 g=0 Hyper Potion on Sceptile P=1 hp=21/117 self=1  — f3149372 [DBLITEM] use side=0 g=0 item=Hyper Potion target=Sceptile#863B0917 P=1 hp=21/117 self=1
+  PASS  P3 menu slot=0 menu_pid=Sceptile ok=1 a_pressed=1  — f3149596 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=0 menu_pid=863B0917 intended_pid=863B0917 ok=1 a_pressed=1 aim=0 self=1
+  PASS  P3 after: Sceptile 21->117, Swellow 18->18, Hyper Potion 1->0, healed +1  — f3149839 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->117 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->0 healed=0->1 same=1
+  PASS  P3 no KI-45 on gActionSelectionCursor  — []
+  PASS  P3 battler 2's same-turn FIGHT ran and the turn executed  — f3149862 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52 | f3151053 [BATTLE] [TURN 1] Sceptile L42 110/117 [Confused] -> UseMove:Pursuit(pp
+  PASS  P3 no item ever raises the PARTNER's HP (any after line)
+P4  P-KEY
+  PASS  P4 [KEYBATTLE] key=False at the first double  — f3149372 [KEYBATTLE] opp=106+13 class=0x0E+0x07 key=False allow=False reason=not_a_key_class
+  PASS  P4 no [DBLITEM] use
+  PASS  P4 gameplay = P-OFF1 (lines without KEYBATTLE/DBLITEM)
+P5  P-CUR
+  PASS  P5 the item lands as in P3 (menu ok=1 a_pressed=1; Sceptile 21->117)  — f3149839 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->117 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->0 healed=0->1 same=1
+  PASS  P5 KI-45: never reached index 0 (last read: 1)  — [('0', '1')]
+P6  P-SLOT
+  PASS  P6 first menu: slot=1 menu_pid=Swellow intended=Sceptile ok=0 a_pressed=0  — f3149598 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=1 menu_pid=0B30A747 intended_pid=863B0917 ok=0 a_pressed=0 aim=1 self=1
+  PASS  P6 after: 21->21, partner 18->18, Hyper Potion 1->1  — f3149715 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->18 Hyper Potion=1->1 healed=0->0 same=1
+  PASS  P6 no A press in the first double  — 2 menu lines
+  FAIL  P6 the retry, then the disable — AS FILED (the quoted text `not consumed twice; disabling items`)  — no line with the filed lowercase text
+  PASS  P6 the retry, then the disable — CORRECTED to the code's real text  — f3150014 [BATTLE] [ITEM] ‼ not consumed — the item was NOT consumed twice; disabling items for the rest of this battle
+P7  P-NOG
+  PASS  P7 menu slot=1 ok=0 a_pressed=1  — f3149598 [DBLITEM] menu g=0 battler_in_menu=0 layout=1 slot=1 menu_pid=0B30A747 intended_pid=863B0917 ok=0 a_pressed=1 aim=1 self=1
+  PASS  P7 after: Sceptile 21->21, Swellow 18->109, Hyper Potion 1->0  — f3149835 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->109 Hyper Potion=1->0 healed=0->1 same=1
+T1  T-OFF ×2
+  PASS  T1 T-OFF1 = T-OFF2  — ('f0fe5b25459a5596', 68) ('f0fe5b25459a5596', 68); 
+  PASS  T1 T-OFF1 = S0-RESUME through the battle
+  PASS  T1 no DBLITEM line
+T2  T-OBS
+  PASS  T2 = T-OFF1 on every line without DBLITEM
+  PASS  T2 first would≠- = f3456183 side 1 Mightyena Potion key=1  — f3456183 [DBLITEM-OBS] side=1 g=2 turn=1 me=Mightyena#5C96EA9B P=4 hp=99/127 would=Potion why=hp key=1 worst=0 uses=0 bpo=042315 bpo_pos=1 disc=1 cur=00000000
+  PASS  T2 bpo_pos = side on every row  — 15 rows; bad []
+  PASS  T2 disc=1 on side 1 from turn 1; disc=0 on side 0  — side1 4 rows, side0 10 rows
+T3  T-ON
+  FAIL  T3 = T-OFF1 before f3456183 — AS FILED (every frame-stamped line)  — first difference at #6: 'f3453544 [KEYBATTLE] opp=271 class=0x20 key=True allow=True reason=key_class' vs 'f3453544 [BATTLE] [TURN 0] Sceptile L47 130/130 -> UseMove:Leaf Blade(pp9)  vs Claydol L41 112/112'
+  PASS  T3 = T-OFF1 before f3456183 on every line except the predicted [KEYBATTLE]
+  PASS  T3 use at f3456183: side=1 g=2 Potion on Mightyena P=4 hp=99/127 self=1  — f3456183 [DBLITEM] use side=1 g=2 item=Potion target=Mightyena#5C96EA9B P=4 hp=99/127 self=1
+  PASS  T3 menu slot=1 menu_pid=Mightyena ok=1 a_pressed=1  — f3456326 [DBLITEM] menu g=2 battler_in_menu=2 layout=1 slot=1 menu_pid=5C96EA9B intended_pid=5C96EA9B ok=1 a_pressed=1 aim=1 self=1
+  PASS  T3 after: Mightyena 99->119, Sceptile 116->116, Potion 1->0, healed +1  — f3456495 [DBLITEM] after g=2 target=Mightyena#5C96EA9B hp=99->119 status1=0->0 partner=Sceptile#863B0917 hp=116->116 Potion=1->0 healed=0->1 same=1
+  PASS  T3 no KI-45 on gActionSelectionCursor
+  PASS  T3 battler 2's next FIGHT (graded if asked; ABSENT otherwise)  — f3458022 [BATTLE] [TURN 2] Mightyena L43 119/127 -> UseMove:Bite(pp25)  vs Claydol L41 20/112
+  PASS  T3 [KEYBATTLE] key=True  — f3453544 [KEYBATTLE] opp=271 class=0x20 key=True allow=True reason=key_class
+
+TOTAL 42 checks, 2 FAIL
+
+----- run_d13_arms.sh (verbatim) -----
+#!/usr/bin/env bash
+# design v2 step 13: the graded arms (`ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md`), seed 1, storyresume.
+# Family P on post_mtpyre.ss1 (KEYITEMS unset except P-KEY); family T on d13_tateliza.ss1 (KEYITEMS=1, fraction 0.8).
+# Each family's two OFF runs BRACKET its other arms, so they are separated in time (KI-112). Sequential; refuses to
+# start if another harness runs. $1 = output folder name (default d13arms).
+S="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad"
+OUT="$S/${1:-d13arms}"
+mkdir -p "$OUT"
+WT="C:/Remote Projects/pokebot-wt-ch24"
+DL="$WT/sandbox-pokebot/profiles/repro-ml/debug-logs"
+cd "$WT/tools/story-dev" || exit 2
+echo "WT HEAD $(git rev-parse HEAD) branch $(git branch --show-current) dirty-code=$(git status --short -- ../../sandbox-pokebot story_harness.py | wc -l)"
+git status --short -- ../../sandbox-pokebot
+if ! vf=$(PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_mtpyre.ss1=80602159694b d13_tateliza.ss1=1d8f604694b9); then
+  echo "$vf" | tail -4; echo "!!! a fixture is not the pinned bytes: refusing to start"; exit 3
+fi
+echo "$vf" | tail -2
+busy=$(powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name like 'py%'\" | Where-Object { \$_.CommandLine -like '*story_harness*' -or \$_.CommandLine -like '*run_with_base*' }).Count" | tr -d '\r')
+if [ "$busy" != "0" ]; then echo "!!! $busy harness process(es) already running: refusing to start"; exit 5; fi
+W="import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')"
+UNSET="-u POKEBOT_R27_DOUBLEITEMS -u POKEBOT_R27_KEYITEMS -u POKEBOT_HEAL_AT_FRACTION -u POKEBOT_R27_FAULT_DBL_CURSOR0 -u POKEBOT_R27_FAULT_DBL_WRONGSLOT -u POKEBOT_R27_FAULT_DBL_NOGUARD"
+run() {
+  # $1 tag, $2 fixture, $3 frames, $4 env settings (KEY=VALUE words, no spaces inside a value)
+  tag=$1; fx=$2; fr=$3; envs=$4
+  before=$(ls "$DL")
+  echo "$tag start $(date '+%I:%M:%S %p') fixture=$fx frames=$fr env=[$envs]"
+  # shellcheck disable=SC2086  # $UNSET and $envs are split into words on purpose
+  env $UNSET $envs PYTHONUTF8=1 timeout 3000 \
+    py -3.12 -u -c "$W" "saves/$fx" --driver storyresume --frames "$fr" \
+    --log "$OUT/$tag.log" > "$OUT/$tag.stdout.txt" 2>&1
+  rc=$?
+  new=$(comm -13 <(echo "$before" | sort) <(ls "$DL" | sort))
+  n=$(echo "$new" | grep -c .)
+  if [ "$n" = "1" ]; then cp "$DL/$new" "$OUT/$tag.debug.txt"; else echo "!!! $tag: $n new debug logs ($new)"; fi
+  echo "$tag exit=$rc debug=$new $(date '+%I:%M:%S %p')"
+}
+P="post_mtpyre.ss1"
+T="d13_tateliza.ss1"
+TENV="POKEBOT_R27_KEYITEMS=1 POKEBOT_HEAL_AT_FRACTION=0.8"
+run P-OFF1 "$P" 90000 ""
+run T-OFF1 "$T" 20000 "$TENV"
+run P-OBS  "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=observe"
+run P-ON   "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=1"
+run P-KEY  "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_KEYITEMS=1"
+run P-CUR  "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_CURSOR0=1"
+run P-SLOT "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_WRONGSLOT=1"
+run P-NOG  "$P" 30000 "POKEBOT_R27_DOUBLEITEMS=1 POKEBOT_R27_FAULT_DBL_WRONGSLOT=1 POKEBOT_R27_FAULT_DBL_NOGUARD=1"
+run T-OBS  "$T" 20000 "$TENV POKEBOT_R27_DOUBLEITEMS=observe"
+run T-ON   "$T" 20000 "$TENV POKEBOT_R27_DOUBLEITEMS=1"
+run T-OFF2 "$T" 20000 "$TENV"
+run P-OFF2 "$P" 90000 ""
+git status --short -- saves | grep -v "magma_1f_fail" || true
+echo "done $(date '+%I:%M:%S %p')"
+
+----- d13_grade.py (verbatim) -----
+"""Grade design v2 step 13's arms against `ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md` (P1-P7, T1-T3).
+Usage: d13_grade.py <arms folder> . Every check prints PASS/FAIL with the line(s) it rests on (rule 7: the ACTION, the
+`[DBLITEM]` lines, not the inputs). HP and bag values come ONLY from `[DBLITEM] after` lines."""
+import hashlib
+import pathlib
+import re
+import sys
+
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+A = S / (sys.argv[1] if len(sys.argv) > 1 else "d13arms")
+P_START, T_START = 3143340, 3452007          # the runs' first logged frames (Step 0)
+P_CMP_END = P_START + 29000                  # 30,000-frame P arms: compare strictly inside the window
+T_BATTLE = (3452776, 3464107)                # Tate & Liza in S0-RESUME
+P_ACT, T_ACT = 3149372, 3456183
+SCEPTILE, SWELLOW, MIGHTYENA = "863B0917", "0B30A747", "5C96EA9B"
+FR = re.compile(r"^f(\d+) ")
+results = []
+
+
+def check(name, ok, detail=""):
+    results.append((name, bool(ok)))
+    print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f"  — {detail}" if detail else ""))
+
+
+def lines(tag):
+    p = A / f"{tag}.debug.txt"
+    return [l for l in p.read_text(encoding="utf-8", errors="replace").splitlines() if FR.match(l)] if p.exists() else None
+
+
+def stdout(tag):
+    p = A / f"{tag}.stdout.txt"
+    return p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+
+
+def fr(l):
+    return int(FR.match(l).group(1))
+
+
+def logsha(ls):
+    keep = [l for l in ls if "[PARTY-ACCT]" not in l]
+    return hashlib.sha256("\n".join(keep).encode("utf-8")).hexdigest()[:16], len(keep)
+
+
+def window(ls, lo=None, hi=None, drop=()):
+    return [l for l in ls if (lo is None or fr(l) >= lo) and (hi is None or fr(l) < hi)
+            and "[PARTY-ACCT]" not in l and not any(d in l for d in drop)]
+
+
+def first_diff(a, b):
+    for i, (x, y) in enumerate(zip(a, b)):
+        if x != y:
+            return f"first difference at #{i}: {x[:110]!r} vs {y[:110]!r}"
+    return "" if len(a) == len(b) else f"lengths {len(a)} vs {len(b)}"
+
+
+def dbl(ls, kind):
+    return [l for l in ls if f"[DBLITEM] {kind} " in l]
+
+
+def kv(l):
+    return dict(re.findall(r"(\w+)=(\S+)", l))
+
+
+def after_fields(l):
+    """`after g= target=X#P hp=a->b status1=.. partner=Y#Q hp=c->d <Item Name>=e->f healed=g->h same=`."""
+    m = re.search(r"target=(\S+) hp=(\S+)->(\S+) status1=\S+ partner=(\S+) hp=(\S+)->(\S+) (.+?)=(\S+)->(\S+) "
+                  r"healed=(\S+)->(\S+) same=(\d)", l)
+    return None if not m else dict(zip(("target", "t0", "t1", "partner", "p0", "p1", "item", "q0", "q1", "h0", "h1",
+                                        "same"), m.groups()))
+
+
+def ki45_action(tag, ls):
+    blob = stdout(tag) + "\n".join(ls)
+    return re.findall(r"KI-45: cursor 'gActionSelectionCursor' never reached index (\d) after \d+ steps \(last read: (\d+)\)",
+                      blob)
+
+
+print(f"grading {A}")
+L = {t: lines(t) for t in ("P-OFF1", "P-OFF2", "P-OBS", "P-ON", "P-KEY", "P-CUR", "P-SLOT", "P-NOG",
+                           "T-OFF1", "T-OFF2", "T-OBS", "T-ON")}
+missing = [t for t, v in L.items() if v is None]
+if missing:
+    print("MISSING arms:", missing)
+XB = (S / "d13x" / "X-BASE1.debug.txt").read_text(encoding="utf-8", errors="replace").splitlines()
+XB = [l for l in XB if FR.match(l)]
+S0R = [l for l in (S / "d13s0" / "S0-RESUME.debug.txt").read_text(encoding="utf-8", errors="replace").splitlines()
+       if FR.match(l)]
+
+print("P1  X-BASE ×2 = P-OFF ×2 (logsha 928db5621b3d2f7c); no DBLITEM with the flag unset")
+for t in ("P-OFF1", "P-OFF2"):
+    if L[t] is not None:
+        sha, n = logsha(L[t])
+        check(f"P1 {t} logsha", sha == "928db5621b3d2f7c", f"{sha} over {n}; {first_diff(window(L[t]), window(XB))}")
+        check(f"P1 {t} no DBLITEM line", not any("DBLITEM" in l for l in L[t]))
+
+print("P2  P-OBS")
+if L["P-OBS"] is not None and L["P-OFF1"] is not None:
+    a = window(L["P-OBS"], hi=P_CMP_END, drop=("DBLITEM",))
+    b = window(L["P-OFF1"], hi=P_CMP_END)
+    check("P2 = P-OFF1 on every line without DBLITEM", a == b, first_diff(a, b))
+    obs = [l for l in L["P-OBS"] if "[DBLITEM-OBS]" in l]
+    first = next((l for l in obs if kv(l).get("would", "-") != "-"), None)
+    f1 = kv(first) if first else {}
+    check("P2 first would≠- = f3149372 side 0 Sceptile Hyper_Potion",
+          first and fr(first) == P_ACT and f1.get("side") == "0" and f1.get("me", "").startswith(f"Sceptile#{SCEPTILE}")
+          and f1.get("would") == "Hyper_Potion", first or "none")
+    bad = [l for l in obs if kv(l).get("bpo_pos") != kv(l).get("side")]
+    check("P2 bpo_pos = side on every OBS row", obs and not bad, f"{len(obs)} rows; {len(bad)} bad: {bad[:1]}")
+    d1 = [l for l in obs if 3148510 <= fr(l) <= 3155931]
+    check("P2 disc=1 on every row of the first double", d1 and all(kv(l).get("disc") == "1" for l in d1), f"{len(d1)} rows")
+
+print("P3  P-ON")
+if L["P-ON"] is not None and L["P-OFF1"] is not None:
+    a, b = window(L["P-ON"], hi=P_ACT), window(L["P-OFF1"], hi=P_ACT)
+    check("P3 = P-OFF1 before f3149372", a == b, first_diff(a, b))
+    use = dbl(L["P-ON"], "use")
+    u = kv(use[0]) if use else {}
+    check("P3 use at f3149372: side=0 g=0 Hyper Potion on Sceptile P=1 hp=21/117 self=1",
+          use and fr(use[0]) == P_ACT and "item=Hyper Potion" in use[0] and u.get("side") == "0" and u.get("g") == "0"
+          and u.get("target") == f"Sceptile#{SCEPTILE}" and u.get("P") == "1" and u.get("hp") == "21/117"
+          and u.get("self") == "1", use[0] if use else "no use line")
+    menu = dbl(L["P-ON"], "menu")
+    m = kv(menu[0]) if menu else {}
+    check("P3 menu slot=0 menu_pid=Sceptile ok=1 a_pressed=1",
+          menu and m.get("slot") == "0" and m.get("menu_pid") == SCEPTILE and m.get("intended_pid") == SCEPTILE
+          and m.get("ok") == "1" and m.get("a_pressed") == "1", menu[0] if menu else "no menu line")
+    aft = dbl(L["P-ON"], "after")
+    af = after_fields(aft[0]) if aft else None
+    check("P3 after: Sceptile 21->117, Swellow 18->18, Hyper Potion 1->0, healed +1",
+          af and af["target"] == f"Sceptile#{SCEPTILE}" and (af["t0"], af["t1"]) == ("21", "117")
+          and af["partner"] == f"Swellow#{SWELLOW}" and (af["p0"], af["p1"]) == ("18", "18")
+          and af["item"] == "Hyper Potion" and (af["q0"], af["q1"]) == ("1", "0")
+          and af["h0"].isdigit() and af["h1"].isdigit() and int(af["h1"]) == int(af["h0"]) + 1,
+          aft[0] if aft else "no after line")
+    check("P3 no KI-45 on gActionSelectionCursor", not ki45_action("P-ON", L["P-ON"]), str(ki45_action("P-ON", L["P-ON"])))
+    t0 = [l for l in L["P-ON"] if "[TURN 0]" in l and "Swellow" in l and fr(l) > P_ACT]
+    t1 = [l for l in L["P-ON"] if re.search(r"\[TURN [1-9]", l) and fr(l) > P_ACT]
+    check("P3 battler 2's same-turn FIGHT ran and the turn executed", t0 and t1,
+          (t0[0][:100] if t0 else "no Swellow TURN 0 after the act") + " | " + (t1[0][:80] if t1 else "no later turn"))
+    wrong = [l for l in aft if (lambda f: f and f["p0"].isdigit() and f["p1"].isdigit() and int(f["p1"]) > int(f["p0"]))
+             (after_fields(l))]
+    check("P3 no item ever raises the PARTNER's HP (any after line)", not wrong, wrong[:1])
+
+print("P4  P-KEY")
+if L["P-KEY"] is not None and L["P-OFF1"] is not None:
+    kb = [l for l in L["P-KEY"] if "[KEYBATTLE]" in l and 3148510 <= fr(l) <= 3155931]
+    check("P4 [KEYBATTLE] key=False at the first double", kb and "key=False" in kb[0], kb[0] if kb else "none")
+    check("P4 no [DBLITEM] use", not dbl(L["P-KEY"], "use"))
+    a = window(L["P-KEY"], hi=P_CMP_END, drop=("[KEYBATTLE]", "DBLITEM"))
+    b = window(L["P-OFF1"], hi=P_CMP_END)
+    check("P4 gameplay = P-OFF1 (lines without KEYBATTLE/DBLITEM)", a == b, first_diff(a, b))
+
+print("P5  P-CUR")
+if L["P-CUR"] is not None:
+    use, menu, aft = dbl(L["P-CUR"], "use"), dbl(L["P-CUR"], "menu"), dbl(L["P-CUR"], "after")
+    af = after_fields(aft[0]) if aft else None
+    check("P5 the item lands as in P3 (menu ok=1 a_pressed=1; Sceptile 21->117)",
+          use and fr(use[0]) == P_ACT and menu and kv(menu[0]).get("a_pressed") == "1" and af
+          and (af["t0"], af["t1"]) == ("21", "117"), (aft[0] if aft else "no after line"))
+    k = ki45_action("P-CUR", L["P-CUR"])
+    check("P5 KI-45: never reached index 0 (last read: 1)", ("0", "1") in k, str(k))
+
+print("P6  P-SLOT")
+if L["P-SLOT"] is not None:
+    menu, aft = dbl(L["P-SLOT"], "menu"), dbl(L["P-SLOT"], "after")
+    m = kv(menu[0]) if menu else {}
+    check("P6 first menu: slot=1 menu_pid=Swellow intended=Sceptile ok=0 a_pressed=0",
+          menu and fr(menu[0]) > P_ACT - 1 and m.get("slot") == "1" and m.get("menu_pid") == SWELLOW
+          and m.get("intended_pid") == SCEPTILE and m.get("ok") == "0" and m.get("a_pressed") == "0",
+          menu[0] if menu else "no menu line")
+    af = after_fields(aft[0]) if aft else None
+    check("P6 after: 21->21, partner 18->18, Hyper Potion 1->1",
+          af and (af["t0"], af["t1"]) == ("21", "21") and (af["p0"], af["p1"]) == ("18", "18")
+          and (af["q0"], af["q1"]) == ("1", "1"), aft[0] if aft else "no after line")
+    in_battle = [l for l in menu if 3148510 <= fr(l) <= 3155931]
+    check("P6 no A press in the first double", in_battle and all(kv(l).get("a_pressed") == "0" for l in in_battle),
+          f"{len(in_battle)} menu lines")
+    dis = [l for l in L["P-SLOT"] if "not consumed twice" in l and 3148510 <= fr(l) <= 3155931]
+    check("P6 the retry, then the disable — AS FILED (the quoted text `not consumed twice; disabling items`)",
+          len(in_battle) >= 2 and dis, dis[0][:140] if dis else "no line with the filed lowercase text")
+    # CORRECTED CHECK, not a corrected subject: the code's line (story_mode.py, the no-op detector) reads "the item was
+    # NOT consumed twice; disabling items for the rest of this battle"; the PREDICTION quoted it inexactly (the builder
+    # flagged this before the arms ran). The substance — a second refusal, then the disable — is what is graded here.
+    dis2 = [l for l in L["P-SLOT"] if "NOT consumed twice; disabling items" in l and 3148510 <= fr(l) <= 3155931]
+    check("P6 the retry, then the disable — CORRECTED to the code's real text", len(in_battle) >= 2 and dis2,
+          dis2[0][:140] if dis2 else "no disable line")
+
+print("P7  P-NOG")
+if L["P-NOG"] is not None:
+    menu, aft = dbl(L["P-NOG"], "menu"), dbl(L["P-NOG"], "after")
+    m = kv(menu[0]) if menu else {}
+    check("P7 menu slot=1 ok=0 a_pressed=1", menu and m.get("slot") == "1" and m.get("ok") == "0"
+          and m.get("a_pressed") == "1", menu[0] if menu else "no menu line")
+    af = after_fields(aft[0]) if aft else None
+    check("P7 after: Sceptile 21->21, Swellow 18->109, Hyper Potion 1->0",
+          af and (af["t0"], af["t1"]) == ("21", "21") and af["partner"] == f"Swellow#{SWELLOW}"
+          and (af["p0"], af["p1"]) == ("18", "109") and (af["q0"], af["q1"]) == ("1", "0"),
+          aft[0] if aft else "no after line")
+
+print("T1  T-OFF ×2")
+if L["T-OFF1"] is not None and L["T-OFF2"] is not None:
+    s1, s2 = logsha(L["T-OFF1"]), logsha(L["T-OFF2"])
+    check("T1 T-OFF1 = T-OFF2", s1 == s2, f"{s1} {s2}; {first_diff(window(L['T-OFF1']), window(L['T-OFF2']))}")
+    a = window(L["T-OFF1"], lo=T_BATTLE[0], hi=T_BATTLE[1] + 1)
+    b = window(S0R, lo=T_BATTLE[0], hi=T_BATTLE[1] + 1)
+    check("T1 T-OFF1 = S0-RESUME through the battle", a == b, first_diff(a, b))
+    check("T1 no DBLITEM line", not any("DBLITEM" in l for l in L["T-OFF1"] + L["T-OFF2"]))
+
+print("T2  T-OBS")
+if L["T-OBS"] is not None and L["T-OFF1"] is not None:
+    a = window(L["T-OBS"], drop=("DBLITEM",))
+    b = window(L["T-OFF1"])
+    check("T2 = T-OFF1 on every line without DBLITEM", a == b, first_diff(a, b))
+    obs = [l for l in L["T-OBS"] if "[DBLITEM-OBS]" in l]
+    first = next((l for l in obs if kv(l).get("would", "-") != "-"), None)
+    f1 = kv(first) if first else {}
+    check("T2 first would≠- = f3456183 side 1 Mightyena Potion key=1",
+          first and fr(first) == T_ACT and f1.get("side") == "1" and f1.get("me") == f"Mightyena#{MIGHTYENA}"
+          and f1.get("would") == "Potion" and f1.get("key") == "1", first or "none")
+    bad = [l for l in obs if kv(l).get("bpo_pos") != kv(l).get("side")]
+    check("T2 bpo_pos = side on every row", obs and not bad, f"{len(obs)} rows; bad {bad[:1]}")
+    s1 = [l for l in obs if kv(l).get("side") == "1" and kv(l).get("turn", "0") != "0"]
+    s0 = [l for l in obs if kv(l).get("side") == "0"]
+    check("T2 disc=1 on side 1 from turn 1; disc=0 on side 0",
+          s1 and all(kv(l).get("disc") == "1" for l in s1) and s0 and all(kv(l).get("disc") == "0" for l in s0),
+          f"side1 {len(s1)} rows, side0 {len(s0)} rows")
+
+print("T3  T-ON")
+if L["T-ON"] is not None and L["T-OFF1"] is not None:
+    a, b = window(L["T-ON"], hi=T_ACT), window(L["T-OFF1"], hi=T_ACT)
+    check("T3 = T-OFF1 before f3456183 — AS FILED (every frame-stamped line)", a == b, first_diff(a, b))
+    # The same row ALSO predicts a `[KEYBATTLE] … key=True` line, which the flag-1 path logs at the battle's FIRST
+    # decision (KEYITEMS=1 in every T arm; the flag-unset T-OFF never reaches `_maybe_use_item`), i.e. BEFORE f3456183.
+    # So the row contradicts itself under the filed rule. Graded separately: every OTHER line identical.
+    a2 = window(L["T-ON"], hi=T_ACT, drop=("[KEYBATTLE]",))
+    check("T3 = T-OFF1 before f3456183 on every line except the predicted [KEYBATTLE]", a2 == b, first_diff(a2, b))
+    use = dbl(L["T-ON"], "use")
+    u = kv(use[0]) if use else {}
+    check("T3 use at f3456183: side=1 g=2 Potion on Mightyena P=4 hp=99/127 self=1",
+          use and fr(use[0]) == T_ACT and u.get("side") == "1" and u.get("g") == "2" and u.get("item") == "Potion"
+          and u.get("target") == f"Mightyena#{MIGHTYENA}" and u.get("P") == "4" and u.get("hp") == "99/127"
+          and u.get("self") == "1", use[0] if use else "no use line")
+    menu = dbl(L["T-ON"], "menu")
+    m = kv(menu[0]) if menu else {}
+    check("T3 menu slot=1 menu_pid=Mightyena ok=1 a_pressed=1",
+          menu and m.get("slot") == "1" and m.get("menu_pid") == MIGHTYENA and m.get("ok") == "1"
+          and m.get("a_pressed") == "1", menu[0] if menu else "no menu line")
+    aft = dbl(L["T-ON"], "after")
+    af = after_fields(aft[0]) if aft else None
+    check("T3 after: Mightyena 99->119, Sceptile 116->116, Potion 1->0, healed +1",
+          af and af["target"] == f"Mightyena#{MIGHTYENA}" and (af["t0"], af["t1"]) == ("99", "119")
+          and af["partner"] == f"Sceptile#{SCEPTILE}" and (af["p0"], af["p1"]) == ("116", "116")
+          and af["item"] == "Potion" and (af["q0"], af["q1"]) == ("1", "0") and af["h0"].isdigit()
+          and int(af["h1"]) == int(af["h0"]) + 1, aft[0] if aft else "no after line")
+    check("T3 no KI-45 on gActionSelectionCursor", not ki45_action("T-ON", L["T-ON"]))
+    nxt = [l for l in L["T-ON"] if "[TURN" in l and "Mightyena" in l and fr(l) > T_ACT + 200]
+    check("T3 battler 2's next FIGHT (graded if asked; ABSENT otherwise)", True,
+          (nxt[0][:110] if nxt else "ABSENT: battler 2 not asked again"))
+    kb = [l for l in L["T-ON"] if "[KEYBATTLE]" in l and T_BATTLE[0] <= fr(l) <= T_BATTLE[1]]
+    check("T3 [KEYBATTLE] key=True", kb and "key=True" in kb[0], kb[0] if kb else "none")
+
+n_fail = sum(1 for _n, ok in results if not ok)
+print(f"\nTOTAL {len(results)} checks, {n_fail} FAIL")
+
+----- d13_arms_evidence.py (verbatim) -----
+"""Compose tools/story-dev/evidence/2026-09-30-doubleitems13-ARMS.txt: the runner's output, every arm's step-13 lines
+(DBLITEM, KEYBATTLE, ITEM, ITEM-FLOW, KI-45, and the TURN lines around each act) verbatim, every log's hash, the grade
+(as filed and corrected), and the runner and grader scripts. $1 = the arms folder (default d13arms); $2 = output name."""
+import hashlib
+import os
+import pathlib
+import re
+import subprocess
+import sys
+
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+T = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+folder = sys.argv[1] if len(sys.argv) > 1 else "d13arms"
+outname = sys.argv[2] if len(sys.argv) > 2 else "2026-09-30-doubleitems13-ARMS.txt"
+A = S / folder
+env = dict(os.environ, PYTHONUTF8="1")
+FR = re.compile(r"^f(\d+) ")
+ARMS = ["P-OFF1", "P-OFF2", "P-OBS", "P-ON", "P-KEY", "P-CUR", "P-SLOT", "P-NOG", "T-OFF1", "T-OFF2", "T-OBS", "T-ON"]
+WIN = {"P": (3148510, 3156000), "T": (3452776, 3464700)}
+parts = [f"design v2 step 13 (KB-2, healing items in DOUBLE battles) — the graded ARMS ({folder}), 2026-09-30 LA",
+         "=" * 110,
+         "Predictions: ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md (filed in ab398449, BEFORE the code).",
+         "Each section is VERBATIM: the runner's output, each arm's step-13 lines inside its battle window, the hashes, the",
+         "grade, and the scripts. HP and bag values are graded ONLY from the `[DBLITEM] after` lines.", ""]
+parts.append("=" * 40 + " the runner's output " + "=" * 40)
+parts.append((S / f"{folder}_runner.txt").read_text(encoding="utf-8"))
+parts.append("=" * 40 + " hashes (every frame-stamped line, minus [PARTY-ACCT]) " + "=" * 20)
+for t in ARMS:
+    p = A / f"{t}.debug.txt"
+    ls = [l for l in p.read_text(encoding="utf-8", errors="replace").splitlines() if FR.match(l)]
+    keep = [l for l in ls if "[PARTY-ACCT]" not in l]
+    parts.append(f"{t:7s} logsha {hashlib.sha256(chr(10).join(keep).encode()).hexdigest()[:16]} over {len(keep)} lines")
+for t in ARMS:
+    p = A / f"{t}.debug.txt"
+    lo, hi = WIN[t[0]]
+    keep = []
+    for l in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        m = FR.match(l)
+        if m and lo <= int(m.group(1)) <= hi and re.search(r"DBLITEM|KEYBATTLE|\[ITEM\]|ITEM-FLOW|KI-45|\[TURN|\[BATTLE\] (started|ended)|\[TRAINER\]", l):
+            keep.append(l)
+    so = (A / f"{t}.stdout.txt").read_text(encoding="utf-8", errors="replace")
+    ki = [l for l in so.splitlines() if "KI-45" in l]
+    parts.append("=" * 30 + f" {t}: the battle window f{lo}..f{hi} " + "=" * 30)
+    parts.append("\n".join(keep) if keep else "(no lines)")
+    if ki:
+        parts.append(f"--- {t} stdout lines naming KI-45 ---\n" + "\n".join(ki))
+parts.append("=" * 40 + " the grade (d13_grade.py) " + "=" * 40)
+r = subprocess.run(["py", "-3.12", "-B", str(S / "d13_grade.py"), folder], capture_output=True, text=True,
+                   encoding="utf-8", errors="replace", cwd=str(S), env=env)
+parts.append(r.stdout + (("\n[stderr]\n" + r.stderr) if r.stderr.strip() else ""))
+for name in ("run_d13_arms.sh", "d13_grade.py", "d13_arms_evidence.py"):
+    parts.append(f"----- {name} (verbatim) -----\n" + (S / name).read_text(encoding="utf-8"))
+out = T / "evidence" / outname
+out.write_text("\n".join(parts) + "\n", encoding="utf-8")
+print("wrote", out)
+

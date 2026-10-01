@@ -127,9 +127,9 @@ def ledger_key(pid: int, species) -> tuple:
 
 
 def hp_only(options) -> list:
-    """D10: keep only the HP items (`parameter > 0`). A status cure (Awakening, Full Heal, Ice Heal: parameter 0) is not
-    requested in a double in v1: a guard refusal on one is not counted by the retry/disable logic (D4). A Full Restore
-    (255) stays — it is judged by the bag count like any HP item."""
+    """The HP items (`parameter > 0`): the filter `_maybe_use_item` applies before `choose_healing_item`, mirrored by
+    `heal_options`. A Full Restore / Max Potion (255) stays: it is an HP item. ⚠ It is NOT D10's mechanism any more:
+    since SF-1 (2026-09-30) a double asks no cure policy at all — this filter left a Full Restore in the cure list."""
     return [opt for opt in options if opt[2] > 0]
 
 

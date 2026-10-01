@@ -28,14 +28,30 @@ ROWS
              the signature, the executor's self binding, its fail-closed read, its menu-open precondition and its
              double-only test, C1's callers by AST, `battle_action_use_move`'s side, D11 being battler 0's only, and two
              pure helpers (the heal-fraction parse, the `why=` reason).
+  THE FOLD (2026-09-30, `evidence/2026-09-30-doubleitems13-ADVERSARIAL.txt`, three independent agents; every claim
+  re-derived on this code before it became a row):
+  SF1-cure, SF2-*, N2-import  the three PRODUCTION FIXES' rows. Each is red on the literal 799e6adf code and green on
+             the fix (the RV-* revert mutants keep that proof standing). SF2-bound and SF2-unset are green on both: they
+             pin the bound and the untouched flag-unset loop.
+  X01-X13    the executor hunter's rows. ⭐ X01 is the one that mattered: DQ14 stops on Cancel, so it never proved the PID
+             is read at the ACTUAL slot (DQ14 is now labelled so); X01 stops on slot 0, the living partner.
+  K-*        the strategy hunter's rows (its K-fullrestore kept only its pure half, K-hp255, and its K-obs-cure was dropped:
+             SF-1 made "no cure in a double" the intended behaviour; K-ledger-switch from its addendum).
+  ⛔ ISOLATION: a row whose own subject a fault changes (a refusal NOGUARD would press, a fault's own shape) runs under
+  `iso_env`, which clears the job's fault — so the PRE-REGISTERED fault sets stay EXACT. X02 deliberately does not.
+  Every fixture's battle type now carries IS_MASTER (a real battle always does; K-scope-real adds TWO_OPPONENTS).
 FAULTS      the three C7 production envs (never set in a real run; `29-DISABLED-FEATURES-REGISTRY.md`), each with the
             EXACT red set the PREDICTIONS filed: CURSOR0 {DQ11, DQ12}; WRONGSLOT {DQ13}; NOGUARD {DQ15}. ⇒ DQ14's refusal
             comes from the RANGE check (the scroll stops on Cancel, slot 7), which NOGUARD — skipping only the PID
             comparison — keeps; so NOGUARD leaves DQ14 green (the builder's statement the PREDICTIONS asked for).
-MUTANTS     exec'd source edits (never written to disk) of the four files, one per rule, each with an EXACT red set
-            written BEFORE its first run. Two mention-only edits (a comment that writes the code) must turn NOTHING red:
-            a gate that fires on a comment teaches the reader to bypass it. COVERAGE fails if any row is in no fault's or
-            mutant's set. Jobs run in a process pool, in-process if no pool can be made (`--inprocess` forces it).
+MUTANTS     exec'd source edits (never written to disk) of the four files, one per rule, each with an EXACT red set.
+            MUTANTS: the build's own (written before their first run; MUTANT_ADDITIONS records, honestly labelled, what
+            each ALSO reddens among the fold's rows — MEASURED, then explained one by one). FOLD_MUTANTS: the fix reverts,
+            SF-2's rules and the adversaries' REAL survivors (derived before their first run). FAULT_MUTANTS: mutants in
+            fault-arm code, run UNDER their fault (the old runner never set a fault with a mutant installed, so 14 of the
+            executor hunter's kills were invisible). Three mention-only edits must turn NOTHING red: a gate that fires on
+            a comment teaches the reader to bypass it. COVERAGE fails if any row is in no fault's or mutant's set. Jobs
+            run in a process pool, in-process if no pool can be made (`--inprocess` forces it).
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 -u probe_double_items.py [--inprocess]     (exit 1 on any failure)
 """
@@ -146,7 +162,7 @@ def BM():
 
 # ============================================================================================================== data
 ITEM = {n: get_item_by_name(n) for n in ("Potion", "Super Potion", "Hyper Potion", "Full Heal", "Awakening",
-                                          "Full Restore", "X Attack", "Repel")}
+                                          "Full Restore", "X Attack", "Repel", "Max Potion", "Ether", "Max Ether")}
 POTION = ITEM["Potion"]
 PARENT = ("PARENT", None)
 #: OUR two battlers. ⭐ Both DISCRIMINATE: party 1 at side 0, party 4 at side 1, so an index-space mix-up gives a
@@ -155,6 +171,13 @@ L_PID, R_PID, O1_PID, O3_PID = 0x863B0917, 0x5C96EA9B, 0x0C1A7D01, 0x05017D03
 L_IDX, R_IDX = 1, 4
 BPI_RAW = struct.pack("<4H", L_IDX, 0, R_IDX, 1)                     # gBattlerPartyIndexes, u16[4]
 TRAINER, DOUBLE, MULTI, PARTNER = 1 << 3, 1 << 0, 1 << 6, 1 << 22
+#: ‼ THE FOLD (2026-09-30, the strategy hunter's N06/N07): a REAL battle never carries Trainer|Double alone. IS_MASTER
+#: is set in every non-link battle (pret `battle_main.c:1009-1010`) and every two-trainer double has TWO_OPPONENTS
+#: (`battle_setup.c:1274-1275`, Route 123's P family). A fixture with the bare two bits let an exact-match scope test
+#: pass every row while making the feature dead live. Every fixture now carries IS_MASTER; K-scope-real adds both.
+IS_MASTER, TWO_OPP = 1 << 2, 1 << 15
+REAL_DOUBLE = TRAINER | DOUBLE | IS_MASTER
+SWELLOW_PID = 0x0B30A747
 
 
 class Slot:
@@ -190,18 +213,21 @@ def pack_order(order) -> bytes:
     return bytes(((order[i] & 0xF) << 4) | (order[i + 1] & 0xF) for i in (0, 2, 4))
 
 
-def dstate(*, lhp=90, rhp=90, lst=0, flags=TRAINER | DOUBLE, turn=3, order=(1, 4, 0, 2, 3, 5), bpi=None,
-           single=False) -> BattleState:
+def dstate(*, lhp=90, rhp=90, lst=0, rst=0, flags=REAL_DOUBLE, turn=3, order=(1, 4, 0, 2, 3, 5), bpi=None,
+           single=False, left=("Sceptile", L_PID), right=("Mightyena", R_PID), absent=0) -> BattleState:
     """A REAL double `BattleState`: our left Sceptile (party 1) and right Mightyena (party 4), both /100, against a
-    Claydol and a Solrock. `lst` is the left battler's status1 (2 = asleep); `bpi` overrides gBattlerPartyIndexes;
-    `single` makes it a SINGLE trainer battle (two battlers, no Double bit)."""
-    battler = mon_rec(SPECIES_ID["Sceptile"], lhp, 100, L_PID, lst) + mon_rec(SPECIES_ID["Claydol"], 80, 80, O1_PID)
+    Claydol and a Solrock. `lst` / `rst` are our battlers' status1 (2 = asleep); `bpi` overrides gBattlerPartyIndexes;
+    `left` / `right` replace a battler's (species, PID); `absent` is gAbsentBattlerFlags; `single` makes it a SINGLE
+    trainer battle (two battlers, no Double bit)."""
+    battler = (mon_rec(SPECIES_ID[left[0]], lhp, 100, left[1], lst)
+               + mon_rec(SPECIES_ID["Claydol"], 80, 80, O1_PID))
     if not single:
-        battler += mon_rec(SPECIES_ID["Mightyena"], rhp, 100, R_PID) + mon_rec(SPECIES_ID["Solrock"], 80, 80, O3_PID)
-    return BattleState(battle_type=struct.pack("<I", TRAINER if single else flags), side_timers=bytes(24),
+        battler += (mon_rec(SPECIES_ID[right[0]], rhp, 100, right[1], rst)
+                    + mon_rec(SPECIES_ID["Solrock"], 80, 80, O3_PID))
+    return BattleState(battle_type=struct.pack("<I", TRAINER | IS_MASTER if single else flags), side_timers=bytes(24),
                        battler_party_indexes=BPI_RAW if bpi is None else struct.pack("<4H", *bpi),
                        battler_party_order=pack_order(order), battler_count=2 if single else 4, battler=battler,
-                       battler_status3=bytes(16), battler_disable_structs=bytes(0x70), absent_battler_flags=0,
+                       battler_status3=bytes(16), battler_disable_structs=bytes(0x70), absent_battler_flags=absent,
                        current_turn=turn, weather=0)
 
 
@@ -248,6 +274,28 @@ def _env(values):
     saved = {k: os.environ.get(k) for k in ROW_ENVS}
     try:
         for k in ROW_ENVS:
+            os.environ.pop(k, None)
+        os.environ.update(values or {})
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+@contextlib.contextmanager
+def iso_env(values):
+    """An env for ONE row that ALSO saves, clears and restores the three C7 fault envs (the executor hunter's
+    `iso_env`). ⛔ For the rows whose own subject a fault would change (a refusal NOGUARD would press, the faults' own
+    shapes): without it they would join a fault's red set, and the PRE-REGISTERED sets (CURSOR0 {DQ11, DQ12},
+    WRONGSLOT {DQ13}, NOGUARD {DQ15}) would no longer be exact. A row that SHOULD run under the job's fault (X02, which
+    kills a mutant only a fault job reveals) does not use it."""
+    keys = ROW_ENVS + FAULT_ENVS
+    saved = {k: os.environ.get(k) for k in keys}
+    try:
+        for k in keys:
             os.environ.pop(k, None)
         os.environ.update(values or {})
         yield
@@ -450,8 +498,10 @@ def strategy_rows(tag=""):
         with sworld(env={FLAG: "1"}, state=st1, bag=bag):
             a1 = s.decide_turn_in_double_battle(st1, 1)         # side 1 requests
             a2 = s.decide_turn_in_double_battle(st1, 0)         # then the partner decides
-        ledger = getattr(s, "_dbl_ledgers", {}).get((R_PID, SPECIES_ID["Mightyena"]), {})
-        pending = ledger.get("_hp_when_item_requested")
+        # The fold (2026-09-30): look for side 1's pending request in ANY ledger, never at one assumed key — keying by
+        # party index or by species name is the same behaviour, and a row must not redden on an implementation detail.
+        pending = next((led.get("_hp_when_item_requested") for led in getattr(s, "_dbl_ledgers", {}).values()
+                        if led.get("_hp_when_item_requested") is not None), None)
         bag.items[0].quantity = 0                               # the Potion applied: next turn, Mightyena reads 40
         st2 = dstate(lhp=100, rhp=40)
         with sworld(env={FLAG: "1"}, state=st2, fresh=st2, bag=bag) as log2:
@@ -464,7 +514,7 @@ def strategy_rows(tag=""):
         out = []
         for extra in (MULTI, PARTNER):
             s = new_strategy()
-            st = dstate(lhp=20, flags=TRAINER | DOUBLE | extra)
+            st = dstate(lhp=20, flags=REAL_DOUBLE | extra)
             with sworld(env={FLAG: "1"}, state=st) as log:
                 act = s.decide_turn_in_double_battle(st, 0)
             out.append((act == PARENT and not dbl_events(log) and log.mui == 0, act))
@@ -566,7 +616,7 @@ def strategy_rows(tag=""):
 
     def db_noscope():
         s = new_strategy()
-        st = dstate(lhp=20, flags=TRAINER | DOUBLE | MULTI)
+        st = dstate(lhp=20, flags=REAL_DOUBLE | MULTI)
         with sworld(env={FLAG: "observe"}, state=st) as log:
             act = s.decide_turn_in_double_battle(st, 0)
         ok = act == PARENT and not log.events and not log.reads and not log.bag
@@ -593,6 +643,254 @@ def strategy_rows(tag=""):
               and "retrying once" in verdicts[0] and "disabling items" in verdicts[1]
               and s._index_space_flipped is True and s._items_ineffective is True)
         return ok, f"actions {[a[0] for a in acts]}; verdicts {verdicts}"
+
+    # ---------------------------------------------------------------------- the PRODUCTION FIXES (2026-09-30)
+    def sf1_cure():
+        # SF-1: asleep at full HP, the bag a Full Heal AND a Full Restore. A double asks NO cure policy (D10), so the
+        # parent's turn — the first build spent the Full Restore here — and observe mirrors it (`would=-`).
+        bag = (("Full Heal", 1), ("Full Restore", 1))
+        st = dstate(lhp=100, lst=2)
+        s = new_strategy()
+        with sworld(env={FLAG: "1"}, state=st, bag=Bag(*bag)):
+            act = s.decide_turn_in_double_battle(st, 0)
+        s2 = new_strategy()
+        with sworld(env={FLAG: "observe"}, state=st, bag=Bag(*bag)) as log:
+            s2.decide_turn_in_double_battle(st, 0)
+        o = one(lines(log, "DBLITEM-OBS"))
+        ok = act == PARENT and field(o, "would") == "-" and field(o, "why") == "above_fraction"
+        return ok, f"flag 1 {act}; observe {o}"
+
+    def n2_import():
+        # N2: with `double_items` unimportable, the flag-unset path still returns the parent's turn (the flag test runs
+        # before any import), and the flag-on path fails OPEN to it.
+        pkg = modules.story
+        saved_attr, saved_mod = pkg.__dict__.get("double_items"), sys.modules.get(DBL_NAME)
+        out = {}
+        try:
+            if "double_items" in pkg.__dict__:
+                delattr(pkg, "double_items")
+            sys.modules[DBL_NAME] = None                       # `import modules.story.double_items` now raises
+            for flag in (None, "1"):
+                s = new_strategy()
+                st = dstate(lhp=20)
+                with sworld(env={FLAG: flag} if flag else None, state=st) as log:
+                    try:
+                        out[flag] = s.decide_turn_in_double_battle(st, 0)
+                    except Exception as error:  # noqa: BLE001 - the row reports a raise as its own red result
+                        out[flag] = f"raised {type(error).__name__}"
+        finally:
+            sys.modules[DBL_NAME] = saved_mod
+            setattr(pkg, "double_items", saved_attr)
+        return out == {None: PARENT, "1": PARENT}, f"{out}"
+
+    # ---------------------------------------------------------------------- the ADVERSARIAL fold (2026-09-30), strategy
+    def k_mode():
+        d = DBL()
+        got = [d.mode({FLAG: v}) for v in ("OBSERVE", "Observe", "observe ", "1 ", "10", "1\n")]
+        return got == [d.OFF] * 6, f"{got}"
+
+    def k_scope_real():
+        d = DBL()
+        pure = [d.in_scope(REAL_DOUBLE), d.in_scope(REAL_DOUBLE | TWO_OPP)]
+        s = new_strategy()
+        st = dstate(lhp=20, flags=REAL_DOUBLE | TWO_OPP)                      # Route 123's two-trainer double
+        with sworld(env={FLAG: "1"}, state=st):
+            act = s.decide_turn_in_double_battle(st, 0)
+        return pure == [True, True] and act == use(POTION, L_IDX), f"{pure}; {act}"
+
+    def k_active():
+        got = DBL().active_positions([3, 1, 0, 2, 4, 5])
+        return got == (3, 1), f"{got}"
+
+    def k_guardnone():
+        a = 0x5C96EA9B
+        got = [DBL().guard_ok(a, a, None, 6), DBL().guard_ok(a, a, 0, None)]
+        return got == [False, False], f"{got}"
+
+    def k_guardhigh():
+        a = 0x5C96EA9B
+        got = DBL().guard_ok(a, a ^ 0x0001_0000, 0, 6)
+        return got is False, f"{got}"
+
+    def k_hp255():
+        fr, mp = ITEM["Full Restore"], ITEM["Max Potion"]
+        got = DBL().hp_only([(fr, 1, 255), (mp, 1, 255)])
+        return got == [(fr, 1, 255), (mp, 1, 255)], f"{len(got)} kept"
+
+    def k_parity_noreserve():
+        bag = Bag(("Potion", 3), ("Full Restore", 1), ("Full Heal", 1))
+        st = dstate(lhp=20)
+        s1 = new_strategy()
+        with sworld(state=st, bag=bag) as log1:
+            s1._maybe_use_item(st)
+        s2 = new_strategy()
+        with sworld(env={FLAG: "observe"}, state=st, bag=bag) as log2:
+            s2.decide_turn_in_double_battle(st, 0)
+        mirror = DBL().heal_options(bag.items, lambda m: m)
+
+        def names(opts):
+            return [(o[0].name, o[1], o[2]) for o in opts]
+
+        want = [("Potion", 3, 20), ("Full Restore", 1, 255)]
+        got1 = names(log1.hp_opts[0]) if len(log1.hp_opts) == 1 else log1.hp_opts
+        got2 = names(log2.hp_opts[0]) if len(log2.hp_opts) == 1 else log2.hp_opts
+        return got1 == got2 == names(mirror) == want, f"{got1}; {got2}; {names(mirror)}"
+
+    def k_reserve_raise():
+        bag = Bag(("Potion", 2), ("Hyper Potion", 1))
+
+        def boom(_medicine):
+            raise RuntimeError("the reserve broke")
+
+        a, b = DBL().heal_options(bag.items, boom), DBL().heal_options(bag.items, None)
+        return a == b and len(a) == 2, f"{len(a)} {len(b)}"
+
+    def k_ether():
+        bag = Bag(("Potion", 1), ("Ether", 1), ("Max Ether", 1))
+        got = [(o[0].name, o[2]) for o in DBL().heal_options(bag.items, None)]
+        return got == [("Potion", 20)], f"{got}"
+
+    def k_why_boundary():
+        got = DBL().hp_decline_reason(35, 100, [(POTION, 1, 20)], worst_hit_taken=50)
+        return got == "losing_race", f"{got}"
+
+    def k_worst_per_mon():
+        # the PARTNER's 60-HP hit must not make the requester's Potion a losing race (D3: the worst hit is per Pokémon)
+        s = new_strategy()
+        acts = []
+        for side, lhp, rhp in ((1, 90, 90), (1, 90, 30), (0, 30, 30)):
+            st = dstate(lhp=lhp, rhp=rhp)
+            with sworld(env={FLAG: "1"}, state=st):
+                acts.append(s.decide_turn_in_double_battle(st, side))
+        return acts == [PARENT, PARENT, use(POTION, L_IDX)], f"{[a[0] for a in acts]}"
+
+    def k_cap_shared():
+        s = new_strategy()
+        s._item_uses = 4                                        # the PER-BATTLE cap already spent
+        st = dstate(lhp=20)
+        with sworld(env={FLAG: "1"}, state=st):
+            a1 = s.decide_turn_in_double_battle(st, 0)
+        s2 = new_strategy()
+        st2 = dstate(rhp=20)
+        with sworld(env={FLAG: "1"}, state=st2):
+            a2 = s2.decide_turn_in_double_battle(st2, 1)
+        return a1 == PARENT and a2 == use(POTION, R_IDX) and s2._item_uses == 1, f"{a1[0]} {a2[0]} {s2._item_uses}"
+
+    def k_key_once():
+        s = new_strategy()
+        kb = []
+        for side, st in ((0, dstate(lhp=20)), (1, dstate(rhp=20))):
+            with sworld(env={FLAG: "1", KEYITEMS: "1"}, state=st, cls=0x20) as log:
+                s.decide_turn_in_double_battle(st, side)
+            kb += lines(log, "KEYBATTLE")
+        return len(kb) == 1, f"{kb}"
+
+    def k_d10_side1():
+        s = new_strategy()
+        st = dstate(rhp=100, rst=2)                             # the RIGHT asleep at full HP
+        with sworld(env={FLAG: "1"}, state=st, bag=Bag(("Full Heal", 1))):
+            act = s.decide_turn_in_double_battle(st, 1)
+        return act == PARENT, f"{act}"
+
+    def k_ledger_switch():
+        # side 1's Mightyena takes a 60 hit; a DIFFERENT Pokémon (Swellow, party 2) then holds side 1 at 30: its own
+        # ledger, so the old Pokémon's worst hit must not refuse its Potion.
+        s = new_strategy()
+        acts = []
+        for st in (dstate(rhp=90), dstate(rhp=30),
+                   dstate(rhp=30, right=("Swellow", SWELLOW_PID), bpi=(L_IDX, 0, 2, 1))):
+            with sworld(env={FLAG: "1"}, state=st):
+                acts.append(s.decide_turn_in_double_battle(st, 1))
+        return acts == [PARENT, PARENT, use(POTION, 2)], f"{[a[0] for a in acts]}"
+
+    def obs1(s, st, side=0, **kw):
+        with sworld(state=st, **kw) as log:
+            s.decide_turn_in_double_battle(st, side)
+        return one(lines(log, "DBLITEM-OBS"))
+
+    def k_obs_switch():
+        s = new_strategy()
+        obs1(s, dstate(lhp=90), env={FLAG: "observe"})
+        o = obs1(s, dstate(lhp=30, left=("Swellow", SWELLOW_PID), bpi=(2, 0, R_IDX, 1)), env={FLAG: "observe"})
+        return field(o, "worst") == "0" and field(o, "would") == "Potion", f"{o}"
+
+    def obs_seq(hps):
+        s = new_strategy()
+        return [obs1(s, dstate(lhp=h), env={FLAG: "observe"}) for h in hps]
+
+    def k_obs_maxworst():
+        o = obs_seq((90, 60, 50))
+        return field(o[2], "worst") == "30", f"{[field(x, 'worst') for x in o]}"
+
+    def k_obs_rise():
+        o = obs_seq((30, 90, 80))
+        return field(o[2], "worst") == "10", f"{[field(x, 'worst') for x in o]}"
+
+    def k_obs_cap():
+        s = new_strategy()
+        s._item_uses = 4
+        o = obs1(s, dstate(lhp=20), env={FLAG: "observe"})
+        return (field(o, "would"), field(o, "why"), field(o, "uses")) == ("-", "cap", "4"), f"{o}"
+
+    def k_obs_ineff():
+        s = new_strategy()
+        s._items_ineffective = True
+        o = obs1(s, dstate(lhp=20), env={FLAG: "observe"})
+        return (field(o, "would"), field(o, "why")) == ("-", "ineffective"), f"{o}"
+
+    def k_obs_frac():
+        s = new_strategy()
+        o = obs1(s, dstate(lhp=70), env={FLAG: "observe", FRAC: "0.8"})
+        return (field(o, "would"), field(o, "why")) == ("Potion", "hp"), f"{o}"
+
+    def k_obs_two():
+        s = new_strategy()
+        st = dstate(lhp=20, flags=REAL_DOUBLE | TWO_OPP)
+        with sworld(env={FLAG: "observe", KEYITEMS: "1"}, state=st) as log:
+            with _patched([(TI, "read_opponent_trainers", lambda _two: (300, 271)),
+                           (TI, "trainer_class", lambda tid, *_a, **_k: {300: 0x05, 271: 0x20}[tid])]):
+                s.decide_turn_in_double_battle(st, 0)
+        o = one(lines(log, "DBLITEM-OBS"))
+        return (field(o, "key"), field(o, "would")) == ("1", "Potion"), f"{o}"
+
+    def k_obs_dict():
+        s = new_strategy()
+        before = copy.deepcopy(s.__dict__)
+        for h in (60, 30):
+            obs1(s, dstate(lhp=h), env={FLAG: "observe"})
+        after = {k: v for k, v in s.__dict__.items() if k != "_dbl_obs"}
+        return after == before, f"changed {[k for k in after if before.get(k) != after.get(k)]}"
+
+    def k_obs_null():
+        s = new_strategy()
+        st = dstate(lhp=20)
+        with sworld(env={FLAG: "observe"}, state=st) as log:
+            inner = modules.memory.read_symbol
+
+            def rs(name, offset=0, size=0):
+                return bytes(4) if name == "gBattleStruct" else inner(name, offset, size)
+
+            with _patched([(modules.memory, "read_symbol", rs)]):
+                s.decide_turn_in_double_battle(st, 0)
+        o = one(lines(log, "DBLITEM-OBS"))
+        return (field(o, "bpo"), field(o, "bpo_pos")) == ("?", "?"), f"{o}"
+
+    def k_absent():
+        s = new_strategy()
+        st = dstate(rhp=20, absent=0b0100)                     # battler 2 absent: no right Pokémon
+        with sworld(env={FLAG: "1"}, state=st) as log:
+            act = s.decide_turn_in_double_battle(st, 1)
+        return act == PARENT and not dbl_events(log), f"{act}; {dbl_events(log)}"
+
+    def k_obs_key0():
+        s = new_strategy()
+        o = obs1(s, dstate(lhp=20), env={FLAG: "observe"}, cls=0x05)
+        return (field(o, "key"), field(o, "would")) == ("0", "Potion"), f"{o}"
+
+    def k_obs_keyitems0():
+        s = new_strategy()
+        o = obs1(s, dstate(lhp=20), env={FLAG: "observe", KEYITEMS: "0"}, cls=0x05)
+        return (field(o, "would"), field(o, "why")) == ("Potion", "hp"), f"{o}"
 
     cases = [
         ("DQ01 flag unset: the parent's action, __dict__ unchanged, no DBLITEM line, no read", dq01),
@@ -623,6 +921,39 @@ def strategy_rows(tag=""):
          db_singlescure),
         ("DBjudge [builder] side 1 refused twice: the judge reads side 1 — one retry, then the disable (P6's shape)",
          db_judge),
+        ("SF1-cure [fix] asleep at 100/100, Full Heal + Full Restore: flag 1 asks no cure (the parent's turn); observe "
+         "would=-", sf1_cure),
+        ("N2-import [fix] double_items unimportable: flag unset -> the parent's turn (no raise); flag 1 fails open",
+         n2_import),
+        ("K-mode [adversary] mode(): OBSERVE / Observe / 'observe ' / '1 ' / '10' / '1\\n' are all OFF", k_mode),
+        ("K-scope-real [adversary] real flags (IS_MASTER, TWO_OPPONENTS) are in scope; flag 1 acts there", k_scope_real),
+        ("K-active [adversary] active_positions keeps order: [3,1,...] -> (3, 1)", k_active),
+        ("K-guardnone [adversary] guard_ok with slot or count None -> False, no raise", k_guardnone),
+        ("K-guardhigh [adversary] guard_ok compares all 32 PID bits", k_guardhigh),
+        ("K-hp255 [adversary] hp_only keeps the 255 items (Full Restore, Max Potion)", k_hp255),
+        ("K-parity-noreserve [adversary] DQ03 with no reserve: Full Restore on all three sides of the parity",
+         k_parity_noreserve),
+        ("K-reserve-raise [adversary] heal_options fails UNLOCKED on a raising reserve", k_reserve_raise),
+        ("K-ether [adversary] heal_options excludes PP items (Ether, Max Ether)", k_ether),
+        ("K-why-boundary [adversary] hp_decline_reason at exactly the fraction: losing_race", k_why_boundary),
+        ("K-worst-per-mon [adversary] the partner's 60-HP hit does not refuse the requester's Potion", k_worst_per_mon),
+        ("K-cap-shared [adversary] the 4-use cap is PER BATTLE, never per Pokémon", k_cap_shared),
+        ("K-key-once [adversary] KEYITEMS: one [KEYBATTLE] line per battle, both battlers acting", k_key_once),
+        ("K-d10-side1 [adversary] DQ07 on side 1: the right asleep, Full Heal only -> the parent's turn", k_d10_side1),
+        ("K-ledger-switch [adversary] a new Pokémon on side 1 gets its own ledger (UseItem(Potion, 2))", k_ledger_switch),
+        ("K-obs-switch [adversary] observe's tracker is per Pokémon: a switched-in Pokémon starts at worst=0",
+         k_obs_switch),
+        ("K-obs-maxworst [adversary] observe's worst is the MAX drop (90, 60, 50 -> 30)", k_obs_maxworst),
+        ("K-obs-rise [adversary] observe never counts a rise (30, 90, 80 -> 10)", k_obs_rise),
+        ("K-obs-cap [adversary] observe honours the per-battle cap: would=- why=cap uses=4", k_obs_cap),
+        ("K-obs-ineff [adversary] observe honours the disable: would=- why=ineffective", k_obs_ineff),
+        ("K-obs-frac [adversary] observe honours POKEBOT_HEAL_AT_FRACTION (0.8: 70/100 heals)", k_obs_frac),
+        ("K-obs-two [adversary] observe reads opponent B in a TwoOpponents battle (one key side is enough)", k_obs_two),
+        ("K-obs-dict [adversary] two observe decisions leave __dict__ (but _dbl_obs) unchanged", k_obs_dict),
+        ("K-obs-null [adversary] a non-EWRAM gBattleStruct pointer reads bpo=? bpo_pos=?", k_obs_null),
+        ("K-absent [adversary] an absent right battler: the parent's turn, no DBLITEM line", k_absent),
+        ("K-obs-key0 [adversary] KEYITEMS unset, a non-key class: key=0 and would=Potion", k_obs_key0),
+        ("K-obs-keyitems0 [adversary] KEYITEMS='0' is OFF in observe too", k_obs_keyitems0),
     ]
     for label, fn in cases:
         row(label, fn, tag, reds)
@@ -660,9 +991,15 @@ class Game:
     """The in-battle item flow, small and deterministic. `menu_order` is the order the party menu REALLY shows (the
     executor's re-map may believe another); A on the party menu applies a 20-HP medicine to the PID at the cursor."""
 
-    def __init__(self, *, g, menu_order=MENU, cursor=(0, 0, 0, 0), bag_opens=True, party_opens=True):
+    def __init__(self, *, g, menu_order=MENU, cursor=(0, 0, 0, 0), bag_opens=True, party_opens=True, bag_delay=0,
+                 drop_a=0):
         self.g = g
         self.party_opens = party_opens
+        #: SF-2's model of the action menu: the first `drop_a` A presses are DROPPED (the menu stays up); the next one
+        #: is ACCEPTED (battler g's controller leaves `HandleInputChooseAction`) and the bag opens `bag_delay` frames
+        #: later (0 = at once). A B back out of the bag re-opens the action menu.
+        self.bag_delay, self.drop_a = bag_delay, drop_a
+        self.accepted, self.bag_at = False, None
         self.recs = {i: bytearray(party_rec(pid, sp, hp, 100)) for i, (sp, pid, hp) in enumerate(FIELD)}
         self.menu_order = list(menu_order)
         self.state = "battle"
@@ -679,7 +1016,18 @@ class Game:
     def order(self):
         return self.menu_order if self.state in ("party", "party_msg") else list(range(6))
 
+    def _tick(self):
+        if self.bag_at is not None and self.frame >= self.bag_at and self.state == "battle":
+            self.state, self.bag_at = "bag", None
+
+    def controller(self, battler):
+        """Battler g's controller callback: its action menu until an A is accepted, then something else."""
+        self._tick()
+        return "HandleInputChooseAction" if battler == self.g and self.state == "battle" and not self.accepted \
+            else "Idle"
+
     def symbol(self, name):
+        self._tick()
         table = {"gPlayerParty": b"".join(bytes(self.recs[i]) for i in self.order()),
                  "gPlayerPartyCount": bytes([6]), "gPartyMenu": bytes(self.party_menu),
                  "gBattlerInMenuId": bytes([self.bim]), "gBattlerPartyIndexes": BPI_RAW,
@@ -688,10 +1036,12 @@ class Game:
         return table[name]
 
     def game_state(self):
+        self._tick()
         return {"battle": GameState.BATTLE, "bag": GameState.BAG_MENU, "bag_item": GameState.BAG_MENU,
                 "party": GameState.PARTY_MENU, "party_msg": GameState.PARTY_MENU}[self.state]
 
     def state_symbol(self):
+        self._tick()
         return {"battle": "BATTLEMAINCB2", "bag": "CB2_BAGMENURUN", "bag_item": "CB2_BAGMENURUN",
                 "party": "CB2_UPDATEPARTYMENU", "party_msg": "CB2_UPDATEPARTYMENU"}[self.state]
 
@@ -700,10 +1050,18 @@ class Game:
 
     def press_button(self, name):
         self.presses.append((self.frame, self.state, name, self.party_menu[9]))
+        self._tick()
         st = self.state
         if st == "battle":
             if name == "A" and self.bag_opens:
-                self.state = "bag"
+                if self.drop_a > 0:
+                    self.drop_a -= 1                         # dropped: the action menu stays up
+                elif not self.accepted:
+                    self.accepted = True
+                    if self.bag_delay:
+                        self.bag_at = self.frame + self.bag_delay
+                    else:
+                        self.state = "bag"
             elif name in ("Left", "Right", "Up", "Down"):
                 i = self.cursor[self.g]
                 i = {"Left": i - 1 if i in (1, 3) else i, "Right": i + 1 if i in (0, 2) else i,
@@ -711,6 +1069,8 @@ class Game:
                 self.cursor[self.g] = i
         elif st == "bag":
             self.state = {"A": "bag_item", "B": "battle"}.get(name, st)
+            if self.state == "battle":
+                self.accepted = False                        # backed out: the action menu re-opens
         elif st == "bag_item":
             if name == "A" and self.party_opens:
                 self.state, self.party_menu[9], self.bim = "party", 0, self.g
@@ -791,7 +1151,7 @@ def xworld(game, *, env=None, remap=MENU, party_scroll=None, raise_on=None, real
     def fake_controller(battler):
         if battler == 2:
             log.cb2 += 1
-        return controller(battler) if controller else "Idle"
+        return controller(battler) if controller else game.controller(battler)
 
     ctx = types.SimpleNamespace(emulator=game, rom=types.SimpleNamespace(is_rse=True, is_rs=False, is_frlg=False))
     patches = [(bas, "read_symbol", fake_read), (bas, "get_game_state", game.game_state),
@@ -814,6 +1174,49 @@ def run_item(game, *, target, g, env=None, state=None, **kw):
     with xworld(game, env=env, **kw) as log:
         out = drive(BAS().battle_action_use_item(state or dstate(), POTION, target, g), game)
     return out, log
+
+
+def run_item_iso(game, *, target, g, env, state=None, **kw):
+    """`run_item` under `iso_env`: the row's env, faults included, and NOTHING the job set."""
+    with iso_env(env), xworld(game, env=env, **kw) as log:
+        out = drive(BAS().battle_action_use_item(state or dstate(), POTION, target, g), game)
+    return out, log
+
+
+class PaddedGame(Game):
+    """Real memory does not stop at `gPlayerParty`'s 600 bytes: `read_symbol(offset=700)` returns the NEXT symbol's
+    bytes (`memory.py:66-70`). The plain fake returns b'' there, which is stricter than the hardware (the executor
+    hunter's N31 survived the NOGUARD job only because of that)."""
+
+    def symbol(self, name):
+        data = super().symbol(name)
+        return data + bytes([0xEE]) * 200 if name == "gPlayerParty" else data
+
+
+class StaleGame(Game):
+    """The party stays in MENU order after the menu closes (a stale permutation): `after`'s `same=` must say 0."""
+
+    def order(self):
+        if self.state in ("party", "party_msg") or getattr(self, "_seen_party", False):
+            return self.menu_order
+        return list(range(6))
+
+    def press_button(self, name):
+        if self.state in ("party", "party_msg"):
+            self._seen_party = True
+        super().press_button(name)
+
+
+def menu_lines(log):
+    return [m for m in lines(log, "DBLITEM") if m.startswith("menu ")]
+
+
+def after_lines(log):
+    return [m for m in lines(log, "DBLITEM") if m.startswith("after ")]
+
+
+def one(items):
+    return items[0] if len(items) == 1 else ""
 
 
 def executor_rows(tag=""):
@@ -968,12 +1371,200 @@ def executor_rows(tag=""):
         ok = res == "done" and loop == list(range(8, 40)) and not lines(log, "DBLITEM")
         return ok, f"A in the loop at frames {loop[:3]}..{loop[-1:]} ({len(loop)}, want 32); lines {lines(log, 'DBLITEM')}"
 
+    # ---------------------------------------------------------------------- the ADVERSARIAL fold (2026-09-30), executor
+    def x01():
+        # ⭐ THE MOST IMPORTANT MISS (the executor hunter's N37): battler 2 aims at menu slot 1, the scroll stops on slot
+        # 0 — where the menu OPENS (G2), and where a KI-38 give-up leaves it — and slot 0 is the LIVING PARTNER. The guard
+        # must refuse on the PID at the ACTUAL slot; a guard that reads the PID at the aim passes and feeds the partner.
+        game = Game(g=2)
+        out, log = run_item_iso(game, target=R_IDX, g=2, env={FLAG: "1"}, party_scroll=0)
+        m, a = one(menu_lines(log)), one(after_lines(log))
+        ok = (out == "done" and field(m, "slot") == "0" and field(m, "menu_pid") == "863B0917"
+              and field(m, "intended_pid") == "5C96EA9B" and field(m, "ok") == "0" and field(m, "a_pressed") == "0"
+              and not party_a(game) and game.hp(L_IDX) == 40 and "Potion=1->1" in a)
+        return ok, f"menu {m}; after {a}; party A {party_a(game)}"
+
+    def x02():
+        # battler 0's REAL action scroll reads byte 0 (byte 2 set differently). NOT isolated on purpose: under the CURSOR0
+        # job it must stay green (battler 0 never consults the fault) — and a fault mutant that flips battler 0 too
+        # (the executor hunter's N02) shows only there.
+        game = Game(g=0, cursor=(0, 3, 1, 3))
+        with xworld(game):
+            out = drive(BM().scroll_to_battle_action(1, False), game)
+        dirs = [p[2] for p in game.presses]
+        return out == "done" and dirs == ["Right"] and bytes(game.cursor) == bytes([1, 3, 1, 3]), \
+            f"presses {dirs}; cursor {list(game.cursor)}"
+
+    def x03():
+        # `observe` never reaches the executor: the item flow reads nothing and logs no DBLITEM; the Struggle loop
+        # presses A every frame and never reads controller 2 (P-OBS = P-OFF on every gameplay line).
+        game = Game(g=2)
+        out, log = run_item(game, target=R_IDX, g=2, env={FLAG: "observe"})
+        ok1 = out == "done" and not log.reads and not dbl_events(log) and len(party_a(game)) == 1
+        game2 = Game(g=0)
+
+        def controller(battler, game=game2):
+            return ("HandleInputChooseAction" if game.frame >= 10 else "Idle") if battler == 2 else "Idle"
+
+        def main(game=game2):
+            return "HandleTurnActionSelectionState" if game.frame < 40 else "Done"
+
+        with xworld(game2, env={FLAG: "observe"}, controller=controller, main=main) as log2:
+            drive(BAS().battle_action_use_move(TurnAction.UseMove, 0, 0, dstate()), game2)
+        late = [p[0] for p in game2.presses if p[2] == "A" and p[0] >= 10]
+        ok2 = late == list(range(10, 40)) and log2.cb2 == 0 and not lines(log2, "DBLITEM")
+        return ok1 and ok2, f"item: reads {log.reads} DBLITEM {dbl_events(log)}; D11: A>=10 {len(late)} cb2 {log2.cb2}"
+
+    def x04():
+        # an unreadable battle type is NOT a double (fail closed into today's flow). UNREACHABLE live (`BattleType` is
+        # `boundary=KEEP`), kept as defence: it pins the direction `_dbl_on` fails in.
+        class BadState:
+            @property
+            def is_double_battle(self):
+                raise RuntimeError("battle type unreadable")
+
+            def map_battle_party_index(self, i):
+                return i
+
+        game = Game(g=2)
+        out, log = run_item(game, target=R_IDX, g=2, env={FLAG: "1"}, state=BadState())
+        ok = out == "done" and not log.reads and not dbl_events(log) and len(party_a(game)) == 1
+        return ok, f"reads {log.reads}; DBLITEM {dbl_events(log)}; party A {party_a(game)}"
+
+    def x05():
+        # WRONGSLOT's OWN shape, both sides, isolated from the job's fault: the cursor goes to the PARTNER's slot.
+        res = {}
+        for g, tgt, want_slot, want_pid, want_int in ((2, R_IDX, "0", "863B0917", "5C96EA9B"),
+                                                       (0, L_IDX, "1", "5C96EA9B", "863B0917")):
+            game = Game(g=g)
+            out, log = run_item_iso(game, target=tgt, g=g, env={FLAG: "1", F_WRONGSLOT: "1"})
+            m = one(menu_lines(log))
+            res[g] = (out == "done" and log.aims == [int(want_slot)] and field(m, "slot") == want_slot
+                      and field(m, "menu_pid") == want_pid and field(m, "intended_pid") == want_int
+                      and field(m, "ok") == "0" and field(m, "a_pressed") == "0" and not party_a(game), log.aims, m)
+        return all(v[0] for v in res.values()), f"{res}"
+
+    def x06():
+        # P-NOG's pre-registered line shape: WRONGSLOT + NOGUARD on battler 0 → `slot=1 … ok=0 a_pressed=1`, the
+        # PARTNER healed and the target not.
+        game = Game(g=0)
+        out, log = run_item_iso(game, target=L_IDX, g=0, env={FLAG: "1", F_WRONGSLOT: "1", F_NOGUARD: "1"})
+        m, a = one(menu_lines(log)), one(after_lines(log))
+        ok = (out == "done" and field(m, "slot") == "1" and field(m, "ok") == "0" and field(m, "a_pressed") == "1"
+              and " hp=40->40 " in a and "partner=Mightyena#5C96EA9B hp=30->50" in a and "Potion=1->0" in a)
+        return ok, f"menu {m}; after {a}"
+
+    def x07():
+        # NOGUARD skips ONLY the PID comparison: a broken self binding, Cancel (7) and slot 6 = count still press
+        # nothing. PaddedGame: an out-of-range read returns bytes, as real memory does.
+        res = {}
+        for name, tgt, ps in (("self", L_IDX, None), ("cancel7", R_IDX, 7), ("slot6", R_IDX, 6)):
+            game = PaddedGame(g=2)
+            _out, log = run_item_iso(game, target=tgt, g=2, env={FLAG: "1", F_NOGUARD: "1"}, party_scroll=ps)
+            m = one(menu_lines(log))
+            res[name] = (field(m, "a_pressed") == "0" and not party_a(game), m)
+        return all(v[0] for v in res.values()), f"{res}"
+
+    def x08():
+        # `_dbl_before`'s own read failing fails CLOSED (self=0, no A) — with and without NOGUARD.
+        res = {}
+        for name, env in (("plain", {FLAG: "1"}), ("noguard", {FLAG: "1", F_NOGUARD: "1"})):
+            game = Game(g=2)
+            out, log = run_item_iso(game, target=R_IDX, g=2, env=env, raise_on="gBattlerPartyIndexes")
+            m = one(menu_lines(log))
+            res[name] = (out == "done" and field(m, "self") == "0" and field(m, "a_pressed") == "0"
+                         and not party_a(game) and game.state == "battle", m)
+        return all(v[0] for v in res.values()), f"{res}"
+
+    def x09():
+        # `battler_in_menu` is the GAME's gBattlerInMenuId, never our g: a game that says battler 0 opened the menu.
+        game = Game(g=2)
+        orig = game.press_button
+
+        def press(name, game=game, orig=orig):
+            orig(name)
+            if game.state == "party":
+                game.bim = 0
+
+        game.press_button = press
+        _out, log = run_item(game, target=R_IDX, g=2, env={FLAG: "1"})
+        m = one(menu_lines(log))
+        return field(m, "battler_in_menu") == "0", f"{m}"
+
+    def x10():
+        # a refusal must not log `[ITEM-FLOW] target-chosen` (rule 7: log the action, not the intent).
+        game = Game(g=2, menu_order=(1, 2, 0, 4, 3, 5))
+        out, log = run_item_iso(game, target=R_IDX, g=2, env={FLAG: "1"})
+        tc = [m for _c, m in log.events if "target-chosen" in m]
+        return out == "done" and not tc and not party_a(game), f"target-chosen lines {tc}"
+
+    def x11():
+        # `same=` really compares the identity: a party left in MENU order after the menu closed reads same=0.
+        game = StaleGame(g=2)
+        _out, log = run_item(game, target=R_IDX, g=2, env={FLAG: "1"})
+        a = one(after_lines(log))
+        return field(a, "same") == "0", f"{a}"
+
+    def x12():
+        # NOGUARD's pre-registered reddening as a POSITIVE row: under NOGUARD a PID mismatch IS pressed, logged honestly.
+        game = Game(g=2, menu_order=(1, 2, 0, 4, 3, 5))
+        _out, log = run_item_iso(game, target=R_IDX, g=2, env={FLAG: "1", F_NOGUARD: "1"})
+        m = one(menu_lines(log))
+        return field(m, "ok") == "0" and field(m, "a_pressed") == "1" and len(party_a(game)) == 1, f"{m}"
+
+    def x13():
+        # CURSOR0 is armed by "1" ONLY: "0", "" and "yes" still read byte 2 — and "1" reads byte 0 (the arm's shape).
+        res = {}
+        for val, want in (("0", [1, 3, 1, 3]), ("", [1, 3, 1, 3]), ("yes", [1, 3, 1, 3]), ("1", [1, 3, 0, 3])):
+            game = Game(g=2, cursor=(1, 3, 0, 3))
+            with iso_env({F_CURSOR0: val}), xworld(game):
+                drive(BM().scroll_to_battle_action(1, True), game)
+            res[val] = list(game.cursor) == want
+        return all(res.values()), f"{res}"
+
+    # ---------------------------------------------------------------------- SF-2: the doubles bag-open budget
+    def bag_flow(game, env=None):
+        out, log = run_item(game, target=R_IDX, g=2, env={FLAG: "1"} if env is None else env)
+        battle_a = [p[0] for p in game.presses if p[1] == "battle" and p[2] == "A"]
+        flow = [m for _c, m in log.events if m.startswith("[ITEM-FLOW]")]
+        opened = any(m.startswith("[ITEM-FLOW] opened-bag") for m in flow)
+        gave_up = any("bag-did-not-open" in m for m in flow)
+        return out, battle_a, opened, gave_up, flow
+
+    def sf2_unset():
+        # ⛔ the flag-UNSET path keeps today's loop press for press (SF-2 is flag-on doubles only): on the same slow bag
+        # it presses three times and gives up at 90 — the shipped behaviour, deliberately left alone (rule 9).
+        out, battle_a, opened, gave_up, _flow = bag_flow(Game(g=2, bag_delay=120), env={})
+        ok = out == "done" and len(battle_a) == 3 and gave_up and not opened
+        return ok, f"A presses at {battle_a}; gave up {gave_up}; opened {opened}"
+
+    def sf2_accept():
+        # the action menu lets go after the FIRST A and the bag takes 120 frames: one A, then a wait; never a give-up.
+        # (Today's 3 × 30 loop presses three times and returns at 90 while the bag is still opening.)
+        out, battle_a, opened, gave_up, flow = bag_flow(Game(g=2, bag_delay=120))
+        ok = out == "done" and len(battle_a) == 1 and opened and not gave_up
+        return ok, f"A presses in the action menu at {battle_a}; opened {opened}; gave up {gave_up}"
+
+    def sf2_drop():
+        # P-ON's shape, stretched: the first A is DROPPED (the menu stays up), the second is accepted, the bag takes 70.
+        out, battle_a, opened, gave_up, flow = bag_flow(Game(g=2, drop_a=1, bag_delay=70))
+        ok = out == "done" and len(battle_a) == 2 and opened and not gave_up
+        return ok, f"A presses at {battle_a}; opened {opened}; gave up {gave_up}"
+
+    def sf2_bound():
+        # every A dropped (the menu never lets go): exactly three presses, then today's bounded give-up.
+        game = Game(g=2, drop_a=99)
+        out, battle_a, opened, gave_up, flow = bag_flow(game)
+        ok = out == "done" and len(battle_a) == 3 and not opened and gave_up and game.frame <= 100
+        return ok, f"A presses at {battle_a}; gave up {gave_up}; frames {game.frame}"
+
     cases = [
         ("DQ11 scroll_to_battle_action(1, True) on cursor [1,3,0,3]: byte 2 read, Right until byte 2 = 1", dq11),
         ("DQ12 battle_action_use_item(..., battler_index=2) calls scroll_to_battle_action(1, True); byte 2 moves", dq12),
         ("DQ13 executor positive control, matching PIDs: cursor to the requester's slot, A; ok=1 a_pressed=1; after",
          dq13),
-        ("DQ14 the scroll stops short (Cancel, slot 7 != aim): refused by the guard's own slotId read", dq14),
+        ("DQ14 the scroll stops short on Cancel (slot 7 != aim): refused — BY THE RANGE CHECK. ⚠ It does NOT pin that "
+         "the PID is read at the actual slot (any PID is refused at slot 7); X01 pins that", dq14),
         ("DQ15 a PID mismatch at the slot: no A, the B unwind runs; ok=0 a_pressed=0; nothing healed", dq15),
         ("DQ16 the Struggle loop; controller 2 opens its menu at f10: flag 1 no A after it; unset A every frame", dq16),
         ("DQ17 flag unset, executor: no guard read, no DBLITEM line, today's A", dq17),
@@ -983,6 +1574,27 @@ def executor_rows(tag=""):
         ("DBmenuclosed [builder] the party menu never opened: the guard refuses (no A into the bag)", db_menuclosed),
         ("DBmove [builder] battle_action_use_move passes battler_index > 1 to the action scroll", db_move),
         ("DBd11b2 [builder] D11 is battler 0's only: battler 2's own Struggle loop keeps confirming, flag on", db_d11b2),
+        ("X01 [adversary] battler 2 aimed at slot 1, the scroll stops on slot 0 (the living partner): refused on the PID "
+         "at the ACTUAL slot; no A, the partner and the bag untouched", x01),
+        ("X02 [adversary] battler 0's real action scroll reads byte 0 (byte 2 set differently)", x02),
+        ("X03 [adversary] observe never reaches the executor: no read, no DBLITEM; the Struggle loop is today's", x03),
+        ("X04 [adversary] an unreadable battle type is not a double: today's flow (unreachable live; direction pinned)",
+         x04),
+        ("X05 [adversary] WRONGSLOT's own shape (isolated), both sides: the partner's slot, refused", x05),
+        ("X06 [adversary] WRONGSLOT + NOGUARD (isolated): P-NOG's `slot=1 … ok=0 a_pressed=1`, the partner healed", x06),
+        ("X07 [adversary] NOGUARD skips only the PID check: self=0, slot 7, slot 6 = count press nothing", x07),
+        ("X08 [adversary] the pre-bag read failing fails closed (self=0, no A), with and without NOGUARD", x08),
+        ("X09 [adversary] battler_in_menu is the game's gBattlerInMenuId", x09),
+        ("X10 [adversary] a refusal logs no `target-chosen`", x10),
+        ("X11 [adversary] same=0 when the identity at the party index changed", x11),
+        ("X12 [adversary] NOGUARD (isolated) presses a PID mismatch and logs ok=0 a_pressed=1", x12),
+        ("X13 [adversary] CURSOR0 is armed by '1' only ('0', '', 'yes' read byte 2; '1' reads byte 0)", x13),
+        ("SF2-accept [fix] flag-on double: the menu lets go after one A, the bag takes 120 frames: ONE A, bag reached",
+         sf2_accept),
+        ("SF2-drop [fix] the first A dropped, the second accepted, the bag 70 frames later: two A, bag reached",
+         sf2_drop),
+        ("SF2-bound [fix] every A dropped: exactly three presses, then the bounded give-up", sf2_bound),
+        ("SF2-unset [fix] flag unset, the same slow bag: TODAY's three presses and the give-up, unchanged", sf2_unset),
     ]
     for label, fn in cases:
         row(label, fn, tag, reds)
@@ -1169,10 +1781,13 @@ MUTANTS: list = [
      {"DP04"}),
     ("MD10 gBattlerPartyIndexes read on a BYTE stride (raw[g])", "dbl",
      [('    return int.from_bytes(raw[2 * g:2 * g + 2], "little")', "    return raw[g]")], {"DP05", "DQ13", "DBuse"}),
-    ("MD11 ledger_key = the PID alone", "dbl", [("    return pid, species", "    return pid")], {"DP06", "DQ08"}),
-    ("MD12 hp_only keeps parameter 0 (a cure reaches the doubles policy)", "dbl",
+    # ⚠ THE FOLD changed two base sets, each for a stated reason: MD11 loses DQ08 (DQ08 now looks for the pending request
+    # in ANY ledger — a ledger keyed by the PID alone is the same behaviour); MD12 loses DQ07 (since SF-1 a double asks
+    # no cure policy, so `hp_only` no longer decides DQ07).
+    ("MD11 ledger_key = the PID alone", "dbl", [("    return pid, species", "    return pid")], {"DP06"}),
+    ("MD12 hp_only keeps parameter 0 (a param-0 cure reaches observe's options)", "dbl",
      [("    return [opt for opt in options if opt[2] > 0]", "    return [opt for opt in options if opt[2] >= 0]")],
-     {"DP07", "DQ03", "DQ07"}),
+     {"DP07", "DQ03"}),
     ("MD13 heal_options skips the RULING 18 reserve", "dbl",
      [("    if reserve_filter is not None:", "    if False:")], {"DQ03"}),
     ("MD14 heal_options drops the Healing kind test (a Repel's 100 steps read as HP)", "dbl",
@@ -1190,9 +1805,12 @@ MUTANTS: list = [
        '# if value in ("1", "ON"): return ON  -- a comment, never code\nOFF, OBSERVE, ON = "off", "observe", "on"')],
      set()),
     # ---- story_mode.py (the strategy half) ------------------------------------------------------------------------
-    ("MS01 the flag-unset early return dropped (unset falls through to the acting path)", "sm",
-     [("        if mode == _dbl.OFF:\n            return super().decide_turn_in_double_battle(battle_state, battler_index)\n",
-       "")], {"DQ01"}),
+    ("MS01 the flag-unset tests dropped (both the env test and `mode != OFF`: unset falls through to the acting path)",
+     "sm",
+     [('        if _os_dbl.environ.get("POKEBOT_R27_DOUBLEITEMS") not in ("observe", "1"):\n'
+       "            return super().decide_turn_in_double_battle(battle_state, battler_index)\n", ""),
+      ("            in_scope = mode != _dbl.OFF and _dbl.in_scope(battle_state.type)",
+       "            in_scope = _dbl.in_scope(battle_state.type)")], {"DQ01"}),
     ("MS02 observe ACTS (calls the acting path) instead of logging", "sm",
      [("            _dbl_observe(self, battle_state, battler_index)\n",
        "            _dbl_act(self, battle_state, battler_index)\n")],
@@ -1221,12 +1839,10 @@ MUTANTS: list = [
     ("MS07 the ledger written back but the singles fields NOT restored", "sm",
      [("            ledger[name] = getattr(strategy, name)\n            setattr(strategy, name, saved[name])\n",
        "            ledger[name] = getattr(strategy, name)\n")], {"DBerr"}),
-    ("MS08 D10's HP-only filter removed (a double asks for Full Heal)", "sm",
-     [("            if doubles:\n                from modules.story.double_items import hp_only as _dbl_hp_only\n\n"
-       "                medicine = _dbl_hp_only(medicine)\n", "")], {"DQ07"}),
-    ("MS09 D10's filter applied in SINGLES too", "sm",
-     [("            if doubles:\n                from modules.story.double_items import hp_only",
-       "            if True:\n                from modules.story.double_items import hp_only")], {"DBsinglescure"}),
+    ("MS08 D10's cure skip removed (a double asks the cure policy with the full bag)", "sm",
+     [("        if item is None and not doubles:", "        if item is None:")], {"DQ07", "SF1-cure", "K-d10-side1"}),
+    ("MS09 D10's cure skip applied in SINGLES too", "sm",
+     [("        if item is None and not doubles:", "        if item is None and False:")], {"DBsinglescure"}),
     ("MS10 the doubles call passes doubles=False", "sm",
      [("strategy._maybe_use_item(battle_state, side=side, doubles=True)",
        "strategy._maybe_use_item(battle_state, side=side, doubles=False)")], {"DQ07", "DBsig"}),
@@ -1335,13 +1951,292 @@ MUTANTS: list = [
 #: LEFT OUT, with the argument (not run): MB-range — reading the PID at an out-of-range slot in the executor is
 #: EQUIVALENT: `guard_ok` refuses any slot outside [0, count) whatever PID it is handed (MD08 pins that check).
 
-_MUTANT_IDS: set = set()
+#: ⚠ THE FOLD (2026-09-30) — what each EXISTING mutant ALSO reddens among the fold's new rows. ⛔ HONESTLY LABELLED: these
+#: were MEASURED on the fold's first run (the existing mutants against the new rows), and only then checked by hand, one
+#: by one — every addition below has a stated mechanism, e.g. MD10's byte stride also reads the PARTNER at raw[0] (X06's
+#: `partner=` changes) and breaks X12's self binding; MB05/MB06 press into X01's living partner. They are NOT a
+#: pre-registration. The fold's NEW mutants (FOLD_MUTANTS, FAULT_MUTANTS) were derived before their first run.
+MUTANT_ADDITIONS = {
+    "MD02": {"K-mode"}, "MD07": {"K-active"}, "MD09": {"K-guardnone"}, "MD10": {"X06", "X12"},
+    "MD12": {"K-parity-noreserve"}, "MD14": {"K-ether"}, "MD15": {"K-obs-frac"}, "MD16": {"K-why-boundary"},
+    "MD17": {"K-ledger-switch", "K-worst-per-mon"},
+    "MS02": {"K-obs-cap", "K-obs-dict", "K-obs-frac", "K-obs-ineff", "K-obs-key0", "K-obs-keyitems0", "K-obs-maxworst",
+             "K-obs-null", "K-obs-rise", "K-obs-switch", "K-obs-two", "SF1-cure"},
+    "MS03": {"K-cap-shared", "K-ledger-switch"},
+    "MS04": {"K-cap-shared", "K-ledger-switch", "K-scope-real", "K-worst-per-mon"},
+    "MS06": {"K-ledger-switch", "K-worst-per-mon"}, "MS10": {"K-d10-side1", "SF1-cure"},
+    "MS11": {"N2-import"}, "MS12": {"N2-import"}, "MS13": {"K-obs-maxworst", "K-obs-rise"}, "MS15": {"K-obs-dict"},
+    "MS21": {"K-key-once"},
+    "MB05": {"X01", "X07"}, "MB06": {"X01", "X05", "X07", "X08", "X10"}, "MB08": {"X07"},
+    # MB09 + SF2-unset: with the executor's flag test gone, the flag-unset double takes the SF-2 bag loop (one press).
+    # (SF2-unset was written after the additions were measured; this one was caught by the gate's own exact check.)
+    "MB09": {"X03", "SF2-unset"},
+    "MB12": {"X06"}, "MB13": {"X01", "X06", "X11"}, "MB14": {"X01", "X05"}, "MB16": {"X04"},
+    "MM01": {"X13"}, "MM02": {"X13"},
+}
+
+_SM_SWAP = ("    saved = {name: getattr(strategy, name) for name in _dbl.LEDGER_FIELDS}\n"
+            "    for name in _dbl.LEDGER_FIELDS:\n        setattr(strategy, name, ledger[name])\n"
+            "    try:\n        action = strategy._maybe_use_item(battle_state, side=side, doubles=True)\n"
+            "    finally:\n        for name in _dbl.LEDGER_FIELDS:\n            ledger[name] = getattr(strategy, name)\n"
+            "            setattr(strategy, name, saved[name])\n")
+
+
+def _swap_with(fields_expr: str, extra: str = "") -> str:
+    """The ledger swap over a mutated field tuple (the strategy hunter's S14/S15/S17 shapes)."""
+    return "    _F = " + fields_expr + "\n" + extra + _SM_SWAP.replace("_dbl.LEDGER_FIELDS", "_F")
+
+
+_A_BLOCK = ("        if _dbl_ctx is None or _dbl_guard(_dbl_ctx, _menu_slot):\n"
+            '            context.emulator.press_button("A")\n            yield\n            _stage("target-chosen")\n')
+_WRONGSLOT = ('        if _dbl_ctx is not None and _dbl_env(_DBL_FAULT_WRONGSLOT):\n'
+              '            _menu_slot = 1 - _dbl_ctx["side"]\n')
+_GUARD_PRESS = '        press = ok or (_dbl_env(_DBL_FAULT_NOGUARD) and bool(ctx["self"]) and in_range)'
+_CURSOR_IF = ("    if is_right_side_pokemon:\n        import os as _os_c1\n\n"
+              '        if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") == "1":\n'
+              "            is_right_side_pokemon = False\n")
+
+#: THE FOLD'S NEW MUTANTS (2026-09-30), every red set DERIVED BY HAND BEFORE THEIR FIRST RUN. `RV-*` revert a
+#: production fix to the shipped 799e6adf behaviour (each must redden exactly its fix's rows: the red-on-unfixed proof,
+#: kept as a standing pin); `SF2-*` break the new bag rule; `K*` / `X*` are the adversaries' REAL survivors (their ids,
+#: N/S renamed KN/KS for the strategy hunter and XN for the executor hunter), adapted to this code.
+FOLD_MUTANTS: list = [
+    # ---- the production-fix REVERTS (the proof that each fix's rows were red on the unfixed code)
+    ("RV-SF1a revert SF-1, acting path: hp_only(medicine) handed to the cure policy in a double (799e6adf)", "sm",
+     [("        if item is None and not doubles:", "        if item is None:"),
+      ("            from modules.story.battle_items import choose_status_or_revive_item\n\n"
+       "            item = choose_status_or_revive_item(",
+       "            from modules.story.battle_items import choose_status_or_revive_item\n\n"
+       "            if doubles:\n                from modules.story.double_items import hp_only as _dbl_hp_only\n\n"
+       "                medicine = _dbl_hp_only(medicine)\n            item = choose_status_or_revive_item(")],
+     {"SF1-cure"}),
+    ("RV-SF1b revert SF-1, observe: the cure fallback on the HP options (799e6adf)", "sm",
+     [("        if item is None:\n            why = _dbl.hp_decline_reason(",
+       "        if item is None:\n            from modules.story.battle_items import choose_status_or_revive_item as _c\n\n"
+       "            item = _c(mon.status_permanent, 2, options, uses_so_far=uses, allow_revive=False)\n"
+       '            why = "cure"\n        if item is None:\n            why = _dbl.hp_decline_reason(')],
+     {"SF1-cure"}),
+    ("RV-SF2 revert SF-2: today's 3 x 30 loop in a flag-on double too (799e6adf)", "bas",
+     [("    if _dbl_ctx is not None:\n        # design v2 step 13, SF-2:", "    if False:\n        # design v2 step 13, SF-2:")],
+     {"SF2-accept", "SF2-drop"}),
+    ("RV-N2 revert N2: double_items imported BEFORE the flag test (799e6adf)", "sm",
+     [('        if _os_dbl.environ.get("POKEBOT_R27_DOUBLEITEMS") not in ("observe", "1"):',
+       "        from modules.story import double_items as _dbl_early  # noqa: F401\n"
+       '        if _os_dbl.environ.get("POKEBOT_R27_DOUBLEITEMS") not in ("observe", "1"):')],
+     {"N2-import"}),
+    # ---- SF-2's own rules
+    ("SF2a the action-menu check dropped (re-press regardless)", "bas",
+     [("        if get_battle_controller_callback(battler_index) not in _DBL_CHOOSE_ACTION:\n            break",
+       "        if False:\n            break")], {"SF2-accept", "SF2-drop"}),
+    ("SF2b the post-accept wait dropped (give up at once)", "bas",
+     [("    for _ in range(_DBL_BAG_WAIT_AFTER_ACCEPT):", "    for _ in range(0):")], {"SF2-accept", "SF2-drop"}),
+    ("SF2c the press bound dropped (presses for as long as the menu stays up)", "bas",
+     [("    while presses < _DBL_BAG_PRESSES:", "    while presses < 10 ** 9:")], {"SF2-bound"}),
+    ("SF2e the doubles bag loop used with the flag unset too", "bas",
+     [("    if _dbl_ctx is not None:\n        # design v2 step 13, SF-2:", "    if True:\n        # design v2 step 13, SF-2:")],
+     {"SF2-unset"}),
+    # ---- the strategy hunter's REAL survivors (double_items.py)
+    ("KN01 mode(): 'OBSERVE' case-folded turns observe on", "dbl",
+     [('    if value == "observe":', '    if value is not None and value.lower() == "observe":')], {"K-mode"}),
+    ("KN02 mode(): any value starting with '1' turns it on", "dbl",
+     [('    if value == "1":', '    if value is not None and value.startswith("1"):')], {"K-mode"}),
+    ("KN03 mode(): trailing whitespace stripped", "dbl",
+     [("    value = None if env is None else env.get(FLAG)",
+       '    value = None if env is None else ((env.get(FLAG) or "").rstrip() or None)')], {"K-mode"}),
+    ("KN06 in_scope also excludes TwoOpponents (every two-trainer double out)", "dbl",
+     [("    return not bits & (BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)",
+       "    return not bits & (BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER | (1 << 15))")],
+     {"K-scope-real", "K-obs-two"}),
+    ("KN07 in_scope requires EXACTLY Trainer|Double (IS_MASTER puts every real battle out)", "dbl",
+     [("    if not bits & BATTLE_TYPE_TRAINER or not bits & BATTLE_TYPE_DOUBLE:",
+       "    if bits != BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE:")],
+     {"DQ02", "DQ03", "DQ04", "DQ05", "DQ08", "DQ10", "DBuse", "DBerr", "DBobsfields", "DBobsworst", "DBobskey",
+      "DBobsdisc", "DBjudge", "SF1-cure", "K-scope-real", "K-parity-noreserve", "K-worst-per-mon", "K-cap-shared",
+      "K-key-once", "K-ledger-switch", "K-obs-switch", "K-obs-maxworst", "K-obs-rise", "K-obs-cap", "K-obs-ineff",
+      "K-obs-frac", "K-obs-two", "K-obs-null", "K-obs-key0", "K-obs-keyitems0"}),
+    ("KN12 active_positions sorted (left/right lost)", "dbl",
+     [("    return order[0], order[1]", "    return tuple(sorted((order[0], order[1])))")], {"K-active"}),
+    ("KN21 guard_ok: the slot/count None checks dropped (raises)", "dbl",
+     [("    if intended_pid is None or menu_pid is None or slot is None or count is None:",
+       "    if intended_pid is None or menu_pid is None:")], {"K-guardnone"}),
+    ("KN22 guard_ok compares the PID's low 16 bits only", "dbl",
+     [("    return menu_pid == intended_pid", "    return menu_pid & 0xFFFF == intended_pid & 0xFFFF")], {"K-guardhigh"}),
+    ("KN23 hp_only also drops the 255 items", "dbl",
+     [("    return [opt for opt in options if opt[2] > 0]", "    return [opt for opt in options if 0 < opt[2] < 255]")],
+     {"K-hp255", "K-parity-noreserve"}),
+    ("KN25 heal_options fails CLOSED on a raising reserve", "dbl",
+     [("        except Exception:  # noqa: BLE001 - fail UNLOCKED, the strategy's own rule (story_mode.py, RULING 18 "
+       "filter)\n            pass\n",
+       "        except Exception:  # noqa: BLE001 - the mutant fails closed\n            medicine = []\n")],
+     {"K-reserve-raise"}),
+    ("KN28 hp_decline_reason: above_fraction at >=", "dbl",
+     [("    if current_hp / total_hp > heal_at_fraction:\n        return \"above_fraction\"",
+       "    if current_hp / total_hp >= heal_at_fraction:\n        return \"above_fraction\"")], {"K-why-boundary"}),
+    ("KN31 _is_healing also accepts pp_recovery (Ether, Max Ether)", "dbl",
+     [('    return str(getattr(use, "value", use)) == HEALING_BATTLE_USE',
+       '    return str(getattr(use, "value", use)) in (HEALING_BATTLE_USE, "pp_recovery")')], {"K-ether"}),
+    # ---- the strategy hunter's REAL survivors (story_mode.py)
+    ("KS08 the ledger keyed by SIDE", "sm",
+     [("ledgers.setdefault(_dbl.ledger_key(mon.personality_value, mon.species.index), _dbl.new_ledger())",
+       "ledgers.setdefault(side, _dbl.new_ledger())")], {"K-ledger-switch"}),
+    ("KS09 ONE ledger shared by both battlers", "sm",
+     [("ledgers.setdefault(_dbl.ledger_key(mon.personality_value, mon.species.index), _dbl.new_ledger())",
+       'ledgers.setdefault("shared", _dbl.new_ledger())')], {"DQ08", "K-worst-per-mon", "K-ledger-switch"}),
+    ("KS14 the swap omits _worst_hit", "sm",
+     [(_SM_SWAP, _swap_with('tuple(f for f in _dbl.LEDGER_FIELDS if f != "_worst_hit")'))],
+     {"K-worst-per-mon", "K-ledger-switch"}),
+    ("KS15 the swap includes _item_uses (a cap per Pokémon)", "sm",
+     [(_SM_SWAP, _swap_with('_dbl.LEDGER_FIELDS + ("_item_uses",)', '    ledger.setdefault("_item_uses", 0)\n'))],
+     {"K-cap-shared"}),
+    ("KS17 the swap includes _r27_verdict (a key verdict per Pokémon)", "sm",
+     [(_SM_SWAP, _swap_with('_dbl.LEDGER_FIELDS + ("_r27_verdict",)', '    ledger.setdefault("_r27_verdict", None)\n'))],
+     {"K-key-once"}),
+    ("KS20 the doubles cure skip only for side 0", "sm",
+     [("        if item is None and not doubles:", "        if item is None and not (doubles and side == 0):")],
+     {"K-d10-side1"}),
+    ("KS24 observe's tracker keyed by SIDE", "sm",
+     [("tracker.setdefault(_dbl.ledger_key(pid, mon.species.index),", "tracker.setdefault(side,")], {"K-obs-switch"}),
+    ("KS26 observe's worst = the LATEST drop", "sm",
+     [('        rec["worst"] = max(rec["worst"], rec["hp"] - cur)', '        rec["worst"] = rec["hp"] - cur')],
+     {"K-obs-maxworst"}),
+    ("KS27 observe counts HP RISES as hits", "sm",
+     [('    if rec["hp"] is not None and rec["hp"] > cur:\n        rec["worst"] = max(rec["worst"], rec["hp"] - cur)',
+       '    if rec["hp"] is not None and rec["hp"] != cur:\n        rec["worst"] = max(rec["worst"], abs(rec["hp"] - cur))')],
+     {"K-obs-rise"}),
+    ("KS29 observe ignores the per-battle cap", "sm",
+     [('    uses = getattr(strategy, "_item_uses", 0)', "    uses = 0")], {"K-obs-cap"}),
+    ("KS30 observe ignores _items_ineffective", "sm",
+     [('    elif getattr(strategy, "_items_ineffective", False):', "    elif False:")], {"K-obs-ineff"}),
+    ("KS31 observe ignores POKEBOT_HEAL_AT_FRACTION", "sm",
+     [('worst_hit_taken=rec["worst"], uses_so_far=uses, **frac_kw)\n        why = "hp"',
+       'worst_hit_taken=rec["worst"], uses_so_far=uses)\n        why = "hp"')], {"K-obs-frac"}),
+    ("KS32 observe reads opponent A only", "sm",
+     [("        two = BattleType.TwoOpponents in battle_state.type\n        opp_a, opp_b = _ti.read_opponent_trainers(two)",
+       "        two = False\n        opp_a, opp_b = _ti.read_opponent_trainers(two)")], {"K-obs-two"}),
+    ("KS34 observe writes _worst_hit", "sm",
+     [('    rec["hp"] = cur\n    # The key class by the PURE verdict',
+       '    rec["hp"] = cur\n    strategy._worst_hit = max(strategy._worst_hit, rec["worst"])\n'
+       "    # The key class by the PURE verdict")], {"K-obs-dict"}),
+    ("KS41 observe's EWRAM check on *gBattleStruct dropped", "sm",
+     [("        if not 0x0200_0000 <= ptr < 0x0204_0000:\n"
+       '            raise ValueError(f"gBattleStruct={ptr:#x} is not in EWRAM")\n', "")], {"K-obs-null"}),
+    ("KS42 _dbl_act's `mon is None` early return dropped", "sm",
+     [("    if mon is None:\n        return None\n    ledgers = getattr(", "    ledgers = getattr(")], {"K-absent"}),
+    ("KS43 observe's key = the KEYITEMS-dependent allow", "sm",
+     [('        key = 1 if reason == "key_class" else (0 if reason == "not_a_key_class" else "?")',
+       '        key = int(_ti.key_battle_verdict(_os_obs.environ.get("POKEBOT_R27_KEYITEMS") == "1", sides)[0])')],
+     {"K-obs-key0"}),
+    ("KS46 observe reads POKEBOT_R27_KEYITEMS as truthy ('0' turns it on)", "sm",
+     [('        allow = _ti.key_battle_verdict(_os_obs.environ.get("POKEBOT_R27_KEYITEMS") == "1", sides)[0]',
+       '        allow = _ti.key_battle_verdict(bool(_os_obs.environ.get("POKEBOT_R27_KEYITEMS")), sides)[0]')],
+     {"K-obs-keyitems0"}),
+    # ---- the executor hunter's REAL survivors and fault-arm kills, run WITHOUT a fault (the iso rows see them now)
+    ("XN01 C1: every battler reads byte 2", "bm",
+     [('    yield from _select_in_menu("gActionSelectionCursor", action_index, is_right_side_pokemon)',
+       '    yield from _select_in_menu("gActionSelectionCursor", action_index, True)')], {"X02", "X13"}),
+    ("XN04 CURSOR0 armed by ANY value", "bm",
+     [('        if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") == "1":',
+       '        if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") is not None:')], {"X13"}),
+    # ⚠ the misspelt name is split ("POKE" "BOT_…", implicit concatenation in the exec'd mutant) so this gate's own source
+    # never holds it as a quoted POKEBOT_* literal — lint_docs R6 would (rightly) demand a registry row for it.
+    ("XN05 CURSOR0 reads a misspelt env name (the fault silently dead)", "bm",
+     [('        if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") == "1":',
+       '        if _os_c1.environ.get("POKE" "BOT_R27_FAULT_CURSOR0") == "1":')], {"X13"}),
+    ("XN06 CURSOR0 consulted for battler 0 only", "bm",
+     [("    if is_right_side_pokemon:\n        import os as _os_c1", "    if not is_right_side_pokemon:\n        import os as _os_c1")],
+     {"X13"}),
+    ("XN08 C1 passes bool(action_index), not the side", "bm",
+     [('    yield from _select_in_menu("gActionSelectionCursor", action_index, is_right_side_pokemon)',
+       '    yield from _select_in_menu("gActionSelectionCursor", action_index, bool(action_index))')], {"X02", "X13"}),
+    ("XN13 _dbl_env accepts 'observe' (observe turns the guard and D11 on)", "bas",
+     [('    return _os_dbl.environ.get(name) == "1"', '    return _os_dbl.environ.get(name) in ("1", "observe")')],
+     {"X03"}),
+    ("XN17 ctx side = g (WRONGSLOT aims at -1 for battler 2)", "bas",
+     [('    ctx = {"g": battler_index, "side": battler_index // 2,', '    ctx = {"g": battler_index, "side": battler_index,')],
+     {"X05"}),
+    ("XN18 ctx side = g % 2 (always 0)", "bas",
+     [('    ctx = {"g": battler_index, "side": battler_index // 2,', '    ctx = {"g": battler_index, "side": battler_index % 2,')],
+     {"X05"}),
+    ("XN25 _dbl_before's except keeps self=True (fails OPEN on the binding)", "bas",
+     [('        ctx["intended"], ctx["self"], ctx["err"] = None, False, type(error).__name__',
+       '        ctx["intended"], ctx["self"], ctx["err"] = None, True, type(error).__name__')], {"X08"}),
+    ("XN30 the guard's range check off by one (slot <= count)", "bas",
+     [("        in_range = 0 <= slot < count", "        in_range = 0 <= slot <= count")], {"X07"}),
+    ("XN31 the guard's range check dropped", "bas",
+     [("        in_range = 0 <= slot < count", "        in_range = True")], {"X07"}),
+    ("XN32 NOGUARD skips the self binding too", "bas",
+     [(_GUARD_PRESS, "        press = ok or (_dbl_env(_DBL_FAULT_NOGUARD) and in_range)")], {"X07", "X08"}),
+    ("XN33 NOGUARD skips the range check too", "bas",
+     [(_GUARD_PRESS, '        press = ok or (_dbl_env(_DBL_FAULT_NOGUARD) and bool(ctx["self"]))')], {"X07"}),
+    ("XN34 NOGUARD presses whatever (no self, no range)", "bas",
+     [(_GUARD_PRESS, "        press = ok or _dbl_env(_DBL_FAULT_NOGUARD)")], {"X07", "X08"}),
+    ("XN35 the menu line logs ok= from the PRESS", "bas",
+     [("menu_pid={menu_pid} intended_pid={intended} ok={int(ok)} a_pressed={int(press)} aim={aim} ",
+       "menu_pid={menu_pid} intended_pid={intended} ok={int(press)} a_pressed={int(press)} aim={aim} ")],
+     {"X06", "X12"}),
+    ("XN36 the menu line logs a_pressed= from the VERDICT", "bas",
+     [("menu_pid={menu_pid} intended_pid={intended} ok={int(ok)} a_pressed={int(press)} aim={aim} ",
+       "menu_pid={menu_pid} intended_pid={intended} ok={int(ok)} a_pressed={int(ok)} aim={aim} ")], {"X06", "X12"}),
+    ("XN37 the guard reads the PID at the AIM (review F8 half-applied: the living partner is fed)", "bas",
+     [('            f["menu_pid"] = unpack_uint32(read_symbol("gPlayerParty", offset=100 * slot, size=4))',
+       '            f["menu_pid"] = unpack_uint32(read_symbol("gPlayerParty", offset=100 * aim, size=4))')], {"X01"}),
+    ("XN39 battler_in_menu logs our g, not gBattlerInMenuId", "bas",
+     [('        f["bim"] = read_symbol("gBattlerInMenuId", size=1)[0]', '        f["bim"] = ctx["g"]')], {"X09"}),
+    ("XN43 `target-chosen` staged on a refusal too", "bas",
+     [(_A_BLOCK, "        if _dbl_ctx is None or _dbl_guard(_dbl_ctx, _menu_slot):\n"
+                 '            context.emulator.press_button("A")\n            yield\n        _stage("target-chosen")\n')],
+     {"X10"}),
+    ("XN47 the after line's same= always 1", "bas",
+     [('        same = int(bool(t0 and t1 and t0["pid"] == t1["pid"]))', "        same = 1")], {"X11"}),
+    ("XN50 WRONGSLOT applied BEFORE the KI-101 re-map (which overwrites it)", "bas",
+     [(_WRONGSLOT, ""),
+      ("        _menu_slot = target_index\n        _ki101_wait = 0\n",
+       "        _menu_slot = target_index\n        _ki101_wait = 0\n" + _WRONGSLOT)], {"X05", "X06"}),
+    ("XN51 WRONGSLOT aims at the requester's OWN side", "bas",
+     [('            _menu_slot = 1 - _dbl_ctx["side"]', '            _menu_slot = _dbl_ctx["side"]')], {"X05", "X06"}),
+    ("XN52 WRONGSLOT aims at 1 - g", "bas",
+     [('            _menu_slot = 1 - _dbl_ctx["side"]', '            _menu_slot = 1 - _dbl_ctx["g"]')], {"X05"}),
+    ("XN54 WRONGSLOT aims at bench slot 2 + side", "bas",
+     [('            _menu_slot = 1 - _dbl_ctx["side"]', '            _menu_slot = 2 + _dbl_ctx["side"]')], {"X05", "X06"}),
+]
+#: LEFT OUT from the adversaries' survivors, with their own (re-checked) arguments: the EQUIVALENT or UNREACHABLE ones
+#: (strategy: N04 N10 N11 N15 N24 N26 N27 N29 S01 S02 S18 S37 S39 S44; executor: N03 N14 N15 N24 N26 N27 N29 N40 N59
+#: N60 N63 N66 N67 — e.g. N59's `break` is followed by the same `return`, N60's `sub_802C098` exists only in the R/S
+#: symbol files), and the strategy hunter's S33 ("observe drops the cure fallback"), which SF-1 made the INTENDED code:
+#: its inverse is RV-SF1b. ⛔ The `mode != OFF` half of N2's double test is EQUIVALENT alone (the env test before it
+#: guards the same values); MS01 drops both.
+
+#: FAULT-ARM MUTANTS (the fold, 2026-09-30): the executor hunter showed the old runner never ran a mutant WITH a fault
+#: set, so a mutant that lives in fault-arm code was invisible. These jobs install the mutant AND set the fault; the red
+#: set is the fault's pre-registered set changed by the mutant, derived before the first run.
+FAULT_MUTANTS: list = [
+    ("XN02 CURSOR0 TOGGLES the side for every battler (battler 0 reads byte 2 under the fault)", "bm",
+     [(_CURSOR_IF, "    import os as _os_c1\n\n"
+                   '    if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") == "1":\n'
+                   "        is_right_side_pokemon = not is_right_side_pokemon\n")],
+     F_CURSOR0, {"DQ11", "DQ12", "X02"}),
+    ("XN53 WRONGSLOT fires with the flag unset and in singles", "bas",
+     [(_WRONGSLOT, "        if _dbl_env(_DBL_FAULT_WRONGSLOT):\n            _menu_slot = 1 - battler_index // 2\n")],
+     F_WRONGSLOT, {"DQ13", "DQ17", "DBsingleexec"}),
+    ("XN34f NOGUARD presses whatever, under the NOGUARD job", "bas",
+     [(_GUARD_PRESS, "        press = ok or _dbl_env(_DBL_FAULT_NOGUARD)")],
+     F_NOGUARD, {"DQ14", "DQ15", "DBself", "X07", "X08"}),
+]
+
+_MUTANT_IDS = {label.split()[0] for label, _t, _e, _w in MUTANTS}
+assert set(MUTANT_ADDITIONS) <= _MUTANT_IDS, sorted(set(MUTANT_ADDITIONS) - _MUTANT_IDS)
 _SRCS: dict = {}
 
 
 def _jobs() -> list:
+    """Every job: ("fault", label, env, None, want), ("mutant", label, target, edits, want) or
+    ("fmutant", label, target, (edits, fault env), want)."""
     return ([("fault", f"FAULT {env}", env, None, set(want)) for env, want in FAULT_SETS.items()]
-            + [("mutant", label, target, edits, set(want)) for label, target, edits, want in MUTANTS])
+            + [("mutant", label, target, edits, set(want) | MUTANT_ADDITIONS.get(label.split()[0], set()))
+               for label, target, edits, want in MUTANTS]
+            + [("mutant", label, target, edits, set(want)) for label, target, edits, want in FOLD_MUTANTS]
+            + [("fmutant", label, target, (edits, fault), set(want))
+               for label, target, edits, fault, want in FAULT_MUTANTS])
 
 
 JOBS: list = _jobs()
@@ -1388,8 +2283,13 @@ def _job_red(i: int):
         if kind == "fault":
             os.environ[target] = "1"
         else:
+            fault = None
+            if kind == "fmutant":                           # a mutant in fault-arm code, run UNDER that fault
+                edits, fault = edits
             msrcs[target] = _apply(srcs[target], edits)
             _install(NAMES[target], PATHS[target], msrcs[target], i)
+            if fault:
+                os.environ[fault] = "1"
         return i, sorted(all_rows("m", msrcs)), ""
     except Exception as error:  # noqa: BLE001 - a job that cannot even run is a failed check, reported
         return i, None, f"{type(error).__name__}: {error}"
