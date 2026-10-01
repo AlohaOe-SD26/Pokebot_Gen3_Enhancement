@@ -23686,3 +23686,35 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   -Encoding utf8` is SAFE for appending" remains true about ENCODING. But literal doc text in a PowerShell double-quoted
   string is rewritten (a markdown backtick is PowerShell's escape character, so `` `b `` becomes a backspace). Doc text
   goes through the Write tool, and the hook now refuses the other way.
+
+## 2026-10-01 — ⛔ STEP 14 T4: A SAFETY STOP THAT COUNTED THE PACKAGE DECIDING TO DO NOTHING, AND A CORRECTED FALSIFIER THAT NEVER REACHED THE CODE
+
+- **Symptoms** (`tools/story-dev/evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`, three independent agents; none was a
+  blocker for the batch, because T4 only READS its logs):
+  - STOP-3 asks whether a package tag precedes a B-only derail. Its list (`[KIT-BUY]`, `why=topoff`, `[KEYBATTLE]`, …)
+    matched lines that record the package deciding to do NOTHING: `why=topoff-none`, `why=kit-skip`, `-observe`,
+    `[KEYBATTLE] allow=True`. Those print on most B runs, so nearly any B-only derail would "have a package tag". The
+    stop could not tell a package fault from a coincidence. `[BALLS-BUY] why=mandatory` prints in BOTH arms.
+  - The builder found DESIGN E4's falsifier inverted (production heals only at or below 35%, so reaching 35% while
+    holding an HP item is a defect, not "the threshold") and corrected the DESIGN. But the tool's E4 STATUS still
+    graded the global `[DBLITEM]` count, not the qualifying first attempts under the corrected rule.
+  - D-economy added a joint ball+kit errand's money to both the ball row and the kit row.
+  - The gate's 8 mutants predicted to redden NOTHING were filed as equivalent; 5 were not.
+- **Root causes:**
+  - A presence test for "the package acted" was written as the package's TAG NAMES, and a tag name covers every
+    `why=` its emit sites print, including the no-op ones.
+  - A correction was made to the spec's prose and not re-derived into the code that implements it.
+  - A predicted-empty mutant set was treated as a proof of equivalence.
+- **The fixes that worked** (`c4c0bc78`):
+  - STOP-3's acting-tag list is pinned literally in the gate, and `why=` is matched as a whole token. Each excluded
+    no-op form has a row.
+  - E4 is graded on the qualifying first attempts, with a per-battler list.
+  - Errand money is de-duplicated per errand.
+  - 7 of the 8 empty-set mutants now have a killing row; the eighth (K48) has a written equivalence reason.
+  - The hunter's own mutants, re-applied to the folded code: all 21 non-equivalent ones are killed.
+- **Prevention rules:**
+  - A test for "X acted" enumerates ACTING records. Read every emit site of the tag and list its no-op forms; the gate
+    holds one row per excluded form.
+  - When a spec is corrected after code exists, grep the code for every reading of the corrected clause in the same
+    change.
+  - A mutant that reddens no row is a GAP until a written reason says why it is equivalent.

@@ -37549,3 +37549,26 @@ bought balls only at fixed story points.
 ## 2026-10-01 — `#27-shellhook` DONE: the shell-text hook is LIVE on `main` (`e8738f45`)
 
 - SH-3 held live: a harmless heredoc was DENIED with the hook's reason, and ordinary Bash and PowerShell commands ran. From now on every session's Bash/PowerShell calls pass through it.
+
+## 2026-10-01 — design v2 step 14 T4 DONE: the batch's correctness checks and descriptive tables built, independently attacked, folded (`#26-organiccatch`)
+
+- **Built by a builder agent** against the spec filed first (`cf4e6ec1`), committed before review (`ca9e5510`):
+  - `batch14_checks.py`: E1-E5 and the STOP-3 read;
+  - `batch14_tables.py`: DESIGN §5's descriptive tables, with no verdict word;
+  - the gate `probe_batch14_checks.py`: 78 rows, 141 mutants after the fold.
+
+  Both tools read every log through `compare_arms`' loader (a small `visit` hook), so nothing is parsed twice.
+- **The builder found DESIGN E4's falsifier INVERTED** and corrected it before any data. Production heals only at or
+  below 35%, so a Tate & Liza first attempt that reached 35% while holding an HP item is a defect, not "the threshold".
+- **The independent three-agent pass** (`tools/story-dev/evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`) found:
+  - 21 gate gaps;
+  - a STOP-3 that matched the package deciding to do nothing;
+  - E4 still graded on the global count;
+  - errand money counted twice.
+
+  All of it is folded (`c4c0bc78`). DESIGN §4's STOP-3 list is now the ACTING tags, amended before any batch data. The
+  coordinator re-ran the hunter's own mutants against the folded code: all 21 non-equivalent survivors are killed.
+- **Predictions** (`ai-research-notes/2026-10-01-batch14-T4-PREDICTIONS.md` §GRADED): T4-1, T4-3 and T4-4 held.
+  T4-2 FAILED AS FILED (the independent pass).
+- **Merged before the 9:00 PM freeze,** because it finished first. It touches no file the batch runs.
+- **Next:** the batch grade after the batch ends (~10:00 AM 2026-10-02).

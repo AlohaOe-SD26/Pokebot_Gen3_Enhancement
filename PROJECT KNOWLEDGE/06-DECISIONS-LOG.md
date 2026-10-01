@@ -8922,3 +8922,31 @@ on all three questions:
   and listed.
 - **Overriding the seed, the draws or δ labels the grade EXPLORATORY.** δ is derived from the batch's own design:
   16 lanes × 2 arms → .08; 8 → .11.
+
+## 2026-10-01 — design v2 step 14 T4: STOP-3 counts only ACTING package tags; E4 is a hand read, not a simulation (after its adversarial pass)
+
+- **STOP-3's package-tag list is narrowed to ACTING tags** (DESIGN §4, amended before any batch data exists). The
+  filed list (`[KIT-BUY]`, `why=topoff`, `[KEYBATTLE]`, …) matched the no-op forms its emit sites print at almost every
+  B heal: `why=topoff-none`, `why=kit-skip`, `-observe`, `[KEYBATTLE] allow=True`. Nearly any B-only derail would
+  have "had a package tag", so the stop could not separate a package fault from a coincidence. The acting list:
+  - `[ITEM] using`;
+  - `[DBLITEM]` use / menu / after;
+  - `[BALLS-BUY]` or `[KIT-BUY]` whose `why=` is one of eight errand outcomes (whole token);
+  - `[DEXCATCH-NOBAIL]`;
+  - `[CATCH] trainee`;
+  - `[KEYBATTLE] allow=False`.
+
+  `why=mandatory` is excluded because both arms print it.
+  - Rejected: keeping the broad list "to be safe". A stop that fires on nearly every B-only signature is no safety: it
+    teaches the reader to dismiss it, the same failure as a noisy gate.
+  - Rejected: requiring a tag in EVERY qualifying run's tail. One acting tag in any tail is still enough to park and
+    look, and the tool prints how many signatures had none, so a reader sees what the narrowing left out.
+- **E4's zero is read by hand, not by simulating production.** On a zero, every own battler's lowest HP fraction is
+  listed. One at or below 0.35 while holding an HP item marks the battle for a hand read, with production's rule-3
+  caveat (it declines a heal into a losing race).
+  - Rejected: re-running `choose_healing_item` per battler. It would put a second copy of production's decision inside
+    the grader, and that copy would drift from the real one.
+- **E5 lists every partner rise; context never excludes.** An exclusion can only hide a wrong target, never reveal one.
+- **T4 is merged before the 9:00 PM freeze, not after the batch** as its note's header planned, because it finished
+  first. It changes only `tools/story-dev` and documentation, and the merge leaves `sandbox-pokebot/` byte-identical,
+  so the batch runs the same code either way.
