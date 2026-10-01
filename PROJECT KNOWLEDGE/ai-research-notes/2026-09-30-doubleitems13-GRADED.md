@@ -1,4 +1,4 @@
-# 2026-09-30 — design v2 step 13 (KB-2, healing items in DOUBLE battles) GRADED: every behaviour prediction held (40 of 42 checks as filed; the 2 literal failures are wording slips in the predictions, both pass when corrected); the cursor fix and the identity guard are each shown load-bearing
+# 2026-09-30 — design v2 step 13 (KB-2, healing items in DOUBLE battles) GRADED: every behaviour prediction held (40 of 42 checks as filed; the 2 literal failures are wording slips in the predictions, both pass when corrected); the cursor fix and the identity guard are each shown load-bearing; the same grade on the commit that folds the gate's adversarial pass (2 production fixes, no gameplay change)
 
 ⛔ **THE CAVEAT IS THE HEADLINE.**
 - This grades CORRECTNESS: in a double, an item now lands on the Pokémon that asked for it, judged by identity (PID),
@@ -12,9 +12,10 @@
 **Inputs:**
 - Predictions: `2026-09-30-doubleitems13-PREDICTIONS.md`, committed `ab398449` BEFORE any production code.
 - Build: `799e6adf`. Design: `2026-09-30-doubleitems13-DESIGN.md`.
-- Evidence (`tools/story-dev/evidence/`): `2026-09-30-doubleitems13-STEP0.txt` (the base-code reads) and
+- Evidence (`tools/story-dev/evidence/`): `2026-09-30-doubleitems13-STEP0.txt` (the base-code reads),
   `2026-09-30-doubleitems13-ARMS.txt` (the runner, every arm's battle-window lines, the hashes, the grade, the grader and
-  runner, verbatim).
+  runner, verbatim), `-ADVERSARIAL.txt` and `-FOLD.txt` (the gate's adversarial pass and its fold), and `-RERUN.txt` (the
+  arms re-run on the folded commit `889b9319`, with the run-to-run comparison).
 
 ## THE RESULT, ARM BY ARM
 
@@ -57,3 +58,27 @@
   on both trajectories; and the key gate composes (a non-key double gets no item, Tate & Liza does).
 - **Does not show:** anything about win rates; the multi; status cures; partner heals; a heal chosen at the default 0.35
   at Tate & Liza (the arms used 0.8: at 0.35 the fixture's one Potion loses rule 3's race).
+
+## THE ADVERSARIAL PASS ON THE GATE, ITS FOLD, AND THE ARMS RE-RUN ON `889b9319`
+
+- **The pass** (`evidence/2026-09-30-doubleitems13-ADVERSARIAL.txt`; two mutant hunters and a defect hunter, none of
+  whom built the gate): 144 new mutants, 41 real gate gaps, and NO blocker in the code. The most important gap: no row
+  proved the guard reads the PID at the cursor's ACTUAL slot (DQ14's scroll stopped on Cancel, so its range check refused
+  first); a guard reading the PID at the aimed slot survived, and live it would hand battler 2's item to its partner.
+- **Two production defects, both FIXED** (`-FOLD.txt`; each fix's rows are red on the literal `799e6adf` files and green
+  on `889b9319`):
+  - SF-1: a double still asked the cure policy with a Full Restore in its list, so a sleeping Pokémon would spend the
+    scarcest item where singles uses a Full Heal. A double now asks NO cure policy (D10 as intended).
+  - SF-2: the doubles bag-open budget had a 16-frame margin (P-ON: the bag opened 74 frames into a 90-frame budget). A
+    flag-on double now re-presses only while the battler's action menu is up, then waits up to 150 frames without
+    pressing. The re-run shows why the first A timed out: it was DROPPED (the menu was still up after it).
+  - Plus N2: the flag-unset path tests the env before importing anything.
+- **The gate after the fold:** 91 rows, 3 faults whose red sets are still exactly the pre-registered ones, 124 mutants
+  (3 of them run under a fault, which the first runner could not see).
+- **The arms re-run on `889b9319`** (`-RERUN.txt`): the SAME grade (42 checks; the same 2 FAILED AS FILED, both
+  wording slips). 7 of the 12 logs are byte-identical to `799e6adf`'s (every flag-unset and observe arm); the 5 acting
+  arms differ ONLY in their `[ITEM-FLOW]` bag-open lines (SF-2's rewording and the presses it no longer makes), and every
+  other line, frames included, is identical. ⇒ the fold changed no gameplay on these trajectories.
+- **Residuals, recorded:** singles keeps the old 3 × 30 bag-open loop (not measured failing; one singles sample opened
+  in 43 frames); the bag-count verdict is per item type, not per requester (reachable only through a failed bag-open);
+  item names keep their spaces in the `use` / `after` lines; a bag-did-not-open return logs no `menu` / `after` pair.

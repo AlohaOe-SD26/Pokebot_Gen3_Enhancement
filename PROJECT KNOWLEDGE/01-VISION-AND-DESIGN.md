@@ -370,7 +370,8 @@ it.
     cursor is the requester (by PID) before pressing A, and backs out otherwise;
   - **never break the partner's turn:** the menu driver reads each battler's OWN action cursor;
   - **change nothing with the flag unset**, apart from that cursor fix (inert there, because both cursors stay on FIGHT).
-- **Where it stands:** designed, reviewed, Step-0-read and its predictions filed on `wt/doubleitems13`; NOT built. Flag
+- **Where it stands:** built, graded and its gate's adversarial pass folded on `wt/doubleitems13` (graded note
+  `ai-research-notes/2026-09-30-doubleitems13-GRADED.md`); its three-lens review is still to come. Flag
   `POKEBOT_R27_DOUBLEITEMS` (default OFF). v1 excludes the Space Center multi, partner heals and status cures.
   - Design: `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md`.
 

@@ -37424,3 +37424,21 @@ bought balls only at fixed story points.
   - `#27-itemprobes`: step 14's item instrument matches a line no code prints;
   - `03`'s "Tate & Liza is the story's one double" corrected.
 - **Predictions filed BEFORE any code:** `ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md`. No production code yet. Next: the build.
+
+## 2026-09-30 — design v2 step 13 (KB-2) BUILT, GRADED, its gate's ADVERSARIAL PASS FOLDED, and its arms RE-RUN: healing items in DOUBLE battles behind `POKEBOT_R27_DOUBLEITEMS` (default OFF) (`#26-organiccatch`)
+
+- **Built** (`799e6adf`): the pure `modules/story/double_items.py`; `StoryItemBattleStrategy.decide_turn_in_double_battle`
+  (self-only, per-PID ledgers, HP items only, an observe mode); the executor's in-menu PID guard and raw `after` read;
+  the battler-aware action cursor (C1, unconditional, inert with the flag unset); D11's Struggle-loop exit. Gate
+  `probe_double_items.py`.
+- **Graded** (`ai-research-notes/2026-09-30-doubleitems13-GRADED.md`; `evidence/…-ARMS.txt`): every behaviour prediction
+  held. On Route 123's first double the left battler's Hyper Potion landed on itself (Sceptile 21→117) and the partner's
+  attack still ran; at Tate & Liza the right battler's Potion landed on itself (Mightyena, party 4 at menu slot 1,
+  99→119). The cursor fault raised KI-45 on the partner's turn and the no-guard fault healed the wrong Pokémon, so each
+  fix is load-bearing. Flag unset = the base code on both trajectories. 2 of 42 checks FAILED AS FILED on the
+  predictions' own wording (corrected checks pass).
+- **Adversarial pass folded** (`889b9319`; `-ADVERSARIAL.txt`, `-FOLD.txt`): no blocker; SF-1 (no cure policy in
+  doubles), SF-2 (a robust doubles bag-open wait), N2. The gate: 91 rows, 3 faults (red sets unchanged), 124 mutants.
+- **Re-run** on `889b9319` (`-RERUN.txt`): the same grade; 7 of 12 logs byte-identical, the other 5 differ only in their
+  `[ITEM-FLOW]` bag-open lines.
+- Next: the build's three-lens review, then the merge.

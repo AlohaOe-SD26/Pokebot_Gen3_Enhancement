@@ -23544,3 +23544,25 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   one missed escape would have RUN a command and pasted its output into a doc.
 - **Prevention rule (widens the heredoc rule):** documentation text never passes through ANY shell-quoted string: not a
   heredoc, not `-c "…"`, not `echo`. Use Write/Edit, or a script file written with Write and then run.
+
+## 2026-09-30 — ⛔ STEP 13: TWO PRE-REGISTERED ROWS FAILED AS FILED ON THEIR OWN WORDING, AND A GATE ROW WHOSE LABEL CLAIMED MORE THAN ITS FIXTURE COULD SHOW
+
+- **Symptoms** (the behaviour held in every case):
+  - P6 quoted the disable line as `not consumed twice; disabling items`; the code prints `the item was NOT consumed twice;
+    disabling items for the rest of this battle` (`evidence/2026-09-30-doubleitems13-ARMS.txt`).
+  - T3 said "= T-OFF before f3456183" under the filed rule "every frame-stamped line identical", and also predicted a
+    `[KEYBATTLE]` line, which the flag-1 path logs at the battle's first decision, before f3456183.
+  - The builder's gate row DQ14 was labelled "refused by the guard's own slotId read", but its fake scroll stopped on
+    Cancel (slot 7), so the range check refused first, whichever slot the PID was read from. A mutant reading the PID at
+    the AIMED slot survived until the adversarial pass (`-ADVERSARIAL.txt`, N37).
+- **Root causes:** a log line paraphrased instead of copied from the code's format string; an identity clause written
+  without listing the lines the same row adds; a row whose fixture made an earlier check decide, so the named rule was
+  never exercised.
+- **The fixes that worked:** both rows graded FAILED AS FILED, then by corrected checks named as such; DQ14 relabelled
+  and X01 added (the scroll stops on the PARTNER's slot, where only the PID check can refuse).
+- **Prevention rules:**
+  - A prediction that quotes a log line copies it from the code's format string (or the builder's example), never from
+    memory.
+  - An "= X before frame F" clause names every line the arm's own flags add before F, and excludes exactly those.
+  - A gate row's label names the check that ACTUALLY decides it on its fixture; if an earlier check decides, the row
+    does not pin the later one.

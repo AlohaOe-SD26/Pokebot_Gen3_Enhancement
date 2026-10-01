@@ -8741,3 +8741,31 @@ the user may overturn any of them.
   blind FIGHT for battler 2 stays byte for byte; with it set, battler 2 makes its own decision.
 - **Dropped before any code:** the `--set-party-hp` and `--set-bag-item` levers. Step 0 showed both natural trajectories
   discriminate (Route 123's first double from turn 0; Tate & Liza from turn 1 after the faint replacement).
+
+## 2026-09-30 — Design v2 step 13 BUILT and FOLDED: the builder's gap rulings, and the adversarial pass's (`#26-organiccatch`)
+
+The design left these to the builder; the author accepts them, recorded so they are not re-asked:
+- **NOGUARD skips only the PID comparison**; the range check and the self binding still hold, so `ok` is logged
+  truthfully as 0 while `a_pressed=1` (P-NOG isolates exactly what the PID check prevents).
+- **A failed self binding refuses at the party menu** (`self=0 ok=0`), not before the bag opens: one refusal path.
+- **The guard also requires the PARTY_MENU state** when it reads: a stale `slotId` could otherwise match the intended
+  PID in field order and send A into the bag.
+- **The ledger key is (PID, species index)**, the `faint_chooser` identity convention.
+- **Observe's `key=`** is `key_battle_verdict(True, …)` (1 key, 0 none key, ? unreadable); its `would=` applies
+  `KEYITEMS` and fails open, as the acting path does.
+- **Telemetry additions:** `[DBLITEM] err …` on the fail-open path; `struggle-exit` for D11; `menu … aim= self=` (both
+  coordinates on one line, rule 10); `after … same=`; `bpo_pos=tailN`.
+From the gate's adversarial pass (`tools/story-dev/evidence/2026-09-30-doubleitems13-ADVERSARIAL.txt`, folded in
+`889b9319`, `-FOLD.txt`):
+- **SF-1: a double asks NO status-cure policy.** The build's filter left a Full Restore in the cure list. Rejected:
+  keeping cures with a narrower list, because D10's reason (a refused cure is not counted by the retry/disable) holds
+  for any cure item.
+- **SF-2's fix is FLAG-ON DOUBLES ONLY.** The measured 16-frame margin is in doubles; singles keeps its 3 × 30 loop press
+  for press (one singles sample opened the bag in 43 frames). Rejected: changing the shared singles path without its
+  own A/B (rule 9).
+- **N2: the flag-unset path tests the env before importing anything.**
+- **DQ14 is relabelled:** its refusal comes from the range check; X01 now pins the actual-slot PID read. The adversaries'
+  real mutants joined the gate with their expected red sets written before their first run; the pre-registered fault
+  sets did not change.
+- **Not folded, recorded as residuals** (the graded note): the bag-count verdict is per item type; item names keep spaces
+  in the `use` / `after` lines; a bag-did-not-open return logs no `menu` / `after` pair.
