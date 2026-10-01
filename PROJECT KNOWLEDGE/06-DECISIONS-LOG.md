@@ -8881,3 +8881,15 @@ on all three questions:
 - **The arms spawn interleaved** (H1, H9, H2, H10, …), so neither arm gets a head start.
 - **The in-game name is paired across arms.** ⚠ This does not guarantee one seed pool per lane: P2 and P4 shared one in
   the baseline despite different names.
+
+## 2026-10-01 — USER RULING 29: the heredoc / shell-text hook is APPROVED (`#27-shellhook`)
+
+- **Asked:** a hook enforcing the written rule that documentation and code text never pass through a shell-quoted
+  string. That rule failed FIVE times in two sessions (`08`, 2026-09-30 and 2026-10-01); all were verified harmless.
+- **The user's words:** "I agree with approving the pending heredoc hook if you think it would be helpful."
+- **Built as** `.claude/hooks/block_shell_text.py`, REUSING `block_destructive_git.py`'s parser (one parser, one place
+  to fix). Its scope, gate and predictions: `ai-research-notes/2026-10-01-shellhook-PREDICTIONS.md`.
+- **The hatch is a live `POKEBOT_ALLOW_SHELL_TEXT=1` prefix read from the COMMAND**, for an operation the user
+  approved. Unlike the two older hooks' hatches (`#27-hookhatch`), this one works.
+- ⛔ **It must reach `main` before 9:00 PM LA 2026-10-01** (the step-14 batch's freeze; no merge after that until the
+  batch ends), or wait until then.
