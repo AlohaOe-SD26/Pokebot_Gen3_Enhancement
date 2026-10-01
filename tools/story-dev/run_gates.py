@@ -1193,8 +1193,10 @@ GATES: list[tuple[str, bool]] = [
     # live lane profiles, zero logs = exit 2), and T3, `compare_arms.py` (DESIGN §5's frozen statistics: clusters
     # (arm, species, PID) resampled within arm x species, C1 -> C2, the harm flags, reach censoring, a wrong-arm log
     # REFUSED). WHY: tonight's 13-hour batch is graded by these, and a mis-read cluster or verdict rule turns it into a
-    # confident wrong answer. The spec's rows CA1-CA10 (CA1-CA4 statistical, on fixed seeds) + hand-built estimand rows;
-    # 70 mutants with exact sets on the fast rows; real lines with a PROVENANCE check; no ROM; ~35 s. ‼ APPENDED AT THE END.
+    # confident wrong answer. The spec's rows CA1-CA10 (CA1-CA4 statistical, on fixed seeds) + hand-built estimand rows,
+    # the independent hunter's AH1-AH17 and one DV row per ruling on its pass (STOP void, frozen K*, completeness, ...);
+    # 129 mutants with exact sets on the fast rows (a process pool); real lines with a PROVENANCE check; no ROM; ~40 s.
+    # ‼ APPENDED AT THE END.
     ("probe_compare_arms.py", False),
     # USER RULING 29 (2026-10-01, `#27-shellhook`): the shell-text hook `.claude/hooks/block_shell_text.py` refuses
     # documentation or code text written THROUGH THE SHELL (a live heredoc; `<<<` / a PowerShell here-string to a writer

@@ -8906,3 +8906,19 @@ on all three questions:
 - **`.txt` is never a doc/code target**, so log appends (`echo "exit=$?" >> run.txt`) stay free.
 - **Rejected:** a scratch-path carve-out for `py -c` writes. Scratch `.md` files are later spliced into
   `PROJECT KNOWLEDGE`, so the carve-out would leak.
+
+## 2026-10-01 — design v2 step 14 T2/T3: how the comparator handles what the DESIGN left to the tool (after its adversarial pass)
+
+- **A STOP voids the confirmatory readings.** Any automated abort (ARM LEAK, VACUITY, an ARM or EMULATION header
+  failure, FREEZE BROKEN, an x4h error) makes C1 and C2 "DESCRIPTIVE — VOID" (DESIGN §4). Any other FAILED verdict
+  voids too (fail-closed). A user park and a lost lane do not void ("a user park stands"). `--void REASON` exists for a
+  manual STOP-3.
+- **K\* stays FROZEN in the code.** C2 is NOT ESTIMABLE unless all seven trainers are estimable, and so is a bootstrap
+  draw. Rejected: averaging over the estimable subset, which re-derives K\* from the data and reopens S1.
+- **A run cut, lost or capped DURING a first attempt is CENSORED for that trainer.** It leaves the reach and composite
+  denominators and is never counted as a failure. DESIGN: a cut run "contributes only the first attempts it
+  completed".
+- **Only Torchic, Mudkip and Treecko form strata.** A run whose species disagrees with its `choosing` line is excluded
+  and listed.
+- **Overriding the seed, the draws or δ labels the grade EXPLORATORY.** δ is derived from the batch's own design:
+  16 lanes × 2 arms → .08; 8 → .11.

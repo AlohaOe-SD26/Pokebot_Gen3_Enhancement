@@ -5,20 +5,22 @@ about the bot by itself; "a non-significant result is NOT confirmation" (DESIGN 
 "no harm".
 
 THE SPEC (binding): `ai-research-notes/2026-10-01-batch14-T23-PREDICTIONS.md`, and its parent
-`…-batch14-DESIGN.md` §3 T3 + §5. §5's statistics are FROZEN there (K*, δ, the C1 → C2 sequence, the harm flags at
+`…-batch14-DESIGN.md` §3 T3 + §4 + §5. §5's statistics are FROZEN there (K*, δ, the C1 → C2 sequence, the harm flags at
 one-sided .05): this file IMPLEMENTS them and must never improve them. Where the spec was silent, the simplest reading
-was taken and is marked `SPEC-SILENT` beside the code.
+was taken and is marked `SPEC-SILENT` beside the code; the coordinator's rulings on the independent adversarial pass
+(`evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`, decisions F1-F11 and RC-1..RC-3) are marked `DECISION Fn`.
 
 INPUT. A batch directory: `x4-runs/<stamp>` (a stamp resolves under the MAIN checkout, `battle_log.main_story_dev`) or
-any path, holding T1's `ARMS.json` (the arms, each lane's arm) and, once the batch has ended, `summary.json` (each
-lane's CUT log and its spawns). Or `--tag TAG` for a RUNNING batch: its logs from the lane profiles
-(`battle_log.live_logs`), its `ARMS.json` found by `profile_tag`.
+any path, holding T1's `ARMS.json` (the arms, each lane's arm, the design's size) and, once the batch has ended,
+`summary.json` (its verdict and stop, each lane's CUT log, spawns and collected-log count). Or `--tag TAG` for a
+RUNNING batch: its logs from the lane profiles (`battle_log.live_logs`), its `ARMS.json` found by `profile_tag`.
 
 EACH LOG IS ONE RUN (`run_record`):
   * its lane (tag, slot) from its directory; its arm from the header's `env-all:` (`battle_log.arm_of`).
-    ⛔ A log whose arm DISAGREES with its lane's `ARMS.json` arm is REFUSED (counted and listed), never re-assigned:
-    a run that loaded the wrong flags must void the grade, not move to the other arm;
-  * species + PID (`battle_log.run_identity`); the CLUSTER is (arm, species, PID): replays of one seed are one unit;
+    ⛔ A log whose arm DISAGREES with its lane's `ARMS.json` arm is REFUSED (counted and listed), never re-assigned —
+    a CUT log included: a run that loaded the wrong flags must void the grade, not move to the other arm;
+  * species + PID (`battle_log.run_identity`); the CLUSTER is (arm, species, PID): replays of one seed are one unit.
+    Only Torchic, Mudkip and Treecko form strata, and the species must agree with the run's `Story: choosing X!`;
   * status: `cut` (the lane's `cut_log`), `lost` (the log a DYING spawn had open), `capped` (the 30 MiB cap), else
     `complete`. The first three are CENSORED: they say nothing about a trainer they never met;
   * per K* trainer: met (any `[TRAINER] start`), the FIRST attempt's outcome (`battle_log.first_attempts`; a Draw is
@@ -30,21 +32,28 @@ estimate and for every bootstrap draw, so the two can never disagree):
   C1  per run, the mean HP-item count over its K* first attempts; per arm, the mean over runs. PASS iff the lower bound
       of B − A's two-sided 95% CI is above 0; otherwise C2 is DESCRIPTIVE.
   C2  p[a,X,s] = won first / fought, per realized species s; p[a,X] = the equal-weight mean over the species with such
-      a run in BOTH arms; θ[a] = the mean over K*; Δ = θB − θA. NOT LOWER if lower95 > −δ; then HIGHER if lower95 > 0;
-      else INCONCLUSIVE; "NOT LOWER, but statistically lower" when the 95% CI lies inside (−δ, 0).
+      a run in BOTH arms; θ[a] = the mean over the FROZEN K* — undefined unless all 7 are estimable (DECISION F2);
+      Δ = θB − θA. NOT LOWER if lower95 > −δ; then HIGHER if lower95 > 0; else INCONCLUSIVE; "NOT LOWER, but
+      statistically lower" when the 95% CI lies inside (−δ, 0). δ is the PRE-REGISTERED one for the design.
   C2 LOWER (harm flag): upper90 < 0.      C5 (harm flag): (Lost + Draw) / battles over NON-KEY trainer battles, a
   ratio of sums per arm: REGRESSION if lower90 of B − A > 0, IMPROVED if upper90 < 0.
-  REACH per X: the meet rate over runs NOT censored before X (a cut / lost / capped run that never met X is out);
-  B − A with a 90% CI; REACH DIFFERS if any CI excludes 0. COMPOSITE (always printed): P(met X and won the first
-  attempt) over the same runs, species-weighted as C2. PER GROUP (descriptive): θ over each group's K* trainers.
+  REACH per X: the meet rate over runs NOT censored before X (a cut / lost / capped run that never met X is out, and
+  so is one censored DURING its first attempt at X); B − A with a 90% CI; REACH DIFFERS (on the C2 line) if any CI
+  excludes 0. COMPOSITE (always printed): P(met X and won the first attempt) over the same runs, species-weighted as
+  C2. PER GROUP (descriptive): θ over each group's K* trainers.
   THE BOOTSTRAP: `--draws` (10,000) seeded (`--seed`, 14); clusters resampled WHOLE, with replacement, within strata of
-  arm × species; percentile CIs.
+  arm × species; percentile CIs; a draw in which a statistic is undefined is dropped, and the count is printed.
+THE STATUS of C1 / C2 (DESIGN §4, DECISIONS F1 F6 F7): CONFIRMATORY only with none of — a STOP that voids them
+  (an automated abort in summary.json, or `--void`), a LIVE read without summary.json (PROVISIONAL), a non-pre-
+  registered draws / seed / δ (EXPLORATORY), K* not fully estimable, C1 not passing. The JSON carries the rule's word
+  (`rule_reading`) apart from the `verdict`, which is that word only when CONFIRMATORY.
 
 EXIT: 0 the grade was computed (whatever the verdicts); 1 an INSTRUMENT CONTROL failed (zero runs, a refused log, an
-arm with no usable runs) — then NO statistic is printed, so no verdict word can be read as confirmatory; 2 usage.
+arm with no usable runs, an INCOMPLETE batch directory) — then NO statistic is printed, so no verdict word can be read
+as confirmatory; 2 usage (incl. a design with no pre-registered δ and no `--delta`).
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 compare_arms.py 20261001-090649 [--json OUT]
-      PYTHONUTF8=1 py -3.12 compare_arms.py --tag s14            (LIVE, during the batch)
+      PYTHONUTF8=1 py -3.12 compare_arms.py --tag s14            (LIVE, during the batch: PROVISIONAL)
 """
 
 from __future__ import annotations
@@ -90,10 +99,18 @@ GROUPS = {
     "rivals": ("RIVAL_ROUTE_110",),
     "magma_aqua": ("TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY"),
 }
-DEFAULT_DELTA = 0.08      # DESIGN §5: δ = .08 for M-16 (and M-24)
+#: DESIGN §5: the strata are arm x REALIZED starter, s in {Torchic, Mudkip, Treecko} (DECISION F8: nothing else).
+STARTERS = ("Torchic", "Mudkip", "Treecko")
 DEFAULT_DRAWS = 10_000
 DEFAULT_SEED = 14
+#: DESIGN §5's margin, by the design T1 recorded in ARMS.json (lanes_n, number of arms): M-16 .08, M-8 .11. Any other
+#: design has no pre-registered δ: `--delta` is then required and the grade is EXPLORATORY (DECISION F6).
+PREREG_DELTA = {(16, 2): 0.08, (8, 2): 0.11}
 ARM_A, ARM_B = "A", "B"   # B − A is the one confirmatory comparison (DESIGN §2)
+#: DESIGN §4: "any STOP voids C1-C2". x4_headless's automated aborts (its `aborted` texts, the part of the verdict
+#: after "FAILED — "); an "x4h error: …" abort voids too. ⛔ A user park does NOT void: "a user park stands".
+AUTOMATED_STOPS = ("ARM LEAK", "VACUITY", "ARM HEADER ASSERTION FAILED", "EMULATION ASSERTION FAILED", "FREEZE BROKEN")
+USER_PARK = "interrupted by user (Ctrl-C)"
 #: Per-cluster fields: (C, K) matrices, then (C,) vectors. N/W = decided first attempts fought / won; RN/RD = reach
 #: numerator / denominator; CN = composite numerator (denominator RD); H/Hn = C1's per-run means summed / counted;
 #: L5/B5 = non-key trainer battles lost (Draw included) / decided; NR = runs.
@@ -106,7 +123,7 @@ def run_record(lines, *, log: str, lane: dict, arms: dict, cut: bool = False, lo
                param_of=bl.item_parameter) -> dict:
     """PURE: ONE run log -> its record (see the module docstring). `lane` is its `ARMS.json` lane row (tag, slot, arm);
     `cut` / `lost` come from T1's records. `refused` is a reason or None; `excluded` a reason (a run that cannot enter
-    the grade but is no instrument failure) or None."""
+    the grade but is no instrument failure) or None, with `excluded_kind` naming which rule excluded it."""
     arm = bl.arm_of(lines, arms)
     header = bl.has_header(lines)
     ident = bl.run_identity(lines)
@@ -127,20 +144,26 @@ def run_record(lines, *, log: str, lane: dict, arms: dict, cut: bool = False, lo
     for battle in battles:
         if bl.battle_class(battle, telemetry) == bl.NONKEY:
             nonkey[bl.outcome_bucket(battle)] += 1
-    refused = excluded = None
-    if cut and not header:
-        # SPEC-SILENT: a log the deadline cut before its header was written holds no run at all; refusing it would
-        # void a 13-hour grade over an empty file, so it is EXCLUDED (listed), never refused.
-        excluded = "cut before its run header was written"
+    refused = excluded = kind = None
+    species, chosen = ident["species"], ident["chosen"]
+    if (cut or lost) and not header:
+        # DECISION F11 (SPEC-SILENT before it): a log the deadline cut — or a dying spawn left — before its header
+        # was written holds no run at all; refusing it would void a 13-hour grade over an empty file.
+        excluded, kind = "cut or lost before its run header was written", "no_header"
     elif arm != lane.get("arm"):
         refused = f"env-all reads arm {arm!r}; the lane's ARMS.json arm is {lane.get('arm')!r}"
-    elif ident["species"] is None:
+    elif species is None:
         # SPEC-SILENT: a run with no starter cannot be stratified, so it is EXCLUDED and listed (normally a run cut
         # seconds after it began, before any trainer; the RUNS table still shows anything it did fight).
-        excluded = "no starter read (no [hb] line with a non-empty ids=)"
+        excluded, kind = "no starter read (no [hb] line with a non-empty ids=)", "no_starter"
+    elif species not in STARTERS:
+        excluded, kind = f"species {species!r} is not one of the three starters (DECISION F8)", "not_a_starter"
+    elif chosen != species:
+        excluded, kind = (f"species {species!r} disagrees with its 'Story: choosing {chosen}!' line (DECISION F8)",
+                          "chosen_mismatch")
     return {"log": log, "lane": lane.get("tag"), "slot": lane.get("slot"), "lane_arm": lane.get("arm"), "arm": arm,
-            "refused": refused, "excluded": excluded, "species": ident["species"], "pid": ident["pid"],
-            "hold": ident["hold"], "chosen": ident["chosen"], "status": status, "capped": capped, "header": header,
+            "refused": refused, "excluded": excluded, "excluded_kind": kind, "species": species, "pid": ident["pid"],
+            "hold": ident["hold"], "chosen": chosen, "status": status, "capped": capped, "header": header,
             "keys": keys, "nonkey": dict(nonkey)}
 
 
@@ -153,6 +176,16 @@ def run_c1(run: dict) -> "float | None":
     (`heal_stock=-` is 0; a missing or unreadable field is excluded and counted). None with no such attempt."""
     vals = [k["hp"] for k in run["keys"].values() if k["attempted"] and k["hp"] is not None]
     return sum(vals) / len(vals) if vals else None
+
+
+def censored_during(run: dict, key: str) -> bool:
+    """True for a run CENSORED (cut, lost or capped) DURING its first attempt at `key`: it met the trainer and has no
+    won/lost first attempt. DECISION F10 / RC-2 — THE CHOSEN READING of DESIGN §5's "a run cut by the deadline
+    contributes only the first attempts it completed": such a run leaves the trainer's reach AND composite
+    denominators (it was never observed to win or lose there), exactly like a cut run that never met the trainer.
+    (Capped is censored like cut: DESIGN T2(c) reports a capped tail "as cut".)"""
+    k = run["keys"][key]
+    return run["status"] != "complete" and k["reached"] and k["won"] is None
 
 
 def lost_logs(names, spawns) -> set:
@@ -177,10 +210,77 @@ def lost_logs(names, spawns) -> set:
     return out
 
 
-# ---------------------------------------------------------------------------------------------------- controls (pure)
-def controls(runs, arm_names=(ARM_A, ARM_B)) -> "tuple[list, dict]":
-    """(failures, info). An instrument control FAILS on: zero runs; any refused log; an arm with no usable run."""
-    failures = []
+# ---------------------------------------------------------------------------------------------------- the batch (pure)
+def void_reason(summary: "dict | None", manual: "str | None" = None) -> "str | None":
+    """DESIGN §4 / DECISION F1: why C1-C2 are VOID, or None. A `--void` (a manual STOP-3 park) always voids; else a
+    summary.json verdict "FAILED — <abort>" voids when the abort is an automated STOP (`AUTOMATED_STOPS`) or an
+    "x4h error". A user park (`USER_PARK`) does NOT void ("a user park stands"); an "OK" or "OK — DEGRADED" verdict
+    does not. SPEC-SILENT, fail-closed: a FAILED verdict this list does not know also voids."""
+    if manual:
+        return f"STOP-3 (manual --void): {manual}"
+    verdict = (summary or {}).get("verdict") or ""
+    if not verdict.startswith("FAILED"):
+        return None
+    abort = verdict.split("—", 1)[1].strip() if "—" in verdict else ((summary or {}).get("stop_reason") or "")
+    if abort == USER_PARK:
+        return None
+    if abort in AUTOMATED_STOPS or abort.startswith("x4h error"):
+        return f"STOP {abort}"
+    return f"STOP (an unrecognised FAILED verdict: {verdict!r})"
+
+
+def preregistered_delta(manifest: dict) -> "float | None":
+    """DECISION F6: the pre-registered δ for the design T1 recorded (`lanes_n`, else the lane count; the arm count)."""
+    raw = manifest.get("raw") or {}
+    lanes_n = raw.get("lanes_n") or len(manifest.get("lanes") or [])
+    return PREREG_DELTA.get((lanes_n, len(manifest.get("arms") or {})))
+
+
+def exploratory_reasons(draws: int, seed: int, delta: float, prereg: "float | None") -> list:
+    """DECISION F6: every analysis choice that differs from the pre-registered one (DESIGN §4: "no read may change δ
+    … or any analysis choice"). Non-empty -> C1 and C2 are EXPLORATORY."""
+    out = []
+    if draws != DEFAULT_DRAWS:
+        out.append(f"draws {draws} (pre-registered {DEFAULT_DRAWS})")
+    if seed != DEFAULT_SEED:
+        out.append(f"seed {seed} (pre-registered {DEFAULT_SEED})")
+    if prereg is None:
+        out.append(f"δ {delta} (this design has no pre-registered δ)")
+    elif delta != prereg:
+        out.append(f"δ {delta} (pre-registered {prereg})")
+    return out
+
+
+def completeness_failures(lanes, logs_per_lane: dict, summary: "dict | None", live: bool, tag=None) -> list:
+    """DECISION F4 / RC-1: why the logs read are NOT the whole batch (each an instrument failure: exit 1, no grade).
+    Every ARMS.json lane must yield a log. From a batch DIRECTORY (not live: the profiles hold every log), the
+    collection must have finished — not interrupted, not only the PROVISIONAL summary — and each lane's logs read must
+    equal summary.json's `debug_logs_collected` when it is there. The recovery path is the lane profiles: `--tag`."""
+    out = []
+    hint = f"grade from the lane profiles instead: compare_arms.py --tag {tag or '<profile_tag>'}"
+    if not live and summary is not None:
+        if summary.get("collect_interrupted"):
+            out.append(f"log collection was INTERRUPTED (summary.json collect_interrupted): the batch directory is "
+                       f"INCOMPLETE — {hint}")
+        if summary.get("provisional"):
+            # SPEC-SILENT (the same rule): only the provisional summary exists, so the collection never finished.
+            out.append(f"summary.json is the PROVISIONAL one (written before log collection): the batch directory may "
+                       f"be INCOMPLETE — {hint}")
+    for ln in lanes:
+        n = logs_per_lane.get(ln["tag"], 0)
+        if n == 0:
+            out.append(f"lane {ln['tag']} (arm {ln.get('arm')}) yielded ZERO logs")
+        elif not live and summary is not None:
+            want = ((summary.get("lanes") or {}).get(ln["tag"]) or {}).get("debug_logs_collected")
+            if want is not None and n != want:
+                out.append(f"lane {ln['tag']}: {n} log(s) read, summary.json says {want} collected — {hint}")
+    return out
+
+
+def controls(runs, arm_names=(ARM_A, ARM_B), completeness=()) -> "tuple[list, dict]":
+    """(failures, info). An instrument control FAILS on: zero runs; any refused log; an arm with no usable run; any
+    `completeness` failure (`completeness_failures`)."""
+    failures = list(completeness)
     if not runs:
         failures.append("ZERO runs: no log was read")
     refused = [r for r in runs if r["refused"]]
@@ -190,9 +290,13 @@ def controls(runs, arm_names=(ARM_A, ARM_B)) -> "tuple[list, dict]":
     for arm in arm_names:
         if not per_arm.get(arm):
             failures.append(f"arm {arm} has NO usable runs")
+    # DECISION F9: a COMPLETE run that never got a starter is out of every denominator; DESIGN's funnel starts at
+    # "runs started", so the count is reported per arm.
+    no_starter = collections.Counter(r["arm"] for r in runs
+                                     if r.get("excluded_kind") == "no_starter" and r["status"] == "complete")
     info = {"runs": len(runs), "refused": [(r["log"], r["refused"]) for r in refused],
             "excluded": [(r["log"], r["excluded"]) for r in runs if r["excluded"]],
-            "usable_per_arm": dict(per_arm)}
+            "usable_per_arm": dict(per_arm), "complete_no_starter_per_arm": dict(no_starter)}
     return failures, info
 
 
@@ -214,6 +318,8 @@ def build_strata(runs) -> dict:
             if k["won"] is not None:
                 c["N"][j] += 1
                 c["W"][j] += 1 if k["won"] else 0
+            if censored_during(r, key):
+                continue          # DECISION F10: out of X's reach and composite denominators (`censored_during`)
             if k["reached"]:
                 c["RN"][j] += 1
                 c["RD"][j] += 1
@@ -288,19 +394,23 @@ def statistics(sums: dict, species, a: str = ARM_A, b: str = ARM_B) -> dict:
     px = {arm: _ratio(num[arm], cnt) for arm in (a, b)}
     out["pX_a"], out["pX_b"] = px[a], px[b]
     out["pX_diff"] = px[b] - px[a]
-    out["theta_a"], out["theta_b"] = _nanmean(px[a]), _nanmean(px[b])
+    # ⛔ DECISION F2: θ is the mean over the FROZEN K* (DESIGN §5: "never re-derived from step 14's data"). A row —
+    # the point or one draw — in which ANY K* trainer is not estimable has NO θ (a plain mean propagates the NaN);
+    # averaging the estimable subset would reopen S1's truncation by death.
+    out["theta_a"], out["theta_b"] = px[a].mean(axis=1), px[b].mean(axis=1)
     out["delta"] = out["theta_b"] - out["theta_a"]
     out["n_estimable"] = (cnt > 0).sum(axis=1).astype(float)
     for gname, members in GROUPS.items():
         cols = [KEYS.index(k) for k in members]
-        out[f"group_{gname}"] = _nanmean(px[b][:, cols]) - _nanmean(px[a][:, cols])
+        # the same frozen rule per group: every one of the group's K* trainers, or no group θ
+        out[f"group_{gname}"] = px[b][:, cols].mean(axis=1) - px[a][:, cols].mean(axis=1)
     # REACH — a pooled ratio of sums per arm over the runs not censored before X.
     rn = {arm: sum(g(arm, sp, "RN") for sp in species) for arm in (a, b)}
     rd = {arm: sum(g(arm, sp, "RD") for sp in species) for arm in (a, b)}
     out["reach_a"], out["reach_b"] = _ratio(rn[a], rd[a]), _ratio(rn[b], rd[b])
     out["reach_diff"] = out["reach_b"] - out["reach_a"]
     # COMPOSITE — P(met X and won the first attempt) over the reach denominator, species-weighted as C2 (among the
-    # species with such runs in BOTH arms), then the mean over K*.
+    # species with such runs in BOTH arms), then the mean over the K* trainers that have such a denominator.
     cnum = {a: np.zeros((D, K)), b: np.zeros((D, K))}
     ccnt = np.zeros((D, K))
     for sp in species:
@@ -352,14 +462,28 @@ def c5_flag(lo90: float, hi90: float) -> "str | None":
     return None
 
 
+def status_of(reasons) -> "tuple[str, str | None]":
+    """(status text, verdict word) from the ORDERED non-confirmatory reasons [(word, text)]: ("CONFIRMATORY", None)
+    with none; else the first reason's label ("DESCRIPTIVE" for VOID / NOT ESTIMABLE / C1, "PROVISIONAL",
+    "EXPLORATORY") followed by EVERY reason, and the first reason's word as the verdict (DECISION F7)."""
+    if not reasons:
+        return "CONFIRMATORY", None
+    word = reasons[0][0]
+    label = word if word in ("PROVISIONAL", "EXPLORATORY") else "DESCRIPTIVE"
+    return f"{label} — " + "; ".join(text for _w, text in reasons), word
+
+
 def _f(x) -> "float | None":
     x = float(x)
     return x if math.isfinite(x) else None
 
 
-def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: float = DEFAULT_DELTA,
-          a: str = ARM_A, b: str = ARM_B) -> dict:
-    """PURE (numpy): the full §5 grade of the USABLE runs of arms `a` and `b`. JSON-ready (NaN -> None)."""
+def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: float = PREREG_DELTA[(16, 2)],
+          a: str = ARM_A, b: str = ARM_B, void: "str | None" = None, provisional: bool = False,
+          exploratory=()) -> dict:
+    """PURE (numpy): the full §5 grade of the USABLE runs of arms `a` and `b`. `void` / `provisional` /
+    `exploratory` are the batch-level reasons C1-C2 cannot be confirmatory (`void_reason`, no summary.json,
+    `exploratory_reasons`). JSON-ready (NaN -> None)."""
     runs = [r for r in runs if usable(r) and r["arm"] in (a, b)]
     if not runs:
         raise ValueError("grade() needs usable runs; `controls` fails first on a batch without them")
@@ -377,11 +501,30 @@ def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: 
     def nz(v):
         return v if v is not None else math.nan
 
+    batch_reasons = []
+    if void:
+        batch_reasons.append(("VOID", f"VOID: {void} (DESIGN §4)"))
+    if provisional:
+        batch_reasons.append(("PROVISIONAL", "PROVISIONAL: a LIVE read with no summary.json (the batch is running)"))
+    if exploratory:
+        batch_reasons.append(("EXPLORATORY", "EXPLORATORY: " + ", ".join(exploratory)))
     c1 = one("c1_diff")
     c1_pass = nz(c1["ci95"][0]) > 0
+    c1_rule = "NOT ESTIMABLE" if c1["point"] is None else "PASS" if c1_pass else "FAIL"     # RC-3
+    c1_status, c1_word = status_of(batch_reasons + ([("NOT ESTIMABLE", "C1 NOT ESTIMABLE")]
+                                                    if c1_rule == "NOT ESTIMABLE" else []))
     c2 = one("delta")
     lo95, hi95 = nz(c2["ci95"][0]), nz(c2["ci95"][1])
-    reading = c2_reading(lo95, hi95, delta)
+    n_est = int(pt["n_estimable"][0])
+    # DECISION F2: fewer than all 7 estimable at the POINT -> the rule cannot be applied over the frozen K*
+    reading = (c2_reading(lo95, hi95, delta) if n_est == len(KEYS)
+               else f"NOT ESTIMABLE over the frozen K* ({n_est} of {len(KEYS)})")
+    c2_reasons = list(batch_reasons)
+    if n_est < len(KEYS):
+        c2_reasons.append(("NOT ESTIMABLE", reading))
+    if not c1_pass:
+        c2_reasons.append(("DESCRIPTIVE", "C1 NOT ESTIMABLE" if c1_rule == "NOT ESTIMABLE" else "C1 did not pass"))
+    c2_status, c2_word = status_of(c2_reasons)
     c5 = one("c5_diff")
     trainers = {}
     for j, key in enumerate(KEYS):
@@ -397,26 +540,32 @@ def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: 
                           for arm in (a, b)},
             "reach_n": {arm: int(sum(st["RD"][:, j].sum() for (arm2, _s), st in strata.items() if arm2 == arm))
                         for arm in (a, b)},
+            "censored_during": {arm: [x["log"] for x in runs if x["arm"] == arm and censored_during(x, key)]
+                                for arm in (a, b)},
         }
     groups = {}
     for gname in GROUPS:
         gr = one(f"group_{gname}")
         groups[gname] = {**gr, "lower_flag": bool(nz(gr["ci90"][1]) < 0)}
+    reach_differs = sorted(k for k, t in trainers.items() if t["reach_differs"])
     clusters = collections.Counter(arm for (arm, _s) in strata for _ in strata[(arm, _s)]["keys"])
     return {
         "arms": [a, b], "draws": draws, "seed": seed, "delta_margin": delta, "species": species,
+        "void": void, "provisional": provisional, "exploratory": list(exploratory),
         "runs_per_arm": dict(collections.Counter(r["arm"] for r in runs)), "clusters_per_arm": dict(clusters),
         "species_per_arm": {arm: dict(collections.Counter(r["species"] for r in runs if r["arm"] == arm))
                             for arm in (a, b)},
         "status_per_arm": {arm: dict(collections.Counter(r["status"] for r in runs if r["arm"] == arm))
                            for arm in (a, b)},
-        "c1": {**c1, "a": _f(pt["c1_a"][0]), "b": _f(pt["c1_b"][0]), "pass": bool(c1_pass),
+        "c1": {**c1, "a": _f(pt["c1_a"][0]), "b": _f(pt["c1_b"][0]), "pass": bool(c1_pass), "rule_reading": c1_rule,
+               "status": c1_status, "verdict": c1_rule if c1_word is None else c1_word,
                "runs_with_value": {arm: sum(1 for r in runs if r["arm"] == arm and run_c1(r) is not None)
                                    for arm in (a, b)}},
-        "c2": {**c2, "theta_a": _f(pt["theta_a"][0]), "theta_b": _f(pt["theta_b"][0]), "reading": reading,
-               "not_lower": bool(lo95 > -delta), "status": "CONFIRMATORY" if c1_pass else "DESCRIPTIVE",
-               "lower_flag": bool(nz(c2["ci90"][1]) < 0), "n_estimable": int(pt["n_estimable"][0])},
-        "reach_differs": sorted(k for k, t in trainers.items() if t["reach_differs"]),
+        "c2": {**c2, "theta_a": _f(pt["theta_a"][0]), "theta_b": _f(pt["theta_b"][0]), "rule_reading": reading,
+               "rule_not_lower": bool(lo95 > -delta), "status": c2_status,
+               "verdict": reading if c2_word is None else c2_word,
+               "lower_flag": bool(nz(c2["ci90"][1]) < 0), "n_estimable": n_est, "reach_differs": reach_differs},
+        "reach_differs": reach_differs,
         "composite": {**one("comp_diff"), "a": _f(pt["comp_a"][0]), "b": _f(pt["comp_b"][0])},
         "c5": {**c5, "a": _f(pt["c5_a"][0]), "b": _f(pt["c5_b"][0]),
                "flag": c5_flag(nz(c5["ci90"][0]), nz(c5["ci90"][1])),
@@ -433,8 +582,9 @@ def _n(x, fmt="+.3f"):
     return "n/a" if x is None else format(x, fmt)
 
 
-def _ci_text(c):
-    return f"[{_n(c[0])}, {_n(c[1])}]"
+def _ci_text(c, nan_draws=0, fmt="+.3f"):
+    """`[lo, hi]`, plus the undefined-draw count when there is one (DECISION F5: never silently dropped)."""
+    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]" + (f" ({nan_draws} draws undefined, excluded)" if nan_draws else "")
 
 
 def render(header: dict, runs, failures, info, result) -> list:
@@ -454,13 +604,14 @@ def render(header: dict, runs, failures, info, result) -> list:
     out.append(f"  excluded (not refused): {len(info['excluded'])}")
     for log, why in info["excluded"]:
         out.append(f"    - {log}: {why}")
-    mism = [r for r in runs if r["species"] and r["chosen"] and r["species"] != r["chosen"]]
+    out.append(f"  COMPLETE runs that never got a starter (out of every denominator), per arm: "
+               f"{info.get('complete_no_starter_per_arm') or 'none'}")
     unread = sum(1 for r in runs if usable(r) for k in r["keys"].values() if k["attempted"] and k["hp"] is None)
     unknown = sorted({n for r in runs for k in r["keys"].values() for n in k["hp_unknown"]})
     undecided = sum(1 for r in runs if usable(r) for k in r["keys"].values() if k["attempted"] and k["won"] is None)
     out.append(f"  K* first attempts with an unreadable/missing heal_stock (excluded from C1): {unread}; item names "
                f"the item data does not know: {unknown or 'none'}; first attempts with no won/lost outcome "
-               f"(excluded from C2): {undecided}; species ≠ 'choosing' line: {len(mism)}")
+               f"(excluded from C2): {undecided}")
     out.append("")
     out.append("RUNS (one log = one run)")
     for r in runs:
@@ -488,19 +639,24 @@ def render(header: dict, runs, failures, info, result) -> list:
                f"percentile CIs; δ = {r['delta_margin']}")
     out.append("")
     c1 = r["c1"]
-    out.append("C1 — the manipulation check (HP items held at K* first attempts; per run, then per arm)")
+    out.append(f"C1 — the manipulation check (HP items held at K* first attempts; per run, then per arm)  "
+               f"[{c1['status']}]")
     out.append(f"  A {_n(c1['a'], '.3f')}  B {_n(c1['b'], '.3f')}  (runs with a value {c1['runs_with_value']})   "
-               f"B − A {_n(c1['point'])}  95% CI {_ci_text(c1['ci95'])}")
-    out.append(f"  → C1 {'PASS (lower95 > 0): C2 is CONFIRMATORY' if c1['pass'] else 'FAIL: C2 is DESCRIPTIVE'}")
+               f"B − A {_n(c1['point'])}  95% CI {_ci_text(c1['ci95'], c1['nan_draws'])}")
+    then = ("C2 is DESCRIPTIVE" if c1["rule_reading"] != "PASS"
+            else "the C1 -> C2 gate is open (C2's own status is below)")
+    out.append(f"  → C1 {c1['rule_reading']}{' (lower95 > 0)' if c1['rule_reading'] == 'PASS' else ''}: {then}")
     out.append("")
     c2 = r["c2"]
-    out.append(f"C2 — first-attempt win rate over K* ({c2['n_estimable']} of {len(KEYS)} trainers estimable)  "
-               f"[{c2['status']}]")
+    out.append(f"C2 — first-attempt win rate over the FROZEN K* ({c2['n_estimable']} of {len(KEYS)} trainers "
+               f"estimable)  [{c2['status']}]")
     out.append(f"  θA {_n(c2['theta_a'], '.3f')}  θB {_n(c2['theta_b'], '.3f')}  Δ {_n(c2['point'])}  "
-               f"95% CI {_ci_text(c2['ci95'])}  90% CI {_ci_text(c2['ci90'])}")
-    word = c2["reading"] if c2["status"] == "CONFIRMATORY" else f"DESCRIPTIVE (C1 did not pass) — the rule reads " \
-                                                               f"'{c2['reading']}'"
-    out.append(f"  → C2: {word}   (margin δ = {r['delta_margin']})")
+               f"95% CI {_ci_text(c2['ci95'], c2['nan_draws'])}  90% CI {_ci_text(c2['ci90'])}")
+    word = (c2["rule_reading"] if c2["status"] == "CONFIRMATORY"
+            else c2["status"] if c2["rule_reading"].startswith("NOT ESTIMABLE")
+            else f"{c2['status']}. The rule reads '{c2['rule_reading']}'")
+    reach = f"   ⚠ REACH DIFFERS ({', '.join(c2['reach_differs'])})" if c2["reach_differs"] else ""   # DECISION F3
+    out.append(f"  → C2: {word}   (margin δ = {r['delta_margin']}){reach}")
     out.append(f"  C2 LOWER (harm flag, upper90 < 0): {'⛔ FLAGGED' if c2['lower_flag'] else 'no flag'}")
     out.append("")
     out.append(f"  {'trainer':<20}{'p A':>7}{'p B':>7}{'Δ':>8}  {'95% CI':<18}{'fought A/B':>12}{'won A/B':>9}"
@@ -512,22 +668,28 @@ def render(header: dict, runs, failures, info, result) -> list:
                    f"{_n(t['reach_b'], '.3f'):>9}{_n(t['reach_diff']['point']):>8}  "
                    f"{_ci_text(t['reach_diff']['ci90']):<18}{str(t['reach_n'][a]) + '/' + str(t['reach_n'][b]):>9}"
                    f"{'  REACH DIFFERS' if t['reach_differs'] else ''}")
+    cens = {key: t["censored_during"] for key, t in r["trainers"].items() if any(t["censored_during"].values())}
+    out.append(f"  censored DURING a first attempt (out of that trainer's reach and composite, DECISION F10): "
+               + ("; ".join(f"{key} " + ", ".join(f"{arm} {len(v)} ({', '.join(pathlib.Path(x).name for x in v)})"
+                                                   for arm, v in d.items() if v) for key, d in cens.items())
+                  if cens else "none"))
     out.append(f"  REACH: {'⚠ REACH DIFFERS at ' + ', '.join(r['reach_differs']) if r['reach_differs'] else 'no 90% CI excludes 0 (a WEAK check, DESIGN §6)'}")
     cp = r["composite"]
     out.append(f"  COMPOSITE P(met X and won the first attempt), species-weighted, mean over K*: A "
-               f"{_n(cp['a'], '.3f')}  B {_n(cp['b'], '.3f')}  B − A {_n(cp['point'])}  95% CI {_ci_text(cp['ci95'])}")
+               f"{_n(cp['a'], '.3f')}  B {_n(cp['b'], '.3f')}  B − A {_n(cp['point'])}  95% CI "
+               f"{_ci_text(cp['ci95'], cp['nan_draws'])}")
     out.append("")
     c5 = r["c5"]
     out.append("C5 — losses (Lost + Draw) per decided NON-KEY trainer battle (ratio of sums)")
     out.append(f"  A {c5['lost'][a]}/{c5['battles'][a]} = {_n(c5['a'], '.4f')}   B {c5['lost'][b]}/{c5['battles'][b]} = "
                f"{_n(c5['b'], '.4f')}   (undecided, not counted: {c5['undecided']})")
-    out.append(f"  B − A {_n(c5['point'], '+.4f')}  90% CI [{_n(c5['ci90'][0], '+.4f')}, {_n(c5['ci90'][1], '+.4f')}]"
+    out.append(f"  B − A {_n(c5['point'], '+.4f')}  90% CI {_ci_text(c5['ci90'], c5['nan_draws'], '+.4f')}"
                f"  → {c5['flag'] or 'no flag (its absence is NOT no harm)'}")
     out.append("")
-    out.append("PER GROUP (descriptive): θB − θA over each group's K* trainers")
+    out.append("PER GROUP (descriptive): θB − θA over each group's K* trainers (all of them estimable, or n/a)")
     for gname, gr in r["groups"].items():
-        out.append(f"  {gname:<11} {_n(gr['point'])}  95% CI {_ci_text(gr['ci95'])}  90% CI {_ci_text(gr['ci90'])}"
-                   f"{'  LOWER (descriptive)' if gr['lower_flag'] else ''}")
+        out.append(f"  {gname:<11} {_n(gr['point'])}  95% CI {_ci_text(gr['ci95'], gr['nan_draws'])}  90% CI "
+                   f"{_ci_text(gr['ci90'])}{'  LOWER (descriptive)' if gr['lower_flag'] else ''}")
     out.append("=" * 100)
     return out
 
@@ -545,7 +707,7 @@ def load_manifest(batch_dir: pathlib.Path) -> dict:
 
 def load_summary(batch_dir: pathlib.Path) -> "dict | None":
     """`summary.json`'s per-lane records (`lanes_detail`, or the PROVISIONAL `lanes` dict written before log
-    collection), or None when there is none (a running batch)."""
+    collection), its verdict, stop and completeness facts; None when there is none (a running batch)."""
     try:
         s = json.loads((batch_dir / "summary.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -554,11 +716,13 @@ def load_summary(batch_dir: pathlib.Path) -> "dict | None":
     if not isinstance(detail, dict):
         detail = s.get("lanes") if isinstance(s.get("lanes"), dict) else {}
     return {"lanes": detail, "verdict": s.get("verdict"), "stop_reason": s.get("stop_reason"),
-            "lanes_lost": s.get("lanes_lost")}
+            "lanes_lost": s.get("lanes_lost"), "collect_interrupted": bool(s.get("collect_interrupted")),
+            "provisional": bool(s.get("provisional"))}
 
 
 def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.item_parameter) -> "tuple[list, dict]":
-    """Every log of the batch (or, with `tag`, of its RUNNING lanes) -> its run record. Returns (runs, facts)."""
+    """Every log of the batch (or, with `tag`, of its RUNNING lanes) -> its run record. Returns (runs, facts); facts
+    carry the logs found per ARMS.json lane tag (`logs_per_lane`) for the completeness controls."""
     man = load_manifest(batch_dir)
     by_slot = {ln["slot"]: ln for ln in man["lanes"]}
     by_profile = {ln["profile"]: ln for ln in man["lanes"]}
@@ -588,8 +752,8 @@ def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.
             if lane is None or got is None:
                 runs.append({"log": str(p), "lane": None, "slot": None, "lane_arm": None, "arm": "?",
                              "refused": "no lane in ARMS.json for this directory" if lane is None else "unreadable log",
-                             "excluded": None, "species": None, "pid": None, "hold": 0, "chosen": None,
-                             "status": "complete", "capped": False, "header": False,
+                             "excluded": None, "excluded_kind": None, "species": None, "pid": None, "hold": 0,
+                             "chosen": None, "status": "complete", "capped": False, "header": False,
                              "keys": {k: {"reached": False, "attempted": False, "outcome": None, "won": None,
                                           "hp": None, "hp_unknown": []} for k in KEYS},
                              "nonkey": {"won": 0, "lost": 0, "other": 0}})
@@ -597,7 +761,8 @@ def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.
             runs.append(run_record(got[0], log=str(p), lane=lane, arms=man["arms"], cut=p.name == cut_name,
                                    lost=p.name in lost, param_of=param_of))
     runs.sort(key=lambda r: (r["slot"] if r["slot"] is not None else 10 ** 6, r["log"]))
-    facts = {"manifest": man, "summary": summary, "logs": len(paths)}
+    facts = {"manifest": man, "summary": summary, "logs": len(paths),
+             "logs_per_lane": {t: len(v) for t, v in per_lane.items() if t is not None}}
     return runs, facts
 
 
@@ -641,14 +806,18 @@ def main(argv=None) -> int:
     ap.add_argument("--tag", help="LIVE: read a RUNNING batch's lane profiles (endless-<tag>-H*)")
     ap.add_argument("--draws", type=int, default=DEFAULT_DRAWS, help=f"bootstrap draws (default {DEFAULT_DRAWS})")
     ap.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"bootstrap seed (default {DEFAULT_SEED})")
-    ap.add_argument("--delta", type=float, default=DEFAULT_DELTA, help=f"C2's margin δ (default {DEFAULT_DELTA})")
+    ap.add_argument("--delta", type=float, default=None,
+                    help="C2's margin δ (default: the PRE-REGISTERED one for the design in ARMS.json — 16 lanes x 2 "
+                         "arms .08, 8 x 2 .11; any other value, or any other design, makes C1-C2 EXPLORATORY)")
+    ap.add_argument("--void", metavar="REASON", help="a manual STOP (a STOP-3 park): C1 and C2 become DESCRIPTIVE — "
+                                                     "VOID (DESIGN §4)")
     ap.add_argument("--json", metavar="OUT", help="also write the full grade as JSON")
     args = ap.parse_args(argv)
     if np is None:
         ap.error("numpy is required (py -3.12 -m pip install numpy)")
     if not args.batch and not args.tag:
         ap.error("give a batch (a stamp or a directory) or --tag")
-    if args.draws < 1 or not (args.delta > 0):
+    if args.draws < 1 or (args.delta is not None and not args.delta > 0):
         ap.error("--draws must be >= 1 and --delta > 0")
     batch_dir = find_batch(args.batch, args.tag, ap)
     try:
@@ -658,18 +827,33 @@ def main(argv=None) -> int:
     man = facts["manifest"]
     if not {ARM_A, ARM_B} <= set(man["arms"]):
         ap.error(f"ARMS.json arms {sorted(man['arms'])}: this grade compares {ARM_B} − {ARM_A}")
+    prereg = preregistered_delta(man)
+    delta = args.delta if args.delta is not None else prereg
+    if delta is None:
+        ap.error(f"this design ({man['raw'].get('lanes_n') or len(man['lanes'])} lanes, {len(man['arms'])} arms) has "
+                 f"no pre-registered δ: give --delta (the grade is then EXPLORATORY)")
     summ = facts["summary"]
+    void = void_reason(summ, args.void)
+    exploratory = exploratory_reasons(args.draws, args.seed, delta, prereg)
+    park = summ and (summ.get("verdict") or "").endswith(USER_PARK)
     header = {
         "source": (f"LIVE lanes endless-{args.tag}-H* under {bl.default_profiles().absolute()}" if args.tag
                    else f"batch {batch_dir.absolute()}"),
         "ARMS.json": f"{(batch_dir / 'ARMS.json').absolute()} (arms {sorted(man['arms'])}, sha256 "
                      f"{man['raw'].get('arms_sha256', '?')[:16]}…, commit {man['raw'].get('code_commit', '?')})",
         "batch": (f"verdict {summ['verdict']!r}; stop {summ['stop_reason']!r}; lanes lost {summ['lanes_lost'] or 'none'}"
-                  if summ else "no summary.json (a RUNNING batch: each lane's newest log is treated as CUT)"),
-        "grade": f"draws {args.draws}, seed {args.seed}, δ {args.delta}, numpy {np.__version__}",
+                  + ("  (a user park STANDS, DESIGN §4)" if park else "")
+                  if summ else "no summary.json (a RUNNING batch: each lane's newest log is CUT; C1-C2 PROVISIONAL)"),
+        "C1-C2": (f"VOID: {void} (DESIGN §4)" if void else "not void"),
+        "design": (f"{man['raw'].get('lanes_n') or len(man['lanes'])} lanes x {len(man['arms'])} arms; pre-registered δ "
+                   f"{prereg if prereg is not None else 'NONE'}; used δ {delta}"
+                   + (f"; EXPLORATORY: {', '.join(exploratory)}" if exploratory else "")),
+        "grade": f"draws {args.draws}, seed {args.seed}, numpy {np.__version__}",
     }
-    failures, info = controls(runs)
-    result = None if failures else grade(runs, draws=args.draws, seed=args.seed, delta=args.delta)
+    failures, info = controls(runs, completeness=completeness_failures(
+        man["lanes"], facts["logs_per_lane"], summ, live=bool(args.tag), tag=man["raw"].get("profile_tag")))
+    result = None if failures else grade(runs, draws=args.draws, seed=args.seed, delta=delta, void=void,
+                                         provisional=summ is None, exploratory=exploratory)
     print("\n".join(render(header, runs, failures, info, result)))
     if args.json:
         slim = [{k: v for k, v in r.items()} for r in runs]

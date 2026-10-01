@@ -125,3 +125,33 @@ Maxie .72).
 | T23-2 | an adversarial mutant pass | every non-equivalent mutant of the estimand, the strata, the clustering, the verdict rules, the reach censoring, C5's ratio of sums, the first-attempt definition and the arm refusal reddens a row | a surviving non-equivalent mutant |
 | T23-3 | `compare_arms.py` on the smoke batch `x4-runs/20261001-090649` | it parses all 16 logs (one run per lane, every run `cut`) with 0 refused; every run's species is read; Roxanne's first attempt is found on every lane whose first `opp=265` battle has a `[TRAINER] end` (all 16 lanes fought her, H7 and H15 twice, so those two lost the first attempt); C2 is INCONCLUSIVE with very wide CIs (n = 16); exit 0 | a refused log; a missing species; a missed first attempt; a crash |
 | T23-4 | the same on the fault batch `x4-runs/20261001-090513` (aborted in 0.8 min) | exit 1 with the instrument control "arm with no usable runs" or similar, NOT a confident verdict | any verdict word printed as confirmatory |
+
+## GRADED (2026-10-01; evidence `tools/story-dev/evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`)
+
+- **T23-1 HELD (after the fold):** `probe_compare_arms.py` gives ALL PASS (69 rows, 129 mutants, 17 quoted lines;
+  every fast row is in some mutant's red set). The full suite passes: all 139 enforcing gates, 143 entries.
+- **T23-2 FAILED AS FILED.**
+  - The builder's own pass held: 70 of 70 matched after it redesigned CS1.
+  - The INDEPENDENT pass did not hold. Of 88 mutants, the builder's rows killed 59; 25 non-equivalent survivors were
+    gate gaps (CS7's 90% CIs never straddled 0, no cut log with a wrong arm, no censored meeting…).
+  - The statistics reviewer found a conditional BLOCKER: an automatically ABORTED batch would still be graded
+    CONFIRMATORY, although DESIGN §4 voids it. It also found that K\* could silently shrink to its estimable subset
+    (DESIGN S1's truncation case, reopened), and that an interrupted collection was graded silently.
+  - The formulas themselves were right. An independent grader written from the DESIGN alone matched 598 of 598 values
+    on the smoke batch, and 634 of 634 on two planted-edge variants.
+  - **All of it is folded:** STOP ⇒ VOID; K\* NOT ESTIMABLE unless all 7 are; REACH DIFFERS on the C2 line;
+    completeness controls; EXPLORATORY when an analysis choice is overridden; the JSON verdict field; the starter
+    strata; a run cut mid-attempt is CENSORED; and the hunter's 17 rows.
+- **T23-3 FAILED AS FILED on its wording.** The smoke batch parses 16 runs with 0 refused, every species is read, and
+  Roxanne's first attempts are found (H7 and H15 lost). But C2 prints "DESCRIPTIVE — NOT ESTIMABLE over the frozen K\*
+  (1 of 7); C1 did not pass", not "INCONCLUSIVE". The filed wording predated both the C1 gate's effect and F2. It also
+  said nothing of H2, which reached Brawly and the Route 110 rival and lost both first attempts.
+- **T23-4 HELD:** the fault batch exits 1: "C1-C2 VOID: STOP ARM HEADER ASSERTION FAILED (DESIGN §4)" and "INSTRUMENT
+  CONTROL FAILED — NO GRADE", with H1's leaked log REFUSED.
+- **Two of the builder's spec disagreements were right and are recorded:**
+  - **§6's ".82" is optimistic.** The gate's calibrated model gives P(NOT LOWER | Δ = 0) ≈ .77 at 45 clusters (CA1:
+    309 of 400), with the bootstrap SD within about 5% of the true one. The realized power tonight may be nearer .75.
+  - **Zero logs:** "refuse zero logs" now applies only to a stamp, `--tag` and `--batch-dir`. The `--logs` and `--since`
+    modes keep their pinned exit 1.
+- **A note on the process:** the builder broke the shell-quoting rule once during the fold, piping a read-only timing
+  script into `py -` with a heredoc. It wrote no file. The hook (`#27-shellhook`) goes live today.

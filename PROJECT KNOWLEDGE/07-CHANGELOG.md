@@ -37532,3 +37532,16 @@ bought balls only at fixed story points.
 - **The adversarial pass falsified SH-2 as filed.** It found 15 bypass findings and 4 false positives; all are folded.
   The case table has 156 rows. A replay over 18,484 real commands shows 0 unexplained false positives and no lost true
   block.
+
+## 2026-10-01 — design v2 step 14 T2/T3 DONE: the grading tools built, independently attacked, folded (`#26-organiccatch`)
+
+- **Built by a builder agent** against the spec filed first (`63f33374`):
+  - `battle_log.py`'s run-level additions;
+  - `compare_arms.py` (DESIGN §5's frozen statistics);
+  - the gate `probe_compare_arms.py`: 69 rows, 129 mutants after the fold.
+- **The independent three-agent pass** found 25 gate gaps and a conditional BLOCKER (an aborted batch would be graded
+  CONFIRMATORY). It also confirmed the formulas: an independent grader matched 598 of 598 values. All of it is folded
+  (`tools/story-dev/evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`).
+- **Predictions:** T23-1 and T23-4 held. T23-2 failed as filed (the independent pass), and so did T23-3 (its C2
+  wording). The suite passes: 143 entries, 139 enforcing.
+- **Next:** T4 (the telemetry counters), built while the batch runs.

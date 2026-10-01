@@ -14,11 +14,18 @@ ROWS (each a function; a row that raises is red)
             `live_logs` (the MAIN checkout), `resolve_sources` (zero logs is exit 2), `first_attempts`, `keys_met`.
   CR*       one run's record: status precedence, refusal vs exclusion, the non-key counts, `lost_logs`, the batch and
             live readers.
-  CS*       the estimand on hand-built data: strata, species weighting, θ over the estimable K*, reach censoring, the
+  CS*       the estimand on hand-built data: strata, species weighting, θ over the FROZEN K*, reach censoring, the
             composite, C1's per-run mean, and the WIRING of every verdict to its CI level.
   CK1       K* itself: the FROZEN decomp ids (re-read from opponents.h) and the three groups that partition it.
   CV*       the verdict functions at their boundaries (strict inequalities), and `ci`'s percentiles.
-  CX*       the CLI: exit 0 / 1 / 2, the defaults (10,000 draws, seed 14, δ .08), and NO statistic after a failed control.
+  CX*       the CLI: exit 0 / 1 / 2, the defaults (10,000 draws, seed 14, δ .08 on M-16), and NO statistic after a failed
+            control.
+  AH1-AH17  the INDEPENDENT mutant hunter's rows N1-N17 (`evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`), adopted;
+            AH2 / AH3 / AH5 / AH10 / AH13 adapted where DECISION F2 or F10 changed the value they read.
+  DV1-DV13  one row per coordinator DECISION on that pass (F1 the STOP void, F2 the frozen K*, F3 REACH DIFFERS on
+            the C2 line, F4 completeness, F5 undefined draws printed, F6 the pre-registered δ / EXPLORATORY, F7 the
+            JSON verdict, F8 the starter strata, F9 no-starter counts, F10 censored during a first attempt, F11 a lost
+            headerless log, RC-3 C1 NOT ESTIMABLE).
 
 THE SYNTHETIC MODEL (`synth`; spec: "8 lanes per arm, two per starter (the random lane's species drawn); 11-seed pools
 per lane; same-species-PID replays; about 6 runs per lane; K* first-attempt rates from the baseline"):
@@ -46,7 +53,11 @@ batch is not committed; on a machine without it those quotes are reported SKIPPE
 
 MUTANTS: source edits of `battle_log.py` / `compare_arms.py`, exec'd in memory (never written to disk), each with the
 EXACT set of FAST rows it must turn red, written before its first run. Mention-only edits must turn NOTHING red.
-COVERAGE fails if a fast row is in no mutant's set.
+COVERAGE fails if a fast row is in no mutant's set. They run in a PROCESS POOL (`--serial` for one process).
+  B*/C* the builder's first 70 (C07 C19 C20 C36 C37 C45 re-anchored where the fold moved their code); H* the hunter's
+  29 survivors, re-anchored; D* one REVERT per decision. THE FOLD'S FIRST RUN: 126 of 128 matched the sets written
+  before it; the two misses were MY predictions (H40 also reddens DV5; D11 crashes the report, which reads the field)
+  and are corrected beside them, with D11b added as D11's non-crashing form.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_compare_arms.py      (exit 1 on any failure; no ROM)
 """
@@ -191,6 +202,12 @@ def cli(argv) -> "tuple[int, str]":
     return code, buf.getvalue()
 
 
+def render(runs, g) -> str:
+    """The text report of a grade, with empty controls (the rows that read the report's wording)."""
+    info = {"runs": len(runs), "refused": [], "excluded": [], "usable_per_arm": {}, "complete_no_starter_per_arm": {}}
+    return "\n".join(CA().render({}, runs, [], info, g))
+
+
 def env_line(env: dict) -> str:
     """The run header's `env-all:` line exactly as `debug_logger` writes it: `f"    {label:<14} {value}"` over a dict
     of the POKEBOT_* variables in sorted order."""
@@ -315,7 +332,7 @@ def _ca1():
     nl, deltas, clusters = 0, [], []
     for k in range(400):
         g = CA().grade(synth(1000 + k), draws=400, seed=k)
-        nl += g["c2"]["not_lower"]
+        nl += g["c2"]["rule_not_lower"]
         deltas.append(g["c2"]["point"])
         clusters.append(g["clusters_per_arm"]["A"])
     p = nl / 400
@@ -329,7 +346,7 @@ def _ca2():
     nl, deltas = 0, []
     for k in range(1000):
         g = CA().grade(synth(5000 + k, flip_win=.08 / THETA), draws=400, seed=k)
-        nl += g["c2"]["not_lower"]
+        nl += g["c2"]["rule_not_lower"]
         deltas.append(g["c2"]["point"])
     return nl <= 41, f"NOT LOWER {nl}/1000 (bound 41 = binomial 99.9% at p .025); realized Δ mean {np.mean(deltas):+.4f}"
 
@@ -338,7 +355,7 @@ def _ca2():
 def _ca3():
     low = sum(CA().grade(synth(7000 + k, flip_win=.2 / THETA), draws=400, seed=k)["c2"]["lower_flag"]
               for k in range(50))
-    high = sum(CA().grade(synth(8000 + k, flip_loss=.2 / (1 - THETA)), draws=400, seed=k)["c2"]["reading"] == "HIGHER"
+    high = sum(CA().grade(synth(8000 + k, flip_loss=.2 / (1 - THETA)), draws=400, seed=k)["c2"]["rule_reading"] == "HIGHER"
                for k in range(50))
     return low >= 45 and high >= 45, f"LOWER {low}/50, HIGHER {high}/50"
 
@@ -384,7 +401,7 @@ def _ca7():
     d = make_batch("ca7", [("A", [("a.log", log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")]))]),
                            ("A", [("b.log", log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))]),
                            ("B", [("c.log", log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))])])
-    code, out = cli([str(d), "--draws", "50"])
+    code, out = cli([str(d), "--draws", "50", "--delta", "0.08"])
     refused = [line for line in out.splitlines() if "⛔" in line and "b.log" in line]
     return eq((code, len(refused) == 1 and "'B'" in refused[0], "C2 —" in out, "NO GRADE" in out), (1, True, False, True))
 
@@ -413,11 +430,12 @@ def _ca9():
     for heal in ("equal", "planted"):
         runs = synth(123, heal=heal)
         g = CA().grade(runs, draws=200, seed=1)
-        text = "\n".join(CA().render({}, runs, [], {"runs": len(runs), "refused": [], "excluded": [],
-                                                    "usable_per_arm": {}}, g))
-        got.append((g["c1"]["pass"], g["c2"]["status"], "→ C2: DESCRIPTIVE (C1 did not pass)" in text,
-                    "[DESCRIPTIVE]" in text))
-    return eq(got, [(False, "DESCRIPTIVE", True, True), (True, "CONFIRMATORY", False, False)])
+        text = render(runs, g)
+        got.append((g["c1"]["pass"], g["c2"]["status"], g["c2"]["verdict"],
+                    "→ C2: DESCRIPTIVE — C1 did not pass. The rule reads" in text,
+                    "trainers estimable)  [CONFIRMATORY]" in text))
+    return eq(got, [(False, "DESCRIPTIVE — C1 did not pass", "DESCRIPTIVE", True, False),
+                    (True, "CONFIRMATORY", g["c2"]["rule_reading"], False, True)])
 
 
 @row("CA10", "the real line shapes parse exactly: the [TRAINER] end, the hold, the choice, the FIRST non-empty [hb]")
@@ -574,8 +592,9 @@ def _cr1():
     r_done = c.run_record(nohead, log="x", lane=LANE_A, arms=ARMS)
     r_nosp = c.run_record(log_text(ARMS["A"], species=None), log="x", lane=LANE_A, arms=ARMS)
     flags = (bool(r_cut["excluded"]), bool(r_cut["refused"]), bool(r_done["refused"]), bool(r_nosp["excluded"]),
-             bool(r_nosp["refused"]), c.usable(c.run_record(log_text(ARMS["A"]), log="x", lane=LANE_A, arms=ARMS)))
-    return eq((got, flags), (("cut", "lost", "capped", "complete"), (True, False, True, True, False, True)))
+             bool(r_nosp["refused"]), c.usable(c.run_record(log_text(ARMS["A"]), log="x", lane=LANE_A, arms=ARMS)),
+             r_nosp["excluded_kind"])
+    return eq((got, flags), (("cut", "lost", "capped", "complete"), (True, False, True, True, False, True, "no_starter")))
 
 
 @row("CR2", "the non-key counts: only NON-KEY trainer battles (a key battle and a wild battle are not counted); a "
@@ -633,9 +652,10 @@ def _cs1():
     # A: Torchic won, Mudkip lost; B: both won. Stratified, every draw keeps both species in both arms: Δ = 1 − .5.
     # (FOLDED 2026-10-01: the first version had the SAME per-species rates in both arms, so a draw that lost a species
     # dropped it from both arms symmetrically and Δ stayed 0 — the pooled-resampling mutant C03 survived it.)
+    # (FOLDED again with DECISION F2: θ needs all 7 K* trainers, so this one-trainer row now reads Roxanne's own Δ.)
     runs = [rec(arm, sp, f"{sp[:2]}{i}", keys={"ROXANNE": (True, arm == "B" or sp == "Torchic", 0)})
             for arm in ("A", "B") for sp in ("Torchic", "Mudkip") for i in range(2)]
-    g = CA().grade(runs, draws=400, seed=5)["c2"]
+    g = CA().grade(runs, draws=400, seed=5)["trainers"]["ROXANNE"]["p_diff"]
     return eq((g["point"], g["ci95"], g["nan_draws"]), (0.5, [0.5, 0.5], 0))
 
 
@@ -646,18 +666,29 @@ def _cs2():
     runs = ([rec("A", "Torchic", f"T{i}", keys=w) for i in range(3)] + [rec("A", "Mudkip", "M0", keys=l_)]
             + [rec("A", "Treecko", "K0", keys=l_)]
             + [rec("B", "Torchic", "T9", keys=w)] + [rec("B", "Mudkip", f"M{i}", keys=l_) for i in range(3)])
-    g = CA().grade(runs, draws=50, seed=1)["c2"]
-    return eq((g["theta_a"], g["theta_b"], g["point"]), (0.5, 0.5, 0.0))
+    t = CA().grade(runs, draws=50, seed=1)["trainers"]["ROXANNE"]
+    return eq((t["p_a"], t["p_b"], t["p_diff"]["point"]), (0.5, 0.5, 0.0))
 
 
-@row("CS3", "θ is the mean over the ESTIMABLE K* trainers (fought by a common species in both arms); the count is "
-            "reported")
+def _all7(won_mask, hp=0, skip=()):
+    """keys for a run that met and finished all 7 K* trainers; `won_mask` = the trainers it WON; `skip` never met."""
+    return {k: (True, k in won_mask, hp) for k in KEYS7 if k not in skip}
+
+
+KEYS7 = ("ROXANNE", "BRAWLY", "WATTSON", "FLANNERY", "RIVAL_ROUTE_110", "TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY")
+
+
+@row("CS3", "θ is the mean over the FROZEN K* (DECISION F2): all 7 estimable -> the plain mean (1/7 vs 1); one of 7 "
+            "never fought by B -> θ UNDEFINED, 6 of 7 reported, and the rule reads NOT ESTIMABLE over the frozen K*")
 def _cs3():
-    keys_a = {"ROXANNE": (True, True, 0), "BRAWLY": (True, False, 0), "WATTSON": (True, True, 0)}
-    keys_b = {"ROXANNE": (True, True, 0), "BRAWLY": (True, True, 0)}
-    runs = [rec("A", "Torchic", "P1", keys=keys_a), rec("B", "Torchic", "P2", keys=keys_b)]
+    runs = [rec("A", "Torchic", "P1", keys=_all7({"ROXANNE"})), rec("B", "Torchic", "P2", keys=_all7(KEYS7))]
     g = CA().grade(runs, draws=50, seed=1)["c2"]
-    return eq((g["theta_a"], g["theta_b"], g["n_estimable"]), (0.5, 1.0, 2))
+    runs2 = [rec("A", "Torchic", "P1", keys=_all7({"ROXANNE"})),
+             rec("B", "Torchic", "P2", keys=_all7(KEYS7, skip=("WATTSON",)))]
+    h = CA().grade(runs2, draws=50, seed=1)["c2"]
+    return eq((close(g["theta_a"], 1 / 7), g["theta_b"], g["n_estimable"], h["theta_a"], h["theta_b"],
+               h["n_estimable"], h["rule_reading"]),
+              (True, 1.0, 7, None, None, 6, "NOT ESTIMABLE over the frozen K* (6 of 7)"))
 
 
 @row("CS4", "REACH CENSORING: a complete run that never met X is a 'no'; a cut / lost / capped run that never met X is "
@@ -708,7 +739,7 @@ def _cs7():
         for ci90 in ((0.2, 0.4), (-0.4, -0.2)):
             c.ci = lambda draws, level, _c=ci90: (-0.5, 0.5) if level == 95 else _c
             g = c.grade(synth(1), draws=20, seed=1)
-            got.append((g["c1"]["pass"], g["c2"]["reading"], g["c2"]["lower_flag"], g["c5"]["flag"],
+            got.append((g["c1"]["pass"], g["c2"]["rule_reading"], g["c2"]["lower_flag"], g["c5"]["flag"],
                         g["trainers"]["ROXANNE"]["reach_differs"], g["groups"]["leaders"]["lower_flag"]))
     finally:
         c.ci = saved
@@ -762,37 +793,437 @@ def _cx1():
     nob = make_batch("cx1n", [("A", [("a.log", log_text(ARMS["A"]))]), ("B", [("b.log", log_text(ARMS["B"], species=None))])])
     empty = make_batch("cx1e", [("A", []), ("B", [])])
     (TMP["root"] / "cx1-noarms").mkdir(exist_ok=True)
-    codes = (cli([str(good), "--draws", "50"])[0], cli([str(nob), "--draws", "50"]),
-             cli([str(empty), "--draws", "50"]), cli([str(TMP["root"] / "cx1-noarms")])[0],
+    d = ["--draws", "50", "--delta", "0.08"]       # a 2-lane design has no pre-registered δ (DECISION F6)
+    codes = (cli([str(good)] + d)[0], cli([str(nob)] + d),
+             cli([str(empty)] + d), cli([str(TMP["root"] / "cx1-noarms")])[0],
              cli(["--tag", "no-such-tag-anywhere"])[0], cli([str(good), "--draws", "0"])[0])
     return eq((codes[0], codes[1][0], "arm B has NO usable runs" in codes[1][1], codes[2][0],
                "ZERO runs" in codes[2][1], codes[3], codes[4], codes[5]), (0, 1, True, 1, True, 2, 2, 2))
 
 
-@row("CX2", "the defaults are the pre-registered ones: 10,000 draws, seed 14, δ .08 (read from --json)")
+@row("CX2", "the defaults are the pre-registered ones on an M-16 batch: 10,000 draws, seed 14, δ .08 (from --json), "
+            "and NOT exploratory")
 def _cx2():
-    good = make_batch("cx2", [("A", [("a.log", log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")]))]),
-                              ("B", [("b.log", log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))])])
+    good = batch16("cx2", log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")]),
+                   log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))
     out = TMP["root"] / "cx2.json"
     code, _ = cli([str(good), "--json", str(out)])
     g = json.loads(out.read_text(encoding="utf-8"))["grade"]
-    return eq((code, g["draws"], g["seed"], g["delta_margin"]), (0, 10_000, 14, 0.08))
+    return eq((code, g["draws"], g["seed"], g["delta_margin"], g["exploratory"]), (0, 10_000, 14, 0.08, []))
 
 
 @row("CX3", "after a FAILED control nothing statistical is printed (no C1/C2/C5 line, no verdict word)")
 def _cx3():
     d = make_batch("cx3", [("A", [("a.log", log_text({**ARMS["A"], "POKEBOT_X4H_LEAK": "1"}))]),
                            ("B", [("b.log", log_text(ARMS["B"]))])])
-    code, out = cli([str(d), "--draws", "50"])
+    code, out = cli([str(d), "--draws", "50", "--delta", "0.08"])
     words = [w for w in ("C1 —", "C2 —", "C5 —", "NOT LOWER", "HIGHER", "INCONCLUSIVE", "REGRESSION") if w in out]
     return eq((code, words), (1, []))
 
 
+# ============================================================================================ AH — the hunter's rows
+# The INDEPENDENT mutant hunter's proposed rows N1-N17 (`evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`, MH-1..MH-13;
+# its runner `scratchpad/t23adv/mut/mut_runner.py`), adopted as AH<n> = N<n>. Each kills survivors of the first gate.
+# ADAPTED where DECISION F2 (θ over the frozen K*) or F10 (censored during a first attempt) changed the expected value
+# or made a θ-based check vacuous: AH2 (all 7 trainers), AH3 / AH10 / AH13 (per-trainer p, not θ), AH5 (reach_n 2).
+@row("AH1", "N1 WIRING (straddle + status): a 90% CI that STRADDLES 0 raises no flag; C2's status follows C1's PASS")
+def _ah1():
+    c = CA()
+    saved = c.ci
+    got = []
+    try:
+        for ci90 in ((0.2, 0.4), (-0.4, -0.2), (-0.1, 0.1)):
+            c.ci = lambda draws, level, _c=ci90: (-0.5, 0.5) if level == 95 else _c
+            g = c.grade(synth(1), draws=20, seed=1)
+            got.append((g["c1"]["pass"], g["c2"]["status"], g["c2"]["lower_flag"], g["c5"]["flag"],
+                        g["trainers"]["ROXANNE"]["reach_differs"], g["groups"]["leaders"]["lower_flag"],
+                        g["groups"]["rivals"]["lower_flag"]))
+    finally:
+        c.ci = saved
+    d = "DESCRIPTIVE — C1 did not pass"
+    return eq(got, [(False, d, False, "REGRESSION", True, False, False), (False, d, True, "IMPROVED", True, True, True),
+                    (False, d, False, None, False, False, False)])
+
+
+@row("AH2", "N2 EXACT-ZERO boundary: identical arms (every run met and won all 7) -> Δ and reach CIs are [0, 0]; no "
+            "C2 LOWER, no REACH DIFFERS, no group flag")
+def _ah2():
+    w = _all7(KEYS7, hp=1)
+    runs = [rec(arm, sp, f"{arm}{sp[:2]}{i}", keys=w) for arm in ("A", "B") for sp in ("Torchic", "Mudkip")
+            for i in range(3)]
+    g = CA().grade(runs, draws=200, seed=3)
+    return eq((g["c2"]["ci90"], g["c2"]["lower_flag"], g["reach_differs"], g["groups"]["leaders"]["lower_flag"]),
+              ([0.0, 0.0], False, [], False))
+
+
+@row("AH3", "N3 C2 species weights are EQUAL even when the species' fought counts differ (Torchic 3+1, Mudkip 1+1)")
+def _ah3():
+    w, l_ = {"ROXANNE": (True, True, 0)}, {"ROXANNE": (True, False, 0)}
+    runs = ([rec("A", "Torchic", f"T{i}", keys=w) for i in range(3)] + [rec("A", "Mudkip", "M0", keys=l_)]
+            + [rec("B", "Torchic", "T9", keys=w)] + [rec("B", "Mudkip", "M9", keys=l_)])
+    t = CA().grade(runs, draws=50, seed=1)["trainers"]["ROXANNE"]
+    return eq((t["p_a"], t["p_b"]), (0.5, 0.5))
+
+
+@row("AH4", "N4 COMPOSITE censoring: a CUT run that never met X is out of the denominator even where the stratum has "
+            "wins; a species with reach runs in ONE arm only is out")
+def _ah4():
+    won = {"ROXANNE": (True, True, 0)}
+    runs = [rec("A", "Torchic", "P1", keys=won), rec("A", "Torchic", "P2", status="cut"),
+            rec("A", "Mudkip", "P3"),
+            rec("B", "Torchic", "P5", keys=won), rec("B", "Torchic", "P6")]
+    t = CA().grade(runs, draws=50, seed=1)["composite"]
+    return eq((close(t["a"], 1.0 / 7), close(t["b"], 0.5 / 7)), (True, True))
+
+
+@row("AH5", "N5 a run CUT mid-battle at X is not fought (no C2 denominator) and, DECISION F10, is OUT of X's reach "
+            "denominator; an attempt that ended RanAway is undecided, not a loss")
+def _ah5():
+    c = CA()
+    lane_a, lane_b = {"tag": "H1", "slot": 0, "arm": "A"}, {"tag": "H2", "slot": 1, "arm": "B"}
+    r_cutmid = c.run_record(log_text(ARMS["A"], pid="00000001", battles=[fight(1000, 265, LEADER, "Won", end=False)]),
+                            log="a1", lane=lane_a, arms=ARMS, cut=True)
+    r_won = c.run_record(log_text(ARMS["A"], pid="00000002", battles=[fight(1000, 265, LEADER, "Won")]),
+                         log="a2", lane=lane_a, arms=ARMS)
+    r_ran = c.run_record(log_text(ARMS["A"], pid="00000003",
+                                  battles=[fight(1000, 265, LEADER, "Won", ended="RanAway")]), log="a3", lane=lane_a,
+                         arms=ARMS)
+    r_b = c.run_record(log_text(ARMS["B"], pid="00000004", battles=[fight(1000, 265, LEADER, "Won")]),
+                       log="b1", lane=lane_b, arms=ARMS)
+    t = c.grade([r_cutmid, r_won, r_ran, r_b], draws=50, seed=1)["trainers"]["ROXANNE"]
+    return eq((t["fought"], t["won_first"], t["p_a"], close(t["reach_a"], 1.0), t["reach_n"]["A"],
+               t["censored_during"]["A"]), ({"A": 1, "B": 1}, {"A": 1, "B": 1}, 1.0, True, 2, ["a1"]))
+
+
+@row("AH6", "N6 a CUT run's completed first attempt counts in C2 and C1 (DESIGN §5: it contributes the attempts it "
+            "completed)")
+def _ah6():
+    runs = [rec("A", "Torchic", "P1", keys={"ROXANNE": (True, True, 2)}),
+            rec("A", "Torchic", "P2", status="cut", keys={"ROXANNE": (True, False, 0)}),
+            rec("B", "Torchic", "P3", keys={"ROXANNE": (True, True, 1)})]
+    g = CA().grade(runs, draws=50, seed=1)
+    return eq((g["trainers"]["ROXANNE"]["p_a"], g["c1"]["a"]), (0.5, 1.0))
+
+
+@row("AH7", "N7 REACH is a POOLED ratio of sums over runs (3/4), never a species-weighted mean (.5)")
+def _ah7():
+    met = {"ROXANNE": (True, True, 0)}
+    runs = ([rec("A", "Torchic", f"T{i}", keys=met) for i in range(3)] + [rec("A", "Mudkip", "M0")]
+            + [rec("B", "Torchic", "T9", keys=met), rec("B", "Mudkip", "M9", keys=met)])
+    t = CA().grade(runs, draws=50, seed=1)["trainers"]["ROXANNE"]
+    return eq((close(t["reach_a"], 0.75), close(t["reach_b"], 1.0)), (True, True))
+
+
+@row("AH8", "N8 C1 is the mean over RUNS (9/4), never a species-weighted mean (1.5)")
+def _ah8():
+    runs = ([rec("A", "Torchic", f"T{i}", keys={"ROXANNE": (True, True, 3)}) for i in range(3)]
+            + [rec("A", "Mudkip", "M0", keys={"ROXANNE": (True, True, 0)})]
+            + [rec("B", "Torchic", "T9", keys={"ROXANNE": (True, True, 1)})])
+    return eq(CA().grade(runs, draws=50, seed=1)["c1"]["a"], 2.25)
+
+
+@row("AH9", "N9 STRATA are arm x species, not finer: two clusters of one stratum in DIFFERENT lanes still resample "
+            "against each other (pX_a takes 3 values)")
+def _ah9():
+    runs = [rec("A", "Torchic", "P1", keys={"ROXANNE": (True, True, 0)}, lane="H1"),
+            rec("A", "Torchic", "P2", keys={"ROXANNE": (True, False, 0)}, lane="H2"),
+            rec("B", "Torchic", "P3", keys={"ROXANNE": (True, True, 0)}, lane="H9")]
+    strata = CA().build_strata(runs)
+    bs = CA().statistics(CA().resample_sums(strata, 400, np.random.default_rng(3)), ["Torchic"])
+    return eq(sorted(set(np.round(bs["pX_a"][:, 0], 9))), [0.0, 0.5, 1.0])
+
+
+@row("AH10", "N10 the bootstrap draws each stratum INDEPENDENTLY: identical A and B strata do not give Δ ≡ 0")
+def _ah10():
+    runs = [rec(arm, "Torchic", f"{arm}{i}", keys={"ROXANNE": (True, i == 0, 0)}) for arm in ("A", "B")
+            for i in range(2)]
+    g = CA().grade(runs, draws=400, seed=2)["trainers"]["ROXANNE"]["p_diff"]
+    return eq((g["point"], g["ci95"][0] < 0 < g["ci95"][1]), (0.0, True))
+
+
+@row("AH11", "N11 grade() USES --draws and --seed: the bootstrap is called with the requested draws, and two seeds "
+             "give different CIs")
+def _ah11():
+    c = CA()
+    seen = []
+    saved = c.resample_sums
+    try:
+        def spy(strata, draws, rng):
+            seen.append(draws)
+            return saved(strata, draws, rng)
+        c.resample_sums = spy
+        runs = synth(7)
+        g1 = c.grade(runs, draws=1234, seed=1)
+    finally:
+        c.resample_sums = saved
+    g2 = c.grade(runs, draws=1234, seed=2)
+    return eq((1234 in seen, g1["c2"]["ci95"] != g2["c2"]["ci95"]), (True, True))
+
+
+@row("AH12", "N12 a CUT log whose header is the OTHER arm's is REFUSED (the last log of every lane is cut)")
+def _ah12():
+    r = CA().run_record(log_text(ARMS["B"]), log="x", lane={"tag": "H1", "slot": 0, "arm": "A"}, arms=ARMS, cut=True)
+    return eq((bool(r["refused"]), r["excluded"]), (True, None))
+
+
+@row("AH13", "N13 an EXCLUDED run (no starter) in an otherwise good batch does not enter (or crash) the grade")
+def _ah13():
+    good = [rec("A", "Torchic", "P1", keys={"ROXANNE": (True, True, 1)}),
+            rec("B", "Torchic", "P2", keys={"ROXANNE": (True, False, 1)})]
+    bad = rec("A", None, None, keys={"ROXANNE": (True, False, 5)})
+    bad["excluded"] = "no starter read"
+    g1 = CA().grade(good, draws=50, seed=1)
+    try:
+        g2 = CA().grade(good + [bad], draws=50, seed=1)
+    except Exception as error:  # noqa: BLE001 - the mutant this row exists for raises here
+        return False, f"raised {type(error).__name__}: {error}"
+    p = lambda g: g["trainers"]["ROXANNE"]["p_diff"]["point"]  # noqa: E731
+    return eq((p(g2), g2["c1"]["a"], g2["runs_per_arm"]), (p(g1), g1["c1"]["a"], {"A": 1, "B": 1}))
+
+
+@row("AH14", "N14 C5: an UNCLASSIFIED trainer battle (a '?' side beside a non-key one) is NOT a non-key battle")
+def _ah14():
+    unread = ["f100 [BATTLE] started hp=[('Treecko', 35, 35)]",
+              "f100 [TRAINER] start opp=318+? class=0x25(YOUNGSTER)+? value=25 lvl_last=15 first=True base=1500 "
+              "double=True two=True money=1368 heal_stock=- map=11,3 enemy_alive=3",
+              "f200 [BATTLE] ended (outcome=BattleOutcome.Lost) party=['Treecko:L15']"]
+    r = CA().run_record(log_text(ARMS["A"], battles=[unread, fight(300, 318, YOUNGSTER, "Won")]), log="x",
+                        lane={"tag": "H1", "slot": 0, "arm": "A"}, arms=ARMS)
+    return eq(r["nonkey"], {"won": 1, "lost": 0, "other": 0})
+
+
+@row("AH15", "N15 GROUPS are DESIGN §5's: leaders = the four gym leaders, rivals = the Route 110 rival, Magma/Aqua = "
+             "Tabitha + Maxie")
+def _ah15():
+    return eq({k: tuple(v) for k, v in CA().GROUPS.items()},
+              {"leaders": ("ROXANNE", "BRAWLY", "WATTSON", "FLANNERY"), "rivals": ("RIVAL_ROUTE_110",),
+               "magma_aqua": ("TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY")})
+
+
+@row("AH16", "N16 rule_not_lower (JSON) is the RULE's 'lower95 > −δ': True on HIGHER and on 'statistically lower', "
+             "δ honoured")
+def _ah16():
+    c = CA()
+    saved = c.ci
+    got = []
+    try:
+        for ci95, ci90, delta in (((0.1, 0.3), (0.15, 0.25), 0.08), ((-0.05, -0.01), (-0.04, -0.02), 0.08),
+                                  ((-0.1, 0.1), (-0.09, 0.09), 0.11), ((-0.1, 0.1), (-0.05, 0.05), 0.08)):
+            c.ci = lambda draws, level, _a=ci95, _b=ci90: _a if level == 95 else _b
+            g = c.grade(synth(1), draws=20, seed=1, delta=delta)["c2"]
+            got.append((g["rule_reading"], g["rule_not_lower"]))
+    finally:
+        c.ci = saved
+    return eq(got, [("HIGHER", True), ("NOT LOWER, but statistically lower", True), ("NOT LOWER", True),
+                    ("INCONCLUSIVE", False)])
+
+
+@row("AH17", "N17 COMPOSITE: a trainer with NO common-species denominator (every run censored before it) is dropped "
+             "from the mean over K*, never counted as 0")
+def _ah17():
+    won = {"ROXANNE": (True, True, 0)}
+    runs = [rec("A", "Torchic", "P1", status="cut", keys=won), rec("B", "Torchic", "P2", status="cut", keys=won)]
+    t = CA().grade(runs, draws=50, seed=1)["composite"]
+    return eq((t["a"], t["b"]), (1.0, 1.0))
+
+
+# ============================================================================================ DV — the coordinator's rulings
+# One row per DECISION (F1-F11, RC-3) on the adversarial pass; each is reddened by a REVERT mutant in `MUTANTS`.
+@row("DV1", "F1 void_reason: every automated STOP and an x4h error VOID; a user park, OK and OK — DEGRADED do not; a "
+            "FAILED verdict nobody listed voids (fail-closed); --void always voids")
+def _dv1():
+    v = CA().void_reason
+    got = [v({"verdict": f"FAILED — {s}"}) for s in ("ARM LEAK", "VACUITY", "ARM HEADER ASSERTION FAILED",
+                                                     "EMULATION ASSERTION FAILED", "FREEZE BROKEN",
+                                                     "x4h error: ValueError: boom", "interrupted by user (Ctrl-C)",
+                                                     "something new")]
+    got += [v({"verdict": "OK"}), v({"verdict": "OK — DEGRADED: lanes lost: H3 (arm A) after 2 spawn(s)"}), v(None),
+            v({"verdict": "OK"}, "park at 3 AM")]
+    return eq(got, ["STOP ARM LEAK", "STOP VACUITY", "STOP ARM HEADER ASSERTION FAILED",
+                    "STOP EMULATION ASSERTION FAILED", "STOP FREEZE BROKEN", "STOP x4h error: ValueError: boom", None,
+                    "STOP (an unrecognised FAILED verdict: 'FAILED — something new')", None, None, None,
+                    "STOP-3 (manual --void): park at 3 AM"])
+
+
+@row("DV2", "F1 a VOID reaches C1 AND C2 ('DESCRIPTIVE — VOID: STOP <reason> (DESIGN §4)', verdict VOID, in the JSON); "
+            "the same data without it is CONFIRMATORY")
+def _dv2():
+    runs = synth(1)
+    g = CA().grade(runs, draws=50, seed=1, void="STOP ARM LEAK")
+    h = CA().grade(runs, draws=50, seed=1)
+    want = "DESCRIPTIVE — VOID: STOP ARM LEAK (DESIGN §4)"
+    return eq((g["c1"]["status"], g["c1"]["verdict"], g["c2"]["status"].startswith(want), g["c2"]["verdict"],
+               g["void"], h["c1"]["status"], h["c2"]["status"], h["c2"]["verdict"] == h["c2"]["rule_reading"]),
+              (want, "VOID", True, "VOID", "STOP ARM LEAK", "CONFIRMATORY", "CONFIRMATORY", True))
+
+
+@row("DV3", "F1 end to end on M-16 batches: an ARM LEAK abort VOIDS; a user park STANDS; --void voids; no summary.json "
+            "is PROVISIONAL")
+def _dv3():
+    a = log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")])
+    b = log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")])
+    got = {}
+    for name, kw, extra in (("dv3leak", {"verdict": "FAILED — ARM LEAK", "stop": "ARM LEAK"}, []),
+                            ("dv3park", {"verdict": "FAILED — interrupted by user (Ctrl-C)",
+                                         "stop": "interrupted by user (Ctrl-C)"}, []),
+                            ("dv3void", {}, ["--void", "STOP-3 park"]),
+                            ("dv3live", {"summary": False}, [])):
+        d = batch16(name, a, b, **kw)
+        j = TMP["root"] / f"{name}.json"
+        code, text = cli([str(d), "--json", str(j)] + extra)
+        g = json.loads(j.read_text(encoding="utf-8"))["grade"]
+        got[name] = (code, g["void"], g["provisional"], g["c2"]["verdict"], g["c1"]["status"].split(" — ")[0],
+                     "VOID: STOP ARM LEAK (DESIGN §4)" in text, "a user park STANDS" in text)
+    return eq(got, {"dv3leak": (0, "STOP ARM LEAK", False, "VOID", "DESCRIPTIVE", True, False),
+                    "dv3park": (0, None, False, "NOT ESTIMABLE", "CONFIRMATORY", False, True),
+                    "dv3void": (0, "STOP-3 (manual --void): STOP-3 park", False, "VOID", "DESCRIPTIVE", False, False),
+                    "dv3live": (0, None, True, "PROVISIONAL", "PROVISIONAL", False, False)})
+
+
+@row("DV4", "F2 + F5: B never meets Tabitha, Maxie, Flannery -> NOT ESTIMABLE over the frozen K* (4 of 7), DESCRIPTIVE; "
+            "draws in which a K* trainer is not estimable are UNDEFINED, counted and printed")
+def _dv4():
+    full = _all7(KEYS7)
+    trunc = [rec("A", "Torchic", f"A{i}", keys=_all7(KEYS7, hp=0)) for i in range(3)] + \
+            [rec("B", "Torchic", f"B{i}", keys=_all7(KEYS7, hp=2, skip=("TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY",
+                                                                        "FLANNERY"))) for i in range(3)]
+    gt = CA().grade(trunc, draws=50, seed=1)
+    g = gt["c2"]
+    part = ([rec("A", "Torchic", f"A{i}", keys=full) for i in range(3)] + [rec("B", "Torchic", "B0", keys=full)]
+            + [rec("B", "Torchic", f"B{i}", keys=_all7(KEYS7, skip=("FLANNERY",))) for i in (1, 2)])
+    h = CA().grade(part, draws=400, seed=4)
+    text = render(part, h)
+    # the per-group θ follows the same frozen rule: the leaders without Flannery in B have no θ
+    return eq((g["rule_reading"], g["verdict"], g["status"], g["theta_b"], gt["groups"]["leaders"]["point"],
+               h["c2"]["n_estimable"], h["c2"]["point"], h["c2"]["nan_draws"] > 50,
+               f"({h['c2']['nan_draws']} draws undefined, excluded)" in text, h["c2"]["rule_reading"]),
+              ("NOT ESTIMABLE over the frozen K* (4 of 7)", "NOT ESTIMABLE",
+               "DESCRIPTIVE — NOT ESTIMABLE over the frozen K* (4 of 7)", None, None, 7, 0.0, True, True, "NOT LOWER"))
+
+
+@row("DV5", "F3 REACH DIFFERS is ON the C2 verdict line and in the JSON c2 object")
+def _dv5():
+    runs = ([rec("A", "Torchic", f"A{i}", keys=_all7(KEYS7)) for i in range(4)]
+            + [rec("B", "Torchic", f"B{i}", keys=_all7(KEYS7, skip=("WATTSON",))) for i in range(4)])
+    g = CA().grade(runs, draws=200, seed=2)
+    line = [ln for ln in render(runs, g).splitlines() if ln.strip().startswith("→ C2:")]
+    return eq((g["c2"]["reach_differs"], len(line) == 1 and "⚠ REACH DIFFERS (WATTSON)" in line[0]), (["WATTSON"], True))
+
+
+@row("DV6", "F4 completeness: an interrupted collection (with the --tag hint), a provisional summary, a lane with zero "
+            "logs, a lane whose logs != debug_logs_collected all FAIL; LIVE ignores the collection; exit 1 end to end")
+def _dv6():
+    f = CA().completeness_failures
+    lanes = [{"tag": "H1", "arm": "A"}, {"tag": "H2", "arm": "B"}]
+    ok = {"lanes": {"H1": {"debug_logs_collected": 2}, "H2": {"debug_logs_collected": 1}},
+          "collect_interrupted": False, "provisional": False}
+    full = {"H1": 2, "H2": 1}
+    got = (f(lanes, full, ok, live=False), len(f(lanes, full, {**ok, "collect_interrupted": True}, live=False)),
+           "compare_arms.py --tag s14" in " ".join(f(lanes, full, {**ok, "collect_interrupted": True}, live=False,
+                                                     tag="s14")),
+           len(f(lanes, full, {**ok, "provisional": True}, live=False)), len(f(lanes, {"H1": 2}, ok, live=False)),
+           len(f(lanes, {"H1": 1, "H2": 1}, ok, live=False)),
+           f(lanes, {"H1": 1, "H2": 1}, {**ok, "collect_interrupted": True, "provisional": True}, live=True),
+           len(f(lanes, {"H1": 1}, None, live=True)), f(lanes, full, None, live=False))
+    a = log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")])
+    b = log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")])
+    code1, out1 = cli([str(batch16("dv6int", a, b, interrupted=True))])
+    code2, out2 = cli([str(batch16("dv6col", a, b, collected={"H12": 2}))])
+    ends = (code1, "INTERRUPTED" in out1 and "--tag" in out1, "C2 —" in out1, code2, "H12: 1 log(s) read" in out2)
+    return eq((got, ends), (([], 1, True, 1, 1, 1, [], 1, []), (1, True, False, 1, True)))
+
+
+@row("DV7", "F6 the pre-registered δ comes from the design (16x2 .08, 8x2 .11, anything else none); any draws / seed / "
+            "δ off the pre-registration is EXPLORATORY; no pre-registered δ and no --delta is exit 2")
+def _dv7():
+    p, x = CA().preregistered_delta, CA().exploratory_reasons
+
+    def m(n, arms=2, lanes_n=True):
+        return {"raw": {"lanes_n": n} if lanes_n else {}, "lanes": [{}] * n, "arms": dict.fromkeys("ABC"[:arms])}
+    table = (p(m(16)), p(m(8)), p(m(24, 3)), p(m(12)), p(m(16, lanes_n=False)), x(10000, 14, .08, .08),
+             len(x(400, 14, .08, .08)), len(x(10000, 15, .08, .08)), len(x(10000, 14, .1, .08)),
+             len(x(10000, 14, .08, None)))
+    g = CA().grade(synth(1), draws=50, seed=1, exploratory=["seed 15 (pre-registered 14)"])
+    small = make_batch("dv7small", [("A", [("a.log", log_text(ARMS["A"]))]), ("B", [("b.log", log_text(ARMS["B"]))])])
+    j = TMP["root"] / "dv7.json"
+    code, _ = cli([str(batch16("dv7", log_text(ARMS["A"]), log_text(ARMS["B"]))), "--draws", "2000", "--json", str(j)])
+    cj = json.loads(j.read_text(encoding="utf-8"))["grade"]["c2"]
+    return eq((table, g["c1"]["status"], g["c2"]["verdict"], cli([str(small)])[0], code,
+               cj["status"].startswith("EXPLORATORY — EXPLORATORY: draws 2000"), cj["verdict"]),
+              ((0.08, 0.11, None, None, 0.08, [], 1, 1, 1, 1),
+               "EXPLORATORY — EXPLORATORY: seed 15 (pre-registered 14)", "EXPLORATORY", 2, 0, True, "EXPLORATORY"))
+
+
+@row("DV8", "F7 the JSON carries rule_reading apart from verdict: verdict = the rule's word only when CONFIRMATORY; no "
+            "bare `reading` / `not_lower` fields")
+def _dv8():
+    conf = CA().grade(synth(1), draws=50, seed=1)["c2"]
+    desc = CA().grade(synth(1, heal="equal"), draws=50, seed=1)["c2"]
+    return eq((conf["status"], conf["verdict"] == conf["rule_reading"], desc["verdict"],
+               desc["rule_reading"] in ("NOT LOWER", "HIGHER", "INCONCLUSIVE", "NOT LOWER, but statistically lower"),
+               "reading" in conf, "not_lower" in conf),
+              ("CONFIRMATORY", True, "DESCRIPTIVE", True, False, False))
+
+
+@row("DV9", "F8 only Torchic / Mudkip / Treecko are strata, and the species must match `Story: choosing X!` (a "
+            "mismatch or a missing line is excluded and listed)")
+def _dv9():
+    c = CA()
+    mism = [ln.replace("choosing Treecko", "choosing Mudkip") for ln in log_text(ARMS["A"])]
+    nochoose = [ln for ln in log_text(ARMS["A"]) if "Story: choosing" not in ln]
+    kinds = [c.run_record(lines, log="x", lane=LANE_A, arms=ARMS)["excluded_kind"]
+             for lines in (log_text(ARMS["A"], species="Pikachu"), mism, nochoose, log_text(ARMS["A"]))]
+    return eq(kinds, ["not_a_starter", "chosen_mismatch", "chosen_mismatch", None])
+
+
+@row("DV10", "F9 complete runs that never got a starter are counted per arm (a CUT one is not)")
+def _dv10():
+    runs = []
+    for arm, status in (("A", "complete"), ("A", "cut"), ("B", "complete"), ("B", "complete")):
+        r = rec(arm, None, None, status=status)
+        r["excluded"], r["excluded_kind"] = "no starter read", "no_starter"
+        runs.append(r)
+    return eq(CA().controls(runs)[1]["complete_no_starter_per_arm"], {"A": 1, "B": 2})
+
+
+@row("DV11", "F10 a run CENSORED DURING its first attempt at X (cut or lost; met, undecided) is OUT of X's reach and "
+             "composite denominators and listed; a COMPLETE run met-but-undecided stays a 'no'")
+def _dv11():
+    runs = [rec("A", "Torchic", "P1", keys={"ROXANNE": (True, True, 0)}),
+            rec("A", "Torchic", "P2", status="cut", keys={"ROXANNE": (True, None, None)}),
+            rec("A", "Torchic", "P3", status="lost", keys={"ROXANNE": (True, None, None)}),
+            rec("A", "Torchic", "P4", keys={"ROXANNE": (True, None, None)}),
+            rec("B", "Torchic", "P5", keys={"ROXANNE": (True, True, 0)})]
+    g = CA().grade(runs, draws=50, seed=1)
+    t = g["trainers"]["ROXANNE"]
+    return eq((t["reach_n"]["A"], close(t["reach_a"], 1.0), len(t["censored_during"]["A"]),
+               close(g["composite"]["a"], 0.5 / 7), close(g["composite"]["b"], 1.0 / 7)), (2, True, 2, True, True))
+
+
+@row("DV12", "F11 a LOST log with no header is EXCLUDED, not refused (like a cut one)")
+def _dv12():
+    r = CA().run_record(header(None, complete=False), log="x", lane=LANE_A, arms=ARMS, lost=True)
+    return eq((bool(r["excluded"]), bool(r["refused"]), r["excluded_kind"]), (True, False, "no_header"))
+
+
+@row("DV13", "RC-3 C1 that cannot be computed reads C1 NOT ESTIMABLE (rule, status, report), never FAIL")
+def _dv13():
+    runs = [rec("A", "Torchic", "P1"), rec("B", "Torchic", "P2")]
+    g = CA().grade(runs, draws=50, seed=1)
+    text = render(runs, g)
+    return eq((g["c1"]["rule_reading"], g["c1"]["status"], "C1 NOT ESTIMABLE" in g["c2"]["status"],
+               "→ C1 NOT ESTIMABLE: C2 is DESCRIPTIVE" in text, "→ C1 FAIL" in text),
+              ("NOT ESTIMABLE", "DESCRIPTIVE — C1 NOT ESTIMABLE", True, True, False))
+
+
 # ============================================================================================ fixtures on disk
-def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_tag=None) -> pathlib.Path:
-    """A batch directory in T1's layout: `ARMS.json` (the REAL arms), `L<nn>/debug-logs/*.log`, `summary.json`.
-    `lanes` = [(arm, [(log name, lines)])] in slot order. With `profiles_tag`, the logs ALSO go to a fake MAIN
-    checkout's lane profiles (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`)."""
+def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_tag=None, verdict="OK",
+               stop="deadline", interrupted=False, collected=None) -> pathlib.Path:
+    """A batch directory in T1's layout: `ARMS.json` (the REAL arms; `lanes_n` = the lane count, as T1 writes it),
+    `L<nn>/debug-logs/*.log`, `summary.json` (its verdict / stop / `collect_interrupted`, and per lane the cut log and
+    `debug_logs_collected` = the logs written, unless `collected` overrides a lane's). `lanes` = [(arm, [(log name,
+    lines)])] in slot order. With `profiles_tag`, the logs ALSO go to a fake MAIN checkout's lane profiles
+    (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`)."""
     d = TMP["root"] / name
     d.mkdir()
     rows = []
@@ -809,13 +1240,22 @@ def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_
                 (dd / log).write_text("\n".join(lines) + "\n", encoding="utf-8")
     (d / "ARMS.json").write_text(json.dumps({"stamp": name, "profile_tag": profiles_tag, "arms_sha256": "0" * 64,
                                              "code_commit": "test", "arms_text": json.dumps({"arms": ARMS}),
-                                             "lanes": rows}), encoding="utf-8")
+                                             "lanes_n": len(rows), "lanes": rows}), encoding="utf-8")
     if summary:
-        per = {r["tag"]: {"cut_log": (cut or {}).get(r["tag"]), "spawns": []} for r in rows}
-        body = ({"verdict": "OK (provisional)", "lanes": per} if provisional
-                else {"verdict": "OK", "lanes": len(rows), "lanes_detail": per})
+        per = {r["tag"]: {"cut_log": (cut or {}).get(r["tag"]), "spawns": [],
+                          "debug_logs_collected": (collected or {}).get(r["tag"], len(lanes[r["slot"]][1]))}
+               for r in rows}
+        body = ({"provisional": True, "verdict": "OK (provisional)", "stop_reason": stop, "lanes": per} if provisional
+                else {"verdict": verdict, "stop_reason": stop, "lanes": len(rows), "lanes_detail": per,
+                      "lanes_lost": [], "collect_interrupted": interrupted})
         (d / "summary.json").write_text(json.dumps(body), encoding="utf-8")
     return d
+
+
+def batch16(name, a_lines, b_lines, **kw) -> pathlib.Path:
+    """A 16-lane, two-arm batch (M-16: the pre-registered δ .08 applies), one log per lane."""
+    return make_batch(name, [("A", [("a-debug-20261001-210000.log", a_lines)])] * 8
+                      + [("B", [("b-debug-20261001-210000.log", b_lines)])] * 8, **kw)
 
 
 def build_tree(root: pathlib.Path) -> dict:
@@ -879,7 +1319,7 @@ MUTANTS: list = [
     ("B03 a Draw is not a loss", "bl", [('    if res in ("Lost", "Draw"):', '    if res == "Lost":')], {"TB9", "CR2"}),
     ("B04 keys_met needs a finished battle", "bl",
      [("        met |= {key for key, ids in ids_of.items() if starts & set(ids)}",
-       "        met |= {key for key, ids in ids_of.items() if starts & set(ids) and _ends & set(ids)}")], {"TB10"}),
+       "        met |= {key for key, ids in ids_of.items() if starts & set(ids) and _ends & set(ids)}")], {"TB10", "AH5"}),
     ("B05 env-all read past the header's end", "bl",
      [("        if line.startswith(HEADER_END):\n            return None\n        m = _ENV_ALL_LINE",
        "        m = _ENV_ALL_LINE")], {"TB1"}),
@@ -895,7 +1335,8 @@ MUTANTS: list = [
      [("        if not ids_seen and _HB_LINE.match(line):",
        '        if out["species"] is None and _HB_LINE.match(line):')], {"TB3"}),
     ("B10 the empty ids=[] heartbeat taken as the identity line", "bl",
-     [('            if opened and opened.group(1) != "]":', "            if opened:")], {"CA10", "CR1", "CX1", "CX2"}),
+     [('            if opened and opened.group(1) != "]":', "            if opened:")],
+     {"CA10", "CR1", "CX1", "CX2", "AH5", "DV3", "DV7", "DV9"}),
     ("B11 hold None when absent", "bl",
      [('    out = {"species": None, "pid": None, "hold": 0, "chosen": None}',
        '    out = {"species": None, "pid": None, "hold": None, "chosen": None}')], {"TB3"}),
@@ -908,7 +1349,8 @@ MUTANTS: list = [
      [('root.glob("L*") if p.is_dir() and _LANE_DIR.fullmatch(p.name)', 'root.glob("*") if p.is_dir()')],
      {"TB5", "TB6", "TB8"}),
     ("B15 the OLD L0* lanes (L10-L16 missed)", "bl",
-     [('_LANE_DIR = re.compile(r"L\\d{2,}")', '_LANE_DIR = re.compile(r"L0\\d")')], {"TB5", "TB6", "TB8", "CR4"}),
+     [('_LANE_DIR = re.compile(r"L\\d{2,}")', '_LANE_DIR = re.compile(r"L0\\d")')],
+     {"TB5", "TB6", "TB8", "CR4", "CX2", "DV3", "DV6", "DV7"}),
     ("B16 x4_logs resolves under the WORKTREE", "bl",
      [('else main_story_dev()) / "x4-runs" / stamp)', 'else HERE) / "x4-runs" / stamp)')], {"TB6"}),
     ("B17 live_logs endless-<tag>* (s14 reads s14smoke)", "bl",
@@ -924,7 +1366,7 @@ MUTANTS: list = [
      [("    modes = sum(bool(x) for x in (args.stamp, args.since or args.until, args.logs, tag, batch_dir))",
        "    modes = sum(bool(x) for x in (args.stamp, args.since or args.until, args.logs))")], {"TB8"}),
     ("B22 every log has a header", "bl",
-     [("    return any(line.startswith(HEADER_END) for line in lines)", "    return True")], {"CR1"}),
+     [("    return any(line.startswith(HEADER_END) for line in lines)", "    return True")], {"CR1", "DV12"}),
     ("BM1 MENTION ONLY: a docstring quoting a `first=` filter turns NOTHING red", "bl",
      [("    read: it stays True on every lost re-attempt (`trainer_identity.is_first_fight`; review S10).",
        '    read: never `if t["first"] == "True"` (`trainer_identity.is_first_fight`; review S10).')], set()),
@@ -941,7 +1383,7 @@ MUTANTS: list = [
     ("C03 resampled within ARM (species not a stratum)", "ca", [(_STRATIFIED_RESAMPLE, _POOLED_RESAMPLE)], {"CS1"}),
     ("C04 one cluster per stratum per draw", "ca",
      [("            wt = rng.multinomial(C, np.full(C, 1.0 / C), size=draws).astype(float)",
-       "            wt = rng.multinomial(1, np.full(C, 1.0 / C), size=draws).astype(float)")], {"CA6"}),
+       "            wt = rng.multinomial(1, np.full(C, 1.0 / C), size=draws).astype(float)")], {"CA6", "AH9"}),
     ("C05 species POOLED (a ratio of sums) instead of the equal-weight mean", "ca",
      [("    cnt = np.zeros((D, K))\n    for sp in species:\n        na, nb",
        "    den = {a: np.zeros((D, K)), b: np.zeros((D, K))}\n    cnt = np.zeros((D, K))\n    for sp in species:\n"
@@ -951,19 +1393,22 @@ MUTANTS: list = [
        '    px = {arm: _ratio(num[arm], cnt) for arm in (a, b)}',
        '        num[a] += np.where(ok, g(a, sp, "W"), 0.0)\n        num[b] += np.where(ok, g(b, sp, "W"), 0.0)\n'
        '        den[a] += np.where(ok, na, 0.0)\n        den[b] += np.where(ok, nb, 0.0)\n        cnt += ok\n'
-       '    px = {arm: _ratio(num[arm], den[arm]) for arm in (a, b)}')], {"CS2"}),
+       '    px = {arm: _ratio(num[arm], den[arm]) for arm in (a, b)}')], {"CS2", "AH3"}),
     ("C06 a species ONE arm fought is included", "ca",
-     [("        ok = (na > 0) & (nb > 0)", "        ok = (na > 0) | (nb > 0)")], {"CS2", "CS3"}),
+     [("        ok = (na > 0) & (nb > 0)", "        ok = (na > 0) | (nb > 0)")], {"CS2", "CS3", "DV4"}),
+    # RE-ANCHORED with DECISION F2 (θ is now a plain mean over the frozen K*): the same idea, a NaN read as 0
     ("C07 θ counts an unestimable trainer as 0", "ca",
-     [('    out["theta_a"], out["theta_b"] = _nanmean(px[a]), _nanmean(px[b])',
+     [('    out["theta_a"], out["theta_b"] = px[a].mean(axis=1), px[b].mean(axis=1)',
        '    out["theta_a"], out["theta_b"] = np.nan_to_num(px[a]).mean(axis=1), np.nan_to_num(px[b]).mean(axis=1)')],
-     {"CS1", "CS2", "CS3"}),   # CS1 added WITH CS1's redesign, before that re-run (its point becomes .5/7)
+     {"CS3", "DV4"}),
     ("C08 REACH: a cut run that never met X is a 'no'", "ca",
-     [('            elif r["status"] == "complete":', '            elif r["status"] in ("complete", "cut"):')], {"CS4"}),
+     [('            elif r["status"] == "complete":', '            elif r["status"] in ("complete", "cut"):')],
+     {"CS4", "AH4", "AH17"}),
     ("C09 REACH: only a COMPLETE run's meeting counts", "ca",
-     [('            if k["reached"]:', '            if k["reached"] and r["status"] == "complete":')], {"CS4"}),
+     [('            if k["reached"]:', '            if k["reached"] and r["status"] == "complete":')], {"CS4", "AH17"}),
     ("C10 COMPOSITE conditional on meeting X", "ca",
-     [('        da, db = g(a, sp, "RD"), g(b, sp, "RD")', '        da, db = g(a, sp, "RN"), g(b, sp, "RN")')], {"CS5"}),
+     [('        da, db = g(a, sp, "RD"), g(b, sp, "RD")', '        da, db = g(a, sp, "RN"), g(b, sp, "RN")')],
+     {"CS5", "AH4", "DV11"}),
     ("C11 C1 pools the attempts (not the per-run mean)", "ca",
      [("    return sum(vals) / len(vals) if vals else None", "    return sum(vals) if vals else None"),
       ('            c["Hn"] += 1',
@@ -981,53 +1426,59 @@ MUTANTS: list = [
        '        c["B5"] += r["nonkey"]["won"] + r["nonkey"]["lost"] + r["nonkey"]["other"]\n')], {"CA8"}),
     # ---- T3: refusal, controls, the sequence, the verdicts
     ("C15 the arm refusal is off (a wrong-arm log is re-assigned)", "ca",
-     [('    elif arm != lane.get("arm"):', '    elif arm == "ambiguous":')], {"CA7", "CR1"}),
+     [('    elif arm != lane.get("arm"):', '    elif arm == "ambiguous":')], {"CA7", "CR1", "AH12"}),
     ("C16 a refused log does not fail the controls", "ca",
      [("    if refused:\n        failures.append(", "    if False:\n        failures.append(")], {"CA7"}),
     ("C17 an arm with no usable runs passes", "ca",
      [("        if not per_arm.get(arm):", "        if False:")], {"CX1"}),
     ("C18 zero runs passes", "ca",
      [('    if not runs:\n        failures.append("ZERO runs', '    if False:\n        failures.append("ZERO runs')], {"CX1"}),
+    # C19 / C20 RE-ANCHORED with DECISIONS F1-F7 (the status is now composed from its reasons)
     ("C19 the C1 -> C2 gate removed (C2 always confirmatory)", "ca",
-     [('"status": "CONFIRMATORY" if c1_pass else "DESCRIPTIVE",', '"status": "CONFIRMATORY",')], {"CA9"}),
+     [("    if not c1_pass:\n        c2_reasons.append(", "    if False:\n        c2_reasons.append(")],
+     {"CA9", "AH1", "DV8", "DV13"}),
     ("C20 the report prints C2's word as if confirmatory", "ca",
-     [('    word = c2["reading"] if c2["status"] == "CONFIRMATORY" else', '    word = c2["reading"] if True else')],
+     [('    word = (c2["rule_reading"] if c2["status"] == "CONFIRMATORY"', '    word = (c2["rule_reading"] if True')],
      {"CA9"}),
     ("C21 C1 PASS on the 90% CI", "ca",
-     [('    c1_pass = nz(c1["ci95"][0]) > 0', '    c1_pass = nz(c1["ci90"][0]) > 0')], {"CS7"}),
+     [('    c1_pass = nz(c1["ci95"][0]) > 0', '    c1_pass = nz(c1["ci90"][0]) > 0')], {"CS7", "AH1"}),
     ("C22 C2's word on the 90% CI", "ca",
      [('    lo95, hi95 = nz(c2["ci95"][0]), nz(c2["ci95"][1])', '    lo95, hi95 = nz(c2["ci90"][0]), nz(c2["ci90"][1])')],
-     {"CS7"}),
+     {"CS7", "AH16"}),
     ("C23 C2 LOWER on the 95% CI", "ca",
      [('"lower_flag": bool(nz(c2["ci90"][1]) < 0), "n_estimable"', '"lower_flag": bool(nz(c2["ci95"][1]) < 0), "n_estimable"')],
-     {"CS7"}),
+     {"CS7", "AH1"}),
     ("C24 C5's flag on the 95% CI", "ca",
      [('"flag": c5_flag(nz(c5["ci90"][0]), nz(c5["ci90"][1])),', '"flag": c5_flag(nz(c5["ci95"][0]), nz(c5["ci95"][1])),')],
-     {"CS7"}),
+     {"CS7", "AH1"}),
     ("C25 REACH on the 95% CI", "ca",
-     [('        lo, hi = nz(r["ci90"][0]), nz(r["ci90"][1])', '        lo, hi = nz(r["ci95"][0]), nz(r["ci95"][1])')], {"CS7"}),
+     [('        lo, hi = nz(r["ci90"][0]), nz(r["ci90"][1])', '        lo, hi = nz(r["ci95"][0]), nz(r["ci95"][1])')],
+     {"CS7", "AH1"}),
     ("C26 the group LOWER flag on the 95% CI", "ca",
-     [('"lower_flag": bool(nz(gr["ci90"][1]) < 0)}', '"lower_flag": bool(nz(gr["ci95"][1]) < 0)}')], {"CS7"}),
+     [('"lower_flag": bool(nz(gr["ci90"][1]) < 0)}', '"lower_flag": bool(nz(gr["ci95"][1]) < 0)}')], {"CS7", "AH1"}),
     ("C27 NOT LOWER at lower95 == −δ (not strict)", "ca", [("    if lo95 > -delta:", "    if lo95 >= -delta:")], {"CV1"}),
     ("C28 HIGHER at lower95 == 0 (not strict)", "ca",
-     [('    if lo95 > 0:\n        return "HIGHER"', '    if lo95 >= 0:\n        return "HIGHER"')], {"CV1"}),
+     [('    if lo95 > 0:\n        return "HIGHER"', '    if lo95 >= 0:\n        return "HIGHER"')], {"CV1", "DV4"}),
     ("C29 'statistically lower' precedence dropped", "ca",
      [('        return "NOT LOWER, but statistically lower" if hi95 < 0 else "NOT LOWER"', '        return "NOT LOWER"')],
-     {"CV1"}),
-    ("C30 δ hard-coded (.08)", "ca", [("    if lo95 > -delta:", "    if lo95 > -0.08:")], {"CV1"}),
+     {"CV1", "AH16"}),
+    ("C30 δ hard-coded (.08)", "ca", [("    if lo95 > -delta:", "    if lo95 > -0.08:")], {"CV1", "AH16"}),
     ("C31 REGRESSION at lower90 == 0 (not strict)", "ca",
      [('    if lo90 > 0:\n        return "REGRESSION"', '    if lo90 >= 0:\n        return "REGRESSION"')], {"CV2"}),
     ("C32 ci: one-sided tails", "ca",
      [("    lo, hi = np.percentile(d, [50 - level / 2, 50 + level / 2])", "    lo, hi = np.percentile(d, [100 - level, level])")],
      {"CV3"}),
-    ("C33 ci keeps NaN draws", "ca", [("    d = d[~np.isnan(d)]\n", "")], {"CV3"}),
+    ("C33 ci keeps NaN draws", "ca", [("    d = d[~np.isnan(d)]\n", "")], {"CV3", "DV4"}),
     # ---- T3: the run's status and the readers
     ("C34 the status ignores the cut record", "ca", [(_STATUS, '    status = "lost" if lost else "capped" if capped else "complete"')],
-     {"CR1", "CR4"}),
+     {"CR1", "CR4", "AH5"}),
     ("C35 capped outranks cut", "ca",
      [(_STATUS, '    status = "capped" if capped else "cut" if cut else "lost" if lost else "complete"')], {"CR1"}),
-    ("C36 a cut log with no header is REFUSED", "ca", [("    if cut and not header:", "    if False:")], {"CR1"}),
-    ("C37 a run with no starter is kept", "ca", [('    elif ident["species"] is None:', "    elif False:")], {"CR1", "CX1"}),
+    # C36 / C37 RE-ANCHORED with DECISIONS F11 / F8 (the rules moved, their mutants did not change meaning)
+    ("C36 a cut or lost log with no header is REFUSED", "ca", [("    if (cut or lost) and not header:", "    if False:")],
+     {"CR1", "DV12"}),
+    ("C37 a run with no starter is kept (then caught as not-a-starter: the KIND is what changes)", "ca",
+     [("    elif species is None:", "    elif False:")], {"CR1"}),
     ("C38 lost_logs ignores x4h's own stop", "ca",
      [('        if sp.get("end") is None or sp.get("stopped_by") == "x4h" or sp.get("exit") == 0:',
        '        if sp.get("end") is None or sp.get("exit") == 0:')], {"CR3"}),
@@ -1040,15 +1491,198 @@ MUTANTS: list = [
      [('        detail = s.get("lanes") if isinstance(s.get("lanes"), dict) else {}', "        detail = {}")], {"CR4"}),
     ("C42 the lane slot off by one", "ca",
      [("            lane = by_slot.get(int(m.group(1)) - 1) if m else None",
-       "            lane = by_slot.get(int(m.group(1))) if m else None")], {"CR4", "CA7", "CX1", "CX2"}),
+       "            lane = by_slot.get(int(m.group(1))) if m else None")], {"CR4", "CA7", "CX1", "CX2", "DV3", "DV7"}),
     ("C43 K*: May's three Route 110 ids dropped", "ca",
      [('    "RIVAL_ROUTE_110": (521, 524, 527, 530, 533, 536),', '    "RIVAL_ROUTE_110": (521, 524, 527),')], {"CK1"}),
-    ("C44 the default seed is not 14", "ca", [("DEFAULT_SEED = 14", "DEFAULT_SEED = 15")], {"CX2"}),
-    ("C45 the default δ is not .08", "ca", [("DEFAULT_DELTA = 0.08 ", "DEFAULT_DELTA = 0.10 ")], {"CX2"}),
+    ("C44 the default seed is not 14", "ca", [("DEFAULT_SEED = 14", "DEFAULT_SEED = 15")], {"CX2", "DV7"}),
+    # RE-ANCHORED with DECISION F6 (δ now comes from the design table)
+    ("C45 the M-16 δ is not .08", "ca",
+     [("PREREG_DELTA = {(16, 2): 0.08, (8, 2): 0.11}", "PREREG_DELTA = {(16, 2): 0.10, (8, 2): 0.11}")], {"CX2", "DV7"}),
     ("C46 a FAILED control still prints a grade", "ca",
      [("    result = None if failures else grade(", "    result = grade("),
       ('    if failures:\n        out.append("⛔ INSTRUMENT CONTROL FAILED', '    if False:\n        out.append("⛔ INSTRUMENT CONTROL FAILED')],
-     {"CA7", "CX1", "CX3"}),
+     {"CA7", "CX1", "CX3", "DV6"}),
+    # ---- the INDEPENDENT hunter's survivors (X<n>, `evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`), re-anchored
+    # where the code moved; each must now be red on the AH row that was proposed for it
+    ("H74 a CUT log's arm is not checked", "ca",
+     [('    elif arm != lane.get("arm"):', '    elif arm != lane.get("arm") and not cut:')], {"AH12"}),
+    ("H36 C2 LOWER read on lower90 < 0", "ca",
+     [('"lower_flag": bool(nz(c2["ci90"][1]) < 0), "n_estimable"', '"lower_flag": bool(nz(c2["ci90"][0]) < 0), "n_estimable"')],
+     {"AH1"}),
+    ("H38 the group LOWER flag read on lower90 < 0", "ca",
+     [('"lower_flag": bool(nz(gr["ci90"][1]) < 0)}', '"lower_flag": bool(nz(gr["ci90"][0]) < 0)}')], {"AH1"}),
+    ("H39 REACH DIFFERS whenever the 90% CI is not exactly [0, 0]", "ca",
+     [('            "reach_differs": bool(lo > 0 or hi < 0),', '            "reach_differs": bool(hi > 0 or lo < 0),')], {"AH1"}),
+    ("H37 C2 LOWER at upper90 <= 0", "ca",
+     [('"lower_flag": bool(nz(c2["ci90"][1]) < 0), "n_estimable"', '"lower_flag": bool(nz(c2["ci90"][1]) <= 0), "n_estimable"')],
+     {"AH2"}),
+    ("H40 REACH DIFFERS non-strict (a [0, 0] CI flags)", "ca",
+     [('            "reach_differs": bool(lo > 0 or hi < 0),', '            "reach_differs": bool(lo >= 0 or hi <= 0),')],
+     {"AH2", "DV5"}),   # DV5 FOUND BY THE RUN (my prediction missed it): DV5's six other trainers have [0, 0] CIs
+    ("H31 C2 confirmatory when C1's POINT is > 0", "ca",
+     [("    if not c1_pass:\n        c2_reasons.append(", '    if not nz(c1["point"]) > 0:\n        c2_reasons.append(')],
+     {"AH1"}),
+    ("H32 C2 confirmatory when C1's lower90 > 0", "ca",
+     [("    if not c1_pass:\n        c2_reasons.append(", '    if not nz(c1["ci90"][0]) > 0:\n        c2_reasons.append(')],
+     {"AH1"}),
+    ("H47 REACH 'met' := a DECIDED first attempt", "ca",
+     [('            if k["reached"]:\n                c["RN"][j] += 1', '            if k["won"] is not None:\n                c["RN"][j] += 1')],
+     {"AH5", "DV11"}),
+    ("H48 C2 'fought' := met (an undecided meeting counts as a loss)", "ca",
+     [('            if k["won"] is not None:\n                c["N"][j] += 1', '            if k["reached"]:\n                c["N"][j] += 1')],
+     {"AH5"}),
+    ("H65 an 'other'-outcome first attempt counted as a loss", "ca",
+     [('        won = None if fa is None or fa["outcome"] not in ("won", "lost") else fa["outcome"] == "won"',
+       '        won = None if fa is None else fa["outcome"] == "won"')], {"AH5"}),
+    ("H63 a CUT run's completed first attempts dropped from C2", "ca",
+     [('            if k["won"] is not None:\n                c["N"][j] += 1',
+       '            if k["won"] is not None and r["status"] == "complete":\n                c["N"][j] += 1')], {"AH6"}),
+    ("H64 a CUT run dropped from C1", "ca",
+     [("        v = run_c1(r)\n", '        v = run_c1(r) if r["status"] == "complete" else None\n')], {"AH6"}),
+    ("H01 C2 species weighted by N_A + N_B", "ca",
+     [("    cnt = np.zeros((D, K))\n    for sp in species:\n        na, nb",
+       "    cnt = np.zeros((D, K))\n    wsum = np.zeros((D, K))\n    for sp in species:\n        na, nb"),
+      ('        num[a] += np.where(ok, _ratio(g(a, sp, "W"), na), 0.0)\n'
+       '        num[b] += np.where(ok, _ratio(g(b, sp, "W"), nb), 0.0)\n        cnt += ok\n'
+       '    px = {arm: _ratio(num[arm], cnt) for arm in (a, b)}',
+       '        num[a] += np.where(ok, _ratio(g(a, sp, "W"), na) * (na + nb), 0.0)\n'
+       '        num[b] += np.where(ok, _ratio(g(b, sp, "W"), nb) * (na + nb), 0.0)\n'
+       '        wsum += np.where(ok, na + nb, 0.0)\n        cnt += ok\n'
+       '    px = {arm: _ratio(num[arm], wsum) for arm in (a, b)}')], {"AH3"}),
+    ("H07 C1 species-weighted", "ca",
+     [('        out[f"c1_{tag}"] = _ratio(sum(g(arm, sp, "H") for sp in species), sum(g(arm, sp, "Hn") for sp in species))',
+       '        out[f"c1_{tag}"] = np.nanmean(np.stack([_ratio(g(arm, sp, "H"), g(arm, sp, "Hn")) for sp in species]), axis=0)')],
+     {"AH8"}),
+    ("H49 COMPOSITE denominator = ALL runs (censored included)", "ca",
+     [('        da, db = g(a, sp, "RD"), g(b, sp, "RD")',
+       '        da, db = g(a, sp, "NR")[:, None] + 0 * g(a, sp, "RD"), g(b, sp, "NR")[:, None] + 0 * g(b, sp, "RD")')],
+     {"AH4", "AH17", "DV11"}),
+    ("H04 COMPOSITE: a species with reach runs in ONE arm only included", "ca",
+     [("        ok = (da > 0) & (db > 0)", "        ok = (da > 0) | (db > 0)")], {"AH4"}),
+    ("H51 COMPOSITE: a trainer with no common denominator counted as 0", "ca",
+     [('    out["comp_a"] = _nanmean(_ratio(cnum[a], ccnt))\n    out["comp_b"] = _nanmean(_ratio(cnum[b], ccnt))',
+       '    out["comp_a"] = np.nan_to_num(_ratio(cnum[a], ccnt)).mean(axis=1)\n'
+       '    out["comp_b"] = np.nan_to_num(_ratio(cnum[b], ccnt)).mean(axis=1)')], {"AH17"}),
+    ("H56 C5 counts UNCLASSIFIED battles", "ca",
+     [("        if bl.battle_class(battle, telemetry) == bl.NONKEY:",
+       "        if bl.battle_class(battle, telemetry) in (bl.NONKEY, bl.UNCLASSIFIED):")], {"AH14"}),
+    ("H82 grade() admits EXCLUDED runs", "ca",
+     [('    runs = [r for r in runs if usable(r) and r["arm"] in (a, b)]',
+       '    runs = [r for r in runs if not r["refused"] and r["arm"] in (a, b)]')], {"AH13"}),
+    ("H13 the rng re-seeded per stratum (every stratum draws the same stream)", "ca",
+     [("            wt = rng.multinomial(C, np.full(C, 1.0 / C), size=draws).astype(float)",
+       "            wt = np.random.default_rng(14).multinomial(C, np.full(C, 1.0 / C), size=draws).astype(float)")],
+     {"AH10", "AH11"}),
+    ("H83 the bootstrap capped at 1,000 draws", "ca",
+     [("    bs = statistics(resample_sums(strata, draws, np.random.default_rng(seed)), species, a, b)",
+       "    bs = statistics(resample_sums(strata, min(draws, 1000), np.random.default_rng(seed)), species, a, b)")],
+     {"AH11"}),
+    ("H84 --seed ignored", "ca",
+     [("    bs = statistics(resample_sums(strata, draws, np.random.default_rng(seed)), species, a, b)",
+       "    bs = statistics(resample_sums(strata, draws, np.random.default_rng(DEFAULT_SEED)), species, a, b)")],
+     {"AH11"}),
+    ("H06 REACH species-weighted (not a pooled ratio of sums)", "ca",
+     [('    rn = {arm: sum(g(arm, sp, "RN") for sp in species) for arm in (a, b)}\n'
+       '    rd = {arm: sum(g(arm, sp, "RD") for sp in species) for arm in (a, b)}\n'
+       '    out["reach_a"], out["reach_b"] = _ratio(rn[a], rd[a]), _ratio(rn[b], rd[b])\n',
+       '    rr = {arm: np.stack([_ratio(g(arm, sp, "RN"), g(arm, sp, "RD")) for sp in species]) for arm in (a, b)}\n'
+       '    out["reach_a"], out["reach_b"] = np.nanmean(rr[a], axis=0), np.nanmean(rr[b], axis=0)\n')], {"AH7"}),
+    ("H27 rule_not_lower := (reading == 'NOT LOWER')", "ca",
+     [('"rule_not_lower": bool(lo95 > -delta),', '"rule_not_lower": reading == "NOT LOWER",')], {"AH16"}),
+    ("H28 rule_not_lower read on the 90% CI", "ca",
+     [('"rule_not_lower": bool(lo95 > -delta),', '"rule_not_lower": bool(nz(c2["ci90"][0]) > -delta),')], {"AH16"}),
+    ("H29 rule_not_lower with δ hard-coded .08", "ca",
+     [('"rule_not_lower": bool(lo95 > -delta),', '"rule_not_lower": bool(lo95 > -0.08),')], {"AH16"}),
+    ("H81 GROUPS: Roxanne and the Route 110 rival swapped", "ca",
+     [('    "leaders": ("ROXANNE", "BRAWLY", "WATTSON", "FLANNERY"),\n    "rivals": ("RIVAL_ROUTE_110",),',
+       '    "leaders": ("RIVAL_ROUTE_110", "BRAWLY", "WATTSON", "FLANNERY"),\n    "rivals": ("ROXANNE",),')], {"AH15"}),
+    ("H11 STRATA arm x species x LANE", "ca",
+     [('            c = {**{f: [0.0] * K for f in FIELDS_K}, **{f: 0.0 for f in FIELDS_1}}',
+       '            c = {**{f: [0.0] * K for f in FIELDS_K}, **{f: 0.0 for f in FIELDS_1}, "lane": r["lane"]}'),
+      ('        out[skey] = {"keys": list(stratum), "C": len(cl),',
+       '        out[skey] = {"keys": list(stratum), "C": len(cl), "lanes": [c["lane"] for c in cl],'),
+      ("            wt = rng.multinomial(C, np.full(C, 1.0 / C), size=draws).astype(float)\n",
+       "            wt = np.zeros((draws, C))\n"
+       "            for ln in sorted(set(st['lanes']), key=str):\n"
+       "                idx = [i for i, x in enumerate(st['lanes']) if x == ln]\n"
+       "                wt[:, idx] = rng.multinomial(len(idx), np.full(len(idx), 1.0 / len(idx)), size=draws)\n")],
+     {"AH9"}),
+    # ---- the coordinator's DECISIONS, each REVERTED (one mutant per rule; a rule with several clauses has several)
+    ("D01 F1 a VOID never reaches the status", "ca",
+     [('    if void:\n        batch_reasons.append(("VOID"', '    if False:\n        batch_reasons.append(("VOID"')], {"DV2", "DV3"}),
+    ("D02 F1 a user park VOIDS", "ca", [("    if abort == USER_PARK:\n        return None\n", "")], {"DV1", "DV3"}),
+    ("D03 F1 the batch's verdict is never read (main passes no void)", "ca",
+     [("    void = void_reason(summ, args.void)", "    void = None")], {"DV3"}),
+    ("D04 F1 a LIVE read without summary.json is not PROVISIONAL", "ca",
+     [("provisional=summ is None", "provisional=False")], {"DV3"}),
+    ("D05 F1 the automated STOPs not recognised", "ca",
+     [('    if abort in AUTOMATED_STOPS or abort.startswith("x4h error"):\n        return f"STOP {abort}"',
+       '    if False:\n        return f"STOP {abort}"')], {"DV1", "DV3"}),
+    ("D06 F2 θ over the ESTIMABLE subset of K* (the pre-fold rule)", "ca",
+     [('    out["theta_a"], out["theta_b"] = px[a].mean(axis=1), px[b].mean(axis=1)',
+       '    out["theta_a"], out["theta_b"] = _nanmean(px[a]), _nanmean(px[b])')], {"CS3", "DV4"}),
+    ("D07 F2 the rule word ignores the frozen K*", "ca",
+     [("    reading = (c2_reading(lo95, hi95, delta) if n_est == len(KEYS)",
+       "    reading = (c2_reading(lo95, hi95, delta) if True")], {"CS3", "DV4"}),
+    ("D08 F2 the status ignores the frozen K*", "ca",
+     [('    if n_est < len(KEYS):\n        c2_reasons.append(("NOT ESTIMABLE", reading))',
+       '    if False:\n        c2_reasons.append(("NOT ESTIMABLE", reading))')], {"DV3", "DV4"}),
+    ("D09 F2 a group's θ over its estimable subset", "ca",
+     [('        out[f"group_{gname}"] = px[b][:, cols].mean(axis=1) - px[a][:, cols].mean(axis=1)',
+       '        out[f"group_{gname}"] = _nanmean(px[b][:, cols]) - _nanmean(px[a][:, cols])')], {"DV4"}),
+    ("D10 F3 REACH DIFFERS not on the C2 line", "ca",
+     [('    reach = f"   ⚠ REACH DIFFERS ({\', \'.join(c2[\'reach_differs\'])})" if c2["reach_differs"] else ""',
+       '    reach = ""')], {"DV5"}),
+    # D11's set FOUND BY THE RUN (my prediction was {DV5}): `render` reads c2["reach_differs"], so dropping the field
+    # crashes every row that renders a report. Kept as found; D11b is the non-crashing form of the same revert.
+    ("D11 F3 REACH DIFFERS not in the JSON c2 object (the report then crashes)", "ca",
+     [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est},')],
+     {"CA9", "CX1", "CX2", "DV13", "DV3", "DV4", "DV5", "DV7"}),
+    ("D11b F3 the JSON c2 object carries no REACH DIFFERS", "ca",
+     [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est, "reach_differs": []},')],
+     {"DV5"}),
+    ("D12 F4 the completeness failures never reach the controls", "ca",
+     [("    failures = list(completeness)", "    failures = []")], {"DV6"}),
+    ("D13 F4 an interrupted collection accepted", "ca",
+     [('        if summary.get("collect_interrupted"):', "        if False:")], {"DV6"}),
+    ("D14 F4 debug_logs_collected not compared", "ca",
+     [("            if want is not None and n != want:", "            if False:")], {"DV6"}),
+    ("D15 F4 a lane with zero logs accepted", "ca",
+     [("        if n == 0:\n            out.append(", "        if False:\n            out.append(")], {"DV6"}),
+    ("D16 F4 the collection rules applied to a LIVE read too", "ca",
+     [('    if not live and summary is not None:\n        if summary.get("collect_interrupted"):',
+       '    if summary is not None:\n        if summary.get("collect_interrupted"):')], {"DV6"}),
+    ("D17 F5 the undefined-draw count not printed", "ca",
+     [('    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]" + (f" ({nan_draws} draws undefined, excluded)" if nan_draws else "")',
+       '    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]"')], {"DV4"}),
+    ("D18 F6 the exploratory reasons never reach the grade", "ca",
+     [("exploratory=exploratory)", "exploratory=[])")], {"DV7"}),
+    ("D19 F6 δ not derived from the design (always .08)", "ca",
+     [("    delta = args.delta if args.delta is not None else prereg", "    delta = args.delta if args.delta is not None else 0.08")],
+     {"DV7"}),
+    ("D20 F6 a non-pre-registered seed is not exploratory", "ca",
+     [("    if seed != DEFAULT_SEED:", "    if False:")], {"DV7"}),
+    ("D21 F7 the C2 verdict is the rule's word whatever the status", "ca",
+     [('"verdict": reading if c2_word is None else c2_word,', '"verdict": reading,')],
+     {"CA9", "DV2", "DV3", "DV4", "DV7", "DV8"}),
+    ("D22 F7 the C1 verdict is the rule's word whatever the status", "ca",
+     [('"verdict": c1_rule if c1_word is None else c1_word,', '"verdict": c1_rule,')], {"DV2"}),
+    ("D23 F8 any species forms a stratum", "ca", [("    elif species not in STARTERS:", "    elif False:")], {"DV9"}),
+    ("D24 F8 the 'choosing' cross-check dropped", "ca", [("    elif chosen != species:", "    elif False:")], {"DV9"}),
+    ("D25 F9 cut no-starter runs counted too", "ca",
+     [('if r.get("excluded_kind") == "no_starter" and r["status"] == "complete")',
+       'if r.get("excluded_kind") == "no_starter")')], {"DV10"}),
+    ("D26 F10 a run censored DURING its first attempt stays in the denominators", "ca",
+     [("            if censored_during(r, key):\n                continue", "            if False:\n                continue")],
+     {"DV11", "AH5"}),
+    ("D27 F10 a COMPLETE met-but-undecided run treated as censored too", "ca",
+     [('    return run["status"] != "complete" and k["reached"] and k["won"] is None',
+       '    return k["reached"] and k["won"] is None')], {"DV11", "AH5"}),
+    ("D28 F11 only a CUT headerless log is excluded (a lost one is refused)", "ca",
+     [("    if (cut or lost) and not header:", "    if cut and not header:")], {"DV12"}),
+    ("D29 RC-3 an undefined C1 reads FAIL", "ca",
+     [('    c1_rule = "NOT ESTIMABLE" if c1["point"] is None else "PASS" if c1_pass else "FAIL"',
+       '    c1_rule = "PASS" if c1_pass else "FAIL"')], {"DV13"}),
     ("CM1 MENTION ONLY: a comment quoting the one-arm species rule turns NOTHING red", "ca",
      [('#: DESIGN §5 "Per-group" (leaders, rivals, Magma/Aqua), each restricted to K*.',
        '#: DESIGN §5 "Per-group" — never `ok = (na > 0) | (nb > 0)` (leaders, rivals, Magma/Aqua).')], set()),
@@ -1109,6 +1743,29 @@ def run_mutant(i: int, target: str, edits) -> "tuple[set | None, str]":
         TMP.update(saved_tmp)
 
 
+def _pool_job(i: int):
+    """One mutant in a worker process (it builds its own fixture tree): (i, its red rows or None, the error)."""
+    import warnings
+    warnings.simplefilter("ignore", RuntimeWarning)    # a mutant's nanmean of an empty slice: noise, not a result
+    _label, target, edits, _want = MUTANTS[i]
+    red, err = run_mutant(i, target, edits)
+    return i, (sorted(red) if red is not None else None), err
+
+
+def run_all_mutants(serial: bool) -> list:
+    """Every mutant's (red set or None, error), in MUTANTS order. ⭐ A process pool: each mutant re-runs every fast
+    row, and 100+ mutants in one process would push the gate past a minute. `--serial` runs them in-process."""
+    if serial:
+        return [run_mutant(i, t, e) for i, (_l, t, e, _w) in enumerate(MUTANTS)]
+    import concurrent.futures
+    import os
+    out: list = [None] * len(MUTANTS)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=min(8, os.cpu_count() or 2)) as pool:
+        for i, red, err in pool.map(_pool_job, range(len(MUTANTS)), chunksize=4):
+            out[i] = (set(red) if red is not None else None, err)
+    return out
+
+
 def main() -> int:
     global SMOKE
     t0 = time.perf_counter()
@@ -1119,12 +1776,15 @@ def main() -> int:
         provenance()
         print("\nROWS — the real modules")
         baseline = all_rows(True)
-        if MUTANTS:
-            print(f"\nMUTANTS — each must turn EXACTLY its named FAST rows red ({len(MUTANTS)}; in-process; the heavy "
-                  f"rows {sorted(HEAVY)} are not re-run)")
+        if "--rows-only" in sys.argv:
+            print("\n‼ --rows-only: the MUTANTS were NOT run. THIS IS NOT THE GATE.")
+            FAILURES.append("--rows-only (the mutant half was skipped)")
+        elif MUTANTS:
+            print(f"\nMUTANTS — each must turn EXACTLY its named FAST rows red ({len(MUTANTS)}; a process pool; the "
+                  f"heavy rows {sorted(HEAVY)} are not re-run)")
             covered: set = set()
-            for i, (label, target, edits, want) in enumerate(MUTANTS):
-                red, err = run_mutant(i, target, edits)
+            results = run_all_mutants("--serial" in sys.argv)
+            for (label, target, edits, want), (red, err) in zip(MUTANTS, results):
                 if red is None:
                     check(label, False, err)
                     continue
