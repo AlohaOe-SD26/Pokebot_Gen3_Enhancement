@@ -64,3 +64,40 @@ session); a deny is ASCII JSON; `--selftest` runs the case table.
 | SH-1 | `selftest_shell_text_hook.py`; `run_gates.py` | S1-S5 pass; the full suite passes | any FAIL |
 | SH-2 | an adversarial pass (a BYPASS hunter and a FALSE-POSITIVE hunter; the latter replays every Bash and PowerShell command this session actually ran, taken from the transcript) | every realistic bypass of H1-H6 is blocked or recorded as a known limit; 0 of this session's commands that obeyed the rule is blocked | a realistic bypass that is neither blocked nor recorded; one false positive |
 | SH-3 | LIVE, after the merge to `main` (before 9:00 PM: no merge after, the batch's freeze) | a harmless heredoc command (`cat <<'EOF'` + one line, no file) is DENIED with the hook's reason; `git status` still runs | the heredoc runs; an ordinary command is denied |
+
+## GRADED — the build and its adversarial pass (2026-10-01; evidence `tools/story-dev/evidence/2026-10-01-shellhook-ADVERSARIAL.txt`)
+
+- **SH-1 HELD:** `--selftest` gives 156/156; the gate `selftest_shell_text_hook.py` passes S1-S7 (S7: 33 in-memory
+  mutants, each reverting one rule, each fails the table). `selftest_destructive_git_hook.py` still gives 318/318.
+- **SH-2 FAILED AS FILED.** "Every realistic bypass blocked or recorded; 0 false positives" did not hold.
+  - **The bypass hunter (317 shapes):** heredocs were covered (70 of 75 shapes). Everything AROUND them was open.
+    - `git commit -m "…` + backticks…`"` was allowed: the exact shape that corrupted pushed commit `2c5973c5` (08,
+      2026-09-16). The hook blocked the standard `$(cat <<'EOF')` commit form, so it would have pushed agents ONTO the
+      damaging form.
+    - PowerShell's own writers with literal text (`Add-Content -Value`, `Set-Content`, `"t" > x.md`,
+      `[IO.File]::WriteAllText`) were allowed.
+    - So were `sed -i` / `perl -pi`, `echo | tee`, here-string commit messages, a 195-character prose argument, and
+      gaps in the `open()` regex.
+  - **The false-positive hunter** replayed 18,484 real Bash/PowerShell commands from 294 transcripts. It found 3 strict
+    false positives (H6 on `-c` code; a long path token; `printf '\n'`), plus a QUOTED `grep '<<'`, because the lexer
+    strips quotes, so a quoted `<<` became a bare token.
+- **Folded** (a builder agent; every rule load-bearing; the replay re-run):
+  - **New rules:** H7 in-place edits of doc/code files; H8 PowerShell writers fed a literal; H9 `git` messages
+    (multi-line, over 120 characters, or a live substitution or backtick); H10 a literal piped into a writer or an
+    interpreter; H11 an echo with a live backtick into a file.
+  - **Sharpened:** H1 (an UNQUOTED `<<`, bash only); H6 (prose = 8+ spaces, totalling over 150 characters); the
+    `open()` regex; more doc/code extensions.
+  - **The replay:** 2,290 of 18,484 blocked (was 2,127). The four former false positives are now allowed. 167
+    commands are newly blocked, every one classified TRUE, except one accepted by design (a `py -c` extractor writing a
+    scratch `.md`, the BD-1 class). 0 crashes in 480,584 fuzz evaluations; at most 0.086 s per real hook process.
+- **SH-3** is graded live after the merge (below).
+
+## KNOWN LIMITS (recorded, not bugs; the hook is a seat belt against habit)
+
+- **Text built in a variable first:** `$c = "<prose>"; Set-Content x.md $c`.
+- **Evasion through other routes:** `exec`, `eval`, base64 and ANSI-C `$'…'` strings.
+- **Prose printed by `-c` code** into `| tee` or `>`.
+- **Writes to `.txt` files.** `echo "exit=$?" >> run.txt` must stay allowed, so `.txt` is never a doc/code target.
+- **Two accepted false positives:**
+  - a bash arithmetic shift by a NAMED amount (`(( x << n ))`);
+  - a `py -c` extractor whose output is redirected into a scratch `.md` (BD-1).

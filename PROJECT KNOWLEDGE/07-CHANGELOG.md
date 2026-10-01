@@ -37512,3 +37512,23 @@ bought balls only at fixed story points.
   - The runtime review's twelve findings are folded (R1-R12): no blocker, five should-fix.
 - **The live arms:** T1-3 (an env leak on H1) aborted the batch in 0.8 min naming the variable, every lane stopped; T1-4 (16 lanes, 15 min, launched detached through WMI) ran clean with every arm header equal to its arm and both monitor directions quiet, the B markers present on all 8 B lanes; its throughput prediction FAILED AS FILED on the fast side (862 frames/s per lane, early game). The night batch is SCHEDULED: Windows task Pokebot-Batch14, 9:00 PM LA, 780 min (evidence/2026-10-01-batch14-T1-LIVE.txt).
 - ⚠ The batch runs the MAIN checkout. No commit, pull or merge there until it ends.
+
+## 2026-10-01 — `#27-shellhook`: the shell-text hook built, adversarially reviewed and folded (USER RULING 29)
+
+- **Built:**
+  - `.claude/hooks/block_shell_text.py`, which reuses the destructive-git hook's parser;
+  - its gate, `tools/story-dev/selftest_shell_text_hook.py` (S1-S7).
+- **It refuses documentation or code text written through the shell:**
+  - heredocs;
+  - here-strings to writers or interpreters;
+  - `py -c` that writes a file;
+  - echo/printf into doc/code files;
+  - prose arguments to scripts;
+  - in-place regex edits;
+  - PowerShell writers fed a literal;
+  - long or multi-line or substituted `git` messages.
+
+  Mentions never count. The hatch is a live `POKEBOT_ALLOW_SHELL_TEXT=1` prefix.
+- **The adversarial pass falsified SH-2 as filed.** It found 15 bypass findings and 4 false positives; all are folded.
+  The case table has 156 rows. A replay over 18,484 real commands shows 0 unexplained false positives and no lost true
+  block.

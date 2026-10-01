@@ -8893,3 +8893,16 @@ on all three questions:
   approved. Unlike the two older hooks' hatches (`#27-hookhatch`), this one works.
 - ⛔ **It must reach `main` before 9:00 PM LA 2026-10-01** (the step-14 batch's freeze; no merge after that until the
   batch ends), or wait until then.
+
+## 2026-10-01 — `#27-shellhook`: the hook's scope after its adversarial pass (USER RULING 29)
+
+- **Scope widened from "heredocs" to "doc or code text written through the shell"**: in-place `sed`/`perl`/`awk`
+  edits, PowerShell writers fed a literal, `git` messages, and literal pipes into writers.
+  - WHY: the first build blocked heredocs only, and that would have pushed agents onto `git commit -m` with backticks,
+    the exact shape that corrupted a pushed commit on 2026-09-16.
+  - A seat belt that redirects habit onto a worse road is worse than none.
+- **Measured, not guessed:** every widened rule was replayed over 18,484 real commands (294 transcripts). The bar was
+  ZERO unexplained false positives; one is accepted by design (a `py -c` extractor writing a scratch `.md`).
+- **`.txt` is never a doc/code target**, so log appends (`echo "exit=$?" >> run.txt`) stay free.
+- **Rejected:** a scratch-path carve-out for `py -c` writes. Scratch `.md` files are later spliced into
+  `PROJECT KNOWLEDGE`, so the carve-out would leak.

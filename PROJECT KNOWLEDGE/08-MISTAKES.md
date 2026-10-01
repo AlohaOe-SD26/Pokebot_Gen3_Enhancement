@@ -23663,3 +23663,26 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   pending "heredoc hook" question goes back to the user with that count. A PreToolUse hook would refuse a Bash command
   that writes a file under `PROJECT KNOWLEDGE/` or a `*.py` through a heredoc, `echo`/`printf` redirection, or a long
   quoted argument.
+
+## 2026-10-01 — ⛔ `#27-shellhook`: A HOOK THAT BLOCKED THE SAFE COMMIT FORM AND LEFT THE DAMAGING ONE OPEN, AND A QUOTED `<<` READ AS LIVE
+
+- **Symptoms** (`tools/story-dev/evidence/2026-10-01-shellhook-ADVERSARIAL.txt`):
+  - As first built, the hook blocked every heredoc, including Claude Code's standard `git commit -m "$(cat <<'EOF' …)"`.
+    But it allowed `git commit -m "… `tool.py` …"`, the shape that corrupted pushed commit `2c5973c5` on 2026-09-16.
+  - It also blocked `grep -n '<<' a.sh`: the shared lexer removes quotes, so a quoted `<<` arrived as the same bare
+    token as a live one.
+- **Root causes:**
+  - The rule was scoped by its MECHANISM (heredocs), not by its HAZARD (text the shell rewrites).
+  - The decision read the LEXER's tokens, after the quoting information that decides "live" had been discarded.
+- **The fixes that worked:**
+  - The hazard is the scope: git messages, PowerShell writers, in-place edits and literal pipes were added.
+  - H1 reads the pre-scan's CLEAN text with quote state.
+  - Every widened rule was replayed over 18,484 real commands before shipping.
+- **Prevention rules:**
+  - Scope a guard by the hazard it prevents, then ask what the guarded agent will type NEXT when it is refused. A guard
+    that redirects habit onto a worse road is a regression.
+  - Decide "live vs mentioned" BEFORE quotes are stripped; a lexer's tokens cannot tell them apart.
+- **Superseded advice, noted here and never rewritten in the old entry:** 2026-08-14's prevention rule "`Add-Content
+  -Encoding utf8` is SAFE for appending" remains true about ENCODING. But literal doc text in a PowerShell double-quoted
+  string is rewritten (a markdown backtick is PowerShell's escape character, so `` `b `` becomes a backspace). Doc text
+  goes through the Write tool, and the hook now refuses the other way.

@@ -1,0 +1,617 @@
+# 2026-10-01 — `#27-shellhook`: the ADVERSARIAL PASS, verbatim (workflow shellhook-adversarial)
+# A NOTE, NOT TRUTH: two read-only agents. How each finding was folded is in the shellhook note's GRADED section.
+
+====================================================================================================
+BYPASS HUNTER
+====================================================================================================
+SUMMARY: Heredocs are covered well: 70 of 75 heredoc and here-string shapes are blocked. That includes the spacing and quoting variants, `<<-` with tabs, a heredoc inside `"$(...)"` with quotes, apostrophes and unbalanced parens in the body, subshells, pipelines, for/if/brace groups, `bash -c`/`bash -lc`/`sh -ec`/`env bash -c`, CRLF line endings and line continuations. The 5 that get through are exotic.
+
+The exposure is everything AROUND the heredoc: the shapes a hurried agent switches to once the heredoc is denied. As filed, SH-2 ("every realistic bypass is blocked or recorded") is FALSIFIED. Ranked by how likely an agent here is to type them:
+
+1. **`git commit -m "...` with backticks`..."` is allowed.** This exact shape corrupted pushed commit 2c5973c5 (08, 2026-09-16). The hook blocks the standard `$(cat <<'EOF')` commit form, so it pushes agents onto the form that already did damage.
+2. **PowerShell's own file writers are allowed whenever no here-string is involved.** That covers `Add-Content -Value`, `Set-Content`, a bare `"text" >> file.md`, `Out-File`, `[IO.File]::WriteAllText`, and a `powershell -Command` wrapper around any of these. PowerShell is the primary shell here, and an older 08 rule calls `Add-Content` SAFE.
+3. **In-place regex edits are allowed:** `sed -i`, `perl -pi`, and `-replace | Set-Content`. 08 records `sed -i` on a script, and `Get-Content | Set-Content` corrupting 343 lines of `04-HANDOFF.md` (a repeat).
+4. **PowerShell here-string commit messages are allowed.** The PowerShell tool's own instructions teach `git commit -m @'...'@`.
+5. **H6's 300-character threshold lets a typical 250-character changelog sentence through as a script argument.** That is the fifth incident's own shape.
+6. **Literal text piped into a writer is allowed:** `echo | tee -a`, `echo | cat >`, and code piped into `py -`.
+7. **Gaps in the `python -c` write regex:** `encoding=` before `mode=`, `Path(...).open('w')`, `open(Path('d')/'x.md','w')`, `'r+'`, and `print(...) > x.md`.
+
+**False positives:** a QUOTED `'<<'` argument is blocked (`grep -n '<<'`, `git log --grep '<<'`). So is PowerShell's `Select-String -Pattern '<<'`, although PowerShell has no heredocs.
+
+**Prototype:** a reference implementation of the minimal rules, all in scratch, closes every realistic miss. It keeps the hook's 45-row table at 0 regressions, adds 0 false positives across 90 ordinary read-only and run commands, and removes 6 of the 7 false positives. The 12 shapes it still lets through are all classed as known limits.
+
+Files are in `C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/shadv/bypass/`:
+- `harness.py`: 184 cases.
+- `wave2.py`: 43 parser-edge cases.
+- `proposed.py`: the reference implementation of the proposed rules.
+- `compare.py`: regression and false-positive comparison.
+- `live_hook.py`: runs key rows through the real hook process via stdin JSON.
+
+No file in either repo was touched.
+STATS: 227 shapes tried: 184 in harness.py and 43 in wave2.py.
+
+Against the current hook:
+- 70 of 75 heredoc/here-string shapes blocked;
+- 65 clear misses (5 heredoc/here-string shapes, 60 others), plus 20 shapes argued in scope that are allowed (12 in-place edits, 8 commit-message forms);
+- 7 false positives.
+
+10 key rows were re-confirmed through the real hook process via stdin JSON, with the heredoc control denied.
+
+Against the prototype: 0 of 45 table regressions, 0 new false positives across 90 ordinary commands, 6 of 7 false positives removed, and 12 remaining misses, all classed as known limits.
+
+--- BH-01 [BLOCKER, bypass]
+COMMAND: git commit -m "docs: measure offline with `probe_live_mapgrid.py`, which is an existing tool"
+DECISION: ALLOW. evaluate() returns None, and the real hook process prints nothing (exit 0), while the heredoc control in the same run is DENIED. The sibling with a long body as a second -m is also ALLOWED: git commit -m "feat: subject (punch-list #26)" -m "<250-char body>".
+WHY: This is the exact shape that corrupted pushed commit 2c5973c5: bash ran the backticked tool name as a command and spliced in empty output (08, 2026-09-16, which says the failure 'is the default outcome' here). Commit messages are in scope by the hook's own design: its case table blocks `git commit -F - <<'EOF'`, and its REASON has a commit-message bullet. Because the hook blocks Claude Code's standard commit form (`git commit -m "$(cat <<'EOF' ...)"`, measured BLOCK, H09), the shortest retry for a hurried agent is a plain `-m "..."`. The hook therefore moves agents from the form 08 calls safe onto the one that already did damage. Likelihood: HIGH.
+FIX: New rule (R2): for git commit/tag/notes/merge/revert, take the message from -m / --message / -m<v> / --message=<v>, or a bundle ending in m (`-am`). Block when the message:
+- contains a newline,
+- is over 120 characters,
+- in bash, contains a live substitution (`$(`, which the prescan also produces from a backtick), except exactly `$(cat FILE)`, or
+- in PowerShell, is double-quoted and contains `$` or a backtick.
+
+Case rows:
+- (bash, B) the command above
+- (bash, B) git commit -m "feat: subject" -m "<250-char body>"
+- keep (ps, A) git commit -m "short message"
+- add (bash, A) git commit -am "wip"
+- (bash, A) git commit -m "$(cat C:/x/msg.txt)"
+- (bash, A) git merge --no-ff -m "merge wt/batch14" wt/batch14
+
+Prototype (proposed.py, git_msg_reason): 0 of 45 table rows regress; 0 of 90 ordinary commands newly blocked.
+
+--- BH-02 [BLOCKER, bypass]
+COMMAND: Add-Content -Path "PROJECT KNOWLEDGE\07-CHANGELOG.md" -Value "T1-3 aborted the batch in 0.8 min as predicted; the live leak monitor fired on lane 4 and the freeze watch stayed silent, which is the expected outcome for a clean arm header on every lane. ok"
+DECISION: ALLOW: evaluate() returns None, and the real hook process prints nothing.
+
+All of these are ALLOWED too:
+- "text" > x.md
+- "- 2026-10-01 entry about the x flag" >> "PROJECT KNOWLEDGE\07-CHANGELOG.md"
+- Set-Content -Path x.md -Value "text"
+- Set-Content x.md "text" -Encoding utf8
+- Write-Output 'text' | Set-Content x.md
+- "text" | Add-Content x.md
+- Write-Output "text" | Out-File x.md
+- Out-File -FilePath x.md -InputObject "text"
+- [IO.File]::WriteAllText("x.md", "text")
+- [System.IO.File]::WriteAllText("C:\x\a.py", "print(1)", [Text.Encoding]::UTF8)
+- New-Item -Path x.md -ItemType File -Value "text" -Force
+- Set-Content x.md -Value @('line1','line2')
+- "text" | Tee-Object -FilePath x.md
+- powershell -Command "Set-Content x.md 'text'"
+- $t = @'...'@; [IO.File]::WriteAllText('x.md', $t)
+WHY: Two gaps line up here:
+- H5 only recognizes echo/printf/Write-Output with a `>` redirect.
+- H3 only fires on PowerShell writers when a here-string is on the line.
+
+So PowerShell's own write path, on this machine's primary shell, is open for literal text. Inside PowerShell double quotes, a markdown backtick is the escape character:
+- `` `b `` is a BACKSPACE, the same 0x08 class that reached 08 three times;
+- `` `" `` swallows the closing quote (I hit this myself while writing a test row);
+- `$x` expands.
+
+08's 2026-08-14 prevention rule #1 still says "`Add-Content -Encoding utf8` is SAFE for appending". That written rule actively steers agents to this shape once heredocs are denied. Likelihood: HIGH.
+FIX: New rule (R1), PowerShell only. Block when the data is a LITERAL and the target is doc/code (per DOC_CODE_RE), or the literal is over 120 characters. A literal means:
+- the value of -Value or -InputObject, or the second positional argument of Set-Content/Add-Content/sc/ac, is quoted, a here-string variable, or @(...);
+- or the pipeline's first stage is a bare quoted string or echo/Write-Output.
+
+The writer is any of: Set-Content/sc, Add-Content/ac, Out-File, Tee-Object/tee, New-Item, a `>`/`>>` redirect, or [IO.File]::WriteAll*/AppendAll* (match that one with a line regex, because the shared lexer splits at `(`). Evaluate the rule inside powershell -Command as well.
+
+Case rows:
+- (ps, B) the command above
+- (ps, B) "text" > x.md
+- (ps, B) [IO.File]::WriteAllText("x.md", "text")
+- (ps, A) Set-Content -Path flag.txt -Value 1
+- (ps, A) Get-Content a.md | Set-Content b.md
+- (ps, A) $r | ConvertTo-Json -Depth 5 | Set-Content out.json
+- (ps, A) "started $(Get-Date)" >> C:\x\scratchpad\run.txt
+- (ps, A) py -3.12 x.py | Out-File -Encoding utf8 C:\x\scratchpad\out.md
+
+Prototype: 0 regressions, 0 new false positives.
+
+--- BH-03 [SHOULD-FIX, bypass]
+COMMAND: sed -i 's/old phrase/new phrase/' "PROJECT KNOWLEDGE/04-HANDOFF.md"
+DECISION: ALLOW: evaluate() returns None, and the real hook process prints nothing.
+
+All of these are ALLOWED too:
+- sed -i "s/KI-115 open/KI-115 \`closed\`/" "PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md"
+- sed -i.bak 's/x/y/g' a.py
+- sed --in-place 's/a/b/' x.md
+- perl -pi -e 's/old/new/g' x.md
+- awk -i inplace '{gsub(/a/,"b")}1' x.md
+- find . -name '*.md' -exec sed -i 's/a/b/' {} +
+- (Get-Content x.md) -replace 'old','new' | Set-Content x.md
+- (Get-Content x.md -Raw).Replace('old','new') | Set-Content x.md -Encoding utf8
+WHY: Scope argument: the pattern and the replacement are doc/code text inside a shell-quoted string. sed then adds a SECOND rewriting layer: `&` means the whole match, `\1` is a backreference, `\n` is a newline, and a `/` in the text ends the expression. This is the same operation the hook already blocks as H4 (`p.write_text(s.replace(...))`, the first incident's shape), so leaving sed open simply moves H4 traffic onto it.
+
+Evidence that agents here really type it:
+- 08, 2026-09-27: an agent edited a script with `sed -i`.
+- 08, 2026-08-14: `Get-Content | Set-Content` corrupted 343 lines of `04-HANDOFF.md` (946 sequences), and it was a REPEAT. Its rule #1 ("NEVER edit a repo document with PowerShell Get-Content + Set-Content") is prose that has failed twice, which by CLAUDE.md rule 6 belongs in a gate.
+- The auto-mode system prompt explicitly suggests sed for small mechanical edits.
+
+Likelihood: HIGH. Rated SHOULD-FIX only because extending the hook to in-place edits needs an explicit scope ruling: block them, or record them as out of scope.
+FIX: New rule (R3), block:
+- sed/gsed with -i, -i<suffix>, --in-place[=...], or a short-option bundle containing i;
+- perl with a short bundle containing i, skipping -M/-m/-I/-x/-C/-d/-D (they take arguments, so `-Mstrict` must not match);
+- awk/gawk with -i inplace.
+
+Also recurse into find -exec/-execdir. This hook's evaluate() does not, unlike the parser module's own evaluate.
+
+In PowerShell: block a line that contains -replace/-creplace/-ireplace or .Replace( together with a writer whose target is doc/code.
+
+Case rows:
+- (bash, B) the command above
+- (ps, B) (Get-Content x.md) -replace 'old','new' | Set-Content x.md
+- (bash, A) sed -n '1,20p' a.md
+- (bash, A) sed -E 's/a/b/' a.md | head
+- (bash, A) perl -Mstrict -ne 'print if /x/' a.md
+- (ps, A) (Get-Content a.md) -replace 'a','b' | Select-String x
+- (ps, A) (Get-Content a.log) -replace '\s+$','' | Out-File C:\x\scratchpad\clean.txt
+
+Prototype: 0 regressions, 0 new false positives.
+
+--- BH-04 [SHOULD-FIX, bypass]
+COMMAND: git commit -m @'
+feat: x
+
+body with `code`
+'@
+DECISION: ALLOW: evaluate() returns None, and the real hook process prints nothing.
+
+All of these are ALLOWED too:
+- git commit -m @"\nfeat: `$x expands\n"@   (a double-quoted here-string, which DOES expand $ and backtick escapes)
+- $msg = @'\nfeat: x\n'@; git commit -m $msg
+- @'\nfeat: x\n'@ | git commit -F -
+WHY: The PowerShell tool's own instructions to every agent in this harness give `git commit -m @'...'@` as the way to commit, so it is the most likely PowerShell commit shape. Meanwhile the hook blocks its bash twin (`git commit -F - <<'EOF'`, H1), which is an unrecorded asymmetry. The single-quoted form carries low rewrite risk, but the double-quoted form is live expansion. Either way, a here-string is a shell-quoted string under USER RULING 29. Likelihood: HIGH.
+FIX: Treat git (commit/tag/notes/merge) as a here-string consumer in H3. Block when any of these happens:
+- a HERESTRING token is the -m value;
+- a $var assigned from a here-string on the same line is the -m value;
+- a here-string or literal is piped into `-F -` / `--file=-`.
+
+This is part of R2 in the prototype.
+
+Case rows:
+- (ps, B) the command above
+- (ps, B) @'\nfeat: x\n'@ | git commit -F -
+- keep (ps, A) $msg = @'\nfeat: x\n'@; Write-Host 'ok'
+
+If the user prefers to allow the single-quoted form, record that as a decision plus an ALLOW case row, and still block @"..."@.
+
+--- BH-05 [SHOULD-FIX, bypass]
+COMMAND: py -3.12 append.py "T1-3 aborted the batch in 0.8 min as predicted; the live leak monitor fired on lane 4 and the freeze watch stayed silent, which is the expected outcome for a clean arm header on every lane. ok"
+DECISION: ALLOW: the argument is 195 characters, under ARG_MAX=300. The real hook process prints nothing.
+
+All of these are ALLOWED too:
+- the same sentence after --entry
+- the sentence split across two arguments
+- py -3.12 -m tools.append "<400 chars>"   (no .py token)
+- & .\append.ps1 -Text "<400 chars>"
+- bash append.sh "<400 chars>"
+WHY: The fifth incident was a changelog sentence passed as a shell-quoted argument. Single prose sentences in this project typically run 150-300 characters, so H6 blocks only the longest of them. It also ignores `-m` modules and .ps1/.sh scripts. Likelihood: MEDIUM-HIGH.
+FIX: New rule (R6): replace raw length with a prose test. An argument with 8 or more spaces counts as prose; block when the prose arguments to a script total over 150 characters. A script is a python .py file or `-m` module, bash/sh with a .sh file, a .ps1 head, or powershell -File.
+
+Case rows:
+- (bash, B) the command above
+- (bash, B) the two-argument split
+- (ps, B) & .\append.ps1 -Text "<400>"
+- (bash, A) py -3.12 x.py "C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/evidence/2026-10-01-batch14-T1-ADVERSARIAL.txt"
+- (bash, A) py -3.12 x.py --label "a short label with nine spaces in it for the run"
+
+See BH-13: this blocks gemini_relay.py prompts more often.
+
+--- BH-06 [SHOULD-FIX, bypass]
+COMMAND: echo "- entry about `x`" | tee -a "PROJECT KNOWLEDGE/07-CHANGELOG.md"
+DECISION: ALLOW: evaluate() returns None, and the real hook process prints nothing.
+
+All of these are ALLOWED too:
+- echo "short text" | tee x.md
+- printf '%s\n' "- entry" | tee -a notes.md > /dev/null
+- echo "x" | dd of=a.md
+- echo "text" | cat >> "PROJECT KNOWLEDGE/07-CHANGELOG.md"
+- echo "open('x.md','w').write('x')" | py -3.12 -
+- "open('x.md','w').write('x')" | py -3.12 -   (PowerShell)
+- printf 'feat: x\n\nbody\n' | git commit -F -
+- cat <<< "long text" > a.md
+- tee a.md <<< "text"
+WHY: H5 only checks a redirect on the echo command itself. Piping into `tee -a` is the standard append idiom, and in this example the backticks inside double quotes are live command substitution. Likelihood: MEDIUM.
+FIX: New rule (R4), for a pipeline whose first stage is echo/printf/Write-Output or a bare literal. Block when a later stage is:
+- tee or Tee-Object, with a doc/code target or text over 120 characters;
+- cat or type with a `>` target that is doc/code or text over 120 characters;
+- dd with of=<doc>;
+- python with `-` or no script (code arriving on stdin);
+- git commit -F -.
+
+Also block `<<<` given to cat/tee that has a write target.
+
+Case rows:
+- (bash, B) the command above
+- (bash, B) echo "x" | py -3.12 -
+- (bash, A) PYTHONUTF8=1 py -3.12 x.py 2>&1 | tee run.log
+- (bash, A) git log --oneline -5 | tee out.txt
+- (bash, A) echo hi | py -3.12 x.py
+- (bash, A) cat <<< "$v" | grep x
+
+Prototype: 0 regressions, 0 new false positives.
+
+--- BH-07 [SHOULD-FIX, bypass]
+COMMAND: py -c "f=open('x.md', encoding='utf-8', mode='w'); f.write('x')"
+DECISION: ALLOW. WRITE_RE's `open\s*\([^,)]*,\s*(mode=)?['\"][wax]` only accepts the mode as the SECOND argument.
+
+All of these are ALLOWED too:
+- py -c "from pathlib import Path; Path('x.md').open('w').write('x')"
+- py -c "import pathlib; f=pathlib.Path('x.md').open(mode='a'); f.write('x')"
+- py -c "from pathlib import Path; open(Path('d')/'x.md', 'w').write('x')"   (`[^,)]*` stops at the inner paren)
+- py -c "f=open('x.md', 'r+'); ...; f.write(...)"
+- py -c "import os; fd=os.open('x.md', os.O_WRONLY|os.O_CREAT); os.write(fd, b'x')"
+- py -c "...fileinput.input('x.md', inplace=True)..."
+- py -Bc "open('x.md','w').write('x')"   (bundled -c is not seen)
+- py -c "import sys; sys.stdout.write('long text')" > x.md
+- py -3.12 -c "print('# heading')" > "PROJECT KNOWLEDGE/x.md"
+WHY: H4 is the gate for the first and fourth incidents (`py -c` doc edits). Ordinary variants of the same code slip past its regex, and so does `-c` output redirected straight into a doc. Likelihood: MEDIUM.
+FIX: New rule (R5). Replace the open() clause with one that tolerates one level of nested parens and finds the mode anywhere in the call:
+`\bopen\s*\((?:[^()]|\([^()]*\))*?['\"](?:[wax]|r\+)[bt+]*['\"]`
+
+Add these alternatives to the regex: `\bos\.open\s*\([^)]*O_(WRONLY|RDWR|APPEND|CREAT)` and `\binplace\s*=\s*True`. Accept `-c` bundles (`-[A-Za-z]*c`). Block a `-c` command whose redirect target is doc/code.
+
+Case rows:
+- (bash, B) the command above
+- (bash, B) the Path('x.md').open('w') row
+- (bash, B) the open(Path('d')/'x.md','w') row
+- (bash, B) the print('# heading') > PROJECT KNOWLEDGE/x.md row
+- (bash, A) py -c "print(open('x.md').read().count('a'))"   (the regex must not match a quoted 'a' outside open's arguments)
+- (bash, A) py -3.12 -c "import pathlib; print(pathlib.Path('a.md').open(encoding='utf-8').read()[:100])"
+- (bash, A) py -3.12 -c "import x4_headless" > out.txt
+
+Prototype: 0 regressions, 0 new false positives.
+
+--- BH-08 [SHOULD-FIX, false-positive]
+COMMAND: grep -n '<<' a.sh
+DECISION: BLOCK, with reason "a heredoc (`<<`): its body is text passed through the shell"; the real hook process prints a deny.
+
+Also BLOCKED:
+- grep -c "<<" "PROJECT KNOWLEDGE/08-MISTAKES.md"
+- echo '<<'
+- git log --grep '<<' --oneline
+- PowerShell: Select-String -Path a.md -Pattern '<<'   (real process: deny)
+WHY: posix shlex strips the quotes, so a quoted `'<<'` argument becomes the same token as a live opener, and H1 tests `"<<" in cmd`. In PowerShell there are no heredocs at all (`<` is reserved), yet H1 is applied to the ps shell too. Grepping for `<<` is exactly what agents auditing this rule, or this hook, will do. A noisy gate teaches bypassing it (CLAUDE.md rule 6).
+FIX: Make H1 fire only for an UNQUOTED `<<` in the bash prescan's clean text, and never for shell == 'ps'. Inner bash bodies (`bash -c`, `$(...)`) are still evaluated as bash.
+
+The prototype does this with a small quote-state scan of the clean text (unquoted_ltlt in proposed.py). The single-place fix would be for `_prescan_bash` to also return its live heredoc tags, since it already builds `pending`.
+
+Case rows:
+- (bash, A) grep -n '<<' a.sh
+- (bash, A) git log --grep '<<' --oneline
+- (ps, A) Select-String -Path a.md -Pattern '<<'
+- keep (bash, B) echo it\'s && cat > a.md <<EOF\nx\nEOF
+
+Prototype: 0 of 45 table rows regress; all 70 blocked heredoc shapes stay blocked.
+
+--- BH-09 [SHOULD-FIX, bypass]
+COMMAND: echo "feat: add `x` flag (punch-list #26)" > "C:/x/scratchpad/msg.txt" && git commit -F "C:/x/scratchpad/msg.txt"
+DECISION: ALLOW: under 120 characters, .txt target, no rule fires.
+
+Also ALLOWED: printf 'feat: x\n\nbody line one\nbody line two\n' > msg.txt
+WHY: The hook's own REASON tells the agent: "a commit message: Write it to a file, then git commit -F <file>". A hurried agent satisfies the letter of that with echo. The backticks inside double quotes are live command substitution, which is the 2c5973c5 corruption reached through the hook's own advice. Likelihood: MEDIUM.
+FIX: Two parts:
+- In the same command line, block when a file written by echo/printf/a literal is later given to git -F / --file (the prototype tracks this as echo_files).
+- Block echo/printf with a non-null redirect target when the raw bash text has a live, unescaped backtick (R7).
+
+The REASON could also say "use the Write tool" in the commit bullet.
+
+Case rows:
+- (bash, B) the command above
+- (bash, A) echo "exit=$?" >> "C:/x/scratchpad/t1_rungates.txt"
+- (bash, A) echo "started $(date)" >> run.txt
+
+--- BH-10 [NIT, bypass]
+COMMAND: $t = @'
+body
+'@; $t > x.md
+DECISION: ALLOW.
+
+Also ALLOWED: $t = @'\nbody\n'@; $t >> "PROJECT KNOWLEDGE\07-CHANGELOG.md"
+
+The Out-File and Set-Content forms of the same thing ARE blocked.
+WHY: H3's docstring promises `>`/`>>`, but it checks the redirect only on the here-string's OWN simple command; here the redirect is on a later command in the line. Likelihood: MEDIUM-LOW.
+FIX: In H3, compute redirect targets across the whole line (every command, ignoring $null, /dev/null, nul and fd-numbered 2>), not just the here-string's command.
+
+Case row: (ps, B) the command above.
+
+In the prototype: 0 new false positives, including on git status 2>$null; git log -1 2> err.txt.
+
+--- BH-11 [NIT, bypass]
+COMMAND: echo '#!/bin/bash' > run.sh
+DECISION: ALLOW.
+
+Also ALLOWED:
+- echo 'timeout = 30' > config.toml
+- echo 'print(1)' > x.pyw
+- echo '<p>x</p>' > page.html
+WHY: DOC_CODE_RE covers only .md .py .ps1 .json .jsonl .yml .yaml. 08 2026-09-27 records `bash run_all.sh` runner scripts written here, which are code. Likelihood: LOW-MEDIUM.
+FIX: Widen the extension list to .sh .bash .bat .cmd .toml .ini .cfg .html .js .ts .css .pyw .psm1. Do NOT add .txt: `echo "exit=$?" >> run.txt` must stay allowed.
+
+Case rows:
+- (bash, B) the command above
+- (bash, A) echo "exit=$?" >> "C:/x/scratchpad/t1_rungates.txt"
+
+--- BH-12 [NIT, false-positive]
+COMMAND: py -3.12 x.py <<< "y"
+DECISION: BLOCK, with reason "a here-string (`<<<`) fed to an interpreter".
+WHY: Here the here-string is stdin DATA for a script (answering a prompt), not code. H2's intent is `py - <<< "code"` or `bash <<< "code"`. This shape is rare.
+FIX: Apply H2 only when the interpreter has no script argument (python with `-` or nothing; bash/sh without a .sh file).
+
+Case rows:
+- (bash, A) the command above
+- keep (bash, B) py - <<< "print(1)"
+
+--- BH-13 [NIT, other]
+COMMAND: PYTHONUTF8=1 py -3.12 tools/story-dev/gemini_relay.py "In Pokemon Emerald, list every script label and flag set during the Mossdeep Gym puzzle. In Pokemon Emerald, ...(x7, 609 chars)"
+DECISION: BLOCK: H6, a quoted argument over 300 characters given to a Python script.
+WHY: The relay's own docstring documents the one-shot form `py gemini_relay.py "your question"`, and CLAUDE.md directs heavy Gemini use. So H6 already refuses documented usage for longer prompts, as an undeclared policy decision. Whether a research prompt counts as 'documentation text' is debatable, but the backtick and `$` hazard is identical, and the relay supports --file. This becomes far more frequent if BH-05 lowers the threshold.
+FIX: Make it an explicit decision:
+- add a (bash, B) row for the long relay prompt and a (bash, A) row for `py -3.12 tools/story-dev/gemini_relay.py --file C:/x/q.md --out C:/x/a.md`;
+- name `--file` in the REASON's 'text for a script' bullet;
+- update the relay docstring to prefer --file for anything longer than one line.
+
+--- BH-14 [NIT, other]
+COMMAND: Add-Content -Path "PROJECT KNOWLEDGE\07-CHANGELOG.md" -Value "..." -Encoding utf8
+DECISION: ALLOW (see BH-02).
+WHY: 08-MISTAKES.md 2026-08-14 prevention rule #1 states: "`Add-Content -Encoding utf8` is SAFE for appending". That is true about encoding, but it now recommends a shape that USER RULING 29 forbids whenever the appended text is a literal. An agent following the older doc will hit the hook (once BH-02 lands) or bypass the ruling (today).
+FIX: When the hook ships, annotate that 08 rule, without rewriting history, by appending a dated superseded-by note in the new entry and in the hook's REASON: Add-Content is encoding-safe, but literal doc text still goes through the Write tool. Grep 06 first, per CLAUDE.md rule 11.
+
+--- BH-15 [NIT, other]
+COMMAND: $c = "<250-char sentence>"; Set-Content x.md $c
+DECISION: ALLOW. The same is true for these residual shapes, which the prototype also still allows:
+- py -c "exec('open(\'x.md\',\'w\').write(1)')"
+- echo $'it\'s' && cat > a.md <<EOF\nx\nEOF   (the ANSI-C `$'..'` quote confuses the prescan, so the heredoc goes unseen)
+- >a.md echo "text"
+- echo x >| a.md   (the lexer reads `>|` as a pipe separator)
+- node -e "require('fs').writeFileSync('a.md','x')"
+- perl -e 'open(F,">a.md"); print F "x"'
+- gh pr create --title x --body "<250 chars>"
+- powershell -Command "@'`nbody`n'@ | Set-Content x.md"
+- find . -name a.md -exec sh -c 'cat > {} <<EOF...' \;   (the prototype fixes this one via find -exec recursion)
+- short multi-line printf/echo into a .txt: printf 'feat: x\n\nbody\n' > msg.txt, or five echo >> m.txt lines totalling under 120 characters
+WHY: These are deliberate evasion or exotic shapes: text built in a variable, exec of a string, ANSI-C quoting, unusual redirects, interpreters this project does not use, and gh, which this push-to-main workflow does not use. SH-2 grades a bypass as acceptable only if it is blocked OR RECORDED, and the hook's KNOWN LIMITS list currently names only variables, eval, base64 and non-python interpreters fed by a file.
+FIX: Append these shapes to KNOWN LIMITS, in the docstring and in the PREDICTIONS note, so SH-2 can grade them as 'recorded'. No rules are needed: each is evasion-shaped or vanishingly rare here, and an aggregate-echo rule would false-positive on multi-line log writes.
+
+====================================================================================================
+FALSE-POSITIVE HUNTER
+====================================================================================================
+SUMMARY: SH-2 fails as filed. Three commands that obeyed the rule are DENIED, two of them from THIS session: [651] in the main transcript and [943] in one of its subagents. The third, [1437], is from session 4d43f83e. The real hook process confirmed all three (DENY, exit 0), and each control (the same command minus the token the rule keys on) is ALLOWED.
+
+What was replayed: 18,884 Bash/PowerShell tool calls from 294 transcript files. These are the main transcript, its subagents, and the 5 newest other sessions with their subagents. After dedupe that is 18,484 unique commands (18,405 bash, 79 PowerShell). Each went through `evaluate()` and 2,127 were blocked:
+- H1 (heredoc): 1,892
+- H4 (`python -c` that writes): 174
+- H5 (`echo`/`printf` into a file): 55
+- H6 (long argument to a script): 6
+- H2 and H3: 0. The corpus holds no PowerShell here-strings and only 8 `<<<` commands, so these two rules got almost no false-positive exposure.
+
+How the 2,127 classify:
+- **TRUE: 2,057** (1,006 this session, 1,051 other). Heredoc script bodies (`py - <<EOF`, 1,226), `cat > file <<EOF` content, `git commit -F - <<EOF` messages (111), `printf` commit-message files (45+), and `python -c` doc/code edits with replacement literals.
+- **Strict false positives: 3.** [651] and [943] are H6 misfires; [1437] is an H5 misfire.
+- **Borderline: 1.** [668] has the right verdict for the wrong reason (see BL-1).
+- **Blocked by design but carrying no doc/code text: 66.** 64 are H4: 48 scratch extractions, 10 `gh api` saves, 4 CRLF/LF normalizations, 1 line deletion, 1 concatenation of a Write-made file. 2 are H1: an empty heredoc and a stdout-only report.
+
+Every H1 block is a real, terminated heredoc; none is a misparse of `<<` in a mention, a comment or arithmetic. Every H4 match is a real file write; tokenizing the code showed none was a mention inside a string literal.
+
+Fixes, tried in a copy of the hook only (nothing in either worktree was touched):
+- Three narrow fixes (FP-1, FP-2, FP-3) unblock exactly [651], [943], [668] and [1437], and flip no TRUE command.
+- The original case table passes 45/45. The patched table passes 52/52 with 7 new rows. The 3 new ALLOW rows FAIL on the original hook, so they discriminate; the 4 guard rows block on both versions.
+- Cost of FP-2: the existing H6 row's stand-in `LONG = "x" * 310` must become prose (`"word " * 62`).
+
+Parser crashes and fail-open:
+- 0 crashes in the replay, and 0 in 480,584 fuzz evaluations (every command truncated at 1/3, 1/2 and 2/3, plus 10 unbalanced tails, under both shells).
+- The real hook process fails open, printing nothing and exiting 0, on garbage stdin, empty stdin, a missing parser, and a parser that raises. A heredoc control still gets DENY.
+
+Files are in `C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/shadv/fphunter/`:
+- `classified.json`: every blocked command, with its rule, label, sub-category and sources.
+- `patched/block_shell_text.py`: the three fixes and the 7 rows.
+- Scripts: `replay.py`, `analyze.py`, `classify.py`, `run_hook.py`, `compare_patched.py`, `fuzz.py`, `failopen.py`.
+
+The `__pycache__` in `.claude/hooks` dates from 2026-09-28 and is git-ignored; this run did not create it.
+STATS: Replayed 18,884 Bash/PowerShell tool calls from 294 transcript files: 18,484 unique (18,405 bash, 79 PowerShell). Blocked 2,127:
+- by rule: H1 1,892, H4 174, H5 55, H6 6, H2 0, H3 0
+- TRUE: 2,057 (1,006 this session, 1,051 other)
+- strict FALSE POSITIVES: 3, namely [651] and [943] from this session and [1437] from session 4d43f83e
+- borderline: 1, [668]
+- by design with no text: 66 (64 H4, 2 H1)
+
+Parser crashes: 0 in the replay and 0 in 480,584 fuzz evaluations. Fail-open confirmed on the real process for 5 probes.
+
+Patched copy: flips exactly 4 commands (the 3 false positives plus [668]) and 0 TRUE. The original table passes 45/45 and the patched table 52/52.
+
+--- FP-1 [SHOULD-FIX, false-positive]
+COMMAND: SP="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad"; cd "C:/Remote Projects/pokebot-wt-ch24" && git show HEAD:sandbox-pokebot/plugins/custom_modes/story_mode.py > "$SP/sm_head.py" && py -3.12 -c "\nimport ast,sys\ndef fn(src,name):\n    return next(n for n in ast.walk(ast.parse(src)) if isinstance(n,ast.FunctionDef) and n.name==name)\nhead=open(sys.argv[1],encoding='utf-8').read()\nnew=open('sandbox-pokebot/plugins/custom_modes/story_mode.py',encoding='utf-8').read()\nobs=fn(head,'on_battle_started')\nold_try=[t for t in obs.body if isinstance(t,ast.Try) and 'StoryDexCatchStrategy' in ast.dump(t)]\nhelper=fn(new,'_dex_catch_commit')\nnew_try=[t for t in helper.body if isinstance(t,ast.Try)]\nprint('HEAD inline dex-commit try blocks:',len(old_try),' helper try blocks:',len(new_try))\nprint('AST-identical (the extraction moved the block unchanged):', ast.dump(old_try[0])==ast.dump(new_try[0]))\nprint('helper tail:', ast.unparse(helper.body[-1]))\nnobs=fn(new,'on_battle_started')\nprint('new on_battle_started still holds an inline StoryDexCatchStrategy:', 'StoryDexCatchStrategy' in ast.dump(nobs))\n" "$SP/sm_head.py"; ls -la /tmp/p2b/runner_os0.out 2>&1; tail -5 /tmp/p2b/runner_os0.out 2>&1; cat "C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/tasks/bei2xjoqk.output" | tail -5   [replay index 651; main transcript 01ddd963; \n = newline inside the quoted -c code]
+DECISION: DENY (real hook process, exit 0): "BLOCKED: a quoted argument over 300 characters given to a Python script: text passed through the shell." Control: the same command with "$SP/sm_head.py" renamed to "$SP/sm_head.txt" is ALLOWED (no output).
+WHY: H6 misfired. It fires when ANY token ends in .py and ANY token exceeds 300 chars. In `py -c CODE x.py`, no script runs: the token over 300 characters is the -c code itself, and the .py token is sys.argv[1], a DATA file (a `git show` copy that ast parses).
+
+The code is read-only. H4 scanned it and found no write. The spec's own ALLOW list and the hook's docstring both say "read-only `py -c`" is allowed.
+
+This shape (comparing two .py revisions through ast in a -c one-liner) is routine in this project, so the misfire will recur.
+FIX: Skip H6 when python runs -c code, meaning the `-c` comes before any positional argument. Add a helper:
+
+def _runs_c_code(rest):
+    for t in rest[1:]:
+        if t == '-c': return True
+        if not t.startswith('-'): return False
+    return False
+
+Then gate H6 with `not _runs_c_code(rest) and ...`.
+
+A script's own `-c` option is still caught, because there the positional script comes first.
+
+Case rows (verified in the patched copy: the ALLOW row fails on the original hook, and both guard rows block on both versions):
+- ("bash", A, f'py -3.12 -c "{LONGRO}" "$SP/sm_head.py"'), where LONGRO = "import ast,sys\n" + "".join(f"a{k}=open(sys.argv[1],encoding='utf-8').read().count('def ')\n" for k in range(6)) + "print(a0)"
+- guard ("bash", B, f'py -3.12 x.py -c "{LONG}"')
+- guard ("bash", B, f'py -3.12 -c "{LONGRO}"; py -3.12 a.py "{LONG}"')
+
+--- FP-2 [SHOULD-FIX, false-positive]
+COMMAND: cd "C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/pe" && python ../learn.py TREECKO,GROVYLE,SCEPTILE,TORCHIC,COMBUSKEN,BLAZIKEN,MUDKIP,MARSHTOMP,SWAMPERT,POOCHYENA,MIGHTYENA,ZIGZAGOON,LINOONE,TAILLOW,SWELLOW,BEAUTIFLY,DUSTOX,WHISMUR,LOUDRED,EXPLOUD,RALTS,KIRLIA,GARDEVOIR,WINGULL,PELIPPER,MARILL,AZUMARILL,LOTAD,LOMBRE,LUDICOLO,SEEDOT,NUZLEAF,SHROOMISH,BRELOOM,MAKUHITA,HARIYAMA,MACHOP,MACHOKE,MEDITITE,MEDICHAM,SKITTY,DELCATTY,ARON,LAIRON,GEODUDE,GRAVELER,NOSEPASS,SABLEYE,MAWILE,ZUBAT,GOLBAT,GULPIN,SWALOT,SPOINK,GRUMPIG,SPINDA,SWABLU,ALTARIA,TROPIUS,TRAPINCH,VIBRAVA,CACNEA,BALTOY,SANDSHREW,BARBOACH,WHISCASH,CORPHISH,CRAWDAUNT,CARVANHA,SHARPEDO,WAILMER,TENTACOOL,GOLDEEN,GYARADOS,ODDISH,GLOOM,ILLUMISE,VOLBEAT,ROSELIA,SURSKIT,MASQUERAIN,NINCADA,NINJASK,SHEDINJA,LILEEP,ANORITH,KIRLIA 40 FIRE,ELECTRIC 2>&1 | paste - - | awk '{ if ($0 ~ /SHOCK_WAVE|OVERHEAT|FLAMETHROWER|THUNDERBOLT|FIRE_BLAST|L[0-9]+ [A-Z_]+\([1-9]/) print }'   [replay index 943; this session's subagent agent-abf991aa6bfbb9a33]
+DECISION: DENY (real hook process, exit 0): "BLOCKED: a quoted argument over 300 characters given to a Python script: text passed through the shell." Control: the same command with ../learn.py renamed to ../learn is ALLOWED.
+WHY: H6 misfired. The token over 300 characters is an UNQUOTED comma list of species constants: query DATA for a Write-made scratch script, with no prose, no quoting, and nothing the shell could rewrite.
+
+H6 is specified as "a QUOTED argument over 300 characters (text smuggled in as an argument)". The lexer drops quotes, so the implementation counts every long word.
+FIX: Require whitespace in the long token: `any(len(t) > ARG_MAX and re.search(r"\s", t) for t in rest[1:])`. An unquoted shell word cannot contain whitespace, so this test is exactly "a quoted argument". All three real H6 incidents carry prose with spaces and stay blocked ([410] park_handoff.py, [423] archive_doc_block.py --pointer, [806] t1_append_logs.py).
+
+COST: the existing H6 case row uses LONG = "x" * 310, which has no whitespace, and flips to ALLOW. Change the stand-in to prose, LONG = "word " * 62. The patched table then passes 52/52.
+
+Case row (fails on the original hook, passes on the patched one):
+("bash", A, f"python ../learn.py {SPECIES} 40 FIRE,ELECTRIC 2>&1"), where SPECIES = ",".join(["TREECKO","GROVYLE","SCEPTILE","TORCHIC","COMBUSKEN","BLAZIKEN","MUDKIP","MARSHTOMP"] * 6)
+
+--- FP-3 [NIT, false-positive]
+COMMAND: cd "/c/Remote Projects/Pokebot_Gen3_Enhancement"; S="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/4d43f83e-b23e-47c1-8104-dd6e316ab5f3/scratchpad"; cat "$S/changelog-add.md" >> "PROJECT KNOWLEDGE/07-CHANGELOG.md" && echo "changelog appended"; printf '\n' >> "PROJECT KNOWLEDGE/08-MISTAKES.md"; cat "$S/mistakes-draft.md" >> "PROJECT KNOWLEDGE/08-MISTAKES.md" && echo "mistakes appended"; tail -3 "PROJECT KNOWLEDGE/08-MISTAKES.md"   [replay index 1437; other session 4d43f83e]
+DECISION: DENY (real hook process, exit 0): "BLOCKED: `echo`/`printf` writing documentation or code text into a file." Control: the same command without the `printf '\n' >> ...` clause is ALLOWED.
+WHY: H5 misfired: a doc-file target alone triggers it, whatever the content. This command is the COMPLIANT workflow: both drafts were written with Write, then appended with `cat >>`. The only thing the shell carried was a blank separator line (`printf '\n'`), so no text passed through it.
+FIX: In H5, before the target and length test, return None when the text has no visible content: `if not re.sub(r"\\[nrt0]|%[sbc]|\s|^-[neE]+\b", "", text): return None`.
+
+Case rows (verified):
+- ALLOW ("bash", A, "cat \"$S/m.md\" >> \"PROJECT KNOWLEDGE/08-MISTAKES.md\"; printf '\\n' >> \"PROJECT KNOWLEDGE/08-MISTAKES.md\""). Fails on the original hook.
+- guard ("bash", B, "printf '\\n%s\\n' 'x = 1' >> tools/story-dev/x.py")
+- guard ("bash", B, "echo -e \"\\nimport os\" >> a.py")
+Both guards still block.
+
+--- BL-1 [NIT, other]
+COMMAND: cd "C:/Remote Projects/pokebot-wt-ch24" && SP="...01ddd963.../scratchpad"; git show 9a4fbbeb:sandbox-pokebot/plugins/custom_modes/story_mode.py > "$SP/sm_9a4f.py"; git show f961218b:sandbox-pokebot/plugins/custom_modes/story_mode.py > "$SP/sm_f961.py"; PYTHONUTF8=1 py -3.12 -c "<read-only ast compare, ~1100 chars, including print('# RULING 24 step 4: the extraction is a MOVE. Compared: 9a4fbbeb on_battle_started (inline) vs f961218b StoryMode._dex_catch_commit.')>" "$SP/sm_9a4f.py" "$SP/sm_f961.py" | tee tools/story-dev/evidence/2026-09-29-r24oversurvival-EXTRACT.txt   [replay index 668, main transcript; the full exact string is in classified.json]
+DECISION: DENY via H6, the same wrong reason as FP-1.
+WHY: Right verdict, wrong rule. The -c code is read-only, but its printed literal prose header is piped through `tee` into a TRACKED evidence file, so documentation text did pass through a shell-quoted string.
+
+No H rule covers that path (H4 sees no write, and H5 only watches echo/printf). FP-1's fix would therefore let this shape through. This is not counted as a false positive.
+FIX: Keep FP-1 anyway: [651] is a pure false positive. Hand this shape to the bypass hunter, then either record it as a known limit ("prose printed by -c code into `| tee`/`>` a tracked file") or add one rule: python -c whose stdout is redirected or tee'd to a doc/code/evidence path counts as H4.
+
+Guard row if that rule is added: ("bash", B, "py -c \"print('# a header line of prose')\" | tee tools/story-dev/evidence/x.txt").
+
+--- BD-1 [NIT, other]
+COMMAND: Example (replay index 1736, other session's subagent): SCRATCH="C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\4d43f83e-b23e-47c1-8104-dd6e316ab5f3\scratchpad"\nmkdir -p "$SCRATCH"\ncd "$SCRATCH"\ngh api repos/pret/pokeemerald/contents/data/scripts/hall_of_fame.inc > hof.json 2>&1\necho "exit: $?"\npy -3.12 -c "\nimport json, base64\nd = json.load(open('hof.json', encoding='utf-8'))\ncontent = base64.b64decode(d['content']).decode('utf-8', errors='replace')\nopen('hof.inc', 'w', encoding='utf-8').write(content)\nprint(len(content))\n"\ngrep -n "IS_CHAMPION" hof.inc   (\n = newline). Also [187]: cd "/c/Remote Projects/Pokebot_Gen3_Enhancement/PROJECT KNOWLEDGE" && PYTHONUTF8=1 py -3.12 -c "\np='06-DECISIONS-LOG.md'; b=open(p,'rb').read().replace(b'\r\n', b'\n'); open(p,'wb').write(b); print('crlf now', b.count(b'\r\n'))\n"; ...   Also [735]: append a Write-made scratch file to stock_topoff.py.
+DECISION: DENY (H4): "`python -c` code that writes a file". This covers 64 commands (28 from this session's main transcript or subagents, 36 from other sessions).
+WHY: No doc/code text passed through the shell: what got written came from a file, an API, a JSON journal or a byte transform. Breakdown:
+- 48 extract task/agent output or a doc slice into scratch
+- 10 save a base64-decoded `gh api` download
+- 4 CRLF/LF normalizations ([68], [187], [503], [741])
+- 1 deletes doc lines by index ([1563])
+- 1 appends a Write-made file ([735])
+
+This is NOT a misfire. The spec blocks every writing `-c` and carves out only read-only `-c`, since the `-c` program is itself code in a shell string. It is the largest cost H4 imposes on habitual, harmless work.
+FIX: Do not narrow H4. A carve-out for scratch-path targets would leak, because scratch synthesis .md files are later spliced into PROJECT KNOWLEDGE (e.g. `{ cat <<'EOF' ...; cat "$S/money_synthesis.md"; } > "$N"`, a TRUE H1 block).
+
+Instead:
+1. Record it in the spec as an accepted cost: "H4 also blocks extraction, download and EOL-fix -c one-liners: 64 of 18,484 replayed".
+2. Add one line to REASON: "* an extractor/downloader/EOL fixer that writes a file: Write it as a script".
+3. Optionally add a committed CRLF/LF normalizer tool, so the 4 EOL fixes have a non-shell path.
+
+--- BD-2 [NIT, other]
+COMMAND: [799] main transcript: cd "C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad" && cat > /dev/null <<'X'\nX\necho ok   AND [1767] other-session subagent agent-adb5c151f0443057c: cat << 'EOF'\n\n====...POKEEMERALD MAPS: TRAINER & COORD_EVENT EXTRACTION...\nEOF\n (a ~4 KB report printed to stdout)
+DECISION: DENY (H1): "a heredoc (`<<`): its body is text passed through the shell". Confirmed for [799] through the real hook process.
+WHY: Neither command writes doc/code text anywhere. [799] has an empty body sent to /dev/null (a hook probe). [1767] prints a subagent's report to stdout.
+
+H1 is deliberately unconditional, and SH-3 requires a bare `cat <<'EOF'` with no file to be DENIED, so this is spec-correct.
+FIX: No change. These 2 are the full cost of H1's unconditional design across 1,892 heredoc blocks. Every other heredoc was a script body, a file body or a commit message.
+
+--- FO-1 [NIT, other]
+COMMAND: All 18,484 unique replayed commands. Also 480,584 fuzz variants: each command truncated at 1/3, 1/2 and 2/3, plus the tails " ' $( ` <<  <<' @'\n \\ $((1<< \n) appended, under both 'bash' and 'ps'. Plus hook-process probes: stdin '{not json', empty stdin, a command given as a list, a heredoc with the parser module missing (a scratch copy of the hook alone), and a heredoc with a parser stub whose functions raise (scratch copy).
+DECISION: evaluate() raised 0 times in the replay and 0 times in the fuzz. The real hook process returned exit 0 with NO output (ALLOW) for garbage stdin, empty stdin, the list-typed command, the missing parser and the raising parser. The control heredoc on the real hook returned exit 0 with DENY.
+WHY: This verifies the fail-OPEN contract. No real command crashed the parser, so there was no crashed real command to confirm; the forced-crash and missing-parser probes exercise the same path.
+FIX: None needed. Optionally add the raising-parser probe to gate S5 next to the missing-parser probe. It tests the `except Exception` path inside `evaluate`, not just the import.
+
+====================================================================================================
+THE FOLD (a builder agent; its replay and mutant artifacts: scratchpad/shadv2/)
+====================================================================================================
+## Report: the shell-text hook with the adversarial review folded in
+
+All four acceptance criteria are met. I edited only `.claude/hooks/block_shell_text.py` and `tools/story-dev/selftest_shell_text_hook.py` in the worktree. `block_destructive_git.py`, PROJECT KNOWLEDGE and the main checkout are untouched. Nothing is committed.
+
+**Heads-up before you stage:** three other files in the worktree changed while I worked: `tools/story-dev/compare_arms.py`, `probe_compare_arms.py` and `run_gates.py`, between 11:26 and 11:29. I did not touch them, so another agent is editing this worktree concurrently. HEAD is still `4c519273` on `wt/batch14`. Stage explicit paths.
+
+### 1. Case table and gates
+- **Case table: 156 rows, all passing.** That is the 45 original rows (the five incidents unchanged) plus 111 new ones covering every finding in both directions.
+  - Quoted: `OK  block_shell_text.py: 156/156 cases (the five incidents, H1-H11, every adversarial finding both ways, mentions, ordinary work, the hatch)`.
+  - One original row changed: the H6 stand-in `LONG` is now `"word " * 62` instead of `"x" * 310`. FP-2 makes the old one ALLOW, as the review predicted.
+- **Shell-text gate: PASS.** S1–S6 pass, plus two checks I added:
+  - S5 now includes FO-1's raising-parser probe: `ok   S5 beside a parser whose functions RAISE the hook fails OPEN: nothing printed, exit 0`.
+  - New S7: `ok   S7 every rule is LOAD-BEARING: 33 in-memory mutants, each reverting one rule or fix, each FAILS the case table (not load-bearing: none)`.
+  - Both new checks are fault-tested:
+    - a do-nothing mutant and a missing snippet each turn S7 red;
+    - a hook copy whose catch-all is narrowed to `ImportError` turns the raising probe red: `rc=1 ... RuntimeError: parser fault arm -> check passes: False`.
+- **Destructive-git gate still passes:** `OK  block_destructive_git.py: 318/318 cases`, then `PASS`.
+
+### 2. Every new rule is load-bearing
+`shadv2/mutants.py` runs 35 in-memory mutants: either one exact source snippet is replaced and exec'd as a fresh module, or one module global is rebound. All 35 are LOAD-BEARING. Samples:
+- `FP-1 ... -> 1 row(s) red`
+- `BH-08b ... [ps] Select-String ... '<<'`
+- `BH-01e (the PowerShell backtick half alone) -> 1 row(s) red`
+- `BH-02a -> 7 row(s) red`
+- `BH-07a (the original write regex) -> 6 row(s) red`
+- `BH-11 -> 4 row(s) red`
+- Summary line: `35 mutants; NOT load-bearing / not applied: none`.
+
+### 3. The replay (`shadv2/`)
+I rebuilt the hunter's exact corpus by capping each transcript at its recorded call count: `tool calls read: 18884`, `unique commands: 18484; bash 18405, ps 79`. The original hook reproduces the hunter's figure exactly (`blocked_old: 2127`). Crashes: 0 for both hooks.
+
+| | Original 4c519273 | New hook |
+|---|---|---|
+| Total blocked | 2,127 | **2,290** |
+| H1 | 1,892 | 1,892 |
+| H4 | 174 | 175 |
+| H5 | 55 | 55 |
+| H6 | 6 | 11 |
+| H7 (in-place edit) | – | 77 |
+| H9 (git message) | – | 80 |
+| H2, H3, H8, H10, H11 | 0 | 0 |
+
+**Newly allowed: 4.** These are exactly the hunter's [651], [943] and [1437] (FP-1, FP-2, FP-3) plus the borderline [668] (BL-1, now listed in KNOWN LIMITS). None of the hunter's 2,057 TRUE or 66 accepted-by-design blocks was lost, and none changed rule.
+
+**Newly blocked: 167.** Every one is classified from the evidence of the stage that actually fired (`classified_new.json`, `UNEXPLAINED: none`):
+- **H9, 80, TRUE:** 72 `git commit -m` and 8 `git tag -a -m`, all real messages. Which test fired, per offending `-m` value: over 120 characters (18), over 120 plus a newline (73), over 120 plus a newline plus a live `$(` (3).
+- **H7, 77, TRUE:** all `sed -i` whose file operand is code or doc.
+  - 56 target repo-relative files: `03`/`04`/`08` docs, `story_harness.py`, and [17965], which fault-injects into tracked `lint_docs.py`.
+  - 21 target scratch or `/tmp` `.py`/`.sh` files.
+- **H6, 8, TRUE:** `archive_doc_block.py` calls with doc prose as arguments, the fifth incident's shape.
+- **H5, 1, TRUE:** [4865], `printf` of script lines into `run_w12_off3.sh` (the BH-11 `.sh` widening).
+- **H4, 1, accepted by design:** [2500], a read-only `py -c` extractor whose output goes `>` into a scratch `.md`. No doc text passes through the shell; it is the BD-1 class (decision D's rationale), caught by BH-07's redirect rule.
+- **The only false positive left: [2500], accepted for that stated reason.**
+
+**Two false positives in my own first draft, fixed:** [1414] and [12734] are `sed -i` on `.txt` commit drafts whose sed script mentioned "PROJECT KNOWLEDGE". H7 now tests only real file operands, never the edit script, and a row covers it.
+
+**Fuzz:** `evaluations: 480584 crashes: 0 in 378s slowest: []` (no single evaluation over 1 s).
+
+**Real hook process:**
+- garbage, empty and list-typed stdin → `rc=0 ALLOW (nothing printed)`;
+- the H1 control and one probe per new rule family → valid ASCII JSON denies;
+- the four former false positives → nothing printed.
+
+**Bypass harness, 317 shapes (184 + 43 + the 90-command battery):** `FALSE-POS 0`. The 12 misses are exactly the review's known-limit set, all recorded in KNOWN LIMITS (`.txt` stays excluded by decision).
+
+### 4. Speed
+| Set | Max `evaluate()` | Max real process |
+|---|---|---|
+| 50 longest commands (6,198–20,599 chars, all heredocs H1 denies early) | 0.002 s | 0.084 s |
+| 50 longest the hook ALLOWS (every rule runs to the end) | 0.006 s | 0.086 s |
+
+The hook timeout is 10 s.
+
+### Judgement calls
+1. **H7 counts only file operands.** It is scoped to DOC/CODE targets per your decision, and the edit script never counts. It parses sed's script and `-e`/`-f`, perl's `-e` (and `-pie`, which is `-i` with suffix "e"), and awk's program, `-f`, `-v` and `-F`. `sed -i` on a `.txt` is allowed, with a row for it.
+2. **H7 is a line rule.** The shared lexer starts a new command at a word beginning with `{`, which cuts `awk '{...}' x.md` before its file.
+3. **The line rules (H7–H11) use a small word splitter, `_words`.** It runs over the parser's own pre-scanned text to keep quoting information, so the pre-scan still lives in one place.
+4. **H6 counts space characters**, the letter of "8 or more spaces", not all whitespace.
+5. **FP-1:** python counts as a script only when its first positional is `.py`/`.pyw` or `-m`. A script's own `-c` option still counts, and a guard row covers that.
+6. **The review's FP-1 stand-in would have been vacuous.** It has fewer than 8 spaces, so the new prose test lets it through even with FP-1 reverted. I replaced it with spaced code, and the S7 mutant proves the row discriminates.
+7. **H10 thresholds:**
+   - `<<<` given to cat/tee and `dd of=` both get the doc-or-120-character test.
+   - Python reading its program from stdin and `git -F -` are blocked unconditionally, as in the review.
+8. **H11's backtick test** needs a live backtick anywhere on the line and a `$(` in the echo's own words. A line with an unrelated backtick plus `echo "$(date)" >> f` would be blocked (rare).
+9. **PowerShell `-m` backtick test:** a backtick in any double-quoted string on the line counts, because the pre-scan resolves backtick escapes before the `-m` word is seen (rare false positive).
+10. **PowerShell here-string variables** are tracked per line (`$t = @'…'@`), not "any `$var` once a here-string appears", as in the prototype.
+11. **Narrower details:**
+    - H3's line-wide redirect targets ignore `$null`, `/dev/null`, `nul` and fd 2–9, but count `*>`, which includes stdout.
+    - `New-Item`/`ni` join H8's writers but not H3's.
+    - The write regex is the review's, plus `rb+`/`rt+`.
+    - The hatch is honoured in front of any command of the pipeline a line rule fires on.
+    - Files written earlier on the same line are tracked in order for BH-09, including PowerShell writer literals and tee targets.
+12. **REASON:** I added decision D's two bullets (the extractor/downloader/EOL fixer one, and `gemini_relay.py --file`), decision E's Add-Content line, and "with the Write tool" in the commit bullet.
+
+### Left for you (outside my edit scope)
+- The PREDICTIONS note's KNOWN LIMITS entries for SH-2 grading.
+- The `gemini_relay.py` docstring change suggested in BH-13.
+- The superseded-by note on the 08 rule (BH-14).
+- Committing.
+
+Everything is in C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/shadv2/. Start with `replay_summary.json`, `classified_new.json`, `mutants.py`, `fuzz2.out` and `timing.py`.
