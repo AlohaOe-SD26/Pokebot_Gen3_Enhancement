@@ -1,0 +1,204 @@
+# #27-battleeq (KI-108) live arm Wid-FIX — prediction BE-2 (DESIGN 68f7f529, filed before any code)
+# worktree C:\Remote Projects\pokebot-wt-ch24 branch wt/battleeq HEAD 68f7f529; uncommitted (the coordinator commits): [' M sandbox-pokebot/modules/battle_state.py', ' M tools/story-dev/story_harness.py']
+# battle_state.py sha256 598c903acbb37277; story_harness.py sha256 7c5300807fdfc942
+# fixture r20_pregym1_party4_r116.ss1 (asserted = 9710585350be by verify_fixtures.py before the runs) --frames 30000
+# knobs: {'KI47_ARM': 'Wid', 'KI47_INSTALL': '0'}  (POKEBOT_KI108_FAULT_OLDEQ UNSET = the fix)
+# HARNESS_EXIT_ON_MANUAL=1 (ends the loop 120 frames after the driver hands to Manual; the verdict prints before)
+# command: (cd tools/story-dev) story_harness.py r20_pregym1_party4_r116.ss1 --driver ki47oor --frames 30000 --log <scratch>/Wid-FIX.log > <scratch>/Wid-FIX.stdout.txt 2>&1
+# started 02:56:26 PM ended 02:56:33 PM (Los Angeles), 7 s, exit=0
+# handler debug log: Story-debug-20261001-145628.log
+
+## handler debug log: [FAINT-CHOOSER] / [KI47] / [KI96] / [KI101] / [TURN] lines
+f137408 [BATTLE] [TURN 0] Shedinja L22 1/1 [Burn] -> UseMove:Growl(pp40)  vs Whismur L6 24/24
+f138256 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 3 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138343 [BATTLE] [FAINT-CHOOSER] identity: chosen=Whismur#7E9BB3BA menu_slot=3 -> cursor target 3 candidates=[1, 2, 3] snapshot_order=012345
+f138372 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2, 3] on_field=[0] party=[(0, 'Shedinja', 0), (1, 'Poochyena', 16), (2, 'Nincada', 20), (3, 'Whismur', 23)]
+f138372 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[1, 2, 3] on_field=[0] party_in_menu=4 [identity]
+f138372 [BATTLE] [FAINT-CHOOSER] A at cursor=3 pid=7E9BB3BA sp=Whismur frames=0
+f138388 [BATTLE] [FAINT-CHOOSER] A at cursor=3 pid=7E9BB3BA sp=Whismur frames=16
+f138396 [BATTLE] [FAINT-CHOOSER] A at cursor=3 pid=7E9BB3BA sp=Whismur frames=24
+f138404 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 3 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138630 [BATTLE] [TURN 1] Whismur L6 23/23 -> UseMove:Pound(pp35)  vs Whismur L6 24/24
+f139032 [BATTLE] [TURN 2] Whismur L6 23/23 -> UseMove:Pound(pp34)  vs Whismur L6 16/24
+f139433 [BATTLE] [TURN 3] Whismur L6 23/23 -> UseMove:Pound(pp33)  vs Whismur L6 8/24
+
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Wid-FIX.log
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Wid {'arm': 'Wid', 'install': False, 'ki108_fault_oldeq': False, 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA'], 'staged': ['Shedinja', 'Poochyena', 'Nincada', 'Whismur']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f159: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f1694: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Whismur:L6:exp179|Poochyena:L4:exp119|Nincada:L6:exp406|Shedinja:L22:exp16610]
+f1716: PARTY CHANGE [Whismur:L6:exp179|Poochyena:L4:exp119|Nincada:L6:exp406|Shedinja:L22:exp16610] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f3425: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp236]
+f3579: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp236] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3638: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3649: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='WHISMUR grew to LV. 7!' scripts=[] party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3675: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+[ki47oor] R arm = 'Wid'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 2
+[ki47oor] R chosen_field_idx = 3
+[ki47oor] R chosen_menu_idx = 3
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R driver_reread = '012345'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138256
+[ki47oor] R f1 = 138404
+[ki47oor] R fainted_species = 'Shedinja'
+[ki47oor] R field_frame = 138625
+[ki47oor] R field_pid = '7E9BB3BA'
+[ki47oor] R handler_frames = 148
+[ki47oor] R install = False
+[ki47oor] R ki108_fault_oldeq = False
+[ki47oor] R order_before = '012345'
+[ki47oor] R order_written = '012345'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 95, 'Down': 3}
+[ki47oor] R snapshot_seen = '012345'
+[ki47oor] R staged = ['Shedinja', 'Poochyena', 'Nincada', 'Whismur']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = None
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_reread_saw_memory': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+f3676: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3676 — ending the loop at f3796
+[done] ran 3797 frames; final mode=Manual party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Whismur L7: Pound, Uproar
+[PARTY-ACCT] STAGE 0 SUMMARY — 3797 get_party() recomputes, 13 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 3797 recomputes (party_accounting_ledger.jsonl)
+
+## stdout (> run.stdout.txt 2>&1)
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Wid-FIX.log
+Running mGBA 0.10.2
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Wid {'arm': 'Wid', 'install': False, 'ki108_fault_oldeq': False, 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA'], 'staged': ['Shedinja', 'Poochyena', 'Nincada', 'Whismur']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f159: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Whismur♀ encountered at Route 116 ─────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 2F404C32        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 6               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 14  │  7  │  6  │ 26  │ 21 │ 17  │ 91 │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Soundproof      │                                          │
+│ │ Hidden Power │ Grass (44)      │Moves: Pound, Uproar                      │
+│ │  Shiny Value │ 58,079          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Abra   │  25 /  │   1,035 /   │   110 │  6.43% │     0 │    110 │   N/A │ │
+│ │        │  136   │   64,828    │       │        │       │        │       │ │
+│ │ Aron   │  48 /  │   1,687 /   │    15 │  0.88% │     0 │     15 │   N/A │ │
+│ │        │  121   │   53,042    │       │        │       │        │       │ │
+│ │ Geodu… │  90 /  │    724 /    │    12 │  0.70% │     0 │     12 │   N/A │ │
+│ │        │   96   │   14,272    │       │        │       │        │       │ │
+│ │ Gloom  │ 111 /  │  47,298 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │  111   │   47,298    │       │        │       │        │       │ │
+│ │ Kecle… │  88 /  │  20,914 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   88   │   20,914    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     2 │  0.12% │     0 │      2 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Linoo… │  93 /  │  12,044 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   93   │   12,044    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  0.18% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Makuh… │  86 /  │  32,273 /   │    10 │  0.58% │     0 │     10 │   N/A │ │
+│ │        │   86   │   54,166    │       │        │       │        │       │ │
+│ │ Ninca… │  46 /  │   1,493 /   │   245 │ 14.31% │     0 │    245 │   N/A │ │
+│ │        │  147   │   59,889    │       │        │       │        │       │ │
+│ │ Oddish │  77 /  │  12,220 /   │    18 │  1.05% │     0 │     18 │   N/A │ │
+│ │        │  120   │   13,961    │       │        │       │        │       │ │
+│ │ Pooch… │  26 /  │    403 /    │   501 │ 29.26% │     0 │    501 │   N/A │ │
+│ │        │  148   │   65,468    │       │        │       │        │       │ │
+│ │ Shupp… │  88 /  │   4,437 /   │    78 │  4.56% │     0 │     78 │   N/A │ │
+│ │        │  121   │   60,077    │       │        │       │        │       │ │
+│ │ Skitty │  65 /  │  13,297 /   │    20 │  1.17% │     0 │     20 │   N/A │ │
+│ │        │  140   │   59,019    │       │        │       │        │       │ │
+│ │ Taill… │  22 /  │   1,352 /   │   360 │ 21.03% │     0 │    360 │   N/A │ │
+│ │        │  141   │   65,260    │       │        │       │        │       │ │
+│ │ Torko… │ 121 /  │   7,026 /   │    15 │  0.88% │     0 │     15 │   N/A │ │
+│ │        │  121   │    7,026    │       │        │       │        │       │ │
+│ │ Whism… │  16 /  │   1,322 /   │   283 │ 16.53% │     0 │    283 │   N/A │ │
+│ │        │  152   │   64,723    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │  22,625 /   │     8 │  0.47% │     0 │      8 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │  0.23% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Zubat  │  94 /  │  38,183 /   │    25 │  1.46% │     0 │     25 │   N/A │ │
+│ │        │  113   │   60,501    │       │        │       │        │       │ │
+│ │ Total  │  16 /  │    403 /    │ 1,712 │   100% │     0 │  1,712 │   N/A │ │
+│ │        │  152   │   65,468    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f1694: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Whismur:L6:exp179|Poochyena:L4:exp119|Nincada:L6:exp406|Shedinja:L22:exp16610]
+f1716: PARTY CHANGE [Whismur:L6:exp179|Poochyena:L4:exp119|Nincada:L6:exp406|Shedinja:L22:exp16610] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f3425: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp236]
+f3579: PARTY CHANGE [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp236] -> [Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3638: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3649: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='WHISMUR grew to LV. 7!' scripts=[] party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+f3675: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+[ki47oor] R arm = 'Wid'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 2
+[ki47oor] R chosen_field_idx = 3
+[ki47oor] R chosen_menu_idx = 3
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R driver_reread = '012345'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138256
+[ki47oor] R f1 = 138404
+[ki47oor] R fainted_species = 'Shedinja'
+[ki47oor] R field_frame = 138625
+[ki47oor] R field_pid = '7E9BB3BA'
+[ki47oor] R handler_frames = 148
+[ki47oor] R install = False
+[ki47oor] R ki108_fault_oldeq = False
+[ki47oor] R order_before = '012345'
+[ki47oor] R order_written = '012345'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 95, 'Down': 3}
+[ki47oor] R snapshot_seen = '012345'
+[ki47oor] R staged = ['Shedinja', 'Poochyena', 'Nincada', 'Whismur']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = None
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_reread_saw_memory': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+f3676: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3676 — ending the loop at f3796
+[done] ran 3797 frames; final mode=Manual party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Whismur L7: Pound, Uproar
+[PARTY-ACCT] STAGE 0 SUMMARY — 3797 get_party() recomputes, 13 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 3797 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-01_14
+-56-33.ss1 created!
+Updated `current_state.ss1`!

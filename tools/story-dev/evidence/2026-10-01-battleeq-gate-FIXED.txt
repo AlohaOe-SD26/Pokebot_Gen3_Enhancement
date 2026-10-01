@@ -1,0 +1,102 @@
+# #27-battleeq (KI-108) — probe_battle_state_eq.py on the FIXED battle_state.py (+ the §B registry row), exit=0
+# worktree C:/Remote Projects/pokebot-wt-ch24, branch wt/battleeq, HEAD 68f7f529 + uncommitted fix (the coordinator
+# commits). Each mutant's red set below was written in the file BEFORE this, its first graded run; all 14 matched.
+# Also run with POKEBOT_KI108_FAULT_OLDEQ=1 inherited from the environment: the gate cleared it, printed a note, and
+# still passed (25 rows, red: none), so an inherited switch cannot decide it.
+# The UNFIXED run is evidence/2026-10-01-battleeq-gate-UNFIXED.txt.
+
+ROWS - the REAL get_battle_state()/BattleState from sandbox-pokebot\modules\battle_state.py
+  ok   C0       order=012345 turn=3 stored=True
+  ok   C1       second call is the first's object: True
+  ok   K1       first=104523 second=012345 second_is_old=True
+  ok   K2       first=104523 second=104523 second_is_first=True
+  ok   K3-fault frame 3: first=104523 second=012345 second_is_frame1_object=True
+  ok   K3-fix   frame 3: first=104523 second=104523 second_is_frame2_object=True
+  ok   K4-fault first turn=4 second turn=3 second_is_old=True
+  ok   K4-fix   first turn=4 second turn=4 second_is_first=True
+  ok   K5       (second has new order, second is first): fault=(True, True) fix=(True, True)
+  ok   K6       identical-equal / NotImplemented / hp-unequal: fault=True fix=True
+  ok   K6-fault (==order-only, ==turn-only, !=order-only) = (True, True, False)
+  ok   K6-fix   (==order, ==turn, !=order, !=turn) = (False, False, True, True)
+  ok   K7-fault switch "1": (==order-only, ==turn-only) = (True, True)
+  ok   K7-fix   values that restored the old compare: none; per-call flip 1/unset/1/0 -> [True, False, True, False]
+  ok   K8-fault (frame after f1, frame after f2, last_check after f2) = (1, 1, 2)
+  ok   K8-fix   (f1 frame, f2 (frame, check), f3 (frame, check)) = (1, (2, 2), (2, 3))
+  ok   K9-runA  (dispatcher, handler) fault=('012345', '012345') fix=('012345', '012345')
+  ok   K9-fault driver re-read=104523 handler=012345
+  ok   K9-fix   driver re-read=104523 handler=104523 handler_is_reread=True
+  ok   W1       __eq__ reads _battler_party_order on ['other', 'self']
+  ok   W2       __eq__ reads _current_turn on ['other', 'self']
+  ok   W3       4 read(s) of the two fields; unguarded at []
+  ok   W4       read inside __eq__: True; read outside any function at []
+  ok   W5       POKEBOT_KI108_FAULT_OLDEQ in 29-DISABLED-FEATURES-REGISTRY.md: True
+  ok   W6       early return=True builds local=True stores=True returns the local=True
+  -> 25 rows, red: none
+MUTANTS (graded only when the unmutated subject passes every row)
+  ok   M0 the upstream mirror's battle_state.py, verbatim (the unfixed code)
+         predicted ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4']
+         actual    ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4']
+  ok   M1 revert to the mirror's __eq__ (the KI-108 `if` removed; its WHY comment left in place)
+         predicted ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4']
+         actual    ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4']
+  ok   M2 drop only the turn
+         predicted ['K4-fix', 'K6-fix', 'K7-fix', 'W2']
+         actual    ['K4-fix', 'K6-fix', 'K7-fix', 'W2']
+  ok   M3 drop only the order
+         predicted ['K2', 'K3-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1']
+         actual    ['K2', 'K3-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1']
+  ok   M4 ignore the switch (always the fix)
+         predicted ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+         actual    ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+  ok   M5 read the switch at IMPORT (loaded with the switch unset)
+         predicted ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+         actual    ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+  ok   M6 get_battle_state returns the CACHE value, not the local
+         predicted ['K1', 'K3-fault', 'K4-fault', 'K9-fault', 'W6']
+         actual    ['K1', 'K3-fault', 'K4-fault', 'K9-fault', 'W6']
+  ok   M7 the cache setter ALWAYS stores (state_cache.py)
+         predicted ['K1', 'K3-fault', 'K3-fix', 'K4-fault', 'K8-fault', 'K8-fix', 'K9-fault']
+         actual    ['K1', 'K3-fault', 'K3-fix', 'K4-fault', 'K8-fault', 'K8-fix', 'K9-fault']
+  ok   M8 comment-only mentions of every mutant's code (must redden NOTHING)
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   M9 rename the switch literal in battle_state.py
+         predicted ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+         actual    ['K1', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault', 'W3', 'W4']
+  ok   M10 re-read on age 0 (the early return removed: the design's REJECTED alternative)
+         predicted ['C1', 'K1', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K9-fault', 'K9-fix', 'K9-runA', 'W6']
+         actual    ['C1', 'K1', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K9-fault', 'K9-fix', 'K9-runA', 'W6']
+  ok   M11 the new object is never stored in the cache
+         predicted ['C0', 'C1', 'K1', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K8-fault', 'K8-fix', 'K9-fault', 'K9-fix', 'K9-runA', 'W6']
+         actual    ['C0', 'C1', 'K1', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K8-fault', 'K8-fix', 'K9-fault', 'K9-fix', 'K9-runA', 'W6']
+  ok   M12 __eq__ returns False (not NotImplemented) for a non-BattleState
+         predicted ['K6']
+         actual    ['K6']
+  ok   M13 the switch's registry row removed
+         predicted ['W5']
+         actual    ['W5']
+  ok   COVERAGE every row is in some mutant's red set (uncovered: none)
+  (14 mutants)
+
+PASS - every get_battle_state() caller in a frame sees the first caller's order and turn; the switch restores the 9-field compare per call
+
+## the full suite (cd tools/story-dev && PYTHONUTF8=1 py -3.12 run_gates.py), 3:00-3:10 PM Los Angeles, exit=1
+  PASS  lint_docs.py                       exit=0     0.3s
+  FAIL  audit_doc_consistency.py           exit=1     1.5s
+  FAIL  audit_doc_citations.py             exit=1    14.9s
+  PASS  probe_dmgaudit.py                  exit=0     9.2s
+  PASS  probe_battle_state_eq.py           exit=0     1.1s
+FAILED: 2 of 145
+# Both failures are documentation counts and line citations that this item's code changes moved; the docs named are
+# outside this builder's permitted files (they are the coordinator's "docs on completion"):
+      FAIL  04-HANDOFF.md:623 claims 144 gates; run_gates.py has 145: 'on its way to **144'
+      FAIL  02-ARCHITECTURE.md:296 is a RUNNABLE `run_gates.py` command whose comment says 144; the suite has 145.
+      FAIL  04-HANDOFF.md:720 is a RUNNABLE `run_gates.py --quick` command whose comment says 130; the no-ROM subset has 131.
+      FAIL  04-HANDOFF.md:624 claims drift=28; MEASURED drift is 29: 'EXPECT 28 differing'
+      FAIL  04-HANDOFF.md:312 claims drift=28; MEASURED drift is 29: '28 as of 2026-09-30 (LATEST)'
+      FAIL  03-PUNCH-LIST.md:667 cites `story_harness.py:16192` for `Ch24GrindMode`, but `Ch24GrindMode` spans `story_harness.py:16218-16542`
+      FAIL  03-PUNCH-LIST.md:724 cites `story_harness.py:16192` for `Ch24GrindMode`, but `Ch24GrindMode` spans `story_harness.py:16218-16542`
+      FAIL  04-HANDOFF.md:396 cites `story_harness.py:18364` for `Ch24PhoebeMode`, but `Ch24PhoebeMode` spans `story_harness.py:18390-18818`
+      FAIL  05-KNOWN-ISSUES.md:3225 cites `battle_state.py:547` for `can_use_move`, but `can_use_move` spans `battle_state.py:557-571`
+# drift 28 -> 29 is battle_state.py now differing sandbox <-> custom (expected until promotion); +26 lines in
+# story_harness.py (the ki47oor driver) and +10 in battle_state.py shifted the three cited definitions.

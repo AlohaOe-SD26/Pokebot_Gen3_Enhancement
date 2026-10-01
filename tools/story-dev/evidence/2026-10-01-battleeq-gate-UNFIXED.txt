@@ -1,0 +1,46 @@
+# #27-battleeq (KI-108) — REPRODUCE FIRST: probe_battle_state_eq.py against the UNFIXED battle_state.py
+# worktree C:/Remote Projects/pokebot-wt-ch24, branch wt/battleeq, HEAD 68f7f529 (design + predictions only);
+# `git diff --stat` on battle_state.py / state_cache.py / 29-DISABLED-FEATURES-REGISTRY.md was EMPTY at this run;
+# battle_state.py sha256 prefix 27e6504a455659fc (byte-identical to the upstream mirror, `diff` exit 0).
+# Command: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_battle_state_eq.py   -> exit=1
+#
+# BE-1's parenthetical list of FIX rows: K2, K3-fix, K4-fix, K6-fix, K8-fix, K9-fix.
+# Red here: those six PLUS K7-fix, W1, W2, W3, W4, W5 (see the builder's note in the report: K7 "only '1' restores"
+# and the W rows "the reads are in __eq__ / the switch guards them / its literal is in battle_state.py and the
+# registry" are FIX-PRESENCE checks by construction and cannot pass before the fix and its registry row exist).
+# Every FAULT row (K1, K3-fault, K4-fault, K6-fault, K7-fault, K8-fault, K9-fault), every both-arm row (C0, C1, K5,
+# K6, K9-runA) and W6 pass on the unfixed code.
+
+ROWS - the REAL get_battle_state()/BattleState from sandbox-pokebot\modules\battle_state.py
+  ok   C0       order=012345 turn=3 stored=True
+  ok   C1       second call is the first's object: True
+  ok   K1       first=104523 second=012345 second_is_old=True
+  FAIL K2       first=104523 second=012345 second_is_first=False
+  ok   K3-fault frame 3: first=104523 second=012345 second_is_frame1_object=True
+  FAIL K3-fix   frame 3: first=104523 second=012345 second_is_frame2_object=False
+  ok   K4-fault first turn=4 second turn=3 second_is_old=True
+  FAIL K4-fix   first turn=4 second turn=3 second_is_first=False
+  ok   K5       (second has new order, second is first): fault=(True, True) fix=(True, True)
+  ok   K6       identical-equal / NotImplemented / hp-unequal: fault=True fix=True
+  ok   K6-fault (==order-only, ==turn-only, !=order-only) = (True, True, False)
+  FAIL K6-fix   (==order, ==turn, !=order, !=turn) = (True, True, False, False)
+  ok   K7-fault switch "1": (==order-only, ==turn-only) = (True, True)
+  FAIL K7-fix   values that restored the old compare: ["'0'", "''", "'true'", "'yes'", "'01'", "' 1'", "'1 '", "'2'", 'None']; per-call flip 1/unset/1/0 -> [True, True, True, True]
+  ok   K8-fault (frame after f1, frame after f2, last_check after f2) = (1, 1, 2)
+  FAIL K8-fix   (f1 frame, f2 (frame, check), f3 (frame, check)) = (1, (1, 2), (1, 3))
+  ok   K9-runA  (dispatcher, handler) fault=('012345', '012345') fix=('012345', '012345')
+  ok   K9-fault driver re-read=104523 handler=012345
+  FAIL K9-fix   driver re-read=104523 handler=012345 handler_is_reread=False
+  FAIL W1       __eq__ reads _battler_party_order on []
+  FAIL W2       __eq__ reads _current_turn on []
+  FAIL W3       0 read(s) of the two fields; unguarded at []
+  FAIL W4       read inside __eq__: False; read outside any function at []
+  FAIL W5       POKEBOT_KI108_FAULT_OLDEQ in 29-DISABLED-FEATURES-REGISTRY.md: False
+  ok   W6       early return=True builds local=True stores=True returns the local=True
+  -> 25 rows, red: ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4', 'W5']
+MUTANTS (graded only when the unmutated subject passes every row)
+  FAIL MUTANTS NOT GRADED: the unmutated subject has 12 red row(s) ['K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix', 'W1', 'W2', 'W3', 'W4', 'W5'] - no mutant can prove anything against a red baseline
+  ok   COVERAGE every row is in some mutant's red set (uncovered: none)
+  (14 mutants)
+
+FAIL - 13 check(s) failed

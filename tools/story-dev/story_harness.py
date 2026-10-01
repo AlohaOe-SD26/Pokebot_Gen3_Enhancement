@@ -320,7 +320,12 @@ class Ki47OorMode(FaintReproMode):
         ARM = _os.environ.get("KI47_ARM", "C0")
         if ARM not in self.ORDERS:
             raise BotModeError(f"{TAG}: KI47_ARM={ARM!r} not recognised")
-        R: dict = {"arm": ARM}
+        # `KI47_INSTALL=0` (`#27-battleeq`, KI-108): skip the DIRECT cache install below and leave KI-108's Run-B shape
+        # (age the entry, a plain re-read by the driver, then the handler's own call). Default 1 = the `#27-ki47range`
+        # driver unchanged. The KI-108 fault switch's value is recorded so every evidence file names its arm.
+        INSTALL = _os.environ.get("KI47_INSTALL", "1") != "0"
+        R: dict = {"arm": ARM, "install": INSTALL,
+                   "ki108_fault_oldeq": _os.environ.get("POKEBOT_KI108_FAULT_OLDEQ") == "1"}
         st: dict = {"calls": 0, "presses": {}, "pressing": False}
         frame = lambda: context.emulator.get_frame_count()  # noqa: E731
 
@@ -397,9 +402,19 @@ class Ki47OorMode(FaintReproMode):
 
                 _item_k47 = _sc_k47.battle_state
                 _item_k47._last_check_frame = _item_k47._last_check_frame - 1
-                _item_k47.value = get_battle_state()
-                st["snapshot_seen"] = bytes(_sc_k47.battle_state.value._battler_party_order).hex()
-                st["snapshot_via_api"] = bytes(get_battle_state()._battler_party_order).hex()
+                if INSTALL:
+                    _item_k47.value = get_battle_state()
+                    st["snapshot_seen"] = bytes(_sc_k47.battle_state.value._battler_party_order).hex()
+                    st["snapshot_via_api"] = bytes(get_battle_state()._battler_party_order).hex()
+                else:
+                    # KI-108's Run-B shape (`KI47_INSTALL=0`): the entry is aged ONE frame above, the driver re-reads
+                    # through the API (so the cache SETTER decides, by `BattleState.__eq__`, whether to keep the old
+                    # object), and the handler's own `get_battle_state()` follows in this same frame. `driver_reread`
+                    # is the order the re-read built from memory; `snapshot_seen` the order of the object the cache now
+                    # HOLDS, which is what the handler's same-frame call returns (rule 7: what it acts on). No second
+                    # API call here: it would be one more same-frame caller.
+                    st["driver_reread"] = bytes(get_battle_state()._battler_party_order).hex()
+                    st["snapshot_seen"] = bytes(_sc_k47.battle_state.value._battler_party_order).hex()
                 st["f0"] = frame()
                 st["pressing"] = True
             try:
@@ -447,12 +462,22 @@ class Ki47OorMode(FaintReproMode):
         froze = "fault" in st or R["handler_frames"] is None or R["handler_frames"] >= 3000
         sent_bench = st.get("field_pid") in bench_pids
         want_snapshot = self.ORDERS[ARM] or st.get("order_before")
-        R["verdict"] = {"reached_the_chooser": st["calls"] >= 1,
-                        "injection_reached_snapshot": st.get("snapshot_seen") is not None
-                        and st.get("snapshot_seen") == want_snapshot == st.get("snapshot_via_api"),
-                        "froze": froze, "sent_a_bench_mon": sent_bench,
-                        "sent_the_chosen_mon": st.get("field_pid") is not None and st.get("field_pid") == R["chosen_pid"],
-                        "entry_before_menu": st.get("entry_state") != "PARTY_MENU"}
+        R["verdict"] = {"reached_the_chooser": st["calls"] >= 1}
+        if INSTALL:
+            R["verdict"]["injection_reached_snapshot"] = (st.get("snapshot_seen") is not None
+                                                          and st.get("snapshot_seen") == want_snapshot
+                                                          == st.get("snapshot_via_api"))
+        else:
+            # ‼ THE PREMISE IS REDEFINED FOR THE RUN-B SHAPE. What the handler receives (`snapshot_seen`) is the
+            # READING here, not a premise: under `POKEBOT_KI108_FAULT_OLDEQ=1` it is EXPECTED to be the old order
+            # (that is KI-108), and with the fix the written one. The premise is only that the driver's plain re-read
+            # was FRESH and saw the memory the arm wrote, i.e. the cache setter really was asked to choose.
+            R["verdict"]["runb_reread_saw_memory"] = (st.get("driver_reread") is not None
+                                                      and st.get("driver_reread") == st.get("order_written"))
+        R["verdict"].update({"froze": froze, "sent_a_bench_mon": sent_bench,
+                             "sent_the_chosen_mon": st.get("field_pid") is not None
+                             and st.get("field_pid") == R["chosen_pid"],
+                             "entry_before_menu": st.get("entry_state") != "PARTY_MENU"})
         if ARM == "Swp":
             # A premise conjunct false = the arm is VACUOUS (addendum §5), never a result.
             R["verdict"]["premise_swp"] = (st.get("fainted_species") == "Shedinja"
@@ -28749,6 +28774,208 @@ if args.break_state:
         _bmr.is_waiting_for_input = lambda: False
     log("[break-state] FAULT INJECTED: AskWhetherToLearn->Unknown, is_waiting_for_input->False")
 
+# ---- KI-108 / `#27-battleeq` driver knobs (harness-only; none starts with POKEBOT_; both OFF by default) -------------
+# Design: `ai-research-notes/2026-10-01-battleeq-DESIGN.md` §"What gets built" 3. Unset, neither changes anything.
+#   KI108_LEVER=1   a harness-only FIRST READER: a listener appended to `context.bot_listeners` that calls
+#                   `get_battle_state()` every frame while `battle_is_active()`. It stands in for the GUI debug Battle
+#                   tab (`gui/debug_tabs.py:427`, which reads right after `run_frame()`), so the bot's own reads become
+#                   SECOND callers of their frame. Listeners run before the controller stack advances. Re-appended after
+#                   a reset (the loop rebuilds `context.bot_listeners` when the frame counter goes backwards).
+#   KI108_CENSUS=1  rebinds `get_battle_state` in `modules.battle_state` and in EVERY loaded module that bound it by
+#                   name, wrapping the original WITHOUT changing what it returns. One line per call goes to
+#                   `<LOG>.census.txt` (every call that is not a quiet lever read is copied to the log): the harness
+#                   step, the emulator frame, the call's index within that frame, the caller's file:line, the order (hex)
+#                   and turn RETURNED, and the order and turn in MEMORY from a PURE `read_symbol` (never the cache).
+#                   ‼ Rule 7 (instrument the ACTION): it also wraps `scroll_to_party_menu_index` where the KI-96 / KI-101
+#                   re-maps (`battle_action_selection`) and the faint chooser (`battle_handler`) act through it, logging
+#                   the menu slot ACTED ON with the PID in `gPlayerParty` at that slot (a pure read), and it wraps
+#                   `context.emulator.write_bytes`, so a frame in which anything wrote memory AFTER that frame's first
+#                   read is listed separately (the emulator does not run between two calls in one frame, so only such a
+#                   write can make a same-frame returned-vs-memory difference "explained"). A summary prints at the end.
+_K108_LEVER = _os.environ.get("KI108_LEVER") == "1"
+_K108_CENSUS = _os.environ.get("KI108_CENSUS") == "1"
+_K108: dict = {"frame": None, "idx": 0, "in_lever": False, "late_write_frames": set(), "writes": [], "sites": {},
+               "calls": 0, "quiet": 0, "acts": 0, "errors": 0, "file": None, "rebound": [], "lever_calls": 0}
+
+
+def _k108_site(start: int) -> str:
+    """The first caller frame at or above `start` that is not memory/emulator plumbing, as `file.py:line`."""
+    f = sys._getframe(start)
+    while f is not None and Path(f.f_code.co_filename).name in ("memory.py", "libmgba.py", "debug_utilities.py"):
+        f = f.f_back
+    return f"{Path(f.f_code.co_filename).name}:{f.f_lineno}" if f is not None else "?"
+
+
+class _Ki108LeverListener:
+    """`KI108_LEVER=1`: one extra `get_battle_state()` per battle frame, called through the MODULE attribute so the
+    census (if on) sees it. It returns nothing and touches nothing else."""
+
+    def handle_frame(self, bot_mode, frame):
+        if battle_is_active():
+            import modules.battle_state as _k108_bsm
+
+            _K108["in_lever"] = True
+            try:
+                _k108_bsm.get_battle_state()
+                _K108["lever_calls"] += 1
+            finally:
+                _K108["in_lever"] = False
+
+
+def _k108_install_lever() -> None:
+    if _K108_LEVER and not any(isinstance(x, _Ki108LeverListener) for x in context.bot_listeners):
+        context.bot_listeners.append(_Ki108LeverListener())
+
+
+def _k108_install_census() -> None:
+    import importlib
+
+    import modules.battle_state as _bsm
+    from modules.memory import read_symbol as _pure_read
+
+    for _name in ("modules.battle_action_selection", "modules.battle_handler", "modules.battle_move_replacing",
+                  "modules.battle_strategies.default", "modules.modes._listeners"):
+        importlib.import_module(_name)  # already imported in a normal run; makes sure each gets rebound
+    orig = _bsm.get_battle_state
+    _K108["file"] = open(str(LOG) + ".census.txt", "w", encoding="utf-8")
+
+    def get_battle_state():
+        result = orig()
+        try:
+            fc = context.emulator.get_frame_count()
+            if fc != _K108["frame"]:
+                _K108["frame"], _K108["idx"] = fc, 0
+            _K108["idx"] += 1
+            idx = _K108["idx"]
+            lever = _K108["in_lever"]
+            site = "LEVER(story_harness)" if lever else _k108_site(2)
+            mem_o = bytes(_pure_read("gBattlePartyCurrentOrder", size=3)).hex()
+            mem_t = _pure_read("gBattleResults", offset=0x13, size=1)[0]
+            ret_o = bytes(result._battler_party_order).hex()
+            ret_t = result._current_turn
+            o_diff, t_diff = ret_o != mem_o, ret_t != mem_t
+            wrote = fc in _K108["late_write_frames"]
+            s = _K108["sites"].setdefault(site, {"calls": 0, "idx2": 0, "o": 0, "t": 0, "o_w": 0, "t_w": 0})
+            s["calls"] += 1
+            s["idx2"] += idx >= 2
+            s["o"] += o_diff
+            s["t"] += t_diff
+            s["o_w"] += o_diff and wrote
+            s["t_w"] += t_diff and wrote
+            _K108["calls"] += 1
+            line = (f"[KI108-CENSUS] s{context.frame} f{fc} i{idx} {site} ret={ret_o}/t{ret_t} mem={mem_o}/t{mem_t}"
+                    + (" ORDER-DIFF" if o_diff else "") + (" TURN-DIFF" if t_diff else "")
+                    + (" (after an in-frame write)" if wrote and (o_diff or t_diff) else ""))
+            _K108["file"].write(line + "\n")
+            if lever and idx == 1 and not (o_diff or t_diff):
+                _K108["quiet"] += 1
+            else:
+                log(line)
+        except Exception as error:  # noqa: BLE001 - an instrument must never break the battle; counted and shown
+            _K108["errors"] += 1
+            if _K108["errors"] <= 5:
+                log(f"[KI108-CENSUS] <instrument error {type(error).__name__}: {error}>")
+        return result
+
+    get_battle_state.__wrapped__ = orig
+    _bsm.get_battle_state = get_battle_state
+    _K108["rebound"].append("modules.battle_state")
+    for name, mod in list(sys.modules.items()):
+        if (name.startswith(("modules.", "plugins.")) and mod is not _bsm
+                and getattr(mod, "get_battle_state", None) is orig):
+            setattr(mod, "get_battle_state", get_battle_state)
+            _K108["rebound"].append(name)
+    left = [n for n, m in list(sys.modules.items()) if n.startswith(("modules.", "plugins."))
+            and getattr(m, "get_battle_state", None) is orig]
+    log(f"[KI108] CENSUS ON: get_battle_state rebound in {_K108['rebound']}; still bound to the original: "
+        f"{left or 'none'}; one line per call -> {_K108['file'].name}")
+
+    def _mk_act(modname: str) -> None:
+        mod = sys.modules[modname]
+        real = mod.scroll_to_party_menu_index
+        short = modname.rsplit(".", 1)[-1]
+
+        def scroll_to_party_menu_index(target_index, *a, **k):
+            try:
+                from modules.pokemon import Pokemon as _K108Pokemon
+
+                _K108["acts"] += 1
+                pid, species = None, "?"
+                if 0 <= int(target_index) < 6:
+                    raw = bytes(_pure_read("gPlayerParty", offset=100 * int(target_index), size=100))
+                    pid = int.from_bytes(raw[:4], "little")
+                    try:
+                        species = _K108Pokemon(raw).species.name  # a pure decode of the bytes just read
+                    except Exception as error:  # noqa: BLE001 - the PID still identifies the slot
+                        species = f"<undecodable {type(error).__name__}>"
+                log(f"[KI108-ACT] s{context.frame} f{context.emulator.get_frame_count()} "
+                    f"{short}.scroll_to_party_menu_index({target_index}) caller={_k108_site(2)} "
+                    f"pid_at_slot={'?' if pid is None else f'{pid:08X}'} species_at_slot={species} "
+                    f"mem_order={bytes(_pure_read('gBattlePartyCurrentOrder', size=3)).hex()} "
+                    f"mem_turn={_pure_read('gBattleResults', offset=0x13, size=1)[0]}")
+            except Exception as error:  # noqa: BLE001 - instrument only
+                log(f"[KI108-ACT] <instrument error {type(error).__name__}: {error}>")
+            return (yield from real(target_index, *a, **k))
+
+        mod.scroll_to_party_menu_index = scroll_to_party_menu_index
+
+    for _m in ("modules.battle_action_selection", "modules.battle_handler"):
+        _mk_act(_m)
+
+    real_write = context.emulator.write_bytes
+
+    def write_bytes(address, data, *a, **k):
+        try:
+            fc = context.emulator.get_frame_count()
+            late = fc == _K108["frame"] and _K108["idx"] >= 1
+            if late:
+                _K108["late_write_frames"].add(fc)
+            _K108["writes"].append((fc, _k108_site(2), f"0x{address:08X}+{len(data)}", late))
+        except Exception:  # noqa: BLE001 - instrument only; the write itself must still happen
+            _K108["errors"] += 1
+        return real_write(address, data, *a, **k)
+
+    context.emulator.write_bytes = write_bytes
+
+
+def _k108_summary() -> None:
+    if not _K108_CENSUS:
+        return
+    try:
+        _K108["file"].close()
+    except Exception:  # noqa: BLE001
+        pass
+    log("=" * 88)
+    log(f"[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ={_os.environ.get('POKEBOT_KI108_FAULT_OLDEQ')!r} "
+        f"lever={_K108_LEVER} (lever reads {_K108['lever_calls']})  calls={_K108['calls']}  "
+        f"quiet index-1 lever reads equal to memory (census file only)={_K108['quiet']}  "
+        f"acted-on slot lines={_K108['acts']}  instrument errors={_K108['errors']}")
+    log("[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which after an in-frame "
+        "write) | returned!=memory TURN (of which after an in-frame write)")
+    for site, s in sorted(_K108["sites"].items()):
+        log(f"    {site:<40} calls={s['calls']:<6} idx>=2={s['idx2']:<6} order_diff={s['o']} ({s['o_w']})  "
+            f"turn_diff={s['t']} ({s['t_w']})")
+    tot = {k: sum(s[k] for s in _K108["sites"].values()) for k in ("idx2", "o", "t", "o_w", "t_w")}
+    bot = {k: sum(s[k] for site, s in _K108["sites"].items() if not site.startswith(("LEVER", "story_harness")))
+           for k in ("idx2", "o", "t", "o_w", "t_w")}
+    log(f"[KI108-CENSUS] TOTAL  idx>=2={tot['idx2']}  order_diff={tot['o']} (unexplained {tot['o'] - tot['o_w']})  "
+        f"turn_diff={tot['t']} (unexplained {tot['t'] - tot['t_w']})")
+    log(f"[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2={bot['idx2']}  "
+        f"order_diff={bot['o']} (unexplained {bot['o'] - bot['o_w']})  turn_diff={bot['t']} "
+        f"(unexplained {bot['t'] - bot['t_w']})")
+    late = [w for w in _K108["writes"] if w[3]]
+    log(f"[KI108-CENSUS] memory writes: {len(_K108['writes'])} total; AFTER their frame's first get_battle_state "
+        f"read: {late[:20] or 'none'}")
+    log("=" * 88)
+
+
+if _K108_CENSUS:
+    _k108_install_census()
+if _K108_LEVER:
+    _k108_install_lever()
+    log(f"[KI108] LEVER ON: a harness-only listener reads get_battle_state() first in every battle frame "
+        f"(listeners={len(context.bot_listeners)})")
+
 # ---- run the loop ------------------------------------------------------------
 previous_frame_info = None
 prev_party = None
@@ -29136,6 +29363,7 @@ for step in range(args.frames):
     if previous_frame_info is not None and previous_frame_info.frame_count > frame_info.frame_count:
         state_cache.reset()
         context.bot_listeners = get_bot_listeners(context.rom)
+        _k108_install_lever()  # KI108_LEVER: the rebuilt list must keep the harness-only first reader (no-op if off)
 
     if context.bot_mode == "Manual":
         context.bot_mode_instance = ManualBotMode()
@@ -30168,6 +30396,7 @@ for step in range(args.frames):
     previous_frame_info.previous_frame = None
 
 log(f"[done] ran {step + 1} frames; final mode={context.bot_mode} party=[{party_snapshot()}]")
+_k108_summary()  # KI108_CENSUS: per-site counts (a no-op when the census is off)
 if args.driver == "evgpcwedge":
     try:
         _evgp_verdict()

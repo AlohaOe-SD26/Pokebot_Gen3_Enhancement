@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from enum import Enum, Flag, KEEP, auto
 from typing import Literal
@@ -248,6 +249,15 @@ class BattleState:
 
     def __eq__(self, other):
         if isinstance(other, BattleState):
+            # FORK (KI-108, `#27-battleeq`, 2026-10-01): upstream compared 9 of the 11 fields. A re-read that differed
+            # ONLY in the party order or the turn was "equal", so the cache setter (`state_cache.py`) kept the OLD
+            # object, and every `get_battle_state()` caller after the first in a frame got a stale order and turn (the
+            # KI-96 / KI-101 menu re-maps exist only to get a FRESH order). The fault switch, read per call, restores
+            # the 9-field compare for A/B. Gate: `tools/story-dev/probe_battle_state_eq.py`.
+            if os.environ.get("POKEBOT_KI108_FAULT_OLDEQ") != "1" and (
+                self._battler_party_order != other._battler_party_order or self._current_turn != other._current_turn
+            ):
+                return False
             return (
                 self._battle_type == other._battle_type
                 and self._side_timers == other._side_timers

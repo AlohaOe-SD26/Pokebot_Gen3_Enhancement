@@ -3222,7 +3222,7 @@ needs a DIVERGENCE-LOG entry when promoted), then rebuild the cache. Not started
   `disabledMove` at 0x04, `encoredMove` at 0x06).
 - The upstream mirror has the same line (`40cakes repo/pokebot-gen3/modules/battle_state.py:730`).
 **Consequence:**
-- Its only reader is `can_use_move` (`battle_state.py:547-559`). That treats every move as unusable while an Encore is
+- Its only reader is `can_use_move` (`battle_state.py:557-569`). That treats every move as unusable while an Encore is
   on and no move is disabled.
 - **`can_use_move` has no caller** in `sandbox-pokebot` (a grep for `can_use_move(` finds only its definition), so
   nothing is affected today.

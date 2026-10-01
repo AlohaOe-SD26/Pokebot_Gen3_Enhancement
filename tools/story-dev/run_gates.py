@@ -1218,6 +1218,16 @@ GATES: list[tuple[str, bool]] = [
     # package ₽, momentary map reads, VOID). 78 rows, 141 mutants; no ROM; ~8 s.
     # ‼ APPENDED AT THE END.
     ("probe_batch14_checks.py", False),
+    # `#27-battleeq` (KI-108, `ai-research-notes/2026-10-01-battleeq-DESIGN.md`): `BattleState.__eq__` now compares the
+    # party ORDER and the TURN, so every `get_battle_state()` caller in a frame gets what the frame's FIRST caller got;
+    # `POKEBOT_KI108_FAULT_OLDEQ=1` (read per call) restores upstream's 9-field compare. WHY: under the old compare the
+    # cache setter kept the OLD object on an order-only or turn-only re-read, so a second caller (the GUI Battle tab
+    # reads first, then the bot's KI-96 / KI-101 re-maps) received a stale order: measured live in the 2026-09-28 Run B.
+    # The REAL get_battle_state over a fake read_symbol and a settable frame: C/K rows in both arms (K5 is the vacuity
+    # witness, K9-runA pins the out-of-scope in-frame write), W rows on the AST; 14 mutants with exact red sets incl. the
+    # upstream mirror verbatim, a comment-only mention that reddens nothing, and a coverage check. No ROM; ~1 s.
+    # ‼ APPENDED AT THE END.
+    ("probe_battle_state_eq.py", False),
 ]
 
 

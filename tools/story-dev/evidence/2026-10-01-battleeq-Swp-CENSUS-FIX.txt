@@ -1,0 +1,979 @@
+# #27-battleeq (KI-108) live arm Swp-CENSUS-FIX — prediction BE-3 (DESIGN 68f7f529, filed before any code)
+# worktree C:\Remote Projects\pokebot-wt-ch24 branch wt/battleeq HEAD 68f7f529; uncommitted (the coordinator commits): [' M sandbox-pokebot/modules/battle_state.py', ' M tools/story-dev/story_harness.py']
+# battle_state.py sha256 598c903acbb37277; story_harness.py sha256 2421c8b7b1a79c17
+# fixture r20_pregym1_party4_r116.ss1 (asserted = 9710585350be by verify_fixtures.py before the runs) --frames 30000
+# knobs: {'KI47_ARM': 'Swp', 'KI47_INSTALL': '0', 'KI108_CENSUS': '1'}  (POKEBOT_KI108_FAULT_OLDEQ UNSET = the fix)
+# HARNESS_EXIT_ON_MANUAL=1 (ends the loop 120 frames after the driver hands to Manual; the verdict prints before)
+# command: (cd tools/story-dev) story_harness.py r20_pregym1_party4_r116.ss1 --driver ki47oor --frames 30000 --log <scratch>/Swp-CENSUS-FIX.log > <scratch>/Swp-CENSUS-FIX.stdout.txt 2>&1
+# started 02:59:25 PM ended 02:59:33 PM (Los Angeles), 7 s, exit=0
+# handler debug log: Story-debug-20261001-145927.log; census file lines (one per call, incl. quiet lever reads): 362
+
+## handler debug log: [FAINT-CHOOSER] / [KI47] / [KI96] / [KI101] / [TURN] lines
+f137450 [BATTLE] [TURN 0] Whismur L6 23/23 -> RotateLead  vs Whismur L6 25/25
+f138521 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 0 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138608 [BATTLE] [FAINT-CHOOSER] identity: chosen=Whismur#7E9BB3BA menu_slot=2 -> cursor target 2 candidates=[1, 2, 3] snapshot_order=210345
+f138635 [BATTLE] [FAINT-CHOOSER] alive_slots=[1, 2, 3] on_field=[0] party=[(0, 'Shedinja', 0), (1, 'Nincada', 20), (2, 'Whismur', 23), (3, 'Poochyena', 16)]
+f138635 [BATTLE] [FAINT-CHOOSER] candidates(menu-order)=[1, 2, 3] on_field=[0] party_in_menu=4 [identity]
+f138635 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=0
+f138651 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=16
+f138659 [BATTLE] [FAINT-CHOOSER] A at cursor=2 pid=7E9BB3BA sp=Whismur frames=24
+f138667 [BATTLE] [FAINT-CHOOSER] KI-95 rank -> slot 0 metric=damage estimates_ok=5 estimates_failed=0 key=(0, 1.0, -9.0, -1.0, -6)
+f138893 [BATTLE] [TURN 1] Whismur L6 23/23 -> UseMove:Pound(pp35)  vs Whismur L6 25/25
+f139295 [BATTLE] [TURN 2] Whismur L6 23/23 -> UseMove:Pound(pp34)  vs Whismur L6 17/25
+f139635 [BATTLE] [TURN 3] Whismur L6 15/23 -> UseMove:Pound(pp33)  vs Whismur L6 9/25
+f139973 [BATTLE] [TURN 4] Whismur L6 7/23 -> UseMove:Pound(pp32)  vs Whismur L6 2/25
+
+## harness --log
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Swp-CENSUS-FIX.log
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[KI108] CENSUS ON: get_battle_state rebound in ['modules.battle_state', 'modules.battle_strategies.default', 'modules.battle_strategies', 'modules.gui.debug_tabs', 'modules.gui.emulator_screen', 'modules.battle_move_replacing', 'modules.battle_action_selection', 'modules.battle_handler', 'modules.modes._listeners']; still bound to the original: none; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Swp-CENSUS-FIX.log.census.txt
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Swp {'arm': 'Swp', 'install': False, 'ki108_fault_oldeq': False, 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA'], 'staged': ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f222: battle_is_active -> True  party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s222 f136909 i1 _listeners.py:101 ret=012345/t0 mem=012345/t0
+f223: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+[KI108-CENSUS] s223 f136910 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s224 f136911 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s225 f136912 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s226 f136913 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s227 f136914 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s228 f136915 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s229 f136916 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s230 f136917 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s231 f136918 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s232 f136919 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s233 f136920 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s234 f136921 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s235 f136922 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s236 f136923 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s237 f136924 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s238 f136925 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s239 f136926 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s240 f136927 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s241 f136928 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s242 f136929 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s243 f136930 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s244 f136931 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s245 f136932 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s246 f136933 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s247 f136934 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s248 f136935 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s249 f136936 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s250 f136937 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s251 f136938 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s252 f136939 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s253 f136940 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s254 f136941 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s255 f136942 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s256 f136943 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s257 f136944 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s258 f136945 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s259 f136946 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s260 f136947 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s261 f136948 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s262 f136949 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s263 f136950 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s264 f136951 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s265 f136952 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s266 f136953 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s267 f136954 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s268 f136955 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s269 f136956 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s270 f136957 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s271 f136958 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s272 f136959 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s273 f136960 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s274 f136961 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s275 f136962 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s276 f136963 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s277 f136964 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s278 f136965 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s279 f136966 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s280 f136967 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s281 f136968 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s282 f136969 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s283 f136970 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s284 f136971 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s285 f136972 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s286 f136973 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s287 f136974 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s288 f136975 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s289 f136976 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s290 f136977 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s291 f136978 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s292 f136979 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s293 f136980 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s294 f136981 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s295 f136982 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s296 f136983 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s297 f136984 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s298 f136985 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s299 f136986 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s300 f136987 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s301 f136988 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s302 f136989 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s303 f136990 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s304 f136991 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s305 f136992 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s306 f136993 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s307 f136994 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s308 f136995 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s309 f136996 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s310 f136997 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s311 f136998 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s312 f136999 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s313 f137000 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s314 f137001 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s315 f137002 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s316 f137003 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s317 f137004 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s318 f137005 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s319 f137006 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s320 f137007 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s321 f137008 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s322 f137009 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s323 f137010 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s324 f137011 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s325 f137012 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s326 f137013 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s327 f137014 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s328 f137015 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s329 f137016 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s330 f137017 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s331 f137018 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s332 f137019 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s333 f137020 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s334 f137021 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s335 f137022 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s336 f137023 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s337 f137024 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s338 f137025 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s339 f137026 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s340 f137027 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s341 f137028 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s342 f137029 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s343 f137030 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s344 f137031 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s345 f137032 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s346 f137033 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s347 f137034 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s348 f137035 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s349 f137036 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s350 f137037 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s351 f137038 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s352 f137039 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s353 f137040 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s354 f137041 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s355 f137042 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s356 f137043 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s357 f137044 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s358 f137045 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s359 f137046 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s360 f137047 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s361 f137048 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s362 f137049 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s363 f137050 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s364 f137051 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s365 f137052 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s366 f137053 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s367 f137054 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s368 f137055 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s369 f137056 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s370 f137057 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s371 f137058 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s372 f137059 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s373 f137060 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s374 f137061 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s375 f137062 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s376 f137063 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s377 f137064 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s378 f137065 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s379 f137066 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s380 f137067 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s381 f137068 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s382 f137069 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s383 f137070 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s384 f137071 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s385 f137072 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s386 f137073 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s387 f137074 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s388 f137075 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s389 f137076 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s390 f137077 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s391 f137078 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s392 f137079 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s393 f137080 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s394 f137081 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s395 f137082 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s396 f137083 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s397 f137084 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s398 f137085 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s399 f137086 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s400 f137087 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s401 f137088 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s402 f137089 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s403 f137090 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s404 f137091 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s405 f137092 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s406 f137093 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s407 f137094 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s408 f137095 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s409 f137096 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s410 f137097 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s411 f137098 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s412 f137099 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s413 f137100 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s414 f137101 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s415 f137102 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s416 f137103 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s417 f137104 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s418 f137105 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s419 f137106 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s420 f137107 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s421 f137108 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s422 f137109 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s423 f137110 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s424 f137111 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s425 f137112 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s426 f137113 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s427 f137114 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s428 f137115 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s429 f137116 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s430 f137117 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s431 f137118 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s432 f137119 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s433 f137120 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s434 f137121 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s435 f137122 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s436 f137123 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s437 f137124 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s438 f137125 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s439 f137126 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s440 f137127 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s441 f137128 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s442 f137129 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s443 f137130 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s444 f137131 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s445 f137132 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s446 f137133 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s447 f137134 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s448 f137135 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s449 f137136 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s450 f137137 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s451 f137138 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s452 f137139 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s453 f137140 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s454 f137141 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s455 f137142 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s456 f137143 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s457 f137144 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s458 f137145 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s459 f137146 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s460 f137147 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s461 f137148 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s462 f137149 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s463 f137150 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s464 f137151 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s465 f137152 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s466 f137153 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s467 f137154 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s468 f137155 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s469 f137156 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s470 f137157 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s471 f137158 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s472 f137159 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s473 f137160 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s474 f137161 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s475 f137162 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s476 f137163 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s477 f137164 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s478 f137165 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s479 f137166 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s480 f137167 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s481 f137168 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s482 f137169 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s483 f137170 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s484 f137171 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s485 f137172 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s486 f137173 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s487 f137174 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s488 f137175 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s489 f137176 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s490 f137177 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s491 f137178 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s492 f137179 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s493 f137180 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s494 f137181 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s495 f137182 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s496 f137183 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s497 f137184 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s498 f137185 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s499 f137186 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s500 f137187 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s501 f137188 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s502 f137189 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s503 f137190 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s504 f137191 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s505 f137192 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s506 f137193 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s507 f137194 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s508 f137195 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s509 f137196 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s510 f137197 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s511 f137198 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s512 f137199 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s513 f137200 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s514 f137201 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s515 f137202 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s516 f137203 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s517 f137204 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s518 f137205 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s519 f137206 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s520 f137207 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s521 f137208 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s522 f137209 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s523 f137210 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s524 f137211 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s525 f137212 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s526 f137213 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s527 f137214 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s528 f137215 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s529 f137216 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s530 f137217 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s531 f137218 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s532 f137219 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s533 f137220 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s534 f137221 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s535 f137222 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s536 f137223 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s537 f137224 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s538 f137225 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s539 f137226 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s540 f137227 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s541 f137228 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s542 f137229 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s543 f137230 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s544 f137231 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s545 f137232 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s546 f137233 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s547 f137234 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s548 f137235 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s549 f137236 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s550 f137237 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s551 f137238 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s552 f137239 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s553 f137240 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s554 f137241 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s555 f137242 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s556 f137243 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s557 f137244 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s558 f137245 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s559 f137246 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s560 f137247 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s561 f137248 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s758 f137445 i1 battle_action_selection.py:116 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s763 f137450 i1 battle_action_selection.py:578 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s815 f137502 i1 battle_action_selection.py:809 ret=012345/t0 mem=012345/t0
+[KI108-ACT] s815 f137502 battle_action_selection.scroll_to_party_menu_index(2) caller=battle_action_selection.py:831 pid_at_slot=00000000 species_at_slot=Shedinja mem_order=012345 mem_turn=0
+f846: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+f868: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s1834 f138521 i1 battle_handler.py:407 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i2 story_harness.py:385 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i3 story_harness.py:416 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i4 battle_handler.py:492 ret=210345/t0 mem=210345/t0
+f1901: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+[KI108-CENSUS] s1921 f138608 i1 battle_handler.py:617 ret=210345/t0 mem=210345/t0
+[KI108-ACT] s1921 f138608 battle_handler.scroll_to_party_menu_index(2) caller=battle_handler.py:651 pid_at_slot=7E9BB3BA species_at_slot=Whismur mem_order=210345 mem_turn=0
+[KI108-CENSUS] s1948 f138635 i1 battle_handler.py:682 ret=210345/t0 mem=210345/t0
+f1957: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s1980 f138667 i1 battle_handler.py:407 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s1980 f138667 i2 battle_handler.py:492 ret=012345/t0 mem=012345/t0
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=UNKNOWN party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s2201 f138888 i1 story_harness.py:373 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2201 f138888 i2 battle_action_selection.py:116 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2206 f138893 i1 battle_action_selection.py:578 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2602 f139289 i1 battle_action_selection.py:116 ret=012345/t2 mem=012345/t2
+[KI108-CENSUS] s2608 f139295 i1 battle_action_selection.py:578 ret=012345/t2 mem=012345/t2
+[KI108-CENSUS] s2942 f139629 i1 battle_action_selection.py:116 ret=012345/t3 mem=012345/t3
+[KI108-CENSUS] s2948 f139635 i1 battle_action_selection.py:578 ret=012345/t3 mem=012345/t3
+[KI108-CENSUS] s3280 f139967 i1 battle_action_selection.py:116 ret=012345/t4 mem=012345/t4
+[KI108-CENSUS] s3286 f139973 i1 battle_action_selection.py:578 ret=012345/t4 mem=012345/t4
+f3945: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4099: PARTY CHANGE [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s4118 f140805 i1 battle_handler.py:407 ret=012345/t4 mem=012345/t4
+[KI108-CENSUS] s4119 f140806 i1 battle_handler.py:407 ret=012345/t4 mem=012345/t4
+f4166: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4177: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='WHISMUR grew to LV. 7!' scripts=[] party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4203: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+[ki47oor] R arm = 'Swp'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 2
+[ki47oor] R chosen_field_idx = 0
+[ki47oor] R chosen_menu_idx = 2
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R driver_reread = '210345'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138521
+[ki47oor] R f1 = 138667
+[ki47oor] R fainted_species = 'Shedinja'
+[ki47oor] R field_frame = 138888
+[ki47oor] R field_pid = '7E9BB3BA'
+[ki47oor] R handler_frames = 146
+[ki47oor] R install = False
+[ki47oor] R ki108_fault_oldeq = False
+[ki47oor] R order_before = '210345'
+[ki47oor] R order_written = '210345'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 95, 'Down': 2}
+[ki47oor] R snapshot_seen = '210345'
+[ki47oor] R staged = ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = 2
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_reread_saw_memory': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+f4204: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f4204 — ending the loop at f4324
+[done] ran 4325 frames; final mode=Manual party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+========================================================================================
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ=None lever=False (lever reads 0)  calls=362  quiet index-1 lever reads equal to memory (census file only)=0  acted-on slot lines=2  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which after an in-frame write) | returned!=memory TURN (of which after an in-frame write)
+    _listeners.py:101                        calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:164                        calls=339    idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:116           calls=5      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:578           calls=5      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:407                    calls=4      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:492                    calls=2      idx>=2=2      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:617                    calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:682                    calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:373                     calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:385                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:416                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] TOTAL  idx>=2=5  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=3  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 2 total; AFTER their frame's first get_battle_state read: none
+========================================================================================
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Whismur L7: Pound, Uproar
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[PARTY-ACCT] STAGE 0 SUMMARY — 4325 get_party() recomputes, 15 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 4325 recomputes (party_accounting_ledger.jsonl)
+
+## stdout (> run.stdout.txt 2>&1)
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Swp-CENSUS-FIX.log
+Running mGBA 0.10.2
+[setup] loaded save state r20_pregym1_party4_r116.ss1; build=sandbox
+[KI108] CENSUS ON: get_battle_state rebound in ['modules.battle_state', 'modules.battle_strategies.default', 'modules.battle_strategies', 'modules.gui.debug_tabs', 'modules.gui.emulator_screen', 'modules.battle_move_replacing', 'modules.battle_action_selection', 'modules.battle_handler', 'modules.modes._listeners']; still bound to the original: none; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\runs\Swp-CENSUS-FIX.log.census.txt
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki47oor] PRE arm=Swp {'arm': 'Swp', 'install': False, 'ki108_fault_oldeq': False, 'start': ('(0, 31)', (11, 7)), 'premise_party4': True, 'bench': ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA'], 'staged': ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']}
+f1: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+f1: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f222: battle_is_active -> True  party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s222 f136909 i1 _listeners.py:101 ret=012345/t0 mem=012345/t0
+f223: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+[KI108-CENSUS] s223 f136910 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s224 f136911 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s225 f136912 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s226 f136913 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s227 f136914 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s228 f136915 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s229 f136916 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s230 f136917 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s231 f136918 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s232 f136919 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s233 f136920 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s234 f136921 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s235 f136922 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s236 f136923 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s237 f136924 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s238 f136925 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s239 f136926 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s240 f136927 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s241 f136928 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s242 f136929 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s243 f136930 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s244 f136931 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s245 f136932 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s246 f136933 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s247 f136934 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s248 f136935 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s249 f136936 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s250 f136937 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s251 f136938 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s252 f136939 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s253 f136940 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s254 f136941 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s255 f136942 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s256 f136943 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s257 f136944 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s258 f136945 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s259 f136946 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s260 f136947 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s261 f136948 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s262 f136949 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s263 f136950 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s264 f136951 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s265 f136952 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s266 f136953 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s267 f136954 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s268 f136955 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s269 f136956 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s270 f136957 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s271 f136958 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s272 f136959 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s273 f136960 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s274 f136961 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s275 f136962 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s276 f136963 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s277 f136964 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s278 f136965 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s279 f136966 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s280 f136967 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s281 f136968 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s282 f136969 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s283 f136970 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s284 f136971 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s285 f136972 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s286 f136973 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s287 f136974 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s288 f136975 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s289 f136976 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s290 f136977 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s291 f136978 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s292 f136979 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s293 f136980 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s294 f136981 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s295 f136982 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s296 f136983 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s297 f136984 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s298 f136985 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s299 f136986 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s300 f136987 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s301 f136988 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s302 f136989 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s303 f136990 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s304 f136991 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s305 f136992 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s306 f136993 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s307 f136994 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s308 f136995 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s309 f136996 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s310 f136997 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s311 f136998 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s312 f136999 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s313 f137000 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s314 f137001 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s315 f137002 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s316 f137003 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s317 f137004 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s318 f137005 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s319 f137006 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s320 f137007 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s321 f137008 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s322 f137009 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s323 f137010 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s324 f137011 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s325 f137012 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s326 f137013 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s327 f137014 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s328 f137015 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s329 f137016 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s330 f137017 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s331 f137018 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s332 f137019 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s333 f137020 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s334 f137021 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s335 f137022 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s336 f137023 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s337 f137024 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s338 f137025 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s339 f137026 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s340 f137027 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s341 f137028 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s342 f137029 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s343 f137030 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s344 f137031 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s345 f137032 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s346 f137033 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s347 f137034 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s348 f137035 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s349 f137036 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s350 f137037 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s351 f137038 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s352 f137039 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s353 f137040 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s354 f137041 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s355 f137042 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s356 f137043 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s357 f137044 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s358 f137045 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s359 f137046 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s360 f137047 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s361 f137048 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s362 f137049 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s363 f137050 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s364 f137051 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s365 f137052 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s366 f137053 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s367 f137054 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s368 f137055 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s369 f137056 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s370 f137057 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s371 f137058 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s372 f137059 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s373 f137060 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s374 f137061 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s375 f137062 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s376 f137063 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s377 f137064 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s378 f137065 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s379 f137066 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s380 f137067 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s381 f137068 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s382 f137069 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s383 f137070 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s384 f137071 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s385 f137072 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s386 f137073 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s387 f137074 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s388 f137075 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s389 f137076 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s390 f137077 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s391 f137078 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s392 f137079 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s393 f137080 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s394 f137081 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s395 f137082 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s396 f137083 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s397 f137084 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s398 f137085 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s399 f137086 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s400 f137087 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s401 f137088 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s402 f137089 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s403 f137090 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s404 f137091 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s405 f137092 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s406 f137093 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s407 f137094 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s408 f137095 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s409 f137096 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s410 f137097 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s411 f137098 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s412 f137099 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s413 f137100 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s414 f137101 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s415 f137102 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s416 f137103 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s417 f137104 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s418 f137105 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s419 f137106 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s420 f137107 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s421 f137108 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s422 f137109 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s423 f137110 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s424 f137111 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s425 f137112 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s426 f137113 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s427 f137114 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s428 f137115 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s429 f137116 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s430 f137117 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s431 f137118 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s432 f137119 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s433 f137120 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s434 f137121 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s435 f137122 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s436 f137123 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s437 f137124 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s438 f137125 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s439 f137126 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s440 f137127 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s441 f137128 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s442 f137129 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s443 f137130 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s444 f137131 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s445 f137132 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s446 f137133 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s447 f137134 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s448 f137135 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s449 f137136 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s450 f137137 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s451 f137138 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s452 f137139 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s453 f137140 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s454 f137141 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s455 f137142 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s456 f137143 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s457 f137144 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s458 f137145 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s459 f137146 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s460 f137147 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s461 f137148 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s462 f137149 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s463 f137150 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s464 f137151 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s465 f137152 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s466 f137153 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s467 f137154 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s468 f137155 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s469 f137156 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s470 f137157 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s471 f137158 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s472 f137159 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s473 f137160 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s474 f137161 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s475 f137162 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s476 f137163 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s477 f137164 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s478 f137165 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s479 f137166 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s480 f137167 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s481 f137168 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s482 f137169 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s483 f137170 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s484 f137171 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s485 f137172 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s486 f137173 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s487 f137174 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s488 f137175 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s489 f137176 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s490 f137177 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s491 f137178 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s492 f137179 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s493 f137180 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s494 f137181 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s495 f137182 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s496 f137183 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s497 f137184 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s498 f137185 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s499 f137186 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s500 f137187 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s501 f137188 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s502 f137189 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s503 f137190 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s504 f137191 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s505 f137192 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s506 f137193 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s507 f137194 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s508 f137195 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s509 f137196 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s510 f137197 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s511 f137198 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s512 f137199 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s513 f137200 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s514 f137201 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s515 f137202 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s516 f137203 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s517 f137204 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s518 f137205 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s519 f137206 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s520 f137207 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s521 f137208 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s522 f137209 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s523 f137210 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s524 f137211 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s525 f137212 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s526 f137213 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s527 f137214 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s528 f137215 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s529 f137216 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s530 f137217 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s531 f137218 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s532 f137219 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s533 f137220 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s534 f137221 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s535 f137222 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s536 f137223 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s537 f137224 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s538 f137225 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s539 f137226 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s540 f137227 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s541 f137228 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s542 f137229 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s543 f137230 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s544 f137231 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s545 f137232 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s546 f137233 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s547 f137234 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s548 f137235 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s549 f137236 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s550 f137237 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s551 f137238 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s552 f137239 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s553 f137240 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s554 f137241 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s555 f137242 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s556 f137243 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s557 f137244 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s558 f137245 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s559 f137246 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s560 f137247 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s561 f137248 i1 _listeners.py:164 ret=012345/t0 mem=012345/t0
+┌───────────────────── Whismur♀ encountered at Route 116 ─────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 2F404C32        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 6               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 29  │  2  │  8  │ 26  │ 21 │ 17  │ 1… │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Soundproof      │                                          │
+│ │ Hidden Power │ Water (41)      │Moves: Pound, Uproar                      │
+│ │  Shiny Value │ 58,079          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Abra   │  25 /  │   1,035 /   │   110 │  6.39% │     0 │    110 │   N/A │ │
+│ │        │  136   │   64,828    │       │        │       │        │       │ │
+│ │ Aron   │  48 /  │   1,687 /   │    15 │  0.87% │     0 │     15 │   N/A │ │
+│ │        │  121   │   53,042    │       │        │       │        │       │ │
+│ │ Geodu… │  90 /  │    724 /    │    12 │  0.70% │     0 │     12 │   N/A │ │
+│ │        │   96   │   14,272    │       │        │       │        │       │ │
+│ │ Gloom  │ 111 /  │  47,298 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │  111   │   47,298    │       │        │       │        │       │ │
+│ │ Kecle… │  88 /  │  20,914 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   88   │   20,914    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     2 │  0.12% │     0 │      2 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Linoo… │  93 /  │  12,044 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   93   │   12,044    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  0.17% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Makuh… │  86 /  │  32,273 /   │    10 │  0.58% │     0 │     10 │   N/A │ │
+│ │        │   86   │   54,166    │       │        │       │        │       │ │
+│ │ Ninca… │  46 /  │   1,493 /   │   245 │ 14.23% │     0 │    245 │   N/A │ │
+│ │        │  147   │   59,889    │       │        │       │        │       │ │
+│ │ Oddish │  77 /  │  12,220 /   │    18 │  1.05% │     0 │     18 │   N/A │ │
+│ │        │  120   │   13,961    │       │        │       │        │       │ │
+│ │ Pooch… │  26 /  │    403 /    │   501 │ 29.09% │     0 │    501 │   N/A │ │
+│ │        │  148   │   65,468    │       │        │       │        │       │ │
+│ │ Shupp… │  88 /  │   4,437 /   │    78 │  4.53% │     0 │     78 │   N/A │ │
+│ │        │  121   │   60,077    │       │        │       │        │       │ │
+│ │ Skitty │  65 /  │  13,297 /   │    20 │  1.16% │     0 │     20 │   N/A │ │
+│ │        │  140   │   59,019    │       │        │       │        │       │ │
+│ │ Taill… │  22 /  │   1,352 /   │   360 │ 20.91% │     0 │    360 │   N/A │ │
+│ │        │  141   │   65,260    │       │        │       │        │       │ │
+│ │ Torko… │ 121 /  │   7,026 /   │    15 │  0.87% │     0 │     15 │   N/A │ │
+│ │        │  121   │    7,026    │       │        │       │        │       │ │
+│ │ Whism… │  16 /  │   1,322 /   │   293 │ 17.02% │     0 │    293 │   N/A │ │
+│ │        │  152   │   64,723    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │  22,625 /   │     8 │  0.46% │     0 │      8 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │  0.23% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Zubat  │  94 /  │  38,183 /   │    25 │  1.45% │     0 │     25 │   N/A │ │
+│ │        │  113   │   60,501    │       │        │       │        │       │ │
+│ │ Total  │  16 /  │    403 /    │ 1,722 │   100% │     0 │  1,722 │   N/A │ │
+│ │        │  152   │   65,468    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+[KI108-CENSUS] s758 f137445 i1 battle_action_selection.py:116 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s763 f137450 i1 battle_action_selection.py:578 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s815 f137502 i1 battle_action_selection.py:809 ret=012345/t0 mem=012345/t0
+[KI108-ACT] s815 f137502 battle_action_selection.scroll_to_party_menu_index(2) caller=battle_action_selection.py:831 pid_at_slot=00000000 species_at_slot=Shedinja mem_order=012345 mem_turn=0
+f846: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+f868: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s1834 f138521 i1 battle_handler.py:407 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i2 story_harness.py:385 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i3 story_harness.py:416 ret=210345/t0 mem=210345/t0
+[KI108-CENSUS] s1834 f138521 i4 battle_handler.py:492 ret=210345/t0 mem=210345/t0
+f1901: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119]
+[KI108-CENSUS] s1921 f138608 i1 battle_handler.py:617 ret=210345/t0 mem=210345/t0
+[KI108-ACT] s1921 f138608 battle_handler.scroll_to_party_menu_index(2) caller=battle_handler.py:651 pid_at_slot=7E9BB3BA species_at_slot=Whismur mem_order=210345 mem_turn=0
+[KI108-CENSUS] s1948 f138635 i1 battle_handler.py:682 ret=210345/t0 mem=210345/t0
+f1957: PARTY CHANGE [Shedinja:L22:exp16610|Nincada:L6:exp406|Whismur:L6:exp179|Poochyena:L4:exp119] -> [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s1980 f138667 i1 battle_handler.py:407 ret=012345/t0 mem=012345/t0
+[KI108-CENSUS] s1980 f138667 i2 battle_handler.py:492 ret=012345/t0 mem=012345/t0
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=UNKNOWN party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s2201 f138888 i1 story_harness.py:373 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2201 f138888 i2 battle_action_selection.py:116 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2206 f138893 i1 battle_action_selection.py:578 ret=012345/t1 mem=012345/t1
+[KI108-CENSUS] s2602 f139289 i1 battle_action_selection.py:116 ret=012345/t2 mem=012345/t2
+[KI108-CENSUS] s2608 f139295 i1 battle_action_selection.py:578 ret=012345/t2 mem=012345/t2
+[KI108-CENSUS] s2942 f139629 i1 battle_action_selection.py:116 ret=012345/t3 mem=012345/t3
+[KI108-CENSUS] s2948 f139635 i1 battle_action_selection.py:578 ret=012345/t3 mem=012345/t3
+[KI108-CENSUS] s3280 f139967 i1 battle_action_selection.py:116 ret=012345/t4 mem=012345/t4
+[KI108-CENSUS] s3286 f139973 i1 battle_action_selection.py:578 ret=012345/t4 mem=012345/t4
+f3945: PARTY CHANGE [Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4099: PARTY CHANGE [Whismur:L7:exp236|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119] -> [Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-CENSUS] s4118 f140805 i1 battle_handler.py:407 ret=012345/t4 mem=012345/t4
+[KI108-CENSUS] s4119 f140806 i1 battle_handler.py:407 ret=012345/t4 mem=012345/t4
+f4166: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4177: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='WHISMUR grew to LV. 7!' scripts=[] party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+f4203: CONTROLLER -> Ki47OorMode.run   (state=OVERWORLD)
+[ki47oor] R arm = 'Swp'
+[ki47oor] R bench = ['Poochyena#5815089E', 'Nincada#4457D0FB', 'Whismur#7E9BB3BA']
+[ki47oor] R calls = 2
+[ki47oor] R chosen_field_idx = 0
+[ki47oor] R chosen_menu_idx = 2
+[ki47oor] R chosen_pid = '7E9BB3BA'
+[ki47oor] R driver_reread = '210345'
+[ki47oor] R entry_state = 'BATTLE'
+[ki47oor] R f0 = 138521
+[ki47oor] R f1 = 138667
+[ki47oor] R fainted_species = 'Shedinja'
+[ki47oor] R field_frame = 138888
+[ki47oor] R field_pid = '7E9BB3BA'
+[ki47oor] R handler_frames = 146
+[ki47oor] R install = False
+[ki47oor] R ki108_fault_oldeq = False
+[ki47oor] R order_before = '210345'
+[ki47oor] R order_written = '210345'
+[ki47oor] R premise_party4 = True
+[ki47oor] R presses = {'A': 95, 'Down': 2}
+[ki47oor] R snapshot_seen = '210345'
+[ki47oor] R staged = ['Whismur', 'Nincada', 'Shedinja', 'Poochyena']
+[ki47oor] R start = ('(0, 31)', (11, 7))
+[ki47oor] R swp_switch_idx = 2
+[ki47oor] failure=None whiteouts=0
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_reread_saw_memory': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+f4204: CONTROLLER -> <none>   (state=OVERWORLD)
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f4204 — ending the loop at f4324
+[done] ran 4325 frames; final mode=Manual party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+========================================================================================
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ=None lever=False (lever reads 0)  calls=362  quiet index-1 lever reads equal to memory (census file only)=0  acted-on slot lines=2  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which after an in-frame write) | returned!=memory TURN (of which after an in-frame write)
+    _listeners.py:101                        calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:164                        calls=339    idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:116           calls=5      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:578           calls=5      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:407                    calls=4      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:492                    calls=2      idx>=2=2      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:617                    calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:682                    calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:373                     calls=1      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:385                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:416                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] TOTAL  idx>=2=5  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=3  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 2 total; AFTER their frame's first get_battle_state read: none
+========================================================================================
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=False, RETURNED_DEVON_GOODS=False, RECEIVED_POKENAV=False, DEFEATED_RIVAL_RUSTBORO=False
+[moveset] Whismur L7: Pound, Uproar
+[moveset] Nincada L6: Scratch, Harden, Leech Life
+[moveset] Shedinja L22: Growl
+[moveset] Poochyena L4: Tackle
+[PARTY-ACCT] STAGE 0 SUMMARY — 4325 get_party() recomputes, 15 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki47oor 4325 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-01_14
+-59-33.ss1 created!
+Updated `current_state.ss1`!
