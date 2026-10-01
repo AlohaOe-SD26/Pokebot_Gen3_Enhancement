@@ -90,7 +90,7 @@ session); a deny is ASCII JSON; `--selftest` runs the case table.
   - **The replay:** 2,290 of 18,484 blocked (was 2,127). The four former false positives are now allowed. 167
     commands are newly blocked, every one classified TRUE, except one accepted by design (a `py -c` extractor writing a
     scratch `.md`, the BD-1 class). 0 crashes in 480,584 fuzz evaluations; at most 0.086 s per real hook process.
-- **SH-3** is graded live after the merge (below).
+- **SH-3 HELD (live, after `main` merged `e8738f45`):** a harmless `cat <<'EOF'` (no file) was DENIED with the hook's reason (H1), and `git status` and a PowerShell `Get-ScheduledTask` ran normally. ⇒ `#27-shellhook` is DONE.
 
 ## KNOWN LIMITS (recorded, not bugs; the hook is a seat belt against habit)
 

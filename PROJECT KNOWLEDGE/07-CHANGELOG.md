@@ -37545,3 +37545,7 @@ bought balls only at fixed story points.
 - **Predictions:** T23-1 and T23-4 held. T23-2 failed as filed (the independent pass), and so did T23-3 (its C2
   wording). The suite passes: 143 entries, 139 enforcing.
 - **Next:** T4 (the telemetry counters), built while the batch runs.
+
+## 2026-10-01 — `#27-shellhook` DONE: the shell-text hook is LIVE on `main` (`e8738f45`)
+
+- SH-3 held live: a harmless heredoc was DENIED with the hook's reason, and ordinary Bash and PowerShell commands ran. From now on every session's Bash/PowerShell calls pass through it.
