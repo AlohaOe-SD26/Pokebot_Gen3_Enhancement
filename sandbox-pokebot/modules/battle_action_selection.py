@@ -595,7 +595,9 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 if index.battle_use in (ItemBattleUse.Healing, ItemBattleUse.PpRecovery) and target_index is None:
                     raise RuntimeError(f"Item `{index.name}` needs a target Pokémon.")
 
-                yield from battle_action_use_item(battle_state, index, target_index)
+                # design v2 step 13 (C4): the executor learns WHICH of our battlers is choosing (0 or 2), so it scrolls
+                # that battler's action cursor (C1) and, behind `POKEBOT_R27_DOUBLEITEMS=1`, guards the target (D4).
+                yield from battle_action_use_item(battle_state, index, target_index, battler_index)
 
             case TurnAction.RotateLead:
                 if index >= get_party_size():
@@ -770,7 +772,8 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                     _ki96_pre = None
 
                 _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
-                yield from scroll_to_battle_action(2)
+                # design v2 step 13 (C1/D7): the SWITCH cursor of the battler that is choosing (byte 2 for battler 2).
+                yield from scroll_to_battle_action(2, battler_index > 1)
                 _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
                 # JP roms need a little delay
                 for _ in range(5):
@@ -1012,8 +1015,176 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
     _dmgaudit.on_selection_exit(battle_state)
 
 
+# ==================================================================================================================
+# design v2 step 13 (KB-2, healing items in DOUBLE battles) — the EXECUTOR half (`ai-research-notes/
+# 2026-09-30-doubleitems13-DESIGN.md` C4 / D4 / D11 / C5; the pure half is `modules/story/double_items.py`).
+# ⛔ EVERYTHING HERE IS BEHIND `POKEBOT_R27_DOUBLEITEMS=1` AND A DOUBLE BATTLE. With the flag unset no helper below reads
+#   memory or logs a line, and `battle_action_use_item` / `battle_action_use_move` run today's sequence press for press
+#   (gate `probe_double_items.py` DQ16's unset half and DQ17).
+# ⛔ RAW READS ONLY (`read_symbol`), NEVER `get_battle_state()`: a second call in one frame can hand back the cached
+#   object with a STALE party order (KI-108), and this flow's own KI-101 re-map must stay the first call of its frame.
+#   `probe_dmgaudit.py`'s NH-gbs-count row counts the calls in this file.
+# ⭐ `modules.story.double_items` is imported LAZILY, on the flag-on path only, so the flag-unset executor never depends
+#   on a story module (the dependency-direction note at the KI-96 re-map above).
+# ==================================================================================================================
+_DBL_FLAG = "POKEBOT_R27_DOUBLEITEMS"
+_DBL_FAULT_WRONGSLOT = "POKEBOT_R27_FAULT_DBL_WRONGSLOT"
+_DBL_FAULT_NOGUARD = "POKEBOT_R27_FAULT_DBL_NOGUARD"
+#: Battler 2's action-menu callbacks, the same pair `handle_battle_action_selection` recognises for it.
+_DBL_CHOOSE_ACTION = ("HandleInputChooseAction", "sub_802C098")
+
+
+def _dbl_env(name: str) -> bool:
+    """A step-13 env switch, read PER CALL (design D5: the harness drivers build the strategy themselves)."""
+    import os as _os_dbl
+
+    return _os_dbl.environ.get(name) == "1"
+
+
+def _dbl_on(battle_state) -> bool:
+    """`POKEBOT_R27_DOUBLEITEMS=1` AND a double. The env test is FIRST, so the flag-unset path reads nothing at all."""
+    if not _dbl_env(_DBL_FLAG):
+        return False
+    try:
+        return bool(battle_state.is_double_battle)
+    except Exception:  # noqa: BLE001 - an unreadable battle type counts as NOT a double, so today's executor runs unchanged
+        return False
+
+
+def _dbl_log(message: str) -> None:
+    """One `[DBLITEM]` line (its own category). Telemetry never affects the battle (D9)."""
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(message, category="DBLITEM")
+    except Exception:  # noqa: BLE001 - telemetry must never affect the battle (design D9)
+        pass
+
+
+def _dbl_q(fn):
+    """One TELEMETRY read for the `after` line; a failure degrades to None (printed `?`), never into the battle."""
+    try:
+        return fn()
+    except Exception:  # noqa: BLE001 - a telemetry field degrades to '?', the battle never sees it (design D9)
+        return None
+
+
+def _dbl_v(value) -> str:
+    return "?" if value is None else str(value)
+
+
+def _dbl_party_mon(index: int) -> dict:
+    """`gPlayerParty[index]` RAW: identity (species, PID), HP (+0x56) and status1 (+0x50). FIELD order outside the party
+    menu (closing it restores that order, `party_menu.c:1235-1236`); MENU order while it is open (G2)."""
+    raw = read_symbol("gPlayerParty", offset=100 * index, size=100)
+    from modules.pokemon import Pokemon
+
+    return {"pid": unpack_uint32(raw[0x00:0x04]), "species": _dbl_q(lambda: Pokemon(raw).species.name),
+            "hp": unpack_uint16(raw[0x56:0x58]), "status1": unpack_uint32(raw[0x50:0x54])}
+
+
+def _dbl_label(mon) -> str:
+    return "?" if not mon else f"{_dbl_v(mon['species'])}#{mon['pid']:08X}"
+
+
+def _dbl_bag_qty(item) -> int:
+    from modules.items import get_item_bag
+
+    return get_item_bag().quantity_of(item)
+
+
+def _dbl_before(item, target_index: int, battler_index: int) -> dict:
+    """D4's reads BEFORE the bag opens — the intended PID and the self binding — plus the `after` line's BEFORE values.
+    `battler_index` is the battler id g (0 or 2); its side is g // 2 and its partner is g ^ 2. ⛔ Never raises."""
+    ctx = {"g": battler_index, "side": battler_index // 2, "target": target_index, "intended": None, "self": False,
+           "partner": None}
+    try:
+        from modules.story import double_items as _dbl
+
+        # The INTENDED identity, raw from gPlayerParty[target_index] in FIELD order: no party menu is open yet.
+        ctx["intended"] = unpack_uint32(read_symbol("gPlayerParty", offset=100 * target_index, size=4))
+        # The SELF binding (D2, review M5): the target IS battler g's own active Pokémon. u16 stride (review M3).
+        indexes = read_symbol("gBattlerPartyIndexes", size=8)
+        ctx["self"] = _dbl.self_ok(target_index, battler_index, indexes)
+        ctx["partner"] = _dbl.battler_party_index(indexes, battler_index ^ 2)
+    except Exception as error:  # noqa: BLE001 - D9: an unreadable guard input counts as a MISMATCH, so the guard backs out
+        ctx["intended"], ctx["self"], ctx["err"] = None, False, type(error).__name__
+    ctx["t0"] = _dbl_q(lambda: _dbl_party_mon(target_index))
+    ctx["p0"] = None if ctx["partner"] is None else _dbl_q(lambda: _dbl_party_mon(ctx["partner"]))
+    ctx["q0"] = _dbl_q(lambda: _dbl_bag_qty(item))
+    ctx["h0"] = _dbl_q(lambda: read_symbol("gBattleResults", offset=3, size=1)[0])
+    return ctx
+
+
+def _dbl_guard(ctx: dict, aim: int) -> bool:
+    """D4 AT `PARTY_MENU`, after the KI-101 re-map and the cursor scroll: may A be pressed?
+
+    It reads the cursor's ACTUAL slot — `gPartyMenu.slotId`, byte 9 — never `aim`, the slot we drove at (review F8: a
+    scroll that stopped short must not be believed); range-checks it against `gPlayerPartyCount` (review M10: Cancel is
+    7, and 6-7 read past the party); and compares the PID found there — MENU order while the menu is open (G2) — with
+    the intended PID read before the bag opened. ⇒ with the guard, "the bag count dropped" implies "the intended Pokémon
+    took the item" (the adversary's F3: a wrong slot in a double is often the LIVING partner, which consumes it).
+    Logs `[DBLITEM] menu …` with the verdict AND the press (review S13-P4). ⛔ FAILS CLOSED: any read error ⇒ no A (D9).
+    """
+    f = {"bim": "?", "layout": "?", "slot": "?", "menu_pid": None}
+    ok = press = False
+    try:
+        from modules.story import double_items as _dbl
+
+        if get_game_state() != GameState.PARTY_MENU:
+            raise RuntimeError("the party menu is not open")
+        party_menu = read_symbol("gPartyMenu")
+        slot = party_menu[9]
+        f["slot"], f["layout"] = slot, (party_menu[8] >> 4) & 3
+        f["bim"] = read_symbol("gBattlerInMenuId", size=1)[0]
+        count = read_symbol("gPlayerPartyCount", size=1)[0]
+        in_range = 0 <= slot < count
+        if in_range:
+            f["menu_pid"] = unpack_uint32(read_symbol("gPlayerParty", offset=100 * slot, size=4))
+        ok = bool(ctx["self"]) and _dbl.guard_ok(ctx["intended"], f["menu_pid"], slot, count)
+        # ⛔ FAULT ARM `POKEBOT_R27_FAULT_DBL_NOGUARD` (C7; never set in a real run): skips ONLY the PID comparison — the
+        # range check and the self binding still hold — so the arm (P-NOG) isolates what the PID check prevents.
+        press = ok or (_dbl_env(_DBL_FAULT_NOGUARD) and bool(ctx["self"]) and in_range)
+    except Exception as error:  # noqa: BLE001 - D9/S13-P6: the guard's own read failing is a MISMATCH, so no A and the B unwind backs out
+        ok = press = False
+        f["err"] = type(error).__name__
+    menu_pid = "-" if f["menu_pid"] is None else f"{f['menu_pid']:08X}"
+    intended = "-" if ctx["intended"] is None else f"{ctx['intended']:08X}"
+    # The design's C5 fields first, in its order (the PREDICTIONS quote them contiguously); then `aim=` — the slot we
+    # drove at, beside the slot the cursor is ACTUALLY on (rule 10: both coordinates on one line) — and `self=`.
+    _dbl_log(f"menu g={ctx['g']} battler_in_menu={f['bim']} layout={f['layout']} slot={f['slot']} "
+             f"menu_pid={menu_pid} intended_pid={intended} ok={int(ok)} a_pressed={int(press)} aim={aim} "
+             f"self={int(bool(ctx['self']))}" + (f" err={f['err']}" if "err" in f else ""))
+    return press
+
+
+def _dbl_after(ctx: dict, item) -> None:
+    """C5's `[DBLITEM] after` line, at the executor's first `BATTLEMAINCB2` frame (the `returned-to-battle` stage, before
+    any move runs), from RAW gPlayerParty (field order again) and the save block (reviews M4/F2). ⛔ The arms grade HP
+    and the bag on THIS line, never on a later `[TURN]`: the turn's damage lands after the heal. `same=1` asserts the
+    target's IDENTITY at that party index did not change between the two reads (rule 3)."""
+    try:
+        t0, p0 = ctx["t0"], ctx["p0"]
+        t1 = _dbl_q(lambda: _dbl_party_mon(ctx["target"]))
+        p1 = None if ctx["partner"] is None else _dbl_q(lambda: _dbl_party_mon(ctx["partner"]))
+        q1 = _dbl_q(lambda: _dbl_bag_qty(item))
+        h1 = _dbl_q(lambda: read_symbol("gBattleResults", offset=3, size=1)[0])
+
+        def field(mon, key):
+            return None if not mon else mon[key]
+
+        same = int(bool(t0 and t1 and t0["pid"] == t1["pid"]))
+        _dbl_log(f"after g={ctx['g']} target={_dbl_label(t0)} hp={_dbl_v(field(t0, 'hp'))}->{_dbl_v(field(t1, 'hp'))} "
+                 f"status1={_dbl_v(field(t0, 'status1'))}->{_dbl_v(field(t1, 'status1'))} "
+                 f"partner={_dbl_label(p0)} hp={_dbl_v(field(p0, 'hp'))}->{_dbl_v(field(p1, 'hp'))} "
+                 f"{getattr(item, 'name', item)}={_dbl_v(ctx['q0'])}->{_dbl_v(q1)} "
+                 f"healed={_dbl_v(ctx['h0'])}->{_dbl_v(h1)} same={same}")
+    except Exception as error:  # noqa: BLE001 - telemetry must never affect the battle; the failure is logged as itself
+        _dbl_log(f"after g={ctx.get('g')} err={type(error).__name__}: {error}")
+
+
 @debug.track
-def battle_action_use_item(battle_state: BattleState, item: Item, target_index: int = 0):
+def battle_action_use_item(battle_state: BattleState, item: Item, target_index: int = 0, battler_index: int = 0):
     # ‼ `#24-battleitems` INSTRUMENTATION (2026-08-09). This flow is SELECTED BUT DOES NOT
     # RELIABLY EXECUTE: measured 5 requests -> **1 potion actually consumed**, with `Hyper Potion`
     # chosen four times on one turn of the Norman fight and HP frozen at 23/120. Every failed
@@ -1031,7 +1202,13 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
             pass
 
     _stage("enter")
-    yield from scroll_to_battle_action(1)
+    # design v2 step 13 (D4): with `POKEBOT_R27_DOUBLEITEMS=1` in a double, read the INTENDED identity and the self
+    # binding NOW, before the bag opens (raw, field order). `None` = the flag-unset path: nothing read, nothing logged.
+    _dbl_ctx = (_dbl_before(item, target_index, battler_index)
+                if target_index is not None and _dbl_on(battle_state) else None)
+    # design v2 step 13 (C1/D7): THIS battler's action cursor — byte 2 for battler 2 (`battler_index` is the battler id,
+    # 0 or 2). Upstream always read byte 0, which made battler 2's BAG scroll unable to converge.
+    yield from scroll_to_battle_action(1, battler_index > 1)
     # ⛔ `#26-battleitemwedge` (2026-08-26): this was ONE blind A + ONE yield, straight into
     # `scroll_to_item_in_bag` — whose first wait (`while get_game_state() != BAG_MENU: yield`,
     # menuing.py) is UNBOUNDED and presses NOTHING. A single eaten A froze batch lane L07 for
@@ -1119,6 +1296,12 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
                 #   behaviour rather than an abort. An unreadable order is not a reason to skip a
                 #   heal; the no-op detector still judges the outcome.
                 _stage(f"KI101 remap failed ({type(_ki101_error).__name__}) — using caller index")
+        # ⛔ FAULT ARM `POKEBOT_R27_FAULT_DBL_WRONGSLOT` (design v2 step 13 C7; flag-on doubles only; never set in a real
+        # run): drive the cursor to the PARTNER's menu slot (1 - side) instead of the re-mapped one, so the arms can show
+        # the D4 guard refusing a wrong-slot press (P-SLOT) and what it costs without the guard (P-NOG). It is applied
+        # BEFORE the stage line below, so that line logs the slot actually acted on (rule 7).
+        if _dbl_ctx is not None and _dbl_env(_DBL_FAULT_WRONGSLOT):
+            _menu_slot = 1 - _dbl_ctx["side"]
         # ⛔ The pre-menu value is computed in its OWN guarded step: `map_battle_party_index` RAISES
         #   when the index is absent from the order array, and a raise inside a LOG line would turn
         #   an instrument into an outage. Log lines must never be able to break the thing they watch.
@@ -1131,13 +1314,19 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
             f"(KI-101 remap after {_ki101_wait} frame(s); pre-menu value was {_pre_menu})"
         )
         yield from scroll_to_party_menu_index(_menu_slot)
-        context.emulator.press_button("A")
-        yield
-        _stage("target-chosen")
+        # design v2 step 13 (D4): flag-on doubles press A ONLY when the guard passes. On a refusal NO A is pressed and the
+        # existing B unwind below backs out to this battler's own action menu (no turn is spent; the strategy re-decides,
+        # and its bag-count verdict drives the retry-once / disable). The flag-unset path is today's A, unconditionally.
+        if _dbl_ctx is None or _dbl_guard(_dbl_ctx, _menu_slot):
+            context.emulator.press_button("A")
+            yield
+            _stage("target-chosen")
         while get_game_state_symbol() != "BATTLEMAINCB2":
             context.emulator.press_button("B")
             yield
         _stage("returned-to-battle")
+        if _dbl_ctx is not None:
+            _dbl_after(_dbl_ctx, item)
 
 
 @debug.track
@@ -1195,7 +1384,9 @@ def battle_action_use_move(
 
     # Choose the 'Fight' option.
     if get_battle_controller_callback(battler_index) not in ("HandleInputChooseMove", "HandleAction_ChooseMove"):
-        yield from scroll_to_battle_action(0)
+        # design v2 step 13 (C1/D7): THIS battler's action cursor (byte 2 for battler 2). After battler 0 used an item its
+        # byte 0 stays on BAG, and upstream's byte-0 read then sent battler 2's FIGHT scroll into KI-45.
+        yield from scroll_to_battle_action(0, battler_index > 1)
         yield
         context.emulator.press_button("A")
     for _ in range(6 if context.rom.is_rse else 8):
@@ -1206,10 +1397,21 @@ def battle_action_use_move(
     # Struggle is being used. So we just want to confirm that message and then stop the further
     # execution of this function.
     if get_battle_controller_callback(battler_index) not in ("HandleInputChooseMove", "HandleAction_ChooseMove"):
+        # ⛔ design v2 step 13, D11 (review S13-P1, upheld) — THIS LOOP PRESSES A INTO BATTLER 2'S MENU.
+        # It checks battler 0's controller only. When battler 0 has no usable move its move menu never opens, battler 2
+        # is asked next (`battle_main.c:4145-4148`), and the loop commits battler 2's action BLIND. Today that is FIGHT
+        # (byte 2 = 0); once battler 2 has used an item byte 2 stays 1 and the loop would open battler 2's BAG and heal
+        # whatever sits in menu slot 0. Behind the flag (and only for battler 0 of a double) the loop now returns
+        # WITHOUT pressing once controller 2 shows its action menu, and the handler makes battler 2's own decision.
+        # ⛔ Flag unset: `_d11` is False and the controller-2 read is never made — today's loop, press for press.
+        _d11 = battler_index == 0 and _dbl_on(battle_state)
         while get_main_battle_callback() in (
             "HandleTurnActionSelectionState",
             "sub_8012324",
         ) and get_battle_controller_callback(battler_index) not in ("HandleInputChooseMove", "HandleAction_ChooseMove"):
+            if _d11 and get_battle_controller_callback(2) in _DBL_CHOOSE_ACTION:
+                _dbl_log("struggle-exit g=0 — battler 2's action menu is open; no A pressed into it (D11)")
+                return
             context.emulator.press_button("A")
             yield
         return

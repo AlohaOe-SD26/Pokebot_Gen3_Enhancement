@@ -236,15 +236,13 @@ The ball top-off (design v2 steps 9a and 9b; USER RULINGS 23 + 26). PURE plannin
 OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (9a), `probe_stock_topoff_sootopolis.py` (9b).
 - **The healing kit, step 10a (behind `POKEBOT_R26_KITTOPOFF`, default OFF; its fault `POKEBOT_R26_FAULT_RAWBAG`):**
   - PURE `kit_wants` (what is missing) and `visit_plan` (one budget: balls to the dex reserve + 1, the kit, then the
-    rest of the balls);
-  - `_kit_held`, the reserve view: the raw bag minus `league_reserve.reserved_quantities()`;
-  - `_kit_skip_reason`: kit `1` needs `POKEBOT_R27_KEYITEMS=1`;
-  - `kit_log_line` (`[KIT-BUY]`).
+    rest of the balls); `_kit_held` (the raw bag minus `league_reserve.reserved_quantities()`); `_kit_skip_reason`
+    (kit `1` needs `POKEBOT_R27_KEYITEMS=1`); `kit_log_line` (`[KIT-BUY]`).
   - It rides consumer (a): the heal parses the kit flag next to the ball flag and enters the errand on EITHER flag.
     The errand plans the kit in its own try, buys balls and kit in ONE `buy_in_shop` call, verifies each set per item
     name against its planned lines, and memoises `<city>` and `<city>:kit` separately.
   - With the kit OFF, skipped or in `observe`, every ball decision is 9a's (a 16,128-state differential: 0 differ).
-  - Gate: `probe_kit_topoff.py`.
+    Gate: `probe_kit_topoff.py`.
 - **The healing kit, step 10b (consumer (b), same flags; `ai-research-notes/2026-09-29-kittopoff10b-DESIGN.md`):**
   - `sootopolis_kit_forecast` runs right after 9b's forecast, in its own try, and writes `report["kit"]` (the D6 ball
     split in `split_balls`; 9b's forecast is never rewritten). The effective ball walk is that split when the kit buys.
@@ -257,6 +255,8 @@ OFF, `observe` and an empty plan yield nothing. Gates: `probe_stock_topoff.py` (
 ### `modules/dmgaudit.py`: OURS, new 2026-09-30 (SANDBOX ONLY; behind `POKEBOT_R25_DMGAUDIT`, default OFF)
 Design v2 step 11's RAW `[DMGAUDIT]` reads (`ai-research-notes/2026-09-30-dmgcalc11-DESIGN.md`, AS BUILT): 4 hooks in `battle_handler.handle_battle` and `handle_battle_action_selection`; pure `read_symbol` reads, no yield, no `get_battle_state()` (KI-108), a failure = one `ERR` line.
 Offline in `tools/story-dev/`: `audit_damage_calc.py <debug log>` (pure; exit 0 PASS, 1 FAIL, 2 INSUFFICIENT, 3 instrument failed), `dmgcalc_port.py`; gates `probe_damage_calc_decomp.py`, `probe_dmgaudit.py`.
+- **`modules/story/weaken_catch.py`** (step 12, `POKEBOT_R25_WEAKEN`, default OFF): the PURE weaken-to-catch decision; its adapter `_r25_weaken_turn` sits in `StoryCatchStrategy.decide_turn` (`story_mode.py`). Gate `probe_weaken_catch.py`.
+- **`modules/story/double_items.py`** (step 13, `POKEBOT_R27_DOUBLEITEMS`, default OFF): the PURE half of healing items in DOUBLE battles; the strategy half is `StoryItemBattleStrategy.decide_turn_in_double_battle` with `_dbl_act` / `_dbl_observe` (`story_mode.py`), the executor half the `_dbl_*` guard and `after` read in `battle_action_selection.py`. `battle_menuing.scroll_to_battle_action` takes the battler's side (C1, unconditional; an UPSTREAM file). Gate `probe_double_items.py`.
 
 ## External dependencies & services
 - **ROMs**: in each copy's `roms/`, SHA-1 whitelisted. ⚠ The Emerald ROM IS tracked in git in both copies (KI-82:
@@ -293,7 +293,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 139 entries = 135 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 140 entries = 136 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 14 SLOW (ROM) gates (recounted 2026-09-29: 14 `True`; counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.

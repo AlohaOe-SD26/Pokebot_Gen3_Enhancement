@@ -16525,8 +16525,10 @@ def _watched_strategy(probe):
         class _Watched(StoryItemBattleStrategy):
             _probe = None
 
-            def _maybe_use_item(self, battle_state):
-                action = super()._maybe_use_item(battle_state)
+            def _maybe_use_item(self, battle_state, *args, **kwargs):
+                # design v2 step 13 (C3) gave the parent `side` / `doubles`; pass them through, or a flag-on double
+                # under this probe would fail open with a TypeError (the step-13 builder's report).
+                action = super()._maybe_use_item(battle_state, *args, **kwargs)
                 # ⛔ `decide_turn` swallows anything this method raises into a silent `None`
                 # (`story_mode.py:590-591`) — so instrumentation that raised would be
                 # INDISTINGUISHABLE from "the policy declined", and would silently fake the

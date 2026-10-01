@@ -87,8 +87,25 @@ def _select_in_menu(cursor_symbol: str, target_index: int, use_third_byte: bool 
 
 
 @debug.track
-def scroll_to_battle_action(action_index: int) -> Generator:
-    yield from _select_in_menu("gActionSelectionCursor", action_index)
+def scroll_to_battle_action(action_index: int, is_right_side_pokemon: bool = False) -> Generator:
+    # ‼ design v2 step 13, C1 (`doubleitems13-DESIGN.md` V1/D7) — THE ACTION CURSOR IS PER BATTLER.
+    # `gActionSelectionCursor` is u8[4] and the game reads the byte of the battler whose menu is open
+    # (`battle_controller_player.c:249`). Upstream passed no side here, so `_select_in_menu` compared BYTE 0 for
+    # battler 2 too: an item used by battler 0 leaves byte 0 on BAG (1), and battler 2's FIGHT scroll then pressed Left
+    # for ever against a byte its presses never move (KI-45). `scroll_to_move` already took the side; this is the same
+    # fix for its sibling. Callers pass `battler_index > 1`.
+    # ⭐ Inert today by construction: in a trainer double the bot only ever FIGHTs, so bytes 0 and 2 both read 0 at
+    # every call (reviews F4/S13-P5). Measured latent: 0 of 4,520 batch debug logs show this cursor's KI-45 (V6).
+    # ⛔ FAULT ARM `POKEBOT_R27_FAULT_DBL_CURSOR0` (C7; `modules/story/double_items.FAULT_CURSOR0`), read HERE in
+    # production and never set in a real run: it restores byte 0 for every battler, so the arms can show the fix is
+    # load-bearing (P-CUR). Read only for battler 2 — battler 0 reads byte 0 either way. The name is a literal, not an
+    # import, so this core module never depends on `modules.story`.
+    if is_right_side_pokemon:
+        import os as _os_c1
+
+        if _os_c1.environ.get("POKEBOT_R27_FAULT_DBL_CURSOR0") == "1":
+            is_right_side_pokemon = False
+    yield from _select_in_menu("gActionSelectionCursor", action_index, is_right_side_pokemon)
 
 
 @debug.track

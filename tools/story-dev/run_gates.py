@@ -1169,6 +1169,12 @@ GATES: list[tuple[str, bool]] = [
     # pins, flags off = the parent's turn). 9 production faults + 196 mutants with exact sets; ~8 s with a pool.
     # ‼ APPENDED AT THE END, never inserted.
     ("probe_weaken_catch.py", False),
+    # design v2 step 13 (KB-2, healing items in DOUBLE battles) — the pure `modules/story/double_items.py` (every
+    # pre-registered DP row), the strategy half on the REAL class and a REAL double BattleState (DQ01-DQ10: flag unset is
+    # the parent's turn with no read; observe never calls `_maybe_use_item`; self-only, HP-only, per-PID ledgers), and
+    # the executor half and C1 driven frame by frame (DQ11-DQ17: the battler-aware action cursor, the identity guard,
+    # D11). The 3 C7 faults with their pre-registered exact sets + 59 mutants; ~3 s with a pool. ‼ APPENDED AT THE END.
+    ("probe_double_items.py", False),
 ]
 
 

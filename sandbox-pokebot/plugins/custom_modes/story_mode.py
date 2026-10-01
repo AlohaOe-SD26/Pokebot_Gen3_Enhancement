@@ -802,7 +802,55 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             return action
         return super().decide_turn(battle_state)
 
-    def _maybe_use_item(self, battle_state):
+    def decide_turn_in_double_battle(self, battle_state, battler_index):
+        """design v2 step 13 (KB-2) — healing items in DOUBLE battles, behind `POKEBOT_R27_DOUBLEITEMS` (default OFF).
+
+        WHY. This class overrode only `decide_turn`, so a double fell through to `LevelUpTravelBattleStrategy`'s
+        attack-only branch (design V4): the bot never healed in a double, and all 32 gym-leader rematches are doubles.
+        ⛔ The headline caveat (`doubleitems13-DESIGN.md`): this makes the bot ABLE to heal in a double; it claims
+        nothing about a fight's outcome — that is step 14's FREQUENCY question.
+
+        `battler_index` here is the STRATEGY index (0 = left, 1 = right); the game's battler id is 2 * it (V2).
+          * flag unset or any other value → the parent's turn, FIRST, with no read and no log line (D5);
+          * out of D1's scope (not a trainer double, or a Multi / in-game-partner battle) → the parent's turn;
+          * `observe` → ONE `[DBLITEM-OBS]` line (C5), then the parent's turn. It never calls `_maybe_use_item` or
+            `_r27_key_gate` (both change state and log); its only state is the private tracker `_dbl_obs` (D5);
+          * `1` → the singles policy for THIS battler, healing only ITSELF (D2), with its own per-(PID, species)
+            ledger (D3) and HP items only (D10). FAILS OPEN (D9): an exception is the parent's attack plus one line.
+        """
+        import os as _os_dbl
+
+        from modules.story import double_items as _dbl
+
+        mode = _dbl.mode(_os_dbl.environ)
+        if mode == _dbl.OFF:
+            return super().decide_turn_in_double_battle(battle_state, battler_index)
+        try:
+            in_scope = _dbl.in_scope(battle_state.type)
+        except Exception:  # noqa: BLE001 - an unreadable battle type is OUT of scope: the parent's turn, as with the flag off
+            in_scope = False
+        if not in_scope:
+            return super().decide_turn_in_double_battle(battle_state, battler_index)
+        if mode == _dbl.OBSERVE:
+            _dbl_observe(self, battle_state, battler_index)
+            return super().decide_turn_in_double_battle(battle_state, battler_index)
+        try:
+            action = _dbl_act(self, battle_state, battler_index)
+        except Exception as error:  # noqa: BLE001 - D9: FAIL OPEN — a battle that worked before must keep working
+            _log_story_event(f"err side={battler_index} g={2 * battler_index} {type(error).__name__}: {error}",
+                             "DBLITEM")
+            action = None
+        if action is not None:
+            return action
+        return super().decide_turn_in_double_battle(battle_state, battler_index)
+
+    def _maybe_use_item(self, battle_state, side=0, doubles=False):
+        # ⛔⛔ NO DOCSTRING HERE: gate A1 (`repro_key_battle_items.py`) pins `import os as _os` as the FIRST statement.
+        # design v2 step 13 (C3, `doubleitems13-DESIGN.md` D3/D10): `side` is the STRATEGY index of the deciding battler
+        # (0 = left, 1 = right; the game's battler id is 2 * side) and selects ONLY the two `own_side` reads below — the
+        # decision and the KI-101 judge. `doubles=True` (from `decide_turn_in_double_battle`, flag `1` only) applies
+        # D10's HP-only filter to the status-cure policy. ⛔ The singles call is `_maybe_use_item(battle_state)`: side 0,
+        # doubles False — the same statements as before, so every singles gate keeps its meaning.
         # ⛔⛔ `_os` IS BOUND ONCE, HERE, AT THE TOP — AND THAT POSITION IS LOAD-BEARING.
         # `os` is NOT imported at module scope in this file (local-import convention). It was
         # previously imported deep inside the status-cure branch, and step 4's knob then read it
@@ -829,7 +877,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # this strategy themselves are gated too. `_r27_key_gate` never raises and fails OPEN.
         if _os.environ.get("POKEBOT_R27_KEYITEMS") == "1" and not _r27_key_gate(self, battle_state):
             return None
-        mon = battle_state.own_side.left_battler
+        # design v2 step 13 (C3/D2): the DECIDING battler — the left one in singles; in a double, the side that is
+        # choosing. Each battler heals only ITSELF (D2), so this mon is the requester, the target AND the verdict.
+        mon = battle_state.own_side.left_battler if side == 0 else battle_state.own_side.right_battler
         if mon is None or mon.total_hp <= 0:
             return None
 
@@ -905,7 +955,10 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
                 from modules.battle_state import get_battle_state as _ki101_state
 
                 _judge_state = _ki101_state()
-                _judge_mon = _judge_state.own_side.left_battler if _judge_state is not None else None
+                # design v2 step 13 (C3): judge the SAME side that asked (in a double the requester's ledger is swapped
+                # in, D3, so its pending request is judged on its own battler, never on the partner).
+                _judge_mon = ((_judge_state.own_side.left_battler if side == 0 else _judge_state.own_side.right_battler)
+                              if _judge_state is not None else None)
                 if _judge_mon is not None:
                     judge = _judge_mon
             except Exception as _ki101_judge_error:  # noqa: BLE001
@@ -1123,6 +1176,17 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             from modules.pokemon_party import get_party as _party
             from modules.story.battle_items import choose_status_or_revive_item
 
+            # ⛔ design v2 step 13, D10 — HP ITEMS ONLY IN DOUBLES (v1). A double passes the cure policy only the
+            # `parameter > 0` items, so Awakening / Full Heal / Ice Heal are never requested there: a D4 guard refusal on
+            # a cure would not be counted by the retry/disable logic above (a cure banks no HP and no bag count), so it
+            # would be bounded only by the 4-use cap (review S13-P2). A Full Restore (255) stays — it is judged by the bag
+            # count like any HP item. ⚠ A REAL, RECORDED LIMIT: Tate & Liza's Hypnosis makes a sleep cure reachable.
+            # ⛔ Rebinding `medicine` here leaves the call below textually unchanged, which `repro_battle_items.py` pins
+            # (the UNFILTERED list reaches the cure policy in singles).
+            if doubles:
+                from modules.story.double_items import hp_only as _dbl_hp_only
+
+                medicine = _dbl_hp_only(medicine)
             item = choose_status_or_revive_item(
                 mon.status_permanent,
                 sum(1 for m in _party() if m is not None and not m.is_egg and m.current_hp > 0),
@@ -6398,6 +6462,158 @@ def _r27_key_gate(strategy, battle_state) -> bool:
     classes = "+".join("?" if cls is None else f"0x{cls:02X}" for _tid, cls in sides) or "?"
     _log_story_event(f"opp={opp} class={classes} key={key} allow={allow} reason={reason}", "KEYBATTLE")
     return allow
+
+
+# ⭐ design v2 step 13 (KB-2, healing items in DOUBLE battles; `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md`).
+# The two halves `StoryItemBattleStrategy.decide_turn_in_double_battle` dispatches to once `POKEBOT_R27_DOUBLEITEMS` is
+# set and the battle is in D1's scope. MODULE-LEVEL, the `_r27_key_gate` / `_r25_weaken_turn` precedent: the gate
+# `probe_double_items.py` drives them on fakes. ⛔ NO `get_battle_state()` in either (KI-108): the handler's own
+# `battle_state` plus raw `read_symbol` / `context.emulator.read_bytes` reads only. (`_maybe_use_item`'s existing KI-101
+# judge is the only `get_battle_state()` the acting path reaches, and its HP and party index are compared by `__eq__`.)
+def _dbl_act(strategy, battle_state, side: int):
+    """Flag `1`: the SINGLES item policy for the battler on `side`, healing only ITSELF (D2), on its OWN ledger (D3).
+
+    ‼ WHY THE LEDGER. `_maybe_use_item` keeps one Pokémon's worth of state in five instance fields (`LEDGER_FIELDS`).
+    Shared by two battlers, the partner's decision cleared a pending request SILENTLY (story_mode's "judged Pokémon is
+    not the one we asked for" branch; recon W8) and `_worst_hit` mixed both Pokémon's hits. So the requester's ledger,
+    keyed by (PID, species), is swapped into those fields around the call and back out in a `finally` — the singles
+    method itself is unchanged and every singles gate keeps its meaning. The per-battle bounds (`_item_uses`, the one
+    retry, the disable, the key verdict) stay shared on purpose: a failure on one battler may only ever disable items
+    for both, never grant more uses.
+    ⚠ Recorded, not fixed (review M9): on a turn where the requester healed, its own drop is masked — the heal lands at
+    selection, after `_hp_seen` recorded the pre-heal HP. The singles path has the same flaw.
+    Logs `[DBLITEM] use …` when it acts. Raises only what `_maybe_use_item` raises; the caller fails open (D9)."""
+    from modules.story import double_items as _dbl
+
+    mon = battle_state.own_side.left_battler if side == 0 else battle_state.own_side.right_battler
+    if mon is None:
+        return None
+    ledgers = getattr(strategy, "_dbl_ledgers", None)
+    if ledgers is None:
+        ledgers = strategy._dbl_ledgers = {}
+    ledger = ledgers.setdefault(_dbl.ledger_key(mon.personality_value, mon.species.index), _dbl.new_ledger())
+    saved = {name: getattr(strategy, name) for name in _dbl.LEDGER_FIELDS}
+    for name in _dbl.LEDGER_FIELDS:
+        setattr(strategy, name, ledger[name])
+    try:
+        action = strategy._maybe_use_item(battle_state, side=side, doubles=True)
+    finally:
+        for name in _dbl.LEDGER_FIELDS:
+            ledger[name] = getattr(strategy, name)
+            setattr(strategy, name, saved[name])
+    if action is not None:
+        g = 2 * side
+        payload = action[1]
+        item, target = payload if isinstance(payload, tuple) else (payload, None)
+        try:
+            from modules.memory import read_symbol
+
+            # The SELF binding (D2), on the index the executor will ACT on (rule 7), u16 stride (review M3).
+            self_bit = int(_dbl.self_ok(target, g, read_symbol("gBattlerPartyIndexes", size=8)))
+        except Exception:  # noqa: BLE001 - the field degrades to '?'; the executor's D4 guard re-reads the binding anyway
+            self_bit = "?"
+        _log_story_event(f"use side={side} g={g} item={getattr(item, 'name', item)} "
+                         f"target={mon.species.name}#{mon.personality_value:08X} P={target} "
+                         f"hp={mon.current_hp}/{mon.total_hp} self={self_bit}", "DBLITEM")
+    return action
+
+
+def _dbl_observe(strategy, battle_state, side: int) -> None:
+    """Flag `observe`: exactly ONE `[DBLITEM-OBS]` line per decision, and NOTHING else (D5). ⛔ It never calls
+    `_maybe_use_item` or `_r27_key_gate` — both change state and log `[ITEM]` / `[KEYBATTLE]` (review S13-P3/F5) — and
+    its only state is the private tracker `strategy._dbl_obs`. Never raises: a failure is the row's own `err=`."""
+    try:
+        line = _dbl_obs_line(strategy, battle_state, side)
+    except Exception as error:  # noqa: BLE001 - telemetry: the row names its own failure, the battle never sees it
+        line = f"side={side} g={2 * side} err={type(error).__name__}: {error}"
+    _log_story_event(line, "DBLITEM-OBS")
+
+
+def _dbl_obs_line(strategy, battle_state, side: int) -> str:
+    """The `[DBLITEM-OBS]` row (C5): what the policy WOULD do for this battler, from the pure policy fed by observe's own
+    per-Pokémon HP tracker, plus D8's OFFSET self-check — `battlerPartyOrders[g]` read raw at
+    `u32(*gBattleStruct) + 0x60 + 3g`, and `bpo_pos`, the requester's position in it, which must equal `side` (the active
+    positions are invariant, G2). `disc=1` marks a row that DISCRIMINATES: only there does a wrong index space give a
+    different answer (the requester's party index differs from `side`)."""
+    import os as _os_obs
+
+    from modules.battle_state import BattleType
+    from modules.items import get_item_bag
+    from modules.memory import read_symbol, unpack_uint32
+    from modules.story import double_items as _dbl
+    from modules.story import trainer_identity as _ti
+    from modules.story.battle_items import choose_healing_item, choose_status_or_revive_item
+
+    g = 2 * side
+    head = f"side={side} g={g} turn={battle_state.current_turn}"
+    mon = battle_state.own_side.left_battler if side == 0 else battle_state.own_side.right_battler
+    if mon is None:
+        return f"{head} me=- would=- why=no_mon"
+    pid, party_index, cur, mx = mon.personality_value, mon.party_index, mon.current_hp, mon.total_hp
+    # D5: observe's OWN tracker — the requester's largest drop between ITS consecutive decisions (D3's semantics).
+    tracker = getattr(strategy, "_dbl_obs", None)
+    if tracker is None:
+        tracker = strategy._dbl_obs = {}
+    rec = tracker.setdefault(_dbl.ledger_key(pid, mon.species.index), {"hp": None, "worst": 0})
+    if rec["hp"] is not None and rec["hp"] > cur:
+        rec["worst"] = max(rec["worst"], rec["hp"] - cur)
+    rec["hp"] = cur
+    # The key class by the PURE verdict — no cache, no `[KEYBATTLE]` line (D5). Opponent B only in a TwoOpponents
+    # battle, as `_r27_key_gate` reads it. `allow` applies `POKEBOT_R27_KEYITEMS` exactly as the acting path would (D6).
+    try:
+        two = BattleType.TwoOpponents in battle_state.type
+        opp_a, opp_b = _ti.read_opponent_trainers(two)
+        sides = [(tid, None if tid is None else _ti.trainer_class(tid)) for tid in [opp_a] + ([opp_b] if two else [])]
+        reason = _ti.key_battle_verdict(True, sides)[1]
+        key = 1 if reason == "key_class" else (0 if reason == "not_a_key_class" else "?")
+        allow = _ti.key_battle_verdict(_os_obs.environ.get("POKEBOT_R27_KEYITEMS") == "1", sides)[0]
+    except Exception:  # noqa: BLE001 - fails OPEN like `_r27_key_gate`: an unreadable opponent never refuses items
+        key, allow = "?", True
+    # WOULD: the singles policy's inputs through the pure mirror (`heal_options`, pinned by the parity row DQ03).
+    try:
+        from modules.story.league_reserve import filter_medicine_for_reserve as _reserve
+    except Exception:  # noqa: BLE001 - fail UNLOCKED, the strategy's own rule for the RULING 18 reserve
+        _reserve = None
+    options = _dbl.heal_options(get_item_bag().items, _reserve)
+    frac_kw = _dbl.heal_fraction_kw(_os_obs.environ.get("POKEBOT_HEAL_AT_FRACTION", ""))
+    uses = getattr(strategy, "_item_uses", 0)
+    item = None
+    if not allow:
+        why = "not_key"
+    elif getattr(strategy, "_items_ineffective", False):
+        why = "ineffective"
+    else:
+        item = choose_healing_item(cur, mx, options, worst_hit_taken=rec["worst"], uses_so_far=uses, **frac_kw)
+        why = "hp"
+        if item is None:
+            # D10: the cure policy sees the HP items only. The non-fainted count is never read with
+            # `allow_revive=False` (battle_items.py, rule 2), so a constant stands in for a party read.
+            item = choose_status_or_revive_item(mon.status_permanent, 2, options, uses_so_far=uses,
+                                                allow_revive=False)
+            why = "cure"
+        if item is None:
+            why = _dbl.hp_decline_reason(cur, mx, options, worst_hit_taken=rec["worst"], uses_so_far=uses, **frac_kw)
+    would = "-" if item is None else "_".join(str(item.name).split())
+    # D8: the OFFSET self-check. ⛔ `gBattleStruct` is a POINTER (KI-115): read its 4 bytes, then follow it.
+    try:
+        ptr = unpack_uint32(read_symbol("gBattleStruct", size=4))
+        if not 0x0200_0000 <= ptr < 0x0204_0000:
+            raise ValueError(f"gBattleStruct={ptr:#x} is not in EWRAM")
+        raw = bytes(context.emulator.read_bytes(ptr + _dbl.BPO_OFFSET + _dbl.BPO_STRIDE * g, 3))
+        order = _dbl.decode_bpo(raw)
+        active = _dbl.active_positions(order)
+        bpo = raw.hex()
+        bpo_pos = active.index(party_index) if party_index in active else (
+            f"tail{order.index(party_index)}" if party_index in order else "?")
+    except Exception:  # noqa: BLE001 - telemetry: the fields read '?', the parent's turn is untouched
+        bpo, bpo_pos = "?", "?"
+    try:
+        cursor = read_symbol("gActionSelectionCursor", size=4).hex()
+    except Exception:  # noqa: BLE001 - telemetry: the field reads '?', the parent's turn is untouched
+        cursor = "?"
+    return (f"{head} me={mon.species.name}#{pid:08X} P={party_index} hp={cur}/{mx} would={would} why={why} key={key} "
+            f"worst={rec['worst']} uses={uses} bpo={bpo} bpo_pos={bpo_pos} disc={int(party_index != side)} "
+            f"cur={cursor}")
 
 
 def _t1_start(mode, encounter) -> None:
