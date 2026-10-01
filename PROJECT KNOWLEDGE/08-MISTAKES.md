@@ -23604,3 +23604,33 @@ and give each row a mutant that turns it red. A property with no row is a claim 
     output line that answers it.
   - When bucketing a game enum, read the game's handling of EVERY value (here `IsPlayerDefeated`) and list each value's
     bucket explicitly; an "else → other" hides the one that matters.
+
+## 2026-10-01 — ⛔ STEP 14's FIRST DRAFT: AN ACCEPTANCE METRIC CONDITIONED ON A POST-TREATMENT EVENT, A MARGIN BORROWED FROM A DIFFERENT TEST, AND STOP RULES WITH NO INSTRUMENT
+
+- **Symptoms** (the review, `ai-research-notes/2026-10-01-batch14-recon/b14_design_review.md`):
+  - C2 averaged the first-attempt win rate over "the trainers 5 runs of each arm met". Late bosses are reached by 46-82%
+    of runs, and Juan's first-attempt rate is .63 for strong runs and .11 for weak ones. So an arm that keeps weak runs
+    alive reads LOWER while doing better (S1, BLOCKER).
+  - "δ = .10 is the smallest margin this batch supports" came from the stats recon's NI column, which used a one-sided
+    α = .05 test. The design's own rule is one-sided .025, so the leaders' true power at Δ = 0 was .45-.64, not 80% (S2).
+  - The interim stop reads pointed at `x4-runs/<stamp>/`, which holds no debug log until the batch ENDS. STOP-3 also
+    required a package word in run-end text that no derail message carries (0 of 2,349). Neither rule could have fired
+    (R1, R2).
+  - The cluster key ("same arm and starter PID") over-merged, and the claimed 27-29 trajectories were really 21-24
+    (S4, F1). The recon's "the RNG hold reaches stdout only" was false: the debug log has it.
+- **Root causes:**
+  - a rate pre-registered without asking who enters its denominator;
+  - a number copied from a note without checking it was computed for THIS decision rule;
+  - stop rules written from where the logs END UP, not where they ARE while the batch runs.
+- **The fixes that worked:** a frozen high-reach trainer set chosen from the baseline; the power re-simulated under the
+  exact rule; a live monitor inside the runner; clusters (arm, species, PID), never de-duplicated.
+- **Prevention rules:**
+  - Before pre-registering a conditional rate, ask: can the arm change WHO is in the denominator? If yes, fix the set in
+    advance, or measure it unconditionally.
+  - A power figure or margin quoted from a note must name the exact test it was computed for; re-derive it when the
+    rule differs.
+  - For every stop rule, name the FILE it reads at the moment it runs, and dry-run that read on a live or replayed batch.
+- **Also, a near-miss (third time):** two doc wording fixes went through a shell heredoc (`py - <<'EOF'`). The text was
+  verified intact afterwards (0 replacement characters; every Greek letter counted). The rule ("documentation text
+  never passes through ANY shell-quoted string") already existed and was broken anyway. ⇒ prose has failed three times,
+  which strengthens the case for the proposed heredoc hook (an open user question).

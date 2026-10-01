@@ -37478,3 +37478,19 @@ bought balls only at fixed story points.
   `probe_itemprobes.py`: 145 rows, 174 mutants. The full suite passes.
 - **Filed alongside:** KI-116 and `#27-drawdefeat` (production counts a defeat only on `Lost`).
 - Next: v2 step 14's design. The user decides per-lane flags or two batches, and starts the batch.
+
+## 2026-10-01 — design v2 step 14 (the batch): DESIGN filed, adversarially reviewed and folded; WAITING ON THE USER (`#26-organiccatch`)
+
+- **Recon** (five read-only angles: machinery, flags, statistics, expectations, adversary) and a **four-angle
+  adversarial review** of the first draft (statistics, the runner, arm identity, a cold start). About 40 findings,
+  one BLOCKER, all folded: `ai-research-notes/2026-10-01-batch14-recon/` (`b14_design_review.md`).
+- **The design** (`ai-research-notes/2026-10-01-batch14-DESIGN.md`):
+  - arm A (all OFF) against arm B (the package + DOUBLEITEMS), on 16 concurrent headless lanes (recommended);
+  - a frozen early-trainer acceptance set K\* with margin .08, gated on a manipulation check;
+  - harm flags; automated stop rules; a 15-minute smoke run first.
+- **A power study** (simulated from batch0926/0927's 73 runs) sets the margins.
+  - At 16 lanes, a package with no effect reads NOT LOWER about 82% of the time.
+  - A regression is flagged with power .79 if half of today's ordinary item battles turned into losses.
+- **Tools still to build BEFORE the batch:** T1 `x4_headless.py --arms`, T2 `battle_log.py`, T3 `compare_arms.py`, each
+  gated. No code was written and nothing was run.
+- Next: the user's three answers (lanes, window, Q1/Q3 as built).

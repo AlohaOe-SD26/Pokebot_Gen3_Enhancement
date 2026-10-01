@@ -8806,3 +8806,43 @@ refuter) found no production defect. Rulings, recorded so they are not re-asked:
   not have (every lane inherits the dashboard's environment). The options are a small per-lane flag mechanism (built
   and proven like any other change) or two batches, one per arm, at twice the machine time. The probes' `--lanes` filter
   serves either.
+
+## 2026-10-01 — design v2 step 14 (the Phase 3 batch): how the A/B is run and graded (`#26-organiccatch`, v2 step 14)
+
+Full design: `ai-research-notes/2026-10-01-batch14-DESIGN.md` (recon and review under `…/2026-10-01-batch14-recon/`).
+- **Concurrent headless lanes, arms balanced lane-for-lane, through `x4_headless.py --arms`** (recommended: 16 lanes,
+  two arms × two lanes of each starter). Rejected:
+  - a 2/2 split on the GUI's 4 lanes, which makes the arm the starter;
+  - per-run alternation, a production change to the endless loop;
+  - two GUI nights, which confounds the arm with the night (KI-112) and needs a two-night freeze. It is offered only as
+    an option.
+
+  The lane count and the window are the USER's call (the design's §7).
+- **Arm B = v2's list + `POKEBOT_R27_DOUBLEITEMS=1`; `TEAM6` and `HUNTFIRST` stay OFF** in both arms. v2 names only
+  OPENFENCE, and `#24-partycap` measured −36 points for that kind of change.
+  **Both arms add `POKEBOT_R25_WEAKEN_CALC=1` to `observe`.** Without it the weaken-frequency data v2 wants is
+  near-empty, and observe+CALC is the one sanctioned use (`29`:202).
+  **Every arm lists all 18 variables explicitly**, enforced by an allowlist and a source check.
+- **The acceptance metric is fixed BEFORE the data.** The first-attempt win rate over a FROZEN set K\* of seven early,
+  high-reach, movable key trainers: Roxanne, Brawly, Wattson, Flannery, the Route 110 rival, Tabitha and Maxie at
+  Mt. Chimney.
+  - It is post-stratified by realized starter and clustered by (arm, species, starter PID).
+  - The margin is δ = .08 at 16 lanes (80% power), .11 at 8.
+  - Rejected: the first draft's mean over every trainer met by 5 runs per arm. Reaching a trainer is itself changed by
+    the arm (truncation by death; the review's BLOCKER S1).
+- **A fixed sequence, not Holm.** The manipulation check (HP items held at K\* first attempts, B > A) GATES the
+  non-inferiority reading. The harm flags (C2 LOWER, C5 REGRESSION in non-key trainer battles) are read UNADJUSTED at
+  one-sided .05, because adjusting them would weaken exactly the harm the batch exists to see.
+- **Two v2 expectations are WITHDRAWN as tests and kept as reports.**
+  - "Fewer `[DEXFENCE]` reserve refusals": the runway refusal returns first, and OPENFENCE moves encounters into the
+    reserve gate.
+  - "No more leg-11 money refusals": about 11 runs per arm reach it.
+
+  The two v2 probes stay as cross-checks.
+- **Stop rules are automated in the runner and their consequences are pre-registered.**
+  - STOP-1 (an arm leak, including A-only refusal texts appearing in B) and STOP-2 (` rare=` and `[KEYBATTLE]` in every
+    B lane within 60 min) abort the batch live.
+  - STOP-3 (a new failure in B only) is manual.
+  - Any STOP makes the confirmatory readings descriptive, and a restart is a new batch, never pooled.
+- **The freeze:** the batch runs the main checkout, which stays dirty so its session hook never pulls. No merges and no
+  Claude session there during the window. The runner aborts if HEAD or the code's porcelain moves.

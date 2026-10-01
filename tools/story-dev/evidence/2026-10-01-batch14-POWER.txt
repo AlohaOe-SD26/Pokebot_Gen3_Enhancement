@@ -1,0 +1,871 @@
+# 2026-10-01 — design v2 step 14: the POWER STUDY behind the DESIGN's §6 and its frozen trainer set K*
+# A NOTE, NOT TRUTH: a read-only subagent's report, verbatim, then the scripts behind its VERIFIED numbers.
+# The scripts ran from the session scratchpad (scratchpad/s14power2/, reusing scratchpad/s14power/keybattles*.py);
+# their large simulation outputs are not kept. Re-running them needs those paths.
+
+====================================================================================================
+THE REPORT
+====================================================================================================
+## Step-14 v2 power study (read-only)
+
+I edited neither checkout. The main checkout still shows only the ledger change that was already there. The ch24 worktree's modified and untracked files were also already there; I never wrote to it. Scripts and outputs are all in `C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/s14power2/` (called S2 below). I reused `s14power/keybattles.py` and `keybattles2.py` unchanged for the key-battle classification.
+
+**Data** (`S2/extract.py` writes `runs.json`): 73 runs, 38 in batch0926 and 35 in batch0927. 8 runs were in progress at the park, defined as the last log of each lane in each batch. Every run has a starter. All 65 completed runs end on a `DERAIL` line or a frame-budget wedge.
+
+### 1. K* (VERIFIED, `kstar.py`)
+
+- Reach counts completed runs only.
+- First attempt is the earliest battle per (run, trainer), over all runs including in-progress ones. A Draw counts as a loss.
+- K* comes out the same if in-progress runs are left out of the first-attempt rates.
+
+| Trainer | reach 0926 / 0927 | 1st-attempt 0926 (n) / 0927 (n) |
+|---|---|---|
+| ROXANNE_1 | 1.000 / 1.000 | .895 (38) / .943 (35) |
+| BRAWLY_1 | 1.000 / 1.000 | .811 (37) / .686 (35) |
+| WATTSON_1 | .971 / .839 | .167 (36) / .133 (30) |
+| RIVAL_ROUTE_110 | 1.000 / 1.000 | .405 (37) / .314 (35) |
+| TABITHA_MT_CHIMNEY | .971 / .806 | .943 (35) / 1.000 (29) |
+| MAXIE_MT_CHIMNEY | .971 / .839 | .743 (35) / .700 (30) |
+| FLANNERY_1 | .971 / .839 | .457 (35) / .467 (30) |
+
+Tabitha only just qualifies on both criteria: reach 25/31, and first attempt 33/35. One run more or fewer either way would drop her.
+
+Excluded:
+- **First attempt above .95 in both batches:** RIVAL_ROUTE_103 (1.0/1.0), RIVAL_RUSTBORO (1.0/1.0), WALLY_MAUVILLE (1.0/1.0).
+- **Reach below .80 in batch0927:** NORMAN_1 (.912/.742), SHELLY_WEATHER_INSTITUTE (.853/.548), RIVAL_ROUTE_119 (.853/.581), WINONA_1 (.853/.581).
+- **Reach below .80 in both batches:** TABITHA_MAGMA_HIDEOUT, MAXIE_MAGMA_HIDEOUT, MATT, TATE_AND_LIZA_1 (all .676/.548); SHELLY_SEAFLOOR_CAVERN (.588/.452); ARCHIE and JUAN_1 (.588/.484); WALLY_VR_1 (.471/.355).
+- **By rule:** MAXIE_MOSSDEEP (Space Center multi battle), and PHOEBE and SIDNEY (Elite Four, 1 battle each in batch0927).
+- RIVAL_LILYCOVE never appears in the classified rows.
+
+**Misattribution check** (`ambig.py`, `missed.py`, `missed2.py`): leads shared with non-key parties (Brawly's Machop L16, the Route 110 rival's leads, Tabitha's Numel L18) could hide a first attempt. Only 2 hidden losses were found: Wingull L18 on Route 110, both in one run whose first attributed attempt was already a Loss. So no first-attempt value changes.
+
+### 2. Design table (INFERRED; `run_design.py` uses `sim.py`, summarized by `summarize.py`)
+
+- 2,000 simulations per design, 500 bootstrap draws inside each simulation (not 10,000).
+- "Null SD" is the true SD of Delta across simulations; "boot SD" is the mean bootstrap SD.
+- δ80 is the margin that gives 80% power at Delta = 0. Monte Carlo error is about ±.02 on the probabilities and ±.002 on δ80.
+
+| Design (fps per lane) | Runs/arm (completed) | Clusters/arm | Null SD | Boot SD | P(NOT LOWER \| Delta 0) at δ = .06 / .08 / .10 / .12 / .15 | δ80 |
+|---|---|---|---|---|---|---|
+| 8 lanes (700) | 31.7 (27.7) | 24.4 | .0355 | .0384 | .345 / .564 / .767 / .899 / .983 | **.105** |
+| 16 lanes (620) | 56.6 (48.6) | 45.0 | .0259 | .0290 | .544 / .817 / .953 / .992 / 1.000 | **.079** |
+| 24 lanes, per arm (560) | 51.6 (43.6) | 41.9 | .0275 | .0301 | .512 / .788 / .934 / .989 / 1.000 | **.081** |
+
+- The 24-lane design is about 155 runs in total. Its two comparisons against A were not adjusted for multiplicity, and I did not compute power under a Bonferroni split.
+- In every simulation all 7 K* trainers could be estimated.
+- Under Delta = 0, P(lower bound > 0) was .015–.020. The bootstrap SD is 8–12% larger than the true SD, so the CI is slightly conservative.
+- **Sensitivity, 16 lanes:**
+  - Using the all-pairs PID collision rate (pool of 13 seeds) gives 46.6 clusters, SD .0256 and δ80 .078.
+  - Letting same-species lanes in an arm share one seed pool gives 37.1 clusters, SD .0270 and δ80 .085.
+- **Recommendation:** δ = .08 for the 16-lane design. The 8-lane design needs δ of at least about .105.
+
+### 3. (a) Runs and clusters model
+
+- **Throughput** (`frames.py`, VERIFIED): completed runs average 4.573M frames (n = 65; median about 4.1M; SD about 1.95M). The 4-lane baseline ran at 799 and 722 fps per lane, giving .542 and .549 completed runs per lane-hour. At 700 fps that is .551 runs per lane-hour, which matches the ~0.55 you quoted.
+- **Frame budget:** 13 h × 3600 × fps, which is 32.8M frames at 700, 29.0M at 620 and 26.2M at 560. I used your 620 and 560. A straight line between the 8-lane (700) and 32-lane (497) anchors gives 632 and 565; interpolating on log2 of the lane count gives 599 and 539. Moving 60 fps shifts δ80 by about .002–.003.
+- **Runs:** each lane starts runs back to back until its budget is spent. The run that crosses the budget is in progress and keeps only battles that started before the cut, so there is exactly 1 in-progress run per lane.
+- **Seed pool** (`collide.py`, VERIFIED): same-PID pairs within a batch occur at 27/299 = .0903 (across batches 21/332 = .0633). So each lane is modelled as drawing uniformly from its own pool of 11 seeds. On the baseline blocks this predicts 51.0 distinct PIDs against 53 observed, so it slightly overstates collisions, which is conservative.
+- **Random lane:** each run's species is drawn uniformly. The baseline P4 lane's realized split was Torchic 4, Mudkip 7, Treecko 8 of 19.
+- **Contradicting evidence:** in the baseline, P2 and P4 effectively share one pool even though the player names differ ("P2" and "P4"). Their cross-lane same-PID rate was 20/323 = .062, the same size as within a lane; every other lane pair was 0. The shared-pool sensitivity above covers this case.
+
+### 4. (b) How the pseudo-arms were built
+
+- **Population:** the 65 completed runs from both batches. The 8 in-progress runs are left out because they are censored, which slightly under-represents long runs.
+- **Population clusters:** (species, PID), merged across lanes and batches: Torchic 14, Mudkip 10, Treecko 15.
+- **Building a pseudo-arm:**
+  - A new (species, seed) in a lane is assigned a population cluster of that species, drawn without replacement inside the lane and with replacement across lanes and arms.
+  - A repeated seed takes the next unused run from that same population cluster; once those run out, it takes a random copy.
+- **Analysis cluster:** (arm, species, lane, seed). Strata are arm × species, and the estimand follows your items 2–5 exactly.
+- **Real-data check** (`baseline.py`, VERIFIED, 10,000 draws): batch0927 minus batch0926 gives Delta = −.022, 95% CI [−.085, +.031], bootstrap SD .0295, on 27 and 23 clusters. This is not a pure A/A test, because the builds changed between and within the batches.
+
+### 5. (d) False NOT LOWER rate at a planted Delta = −δ
+
+The plant flips first-attempt wins in arm B with probability δ / .640.
+- **16 lanes, δ = .08** (S = 4,000): **.023 ± .005**, with the realized Delta averaging −.0796. That is with flips keyed per analysis cluster, so replays of one seed flip alike.
+- If flips are instead keyed per population run, so copies of a run flip alike across different clusters, the rate is .032 ± .006.
+- **8 lanes, δ = .10:** .027 under either flip keying.
+- **24 lanes, δ = .08:** .026 per cluster, .035 per population run.
+
+### 6. (e) C5, losses per non-key trainer battle
+
+**Classifier:** I did not fall back to frames. A non-key trainer battle is one with no `[STEP] 'Encountered` line inside it, an outcome other than RanAway, OpponentTeleported or Caught, and a foe set that fits inside some decomp trainer party. In the `trwild_check2.py` cross-tab, only 12 battles carrying the wild marker were lost.
+
+**Baseline** (VERIFIED, `baseline.py`, 10,000 draws):
+- batch0926: 137/4,311 = .0318
+- batch0927: 100/3,450 = .0290
+- Pooled: 237/7,761 = **.0305, 95% CI [.0274, .0336]**
+- batch0927 minus batch0926 = −.0028, 90% CI [−.0071, +.0016].
+- Item battles: 116, of which 112 were won. With f = 1, those wins become losses and the rate would be .0450.
+- 17 of the 237 losses (`c5amb.py`) have a foe set that also fits inside a key party, so a few may be mis-attributed key losses. Removing all 17 would give at most .0284.
+
+**Power to flag REGRESSION** (INFERRED, `c5sum.py`; lower bound of the 90% CI > 0; 2,000 simulations × 600 draws):
+
+| f | Added rate | 8 lanes | 16 lanes |
+|---|---|---|---|
+| 0 (false-positive rate) | — | .051 | .043 |
+| .3 | +.0043 (+14%) | .31 | .44 |
+| .5 | +.0072 (+23%) | .57 | .79 |
+| 1.0 | +.0143 (+46%) | .92 | .99 |
+
+### 7. (f) Reach check, 16 lanes (INFERRED, `reach_power.py`)
+
+The check compares completed runs only, using a pooled ratio. I planted a drop d in arm B by turning runs that reached X into non-reachers; 800 simulations × 500 draws, grid-interpolated. The smallest d with 80% power is:
+
+| Trainers (population reach) | Flag on 95% CI upper < 0 | Flag on 90% CI upper < 0 |
+|---|---|---|
+| ROXANNE_1, BRAWLY_1, RIVAL_ROUTE_110 (1.000) | ≈ .124 / .125 / .128 | ≈ .098 / .105 / .100 |
+| WATTSON_1, FLANNERY_1 (.908) | ≈ .20 / .195 | ≈ .178 / .172 |
+| MAXIE_MT_CHIMNEY (.908) | over .20 (.78 at .20) | ≈ .172 |
+| TABITHA_MT_CHIMNEY (.892) | over .20 (.77 at .20) | ≈ .187 |
+
+- **False flags at d = 0:** 0 for the trainers at reach 1.0; .019–.025 (95% rule) and .041–.054 (90% rule) for the others.
+- **Why the table is simulated:** the normal approximation (2.8 × null SD, where the SD is .046–.052) fails here — it is undefined at reach 1.0 and understates the other trainers.
+- **Fact (VERIFIED):** reach for Wattson, Maxie and Flannery fell by .132, and for Tabitha by .164, from batch0926 to batch0927. A 16-lane check would not reliably flag a drop that size.
+
+### 8. Assumptions (INFERRED)
+
+- The two arms are equal and drawn from the pooled baseline population.
+- Lanes have independent seed pools of 11 seeds each.
+- Run lengths and outcomes do not depend on the arm.
+- An in-progress run counts toward p if its battle started before the cut, and never counts toward reach.
+- The plants are multiplicative on win probability or on reach.
+- The baseline itself mixes several builds.
+
+**VERIFIED** (computed from the logs): K*, the per-species first-attempt rates, the population θ of .631 (`popcheck.py`), the between-batch Delta, the C5 baseline, the PID collision rates and the P2/P4 pool sharing, and frames per run. **INFERRED** (from the simulation model): everything in sections 2, 5, 6 (power) and 7.
+
+====================================================================================================
+FILE scratchpad/s14power2/extract.py
+====================================================================================================
+"""READ-ONLY: per-RUN extraction for the step-14 power study (v2 estimand). Writes runs.json here.
+Per run: batch, lane, log, in_progress (= the LAST log of its lane in its batch: the batch was parked mid-run),
+starter species + PID (first '[hb] ... ids=['<Species>#<PID8>:' line), frames (last f-stamp),
+key battles in log order (raw decomp name, label, group, outcome) by keybattles2's rules (unchanged),
+non-key TRAINER battles: battle with NO "[STEP] 'Encountered" line inside it, outcome not wild-only, foe
+(species, level) set non-empty and a subset of SOME decomp trainer party, and not classified key.
+For each non-key trainer battle: lost (Lost/Draw) flag and whether an '[ITEM] using' line occurred inside it."""
+import collections, json, os, re, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 's14power'))
+import keybattles as k
+import keybattles2 as k2
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ID_RE = re.compile(r"\[hb\] .*ids=\['([A-Za-z]+)#([0-9A-F]{8}):")
+FRAME_RE = re.compile(r"^f(\d+) ")
+ITEM_RE = re.compile(r"\[ITEM\] using")
+
+
+def battles(path):
+    cur_map, inb = None, False
+    last_f, starter = 0, None
+    out = []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            m = FRAME_RE.match(line)
+            if m:
+                last_f = int(m.group(1))
+            if starter is None and "[hb]" in line:
+                m = ID_RE.search(line)
+                if m:
+                    starter = (m.group(1), m.group(2))
+            if "[MAP]" in line:
+                m = k.MAPLINE_RE.search(line)
+                if m:
+                    cur_map = (m.group(1).strip(), int(m.group(2)), int(m.group(3)))
+            elif "[hb]" in line:
+                m = k.MAP_RE.search(line)
+                if m:
+                    cur_map = (m.group(1).strip(), int(m.group(2)), int(m.group(3)))
+            if "[BATTLE] started" in line:
+                inb, seen, bmap, items, enc, f0 = True, [], cur_map, 0, False, last_f
+            elif inb and "[BATTLE] ended" in line:
+                m = k.END_RE.search(line)
+                out.append(dict(map=bmap, seen=tuple(dict.fromkeys(seen)), oc=m.group(1) if m else "?",
+                                items=items, enc=enc, f=f0))
+                inb = False
+            elif inb:
+                if "[STEP] 'Encountered " in line:
+                    enc = True
+                if "[TURN" in line:
+                    m = k.TURN_RE.search(line)
+                    if m:
+                        seen.append((k.norm(m.group(1)), int(m.group(2))))
+                if ITEM_RE.search(line):
+                    items += 1
+    return out, starter, last_f
+
+
+def main():
+    t = k.load_decomp()
+    key = {n: v for n, v in t.items() if v[0] in k.KEY_CLASS_GROUP}
+    nonkey = [v[1] for n, v in t.items() if v[0] not in k.KEY_CLASS_GROUP]
+    allp = [v[1] for v in t.values()]
+    res = []
+    for batch in ("0926", "0927"):
+        logs = k.select_logs(batch)
+        last_of_lane = {}
+        for lane, path in logs:
+            last_of_lane[lane] = path  # select_logs is sorted by name within a lane
+        for lane, path in logs:
+            bl, starter, last_f = battles(path)
+            keyb, ntr = [], []
+            for b in bl:
+                seen, oc = b["seen"], b["oc"]
+                lost = oc in ("Lost", "Draw")
+                hit = None
+                if seen and not any(k.subset(seen, p) for p in nonkey):
+                    for n, (cl, party, dbl) in key.items():
+                        if not k.subset(seen, party):
+                            continue
+                        if n in k2.LEADER_ROOM:
+                            if b["map"] and b["map"][1:] == k2.LEADER_ROOM[n]:
+                                hit = n
+                        elif cl in ("TRAINER_CLASS_LEADER", "TRAINER_CLASS_ELITE_FOUR", "TRAINER_CLASS_CHAMPION"):
+                            continue
+                        elif oc not in k2.WILD_ONLY and (len(set(seen)) >= 2 or len(party) == 1
+                                                          or (lost and seen[0] in party[:2 if dbl else 1])):
+                            hit = n
+                        if hit:
+                            break
+                if hit:
+                    keyb.append([hit, k2.label(hit), k.KEY_CLASS_GROUP[key[hit][0]], oc, b["items"], b["f"]])
+                elif (not b["enc"]) and oc not in k2.WILD_ONLY and seen and any(k.subset(seen, p) for p in allp):
+                    ntr.append([1 if lost else 0, 1 if b["items"] else 0, oc, b["f"]])
+            res.append(dict(batch=batch, lane=lane[8:10], log=os.path.basename(path),
+                            in_progress=(path == last_of_lane[lane]),
+                            species=starter[0] if starter else None, pid=starter[1] if starter else None,
+                            frames=last_f, key=keyb, ntr=ntr, n_battles=len(bl)))
+    json.dump(res, open(os.path.join(HERE, "runs.json"), "w"))
+    for batch in ("0926", "0927"):
+        rs = [r for r in res if r["batch"] == batch]
+        print(f"batch{batch}: {len(rs)} runs, in-progress {sum(r['in_progress'] for r in rs)}, "
+              f"no starter {sum(r['species'] is None for r in rs)}, species {collections.Counter(r['species'] for r in rs)}")
+        print("  key outcomes:", collections.Counter(b[3] for r in rs for b in r["key"]),
+              " non-key trainer battles:", sum(len(r["ntr"]) for r in rs),
+              " lost:", sum(x[0] for x in r["ntr"] for r in rs) if False else sum(x[0] for r in rs for x in r["ntr"]),
+              " item battles:", sum(x[1] for r in rs for x in r["ntr"]))
+
+
+if __name__ == "__main__":
+    main()
+
+====================================================================================================
+FILE scratchpad/s14power2/kstar.py
+====================================================================================================
+"""READ-ONLY: the confirmatory set K* (pre-registered v2 rule) from runs.json.
+reach[X,b] = completed runs (not in_progress) that ever fought X / completed runs in batch b.
+first[X,b] = runs (ALL runs incl. in-progress; also shown completed-only) whose EARLIEST battle vs X was Won
+             / runs that fought X.  Draw = loss.  K* = reach>=.80 in BOTH batches AND first<=.95 in >=1 batch.
+Excluded by rule: Elite Four + Champion (group elite_four), Space Center multi (MAXIE_MOSSDEEP, TABITHA_MOSSDEEP)."""
+import json, collections
+R = json.load(open('runs.json'))
+EXCL_SC = {"TRAINER_MAXIE_MOSSDEEP", "TRAINER_TABITHA_MOSSDEEP"}
+ORDER = ["RIVAL_ROUTE_103", "ROXANNE_1", "RIVAL_RUSTBORO", "BRAWLY_1", "WALLY_MAUVILLE", "WATTSON_1", "RIVAL_ROUTE_110",
+         "TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY", "FLANNERY_1", "NORMAN_1", "SHELLY_WEATHER_INSTITUTE", "RIVAL_ROUTE_119",
+         "WINONA_1", "RIVAL_LILYCOVE", "TABITHA_MAGMA_HIDEOUT", "MAXIE_MAGMA_HIDEOUT", "MATT", "TATE_AND_LIZA_1",
+         "SHELLY_SEAFLOOR_CAVERN", "ARCHIE", "JUAN_1", "WALLY_VR_1"]
+
+
+def first_by_trainer(r):
+    out, raw = {}, {}
+    for name, lab, grp, oc, *_ in r["key"]:
+        if lab not in out:
+            out[lab] = oc; raw[lab] = (name, grp)
+    return out, raw
+
+
+def table():
+    allraw = {}
+    stats = {}
+    for b in ("0926", "0927"):
+        rs = [r for r in R if r['batch'] == b]
+        comp = [r for r in rs if not r['in_progress']]
+        met = collections.Counter(); metc = collections.Counter(); fw = collections.Counter(); fwc = collections.Counter()
+        dec = collections.Counter(); oth = collections.Counter()
+        for r in rs:
+            f, raw = first_by_trainer(r); allraw.update(raw)
+            for lab, oc in f.items():
+                met[lab] += 1; fw[lab] += oc == "Won"
+                if oc not in ("Won", "Lost", "Draw"): oth[lab] += 1
+                if not r['in_progress']:
+                    metc[lab] += 1; fwc[lab] += oc == "Won"
+        stats[b] = dict(n=len(comp), met=met, metc=metc, fw=fw, fwc=fwc, oth=oth)
+    return stats, allraw
+
+
+if __name__ == "__main__":
+    stats, allraw = table()
+    labs = [l for l in ORDER if l in allraw] + sorted(l for l in allraw if l not in ORDER)
+    print(f"completed runs: 0926 {stats['0926']['n']}, 0927 {stats['0927']['n']}")
+    print(f"{'trainer':26}{'group':11}| reach26  reach27 | 1st26 (n)     1st27 (n)    | 1st26c 1st27c (completed-only) | verdict")
+    kstar = []
+    for lab in labs:
+        name, grp = allraw[lab]
+        row = f"{lab:26}{grp:11}|"
+        reach = []; first = []; firstc = []
+        for b in ("0926", "0927"):
+            s = stats[b]
+            reach.append(s['metc'][lab] / s['n'])
+            first.append(s['fw'][lab] / s['met'][lab] if s['met'][lab] else float('nan'))
+            firstc.append(s['fwc'][lab] / s['metc'][lab] if s['metc'][lab] else float('nan'))
+        row += f"  {reach[0]:.3f}   {reach[1]:.3f} | {first[0]:.3f} ({stats['0926']['met'][lab]:2})  {first[1]:.3f} ({stats['0927']['met'][lab]:2}) |  {firstc[0]:.3f}  {firstc[1]:.3f}  |"
+        if grp == "elite_four":
+            v = "EXCLUDED: Elite Four/Champion by rule"
+        elif name in EXCL_SC:
+            v = "EXCLUDED: Space Center multi by rule"
+        elif min(reach) < .80:
+            v = f"EXCLUDED: reach < .80 in {'both' if max(reach) < .8 else ('0926' if reach[0] < .8 else '0927')}"
+        elif min(first) > .95:
+            v = "EXCLUDED: first-attempt > .95 in both batches"
+        else:
+            v = "IN K*"; kstar.append(lab)
+        oth = stats['0926']['oth'][lab] + stats['0927']['oth'][lab]
+        print(row + " " + v + (f"  [non-Won/Lost/Draw first: {oth}]" if oth else ""))
+    print("K* =", kstar)
+    json.dump(kstar, open('kstar.json', 'w'))
+
+====================================================================================================
+FILE scratchpad/s14power2/kstar.json
+====================================================================================================
+["ROXANNE_1", "BRAWLY_1", "WATTSON_1", "RIVAL_ROUTE_110", "TABITHA_MT_CHIMNEY", "MAXIE_MT_CHIMNEY", "FLANNERY_1"]
+====================================================================================================
+FILE scratchpad/s14power2/collide.py
+====================================================================================================
+"""READ-ONLY: within-lane starter-PID collision rate (the seed-pool model's one parameter).
+Pairwise same-PID rate per lane: within-batch pairs, across-batch pairs. Uniform-pool fit: M = 1/rate.
+Check: predicted vs observed distinct PIDs per (lane, batch) block. Cross-lane pairs (P2-P4 shared pool)."""
+import json, itertools, collections, math
+R = json.load(open('runs.json'))
+lanes = ("P1", "P2", "P3", "P4")
+tot_w = [0, 0]; tot_x = [0, 0]
+rate = {}
+for ln in lanes:
+    rs = [r for r in R if r['lane'] == ln]
+    w = [0, 0]; x = [0, 0]
+    for a, b in itertools.combinations(rs, 2):
+        same = a['pid'] == b['pid']
+        if a['batch'] == b['batch']: w[0] += same; w[1] += 1
+        else: x[0] += same; x[1] += 1
+    tot_w[0] += w[0]; tot_w[1] += w[1]; tot_x[0] += x[0]; tot_x[1] += x[1]
+    allp = (w[0] + x[0]) / (w[1] + x[1]); rate[ln] = allp
+    print(f"{ln}: within-batch same-PID pairs {w[0]}/{w[1]} = {w[0]/w[1]:.3f}; across-batch {x[0]}/{x[1]} = {x[0]/x[1]:.3f}; "
+          f"all {allp:.3f} -> uniform pool M = {1/allp:.1f}")
+pw = tot_w[0] / tot_w[1]; px = tot_x[0] / tot_x[1]; pa = (tot_w[0] + tot_x[0]) / (tot_w[1] + tot_x[1])
+print(f"POOLED: within-batch {tot_w[0]}/{tot_w[1]} = {pw:.4f}; across-batch {tot_x[0]}/{tot_x[1]} = {px:.4f}; all {pa:.4f} -> M = {1/pa:.2f}")
+# observed vs predicted distinct per block under M = 1/pa
+def ed(n, M): return M * (1 - (1 - 1 / M) ** n)
+o = p = 0
+for ln in lanes:
+    for b in ("0926", "0927"):
+        rs = [r for r in R if r['lane'] == ln and r['batch'] == b]
+        d = len({r['pid'] for r in rs}); o += d; p += ed(len(rs), 1 / pa)
+        print(f"   {ln} {b}: n {len(rs):2}  distinct {d}  predicted(M={1/pa:.1f}) {ed(len(rs), 1/pa):.2f}  predicted(lane M={1/rate[ln]:.1f}) {ed(len(rs), 1/rate[ln]):.2f}")
+print(f"   total distinct-per-block observed {o}, predicted {p:.1f}")
+# cross-lane
+for a, b in itertools.combinations(lanes, 2):
+    ra = [r for r in R if r['lane'] == a]; rb = [r for r in R if r['lane'] == b]
+    s = sum(x['pid'] == y['pid'] for x in ra for y in rb)
+    print(f"cross-lane {a}-{b}: same-PID pairs {s}/{len(ra)*len(rb)} = {s/len(ra)/len(rb):.3f}")
+json.dump({"pooled_rate": pa, "lane_rate": rate}, open('collide.json', 'w'))
+
+====================================================================================================
+FILE scratchpad/s14power2/collide.json
+====================================================================================================
+{"pooled_rate": 0.07606973058637084, "lane_rate": {"P1": 0.07602339181286549, "P2": 0.08088235294117647, "P3": 0.08496732026143791, "P4": 0.06432748538011696}}
+====================================================================================================
+FILE scratchpad/s14power2/frames.py
+====================================================================================================
+"""READ-ONLY: frames per run and the baseline fps/run-rate (both batches). Lane-hours = batch wall span x 4 lanes.
+Batch spans from the first/last log stamps + the last log's mtime (park time)."""
+import json, statistics, os, datetime, glob
+R = json.load(open('runs.json'))
+base = r"C:/Remote Projects/Pokebot_Gen3_Enhancement/sandbox-pokebot/profiles"
+for b, start in (("0926", datetime.datetime(2026, 9, 26, 11, 47, 33)), ("0927", datetime.datetime(2026, 9, 27, 8, 17, 46))):
+    rs = [r for r in R if r['batch'] == b]
+    comp = [r for r in rs if not r['in_progress']]
+    ends = []
+    for r in rs:
+        if r['in_progress']:
+            p = glob.glob(os.path.join(base, f"endless-{r['lane']}-*", "debug-logs", "Old", r['log']))[0]
+            ends.append(datetime.datetime.fromtimestamp(os.path.getmtime(p)))
+    park = max(ends)
+    lh = sum((e - start).total_seconds() for e in ends) / 3600
+    fr = sum(r['frames'] for r in rs)
+    print(f"batch{b}: park {park}, lane-h {lh:.1f}, runs {len(rs)} (completed {len(comp)}), frames total {fr/1e6:.1f}M, "
+          f"fps/lane {fr/lh/3600:.0f}, completed runs/lane-h {len(comp)/lh:.3f}, all runs/lane-h {len(rs)/lh:.3f}")
+    print(f"   completed-run frames: mean {statistics.mean(r['frames'] for r in comp)/1e6:.2f}M  median "
+          f"{statistics.median(r['frames'] for r in comp)/1e6:.2f}M  sd {statistics.stdev(r['frames'] for r in comp)/1e6:.2f}M")
+comp = [r for r in R if not r['in_progress']]
+m = statistics.mean(r['frames'] for r in comp)
+print(f"pooled completed-run mean frames {m/1e6:.3f}M (n={len(comp)});  runs/lane-h at 700 fps = {700*3600/m:.3f}; "
+      f"at 620 {620*3600/m:.3f}; at 560 {560*3600/m:.3f}")
+
+====================================================================================================
+FILE scratchpad/s14power2/baseline.py
+====================================================================================================
+"""READ-ONLY: VERIFIED baseline numbers (computed from the logs via runs.json), 10,000-draw cluster bootstraps.
+1. per-species first-attempt rates p[X,s] for K* (all runs incl. in-progress; earliest battle per (run, trainer)).
+2. theta per batch and the batch0927 - batch0926 Delta with the PRE-REGISTERED procedure (clusters = (batch, species,
+   PID), strata = batch x species, 10,000 percentile draws) -- a real-data two-arm check (NOT a pure A/A: the builds
+   differ between and inside the batches).
+3. C5 = Lost+Draw per NON-KEY TRAINER battle, ratio of sums, per batch and pooled, cluster bootstrap 95% CI
+   (pooled: clusters (species, PID), strata species); item battles; reach per batch with CI."""
+import json, collections
+import numpy as np
+import sim
+
+R = json.load(open("runs.json"))
+K = sim.KSTAR
+rng = np.random.default_rng(2026)
+
+
+def first(r):
+    out = {}
+    for name, lab, grp, oc, items, f in r["key"]:
+        if lab in K and lab not in out:
+            out[lab] = 1.0 if oc == "Won" else 0.0
+    return out
+
+
+def agg(runs, arm):
+    per = {sp: collections.OrderedDict() for sp in sim.SPECIES}
+    for r in runs:
+        fr = first(r)
+        ck = (arm, r["species"], r["pid"])
+        d = per[r["species"]].setdefault(ck, [np.zeros(len(K)), np.zeros(len(K)), np.zeros(len(K)), 0.0, 0.0, 0.0, 0])
+        for j, x in enumerate(K):
+            if x in fr:
+                d[0][j] += 1; d[1][j] += fr[x]
+                if not r["in_progress"]:
+                    d[2][j] += 1
+        if not r["in_progress"]:
+            d[3] += 1
+        d[4] += len(r["ntr"]); d[5] += sum(b[0] for b in r["ntr"]); d[6] += 1
+    out = {}
+    for sp in sim.SPECIES:
+        v = list(per[sp].values())
+        out[sp] = None if not v else dict(N=np.array([x[0] for x in v]), W=np.array([x[1] for x in v]),
+                                          RC=np.array([x[2] for x in v]), CC=np.array([x[3] for x in v]),
+                                          B5=np.array([x[4] for x in v]), L5=np.array([x[5] for x in v]))
+    return out
+
+
+b26 = [r for r in R if r["batch"] == "0926"]
+b27 = [r for r in R if r["batch"] == "0927"]
+
+print("1. per-species first-attempt rate p[X,s] = won first / fought (n), both batches pooled, all 73 runs:")
+for j, x in enumerate(K):
+    row = []
+    for sp in sim.SPECIES:
+        fs = [first(r)[x] for r in R if r["species"] == sp and x in first(r)]
+        row.append(f"{sp} {np.mean(fs):.3f} ({len(fs)})")
+    print(f"   {x:22} " + "  ".join(row))
+
+A, B = agg(b26, "A"), agg(b27, "B")
+pt = sim.boot_stats(rng, A, B, 0)
+bs = sim.boot_stats(rng, A, B, 10000)
+d = bs["delta"]
+th26 = pt["thetaA"][0]; th27 = th26 + pt["delta"][0]
+print(f"\n2. theta batch0926 {th26:.4f}, batch0927 {th27:.4f}; Delta(0927-0926) {pt['delta'][0]:+.4f}; "
+      f"bootstrap SD {d.std():.4f}; 95% CI [{np.percentile(d, 2.5):+.4f}, {np.percentile(d, 97.5):+.4f}] "
+      f"(clusters 0926 {sum(len(A[s]['CC']) for s in sim.SPECIES)}, 0927 {sum(len(B[s]['CC']) for s in sim.SPECIES)})")
+print(f"   reach diff (0927-0926) per K*: " + "  ".join(f"{x} {v:+.3f}" for x, v in zip(K, pt["reach"][0])))
+
+print("\n3. C5 (Lost+Draw per non-key trainer battle):")
+for name, runs in (("batch0926", b26), ("batch0927", b27), ("pooled", R)):
+    g = agg(runs, "X")
+    L = sum(g[s]["L5"].sum() for s in sim.SPECIES); Bt = sum(g[s]["B5"].sum() for s in sim.SPECIES)
+    num = np.zeros(10000); den = np.zeros(10000)
+    for s in sim.SPECIES:
+        C = len(g[s]["CC"]); Wt = rng.multinomial(C, np.full(C, 1.0 / C), size=10000).astype(float)
+        num += Wt @ g[s]["L5"]; den += Wt @ g[s]["B5"]
+    rr = num / den
+    items = sum(b[1] for r in runs for b in r["ntr"]); items_won = sum(1 for r in runs for b in r["ntr"] if b[1] and not b[0])
+    items_lost = sum(1 for r in runs for b in r["ntr"] if b[1] and b[0])
+    print(f"   {name:9}: {int(L)} lost / {int(Bt)} battles = {L/Bt:.4f}  95% CI [{np.percentile(rr, 2.5):.4f}, "
+          f"{np.percentile(rr, 97.5):.4f}]  boot SD {rr.std():.4f} | item battles {items} (won {items_won}, lost {items_lost}); "
+          f"f=1 would add {items_won} losses -> {(L+items_won)/Bt:.4f}")
+c26 = agg(b26, "A"); c27 = agg(b27, "B")
+num = {};
+for a, g in (("A", c26), ("B", c27)):
+    n = np.zeros(10000); dd = np.zeros(10000)
+    for s in sim.SPECIES:
+        C = len(g[s]["CC"]); Wt = rng.multinomial(C, np.full(C, 1.0 / C), size=10000).astype(float)
+        n += Wt @ g[s]["L5"]; dd += Wt @ g[s]["B5"]
+    num[a] = n / dd
+diff = num["B"] - num["A"]
+print(f"   C5 batch0927 - batch0926 = {pt['c5'][0]:+.4f}; 90% CI [{np.percentile(diff, 5):+.4f}, {np.percentile(diff, 95):+.4f}]")
+
+====================================================================================================
+FILE scratchpad/s14power2/sim.py
+====================================================================================================
+"""READ-ONLY sim engine for the step-14 v2 power study. Imported by the design scripts.
+
+POPULATION = the 65 COMPLETED baseline runs (batch0926 + batch0927 pooled; the 8 in-progress runs are censored and
+left out of the population). Population cluster = (species, starter PID), merged across lanes and batches (P2 and P4
+share PIDs; a PID that recurs is a replay of the same seed).
+
+SIMULATED LANE: frame budget F = 13 h x 3600 x fps. Runs are started back to back until the budget is spent; the run
+that crosses the budget is IN PROGRESS and keeps only the battles that STARTED before the cut. Each run draws a seed
+uniformly from the lane's own pool of M seeds (M = 1 / within-batch same-PID pair rate); a fixed lane's species is
+fixed, a RANDOM lane's species is drawn uniformly from the three per run. A new (species, seed) in a lane is mapped to a
+population cluster of that species, drawn uniformly, without replacement inside the lane while unused ones remain
+(with replacement across lanes and arms); a repeated (species, seed) takes the next unused run of the same population
+cluster, and once those run out, a random one of them (a copy = a replay).
+ANALYSIS CLUSTER = (arm, species, lane, seed) [= (arm, species, PID) with lane-private pools]; strata = arm x species.
+"""
+import json, collections, os
+import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SPECIES = ("Torchic", "Mudkip", "Treecko")
+KSTAR = json.load(open(os.path.join(HERE, "kstar.json")))
+_R = json.load(open(os.path.join(HERE, "runs.json")))
+INF = float("inf")
+
+
+class Pop:
+    def __init__(self, runs):
+        self.runs = []
+        for r in runs:
+            fK = np.full(len(KSTAR), INF)
+            wK = np.zeros(len(KSTAR))
+            for name, lab, grp, oc, items, f in r["key"]:
+                if lab in KSTAR:
+                    j = KSTAR.index(lab)
+                    if fK[j] == INF:
+                        fK[j] = f
+                        wK[j] = 1.0 if oc == "Won" else 0.0
+            nt = np.array([[x[3], x[0], 1.0 if (x[1] and not x[0]) else 0.0] for x in r["ntr"]], float).reshape(-1, 3)
+            self.runs.append(dict(sp=r["species"], pid=r["pid"], frames=r["frames"], fK=fK, wK=wK,
+                                  ntf=nt[:, 0], ntl=nt[:, 1], nti=nt[:, 2], log=r["log"]))
+        self.clusters = collections.defaultdict(list)  # species -> list of lists of run idx
+        tmp = collections.defaultdict(list)
+        for i, r in enumerate(self.runs):
+            tmp[(r["sp"], r["pid"])].append(i)
+        for (sp, _p), idx in sorted(tmp.items()):
+            self.clusters[sp].append(idx)
+
+    def theta(self):
+        """population theta: equal weight over species, then over K*; first-attempt win share among runs that fought X."""
+        p = []
+        for j in range(len(KSTAR)):
+            ps = []
+            for sp in SPECIES:
+                n = sum(1 for r in self.runs if r["sp"] == sp and r["fK"][j] < INF)
+                w = sum(r["wK"][j] for r in self.runs if r["sp"] == sp and r["fK"][j] < INF)
+                if n:
+                    ps.append(w / n)
+            p.append(np.mean(ps))
+        return float(np.mean(p)), p
+
+
+POP = Pop([r for r in _R if not r["in_progress"]])
+
+
+def sim_lane(rng, pop, sp_fixed, budget, M, state=None):
+    """returns list of (pop_run_idx, cut_frame or None (= completed), (species, seed)).
+    state = (seed_map, used) shared between lanes that share ONE seed pool (sensitivity arm only)."""
+    out = []
+    t = 0.0
+    if state is None:
+        state = ({}, collections.defaultdict(set))
+    seed_map, used = state
+    while t < budget:
+        seed = int(rng.integers(M))
+        sp = sp_fixed if sp_fixed else SPECIES[int(rng.integers(3))]
+        key = (sp, seed)
+        if key not in seed_map:
+            cl = pop.clusters[sp]
+            free = [c for c in range(len(cl)) if c not in used[sp]]
+            c = free[int(rng.integers(len(free)))] if free else int(rng.integers(len(cl)))
+            used[sp].add(c)
+            q = list(cl[c])
+            rng.shuffle(q)
+            seed_map[key] = [cl[c], q]
+        allruns, q = seed_map[key]
+        i = q.pop() if q else allruns[int(rng.integers(len(allruns)))]
+        fr = pop.runs[i]["frames"]
+        if t + fr <= budget:
+            out.append((i, None, key))
+            t += fr
+        else:
+            out.append((i, budget - t, key))
+            t = budget
+    return out
+
+
+def sim_arm(rng, pop, lanes, budget, M, arm_tag, shared_pool=False):
+    """lanes: list of species or None (random). Returns list of (pop_idx, cut, clusterkey, species).
+    shared_pool=True: all FIXED lanes of one species in an arm draw from ONE pool (the P2/P4 situation)."""
+    res = []
+    states = collections.defaultdict(lambda: ({}, collections.defaultdict(set)))
+    for li, sp in enumerate(lanes):
+        st = states[sp] if (shared_pool and sp) else None
+        for i, cut, (s, seed) in sim_lane(rng, pop, sp, budget, M, st):
+            lane_id = ("pool-" + str(sp)) if (shared_pool and sp) else li
+            res.append((i, cut, (arm_tag, s, lane_id, seed), s))
+    return res
+
+
+def aggregate(pop, arm_runs, flip_pi=0.0, flip_f=0.0, rng=None, flipcache=None, flip_by_cluster=False):
+    """Per species: cluster matrices. N, W (C x K) first attempts fought / won; RC (C x K) completed runs that fought X,
+    CC (C,) completed runs; B5, L5 (C,) non-key trainer battles / lost(+Draw).
+    flip_pi: first-attempt wins -> losses, keyed by (pop run, trainer) so every copy of a run flips alike;
+    flip_f: WON item battles -> losses, keyed by (pop run, battle)."""
+    K = len(KSTAR)
+    per = {sp: collections.OrderedDict() for sp in SPECIES}
+    for i, cut, ck, sp in arm_runs:
+        r = pop.runs[i]
+        lim = INF if cut is None else cut
+        fought = (r["fK"] < lim).astype(float)
+        w = r["wK"]
+        if flip_pi > 0:
+            fl = flipcache.setdefault(("K", ck if flip_by_cluster else None, i), rng.random(K) < flip_pi)
+            w = np.where(fl, 0.0, w)
+        m = r["ntf"] < lim
+        lost = r["ntl"]
+        if flip_f > 0:
+            fl2 = flipcache.setdefault(("I", ck if flip_by_cluster else None, i), rng.random(len(r["ntl"])) < flip_f)
+            lost = np.where(fl2 & (r["nti"] > 0), 1.0, lost)
+        d = per[sp].setdefault(ck, [np.zeros(K), np.zeros(K), np.zeros(K), 0.0, 0.0, 0.0, 0])
+        d[0] += fought
+        d[1] += fought * w
+        if cut is None:
+            d[2] += (r["fK"] < INF)
+            d[3] += 1
+        d[4] += m.sum()
+        d[5] += (lost * m).sum()
+        d[6] += 1
+    out = {}
+    for sp in SPECIES:
+        v = list(per[sp].values())
+        if not v:
+            out[sp] = None
+            continue
+        out[sp] = dict(N=np.array([x[0] for x in v]), W=np.array([x[1] for x in v]), RC=np.array([x[2] for x in v]),
+                       CC=np.array([x[3] for x in v]), B5=np.array([x[4] for x in v]), L5=np.array([x[5] for x in v]),
+                       NR=np.array([x[6] for x in v]))
+    return out
+
+
+def weights(rng, C, B):
+    if B == 0:
+        return np.ones((1, C))
+    return rng.multinomial(C, np.full(C, 1.0 / C), size=B).astype(float)
+
+
+def boot_stats(rng, aggA, aggB, B):
+    """B == 0 -> point estimate (1 row). Else B bootstrap rows, clusters resampled within arm x species.
+    Returns delta (theta_B - theta_A, equal weight over species with >=1 run that fought X in BOTH arms, then over X),
+    thetaA, c5 (rate_B - rate_A, ratio of sums over the arm), c5A, reach (B - A, per X; completed runs only)."""
+    K = len(KSTAR)
+    nb = max(B, 1)
+    pA, pB = {}, {}
+    tot = {a: dict(L=np.zeros(nb), Bt=np.zeros(nb), RC=np.zeros((nb, K)), CC=np.zeros(nb)) for a in "AB"}
+    for sp in SPECIES:
+        for a, agg, store in (("A", aggA, pA), ("B", aggB, pB)):
+            g = agg[sp]
+            if g is None:
+                store[sp] = (np.zeros((nb, K)), np.zeros((nb, K)))
+                continue
+            Wt = weights(rng, len(g["CC"]), B)
+            store[sp] = (Wt @ g["N"], Wt @ g["W"])
+            t = tot[a]
+            t["L"] += Wt @ g["L5"]
+            t["Bt"] += Wt @ g["B5"]
+            t["RC"] += Wt @ g["RC"]
+            t["CC"] += Wt @ g["CC"]
+    num = np.zeros((nb, K))
+    den = np.zeros((nb, K))
+    thA = np.zeros((nb, K))
+    for sp in SPECIES:
+        nA, wA = pA[sp]
+        nB, wB = pB[sp]
+        ok = (nA > 0) & (nB > 0)
+        sa = np.where(nA > 0, nA, 1.0)
+        sb = np.where(nB > 0, nB, 1.0)
+        num += np.where(ok, wB / sb - wA / sa, 0.0)
+        thA += np.where(ok, wA / sa, 0.0)
+        den += ok
+    dd = np.where(den > 0, den, 1.0)
+    dX = np.where(den > 0, num / dd, np.nan)
+    tX = np.where(den > 0, thA / dd, np.nan)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        delta = np.nanmean(dX, axis=1)
+        thetaA = np.nanmean(tX, axis=1)
+        c5A = tot["A"]["L"] / tot["A"]["Bt"]
+        c5 = tot["B"]["L"] / tot["B"]["Bt"] - c5A
+        rd = tot["B"]["RC"] / tot["B"]["CC"][:, None] - tot["A"]["RC"] / tot["A"]["CC"][:, None]
+    return dict(delta=delta, thetaA=thetaA, c5=c5, c5A=c5A, reach=rd, nX=np.sum(den > 0, axis=1))
+
+
+def design(nper):
+    """nper fixed lanes of each species + nper random lanes, per arm"""
+    return [sp for sp in SPECIES for _ in range(nper)] + [None] * nper
+
+====================================================================================================
+FILE scratchpad/s14power2/run_design.py
+====================================================================================================
+"""READ-ONLY: Monte Carlo of one design. Usage:
+  run_design.py <nper> <fps> <S sims> <B boot> <seed> [pi=<flip prob K*>] [f=<item flip>] [M=<pool>] [shared]
+nper = lanes per species per arm (fixed) + nper random lanes per arm. 13-h frame budget = 13*3600*fps.
+Both pseudo-arms are drawn from the SAME population (sim.POP) => true Delta = 0 unless pi > 0 (planted in B).
+Writes out_<tag>.json with per-sim rows: runs/completed/clusters per arm, point Delta, thetaA, boot SD, CI bounds,
+C5 point diff + 90% CI lower, reach point diffs per K* trainer."""
+import sys, json, time
+import numpy as np
+import sim
+
+args = sys.argv[1:]
+nper, fps, S, B, seed = int(args[0]), float(args[1]), int(args[2]), int(args[3]), int(args[4])
+opt = dict(a.split("=") for a in args[5:] if "=" in a)
+pi = float(opt.get("pi", 0)); f = float(opt.get("f", 0)); M = int(opt.get("M", 11))
+shared = "shared" in args[5:]
+bycl = "bycluster" in args[5:]
+tag = f"n{nper}_fps{int(fps)}_pi{pi:.4f}_f{f}_M{M}{'_shared' if shared else ''}{'_bycl' if bycl else ''}_s{seed}"
+budget = 13 * 3600 * fps
+lanes = sim.design(nper)
+rng = np.random.default_rng(seed)
+rows = []
+t0 = time.time()
+for s in range(S):
+    A = sim.sim_arm(rng, sim.POP, lanes, budget, M, "A", shared)
+    Bm = sim.sim_arm(rng, sim.POP, lanes, budget, M, "B", shared)
+    cache = {}
+    aA = sim.aggregate(sim.POP, A)
+    aB = sim.aggregate(sim.POP, Bm, flip_pi=pi, flip_f=f, rng=rng, flipcache=cache, flip_by_cluster=bycl)
+    pt = sim.boot_stats(rng, aA, aB, 0)
+    bs = sim.boot_stats(rng, aA, aB, B)
+    d = bs["delta"][~np.isnan(bs["delta"])]
+    c5 = bs["c5"][~np.isnan(bs["c5"])]
+    def cnt(arm):
+        return dict(runs=len(arm), completed=sum(1 for x in arm if x[1] is None),
+                    clusters=len({x[2] for x in arm}),
+                    clusters_completed=len({x[2] for x in arm if x[1] is None}),
+                    per_species_runs={sp: sum(1 for x in arm if x[3] == sp) for sp in sim.SPECIES})
+    rows.append(dict(A=cnt(A), B=cnt(Bm), delta=float(pt["delta"][0]), thetaA=float(pt["thetaA"][0]),
+                     nX=int(pt["nX"][0]), bsd=float(d.std()), lo=float(np.percentile(d, 2.5)),
+                     hi=float(np.percentile(d, 97.5)), c5=float(pt["c5"][0]), c5A=float(pt["c5A"][0]),
+                     c5lo90=float(np.percentile(c5, 5)), c5bsd=float(c5.std()),
+                     reach=[float(x) for x in pt["reach"][0]]))
+json.dump(dict(nper=nper, fps=fps, S=S, B=B, seed=seed, pi=pi, f=f, M=M, shared=shared, rows=rows),
+          open(f"out_{tag}.json", "w"))
+print(tag, "done", S, "sims in", round(time.time() - t0), "s")
+
+====================================================================================================
+FILE scratchpad/s14power2/summarize.py
+====================================================================================================
+"""READ-ONLY: summarize out_*.json files given on the command line."""
+import sys, json
+import numpy as np
+import sim
+
+DELTAS = (.06, .08, .10, .12, .15)
+for fn in sys.argv[1:]:
+    d = json.load(open(fn))
+    R = d["rows"]
+    def m(arm, k):
+        return np.mean([r["A"][k] for r in R] + [r["B"][k] for r in R]) if arm == "AB" else np.mean([r[arm][k] for r in R])
+    delta = np.array([r["delta"] for r in R]); lo = np.array([r["lo"] for r in R]); hi = np.array([r["hi"] for r in R])
+    bsd = np.array([r["bsd"] for r in R])
+    print(f"=== {fn}  (S={d['S']} sims, B={d['B']} boot draws)")
+    print(f"  per arm: runs {m('AB','runs'):.1f} (completed {m('AB','completed'):.1f}); clusters {m('AB','clusters'):.1f} "
+          f"(with a completed run {m('AB','clusters_completed'):.1f}); per-species runs "
+          + ", ".join(f"{sp} {np.mean([r[a]['per_species_runs'][sp] for r in R for a in 'AB']):.1f}" for sp in sim.SPECIES))
+    print(f"  Delta: mean {delta.mean():+.4f}  SD (true, across sims) {delta.std():.4f}  mean bootstrap SD {bsd.mean():.4f} "
+          f"(ratio {bsd.mean()/delta.std():.2f});  thetaA mean {np.mean([r['thetaA'] for r in R]):.4f}; "
+          f"sims with <7 trainers estimable {np.mean([r['nX'] < len(sim.KSTAR) for r in R]):.3f}")
+    print("  P(lower > -delta): " + "  ".join(f"d={x:.2f}: {np.mean(lo > -x):.3f}" for x in DELTAS)
+          + f"   | delta for 80%: {np.percentile(-lo, 80):.4f}  (90%: {np.percentile(-lo, 90):.4f})")
+    print(f"  P(upper < 0) {np.mean(hi < 0):.3f}  P(lower > 0) {np.mean(lo > 0):.3f}  (two-sided 95% CI excludes 0 under the null)")
+    c5 = np.array([r["c5"] for r in R]); c5lo = np.array([r["c5lo90"] for r in R])
+    print(f"  C5: baseline-arm rate mean {np.mean([r['c5A'] for r in R]):.4f}; diff mean {c5.mean():+.5f} SD {c5.std():.5f} "
+          f"mean boot SD {np.mean([r['c5bsd'] for r in R]):.5f}; P(REGRESSION: 90% lower > 0) = {np.mean(c5lo > 0):.3f}")
+    rd = np.array([r["reach"] for r in R])
+    sd = np.nanstd(rd, axis=0)
+    print("  reach diff null SD per K*: " + "  ".join(f"{x}: {s:.3f}" for x, s in zip(sim.KSTAR, sd)))
+    print("  reach MDD80 two-sided a=.05 (2.80 SD): " + "  ".join(f"{x}: {2.80*s:.3f}" for x, s in zip(sim.KSTAR, sd))
+          + f"  | one-sided a=.05 (2.49 SD): min {2.49*sd.min():.3f} max {2.49*sd.max():.3f}")
+
+====================================================================================================
+FILE scratchpad/s14power2/c5sum.py
+====================================================================================================
+"""READ-ONLY: C5 regression power from out_*f*.json (REGRESSION iff 90% two-sided CI lower bound > 0)."""
+import glob, json, numpy as np
+for fn in sorted(glob.glob("out_*_pi0.0000_f*.json")):
+    d = json.load(open(fn))
+    if d["f"] == 0 and "M11_s1" not in fn: pass
+    R = d["rows"]; lo = np.array([r["c5lo90"] for r in R]); c5 = np.array([r["c5"] for r in R])
+    rel = np.mean([r["c5"] for r in R]) / np.mean([r["c5A"] for r in R])
+    p = np.mean(lo > 0)
+    print(f"{fn:52} lanes/arm {4*d['nper']} f={d['f']:.1f}: planted diff mean {c5.mean():+.5f} (rel {rel:+.1%}) SD {c5.std():.5f}"
+          f"  P(REGRESSION) = {p:.3f} +- {1.96*np.sqrt(p*(1-p)/len(R)):.3f}  [S={len(R)}, B={d['B']}]")
+
+====================================================================================================
+FILE scratchpad/s14power2/reach_power.py
+====================================================================================================
+"""READ-ONLY: power of the per-trainer REACH check (B - A), planted drop d, for one K* trainer.
+Usage: reach_power.py <nper> <fps> <trainer index> <S> <B> <seed>
+reach[a,X] = completed runs that fought X / completed runs (in-progress runs excluded), ratio of sums over the arm.
+Planted: in arm B each COMPLETED run that fought X becomes a non-reacher with prob q = d / reach0(X), keyed by
+(analysis cluster, pop run) => the expected reach drops by d. Cluster bootstrap within arm x species.
+Flags: 'low95' = upper bound of the two-sided 95% CI < 0;  'low90' = upper bound of the 90% CI < 0."""
+import sys, json, collections
+import numpy as np
+import sim
+
+nper, fps, j, S, B, seed = int(sys.argv[1]), float(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), int(sys.argv[6])
+budget = 13 * 3600 * fps
+lanes = sim.design(nper)
+P = sim.POP
+reach0 = np.mean([r["fK"][j] < sim.INF for r in P.runs])  # population reach (completed runs)
+rng = np.random.default_rng(seed)
+GRID = [0.0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.20]
+
+
+def per_cluster(arm_runs, q):
+    g = collections.defaultdict(lambda: collections.OrderedDict())
+    cache = {}
+    for i, cut, ck, sp in arm_runs:
+        if cut is not None:
+            continue  # in progress: excluded from reach
+        r = P.runs[i]
+        fought = r["fK"][j] < sim.INF
+        if fought and q > 0:
+            if cache.setdefault((ck, i), rng.random() < q):
+                fought = False
+        d = g[sp].setdefault(ck, [0.0, 0.0])
+        d[0] += fought
+        d[1] += 1
+    return {sp: np.array(list(v.values())) for sp, v in g.items()}
+
+
+def boot(cl, Bn):
+    num = np.zeros(Bn); den = np.zeros(Bn)
+    for sp, a in cl.items():
+        C = len(a)
+        W = rng.multinomial(C, np.full(C, 1.0 / C), size=Bn).astype(float)
+        num += W @ a[:, 0]; den += W @ a[:, 1]
+    return num / den
+
+
+res = {}
+for d in GRID:
+    q = min(d / reach0, 1.0)
+    f95 = f90 = 0; diffs = []
+    for _ in range(S):
+        A = sim.sim_arm(rng, P, lanes, budget, 11, "A")
+        Bm = sim.sim_arm(rng, P, lanes, budget, 11, "B")
+        ca, cb = per_cluster(A, 0.0), per_cluster(Bm, q)
+        pa = sum(v[:, 0].sum() for v in ca.values()) / sum(v[:, 1].sum() for v in ca.values())
+        pb = sum(v[:, 0].sum() for v in cb.values()) / sum(v[:, 1].sum() for v in cb.values())
+        diffs.append(pb - pa)
+        bd = boot(cb, B) - boot(ca, B)
+        f95 += np.percentile(bd, 97.5) < 0
+        f90 += np.percentile(bd, 95) < 0
+    res[d] = (f95 / S, f90 / S, float(np.mean(diffs)), float(np.std(diffs)))
+name = sim.KSTAR[j]
+print(f"{name} (reach0 {reach0:.3f}, lanes/arm {4*nper}, fps {fps:.0f}, S={S}, B={B}):")
+for d, (a, b, m, s) in res.items():
+    print(f"   planted d={d:.2f}: realized mean diff {m:+.4f} SD {s:.4f} | P(flag, 95% CI upper<0) {a:.3f} | P(flag, 90% CI upper<0) {b:.3f}")
+json.dump({str(k): v for k, v in res.items()}, open(f"reach_{name}_n{nper}.json", "w"))
