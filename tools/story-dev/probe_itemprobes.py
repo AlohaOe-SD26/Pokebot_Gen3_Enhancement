@@ -907,7 +907,7 @@ def _sl3():
     return eq(got, (TMP["root"] / "main", TMP["plain"]))
 
 
-@row("SL4", "x4_logs reads x4-runs/<stamp>/L0*/debug-logs/*.log only; read_lines gives (lines, bytes), a missing file ([], 0)")
+@row("SL4", "x4_logs reads x4-runs/<stamp>/L<nn>/debug-logs/*.log only; read_lines gives (lines, bytes), a missing file ([], 0)")
 def _sl4():
     x4 = [p.relative_to(TMP["x4"]).as_posix() for p in BL().x4_logs("S1", TMP["x4"])]
     got = (x4, BL().read_lines(TMP["log"]), BL().read_lines(TMP["root"] / "missing.log"))
@@ -1692,7 +1692,10 @@ MUTANTS: list = [
     ("M33 main_checkout returns the worktree itself", "bl",
      [('                return pathlib.Path(*parts[:parts.index("worktrees") - 1])', "                return repo")],
      {"SL3"}),
-    ("M32 x4_logs reads every lane, not only L0*", "bl", [('/ "L0*" /', '/ "*" /')], {"SL4"}),
+    # RE-ANCHORED 2026-10-01 (design v2 step 14 T2): `x4_logs` now reads `L<nn>` lanes through `batch_logs` (the old
+    # `L0*` glob missed L10-L16 of a 16-lane batch); the mutant is the same idea — every directory is read as a lane.
+    ("M32 x4_logs reads every lane directory, not only L<nn>", "bl",
+     [('root.glob("L*") if p.is_dir() and _LANE_DIR.fullmatch(p.name))', 'root.glob("*") if p.is_dir())')], {"SL4"}),
     # ---- mention-only: a gate that fires on a comment teaches the reader to bypass it
     ("MM1 MENTION ONLY: a comment writing `return NONKEY if trainer_telemetry` turns NOTHING red", "bl",
      [("#: Report order. ⛔ WILD is its own class, never folded into NON-KEY (design D2)",

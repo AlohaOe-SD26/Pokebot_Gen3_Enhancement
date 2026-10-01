@@ -1187,6 +1187,15 @@ GATES: list[tuple[str, bool]] = [
     # with exact sets (65 the independent hunter's); no ROM; ~45 s (one mutant reads the main checkout's corpus).
     # ‼ APPENDED AT THE END.
     ("probe_itemprobes.py", False),
+    # design v2 step 14's GRADING tools (`ai-research-notes/2026-10-01-batch14-T23-PREDICTIONS.md`): T2, the run-level
+    # additions to `battle_log.py` (the arm from the header's `env-all:` by EQUALITY, the starter, the cap, the FIRST
+    # attempt = the earliest start with a matching end, never `first=`; L<nn> lanes for any count, the MAIN checkout,
+    # live lane profiles, zero logs = exit 2), and T3, `compare_arms.py` (DESIGN §5's frozen statistics: clusters
+    # (arm, species, PID) resampled within arm x species, C1 -> C2, the harm flags, reach censoring, a wrong-arm log
+    # REFUSED). WHY: tonight's 13-hour batch is graded by these, and a mis-read cluster or verdict rule turns it into a
+    # confident wrong answer. The spec's rows CA1-CA10 (CA1-CA4 statistical, on fixed seeds) + hand-built estimand rows;
+    # 70 mutants with exact sets on the fast rows; real lines with a PROVENANCE check; no ROM; ~35 s. ‼ APPENDED AT THE END.
+    ("probe_compare_arms.py", False),
 ]
 
 

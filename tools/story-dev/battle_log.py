@@ -49,10 +49,19 @@ WHAT THE LINES CANNOT SAY (the independent pass's findings, documented rather th
     comes in. Only the foe's PID on the `[TURN]` line would fix it — a PRODUCTION change, out of this item's scope.
   * ⚠ A rise that newly gains `[Sleep]` is REST (Juan's Kingdra), never an item: `foe_heal_events` tags it "rest".
   * ⚠ In a DOUBLE battle the `[TURN]` line describes only `opponent.left_battler`: right-side heals are invisible.
+
+DESIGN v2 STEP 14, T2 (`ai-research-notes/2026-10-01-batch14-T23-PREDICTIONS.md`; its parent's §3 T2): what ONE run
+log says about ITSELF, for `compare_arms.py` — its arm (`parse_env_all` / `arm_of`, from the run header's `env-all:`),
+its starter (`run_identity`), whether the 30 MiB cap silenced its event lines (`log_capped`), and its FIRST attempt at
+each key trainer (`first_attempts`: the earliest `[TRAINER] start` with a matching `[TRAINER] end`). ⛔ Never `first=`:
+it is True on every lost re-attempt too (review S10). The sources gained `batch_logs` (any lane count), `live_logs` (a
+RUNNING batch's lane profiles) and the MAIN checkout for a stamp; zero logs from those is an error (exit 2), never an
+empty report that reads as "nothing happened".
 """
 
 from __future__ import annotations
 
+import ast
 import collections
 import dataclasses
 import glob
@@ -674,6 +683,136 @@ def attempt_lines(summary: dict) -> list:
     return lines
 
 
+# ---------------------------------------------------------------------------------------------------- run identity (T2)
+#: The run header's `env-all:` line (`modules/debug_logger.py:262-266`): a dict repr of every `POKEBOT_*` variable, or
+#: the note "(no POKEBOT_* env vars set)". The same shape `x4_headless._ENV_ALL_RE` checks live (T1(b)).
+_ENV_ALL_LINE = re.compile(r"^\s*env-all:\s+(.*)$")
+#: The header's last line (`debug_logger.py`). ⛔ The arm is read from the HEADER only: a later line that merely
+#: quotes an `env-all:` text must never decide a run's arm.
+HEADER_END = "--- END RUN HEADER ---"
+#: The cap marker (`debug_logger._event`, :463-468): after it only STUCK dumps are written, so a capped log's TAIL is
+#: missing, never empty — the comparator treats it as censored there, exactly like a run cut by the deadline.
+CAP_MARKER = "event log size cap reached"
+#: A heartbeat line (`f<frame> [hb] … ids=[…] …`). Its FIRST line has `ids=[]` (no party yet), so identity is the
+#: first `[hb]` whose `ids=` list is NON-EMPTY: `ids=['<Species>#<PID8>:L5:exp135', …]`.
+_HB_LINE = re.compile(r"^(?:f\d+ )?\[hb\] ")
+_HB_IDS_OPEN = re.compile(r"\bids=\[(.)")
+_HB_FIRST_ID = re.compile(r"\bids=\['([^'#:]+)#([0-9A-Fa-f]{8}):")
+#: `[STEP] 'Intro: holding 7f before confirming (RNG decorrelation)...'` (`intro.py:176-186`; no line when the hold is
+#: 0) and `[STEP] 'Story: choosing Treecko!'`. The message is a Python repr, so either quote may open it.
+_HOLD = re.compile(r"\[STEP\] ['\"]Intro: holding (\d+)f before confirming")
+_CHOSEN = re.compile(r"\[STEP\] ['\"]Story: choosing ([A-Za-z]+)!")
+
+
+def parse_env_all(lines) -> "dict | None":
+    """The run header's `env-all:` value as a dict (`ast.literal_eval`), or None: no such line before the header's
+    end, an unparseable value, or a value that is not a dict (the "(no POKEBOT_* env vars set)" note)."""
+    for line in lines:
+        if line.startswith(HEADER_END):
+            return None
+        m = _ENV_ALL_LINE.match(line.rstrip("\r\n"))
+        if m:
+            try:
+                got = ast.literal_eval(m.group(1).strip())
+            except Exception:  # noqa: BLE001 - an unparseable header is "no arm", never a guess
+                return None
+            return got if isinstance(got, dict) else None
+    return None
+
+
+def has_header(lines) -> bool:
+    """Does the log carry a COMPLETE run header (its end line)? A log the deadline cut before the header was written
+    has no arm to read and no run in it."""
+    return any(line.startswith(HEADER_END) for line in lines)
+
+
+def arm_of(lines, arms: dict) -> str:
+    """The arm name whose dict EQUALS the header's `env-all:` dict; `"?"` when none does (or the header has none) and
+    `"ambiguous"` when several do. ⛔ Equality, never a subset: one leaked or missing key is a different arm."""
+    env = parse_env_all(lines)
+    hits = [name for name, spec in arms.items() if env is not None and env == spec]
+    if len(hits) > 1:
+        return "ambiguous"
+    return hits[0] if hits else "?"
+
+
+def run_identity(lines) -> dict:
+    """`{"species", "pid", "hold", "chosen"}` of one run. `species` / `pid` from the FIRST `[hb]` line whose `ids=` is
+    non-empty (if that line does not parse, both stay None: the first is the identity, never a later one); `hold` from
+    the `Intro: holding Nf` STEP line (0 when absent: the hold was 0; kept for audit only); `chosen` from
+    `Story: choosing X!`. ⛔ A missing value is None, never guessed (e.g. a run cut before its starter was given)."""
+    out = {"species": None, "pid": None, "hold": 0, "chosen": None}
+    ids_seen = hold_seen = False
+    for line in lines:
+        if not hold_seen and "Intro: holding" in line:
+            m = _HOLD.search(line)
+            if m:
+                out["hold"], hold_seen = int(m.group(1)), True
+        if out["chosen"] is None and "Story: choosing" in line:
+            m = _CHOSEN.search(line)
+            if m:
+                out["chosen"] = m.group(1)
+        if not ids_seen and _HB_LINE.match(line):
+            opened = _HB_IDS_OPEN.search(line)
+            if opened and opened.group(1) != "]":
+                ids_seen = True
+                m = _HB_FIRST_ID.search(line)
+                if m:
+                    out["species"], out["pid"] = m.group(1), m.group(2).upper()
+        if ids_seen and out["chosen"] is not None:
+            break
+    return out
+
+
+def log_capped(lines) -> bool:
+    """True if any line carries the cap marker (`CAP_MARKER`): the log's event lines stop there."""
+    return any(CAP_MARKER in line for line in lines)
+
+
+def opp_ids(opp) -> set:
+    """`265` -> {265}; `106+13` -> {106, 13}; `?` / None -> set()."""
+    return {int(tok) for tok in (opp or "").split("+") if tok.strip().isdigit()}
+
+
+def _trainer_events(battle: Battle) -> "tuple[set, set]":
+    """(the opp ids of the battle's `[TRAINER] start` lines, the opp ids of its `[TRAINER] end` lines)."""
+    starts, ends = set(), set()
+    for line in battle.trainer:
+        t = parse_trainer(line)
+        if t and t["kind"] == "start":
+            starts |= opp_ids(t["opp"])
+        elif t and t["kind"] == "end":
+            ends |= opp_ids(t["opp"])
+    return starts, ends
+
+
+def keys_met(battles, ids_of: dict) -> set:
+    """The keys of `ids_of` (key -> trainer ids) the run MET: any `[TRAINER] start` whose opp is one of the key's ids,
+    finished or not."""
+    met = set()
+    for battle in battles:
+        starts, _ends = _trainer_events(battle)
+        met |= {key for key, ids in ids_of.items() if starts & set(ids)}
+    return met
+
+
+def first_attempts(battles, ids_of: dict) -> dict:
+    """PURE: key -> the run's FIRST ATTEMPT at that key (`ids_of`: key -> trainer ids), or None. The first attempt is
+    the EARLIEST battle whose `[TRAINER] start` opp is one of the key's ids AND that has a `[TRAINER] end` for one of
+    them (design T2(e)); a start without its end (a reset, or the deadline mid-battle) is not an attempt. Each value is
+    `{"index", "outcome", "heal_stock", "battle"}`: `outcome` is `outcome_bucket` (won / lost / other; ⛔ a Draw is
+    LOST) and `heal_stock` the START line's parsed bag (None if absent or unreadable). ⛔ The `first=` field is NOT
+    read: it stays True on every lost re-attempt (`trainer_identity.is_first_fight`; review S10)."""
+    out = {key: None for key in ids_of}
+    for index, battle in enumerate(battles):
+        starts, ends = _trainer_events(battle)
+        for key, ids in ids_of.items():
+            if out[key] is None and starts & set(ids) and ends & set(ids):
+                out[key] = {"index": index, "outcome": outcome_bucket(battle),
+                            "heal_stock": battle_facts(battle, True)["heal_stock"], "battle": battle}
+    return out
+
+
 # ---------------------------------------------------------------------------------------------------- I/O
 # Everything below touches the disk. Nothing above does.
 
@@ -762,10 +901,44 @@ def select_logs(profiles_dir, since: str, until: str, lanes=None) -> list:
     return scan_logs(profiles_dir, since, until, lanes)["paths"]
 
 
-def x4_logs(stamp: str, base=HERE) -> list:
-    """The pre-endless `x4-runs/<stamp>/L0*/debug-logs/*.log` layout (relative to tools/story-dev by default)."""
-    return sorted(pathlib.Path(p) for p in glob.glob(str(pathlib.Path(base) / "x4-runs" / stamp / "L0*" /
-                                                         "debug-logs" / "*.log")))
+def main_story_dev() -> pathlib.Path:
+    """The MAIN checkout's tools/story-dev: where `x4-runs/<stamp>` batches are written (a worktree has none)."""
+    return main_checkout() / "tools" / "story-dev"
+
+
+#: A lane directory of an `x4_headless` batch: `L{slot + 1:02d}` (`x4_headless.py`), so L01..L16 tonight and
+#: L100 past 99 lanes. ⛔ Was the glob `L0*`, which silently read only L01-L09 of a 16-lane batch (review R3).
+_LANE_DIR = re.compile(r"L\d{2,}")
+
+
+def batch_logs(batch_dir) -> list:
+    """Every `L<nn>/debug-logs/*.log` of one batch directory, for ANY lane count, files only, sorted."""
+    root = pathlib.Path(batch_dir)
+    lanes = sorted(p for p in root.glob("L*") if p.is_dir() and _LANE_DIR.fullmatch(p.name))
+    return sorted(q for lane in lanes for q in (lane / "debug-logs").glob("*.log") if q.is_file())
+
+
+def x4_logs(stamp: str, base=None) -> list:
+    """`x4-runs/<stamp>/L<nn>/debug-logs/*.log` (`batch_logs`). The stamp resolves under the MAIN checkout's
+    tools/story-dev by default (design T2(b), review R3: from a worktree it used to resolve to the worktree's own,
+    empty, `x4-runs`)."""
+    return batch_logs(pathlib.Path(base if base is not None else main_story_dev()) / "x4-runs" / stamp)
+
+
+def live_logs(tag: str, profiles=None) -> list:
+    """LIVE mode: every `endless-<tag>-H*/debug-logs/*.log` of a RUNNING `x4_headless --profile-tag <tag>` batch,
+    under the MAIN checkout's `sandbox-pokebot/profiles` by default (during a batch its `x4-runs/<stamp>/L<nn>/` hold
+    only `stdout.txt`: the logs are collected at the END). A name also archived under `debug-logs/Old/` is read once,
+    from `Old/` (the `scan_logs` rule). ⛔ `endless-<tag>-H*`, never `endless-<tag>*`: tag `s14` must not read the
+    `s14smoke` lanes."""
+    root = pathlib.Path(profiles) if profiles is not None else default_profiles()
+    found: dict = {}
+    for lane in sorted(p for p in root.glob(f"endless-{glob.escape(tag)}-H*") if p.is_dir()):
+        for sub in ("debug-logs", "debug-logs/Old"):
+            for q in sorted((lane / sub).glob("*.log")):
+                if q.is_file():
+                    found[(lane.name, q.name)] = q
+    return sorted(found.values())
 
 
 def glob_logs(pattern) -> list:
@@ -800,13 +973,19 @@ def add_source_args(ap, default_stamp: str) -> None:
     ap.add_argument("--profiles", help="the profiles directory (default: the MAIN checkout's sandbox-pokebot/profiles)")
     ap.add_argument("--lanes", action="append", help="keep only lanes whose directory name contains this; repeatable")
     ap.add_argument("--logs", action="append", help="a glob of logs to read instead; repeatable")
+    ap.add_argument("--tag", help="LIVE: a running x4_headless batch's --profile-tag (reads the MAIN checkout's "
+                                  "sandbox-pokebot/profiles/endless-<tag>-H*/debug-logs/*.log)")
+    ap.add_argument("--batch-dir", help="an x4_headless batch directory given as a PATH (its L<nn>/debug-logs/*.log)")
 
 
 def resolve_sources(args, ap, default_stamp: str) -> "tuple[list, str, list]":
-    """(paths, a header naming the source by ABSOLUTE path, notes to print). `ap.error` (exit 2) on a conflict."""
-    modes = sum(bool(x) for x in (args.stamp, args.since or args.until, args.logs))
+    """(paths, a header naming the source by ABSOLUTE path, notes to print). `ap.error` (exit 2) on a conflict, and on
+    ZERO logs from a stamp, `--tag` or `--batch-dir` (design T2(b), review R3: an empty batch must never read as a
+    batch where nothing happened). `--logs` / `--since` keep their own NO-DATA exit in each probe's report."""
+    tag, batch_dir = getattr(args, "tag", None), getattr(args, "batch_dir", None)
+    modes = sum(bool(x) for x in (args.stamp, args.since or args.until, args.logs, tag, batch_dir))
     if modes > 1:
-        ap.error("give ONE of: a stamp, --since/--until, --logs")
+        ap.error("give ONE of: a stamp, --since/--until, --logs, --tag, --batch-dir")
     if (args.profiles or args.lanes) and not (args.since or args.until):
         ap.error("--profiles and --lanes need --since/--until")
     notes = []
@@ -825,5 +1004,13 @@ def resolve_sources(args, ap, default_stamp: str) -> "tuple[list, str, list]":
                      f"before {since}, {scan['after']} after {until}"
                      + (f"; lanes left out by --lanes: {scan['lanes_skipped']}" if args.lanes else ""))
         return scan["paths"], f"endless lanes {since}..{until} under {profiles}", notes
-    stamp = args.stamp or default_stamp
-    return x4_logs(stamp), f"batch {(HERE / 'x4-runs' / stamp).absolute()}", notes
+    if tag:
+        paths, source = live_logs(tag), f"LIVE lanes endless-{tag}-H* under {default_profiles().absolute()}"
+    elif batch_dir:
+        paths, source = batch_logs(batch_dir), f"batch {pathlib.Path(batch_dir).absolute()}"
+    else:
+        stamp = args.stamp or default_stamp
+        paths, source = x4_logs(stamp), f"batch {(main_story_dev() / 'x4-runs' / stamp).absolute()}"
+    if not paths:
+        ap.error(f"ZERO debug logs in {source} — refusing an empty report (a wrong stamp, tag or path?)")
+    return paths, source, notes
