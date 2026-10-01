@@ -1206,6 +1206,15 @@ GATES: list[tuple[str, bool]] = [
     # mutants, the settings entry, and the REAL process's JSON (deny / nothing / fails open without its parser). No ROM;
     # ~5 s. ‼ APPENDED AT THE END.
     ("selftest_shell_text_hook.py", False),
+    # design v2 step 14, T4 (`ai-research-notes/2026-10-01-batch14-T4-PREDICTIONS.md`): `batch14_checks.py` (the batch's
+    # correctness invariants E1-E5 and the STOP-3 read) and `batch14_tables.py` (the DESCRIPTIVE tables, no verdict
+    # word), both loading runs through compare_arms' loader and refusal (one new `visit` hook there, pinned by R2).
+    # WHY: tonight's batch is read for CORRECTNESS by these files, and a check that cannot fire reads a broken package
+    # as clean — so every E rule is a row in BOTH directions (a planted violation is reported, the clean case PASSes),
+    # STOP-3 reads yes and no, each table's counts are exact on a hand-built fixture, all on real lines with a
+    # PROVENANCE check; mutants with exact red sets (one proves an import-time guard). No ROM; ~5 s.
+    # ‼ APPENDED AT THE END.
+    ("probe_batch14_checks.py", False),
 ]
 
 

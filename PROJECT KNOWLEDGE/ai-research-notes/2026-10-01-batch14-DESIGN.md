@@ -273,7 +273,7 @@ tables). T2/T3 replace them for the confirmatory readings (review F10).
 | | - B: every `[CATCH] end kind=dex … end=lost` is followed by `[CATCH] loss-filed kind=dex` | one without |
 | | - B: each run's FIRST Pokémon Center heal in Rustboro logs a `why=topoff…` line and a `[KIT-BUY]` line. (Only the first: after a failed errand, later heals in that city return silently, `stock_topoff.py:409-416`) | one without |
 | | - `[CATCH] trainee` and `[DEXCATCH-NOBAIL]`: counts per arm only (their triggers are not observable in the log) | — |
-| E4 | B uses double-battle items when it can: at least 1 `[DBLITEM]` use IF 5 or more distinct B runs reached a Tate & Liza FIRST attempt holding at least 1 HP item. Otherwise NOT ASSESSED | 0 uses. A zero is blamed on the 0.35 threshold only if every such battle also shows a battler at or below 35% HP with an HP item in the bag; otherwise it is a defect |
+| E4 | B uses double-battle items when it can: at least 1 `[DBLITEM]` use IF 5 or more distinct B runs reached a Tate & Liza FIRST attempt holding at least 1 HP item. Otherwise NOT ASSESSED | 0 uses. A zero is explained by the 0.35 threshold only if NO such battle shows a battler at or below 35% HP while an HP item was held; any battle that does is a defect. (Corrected 2026-10-01, before any data: the first wording was inverted; production heals only at or below 35%, `battle_items.py` `HEAL_AT_FRACTION`, `double_items.py`. Found by T4's builder.) |
 | E5 | B: 0 confirmed wrong targets (an `after` line where the partner's HP rose although the partner was not healed that turn); each reading is read by hand | one confirmed |
 
 ### Confirmatory: a fixed sequence (review S5)

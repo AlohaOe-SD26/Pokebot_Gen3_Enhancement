@@ -720,9 +720,12 @@ def load_summary(batch_dir: pathlib.Path) -> "dict | None":
             "provisional": bool(s.get("provisional"))}
 
 
-def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.item_parameter) -> "tuple[list, dict]":
+def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.item_parameter,
+                 visit=None) -> "tuple[list, dict]":
     """Every log of the batch (or, with `tag`, of its RUNNING lanes) -> its run record. Returns (runs, facts); facts
-    carry the logs found per ARMS.json lane tag (`logs_per_lane`) for the completeness controls."""
+    carry the logs found per ARMS.json lane tag (`logs_per_lane`) for the completeness controls. `visit(record, lines)`,
+    when given, is called once per READ log right after its record is built, with the same lines (design v2 step 14 T4:
+    `batch14_checks.py` reads each log ONCE through this loader instead of re-implementing it)."""
     man = load_manifest(batch_dir)
     by_slot = {ln["slot"]: ln for ln in man["lanes"]}
     by_profile = {ln["profile"]: ln for ln in man["lanes"]}
@@ -760,6 +763,8 @@ def collect_runs(batch_dir: pathlib.Path, tag: "str | None" = None, param_of=bl.
                 continue
             runs.append(run_record(got[0], log=str(p), lane=lane, arms=man["arms"], cut=p.name == cut_name,
                                    lost=p.name in lost, param_of=param_of))
+            if visit is not None:
+                visit(runs[-1], got[0])
     runs.sort(key=lambda r: (r["slot"] if r["slot"] is not None else 10 ** 6, r["log"]))
     facts = {"manifest": man, "summary": summary, "logs": len(paths),
              "logs_per_lane": {t: len(v) for t, v in per_lane.items() if t is not None}}
