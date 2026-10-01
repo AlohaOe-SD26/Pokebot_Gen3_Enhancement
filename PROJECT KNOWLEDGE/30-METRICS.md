@@ -48,11 +48,11 @@ and never quote it as evidence for a feature.**
 | **"Is this chapter complete?"** | a **story flag / var** read directly (`GROUDON_AWAKENED_MAGMA_HIDEOUT`, `SLATEPORT_HARBOR_STATE == 2`) | **1** | ✅ **YES — binary.** n=1 is sufficient because the outcome is not stochastic |
 | "Did this mechanism FIRE at all?" | count its own log events (`[ITEM] using`, `TEACH OK`, `[KI-52]`) | 10s-100s | ✅ yes — presence is binary |
 | "Did the counter chain CONVERT?" | `analyse_conversion.py` — hunts started vs `counter hunt CAUGHT` | 20-35 hunts | ⚠ marginal; the fence's z=+3.24 resolved, smaller effects will not |
-| "Did boss win rate change?" | boss-length battle win rate from `[BATTLE] ended` | ~800 battles | ✅ yes |
-| "Do bosses heal, and how much?" | `probe_boss_healing.py` (opponent HP deltas in turn records) | 1,000+ heal events | ✅ yes |
+| "Did boss win rate change?" | per KEY GROUP (leaders, Elite Four, rivals, Magma/Aqua) won/(won+lost), a Draw counted as lost, plus per-trainer first attempts: `probe_item_index_space.py` / `probe_boss_healing.py` (`#27-itemprobes`); before `[TRAINER]` telemetry, boss-length battles from `[BATTLE] ended` | ~800 battles | ✅ yes |
+| "Do bosses heal, and how much?" | `probe_boss_healing.py` (opponent HP deltas in turn records, per battle class since `#27-itemprobes`) | 1,000+ heal events | ✅ yes |
 | "Does the party arrive hurt?" | `probe_fainted_ace.py` (`[BATTLE] started hp=`) | ~16,700 battles | ✅ yes |
 | "How many turns are lost to STATUS?" | `probe_status_tax.py` | ‼ **28 so far** | ❌ **NOT YET** — instrument validated (0/290 false positives on the clean control), rate needs independent battles |
-| "Which item index space is right?" | `probe_item_index_space.py` | ~68 requests | ⚠ marginal |
+| "Which item index space is right?" | settled by KI-101 (2026-09-16); `probe_item_index_space.py` now reports battle-level item OUTCOMES per class (`#27-itemprobes`) | ~114 requests per batch (0927) | ⚠ marginal per class |
 | "Did the badge funnel move?" | `analyse_badge_funnel.py` (rung-by-rung) | 30-45 per rung | ❌ rarely — no rung has ever reached significance |
 | **"Did the FINISH RATE improve?"** | — | ~30 runs | ❌ **NO. Do not ask this question of a batch.** |
 | "Is this save the right ERA?" | a purpose-built probe with a NAME control, an ERA control and a PATH control (`probe_ch16_anchor.py`) | 1 | ✅ yes — binary, with controls |

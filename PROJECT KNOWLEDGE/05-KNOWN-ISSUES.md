@@ -3253,3 +3253,18 @@ row against a raw disable struct. Low priority while nothing calls it. Not start
 **Fix direction:** dereference the pointer (read the u32, then the field). Measure first with an observe-only probe
 (CLAUDE.md rule 10) that logs the current value beside the true `expGetterMonId` at each in-battle move offer. It is an
 UPSTREAM divergence (`DIVERGENCE-LOG` when promoted). `#27-battlestructptr`. Not started.
+
+## KI-116 — ⚠ OPEN (filed 2026-09-30; consequence NOT measured): a Draw is a WHITEOUT, but story mode counts a defeat only on `Lost`
+**Verified by the author** (found by `#27-itemprobes`' adversarial pass, `tools/story-dev/evidence/2026-09-30-itemprobes-ADVERSARIAL.txt`):
+- In the game a Draw is a defeat: `IsPlayerDefeated` returns TRUE for `B_OUTCOME_DREW` (pret `src/battle_setup.c:994-1000`)
+  and `CB2_EndTrainerBattle` then whites the player out (`:1327-1334`).
+- The batch0927 corpus has 5 Draws, 3 of them at Tate & Liza (map 14,0). Each is followed by a whiteout, e.g.
+  `P1-Story_(ENDLESS_RESET)-debug-20260927-102251.log:22346` `f4082031 [BATTLE] ended (outcome=BattleOutcome.Draw)`,
+  then `f4082189 [STORY] WHITEOUT recovery #7 at (0, 6)`. (A Draw happens when both sides' last Pokémon faint, e.g. to
+  recoil; doubles make it likelier.)
+- `story_mode.py`'s battle-end hook counts a defeat only for `outcome is BattleOutcome.Lost` (`:2563`, `:2574`), so a Draw
+  whiteout never reaches `_defeat_counts`, the per-map loss count the retry and training decisions read.
+**Consequence (INFERRED, not measured):** defeat-driven decisions undercount by the Draws (3 of 158 Tate & Liza defeats in
+batch0927). The measurement tools treat a Draw as lost since `#27-itemprobes`.
+**Fix direction:** count `BattleOutcome.Draw` as a defeat in that hook, behind proof (an A/B on the ordinary path; a
+Draw is rare, so a gate row on the hook plus a replayed log). `#27-drawdefeat`. Not started.

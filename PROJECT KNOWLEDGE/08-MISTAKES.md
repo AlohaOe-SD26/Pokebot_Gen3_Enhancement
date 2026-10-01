@@ -23587,3 +23587,20 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - A tally never mixes kinds: as-filed and corrected checks are counted apart.
   - A restamp REPLACES the status sentence; it never appends to it (grep the old clause after restamping).
   - A claim about "every row" is checked on the raw log, not on the window an evidence file happens to print.
+
+## 2026-10-01 — ⛔ `#27-itemprobes`: AN INSTRUMENT DECLARED "GRADABLE" BEFORE IT WAS CHECKED AGAINST THE CRITERION IT SERVES, AND AN OUTCOME BUCKET BUILT FROM ENUM NAMES INSTEAD OF THE GAME'S RULES
+
+- **Symptoms** (`evidence/2026-09-30-itemprobes-ADVERSARIAL.txt`):
+  - the design note said the fix "makes step 14 gradable", but step 14 grades "win rate … per key class" and the built
+    probes could report only KEY vs NON-KEY, with no rate at all;
+  - `outcome_bucket` mapped Won and Lost and sent everything else to "other", including Draw, which the game treats as a
+    whiteout (3 of batch0927's Draws were Tate & Liza defeats).
+- **Root causes:** the instrument was designed from the old probes' shape, not from the acceptance sentence it exists to
+  serve; an enum was bucketed by its names without reading what the game does on each value.
+- **The fixes that worked:** per-key-group tables and rates, checked against step 14's exact wording; a Draw counted as
+  lost, citing the decomp, pinned by a gate row on a real Draw line.
+- **Prevention rules:**
+  - Before calling an instrument fit for a criterion, quote the criterion's exact sentence and show the instrument's
+    output line that answers it.
+  - When bucketing a game enum, read the game's handling of EVERY value (here `IsPlayerDefeated`) and list each value's
+    bucket explicitly; an "else → other" hides the one that matters.

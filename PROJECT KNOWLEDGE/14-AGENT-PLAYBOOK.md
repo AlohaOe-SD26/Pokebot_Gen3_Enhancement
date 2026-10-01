@@ -228,9 +228,9 @@ the byte count.
 | `--driver anchorcapture` | make an anchor by navigating there | refuses to overwrite, refuses non-controllable states |
 | `--driver anchorstory` | make an anchor by letting the REAL bot play to it | `CAPTURE_FORBID_FLAG` guards the ERA — **use it** |
 | `analyse_conversion.py` | counter chain: hunts vs **REAL** catches, with a z | splits reported vs real; `--compare <stamp>` |
-| `probe_boss_healing.py` | do opponents heal, and how much | **two classes**: ≥50 HP is understood (items); the small class is quarantined and unexplained |
+| `probe_boss_healing.py` | do opponents heal, and how much, per battle class (KEY / NON-KEY / WILD / UNCLASSIFIED from `[TRAINER]`) | **two classes**: ≥50 HP is understood (items); the small class is quarantined and unexplained. Reads endless lanes with `--since/--until` or any `--logs <glob>`; `vs ?` lines are a counted control (`#27-itemprobes`) |
 | `probe_fainted_ace.py` | does the bot start battles with mons already down | reads the `hp=` field; older batches correctly report NO DATA |
-| `probe_item_index_space.py` | which party-menu index space item use needs | reports NO LANDING RECORDS for pre-telemetry batches rather than "it never works" |
+| `probe_item_index_space.py` | RE-PURPOSED 2026-09-30 (`#27-itemprobes`): battle-level ITEM OUTCOMES per battle class and outcome, the `[DBLITEM]` guard counts and wrong targets, `[KEYBATTLE]` vs the offline class | the old index-space question was settled by KI-101; its verdict runs only on legacy lines. Exits 1 on an unknown `[ITEM]` kind or requests with no verdict |
 | `probe_r116_east_grass.py` | intra-map reachability with an east/west contrast | the pattern for "is this pocket reachable" questions |
 | `--driver groundsweep` | DRIVEN reach-**and-leave** proof for a hunting ground | the only evidence that counts for `HUNTING_GROUNDS` |
 | `--driver normancounter` | does a counter at level L beat Norman | ‼ has a CONTROL arm (`NORMAN_MACHOP_LEVEL=0`); natural moveset is the default because the explicit one is **known-broken** |

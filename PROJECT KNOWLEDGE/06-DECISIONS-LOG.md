@@ -8789,3 +8789,20 @@ refuter) found no production defect. Rulings, recorded so they are not re-asked:
 - **Step 14's arm B adds `POKEBOT_R27_DOUBLEITEMS=1`** to v2's list: step 13 composes with `KEYITEMS` (D6), so without
   it the batch would measure singles-only items. `#27-itemprobes` comes first: step 14's acceptance instruments match
   lines no current code prints.
+
+## 2026-10-01 — `#27-itemprobes`: how step 14 will be measured, and the open question it leaves for the user (`#27-itemprobes`)
+
+- **The key groups step 14 reports by are a PARTITION of `KEY_TRAINER_CLASSES`, checked at import:** leaders {LEADER},
+  Elite Four {ELITE_FOUR, CHAMPION}, rivals {RIVAL}, Magma/Aqua {MAGMA_LEADER, AQUA_LEADER, MAGMA_ADMIN, AQUA_ADMIN}. A
+  new key class therefore cannot silently fall outside every group. (RIVAL also covers Steven's post-game battle and
+  Red/Leaf, as `trainer_identity` notes.)
+- **The measurement counts a Draw as a LOSS** (the game whites out on a Draw). Production's defeat counting does not yet
+  (KI-116, `#27-drawdefeat`); the two are recorded apart on purpose.
+- **Kept the name `probe_item_index_space.py`** although it now measures item OUTCOMES, because design v2 §Step 14 names
+  it; its docstring keeps the old question as history.
+- **Did NOT de-duplicate the 2-3 identical `[TURN]` lines per decision:** that would move every filed count; the
+  over-count is documented instead.
+- **Open for step 14's design, and the user's call:** a CONCURRENT A/B needs per-lane flags, which `endless_x4.py` does
+  not have (every lane inherits the dashboard's environment). The options are a small per-lane flag mechanism (built
+  and proven like any other change) or two batches, one per arm, at twice the machine time. The probes' `--lanes` filter
+  serves either.

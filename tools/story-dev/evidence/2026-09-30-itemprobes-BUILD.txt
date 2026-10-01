@@ -1,0 +1,377 @@
+#27-itemprobes — the BUILDER's reports (the build; the fold of the independent adversarial pass), MODEL OUTPUT,
+verbatim. The author's own re-run of the predictions is -PREDICTIONS-RUN.txt; the pass itself is -ADVERSARIAL.txt.
+==============================================================================================================
+
+======================================== builder report ========================================
+## #27-itemprobes build report
+
+Everything is built in `C:/Remote Projects/pokebot-wt-ch24`, branch `wt/itemprobes` at `6befefa4`. Nothing is committed.
+- **Gate:** green.
+- **Predictions:** all four (I1-I4) pass against their filed numbers.
+- **Full suite:** 140 of 141 gates pass. The one failure is `audit_doc_consistency.py`, and only because three docs still state the old gate count. The text fixes are below; I did not edit any docs.
+- **Bug fixed in my own parser:** I found and fixed one bug in `battle_log.py` after the first suite run, then re-ran I2-I4 (I1 cannot be affected) and the whole suite.
+
+### Files changed (all in `tools/story-dev/`)
+- `battle_log.py` (new): the shared parser from D1. Everything above the `# ---- I/O` marker is pure. Only `read_lines`, `select_logs`, `x4_logs`, `glob_logs` and `main_checkout` touch the disk. It imports `modules.story.trainer_identity` from the sandbox.
+- `probe_boss_healing.py` (rewritten per D2):
+  - Keeps the x4 stamp mode and the LARGE / quarantined-small heal classes.
+  - Adds `--since/--until/--profiles` and `--logs <glob>`, and reports KEY / NON-KEY / WILD / UNCLASSIFIED.
+  - The `vs ?` lines are counted as "no foe data".
+  - The first 16 lines are byte-identical, so the citation at line 16 still holds.
+- `probe_item_index_space.py` (re-purposed per D3, same name):
+  - Item outcomes per battle class and per class × outcome.
+  - A `[DBLITEM]` table: menu `ok` × `a_pressed`, `after` lines, wrong targets (each one printed), observe lines.
+  - A cross-check of the `[KEYBATTLE]` verdict against the class worked out from the `[TRAINER]` lines.
+  - The legacy index-space verdict, which runs only when legacy-only lines exist. The old docstring is kept and marked HISTORICAL.
+- `probe_itemprobes.py` (new gate, D5).
+- `run_gates.py`: `("probe_itemprobes.py", False)` appended at the end with a comment block. The list now has 141 entries.
+
+### The gate
+- **Size:** 90 rows and 74 mutants.
+  - 57 first-pass mutants, three of them mention-only, which must and do turn nothing red.
+  - 16 from my own adversarial sweep (M61-M76).
+  - M77, which reverts the bug fix.
+- **COVERAGE:** every row is in some mutant's expected set.
+- **PROVENANCE check:** the 39 quoted lines are re-read from their cited evidence file and line; the 8 evidence fixtures are line-range slices with first/last-line anchors. I fault-tested this check in a scratch script: it fails on a one-character misquote, a wrong line number and a shifted fixture, and passes on the real data.
+- **Raw last lines:**
+```
+  PASS  M77 REVERT: the target label back to `.+?` (runs into the partner's label)  — red ['DB13']
+  PASS  COVERAGE every row is in at least one mutant's expected red set  — 90 rows; uncovered []
+ALL PASS (90 rows, 74 mutants, 39 quoted evidence lines) in 6.3 s
+```
+
+**Mutant red sets, observed vs expected.** All 74 observed sets equal their expected sets. Every set was written before that mutant's first run.
+- All 57 first-pass mutants matched on their first run.
+- **How the sweep was folded in:** I followed the house pattern. The original rows and sets stayed untouched. I added 9 new rows (TU10 IK17 DB11 DB12 SB5 BA8 RP4 CL2 CL3) and a `MUTANT_ADDITIONS` table saying which new rows each existing mutant also turns red, both written before the fold ran.
+  - The bug fix added row DB13 and one more addition (M10 also turns DB13 red).
+- **One anchor slip:** M66's text anchor first matched twice. The harness refused to run it, so it never executed. I fixed only the anchor and kept its set `{IK17}`.
+
+Final sets, in the gate's order (sets that include fold additions are marked +):
+
+| Mutant | What it breaks | Red rows |
+|---|---|---|
+| M01 | the old `\s*$` anchor | {TU3,TU4,TU7,SB1,SB3} + {TU10} |
+| M12 | `vs ?` returned as a record | {TU5,TU6} |
+| M13 | `vs ?` counted as parsed | {TU5,TU6,SB2,RP1,RP2,CL1} + {CL2} |
+| M44 | level read as HP | {TU1,TU2,TU3,TU4,TU9,SB4} + {TU10,SB5} |
+| M46 | malformed turn counted as no-foe | {TU8,RP1} |
+| M22 | heal identity by name only | {HE2} |
+| M23 | unchanged HP counted as a heal | {HE3,SB1,SB2,SB4} |
+| M47 | no heal event recorded | {HE1,SB4} + {SB5} |
+| M24 | LARGE threshold 150 | {SB4} + {SB5} |
+| M42 | drop kind `using` | {IK1,IK16,SI1-SI6,RP3,CL1} + {RP4,CL2} |
+| M02 | drop kind `consumed` | {IK2,IK16,SI1-SI5,RP3,CL1} + {RP4,CL2} |
+| M50 | drop `landed` | {IK7,IK16} |
+| M48 | drop `not_consumed_retry` | {IK3,IK16,SI6} |
+| M03 | drop `not_consumed_disable` | {IK4,IK16,SI6} |
+| M52 | drop `no_effect_retry` | {IK9,IK16,SI7,SI8} |
+| M53 | drop `no_effect_disable` | {IK10,IK16} |
+| M04 | drop `cure_worked` | {IK5,IK16,SI4} + {RP4} |
+| M49 | drop `cure_no_change` | {IK6,IK16} |
+| M51 | drop `fresh_read_failed` | {IK8,IK16} |
+| M05 | drop `legacy_landed` | {IK11,IK16,SI7,SI8} |
+| M54 | drop `legacy_both_failed` | {IK12,IK16,SI7} |
+| M55 | drop `legacy_not_executing` | {IK13,IK16} |
+| M18 | unknown kind dropped | {IK14,RP3} |
+| M56 | `[ITEM` guard loosened | {IK15} |
+| M06 | key from the wrong list | {TR6,TR9,BA2,BA5,SB1,SI3} + {SB5} |
+| M07 | key by class name | {TR1,TR2,TR4,TR5,TR10,BA4,BA7,SB2,SI1,SI6} + {BA8} |
+| M08 | local copy of the key list | {TR9} |
+| M57 | key never recognised | {TR3,TR4,TR8,BA4,BA7,SB2,SB4,SI2,SI4,SI9} + {SB5} |
+| M19 | unreadable side treated as non-key | {TR8} |
+| M40 | only the first opponent read | {TR1,TR10} |
+| M41 | every `[TRAINER]` line read as start | {TR7,TR11,BA6} |
+| M09 | WILD folded into NON-KEY (classifier) | {BA2,BA4,SB1,SI3} + {SB5} |
+| M30 | same fold in the boss probe | {SB1} + {SB5} |
+| M26 | same fold in the item probe | {SI3} |
+| M20 | `[TRAINER]` telemetry always assumed | {BA3,SB3,SI5} |
+| M16 | lines before the first start dropped | {BA5} |
+| M17 | Lost read as other | {BA4} |
+| M38 | no `[TRAINER] end` outcome fallback | {BA6} |
+| M60 | outcome keeps its `BattleOutcome.` prefix | {BA1,BA4,BA5,SI3} |
+| M15 | `[ITEM-FLOW]` treated as an item line | {RT2,SI1,SI2,SI6} |
+| M34 | stray tags not detected | {RT3,RP2} + {RP4} |
+| M35 | `[DBLITEM-OBS]` treated as `[DBLITEM]` | {RT1} |
+| M10 | partner rise missed | {DB4,DB5,DB6,DB7,DB9,DB10,SI1,SI2} + {DB13} |
+| M11 | `>=` partner rise | {DB5,DB6,DB7,SI2,SI6} |
+| M36 | `a_pressed` ignored | {DB1,DB3,DB10,SI1} + {DB12} |
+| M58 | `ok` read from `aim=` | {DB1,DB2,DB3,DB10,SI1,SI6} + {DB12} |
+| M59 | `use` not recognised | {DB8,DB10,SI1,SI6} |
+| M27 | legacy verdict switched on by the shared retry shape | {SI8} |
+| M25 | unparsed lines no longer fail the boss probe | {RP1} |
+| M31 | `vs ?` counted as unparsed | {SB2,RP1,CL1} + {CL2} |
+| M28 | no-verdict guard off | {RP3} |
+| M14 | `select_logs` ignores `Old/` | {SL1,SL2} + {CL2} |
+| M33 | `main_checkout` wrong | {SL3} |
+| M32 | x4 lane glob wrong | {SL4} |
+| MM1, MM2, MM3 | mention-only edits | {} |
+| M61 | ASCII-only species names | {TU10} |
+| M62, M63, M64 | `after err`, `struggle-exit` and `err` counting broken | {DB11} each |
+| M65, M66 | kind sets edited | {IK17} each |
+| M67 | not-pressed counter wrong | {DB12} |
+| M68 | `with_turns` double-counted | {SB5} |
+| M69 | proxy threshold 120 | {SB5} |
+| M70 | classes from start lines only | {BA8} |
+| M71 | NO DATA on singles logs | {RP4} |
+| M72 | stray no longer fails the item report | {RP4} |
+| M73 | key disagreement treated as a failure | {RP4} |
+| M74 | `--profiles` ignored | {CL2} |
+| M75 | `--until` ignored | {CL2} |
+| M76 | stamp and `--logs` accepted together | {CL3} |
+| M77 | the bug-fix revert | {DB13} |
+
+The spec's named mutants all exist:
+- old anchor: M01
+- dropped kind: M02-M05 and M48-M55
+- key from the wrong list: M06; by name: M07; local copy: M08
+- WILD folded into NON-KEY: M09, M26, M30
+- partner rise missed: M10, M11
+- `vs ?` parsed as data: M12, M13
+- `select_logs` ignoring `Old/`: M14
+
+### Predictions (run from the worktree; the logs were only read)
+Raw outputs are in the scratchpad: `I1.txt` to `I4.txt`, plus `I2b`, `I3b`, `I4b`, which are byte-identical re-runs after the fix.
+
+**I1: PASS.** Filed: "40 logs; exactly **129,980** turn records parsed …, and 4,788 counted as 'no foe data'; every battle UNCLASSIFIED or WILD (0 key, 0 non-key)". Raw:
+```
+  CONTROL: 40 debug log(s), 99,173,396 bytes read
+  CONTROL: 134,768 [TURN] lines: 129,980 turn records parsed, 4,788 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 0 of 40 log(s) carry [TRAINER] telemetry
+      KEY 0 | NON-KEY 0 | WILD 0 | UNCLASSIFIED 43,380 battles, 43,338 w/turns, 129,980 recs, 4,788 vs ?, LARGE 434 1.0% (558), any 1,607 3.7% (2,604)
+  PROXY — battles of >=12 turn records (boss-length): 416 of 1399 show a LARGE heal (29.7%)
+I1 exit=0
+```
+
+**I2: PASS.** Filed: "114 requests, 111 consumed, 3 cures worked, 0 unknown kinds, 0 legacy lines (so no legacy verdict), 0 `[DBLITEM]`; every item battle UNCLASSIFIED". Raw:
+```
+  CONTROL: 228 [ITEM] line(s) by kind: {'using': 114, 'consumed': 111, 'cure_worked': 3}
+  CONTROL: 0 [DBLITEM]/[DBLITEM-OBS] line(s); 0 [KEYBATTLE] line(s); 0 stray …; 0 of 40 log(s) carry [TRAINER] telemetry
+      UNCLASSIFIED  43,380 battles, 80 item btl, 114 requests, 111 CONSUMED, 3 cure ok, 0 unknown, 0 no verdict  (KEY/NON-KEY/WILD all 0)
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+I2 exit=0
+```
+
+**I3: PASS.** Filed: "P-ON: 1 request, 1 consumed, its battle NON-KEY (Hex Maniac + Collector), `[DBLITEM]` 1 pass, 0 wrong targets. P-NOG: 1 wrong-target `after` (Swellow 18→109). T-ON: 1 request, 1 consumed, its battle KEY (LEADER), 1 pass". Raw, per-arm runs:
+```
+P-ON:  NON-KEY 3 battles, 1 item btl, 1 request, 1 CONSUMED; [DBLITEM] NON-KEY use 1, menu 1, ok,A 1, after 1, WRONG TGT 0; "⇒ 0 wrong-target `after` lines."  exit=0
+P-NOG: NON-KEY 1 request 1 CONSUMED; menu refused,A! 1; WRONG TGT 1:
+      [NON-KEY / won] f3149835 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->109 Hyper Potion=1->0 healed=0->1 same=1   exit=0
+T-ON:  KEY 1 battle, 1 request, 1 CONSUMED; KEY / won; [DBLITEM] KEY ok,A 1, WRONG TGT 0; [KEYBATTLE] {'key=True': 1}, disagreeing 0   exit=0
+```
+In P-ON, the item battle is the NON-KEY / won row; that log's two wild battles are WILD and the third trainer battle is NON-KEY / other.
+
+**I4: PASS.** Filed: "T-ON: 1 trainer battle, KEY (class 0x20 LEADER); 21 `[TURN]` lines, **15 parsed**, **6** … `vs ?`; **0** opponent heals. P-ON: 37, 20, 17; 0 heals. P-NOG: 27, 21, 6; 0 heals. T-OFF1: 16, 13, 3; 0 heals". Raw:
+```
+T-ON:   21 [TURN] lines: 15 turn records parsed, 6 with NO FOE DATA (`vs ?`), 0 UNPARSED …; KEY 1 battle, 15 recs, 6 vs ?, LARGE 0 (0), any 0 (0)
+P-ON:   37 [TURN] lines: 20 turn records parsed, 17 with NO FOE DATA, 0 UNPARSED …; 0 heal events
+P-NOG:  27 [TURN] lines: 21 turn records parsed, 6 with NO FOE DATA, 0 UNPARSED …; 0 heal events
+T-OFF1: 16 [TURN] lines: 13 turn records parsed, 3 with NO FOE DATA, 0 UNPARSED …; KEY 1 (12 recs) + NON-KEY 1 (1 rec); 0 heal events
+(all exit=0)
+```
+
+### Full suite tail (run twice; the second run is after the bug fix)
+```
+  PASS  probe_itemprobes.py                exit=0     6.3s
+FAILED: 1 of 141
+      FAIL  04-HANDOFF.md:623 claims 140 gates; run_gates.py has 141: 'on its way to **140'
+      FAIL  02-ARCHITECTURE.md:296 is a RUNNABLE `run_gates.py` command whose comment says 140; the suite has 141. …
+      FAIL  04-HANDOFF.md:720 is a RUNNABLE `run_gates.py --quick` command whose comment says 126; the no-ROM subset has 127. …
+```
+Every other gate passes, including `lint_docs`, `audit_doc_citations` and `audit_handoff_invariants`. The four ADVISORY probes ran as usual.
+
+**Exact doc fixes needed (not applied):**
+- `04-HANDOFF.md:623`: "… 138 and 139 on its way to **140 and counting**" → "… 138, 139 and 140 on its way to **141 and counting**".
+- `02-ARCHITECTURE.md:296`: "140 entries = 136 ENFORCING + 4 ADVISORY" → "141 entries = 137 ENFORCING + 4 ADVISORY".
+- `04-HANDOFF.md:720`: "the 126 needing no ROM (was 10, …, 124, 125; MEASURE)" → "the 127 needing no ROM (was 10, …, 124, 125, 126; MEASURE)".
+
+**Other stale doc text the gates don't catch (for the five doc pairs):**
+- `03-PUNCH-LIST.md:1622` cites `probe_boss_healing.py:16,118`. Line 16 is unchanged; the `#24-bosstelemetry` print that was at line 118 is now line 164, so it should read `:16,164`.
+- `14-AGENT-PLAYBOOK.md:233` and `30-METRICS.md:55` still describe `probe_item_index_space.py` as answering "which index space" and printing "NO LANDING RECORDS".
+- `14-AGENT-PLAYBOOK.md:231` and `30-METRICS.md:52`: the boss-healing rows don't mention the per-class report.
+- `03-PUNCH-LIST.md:95`: `#27-itemprobes` is still marked "NOT STARTED".
+- `02-ARCHITECTURE.md` probably needs `battle_log.py` added to the tools map.
+- The design note's prediction table still needs grading.
+
+### Bug found and fixed (in my own new code)
+- **The problem:** the `[DBLITEM] after` label pattern was `.+?#[0-9A-F]{8}`, tried before `\?`. When the target can't be read, the emitter (`battle_action_selection._dbl_after`, `t0` None) prints `target=? hp=?->117 …`. The lazy pattern then ran on into the partner's `Species#PID`, so the partner's HP change (e.g. 18->109) was bound to the target.
+- **Fix:** both labels are now `[^=]+?`; a label can't contain `=`, so it can't cross into the next field.
+- **Effect:** only `target_hp` was wrong. No count the probes report uses it today, and I2-I4 outputs are byte-identical after the fix.
+- **Pinned:** row DB13, and M77, which reverts the fix and turns exactly DB13 red.
+
+### Decisions the spec did not settle
+1. **WILD needs `[TRAINER]` lines somewhere in the log.** D2 literally says "WILD = a started battle with no `[TRAINER] start`". In a log written before `[TRAINER]` existed, that would call every trainer battle WILD. So a battle is WILD only if its log contains at least one `[TRAINER]` line; otherwise it is UNCLASSIFIED. Under D2's literal rule I2 would have failed ("every item battle UNCLASSIFIED"); I1 allowed either. Mutant M20 pins this.
+2. **KEY / NON-KEY rule.** KEY if any side's class id is a key class, matching production's `key_battle_verdict`. NON-KEY only if every side was read and none is key. An unreadable side next to a non-key one gives UNCLASSIFIED.
+   - Classes come from both `[TRAINER] start` and `end` lines, so a battle with only an end line still gets a class.
+   - A battle whose only `[TRAINER]` lines are `skip` or `unreadable` is UNCLASSIFIED.
+3. **Lines before a log's first `[BATTLE] started`** form their own record, which is always UNCLASSIFIED, so no line is ever dropped.
+4. **A fourth legacy `[ITEM]` kind from git history (706d6b4c):** `‼ no effect … — item use is not executing; disabling …`, now `legacy_not_executing`.
+5. **A shared line shape.** `‼ no effect … — retrying with the X-order index` was the legacy index flip, and today's code still prints the same text when the bag count can't be read. It always counts as no-effect. The legacy verdict switches on only when a legacy-only line (`legacy_landed`, `legacy_both_failed`) exists. Today's unreadable-bag disable line is its own kind, `no_effect_disable`.
+6. **Exit code 1 (control failures):**
+   - Both probes: no logs; any stray tag mention.
+   - Boss probe: no turn parsed; any `[TURN]` line with foe data that didn't parse.
+   - Item probe: no `[ITEM]` and no `[DBLITEM]` lines; requests but no verdict line of any kind (this replaces the old "NO LANDING RECORDS" guard); any unknown kind.
+   - A `[KEYBATTLE]` disagreement is printed as a finding and does not fail the run.
+7. **Line matching and controls:**
+   - Lines are matched by category position, `^(?:f\d+ )?\[CAT\] `; a "stray" control counts any tag mention outside that position (0 in the corpus).
+   - Species names are matched with `.+?`, because `species.json` has `Nidoran♀` and `Farfetch’d` (typographic apostrophe), which the old ASCII pattern missed.
+8. **Outcomes:** taken from `[BATTLE] ended (outcome=…)`, falling back to `[TRAINER] end res=`. Anything else counts as other: RanAway, Caught, Teleported, Draw, or a log that ends mid-battle.
+9. **CLI:**
+   - The default `--profiles` is the main checkout's, found through the worktree's `.git` file.
+   - `--profiles` requires `--since/--until`.
+   - A stamp, `--since/--until` and `--logs` are mutually exclusive.
+   - `--until` defaults to `--since` and vice versa.
+   - The default stamps are unchanged.
+10. **Gate fixtures:** whole-battle fixtures are read from committed evidence by line range rather than pasted in. Single lines are pasted verbatim with file:line comments and checked by PROVENANCE.
+
+### Things I'm unsure about
+- **No independent adversarial pass yet.** The second round of mutants was my own sweep, not an independent reviewer's. D5's "after an adversarial mutant pass" still needs a fresh agent. Two survivors I argued are equivalent rather than ran are listed in the gate's docstring.
+- **The `[Confused]` in ARMS/RERUN is on the player's side, not the foe's.** The foe-suffix rows instead quote other committed evidence: `r27keyitems-A-OFF-r1.txt:89` (both sides suffixed), `r25cap-raw/M0-r1.debug.txt:73` and `weaken12-ST-ON-debug.txt:158`.
+- **Some rows use reconstructed lines.** No committed raw log holds a legacy `[ITEM]` line, a non-ASCII foe name, or several rare current kinds. Those rows (the `SHAPES` table) are built from the emitting code's text or the changelog quotes, each cited.
+- **M74 reads the real corpus.** It points `default_profiles()` at the main checkout's ~100 MB corpus (about 5 s of the gate's 6.3 s). The row still discriminates if that corpus is missing (0 logs instead of 4).
+- **Volatile files.** `party_accounting_ledger.jsonl` and `magma_1f_fail.ss1` are modified by the suite runs, not by me; I left them untouched.
+
+======================================== builder report ========================================
+## #27-itemprobes — the fold of the independent pass is built and verified
+
+All of B1, B2, S1–S7 and the nits are in. The gate passes with 145 rows and 174 mutants. I1–I4 still match every filed count; the new columns are additions only. The whole suite passes on the final code: 141 gates, **ALL 137 ENFORCING GATES PASS** plus 4 advisory. The doc-count audit is now green too, because of your doc updates. Nothing is committed. I did not touch PROJECT KNOWLEDGE/, `40cakes repo/UPDATE-LOG.md`, the ADVERSARIAL evidence file or the two volatile files.
+
+### Files changed (all in tools/story-dev/)
+- **`battle_log.py`**
+  - **Outcomes (B2, N6):** a Draw counts as a loss (citing pret `src/battle_setup.c:994-1000` and `:1327-1334`), and `outcome=None` falls back to `[TRAINER] end res=`. New `win_rate`.
+  - **Key groups (B1):** `KEY_GROUPS` is built from `trainer_identity.TRAINER_CLASS`. `check_key_groups` runs at import and raises (`raise`, not `assert`) unless the groups partition `KEY_TRAINER_CLASSES` exactly with no overlap. New `key_group`.
+  - **Per-battle facts:** `battle_facts` returns class, group, outcome, opp, double, heal_stock and reason. `unclassified_reason` gives pre-start / no-telemetry / unreadable (N5).
+  - **Per trainer (S1):** `attempt_summary`.
+  - **Rest (S4):** `foe_heal_events` tags a rise that newly gains Sleep as "rest". `foe_heals` keeps its 4-tuple contract.
+  - **Heal stock (S7):** `parse_heal_stock` and `hp_item_count`. An HP item is `parameter > 0`, the production HP policy's own filter; the item data comes through `item_parameter`.
+  - **Lost item (S3):** `[DBLITEM] after` now parses the item, `qty=(q0,q1)` and `same=`. `lost_item` = bag dropped, target not raised, `same=1`, partner did not rise. It is a new `dbl_counts` column.
+  - **Reading and selection (N2, S6):** `try_read` and `read_logs` count successful reads. `glob_logs` takes files only, repeatable globs, de-duplicated. `scan_logs` adds a `--lanes` filter, logs per lane, and before/after-window counts.
+  - **Shared CLI:** `add_source_args` / `resolve_sources`. They warn when only `--since` or only `--until` is given and print ABSOLUTE paths (N1).
+  - **Docs:** the module docstring now covers the Draw rule, the duplicated `[TURN]` lines (not de-duplicated, N3), identical-foe false heals, Rest and doubles (left foe only). The split docstring is corrected (N4).
+- **`probe_boss_healing.py`**
+  - Won/lost/other per class, split by battles with and without a LARGE heal; this answers the question in its first line.
+  - Per-key-group outcomes, per-trainer attempts, Rest kept apart, a doubles column labelled "left foe only", UNCLASSIFIED by reason, and footnotes for the limits.
+  - Uses the shared CLI.
+- **`probe_item_index_space.py`**
+  - The outcome, group, per-trainer, heal-stock and `[KEYBATTLE]` tables print before any NO DATA / no-verdict verdict (S2).
+  - NO DATA (exit 1) now means no `[ITEM]`, no `[DBLITEM]` AND no `[KEYBATTLE]` line.
+  - New: a count of `[KEYBATTLE]` lines in battles with no offline class; per-group requests and CONSUMED; the LOST-item column and list; UNCLASSIFIED by reason.
+  - The docstring now says CONSUMED proves only that the bag count dropped (S3).
+- **`probe_itemprobes.py`:** the gate (145 rows, 174 mutants).
+- **`run_gates.py`:** the `probe_itemprobes.py` comment is updated (145 rows / 174 mutants / ~45 s). Same single entry, still at the end.
+
+### Each fix: red on the unfixed code, green on the fixed code
+Green: all 145 rows pass on the final code (a baseline-only run, then the gate). Red: each fix has a REVERT mutant that turns exactly its rows red. Observed sets:
+
+| Fix | Revert mutant(s) → red rows |
+|---|---|
+| B2 (Draw = loss) | F01 {X1D}; X1D quotes the real Draw line, ADVERSARIAL.txt:159 |
+| N6 (`outcome=None` fallback) | F02 {OC2} |
+| B1 (key groups) | F03 import check never called {KG7}; F04 missing-class check off {KG2, KG7}; F05 overlap check off {KG2}; F06 key_group reads opponent A only {KG3}; F07 Champion moved to leaders {KG1, KG2, KG7}; F11 boss outcomes of LARGE-heal battles not counted {KG5} |
+| S1 (per trainer) | F08 / F09 / F10 {AT1, AT2} each |
+| S2 (tables regardless of item data) | F12 {KB1}; F13 {KB2}; F14 (NO DATA returns before the tables) {KB3} |
+| S3 (lost item) | F15 {LI2}; F16 {LI2, LI3}; F17 {LI1} |
+| S4 (Rest) | F18 {RS1, RS2}; F19 {RS1}; F20 {RS2} |
+| S5 (doubles) | F21 / F22 {DD1} |
+| S6 (selection) | F23 {SC1, SC3}; F24 {SC2, SC3}; F25 {SC4}; F27 {SC3} |
+| N2 (successful reads, files only) | F26 {SC4}; F31 {RD1} |
+| S7 (heal stock) | F28 / F29 {HS1, HS2}; F30 {HS2} |
+| N5 (UNCLASSIFIED reasons) | F32 {UR1} |
+| N1 (absolute paths) | F33 {NT1} |
+| win_rate | F34 {OC1} |
+
+The real fixtures behind those rows are T-OFF1 (LEADER, won), Sidney (ELITE_FOUR, won), the rival (lost) and Tabitha + Maxie from `r27keyitems-B2-ON.txt:72-118`. Together they cover all four groups.
+
+### Gate counts and last lines
+- **Rows:** 145 = 90 earlier + 55 from this fold.
+- **Mutants:** 174 = 57 first-pass + 17 from my own sweep + 65 from the hunter + 35 for this fold (F01–F34 and M06b).
+- **Quotes:** 43 (42 exact plus the Draw line, checked as contained). 11 evidence fixtures. ~42.8 s.
+```
+  PASS  M06b KEY from the WRONG list AND the import check removed (M06's first-pass set, + KG1/KG7)  — red ['BA2', 'BA5', 'KG1', 'KG7', 'SB1', 'SB5', 'SI3', 'TR6', 'TR9']
+  PASS  COVERAGE every row is in at least one mutant's expected red set  — 145 rows; uncovered []
+ALL PASS (145 rows, 174 mutants, 43 quoted evidence lines) in 42.8 s
+```
+- **First-run result:** 172 of 174 expected sets matched. Two were my own derivation errors; I corrected them and say so at each entry.
+  - N12 also reddens X24: N6 turns `outcome=None` into an unreadable outcome, which N12 then calls lost.
+  - F07 also reddens KG2: with the Champion moved to leaders, KG2's "missing" case removes nothing, so the check rightly does not raise.
+- **Existing mutants re-anchored because their code moved:** M17, M47, M71, M74, M75, M76.
+  - M74, M75 and M76 now target the shared CLI in `battle_log`.
+  - M71's set moved from {RP4} to {RP5, X9}. Under S2, Sidney's `[KEYBATTLE]` line counts as data, so a singles log with no `[KEYBATTLE]` (RP5) and an observe-only log (X9) are what now turn red.
+- **M06 is now refused at load** by the B1 partition check. Its expectation is "RAISES AssertionError: KEY_GROUPS != KEY_TRAINER_CLASSES", and that passes. Its first-pass set carries over to M06b, which also removes the check.
+
+### I1–I4: filed vs raw (re-run today; byte-identical to the previous final run)
+- **I1 (filed: "40 logs; exactly 129,980 … and 4,788 'no foe data'; every battle UNCLASSIFIED or WILD"): PASS.**
+  - Raw: `CONTROL: 40 debug log(s) read of 40 selected, 99,173,396 bytes read`; `134,768 [TURN] lines: 129,980 turn records parsed, 4,788 with NO FOE DATA`; 0 unparsed; all 43,380 battles UNCLASSIFIED (reason no-telemetry).
+  - New columns: lost 858 → 863 (the 5 Draws). 16 LARGE Rest rises leave the item-heal count (558 → 542 events; 24 Rest events in all), which matches the reviewer's 16.
+- **I2 (filed: "114 requests, 111 consumed, 3 cures worked, 0 unknown kinds, 0 legacy lines, 0 [DBLITEM]; every item battle UNCLASSIFIED"): PASS.**
+  - Raw: `228 [ITEM] line(s) by kind: {'using': 114, 'consumed': 111, 'cure_worked': 3}`, `0 [DBLITEM]/[DBLITEM-OBS] line(s)`, no legacy verdict, UNCLASSIFIED 114 / 111 / 3.
+- **I3: PASS.**
+  - P-ON: NON-KEY, 1 request, 1 consumed, 1 menu pass, 0 wrong targets.
+  - P-NOG: 1 WRONG-TARGET `after … partner=Swellow#0B30A747 hp=18->109`.
+  - T-ON: KEY, 1 request, 1 consumed, 1 pass.
+  - Extra arm: T-OFF1 (a `[KEYBATTLE]` line, no items) now prints the agreement verdict `{'key=False': 1}; … 0` and exits 0.
+- **I4: PASS.** T-ON 21/15/6 (KEY), P-ON 37/20/17, P-NOG 27/21/6, T-OFF1 16/13/3; 0 heals in every arm.
+
+### Full suite (final code)
+```
+  PASS  lint_docs.py / audit_doc_consistency.py / audit_handoff_invariants.py / audit_doc_citations.py
+  PASS  probe_itemprobes.py                exit=0    42.6s
+ALL 137 ENFORCING GATES PASS  (536.8s total)   [+4 ADVISORY probe(s) — run, NOT gated]
+```
+No doc fix is needed for any gate. One stale citation that no gate checks: `03-PUNCH-LIST.md:1623` cites `probe_boss_healing.py:16,118`. Line 16 is still right, but the `#24-bosstelemetry` print is now at line 225, so it should read `:16,225`.
+
+### The hunter's X rows
+- Kept as written: all of X1–X25.
+- **X1D: INVERTED.** It now expects a real Draw to be "lost", quoting the line from ADVERSARIAL.txt:159; the hunter's version pinned the old mapping.
+- X20's `endless-old` lane is now created by the gate's own tree builder instead of by a row.
+- **None dropped.** The rows that asserted `CONTROL: N debug log(s)` (X17) still pass, because I kept that phrase inside the new "read of N selected" wording.
+
+### The hunter's real mutants
+- **Added: 65**, re-anchored where code moved (N12, N23, N24, N66, N67, N74, N76). Each set was written before its first run.
+- **Left out: 17** as equivalent or unreachable, each with the hunter's own argument recorded in the gate: N05, N10, N11, N22, N28, N44, N46, N47, N49, N50, N51, N52, N53, N55, N56, N62, N63.
+- **Dropped: N09.** Draw → lost is now the fix itself; F01 is its revert.
+
+### Example lines of each new table (from committed evidence: B2-ON, B1-ON, M0-r1, plus T-ON)
+- **Per key group × outcome** (both probes):
+```
+      key group          n    won   lost  other   won/(won+lost)
+      rivals             1      0      1      0             0.0%
+      magma_aqua         2      1      1      0            50.0%
+      item requests / CONSUMED per group: {'leaders': (1, 1), 'elite_four': (4, 3), 'rivals': (0, 0), 'magma_aqua': (1, 1)}
+```
+- **Per trainer met, per (log, opp)** (both probes):
+```
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      magma_aqua           2        1        1         0               1                           1 / 1              1
+```
+- **Heal stock at key-battle start** (item probe):
+```
+      elite_four   n 1, mean 35.0, median 35
+```
+- **Doubles column and "does the bot lose" table** (boss probe):
+```
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  5        5         90       6             1  20.0% (1)                2  40.0% (2)       0 (0)          1 (0 w/ LARGE)
+      KEY                                     1 / 0 / 0   100.0%                       3 / 2 / 0    60.0%
+```
+  The second line is the "DOES THE BOT LOSE THOSE FIGHTS?" row: with a LARGE heal won/lost/other and rate, then all battles won/lost/other and rate.
+- **Lost-item column** (item probe `[DBLITEM]` table): a `LOST item` column between `WRONG TGT` and `strug-exit`. Below the table it prints either `⇒ 0 lost-item \`after\` lines.` or `‼ N LOST-ITEM \`after\` line(s) — the bag dropped and no visible battler rose:` followed by each line.
+- **Also printed:** `UNCLASSIFIED by reason: {'no-telemetry': 43380}`; `[KEYBATTLE] in a battle with NO offline class (WILD / UNCLASSIFIED — not comparable): N`; and the per-lane note `per lane: {...}; outside the window: 144 before 20260927, 0 after 20260928`, which is the real I1/I2 output.
+
+### Decisions the spec did not settle
+1. **NO DATA exits 1 only when there is no `[ITEM]`, no `[DBLITEM]` AND no `[KEYBATTLE]` line.** A refusals-only log is data and exits 0; the tables always print first.
+2. **The lost-item column excludes partner-rise lines.** Those are already wrong targets, so it would double-count them. Any unreadable field means "not counted".
+3. **Rest = a rise whose record newly gains Sleep** (also inside a combined status like `Sleep/Confused`), at ANY size, not only LARGE. Rest heals to full, so a small rise with new Sleep is also Rest.
+4. **`key_group` with sides in different groups reports the first group in order.** None has been seen; Maxie + Tabitha at the Space Center are both magma_aqua.
+5. **Attempts are keyed by (log, `opp` string)** from the first `[TRAINER]` start/end line, or `?` if unreadable. "Other" outcomes count as attempts. The median of an even count is the upper middle value.
+6. **Heal stock counts HP items (`parameter > 0`), not every healing item.** Unknown item names are listed, not counted. Note the item data gives Energy Root `parameter` 0, so it is not counted as an HP item.
+7. **The CLI warns when only `--since` or only `--until` is given.** `--profiles` and `--lanes` require `--since`/`--until`. `--lanes` is a substring match on the lane name and is repeatable.
+8. **win_rate excludes "other"** (a battle the log never finished) and is "n/a", never 0%, when nothing was decided.
+
+### Things to be aware of
+- **Gate runtime is now about 42 s, up from 6 s.** Almost all of it is M74 ("CLI ignores --profiles"), which by design reads the main checkout's real corpus in the CLI rows. That is well within the runner's 300 s bound.
+- **Evidence excerpts trip the stray control.** Feeding `evidence/2026-09-29-r27keyitems-B1-ON.txt` to a probe trips it on the file's own header comment (`# Source: … Kept: [KEYBATTLE], [TRAINER], …`), so the example runs exited 1. Real debug logs have no such lines. I did not add a `#`-comment exemption; it would hide genuine drift.
+- **Reverts stand in for the old code.** "Red on the unfixed code" is shown through these revert mutants, the house method. For the purely additive features (key groups, attempts, heal stock), the pre-fold code simply had no such function.
+- **Still open:** identical duplicate foes (Phoebe's two Banette) can still read as a heal. It is documented in the docstrings and the report footnotes; the fix (the foe's PID on `[TURN]`) is a production change and out of scope.
+
+Report outputs are in the scratchpad: `gate_final.txt`, `I1e.txt`–`I4e.txt`, `itemprobes_suite4.txt`, `examples_ix.txt`, `examples_bh.txt`.
+

@@ -66,3 +66,29 @@ makes step 14 gradable; it measures nothing about the bot by itself.
 
 (I3/I4's numbers were computed by the author from the scratch arms logs with the FIXED pattern before any code; the
 builder adds a `--logs <glob>` option so a probe can be pointed at any set of logs.)
+
+## GRADED (2026-10-01)
+
+- **The predictions held**, by the author's own runs (`tools/story-dev/evidence/2026-09-30-itemprobes-PREDICTIONS-RUN.txt`):
+  I1 parsed exactly 129,980 turn records with 4,788 `vs ?`, every battle UNCLASSIFIED; I2 counted 114 requests, 111
+  consumed, 3 cures worked, 0 unknown, no legacy verdict; I3 classified P-ON NON-KEY and T-ON KEY with 1 request, 1
+  consumed and 1 guard pass each, and P-NOG's one wrong target (Swellow 18→109); I4 matched every arm's 21/15/6, 37/20/17,
+  27/21/6 and 16/13/3 with 0 heals.
+- **The independent adversarial pass** (`evidence/2026-09-30-itemprobes-ADVERSARIAL.txt`; a mutant hunter and a
+  correctness reviewer, neither of whom built it) found the design's headline claim, "makes step 14 gradable", was NOT
+  yet true:
+  - B1: the probes split only KEY / NON-KEY, but step 14 grades "win rate … per key class (leaders, Elite Four, rivals,
+    Magma/Aqua)", and the boss probe reported no outcome at all;
+  - B2: a Draw was counted as "other", but a Draw is a whiteout in the game (pret `battle_setup.c:994-1000`); batch0927
+    has 5, 3 of them at Tate & Liza. (The same gap in production's defeat counting is KI-116.)
+  - and seven should-fix (per-trainer attempts, tables skipped without item data, a lost item undetected, Rest and
+    duplicate foes read as item heals, doubles' left-foe-only `[TURN]`, silent batch cuts, heal stock unreported).
+- **Folded** (`evidence/2026-09-30-itemprobes-BUILD.txt`, the builder's reports): `KEY_GROUPS` (a partition of
+  `KEY_TRAINER_CLASSES`, checked at import), per-group won/lost/other and won/(won+lost), a Draw as lost, per-trainer
+  first attempts, the tables printed regardless of item data, a LOST-item column, Rest tagged apart, a doubles column,
+  `--lanes` and per-lane counts, heal stock per group. The gate is 145 rows and 174 mutants (each fix's revert reddens
+  exactly its rows); the four predictions re-ran with every filed count unchanged; the full suite passes.
+- **Limits, recorded:** identical duplicate foes (Phoebe's two Banette) can still read as a heal (the foe's PID on
+  `[TURN]` is a production change); a doubles `[TURN]` line names only the left foe; each decision can print 2-3 identical
+  `[TURN]` lines, so "turn records" over-count turns (not de-duplicated, so the filed counts hold).
+

@@ -37464,3 +37464,17 @@ bought balls only at fixed story points.
   the final code.
 - **Merged to `main`** with the full suite green. Next: `#27-itemprobes`, then v2 step 14, the batch. Ask the user
   before starting it.
+
+## 2026-10-01 — `#27-itemprobes` DONE: step 14's battle-level instruments read today's logs and report per key group (`#27-itemprobes`)
+
+- **Why:** design v2 step 14 grades "win rate per key class" with `probe_item_index_space.py` and
+  `probe_boss_healing.py`, and both were blind: the boss probe dropped 8.5% of `[TURN]` lines (a foe status suffix), the
+  item probe counted three line kinds KI-101 retired, both read an old `x4-runs` layout, and neither classified battles.
+- **Built** (tools only): the shared pure parser `battle_log.py`; both probes on the endless lanes (`--since/--until`,
+  `--logs`, `--lanes`); battles classified offline from `[TRAINER]` against `KEY_TRAINER_CLASSES`.
+- **Graded:** the four predictions filed before the code held exactly (`evidence/2026-09-30-itemprobes-PREDICTIONS-RUN.txt`).
+- **An independent adversarial pass** found two blockers for step 14: no per-key-group win rate, and a Draw counted as
+  "other" although the game whites out on it. Both are folded, with seven should-fixes. The gate is
+  `probe_itemprobes.py`: 145 rows, 174 mutants. The full suite passes.
+- **Filed alongside:** KI-116 and `#27-drawdefeat` (production counts a defeat only on `Lost`).
+- Next: v2 step 14's design. The user decides per-lane flags or two batches, and starts the batch.

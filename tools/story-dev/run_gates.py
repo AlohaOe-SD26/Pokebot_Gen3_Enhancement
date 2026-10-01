@@ -1176,6 +1176,17 @@ GATES: list[tuple[str, bool]] = [
     # D11). The 3 C7 faults with their pre-registered exact sets + 124 mutants (59 the builder's, 65 after the
     # adversarial pass, 3 of them under a fault); 91 rows; ~5 s with a pool. ‼ APPENDED AT THE END.
     ("probe_double_items.py", False),
+    # `#27-itemprobes` (design v2 step 14's two battle-level item instruments) — the shared PURE parser `battle_log.py`
+    # and `probe_boss_healing.py` / `probe_item_index_space.py` on it: the fixed `[TURN]` pattern (foe status suffix;
+    # `vs ?` = no foe data), every `[ITEM]` kind incl. legacy and `unknown`, KEY/NON-KEY by class id against
+    # `trainer_identity.KEY_TRAINER_CLASSES` (by identity), WILD never NON-KEY, the `[DBLITEM]` partner-rise detector,
+    # `select_logs` incl. `Old/`, the probes' exit-code controls; after the INDEPENDENT pass's fold
+    # (`evidence/2026-09-30-itemprobes-ADVERSARIAL.txt`): a Draw is a loss, per-KEY-GROUP outcomes and per-trainer
+    # attempts, the [KEYBATTLE] check without item data, the lost-item column, Rest, doubles, lane selection, heal stock.
+    # Rows on lines quoted verbatim from committed evidence (a PROVENANCE check re-reads each); 145 rows, 174 mutants
+    # with exact sets (65 the independent hunter's); no ROM; ~45 s (one mutant reads the main checkout's corpus).
+    # ‼ APPENDED AT THE END.
+    ("probe_itemprobes.py", False),
 ]
 
 

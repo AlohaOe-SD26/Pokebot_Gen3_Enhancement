@@ -1,0 +1,221 @@
+#27-itemprobes — the INDEPENDENT ADVERSARIAL PASS on the gate and a correctness review of the two probes, 2026-09-30 LA
+==============================================================================================================
+Two fresh agents that never built the gate; MODEL OUTPUT (a NOTE), verbatim. They changed no repository file.
+
+======================================== angle: mutants ========================================
+# Independent adversarial mutant pass on `#27-itemprobes` (a note, not truth)
+
+**Result:** of 83 new semantic mutants (N01–N83, none of them the gate's own 74), the gate's 90 rows kill 25 and 58 survive. I wrote 26 proposed rows (X1–X25 plus X1D); all pass on the real code. With them added, 41 of the 58 survivors die. The other 17 I argue are equivalent or unreachable.
+
+**How it was run:** everything ran in memory through the gate's own machinery (`probe_itemprobes.py:1235-1267`, `_apply`/`_install`/`run_mutant`), with `py -3.12 -B`. The synthetic tree went in a system temp dir. The worktree is unchanged: same `git status`, no new `.pyc`. I ran no emulator. The gate's baseline is green: 90 rows, 74 mutants, 39 quotes.
+
+## The single most important miss: a Draw is mapped to "other", but the game treats a Draw as a defeat
+- `outcome_bucket` sends anything that is not Won or Lost to "other" (`battle_log.py:411-415`). That includes Draw.
+- The game whites out on a Draw. `IsPlayerDefeated` returns TRUE for `B_OUTCOME_DREW` (pret `src/battle_setup.c:994-1000`), and `CB2_EndTrainerBattle` whites out on it (`:1333`).
+- **This already happens in real logs.** batch0927 has 5 Draws, and 3 of them are Tate & Liza: Mossdeep Gym map (14,0), Claydol L41 leading = `sParty_TateAndLiza1`, which is LEADER and a double battle. Each of the three is followed by `[STORY] WHITEOUT recovery`:
+  - `P1-…-20260927-102251.log:22346`
+  - `P1-…-20260927-102251.log:22987`
+  - `P3-…-20260927-081746.log:16569`
+- At (14,0) the `[MONEY] after` lines show 155 Lost, 3 Draw, 130 Won (the Won count includes gym trainers).
+- **Effect on step 14:** in a batch with `[TRAINER]` telemetry these become KEY/other, so step 14's KEY won/(won+lost) silently drops real key defeats. Draws are a doubles event (both last mons faint, e.g. from recoil), and doubles are exactly where steps 13 and 14 act.
+- **Gate coverage:** none. BA6 covers only Caught, no-end, and the Won fallback (`probe_itemprobes.py:611-616`).
+- **Fix:** change `outcome_bucket` to map Draw to "lost", and add a row expecting "lost". The inverse mutant then has to redden that row. Until then, X1D only pins today's mapping.
+- Separate finding about production, outside this item: `story_mode.py:2563,2574` counts defeats only on `outcome is BattleOutcome.Lost`, so a Draw-whiteout is not a defeat there either.
+
+## Two runners-up (real-code limits, not mutants)
+1. **Two identical foes look like one foe being healed.** `foe_heals` identifies a foe by (species, max HP) (`battle_log.py:145`). Two party members with the same species, level and IV have the same max HP.
+   - In the decomp, 88 trainers have such a pair, and 2 of them are key: Phoebe (two Banette L49) and Roxanne_1 (two Geodude L12).
+   - The corpus's only Phoebe battle (`P4-…-20260927-085623.log`) shows 3 LARGE "heals": Banette 32→106, Banette 7→136, Sableye 22→125. Phoebe carries only 2 Full Restores (`trainers.h` TRAINER_PHOEBE), and Banette and Sableye have no healing moves or held items. So at least one of the three is not an item, which means a false LARGE heal in a KEY battle. This is n=1.
+   - No row can kill it, because it is the real behaviour. It needs a documented limitation, or the foe's PID added to the `[TURN]` line.
+2. **A TwoOpponents battle with an unreadable opponent B can read NON-KEY.** If B's trainer id is unreadable, the emitter drops that side entirely rather than printing `?` (`trainer_identity.py:233`). The line then says `two=True` with a single class, and the parser calls it NON-KEY. A check of `two=True` against the number of classes would catch it. I saw 0 cases in the 238 `[TRAINER] start` lines found in the committed evidence and arm logs.
+
+## Survivor table (58)
+"Kill" means the proposed row reddens the mutant and passes on the real code. "Equiv" gives the reason with a citation.
+
+| ID | Mutant | Verdict |
+|---|---|---|
+| N02 | a second `started` while a battle is unended gets merged | killed by X25. Unreachable: started and ended toggle on one boolean (`debug_logger.py:513-535`), and the corpus has 0 out-of-order starts in 43,380 battles |
+| N05 | `[ITEM]` lines after `ended` dropped | Equiv on observed data: 0 of 228 `[ITEM]` lines fall outside started..ended |
+| N07, N08 | RanAway or OpponentTeleported counted as won | killed by X1 (wild battles only; low impact) |
+| N09 | Draw counted as lost | killed by X1D (pins today's mapping; **see the top miss: the code should change**) |
+| N10 | the fallback also reads `start` lines | Equiv: `start` lines have no `res=` (`trainer_identity.py:260-263`) |
+| N11 | `[TRAINER] end res=` preferred over `[BATTLE] ended` | Equiv: both read the same game outcome (`trainer_identity.py:266-277`, `debug_logger.py:608-611`) |
+| N13 | the Lost fallback ignored | killed by X2 |
+| N14, N27 | an unreadable trainer battle called WILD / NON-KEY | killed by X3, X4, X11. Spec rule at `battle_log.py:388-389`; emitter at `story_mode.py:6669` |
+| N15, N17 | only the first or last trainer line read | killed by X6. Unreachable: one battle record holds one trainer context |
+| N16 | opponent B's class dropped | killed by X5, X4 |
+| N18, N19 | a `?` side read as class 0, or dropped | killed by X4 |
+| N22 | telemetry requires a `start` line | Equiv: logs open fresh per run (`debug_logger.py:273-311`) |
+| N23, N24 | wild battles before the first `[TRAINER]` line become UNCLASSIFIED (in each probe's summarise) | killed by X7 |
+| N28 | `start unreadable` not recognised | Equiv: the class list is empty either way (`battle_log.py:229-237`) |
+| N31–N36 | landed / no_effect / cure_no_change / fresh_read_failed / unknown columns zeroed or dropped | killed by X8. **No SI row asserts these columns** (`probe_itemprobes.py:673-675`) |
+| N38 | observe-only log reported as NO DATA | killed by X9 |
+| N39 | NO-VERDICT check counts only CONSUMED (a batch where nothing consumed is mislabelled "predates telemetry") | killed by X10 |
+| N40 | `[KEYBATTLE]` disagreement counted in UNCLASSIFIED battles | killed by X11 |
+| N42 | a `[DBLITEM] err`-only battle not counted as an item battle | killed by X12 |
+| N43 | wrong-target capped at 1 per battle | killed by X13 |
+| N44 | ok=1 with a_pressed=0 never tallied | Unreachable: `press = ok or …` (`battle_action_selection.py:1147`) |
+| N46 | a partner HP *drop* counted as a wrong target | Equiv: no move runs between the before and after reads (`battle_action_selection.py:1211-1215`) |
+| N47 | `err=` anywhere sets the after-error flag | Equiv: `err=` only appears in the except branch (`:1233`) |
+| N49 | the wrong-target list scans `[DBLITEM-OBS]` lines too | Equiv: observe lines never parse as `[DBLITEM]` (`battle_log.py:282`) |
+| N50 | ok=None treated as a pass | Equiv: `ok=` is always printed as an int (`battle_action_selection.py:1155-1157`) |
+| N51 | foe name without spaces | Equiv for Emerald: Mr. Mime appears 0 times in pret `trainer_parties.h` |
+| N52 | `NO_FOE_RE` unanchored | Equiv: the foe prints as `?` only when the mon is None (`battle_action_selection.py:525-526`) |
+| N53 | first ` vs ` used as the separator | Equiv: no ` vs ` in the player's half |
+| N55 | status suffix must be non-empty | Equiv: `[]` is never emitted (`battle_action_selection.py:534`) |
+| N56 | `turn_shape` routes the line first | Equiv in the probes: they only call it on lines already routed as turns (`probe_boss_healing.py:107-108`) |
+| N57, N59, N60, N64 | small heals counted as LARGE, LARGE judged on post-heal HP, any_battles counts only LARGE, events list keeps only LARGE | killed by X14. **No fixture contains a small heal**, so the quarantine of the small-heal class is unpinned (`probe_boss_healing.py:123-131`) |
+| N58 | LARGE threshold made strict (`>` 50) | killed by X15 |
+| N62 | heals compared only between adjacent records | Equiv on the headline: the corpus has 21 non-adjacent rises, 0 of them LARGE (vs 2,583 adjacent, 558 LARGE) |
+| N63 | the foe's level added to its identity | Equiv: a foe's level does not change in battle |
+| N65 | the ≥12 proxy counts `[TURN]` lines instead of parsed records | killed by X16 |
+| N66, N67 | `--since` alone or `--until` alone means an open range | killed by X17 |
+| N68 | default profiles taken from the worktree | killed by X18 |
+| N69 | strict UTF-8 decode | killed by X19 |
+| N72 | lanes matched as `endless-*` | killed by X20 (proposal: add `endless-old/` to `_build_tree`; SL1, SL2 and CL2 then redden too) |
+| N74 | `--profiles` silently accepted with `--logs` | killed by X21 |
+| N75 | the "nothing parsed" control judged on `[TURN]` lines (an all-`vs ?` log passes) | killed by X22 |
+| N80, N81 | a quoted `[TURN` or `[TRAINER]` inside another category not flagged as stray | killed by X23 |
+| N83 | `ended (outcome=None)` not routed as an end | killed by X24 |
+
+**Killed by the existing gate (25):** N01, N03, N04, N06, N12, N20, N21, N25, N26, N29, N30, N37, N41, N45, N48, N54, N61, N70, N71, N73, N76, N77, N78, N79, N82.
+
+## Proposed rows (each passes on the real code)
+All are defined in `extra_rows.py`.
+- **X1:** a battle ending RanAway, OpponentTeleported or Caught buckets as "other".
+- **X1D:** Draw buckets as "other" today; the recommended fix flips this to "lost".
+- **X2:** `[started, tr_rival, tr_rival_end]` buckets as "lost".
+- **X3:** a battle whose only trainer line is `start unreadable` is UNCLASSIFIED, while a LEADER battle stays KEY.
+- **X4:** `parse_classes("0x0E(HEX_MANIAC)+?")` gives `[14, None]`, and that battle is UNCLASSIFIED.
+- **X5:** classes `0x09+0x31` classify as KEY.
+- **X6:** a record naming two trainers is KEY in either order.
+- **X7:** both probes on fixture M_A report WILD 1, NON-KEY 1, UNCLASSIFIED 0.
+- **X8:** one LEADER battle with all six line kinds gives landed 1, no_effect 2, cure_no_change 1, fresh_read_failed 1, unknown 1.
+- **X9:** an observe-only log makes the item report exit 0.
+- **X10:** fixture P-SLOT makes the item report exit 0.
+- **X11:** a `[KEYBATTLE]` line in an unreadable battle gives 0 disagreements.
+- **X12:** a battle containing only a `[DBLITEM] err` line counts as an item battle.
+- **X13:** two partner-rise `after` lines give wrong_target 2.
+- **X14:** a large-plus-small heal battle and a small-only heal battle give KEY (big 1, big events 1, any 2, any events 3, events 3).
+- **X15:** a heal of exactly +50 counts as LARGE.
+- **X16:** fixture P-SLOT gives long 0.
+- **X17:** `--since` alone and `--until` alone each select 2 logs, on both CLIs.
+- **X18:** with `main_checkout` patched, `default_profiles` points into the main checkout.
+- **X19:** reading a file that ends in `b"\xe2\x9c"` gives (2 lines, 4 bytes).
+- **X20:** a lane named `endless-old` is excluded.
+- **X21:** `--logs` together with `--profiles` exits 2.
+- **X22:** a log whose only turn line is `vs ?` makes the boss report exit 1.
+- **X23:** quoted `[TURN` and `[TRAINER]` lines route as stray.
+- **X24:** `ended (outcome=None)` routes as an end and buckets as "other".
+- **X25:** an unended battle followed by a start splits into 2 records.
+
+## Side observation
+Some battles log each `[TURN]` twice, about 20 frames apart (the Phoebe battle in `P4-…-085623.log`, turns 4–8). That inflates the "turn recs" column and the ≥12 proxy. It does not create false heals.
+
+Files are in C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\mut27:
+- mutants.py
+- extra_rows.py
+- run.py — `py -3.12 -B run.py [--extra]`
+- result.json
+- result_extra.json
+- survey.py, order.py, tails.py, banette.py, phoebe.py, nonadj.py, dups.py — corpus and decomp checks
+- trainer_parties.h, trainers.h, battle_setup.c — fetched from pret/pokeemerald
+
+======================================== angle: correctness ========================================
+## Note: are `#27-itemprobes` good enough to grade step 14? (adversarial review)
+
+Short answer: no. Neither probe reports a win rate per key class, and both count a Draw (a whiteout) as "other" instead of a loss. The design's prediction rows I1–I4 do reproduce exactly. Every log line the emitters can print is classified, and the gate passes (90 rows, 74 mutants). The gaps are in what the probes measure, not in how they parse.
+
+**How I checked.** I read the four files and their emitters, then ran both probes on the batch0927 corpus and on the `d13arms2` arm logs, with no bytecode writes. I tried my proposed fixes in memory through the gate's own `run_mutant` (`probe_itemprobes.py:1239`), inside a temp directory. I wrote nothing in the worktree. While I worked, four PROJECT KNOWLEDGE docs (02, 04, 14, 30) changed at 22:56:58; that was another agent, not me.
+
+**Predictions reproduced:**
+- **I1:** 40 logs, 134,768 `[TURN]` lines, 129,980 parsed, 4,788 `vs ?`, 0 unparsed, 0 stray. All 43,380 battles UNCLASSIFIED.
+- **I2:** `{'using': 114, 'consumed': 111, 'cure_worked': 3}`, 0 unknown, no legacy verdict.
+- **I3:** P-ON's item battle is NON-KEY with 1 pass. P-NOG has 1 wrong target (`Swellow … hp=18->109`). T-ON is KEY with 1 pass.
+- **I4:** T-ON 21/15/6, P-ON 37/20/17, P-NOG 27/21/6, T-OFF1 16/13/3, no heals.
+
+---
+
+### BLOCKERS
+
+**B1. No win rate per key class. The boss probe reports no outcome at all.**
+- Step 14 asks for "B's key-battle win rate … reported per key class (leaders, Elite Four, rivals, Magma/Aqua)" (`2026-09-29-r23-27-DESIGN-v2.md:701`).
+- `battle_log.BATTLE_CLASSES` has only four values: KEY, NON-KEY, WILD, UNCLASSIFIED (`battle_log.py:58-61`), and `battle_class` returns nothing finer (`:387-399`).
+- The item probe's outcome table is keyed by those four (`probe_item_index_space.py:94`, `:216-218`). At most a grader gets one KEY-wide win/loss count, and only by hand: no rate is ever printed.
+- In memory, a LEADER Won battle and a RIVAL Lost battle land in one row: `{('KEY','won'): 1, ('KEY','lost'): 1}`.
+- `probe_boss_healing.summarise` never calls `outcome_bucket` (`:92-132`). Yet its docstring line 1 asks "does the bot lose those fights?" The code does not answer that.
+- The itemprobes design says the fix "makes step 14 gradable" (`2026-09-30-itemprobes-DESIGN.md:4`). The code does not support that claim.
+- **Fix:**
+  - Add `KEY_GROUPS` built from `trainer_identity.TRAINER_CLASS`: leaders {0x20}, Elite Four {0x1F, 0x26}, rivals {0x32}, Magma/Aqua {0x35, 0x0D, 0x31, 0x0B}.
+  - Assert at import that the union equals `KEY_TRAINER_CLASSES`, so a new key class cannot fall outside every group.
+  - Add `key_group(classes)` and a per-group × outcome table that prints n and won/(won+lost).
+  - Add outcomes to the boss probe, or remove the claim in its first line.
+  - Pin it in the gate with T-ON (LEADER), Sidney (ELITE_FOUR) and M0's rival.
+
+**B2. A Draw is a whiteout but is counted as "other".**
+- `outcome_bucket` maps only `Won` and `Lost` (`battle_log.py:411-415`), so `BattleOutcome.Draw` becomes "other".
+- In the decomp, `IsPlayerDefeated` returns TRUE for `B_OUTCOME_DREW` (pret/pokeemerald `src/battle_setup.c:994-1000`), and `CB2_EndTrainerBattle` then whites the player out (`:1327-1334`).
+- Batch0927 has 5 Draws, and every one is followed by a Pokémon Center map. 3 of the 5 are on map (14,0), the Mossdeep Gym (Tate & Liza, LEADER opp=271, per T-ON's `[TRAINER] start … map=14,0`). Example from `P1-…-20260927-102251.log:22346`:
+  - `f4082031 [BATTLE] ended (outcome=BattleOutcome.Draw)`
+  - then `f4082189 [STORY] WHITEOUT recovery #7 at (0, 6)`
+- In memory, a LEADER Draw comes out as `KEY other` / `{'won': 0, 'lost': 0, 'other': 1}`.
+- The gate is blind to this. Through `run_mutant`, mapping Draw to *won* turns **0 rows red**, and so does mapping it to lost. BA6 pins only Caught, a missing end line, and the res fallback (`probe_itemprobes.py:611-616`).
+- **Fix:** treat `res in ("Lost", "Draw")` as lost, and add a gate row quoting the real Draw line.
+
+### SHOULD-FIX
+
+**S1. Win rate is counted per attempt, so a few looping runs dominate it.**
+- One run has 28 whiteouts after a battle on the Mossdeep Gym map (`P1-…-20260927-183007.log`); another has 27 (`…152227.log`).
+- `first=` cannot pick out the first attempt: it reads the trainer-defeated flag, which stays unset (`first=True`) on every attempt until a win (`trainer_identity.py:179-186`).
+- **Fix:** per key group, also report per (log, `opp`): first-attempt outcome, eventually won, and attempts to win.
+
+**S2. The `[KEYBATTLE]` agreement check and the outcome tables are skipped when there are no item lines.**
+- The NO DATA return (`probe_item_index_space.py:193-196`) comes before the `[KEYBATTLE]` report (`:236-240`).
+- T-OFF1 shows it: "1 [KEYBATTLE] line(s)", then "NO DATA", exit 1, and no agreement verdict. A B-arm log that holds only refusals is exactly the case step 14 must check.
+- Disagreements in WILD or UNCLASSIFIED battles are also dropped silently, because the offline value is None there (`:132-134`).
+- **Fix:** run the outcome tables and the agreement check regardless of item data, and count "`[KEYBATTLE]` in a battle with no offline class" as a separate line.
+
+**S3. "Wrong target" only means "the partner's HP rose".**
+- `_AFTER_TARGET` and `_AFTER_PARTNER` are the only fields parsed (`battle_log.py:268-269`, `:291-296`). The emitter also prints `<item>=q0->q1 healed= same=` (`battle_action_selection.py:1227-1231`).
+- If a consumed item lands on a benched Pokémon, `…target… hp=21->21 … partner… hp=18->18 Hyper Potion=1->0` reads as `partner_rose=False`.
+- Singles has no wrong-target signal at all: `✔ CONSUMED` only proves *some* Pokémon took the item.
+- Arm B includes `POKEBOT_R27_DOUBLEITEMS=1` (per `04-HANDOFF`), so this column will be read in step 14.
+- **Fix:** parse the item quantity and add a count of "bag dropped, target not raised, `same=1`". Reword the docstring's "the item applied".
+
+**S4. Some boss-heal identities are ambiguous or false.**
+- `(foe, max_hp)` cannot separate identical duplicate party members.
+  - Phoebe has two Banette L49 with iv=250 (decomp `trainer_parties.h:3263-3264` and `:3277-3278`), and she also carries two Full Restores (`trainers.h:3154`).
+  - So the probe's "+129 Banette 7 -> 136" (`P4-…-20260927-085623.log`, f8897984 to f8899196, Powder Snow onto a 7-HP frozen Banette) could be either a Full Restore or the second Banette coming in.
+  - Roxanne_1's two Geodude L12 (`:3370-3378`) produce the same kind of false small-class heal.
+- 16 of the 558 LARGE heals come with a newly gained foe `[Sleep]`, the signature of Rest (all Juan's Kingdra L46). That contradicts "LARGE … is a trainer using a Full Restore / Hyper Potion" (`probe_boss_healing.py:34-36`).
+- **Fix:** add the foe's PID to `_describe` (log-only), and use the status suffix the parser now captures to tag Rest.
+
+**S5. In doubles, `[TURN]` describes only the left foe.**
+- `_foe = battle_state.opponent.left_battler` (`battle_action_selection.py:457`). In T-ON, 6 of 21 lines read `vs ?` once the left foe fainted.
+- Right-side heals in Tate & Liza are invisible, yet those battles still count in the heal-rate denominator.
+- **Fix:** add a per-class column for doubles (from `[TRAINER] double=`), labelled "left foe only".
+
+**S6. The command-line options can cut or merge a batch silently.**
+- `--since` alone sets `until` to the same day (`probe_boss_healing.py:235-236`; `probe_item_index_space.py:270-271`). A batch that crosses midnight loses its later logs with no warning.
+- There is no lane or arm filter. Lanes are hard-coded to `endless-P*` (`battle_log.py:492`).
+- `--logs` takes one non-recursive glob (`:509-511`), so it cannot cover `debug-logs/` and `Old/` together. If A and B run on the same day in the same lanes, no option separates them.
+- **Fix:**
+  - Print per-lane log counts and how many logs were excluded before and after the window.
+  - Accept repeated `--logs`, or a `--lanes` / HHMMSS stamp range.
+
+**S7. The second step-14 expectation is not measured.**
+- "B has more `heal_stock` at the start of key battles" (`v2:700`).
+- `parse_trainer` drops `heal_stock` (`battle_log.py:236-237`), and no probe reports it.
+
+### NITS
+- **N1.** With no arguments, the stamp mode reads the *worktree's* `x4-runs` (`battle_log.py:503-506`). From the worktree, `20260809-155844` fails loudly with 0 logs, although the batch exists in the main checkout's `x4-runs`. The header does not print the absolute path.
+- **N2.** `read_lines` returns `([], 0)` on any OS error (`battle_log.py:479-482`), and the file-count control counts paths, not successful reads (`probe_boss_healing.py:253`). `glob_logs` also matches directories.
+- **N3.** Each decision is rendered 2–3 times as identical `[TURN]` lines (T-ON:49-50). That inflates "turn recs" and makes the 12-record "boss-length proxy" about 4–6 real turns.
+- **N4.** The docstring at `battle_log.py:335-336` says `[TRAINER] end` follows `[BATTLE] ended`. In M0-r1:96-99 (evidence `2026-09-29-r25cap-raw/M0-r1.debug.txt`), the end comes about 1,550 frames *before* it when an evolution intervenes. The behaviour is still correct (same record).
+- **N5.** UNCLASSIFIED is not split by reason (a pre-start segment, a log with no `[TRAINER]` lines, an unreadable side), so "0 `using` in non-key" cannot be read straight off the table.
+- **N6.** `outcome=None` blocks the `[TRAINER] end res=` fallback (`battle_log.py:405-410`). It occurs 0 times in the corpus.
+
+**Emitter coverage: no gaps.** I checked every `[ITEM]` emitter (`story_mode.py` lines 925, 973, 1022, 1042, 1072, 1084, 1232), `[DBLITEM]` (`battle_action_selection.py:1155`, `:1227`, `:1233`, `:1471`; `story_mode.py:843`, `:6516`), `[TRAINER]` (`:6654`, `:6666`, `:6669`, `:6689`, `:6692`), `[KEYBATTLE]` (`:6462`) and `[TURN]` (`battle_action_selection.py:538`). Each maps to a kind in `battle_log`. The DMGAUDIT and WEAKEN lines produce no strays.
+
+Scratch scripts and outputs are in `C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\ipaudit\`. `demo.py` holds the in-memory checks for B1, B2, S3 and S4; `fixcompat.py` holds the `run_mutant` test. The probe outputs are `i1.txt`, `i2.txt` and `i3.txt`.
+

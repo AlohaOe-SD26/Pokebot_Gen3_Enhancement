@@ -1,0 +1,595 @@
+#27-itemprobes — the AUTHOR's runs of the filed predictions I1-I4 (2026-09-30 LA), read-only on the real corpora
+==============================================================================================================
+
+######## I1: probe_boss_healing.py on batch0927 (the main checkout's endless lanes, 2026-09-27..28)
+$ py -3.12 probe_boss_healing.py --since 20260927 --until 20260928
+================================================================================================
+OPPONENT MID-BATTLE HEALING — endless lanes 20260927..20260928 under C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles
+================================================================================================
+  CONTROL: 40 debug log(s) read of 40 selected, 99,173,396 bytes read
+  CONTROL: per lane: {'endless-P1-torchic': 11, 'endless-P2-mudkip': 10, 'endless-P3-treecko': 9, 'endless-P4-random': 10}; outside the window: 144 before 20260927, 0 after 20260928
+  CONTROL: 134,768 [TURN] lines: 129,980 turn records parsed, 4,788 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 0 of 40 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (43,380 battles, 43,338 with turn records; WILD is never folded into NON-KEY)
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      NON-KEY              0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      WILD                 0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      UNCLASSIFIED    43,380   43,338    129,980   4,788           434   1.0% (542)            1,607   3.7% (2,580)      15 (24)          0 (0 w/ LARGE)
+      UNCLASSIFIED by reason: {'no-telemetry': 43380}
+
+  DOES THE BOT LOSE THOSE FIGHTS?  (won / lost / other; ⛔ a Draw is a loss — the game whites out)
+      class           with a LARGE heal: won/lost/other     rate     all battles: won/lost/other     rate
+      KEY                                     0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      NON-KEY                                 0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      WILD                                    0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      UNCLASSIFIED                         98 / 336 / 0    22.6%              37892 / 863 / 4625    97.8%
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      LARGE-heal key battles per group: {'leaders': (0, 0, 0), 'elite_four': (0, 0, 0), 'rivals': (0, 0, 0), 'magma_aqua': (0, 0, 0)} (battles, won, lost); doubles (left foe only): {'leaders': 0, 'elite_four': 0, 'rivals': 0, 'magma_aqua': 0}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+
+  ⇒ battles with a LARGE heal (>= 50 HP — the understood class): 434 of 43338 (1.0%), 542 events
+     [quarantined] battles with ANY heal incl. the unexplained small class: 1607 (3.7%), 2580 events
+  ⇒ no battle is KEY or NON-KEY: these logs carry no readable [TRAINER] class. The boss-length PROXY below is the only boss signal they hold.
+  PROXY — battles of >=12 turn records (boss-length): 416 of 1399 show a LARGE heal (29.7%)
+  opponents most often healed: [('Illumise', 545), ('Nincada', 238), ('Camerupt', 106), ('Skarmory', 102), ('Claydol', 84), ('Tropius', 82), ('Kingdra', 78), ('Oddish', 77)]
+  largest single heals:
+     +143  Shiftry  15 -> 158   [UNCLASSIFIED]
+     +136  Sealeo  2 -> 138   [UNCLASSIFIED]
+     +134  Kingdra  2 -> 136   [UNCLASSIFIED]
+     +131  Kingdra  7 -> 138   [UNCLASSIFIED]
+     +129  Banette  7 -> 136   [UNCLASSIFIED]
+     +126  Slaking  17 -> 143   [UNCLASSIFIED]
+  REST (a rise that newly gains [Sleep] — a move, never an item; NOT in the heal counts): 24 event(s), e.g. [('Kingdra', 35, 86), ('Kingdra', 81, 138), ('Kingdra', 65, 138)]
+
+‼ A run that ends on the counter chain's stop ends WITHOUT a final battle, so boss battles are under-counted here; in a log without [TRAINER] telemetry the >=12-turn row is only a labelled PROXY.
+‼ 'Turn records' are [TURN] LINES: one decision can render 2-3 identical lines, so the >=12-record proxy is ~4-6 real turns (lines are deliberately NOT de-duplicated).
+‼ Two IDENTICAL foes (same species and max HP, e.g. Phoebe's two Banette) are one identity: the second coming in can read as a heal. Only the foe's PID on [TURN] (a PRODUCTION change) would fix it.
+‼ In a DOUBLE battle [TURN] describes only the LEFT foe: right-side heals are invisible ('left foe only').
+
+[exit 0]
+
+######## I2: probe_item_index_space.py on batch0927
+$ py -3.12 probe_item_index_space.py --since 20260927 --until 20260928
+================================================================================================================
+BATTLE-LEVEL ITEM OUTCOMES — endless lanes 20260927..20260928 under C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles
+================================================================================================================
+  CONTROL: 40 debug log(s) read of 40 selected, 99,173,396 bytes read
+  CONTROL: per lane: {'endless-P1-torchic': 11, 'endless-P2-mudkip': 10, 'endless-P3-treecko': 9, 'endless-P4-random': 10}; outside the window: 144 before 20260927, 0 after 20260928
+  CONTROL: 228 [ITEM] line(s) by kind: {'using': 114, 'consumed': 111, 'cure_worked': 3}
+  CONTROL: 0 [DBLITEM]/[DBLITEM-OBS] line(s); 0 [KEYBATTLE] line(s); 0 stray tag mention(s) (must be 0); 0 of 40 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (WILD is never folded into NON-KEY; UNCLASSIFIED includes every battle of a log without [TRAINER] telemetry)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY                               0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                           0          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                              0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED                 43,380         80        114        111          0          0          0          0          3          0          0          0          0
+      UNCLASSIFIED by reason: {'no-telemetry': 43380}
+
+  PER BATTLE CLASS x OUTCOME  (rows with no battle omitted; ⛔ a Draw is LOST — the game whites out on it)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      UNCLASSIFIED / won           37,892         69         96         94          0          0          0          0          2          0          0          0          0
+      UNCLASSIFIED / lost             863         11         18         17          0          0          0          0          1          0          0          0          0
+      UNCLASSIFIED / other          4,625          0          0          0          0          0          0          0          0          0          0          0          0
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      item requests / CONSUMED per group: {'leaders': (0, 0), 'elite_four': (0, 0), 'rivals': (0, 0), 'magma_aqua': (0, 0)}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+  HP ITEMS HELD AT KEY-BATTLE START  ([TRAINER] start heal_stock=; HP items = the HP policy's parameter > 0)
+      leaders      n 0
+      elite_four   n 0
+      rivals       n 0
+      magma_aqua   n 0
+
+  [DBLITEM] PER BATTLE CLASS  (menu: ok x a_pressed; WRONG TARGET = an `after` whose PARTNER's HP rose; LOST = the bag dropped, the target did not rise (same=1), the partner did not rise)
+                            use       menu       ok,A     ok,noA    refused refused,A!      after  after err  WRONG TGT  LOST item strug-exit        err      other    observe
+      KEY                     0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                 0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                    0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED            0          0          0          0          0          0          0          0          0          0          0          0          0          0
+  ⇒ 0 wrong-target `after` lines.
+  ⇒ 0 lost-item `after` lines.
+
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+
+‼ `no verdict` = requests minus verdict lines in the same battle: the battle ended, the target switched or fainted (cleared silently), or the next decision never came. It is not a failure count.
+‼ CONSUMED proves only that the bag count dropped — SOME Pokémon took the item; which one is known only in a double ([DBLITEM] after: WRONG TGT / LOST item).
+
+[exit 0]
+
+######## I3 arm P-ON: probe_item_index_space.py on the step-13 arm's debug log
+$ py -3.12 probe_item_index_space.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-ON.debug.txt
+================================================================================================================
+BATTLE-LEVEL ITEM OUTCOMES — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-ON.debug.txt
+================================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 20,504 bytes read
+  CONTROL: 2 [ITEM] line(s) by kind: {'using': 1, 'consumed': 1}
+  CONTROL: 3 [DBLITEM]/[DBLITEM-OBS] line(s); 0 [KEYBATTLE] line(s); 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (WILD is never folded into NON-KEY; UNCLASSIFIED includes every battle of a log without [TRAINER] telemetry)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY                               0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                           3          1          1          1          0          0          0          0          0          0          0          0          0
+      WILD                              2          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED                      0          0          0          0          0          0          0          0          0          0          0          0          0
+
+  PER BATTLE CLASS x OUTCOME  (rows with no battle omitted; ⛔ a Draw is LOST — the game whites out on it)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      NON-KEY / won                     2          1          1          1          0          0          0          0          0          0          0          0          0
+      NON-KEY / other                   1          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD / other                      2          0          0          0          0          0          0          0          0          0          0          0          0
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      item requests / CONSUMED per group: {'leaders': (0, 0), 'elite_four': (0, 0), 'rivals': (0, 0), 'magma_aqua': (0, 0)}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+  HP ITEMS HELD AT KEY-BATTLE START  ([TRAINER] start heal_stock=; HP items = the HP policy's parameter > 0)
+      leaders      n 0
+      elite_four   n 0
+      rivals       n 0
+      magma_aqua   n 0
+
+  [DBLITEM] PER BATTLE CLASS  (menu: ok x a_pressed; WRONG TARGET = an `after` whose PARTNER's HP rose; LOST = the bag dropped, the target did not rise (same=1), the partner did not rise)
+                            use       menu       ok,A     ok,noA    refused refused,A!      after  after err  WRONG TGT  LOST item strug-exit        err      other    observe
+      KEY                     0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                 1          1          1          0          0          0          1          0          0          0          0          0          0          0
+      WILD                    0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED            0          0          0          0          0          0          0          0          0          0          0          0          0          0
+  ⇒ 0 wrong-target `after` lines.
+  ⇒ 0 lost-item `after` lines.
+
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+
+‼ `no verdict` = requests minus verdict lines in the same battle: the battle ended, the target switched or fainted (cleared silently), or the next decision never came. It is not a failure count.
+‼ CONSUMED proves only that the bag count dropped — SOME Pokémon took the item; which one is known only in a double ([DBLITEM] after: WRONG TGT / LOST item).
+
+[exit 0]
+
+######## I3 arm P-NOG: probe_item_index_space.py on the step-13 arm's debug log
+$ py -3.12 probe_item_index_space.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-NOG.debug.txt
+================================================================================================================
+BATTLE-LEVEL ITEM OUTCOMES — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-NOG.debug.txt
+================================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 18,982 bytes read
+  CONTROL: 2 [ITEM] line(s) by kind: {'using': 1, 'consumed': 1}
+  CONTROL: 3 [DBLITEM]/[DBLITEM-OBS] line(s); 0 [KEYBATTLE] line(s); 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (WILD is never folded into NON-KEY; UNCLASSIFIED includes every battle of a log without [TRAINER] telemetry)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY                               0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                           4          1          1          1          0          0          0          0          0          0          0          0          0
+      WILD                              2          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED                      0          0          0          0          0          0          0          0          0          0          0          0          0
+
+  PER BATTLE CLASS x OUTCOME  (rows with no battle omitted; ⛔ a Draw is LOST — the game whites out on it)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      NON-KEY / won                     3          1          1          1          0          0          0          0          0          0          0          0          0
+      NON-KEY / lost                    1          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD / other                      2          0          0          0          0          0          0          0          0          0          0          0          0
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      item requests / CONSUMED per group: {'leaders': (0, 0), 'elite_four': (0, 0), 'rivals': (0, 0), 'magma_aqua': (0, 0)}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+  HP ITEMS HELD AT KEY-BATTLE START  ([TRAINER] start heal_stock=; HP items = the HP policy's parameter > 0)
+      leaders      n 0
+      elite_four   n 0
+      rivals       n 0
+      magma_aqua   n 0
+
+  [DBLITEM] PER BATTLE CLASS  (menu: ok x a_pressed; WRONG TARGET = an `after` whose PARTNER's HP rose; LOST = the bag dropped, the target did not rise (same=1), the partner did not rise)
+                            use       menu       ok,A     ok,noA    refused refused,A!      after  after err  WRONG TGT  LOST item strug-exit        err      other    observe
+      KEY                     0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                 1          1          0          0          0          1          1          0          1          0          0          0          0          0
+      WILD                    0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED            0          0          0          0          0          0          0          0          0          0          0          0          0          0
+  ‼ 1 WRONG-TARGET `after` line(s) — the item raised the PARTNER's HP:
+      [NON-KEY / won] f3149835 [DBLITEM] after g=0 target=Sceptile#863B0917 hp=21->21 status1=0->0 partner=Swellow#0B30A747 hp=18->109 Hyper Potion=1->0 healed=0->1 same=1
+  ⇒ 0 lost-item `after` lines.
+
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+
+‼ `no verdict` = requests minus verdict lines in the same battle: the battle ended, the target switched or fainted (cleared silently), or the next decision never came. It is not a failure count.
+‼ CONSUMED proves only that the bag count dropped — SOME Pokémon took the item; which one is known only in a double ([DBLITEM] after: WRONG TGT / LOST item).
+
+[exit 0]
+
+######## I3 arm T-ON: probe_item_index_space.py on the step-13 arm's debug log
+$ py -3.12 probe_item_index_space.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-ON.debug.txt
+================================================================================================================
+BATTLE-LEVEL ITEM OUTCOMES — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-ON.debug.txt
+================================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 16,353 bytes read
+  CONTROL: 2 [ITEM] line(s) by kind: {'using': 1, 'consumed': 1}
+  CONTROL: 3 [DBLITEM]/[DBLITEM-OBS] line(s); 1 [KEYBATTLE] line(s); 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (WILD is never folded into NON-KEY; UNCLASSIFIED includes every battle of a log without [TRAINER] telemetry)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY                               1          1          1          1          0          0          0          0          0          0          0          0          0
+      NON-KEY                           0          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                              0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED                      0          0          0          0          0          0          0          0          0          0          0          0          0
+
+  PER BATTLE CLASS x OUTCOME  (rows with no battle omitted; ⛔ a Draw is LOST — the game whites out on it)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY / won                         1          1          1          1          0          0          0          0          0          0          0          0          0
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            1      1      0      0           100.0%
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      item requests / CONSUMED per group: {'leaders': (1, 1), 'elite_four': (0, 0), 'rivals': (0, 0), 'magma_aqua': (0, 0)}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              1        1        0         0               1                           1 / 1              1
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+  HP ITEMS HELD AT KEY-BATTLE START  ([TRAINER] start heal_stock=; HP items = the HP policy's parameter > 0)
+      leaders      n 1, mean 1.0, median 1
+      elite_four   n 0
+      rivals       n 0
+      magma_aqua   n 0
+
+  [DBLITEM] PER BATTLE CLASS  (menu: ok x a_pressed; WRONG TARGET = an `after` whose PARTNER's HP rose; LOST = the bag dropped, the target did not rise (same=1), the partner did not rise)
+                            use       menu       ok,A     ok,noA    refused refused,A!      after  after err  WRONG TGT  LOST item strug-exit        err      other    observe
+      KEY                     1          1          1          0          0          0          1          0          0          0          0          0          0          0
+      NON-KEY                 0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                    0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED            0          0          0          0          0          0          0          0          0          0          0          0          0          0
+  ⇒ 0 wrong-target `after` lines.
+  ⇒ 0 lost-item `after` lines.
+
+  [KEYBATTLE] production verdicts: {'key=True': 1}; disagreeing with the battle's offline class (from its [TRAINER] lines): 0
+      [KEYBATTLE] in a battle with NO offline class (WILD / UNCLASSIFIED — not comparable): 0
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+
+‼ `no verdict` = requests minus verdict lines in the same battle: the battle ended, the target switched or fainted (cleared silently), or the next decision never came. It is not a failure count.
+‼ CONSUMED proves only that the bag count dropped — SOME Pokémon took the item; which one is known only in a double ([DBLITEM] after: WRONG TGT / LOST item).
+
+[exit 0]
+
+######## I3 arm T-OFF1: probe_item_index_space.py on the step-13 arm's debug log
+$ py -3.12 probe_item_index_space.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-OFF1.debug.txt
+================================================================================================================
+BATTLE-LEVEL ITEM OUTCOMES — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-OFF1.debug.txt
+================================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 15,929 bytes read
+  CONTROL: 0 [ITEM] line(s) by kind: {}
+  CONTROL: 0 [DBLITEM]/[DBLITEM-OBS] line(s); 1 [KEYBATTLE] line(s); 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+  ‼ NO ITEM DATA — no [ITEM] or [DBLITEM] line: the logs predate `#24-battleitems`, or the bot never used an item. That is a missing measurement, not evidence the feature does nothing. The [KEYBATTLE] verdicts and the outcome tables below ARE data (exit 0).
+
+  PER BATTLE CLASS  (WILD is never folded into NON-KEY; UNCLASSIFIED includes every battle of a log without [TRAINER] telemetry)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY                               1          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                           1          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                              0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED                      0          0          0          0          0          0          0          0          0          0          0          0          0
+
+  PER BATTLE CLASS x OUTCOME  (rows with no battle omitted; ⛔ a Draw is LOST — the game whites out on it)
+                                  battles   item btl   requests   CONSUMED     landed   nc-retry nc-disable  no-effect    cure ok     cure = fresh-fail    unknown no verdict
+      KEY / won                         1          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY / other                   1          0          0          0          0          0          0          0          0          0          0          0          0
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            1      1      0      0           100.0%
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      item requests / CONSUMED per group: {'leaders': (0, 0), 'elite_four': (0, 0), 'rivals': (0, 0), 'magma_aqua': (0, 0)}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              1        1        0         0               1                           1 / 1              1
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+  HP ITEMS HELD AT KEY-BATTLE START  ([TRAINER] start heal_stock=; HP items = the HP policy's parameter > 0)
+      leaders      n 1, mean 1.0, median 1
+      elite_four   n 0
+      rivals       n 0
+      magma_aqua   n 0
+
+  [DBLITEM] PER BATTLE CLASS  (menu: ok x a_pressed; WRONG TARGET = an `after` whose PARTNER's HP rose; LOST = the bag dropped, the target did not rise (same=1), the partner did not rise)
+                            use       menu       ok,A     ok,noA    refused refused,A!      after  after err  WRONG TGT  LOST item strug-exit        err      other    observe
+      KEY                     0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      NON-KEY                 0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      WILD                    0          0          0          0          0          0          0          0          0          0          0          0          0          0
+      UNCLASSIFIED            0          0          0          0          0          0          0          0          0          0          0          0          0          0
+  ⇒ 0 wrong-target `after` lines.
+  ⇒ 0 lost-item `after` lines.
+
+  [KEYBATTLE] production verdicts: {'key=False': 1}; disagreeing with the battle's offline class (from its [TRAINER] lines): 0
+      [KEYBATTLE] in a battle with NO offline class (WILD / UNCLASSIFIED — not comparable): 0
+  (no legacy-only [ITEM] line, so no legacy index-space verdict; `no_effect_retry` lines: 0)
+
+‼ `no verdict` = requests minus verdict lines in the same battle: the battle ended, the target switched or fainted (cleared silently), or the next decision never came. It is not a failure count.
+‼ CONSUMED proves only that the bag count dropped — SOME Pokémon took the item; which one is known only in a double ([DBLITEM] after: WRONG TGT / LOST item).
+
+[exit 0]
+
+######## I4 arm T-ON: probe_boss_healing.py on the step-13 arm's debug log
+$ py -3.12 probe_boss_healing.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-ON.debug.txt
+================================================================================================
+OPPONENT MID-BATTLE HEALING — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-ON.debug.txt
+================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 16,353 bytes read
+  CONTROL: 21 [TURN] lines: 15 turn records parsed, 6 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (1 battles, 1 with turn records; WILD is never folded into NON-KEY)
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  1        1         15       6             0   0.0% (0)                0   0.0% (0)       0 (0)          1 (0 w/ LARGE)
+      NON-KEY              0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      WILD                 0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      UNCLASSIFIED         0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+
+  DOES THE BOT LOSE THOSE FIGHTS?  (won / lost / other; ⛔ a Draw is a loss — the game whites out)
+      class           with a LARGE heal: won/lost/other     rate     all battles: won/lost/other     rate
+      KEY                                     0 / 0 / 0      n/a                       1 / 0 / 0   100.0%
+      NON-KEY                                 0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      WILD                                    0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      UNCLASSIFIED                            0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            1      1      0      0           100.0%
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      LARGE-heal key battles per group: {'leaders': (0, 0, 0), 'elite_four': (0, 0, 0), 'rivals': (0, 0, 0), 'magma_aqua': (0, 0, 0)} (battles, won, lost); doubles (left foe only): {'leaders': 1, 'elite_four': 0, 'rivals': 0, 'magma_aqua': 0}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              1        1        0         0               1                           1 / 1              1
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+
+  ⇒ battles with a LARGE heal (>= 50 HP — the understood class): 0 of 1 (0.0%), 0 events
+     [quarantined] battles with ANY heal incl. the unexplained small class: 0 (0.0%), 0 events
+  ⇒ KEY battles with a LARGE heal: 0 of 1 (0.0%);  NON-KEY: 0 of 0 (n/a)
+  PROXY — battles of >=12 turn records (boss-length): 0 of 1 show a LARGE heal (0.0%)
+
+‼ A run that ends on the counter chain's stop ends WITHOUT a final battle, so boss battles are under-counted here; in a log without [TRAINER] telemetry the >=12-turn row is only a labelled PROXY.
+‼ 'Turn records' are [TURN] LINES: one decision can render 2-3 identical lines, so the >=12-record proxy is ~4-6 real turns (lines are deliberately NOT de-duplicated).
+‼ Two IDENTICAL foes (same species and max HP, e.g. Phoebe's two Banette) are one identity: the second coming in can read as a heal. Only the foe's PID on [TURN] (a PRODUCTION change) would fix it.
+‼ In a DOUBLE battle [TURN] describes only the LEFT foe: right-side heals are invisible ('left foe only').
+
+[exit 0]
+
+######## I4 arm P-ON: probe_boss_healing.py on the step-13 arm's debug log
+$ py -3.12 probe_boss_healing.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-ON.debug.txt
+================================================================================================
+OPPONENT MID-BATTLE HEALING — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-ON.debug.txt
+================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 20,504 bytes read
+  CONTROL: 37 [TURN] lines: 20 turn records parsed, 17 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (5 battles, 5 with turn records; WILD is never folded into NON-KEY)
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      NON-KEY              3        3         18      17             0   0.0% (0)                0   0.0% (0)       0 (0)          3 (0 w/ LARGE)
+      WILD                 2        2          2       0             0   0.0% (0)                0   0.0% (0)       0 (0)          0 (0 w/ LARGE)
+      UNCLASSIFIED         0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+
+  DOES THE BOT LOSE THOSE FIGHTS?  (won / lost / other; ⛔ a Draw is a loss — the game whites out)
+      class           with a LARGE heal: won/lost/other     rate     all battles: won/lost/other     rate
+      KEY                                     0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      NON-KEY                                 0 / 0 / 0      n/a                       2 / 0 / 1   100.0%
+      WILD                                    0 / 0 / 0      n/a                       0 / 0 / 2      n/a
+      UNCLASSIFIED                            0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      LARGE-heal key battles per group: {'leaders': (0, 0, 0), 'elite_four': (0, 0, 0), 'rivals': (0, 0, 0), 'magma_aqua': (0, 0, 0)} (battles, won, lost); doubles (left foe only): {'leaders': 0, 'elite_four': 0, 'rivals': 0, 'magma_aqua': 0}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+
+  ⇒ battles with a LARGE heal (>= 50 HP — the understood class): 0 of 5 (0.0%), 0 events
+     [quarantined] battles with ANY heal incl. the unexplained small class: 0 (0.0%), 0 events
+  ⇒ KEY battles with a LARGE heal: 0 of 0 (n/a);  NON-KEY: 0 of 3 (0.0%)
+
+‼ A run that ends on the counter chain's stop ends WITHOUT a final battle, so boss battles are under-counted here; in a log without [TRAINER] telemetry the >=12-turn row is only a labelled PROXY.
+‼ 'Turn records' are [TURN] LINES: one decision can render 2-3 identical lines, so the >=12-record proxy is ~4-6 real turns (lines are deliberately NOT de-duplicated).
+‼ Two IDENTICAL foes (same species and max HP, e.g. Phoebe's two Banette) are one identity: the second coming in can read as a heal. Only the foe's PID on [TURN] (a PRODUCTION change) would fix it.
+‼ In a DOUBLE battle [TURN] describes only the LEFT foe: right-side heals are invisible ('left foe only').
+
+[exit 0]
+
+######## I4 arm P-NOG: probe_boss_healing.py on the step-13 arm's debug log
+$ py -3.12 probe_boss_healing.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-NOG.debug.txt
+================================================================================================
+OPPONENT MID-BATTLE HEALING — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\P-NOG.debug.txt
+================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 18,982 bytes read
+  CONTROL: 27 [TURN] lines: 21 turn records parsed, 6 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (6 battles, 6 with turn records; WILD is never folded into NON-KEY)
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      NON-KEY              4        4         19       6             0   0.0% (0)                0   0.0% (0)       0 (0)          1 (0 w/ LARGE)
+      WILD                 2        2          2       0             0   0.0% (0)                0   0.0% (0)       0 (0)          0 (0 w/ LARGE)
+      UNCLASSIFIED         0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+
+  DOES THE BOT LOSE THOSE FIGHTS?  (won / lost / other; ⛔ a Draw is a loss — the game whites out)
+      class           with a LARGE heal: won/lost/other     rate     all battles: won/lost/other     rate
+      KEY                                     0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      NON-KEY                                 0 / 0 / 0      n/a                       3 / 1 / 0    75.0%
+      WILD                                    0 / 0 / 0      n/a                       0 / 0 / 2      n/a
+      UNCLASSIFIED                            0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            0      0      0      0              n/a
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      LARGE-heal key battles per group: {'leaders': (0, 0, 0), 'elite_four': (0, 0, 0), 'rivals': (0, 0, 0), 'magma_aqua': (0, 0, 0)} (battles, won, lost); doubles (left foe only): {'leaders': 0, 'elite_four': 0, 'rivals': 0, 'magma_aqua': 0}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              0
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+
+  ⇒ battles with a LARGE heal (>= 50 HP — the understood class): 0 of 6 (0.0%), 0 events
+     [quarantined] battles with ANY heal incl. the unexplained small class: 0 (0.0%), 0 events
+  ⇒ KEY battles with a LARGE heal: 0 of 0 (n/a);  NON-KEY: 0 of 4 (0.0%)
+
+‼ A run that ends on the counter chain's stop ends WITHOUT a final battle, so boss battles are under-counted here; in a log without [TRAINER] telemetry the >=12-turn row is only a labelled PROXY.
+‼ 'Turn records' are [TURN] LINES: one decision can render 2-3 identical lines, so the >=12-record proxy is ~4-6 real turns (lines are deliberately NOT de-duplicated).
+‼ Two IDENTICAL foes (same species and max HP, e.g. Phoebe's two Banette) are one identity: the second coming in can read as a heal. Only the foe's PID on [TURN] (a PRODUCTION change) would fix it.
+‼ In a DOUBLE battle [TURN] describes only the LEFT foe: right-side heals are invisible ('left foe only').
+
+[exit 0]
+
+######## I4 arm T-OFF1: probe_boss_healing.py on the step-13 arm's debug log
+$ py -3.12 probe_boss_healing.py --logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-OFF1.debug.txt
+================================================================================================
+OPPONENT MID-BATTLE HEALING — logs C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\d13arms2\T-OFF1.debug.txt
+================================================================================================
+  CONTROL: 1 debug log(s) read of 1 selected, 15,929 bytes read
+  CONTROL: 16 [TURN] lines: 13 turn records parsed, 3 with NO FOE DATA (`vs ?`), 0 UNPARSED WITH FOE DATA (must be 0)
+  CONTROL: 0 stray tag mention(s) (must be 0); 1 of 1 log(s) carry [TRAINER] telemetry
+
+  PER BATTLE CLASS  (2 battles, 2 with turn records; WILD is never folded into NON-KEY)
+      class          battles  w/turns  turn recs    vs ?   LARGE-heal battles (events)   [quarantined] any heal (events)  Rest (events)  doubles: left foe only
+      KEY                  1        1         12       3             0   0.0% (0)                0   0.0% (0)       0 (0)          1 (0 w/ LARGE)
+      NON-KEY              1        1          1       0             0   0.0% (0)                0   0.0% (0)       0 (0)          0 (0 w/ LARGE)
+      WILD                 0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+      UNCLASSIFIED         0        0          0       0             0    n/a (0)                0    n/a (0)       0 (0)          0 (0 w/ LARGE)
+
+  DOES THE BOT LOSE THOSE FIGHTS?  (won / lost / other; ⛔ a Draw is a loss — the game whites out)
+      class           with a LARGE heal: won/lost/other     rate     all battles: won/lost/other     rate
+      KEY                                     0 / 0 / 0      n/a                       1 / 0 / 0   100.0%
+      NON-KEY                                 0 / 0 / 0      n/a                       0 / 0 / 1      n/a
+      WILD                                    0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+      UNCLASSIFIED                            0 / 0 / 0      n/a                       0 / 0 / 0      n/a
+
+  KEY BATTLES PER GROUP x OUTCOME  (design v2 §Step 14: leaders, Elite Four + Champion, rivals, Magma/Aqua)
+      key group          n    won   lost  other   won/(won+lost)
+      leaders            1      1      0      0           100.0%
+      elite_four         0      0      0      0              n/a
+      rivals             0      0      0      0              n/a
+      magma_aqua         0      0      0      0              n/a
+      LARGE-heal key battles per group: {'leaders': (0, 0, 0), 'elite_four': (0, 0, 0), 'rivals': (0, 0, 0), 'magma_aqua': (0, 0, 0)} (battles, won, lost); doubles (left foe only): {'leaders': 1, 'elite_four': 0, 'rivals': 0, 'magma_aqua': 0}
+  KEY BATTLES PER TRAINER MET  (per (log, opp): a few looping runs dominate a per-attempt rate)
+      key group     trainers  1st won 1st lost 1st other  eventually won   attempts to win: median / max  most attempts
+      leaders              1        1        0         0               1                           1 / 1              1
+      elite_four           0
+      rivals               0
+      magma_aqua           0
+
+  ⇒ battles with a LARGE heal (>= 50 HP — the understood class): 0 of 2 (0.0%), 0 events
+     [quarantined] battles with ANY heal incl. the unexplained small class: 0 (0.0%), 0 events
+  ⇒ KEY battles with a LARGE heal: 0 of 1 (0.0%);  NON-KEY: 0 of 1 (0.0%)
+  PROXY — battles of >=12 turn records (boss-length): 0 of 1 show a LARGE heal (0.0%)
+
+‼ A run that ends on the counter chain's stop ends WITHOUT a final battle, so boss battles are under-counted here; in a log without [TRAINER] telemetry the >=12-turn row is only a labelled PROXY.
+‼ 'Turn records' are [TURN] LINES: one decision can render 2-3 identical lines, so the >=12-record proxy is ~4-6 real turns (lines are deliberately NOT de-duplicated).
+‼ Two IDENTICAL foes (same species and max HP, e.g. Phoebe's two Banette) are one identity: the second coming in can read as a heal. Only the foe's PID on [TURN] (a PRODUCTION change) would fix it.
+‼ In a DOUBLE battle [TURN] describes only the LEFT foe: right-side heals are invisible ('left foe only').
+
+[exit 0]
+
+######## the gate (last lines)
+  PASS  M06b KEY from the WRONG list AND the import check removed (M06's first-pass set, + KG1/KG7)  — red ['BA2', 'BA5', 'KG1', 'KG7', 'SB1', 'SB5', 'SI3', 'TR6', 'TR9']
+  PASS  COVERAGE every row is in at least one mutant's expected red set  — 145 rows; uncovered []
+
+ALL PASS (145 rows, 174 mutants, 43 quoted evidence lines) in 42.8 s
+
+[exit 0]
+
+----- ip_evidence.py (verbatim) -----
+"""Compose tools/story-dev/evidence/2026-09-30-itemprobes-PREDICTIONS-RUN.txt: the AUTHOR's own runs of predictions
+I1-I4 (`ai-research-notes/2026-09-30-itemprobes-DESIGN.md`) with the built probes, read-only on the real corpora, plus the
+gate's last lines. Each run's command is printed above its output."""
+import os
+import pathlib
+import subprocess
+
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+T = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev")
+ARMS = S / "d13arms2"
+env = dict(os.environ, PYTHONUTF8="1")
+
+
+def run(args):
+    r = subprocess.run(["py", "-3.12", "-B", *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       cwd=str(T), env=env)
+    return (f"$ py -3.12 {' '.join(args)}\n" + r.stdout
+            + (("\n[stderr]\n" + r.stderr) if r.stderr.strip() else "") + f"\n[exit {r.returncode}]\n")
+
+
+parts = ["#27-itemprobes — the AUTHOR's runs of the filed predictions I1-I4 (2026-09-30 LA), read-only on the real corpora",
+         "=" * 110, ""]
+parts.append("######## I1: probe_boss_healing.py on batch0927 (the main checkout's endless lanes, 2026-09-27..28)")
+parts.append(run(["probe_boss_healing.py", "--since", "20260927", "--until", "20260928"]))
+parts.append("######## I2: probe_item_index_space.py on batch0927")
+parts.append(run(["probe_item_index_space.py", "--since", "20260927", "--until", "20260928"]))
+for arm in ("P-ON", "P-NOG", "T-ON", "T-OFF1"):
+    parts.append(f"######## I3 arm {arm}: probe_item_index_space.py on the step-13 arm's debug log")
+    parts.append(run(["probe_item_index_space.py", "--logs", str(ARMS / f"{arm}.debug.txt")]))
+for arm in ("T-ON", "P-ON", "P-NOG", "T-OFF1"):
+    parts.append(f"######## I4 arm {arm}: probe_boss_healing.py on the step-13 arm's debug log")
+    parts.append(run(["probe_boss_healing.py", "--logs", str(ARMS / f"{arm}.debug.txt")]))
+parts.append("######## the gate (last lines)")
+parts.append("\n".join(run(["probe_itemprobes.py"]).splitlines()[-6:]))
+parts.append("\n----- ip_evidence.py (verbatim) -----\n" + (S / "ip_evidence.py").read_text(encoding="utf-8"))
+out = T / "evidence" / "2026-09-30-itemprobes-PREDICTIONS-RUN.txt"
+out.write_text("\n".join(parts) + "\n", encoding="utf-8")
+print("wrote", out)
+
