@@ -1196,6 +1196,14 @@ GATES: list[tuple[str, bool]] = [
     # confident wrong answer. The spec's rows CA1-CA10 (CA1-CA4 statistical, on fixed seeds) + hand-built estimand rows;
     # 70 mutants with exact sets on the fast rows; real lines with a PROVENANCE check; no ROM; ~35 s. ‼ APPENDED AT THE END.
     ("probe_compare_arms.py", False),
+    # USER RULING 29 (2026-10-01, `#27-shellhook`): the shell-text hook `.claude/hooks/block_shell_text.py` refuses
+    # documentation or code text written THROUGH THE SHELL (a live heredoc; `<<<` / a PowerShell here-string to a writer
+    # or interpreter; `py -c` that writes a file; `echo` into a doc/code file; a 300+ character argument to a Python
+    # script). WHY: the written rule broke FIVE times in two sessions (08, 2026-09-30 and 2026-10-01). It reuses the
+    # destructive-git hook's parser, so a change there can break this hook: the gate checks the case table, both forced
+    # mutants, the settings entry, and the REAL process's JSON (deny / nothing / fails open without its parser). No ROM;
+    # ~5 s. ‼ APPENDED AT THE END.
+    ("selftest_shell_text_hook.py", False),
 ]
 
 

@@ -33,6 +33,11 @@
           },
           {
             "type": "command",
+            "command": "py -3.12 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block_shell_text.py\" || true",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/advise-on-commit.ps1\" || true",
             "timeout": 20
           }
