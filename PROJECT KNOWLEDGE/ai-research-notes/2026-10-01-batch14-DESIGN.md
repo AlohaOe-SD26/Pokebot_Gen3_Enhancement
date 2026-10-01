@@ -238,10 +238,18 @@ tables). T2/T3 replace them for the confirmatory readings (review F10).
 - **STOP-2, vacuity (automated):** every B lane prints ` rare=` and `[KEYBATTLE]` within 60 minutes of its first run
   (they normally appear about 20 s and about 1.5 min in; review AI-1, F8).
 - **STOP-3, a new failure (manual, at every read someone makes; T4's tool).** A run-end signature appears in at least
-  2 B runs and 0 A runs, AND a package tag (`[ITEM] using`, `[DBLITEM]`, `[KIT-BUY]`, `why=topoff`, `[KEYBATTLE]`,
-  `[DEXCATCH-NOBAIL]`, `[CATCH] trainee`) precedes those derails in the last ~200 debug-log lines. ⇒ park the batch and
-  diagnose with a driver (the batch is not a debugger). A STOP-3 pattern first seen after the batch is a defect to
-  diagnose, and the readings carry a note.
+  2 B runs and 0 A runs, AND an ACTING package tag precedes those derails in the last ~200 debug-log lines. ⇒ park the
+  batch and diagnose with a driver (the batch is not a debugger). A STOP-3 pattern first seen after the batch is a
+  defect to diagnose, and the readings carry a note.
+  - **The acting tags (amended 2026-10-01, BEFORE any batch data; T4's adversarial pass, spec F3):** `[ITEM] using`;
+    `[DBLITEM]` use / menu / after; `[BALLS-BUY]` or `[KIT-BUY]` whose `why=` is exactly one of `topoff`,
+    `topoff-failed`, `topoff-closed`, `topoff-recovery`, `kit`, `kit-failed`, `kit-closed`, `kit-recovery`;
+    `[DEXCATCH-NOBAIL]`; `[CATCH] trainee` (not `trainee-after`); `[KEYBATTLE]` with `allow=False`.
+  - **Why the first list was replaced:** it matched lines that record the package deciding to do NOTHING
+    (`why=topoff-none`, `why=kit-skip`, `-observe`, `[KEYBATTLE] allow=True`). Those print on most B runs, so almost
+    any B-only derail would have "had a package tag" and STOP-3 could not tell a package fault from a coincidence.
+    `[BALLS-BUY] why=mandatory` is excluded because both arms print it (`early_game.py:2730`). The tool also prints how
+    many qualifying signatures had NO acting tag, so a reader sees what the narrowing left out.
 - **Not a stop:** B is slower than A, or B loses more ordinary battles. Those are findings.
 - ⛔ **Pre-registered consequences** (review S9):
   - any STOP voids C1-C2, which become descriptive;

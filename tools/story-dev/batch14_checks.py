@@ -2,43 +2,50 @@ r"""DESIGN v2 STEP 14, T4a — the batch's CORRECTNESS checks (E1-E5) and the ST
 
 ⛔ THE CAVEAT IS THE HEADLINE: a MEASUREMENT tool (tools/story-dev only). None of it is a confirmatory reading: those
 are C1-C5 in `compare_arms.py` (T3). A FINDING is a deterministic invariant the batch broke — a defect to DIAGNOSE
-with a driver, never a grade; a PASS means "no violation in the lines read", never "the package is correct".
+with a driver, never a grade; a PASS means "no violation in the lines read", never "the package is correct". Every
+headline carries its own caveats: a half that had nothing to judge says so ON THE STATUS LINE.
 
-THE SPEC (binding): `ai-research-notes/2026-10-01-batch14-T4-PREDICTIONS.md` (T4a), and its parent
-`…-batch14-DESIGN.md` §4 (STOP-3) and §5 (E1-E5). Every emitter and its line shape: `…-batch14-recon/
-b14_recon_expectations.md` §B. Where the spec is silent the simplest reading is taken and marked `SPEC-SILENT` beside
-the code.
+THE SPEC (binding): `ai-research-notes/2026-10-01-batch14-T4-PREDICTIONS.md` (T4a), its parent `…-batch14-DESIGN.md`
+§4 (STOP-3) and §5 (E1-E5), and the coordinator's rulings on the independent adversarial pass
+(`evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`), marked `RULING n` beside the code. Every emitter and its line
+shape: `…-batch14-recon/b14_recon_expectations.md` §B. Where the spec is silent the simplest reading is taken and
+marked `SPEC-SILENT` beside the code.
 
 INPUT. Exactly `compare_arms.py`'s: a batch directory (`x4-runs/<stamp>` under the MAIN checkout, or any path) or
 `--tag TAG` for a RUNNING batch, loaded through `compare_arms.collect_runs` — the arm refusal and the cut / lost /
 capped status are ITS — with ONE read per log: `extract` runs on the same lines through the loader's `visit` hook.
 The instrument controls are `compare_arms.controls` + `completeness_failures`: on any failure (a refused log, an arm
 with no usable run, an incomplete batch directory) NO check is printed and the exit is 1, exactly as compare_arms
-prints no grade.
+prints no grade. The header carries compare_arms' `void_reason` (RULING 8): a STOP voids C1-C2, and says so here too.
 
 REUSED, never re-parsed: `battle_log` (the battle split, the offline class, the `[TRAINER]` / `[KEYBATTLE]` /
-`[DBLITEM]` parsers, `first_attempts`, `keys_met`, `hp_item_count`, `partner_rose`, `outcome_bucket`), `x4_headless`
-(`_RUN_END_RE`, `classify_outcome`, `_derail_reason`, and `scan_lines` — the LIVE monitor's own matcher) and
-`grade_r20_telemetry.CATCH`. What no module parsed yet has its own small pattern here (`[MAP]`, `[CATCH] loss-filed`,
-`[DEXFENCE]`, `[BALLS-BUY]` / `[KIT-BUY]` fields, `[WEAKEN-OBS]`, `[DMGAUDIT]` blocks, our side's `[TURN]` HP), each
-quoted against a real line in the gate (`probe_batch14_checks.py`).
+`[DBLITEM]` / `[ITEM]` parsers, `first_attempts`, `keys_met`, `hp_item_count`, `partner_rose`, `outcome_bucket`),
+`x4_headless` (`_RUN_END_RE`, `classify_outcome`, `_derail_reason`, and `scan_lines` — the LIVE monitor's own matcher)
+and `grade_r20_telemetry.CATCH`. What no module parsed yet has its own small pattern here (`[MAP]`, `[CATCH]
+loss-filed`, `[DEXFENCE]`, `[BALLS-BUY]` / `[KIT-BUY]` fields, `[WEAKEN-OBS]`, `[DMGAUDIT]` blocks, our side's
+`[TURN]` HP), each quoted against a real line in the gate (`probe_batch14_checks.py`).
 
-THE CHECKS (DESIGN §5; the spec's table):
+THE CHECKS (DESIGN §5; the spec's table; the rulings):
   E1  B: 0 `[ITEM] using` and 0 `[DBLITEM] use` in NON-KEY battles, except battles whose `[KEYBATTLE]` reason is a
       fail-open one (`fail_open_*`, `FAIL_OPEN(…)`), each listed. Both arms: 0 in WILD battles.
-  E2  B: at most one `[KEYBATTLE]` per battle; its `key=` equals the offline class; any `reason=flag_off` is a
-      violation. Trainer battles with no `[KEYBATTLE]` are counted (a summary, never a finding).
+  E2  B: at most one `[KEYBATTLE]` per battle; its `key=` equals the offline class (TALLIED, not compared, when the
+      reason is fail-open — RULING 6); any `reason=flag_off` is a violation. Trainer battles with no `[KEYBATTLE]` are
+      counted (a summary, never a finding).
   E3  the arm identity: A prints none of the arms file's `monitor.A.forbid` texts, B none of `monitor.B.forbid` (the
       live monitor's lists and its matcher). B: every `[CATCH] end kind=dex … end=lost` is followed by a `[CATCH]
       loss-filed kind=dex`. B: each run's FIRST Pokémon Center heal in Rustboro logs a `why=topoff…` line and a
       `[KIT-BUY]` line. `[CATCH] trainee` and `[DEXCATCH-NOBAIL]`: counts per arm only.
-  E4  B: at least 1 `[DBLITEM] use` IF at least 5 distinct B runs reached a Tate & Liza FIRST attempt holding at least
-      1 HP item (`hp_item_count` on its `[TRAINER] start heal_stock`); else NOT ASSESSED. On a zero: every such battle
-      with its lowest own-battler HP and whether it reached the 0.35 heal gate.
-  E5  B: every `[DBLITEM] after` whose PARTNER's HP rose although no `[DBLITEM] use` of that turn targeted the partner,
-      listed for reading BY HAND — never counted as a defect (its word is "READ BY HAND", not FINDING).
+  E4  (RULING 1) graded on the QUALIFYING Tate & Liza FIRST attempts (>= 5 distinct B runs whose first attempt held
+      >= 1 HP item at its start; else NOT ASSESSED). A `[DBLITEM] use` inside them -> PASS. Zero -> the per-battle,
+      PER-BATTLER list (each own battler's lowest HP fraction; whether an HP item was held), and FINDING (READ BY
+      HAND) if any battler reached <= 0.35 with an HP item held — each such row carries production's rule-3 caveat —
+      else ZERO EXPLAINED BY THE 0.35 THRESHOLD. The global B use count is printed beside it.
+  E5  (RULING 2) B: EVERY `[DBLITEM] after` whose PARTNER's HP rose, listed for reading BY HAND (never a defect count);
+      a same-turn `use` on the partner is printed as CONTEXT, never an exclusion.
   STOP-3  the run-end signatures per arm (`x4_headless._derail_reason` over each lane's `stdout.txt`); for every
-      signature in >= 2 B runs and 0 A runs, the last 200 lines of each such run's debug log scanned for a package tag.
+      signature in >= 2 B runs (any lanes) and 0 A runs, the last 200 lines of each such run's debug log scanned for
+      an ACTING package tag (RULING 3, `ACTING_TAGS`); the pattern reads yes if ANY of those tails holds one, and the
+      number of qualifying signatures with NO acting tag is printed beside it.
 
 EXIT: 0 the checks were computed (FINDINGs are reported, not errors); 1 an instrument control failed (nothing checked);
 2 usage.
@@ -75,26 +82,45 @@ ARM_A, ARM_B = ca.ARM_A, ca.ARM_B
 #: logger's closing `=== DEBUG LOG END ===` line not counted.
 TAIL_LINES = 200
 LOG_END = "=== DEBUG LOG END ==="
-#: STOP-3's package tags, verbatim from DESIGN §4 (plain substrings over the whole line, as the live monitor matches).
-PACKAGE_TAGS = ("[ITEM] using", "[DBLITEM]", "[KIT-BUY]", "why=topoff", "[KEYBATTLE]", "[DEXCATCH-NOBAIL]",
-                "[CATCH] trainee")
+#: STOP-3's ACTING package tags (RULING 3, with its correction from the emit sites). DESIGN §4's first list also matched
+#: lines that act on nothing (`why=topoff-none` / `[KIT-BUY] why=kit-none` are logged at EVERY B heal: 88% of B's
+#: 200-line windows carried a tag, 0% of A's — the spec reviewer's F3), so only lines that ACT count:
+#:   `[ITEM] using`; `[DBLITEM] use` / `menu` / `after`; a `[BALLS-BUY]` or `[KIT-BUY]` line whose why= is (as a WHOLE
+#:   token) one of `ACTING_WHY`; `[DEXCATCH-NOBAIL]`; `[CATCH] trainee` (never `trainee-after`); `[KEYBATTLE]` only
+#:   with `allow=False` (the gate that took an item away).
+#: ⛔ Not `why=mandatory`: `early_game.py:2730-2735` prints it in BOTH arms (the R20-T mandatory errand). Every other
+#: why= (`-observe`, `-none`, `-skip`, `-flag`, `-forecast`) is a no-op.
+ACTING_TAGS = ("[ITEM] using", "[DBLITEM] use", "[DBLITEM] menu", "[DBLITEM] after", "[BALLS-BUY] acting why=",
+               "[KIT-BUY] acting why=", "[DEXCATCH-NOBAIL]", "[CATCH] trainee", "[KEYBATTLE] allow=False")
+#: The errand outcomes that ACT (`stock_topoff.py:449-575, 662-666, 892, 1160-1170`).
+ACTING_WHY = frozenset({"topoff", "topoff-failed", "topoff-closed", "topoff-recovery",
+                        "kit", "kit-failed", "kit-closed", "kit-recovery"})
 #: E1: the `[KEYBATTLE]` reasons that FAIL OPEN (`trainer_identity.py:70-85`, `story_mode.py:6455`).
 FAIL_OPEN_PREFIXES = ("fail_open_", "FAIL_OPEN(")
 #: E2: DESIGN AI-6 — `flag_off` cannot reach a log line, so one that does is a violation.
 FLAG_OFF = "flag_off"
-#: E4 (DESIGN §5, review F7): the denominator's size and the production heal gate (`battle_items.HEAL_AT_FRACTION`).
+#: E4 (DESIGN §5, review F7): the denominator's size and the production heal gate (`battle_items.HEAL_AT_FRACTION`;
+#: `double_items.py:174` declines above it). ⚠ Production can ALSO decline at or below it (rule 3, `battle_items.py:
+#: 92-95`: no heal into a losing race), so a listed row is for a HAND read, never a verdict by itself.
 E4_MIN_RUNS = 5
 HEAL_FRACTION = 0.35
+RULE3_CAVEAT = "production may decline under its rule 3 (a losing race) — read the battle"
+#: RULING 5: a `[MAP]` read that is not a real arrival. The logger writes momentary loads to these two ids (ROUTE 116
+#: (255,255) 145 times and (3,0) 94 times in the smoke batch), and a read that reverts to its origin within
+#: `TRANSIENT_FRAMES` frames is a misread too (e.g. `ROUTE 128(0,43) -> ROUTE 128(0,7)` and back). Neither E3's errand
+#: window nor D-fence's era may change on one (`transient_map_reads`, ONE helper used by both).
+TRANSIENT_DESTS = frozenset({(255, 255), (3, 0)})
+TRANSIENT_FRAMES = 2
 #: Map ids (`sandbox-pokebot/modules/map_data.py`; a `[MAP]` line's NAME can lag its ids — the batch0926 excerpt reads
 #: `EVER GRANDE CITY(24,43)` for Victory Road — so every rule here keys on the (group, number) pair, never the name).
 #: SPEC-SILENT (E3, "each run's FIRST Pokémon Center heal IN RUSTBORO"): a heal is the per-heal `[PC] … withdraw:`
 #: report (`_HEAL_MARK`) logged while the avatar's map is Rustboro's Pokémon Center; its errand is every line after it
-#: until a `[MAP]` load outside Rustboro (city, Pokémon Center, mart) or the next heal. Only Rustboro is whitelisted
-#: (`stock_topoff._whitelist`), and the errand runs at the END of `heal_in_pokemon_center`, after the exit warp.
+#: until a REAL `[MAP]` load outside Rustboro (city, Pokémon Center, mart) or the next heal. Only Rustboro is
+#: whitelisted (`stock_topoff._whitelist`), and the errand runs at the END of `heal_in_pokemon_center`.
 RUSTBORO_PC = (11, 5)          # RUSTBORO_CITY_POKEMON_CENTER_1F
 RUSTBORO_CITY = (0, 3)
 RUSTBORO_MART = (11, 7)
-#: SPEC-SILENT (D-fence's era): "after Sootopolis" begins at the run's first `[MAP]` load of SOOTOPOLIS CITY.
+#: SPEC-SILENT (D-fence's era): "after Sootopolis" begins at the run's first REAL `[MAP]` load of SOOTOPOLIS CITY.
 SOOTOPOLIS_CITY = (0, 7)
 #: D-leg11 / D-economy. SPEC-SILENT: "money at leg 11" is the last `[MONEY] … money=₽N` or `[hb] … money=N` reading
 #: logged before the run's FIRST load of (16,10); the refusals are the debug log's `DERAIL #` lines (one log = one run).
@@ -204,6 +230,29 @@ def parse_map(msg: str) -> "tuple | None":
     return (int(m.group(1)), int(m.group(2))), (int(m.group(3)), int(m.group(4)))
 
 
+def transient_map_reads(lines) -> set:
+    """RULING 5, PURE: the line positions of `[MAP]` reads that are NOT real arrivals — a destination in
+    `TRANSIENT_DESTS`, or a read the NEXT `[MAP]` read reverts (back to this read's origin) within `TRANSIENT_FRAMES`
+    frames. The one helper E3's errand window and D-fence's era both use."""
+    reads = []
+    for pos, raw in enumerate(lines):
+        m = _CAT.match(raw.rstrip("\r\n"))
+        if not m or m.group(2) != "MAP":
+            continue
+        mm = parse_map(m.group(3))
+        if mm:
+            reads.append((pos, _int(m.group(1)), mm[0], mm[1]))
+    out = set()
+    for i, (pos, frame, origin, dest) in enumerate(reads):
+        if dest in TRANSIENT_DESTS:
+            out.add(pos)
+        elif i + 1 < len(reads):
+            _p2, frame2, _o2, dest2 = reads[i + 1]
+            if dest2 == origin and frame is not None and frame2 is not None and frame2 - frame <= TRANSIENT_FRAMES:
+                out.add(pos)
+    return out
+
+
 def tail_of(lines, n: int = TAIL_LINES) -> list:
     """The last `n` lines of a run's log, its closing `=== DEBUG LOG END ===` (and blank lines after it) excluded."""
     end = len(lines)
@@ -212,9 +261,33 @@ def tail_of(lines, n: int = TAIL_LINES) -> list:
     return list(lines[max(0, end - n):end])
 
 
+def acting_tag(line: str) -> "str | None":
+    """RULING 3: the `ACTING_TAGS` name of a line that ACTS for the package, else None."""
+    r = bl.route(line)
+    if r == "item":
+        return "[ITEM] using" if bl.item_kind(line) == "using" else None
+    if r == "dblitem":
+        kind = (bl.parse_dblitem(line) or {}).get("kind")
+        return f"[DBLITEM] {kind}" if kind in ("use", "menu", "after") else None
+    if r == "keybattle":
+        return "[KEYBATTLE] allow=False" if (bl.parse_keybattle(line) or {}).get("allow") == "False" else None
+    if "[BALLS-BUY] " in line or "[KIT-BUY] " in line:
+        why = _WHY.search(line)
+        if why and why.group(1) in ACTING_WHY:          # a WHOLE token: `topoff` never matches `topoff-none`
+            return "[KIT-BUY] acting why=" if "[KIT-BUY] " in line else "[BALLS-BUY] acting why="
+        return None
+    if "[DEXCATCH-NOBAIL]" in line:
+        return "[DEXCATCH-NOBAIL]"
+    m = _CAT.match(line.rstrip("\r\n"))
+    if m and m.group(2) == "CATCH" and m.group(3).startswith("trainee "):
+        return "[CATCH] trainee"
+    return None
+
+
 def tags_in(lines) -> list:
-    """STOP-3: the package tags present in `lines` (substrings), in `PACKAGE_TAGS` order."""
-    return [t for t in PACKAGE_TAGS if any(t in line for line in lines)]
+    """STOP-3: the ACTING tags present in `lines`, in `ACTING_TAGS` order."""
+    found = {acting_tag(line) for line in lines}
+    return [t for t in ACTING_TAGS if t in found]
 
 
 # ---------------------------------------------------------------------------------------------------- one battle
@@ -241,16 +314,18 @@ def battle_rec(k: int, battle, telemetry: bool) -> dict:
             "using": [line for line in battle.items if bl.item_kind(line) == "using"],
             "dbl_use": [line for line in battle.dblitem if (bl.parse_dblitem(line) or {}).get("kind") == "use"],
             "dbl_after": sum(1 for line in battle.dblitem if (bl.parse_dblitem(line) or {}).get("kind") == "after"),
-            # filled by the ordered pass in `extract`:
-            "map": None, "catch": False, "catch_lost": [], "lead": None, "min_frac": None, "min_hp": None, "e5": []}
+            # filled by the ordered pass in `extract`. `own`: each OWN battler (by the species name its `[TURN]` line
+            # gives; no PID there) -> its lowest (hp, max) over the battle's decisions.
+            "map": None, "catch": False, "catch_lost": [], "lead": None, "own": {}, "e5": []}
 
 
 def _e5_readings(events) -> list:
-    """PURE (E5). `events` = the battle's ordered ('use', pos, g, target, line) / ('turn', pos, n) / ('after', pos, g,
-    parsed, line). Each `after` whose partner's HP ROSE (`battle_log.partner_rose`) is listed UNLESS a `use` of the
-    SAME turn targeted that partner. SPEC-SILENT ("not healed that turn"): an action's turn is the first `[TURN n]`
-    line after its `use` (the decision line, logged in the same frame); an `after` belongs to the latest `use` of the
-    same battler `g` before it; no `use` or no turn -> unexplained (listed)."""
+    """PURE (E5, RULING 2). `events` = the battle's ordered ('use', pos, g, target, line) / ('turn', pos, n) /
+    ('after', pos, g, parsed, line). EVERY `after` whose partner's HP ROSE (`battle_log.partner_rose`) is listed. A
+    `use` of the SAME turn that targeted that partner is attached as CONTEXT only (the spec reviewer's F2: the
+    partner's p0 is read just before THIS battler's bag opens, so the partner's own heal cannot fall in the window —
+    an exclusion could only hide a real wrong target). An action's turn is the first `[TURN n]` line after its `use`;
+    an `after` belongs to the latest `use` of the same battler `g` before it."""
     turns = [(e[1], e[2]) for e in events if e[0] == "turn"]
     uses = [e for e in events if e[0] == "use"]
 
@@ -272,10 +347,11 @@ def _e5_readings(events) -> list:
                 action = u
         turn = use_turn.get(action[1]) if action else None
         partner = parsed.get("partner")
-        healed = turn is not None and any(u[3] == partner and use_turn.get(u[1]) == turn for u in uses)
-        if not healed:
-            out.append({"turn": turn, "g": g, "partner": partner, "partner_hp": parsed.get("partner_hp"),
-                        "target": parsed.get("target"), "target_hp": parsed.get("target_hp"), "line": line})
+        context = [f"a same-turn [DBLITEM] use by g={u[2]} targeted the partner" for u in uses
+                   if u is not action and turn is not None and u[3] == partner and use_turn.get(u[1]) == turn]
+        out.append({"turn": turn, "g": g, "partner": partner, "partner_hp": parsed.get("partner_hp"),
+                    "target": parsed.get("target"), "target_hp": parsed.get("target_hp"), "line": line,
+                    "context": context})
     return out
 
 
@@ -311,6 +387,7 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
     telemetry = bl.has_trainer_telemetry(lines)
     battles = [b for b in bl.split_battles(lines) if b.started]
     recs = [battle_rec(k, b, telemetry) for k, b in enumerate(battles)]
+    transient = transient_map_reads(lines)
     events: dict = collections.defaultdict(list)
     out = {
         "telemetry": telemetry, "battles": recs, "monitor_hits": x4.scan_lines(lines, list(forbid), ())[0],
@@ -318,7 +395,7 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         "rustboro": None, "trainee": 0, "trainee_after": 0, "nobail": 0,
         "tail": tail_of(lines), "badges": {}, "caught": [], "fence": set(), "fence_unparsed": 0,
         "balls_buy": [], "kit_buy": [], "leg11_loaded": False, "leg11_old": [], "leg11_new": [], "leg11_money": None,
-        "weaken": collections.Counter(), "rare": [], "frames": 0, "dmg_lines": 0,
+        "weaken": collections.Counter(), "rare": [], "frames": 0, "dmg_lines": 0, "transient_maps": len(transient),
     }
     k = -1
     cur_map = None
@@ -331,8 +408,9 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
     for pos, raw in enumerate(lines):
         line = raw.rstrip("\r\n")
         m = _CAT.match(line)
-        if m and m.group(1):
-            out["frames"] = max(out["frames"], int(m.group(1)))
+        frame = int(m.group(1)) if m and m.group(1) else None
+        if frame is not None:
+            out["frames"] = max(out["frames"], frame)
         r = bl.route(line)
         if r == "start":
             k += 1
@@ -342,11 +420,12 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         if r == "turn" and k >= 0:
             me = _TURN_ME.search(line)
             if me:
-                hp, mx = int(me.group(4)), int(me.group(5))
+                name, hp, mx = me.group(2).strip(), int(me.group(4)), int(me.group(5))
                 if recs[k]["lead"] is None:
-                    recs[k]["lead"] = me.group(2).strip()
-                if mx > 0 and (recs[k]["min_frac"] is None or hp / mx < recs[k]["min_frac"]):
-                    recs[k]["min_frac"], recs[k]["min_hp"] = hp / mx, f"{me.group(2).strip()} {hp}/{mx}"
+                    recs[k]["lead"] = name
+                low = recs[k]["own"].get(name)
+                if mx > 0 and (low is None or hp / mx < low[0] / low[1]):
+                    recs[k]["own"][name] = (hp, mx)
             n = _TURN_N.search(line)
             if n:
                 events[k].append(("turn", pos, int(n.group(1))))
@@ -362,12 +441,13 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
             mm = parse_map(msg)
             if mm:
                 cur_map = mm[1]
-                if cur_map == SOOTOPOLIS_CITY:
-                    era = "after"
                 if cur_map == LEAGUE_1F and not out["leg11_loaded"]:
                     out["leg11_loaded"], out["leg11_money"] = True, money
-                if heal_window and cur_map not in (RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART):
-                    heal_window = False
+                if pos not in transient:            # RULING 5: a momentary read moves neither the era nor the window
+                    if cur_map == SOOTOPOLIS_CITY:
+                        era = "after"
+                    if heal_window and cur_map not in (RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART):
+                        heal_window = False
         elif cat == "PC" and _HEAL_MARK.match(msg):
             heal_window = False                     # a heal ends the previous heal's errand window
             if out["rustboro"] is None and cur_map == RUSTBORO_PC:
@@ -421,8 +501,8 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
                 out["fence_unparsed"] += 1
         elif cat == "BADGE":
             bm = _BADGE.search(msg)
-            if bm and m.group(1):
-                out["badges"].setdefault(int(bm.group(1)), int(m.group(1)))
+            if bm and frame is not None:
+                out["badges"].setdefault(int(bm.group(1)), frame)
         elif cat == "MONEY":
             mm = _MONEY_SIGN.search(msg)
             if mm:
@@ -447,9 +527,9 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         if "[DEXCATCH-NOBAIL]" in line:
             out["nobail"] += 1
         if "[BALLS-BUY] " in line:
-            out["balls_buy"].append(_buy(line, kit=False))
+            out["balls_buy"].append(_buy(line, kit=False, frame=frame))
         if "[KIT-BUY] " in line:
-            out["kit_buy"].append(_buy(line, kit=True))
+            out["kit_buy"].append(_buy(line, kit=True, frame=frame))
         if "DERAIL #" in line:
             if LEG11_OLD in line:
                 out["leg11_old"].append(line)
@@ -471,12 +551,14 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
     return out
 
 
-def _buy(line: str, kit: bool) -> dict:
-    """A `[BALLS-BUY]` (both prefixes) or `[KIT-BUY]` line -> why, ball, bought, ₽ spent (None when unreadable)."""
+def _buy(line: str, kit: bool, frame=None) -> dict:
+    """A `[BALLS-BUY]` (both prefixes) or `[KIT-BUY]` line -> why, ball, bought, ₽ spent (None when unreadable), and
+    the errand KEY's parts (`frame`, `money` a->b): one errand's ball and kit lines share both (RULING 4)."""
     why = _WHY.search(line)
     mab = _MONEY_AB.search(line)
     a, b = (_int(mab.group(1)), _int(mab.group(2))) if mab else (None, None)
-    out = {"why": why.group(1) if why else "?", "spent": (a - b) if a is not None and b is not None else None}
+    out = {"why": why.group(1) if why else "?", "spent": (a - b) if a is not None and b is not None else None,
+           "frame": frame, "money": (mab.group(1), mab.group(2)) if mab else None}
     if kit:
         bm = _BOUGHT_KIT.search(line)
         items = {}
@@ -555,9 +637,9 @@ def parse_stdout(text: str) -> list:
     return out
 
 
-def load(batch_arg, tag, ap, *, m1b: "M1bPool | None" = None) -> dict:
-    """The batch through `compare_arms` (its loader, controls and completeness), plus T4's per-run extraction and
-    each lane's `stdout.txt`. `ap.error` (exit 2) on an unusable ARMS.json or a batch without arms A and B."""
+def load(batch_arg, tag, ap, *, m1b: "M1bPool | None" = None, manual_void: "str | None" = None) -> dict:
+    """The batch through `compare_arms` (its loader, controls, completeness and `void_reason`), plus T4's per-run
+    extraction and each lane's `stdout.txt`. `ap.error` (exit 2) on an unusable ARMS.json or a batch without A and B."""
     batch_dir = ca.find_batch(batch_arg, tag, ap)
     try:
         man = ca.load_manifest(batch_dir)
@@ -590,7 +672,8 @@ def load(batch_arg, tag, ap, *, m1b: "M1bPool | None" = None) -> dict:
         stdout[lane["tag"]] = {"arm": lane.get("arm"), "runs": parse_stdout(text) if text is not None else None,
                                "path": str(p)}
     return {"batch_dir": batch_dir, "manifest": man, "monitor": monitor, "runs": runs, "facts": facts,
-            "summary": summ, "failures": failures, "info": info, "stdout": stdout, "live": bool(tag), "tag": tag}
+            "summary": summ, "failures": failures, "info": info, "stdout": stdout, "live": bool(tag), "tag": tag,
+            "void": ca.void_reason(summ, manual_void)}
 
 
 # ---------------------------------------------------------------------------------------------------- the checks (pure)
@@ -604,8 +687,13 @@ def _arm_runs(runs, arm):
     return [r for r in runs if r.get("t4") and r.get("lane_arm") == arm and not r.get("refused")]
 
 
+def headline(r: dict) -> str:
+    """RULING 7: a check's status WITH its caveats — the headline a reader skims must not claim more than its body."""
+    return r["status"] + (f" ({'; '.join(r['caveats'])})" if r.get("caveats") else "")
+
+
 def check_e1(runs) -> dict:
-    """E1 (see the module docstring). Returns {status, detail lines, counts}."""
+    """E1 (see the module docstring). Returns {status, caveats, detail lines, counts}."""
     viol, exempt, unclassified = [], [], []
     nonkey_b = wild = 0
     for arm in (ARM_A, ARM_B):
@@ -632,15 +720,18 @@ def check_e1(runs) -> dict:
     detail += [f"  ⛔ {v}" for v in viol] + [f"  exempt: {e}" for e in exempt]
     # SPEC-SILENT: an UNCLASSIFIED battle (a `?` side) is neither NON-KEY nor WILD, so E1 does not judge it; listed.
     detail += [f"  not judged (UNCLASSIFIED): {u}" for u in unclassified]
-    return {"status": "FINDING" if viol else "PASS", "detail": detail, "violations": viol, "exempt": exempt,
-            "nonkey_b": nonkey_b, "wild": wild}
+    caveats = ([] if nonkey_b else ["B had 0 NON-KEY battles"]) + ([] if wild else ["0 WILD battles"])
+    return {"status": "FINDING" if viol else "PASS", "caveats": caveats, "detail": detail, "violations": viol,
+            "exempt": exempt, "nonkey_b": nonkey_b, "wild": wild}
 
 
 def check_e2(runs) -> dict:
     """E2. SPEC-SILENT: DESIGN counts the trainer battles with no `[KEYBATTLE]` "by strategy", which no log line
-    names; they are counted by OFFLINE CLASS."""
+    names; they are counted by OFFLINE CLASS. RULING 6: when the reason is fail-open, production computed `key=` over
+    the sides it could read (`story_mode.py:6453`), so `key=` is TALLIED there, never compared."""
     viol, missing = [], collections.Counter()
     lines_b = unreadable = 0
+    fail_open_keys = collections.Counter()
     for run in _arm_runs(runs, ARM_B):
         for rec in run["t4"]["battles"]:
             kb = rec["keybattle"]
@@ -652,8 +743,11 @@ def check_e2(runs) -> dict:
                 if p.get("reason") == FLAG_OFF:
                     viol.append(f"battle #{rec['k']} {_name(run)}: reason=flag_off: {line.strip()}")
                 key = p.get("key")
+                if is_fail_open(p.get("reason")):
+                    fail_open_keys[f"key={key}"] += 1
+                    continue
                 offline = {bl.KEY: "True", bl.NONKEY: "False"}.get(rec["cls"])
-                # SPEC-SILENT: `key=?` (a fail-open read) and an UNCLASSIFIED battle cannot be compared; tallied only.
+                # SPEC-SILENT: `key=?` and an UNCLASSIFIED battle cannot be compared; tallied only.
                 if key in ("True", "False") and offline is not None:
                     if key != offline:
                         viol.append(f"battle #{rec['k']} {_name(run)}: key={key} but the offline class is "
@@ -663,19 +757,22 @@ def check_e2(runs) -> dict:
             if rec["trainer_start"] and not kb:
                 missing[rec["cls"]] += 1
     detail = [f"B [KEYBATTLE] lines {lines_b}; violations {len(viol)}; not comparable (key=? or UNCLASSIFIED) "
-              f"{unreadable}; trainer battles with NO [KEYBATTLE], by offline class: {dict(missing) or 'none'}"]
+              f"{unreadable}; fail-open lines (key= tallied, not compared) {dict(fail_open_keys) or 0}; trainer "
+              f"battles with NO [KEYBATTLE], by offline class: {dict(missing) or 'none'}"]
     detail += [f"  ⛔ {v}" for v in viol]
     status = "FINDING" if viol else ("PASS" if lines_b or sum(missing.values()) else "NOT ASSESSED")
-    return {"status": status, "detail": detail, "violations": viol, "missing": dict(missing), "lines": lines_b}
+    return {"status": status, "caveats": [], "detail": detail, "violations": viol, "missing": dict(missing),
+            "lines": lines_b, "fail_open_keys": dict(fail_open_keys)}
 
 
 def check_e3(runs, monitor: dict) -> dict:
-    detail, finds = [], []
+    detail, finds, caveats = [], [], []
     for arm in (ARM_A, ARM_B):
         rs = _arm_runs(runs, arm)
         forbid = (monitor.get(arm) or {}).get("forbid")
         if forbid is None:
             detail.append(f"{arm}: the arms file has no monitor.{arm}.forbid list — the identity half NOT ASSESSED")
+            caveats.append(f"{arm} identity half NOT ASSESSED")
             continue
         hits = [(run, e, ln) for run in rs for e, ln in run["t4"]["monitor_hits"]]
         detail.append(f"{arm}: {len(hits)} line(s) carrying one of its {len(forbid)} forbidden texts over {len(rs)} "
@@ -688,6 +785,8 @@ def check_e3(runs, monitor: dict) -> dict:
     orphans = sum(r["t4"]["loss_orphans"] for r in rb)
     detail.append(f"B: [CATCH] end kind=dex … end=lost {lost}; followed by a loss-filed kind=dex {lost - len(missed)};"
                   f" without one {len(missed)}; loss-filed lines with no lost end before them {orphans}")
+    if not lost:
+        caveats.append("loss-filing half had 0 trials")
     finds += [f"B {_name(r)}: no [CATCH] loss-filed kind=dex after: {ln.strip()[:240]}" for r, ln in missed]
     healed = [r for r in rb if r["t4"]["rustboro"]]
     # a CENSORED run (cut / lost / capped) whose log ends inside that errand was never observed to finish it: not a miss
@@ -699,6 +798,8 @@ def check_e3(runs, monitor: dict) -> dict:
                   f"why=topoff… AND [KIT-BUY] in {len(healed) - len(miss)}"
                   + (f"; censored inside that errand (the log ends there; not judged) {len(censored)}" if censored else "")
                   + ("" if healed else " (no B run healed there: this half NOT ASSESSED)"))
+    if not healed:
+        caveats.append("Rustboro half NOT ASSESSED")
     for r in miss:
         h = r["t4"]["rustboro"]
         finds.append(f"B {_name(r)}: the first Rustboro heal ({h['marker'].split(' ', 1)[0]}) logged "
@@ -713,56 +814,75 @@ def check_e3(runs, monitor: dict) -> dict:
     head = (f"{len(finds)} miss(es): forbidden texts, unfiled dex losses and first Rustboro heals without both "
             f"lines (each listed)")
     detail = [head] + detail + [f"  ⛔ {f}" for f in finds]
-    return {"status": "FINDING" if finds else "PASS", "detail": detail, "findings": finds, "counts": counts,
-            "rustboro_healed": len(healed), "rustboro_missed": len(miss), "loss_missed": len(missed)}
+    return {"status": "FINDING" if finds else "PASS", "caveats": caveats, "detail": detail, "findings": finds,
+            "counts": counts, "rustboro_healed": len(healed), "rustboro_missed": len(miss), "loss_missed": len(missed),
+            "loss_trials": lost}
 
 
 def check_e4(runs) -> dict:
+    """E4, RULING 1 (the hunter's F6/F8, the spec reviewer's F1, the recompute's F2). The qualifying set is the B runs
+    whose Tate & Liza FIRST attempt held >= 1 HP item at its start (an unreadable bag never qualifies) — one per run,
+    so the 5 are DISTINCT runs. Graded on THOSE battles. ⛔ Production's choice is NOT simulated: a row at or below
+    the gate carries the rule-3 caveat for a hand read."""
     rb = _arm_runs(runs, ARM_B)
     qual = []
     for run in rb:
         t = run["t4"]["trainers"].get("TATE_AND_LIZA")
-        if t and t["first_k"] is not None and (t["hp"] or 0) >= 1:
+        if t and t["first_k"] is not None and t["hp"] is not None and t["hp"] >= 1:
             qual.append((run, t))
-    # SPEC-SILENT: "at least 1 [DBLITEM] use" names no battle, so it counts over EVERY B battle; the count inside the
-    # qualifying first attempts is printed beside it.
-    uses = sum(len(rec["dbl_use"]) for run in rb for rec in run["t4"]["battles"])
-    in_tl = sum(len(run["t4"]["battles"][t["first_k"]]["dbl_use"]) for run, t in qual)
+    uses_all = sum(len(rec["dbl_use"]) for run in rb for rec in run["t4"]["battles"])
+    uses_q = sum(len(run["t4"]["battles"][t["first_k"]]["dbl_use"]) for run, t in qual)
     head = (f"B runs whose Tate & Liza FIRST attempt held >= 1 HP item: {len(qual)} (assessed at >= {E4_MIN_RUNS}); "
-            f"B [DBLITEM] use lines {uses} (in those first attempts {in_tl})")
+            f"[DBLITEM] use lines in those first attempts {uses_q}; in all B battles {uses_all}")
+    base = {"qualifying": len(qual), "uses": uses_q, "uses_all": uses_all, "caveats": []}
     if len(qual) < E4_MIN_RUNS:
-        return {"status": "NOT ASSESSED", "detail": [head], "qualifying": len(qual), "uses": uses}
-    detail = [head]
-    if uses == 0:
-        # E4's zero: every such battle, its lowest own-battler HP (`[TURN]`, our side) and whether it reached the gate.
-        # SPEC-SILENT: "while an HP item was held" = the start bag held one (`hp`); with 0 uses none was spent.
-        for run, t in qual:
-            rec = run["t4"]["battles"][t["first_k"]]
-            frac = rec["min_frac"]
-            detail.append(f"  {_name(run)} battle #{rec['k']}: HP items {t['hp']}; lowest own battler "
-                          f"{rec['min_hp'] or '?'} ({'?' if frac is None else f'{frac:.2f}'}); at or below "
-                          f"{HEAL_FRACTION}: {'?' if frac is None else 'yes' if frac <= HEAL_FRACTION else 'no'}")
-    return {"status": "PASS" if uses >= 1 else "FINDING", "detail": detail, "qualifying": len(qual), "uses": uses}
+        return {**base, "status": "NOT ASSESSED", "detail": [head]}
+    if uses_q >= 1:
+        return {**base, "status": "PASS", "detail": [head]}
+    detail, reached, unread = [head], 0, 0
+    for run, t in qual:
+        rec = run["t4"]["battles"][t["first_k"]]
+        held = t["hp"] >= 1          # SPEC-SILENT: the start bag held one, and with 0 uses in the battle none was spent
+        if not rec["own"]:
+            unread += 1
+            detail.append(f"  {_name(run)} battle #{rec['k']}: no own-battler HP read (no [TURN] line) — read the "
+                          f"battle")
+        for name, (hp, mx) in sorted(rec["own"].items(), key=lambda kv: kv[1][0] / kv[1][1]):
+            frac = hp / mx
+            hit = held and frac <= HEAL_FRACTION
+            reached += hit
+            detail.append(f"  {_name(run)} battle #{rec['k']}: {name} lowest {hp}/{mx} ({frac:.2f}); HP item held: "
+                          f"{'yes (' + str(t['hp']) + ')' if held else 'no'}; at or below {HEAL_FRACTION}: "
+                          f"{'yes — ' + RULE3_CAVEAT if hit else 'no'}")
+    if reached or unread:
+        status = "FINDING (READ BY HAND)"
+    else:
+        status = f"ZERO EXPLAINED BY THE {HEAL_FRACTION} THRESHOLD (0 of {len(qual)} reached it with an HP item)"
+    return {**base, "status": status, "detail": detail, "reached": reached, "unread": unread}
 
 
 def check_e5(runs) -> dict:
+    """E5, RULING 2: every partner rise, listed; same-turn uses on the partner are CONTEXT."""
     rb = _arm_runs(runs, ARM_B)
     afters = sum(rec["dbl_after"] for run in rb for rec in run["t4"]["battles"])
     listed = [(run, rec, e) for run in rb for rec in run["t4"]["battles"] for e in rec["e5"]]
-    detail = [f"B [DBLITEM] after readings {afters}; partner rose with no same-turn use on the partner {len(listed)} "
-              f"(listed for reading BY HAND; never counted as a defect)"]
+    detail = [f"B [DBLITEM] after readings {afters}; the partner's HP rose in {len(listed)} (each listed for reading BY "
+              f"HAND; never counted as a defect)"]
     for run, rec, e in listed:
         detail.append(f"  {_name(run)} battle #{rec['k']} turn {e['turn']} g={e['g']}: target {e['target']} "
-                      f"{e['target_hp']}, partner {e['partner']} {e['partner_hp']}: {e['line'].strip()[:240]}")
+                      f"{e['target_hp']}, partner {e['partner']} {e['partner_hp']}"
+                      + (f" [context: {'; '.join(e['context'])}]" if e["context"] else "")
+                      + f": {e['line'].strip()[:240]}")
     # SPEC-SILENT: E5 never reads FINDING; with no reading at all there is nothing to read (NOT ASSESSED).
     status = "READ BY HAND" if listed else ("PASS" if afters else "NOT ASSESSED")
-    return {"status": status, "detail": detail, "listed": len(listed), "afters": afters}
+    return {"status": status, "caveats": [], "detail": detail, "listed": len(listed), "afters": afters}
 
 
 def stop3(runs, stdout: dict) -> dict:
-    """STOP-3 (DESIGN §4). `stdout` = {lane tag: {"arm", "runs": parse_stdout(...) or None}}. SPEC-SILENT: the pattern
-    reads "yes" when a signature in >= 2 B runs and 0 A runs has a package tag in the tail of AT LEAST ONE of those
-    runs (the read that parks; the per-run tags are printed so a reader sees exactly which)."""
+    """STOP-3 (DESIGN §4, RULING 3). `stdout` = {lane tag: {"arm", "runs": parse_stdout(...) or None}}. A signature
+    qualifies at >= 2 B runs — from ANY lanes, one lane's two re-derails included — and 0 A runs. The pattern reads
+    "yes" when an ACTING tag is in the tail of AT LEAST ONE of a qualifying signature's runs (the read that parks; each
+    run's tags are printed), and beside it how many qualifying signatures had NO acting tag in any tail."""
     by_log = {(r.get("lane"), pathlib.Path(r["log"]).name): r for r in runs}
     per = {ARM_A: collections.defaultdict(list), ARM_B: collections.defaultdict(list)}
     unread_lanes = []
@@ -796,12 +916,20 @@ def stop3(runs, stdout: dict) -> dict:
         found = any(t for _l, _r, t in rows)
         pattern = pattern or found
         qualifying.append({"signature": sig, "runs": rows, "tags_found": found})
-        detail.append(f"  signature in {len(hits)} B runs and 0 A runs: {sig!r}")
+        detail.append(f"  QUALIFYING (>= 2 B runs, 0 A runs): {len(hits)} B run(s): {sig!r}")
         for lane, run, t in rows:
             detail.append(f"    {lane} run {run['run']} {run['log'] or '?'}: "
-                          + ("tail UNREADABLE (log not read)" if t is None else f"package tags {t or 'none'}"))
-    detail.append(f"STOP-3 pattern: {'yes' if pattern else 'no'}")
-    return {"pattern": pattern, "detail": detail, "qualifying": qualifying, "ends": ends}
+                          + ("tail UNREADABLE (log not read)" if t is None else f"acting tags {t or 'none'}"))
+    no_tag = sum(1 for q in qualifying if not q["tags_found"])
+    if pattern:
+        last = (f"STOP-3 pattern: yes ({no_tag} of {len(qualifying)} qualifying signature(s) had NO acting tag in any "
+                f"tail)")
+    elif qualifying:
+        last = f"STOP-3 pattern: no ({len(qualifying)} qualifying signature(s), none with an acting tag in a tail)"
+    else:
+        last = "STOP-3 pattern: no (no qualifying signature)"
+    detail.append(last)
+    return {"pattern": pattern, "detail": detail, "qualifying": qualifying, "ends": ends, "no_tag": no_tag}
 
 
 # ---------------------------------------------------------------------------------------------------- report
@@ -811,7 +939,9 @@ def header_lines(b: dict) -> list:
             f"  ARMS.json     {(b['batch_dir'] / 'ARMS.json').absolute()} (arms {sorted(man['arms'])}, commit "
             f"{man['raw'].get('code_commit', '?')}, profile_tag {man['raw'].get('profile_tag')!r})",
             f"  batch         " + (f"verdict {summ['verdict']!r}; stop {summ['stop_reason']!r}; lanes lost "
-                                   f"{summ['lanes_lost'] or 'none'}" if summ else "no summary.json (a RUNNING batch)")]
+                                   f"{summ['lanes_lost'] or 'none'}" if summ else "no summary.json (a RUNNING batch)"),
+            # RULING 8: compare_arms' own rule, so the three tools can never disagree on whether C1-C2 stand
+            f"  C1-C2         {'VOID: ' + b['void'] + ' (DESIGN §4)' if b.get('void') else 'not void'}"]
 
 
 def control_lines(b: dict, what: str = "CHECK", excluded_note: str = "still read by the checks") -> list:
@@ -844,7 +974,7 @@ def render(b: dict, results: "dict | None") -> list:
     out.append("")
     for name in ("E1", "E2", "E3", "E4", "E5"):
         r = results[name]
-        out.append(f"{name}  {r['status']} — {r['detail'][0]}")
+        out.append(f"{name}  {headline(r)} — {r['detail'][0]}")
         out += [f"      {d}" for d in r["detail"][1:]]
     s = results["STOP-3"]
     out.append(f"STOP-3  {'yes' if s['pattern'] else 'no'} — {s['detail'][0]}")
@@ -857,11 +987,13 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="design v2 step 14 T4a: the batch's E1-E5 and STOP-3 (DESIGN §4-§5).")
     ap.add_argument("batch", nargs="?", help="x4-runs/<stamp> under the MAIN checkout, or a batch directory path")
     ap.add_argument("--tag", help="LIVE: read a RUNNING batch's lane profiles (endless-<tag>-H*)")
+    ap.add_argument("--void", metavar="REASON", help="a manual STOP (a STOP-3 park): the header reads C1-C2 VOID, as "
+                                                     "compare_arms --void")
     ap.add_argument("--json", metavar="OUT", help="also write the results as JSON")
     args = ap.parse_args(argv)
     if not args.batch and not args.tag:
         ap.error("give a batch (a stamp or a directory) or --tag")
-    b = load(args.batch, args.tag, ap)
+    b = load(args.batch, args.tag, ap, manual_void=args.void)
     results = None if b["failures"] else run_checks(b)
     print("\n".join(render(b, results)))
     if args.json and results is not None:

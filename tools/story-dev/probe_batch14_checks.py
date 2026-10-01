@@ -10,10 +10,23 @@ expected value below was derived BY HAND from the fixture, never copied from the
 ROWS (each a function; a row that raises is red)
   QS*   the real line shapes parse (`[MAP]`, the per-heal `[PC]` report, our side of `[TURN]`, `[BALLS-BUY]` /
         `[KIT-BUY]`, `[DEXFENCE]`, `[CATCH]` + ` rare=`, `[WEAKEN-OBS]`, a lane's `stdout.txt`).
-  E1*-E5*  one rule each, both directions.      S3*  STOP-3: yes / no / the 200-line tail / the tags.
+  E1*-E5*  one rule each, both directions.      S3*  STOP-3: yes / no / the 200-line tail / the ACTING tags.
   T*    the tables on a hand-built 4-run fixture (`table_runs`), exact counts; the two labels; no verdict word.
-  X*    the two CLIs end to end on batch directories (exit 0 / 1, NO CHECK / NO TABLE on a refused log, the M1b pool).
+  X*    the two CLIs end to end on batch directories (exit 0 / 1, NO CHECK / NO TABLE on a refused log, the M1b pool,
+        E3 through the loader, the C1-C2 VOID header).
   R*    reuse: K* is compare_arms' by reference, the decomp ids, the loader's `visit` hook (one call per read log).
+
+THE FOLD of the independent pass (`evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`, the coordinator's RULINGS 1-10):
+  * the hunter's 24 killing rows are adopted (E1f E1g, E2c's production flag_off, E3c/d/g's added cases, E3h, E4a/c's
+    added cases, E5a's listing, S3d's LITERAL, S3g, S3h, T17-T24, X5), and every survivor it listed is a mutant here
+    under its own label in brackets, with the row that kills it;
+  * one row per RULING with a REVERT mutant that reddens it: E4 on the qualifying first attempts (E4a E4b E4e), E5's
+    context (E5b), STOP-3's acting tags (S3d-S3h, incl. the correction's why=mandatory / why=kit-none tails), the
+    package ₽ row (T16, the REAL L10 joint errand), momentary map reads (E3i, T27), E2's fail-open tally (E2f), the
+    headline caveats (E3j, X1), C1-C2 VOID (T15, X6), D-rare's comparable columns (T10), D-lead's label (T5);
+  * the builder's 8 empty-set mutants: K40 T02 T07 T09 T23 are killed by rows; K51 and T04 turned out killable too
+    (T26: a run cut inside a catch battle; T25: the cross-check fault-injected); only K48 stays EQUIVALENT (its reason
+    is beside it). The fold's first run matched 136 of 141 sets; the 5 misses were my predictions (FOLD-PREDICTION).
 
 THE LINES. Real lines are quoted VERBATIM (`QUOTES`) and the PROVENANCE check (not a row) re-reads each at its cited
 line: the 16-lane smoke batch `x4-runs/20261001-090649` of the MAIN checkout (read-only; not committed — on a machine
@@ -180,15 +193,40 @@ QUOTES = {
     "d_turn_p": ("ev", _DI, 133, "f3149862 [BATTLE] [TURN 0] Swellow L39 18/109 -> UseMove:Wing Attack(pp24)  vs Duskull L30 52/52", "eq"),
     "d_ended": ("ev", _DI, 114, "f3155931 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Mightyena:L42', 'Sceptile:L43', 'Swellow:L40', 'Skitty:L17', 'Zigzagoon:L3', 'Castform:L35']", "eq"),
     "d_end": ("ev", _DI, 115, "f3155931 [TRAINER] end opp=106+13 class=0x0E(HEX_MANIAC)+0x07(COLLECTOR) value=6+15 lvl_last=30+30 first=True+True base=2520 res=Won money=14804->17324 delta=2520 mult=1 heal_stock=Hyper_Potion:1 map=0,38", "eq"),
+    "d_obs": ("ev", _DI, 100, "f3150994 [DBLITEM-OBS] side=1 g=2 turn=1 me=Swellow#0B30A747 P=2 hp=18/109 would=Hyper_Potion why=hp key=0 worst=0 uses=0 bpo=120345 bpo_pos=1 disc=1 cur=00000000", "eq"),
     "failopen": ("ev", "2026-09-29-r27keyitems-A-RAISE.txt", 49, "f3173266 [KEYBATTLE] opp=? class=? key=? allow=True reason=FAIL_OPEN(RuntimeError)", "eq"),
     "derail": ("ev", "2026-09-27-batch0926-P1r8-evgpcwedge.txt", 148, "f6046772 [STORY] DERAIL #1: Ch23 (Victory Road) failed after 3 attempts. attempt 1: ", "prefix"),
     "map_vr": ("ev", "2026-09-27-batch0926-P1r8-evgpcwedge.txt", 84, "f6034921 [MAP] VICTORY ROAD(24,43) -> EVER GRANDE CITY(0,8) pos=(2, 15)", "eq"),
     "leg11_new": ("ev", "2026-09-27-restock-RS3-poor-fix-final.stdout.txt", 31, "Ch23 leg 11: the missing basket lines [('Hyper Potion', 4), ('Full Restore', 2), ('Revive', 1)] cost ₽12,300 (the full basket is ₽54,300) but we hold ₽1,741 — short by ₽10,559", "sub"),
     "leg11_old": ("note", "2026-10-01-batch14-recon/b14_recon_expectations.md", 31, "Ch23 leg 11: the basket costs ₽54,300 but we hold", "sub"),
+    # ---- added with the fold of the independent pass (`evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`)
+    # the Skitty catch battle as it really CLOSES (Caught), and the Abra one (OpponentTeleported, `end=foe_fled`)
+    "skitty_started": ("smoke", _L9, 2241, "f211696 [BATTLE] started hp=[('Combusken', 52, 52), ('Silcoon', 24, 24), ('Poochyena', 21, 21), ('Whismur', 24, 24)]", "eq"),
+    "skitty_start": ("smoke", _L9, 2244, "f211696 [CATCH] start kind=dex sp=Skitty#300 lv=7 attempt=1 badges=1 party=4/6 box=0 spare=30 exp_throws=3.0 map=0,31 rare=rate tier=RARE note=-", "eq"),
+    "caught_ended": ("smoke", _L9, 2278, "f215016 [BATTLE] ended (outcome=BattleOutcome.Caught) party=['Combusken:L18', 'Silcoon:L7', 'Poochyena:L6', 'Whismur:L6', 'Skitty:L7']", "eq"),
+    "teleported": ("smoke", _L9, 2753, "f260876 [BATTLE] ended (outcome=BattleOutcome.OpponentTeleported) party=['Poochyena:L6', 'Silcoon:L8', 'Combusken:L19', 'Whismur:L6', 'Skitty:L7', 'Nincada:L6']", "eq"),
+    "fled_end": ("smoke", _L9, 2756, "f260876 [CATCH] end kind=dex sp=Abra#63 end=foe_fled res=OpponentTeleported thrown=1 frames=1411 dest=none pid=- party=6/6 box=0 spare=23 badges=1 bail=-", "eq"),
+    # a BUYING errand enters the mart and logs its lines on the way back (the hunter's KE3-mart)
+    "mart_in": ("smoke", _L9, 2852, "f271059 [MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,7) pos=(16, 45)", "eq"),
+    "mart_out": ("smoke", _L9, 2883, "f272108 [MAP] RUSTBORO CITY(11,7) -> RUSTBORO CITY(0,3) pos=(3, 7)", "eq"),
+    # ONE errand that bought balls AND kit: both lines share the frame and money=a->b (RULING 4, the recompute's F1)
+    "joint_balls": ("smoke", "L10", 2484, "f267952 [BALLS] [BALLS-BUY] why=topoff mart=11,7 ball=Poké Ball bought=12 premier=1 spare=2->15 money=10180->5680 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 3)] and 12 x Poké Ball (9 to the reserve + 3 after the kit); budget 4590, 90 left", "eq"),
+    "joint_kit": ("smoke", "L10", 2485, "f267952 [BALLS] [KIT-BUY] why=kit mart=11,7 kit=[('Super Potion', 3)] bought={'Super Potion': 3} money=10180->5680 exit=16,39 back=16,39 facing=Down reason=kit [('Super Potion', 3)] and 12 x Poké Ball (9 to the reserve + 3 after the kit); budget 4590, 90 left", "eq"),
+    # RULING 5's momentary reads: a (255,255) pair one frame apart, and a (3,0) read
+    "tr255_in": ("smoke", _L9, 1673, "f141715 [MAP] ROUTE 116(0,31) -> ROUTE 116(255,255) pos=(11, 7)", "eq"),
+    "tr255_out": ("smoke", _L9, 1674, "f141716 [MAP] ROUTE 116(255,255) -> ROUTE 116(0,31) pos=(11, 7)", "eq"),
+    "tr30": ("smoke", "L01", 1835, "f162619 [MAP] ROUTE 116(0,31) -> ROUTE 116(3,0) pos=(11, 7)", "eq"),
     # the emitters of the two shapes no log has carried yet (story_mode.py: on_battle_ended's C4 block, _r20_catch_end)
     "src_lossfiled": ("src", "plugins/custom_modes/story_mode.py", None, 'f"loss-filed kind={_c4_kind} map={key} catch_losses={counts[key]} "', "sub"),
     "src_endlost": ("src", "plugins/custom_modes/story_mode.py", None, 'elif nm == "Lost":\n            end = "lost"', "sub"),
     "src_runend": ("src", "plugins/custom_modes/story_mode.py", None, 'f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]"', "sub"),
+    # flag_off's PRODUCTION shape is allow=True (key_battle_verdict returns (True, "flag_off")) — the hunter's F15
+    "src_flagoff": ("src", "modules/story/trainer_identity.py", None, 'return True, "flag_off"', "sub"),
+    # the acting errand outcomes RULING 3 counts, at their emitters (stock_topoff.py)
+    "src_topoff_closed": ("src", "modules/story/stock_topoff.py", None, '_emit(log_line("topoff-closed",', "sub"),
+    "src_topoff_recovery": ("src", "modules/story/stock_topoff.py", None, '_emit(log_line("topoff-recovery",', "sub"),
+    "src_kit_closed": ("src", "modules/story/stock_topoff.py", None, '_emit(kit_log_line("kit-closed",', "sub"),
+    "src_kit_recovery": ("src", "modules/story/stock_topoff.py", None, '_emit(kit_log_line("kit-recovery",', "sub"),
 }
 
 
@@ -381,13 +419,15 @@ def _qs2():
 @row("QS3", "[BALLS-BUY] (both prefixes) and [KIT-BUY]: why, ball, bought, ₽ spent; the kit's item dict")
 def _qs3():
     b = CK()._buy
-    return eq([b(Q("bb_mandatory"), False), b(Q("bb_topoff"), False), b(Q("heal_balls"), False),
+    return eq([b(Q("bb_mandatory"), False), b(Q("bb_topoff"), False, frame=280748), b(Q("heal_balls"), False),
                b(Q("kit_bought"), True), b(Q("heal_kit"), True)],
-              [{"why": "mandatory", "spent": 6000, "ball": "-", "bought": 30},
-               {"why": "topoff", "spent": 400, "ball": "Poké Ball", "bought": 2},
-               {"why": "topoff-none", "spent": 0, "ball": "Poké Ball", "bought": 0},
-               {"why": "kit", "spent": 1400, "items": {"Super Potion": 2}},
-               {"why": "kit-none", "spent": 0, "items": {}}])
+              [{"why": "mandatory", "spent": 6000, "frame": None, "money": ("6824", "824"), "ball": "-", "bought": 30},
+               {"why": "topoff", "spent": 400, "frame": 280748, "money": ("2080", "1680"), "ball": "Poké Ball",
+                "bought": 2},
+               {"why": "topoff-none", "spent": 0, "frame": None, "money": ("920", "920"), "ball": "Poké Ball",
+                "bought": 0},
+               {"why": "kit", "spent": 1400, "frame": None, "money": ("4180", "2780"), "items": {"Super Potion": 2}},
+               {"why": "kit-none", "spent": 0, "frame": None, "money": ("920", "920"), "items": {}}])
 
 
 @row("QS4", "one run's extraction on real lines: [DEXFENCE] pairs (numbers stripped, suffix dropped), [CATCH] + rare=, "
@@ -456,6 +496,19 @@ def _e1e():
     return eq((r["status"], sum("not judged" in d for d in r["detail"])), ("PASS", 1))
 
 
+@row("E1f", "E1 (the hunter's KE1-key): a B KEY battle (Roxanne, its real key=True line) with [ITEM] using is NOT a "
+            "violation — the package is SUPPOSED to use items there")
+def _e1f():
+    r = E(1, [rec("B", B("x_started", "x_start", "x_kb", "a_using", "x_turn", "x_ended", "x_end"))])
+    return eq((r["status"], r["violations"]), ("PASS", []))
+
+
+@row("E1g", "E1 (the hunter's KE1-bwild): an item in a B WILD battle is a violation in arm B too")
+def _e1g():
+    r = E(1, [rec("B", B(*RIVAL, "w_started", "w_turn", "a_using", "w_ended"))])
+    return eq((r["status"], r["wild"], [v.split(" ", 2)[:2] for v in r["violations"]]), ("FINDING", 1, [["B", "WILD"]]))
+
+
 # ============================================================================================ E2
 @row("E2a", "E2: two [KEYBATTLE] lines in one battle -> FINDING; one -> PASS")
 def _e2a():
@@ -475,21 +528,35 @@ def _e2b():
     return eq((k["status"], n["status"], real["status"], real["lines"]), ("FINDING", "FINDING", "PASS", 2))
 
 
-@row("E2c", "E2: reason=flag_off is a violation even when key= agrees")
+@row("E2c", "E2: reason=flag_off is a violation even when key= agrees — in its PRODUCTION shape allow=True "
+            "(`src_flagoff`: key_battle_verdict returns (True, 'flag_off')), the hunter's F15")
 def _e2c():
-    r = E(2, [rec("B", [Q("n_started"), Q("n_start"), sub(Q("n_kb"), "reason=not_a_key_class", "reason=flag_off"),
+    r = E(2, [rec("B", [Q("n_started"), Q("n_start"),
+                        sub(Q("n_kb"), "allow=False reason=not_a_key_class", "allow=True reason=flag_off"),
                         Q("n_turn"), Q("n_ended"), Q("n_end")])])
     return eq((r["status"], len(r["violations"])), ("FINDING", 1))
 
 
-@row("E2d", "E2: a trainer battle with NO [KEYBATTLE] is counted by offline class (a summary, PASS); key=? is not "
-            "compared; a B run with no trainer battle is NOT ASSESSED")
+@row("E2f", "RULING 6: a fail-open [KEYBATTLE] (key=False reason=fail_open_unreadable) on a battle the offline class "
+            "calls KEY is TALLIED, not compared: PASS, tallied {'key=False': 1}")
+def _e2f():
+    line = sub(Q("r_kb"), "key=True allow=True reason=key_class", "key=False allow=True reason=fail_open_unreadable")
+    r = E(2, [rec("B", [Q("r_started"), Q("r_start"), line, Q("r_turn"), Q("r_ended"), Q("r_end")])])
+    return eq((r["status"], r["fail_open_keys"], r["violations"]), ("PASS", {"key=False": 1}, []))
+
+
+@row("E2d", "E2: a trainer battle with NO [KEYBATTLE] is counted by offline class (a summary, PASS); the real "
+            "FAIL_OPEN(RuntimeError) key=? line is tallied; an UNCLASSIFIED battle is not comparable; a B run with no "
+            "trainer battle is NOT ASSESSED")
 def _e2d():
     miss = E(2, [rec("B", B("n_started", "n_start", "n_turn", "n_ended", "n_end", *RIVAL))])
     fo = E(2, [rec("B", B("r_started", "r_start", "failopen", "r_turn", "r_ended", "r_end"))])
+    unc = E(2, [rec("B", [Q("n_started"), sub(Q("n_start"), "class=0x25(YOUNGSTER)", "class=0x25(YOUNGSTER)+?"),
+                          Q("n_kb"), Q("n_ended"), Q("n_end")])])
     none = E(2, [rec("B", B(*WILD))])
-    return eq((miss["status"], miss["missing"], fo["status"], "not comparable (key=? or UNCLASSIFIED) 1" in fo["detail"][0],
-               none["status"]), ("PASS", {"NON-KEY": 1}, "PASS", True, "NOT ASSESSED"))
+    return eq((miss["status"], miss["missing"], fo["status"], fo["fail_open_keys"], unc["status"],
+               "not comparable (key=? or UNCLASSIFIED) 1" in unc["detail"][0], none["status"]),
+              ("PASS", {"NON-KEY": 1}, "PASS", {"key=?": 1}, "PASS", True, "NOT ASSESSED"))
 
 
 @row("E2e", "E2 reads arm B only: a doubled [KEYBATTLE] in an A run is not E2's (A's leak is E3's)")
@@ -527,8 +594,14 @@ def _e3c():
     before = E(3, [rec("B", w + [loss_filed(), lost_dex_end(), Q("w_ended")])], MONITOR)
     team = E(3, [rec("B", w + [sub(lost_dex_end(), "kind=dex", "kind=team"), Q("w_ended")])], MONITOR)
     orphan = "loss-filed lines with no lost end before them 1" in "\n".join(before["detail"])
-    return eq((missing["status"], missing["loss_missed"], filed["status"], before["status"], orphan, team["status"]),
-              ("FINDING", 1, "PASS", "FINDING", True, "PASS"))
+    # the hunter's KE3-caught (a CAUGHT dex end needs no filing) and KE3-twolost (two losses, one filing: one miss)
+    caught = E(3, [rec("B", [Q("skitty_started"), Q("skitty_start"), Q("w_turn"), Q("caught_ended"),
+                             Q("catch_end")])], MONITOR)
+    lost_battle = w + [lost_dex_end(), sub(Q("w_ended"), "Won", "Lost")]
+    two = E(3, [rec("B", lost_battle + lost_battle + [loss_filed()])], MONITOR)
+    return eq((missing["status"], missing["loss_missed"], filed["status"], before["status"], orphan, team["status"],
+               caught["status"], caught["loss_missed"], two["status"], two["loss_missed"]),
+              ("FINDING", 1, "PASS", "FINDING", True, "PASS", "PASS", 0, "FINDING", 1))
 
 
 @row("E3d", "E3: B's FIRST Rustboro heal (the real errand) -> PASS; without its [KIT-BUY] -> FINDING; its lines after "
@@ -538,8 +611,12 @@ def _e3d():
     nokit = E(3, [rec("B", B("heal_in", "heal_pc", "heal_exit", "heal_balls", "heal_leave"))], MONITOR)
     late = E(3, [rec("B", B("heal_in", "heal_pc", "heal_exit", "heal_leave", "heal_balls", "heal_kit"))], MONITOR)
     oldale = E(3, [rec("B", B("oldale_in", "oldale_pc", "heal_balls", "heal_kit"))], MONITOR)
+    # the hunter's KE3-mart: a BUYING errand enters the mart (real L09 lines) and logs both lines on the way back
+    mart = E(3, [rec("B", B("heal_in", "heal_pc", "heal_exit", "mart_in", "mart_out", "heal_balls", "heal_kit",
+                            "heal_leave"))], MONITOR)
     return eq((ok["status"], ok["rustboro_healed"], nokit["status"], late["status"], oldale["status"],
-               oldale["rustboro_healed"]), ("PASS", 1, "FINDING", "FINDING", "PASS", 0))
+               oldale["rustboro_healed"], mart["status"], mart["rustboro_healed"], mart["rustboro_missed"]),
+              ("PASS", 1, "FINDING", "FINDING", "PASS", 0, "PASS", 1, 0))
 
 
 @row("E3e", "E3: only the FIRST Rustboro heal is judged: a silent first heal and a logging second heal -> FINDING; a "
@@ -558,8 +635,49 @@ def _e3g():
     cut = E(3, [rec("B", B(*open_end), cut=True)], MONITOR)
     complete = E(3, [rec("B", B(*open_end))], MONITOR)
     closed = E(3, [rec("B", B(*open_end, "heal_leave"), cut=True)], MONITOR)
+    lost = E(3, [rec("B", B(*open_end), lost=True)], MONITOR)          # the hunter's KE3-lostcens: LOST is censored too
     return eq((cut["status"], cut["rustboro_healed"], "censored inside that errand" in "\n".join(cut["detail"]),
-               complete["status"], closed["status"]), ("PASS", 0, True, "FINDING", "FINDING"))
+               complete["status"], closed["status"], lost["status"], lost["rustboro_healed"]),
+              ("PASS", 0, True, "FINDING", "FINDING", "PASS", 0))
+
+
+@row("E3h", "E3 (the hunter's KE3-counter): a first Rustboro heal whose withdraw source is 'counter' "
+            "(higher_level_actions.py:714-730) IS the first heal: silent there, logging at the second -> FINDING")
+def _e3h():
+    counter_pc = sub(Q("heal_pc"), "PC — none withdraw:", "PC — counter withdraw:")
+    r = E(3, [rec("B", [Q("heal_in"), counter_pc, Q("heal_exit"), Q("heal_leave")] + B(*HEAL))], MONITOR)
+    return eq((r["status"], r["rustboro_healed"], r["rustboro_missed"]), ("FINDING", 1, 1))
+
+
+def _rb_read(line_q: str, frm: str, to: str, frame: str) -> str:
+    """A [MAP] read in the real shape of `line_q`, re-pointed (ids) and re-timed (frame) for RULING 5's rows."""
+    pos = Q(line_q).split(" pos=", 1)[1]
+    return f"f{frame} [MAP] RUSTBORO CITY{frm} -> RUSTBORO CITY{to} pos={pos}"
+
+
+@row("E3i", "RULING 5: inside the first Rustboro errand a (255,255) read and its return, a (3,0) read, or a read that "
+            "REVERTS to its origin within 2 frames do NOT close the window (PASS); a read reverting after 3 frames does "
+            "(FINDING)")
+def _e3i():
+    def heal(extra):
+        return E(3, [rec("B", B("heal_in", "heal_pc", "heal_exit") + extra + B("heal_balls", "heal_kit",
+                                                                               "heal_leave"))], MONITOR)
+    p255 = heal([_rb_read("tr255_in", "(0,3)", "(255,255)", "160600"),
+                 _rb_read("tr255_out", "(255,255)", "(0,3)", "160601")])
+    p30 = heal([_rb_read("tr30", "(0,3)", "(3,0)", "160600"), _rb_read("tr255_out", "(3,0)", "(0,3)", "160650")])
+    rev2 = heal([_rb_read("tr30", "(0,3)", "(28,0)", "160600"), _rb_read("tr30", "(28,0)", "(0,3)", "160602")])
+    rev3 = heal([_rb_read("tr30", "(0,3)", "(28,0)", "160600"), _rb_read("tr30", "(28,0)", "(0,3)", "160603")])
+    return eq((p255["status"], p30["status"], rev2["status"], rev3["status"]), ("PASS", "PASS", "PASS", "FINDING"))
+
+
+@row("E3j", "RULING 7: E3's HEADLINE names its untried halves — 'PASS (loss-filing half had 0 trials; Rustboro half NOT "
+            "ASSESSED)' — and a tried half drops out of it")
+def _e3j():
+    bare = E(3, [rec("B", B(*NONKEY))], MONITOR)
+    tried = E(3, [rec("B", B(*HEAL, "w_started", "catch_start", "w_turn") + [lost_dex_end(), Q("w_ended"),
+                                                                              loss_filed()])], MONITOR)
+    return eq((CK().headline(bare), CK().headline(tried)),
+              ("PASS (loss-filing half had 0 trials; Rustboro half NOT ASSESSED)", "PASS"))
 
 
 @row("E3f", "E3: [CATCH] trainee (trainee-after apart) and [DEXCATCH-NOBAIL] are COUNTS per arm, never a finding in B")
@@ -573,26 +691,49 @@ def _tl_runs(n, arm="B", body=TL):
     return [rec(arm, B(*body), lane=f"H{i}") for i in range(n)]
 
 
-@row("E4a", "E4: 4 B runs reached a T&L first attempt holding an HP item -> NOT ASSESSED; 5 with 0 uses -> FINDING, "
-            "each battle listed with its lowest own battler (Sceptile 46/133 = .35: at or below the gate)")
+_TL_USE = ("tl_started", "tl_start", "tl_turn0", "d_use", "tl_turn1", "tl_turn4", "tl_ended", "tl_end")
+_TL_CALM = ("tl_started", "tl_start", "tl_turn0", "tl_turn1", "tl_ended", "tl_end")
+
+
+@row("E4a", "RULING 1: 4 qualifying B runs -> NOT ASSESSED; 5 with 0 uses in those first attempts -> FINDING (READ BY "
+            "HAND), PER BATTLER: Sceptile 46/133 (.35) 'yes' with the rule-3 caveat, Mightyena 99/127 'no' — and the "
+            "listing is of the T&L FIRST attempt even when the run fought on (the hunter's KE4-index)")
 def _e4a():
     four = E(4, _tl_runs(4))
-    five = E(4, _tl_runs(5))
-    listed = [d for d in five["detail"][1:] if "Sceptile 46/133" in d and "at or below 0.35: yes" in d]
-    return eq((four["status"], four["qualifying"], five["status"], len(listed)), ("NOT ASSESSED", 4, "FINDING", 5))
+    five = E(4, [rec("B", B(*TL, "w_started", "w_turn", "w_ended"), lane=f"H{i}") for i in range(5)])
+    yes = [d for d in five["detail"][1:] if "Sceptile lowest 46/133 (0.35); HP item held: yes (1); at or below 0.35: "
+           "yes — production may decline under its rule 3 (a losing race) — read the battle" in d]
+    no = [d for d in five["detail"][1:] if "Mightyena lowest 99/127 (0.78)" in d and d.endswith("at or below 0.35: no")]
+    return eq((four["status"], four["qualifying"], five["status"], len(yes), len(no), five["reached"]),
+              ("NOT ASSESSED", 4, "FINDING (READ BY HAND)", 5, 5, 5))
 
 
-@row("E4b", "E4: 5 qualifying runs and ONE [DBLITEM] use anywhere in B -> PASS; a battle that never reached .35 lists "
-            "'no'")
+@row("E4b", "RULING 1: a [DBLITEM] use INSIDE a qualifying T&L first attempt -> PASS; one in an unrelated double (the "
+            "recompute's V2) or in a T&L RE-attempt (V3) does not: still FINDING, with the global count printed beside")
 def _e4b():
-    ok = E(4, _tl_runs(4) + [rec("B", B(*TL, *DOUBLE))])
-    calm = E(4, _tl_runs(5, body=("tl_started", "tl_start", "tl_turn0", "tl_turn1", "tl_ended", "tl_end")))
-    return eq((ok["status"], ok["uses"], calm["status"], sum("at or below 0.35: no" in d for d in calm["detail"])),
-              ("PASS", 1, "FINDING", 5))
+    ok = E(4, _tl_runs(4) + [rec("B", B(*_TL_USE), lane="H9")])
+    v2 = E(4, _tl_runs(4) + [rec("B", B(*TL, *DOUBLE), lane="H9")])
+    lost_first = [sub(Q(n), "outcome=BattleOutcome.Won", "outcome=BattleOutcome.Lost") if n == "tl_ended"
+                  else sub(Q(n), "res=Won", "res=Lost") if n == "tl_end" else Q(n) for n in TL]
+    v3 = E(4, _tl_runs(4) + [rec("B", lost_first + B(*_TL_USE), lane="H9")])
+    return eq((ok["status"], ok["uses"], v2["status"], v2["uses"], v2["uses_all"], v3["status"], v3["uses"],
+               v3["uses_all"]), ("PASS", 1, "FINDING (READ BY HAND)", 0, 1, "FINDING (READ BY HAND)", 0, 1))
+
+
+@row("E4e", "RULING 1: a zero where NO battler reached .35 (the recompute's V4) reads 'ZERO EXPLAINED BY THE 0.35 "
+            "THRESHOLD (0 of 5 reached it with an HP item)'; a battle with NO own-HP read keeps it FINDING (READ BY HAND)")
+def _e4e():
+    calm = E(4, _tl_runs(5, body=_TL_CALM))
+    blind = E(4, _tl_runs(4, body=_TL_CALM) + [rec("B", B("tl_started", "tl_start", "tl_ended", "tl_end"), lane="H9")])
+    return eq((calm["status"], sum(d.endswith("at or below 0.35: no") for d in calm["detail"]), blind["status"],
+               blind["unread"]),
+              ("ZERO EXPLAINED BY THE 0.35 THRESHOLD (0 of 5 reached it with an HP item)", 10,
+               "FINDING (READ BY HAND)", 1))
 
 
 @row("E4c", "E4's denominator: a first attempt with NO HP item (Full_Heal only) does not qualify; only the FIRST "
-            "attempt counts; A runs never count")
+            "attempt counts; A runs never count; an UNREADABLE bag never qualifies (KE4-unread); 4 runs that each tried "
+            "T&L twice are 4, not 8 (KE4-distinct)")
 def _e4c():
     noitem = [Q(n) if n != "tl_start" else sub(Q(n), "heal_stock=Potion:1,Full_Heal:1", "heal_stock=Full_Heal:1")
               for n in TL]
@@ -608,8 +749,14 @@ def _e4c():
     a = E(4, [rec("B", noitem, lane=f"H{i}") for i in range(5)])
     b = E(4, [rec("B", lost_first + B(*TL), lane=f"H{i}") for i in range(5)])
     c = E(4, _tl_runs(5, arm="A"))
-    return eq((a["status"], a["qualifying"], b["qualifying"], c["status"], c["qualifying"]),
-              ("NOT ASSESSED", 0, 0, "NOT ASSESSED", 0))
+    unread = [sub(Q(n), " heal_stock=Potion:1,Full_Heal:1 map=14,0 enemy", " map=14,0 enemy") if n == "tl_start"
+              else Q(n) for n in TL]
+    d = E(4, [rec("B", unread, lane=f"H{i}") for i in range(5)])
+    twice = [sub(Q(n), "outcome=BattleOutcome.Won", "outcome=BattleOutcome.Lost") if n == "tl_ended"
+             else sub(Q(n), "res=Won", "res=Lost") if n == "tl_end" else Q(n) for n in TL]
+    e = E(4, [rec("B", twice + B(*TL), lane=f"H{i}") for i in range(4)])
+    return eq((a["status"], a["qualifying"], b["qualifying"], c["status"], c["qualifying"], d["qualifying"],
+               e["status"], e["qualifying"]), ("NOT ASSESSED", 0, 0, "NOT ASSESSED", 0, 0, "NOT ASSESSED", 4))
 
 
 # ============================================================================================ E5
@@ -617,31 +764,42 @@ def _rise(line: str) -> str:
     return sub(line, "partner=Swellow#0B30A747 hp=18->18", "partner=Swellow#0B30A747 hp=18->109")
 
 
-_USE_P = "f3149372 [DBLITEM] use side=0 g=2 item=Hyper Potion target=Swellow#0B30A747 P=2 hp=18/109 self=1"
+#: g=2's `use` in the real `use` shape (`d_use`), aimed at its own Swellow
+_USE_P = "f3149862 [DBLITEM] use side=0 g=2 item=Hyper Potion target=Swellow#0B30A747 P=2 hp=18/109 self=1"
 
 
 @row("E5a", "E5: the real `after` (partner 18->18) lists nothing (PASS); a planted partner rise is READ BY HAND (1 "
-            "listed, never a FINDING); no `after` at all is NOT ASSESSED")
+            "listed, never a FINDING) and the LISTING carries the battle, its turn and both HP readings (KE5-list); no "
+            "`after` at all is NOT ASSESSED")
 def _e5a():
     real = E(5, [rec("B", B(*DOUBLE))])
     rise = E(5, [rec("B", [Q(n) if n != "d_after" else _rise(Q(n)) for n in DOUBLE])])
     none = E(5, [rec("B", B(*NONKEY))])
-    return eq((real["status"], real["afters"], rise["status"], rise["listed"], none["status"]),
-              ("PASS", 1, "READ BY HAND", 1, "NOT ASSESSED"))
+    hit = [d for d in rise["detail"][1:] if "battle #0 turn 0 g=0" in d and "target Sceptile#863B0917 (21, 117)" in d
+           and "partner Swellow#0B30A747 (18, 109)" in d]
+    return eq((real["status"], real["afters"], rise["status"], rise["listed"], len(hit), none["status"]),
+              ("PASS", 1, "READ BY HAND", 1, 1, "NOT ASSESSED"))
 
 
-@row("E5b", "E5: a rise explained by a use of the SAME turn on the partner is not listed; one of ANOTHER turn is")
+def _e5_body(second_turn: str) -> list:
+    """The REAL order (evidence ARMS.txt:119-133; the spec reviewer's F2): g=0 heals ITSELF and logs its `after`, THEN
+    g=2 decides — here g=2's Hyper Potion, aimed at Swellow, lands on Sceptile, g=2's PARTNER (its `after` shows the
+    partner rising). `second_turn` is the [TURN] word of g=2's decision."""
+    after2 = ("f3150100 [DBLITEM] after g=2 target=Swellow#0B30A747 hp=18->18 status1=0->0 partner=Sceptile#863B0917 "
+              "hp=117->160 Hyper Potion=1->0 healed=1->2 same=1")
+    head = [Q(n) for n in DOUBLE[:DOUBLE.index("d_after") + 1]]           # up to and including g=0's own `after`
+    return head + [_USE_P, sub(sub(Q("d_turn_p"), "UseMove:Wing Attack(pp24)", "UseItem"), "[TURN 0]", second_turn),
+                   after2, Q("d_ended"), Q("d_end")]
+
+
+@row("E5b", "RULING 2: a partner rise is ALWAYS listed — a same-turn use on the partner (g=0 healed Sceptile itself) "
+            "is printed as CONTEXT, never an exclusion; on another turn it is listed with no context")
 def _e5b():
-    def body(turn_word):
-        out = []
-        for n in DOUBLE:
-            out.append(_rise(Q(n)) if n == "d_after" else Q(n))
-            if n == "d_turn":
-                out += [_USE_P, sub(Q("d_turn_p"), "[TURN 0]", turn_word)]
-        return out
-    same = E(5, [rec("B", body("[TURN 0]"))])
-    other = E(5, [rec("B", body("[TURN 1]"))])
-    return eq((same["listed"], other["listed"]), (0, 1))
+    same = E(5, [rec("B", _e5_body("[TURN 0]"))])
+    other = E(5, [rec("B", _e5_body("[TURN 1]"))])
+    ctx = [d for d in same["detail"][1:] if "[context: a same-turn [DBLITEM] use by g=0 targeted the partner]" in d]
+    return eq((same["listed"], len(ctx), other["listed"], sum("[context:" in d for d in other["detail"])),
+              (1, 1, 1, 0))
 
 
 @row("E5c", "E5 reads arm B only: a partner rise in an A run is not listed")
@@ -665,23 +823,31 @@ def _s3(lanes) -> dict:
     return CK().stop3(runs, stdout)
 
 
-def _tagged(fill=0):
-    return B(*RIVAL) + [Q(FILL)] * fill
+def _tagged(fill=0, acting="a_using"):
+    """A derail tail: the rival (its `[KEYBATTLE]` is allow=True: NOT acting), then ONE acting line, then `fill`
+    fillers — the acting line is `fill + 1`-th from the log's end."""
+    return B(*RIVAL) + [Q(acting)] + [Q(FILL)] * fill
+
+
+#: RULING 3's acting tags, as a LITERAL (the hunter's F1: a row comparing the module's tuple with itself can never fail)
+ACTING_LITERAL = ["[ITEM] using", "[DBLITEM] use", "[DBLITEM] menu", "[DBLITEM] after", "[BALLS-BUY] acting why=",
+                  "[KIT-BUY] acting why=", "[DEXCATCH-NOBAIL]", "[CATCH] trainee", "[KEYBATTLE] allow=False"]
 
 
 _TL1 = "derailed: Tate & Liza: 27 losses with no super-effective answer to Rock/Psychic"
 _TL2 = "derailed: Tate & Liza: 31 losses with no super-effective answer to Rock/Psychic"
 
 
-@row("S3a", "STOP-3: one signature in 2 B runs (loss counts differ: one signature) and 0 A runs, a package tag in the "
-            "tails -> 'yes'; the same signature also in ONE A run -> 'no'")
+@row("S3a", "STOP-3: one signature in 2 B runs (loss counts differ: one signature) and 0 A runs, an acting tag in the "
+            "tails -> 'yes' (with 0 untagged qualifying signatures printed beside it); the same signature also in ONE "
+            "A run -> 'no'")
 def _s3a():
     yes = _s3([("H9", "B", [("b1.log", _TL1, _tagged())]), ("H10", "B", [("b2.log", _TL2, _tagged())]),
                ("H1", "A", [("a1.log", "finished", B(*WILD))])])
     no = _s3([("H9", "B", [("b1.log", _TL1, _tagged())]), ("H10", "B", [("b2.log", _TL2, _tagged())]),
               ("H1", "A", [("a1.log", _TL1, B(*WILD))])])
     return eq((yes["pattern"], len(yes["qualifying"]), yes["detail"][-1], no["pattern"], len(no["qualifying"])),
-              (True, 1, "STOP-3 pattern: yes", False, 0))
+              (True, 1, "STOP-3 pattern: yes (0 of 1 qualifying signature(s) had NO acting tag in any tail)", False, 0))
 
 
 @row("S3b", "STOP-3: ONE B run with the signature -> 'no'; FINISHED runs are no signature")
@@ -692,24 +858,71 @@ def _s3b():
                                                                             {"A": 0, "B": 0}))
 
 
-@row("S3c", "STOP-3's tail is the LAST 200 lines (the END marker not counted): the tag 200th from the end -> 'yes', "
-            "201st -> 'no'")
+@row("S3c", "STOP-3's tail is the LAST 200 lines (the END marker not counted): the acting line 200th from the end -> "
+            "'yes', 201st -> 'no'")
 def _s3c():
-    # RIVAL's [KEYBATTLE] has 3 lines after it in its block; + 196 fillers puts it 200th from the end
-    at = _s3([("H9", "B", [("b1.log", _TL1, _tagged(196))]), ("H10", "B", [("b2.log", _TL2, _tagged(196))])])
-    out = _s3([("H9", "B", [("b1.log", _TL1, _tagged(197))]), ("H10", "B", [("b2.log", _TL2, _tagged(197))])])
+    at = _s3([("H9", "B", [("b1.log", _TL1, _tagged(199))]), ("H10", "B", [("b2.log", _TL2, _tagged(199))])])
+    out = _s3([("H9", "B", [("b1.log", _TL1, _tagged(200))]), ("H10", "B", [("b2.log", _TL2, _tagged(200))])])
     return eq((at["pattern"], out["pattern"]), (True, False))
 
 
-@row("S3d", "STOP-3: every one of the 7 package tags is found, in order; a near miss ([ITEM] used, [CATCH] start) "
-            "is none; a run whose log was not read is listed as UNREADABLE and reads 'no'")
+@row("S3d", "RULING 3: the ACTING tags are the LITERAL nine, each found ALONE on its real line, every acting why= "
+            "kind counted; a near miss is none; a run whose log was not read is listed UNREADABLE and reads 'no'")
 def _s3d():
-    lines = [Q("a_using"), Q("d_use"), Q("heal_kit"), Q("heal_balls"), Q("r_kb"), Q("nobail"), Q("trainee")]
-    got = CK().tags_in(lines)
+    one_each = [Q("a_using"), Q("d_use"), Q("d_menu"), Q("d_after"), Q("bb_topoff"), Q("kit_bought"), Q("nobail"),
+                Q("trainee"), Q("n_kb")]
+    got = [CK().tags_in([ln]) for ln in one_each]
+    whys = ([sub(Q("bb_topoff"), "why=topoff ", f"why={w} ") for w in ("topoff-failed", "topoff-closed",
+                                                                      "topoff-recovery")]
+            + [sub(Q("kit_bought"), "why=kit ", f"why={w} ") for w in ("kit-failed", "kit-closed", "kit-recovery")])
     near = CK().tags_in(["f1 [BATTLE] [ITEM] used Potion", Q("catch_start"), Q("w_turn")])
     unread = _s3([("H9", "B", [("b1.log", _TL1, None)]), ("H10", "B", [("b2.log", _TL2, None)])])
-    return eq((got, near, unread["pattern"], sum("UNREADABLE" in d for d in unread["detail"])),
-              (list(CK().PACKAGE_TAGS), [], False, 2))
+    return eq((list(CK().ACTING_TAGS), got, [CK().tags_in([w]) for w in whys], near, unread["pattern"],
+               sum("UNREADABLE" in d for d in unread["detail"])),
+              (ACTING_LITERAL, [[t] for t in ACTING_LITERAL], [["[BALLS-BUY] acting why="]] * 3
+               + [["[KIT-BUY] acting why="]] * 3, [], False, 2))
+
+
+@row("S3e", "RULING 3 + its correction: NOT acting — why=mandatory (printed in BOTH arms, early_game.py:2730-2735), "
+            "every -none / -skip / -observe / -flag / -forecast why= (a WHOLE token: topoff never matches topoff-none), "
+            "[KEYBATTLE] allow=True, [CATCH] trainee-after, a [DBLITEM-OBS] row (its why=hp)")
+def _s3e():
+    noop = ([Q("bb_mandatory"), Q("heal_balls"), Q("heal_kit"), Q("r_kb"), Q("x_kb"), Q("trainee_after"), Q("d_obs"),
+             Q("failopen")]
+            + [sub(Q("bb_topoff"), "why=topoff ", f"why={w} ") for w in ("topoff-observe", "topoff-skip",
+                                                                       "topoff-flag")]
+            + [sub(Q("kit_bought"), "why=kit ", f"why={w} ") for w in ("kit-observe", "kit-skip", "kit-forecast",
+                                                                     "kit-flag")])
+    return eq([CK().tags_in([ln]) for ln in noop], [[]] * len(noop))
+
+
+@row("S3f", "STOP-3 (the correction's rows): a B derail tail whose only package-shaped line is why=mandatory, or "
+            "why=kit-none, or [KEYBATTLE] allow=True -> no acting tag: 'no'")
+def _s3f():
+    reads = []
+    for q in ("bb_mandatory", "heal_kit"):
+        body = B(*NONKEY[:2]) + [Q(q)] + B(*NONKEY[4:])          # a trainer battle with NO [KEYBATTLE] line
+        reads.append(_s3([("H9", "B", [("b1.log", _TL1, body)]), ("H10", "B", [("b2.log", _TL2, body)])]))
+    reads.append(_s3([("H9", "B", [("b1.log", _TL1, B(*RIVAL))]), ("H10", "B", [("b2.log", _TL2, B(*RIVAL))])]))
+    return eq([(r["pattern"], r["no_tag"], r["detail"][-1]) for r in reads],
+              [(False, 1, "STOP-3 pattern: no (1 qualifying signature(s), none with an acting tag in a tail)")] * 3)
+
+
+@row("S3g", "STOP-3 (the hunter's KS3-onelane): TWO runs of ONE B lane with one signature (0 A runs) qualify -> 'yes'")
+def _s3g():
+    r = _s3([("H9", "B", [("b1.log", _TL1, _tagged()), ("b2.log", _TL2, _tagged())]),
+             ("H1", "A", [("a1.log", "finished", B(*WILD))])])
+    return eq((r["pattern"], len(r["qualifying"])), (True, 1))
+
+
+@row("S3h", "STOP-3's 'ANY tail' rule, PINNED (the hunter's KS3-any): one tagged tail of two -> 'yes'; with a second "
+            "qualifying signature with NO acting tag, the line says so: '1 of 2 … had NO acting tag'")
+def _s3h():
+    any1 = _s3([("H9", "B", [("b1.log", _TL1, _tagged())]), ("H10", "B", [("b2.log", _TL2, B(*RIVAL))])])
+    two = _s3([("H9", "B", [("b1.log", _TL1, _tagged()), ("b3.log", "derailed: Norman: 6 losses", B(*RIVAL))]),
+               ("H10", "B", [("b2.log", _TL2, B(*RIVAL)), ("b4.log", "derailed: Norman: 8 losses", B(*RIVAL))])])
+    return eq((any1["pattern"], two["pattern"], two["no_tag"], two["detail"][-1]),
+              (True, True, 1, "STOP-3 pattern: yes (1 of 2 qualifying signature(s) had NO acting tag in any tail)"))
 
 
 # ============================================================================================ T — the tables
@@ -721,24 +934,23 @@ def table_runs() -> list:
       B1 complete: rival W; badge 1; Combusken caught; Roxanne W (Combusken leads); NON-KEY W; Sceptile caught; T&L W
          (Sceptile leads); the economy lines; a rare (variant) Abra catch battle that fled.
       B2 complete: rival W; Roxanne L (never won); a NON-KEY battle LOST; a wild dex catch LOST (filed); a CURRENT
-         leg-11 refusal without a (16,10) load."""
-    skitty_a = sub(sub(Q("catch_start"), "sp=Abra#63", "sp=Skitty#300"), " rare=variant tier=ULTRA note=-", "")
+         leg-11 refusal without a (16,10) load.
+    Every catch battle CLOSES as the real ones do (the hunter's F11): Skitty `ended (outcome=…Caught)` then its
+    `[CATCH] end`, Abra `ended (outcome=…OpponentTeleported)` then `end=foe_fled` (L09:2241-2280, 2753-2756)."""
     leg_old = Q("derail") + "BotModeError: " + Q("leg11_old") + " ₽1,741"
     leg_new = Q("derail") + "BotModeError: " + Q("leg11_new")
     fence_a = no_rare(Q("w_fence"))
     reserve_a = no_rare(Q("fence_reserve"))
     a1 = B(*RIVAL, *ROX_LOST, *ROX_WON, "badge") + [
         sub(Q("map_vr"), "-> EVER GRANDE CITY(0,8)", "-> VICTORY ROAD(24,43)"), *wild_a(),
-        Q("w_started"), skitty_a, Q("w_turn"), Q("catch_end"), Q("w_ended"),
+        Q("skitty_started"), no_rare(Q("skitty_start")), Q("w_turn"), Q("caught_ended"), Q("catch_end"),
         fence_a, fence_a, reserve_a, sub(reserve_a, "only 2 spare", "only 3 spare"),
         Q("n_money"), sub(Q("map_vr"), "-> EVER GRANDE CITY(0,8)", "-> EVER GRANDE CITY(16,10)"), Q("hb_money"),
         leg_old, sub(Q("map_vr"), "-> EVER GRANDE CITY(0,8)", "-> SOOTOPOLIS CITY(0,7)"), fence_a]
     caught = lambda sp: sub(Q("catch_end"), "sp=Skitty#300", f"sp={sp}")  # noqa: E731
     b1 = B(*RIVAL, "badge") + [caught("Combusken#256")] + B(*ROX_WON, *NONKEY) + [caught("Sceptile#254")] + B(*TL) + B(
         "bb_mandatory", "bb_topoff", "heal_balls", "kit_bought", "heal_kit",
-        "w_started", "catch_start", "w_turn") + [sub(Q("catch_end"), "sp=Skitty#300 end=caught res=Caught",
-                                                     "sp=Abra#63 end=foe_fled res=OpponentTeleported"), Q("w_ended"),
-                                                 Q("weaken_damage"), Q("weaken_throw")]
+        "w_started", "catch_start", "w_turn", "teleported", "fled_end", "weaken_damage", "weaken_throw")
     nk_lost = [sub(Q(n), "Won", "Lost") if n in ("n_ended", "n_money") else Q(n) for n in NONKEY]
     nk_lost[NONKEY.index("n_end")] = sub(Q("n_end"), "res=Won money=3300->3380 delta=80 mult=1",
                                          "res=Lost money=3300->3300 delta=0 mult=0")
@@ -808,14 +1020,24 @@ def _t4():
 
 
 @row("T5", "D-lead: B 2 of 5 key first attempts led by a post-Stone-Badge catch (Combusken at Roxanne, Sceptile at T&L), "
-           "A 0 of 3; Roxanne's B rate .5 -> 0 without B1's; the post-treatment label is printed")
+           "A 0 of 3; Roxanne's B rate .5 -> 0 without B1's; the post-treatment label and 'evolved catches are missed' "
+           "are printed")
 def _t5():
     d = TB().d_lead(TR())
     rox_all, rox_wo = d["rates"]["all"]["ROXANNE"], d["rates"]["without"]["ROXANNE"]
     text = "\n".join(TB().render_lead(d))
     return eq((d["share"], [round(float(x), 6) for x in rox_all], [round(float(x), 6) for x in rox_wo],
-               d["rates"]["dropped"]["ROXANNE"], "conditioned on a post-treatment variable" in text),
-              ({"A": (0, 3), "B": (2, 5)}, [0.0, 0.5], [0.0, 0.0], {"A": 0, "B": 1}, True))
+               d["rates"]["dropped"]["ROXANNE"], "conditioned on a post-treatment variable" in text,
+               "evolved catches are missed" in text.splitlines()[0], "VOID" in text),
+              ({"A": (0, 3), "B": (2, 5)}, [0.0, 0.5], [0.0, 0.0], {"A": 0, "B": 1}, True, True, False))
+
+
+@row("T15", "RULING 8: D-lead marks its C2 rates VOID when compare_arms' void_reason applies")
+def _t15():
+    d = TB().d_lead(TR(), "STOP ARM LEAK")
+    text = TB().render_lead(d)
+    return eq((sum(ln == "  ⛔ C1-C2 VOID: STOP ARM LEAK (DESIGN §4) — the C2 rates below are VOID: descriptive only"
+                   for ln in text), sum(ln.endswith("without those [VOID]:") for ln in text)), (1, 1))
 
 
 @row("T6", "D-loss: non-key A 0/0 B 1/2; wild catch A 0/1 B 1/2 (one end=lost line); other wild A 0/1 B 0/0; key A "
@@ -852,28 +1074,53 @@ def _t8():
 
 
 @row("T9", "D-economy: B balls by why (mandatory 30 ₽6,000; topoff 2 ₽400; topoff-none 0), Poké Ball 2 ₽400 by ball, "
-           "kit ₽1,400 Super Potion 2; T1 per map; money at leg 11 A [3380]")
+           "kit ₽1,400 Super Potion 2; the PACKAGE ₽1,800 over 2 paying errands (mandatory not in it); T1 per map; "
+           "money at leg 11 A [3380]")
 def _t9():
     d = TB().d_economy(TR())
     b = d["B"]
     return eq(({w: (v["lines"], v["bought"], v["spent"]) for w, v in b["balls"].items()}, b["by_ball"],
-               {w: (v["lines"], v["spent"]) for w, v in b["kit"].items()}, b["items"], b["t1"], d["A"]["money_leg11"],
-               d["A"]["t1"]),
+               {w: (v["lines"], v["spent"]) for w, v in b["kit"].items()}, b["items"], b["package"], b["t1"],
+               d["A"]["money_leg11"], d["A"]["t1"]),
               ({"mandatory": (1, 30, 6000), "topoff": (1, 2, 400), "topoff-none": (1, 0, 0)},
                {"Poké Ball": {"bought": 2, "spent": 400}}, {"kit": (1, 1400), "kit-none": (1, 0)},
-               {"Super Potion": 2},
+               {"Super Potion": 2}, {"spent": 1800, "errands": 2, "joint": 0, "unreadable": 0},
                {"0,18": {"n": 2, "delta": 600}, "11,3": {"n": 2, "delta": 1500}, "0,17": {"n": 2, "delta": 80},
                 "14,0": {"n": 1, "delta": 8400}},
                [3380], {"0,18": {"n": 2, "delta": 600}, "11,3": {"n": 2, "delta": 1500}}))
 
 
-@row("T10", "D-rare: B by the line's rare= (Abra variant, fled; B2's lost Poochyena reads rare=- and is NOT rare); A "
-            "by the OFFLINE join (Skitty: 'rate'; A's line has no suffix)")
+@row("T16", "RULING 4: the REAL joint errand (L10 f267952: 12 Poké Balls + 3 Super Potions, ONE money=10180->5680) is "
+            "₽4,500 ONCE in the package row, while each line's row keeps its errand money (labelled: counted in both)")
+def _t16():
+    d = TB().d_economy([rec("B", B(*RIVAL, "joint_balls", "joint_kit"), lane="H9"), rec("A", for_a(B(*RIVAL)))])
+    b = d["B"]
+    text = "\n".join(TB().render_economy(d))
+    return eq((b["package"], b["balls"]["topoff"]["spent"], b["kit"]["kit"]["spent"], b["by_ball"], b["items"],
+               "₽4,500 over 1 paying errand(s), 1 of them joint ball+kit" in text,
+               "errand money, joint errands counted in both" in text),
+              ({"spent": 4500, "errands": 1, "joint": 1, "unreadable": 0}, 4500, 4500,
+               {"Poké Ball": {"bought": 12, "spent": 4500}}, {"Super Potion": 3}, True, True))
+
+
+def _rare_runs():
+    """A: Skitty (no suffix, as A prints); B: Skitty (rare=rate), Abra (variant) and Poochyena (rare=-)."""
+    skitty = [Q("skitty_started"), Q("skitty_start"), Q("w_turn"), Q("caught_ended"), Q("catch_end")]
+    abra = B("w_started", "catch_start", "w_turn", "teleported", "fled_end")
+    pooch = [Q("w_started"), sub(sub(Q("catch_start"), "sp=Abra#63", "sp=Poochyena#261"), "rare=variant tier=ULTRA",
+                                 "rare=- tier=-"), Q("w_turn"), Q("caught_ended"),
+             sub(Q("catch_end"), "sp=Skitty#300", "sp=Poochyena#261")]
+    return [rec("A", for_a(B(*RIVAL) + skitty), lane="H1"), rec("B", B(*RIVAL) + skitty + abra + pooch, lane="H9")]
+
+
+@row("T10", "D-rare (RULING 9): BOTH arms under the ONE species-level rule (Skitty: A 1, B 1; Abra's variant is not "
+            "visible to it), and B by its own line's rare= (Skitty rate, Abra variant; Poochyena rare=- is NOT rare)")
 def _t10():
-    d = TB().d_rare(TR())
-    flat = {arm: {sp: (v["battles"], dict(v["ends"])) for sp, v in d[arm].items()} for arm in ("A", "B")}
-    return eq(flat, {"A": {"Skitty#300": (1, {"caught": 1})},
-                     "B": {"Abra#63": (1, {"foe_fled": 1})}})
+    d = TB().d_rare(_rare_runs())
+    flat = lambda rows: {sp: (v["battles"], dict(v["ends"])) for sp, v in rows.items()}  # noqa: E731
+    return eq(({arm: flat(d["species"][arm]) for arm in ("A", "B")}, flat(d["line"]["B"]), "A" in d["line"]),
+              ({"A": {"Skitty#300": (1, {"caught": 1})}, "B": {"Skitty#300": (1, {"caught": 1})}},
+               {"Skitty#300": (1, {"caught": 1}), "Abra#63": (1, {"foe_fled": 1})}, False))
 
 
 @row("T11", "D-M1b: two runs with the SAME [DMGAUDIT] block at different frames -> 1 unique of 2 (1 BEFORE); the pool "
@@ -918,6 +1165,101 @@ def _t14():
     return eq((words, titles), ([], []))
 
 
+# ---- the hunter's table rows (`kill_rows.py`, adapted): each pins a rule no row above exercised
+@row("T17", "D-funnel (KTF-cens, DECISION F10): a B run CUT during its Roxanne attempt (start, no end) is met but NOT "
+            "eligible: met 2, eligible 1, decided 1")
+def _t17():
+    runs = [rec("B", B(*RIVAL, "x_started", "x_start", "x_kb", "x_turn"), lane="H9", cut=True),
+            rec("B", B(*RIVAL, *ROX_WON), lane="H10"), rec("A", for_a(B(*RIVAL)), lane="H1")]
+    row_ = TB().d_funnel(runs, {})["B"]["rows"]["ROXANNE"]
+    return eq((row_["met"], row_["eligible"], row_["decided"]), (2, 1, 1))
+
+
+@row("T18", "D-loss (KTL-other): a wild CATCH battle ending OpponentTeleported (the real L09 lines) is not a loss")
+def _t18():
+    d = TB().d_loss([rec("B", B(*RIVAL, "w_started", "catch_start", "w_turn", "teleported", "fled_end")),
+                     rec("A", for_a(B(*RIVAL)), lane="H1")])
+    return eq((d["B"]["rows"]["wild catch"]["lost"], d["B"]["rows"]["wild catch"]["n"]), (0, 1))
+
+
+@row("T19", "D-fence (KTD-perrun): the SAME pair in TWO runs is TWO distinct-per-run pairs")
+def _t19():
+    fence = no_rare(Q("w_fence"))
+    d = TB().d_fence([rec("A", for_a(B(*RIVAL)) + [fence], lane="H1"),
+                      rec("A", for_a(B(*RIVAL)) + [fence], lane="H2"), rec("B", B(*RIVAL), lane="H9")])
+    return eq(d["A"]["total"]["before"], 2)
+
+
+@row("T20", "D-funnel 'unbeaten' (KBT02): a CUT run that lost Roxanne and never beat her is not an unbeaten COMPLETE run")
+def _t20():
+    f = TB().d_funnel([rec("B", B(*RIVAL, *ROX_LOST), lane="H9", cut=True), rec("A", for_a(B(*RIVAL)), lane="H1")], {})
+    return eq(f["B"]["rows"]["ROXANNE"]["unbeaten_stopped"], 0)
+
+
+@row("T21", "D-boss (KBT07): a run cut mid-T&L met it but did not DECIDE it -> NOT ASSESSED (1), never '0/1'")
+def _t21():
+    d = TB().d_boss([rec("B", B(*TL[:3]), lane="H9", cut=True), rec("A", for_a(B(*RIVAL)), lane="H1")])
+    return eq((d["B"]["rows"]["TATE_AND_LIZA"], "B NOT ASSESSED (1)" in "\n".join(TB().render_boss(d))),
+              ({"met": 1, "decided": 0, "won": 0}, True))
+
+
+@row("T22", "D-lead (KBT09): a lead caught BEFORE the Stone Badge is not a post-badge lead")
+def _t22():
+    caught = sub(Q("catch_end"), "sp=Skitty#300", "sp=Combusken#256")
+    d = TB().d_lead([rec("B", B(*RIVAL) + [caught] + B("badge", *ROX_WON), lane="H9"),
+                     rec("A", for_a(B(*RIVAL)), lane="H1")])
+    return eq(d["share"]["B"], (0, 2))
+
+
+@row("T23", "the tables read USABLE runs (KBT23): a run with no starter (compare_arms excludes it) is not 'started'")
+def _t23():
+    lines = header("B") + [Q("choose")] + B(*RIVAL) + ["=== DEBUG LOG END ==="]
+    excl = CA().run_record(lines, log="x-debug-20261001-210000.log", lane={"tag": "H10", "slot": 1, "arm": "B"},
+                           arms=ARMS)
+    excl["t4"] = CK().extract(lines, forbid=MONITOR["B"]["forbid"])
+    f = TB().d_funnel([rec("B", B(*RIVAL), lane="H9"), excl, rec("A", for_a(B(*RIVAL)), lane="H1")], {})
+    return eq((bool(excl["excluded"]), f["B"]["started"]), (True, 1))
+
+
+@row("T24", "D-lead's denominator (KTLd-den) is key FIRST ATTEMPTS: a trainer met in a run cut mid-attempt is not one")
+def _t24():
+    d = TB().d_lead([rec("B", B(*RIVAL, "x_started", "x_start", "x_kb", "x_turn"), lane="H9", cut=True),
+                     rec("A", for_a(B(*RIVAL)), lane="H1")])
+    return eq(d["share"]["B"], (0, 1))
+
+
+@row("T25", "the K* CROSS-CHECK fires (a fault-injected control): a run record whose compare_arms keys disagree with "
+            "the lines -> D-funnel names the trainer (builder T04 is killed here, not called equivalent)")
+def _t25():
+    runs = [rec("B", B(*RIVAL, *ROX_WON), lane="H9"), rec("A", for_a(B(*RIVAL)), lane="H1")]
+    runs[0]["keys"]["ROXANNE"] = dict(runs[0]["keys"]["ROXANNE"], won=False)        # the planted disagreement
+    f = TB().d_funnel(runs, {})
+    return eq((len(f["B"]["crosscheck"]), f["B"]["crosscheck"][0].split(":")[0] if f["B"]["crosscheck"] else None,
+               f["A"]["crosscheck"]), (1, "ROXANNE", []))
+
+
+@row("T26", "D-loss: a run CUT inside a wild catch battle (a [CATCH] start, no end) still counts it as a CATCH battle "
+            "(builder K51 is killed here: the start alone marks it)")
+def _t26():
+    d = TB().d_loss([rec("B", B(*RIVAL, "w_started", "catch_start", "w_turn"), lane="H9", cut=True),
+                     rec("A", for_a(B(*RIVAL)), lane="H1")])
+    return eq((d["B"]["rows"]["wild catch"]["n"], d["B"]["rows"]["other wild"]["n"]), (1, 0))
+
+
+@row("T27", "RULING 5 (D-fence's era): a momentary (0,7) read that reverts within 2 frames, and a (255,255) pair, keep "
+            "the era 'before'; a REAL Sootopolis load moves it to 'after'")
+def _t27():
+    fence = no_rare(Q("w_fence"))
+    flick = [sub(Q("map_vr"), "VICTORY ROAD(24,43) -> EVER GRANDE CITY(0,8)", "ROUTE 128(0,43) -> ROUTE 128(0,7)"),
+             sub(sub(Q("map_vr"), "f6034921 ", "f6034922 "), "VICTORY ROAD(24,43) -> EVER GRANDE CITY(0,8)",
+                 "ROUTE 128(0,7) -> ROUTE 128(0,43)")]
+    pair = [Q("tr255_in"), Q("tr255_out")]
+    real = [sub(Q("map_vr"), "-> EVER GRANDE CITY(0,8)", "-> SOOTOPOLIS CITY(0,7)")]
+    d = TB().d_fence([rec("A", for_a(B(*RIVAL)) + flick + pair + [fence], lane="H1"),
+                      rec("A", for_a(B(*RIVAL)) + real + [fence], lane="H2"), rec("B", B(*RIVAL), lane="H9")])
+    return eq(d["A"]["total"], {"before": 1, "after": 1})
+
+
 # ============================================================================================ X — the CLIs end to end
 def make_batch(name, lanes, verdict="OK") -> pathlib.Path:
     """A batch directory in T1's layout (`compare_arms` reads it): ARMS.json (the REAL arms file text, so the monitor
@@ -955,15 +1297,17 @@ def cli(mod, argv) -> "tuple[int, str]":
     return code, buf.getvalue()
 
 
-def _good_batch(name):
-    a = lines_of("A", for_a(B(*RIVAL, *WILD)))
+def _good_batch(name, verdict="OK", a_extra=()):
+    """A: the rival, a wild battle and the REAL runway refusal every real A lane prints (the hunter's F5); B: the
+    rival, its first Rustboro heal and a wild battle."""
+    a = lines_of("A", for_a(B(*RIVAL, *WILD)) + [Q("runway")] + list(a_extra))
     b = lines_of("B", B(*RIVAL, *HEAL, *WILD))
     return make_batch(name, [("A", [("a-debug-20261001-210000.log", a, None)]),
-                             ("B", [("b-debug-20261001-210000.log", b, None)])])
+                             ("B", [("b-debug-20261001-210000.log", b, None)])], verdict=verdict)
 
 
-@row("X1", "the checks CLI on a good batch: exit 0, all six check lines (E1-E5 PASS / NOT ASSESSED, STOP-3 no); the "
-           "tables CLI: exit 0, every table")
+@row("X1", "the checks CLI on a good batch (A prints its real runway refusal): exit 0, all six check lines with their "
+           "caveats (E3's loss-filing half had 0 trials), 'C1-C2 not void'; the tables CLI: exit 0, every table")
 def _x1():
     d = _good_batch("x1")
     code, out = cli(CK(), [str(d)])
@@ -971,8 +1315,30 @@ def _x1():
     tcode, tout = cli(TB(), [str(d)])
     titles = sum(1 for t in ("D-funnel", "D-attempt", "D-boss", "D-lead", "D-loss", "D-leg11", "D-fence", "D-economy",
                              "D-rare", "D-M1b", "D-weaken", "D-throughput") if f"\n{t} " in tout)
-    return eq((code, [ln.split(" — ")[0] for ln in lines], tcode, titles),
-              (0, ["E1  PASS", "E2  PASS", "E3  PASS", "E4  NOT ASSESSED", "E5  NOT ASSESSED", "STOP-3  no"], 0, 12))
+    return eq((code, [ln.split(" — ")[0] for ln in lines], "  C1-C2         not void" in out.splitlines(), tcode, titles),
+              (0, ["E1  PASS (B had 0 NON-KEY battles)", "E2  PASS", "E3  PASS (loss-filing half had 0 trials)",
+                   "E4  NOT ASSESSED", "E5  NOT ASSESSED", "STOP-3  no"], True, 0, 12))
+
+
+@row("X5", "E3 through the LOADER (the hunter's KE3-loaderA): an A lane printing a B-only text ([KIT-BUY]) -> the "
+           "checks CLI reads E3 FINDING — the visit hook hands each lane ITS arm's forbidden list")
+def _x5():
+    code, out = cli(CK(), [str(_good_batch("x5", a_extra=[Q("heal_kit")]))])
+    return eq((code, [ln.split(" — ")[0].split(" (")[0] for ln in out.splitlines() if ln.startswith("E3 ")]),
+              (0, ["E3  FINDING"]))
+
+
+@row("X6", "RULING 8: a batch whose summary reads 'FAILED — ARM LEAK' prints 'C1-C2  VOID: STOP ARM LEAK (DESIGN §4)' "
+           "in BOTH tools (compare_arms' void_reason), D-lead marks its rates VOID; --void REASON voids a good batch")
+def _x6():
+    d = _good_batch("x6", verdict="FAILED — ARM LEAK")
+    code, out = cli(CK(), [str(d)])
+    tcode, tout = cli(TB(), [str(d)])
+    mcode, mout = cli(CK(), [str(_good_batch("x6m")), "--void", "park"])
+    want = "  C1-C2         VOID: STOP ARM LEAK (DESIGN §4)"
+    return eq((code, want in out.splitlines(), tcode, want in tout.splitlines(), "⛔ C1-C2 VOID: STOP ARM LEAK" in tout,
+               mcode, "  C1-C2         VOID: STOP-3 (manual --void): park (DESIGN §4)" in mout.splitlines()),
+              (0, True, 0, True, True, 0, True))
 
 
 @row("X2", "a log whose env-all is the OTHER arm: both CLIs REFUSE like compare_arms (exit 1, NO CHECK / NO TABLE, no "
@@ -987,10 +1353,10 @@ def _x2():
               (1, True, False, 1, True, False))
 
 
-@row("X3", "STOP-3 end to end: two B lanes ending in one signature with [KEYBATTLE] in their tails, A finished -> "
-           "'STOP-3  yes'")
+@row("X3", "STOP-3 end to end: two B lanes ending in one signature with an ACTING tag (a why=topoff purchase) in their "
+           "tails, A finished -> 'STOP-3  yes'")
 def _x3():
-    b1 = lines_of("B", B(*RIVAL))
+    b1 = lines_of("B", B(*RIVAL, "bb_topoff"))
     d = make_batch("x3", [("A", [("a-debug-20261001-210000.log", lines_of("A", for_a(B(*RIVAL, *WILD))), "finished"),
                                  ("a2-debug-20261001-220000.log", lines_of("A", for_a(B(*RIVAL, *WILD))), None)]),
                           ("B", [("b-debug-20261001-210000.log", b1, _TL1),
@@ -1041,9 +1407,12 @@ MUTANTS: list = [
     # ---- E1
     # FIRST RUN (the builder): 77 of 91 matched the sets written before it. Each miss is marked beside its mutant:
     # "PREDICTION" = my set was wrong (the row behaves as specified); "GAP" = a row was added or tightened.
+    # THE FOLD of the independent pass (2026-10-01, `evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`): every survivor
+    # the hunter listed is here (its label in brackets) with the row that now kills it, and every RULING has a REVERT
+    # mutant. Sets marked "FOLD-PREDICTION" were corrected after the fold's first run (my set was wrong, the row right).
     ("K01 E1 ignores [ITEM] using", "ck",
      [('            "using": [line for line in battle.items if bl.item_kind(line) == "using"],',
-       '            "using": [],')], {"E1a", "E1b", "E1c", "E1d", "E1e"}),
+       '            "using": [],')], {"E1a", "E1b", "E1c", "E1d", "E1e", "E1g"}),
     # PREDICTION: E1d counts the double battle's [ITEM] using as its 2nd line; S3d reads raw lines, not `using`
     ("K02 E1 ignores [DBLITEM] use", "ck",
      [("                uses = rec[\"using\"] + rec[\"dbl_use\"]", "                uses = rec[\"using\"]")], {"E1d"}),
@@ -1051,14 +1420,21 @@ MUTANTS: list = [
      [("                    if uses and any(is_fail_open(x) for x in reasons):",
        "                    if uses and reasons:")], {"E1a", "E1b"}),   # PREDICTION: E1a's battle has not_a_key_class
     ("K04 fail-open only FAIL_OPEN(", "ck",
-     [('FAIL_OPEN_PREFIXES = ("fail_open_", "FAIL_OPEN(")', 'FAIL_OPEN_PREFIXES = ("FAIL_OPEN(",)')], {"E1b"}),
+     [('FAIL_OPEN_PREFIXES = ("fail_open_", "FAIL_OPEN(")', 'FAIL_OPEN_PREFIXES = ("FAIL_OPEN(",)')],
+     {"E1b", "E2f"}),   # FOLD-PREDICTION: E2f's fail_open_unreadable line is then compared, and disagrees
     ("K05 E1 skips WILD battles", "ck",
      [("                if rec[\"cls\"] == bl.WILD:\n                    wild += 1\n                    viol +=",
        "                if rec[\"cls\"] == bl.WILD:\n                    wild += 1\n                    viol = viol +[] or viol;_x =")],
-     {"E1c"}),
+     {"E1c", "E1g"}),
     ("K06 E1 judges A's NON-KEY battles too", "ck",
      [("                elif arm == ARM_B and rec[\"cls\"] == bl.NONKEY:", "                elif rec[\"cls\"] == bl.NONKEY:")],
      {"E1c"}),
+    ("K70 [E1-01] E1 judges B KEY battles too", "ck",
+     [('                elif arm == ARM_B and rec["cls"] == bl.NONKEY:',
+       '                elif arm == ARM_B and rec["cls"] in (bl.NONKEY, bl.KEY):')],
+     {"E1f", "X1"}),   # FOLD-PREDICTION: X1's B rival is then counted as NON-KEY, so E1's zero-battle caveat drops
+    ("K71 [E1-09] B's WILD battles ignored", "ck",
+     [('                if rec["cls"] == bl.WILD:', '                if rec["cls"] == bl.WILD and arm == ARM_A:')], {"E1g"}),
     # ---- E2
     ("K07 E2 allows two [KEYBATTLE] lines", "ck", [("            if len(kb) > 1:", "            if len(kb) > 2:")],
      {"E2a"}),
@@ -1072,14 +1448,27 @@ MUTANTS: list = [
      [("    for run in _arm_runs(runs, ARM_B):\n        for rec in run[\"t4\"][\"battles\"]:\n            kb = rec",
        "    for run in _arm_runs(runs, ARM_A) + _arm_runs(runs, ARM_B):\n        for rec in run[\"t4\"][\"battles\"]:\n            kb = rec")],
      {"E2e"}),
+    ("K72 RULING 6 REVERTED: a fail-open line's key= is compared", "ck",
+     [('                if is_fail_open(p.get("reason")):\n                    fail_open_keys[f"key={key}"] += 1\n'
+       '                    continue\n', "")], {"E2d", "E2f"}),
+    ("K73 [E2-07] flag_off a violation only when allow=False (never production's shape)", "ck",
+     [('                if p.get("reason") == FLAG_OFF:',
+       '                if p.get("reason") == FLAG_OFF and p.get("allow") == "False":')], {"E2c"}),
     # ---- E3
     ("K12 E3 monitor reads the OTHER arm's list", "ck",
      [("        forbid = (monitor.get(record.get(\"lane_arm\")) or {}).get(\"forbid\", [])",
        "        forbid = (monitor.get({'A': 'B', 'B': 'A'}.get(record.get(\"lane_arm\"))) or {}).get(\"forbid\", [])")],
      {"X1"}),
+    # [E3-01]: X1's A lane now prints its REAL runway refusal (a B-forbidden text), so B's list on every lane reddens X1
+    ("K74 [E3-01] every lane scanned with monitor.B.forbid", "ck",
+     [("        forbid = (monitor.get(record.get(\"lane_arm\")) or {}).get(\"forbid\", [])",
+       "        forbid = (monitor.get(ARM_B) or {}).get(\"forbid\", [])")], {"X1"}),
+    ("K75 the loader hands every lane an EMPTY forbidden list", "ck",
+     [("        forbid = (monitor.get(record.get(\"lane_arm\")) or {}).get(\"forbid\", [])", "        forbid = []")],
+     {"X5"}),
     ("K13 E3 ignores the monitor hits", "ck",
      [('        hits = [(run, e, ln) for run in rs for e, ln in run["t4"]["monitor_hits"]]', "        hits = []")],
-     {"E3a", "E3b"}),
+     {"E3a", "E3b", "X5"}),
     ("K14 the monitor matches ANY string of a list entry", "ck",
      [('"telemetry": telemetry, "battles": recs, "monitor_hits": x4.scan_lines(lines, list(forbid), ())[0],',
        '"telemetry": telemetry, "battles": recs, "monitor_hits": x4.scan_lines(lines, [s for e in forbid for s in '
@@ -1094,18 +1483,45 @@ MUTANTS: list = [
     ("K17 loss-filed pairing ignored", "ck",
      [('    finds += [f"B {_name(r)}: no [CATCH] loss-filed kind=dex after: {ln.strip()[:240]}" for r, ln in missed]',
        "    pass")], {"E3c"}),
+    ("K76 [E3-07] every dex END (caught too) needs a loss-filed", "ck",
+     [('                    if kind and kind.group(1) == "dex" and end_v == "lost":',
+       '                    if kind and kind.group(1) == "dex":')], {"E3c"}),
+    ("K77 [E3-08] one loss-filed clears EVERY pending loss", "ck",
+     [("                        pending_loss.pop(0)", "                        pending_loss.clear()")], {"E3c"}),
     ("K18 a heal anywhere counts as Rustboro's", "ck",
      [("            if out[\"rustboro\"] is None and cur_map == RUSTBORO_PC:",
        "            if out[\"rustboro\"] is None:")], {"E3d"}),
     ("K19 the errand window never closes on leaving Rustboro", "ck",
      [("                if heal_window and cur_map not in (RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART):",
-       "                if False:")], {"E3d", "E3g"}),   # E3g (added later): its closed-window cut run reads censored
+       "                if False:")], {"E3d", "E3g", "E3i"}),   # E3g, E3i (added later): a window that never closes
+    ("K78 [E3-10] the errand window closes on entering the Rustboro MART", "ck",
+     [("(RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART):", "(RUSTBORO_PC, RUSTBORO_CITY):")], {"E3d"}),
     ("K20 the LAST Rustboro heal is judged, not the first", "ck",
      [("            if out[\"rustboro\"] is None and cur_map == RUSTBORO_PC:",
-       "            if cur_map == RUSTBORO_PC:")], {"E3e"}),
+       "            if cur_map == RUSTBORO_PC:")], {"E3e", "E3h"}),
+    ("K80 [E3-17] a heal = the 'none' withdraw source only", "ck",
+     [('_HEAL_MARK = re.compile(r"^Story: PC — \\S+ withdraw: ")', '_HEAL_MARK = re.compile(r"^Story: PC — none withdraw: ")')],
+     {"E3h"}),
     ("K21 the kit half of the Rustboro rule dropped", "ck",
      [('    miss = [r for r in healed if not (r["t4"]["rustboro"]["topoff"] and r["t4"]["rustboro"]["kit"])]',
        '    miss = [r for r in healed if not r["t4"]["rustboro"]["topoff"]]')], {"E3d"}),
+    ("K79 [E3-12] censoring only for CUT runs (lost not excused)", "ck",
+     [('    censored = [r for r in healed if r["t4"]["rustboro"].get("open_at_end") and r["status"] != "complete"',
+       '    censored = [r for r in healed if r["t4"]["rustboro"].get("open_at_end") and r["status"] == "cut"')],
+     {"E3g"}),
+    ("K81 RULING 5 REVERTED: momentary map reads move the errand window and the era", "ck",
+     [("                if pos not in transient:", "                if True:")], {"E3i", "T27"}),
+    ("K82 a read reverting after 3 frames is momentary too", "ck", [("TRANSIENT_FRAMES = 2", "TRANSIENT_FRAMES = 3")],
+     {"E3i"}),
+    ("K83 a (3,0) read is a real arrival", "ck",
+     [("TRANSIENT_DESTS = frozenset({(255, 255), (3, 0)})", "TRANSIENT_DESTS = frozenset({(255, 255)})")], {"E3i"}),
+    ("K84 RULING 7 REVERTED: the headline drops its caveats", "ck",
+     [("""    return r["status"] + (f" ({'; '.join(r['caveats'])})" if r.get("caveats") else "")""",
+       '    return r["status"]')], {"E3j", "X1"}),
+    ("K85 the loss-filing half's zero-trial caveat dropped", "ck",
+     [('    if not lost:\n        caveats.append("loss-filing half had 0 trials")\n', "")], {"E3j", "X1"}),
+    ("K86 the Rustboro half's NOT ASSESSED caveat dropped", "ck",
+     [('    if not healed:\n        caveats.append("Rustboro half NOT ASSESSED")\n', "")], {"E3j"}),
     # E3g's three (added after the first run, with the censoring rule they pin)
     ("K67 a log ending inside the errand never excuses", "ck",
      [('    censored = [r for r in healed if r["t4"]["rustboro"].get("open_at_end") and r["status"] != "complete"',
@@ -1123,41 +1539,61 @@ MUTANTS: list = [
      [('    head = (f"{len(finds)} miss(es)', '    finds += ["t"] * counts["B"]["trainee"]\n    head = (f"{len(finds)} miss(es)')],
      {"E3f"}),
     # ---- E4
-    ("K24 E4 assessed at 4 runs", "ck", [("E4_MIN_RUNS = 5", "E4_MIN_RUNS = 4")], {"E4a"}),
-    ("K25 E4 counts every T&L attempt's bag (the last)", "ck",
-     [('        t = run["t4"]["trainers"].get("TATE_AND_LIZA")\n        if t and t["first_k"] is not None and (t["hp"] or 0) >= 1:',
-       '        t = run["t4"]["trainers"].get("TATE_AND_LIZA")\n        if t and len(t["attempts"]) > 0:')],
+    ("K24 E4 assessed at 4 runs", "ck", [("E4_MIN_RUNS = 5", "E4_MIN_RUNS = 4")], {"E4a", "E4c"}),
+    ("K25 [E4-03] the denominator counts T&L ATTEMPTS, not distinct runs", "ck",
+     [("            qual.append((run, t))", '            qual.extend([(run, t)] * max(1, len(t["attempts"])))')],
      {"E4c"}),
-    ("K26 E4 reads A runs", "ck", [("def check_e4(runs) -> dict:\n    rb = _arm_runs(runs, ARM_B)",
-                                    "def check_e4(runs) -> dict:\n    rb = _arm_runs(runs, ARM_A) + _arm_runs(runs, ARM_B)")],
+    ("K26 E4 reads A runs", "ck", [("    rb = _arm_runs(runs, ARM_B)\n    qual = []",
+                                    "    rb = _arm_runs(runs, ARM_A) + _arm_runs(runs, ARM_B)\n    qual = []")],
      {"E4c"}),
+    ("K87 [E4-06] an UNREADABLE bag (hp None) qualifies", "ck",
+     [('        if t and t["first_k"] is not None and t["hp"] is not None and t["hp"] >= 1:',
+       '        if t and t["first_k"] is not None and (t["hp"] is None or t["hp"] >= 1):')], {"E4c"}),
     ("K27 the heal gate strict (< .35)", "ck",
-     [("'yes' if frac <= HEAL_FRACTION else 'no'", "'yes' if frac < 0.345 else 'no'")], {"E4a"}),
+     [("            hit = held and frac <= HEAL_FRACTION", "            hit = held and frac < 0.345")],
+     {"E4a", "E4b"}),   # FOLD-PREDICTION: E4b's V2/V3 battles are the same Sceptile 46/133 (.346), so they read EXPLAINED
     ("K28 own HP read from the FOE", "ck",
      [('_TURN_ME = re.compile(r"\\[TURN (\\d+)\\] ([^>]+?) L(\\d+) (\\d+)/(\\d+)(?: \\[[^\\]]*\\])? -> ")',
        '_TURN_ME = re.compile(r"\\[TURN (\\d+)\\] (?:.*vs )?(.+?) L(\\d+) (\\d+)/(\\d+)")')],
-     {"QS2", "E4a", "E4b", "T5"}),
-    ("K29 E4 a zero is a PASS", "ck", [('    return {"status": "PASS" if uses >= 1 else "FINDING", "detail": detail,',
-                                        '    return {"status": "PASS", "detail": detail,')], {"E4a", "E4b"}),
+     {"QS2", "E4a", "E4e", "T5"}),
+    ("K29 RULING 1 REVERTED: E4 graded on the GLOBAL B use count (V2/V3 mask the list)", "ck",
+     [('    uses_q = sum(len(run["t4"]["battles"][t["first_k"]]["dbl_use"]) for run, t in qual)',
+       '    uses_q = sum(len(rec["dbl_use"]) for run in rb for rec in run["t4"]["battles"])')], {"E4b"}),
+    ("K88 [E4-08] the zero listing reads the run's LAST battle", "ck",
+     [('        rec = run["t4"]["battles"][t["first_k"]]\n        held', '        rec = run["t4"]["battles"][-1]\n        held')],
+     {"E4a"}),
+    ("K89 RULING 1 REVERTED: every zero is a FINDING (an explained zero too)", "ck",
+     [("    if reached or unread:", "    if True:")], {"E4e"}),
+    ("K90 a battle with NO own-HP read lets the zero read EXPLAINED", "ck",
+     [("    if reached or unread:", "    if reached:")], {"E4e"}),
+    ("K91 the rule-3 caveat dropped from a 'yes' row", "ck",
+     [('RULE3_CAVEAT = "production may decline under its rule 3 (a losing race) — read the battle"',
+       'RULE3_CAVEAT = "read the battle"')], {"E4a"}),
     # ---- E5
     ("K30 E5 lists every after", "ck",
-     [("        if e[0] != \"after\" or not bl.partner_rose(e[3]):", "        if e[0] != \"after\":")], {"E5a"}),
-    ("K31 E5 never explained by a same-turn use", "ck",
-     [("        healed = turn is not None and any(u[3] == partner and use_turn.get(u[1]) == turn for u in uses)",
-       "        healed = False")], {"E5b"}),
-    ("K32 E5 explained by ANY use on the partner", "ck",
-     [("        healed = turn is not None and any(u[3] == partner and use_turn.get(u[1]) == turn for u in uses)",
-       "        healed = any(u[3] == partner for u in uses)")], {"E5b"}),
+     [("        if e[0] != \"after\" or not bl.partner_rose(e[3]):", "        if e[0] != \"after\":")], {"E5a", "E5b"}),
+    ("K31 RULING 2 REVERTED: a same-turn use on the partner EXCLUDES the reading", "ck",
+     [('        out.append({"turn": turn, "g": g,', '        if context:\n            continue\n'
+                                                  '        out.append({"turn": turn, "g": g,')], {"E5b"}),
+    ("K32 the context ignores the turn (any use on the partner)", "ck",
+     [("if u is not action and turn is not None and u[3] == partner and use_turn.get(u[1]) == turn]",
+       "if u is not action and u[3] == partner]")], {"E5b"}),
     ("K33 E5 counted as a FINDING", "ck",
      [('    status = "READ BY HAND" if listed else', '    status = "FINDING" if listed else')], {"E5a"}),
-    ("K34 E5 reads A", "ck", [("def check_e5(runs) -> dict:\n    rb = _arm_runs(runs, ARM_B)",
-                               "def check_e5(runs) -> dict:\n    rb = _arm_runs(runs, ARM_A) + _arm_runs(runs, ARM_B)")],
+    ("K34 E5 reads A", "ck", [("    rb = _arm_runs(runs, ARM_B)\n    afters",
+                               "    rb = _arm_runs(runs, ARM_A) + _arm_runs(runs, ARM_B)\n    afters")],
      {"E5c"}),
+    ("K93 [E5-01] E5 counts the readings but lists none", "ck",
+     [("    for run, rec, e in listed:\n        detail.append(", "    for run, rec, e in []:\n        detail.append(")],
+     {"E5a", "E5b"}),
     # ---- STOP-3
     ("K35 STOP-3 qualifies at 1 B run", "ck", [("        if len(hits) < 2 or per[ARM_A].get(sig):",
                                                "        if len(hits) < 1 or per[ARM_A].get(sig):")], {"S3b"}),
     ("K36 STOP-3 ignores A runs", "ck", [("        if len(hits) < 2 or per[ARM_A].get(sig):",
                                          "        if len(hits) < 2:")], {"S3a"}),
+    ("K100 [S3-02] STOP-3 needs 2 distinct B LANES", "ck",
+     [("        if len(hits) < 2 or per[ARM_A].get(sig):",
+       "        if len({l for l, _r in hits}) < 2 or per[ARM_A].get(sig):")], {"S3g"}),
     ("K37 STOP-3 counts finished runs", "ck",
      [('"signature": None if bucket == "finished" else x4._derail_reason(outcome), "log": log})',
        '"signature": x4._derail_reason(outcome), "log": log})')], {"QS5", "S3b"}),
@@ -1165,29 +1601,53 @@ MUTANTS: list = [
     ("K39 the tail counts the END marker", "ck",
      [("    while end and (not lines[end - 1].strip() or lines[end - 1].startswith(LOG_END)):", "    while False:")],
      {"S3c"}),
-    ("K40 a package tag dropped (why=topoff)", "ck",
-     [('PACKAGE_TAGS = ("[ITEM] using", "[DBLITEM]", "[KIT-BUY]", "why=topoff", "[KEYBATTLE]", "[DEXCATCH-NOBAIL]",',
-       'PACKAGE_TAGS = ("[ITEM] using", "[DBLITEM]", "[KIT-BUY]", "[KEYBATTLE]", "[DEXCATCH-NOBAIL]",')], set()),
+    # [BK40 / S3-07 / S3-08]: the old list's survivors; the LITERAL in S3d now kills any tag dropped from the list
+    ("K40 an acting tag dropped ([BALLS-BUY] acting why=)", "ck",
+     [('"[DBLITEM] after", "[BALLS-BUY] acting why=",', '"[DBLITEM] after",')], {"S3d", "X3"}),
+    ("K111 an acting tag dropped ([CATCH] trainee)", "ck",
+     [('"[DEXCATCH-NOBAIL]", "[CATCH] trainee", "[KEYBATTLE] allow=False")', '"[DEXCATCH-NOBAIL]", "[KEYBATTLE] allow=False")')],
+     {"S3d"}),
+    ("K94 an acting errand outcome dropped (topoff-recovery)", "ck",
+     [('ACTING_WHY = frozenset({"topoff", "topoff-failed", "topoff-closed", "topoff-recovery",',
+       'ACTING_WHY = frozenset({"topoff", "topoff-failed", "topoff-closed",')], {"S3d"}),
+    ("K95 the correction REVERTED: why=mandatory (both arms) counts as acting", "ck",
+     [('                        "kit", "kit-failed", "kit-closed", "kit-recovery"})',
+       '                        "kit", "kit-failed", "kit-closed", "kit-recovery", "mandatory"})')], {"S3e", "S3f"}),
+    ("K96 why= matched as a PREFIX (topoff matches topoff-none)", "ck",
+     [("        if why and why.group(1) in ACTING_WHY:", '        if why and why.group(1).startswith(("topoff", "kit")):')],
+     {"S3e", "S3f"}),
+    ("K97 RULING 3 REVERTED: every [KEYBATTLE] line is acting (allow=True too)", "ck",
+     [('        return "[KEYBATTLE] allow=False" if (bl.parse_keybattle(line) or {}).get("allow") == "False" else None',
+       '        return "[KEYBATTLE] allow=False"')], {"S3e", "S3f", "S3h"}),
+    ("K98 [CATCH] trainee-after counted as trainee", "ck",
+     [('    if m and m.group(2) == "CATCH" and m.group(3).startswith("trainee "):',
+       '    if m and m.group(2) == "CATCH" and m.group(3).startswith("trainee"):')], {"S3e"}),
     ("K41 STOP-3 a run end maps to the FIRST log opened", "ck",
      [("            if start < m.start():\n                log = name", "            if start < m.start() and log is None:\n                log = name")],
-     {"QS5"}),   # PREDICTION: QS5's second run maps to the first log
+     {"QS5", "S3h"}),   # PREDICTION: QS5's second run maps to the first log; FOLD-PREDICTION: so does S3h's lane H9
     ("K42 STOP-3 the raw outcome is the signature", "ck",
      [('"signature": None if bucket == "finished" else x4._derail_reason(outcome), "log": log})',
        '"signature": None if bucket == "finished" else outcome, "log": log})')],
-     {"QS5", "S3a", "S3c", "S3d", "X3"}),   # PREDICTION: S3d's unreadable pair differs only in its loss count
+     {"QS5", "S3a", "S3c", "S3d", "S3f", "S3g", "S3h", "X3"}),   # every pair differs only in its loss count
     ("K43 STOP-3 'yes' without a tag", "ck", [("        found = any(t for _l, _r, t in rows)", "        found = True")],
-     {"S3c", "S3d"}),
+     {"S3c", "S3d", "S3f", "S3h"}),
+    ("K101 [S3-10] the pattern needs a tag in EVERY qualifying tail", "ck",
+     [("        found = any(t for _l, _r, t in rows)", "        found = all(t for _l, _r, t in rows)")], {"S3h"}),
+    ("K102 the count of untagged qualifying signatures not printed (always 0)", "ck",
+     [('    no_tag = sum(1 for q in qualifying if not q["tags_found"])', "    no_tag = 0")], {"S3f", "S3h"}),
     # ---- extraction (the tables' inputs)
     ("K44 D-fence keeps the numbers", "ck", [('    return re.sub(r"\\d[\\d,]*", "N", text)', "    return text")],
      {"QS4", "T8"}),
-    ("K45 D-fence era never switches", "ck", [("                if cur_map == SOOTOPOLIS_CITY:\n                    era = \"after\"",
-                                              "                if cur_map == SOOTOPOLIS_CITY:\n                    pass")],
-     {"T8"}),
+    ("K45 D-fence era never switches", "ck", [("                        era = \"after\"", "                        pass")],
+     {"T8", "T27"}),
     ("K46 leg 11 money read AFTER the load", "ck",
      [('                    out["leg11_loaded"], out["leg11_money"] = True, money', '                    out["leg11_loaded"] = True')],
      {"T9"}),
     ("K47 the old leg-11 text not matched", "ck", [('LEG11_OLD = "Ch23 leg 11: the basket costs ₽"',
                                                    'LEG11_OLD = "Ch23 leg 11: the basket cost ₽"')], {"T7"}),
+    # EQUIVALENT (documented, the hunter's TG-03 reason): the current refusal has ONE emitter (victory_road.py:3524)
+    # and its "short by" falls at characters 179-187, inside the derail message's 200-character cut (:3949) — no real
+    # line carries the first half without the second, so no real log can tell these apart.
     ("K48 the current text needs only its first half", "ck",
      [('LEG11_NEW = ("Ch23 leg 11: the missing basket lines", "short by")', 'LEG11_NEW = ("Ch23 leg 11: the missing basket lines",)')],
      set()),
@@ -1195,14 +1655,15 @@ MUTANTS: list = [
      [('                        out["caught"].append((sp.group(1) if sp else "?", max(out["badges"], default=0)))',
        '                        out["caught"].append((sp.group(1) if sp else "?", 0))')], {"T5"}),
     ("K50 the battle map not recorded", "ck", [('            recs[k]["map"] = cur_map', "            pass")], {"T6"}),
+    # NOT equivalent after all (the builder, on the fold): a run CUT inside a catch battle has its start and no end
     ("K51 a WILD battle with a [CATCH] start is not a catch battle", "ck",
      [('                    if k >= 0:\n                        recs[k]["catch"] = True\n                else:',
-       '                    if False:\n                        recs[k]["catch"] = True\n                else:')], set()),
+       '                    if False:\n                        recs[k]["catch"] = True\n                else:')], {"T26"}),
     ("K52 [KIT-BUY] items not parsed", "ck", [('        if bm and bm.group(1).startswith("{"):', "        if False:")],
-     {"QS3", "T9"}),
+     {"QS3", "T9", "T16"}),
     ("K53 money spent sign flipped", "ck",
-     [('"spent": (a - b) if a is not None and b is not None else None}', '"spent": (b - a) if a is not None and b is not None else None}')],
-     {"QS3", "T9"}),
+     [('"spent": (a - b) if a is not None and b is not None else None,', '"spent": (b - a) if a is not None and b is not None else None,')],
+     {"QS3", "T9", "T16"}),
     ("K54 weaken stage ignored", "ck", [('            stage = reason.split(":", 1)[0] if reason.startswith(("stage1:", "stage2:")) else "-"',
                                         '            stage = "-"')], {"QS4", "T12"}),
     ("K55 M1b de-dup keeps the frames", "ck",
@@ -1215,12 +1676,12 @@ MUTANTS: list = [
      [('        fa = first[key]\n', '        fa = None\n        for _k2 in range(len(battles) - 1, -1, -1):\n'
                                    '            if fa is None and recs[_k2]["starts"] & idset and recs[_k2]["ends"] & idset:\n'
                                    '                fa = {"index": _k2, "outcome": recs[_k2]["outcome"], "heal_stock": recs[_k2]["heal_stock"]}\n')],
-     {"T1", "E4c"}),   # PREDICTION: D-lead's rates read compare_arms' records, and no fixture lead depends on it
+     {"T1", "E4b", "E4c"}),   # PREDICTION: D-lead's rates read compare_arms' records, and no fixture lead depends on it
     ("K58 a rival's six ids are six trainers (only the first kept)", "ck",
      [('    "RIVAL_ROUTE_103": (520, 523, 526, 529, 532, 535),', '    "RIVAL_ROUTE_103": (520,),')], {"T1"}),
     # FIRST RUN: (270,) — Winona's id — made the module refuse to IMPORT (`_check_trainers`); that guard is K66 now
     ("K59 Tate & Liza's id wrong", "ck", [('"TATE_AND_LIZA": (271,)', '"TATE_AND_LIZA": (273,)')],
-     {"E4a", "E4b", "R1", "T1", "T4"}),
+     {"E4a", "E4b", "E4c", "E4e", "R1", "T1", "T4", "T21"}),
     ("K66 two trainers share an id -> the module refuses to import", "ck",
      [('"TATE_AND_LIZA": (271,)', '"TATE_AND_LIZA": (270,)')], "RAISES"),
     ("K63 the heal marker also matches the 'withdraw result' line", "ck",
@@ -1229,43 +1690,62 @@ MUTANTS: list = [
     ("K64 [MAP] from and to swapped", "ck",
      [("    return (int(m.group(1)), int(m.group(2))), (int(m.group(3)), int(m.group(4)))",
        "    return (int(m.group(3)), int(m.group(4))), (int(m.group(1)), int(m.group(2)))")],
-     {"QS1", "E3d", "E3e", "E3g", "T7", "T8", "T9"}),   # E3g added later: no Rustboro heal is seen at all
+     {"QS1", "E3d", "E3e", "E3g", "E3h", "E3i", "E3j", "T7", "T8", "T9", "X1"}),   # no Rustboro heal is seen
+    # FOLD-PREDICTION (K64): T27 survives it by symmetry — swapped, the flick's RETURN read lands on (0,7) and the real
+    # Sootopolis load lands on (24,43), so the two runs trade eras and the totals stay 1 / 1 (T8 still kills it)
     ("K65 K* COPIED into TRAINERS (equal values, not compare_arms' objects)", "ck",
      [("    **ca.KSTAR,", "    **{k: list(v) for k, v in ca.KSTAR.items()},")], {"R1"}),
     # ---- the loader
     ("K60 the loader never extracts", "ck",
-     [("        record[\"t4\"] = extract(lines, forbid=forbid, m1b=m1b)", "        pass")], {"X1", "X3", "X4"}),
+     [("        record[\"t4\"] = extract(lines, forbid=forbid, m1b=m1b)", "        pass")],
+     {"X1", "X3", "X4", "X5", "X6"}),
     ("K61 a control failure still checks", "ck",
      [('    results = None if b["failures"] else run_checks(b)', "    results = run_checks(b)")], {"X2"}),
     ("K62 the stdout of the wrong lane", "ck",
      [('        p = batch_dir / f"L{lane[\'slot\'] + 1:02d}" / "stdout.txt"', '        p = batch_dir / f"L{lane[\'slot\'] + 2:02d}" / "stdout.txt"')],
      {"X3"}),
+    ("K103 RULING 8 REVERTED: the header has no C1-C2 VOID line", "ck",
+     [("""            f"  C1-C2         {'VOID: ' + b['void'] + ' (DESIGN §4)' if b.get('void') else 'not void'}"]""",
+       "            ]")], {"X1", "X6"}),
+    ("K104 --void ignored (only summary.json's verdict voids)", "ck",
+     [('            "void": ca.void_reason(summ, manual_void)}', '            "void": ca.void_reason(summ)}')], {"X6"}),
     # ---- the tables
     ("T01 funnel eligible counts every run", "tb",
      [("                elif t is not None or r[\"status\"] == \"complete\":", "                else:")], {"T1"}),
-    ("T02 funnel counts unbeaten CUT runs", "tb",
+    ("T111 [TF-02] D-funnel: a run censored DURING its attempt counts as eligible", "tb",
+     [("                if ca.censored_during(pseudo, key):\n                    pass", "                if False:\n                    pass")],
+     {"T17"}),
+    ("T02 [BT02] funnel counts unbeaten CUT runs", "tb",
      [("                if t is not None and not t[\"won_ever\"] and r[\"status\"] == \"complete\":",
-       "                if t is not None and not t[\"won_ever\"]:")], set()),
+       "                if t is not None and not t[\"won_ever\"]:")], {"T20"}),
     ("T03 funnel eventually = first", "tb",
      [('                if t is not None and t["won_ever"]:', '                if won is True:')], {"T1"}),
-    ("T04 the K* cross-check never differs", "tb",
-     [("            if any(mine[f] != theirs[f] for f in theirs):", "            if False:")], set()),
+    ("T04 the K* cross-check never differs (killed by its fault-injected row, not called equivalent)", "tb",
+     [("            if any(mine[f] != theirs[f] for f in theirs):", "            if False:")], {"T25"}),
     ("T05 frame-cap ends not counted", "tb",
      [('                   for x in s["runs"] if x["bucket"] == "frame_cap")', '                   for x in s["runs"] if x["bucket"] == "frame-cap")')],
      {"T2"}),
     ("T06 D-attempt counts first attempts only", "tb",
      [('                if rec["cls"] != bl.KEY or rec["group"] is None:', '                if rec["cls"] != bl.KEY or rec["group"] is None or rec["outcome"] == "lost":')],
      {"T3"}),
-    ("T07 D-boss counts met as decided", "tb",
+    ("T07 [BT07] D-boss counts met as decided", "tb",
      [('            rows[key] = {"met": sum(t is not None for t in ts), "decided": sum(w is not None for w in won),',
        '            rows[key] = {"met": sum(t is not None for t in ts), "decided": sum(t is not None for t in ts),')],
-     set()),
+     {"T21"}),
     ("T08 D-boss prints a rate for nobody", "tb",
      [('if r["decided"] else f"NOT ASSESSED ({r[\'met\']})"))', 'if r["decided"] else f"0/0 ({r[\'met\']})"))')],
-     {"T4"}),
-    ("T09 D-lead counts PRE-badge catches", "tb",
+     {"T4", "T21"}),
+    ("T09 [BT09] D-lead counts PRE-badge catches", "tb",
      [('    caught = {sp for sp, badges in run["t4"]["caught"] if badges >= 1}', '    caught = {sp for sp, badges in run["t4"]["caught"]}')],
-     set()),
+     {"T22"}),
+    ("T113 [TLd-01] D-lead's denominator = every key trainer MET", "tb",
+     [('            den += sum(1 for t in r["t4"]["trainers"].values() if t["first_k"] is not None)',
+       '            den += len(r["t4"]["trainers"])')], {"T24"}),
+    ("T109 RULING 8 REVERTED: D-lead's C2 rates never marked VOID", "tb",
+     [('    if d.get("void"):\n        out.append(f"  ⛔ C1-C2 VOID:', '    if False:\n        out.append(f"  ⛔ C1-C2 VOID:')],
+     {"T15", "X6"}),
+    ("T110 RULING 9 REVERTED: 'evolved catches are missed' dropped from D-lead's label", "tb",
+     [('           f"evolved catches are missed"]', '           f"species-level"]')], {"T5"}),
     ("T10 D-lead never drops", "tb",
      [('            keys = {k: (dict(v, won=None, attempted=False) if k in excluded.get(r["log"], set()) else v)',
        '            keys = {k: (v if k in excluded.get(r["log"], set()) else v)')], {"T5"}),
@@ -1273,9 +1753,11 @@ MUTANTS: list = [
      {"T5"}),
     ("T12 D-loss: a Draw is not a loss", "tb", [('                lost = rec["outcome"] == "lost"', '                lost = False')],
      {"T6"}),
+    ("T105 [TL-02] D-loss: 'other' outcomes (Caught, OpponentTeleported) counted as losses", "tb",
+     [('                lost = rec["outcome"] == "lost"', '                lost = rec["outcome"] != "won"')], {"T6", "T18"}),
     ("T13 D-loss: catch battles folded into other wild", "tb",
      [('                    name = "wild catch" if rec["catch"] else "other wild"', '                    name = "other wild"')],
-     {"T6"}),
+     {"T6", "T18", "T26"}),
     ("T14 D-leg11 counts any refusal as loaded", "tb",
      [('                    "refused_loaded": sum(1 for r in refused if r["t4"]["leg11_loaded"]),',
        '                    "refused_loaded": len(refused),')], {"T7"}),
@@ -1285,11 +1767,31 @@ MUTANTS: list = [
      [('                if x["why"].startswith("topoff"):', '                if True:')], {"T9"}),
     ("T17 D-economy T1 per map ignored", "tb", [('                    row["delta"] += delta or 0', '                    row["delta"] += 0')],
      {"T9"}),
-    ("T18 D-rare: A by the line's suffix (A has none)", "tb",
-     [("                    is_rare = _offline_rare(dex)", "                    is_rare = rare not in (None, '-')")], {"T10"}),
+    ("T18 D-rare: the species-level column read from the line's suffix (A has none)", "tb",
+     [("                for table, is_rare in ((rows, _offline_rare(dex)),",
+       "                for table, is_rare in ((rows, rare not in (None, '-')),")], {"T10"}),
     ("T19 D-rare: B rare=- counted as rare", "tb",
-     [("                    is_rare = rare not in (None, \"-\")", "                    is_rare = rare is not None")],
-     {"T10"}),   # GAP (first run: survived — no B catch read rare=-): B2's lost catch is now a rare=- Poochyena
+     [('                                       (line_rows, arm == ck.ARM_B and rare not in (None, "-"))):',
+       '                                       (line_rows, arm == ck.ARM_B and rare is not None)):')],
+     {"T10"}),   # GAP (first run: survived — no B catch read rare=-): the fixture now holds a rare=- Poochyena
+    ("T106 RULING 9 REVERTED: B's species-level column uses B's own suffix (not comparable with A)", "tb",
+     [("                for table, is_rare in ((rows, _offline_rare(dex)),",
+       "                for table, is_rare in ((rows, _offline_rare(dex) if arm == ck.ARM_A else rare not in (None, '-')),")],
+     {"T10"}),
+    ("T112 [TD-02] D-fence distinct over the whole ARM, not per run", "tb",
+     [('        unparsed = 0\n        for r in usable_runs(runs, arm):\n            unparsed += r["t4"]["fence_unparsed"]\n'
+       '            for era, verb, _species, reason in r["t4"]["fence"]:\n',
+       '        unparsed = 0\n        _seen = set()\n        for r in usable_runs(runs, arm):\n'
+       '            unparsed += r["t4"]["fence_unparsed"]\n'
+       '            for era, verb, _species, reason in sorted(r["t4"]["fence"] - _seen):\n'
+       '                _seen.add((era, verb, _species, reason))\n')], {"T19"}),
+    ("T107 RULING 4 REVERTED: the package row sums LINES (a joint errand counted twice)", "tb",
+     [('                    e = errands.setdefault((r["log"], x["frame"], x["money"]), {"kinds": set(), "spent": x["spent"]})\n'
+       '                    e["kinds"].add("ball")',
+       '                    e = errands.setdefault((r["log"], x["frame"], x["money"], "b"), {"kinds": set(), "spent": x["spent"]})\n'
+       '                    e["kinds"].add("ball")')], {"T16"}),
+    ("T108 the 'joint errands counted in both' label dropped", "tb",
+     [('    joint = "errand money, joint errands counted in both"', '    joint = "money"')], {"T16"}),
     ("T20 D-weaken: A and B merged", "tb",
      [('    return {arm: dict(sum((r["t4"]["weaken"] for r in usable_runs(runs, arm)), collections.Counter()))',
        '    return {arm: dict(sum((r["t4"]["weaken"] for r in runs if r.get("t4")), collections.Counter()))')],
@@ -1300,9 +1802,9 @@ MUTANTS: list = [
     ("T22 a verdict word in a table", "tb",
      [('    out = ["D-weaken — [WEAKEN-OBS] would= by verdict and stage', '    out = ["D-weaken — PASS [WEAKEN-OBS] would= by verdict and stage')],
      {"T14"}),
-    ("T23 the tables read EXCLUDED runs", "tb",
+    ("T23 [BT23] the tables read EXCLUDED runs", "tb",
      [('    return [r for r in runs if ca.usable(r) and r["arm"] == arm and r.get("t4")]',
-       '    return [r for r in runs if r.get("lane_arm") == arm and r.get("t4")]')], set()),
+       '    return [r for r in runs if r.get("lane_arm") == arm and r.get("t4")]')], {"T23"}),
     ("T24 a control failure still prints tables", "tb",
      [('    if b["failures"]:\n        print("\\n".join(head + ["=" * 100]))\n        return 1', "    pass")], {"X2"}),
     ("T25 the M1b pool is never written", "tb",
@@ -1313,7 +1815,7 @@ MUTANTS: list = [
     # compares against the real module's K*, captured at import
     ("C01 the visit hook never called", "ca",
      [("            if visit is not None:\n                visit(runs[-1], got[0])", "            pass")],
-     {"R2", "X1", "X3", "X4"}),
+     {"R2", "X1", "X3", "X4", "X5", "X6"}),
     ("C02 the visit hook called twice", "ca",
      [("            if visit is not None:\n                visit(runs[-1], got[0])",
        "            if visit is not None:\n                visit(runs[-1], got[0])\n                visit(runs[-1], got[0])")],

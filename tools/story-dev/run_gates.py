@@ -1212,7 +1212,10 @@ GATES: list[tuple[str, bool]] = [
     # WHY: tonight's batch is read for CORRECTNESS by these files, and a check that cannot fire reads a broken package
     # as clean — so every E rule is a row in BOTH directions (a planted violation is reported, the clean case PASSes),
     # STOP-3 reads yes and no, each table's counts are exact on a hand-built fixture, all on real lines with a
-    # PROVENANCE check; mutants with exact red sets (one proves an import-time guard). No ROM; ~5 s.
+    # PROVENANCE check; mutants with exact red sets (one proves an import-time guard). After the independent pass's
+    # fold (`evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`): the hunter's 24 killing rows, one row + one REVERT mutant
+    # per coordinator ruling (E4 on the qualifying first attempts, E5 context, STOP-3's ACTING tags, the de-duplicated
+    # package ₽, momentary map reads, VOID). 78 rows, 141 mutants; no ROM; ~8 s.
     # ‼ APPENDED AT THE END.
     ("probe_batch14_checks.py", False),
 ]

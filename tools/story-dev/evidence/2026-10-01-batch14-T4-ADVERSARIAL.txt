@@ -1,0 +1,382 @@
+# 2026-10-01 — design v2 step 14 T4: the INDEPENDENT ADVERSARIAL PASS, verbatim (workflow t4-adversarial)
+# A NOTE, NOT TRUTH: three read-only agents. How each finding was folded is in the T4 note's GRADED section.
+
+====================================================================================================
+MUTANT HUNTER
+====================================================================================================
+SUMMARY: I ran an independent mutant hunt on the T4 rules: 83 mutants tried, 51 killed. 78 are my own (51 killed, 27 survived) and 5 re-run the builder's survivors (mutants recorded with an empty red set, i.e. expected to turn no row red). None of the tonight-blocking checks is broken. Every survivor is a gap in the gate, not a bug in the code: each of my killing rows passes on the unmutated code. One finding is not a gate gap: E4's status line still says FINDING for a zero that the corrected DESIGN calls explained (F8).
+
+Setup: copied batch14_checks, batch14_tables, probe_batch14_checks, compare_arms, battle_log, grade_r20_telemetry, x4_headless, audit_damage_calc and arms/batch14.json into scratchpad/t4adv/mut/. Only the REPO/EVIDENCE path constants were pointed at the worktree. The unmutated copy prints "ALL PASS (52 rows, 98 mutants, 87 quoted lines)", with provenance checked rather than skipped. It also reproduces T4-3 on the smoke batch (E1-E3 PASS, E4/E5 NOT ASSESSED, STOP-3 no; Rustboro 8 of 8). The fault batch is still refused with exit 1. Mutants were applied in memory only, through the gate's own run_mutant. Both repos are untouched: the only modified worktree files date from 09-29 and 09-30.
+
+Of the 27 survivors, 6 are equivalent in practice:
+- E1-04: the any-vs-all fail-open exemption only differs in a battle that already breaks E2.
+- E1-11: Gen 3 has no wild double battles.
+- E3-06: `loss-filed kind=team` only appears under POKEBOT_R24_FAULT_TEAMLOSS (story_mode.py:2554).
+- E5-06: an `after` line always follows its `use`.
+- TL-03: a catch's start always comes before its end in the same battle.
+- TG-03: the leg-11 refusal has one emitter (victory_road.py:3524), and its "short by" falls at character 179-187, inside the 200-character cut at :3949.
+
+The other 21, plus the 5 builder re-runs, each have a killing row in kill_rows.py: 24 rows, 25 kills, real-line provenance OK.
+
+real_diff.py shows several of these mutants change the REAL smoke-batch output:
+- E3-07: E3 goes PASS → FINDING with 44 false misses.
+- E3-01: E3 goes PASS → FINDING with 41 lines.
+- TL-02: D-loss "wild catch A 0/29 B 0/74" becomes "29/29, 74/74".
+- TD-02: every D-fence count changes.
+- Builder T02: RIVAL_ROUTE_110's unbeaten cell changes.
+- Builder T09: D-lead goes A 0/21 → 1/21.
+
+Scripts: hunt.py (the mutants), kill_rows.py (the rows), real_diff.py (the real-batch diffs), hunt_results.json (the results). All are under C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/t4adv/mut/. Run each as PYTHONUTF8=1 PYTHONDONTWRITEBYTECODE=1 py -3.12 -B <script>.
+killed 51 of 83
+survivor: S3-07 drop [DBLITEM] from PACKAGE_TAGS (batch14_checks.py:79) — killed by KS3-tags
+survivor: S3-08 drop [CATCH] trainee from PACKAGE_TAGS (:80) — killed by KS3-tags
+survivor: BK40 (builder K40) drop why=topoff from PACKAGE_TAGS — killed by KS3-tags
+survivor: E3-07 every kind=dex END (caught too) needs a loss-filed (:401) — killed by KE3-caught; flips the REAL smoke batch's E3 to FINDING with 44 false misses
+survivor: E3-08 one loss-filed clears every pending loss (:408) — killed by KE3-twolost
+survivor: E1-01 E1 judges B KEY battles too (:618) — killed by KE1-key
+survivor: E1-09 B's WILD battles ignored (:615) — killed by KE1-bwild
+survivor: E3-10 the errand window closes on entering the Rustboro MART (:369) — killed by KE3-mart (real L09 lines 2852/2883)
+survivor: E3-01 the loader scans every lane with monitor.B.forbid (:571) — killed by KE3-loaderA (CLI end to end)
+survivor: E4-03 E4's denominator counts T&L attempts, not distinct runs (:726) — killed by KE4-distinct
+survivor: E4-08 the zero listing reads the run's LAST battle, not the T&L first attempt (:740) — killed by KE4-index
+survivor: E5-01 E5 counts its readings but lists none (:754) — killed by KE5-list
+survivor: S3-02 STOP-3 needs 2 distinct B LANES (:787) — killed by KS3-onelane
+survivor: S3-10 STOP-3 needs a tag in EVERY qualifying tail, all vs any (:796) — killed by KS3-any
+survivor: TF-02 D-funnel counts a run censored DURING its attempt as eligible (tables :114) — killed by KTF-cens
+survivor: TL-02 D-loss counts 'other' outcomes as losses (tables :325) — killed by KTL-other (real L09:2753/2756)
+survivor: TD-02 D-fence counts distinct pairs over the whole ARM, not per run (tables :382-386) — killed by KTD-perrun
+survivor: E2-07 flag_off is a violation only when allow=False (:652) — killed by KE2-flagoff (the production shape)
+survivor: E3-12 censoring only for CUT runs, not lost/capped (:694) — killed by KE3-lostcens
+survivor: E3-17 a heal = the 'none' withdraw source only (:156) — killed by KE3-counter
+survivor: E4-06 an unreadable bag (hp None) qualifies (:725) — killed by KE4-unread
+survivor: TLd-01 D-lead denominator = every key trainer MET (tables :255) — killed by KTLd-den
+survivor: BT02 (builder T02) D-funnel unbeaten counts CUT runs — killed by KBT02
+survivor: BT07 (builder T07) D-boss decided = met — killed by KBT07
+survivor: BT09 (builder T09) D-lead counts PRE-badge catches — killed by KBT09
+survivor: BT23 (builder T23) the tables read EXCLUDED runs — killed by KBT23
+
+--- F1 [SHOULD-FIX]
+WHAT: STOP-3's package-tag list is not pinned. Row S3d compares tags_in() with the module's OWN PACKAGE_TAGS, so deleting any of DESIGN §4's seven tags leaves the whole gate green. The builder's own K40 records exactly that as an expected survivor.
+EVIDENCE: probe_batch14_checks.py:707-712 expects `list(CK().PACKAGE_TAGS)`. These mutants all keep the 52 rows green: S3-07 removes "[DBLITEM]" (batch14_checks.py:79), S3-08 removes "[CATCH] trainee" (:80), and builder K40 removes "why=topoff" (probe:1168-1170, want set()). Killing row KS3-tags (kill_rows.py k_s3_tags_literal) passes unmutated and is red under all three.
+FIX: Make S3d's expected value a LITERAL 7-tuple copied from DESIGN §4, and test each tag on a line that carries only that tag (e.g. Q('d_after') for [DBLITEM], Q('bb_topoff') for why=topoff). Change K40's expected set to {'S3d'}.
+
+--- F2 [SHOULD-FIX]
+WHAT: E3's loss-filed rule is only tested with ONE lost dex end. A rule that demands a loss-filed after CAUGHT dex ends too survives, and so does one where a single loss-filed clears several pending losses.
+EVIDENCE: E3-07: dropping `and end_v == "lost"` at batch14_checks.py:401 keeps all rows green. On the REAL smoke batch 20261001-090649 the same mutant turns E3 from PASS into FINDING with 44 false misses ('no [CATCH] loss-filed kind=dex after: … end=caught res=Caught', real_diff.py). E3-08: changing `pending_loss.pop(0)` to `.clear()` at :408 survives. Killing rows: KE3-caught (a B dex catch ending caught -> PASS, 0 missed) and KE3-twolost (two lost dex ends, one loss-filed -> FINDING, 1 missed).
+FIX: Add both cases to E3c: a caught dex end needs no filing, and two losses with one filing leave exactly one miss.
+
+--- F3 [SHOULD-FIX]
+WHAT: E1's arm-B branches are only half tested. No row has a B KEY battle with an item (where the package is SUPPOSED to use items), and no row has an item in a B WILD battle.
+EVIDENCE: E1-01: changing :618 to `rec["cls"] in (bl.NONKEY, bl.KEY)` survives; tonight it would report a FINDING on every legitimate B key-battle item use. E1-09: changing :615 to `rec["cls"] == bl.WILD and arm == ARM_A` survives, because E1c plants its wild item in arm A only (probe:439). Killing rows: KE1-key (Roxanne with its real key=True line and an [ITEM] using -> PASS) and KE1-bwild (a B wild battle with an item -> FINDING 'B WILD').
+FIX: Add both rows to E1.
+
+--- F4 [SHOULD-FIX]
+WHAT: The Rustboro-errand window is never tested through the MART. The gate's HEAL fixture is a no-purchase errand, but real buying errands enter (11,7) and log [KIT-BUY]/[BALLS-BUY] only after coming back out.
+EVIDENCE: E3-10: dropping RUSTBORO_MART from the tuple at batch14_checks.py:369 survives all rows. In the smoke L09 debug log, line 2852 '[MAP] RUSTBORO CITY(0,3) -> RUSTBORO CITY(11,7)' and line 2883 '(11,7) -> (0,3)' come right before '[KIT-BUY] why=kit mart=11,7'. Killing row KE3-mart, built on those real lines, reads PASS unmutated and FINDING (1 missed) under the mutant.
+FIX: Add the mart round-trip to E3d's PASS case.
+
+--- F5 [SHOULD-FIX]
+WHAT: The loader's per-arm routing of the monitor's forbidden-text lists is only tested through X1, and X1's A lane is unrealistic. E3a/E3b call extract() with the forbidden list passed in directly, so the visit hook's choice of list for arm A is unpinned.
+EVIDENCE: E3-01: making load.visit use monitor[ARM_B] for every lane (batch14_checks.py:571) survives. probe rec() at :316 bypasses load, and X1's A lane (probe:959, for_a(RIVAL, WILD)) never prints A's own expected runway text nor a B-only text. On the real smoke batch the mutant is loud (E3 FINDING, 41 lines), so this is a gap in the gate, not a silent failure on real data. Killing row KE3-loaderA: the CLI on a batch whose A lane prints [KIT-BUY] gives 'E3  FINDING' unmutated and 'E3  PASS' under the mutant.
+FIX: Add KE3-loaderA as an X row, and give X1's A lane the real runway refusal line (Q('runway')), which every real A lane prints.
+
+--- F6 [SHOULD-FIX]
+WHAT: E4's 'at least 5 DISTINCT B runs' denominator is unpinned. Counting T&L attempts instead of runs survives, because every E4 row has one T&L battle per run. A looping run (batch0927 had one run with 28 whiteouts at T&L) would let E4 be assessed from fewer than 5 runs.
+EVIDENCE: E4-03: `qual.extend([(run, t)] * max(1, len(t["attempts"])))` at batch14_checks.py:726 survives. Killing row KE4-distinct: 4 runs, each with a lost first attempt holding Potion:1 then a won second attempt, gives NOT ASSESSED (4) unmutated and FINDING (8) under the mutant.
+FIX: Add KE4-distinct to E4a/E4c.
+
+--- F7 [SHOULD-FIX]
+WHAT: E4's zero listing (the corrected falsifier's evidence column) is only tested where T&L is the run's LAST battle, so reading the wrong battle survives.
+EVIDENCE: E4-08: `run["t4"]["battles"][-1]` instead of `[t["first_k"]]` at batch14_checks.py:740 survives. Every E4 fixture ends at tl_end (probe:572-573). Killing row KE4-index: 5 runs with a wild battle after T&L list 5 'Sceptile 46/133 … at or below 0.35: yes' lines unmutated and 0 under the mutant.
+FIX: Append a later battle to the E4a fixture runs.
+
+--- F8 [SHOULD-FIX]
+WHAT: E4's status line does not apply the corrected falsifier. Every zero is headed FINDING, including a zero that DESIGN §5 E4 (corrected in ca9e5510) calls EXPLAINED because no battle reached 0.35 with an HP item held. The gate pins that wording. The old inverted falsifier can therefore only be mutated in the yes/no column (my E4-05, killed by E4a/E4b). Neither the old nor the new wording decides the status.
+EVIDENCE: batch14_checks.py:745 `"PASS" if uses >= 1 else "FINDING"`. Probe E4b at :589-591 expects status FINDING for 5 'calm' battles that all list 'at or below 0.35: no'. The corrected DESIGN row says: 'A zero is explained by the 0.35 threshold only if NO such battle shows a battler at or below 35% HP while an HP item was held; any battle that does is a defect.'
+FIX: Split the zero case. FINDING when any listed battle reads 'yes' (a defect). A distinct status such as 'EXPLAINED ZERO (0 of n reached ≤0.35 with an HP item)' when all read 'no'. Keep a '?' row from FINDING silently passing. Update E4b's calm arm and record the choice in the T4 note.
+
+--- F9 [SHOULD-FIX]
+WHAT: E5's listing is unpinned: rows check counts and status only, so a version that counts the readings but lists none survives. The spec's E5 'what it lists' column requires the battle, its turn and both HP readings.
+EVIDENCE: E5-01: `for run, rec, e in []:` at batch14_checks.py:754 survives. Probe E5a at :623-630 checks only 'listed' and the status. Killing row KE5-list asserts one detail line carrying 'turn 0', 'target Sceptile#863B0917 (21, 117)' and 'partner Swellow#0B30A747 (18, 109)'.
+FIX: Add the content assertion to E5a.
+
+--- F10 [SHOULD-FIX]
+WHAT: STOP-3's '>= 2 B runs' is only tested with the two runs in TWO lanes. An endless-reset lane re-derailing the same way twice is the realistic shape. Separately, the builder's spec-silent 'a tag in at least one tail' choice is unpinned.
+EVIDENCE: S3-02: `len({l for l, _r in hits}) < 2` at batch14_checks.py:787 survives; S3a/S3c/X3 all use lanes H9 and H10. S3-10: `found = all(...)` at :796 survives. Killing rows: KS3-onelane (two runs of lane H9 with the same signature -> yes) and KS3-any (one tagged tail of two -> yes).
+FIX: Add both rows to the S3 group.
+
+--- F11 [SHOULD-FIX]
+WHAT: The D-loss fixture is unrealistic: every wild and catch battle in table_runs ends 'outcome=BattleOutcome.Won', even the Abra that fled. A mutant counting 'other' outcomes (Caught/OpponentTeleported/RanAway) as losses therefore survives, yet it wrecks the real table.
+EVIDENCE: TL-02: `lost = rec["outcome"] != "won"` at batch14_tables.py:325 survives. Probe table_runs at :732, :739-741 and :747 closes every catch battle with Q('w_ended'). On the real smoke batch the mutant changes 'wild catch A 0/29 B 0/74' to 'A 29/29 B 74/74' and 'other wild B 1/1221' to '144/1221'. Killing row KTL-other uses the real L09:2753 'ended (outcome=BattleOutcome.OpponentTeleported)' and L09:2756 '[CATCH] end … end=foe_fled' lines.
+FIX: Close the fixture's catch battles with real Caught/OpponentTeleported ended lines, and pin D-loss's wild-catch row against them.
+
+--- F12 [SHOULD-FIX]
+WHAT: D-fence's DISTINCT-PER-RUN rule is unpinned, because T8's fences all sit in one A run.
+EVIDENCE: TD-02: de-duplicating across the arm (batch14_tables.py:382-386) survives. On the real smoke batch it changes 'distinct pairs: A 118 B 117' and every reason row. Killing row KTD-perrun: the same pair in two A runs counts 2.
+FIX: Put a repeated pair in a second A run of table_runs and pin the total.
+
+--- F13 [SHOULD-FIX]
+WHAT: D-funnel's DECISION F10 rule (a run censored DURING its attempt is out of the denominator) is unpinned, because no table run is cut mid-attempt.
+EVIDENCE: TF-02: `if False:` in place of `if ca.censored_during(pseudo, key):` (batch14_tables.py:114) survives. Killing row KTF-cens: a B run cut mid-Roxanne (start, no end) plus a complete one gives met 2, eligible 1, decided 1 unmutated and eligible 2 under the mutant.
+FIX: Add a cut-mid-attempt run to table_runs (or a separate T1 arm).
+
+--- F14 [SHOULD-FIX]
+WHAT: The gate itself lists 8 mutants with an EMPTY expected red set, i.e. accepted survivors. T4-2 says non-equivalent survivors must not exist. K48, K51 and T04 look equivalent in practice. K40, T02, T07, T09 and T23 are not, and T02 and T09 change REAL output.
+EVIDENCE: probe_batch14_checks.py:1168-1170 (K40), 1191-1193 (K48), 1198-1200 (K51), 1246-1248 (T02), 1251-1252 (T04), 1259-1262 (T07), 1266-1268 (T09), 1303-1305 (T23). On the smoke batch: T02 turns RIVAL_ROUTE_110's unbeaten cell from 0 into '1 (max 7)'; T09 turns D-lead 'A 0/21' into '1/21' and Roxanne's rate without those leads from 0.917 into 1.000 (real_diff.py). Killing rows KBT02, KBT07, KBT09, KBT23 and KS3-tags (for K40) each pass unmutated and kill.
+FIX: Add those rows and change the five mutants' expected sets from set() to their killing rows. Document K48, K51 and T04 as equivalent, with the reason.
+
+--- F15 [NIT]
+WHAT: E2c's flag_off fixture has allow=False, a combination production never emits, so a mutant that flags flag_off only when allow=False survives.
+EVIDENCE: trainer_identity.py:77-78: `if not flag_on: return True, "flag_off"`. Probe E2c at :480 keeps 'allow=False'. E2-07 (batch14_checks.py:652 `… and p.get("allow") == "False"`) survives. Killing row KE2-flagoff uses the production shape (allow=True reason=flag_off) and expects FINDING.
+FIX: Use the production shape in E2c.
+
+--- F16 [NIT]
+WHAT: Four edge rules that rarely occur in real logs are unpinned. Censoring a LOST run: real lost runs are rare. A first Rustboro heal whose withdraw source is not 'none': all 712 real heals read 'none', though higher_level_actions.py:730/757 can emit counter or hm-carrier. A T&L first attempt with an unreadable bag. D-lead's denominator counting key trainers met rather than first attempts.
+EVIDENCE: These survive: E3-12 (`r["status"] == "cut"` at batch14_checks.py:694), E3-17 (_HEAL_MARK restricted to 'none' at :156), E4-06 (`t["hp"] is None or …` at :725), TLd-01 (`den += len(trainers)` at batch14_tables.py:255). Killing rows KE3-lostcens, KE3-counter, KE4-unread and KTLd-den each pass unmutated and kill.
+FIX: Add the four rows. Each is cheap and uses the gate's existing fixtures.
+
+====================================================================================================
+SPEC REVIEWER
+====================================================================================================
+SUMMARY: I read batch14_checks.py and batch14_tables.py in full against DESIGN §4/§5 and the T4 spec, then ran both tools read-only on the smoke, path-test and fault batches. Outputs are in C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/t4adv/spec/ (checks_*.txt/json, tables_*.txt/json, m1b_*.log, and every probe script named below). Nothing was written outside that folder. No BLOCKER found. Three SHOULD-FIX problems can make tomorrow's E4, E5 or STOP-3 reading wrong.
+
+**What was reproduced**
+- **Smoke batch, checks (T4-3):** E1, E2 and E3 PASS; E4 and E5 NOT ASSESSED; STOP-3 no.
+- **Smoke batch, tables (T4-4):** Roxanne met 8/8 per arm with 7/8 first-try wins each; the K* cross-check against compare_arms reads "equal".
+- **Path-test batch:** E1-E3 PASS, but E3's Rustboro half is NOT ASSESSED while its headline still says PASS. E2 counts 1 NON-KEY trainer battle with no [KEYBATTLE] line.
+- **Fault batch:** both tools exit 1 with NO CHECK / NO TABLE (one refused log), the same as compare_arms.
+- **Gate:** probe_batch14_checks.py reads ALL PASS (52 rows, 98 mutants), with temp dirs pointed into scratch.
+
+**Does the code implement each DESIGN rule?**
+- **E1, E2, E3:** yes, faithfully.
+  - The offline two-opponent class ("any side is a key class") equals production's key_battle_verdict.
+  - Fail-open battles are exempted by the fail_open_ / FAIL_OPEN( prefixes.
+  - E3 reuses the arms file's 9 A-forbidden and 3 B-forbidden texts with the live monitor's own matcher. `[CATCH] trainee` matches trainee-after lines too in the monitor and STOP-3, but E3 counts the two kinds apart, so nothing is double-counted.
+- **E4:** implements the corrected falsifier, but that falsifier is itself incomplete (F1).
+- **E5:** implements the DESIGN's words, but its "not healed that turn" exclusion can only hide real wrong-target readings (F2).
+- **STOP-3:** implemented literally. The stdout-to-log mapping is right on 831 of 831 real run ends from 5 older batches. The tag test fires on almost every B log (F3).
+
+**The builder's spec-silent choices (I found 16 SPEC-SILENT markers, not 18; two lines hold more than one choice, plus two unmarked choices are included below)**
+- **Fine:**
+  - the 200-line tail;
+  - leg-11 money and DERAIL-line refusals;
+  - the checks reading excluded runs;
+  - E1 not judging UNCLASSIFIED battles;
+  - E2 counting missing [KEYBATTLE] lines by offline class;
+  - E4 counting uses over every B battle (only Tate & Liza is a key, in-scope double: `in_scope` excludes the Space Center multi);
+  - E4's "held" meaning the start bag;
+  - E5 never reading FINDING;
+  - the pooled D-boss rates;
+  - D-throughput frames = the log's last frame prefix. It correctly skips the first DUMP line, which carries the previous run's frame; checked on 284 ended runs and the cut logs.
+- **Correct on real data but fragile:**
+  - The Rustboro heal window: my independent attribution agrees on 8 of 8 B lanes. Each first heal is a pre-gym-1 no-op errand logged 2 lines after the heal marker. A transient map read can close the window early (F5).
+  - The Sootopolis era start (F6).
+- **Wrong in a way the DESIGN would not accept:**
+  - the E5 exclusion (F2);
+  - STOP-3 reading "yes" when any one run's tail has a tag, which only loosens a test that is already non-specific (F3);
+  - D-lead matching the lead by species only, which is labelled but avoidable (F10);
+  - E2 still comparing `key=` when the reason is fail-open (F7).
+- **The two unmarked choices:**
+  - E4 reads FINDING on any zero, even a zero the DESIGN calls explained (part of F1).
+  - Any instrument-control failure suppresses every check, mirroring compare_arms.
+
+**Void behaviour.** I copied the smoke batch into scratch and set its verdict to "FAILED — ARM LEAK". Both tools still run and exit 0. Their header shows only the raw verdict string. compare_arms prints "C1-C2 VOID: STOP ARM LEAK (DESIGN §4)" on the same copy (F4).
+
+**Things I tested and found to be fine:**
+- the trainer ids, against pret opponents.h;
+- the [TURN] regex reads our side only, and both double-battle battlers at their own decisions (checked on real Tate & Liza lines);
+- [CATCH] start comes after [BATTLE] started;
+- the two [BALLS-BUY] prefixes are distinct events, not double counts;
+- D-M1b de-duplication keeps every sample: 5,759 pooled = 5,759 summed per log;
+- the current leg-11 refusal text matches victory_road.py:3524-3526;
+- there are 0 item uses in WILD or UNCLASSIFIED battles across 47 files with [TRAINER] lines.
+killed 14 of 24
+survivor: F1 E4 ignores rule 3
+survivor: F2 E5 exclusion masks wrong targets
+survivor: F3 STOP-3 non-specific
+survivor: F4 no VOID label
+survivor: F5 E3 momentary map misread
+survivor: F6 era momentary map misread
+survivor: F7 E2 compares fail-open key
+survivor: F8 E3 headline caveat
+survivor: F9 D-rare asymmetry
+survivor: F10 D-lead species-only
+
+--- F1 [SHOULD-FIX]
+WHAT: E4's zero-listing reads 'at or below 0.35: yes' on Tate & Liza battles where production's own policy correctly declines to heal (rule 3: it will not heal into a losing race). Under the corrected DESIGN falsifier ('any battle that does is a defect') such a row reads as a defect. The row also shows only the battle-wide lowest battler, so a rule-3 decline on one battler can hide a battler that could have been healed. An explained zero (every row 'no') still reads FINDING.
+EVIDENCE: batch14_checks.py:736-745 compares only min_frac <= HEAL_FRACTION. battle_items.py:92-95 (rule 3) returns None when the best held heal < the worst hit taken.
+Real battle, evidence/2026-09-30-doubleitems13-ARMS.txt:254-271: heal_stock=Potion:1; Sceptile 119/133 at turn 3 (:264) -> 46/133 at turn 4 (:267), a worst hit of 73.
+scratch spec/e4_real_tl.py prints: 'E4 row inputs: hp items 1 | lowest own battler Sceptile 46/133 (0.346) | at or below 0.35: yes' and 'production with only Potion (param 20) -> None', 'with only Super Potion (param 50) -> None'.
+The B kit buys Super Potions (smoke D-economy: {'Super Potion': 25}), so rule-3 declines at Tate & Liza are likely. The gate's E4a fixture is this same Sceptile 46/133 battle.
+FIX: For each B qualifying first attempt and each own battler, take the largest HP drop between that battler's consecutive [TURN] decisions and call the sandbox's own battle_items.choose_healing_item on the start bag's HP items (battle_log already imports the sandbox). Print 'production would heal: yes/no (reason)' per battler. Separate an explained zero from a defect zero in the status. Amend DESIGN E4's falsifier to 'at or below 35% while holding an HP item production's policy would pick' before the grade.
+
+--- F2 [SHOULD-FIX]
+WHAT: E5's 'not healed that turn' exclusion (a same-turn [DBLITEM] use whose target is the partner) can only hide genuine wrong-target readings. The partner's own heal can never fall inside an `after` line's measurement window: the window is just this battler's own bag use.
+EVIDENCE: batch14_checks.py:275 (`healed = ... u[3] == partner and use_turn... == turn`).
+Why the window cannot contain the partner's heal: p0 is read just before this battler's bag opens (battle_action_selection.py:1113, _dbl_before), p1 at return-to-battle (:1219). Real order, evidence/…ARMS.txt:119-133: g=0 use f3149372, g=0 after f3149839, then g=2 decides f3149862.
+scratch spec/e5_mask.py on real line shapes: g=0 heals itself (Potion 21->41), then g=2's Super Potion lands on Sceptile (partner 41->91) -> 'E5 listed 0 reading(s)'. Control (g=0 attacks instead) -> 'E5 listed 1'.
+Gate row E5b (probe_batch14_checks.py:633-644) pins the masking on a fixture that inserts g=2's use BEFORE g=0's after, an order the real log does not show. lost_item() also misses this case (partner_rose is True).
+FIX: List every `after` whose partner rose. Print a same-turn use on the partner as context, never as an exclusion. Rewrite gate row E5b and mutants K31/K32 to the real line order.
+
+--- F3 [SHOULD-FIX]
+WHAT: STOP-3 is nearly non-specific. Its package-tag test is satisfied by do-nothing lines that B logs at every heal (`why=topoff-none`, `[KIT-BUY] why=kit-none`), and its count rule (a signature in at least 2 B runs and 0 A runs) fires often even with no package effect. 'STOP-3 pattern: yes' is therefore likely tomorrow without any package-caused failure. A mid-batch `--tag` read that follows §4 literally would park the batch and void C1-C2. The builder's SPEC-SILENT 'a tag in ANY one run' loosens it further.
+EVIDENCE: PACKAGE_TAGS at batch14_checks.py:79-80; `found = any(...)` at :796. stock_topoff.py:487-496 emits topoff-none/kit-none on every heal (297 topoff-none lines in 8 B smoke runs).
+scratch spec/tail_density.py: 88% of 200-line windows in B smoke logs carry a tag (why=topoff 68%, [KIT-BUY] 68%, [KEYBATTLE] 23%); 0% in A.
+scratch spec/stop3_null.py, random lane splits of real single-arm batches: P(some signature in >=2 'B' runs and 0 'A' runs) = 0.90 (20260911-230219, 211 ends), 0.82 (20260911-175201), 0.48 (20260910-234959), 0.22-0.25 (three others).
+FIX: Split the reported tags into acting tags and no-op tags (drop the -none, -skip and -observe kinds; possibly `[KEYBATTLE] allow=False`). Print the no-package rate beside 'yes'. Get a ruling on the tag list and on any-vs-all runs before anyone reads the running batch with --tag.
+
+--- F4 [NIT]
+WHAT: On a batch voided by a STOP, the checks and tables run and exit 0, but print only the raw verdict string. They never say VOID or name the DESIGN §4 consequence, unlike compare_arms. D-lead's 'C2's per-trainer point rates' are printed with no VOID mark. On a batch with a refused log, both tools behave like compare_arms (exit 1, nothing printed).
+EVIDENCE: Scratch copy spec/voided with verdict 'FAILED — ARM LEAK' (make_void.py): void_checks.txt and void_tables.txt show only `batch verdict 'FAILED — ARM LEAK'` (exit 0). void_compare.txt shows `C1-C2 VOID: STOP ARM LEAK (DESIGN §4)`. header_lines (batch14_checks.py:808-814) never calls compare_arms.void_reason. Fault batch 20261001-090513: checks and tables exit 1, 'NO CHECK' / 'NO TABLE'.
+FIX: Add a `C1-C2  VOID: …` line from ca.void_reason(summary) to header_lines, and mark D-lead's C2 rates as void when it applies.
+
+--- F5 [NIT]
+WHAT: E3's Rustboro errand window closes on any map read outside Rustboro, including a momentary misread that snaps back within 1-3 frames. If a run's first Rustboro heal walks to the mart, such a read on entering the mart closes the window before the [KIT-BUY] line (logged on the way back), giving a false 'no [KIT-BUY]' miss.
+EVIDENCE: batch14_checks.py:369-370. scratch spec/transient_from.py over 422 real logs found 3 momentary reads from the Rustboro mart (11,7) to (0,0)/(28,0), 3 frames after entering: 20260912-124117/L27 …124359.log:958, 20260913-092254/L32 …092609.log:943, 20260912-124117/L23 …021659.log:958. On smoke all 8 first heals are pre-gym-1 no-op errands (rustboro_indep.py agrees 8 of 8), so the risk is rare.
+FIX: Ignore a [MAP] read that reverts to its origin within 2 frames before closing the window. The same helper fixes F6.
+
+--- F6 [NIT]
+WHAT: D-fence's 'after Sootopolis' era starts at the first [MAP] read of (0,7). Momentary (0,7) misreads occur on Routes 128, 129 and 131, and Route 128 is crossed before the first Sootopolis visit, so a run's era can flip early.
+EVIDENCE: batch14_checks.py:365-366. scratch spec/transient_maps.py and transient_from.py found 5 momentary (0,7) reads (e.g. 20260911-230219/L06 …230251.log:20488 'ROUTE 128(0,43) -> ROUTE 128(0,7)'). In this sample none came before the genuine first load.
+FIX: Use the same reverting-read filter as F5.
+
+--- F7 [NIT]
+WHAT: E2 still compares `key=` when the [KEYBATTLE] reason is fail-open. Production computes key only over the sides it could read, so a single battle with an unreadable opponent logs `key=False … reason=fail_open_unreadable`. If the offline [TRAINER] read named a leader, E2 reports a false 'key=False but the offline class is KEY'.
+EVIDENCE: story_mode.py:6453 (`key = any(... for _tid, cls in sides if cls is not None)`); batch14_checks.py:654-660 skips only `key=?`.
+FIX: Tally rather than compare `key=` when the reason is fail-open.
+
+--- F8 [NIT]
+WHAT: E3's headline reads PASS when a whole half of the check (Rustboro heals, or the forbidden-text half when there is no monitor list) is NOT ASSESSED. The headline should carry the caveat.
+EVIDENCE: Path-test checks_20261001-093828.txt:14-18: 'E3  PASS' above 'runs with a Pokémon Center heal in Rustboro 0 of 8 … this half NOT ASSESSED'. batch14_checks.py:698-701 and :716.
+FIX: Append '(Rustboro half NOT ASSESSED)' to the status line, or use a PASS-PARTIAL word.
+
+--- F9 [NIT]
+WHAT: D-rare's A and B columns use different rules. B counts the `variant` rarity reason (decided by gender); A's offline species-level lookup cannot see it, so variant-only species appear only in B.
+EVIDENCE: batch14_tables.py:497-500. Smoke tables: B 'Abra#63 battles 16 … rare {'variant': 16}' vs 'arm A: 0 catch battle(s)', although A started 2 Abra catches (grep of the A smoke logs).
+FIX: Also print B under the same species-level rule, so one column pair is comparable.
+
+--- F10 [NIT]
+WHAT: D-lead identifies the lead by species only. That misses a post-badge catch that has since evolved, and counts a pre-badge catch whenever the same species was caught again later. PID identity is available in the log.
+EVIDENCE: batch14_tables.py:238-245. `[CATCH] end … pid=XXXXXXXX badges=N` and `[hb] … ids=['Species#PID…` plus the `[BATTLE] started hp=[...]` party order carry PIDs (smoke L09 lines 973, 1003).
+FIX: Optional: take the lead's PID from the [hb] ids order at battle start and match it against the caught PIDs. The current label is acceptable for a descriptive table.
+
+====================================================================================================
+INDEPENDENT RE-COMPUTATION
+====================================================================================================
+SUMMARY: INDEPENDENT RE-COMPUTATION (role dir: C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad/t4adv/recompute/). I wrote my_check.py from DESIGN §5 and the T4 spec before opening batch14_checks.py or batch14_tables.py. It parses raw log lines only and does not import battle_log or compare_arms.
+
+SMOKE 20261001-090649: there is no disagreement. Every number matches exactly (mine_smoke.txt against t4_checks_smoke.txt and t4_tables_smoke.txt):
+- Runs: 8 per arm, 0 refused.
+- E1: PASS. 132 B non-key battles, 2606 wild battles (both arms), 0 violations, 0 exempt.
+- E2: PASS. 149 B [KEYBATTLE] lines, 0 multiple, 0 disagreements, 0 flag_off, 0 trainer battles without a line.
+- E3:
+  - 0 forbidden-text hits in either arm.
+  - 0 dex catches ending end=lost, so the loss-filed half was never exercised.
+  - First Rustboro heal logged both lines in 8 of 8 B runs.
+  - B: [CATCH] trainee 39 (trainee-after 39), [DEXCATCH-NOBAIL] 2. A: 0 and 0.
+- D-funnel:
+  - Roxanne: A met 8, first-try 7/8, eventually 8. B the same.
+  - Brawly: A met 1, first-try 0/1, eventually 1, 2 attempts. B met 0.
+- D-loss (lost/battles):
+
+| class | A | B |
+|---|---|---|
+| non-key trainer | 1/145 | 0/132 |
+| wild catch | 0/29 | 0/74 |
+| other wild | 0/1282 | 1/1221 |
+| key trainer | 9/30 | 1/17 |
+
+  - My counts.py gives the same denominators.
+- D-economy:
+  - A: mandatory 6 lines, 180 bought, ₽36,000.
+  - B [BALLS-BUY]: 316 lines with the `[BALLS] [BALLS-BUY]` prefix and 5 bare. Mandatory 5 lines, 144 bought, ₽28,800. why=topoff 19 lines, 90 bought, ₽27,100. topoff-none 297.
+  - B [KIT-BUY]: kit 15 lines, ₽27,700; kit-none 301; Super Potion 25.
+- D-fence: per-run distinct pairs A 118, B 117, with the same per-reason split (31/37, 29/29, 41/0, 13/11, 0/20, 0/11, 4/5, 0/3, 0/1).
+
+The path test (093828) also agreed: 1 B non-key battle with no [KEYBATTLE]. Both tools refuse the aborted batch's (090513) L01 log; T4 exits 1.
+
+PLANTED (planted_v1..v4, copies of the smoke batch in scratch, built by plant.py):
+- V1: both tools flag all 5 plants:
+  - B non-key [ITEM] using (L10);
+  - A ' rare=' (L01);
+  - dex end=lost with no loss-filed (L11);
+  - first Rustboro heal without [KIT-BUY] (L12);
+  - Tate & Liza double in 5 B runs: partner at 18/60 (0.30), Hyper_Potion:2 held, 0 uses → E4 FINDING with "at or below 0.35: yes" listed.
+- V2: both tools flag every E1/E3 plant:
+  - B non-key [DBLITEM] use (L13);
+  - A wild [ITEM] using (L02);
+  - B A-only text (L14);
+  - A 'dex catch #'+'(joins the party)' (L03);
+  - dex loss followed only by loss-filed kind=team (L15);
+  - Rustboro heal without why=topoff (L16).
+  - Both exempt the fail-open control (L10), and both exclude the run holding only Full_Heal from E4 (5 qualifying).
+- V3: both tools flag the three E2 plants (two [KEYBATTLE] lines in one battle, key=True in a non-key battle, reason=flag_off).
+
+Disagreements on plants:
+- (a) V3 L13, whiteout respawn into the Rustboro PC before the first real heal: my checker gave a false FINDING (it takes the first map load of the PC (11,5) as the heal). T4 was right, because it keys on the `[PC] Story: PC — <src> withdraw:` heal marker.
+- (b) V3 L11, a transient (255,255) map pair inside the first errand: T4 gave a false FINDING and mine passed (F3).
+
+Mis-graded by both tools (the same literal reading of E4):
+- V2 and V3: E4 masked to PASS.
+- V4: E4 reads FINDING on a zero that the 0.35 threshold explains (F2).
+
+No file in either checkout was modified. The worktree's two dirty files date from 09-29 and 09-30, and the smoke batch's files keep their 09:21 times.
+killed 16 of 20
+survivor: planted_v2 E4: a [DBLITEM] use in an unrelated non-key double (L13) turns E4 into PASS; the qualifying T&L first attempts had 0 uses with battlers at 0.35, 0.30 and 0.17
+survivor: planted_v3 E4: a [DBLITEM] use in a T&L RE-attempt (L14) turns E4 into PASS and hides the list; all 5 first attempts were at 0.30 holding Hyper_Potion:2 with 0 uses
+survivor: planted_v4 E4: a zero explained by the threshold (lowest own battler 0.55 in all 5 qualifying first attempts) reads FINDING, against DESIGN §5's falsifier
+survivor: planted_v3 L11: a transient (255,255) map pair inside the first Rustboro errand gives a false E3 FINDING
+
+--- F1 [SHOULD-FIX]
+WHAT: D-economy counts the money of every errand that bought both balls and kit TWICE: once in the ball rows and once in the kit row. The ball line and the kit line of one errand carry the SAME money=a->b, and each row adds its own line's difference.
+EVIDENCE: Code:
+- `stock_topoff.py:661-668`: both `_emit` calls pass `money_before=live['money']`, `money_after=report['money_after']`.
+- `batch14_tables.py:424-435`: the why rows and `by_ball` add the ball line's spend; the kit row adds the kit line's spend.
+
+Real pairs (smoke):
+- L10 lines 2484/2485, f267952: both `money=10180->5680`. That is 12 Poké Balls (₽2,400) + 3 Super Potions (₽2,100) = ₽4,500.
+- Also L11 2217/2218 (f248844) and L13 2314/2315 (f233846).
+
+Computed by my_check.py `D-economy-dedup` on the smoke: B has 28 errands, 6 of them joint, holding ₽19,300 that appears in both rows.
+- T4 prints 'Poké Ball bought 90 ₽27,100'. The real figure is 90 × ₽200 = ₽18,000.
+- T4 prints 'kit lines 15 ₽27,700'. The real figure is 25 Super Potions × ₽700 = ₽17,500.
+- Added together the rows give ₽54,800; the package actually spent ₽35,500.
+
+The gate's D-economy fixture (`probe_batch14_checks.py:144,150,386-390,854-863`) has only separate errands, so no row covers this.
+FIX: - Remove duplicates per errand (key: log, frame, money a->b).
+- Print ONE package ₽ row, which is DESIGN §5's 'joint ball+kit budget'.
+- Give each item only bought × price, or label the per-ball and per-kit ₽ as 'errand money (joint errands counted in both)'.
+- Add a gate row built from the real L10 f267952 pair.
+
+--- F2 [SHOULD-FIX]
+WHAT: E4's status depends only on the GLOBAL count of B [DBLITEM] use lines. It departs from DESIGN §5 E4 in both directions.
+- A use outside the qualifying Tate & Liza first attempts turns E4 into PASS and hides the at-or-below-35% list. This holds whether the use is in a re-attempt or in an unrelated double that E1 already flags.
+- A zero that the 0.35 threshold explains is reported as FINDING, though DESIGN says a zero with no battler at or below 35% is explained.
+EVIDENCE: Code: `batch14_checks.py:727-745`, the SPEC-SILENT comment 'counts over EVERY B battle'. `uses` sums every B battle; the per-battle list is printed only `if uses == 0`; status is `'PASS' if uses >= 1 else 'FINDING'`.
+
+Planted cases:
+- planted_v3: 5 B first attempts (L09 L10 L11 L13 L14) with heal_stock=Hyper_Potion:2, partner at 18/60 (0.30), 0 uses. One L14 re-attempt has 1 [DBLITEM] use. T4 prints 'E4 PASS — ... 5 ...; B [DBLITEM] use lines 1 (in those first attempts 0)' and lists no battle.
+- planted_v2: the same masking, caused by a [DBLITEM] use planted in an L13 non-key TWINS battle. The qualifying first attempts were at 0.35, 0.30 and 0.17 with 0 uses.
+- planted_v4: 5 qualifying first attempts, lowest own battler 33/60 (0.55), 0 uses. T4 prints 'E4 FINDING' with every row 'at or below 0.35: no'. DESIGN §5 E4 (corrected 2026-10-01): 'A zero is explained by the 0.35 threshold only if NO such battle shows a battler at or below 35% ... any battle that does is a defect.'
+
+My own checker gives the same three statuses because it follows the same literal reading. So this is a choice in how the spec is read, not an arithmetic error.
+FIX: - Grade E4 on the qualifying first attempts.
+- When they hold zero uses, always print the per-battle list.
+- Status is FINDING if any qualifying zero-use battle had a battler at or below 0.35 while an HP item was held, and 'zero explained by the 0.35 threshold' if none did. Print the global count beside it.
+- Add V3-shaped and V4-shaped gate rows.
+
+--- F3 [NIT]
+WHAT: The E3 Rustboro errand window closes on ANY map load outside {(11,5),(0,3),(11,7)}, including the transient (255,255) and (3,0) loads the logger writes. A first heal whose errand saw one would read as a false miss.
+EVIDENCE: Code: `batch14_checks.py:369-370` (`if heal_window and cur_map not in (RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART): heal_window = False`).
+
+planted_v3 L11: a '(0,3) -> (255,255) -> (0,3)' pair was inserted just before the first errand's lines. T4 printed 'H11 ... the first Rustboro heal (f146918) logged no why=topoff line and no [KIT-BUY] line', though both lines follow immediately. My checker passed it.
+
+Measured risk is small. In the smoke, transient loads occur only on routes and towns (ROUTE 116 (255,255) 145 times, (3,0) 94 times). rustboro_windows.py found 0 of them inside 316 Rustboro errands, over 597 entries into the Rustboro PC.
+FIX: Do not close the window on the (255,255) or (3,0) destinations, or close it only on a real load of another map. Add one gate row.
+
+--- F4 [NIT]
+WHAT: E3's headline reads PASS when one of its halves had nothing to judge. The caveat appears only in a detail line.
+EVIDENCE: Code: `batch14_checks.py` `check_e3` returns `'FINDING' if finds else 'PASS'`.
+- Path test 20261001-093828: 'E3  PASS — 0 miss(es)', while its own detail line says 'runs with a Pokémon Center heal in Rustboro 0 of 8 ... (no B run healed there: this half NOT ASSESSED)'.
+- Smoke: 0 dex catches ended end=lost, so the loss-filed half was never tested on real data.
+FIX: Put the NOT ASSESSED or zero-trial halves in the E3 headline, e.g. 'PASS (Rustboro half NOT ASSESSED)'.

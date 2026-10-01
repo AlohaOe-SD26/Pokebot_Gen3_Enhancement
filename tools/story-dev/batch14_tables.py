@@ -245,8 +245,9 @@ def post_badge_leads(run) -> dict:
             if t["first_k"] is not None and t["lead"] is not None}
 
 
-def d_lead(runs) -> dict:
-    out = {"share": {}}
+def d_lead(runs, void: "str | None" = None) -> dict:
+    """PURE (numpy). `void` (compare_arms' `void_reason`, RULING 8) marks the C2 rates printed here as VOID."""
+    out = {"share": {}, "void": void}
     excluded = {}
     for arm in ARMS:
         num = den = 0
@@ -277,16 +278,19 @@ def d_lead(runs) -> dict:
 
 
 def render_lead(d: dict) -> list:
-    out = [f"D-lead (K3) — ⚠ {LEAD_LABEL} (OPENFENCE causes it; biased toward B, DESIGN §5)"]
+    out = [f"D-lead (K3) — ⚠ {LEAD_LABEL} (OPENFENCE causes it; biased toward B, DESIGN §5); species-level: "
+           f"evolved catches are missed"]
     out.append("  key first attempts led by a species caught after the Stone Badge: "
                + "   ".join(f"{arm} {_pct(*d['share'][arm])}" for arm in ARMS))
-    out.append("  (a species match: the [TURN] line has no PID — an evolved catch is missed, an earlier catch of the "
-               "same species counts)")
+    out.append("  (a species match: the [TURN] line has no PID — evolved catches are missed, and an earlier catch of "
+               "the same species counts)")
     if d["rates"] is None:
         out.append("  C2's per-trainer rates: not computed (numpy missing, or an arm has no usable run)")
         return out
+    if d.get("void"):
+        out.append(f"  ⛔ C1-C2 VOID: {d['void']} (DESIGN §4) — the C2 rates below are VOID: descriptive only")
     out.append("  C2's per-trainer point rates (compare_arms' estimator: species-weighted, no bootstrap), all first "
-               "attempts vs without those:")
+               "attempts vs without those" + (" [VOID]" if d.get("void") else "") + ":")
     out.append(f"  {'trainer':<20}{'p A':>8}{'p B':>8}{'p A w/o':>10}{'p B w/o':>10}{'dropped A/B':>13}")
     for k in ca.KEYS:
         (aa, bb), (aw, bw) = d["rates"]["all"][k], d["rates"]["without"][k]
@@ -404,6 +408,11 @@ def render_fence(d: dict) -> list:
 
 # ---------------------------------------------------------------------------------------------------- D-economy
 def d_economy(runs) -> dict:
+    """PURE. RULING 4 (the recompute's F1): ONE errand that buys balls AND kit logs a ball line and a kit line with
+    the SAME frame and the SAME `money=a->b` (`stock_topoff.py:661-668`), so a per-line sum counts its money twice.
+    The PACKAGE row (DESIGN §5's joint ball+kit budget) is therefore de-duplicated per errand — key (log, frame,
+    money a->b) over the top-off and kit lines. The per-why / per-ball rows keep the LINE's money and are labelled
+    "errand money, joint errands counted in both" (no line carries a unit price); per item, the bought COUNT."""
     out = {}
     for arm in ARMS:
         balls: dict = {}
@@ -412,6 +421,7 @@ def d_economy(runs) -> dict:
         items = collections.Counter()
         t1: dict = {}
         money = []
+        errands: dict = {}
         for r in usable_runs(runs, arm):
             t4 = r["t4"]
             for x in t4["balls_buy"]:
@@ -426,6 +436,8 @@ def d_economy(runs) -> dict:
                     b = by_ball.setdefault(x["ball"], {"bought": 0, "spent": 0})
                     b["bought"] += x["bought"]
                     b["spent"] += x["spent"] or 0
+                    e = errands.setdefault((r["log"], x["frame"], x["money"]), {"kinds": set(), "spent": x["spent"]})
+                    e["kinds"].add("ball")
             for x in t4["kit_buy"]:
                 row = kit.setdefault(x["why"], {"lines": 0, "spent": 0, "spent_unknown": 0})
                 row["lines"] += 1
@@ -434,6 +446,9 @@ def d_economy(runs) -> dict:
                 else:
                     row["spent"] += x["spent"]
                 items.update(x["items"])
+                if x["why"].startswith("kit"):
+                    e = errands.setdefault((r["log"], x["frame"], x["money"]), {"kinds": set(), "spent": x["spent"]})
+                    e["kinds"].add("kit")
             for rec in t4["battles"]:
                 for delta, m in rec["t_ends"]:
                     row = t1.setdefault(m or "?", {"n": 0, "delta": 0})
@@ -441,8 +456,12 @@ def d_economy(runs) -> dict:
                     row["delta"] += delta or 0
             if t4["leg11_loaded"] and t4["leg11_money"] is not None:
                 money.append(t4["leg11_money"])
+        paying = [e for e in errands.values() if e["spent"]]
+        package = {"spent": sum(e["spent"] for e in paying), "errands": len(paying),
+                   "joint": sum(1 for e in paying if e["kinds"] == {"ball", "kit"}),
+                   "unreadable": sum(1 for e in errands.values() if e["spent"] is None)}
         out[arm] = {"balls": balls, "by_ball": by_ball, "kit": kit, "items": dict(items), "t1": t1,
-                    "money_leg11": sorted(money)}
+                    "money_leg11": sorted(money), "package": package}
     return out
 
 
@@ -456,17 +475,22 @@ def _map_key(m: str):
 
 def render_economy(d: dict) -> list:
     out = ["D-economy — [BALLS-BUY] (both prefixes), [KIT-BUY], T1 money per map, money at leg 11"]
+    joint = "errand money, joint errands counted in both"
     for arm in ARMS:
         a = d[arm]
-        out.append(f"  arm {arm} [BALLS-BUY] by why: " + ("; ".join(
+        p = a["package"]
+        out.append(f"  arm {arm} PACKAGE (top-off + kit errands, de-duplicated per errand: the joint ball+kit budget): "
+                   f"₽{p['spent']:,} over {p['errands']} paying errand(s), {p['joint']} of them joint ball+kit"
+                   + (f"; {p['unreadable']} errand(s) with unreadable money" if p["unreadable"] else ""))
+        out.append(f"  arm {arm} [BALLS-BUY] by why ({joint}): " + ("; ".join(
             f"{w} lines {v['lines']} bought {v['bought']} ₽{v['spent']:,}"
             + (f" (+{v['spent_unknown']} unreadable)" if v["spent_unknown"] else "") for w, v in sorted(a["balls"].items()))
             or "none"))
         out.append(f"  arm {arm} why=topoff… by ball: " + ("; ".join(
-            f"{b} bought {v['bought']} ₽{v['spent']:,}" for b, v in sorted(a["by_ball"].items())) or "none"))
-        out.append(f"  arm {arm} [KIT-BUY] by why: " + ("; ".join(
+            f"{b} bought {v['bought']} ({joint}: ₽{v['spent']:,})" for b, v in sorted(a["by_ball"].items())) or "none"))
+        out.append(f"  arm {arm} [KIT-BUY] by why ({joint}): " + ("; ".join(
             f"{w} lines {v['lines']} ₽{v['spent']:,}" + (f" (+{v['spent_unknown']} unreadable)" if v["spent_unknown"] else "")
-            for w, v in sorted(a["kit"].items())) or "none") + f"; items bought {a['items'] or 'none'}")
+            for w, v in sorted(a["kit"].items())) or "none") + f"; items bought (counts) {a['items'] or 'none'}")
         m = a["money_leg11"]
         out.append(f"  arm {arm} money at leg 11 (the last reading before the first (16,10) load): n={len(m)}"
                    + (f" median ₽{_med(m):,.0f} [₽{m[0]:,}..₽{m[-1]:,}]" if m else ""))
@@ -489,34 +513,45 @@ def _offline_rare(dex) -> bool:
 
 
 def d_rare(runs) -> dict:
-    out = {}
+    """PURE. `species`: BOTH arms under ONE rule — the offline species-level join (RULING 9: the comparable column
+    pair; it cannot see the gender-decided `variant`). `line`: arm B by its own line's ` rare=` (variant included;
+    arm A prints no suffix, so it has no such column)."""
+    out = {"species": {}, "line": {}}
     for arm in ARMS:
         rows: dict = {}
+        line_rows: dict = {}
         for r in usable_runs(runs, arm):
             for sp, dex, rare, _k, end in r["t4"]["rare"]:
-                if arm == ck.ARM_B:
-                    is_rare = rare not in (None, "-")
-                else:
-                    is_rare = _offline_rare(dex)
-                if not is_rare:
-                    continue
-                row = rows.setdefault(f"{sp}#{dex}", {"battles": 0, "ends": collections.Counter(),
-                                                      "rare": collections.Counter()})
-                row["battles"] += 1
-                row["ends"][end] += 1
-                row["rare"][rare or "offline"] += 1
-        out[arm] = rows
+                for table, is_rare in ((rows, _offline_rare(dex)),
+                                       (line_rows, arm == ck.ARM_B and rare not in (None, "-"))):
+                    if not is_rare:
+                        continue
+                    row = table.setdefault(f"{sp}#{dex}", {"battles": 0, "ends": collections.Counter(),
+                                                           "rare": collections.Counter()})
+                    row["battles"] += 1
+                    row["ends"][end] += 1
+                    row["rare"][rare or "offline"] += 1
+        out["species"][arm] = rows
+        if arm == ck.ARM_B:
+            out["line"][arm] = line_rows
     return out
 
 
 def render_rare(d: dict) -> list:
-    out = ["D-rare — [CATCH] battles and their ends per rare species (B: the line's ` rare=`; A: the offline "
-           "species-level join, which cannot see `variant`)"]
-    for arm in ARMS:
-        rows = d[arm]
-        out.append(f"  arm {arm}: {sum(v['battles'] for v in rows.values())} catch battle(s) over {len(rows)} species")
-        for sp, v in sorted(rows.items()):
-            out.append(f"    {sp:<20} battles {v['battles']:>3}  ends {dict(v['ends'])}  rare {dict(v['rare'])}")
+    out = ["D-rare — [CATCH] battles and their ends per rare species",
+           "  both arms under ONE rule (the offline species-level join; `variant` is not visible to it):"]
+    sp_rows = d["species"]
+    for sp in sorted(set(sp_rows[ck.ARM_A]) | set(sp_rows[ck.ARM_B])):
+        out.append(f"    {sp:<20}" + "   ".join(
+            f"{arm} battles {sp_rows[arm].get(sp, {}).get('battles', 0):>3} ends "
+            f"{dict(sp_rows[arm].get(sp, {}).get('ends', {}))}" for arm in ARMS))
+    if not (sp_rows[ck.ARM_A] or sp_rows[ck.ARM_B]):
+        out.append("    none")
+    rows = d["line"].get(ck.ARM_B, {})
+    out.append(f"  arm B by its own line's ` rare=` (variant included; A prints no suffix): "
+               f"{sum(v['battles'] for v in rows.values())} catch battle(s) over {len(rows)} species")
+    for sp, v in sorted(rows.items()):
+        out.append(f"    {sp:<20} battles {v['battles']:>3}  ends {dict(v['ends'])}  rare {dict(v['rare'])}")
     return out
 
 
@@ -604,7 +639,7 @@ def render_throughput(d: dict) -> list:
 def all_tables(b: dict, pool=None, out_path=None, accepted=None) -> "tuple[dict, list]":
     runs = b["runs"]
     data = {"D-funnel": d_funnel(runs, b["stdout"]), "D-attempt": d_attempt(runs), "D-boss": d_boss(runs),
-            "D-lead": d_lead(runs), "D-loss": d_loss(runs), "D-leg11": d_leg11(runs), "D-fence": d_fence(runs),
+            "D-lead": d_lead(runs, b.get("void")), "D-loss": d_loss(runs), "D-leg11": d_leg11(runs), "D-fence": d_fence(runs),
             "D-economy": d_economy(runs), "D-rare": d_rare(runs), "D-weaken": d_weaken(runs),
             "D-throughput": d_throughput(runs, b["summary"], b["manifest"]["lanes"])}
     lines = []
@@ -625,6 +660,8 @@ def main(argv=None) -> int:
     ap.add_argument("batch", nargs="?", help="x4-runs/<stamp> under the MAIN checkout, or a batch directory path")
     ap.add_argument("--tag", help="LIVE: read a RUNNING batch's lane profiles (endless-<tag>-H*)")
     ap.add_argument("--m1b-out", metavar="FILE", help="write the pooled, de-duplicated [DMGAUDIT] blocks to FILE")
+    ap.add_argument("--void", metavar="REASON", help="a manual STOP (a STOP-3 park): C1-C2 VOID in the header and on "
+                                                     "D-lead's C2 rates, as compare_arms --void")
     ap.add_argument("--json", metavar="OUT", help="also write the tables as JSON")
     args = ap.parse_args(argv)
     if not args.batch and not args.tag:
@@ -632,7 +669,7 @@ def main(argv=None) -> int:
     handle = open(args.m1b_out, "w", encoding="utf-8", newline="\n") if args.m1b_out else None
     pool = ck.M1bPool(handle)
     try:
-        b = ck.load(args.batch, args.tag, ap, m1b=pool)
+        b = ck.load(args.batch, args.tag, ap, m1b=pool, manual_void=args.void)
     finally:
         if handle is not None:
             handle.close()
