@@ -23634,3 +23634,32 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   verified intact afterwards (0 replacement characters; every Greek letter counted). The rule ("documentation text
   never passes through ANY shell-quoted string") already existed and was broken anyway. ⇒ prose has failed three times,
   which strengthens the case for the proposed heredoc hook (an open user question).
+
+## 2026-10-01 — ⛔ STEP 14 T1: A GATE THAT CHECKED THE BATCH LOOP BY ITS SOURCE SHAPE PASSED 44 BROKEN MUTANTS, AND A SUBSTRING "TYPO" CHECK THAT ACCEPTED A TYPO
+
+- **Symptoms** (`tools/story-dev/evidence/2026-10-01-batch14-T1-ADVERSARIAL.txt`; the gate's own first run):
+  - The first gate killed only 103 of 155 mutants. F14 asserted `_run_batch`'s safety net by AST shape and `str.find`
+    order. It passed with the arm abort gated on `--on-bad-header`, with the monitor or the freeze watch switched off,
+    with the `finally` stopping only the first lane, and with the lanes built WITHOUT their arm.
+  - `validate_arms`' "key appears in the build's source" check was a substring test. `POKEBOT_R26_KITTOPOF` passed,
+    because it sits inside `POKEBOT_R26_KITTOPOFF`. The gate's own typo row caught it on the first run.
+- **Root causes:**
+  - The loop launches processes, so it was "tested" by reading it instead of driving it.
+  - A membership test on text where the unit is a TOKEN.
+- **The fixes that worked:**
+  - A driven `_run_batch`: the real loop with a fake Popen (asserted in place), a fake clock, fake git and a
+    `BUILD_ROOT` with no bot in it. It writes the logs a lane would.
+  - Whole-token matching.
+- **Prevention rules:**
+  - A guard in a loop that launches processes is tested by DRIVING the loop with fakes, never by its source shape.
+    A shape check passes on the broken behaviour it claims to rule out.
+  - A "does this name exist" check matches whole tokens, and its gate includes a near-miss (a prefix of a real name).
+- **Also, two more slips of the same rule, the fourth and fifth:**
+  - a scratch Python probe (`injob.py`) was written through a bash heredoc, CODE text;
+  - this very changelog entry's "live arms" sentence was passed as a shell-quoted ARGUMENT to the appending script.
+
+  Both were verified intact: no backslashes, `$` or backticks, and 0 replacement characters in `07`.
+  ⇒ **Five slips of a written rule in two sessions: prose has failed, and by rule 6 the fix is a GATE.** The
+  pending "heredoc hook" question goes back to the user with that count. A PreToolUse hook would refuse a Bash command
+  that writes a file under `PROJECT KNOWLEDGE/` or a `*.py` through a heredoc, `echo`/`printf` redirection, or a long
+  quoted argument.

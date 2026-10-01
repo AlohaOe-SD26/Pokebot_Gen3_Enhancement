@@ -8861,3 +8861,23 @@ on all three questions:
   the user changes either later, the affected readings are flagged as measured under the old answer.
 - ⛔ This answers step 14's go-ahead ONLY. Q1-Q9 themselves stay open as questions; this ruling only lets the batch run
   the proposals.
+
+## 2026-10-01 — design v2 step 14 T1: how the A/B runner refuses a contaminated batch (`#26-organiccatch`, v2 step 14)
+
+- **Arms are literal and enforced at three points:** an allowlist plus a whole-token source check at the start; a
+  FAIL-CLOSED `env-all:` + `build:` equality on every run header; and a live substring monitor in BOTH directions
+  (B-only texts in A, A-only refusal texts in B). Rejected: trusting the launching shell, which is how both arms would
+  silently get a leftover flag.
+- **An arm violation aborts whatever `--on-bad-header` says.** A contaminated A/B is void, not noisy.
+- **The freeze is HEAD + the scoped porcelain, strict,** and a dirty scoped tree refuses to start. Rejected: a
+  tree-hash freeze that would tolerate docs commits. It is more code, and the rule is simpler: no commit, pull or
+  merge in the main checkout during the window, announced by a banner and `ARMS.json`'s `do_not_touch_until`.
+- **Lanes sit in a kill-on-close Windows job** (they die with x4h however x4h dies). **The night run is launched
+  through WMI** (`Win32_Process.Create`, `python.exe -X utf8` directly) because this session's own processes sit in a
+  kill-on-close job. Measured: a WMI-created python is in no job and its parent is `WmiPrvSE`. Rejected: a
+  background task, which the session's end would kill along with the whole batch.
+- **A lane lost for good makes the batch DEGRADED** (named in the verdict), never VACUITY, and `require` is checked
+  only on live lanes.
+- **The arms spawn interleaved** (H1, H9, H2, H10, …), so neither arm gets a head start.
+- **The in-game name is paired across arms.** ⚠ This does not guarantee one seed pool per lane: P2 and P4 shared one in
+  the baseline despite different names.

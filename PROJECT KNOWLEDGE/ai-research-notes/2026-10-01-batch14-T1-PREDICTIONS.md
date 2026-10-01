@@ -147,3 +147,23 @@ are closed, and T1 is merged to `main` at the commit the batch runs (USER RULING
   - A WMI-created `python.exe` is in no job and its parent is `WmiPrvSE`.
   - ⇒ the night run is launched through WMI (`tools/story-dev/launch_x4h_detached.ps1 -Tag <tag> -Minutes <m>`, run
     from the MAIN checkout; the recipe is in `04`).
+
+## GRADED — the live arms (2026-10-01; evidence `tools/story-dev/evidence/2026-10-01-batch14-T1-LIVE.txt`)
+
+- **T1-3 HELD (5 of 5):** `x4-runs/20261001-090513`, 8 lanes, tag `s14fault`.
+  - The batch aborted in 0.8 min with `ARM HEADER` on H1, naming `POKEBOT_X4H_LEAK`.
+  - In the same tick the other seven lanes' headers EQUALLED their arms.
+  - Every lane stopped (`in_job` True, `stopped_by` x4h), and no lane process remained afterwards.
+- **T1-4: 9 of 10 AS FILED:** `x4-runs/20261001-090649`, 16 lanes, 15.1 min. It was launched DETACHED through WMI, the
+  exact night path.
+  - Verdict OK, 0 violations; all 16 `env-all` headers equal their arms.
+  - Every B lane showed ` rare=` (17-90 s) and `[KEYBATTLE]` (53-90 s).
+  - 7 of 8 A lanes showed the runway text, the live proof that an explicit `"0"` is OFF.
+  - 8 of 8 B lanes showed `why=topoff` and `[KIT-BUY]`.
+  - The freeze watch answered every poll.
+  - ⛔ **FAILED AS FILED: throughput.** The per-lane median was 862 frames/s, ABOVE the 550-700 band. This was the first
+    15 minutes, which are early game. It is not a stop: the batch measures its own throughput, and the expected n is
+    restated from that, never from this window. (The grader assumed sequential spawns for its offsets; about 10% on one
+    lane, immaterial.)
+- **⇒ T1 is DONE.** The batch is SCHEDULED (task `Pokebot-Batch14`, 9:00 PM LA tonight; `04` has the details and the
+  freeze rules).

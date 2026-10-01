@@ -37494,3 +37494,21 @@ bought balls only at fixed story points.
 - **Tools still to build BEFORE the batch:** T1 `x4_headless.py --arms`, T2 `battle_log.py`, T3 `compare_arms.py`, each
   gated. No code was written and nothing was run.
 - Next: the user's three answers (lanes, window, Q1/Q3 as built).
+
+## 2026-10-01 — design v2 step 14 T1: `x4_headless.py --arms` built, gated, adversarially folded (`#26-organiccatch`)
+
+- **Built:** `tools/story-dev/x4_headless.py` `--arms FILE` / `--profile-tag TAG` (`tools/story-dev/arms/batch14.json` is
+  the DESIGN §1 table verbatim). It adds:
+  - a per-lane environment: every `POKEBOT_*` and the D6 variables stripped, then the arm set;
+  - the fail-closed header check (`env-all` and `build`);
+  - the live leak and vacuity monitor, the freeze watch and the start manifest `ARMS.json`;
+  - try/finally, a kill-on-close job, lost-lane and cut-run records, and interleaved spawning.
+- **The gate is `repro_x4_headless.py`** sections F-H (246 rows).
+  - The first mutant pass killed 103 of 155: T1-2 FAILED as filed. The wiring was checked only by its SHAPE.
+  - A SECOND independent pass (236 mutants) killed 48 of the 81 mutants of the R1-R12 fixes; its section H closes
+    those 31 real gaps, and 8 EQUIVALENT mutants remain, each argued in the evidence.
+  - Section G drives the real `_run_batch` with a fake Popen, a fake clock and fake git. It also proves, with a
+    harmless sleeper, that the job kills a lane when x4h's handle closes.
+  - The runtime review's twelve findings are folded (R1-R12): no blocker, five should-fix.
+- **The live arms:** T1-3 (an env leak on H1) aborted the batch in 0.8 min naming the variable, every lane stopped; T1-4 (16 lanes, 15 min, launched detached through WMI) ran clean with every arm header equal to its arm and both monitor directions quiet, the B markers present on all 8 B lanes; its throughput prediction FAILED AS FILED on the fast side (862 frames/s per lane, early game). The night batch is SCHEDULED: Windows task Pokebot-Batch14, 9:00 PM LA, 780 min (evidence/2026-10-01-batch14-T1-LIVE.txt).
+- ⚠ The batch runs the MAIN checkout. No commit, pull or merge there until it ends.

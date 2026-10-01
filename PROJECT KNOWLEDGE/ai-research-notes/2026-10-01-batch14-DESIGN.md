@@ -14,8 +14,8 @@ are descriptive only: too few runs reach them, and reaching them is itself chang
 if half of today's ordinary item battles turned into losses, and .44 at 30% (§6).
 ⛔ **Nothing ran before the user said go** (USER RULING 28, §7).
 
-**Status:** DESIGN, adversarially reviewed and folded (§9); the user's answers are USER RULING 28 (§7). T1 is being
-built; no lane started.
+**Status:** DESIGN, adversarially reviewed and folded (§9); the user's answers are USER RULING 28 (§7). T1 is DONE
+(`2026-10-01-batch14-T1-PREDICTIONS.md`); the batch is SCHEDULED for 9:00 PM LA 2026-10-01 (task `Pokebot-Batch14`).
 **Recon** (NOTES, not truth): `2026-10-01-batch14-recon/b14_recon_{machinery,flags,stats,expectations,adversary}.md`;
 the design's review: `…/b14_design_review.md` (four angles, about 40 findings).
 **Plan of record:** `2026-09-29-r23-27-DESIGN-v2.md` §Step 14 (:687-707); `06` 2026-09-30 (arm B adds DOUBLEITEMS) and

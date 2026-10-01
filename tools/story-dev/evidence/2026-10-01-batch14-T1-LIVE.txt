@@ -1,0 +1,292 @@
+# 2026-10-01 — design v2 step 14 T1: the LIVE arms (T1-3 the env-leak fault, T1-4 the 16-lane smoke)
+# Both ran on the MAIN checkout at 1f3872ac (--build sandbox). Grades by scratchpad/t1_smoke_grade.py (copied below).
+
+====================================================================================================
+T1-3 — X4H_FAULT_ENVLEAK=1, 8 lanes, tag s14fault (background launch)
+batch dir: x4-runs/20261001-090513
+====================================================================================================
+--- grade ---
+batch 20261001-090513: verdict 'FAILED — ARM HEADER ASSERTION FAILED', wall 0.8 min, kinds {'arm': 1}
+arms ['A', 'B'], tag s14fault, head 1f3872ac7a85, stripped []
+  PASS  T1-3 the batch ABORTED on an ARM HEADER violation  — FAILED — ARM HEADER ASSERTION FAILED
+  PASS  T1-3 the violation names H1 and POKEBOT_X4H_LEAK  — [{'tag': 'H1', 'log': 'C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\sandbox-pokebot\\profiles\\endless-s14fault-H1-torchic\\debug-logs\\Story_(ENDLESS_RESET)-debug-20261001-090516.log', 'reason': "env-all differs from the arm: extra=['POKEBOT_X4H_LEAK'] missing=[] differ=[]", 'kind': 'arm'}]
+  PASS  T1-3 no OTHER lane had an arm violation  — ['H1']
+  PASS  T1-3 ARMS.json exists and records the fault
+  PASS  T1-3 H1 was stopped (its spawn has an end time)  — [{'start': 1790870713.7, 'end': 1790870761.2, 'exit': 1, 'commit': '1f3872ac', 'pid': 44648, 'in_job': True, 'stopped_by': 'x4h'}]
+
+5 of 5 PASS
+--- MANIFEST.txt ---
+ENDLESS-RESET HEADLESS BATCH — MANIFEST
+========================================================================
+stamp          20261001-090513
+code_commit    1f3872ac
+build_commits  1f3872ac  (every lane, every spawn — SINGLE BUILD)
+build          sandbox
+bot_mode       Story (ENDLESS RESET)
+lanes          8
+bound          runs/lane=infinite  minutes=5.0
+started        2026-10-01T09:05:13
+ended          2026-10-01T09:06:03
+wall_minutes   0.8
+VERDICT        FAILED — ARM HEADER ASSERTION FAILED
+
+LANES
+------------------------------------------------------------------------
+tag   starter   profile                     runs  fin header   restarts  arm  armhdr
+H1    torchic   endless-s14fault-H1-torchic     0    0 ok       0         A    BAD
+H2    mudkip    endless-s14fault-H2-mudkip     0    0 ok       0         A    ok
+H3    treecko   endless-s14fault-H3-treecko     0    0 ok       0         A    ok
+H4    random    endless-s14fault-H4-random     0    0 ok       0         A    ok
+H5    torchic   endless-s14fault-H5-torchic     0    0 ok       0         B    ok
+H6    mudkip    endless-s14fault-H6-mudkip     0    0 ok       0         B    ok
+H7    treecko   endless-s14fault-H7-treecko     0    0 ok       0         B    ok
+H8    random    endless-s14fault-H8-random     0    0 ok       0         B    ok
+
+ARMS           A/B  file C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\arms\batch14.json  sha256 5c0009763752f081
+profile_tag    s14fault
+
+EMULATION ASSERTION
+------------------------------------------------------------------------
+Every run's debug-log RUN HEADER must read `emulation: speed=0 video=True`.
+headers checked: 8   violations: 0
+  all clean.
+
+A/B INTEGRITY (arm headers, the monitor, the freeze watch)
+------------------------------------------------------------------------
+violations: 1   lanes lost: none   stop: ARM HEADER ASSERTION FAILED
+  !! [arm] H1  Story_(ENDLESS_RESET)-debug-20261001-090516.log  env-all differs from the arm: extra=['POKEBOT_X4H_LEAK'] missing=[] differ=[]
+
+READ NEXT
+------------------------------------------------------------------------
+summary.json  — per-lane finish rate, end_reasons, canaries (KI-38/KI-40), outcomes
+L*/stdout.txt — run boundaries and outcomes
+L*/debug-logs — one file per run: [MAP]/[PARTY]/[BATTLE]/[STEP] + STUCK dumps
+
+!! A batch may only be compared against the code whose commit is recorded above.
+--- x4h.txt (key lines) ---
+[x4h] batch 20261001-090513 — 8 lane(s), runs/lane=infinite, minutes=5.0, code=1f3872ac, build=sandbox (sandbox-pokebot)
+# DO NOT COMMIT, PULL OR MERGE IN C:\Remote Projects\Pokebot_Gen3_Enhancement
+[x4h] lane job object: kill-on-close job active
+[x4h] H1 (torchic, arm A) started — pid 44648, profile `endless-s14fault-H1-torchic`, build 1f3872ac
+[x4h] H5 (torchic, arm B) started — pid 27760, profile `endless-s14fault-H5-torchic`, build 1f3872ac
+[x4h] H2 (mudkip, arm A) started — pid 42136, profile `endless-s14fault-H2-mudkip`, build 1f3872ac
+[x4h] H6 (mudkip, arm B) started — pid 8564, profile `endless-s14fault-H6-mudkip`, build 1f3872ac
+[x4h] H3 (treecko, arm A) started — pid 45292, profile `endless-s14fault-H3-treecko`, build 1f3872ac
+[x4h] H7 (treecko, arm B) started — pid 40628, profile `endless-s14fault-H7-treecko`, build 1f3872ac
+[x4h] H4 (random, arm A) started — pid 10156, profile `endless-s14fault-H4-random`, build 1f3872ac
+[x4h] H8 (random, arm B) started — pid 44564, profile `endless-s14fault-H8-random`, build 1f3872ac
+[x4h] ARM HEADER ASSERTION FAILED — H1 (arm A) — Story_(ENDLESS_RESET)-debug-20261001-090516.log
+       env-all differs from the arm: extra=['POKEBOT_X4H_LEAK'] missing=[] differ=[]
+[x4h] H2 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090528.log
+[x4h] H3 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090540.log
+[x4h] H4 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090552.log
+[x4h] H5 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090521.log
+[x4h] H6 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090534.log
+[x4h] H7 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090546.log
+[x4h] H8 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090558.log
+VERDICT        FAILED — ARM HEADER ASSERTION FAILED
+EMULATION ASSERTION
+violations: 1   lanes lost: none   stop: ARM HEADER ASSERTION FAILED
+  !! [arm] H1  Story_(ENDLESS_RESET)-debug-20261001-090516.log  env-all differs from the arm: extra=['POKEBOT_X4H_LEAK'] missing=[] differ=[]
+[x4h] batch summary: C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-090513\summary.json
+
+====================================================================================================
+T1-4 — 16 lanes, 15 min, tag s14smoke (DETACHED through WMI, the night path)
+batch dir: x4-runs/20261001-090649
+====================================================================================================
+--- grade ---
+batch 20261001-090649: verdict 'OK', wall 15.1 min, kinds {}
+arms ['A', 'B'], tag s14smoke, head 1f3872ac7a85, stripped []
+  PASS  T1-4 the time bound ended it (verdict OK)  — OK
+  PASS  T1-4 zero violations of any kind  — []
+  PASS  T1-4 every lane had >= 1 arm header checked  — {'H1': 1, 'H2': 1, 'H3': 1, 'H4': 1, 'H5': 1, 'H6': 1, 'H7': 1, 'H8': 1, 'H9': 1, 'H10': 1, 'H11': 1, 'H12': 1, 'H13': 1, 'H14': 1, 'H15': 1, 'H16': 1}
+  PASS  T1-4 8 lanes per arm  — A=8 B=8
+  PASS  T1-4 all 8 B lanes showed ' rare='  — missing on []; seconds [17.2, 20.6, 29.4, 41.6, 53.8, 65.9, 78.1, 90.3]
+  PASS  T1-4 all 8 B lanes showed '[KEYBATTLE]'  — missing on []; seconds [53.4, 55.3, 62.4, 65.9, 77.2, 78.1, 84.8, 90.3]
+  PASS  T1-4 at least 6 of 8 A lanes showed the runway text (explicit '0' is OFF, live)  — 7/8
+  PASS  T1-4 at least 6 of 8 B lanes showed why=topoff AND [KIT-BUY]  — 8/8
+  FAIL  T1-4 median frames/s per lane in [550, 700] (a THROUGHPUT finding, not a stop)  — median 862.0; per lane {'H1': 872, 'H2': 868, 'H3': 871, 'H4': 848, 'H5': 841, 'H6': 831, 'H7': 827, 'H8': 816, 'H9': 893, 'H10': 879, 'H11': 881, 'H12': 878, 'H13': 850, 'H14': 859, 'H15': 865, 'H16': 850}
+  PASS  T1-4 the freeze watch never failed to answer  — 0
+
+9 of 10 PASS; FAILED: ['T1-4 median frames/s per lane in [550, 700] (a THROUGHPUT finding, not a stop)']
+--- MANIFEST.txt ---
+ENDLESS-RESET HEADLESS BATCH — MANIFEST
+========================================================================
+stamp          20261001-090649
+code_commit    1f3872ac
+build_commits  1f3872ac  (every lane, every spawn — SINGLE BUILD)
+build          sandbox
+bot_mode       Story (ENDLESS RESET)
+lanes          16
+bound          runs/lane=infinite  minutes=15.0
+started        2026-10-01T09:06:49
+ended          2026-10-01T09:21:57
+wall_minutes   15.1
+VERDICT        OK
+
+LANES
+------------------------------------------------------------------------
+tag   starter   profile                     runs  fin header   restarts  arm  armhdr
+H1    torchic   endless-s14smoke-H1-torchic     0    0 ok       0         A    ok
+H2    mudkip    endless-s14smoke-H2-mudkip     0    0 ok       0         A    ok
+H3    treecko   endless-s14smoke-H3-treecko     0    0 ok       0         A    ok
+H4    random    endless-s14smoke-H4-random     0    0 ok       0         A    ok
+H5    torchic   endless-s14smoke-H5-torchic     0    0 ok       0         A    ok
+H6    mudkip    endless-s14smoke-H6-mudkip     0    0 ok       0         A    ok
+H7    treecko   endless-s14smoke-H7-treecko     0    0 ok       0         A    ok
+H8    random    endless-s14smoke-H8-random     0    0 ok       0         A    ok
+H9    torchic   endless-s14smoke-H9-torchic     0    0 ok       0         B    ok
+H10   mudkip    endless-s14smoke-H10-mudkip     0    0 ok       0         B    ok
+H11   treecko   endless-s14smoke-H11-treecko     0    0 ok       0         B    ok
+H12   random    endless-s14smoke-H12-random     0    0 ok       0         B    ok
+H13   torchic   endless-s14smoke-H13-torchic     0    0 ok       0         B    ok
+H14   mudkip    endless-s14smoke-H14-mudkip     0    0 ok       0         B    ok
+H15   treecko   endless-s14smoke-H15-treecko     0    0 ok       0         B    ok
+H16   random    endless-s14smoke-H16-random     0    0 ok       0         B    ok
+
+ARMS           A/B  file C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\arms\batch14.json  sha256 5c0009763752f081
+profile_tag    s14smoke
+
+EMULATION ASSERTION
+------------------------------------------------------------------------
+Every run's debug-log RUN HEADER must read `emulation: speed=0 video=True`.
+headers checked: 16   violations: 0
+  all clean.
+
+A/B INTEGRITY (arm headers, the monitor, the freeze watch)
+------------------------------------------------------------------------
+violations: 0   lanes lost: none   stop: deadline
+  all clean.
+
+READ NEXT
+------------------------------------------------------------------------
+summary.json  — per-lane finish rate, end_reasons, canaries (KI-38/KI-40), outcomes
+L*/stdout.txt — run boundaries and outcomes
+L*/debug-logs — one file per run: [MAP]/[PARTY]/[BATTLE]/[STEP] + STUCK dumps
+
+!! A batch may only be compared against the code whose commit is recorded above.
+--- x4h.txt (key lines) ---
+[x4h] batch 20261001-090649 — 16 lane(s), runs/lane=infinite, minutes=15.0, code=1f3872ac, build=sandbox (sandbox-pokebot)
+# DO NOT COMMIT, PULL OR MERGE IN C:\Remote Projects\Pokebot_Gen3_Enhancement
+[x4h] lane job object: kill-on-close job active
+[x4h] H1 (torchic, arm A) started — pid 16168, profile `endless-s14smoke-H1-torchic`, build 1f3872ac
+[x4h] H9 (torchic, arm B) started — pid 34324, profile `endless-s14smoke-H9-torchic`, build 1f3872ac
+[x4h] H2 (mudkip, arm A) started — pid 47124, profile `endless-s14smoke-H2-mudkip`, build 1f3872ac
+[x4h] H10 (mudkip, arm B) started — pid 30300, profile `endless-s14smoke-H10-mudkip`, build 1f3872ac
+[x4h] H3 (treecko, arm A) started — pid 31528, profile `endless-s14smoke-H3-treecko`, build 1f3872ac
+[x4h] H11 (treecko, arm B) started — pid 15668, profile `endless-s14smoke-H11-treecko`, build 1f3872ac
+[x4h] H4 (random, arm A) started — pid 10764, profile `endless-s14smoke-H4-random`, build 1f3872ac
+[x4h] H12 (random, arm B) started — pid 6700, profile `endless-s14smoke-H12-random`, build 1f3872ac
+[x4h] H5 (torchic, arm A) started — pid 2732, profile `endless-s14smoke-H5-torchic`, build 1f3872ac
+[x4h] H13 (torchic, arm B) started — pid 30784, profile `endless-s14smoke-H13-torchic`, build 1f3872ac
+[x4h] H6 (mudkip, arm A) started — pid 6572, profile `endless-s14smoke-H6-mudkip`, build 1f3872ac
+[x4h] H14 (mudkip, arm B) started — pid 34852, profile `endless-s14smoke-H14-mudkip`, build 1f3872ac
+[x4h] H7 (treecko, arm A) started — pid 9456, profile `endless-s14smoke-H7-treecko`, build 1f3872ac
+[x4h] H15 (treecko, arm B) started — pid 36844, profile `endless-s14smoke-H15-treecko`, build 1f3872ac
+[x4h] H8 (random, arm A) started — pid 30508, profile `endless-s14smoke-H8-random`, build 1f3872ac
+[x4h] H16 (random, arm B) started — pid 32888, profile `endless-s14smoke-H16-random`, build 1f3872ac
+[x4h] H1 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090651.log
+[x4h] H2 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090703.log
+[x4h] H3 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090716.log
+[x4h] H4 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090728.log
+[x4h] H5 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090740.log
+[x4h] H6 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090752.log
+[x4h] H7 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090805.log
+[x4h] H8 arm A header OK — Story_(ENDLESS_RESET)-debug-20261001-090817.log
+[x4h] H9 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090657.log
+[x4h] H10 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090710.log
+[x4h] H11 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090722.log
+[x4h] H12 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090734.log
+[x4h] H13 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090746.log
+[x4h] H14 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090759.log
+[x4h] H15 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090811.log
+[x4h] H16 arm B header OK — Story_(ENDLESS_RESET)-debug-20261001-090823.log
+[x4h] time bound reached (15.0 min) — stopping lanes.
+EMULATION ASSERTION
+[x4h] batch summary: C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-090649\summary.json
+
+====================================================================================================
+the grader, verbatim (scratchpad/t1_smoke_grade.py)
+====================================================================================================
+"""Grade T1-4 (the 16-lane smoke run) or T1-3 (the live env-leak fault) from a finished x4_headless batch dir.
+
+usage: py -3.12 t1_smoke_grade.py <batch_dir> [smoke|fault]
+Every check computes its verdict from the batch's own files; an absent observation is reported ABSENT, never PASS.
+"""
+import json
+import re
+import statistics
+import sys
+from pathlib import Path
+
+bd = Path(sys.argv[1])
+mode = sys.argv[2] if len(sys.argv) > 2 else "smoke"
+summ = json.loads((bd / "summary.json").read_text(encoding="utf-8"))
+arms = json.loads((bd / "ARMS.json").read_text(encoding="utf-8"))
+viol = summ.get("header_violations", [])
+kinds = summ.get("violation_kinds", {})
+detail = summ["lanes_detail"]
+rows = []
+
+
+def row(name, ok, info=""):
+    rows.append((name, ok))
+    print(f"  {'PASS' if ok else 'FAIL'}  {name}{('  — ' + info) if info else ''}")
+
+
+print(f"batch {bd.name}: verdict {summ['verdict']!r}, wall {summ.get('wall_minutes')} min, kinds {kinds}")
+print(f"arms {arms.get('arm_names')}, tag {arms.get('profile_tag')}, head {arms.get('head', '')[:12]}, "
+      f"stripped {arms.get('stripped_inherited')}")
+
+if mode == "fault":
+    row("T1-3 the batch ABORTED on an ARM HEADER violation", "ARM HEADER" in summ["verdict"], summ["verdict"])
+    arm_v = [v for v in viol if v.get("kind") == "arm"]
+    row("T1-3 the violation names H1 and POKEBOT_X4H_LEAK",
+        any(v["tag"] == "H1" and "POKEBOT_X4H_LEAK" in v["reason"] for v in arm_v), str(arm_v)[:300])
+    row("T1-3 no OTHER lane had an arm violation", all(v["tag"] == "H1" for v in arm_v), str([v["tag"] for v in arm_v]))
+    row("T1-3 ARMS.json exists and records the fault", arms.get("fault_envleak") is True)
+    h1 = detail.get("H1", {})
+    sp = h1.get("spawns", [])
+    row("T1-3 H1 was stopped (its spawn has an end time)", bool(sp) and sp[-1].get("end") is not None, str(sp)[:200])
+else:
+    row("T1-4 the time bound ended it (verdict OK)", summ["verdict"] == "OK", summ["verdict"])
+    row("T1-4 zero violations of any kind", not viol, str(viol)[:400])
+    for tag, d in sorted(detail.items(), key=lambda kv: int(kv[0][1:])):
+        if not d.get("arm_headers_checked"):
+            row(f"T1-4 {tag} had at least one arm header checked", False, "ABSENT")
+    row("T1-4 every lane had >= 1 arm header checked", all(d.get("arm_headers_checked", 0) >= 1 for d in detail.values()),
+        str({t: d.get("arm_headers_checked") for t, d in detail.items()}))
+    b = {t: d for t, d in detail.items() if d.get("arm") == "B"}
+    a = {t: d for t, d in detail.items() if d.get("arm") == "A"}
+    row("T1-4 8 lanes per arm", len(a) == 8 and len(b) == 8, f"A={len(a)} B={len(b)}")
+    fs = {t: d.get("monitor", {}).get("first_seen", {}) for t, d in detail.items()}
+    for sub in (" rare=", "[KEYBATTLE]"):
+        missing = [t for t in b if sub not in fs[t]]
+        row(f"T1-4 all 8 B lanes showed {sub!r}", not missing, f"missing on {missing}; seconds "
+            f"{sorted(fs[t].get(sub) for t in b if sub in fs[t])}")
+    run = "consume the HM/counter runway"
+    n_run = sum(run in fs[t] for t in a)
+    row("T1-4 at least 6 of 8 A lanes showed the runway text (explicit '0' is OFF, live)", n_run >= 6, f"{n_run}/8")
+    n_top = sum("why=topoff" in fs[t] and "[KIT-BUY]" in fs[t] for t in b)
+    row("T1-4 at least 6 of 8 B lanes showed why=topoff AND [KIT-BUY]", n_top >= 6, f"{n_top}/8")
+    # throughput: the highest frame stamp per log, summed per lane, over the lane's wall time
+    fps = {}
+    wall_s = float(summ.get("wall_minutes") or 0) * 60
+    for tag, d in detail.items():
+        slot = int(tag[1:]) - 1
+        frames = 0
+        for log in sorted((bd / f"L{slot + 1:02d}" / "debug-logs").glob("*.log")):
+            mx = 0
+            for m in re.finditer(r"^f(\d+) ", log.read_text(encoding="utf-8", errors="replace"), re.MULTILINE):
+                mx = max(mx, int(m.group(1)))
+            frames += mx
+        lane_s = wall_s - slot * 6.0
+        fps[tag] = round(frames / lane_s) if lane_s > 0 else 0
+    med = statistics.median(fps.values()) if fps else 0
+    row("T1-4 median frames/s per lane in [550, 700] (a THROUGHPUT finding, not a stop)", 550 <= med <= 700,
+        f"median {med}; per lane {dict(sorted(fps.items(), key=lambda kv: int(kv[0][1:])))}")
+    row("T1-4 the freeze watch never failed to answer", summ.get("freeze_unknown_checks", 0) == 0,
+        str(summ.get("freeze_unknown_checks")))
+
+fails = [n for n, ok in rows if not ok]
+print(f"\n{len(rows) - len(fails)} of {len(rows)} PASS" + (f"; FAILED: {fails}" if fails else ""))
