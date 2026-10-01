@@ -94,8 +94,14 @@ def scroll_to_battle_action(action_index: int, is_right_side_pokemon: bool = Fal
     # battler 2 too: an item used by battler 0 leaves byte 0 on BAG (1), and battler 2's FIGHT scroll then pressed Left
     # for ever against a byte its presses never move (KI-45). `scroll_to_move` already took the side; this is the same
     # fix for its sibling. Callers pass `battler_index > 1`.
-    # ⭐ Inert today by construction: in a trainer double the bot only ever FIGHTs, so bytes 0 and 2 both read 0 at
-    # every call (reviews F4/S13-P5). Measured latent: 0 of 4,520 batch debug logs show this cursor's KI-45 (V6).
+    # ⭐ Inert with the flag unset FOR STORY'S STRATEGIES: their trainer-double branch (`LevelUpTravelBattleStrategy`,
+    # story_mode.py) only FIGHTs, and the cursor resets at battle start and on switch-in / faint, so bytes 0 and 2 both
+    # read 0 at every call (reviews F4/S13-P5; P-OFF = X-BASE byte for byte). Measured latent: 0 of 4,520 batch debug
+    # logs show this cursor's KI-45 (V6). ⚠ NOT a no-op everywhere (the three-lens review's N2): under upstream's
+    # `DefaultBattleStrategy` with `lead_cannot_battle_action: rotate` (non-Story modes), a RotateLead by battler 0
+    # leaves byte 0 = 2 until the action phase, and battler 2's FIGHT scroll then CHANGES with this fix — the old byte-0
+    # read pressed Up into battler 2's menu (ignored at cursor 0) until KI-45; this reads byte 2 and selects FIGHT. A
+    # latent derail becomes a working FIGHT: a fix, not a regression, but a behaviour change on that config.
     # ⛔ FAULT ARM `POKEBOT_R27_FAULT_DBL_CURSOR0` (C7; `modules/story/double_items.FAULT_CURSOR0`), read HERE in
     # production and never set in a real run: it restores byte 0 for every battler, so the arms can show the fix is
     # load-bearing (P-CUR). Read only for battler 2 — battler 0 reads byte 0 either way. The name is a literal, not an

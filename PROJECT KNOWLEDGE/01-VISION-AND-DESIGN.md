@@ -369,9 +369,10 @@ it.
   - **never put an item on the wrong Pokémon:** the executor checks, inside the party menu, that the Pokémon under the
     cursor is the requester (by PID) before pressing A, and backs out otherwise;
   - **never break the partner's turn:** the menu driver reads each battler's OWN action cursor;
-  - **change nothing with the flag unset**, apart from that cursor fix (inert there, because both cursors stay on FIGHT).
-- **Where it stands:** built, graded and its gate's adversarial pass folded on `wt/doubleitems13` (graded note
-  `ai-research-notes/2026-09-30-doubleitems13-GRADED.md`); its three-lens review is still to come. Flag
+  - **change nothing with the flag unset**, apart from that cursor fix (inert for Story's strategies, whose trainer doubles only FIGHT; under upstream's
+    `rotate` config it turns a latent KI-45 into a working FIGHT, a fix there, not a no-op).
+- **Where it stands:** built, graded, reviewed and merged (2026-09-30; graded note
+  `ai-research-notes/2026-09-30-doubleitems13-GRADED.md`). Flag
   `POKEBOT_R27_DOUBLEITEMS` (default OFF). v1 excludes the Space Center multi, partner heals and status cures.
   - Design: `ai-research-notes/2026-09-30-doubleitems13-DESIGN.md`.
 

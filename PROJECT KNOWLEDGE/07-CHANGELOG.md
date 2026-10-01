@@ -37442,3 +37442,25 @@ bought balls only at fixed story points.
 - **Re-run** on `889b9319` (`-RERUN.txt`): the same grade; 7 of 12 logs byte-identical, the other 5 differ only in their
   `[ITEM-FLOW]` bag-open lines.
 - Next: the build's three-lens review, then the merge.
+
+## 2026-09-30 — design v2 step 13 REVIEWED (production safety, the game against the module, the grade and the docs; each should-fix put to a refuter), and MERGED (`#26-organiccatch`)
+
+- **The review** (`evidence/2026-09-30-doubleitems13-REVIEW.txt`) found no production defect.
+- **CORRECTION to the entry above:** "2 of 42 checks FAILED AS FILED" mixed two kinds. As filed: 40 checks, 38 PASS,
+  2 FAIL; the 2 corrected checks, named as such, both PASS.
+- **Docs and grade fixed:**
+  - the queue head no longer says "no production code" beside "BUILT";
+  - the headline's "no gameplay change" is scoped to the two trajectories;
+  - the `bpo` claim is stated per double;
+  - the T3 next-FIGHT check now evaluates; it passes on Mightyena's Bite;
+  - disclosures: the semantic `healed` check, the T-family reference run's environment, and what "identical" compared;
+  - the registry row and the handoff stamp.
+- **Code nits folded** (`-REVIEW-FIX.txt`; each red on revert, green fixed):
+  - observe's silent reserve filter;
+  - SF-2's own give-up stage;
+  - the gate's fake game no longer re-opens a battler's menu after a successful medicine;
+  - C1's comment scoped.
+  The gate: 94 rows, 3 faults (unchanged sets), 129 mutants. The two must-stay-green repros outside the suite pass on
+  the final code.
+- **Merged to `main`** with the full suite green. Next: `#27-itemprobes`, then v2 step 14, the batch. Ask the user
+  before starting it.

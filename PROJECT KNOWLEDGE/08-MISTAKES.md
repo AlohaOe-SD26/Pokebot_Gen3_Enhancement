@@ -23566,3 +23566,24 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - An "= X before frame F" clause names every line the arm's own flags add before F, and excludes exactly those.
   - A gate row's label names the check that ACTUALLY decides it on its fixture; if an earlier check decides, the row
     does not pin the later one.
+
+## 2026-09-30 — ⛔ STEP 13's BUILD REVIEW: A GRADER CHECK WHOSE VERDICT WAS THE CONSTANT `True`, A COUNT THAT MIXED AS-FILED AND CORRECTED CHECKS, AND A STATUS SENTENCE EXTENDED INSTEAD OF REPLACED
+
+- **Symptoms** (`evidence/2026-09-30-doubleitems13-REVIEW.txt`, grade lens):
+  - T3's "next FIGHT" check passed `True` unconditionally and was counted among the PASSes (F5).
+  - The headline said "40 of 42 checks as filed", but 2 of the 42 were corrected checks, which are not as filed: as filed
+    it was 38 of 40 (F2).
+  - The queue head kept "NO production code written yet" from an earlier stamp and appended "It is now BUILT" to the same
+    sentence (F1).
+  - "`bpo=120345` on every row" was true of the first double only (F3).
+- **Root causes:** a grader written to "report" an observation instead of judge it; a tally over a list that held two
+  kinds of check; a restamp that added a clause instead of rewriting the sentence; a value read off the window the
+  evidence file prints, then stated for the whole run.
+- **The fixes that worked:** the check evaluates (an absent observation is ABSENT, never PASS); the grader prints two
+  tallies; the sentence was rewritten; the claim is stated per double, from the raw log.
+- **Prevention rules:**
+  - Every grader check computes its verdict from the data; an observation that may be absent is reported ABSENT and
+    counted in neither column.
+  - A tally never mixes kinds: as-filed and corrected checks are counted apart.
+  - A restamp REPLACES the status sentence; it never appends to it (grep the old clause after restamping).
+  - A claim about "every row" is checked on the raw log, not on the window an evidence file happens to print.

@@ -308,3 +308,15 @@ f3148510; its first decision is f3149372.
 ## 10. OPEN QUESTIONS
 
 None blocks this step. D1, D2, D6 and D10 are the author's calls, recorded in `06` with their rejected alternatives.
+
+## 11. REVIEW CORRECTIONS (the build's three-lens review, `evidence/2026-09-30-doubleitems13-REVIEW.txt`)
+
+- **D7's "inert today" is SCOPED** (N2/F13): with the flag unset, C1 is inert for Story's strategies, whose trainer
+  doubles only FIGHT. Under upstream's `DefaultBattleStrategy` with the `rotate` config, a RotateLead by battler 0 leaves
+  byte 0 = 2 when battler 2's FIGHT scroll runs; there C1 changes flag-unset presses and turns a latent KI-45 into a
+  working FIGHT. The `DIVERGENCE-LOG` entry at promotion must say so.
+- **S0-3's mechanism is NOT measured** (G1): the arms show that battler 0's first A of a doubles turn is DROPPED (the
+  action menu was still up after it; cursor presses in the same window were lost too). "The Fight menu opens later than
+  the 6-frame wait" is probably the same dropped-input effect, not a late menu. The decomp's candidate (the opponent's
+  AI choosing in the same pass as battler 0) is INFERRED only. SF-2 makes the bag flow robust to it either way.
+

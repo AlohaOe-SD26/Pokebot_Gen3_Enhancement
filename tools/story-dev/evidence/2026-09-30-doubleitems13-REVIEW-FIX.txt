@@ -1,0 +1,210 @@
+design v2 step 13 — the BUILD REVIEW's code fixes (N1 a silent reserve filter for observe; N3 SF-2's own terminal stage; G2 the gate's fake game; N2/F13 C1's comment scoped) and their proof, 2026-09-30 LA
+==============================================================================================================
+The builder's report (MODEL OUTPUT, verbatim), then the AUTHOR's runs: the two must-stay-green repros the
+PREDICTIONS name that are not in run_gates.py (review F12), and the gate.
+
+===== the builder's review-nit report =====
+## Review-nit fold report (design v2 step 13)
+
+All four code nits are folded. The gate passes at **94 rows, 3 faults, 129 mutants**, every fault set still exactly the pre-registered one. The full suite has one red, a doc citation my edits shifted: **03-PUNCH-LIST.md:1339 needs `battle_action_selection.py:1229` → `:1237`** (I did not touch PROJECT KNOWLEDGE). Nothing committed or staged; no git undo commands; no graded arms run.
+
+### Files changed (mine only; the PROJECT KNOWLEDGE and evidence ARMS/RERUN edits in the tree are yours)
+- **`sandbox-pokebot/plugins/custom_modes/story_mode.py`** (N1)
+  - New module function `_dbl_reserve_silent(medicine)`. It honours `POKEBOT_RESERVE_FAULT_NOLOCK`, then returns `apply_reserve(med, reserved_quantities())`, or the list unchanged when nothing is reserved.
+  - A failure raises, and `heal_options` then fails unlocked to the same output the real filter gives, minus its log line.
+  - `_dbl_obs_line` now passes the silent filter instead of `league_reserve.filter_medicine_for_reserve`, so observe no longer logs `[RESERVE]` or touches `_warned`.
+- **`sandbox-pokebot/modules/battle_action_selection.py`** (N3)
+  - `_dbl_open_bag` now has three outcomes, documented in its docstring: True (bag open), False (three dropped presses), None (A accepted, no bag).
+  - The None exit logs its own terminal stage: `A accepted after n press(es) but no bag within 150 frames — this battler cannot be re-decided (its controller left the action menu); a KI-46 derail is expected`.
+  - The caller logs the generic "bag-did-not-open … the strategy will re-decide" only for today's flag-unset loop and the three-dropped-presses exit.
+- **`sandbox-pokebot/modules/battle_menuing.py`** (N2/F13)
+  - C1's comment is now scoped: inert with the flag unset **for Story's strategies** only.
+  - It records that under upstream's `DefaultBattleStrategy` with `lead_cannot_battle_action: rotate`, a RotateLead by battler 0 leaves byte 0 = 2. There C1 changes flag-unset presses, turning a latent KI-45 into a working FIGHT.
+  - No other step-13 comment or docstring made the unscoped claim (grep for "inert", "only FIGHT", "FIGHT-only").
+- **`tools/story-dev/probe_double_items.py`**
+  - **New rows:** R-silent, R-parity, SF2-nobag.
+  - **`sworld` reserve plumbing:** it now fakes `league_reserve.reserved_quantities` rather than replacing the filter, so the real filter and the silent one see the same reserve. It empties `_warned` for each world and restores it afterwards; `POKEBOT_RESERVE_FAULT_NOLOCK` joined `ROW_ENVS`.
+  - **DQ03:** now passes the reserve as reserved quantities, with its mirror run through the silent filter.
+  - **G2 fake fix:** see below.
+  - **New mutants:** five, plus derived set updates.
+
+### G2 (the fake game)
+- A successful medicine now goes `party` → `party_ok` → B → `battle` with `accepted` left True, so the action menu does not re-open. A refusal still closes back to the bag and re-opens the menu, as the game does.
+- `healed` now counts only a heal on an active player battler (party 1 or 4).
+- **Every existing row stayed green; none passed only because of the old model.**
+
+### Red on revert, green on fixed
+In-gate revert mutants (permanent; every set derived before its first run, all matched):
+
+| Mutant | What it breaks | Red set |
+|---|---|---|
+| RV-N1 | observe back on the logging filter | {R-silent} |
+| N1a | silent filter ignores NOLOCK | {R-parity} |
+| N1b | silent filter never subtracts | {R-parity, DQ03} |
+| RV-N3 | no-bag exit returns False and logs the generic line | {SF2-nobag} |
+| N3b | caller logs the generic line on the None exit too | {SF2-nobag} |
+
+Against the literal committed code (HEAD d828335c, read with `git show`, installed in memory only):
+- Fixed tree: red []
+- HEAD `battle_action_selection.py`: red ['SF2-nobag']
+- HEAD `story_mode.py`: red ['DQ03', 'R-parity', 'R-silent']. Only R-silent is a behavioural red there: R-parity and DQ03 call the new `_dbl_reserve_silent`, which HEAD lacks. RV-N1 is the clean proof.
+- R-silent is not vacuous: its control calls the real filter on the same input inside the same world and gets exactly one `[RESERVE]` line.
+
+### Gate counts and last lines
+94 rows (+3: R-silent, R-parity, SF2-nobag), 3 faults, 129 mutants (+5), COVERAGE: none uncovered. Pool and in-process runs agree.
+
+Mutant sets I updated, all derived before running and all matched:
+- RV-SF2 and SF2a gain SF2-nobag.
+- KN25 gains R-parity (failing closed on a raising reserve makes the two filters' outputs differ).
+- KN07 and MS02 gain R-silent (no OBS line).
+
+```
+  PASS  XN34f NOGUARD presses whatever, under the NOGUARD job  — red ['DBself', 'DQ14', 'DQ15', 'X07', 'X08']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 94 rows; uncovered []
+
+ALL PASS (94 rows, 3 faults, 129 mutants) in 4.8 s
+```
+
+**Faults, observed:** CURSOR0 ['DQ11', 'DQ12'], WRONGSLOT ['DQ13'], NOGUARD ['DQ15']. All equal the pre-registered sets.
+
+### Full suite (final code, no edits during it)
+```
+FAILED: 1 of 140
+--- audit_doc_citations.py (exit 1)
+  FAIL  03-PUNCH-LIST.md:1339 cites `battle_action_selection.py:1229` for `battle_action_use_item`, but `battle_action_use_item` spans `battle_action_selection.py:1237-1390` — the citation lands OUTSIDE it
+```
+- The rest: 135 PASS, 4 ADVIS, including `audit_doc_consistency`, `lint_docs`, `repro_no_silent_except`, `probe_dmgaudit`, `probe_league_reserve`, `repro_battle_items`, `repro_key_battle_items` and `probe_double_items`.
+- The red is caused by N3's docstring adding 8 lines above `battle_action_use_item`; the one-line fix is above.
+- Smoke run (300 frames, flag 1, `post_mtpyre`): exit 0, no traceback, `saves/` unchanged.
+
+### Graded arms
+I expect no graded line to change:
+- **N1** only acts in the reserve era (Sootopolis to the Elite Four). The P and T fixtures are pre-Sootopolis, and observe's `would=` output is identical by the R-parity row.
+- **N3** only changes a log line on the accepted-but-no-bag exit, which no arm reached: every flag-1 flow in ARMS/RERUN opened the bag.
+- **N2** is a comment only.
+- **G2** is gate-only.
+
+===== the author's run: repro_ki46_action_selection_bound.py =====
+1. an unrecognised battle state terminates instead of spinning
+  PASS  it terminates at all (the stock loop hangs here)  — outcome=raised steps=600
+  PASS  it RAISES when no mode can take the fault  — outcome=raised
+2. ‼ it raises the HONEST error, not a NameError
+  PASS  the exception is NOT a NameError  — BotModeError("KI-46: battle action selection stuck for 600 frames — main='HandleTurnActionSelectionState' controller0='SomeUnknownCallback'")
+  PASS  it names KI-46  — KI-46: battle action selection stuck for 600 frames — main='HandleTurn
+  PASS  ‼ it reports the observed callbacks (that is the diagnosis)  — KI-46: battle action selection stuck for 600 frames — main='HandleTurnActionSelectionState' controller0='SomeUnknownCallback'
+3. the bound is ~10s, far under the 18,000-frame watchdog
+  PASS  it gave up well under the watchdog window  — 600 yields
+4. it prefers the RECOVERABLE channel when a mode opts in
+  PASS  it returns quietly instead of raising  — outcome=done err=None
+  PASS  and it parked a fault for the mode to claim
+  PASS  the parked reason carries the diagnosis  — KI-46: battle action selection stuck for 600 frames — main='HandleTurnActionSele
+5. ‼ a battle that ENDS normally is unaffected (no false positive)
+  PASS  it exits cleanly when the battle ends  — outcome=done err=None
+  PASS  and parks NO fault
+6. ‼ a KNOWN WAIT STATE is recognised and does NOT count toward the bound
+  PASS  a text-printer wait does NOT fault  — outcome=hung err=None - it should keep waiting, not raise
+  PASS  and parks no fault
+
+REPRO: all checks pass.
+[exit 0]
+
+===== the author's run: repro_ki45_cursor_bound.py =====
+1. a cursor that can never arrive RAISES instead of spinning
+  PASS  it terminates at all (stock `while True` would hang here)  — outcome=raised steps=120
+  PASS  it RAISES rather than returning quietly  — outcome=raised
+  PASS  the error names KI-45  — KI-45: cursor 'gMoveSelectionCursor' never reached index 0 after 60 st
+  PASS  it names the cursor symbol
+  PASS  ‼ it reports the LAST CURSOR VALUE (that is the diagnosis)  — KI-45: cursor 'gMoveSelectionCursor' never reached index 0 after 60 steps (last read: 5). The menu is probably
+  PASS  it says the menu is probably not open
+2. the bound is generous but far under the watchdog
+  PASS  it gave up in well under 18,000 frames  — 120 yields
+  PASS  _MAX_CURSOR_STEPS is >= 20x a real selection (<=3 presses)  — 60
+3. a NORMAL selection still works and is not slowed down
+  PASS  a reachable target completes normally  — outcome=done err=None
+  PASS  it took only a few presses  — presses=['Left', 'Up']
+4. it prefers the RECOVERABLE channel when a mode opts in
+  PASS  it returns quietly instead of raising  — outcome=done err=None
+  PASS  and it parked a fault for the mode to claim
+  PASS  the parked reason carries the diagnosis  — KI-45: cursor 'gMoveSelectionCursor' never reached index 0 after 60 steps (last read: 5). 
+
+REPRO: all checks pass.
+[exit 0]
+
+===== the author's gate run (last lines) =====
+  PASS  XN54 WRONGSLOT aims at bench slot 2 + side  — red ['X05', 'X06']
+  PASS  XN02 CURSOR0 TOGGLES the side for every battler (battler 0 reads byte 2 under the fault)  — red ['DQ11', 'DQ12', 'X02']
+  PASS  XN53 WRONGSLOT fires with the flag unset and in singles  — red ['DBsingleexec', 'DQ13', 'DQ17']
+  PASS  XN34f NOGUARD presses whatever, under the NOGUARD job  — red ['DBself', 'DQ14', 'DQ15', 'X07', 'X08']
+  PASS  COVERAGE every row is in at least one fault's or mutant's expected red set  — 94 rows; uncovered []
+
+ALL PASS (94 rows, 3 faults, 129 mutants) in 4.8 s
+[exit 0]
+
+----- d13_reviewfix.py (verbatim) -----
+"""Step 13's build-review fix: re-point 03:1339 (N3's docstring moved battle_action_use_item 8 lines), then write
+tools/story-dev/evidence/2026-09-30-doubleitems13-REVIEW-FIX.txt: the builder's review-nit report (MODEL OUTPUT,
+verbatim from its transcript), the author's runs of the two must-stay-green repros outside the suite (review F12), and
+the author's gate run."""
+import json
+import os
+import pathlib
+import subprocess
+
+S = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/scratchpad")
+TR = pathlib.Path(r"C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/01ddd963-7a1a-4b49-8ecd-33397f5304e2/tasks/a0fd63922f4634cdf.output")
+WT = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24")
+T = WT / "tools" / "story-dev"
+env = dict(os.environ, PYTHONUTF8="1")
+
+p = WT / "PROJECT KNOWLEDGE" / "03-PUNCH-LIST.md"
+lines = p.read_text(encoding="utf-8").split("\n")
+old, new = "`battle_action_selection.py:1229-1232`", "`battle_action_selection.py:1237-1240`"
+assert lines[1338].count(old) == 1
+lines[1338] = lines[1338].replace(old, new)
+p.write_text("\n".join(lines), encoding="utf-8")
+
+found = []
+
+
+def walk(o):
+    if isinstance(o, str):
+        if o.lstrip().startswith("## Review-nit fold report"):
+            found.append(o.strip())
+    elif isinstance(o, dict):
+        for v in o.values():
+            walk(v)
+    elif isinstance(o, list):
+        for v in o:
+            walk(v)
+
+
+for line in TR.read_text(encoding="utf-8", errors="replace").splitlines():
+    try:
+        walk(json.loads(line))
+    except ValueError:
+        continue
+assert found, "the builder's review-nit report was not found in its transcript"
+
+
+def run(args):
+    r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(T), env=env)
+    return (r.stdout + (("\n[stderr]\n" + r.stderr) if r.stderr.strip() else "")).rstrip() + f"\n[exit {r.returncode}]"
+
+
+parts = ["design v2 step 13 — the BUILD REVIEW's code fixes (N1 a silent reserve filter for observe; N3 SF-2's own terminal "
+         "stage; G2 the gate's fake game; N2/F13 C1's comment scoped) and their proof, 2026-09-30 LA",
+         "=" * 110,
+         "The builder's report (MODEL OUTPUT, verbatim), then the AUTHOR's runs: the two must-stay-green repros the",
+         "PREDICTIONS name that are not in run_gates.py (review F12), and the gate.", "",
+         "===== the builder's review-nit report =====", found[-1], "",
+         "===== the author's run: repro_ki46_action_selection_bound.py =====",
+         run(["py", "-3.12", "-B", "repro_ki46_action_selection_bound.py"]), "",
+         "===== the author's run: repro_ki45_cursor_bound.py =====",
+         run(["py", "-3.12", "-B", "repro_ki45_cursor_bound.py"]), "",
+         "===== the author's gate run (last lines) =====",
+         "\n".join(run(["py", "-3.12", "-B", "probe_double_items.py"]).splitlines()[-8:]), "",
+         "----- d13_reviewfix.py (verbatim) -----", (S / "d13_reviewfix.py").read_text(encoding="utf-8")]
+out = T / "evidence" / "2026-09-30-doubleitems13-REVIEW-FIX.txt"
+out.write_text("\n".join(parts) + "\n", encoding="utf-8")
+print("wrote", out)
+

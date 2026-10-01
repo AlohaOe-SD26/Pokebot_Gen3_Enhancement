@@ -1,4 +1,7 @@
 design v2 step 13 (KB-2, healing items in DOUBLE battles) — the graded ARMS (d13arms), 2026-09-30 LA
+⚠ REGENERATED after the build's three-lens review (evidence/2026-09-30-doubleitems13-REVIEW.txt, F2 and F5): the
+same runs, re-graded by the fixed grader embedded below (the T3 next-FIGHT check now EVALUATES instead of being
+the constant True; as-filed and corrected checks are counted apart). No run was repeated.
 ==============================================================================================================
 Predictions: ai-research-notes/2026-09-30-doubleitems13-PREDICTIONS.md (filed in ab398449, BEFORE the code).
 Each section is VERBATIM: the runner's output, each arm's step-13 lines inside its battle window, the hashes, the
@@ -408,10 +411,11 @@ T3  T-ON
   PASS  T3 menu slot=1 menu_pid=Mightyena ok=1 a_pressed=1  — f3456326 [DBLITEM] menu g=2 battler_in_menu=2 layout=1 slot=1 menu_pid=5C96EA9B intended_pid=5C96EA9B ok=1 a_pressed=1 aim=1 self=1
   PASS  T3 after: Mightyena 99->119, Sceptile 116->116, Potion 1->0, healed +1  — f3456495 [DBLITEM] after g=2 target=Mightyena#5C96EA9B hp=99->119 status1=0->0 partner=Sceptile#863B0917 hp=116->116 Potion=1->0 healed=0->1 same=1
   PASS  T3 no KI-45 on gActionSelectionCursor
-  PASS  T3 battler 2's next FIGHT (graded if asked; ABSENT otherwise)  — f3458022 [BATTLE] [TURN 2] Mightyena L43 119/127 -> UseMove:Bite(pp25)  vs Claydol L41 20/112
+  PASS  T3 battler 2's next FIGHT (its cursor left on BAG by the item) completes, no KI-45  — f3458022 [BATTLE] [TURN 2] Mightyena L43 119/127 -> UseMove:Bite(pp25)  vs Claydol L41 20/112
   PASS  T3 [KEYBATTLE] key=True  — f3453544 [KEYBATTLE] opp=271 class=0x20 key=True allow=True reason=key_class
 
 TOTAL 42 checks, 2 FAIL
+AS FILED: 40 checks, 38 PASS, 2 FAIL; CORRECTED (named as such): 2 checks, 2 PASS
 
 ----- run_d13_arms.sh (verbatim) -----
 #!/usr/bin/env bash
@@ -724,14 +728,25 @@ if L["T-ON"] is not None and L["T-OFF1"] is not None:
           and af["item"] == "Potion" and (af["q0"], af["q1"]) == ("1", "0") and af["h0"].isdigit()
           and int(af["h1"]) == int(af["h0"]) + 1, aft[0] if aft else "no after line")
     check("T3 no KI-45 on gActionSelectionCursor", not ki45_action("T-ON", L["T-ON"]))
+    # Review F5 (2026-09-30): this check used to be the constant True. Now it EVALUATES: the next decision line of
+    # battler 2 (Mightyena) after the act must be a FIGHT (UseMove…), and no KI-45 may name gActionSelectionCursor. If
+    # battler 2 is never asked again, the check is ABSENT: reported, and counted in neither PASS nor FAIL.
     nxt = [l for l in L["T-ON"] if "[TURN" in l and "Mightyena" in l and fr(l) > T_ACT + 200]
-    check("T3 battler 2's next FIGHT (graded if asked; ABSENT otherwise)", True,
-          (nxt[0][:110] if nxt else "ABSENT: battler 2 not asked again"))
+    if nxt:
+        check("T3 battler 2's next FIGHT (its cursor left on BAG by the item) completes, no KI-45",
+              "-> UseMove" in nxt[0] and not ki45_action("T-ON", L["T-ON"]), nxt[0][:110])
+    else:
+        print("  ABSENT  T3 battler 2's next FIGHT — battler 2 was not asked again (counted in neither PASS nor FAIL)")
     kb = [l for l in L["T-ON"] if "[KEYBATTLE]" in l and T_BATTLE[0] <= fr(l) <= T_BATTLE[1]]
     check("T3 [KEYBATTLE] key=True", kb and "key=True" in kb[0], kb[0] if kb else "none")
 
 n_fail = sum(1 for _n, ok in results if not ok)
 print(f"\nTOTAL {len(results)} checks, {n_fail} FAIL")
+# Review F2 (2026-09-30): the two CORRECTED checks are not "as filed"; count the two kinds apart.
+corr = [(n, ok) for n, ok in results if "CORRECTED" in n or "except the predicted" in n]
+filed = [(n, ok) for n, ok in results if (n, ok) not in corr]
+print(f"AS FILED: {len(filed)} checks, {sum(ok for _n, ok in filed)} PASS, {sum(not ok for _n, ok in filed)} FAIL; "
+      f"CORRECTED (named as such): {len(corr)} checks, {sum(ok for _n, ok in corr)} PASS")
 
 ----- d13_arms_evidence.py (verbatim) -----
 """Compose tools/story-dev/evidence/2026-09-30-doubleitems13-ARMS.txt: the runner's output, every arm's step-13 lines

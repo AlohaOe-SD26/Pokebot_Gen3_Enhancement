@@ -115,7 +115,8 @@ F_WRONGSLOT = "POKEBOT_R27_FAULT_DBL_WRONGSLOT"
 F_NOGUARD = "POKEBOT_R27_FAULT_DBL_NOGUARD"
 #: The envs a ROW sets. ⛔ The three C7 faults are NOT here: a job sets one for the whole row pass, and a world that
 #: cleared it would silently run the fault-free code (the fault would then "redden nothing").
-ROW_ENVS = (FLAG, KEYITEMS, FRAC, "POKEBOT_R27_FAULT_RAISE", "POKEBOT_R27_FAULT_ALLORDINARY")
+ROW_ENVS = (FLAG, KEYITEMS, FRAC, "POKEBOT_R27_FAULT_RAISE", "POKEBOT_R27_FAULT_ALLORDINARY",
+            "POKEBOT_RESERVE_FAULT_NOLOCK")
 FAULT_ENVS = (F_CURSOR0, F_WRONGSLOT, F_NOGUARD)
 
 with open(SANDBOX / "modules" / "data" / "species.json", encoding="utf-8") as _fh:
@@ -321,14 +322,21 @@ def _patched(patches):
 
 # ============================================================================================================ STRATEGY
 @contextlib.contextmanager
-def sworld(*, env=None, state=None, fresh=None, bag=None, cls=0x20, reserve=None, mui_raises=False,
-           cursor=bytes([0, 0, 1, 0])):
+def sworld(*, env=None, state=None, fresh=None, bag=None, cls=0x20, reserved=None, reserved_raises=False,
+           mui_raises=False, cursor=bytes([0, 0, 1, 0])):
     """Production's world for the STRATEGY rows: the env (the row's flags only), `read_symbol` over fake symbols
     (recorded), EWRAM behind `*gBattleStruct` (recorded), the bag (counted), the opponent reader (counted; trainer 271,
-    class `cls`), the RULING 18 reserve (identity unless given), the logger (recorded), `choose_healing_item` spied
-    (its `options` recorded), `_maybe_use_item` and `_r27_key_gate` spied (counted), the parent's double turn (PARENT),
-    and `get_battle_state` REBOUND wherever bound (counted; it returns `fresh`, else `state`)."""
+    class `cls`), the RULING 18 reserve, the logger (recorded), `choose_healing_item` spied (its `options` recorded),
+    `_maybe_use_item` and `_r27_key_gate` spied (counted), the parent's double turn (PARENT), and `get_battle_state`
+    REBOUND wherever bound (counted; it returns `fresh`, else `state`).
+    The reserve (the fold of the three-lens review's N1): `league_reserve.reserved_quantities` is faked — `reserved`
+    ({} = not armed), or a raise — so the REAL logging filter (`_maybe_use_item`'s) and observe's silent one see the same
+    reserve; `league_reserve._warned` is EMPTIED for the world and restored after, so a row sees its own log lines and
+    never leaks a latch into the next one."""
     sm = SM()
+    lr = modules.story.league_reserve
+    saved_warned = set(lr._warned)
+    lr._warned.clear()
     log = types.SimpleNamespace(events=[], reads=[], ebytes=[], gbs=0, mui=0, kg=0, ti=0, bag=0, hp_opts=[])
     bag = Bag(("Potion", 1)) if bag is None else bag
     syms = {"gBattleStruct": struct.pack("<I", BS_PTR), "gActionSelectionCursor": bytes(cursor),
@@ -376,10 +384,15 @@ def sworld(*, env=None, state=None, fresh=None, bag=None, cls=0x20, reserve=None
         log.hp_opts.append(list(options))
         return real_chi(current_hp, total_hp, options, **kw)
 
+    def fake_reserved():
+        if reserved_raises:
+            raise RuntimeError("the reserve read is broken")
+        return dict(reserved or {})
+
     patches = [(modules.memory, "read_symbol", fake_read), (modules.items, "get_item_bag", fake_bag),
                (modules.debug_logger, "event", fake_event), (TI, "read_opponent_trainers", fake_reader),
                (TI, "trainer_class", lambda _tid, *_a, **_k: cls),
-               (modules.story.league_reserve, "filter_medicine_for_reserve", reserve or (lambda medicine: medicine)),
+               (lr, "reserved_quantities", fake_reserved),
                (modules.story.battle_items, "choose_healing_item", spy_chi),
                (modules.pokemon_party, "get_party", lambda: PARTY6),
                (sm, "context", types.SimpleNamespace(emulator=types.SimpleNamespace(read_bytes=fake_bytes))),
@@ -388,8 +401,12 @@ def sworld(*, env=None, state=None, fresh=None, bag=None, cls=0x20, reserve=None
     for mod in list(sys.modules.values()):
         if isinstance(mod, types.ModuleType) and mod.__dict__.get("get_battle_state") is ORIG_GBS:
             patches.append((mod, "get_battle_state", fake_gbs))
-    with _env(env), _patched(patches):
-        yield log
+    try:
+        with _env(env), _patched(patches):
+            yield log
+    finally:
+        lr._warned.clear()
+        lr._warned.update(saved_warned)
 
 
 def lines(log, category):
@@ -437,22 +454,17 @@ def strategy_rows(tag=""):
         bag = Bag(("Potion", 3), ("Super Potion", 2), ("Hyper Potion", 2), ("Full Heal", 1), ("Awakening", 1),
                   ("Full Restore", 1), ("X Attack", 1), ("Repel", 1))
 
-        def reserve(medicine):                                  # RULING 18's shape: hold one Hyper Potion and the
-            out = []                                            # whole Full Restore line back
-            for item, qty, param in medicine:
-                if item.name == "Full Restore":
-                    continue
-                out.append((item, qty - 1 if item.name == "Hyper Potion" else qty, param))
-            return out
-
+        # RULING 18's shape, armed: hold one Hyper Potion and the whole Full Restore line back. ⛔ Given as the RESERVED
+        # QUANTITIES, so `_maybe_use_item` runs the REAL filter and observe its silent twin (the fold of N1).
+        reserved = {"Hyper Potion": 1, "Full Restore": 1}
         st = dstate(lhp=20)
         s1 = new_strategy()
-        with sworld(state=st, bag=bag, reserve=reserve) as log1:
+        with sworld(state=st, bag=bag, reserved=reserved) as log1:
             s1._maybe_use_item(st)                              # the singles call: what it hands the HP policy
         s2 = new_strategy()
-        with sworld(env={FLAG: "observe"}, state=st, bag=bag, reserve=reserve) as log2:
+        with sworld(env={FLAG: "observe"}, state=st, bag=bag, reserved=reserved) as log2:
             s2.decide_turn_in_double_battle(st, 0)              # observe's mirror, through production
-        mirror = DBL().heal_options(bag.items, reserve)
+            mirror = DBL().heal_options(bag.items, SM()._dbl_reserve_silent)
 
         def names(opts):
             return [(o[0].name, o[1], o[2]) for o in opts]
@@ -682,6 +694,44 @@ def strategy_rows(tag=""):
             sys.modules[DBL_NAME] = saved_mod
             setattr(pkg, "double_items", saved_attr)
         return out == {None: PARENT, "1": PARENT}, f"{out}"
+
+    # ---------------------------------------------------------------------- the THREE-LENS REVIEW's N1 (2026-09-30)
+    def r_silent():
+        # N1: in the reserve era observe must stay SILENT — no `[RESERVE]` line, the `_warned` latch untouched — on an
+        # input where the REAL filter DOES log (the control at the end proves the input is not vacuous).
+        lr = modules.story.league_reserve
+        bag = Bag(("Potion", 1), ("Hyper Potion", 2))
+        st = dstate(lhp=20)
+        s = new_strategy()
+        with sworld(env={FLAG: "observe"}, state=st, bag=bag, reserved={"Hyper Potion": 1}) as log:
+            s.decide_turn_in_double_battle(st, 0)
+            obs_reserve = [m for c, m in log.events if c == "RESERVE"]
+            latch_after_obs = set(lr._warned)
+            lr.filter_medicine_for_reserve([(ITEM["Hyper Potion"], 2, 200)])        # the control: the real filter
+            control = [m for c, m in log.events if c == "RESERVE"]
+        ok = not obs_reserve and not latch_after_obs and len(control) == 1 and len(lines(log, "DBLITEM-OBS")) == 1
+        return ok, f"observe RESERVE lines {obs_reserve}; latch {latch_after_obs}; control {len(control)} line(s)"
+
+    def r_parity():
+        # N1: the silent filter's OUTPUT equals the real one's — armed, not armed, NOLOCK — and, through
+        # `heal_options`, on a broken reserve read (both fail UNLOCKED).
+        lr = modules.story.league_reserve
+        med = [(ITEM["Potion"], 2, 20), (ITEM["Hyper Potion"], 2, 200), (ITEM["Full Restore"], 1, 255),
+               (ITEM["Full Heal"], 1, 0)]
+        armed = {"Hyper Potion": 1, "Full Restore": 1}
+        res = {}
+        for name, reserved, env in (("armed", armed, None), ("unarmed", {}, None),
+                                    ("nolock", armed, {"POKEBOT_RESERVE_FAULT_NOLOCK": "1"})):
+            with sworld(env=env, reserved=reserved):
+                silent, real = SM()._dbl_reserve_silent(list(med)), lr.filter_medicine_for_reserve(list(med))
+            res[name] = (silent == real, [(i.name, q) for i, q, _p in silent])
+        bag = Bag(("Potion", 2), ("Hyper Potion", 1))
+        with sworld(reserved_raises=True):
+            a = DBL().heal_options(bag.items, SM()._dbl_reserve_silent)
+            b = DBL().heal_options(bag.items, lr.filter_medicine_for_reserve)
+        res["raise"] = (a == b and len(a) == 2, [(i.name, q) for i, q, _p in a])
+        ok = all(v[0] for v in res.values()) and res["armed"][1] != [(i.name, q) for i, q, _p in med]
+        return ok, f"{res}"
 
     # ---------------------------------------------------------------------- the ADVERSARIAL fold (2026-09-30), strategy
     def k_mode():
@@ -925,6 +975,10 @@ def strategy_rows(tag=""):
          "would=-", sf1_cure),
         ("N2-import [fix] double_items unimportable: flag unset -> the parent's turn (no raise); flag 1 fails open",
          n2_import),
+        ("R-silent [review N1] observe in the reserve era: no [RESERVE] line, the latch untouched (the real filter "
+         "logs on the same input)", r_silent),
+        ("R-parity [review N1] the silent filter's output = the real filter's: armed, unarmed, NOLOCK, a broken read",
+         r_parity),
         ("K-mode [adversary] mode(): OBSERVE / Observe / 'observe ' / '1 ' / '10' / '1\\n' are all OFF", k_mode),
         ("K-scope-real [adversary] real flags (IS_MASTER, TWO_OPPONENTS) are in scope; flag 1 acts there", k_scope_real),
         ("K-active [adversary] active_positions keeps order: [3,1,...] -> (3, 1)", k_active),
@@ -1013,8 +1067,15 @@ class Game:
         self.bag_opens = bag_opens
         self.presses: list = []                              # (frame, state, button, cursor slot)
 
+    #: The party-menu states: `party` (the cursor), `party_msg` (a REFUSAL's "won't have any effect" — it closes back to
+    #: the bag) and `party_ok` (a SUCCESS — the menu exits straight to the battle).
+    PARTY_STATES = ("party", "party_msg", "party_ok")
+    #: The ACTIVE player party indexes (BPI_RAW: battlers 0 and 2) — only a heal on one of them counts in
+    #: `numHealingItemsUsed` (pret pokemon.c:5094-5100; the three-lens review's G2).
+    ACTIVE = (L_IDX, R_IDX)
+
     def order(self):
-        return self.menu_order if self.state in ("party", "party_msg") else list(range(6))
+        return self.menu_order if self.state in self.PARTY_STATES else list(range(6))
 
     def _tick(self):
         if self.bag_at is not None and self.frame >= self.bag_at and self.state == "battle":
@@ -1038,12 +1099,14 @@ class Game:
     def game_state(self):
         self._tick()
         return {"battle": GameState.BATTLE, "bag": GameState.BAG_MENU, "bag_item": GameState.BAG_MENU,
-                "party": GameState.PARTY_MENU, "party_msg": GameState.PARTY_MENU}[self.state]
+                "party": GameState.PARTY_MENU, "party_msg": GameState.PARTY_MENU,
+                "party_ok": GameState.PARTY_MENU}[self.state]
 
     def state_symbol(self):
         self._tick()
         return {"battle": "BATTLEMAINCB2", "bag": "CB2_BAGMENURUN", "bag_item": "CB2_BAGMENURUN",
-                "party": "CB2_UPDATEPARTYMENU", "party_msg": "CB2_UPDATEPARTYMENU"}[self.state]
+                "party": "CB2_UPDATEPARTYMENU", "party_msg": "CB2_UPDATEPARTYMENU",
+                "party_ok": "CB2_UPDATEPARTYMENU"}[self.state]
 
     def hp(self, index):
         return struct.unpack_from("<H", self.recs[index], 0x56)[0]
@@ -1078,18 +1141,28 @@ class Game:
                 self.state = "bag"
         elif st == "party":
             if name == "A":
-                rec = self.recs[self.menu_order[self.party_menu[9]]] if self.party_menu[9] < 6 else None
+                index = self.menu_order[self.party_menu[9]] if self.party_menu[9] < 6 else None
+                rec = None if index is None else self.recs[index]
+                self.state = "party_msg"                             # a REFUSAL unless the medicine applies
                 if rec is not None:
                     hp = struct.unpack_from("<H", rec, 0x56)[0]
                     if 0 < hp < 100 and self.bag.items[0].quantity > 0:   # G1: applied AT SELECTION
                         struct.pack_into("<H", rec, 0x56, min(100, hp + 20))
                         self.bag.items[0].quantity -= 1
-                        self.healed += 1
-                self.state = "party_msg"
+                        if index in self.ACTIVE:                     # G2: only an on-field player battler counts
+                            self.healed += 1
+                        self.state = "party_ok"
             elif name == "B":
                 self.state = "bag"
         elif st == "party_msg" and name == "B":
-            self.state = "bag"
+            self.state = "bag"                                       # a refusal closes back to the bag
+        elif st == "party_ok" and name == "B":
+            # ‼ G2 (the three-lens review): a SUCCESSFUL in-battle medicine exits straight to the battle
+            # (`CB2_SetUpExitToBattleScreen`, pret party_menu.c:1312-1313, :4476-4477) and the battler's choice is
+            # FINAL — its controller sits in `CompleteWhenChoseItem`; the action menu does NOT re-open. The first model
+            # walked a success back through the bag and re-opened the menu (`accepted = False`), which the game never
+            # does. `accepted` stays True here.
+            self.state = "battle"
 
 
 def drive(gen, game, cap=3000):
@@ -1197,12 +1270,12 @@ class StaleGame(Game):
     """The party stays in MENU order after the menu closes (a stale permutation): `after`'s `same=` must say 0."""
 
     def order(self):
-        if self.state in ("party", "party_msg") or getattr(self, "_seen_party", False):
+        if self.state in self.PARTY_STATES or getattr(self, "_seen_party", False):
             return self.menu_order
         return list(range(6))
 
     def press_button(self, name):
-        if self.state in ("party", "party_msg"):
+        if self.state in self.PARTY_STATES:
             self._seen_party = True
         super().press_button(name)
 
@@ -1531,6 +1604,15 @@ def executor_rows(tag=""):
         gave_up = any("bag-did-not-open" in m for m in flow)
         return out, battle_a, opened, gave_up, flow
 
+    def sf2_nobag():
+        # N3 (the three-lens review): the A is ACCEPTED (the action menu lets go) but no bag ever comes. The exit must say
+        # so in its OWN terminal stage — never the generic "… the strategy will re-decide", which is false here (nothing
+        # re-decides a battler whose controller left its action menu; a KI-46 derail follows).
+        out, battle_a, opened, gave_up, flow = bag_flow(Game(g=2, bag_delay=10 ** 6))
+        own = [m for m in flow if "but no bag within 150 frames" in m and "KI-46" in m]
+        ok = out == "done" and len(battle_a) == 1 and not opened and not gave_up and len(own) == 1
+        return ok, f"A presses {battle_a}; generic give-up {gave_up}; own stage {own}"
+
     def sf2_unset():
         # ⛔ the flag-UNSET path keeps today's loop press for press (SF-2 is flag-on doubles only): on the same slow bag
         # it presses three times and gives up at 90 — the shipped behaviour, deliberately left alone (rule 9).
@@ -1595,6 +1677,8 @@ def executor_rows(tag=""):
          sf2_drop),
         ("SF2-bound [fix] every A dropped: exactly three presses, then the bounded give-up", sf2_bound),
         ("SF2-unset [fix] flag unset, the same slow bag: TODAY's three presses and the give-up, unchanged", sf2_unset),
+        ("SF2-nobag [review N3] the A accepted, no bag ever: its OWN terminal stage (KI-46 expected), not the generic "
+         "'the strategy will re-decide'", sf2_nobag),
     ]
     for label, fn in cases:
         row(label, fn, tag, reds)
@@ -1961,7 +2045,8 @@ MUTANT_ADDITIONS = {
     "MD12": {"K-parity-noreserve"}, "MD14": {"K-ether"}, "MD15": {"K-obs-frac"}, "MD16": {"K-why-boundary"},
     "MD17": {"K-ledger-switch", "K-worst-per-mon"},
     "MS02": {"K-obs-cap", "K-obs-dict", "K-obs-frac", "K-obs-ineff", "K-obs-key0", "K-obs-keyitems0", "K-obs-maxworst",
-             "K-obs-null", "K-obs-rise", "K-obs-switch", "K-obs-two", "SF1-cure"},
+             "K-obs-null", "K-obs-rise", "K-obs-switch", "K-obs-two", "SF1-cure",
+             "R-silent"},                    # (the review's fold: derived before its run — observe acts, no OBS line)
     "MS03": {"K-cap-shared", "K-ledger-switch"},
     "MS04": {"K-cap-shared", "K-ledger-switch", "K-scope-real", "K-worst-per-mon"},
     "MS06": {"K-ledger-switch", "K-worst-per-mon"}, "MS10": {"K-d10-side1", "SF1-cure"},
@@ -2018,7 +2103,7 @@ FOLD_MUTANTS: list = [
      {"SF1-cure"}),
     ("RV-SF2 revert SF-2: today's 3 x 30 loop in a flag-on double too (799e6adf)", "bas",
      [("    if _dbl_ctx is not None:\n        # design v2 step 13, SF-2:", "    if False:\n        # design v2 step 13, SF-2:")],
-     {"SF2-accept", "SF2-drop"}),
+     {"SF2-accept", "SF2-drop", "SF2-nobag"}),
     ("RV-N2 revert N2: double_items imported BEFORE the flag test (799e6adf)", "sm",
      [('        if _os_dbl.environ.get("POKEBOT_R27_DOUBLEITEMS") not in ("observe", "1"):',
        "        from modules.story import double_items as _dbl_early  # noqa: F401\n"
@@ -2027,7 +2112,24 @@ FOLD_MUTANTS: list = [
     # ---- SF-2's own rules
     ("SF2a the action-menu check dropped (re-press regardless)", "bas",
      [("        if get_battle_controller_callback(battler_index) not in _DBL_CHOOSE_ACTION:\n            break",
-       "        if False:\n            break")], {"SF2-accept", "SF2-drop"}),
+       "        if False:\n            break")], {"SF2-accept", "SF2-drop", "SF2-nobag"}),
+    # ---- the THREE-LENS REVIEW's code nits (2026-09-30): reverts and their rules, derived before their first run
+    ("RV-N1 revert N1: observe back on the LOGGING reserve filter", "sm",
+     [("    options = _dbl.heal_options(get_item_bag().items, _dbl_reserve_silent)",
+       "    options = _dbl.heal_options(get_item_bag().items, __import__(\"modules.story.league_reserve\", "
+       "fromlist=[\"x\"]).filter_medicine_for_reserve)")], {"R-silent"}),
+    ("N1a the silent filter ignores POKEBOT_RESERVE_FAULT_NOLOCK", "sm",
+     [('    if _os_rs.environ.get("POKEBOT_RESERVE_FAULT_NOLOCK") == "1":\n        return medicine\n', "")],
+     {"R-parity"}),
+    ("N1b the silent filter never subtracts the reserve", "sm",
+     [("    return apply_reserve(medicine, reserved) if reserved else medicine", "    return medicine")],
+     {"R-parity", "DQ03"}),
+    ("RV-N3 revert N3: the accepted-no-bag exit returns False and logs the generic 're-decide' line", "bas",
+     [('    stage(f"A accepted after {presses} press(es) but no bag within {_DBL_BAG_WAIT_AFTER_ACCEPT} frames — this '
+       'battler "\n          f"cannot be re-decided (its controller left the action menu); a KI-46 derail is expected")\n'
+       "    return None\n", "    return False\n")], {"SF2-nobag"}),
+    ("N3b the caller logs the generic give-up on the accepted-no-bag exit too", "bas",
+     [("        if _bag_open is not None:\n", "        if True:\n")], {"SF2-nobag"}),
     ("SF2b the post-accept wait dropped (give up at once)", "bas",
      [("    for _ in range(_DBL_BAG_WAIT_AFTER_ACCEPT):", "    for _ in range(0):")], {"SF2-accept", "SF2-drop"}),
     ("SF2c the press bound dropped (presses for as long as the menu stays up)", "bas",
@@ -2053,7 +2155,7 @@ FOLD_MUTANTS: list = [
      {"DQ02", "DQ03", "DQ04", "DQ05", "DQ08", "DQ10", "DBuse", "DBerr", "DBobsfields", "DBobsworst", "DBobskey",
       "DBobsdisc", "DBjudge", "SF1-cure", "K-scope-real", "K-parity-noreserve", "K-worst-per-mon", "K-cap-shared",
       "K-key-once", "K-ledger-switch", "K-obs-switch", "K-obs-maxworst", "K-obs-rise", "K-obs-cap", "K-obs-ineff",
-      "K-obs-frac", "K-obs-two", "K-obs-null", "K-obs-key0", "K-obs-keyitems0"}),
+      "K-obs-frac", "K-obs-two", "K-obs-null", "K-obs-key0", "K-obs-keyitems0", "R-silent"}),
     ("KN12 active_positions sorted (left/right lost)", "dbl",
      [("    return order[0], order[1]", "    return tuple(sorted((order[0], order[1])))")], {"K-active"}),
     ("KN21 guard_ok: the slot/count None checks dropped (raises)", "dbl",
@@ -2068,7 +2170,7 @@ FOLD_MUTANTS: list = [
      [("        except Exception:  # noqa: BLE001 - fail UNLOCKED, the strategy's own rule (story_mode.py, RULING 18 "
        "filter)\n            pass\n",
        "        except Exception:  # noqa: BLE001 - the mutant fails closed\n            medicine = []\n")],
-     {"K-reserve-raise"}),
+     {"K-reserve-raise", "R-parity"}),
     ("KN28 hp_decline_reason: above_fraction at >=", "dbl",
      [("    if current_hp / total_hp > heal_at_fraction:\n        return \"above_fraction\"",
        "    if current_hp / total_hp >= heal_at_fraction:\n        return \"above_fraction\"")], {"K-why-boundary"}),

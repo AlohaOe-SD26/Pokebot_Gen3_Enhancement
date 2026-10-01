@@ -6528,6 +6528,24 @@ def _dbl_observe(strategy, battle_state, side: int) -> None:
     _log_story_event(line, "DBLITEM-OBS")
 
 
+def _dbl_reserve_silent(medicine: list) -> list:
+    """Observe's RULING 18 reserve: the SAME list `league_reserve.filter_medicine_for_reserve` returns, with none of its
+    side effects. ‼ WHY (the three-lens review's N1): the real filter logs a `[RESERVE]` line and adds to the module-level
+    `_warned` latch whenever it holds something back — so an `observe` decision in the reserve era (Sootopolis to the
+    Elite Four) would log a second category AND silence a later identical singles `[RESERVE]` line, while observe claims
+    to change nothing. Same steps as the real filter: `POKEBOT_RESERVE_FAULT_NOLOCK` bypasses it, then the reserved
+    quantities are subtracted. A failure RAISES here and `double_items.heal_options` fails UNLOCKED (the unfiltered
+    list), which is the real filter's output on a failure too — only without its log line (gate row R-parity)."""
+    import os as _os_rs
+
+    from modules.story.league_reserve import apply_reserve, reserved_quantities
+
+    if _os_rs.environ.get("POKEBOT_RESERVE_FAULT_NOLOCK") == "1":
+        return medicine
+    reserved = reserved_quantities()
+    return apply_reserve(medicine, reserved) if reserved else medicine
+
+
 def _dbl_obs_line(strategy, battle_state, side: int) -> str:
     """The `[DBLITEM-OBS]` row (C5): what the policy WOULD do for this battler, from the pure policy fed by observe's own
     per-Pokémon HP tracker, plus D8's OFFSET self-check — `battlerPartyOrders[g]` read raw at
@@ -6568,12 +6586,9 @@ def _dbl_obs_line(strategy, battle_state, side: int) -> str:
         allow = _ti.key_battle_verdict(_os_obs.environ.get("POKEBOT_R27_KEYITEMS") == "1", sides)[0]
     except Exception:  # noqa: BLE001 - fails OPEN like `_r27_key_gate`: an unreadable opponent never refuses items
         key, allow = "?", True
-    # WOULD: the singles policy's inputs through the pure mirror (`heal_options`, pinned by the parity row DQ03).
-    try:
-        from modules.story.league_reserve import filter_medicine_for_reserve as _reserve
-    except Exception:  # noqa: BLE001 - fail UNLOCKED, the strategy's own rule for the RULING 18 reserve
-        _reserve = None
-    options = _dbl.heal_options(get_item_bag().items, _reserve)
+    # WOULD: the singles policy's inputs through the pure mirror (`heal_options`, pinned by the parity row DQ03), with
+    # the RULING 18 reserve applied SILENTLY (`_dbl_reserve_silent`: the same list, no `[RESERVE]` line, no latch).
+    options = _dbl.heal_options(get_item_bag().items, _dbl_reserve_silent)
     frac_kw = _dbl.heal_fraction_kw(_os_obs.environ.get("POKEBOT_HEAL_AT_FRACTION", ""))
     uses = getattr(strategy, "_item_uses", 0)
     item = None

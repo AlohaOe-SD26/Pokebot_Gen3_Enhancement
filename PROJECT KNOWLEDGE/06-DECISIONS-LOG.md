@@ -8769,3 +8769,23 @@ From the gate's adversarial pass (`tools/story-dev/evidence/2026-09-30-doubleite
   sets did not change.
 - **Not folded, recorded as residuals** (the graded note): the bag-count verdict is per item type; item names keep spaces
   in the `use` / `after` lines; a bag-did-not-open return logs no `menu` / `after` pair.
+
+## 2026-09-30 — Design v2 step 13's BUILD REVIEW: its rulings, and step 14's arm B (`#26-organiccatch`)
+
+The three-lens review (`tools/story-dev/evidence/2026-09-30-doubleitems13-REVIEW.txt`; every blocker/should-fix put to a
+refuter) found no production defect. Rulings, recorded so they are not re-asked:
+- **C1's "inert with the flag unset" is SCOPED, not withdrawn** (N2/F13): inert for Story's strategies, whose trainer
+  doubles only FIGHT. Under upstream's `DefaultBattleStrategy` with the `rotate` config it changes flag-unset presses,
+  turning a latent KI-45 into a working FIGHT. It stays unconditional: a fix there, not a regression. The
+  `DIVERGENCE-LOG` entry at promotion must say so.
+- **Observe uses a SILENT copy of the RULING 18 reserve filter** (N1): the same list, no `[RESERVE]` line, no latch.
+  Rejected: qualifying the "observe changes nothing" claim instead, because a shared latch would silence a later
+  singles line.
+- **SF-2's after-acceptance give-up logs its own stage** (N3); the generic "will re-decide" line stays for the paths
+  where it is true.
+- **The graders count as-filed and corrected checks apart**, and a check that cannot fail is not a check (F5): the T3
+  next-FIGHT check evaluates, and an absent observation is reported ABSENT, never PASS. The two arms evidence files were
+  regenerated with the fixed grader; no run was repeated.
+- **Step 14's arm B adds `POKEBOT_R27_DOUBLEITEMS=1`** to v2's list: step 13 composes with `KEYITEMS` (D6), so without
+  it the batch would measure singles-only items. `#27-itemprobes` comes first: step 14's acceptance instruments match
+  lines no current code prints.

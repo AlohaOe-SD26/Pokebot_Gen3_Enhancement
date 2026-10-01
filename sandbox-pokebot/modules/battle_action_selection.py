@@ -1165,8 +1165,14 @@ _DBL_BAG_WAIT_AFTER_ACCEPT = 150      # frames to wait for BAG_MENU, pressing no
 
 
 def _dbl_open_bag(battler_index: int, stage) -> Generator:
-    """design v2 step 13, SF-2 — open the bag for battler `battler_index` (0 or 2) in a flag-on DOUBLE; returns True once
-    `BAG_MENU` is seen, False when it gives up (today's bounded give-up then runs). At most 3 × 30 + 150 frames.
+    """design v2 step 13, SF-2 — open the bag for battler `battler_index` (0 or 2) in a flag-on DOUBLE. At most
+    3 × 30 + 150 frames. Returns THREE outcomes, and the caller tells them apart:
+      True  — `BAG_MENU` was seen;
+      False — three presses and the action menu never let go: the battler can still be re-decided, so the caller's
+              generic "bag-did-not-open … the strategy will re-decide" give-up is TRUE and runs;
+      None  — the A was ACCEPTED but no bag came within the wait: this exit has ALREADY logged its own terminal stage,
+              because the generic line would be false here (the review's N3): nothing re-decides a battler whose
+              controller has left the action menu, so the handler idles into a KI-46 derail.
 
     ‼ WHY (MEASURED, `evidence/2026-09-30-doubleitems13-ARMS.txt`, P-ON): battler 0's first item of a turn opened the
     bag 74 frames after entry — attempt 1 timed out still in `BATTLEMAINCB2`, attempt 2 in `CB2_BAG` — against today's
@@ -1197,7 +1203,9 @@ def _dbl_open_bag(battler_index: int, stage) -> Generator:
         yield
         if get_game_state() == GameState.BAG_MENU:
             return True
-    return False
+    stage(f"A accepted after {presses} press(es) but no bag within {_DBL_BAG_WAIT_AFTER_ACCEPT} frames — this battler "
+          f"cannot be re-decided (its controller left the action menu); a KI-46 derail is expected")
+    return None
 
 
 def _dbl_after(ctx: dict, item) -> None:
@@ -1276,7 +1284,10 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
                 break
             _stage(f"bag-not-open-yet (attempt {_attempt + 1}/3)")
     if not _bag_open:
-        _stage("bag-did-not-open after 3 bounded attempts — returning; the strategy will re-decide")
+        # `None` is `_dbl_open_bag`'s accepted-but-no-bag exit, which has logged its own terminal stage (N3); the generic
+        # line is true only for today's loop and for three dropped presses.
+        if _bag_open is not None:
+            _stage("bag-did-not-open after 3 bounded attempts — returning; the strategy will re-decide")
         return
     _stage("opened-bag")
     yield from scroll_to_item_in_bag(item)
