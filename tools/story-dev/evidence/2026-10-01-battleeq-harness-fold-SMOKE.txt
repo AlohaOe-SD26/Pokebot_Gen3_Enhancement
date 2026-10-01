@@ -1,0 +1,159 @@
+# #27-battleeq — the HARNESS FOLD (H1-H6 + BE-6 prep): SMOKE TESTS ONLY, NOT GRADED ARMS (2026-10-01,
+# ~4:24-4:35 PM Los Angeles; every run HARNESS_EXIT_ON_MANUAL=1). The graded BE-6 arms are the coordinator's,
+# from committed code. Each block: the run's informative --log lines (quiet census lines omitted) and the
+# census summary, verbatim. Fixtures asserted: r20_pregym1_party4_r116.ss1 = 9710585350be,
+# post_ch24_atdoor.ss1 = 82bc3125637d.
+
+## t400: ki47oor Foor, KI47_INSTALL=0 KI108_CENSUS=1 KI108_LEVER=1 (fix), --frames 400: install + lever order
+[KI108] CENSUS ON: every module-level reference to get_battle_state rebound (['modules.battle_state.get_battle_state', 'modules.battle_strategies.default.get_battle_state', 'modules.battle_strategies.get_battle_state', 'modules.gui.debug_tabs.get_battle_state', 'modules.gui.emulator_screen.get_battle_state', 'modules.battle_move_replacing.get_battle_state', 'modules.battle_action_selection.get_battle_state', 'modules.battle_handler.get_battle_state', 'modules.modes._listeners.get_battle_state']); none still references the original; acting sites (AST) = ['battle_action_selection.py:1350', 'battle_action_selection.py:809', 'battle_move_replacing.py:149']; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\smoke2\t400.log.census.txt
+[KI108] LEVER ON: a harness-only listener at index 0 of 15 listeners reads get_battle_state() first in every battle frame
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ=None lever=True (lever reads 242)  calls=484  quiet index-1 lever reads equal to memory (census file only)=242  acted-on slot lines=0 (start != PID truth: 0)  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which explained by an ORDER write after the frame's last fresh read) | returned!=memory TURN (of which explained by a TURN write)
+    LEVER(story_harness)                     calls=242    idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:101                        calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:164                        calls=241    idx>=2=241    order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] ACTING SITES (always listed; calls=0 means the run never reached it):
+    battle_action_selection.py:1350          calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_move_replacing.py:149             calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] TOTAL  idx>=2=242  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=242  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 2 total; overlapping the order or the turn: none
+========================================================================================
+
+## FoorFAULT: ki47oor Foor, KI47_INSTALL=0, POKEBOT_KI108_FAULT_OLDEQ=1, --frames 4000: H1 R lines + premise
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f3638: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+[ki47oor] R cache_held_before = '012345'
+[ki47oor] R cache_kept_old_object = True
+[ki47oor] R driver_reread = '104523'
+[ki47oor] R ki108_fault_oldeq = True
+[ki47oor] R order_written = '104523'
+[ki47oor] R snapshot_seen = '012345'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_premise_cache_differs': True, 'runb_setter_as_armed': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3676 — ending the loop at f3796
+
+## FoorFIX: ki47oor Foor, KI47_INSTALL=0 (fix), --frames 4000: H1 R lines + premise
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f3638: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+[ki47oor] R cache_held_before = '012345'
+[ki47oor] R cache_kept_old_object = False
+[ki47oor] R driver_reread = '104523'
+[ki47oor] R ki108_fault_oldeq = False
+[ki47oor] R order_written = '104523'
+[ki47oor] R snapshot_seen = '104523'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_premise_cache_differs': True, 'runb_setter_as_armed': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3676 — ending the loop at f3796
+
+## C0FAULT: ki47oor C0, KI47_INSTALL=0, POKEBOT_KI108_FAULT_OLDEQ=1, --frames 4000: the control premise
+f158: battle_is_active -> True  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179]
+f3638: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Shedinja:L22:exp16610|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L7:exp237]
+[ki47oor] R cache_held_before = '012345'
+[ki47oor] R cache_kept_old_object = True
+[ki47oor] R driver_reread = '012345'
+[ki47oor] R ki108_fault_oldeq = True
+[ki47oor] R order_written = '012345'
+[ki47oor] R snapshot_seen = '012345'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_premise_cache_matches': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f3676 — ending the loop at f3796
+
+## SwpLeverFAULT2: ki47oor Swp, KI47_INSTALL=0 KI108_LEVER=1 KI108_CENSUS=1, POKEBOT_KI108_FAULT_OLDEQ=1, --frames 6000: H2 cache=/held=, H3 lever first, H5 acting sites, H6 START/END + PID truth
+[KI108] CENSUS ON: every module-level reference to get_battle_state rebound (['modules.battle_state.get_battle_state', 'modules.battle_strategies.default.get_battle_state', 'modules.battle_strategies.get_battle_state', 'modules.gui.debug_tabs.get_battle_state', 'modules.gui.emulator_screen.get_battle_state', 'modules.battle_move_replacing.get_battle_state', 'modules.battle_action_selection.get_battle_state', 'modules.battle_handler.get_battle_state', 'modules.modes._listeners.get_battle_state']); none still references the original; acting sites (AST) = ['battle_action_selection.py:1350', 'battle_action_selection.py:809', 'battle_move_replacing.py:149']; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\smoke2\SwpLeverFAULT2.log.census.txt
+[KI108] LEVER ON: a harness-only listener at index 0 of 15 listeners reads get_battle_state() first in every battle frame
+f222: battle_is_active -> True  party=[Whismur:L6:exp179|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[KI108-TARGET] s763 f137450 switch party_index=2 -> target Shedinja#00000000 (gPlayerParty in FIELD order, read before the menu opens)
+[KI108-CENSUS] s815 f137502 i2 cache=1 battle_action_selection.py:809 held=012345 ret=012345/t0 mem=012345/t0 ACTING-SITE mem_order_last_changed=never
+[KI108-ACT] s815 f137502 START battle_action_selection.scroll_to_party_menu_index(2) caller=battle_action_selection.py:831 pid_at_slot=00000000 species_at_slot=Shedinja target=Shedinja#00000000(switch) pid_truth_slot=2 mem_order=012345 mem_turn=0
+[KI108-ACT] s841 f137528 END battle_action_selection.scroll_to_party_menu_index(2) reached_slot=2 pid_at_slot=00000000 species_at_slot=Shedinja pid_truth_slot=2
+[KI108-ACT] s1921 f138608 START battle_handler.scroll_to_party_menu_index(2) caller=battle_handler.py:651 pid_at_slot=7E9BB3BA species_at_slot=Whismur target=chosen#7E9BB3BA(faint) pid_truth_slot=2 mem_order=210345 mem_turn=0
+[KI108-ACT] s1948 f138635 END battle_handler.scroll_to_party_menu_index(2) reached_slot=2 pid_at_slot=7E9BB3BA species_at_slot=Whismur pid_truth_slot=2
+[KI108-CENSUS] s1980 f138667 i2 cache=1 battle_handler.py:407 held=210345 ret=210345/t0 mem=012345/t0 ORDER-DIFF
+[KI108-CENSUS] s1980 f138667 i3 cache=1 battle_handler.py:492 held=210345 ret=210345/t0 mem=012345/t0 ORDER-DIFF
+[KI108-CENSUS] s2942 f139629 i2 cache=1 battle_action_selection.py:116 held=012345 ret=012345/t2 mem=012345/t3 TURN-DIFF
+[KI108-CENSUS] s2948 f139635 i2 cache=1 battle_action_selection.py:578 held=012345 ret=012345/t2 mem=012345/t3 TURN-DIFF
+[KI108-CENSUS] s3280 f139967 i2 cache=1 battle_action_selection.py:116 held=012345 ret=012345/t3 mem=012345/t4 TURN-DIFF
+[KI108-CENSUS] s3286 f139973 i2 cache=1 battle_action_selection.py:578 held=012345 ret=012345/t3 mem=012345/t4 TURN-DIFF
+f4166: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Whismur:L7:exp237|Nincada:L6:exp406|Shedinja:L22:exp16610|Poochyena:L4:exp119]
+[ki47oor] R cache_held_before = '210345'
+[ki47oor] R cache_kept_old_object = True
+[ki47oor] R driver_reread = '210345'
+[ki47oor] R ki108_fault_oldeq = True
+[ki47oor] R order_written = '210345'
+[ki47oor] R snapshot_seen = '210345'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_premise_cache_matches': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_swp': True} handler_frames=146 presses={'A': 95, 'Down': 2}
+[run] HARNESS_EXIT_ON_MANUAL: Manual since f4204 — ending the loop at f4324
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ='1' lever=True (lever reads 3944)  calls=4306  quiet index-1 lever reads equal to memory (census file only)=3944  acted-on slot lines=2 (start != PID truth: 0)  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which explained by an ORDER write after the frame's last fresh read) | returned!=memory TURN (of which explained by a TURN write)
+    LEVER(story_harness)                     calls=3944   idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:101                        calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    _listeners.py:164                        calls=339    idx>=2=339    order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:116           calls=5      idx>=2=5      order_diff=0 (0)  turn_diff=2 (0)
+    battle_action_selection.py:578           calls=5      idx>=2=5      order_diff=0 (0)  turn_diff=2 (0)
+    battle_action_selection.py:809           calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:407                    calls=4      idx>=2=4      order_diff=1 (0)  turn_diff=0 (0)
+    battle_handler.py:492                    calls=2      idx>=2=2      order_diff=1 (0)  turn_diff=0 (0)
+    battle_handler.py:617                    calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_handler.py:682                    calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:373                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:385                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    story_harness.py:423                     calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] ACTING SITES (always listed; calls=0 means the run never reached it):
+    battle_action_selection.py:1350          calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_move_replacing.py:149             calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] every ACTING-SITE call, with when memory's order last changed before it (1):
+    [KI108-CENSUS] s815 f137502 i2 cache=1 battle_action_selection.py:809 held=012345 ret=012345/t0 mem=012345/t0 ACTING-SITE mem_order_last_changed=never
+[KI108-CENSUS] TOTAL  idx>=2=362  order_diff=2 (unexplained 2)  turn_diff=4 (unexplained 4)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=359  order_diff=2 (unexplained 2)  turn_diff=4 (unexplained 4)
+[KI108-CENSUS] memory writes: 2 total; overlapping the order or the turn: none
+========================================================================================
+
+## ch24_t400: ch24probe from post_ch24_atdoor.ss1 (asserted 82bc3125637d), KI108_LEVER=1 KI108_CENSUS=1 (fix), --frames 400: the knobs under this driver
+[KI108] CENSUS ON: every module-level reference to get_battle_state rebound (['modules.battle_state.get_battle_state', 'modules.battle_strategies.default.get_battle_state', 'modules.battle_strategies.get_battle_state', 'modules.gui.debug_tabs.get_battle_state', 'modules.gui.emulator_screen.get_battle_state', 'modules.battle_move_replacing.get_battle_state', 'modules.battle_action_selection.get_battle_state', 'modules.battle_handler.get_battle_state', 'modules.modes._listeners.get_battle_state']); none still references the original; acting sites (AST) = ['battle_action_selection.py:1350', 'battle_action_selection.py:809', 'battle_move_replacing.py:149']; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\smoke2\ch24_t400.log.census.txt
+[KI108] LEVER ON: a harness-only listener at index 0 of 15 listeners reads get_battle_state() first in every battle frame
+[ch24probe] PRE at=((0, 8), (18, 6)) elite4_state=0
+[ch24probe] PRE party=Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ=None lever=True (lever reads 0)  calls=0  quiet index-1 lever reads equal to memory (census file only)=0  acted-on slot lines=0 (start != PID truth: 0)  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which explained by an ORDER write after the frame's last fresh read) | returned!=memory TURN (of which explained by a TURN write)
+[KI108-CENSUS] ACTING SITES (always listed; calls=0 means the run never reached it):
+    battle_action_selection.py:1350          calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_move_replacing.py:149             calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] TOTAL  idx>=2=0  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=0  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 0 total; overlapping the order or the turn: none
+========================================================================================
+
+## ch24_t3500: ch24probe from post_ch24_atdoor.ss1, KI108_LEVER=1 KI108_CENSUS=1 (fix), --frames 3500: into the Sidney battle (starts f2547), no item use yet
+[KI108] CENSUS ON: every module-level reference to get_battle_state rebound (['modules.battle_state.get_battle_state', 'modules.battle_strategies.default.get_battle_state', 'modules.battle_strategies.get_battle_state', 'modules.gui.debug_tabs.get_battle_state', 'modules.gui.emulator_screen.get_battle_state', 'modules.battle_move_replacing.get_battle_state', 'modules.battle_action_selection.get_battle_state', 'modules.battle_handler.get_battle_state', 'modules.modes._listeners.get_battle_state']); none still references the original; acting sites (AST) = ['battle_action_selection.py:1350', 'battle_action_selection.py:809', 'battle_move_replacing.py:149']; one line per call -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\smoke2\ch24_t3500.log.census.txt
+[KI108] LEVER ON: a harness-only listener at index 0 of 15 listeners reads get_battle_state() first in every battle frame
+[ch24probe] PRE at=((0, 8), (18, 6)) elite4_state=0
+[ch24probe] PRE party=Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+f2547: battle_is_active -> True  party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] BATTLE #1 — Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+[KI108-CENSUS] SUMMARY  arm: POKEBOT_KI108_FAULT_OLDEQ=None lever=True (lever reads 953)  calls=955  quiet index-1 lever reads equal to memory (census file only)=953  acted-on slot lines=0 (start != PID truth: 0)  instrument errors=0
+[KI108-CENSUS] per caller site: calls | at index>=2 | returned!=memory ORDER (of which explained by an ORDER write after the frame's last fresh read) | returned!=memory TURN (of which explained by a TURN write)
+    LEVER(story_harness)                     calls=953    idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:116           calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:578           calls=1      idx>=2=1      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] ACTING SITES (always listed; calls=0 means the run never reached it):
+    battle_action_selection.py:1350          calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_action_selection.py:809           calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+    battle_move_replacing.py:149             calls=0      idx>=2=0      order_diff=0 (0)  turn_diff=0 (0)
+[KI108-CENSUS] TOTAL  idx>=2=2  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=2  order_diff=0 (unexplained 0)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 0 total; overlapping the order or the turn: none
+========================================================================================
+
+## FoorCensusFAULT: ki47oor Foor, KI47_INSTALL=0 KI108_CENSUS=1, POKEBOT_KI108_FAULT_OLDEQ=1, --frames 4000:
+## H2 with a REAL in-frame order write. The driver writes the order (story_harness.py:390) and THEN re-reads
+## fresh, so the handler's :492 difference is NOT write-explained (the old frame-level label excused it).
+[KI108-CENSUS] s1569 f138256 i4 cache=1 battle_handler.py:492 held=012345 ret=012345/t0 mem=104523/t0 ORDER-DIFF
+[KI108-CENSUS] s1717 f138404 i2 cache=1 battle_handler.py:492 held=012345 ret=012345/t0 mem=312045/t0 ORDER-DIFF
+[ki47oor] R cache_held_before = '012345'
+[ki47oor] R snapshot_seen = '012345'
+[ki47oor] VERDICT {'reached_the_chooser': True, 'runb_premise_cache_differs': True, 'runb_setter_as_armed': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+[KI108-CENSUS] TOTAL  idx>=2=5  order_diff=2 (unexplained 2)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] BOT SITES ONLY (not the lever, not story_harness.py)  idx>=2=3  order_diff=2 (unexplained 2)  turn_diff=0 (unexplained 0)
+[KI108-CENSUS] memory writes: 3 total; overlapping the order or the turn: [(138256, 'story_harness.py:390', '0x0203CF00+3', True, 'order', '')]

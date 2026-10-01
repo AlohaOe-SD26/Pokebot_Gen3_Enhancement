@@ -1224,8 +1224,11 @@ GATES: list[tuple[str, bool]] = [
     # cache setter kept the OLD object on an order-only or turn-only re-read, so a second caller (the GUI Battle tab
     # reads first, then the bot's KI-96 / KI-101 re-maps) received a stale order: measured live in the 2026-09-28 Run B.
     # The REAL get_battle_state over a fake read_symbol and a settable frame: C/K rows in both arms (K5 is the vacuity
-    # witness, K9-runA pins the out-of-scope in-frame write), W rows on the AST; 14 mutants with exact red sets incl. the
-    # upstream mirror verbatim, a comment-only mention that reddens nothing, and a coverage check. No ROM; ~1 s.
+    # witness, K9-runA pins the out-of-scope in-frame write); after the independent hunt's fold: K10 every order/turn
+    # change shape, K11 each of upstream's 9 fields alone, K12 the switch compared only with "1" (exhaustive), K13 a
+    # backwards frame, R1 the §B row; NO AST rows (they were fooled by dead code and false-positived on equivalent
+    # refactors). 34 mutants with exact red sets incl. the upstream mirror verbatim, the hunt's gap families, and 7 that
+    # must redden NOTHING (a comment-only mention, 6 equivalent refactors); coverage + load-bearing checks. No ROM; ~2 s.
     # ‼ APPENDED AT THE END.
     ("probe_battle_state_eq.py", False),
 ]

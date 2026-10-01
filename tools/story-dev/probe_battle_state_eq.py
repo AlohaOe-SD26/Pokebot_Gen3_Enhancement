@@ -20,11 +20,11 @@ first call would return the empty cache). Each row gets a fresh `StateCache` fro
 `state_cache.py`. "FAULT" rows run with the switch "1"; "FIX" rows with it unset. The switch is cleared at start and
 restored at exit, so an inherited environment cannot decide a row.
 
-ROWS
+ROWS (every one is BEHAVIOURAL except R1; nothing here reads the source text of battle_state.py)
   C0        the first call is fresh (order and turn from memory) and is stored in the cache.
   C1        two calls in one frame with no change return the SAME object.
-  K1        switch ON reproduces the bug: an order-only change; the first caller is fresh, the second gets the OLD
-            order and IS the old object.
+  K1        switch ON reproduces the bug: an order-only change; the first caller is fresh (it gets the locally built
+            object, not the kept old one), the second gets the OLD order and IS the old object.
   K2        fixed: the second caller gets the new order and is the first caller's object.
   K3-*      the stale object persists into the NEXT frame (fault) / the fixed object is kept, not replaced (fix).
   K4-*      the turn alone changes.
@@ -32,30 +32,50 @@ ROWS
             field and therefore cannot tell the arms apart).
   K6 / K6-* `__eq__` semantics: identical bytes are equal and a different HP is unequal in BOTH arms, a non-BattleState
             gives NotImplemented; an order-only or turn-only difference is equal (fault) / unequal (fix).
-  K7-*      the switch is read per call, and ONLY the exact string "1" restores the old compare.
+  K7-*      the switch is read per call (a flip on the SAME objects), on a sample of values.
   K8-*      the bookkeeping: the cache item's `.frame` stamp moves on an order-only change only under the fix, and an
             unchanged re-read never bumps it.
   K9-runA   an IN-FRAME memory write after the frame's first read is invisible to later callers in BOTH arms (out of
             scope by design: the early return is unchanged).
   K9-*      KI-108's Run-B shape: first read, a memory write, the entry aged one frame, a plain re-read, then the
             "handler" call. Fault: the handler gets the OLD order although the re-read saw the new; fix: the new.
-  W1-W6     wiring, by AST (comments and docstrings cannot satisfy or trip them): W1/W2 `__eq__` reads both halves of
-            the order / the turn; W3 every such read sits inside an `if` whose test reads the switch; W4 `__eq__` reads
-            the switch by its exact literal and nothing reads it at module level; W5 the literal is registered in
-            `29-DISABLED-FEATURES-REGISTRY.md`; W6 `get_battle_state` keeps its early return, stores the new object,
-            and RETURNS THE LOCAL.
+  ---- added 2026-10-01 from the INDEPENDENT mutant hunt (its X1-X5; it found 22 non-equivalent survivors because
+       the world above varies only ORDER_A -> ORDER_B, one turn step 3 -> 4, and battler 0's HP):
+  K10       every ORDER change shape (byte 0 only, byte 1 only, byte 2 only, a whole-byte permutation with the same
+            multiset and sum, the full permutation) and every TURN change (+1, -1, +2, to 0, 255 -> 0), in BOTH
+            directions, through the real cache: fix = the second caller gets the new value; fault = it gets the old
+            object.
+  K11       each of upstream's 9 compared fields changed ALONE (first byte, last byte) is unequal, both ways round, in
+            BOTH arms: the switch restores EXACTLY upstream's compare and the fix drops none of it.
+  K12       the switch's value is compared with the string "1" and with NOTHING ELSE, and no method is called on it
+            (exhaustive, not sampled: a str subclass records every comparison and attribute access). The module's
+            own `os` / `os.environ` / `os.getenv` bindings (any alias) AND `os.environ.get` itself are served from a
+            shim for the row, so hoisting the literal, aliasing `environ` or a function-local `import os` all pass.
+            This row also pins the LITERAL behaviourally: the shim knows only the real variable name.
+  K13       the frame counter going BACKWARDS (a reset / state load with no cache reset; `StateCacheItem`'s "frame
+            lower than the data" branch) makes the next call fresh; then fault = second caller old, fix = new.
+  R1        `29-DISABLED-FEATURES-REGISTRY.md` §B holds a TABLE ROW whose first cell is exactly the backticked literal.
+  ⛔ REMOVED 2026-10-01 (the hunt): W1-W4 (AST wiring) were satisfied by DEAD code (`if False:`, an unused helper, a
+     shadowed second `__eq__`, a lambda) and killed nothing the behaviour rows do not; W3/W4 FALSE-POSITIVED on the
+     literal hoisted into a module constant, and W6 on the equivalent `age <= 0` / `age < 1`. K1 pins "the first call
+     returns the locally built object" behaviourally (the only place the local and the kept object can differ in
+     content is under the switch), C0 pins the store, C1 / K9-runA the early return. W5 was a bare substring test; R1
+     replaces it. CLAUDE.md SESSION DISCIPLINE rule 6: a gate with false positives teaches the reader to bypass it.
 
-MUTANTS (each graded only when the UNMUTATED subject passes every row; each red set below was written BEFORE the
-mutant's first run). M0 is the upstream mirror's file verbatim (the bug, permanently re-runnable). M8 is a
-comment-only mention and must redden NOTHING. A COVERAGE check requires every row to be in some mutant's red set.
+MUTANTS (each graded only when the UNMUTATED subject passes every row; every red set was written BEFORE that mutant's
+first run). M0 is the upstream mirror's file verbatim (the bug, permanently re-runnable). M14-M27 are the hunt's gap
+families. M8 (comment-only mentions) and E1-E6 (EQUIVALENT refactors) must redden NOTHING. A COVERAGE check requires
+every row to be in some mutant's red set, and a LOAD-BEARING check requires each of K10-K13 and R1 to be the ONLY red
+row of at least one mutant.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_battle_state_eq.py
 """
-import ast
 import importlib.util
 import os
 import pathlib
+import re
 import sys
+import types
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.stdout.reconfigure(encoding="utf-8")
@@ -66,7 +86,6 @@ SC = SANDBOX / "modules" / "state_cache.py"
 MIRROR_BS = REPO / "40cakes repo" / "pokebot-gen3" / "modules" / "battle_state.py"
 REGISTRY = REPO / "PROJECT KNOWLEDGE" / "29-DISABLED-FEATURES-REGISTRY.md"
 SWITCH = "POKEBOT_KI108_FAULT_OLDEQ"
-FIELDS = ("_battler_party_order", "_current_turn")
 
 from modules.context import context  # noqa: E402  (after the sys.path insert)
 
@@ -194,18 +213,22 @@ def order(state) -> bytes:
     return bytes(state._battler_party_order)
 
 
-def make_state(bs, order_bytes=ORDER_A, turn=TURN_A, hp=HP_A):
-    """A `BattleState` built exactly as `get_battle_state()` builds one, from fresh bytes objects."""
+def _state_args(order_bytes=ORDER_A, turn=TURN_A, hp=HP_A) -> list:
+    """The 11 `BattleState` constructor arguments, built exactly as `get_battle_state()` builds them (fresh objects)."""
     m = FakeMemory()
     m.set_order(order_bytes)
     m.set_turn(turn)
     m.set_hp(hp)
     r = m.read_symbol
-    return bs.BattleState(
+    return [
         r("gBattleTypeFlags", size=0x04), r("gSideTimers", size=0x18), r("gBattlerPartyIndexes", size=0x08),
         r("gBattlePartyCurrentOrder", size=0x03), r("gBattlersCount", size=0x01)[0], r("gBattleMons", size=0x160),
         r("gStatuses3", size=0x10), r("gDisableStructs", size=0x70), r("gAbsentBattlerFlags", size=0x01)[0],
-        r("gBattleResults", offset=0x13, size=1)[0], int.from_bytes(r("gBattleWeather", size=0x02), "little"))
+        r("gBattleResults", offset=0x13, size=1)[0], int.from_bytes(r("gBattleWeather", size=0x02), "little")]
+
+
+def make_state(bs, order_bytes=ORDER_A, turn=TURN_A, hp=HP_A):
+    return bs.BattleState(*_state_args(order_bytes, turn, hp))
 
 
 # ---------------------------------------------------------------- the rows (each returns (ok, detail))
@@ -434,83 +457,152 @@ def row_k9_fix(S):
     return ok, f"driver re-read={order(r).hex()} handler={order(h).hex()} handler_is_reread={h is r}"
 
 
-# ---------------------------------------------------------------- wiring (AST)
-def _call_name(c) -> str:
-    f = c.func
-    return f.attr if isinstance(f, ast.Attribute) else (f.id if isinstance(f, ast.Name) else "")
+# ---- K10-K13 and R1: the independent hunt's X1-X5 (2026-10-01), folded in with the gate's naming ----------------
+ORDER_VARIANTS = ("102345", "013245", "012354", "014523", "104523")   # byte 0 / 1 / 2 only, a same-sum permutation, B
+TURN_PAIRS = ((3, 4), (4, 3), (3, 5), (3, 0), (255, 0))
 
 
-def _is_switch_read(n) -> bool:
-    return (isinstance(n, ast.Call) and _call_name(n) in ("get", "getenv") and bool(n.args)
-            and isinstance(n.args[0], ast.Constant) and n.args[0].value == SWITCH)
+def _two_frames(S, env, old, new):
+    """frame 1 with `old` applied to memory: a; frame 2 with `new` applied: f (first caller), s (second caller)."""
+    with switch(env):
+        w = World(S)
+        old(w.mem)
+        a = w.gbs()
+        w.next_frame()
+        new(w.mem)
+        f = w.gbs()
+        s = w.gbs()
+        return a, f, s
 
 
-def _eq_fn(tree):
-    cls = next((n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "BattleState"), None)
-    if cls is None:
-        return None
-    return next((n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "__eq__"), None)
+def row_k10(S):
+    cases = []
+    for h in ORDER_VARIANTS:
+        v = bytes.fromhex(h)
+        for old, new in ((ORDER_A, v), (v, ORDER_A)):
+            cases.append((f"order {old.hex()}->{new.hex()}", lambda m, o=old: m.set_order(o),
+                          lambda m, n=new: m.set_order(n), lambda st, n=new: order(st) == n))
+    for t0, t1 in TURN_PAIRS:
+        cases.append((f"turn {t0}->{t1}", lambda m, t=t0: m.set_turn(t), lambda m, t=t1: m.set_turn(t),
+                      lambda st, t=t1: st._current_turn == t))
+    bad = []
+    for label, old, new, is_new in cases:
+        a, f, s = _two_frames(S, None, old, new)
+        if not (is_new(f) and is_new(s) and s is f):
+            bad.append(f"FIX {label}")
+        a, f, s = _two_frames(S, "1", old, new)
+        if not (is_new(f) and s is a):
+            bad.append(f"FAULT {label}")
+    return not bad, f"{len(cases)} order/turn changes x 2 arms; wrong: {bad or 'none'}"
 
 
-def _field_reads(eq, field):
-    return {n.value.id for n in ast.walk(eq)
-            if isinstance(n, ast.Attribute) and n.attr == field and isinstance(n.value, ast.Name)}
+NINE = ((0, "battle_type"), (1, "side_timers"), (2, "battler_party_indexes"), (4, "battler_count"), (5, "battler"),
+        (6, "battler_status3"), (7, "battler_disable_structs"), (8, "absent_battler_flags"), (10, "weather"))
 
 
-def row_w1(S):
-    eq = _eq_fn(ast.parse(S.bs_src))
-    got = _field_reads(eq, FIELDS[0]) if eq else set()
-    return {"self", "other"} <= got, f"__eq__ reads {FIELDS[0]} on {sorted(got)}"
+def _perturbed(i: int, where: str) -> list:
+    args = _state_args()
+    v = args[i]
+    if isinstance(v, int):
+        args[i] = v + 1
+    else:
+        b = bytearray(v)
+        b[0 if where == "first" else -1] ^= 0xFF
+        args[i] = bytes(b)
+    return args
 
 
-def row_w2(S):
-    eq = _eq_fn(ast.parse(S.bs_src))
-    got = _field_reads(eq, FIELDS[1]) if eq else set()
-    return {"self", "other"} <= got, f"__eq__ reads {FIELDS[1]} on {sorted(got)}"
+def row_k11(S):
+    bad = []
+    for env in ("1", None):
+        with switch(env):
+            x, x2 = S.bs.BattleState(*_state_args()), S.bs.BattleState(*_state_args())
+            if not ((x == x2) is True and (x2 == x) is True and (x != x2) is False):
+                bad.append(f"arm={env or 'fix'}: identical copies not equal")
+            for i, name in NINE:
+                for where in ("first", "last"):
+                    y = S.bs.BattleState(*_perturbed(i, where))
+                    got = ((x == y), (y == x), (x != y), (y != x))
+                    if got != (False, False, True, True):
+                        bad.append(f"arm={env or 'fix'} {name}[{where}] -> {got}")
+    return not bad, f"9 fields x first/last byte x both orders x 2 arms; wrong: {bad or 'none'}"
 
 
-def row_w3(S):
-    eq = _eq_fn(ast.parse(S.bs_src))
-    if eq is None:
-        return False, "no BattleState.__eq__"
-    reads = [n for n in ast.walk(eq) if isinstance(n, ast.Attribute) and n.attr in FIELDS]
-    guarded = set()
-    for n in ast.walk(eq):
-        if isinstance(n, ast.If) and any(_is_switch_read(x) for x in ast.walk(n.test)):
-            guarded.update(id(x) for x in ast.walk(n))
-    loose = [n.lineno for n in reads if id(n) not in guarded]
-    return bool(reads) and not loose, f"{len(reads)} read(s) of the two fields; unguarded at {loose}"
+class _SwitchProbe(str):
+    """K12: a str that records every comparison and every attribute access made on it."""
+
+    log: list = []
+
+    def __eq__(self, o):
+        _SwitchProbe.log.append(("==", o))
+        return str.__eq__(self, o)
+
+    def __ne__(self, o):
+        _SwitchProbe.log.append(("!=", o))
+        return str.__ne__(self, o)
+
+    __hash__ = str.__hash__
+
+    def __getattribute__(self, name):
+        _SwitchProbe.log.append(("attr", name))
+        return str.__getattribute__(self, name)
 
 
-def row_w4(S):
-    tree = ast.parse(S.bs_src)
-    eq = _eq_fn(tree)
-    in_eq = eq is not None and any(_is_switch_read(n) for n in ast.walk(eq))
-    in_fn = set()
-    for n in ast.walk(tree):
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
-            in_fn.update(id(x) for x in ast.walk(n))
-    outside = [n.lineno for n in ast.walk(tree) if _is_switch_read(n) and id(n) not in in_fn]
-    return in_eq and not outside, f"read inside __eq__: {in_eq}; read outside any function at {outside}"
+def row_k12(S):
+    x = make_state(S.bs)
+    yo = make_state(S.bs, order_bytes=ORDER_B)
+    saved = dict(S.bs.__dict__)
+    # every module global that IS os / os.environ / os.getenv (under any name) is served from the shim, AND the real
+    # `os.environ.get` is shadowed for the row, so a function-local `import os` is served too.
+    kinds = {n: ("os" if v is os else "environ" if v is os.environ else "getenv" if v is os.getenv else None)
+             for n, v in saved.items()}
+    bad = []
+    try:
+        for v in ("1", "on", "ON", "True", "y", "0", "", "1.0", "１"):
+            env = {SWITCH: _SwitchProbe(v)}
+            getenv = (lambda e: lambda k, d=None: e.get(k, d))(env)
+            shim = types.SimpleNamespace(environ=env, getenv=getenv)
+            for n, kind in kinds.items():
+                if kind:
+                    S.bs.__dict__[n] = {"os": shim, "environ": env, "getenv": getenv}[kind]
+            os.environ.__dict__["get"] = getenv
+            _SwitchProbe.log = []
+            got = (x == yo)
+            foreign = [e for e in _SwitchProbe.log if not (e[0] in ("==", "!=") and type(e[1]) is str and e[1] == "1")]
+            if got != (v == "1"):
+                bad.append(f"{v!r}: equal={got}")
+            if foreign or not _SwitchProbe.log:
+                bad.append(f"{v!r}: compared/used as {foreign or 'nothing (the value was never compared)'}")
+    finally:
+        os.environ.__dict__.pop("get", None)
+        for n, kind in kinds.items():
+            if kind:
+                S.bs.__dict__[n] = saved[n]
+    return not bad, f"the switch value is compared only with '1'; wrong: {bad or 'none'}"
 
 
-def row_w5(S):
-    return SWITCH in S.reg, f"{SWITCH} in 29-DISABLED-FEATURES-REGISTRY.md: {SWITCH in S.reg}"
+def row_k13(S):
+    seen = {}
+    for env in ("1", None):
+        with switch(env):
+            w = World(S)
+            w.emu.frame = 10
+            a = w.gbs()
+            w.emu.frame = 4                  # a reset / state load with no cache reset: frame < the entry's stamp
+            w.mem.set_order(ORDER_B)
+            f = w.gbs()
+            s = w.gbs()
+            seen[env] = (order(f).hex(), order(s).hex(), s is f, s is a)
+    ok = (seen["1"] == (ORDER_B.hex(), ORDER_A.hex(), False, True)
+          and seen[None] == (ORDER_B.hex(), ORDER_B.hex(), True, False))
+    return ok, f"(first, second, second_is_first, second_is_old) fault={seen['1']} fix={seen[None]}"
 
 
-def row_w6(S):
-    tree = ast.parse(S.bs_src)
-    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "get_battle_state"), None)
-    if fn is None:
-        return False, "no get_battle_state"
-    body = [ast.unparse(s) for s in fn.body]
-    early = body[0] == "if state_cache.battle_state.age_in_frames == 0:\n    return state_cache.battle_state.value"
-    built = any(isinstance(s, ast.Assign) and [ast.unparse(t) for t in s.targets] == ["battle_state"]
-                and isinstance(s.value, ast.Call) and _call_name(s.value) == "BattleState" for s in fn.body)
-    stored = "state_cache.battle_state = battle_state" in body
-    returns_local = body[-1] == "return battle_state"
-    ok = early and built and stored and returns_local
-    return ok, f"early return={early} builds local={built} stores={stored} returns the local={returns_local}"
+def row_r1(S):
+    m = re.search(r"^## B\.[^\n]*\n(.*?)(?=^## )", S.reg, re.S | re.M)
+    sec = m.group(1) if m else ""
+    hit = re.search(r"^\| `" + re.escape(SWITCH) + r"` \|", sec, re.M) is not None
+    return hit, f"a §B table row whose first cell is exactly `{SWITCH}`: {hit}"
 
 
 ROWS = [
@@ -519,8 +611,9 @@ ROWS = [
     ("K5", row_k5), ("K6", row_k6), ("K6-fault", row_k6_fault), ("K6-fix", row_k6_fix),
     ("K7-fault", row_k7_fault), ("K7-fix", row_k7_fix), ("K8-fault", row_k8_fault), ("K8-fix", row_k8_fix),
     ("K9-runA", row_k9_runa), ("K9-fault", row_k9_fault), ("K9-fix", row_k9_fix),
-    ("W1", row_w1), ("W2", row_w2), ("W3", row_w3), ("W4", row_w4), ("W5", row_w5), ("W6", row_w6),
+    ("K10", row_k10), ("K11", row_k11), ("K12", row_k12), ("K13", row_k13), ("R1", row_r1),
 ]
+NEW_ROWS = ("K10", "K11", "K12", "K13", "R1")
 
 
 def run_rows(S, verbose=False) -> set:
@@ -550,7 +643,9 @@ def _sub(src: str, old: str, new: str) -> str:
 
 
 GUARD = f'os.environ.get("{SWITCH}") != "1"'
-BOTH = "self._battler_party_order != other._battler_party_order or self._current_turn != other._current_turn"
+ORD = "self._battler_party_order != other._battler_party_order"
+TRN = "self._current_turn != other._current_turn"
+BOTH = f"{ORD} or {TRN}"
 IF_BLOCK = (f"            if {GUARD} and (\n"
             f"                {BOTH}\n"
             "            ):\n"
@@ -561,10 +656,18 @@ EARLY = "    if state_cache.battle_state.age_in_frames == 0:\n        return sta
 EQ_TAIL = ("                and self._weather == other._weather\n            )\n"
            "        else:\n            return NotImplemented\n")
 SETTER = "        if self._battle_state.value != new_battle_state:\n"
+OS_FIRST = "import os\nfrom dataclasses"
 
 FAULT_ROWS = {"K1", "K3-fault", "K4-fault", "K6-fault", "K7-fault", "K8-fault", "K9-fault"}
-REVERT_RED = {"K2", "K3-fix", "K4-fix", "K6-fix", "K7-fix", "K8-fix", "K9-fix", "W1", "W2", "W3", "W4"}
-NOSWITCH_RED = FAULT_ROWS | {"K7-fix", "W3", "W4"}
+REVERT_RED = {"K2", "K3-fix", "K4-fix", "K6-fix", "K7-fix", "K8-fix", "K9-fix", "K10", "K12", "K13"}
+NOSWITCH_RED = FAULT_ROWS | {"K7-fix", "K10", "K12", "K13"}
+
+
+def _registry_row_deleted(reg: str) -> str:
+    kept = [ln for ln in reg.split("\n") if not ln.startswith(f"| `{SWITCH}` |")]
+    if len(kept) != len(reg.split("\n")) - 1:
+        raise Unbuildable("the registry does not hold exactly one row for the switch")
+    return "\n".join(kept) + f"\n\nRetired 2026-10-02: `{SWITCH}` was removed.\n"
 
 
 def mutants(bs: str, sc: str, reg: str):
@@ -575,11 +678,10 @@ def mutants(bs: str, sc: str, reg: str):
         ("M1 revert to the mirror's __eq__ (the KI-108 `if` removed; its WHY comment left in place)",
          lambda: Subject(_sub(bs, IF_BLOCK, ""), sc, reg), REVERT_RED),
         ("M2 drop only the turn",
-         lambda: Subject(_sub(bs, BOTH, "self._battler_party_order != other._battler_party_order"), sc, reg),
-         {"K4-fix", "K6-fix", "K7-fix", "W2"}),
+         lambda: Subject(_sub(bs, BOTH, ORD), sc, reg), {"K4-fix", "K6-fix", "K7-fix", "K10"}),
         ("M3 drop only the order",
-         lambda: Subject(_sub(bs, BOTH, "self._current_turn != other._current_turn"), sc, reg),
-         {"K2", "K3-fix", "K6-fix", "K7-fix", "K8-fix", "K9-fix", "W1"}),
+         lambda: Subject(_sub(bs, BOTH, TRN), sc, reg),
+         {"K2", "K3-fix", "K6-fix", "K7-fix", "K8-fix", "K9-fix", "K10", "K12", "K13"}),
         ("M4 ignore the switch (always the fix)",
          lambda: Subject(_sub(bs, GUARD, "True"), sc, reg), NOSWITCH_RED),
         ("M5 read the switch at IMPORT (loaded with the switch unset)",
@@ -589,10 +691,10 @@ def mutants(bs: str, sc: str, reg: str):
         ("M6 get_battle_state returns the CACHE value, not the local",
          lambda: Subject(_sub(bs, STORE_RETURN, "    state_cache.battle_state = battle_state\n"
                                                 "    return state_cache.battle_state.value\n"), sc, reg),
-         {"K1", "K3-fault", "K4-fault", "K9-fault", "W6"}),
+         {"K1", "K3-fault", "K4-fault", "K9-fault", "K10", "K13"}),
         ("M7 the cache setter ALWAYS stores (state_cache.py)",
          lambda: Subject(bs, _sub(sc, SETTER, "        if True:\n"), reg),
-         {"K1", "K3-fault", "K3-fix", "K4-fault", "K8-fault", "K8-fix", "K9-fault"}),
+         {"K1", "K3-fault", "K3-fix", "K4-fault", "K8-fault", "K8-fix", "K9-fault", "K10", "K13"}),
         ("M8 comment-only mentions of every mutant's code (must redden NOTHING)",
          lambda: Subject(_sub(_sub(_sub(bs, TASKS_IMPORT, TASKS_IMPORT
                                         + f'# _KI108_OLDEQ = os.environ.get("{SWITCH}") == "1"   (a mention)\n'),
@@ -608,16 +710,69 @@ def mutants(bs: str, sc: str, reg: str):
         ("M10 re-read on age 0 (the early return removed: the design's REJECTED alternative)",
          lambda: Subject(_sub(bs, EARLY, ""), sc, reg),
          {"C1", "K1", "K2", "K3-fault", "K3-fix", "K4-fault", "K4-fix", "K5", "K9-runA", "K9-fault", "K9-fix",
-          "W6"}),
+          "K10", "K13"}),
         ("M11 the new object is never stored in the cache",
          lambda: Subject(_sub(bs, STORE_RETURN, "    return battle_state\n"), sc, reg),
          {"C0", "C1", "K1", "K2", "K3-fault", "K3-fix", "K4-fault", "K4-fix", "K5", "K8-fault", "K8-fix",
-          "K9-runA", "K9-fault", "K9-fix", "W6"}),
+          "K9-runA", "K9-fault", "K9-fix", "K10", "K13"}),
         ("M12 __eq__ returns False (not NotImplemented) for a non-BattleState",
          lambda: Subject(_sub(bs, EQ_TAIL, EQ_TAIL.replace("return NotImplemented", "return False")), sc, reg),
          {"K6"}),
-        ("M13 the switch's registry row removed",
-         lambda: Subject(bs, sc, reg.replace(SWITCH, "REMOVED")), {"W5"}),
+        ("M13 the switch's name removed from the registry",
+         lambda: Subject(bs, sc, reg.replace(SWITCH, "REMOVED")), {"R1"}),
+        # ---- the independent hunt's surviving families (its ids in brackets); each must die to a NEW row alone
+        ("M14 [N01] order compared on byte 0 only",
+         lambda: Subject(_sub(bs, ORD, "self._battler_party_order[0] != other._battler_party_order[0]"), sc, reg),
+         {"K10"}),
+        ("M15 [N06] order compared by byte SUM",
+         lambda: Subject(_sub(bs, ORD, "sum(self._battler_party_order) != sum(other._battler_party_order)"), sc, reg),
+         {"K10"}),
+        ("M16 [N07] order compared as a byte SET",
+         lambda: Subject(_sub(bs, ORD, "set(self._battler_party_order) != set(other._battler_party_order)"), sc, reg),
+         {"K10"}),
+        ("M17 [N08] order `<` (asymmetric: only an increase counts)",
+         lambda: Subject(_sub(bs, ORD, "self._battler_party_order < other._battler_party_order"), sc, reg),
+         {"K10"}),
+        ("M18 [N09] turn `<` (asymmetric: only an increase counts)",
+         lambda: Subject(_sub(bs, TRN, "self._current_turn < other._current_turn"), sc, reg), {"K10"}),
+        ("M19 [N10] turn compared modulo 2",
+         lambda: Subject(_sub(bs, TRN, "self._current_turn % 2 != other._current_turn % 2"), sc, reg), {"K10"}),
+        ('M20 [N21] the switch restores on "1" OR "on"',
+         lambda: Subject(_sub(bs, GUARD, f'os.environ.get("{SWITCH}") not in ("1", "on")'), sc, reg), {"K12"}),
+        ("M21 [N30] upstream's compare drops _side_timers",
+         lambda: Subject(_sub(bs, "\n                and self._side_timers == other._side_timers", ""), sc, reg),
+         {"K11"}),
+        ("M22 [N37] upstream's compare drops _weather",
+         lambda: Subject(_sub(bs, "\n                and self._weather == other._weather", ""), sc, reg), {"K11"}),
+        ("M23 [N38] _battler compared for battler 0 only ([:0x58])",
+         lambda: Subject(_sub(bs, "and self._battler == other._battler\n",
+                              "and self._battler[:0x58] == other._battler[:0x58]\n"), sc, reg), {"K11"}),
+        ("M24 [N39] the FAULT arm drops _weather (the switch no longer restores upstream's exact compare)",
+         lambda: Subject(_sub(bs, "                and self._weather == other._weather\n",
+                              f'                and (self._weather == other._weather '
+                              f'or os.environ.get("{SWITCH}") == "1")\n'), sc, reg), {"K11"}),
+        ("M25 [N53] the backwards-frame branch returns 0 (state_cache.py: stale data trusted after a reset)",
+         lambda: Subject(bs, _sub(sc, "            return 1000000\n", "            return 0\n"), reg), {"K13"}),
+        ("M26 [W5a] the registry row's literal typo'd to a SUPERSTRING",
+         lambda: Subject(bs, sc, _sub(reg, f"| `{SWITCH}` |", f"| `{SWITCH + 'X'}` |")), {"R1"}),
+        ("M27 [W5b] the registry §B row deleted, a 'retired' mention left in prose",
+         lambda: Subject(bs, sc, _registry_row_deleted(reg)), {"R1"}),
+        # ---- EQUIVALENT refactors: each must redden NOTHING (a red here is a FALSE POSITIVE of the gate)
+        ("E1 [WG] EQUIVALENT: the literal hoisted into a module constant",
+         lambda: Subject(_sub(_sub(bs, OS_FIRST, f'import os\n_KI108_SWITCH = "{SWITCH}"\nfrom dataclasses'),
+                              GUARD, 'os.environ.get(_KI108_SWITCH) != "1"'), sc, reg), set()),
+        ("E2 [WH] EQUIVALENT: the early return on `age_in_frames < 1`",
+         lambda: Subject(_sub(bs, "age_in_frames == 0:", "age_in_frames < 1:"), sc, reg), set()),
+        ("E3 [N42] EQUIVALENT: the early return on `age_in_frames <= 0`",
+         lambda: Subject(_sub(bs, "age_in_frames == 0:", "age_in_frames <= 0:"), sc, reg), set()),
+        ("E4 [WI] EQUIVALENT: `from os import environ as _env` and `_env.get(...)`",
+         lambda: Subject(_sub(_sub(bs, OS_FIRST, "import os\nfrom os import environ as _env\nfrom dataclasses"),
+                              GUARD, f'_env.get("{SWITCH}") != "1"'), sc, reg), set()),
+        ('E5 [WJ] EQUIVALENT: reversed operands `"1" != os.environ.get(...)`',
+         lambda: Subject(_sub(bs, GUARD, f'"1" != os.environ.get("{SWITCH}")'), sc, reg), set()),
+        ("E6 EQUIVALENT: `import os` moved from module level into __eq__",
+         lambda: Subject(_sub(_sub(bs, OS_FIRST, "from dataclasses"), IF_BLOCK, "            import os\n" + IF_BLOCK),
+                         sc, reg), set()),
     ]
 
 
@@ -652,6 +807,9 @@ def main() -> int:
         covered = set().union(*(p for _, _, p in muts))
         uncovered = [label for label, _ in ROWS if label not in covered]
         check(not uncovered, f"COVERAGE every row is in some mutant's red set (uncovered: {uncovered or 'none'})")
+        alone = {row: [n.split(" ")[0] for n, _, p in muts if p == {row}] for row in NEW_ROWS}
+        check(all(alone.values()), f"LOAD-BEARING each of {', '.join(NEW_ROWS)} is the ONLY red row of some mutant: "
+                                   f"{alone}")
         print(f"  ({len(muts)} mutants)")
     finally:
         os.environ.pop(SWITCH, None)
@@ -664,7 +822,7 @@ def main() -> int:
         print(f"FAIL - {len(failures)} check(s) failed")
         return 1
     print("PASS - every get_battle_state() caller in a frame sees the first caller's order and turn; the switch "
-          "restores the 9-field compare per call")
+          "restores upstream's 9-field compare per call, on exactly \"1\"")
     return 0
 
 

@@ -1,0 +1,283 @@
+# #27-battleeq (KI-108) — probe_battle_state_eq.py FOLDED after the INDEPENDENT mutant hunt (2026-10-01)
+# worktree C:/Remote Projects/pokebot-wt-ch24, branch wt/battleeq, on HEAD c9fffb8a (+ the uncommitted fold).
+# The hunt (scratchpad beadv/hunt/: hunt.py, 71 mutants; killing_rows.py X1-X5) found 22 non-equivalent survivors.
+# The coordinator's rulings, as applied:
+#   X1-X5 adopted as K10, K11, K12, K13, R1. W1, W2, W4 removed (fooled by dead code; redundant). W6 removed: K1 pins
+#   "the first call returns the locally built object" behaviourally (under the switch, the only place the local and the
+#   kept object differ in content), C0 the store, C1 / K9-runA the early return; W6 false-positived on `age <= 0` /
+#   `age < 1`. W3 dropped: the literal is pinned behaviourally (every -fault row sets exactly that variable, and K12's
+#   shim knows only that name), and W3 false-positived on the literal hoisted into a module constant. W5 -> R1.
+#   K12 gained one robustness change over the hunt's X3: it also shadows `os.environ.get` for the row, so a
+#   function-local `import os` (E6) is served; FAULT-TESTED below (the hunt's X3 is red on E6, K12 green).
+# Every mutant's red set was written in the file BEFORE its first run; all 34 matched on the first run.
+
+## the gate (cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_battle_state_eq.py) -> exit 0
+
+ROWS - the REAL get_battle_state()/BattleState from sandbox-pokebot\modules\battle_state.py
+  ok   C0       order=012345 turn=3 stored=True
+  ok   C1       second call is the first's object: True
+  ok   K1       first=104523 second=012345 second_is_old=True
+  ok   K2       first=104523 second=104523 second_is_first=True
+  ok   K3-fault frame 3: first=104523 second=012345 second_is_frame1_object=True
+  ok   K3-fix   frame 3: first=104523 second=104523 second_is_frame2_object=True
+  ok   K4-fault first turn=4 second turn=3 second_is_old=True
+  ok   K4-fix   first turn=4 second turn=4 second_is_first=True
+  ok   K5       (second has new order, second is first): fault=(True, True) fix=(True, True)
+  ok   K6       identical-equal / NotImplemented / hp-unequal: fault=True fix=True
+  ok   K6-fault (==order-only, ==turn-only, !=order-only) = (True, True, False)
+  ok   K6-fix   (==order, ==turn, !=order, !=turn) = (False, False, True, True)
+  ok   K7-fault switch "1": (==order-only, ==turn-only) = (True, True)
+  ok   K7-fix   values that restored the old compare: none; per-call flip 1/unset/1/0 -> [True, False, True, False]
+  ok   K8-fault (frame after f1, frame after f2, last_check after f2) = (1, 1, 2)
+  ok   K8-fix   (f1 frame, f2 (frame, check), f3 (frame, check)) = (1, (2, 2), (2, 3))
+  ok   K9-runA  (dispatcher, handler) fault=('012345', '012345') fix=('012345', '012345')
+  ok   K9-fault driver re-read=104523 handler=012345
+  ok   K9-fix   driver re-read=104523 handler=104523 handler_is_reread=True
+  ok   K10      15 order/turn changes x 2 arms; wrong: none
+  ok   K11      9 fields x first/last byte x both orders x 2 arms; wrong: none
+  ok   K12      the switch value is compared only with '1'; wrong: none
+  ok   K13      (first, second, second_is_first, second_is_old) fault=('104523', '012345', False, True) fix=('104523', '104523', True, False)
+  ok   R1       a §B table row whose first cell is exactly `POKEBOT_KI108_FAULT_OLDEQ`: True
+  -> 24 rows, red: none
+MUTANTS (graded only when the unmutated subject passes every row)
+  ok   M0 the upstream mirror's battle_state.py, verbatim (the unfixed code)
+         predicted ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+         actual    ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+  ok   M1 revert to the mirror's __eq__ (the KI-108 `if` removed; its WHY comment left in place)
+         predicted ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+         actual    ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K4-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+  ok   M2 drop only the turn
+         predicted ['K10', 'K4-fix', 'K6-fix', 'K7-fix']
+         actual    ['K10', 'K4-fix', 'K6-fix', 'K7-fix']
+  ok   M3 drop only the order
+         predicted ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+         actual    ['K10', 'K12', 'K13', 'K2', 'K3-fix', 'K6-fix', 'K7-fix', 'K8-fix', 'K9-fix']
+  ok   M4 ignore the switch (always the fix)
+         predicted ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+         actual    ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+  ok   M5 read the switch at IMPORT (loaded with the switch unset)
+         predicted ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+         actual    ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+  ok   M6 get_battle_state returns the CACHE value, not the local
+         predicted ['K1', 'K10', 'K13', 'K3-fault', 'K4-fault', 'K9-fault']
+         actual    ['K1', 'K10', 'K13', 'K3-fault', 'K4-fault', 'K9-fault']
+  ok   M7 the cache setter ALWAYS stores (state_cache.py)
+         predicted ['K1', 'K10', 'K13', 'K3-fault', 'K3-fix', 'K4-fault', 'K8-fault', 'K8-fix', 'K9-fault']
+         actual    ['K1', 'K10', 'K13', 'K3-fault', 'K3-fix', 'K4-fault', 'K8-fault', 'K8-fix', 'K9-fault']
+  ok   M8 comment-only mentions of every mutant's code (must redden NOTHING)
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   M9 rename the switch literal in battle_state.py
+         predicted ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+         actual    ['K1', 'K10', 'K12', 'K13', 'K3-fault', 'K4-fault', 'K6-fault', 'K7-fault', 'K7-fix', 'K8-fault', 'K9-fault']
+  ok   M10 re-read on age 0 (the early return removed: the design's REJECTED alternative)
+         predicted ['C1', 'K1', 'K10', 'K13', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K9-fault', 'K9-fix', 'K9-runA']
+         actual    ['C1', 'K1', 'K10', 'K13', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K9-fault', 'K9-fix', 'K9-runA']
+  ok   M11 the new object is never stored in the cache
+         predicted ['C0', 'C1', 'K1', 'K10', 'K13', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K8-fault', 'K8-fix', 'K9-fault', 'K9-fix', 'K9-runA']
+         actual    ['C0', 'C1', 'K1', 'K10', 'K13', 'K2', 'K3-fault', 'K3-fix', 'K4-fault', 'K4-fix', 'K5', 'K8-fault', 'K8-fix', 'K9-fault', 'K9-fix', 'K9-runA']
+  ok   M12 __eq__ returns False (not NotImplemented) for a non-BattleState
+         predicted ['K6']
+         actual    ['K6']
+  ok   M13 the switch's name removed from the registry
+         predicted ['R1']
+         actual    ['R1']
+  ok   M14 [N01] order compared on byte 0 only
+         predicted ['K10']
+         actual    ['K10']
+  ok   M15 [N06] order compared by byte SUM
+         predicted ['K10']
+         actual    ['K10']
+  ok   M16 [N07] order compared as a byte SET
+         predicted ['K10']
+         actual    ['K10']
+  ok   M17 [N08] order `<` (asymmetric: only an increase counts)
+         predicted ['K10']
+         actual    ['K10']
+  ok   M18 [N09] turn `<` (asymmetric: only an increase counts)
+         predicted ['K10']
+         actual    ['K10']
+  ok   M19 [N10] turn compared modulo 2
+         predicted ['K10']
+         actual    ['K10']
+  ok   M20 [N21] the switch restores on "1" OR "on"
+         predicted ['K12']
+         actual    ['K12']
+  ok   M21 [N30] upstream's compare drops _side_timers
+         predicted ['K11']
+         actual    ['K11']
+  ok   M22 [N37] upstream's compare drops _weather
+         predicted ['K11']
+         actual    ['K11']
+  ok   M23 [N38] _battler compared for battler 0 only ([:0x58])
+         predicted ['K11']
+         actual    ['K11']
+  ok   M24 [N39] the FAULT arm drops _weather (the switch no longer restores upstream's exact compare)
+         predicted ['K11']
+         actual    ['K11']
+  ok   M25 [N53] the backwards-frame branch returns 0 (state_cache.py: stale data trusted after a reset)
+         predicted ['K13']
+         actual    ['K13']
+  ok   M26 [W5a] the registry row's literal typo'd to a SUPERSTRING
+         predicted ['R1']
+         actual    ['R1']
+  ok   M27 [W5b] the registry §B row deleted, a 'retired' mention left in prose
+         predicted ['R1']
+         actual    ['R1']
+  ok   E1 [WG] EQUIVALENT: the literal hoisted into a module constant
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   E2 [WH] EQUIVALENT: the early return on `age_in_frames < 1`
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   E3 [N42] EQUIVALENT: the early return on `age_in_frames <= 0`
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   E4 [WI] EQUIVALENT: `from os import environ as _env` and `_env.get(...)`
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   E5 [WJ] EQUIVALENT: reversed operands `"1" != os.environ.get(...)`
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   E6 EQUIVALENT: `import os` moved from module level into __eq__
+         predicted {} (nothing)
+         actual    {} (nothing)
+  ok   COVERAGE every row is in some mutant's red set (uncovered: none)
+  ok   LOAD-BEARING each of K10, K11, K12, K13, R1 is the ONLY red row of some mutant: {'K10': ['M14', 'M15', 'M16', 'M17', 'M18', 'M19'], 'K11': ['M21', 'M22', 'M23', 'M24'], 'K12': ['M20'], 'K13': ['M25'], 'R1': ['M13', 'M26', 'M27']}
+  (34 mutants)
+
+PASS - every get_battle_state() caller in a frame sees the first caller's order and turn; the switch restores upstream's 9-field compare per call, on exactly "1"
+
+## the hunt's own hunt.py re-run against the FOLDED gate ('gate red rows' = the folded gate's rows)
+# 22/22 of its non-equivalent survivors are now killed (each by K10, K11, K12, K13 or R1 alone).
+# Remaining SURVIVES = its EQUIV set (N05 N17 N28 N42 N45 N46 N49 WG WH WI WJ) + N54 (the backwards-frame
+# branch deleted: a negative age is never == 0, so get_battle_state reads fresh exactly as with 1000000;
+# equivalent FOR THIS SUBJECT). N24 (`is not "1"`, labelled EQUIV by the hunt) is now red on K12: an identity
+# compare on a str works only through CPython's single-character string cache.
+BASELINE real subject: gate red=none  X red=none
+   X1: (True, '15 order/turn changes x 2 arms; wrong: none')
+   X2: (True, '9 fields x first/last x 2 arms; wrong: none')
+   X3: (True, "switch value compared only with '1': wrong: none")
+   X4: (True, "(first, second, second_is_first, second_is_old) fault=('104523', '012345', False, True) fix=('104523', '104523', True, False)")
+   X5: (True, 'a §B table row whose first cell is exactly `POKEBOT_KI108_FAULT_OLDEQ`: True')
+
+id   | pred                   | gate red rows | X red rows | description
+N01  | SURVIVES               | K10 | X1 | order: compare only byte 0
+N02  | SURVIVES               | K10 | X1 | order: compare only bytes [:2]
+N03  | SURVIVES               | K10 | X1 | order: compare only the last byte
+N04  | KILLED                 | K11,K3-fix,K6,K8-fix | X2 | order: `is not` instead of `!=`
+N05  | EQUIV                  | SURVIVES | - | turn: `is not` instead of `!=`
+N06  | SURVIVES               | K10 | X1 | order: byte SUM compared
+N07  | SURVIVES               | K10 | X1 | order: byte SET compared
+N08  | SURVIVES               | K10 | X1 | order: `<` (asymmetric: only an increase is a change)
+N09  | SURVIVES               | K10 | X1 | turn: `<` (asymmetric: only an increase is a change)
+N10  | SURVIVES               | K10 | X1 | turn: compared modulo 2
+N11  | KILLED                 | K11,K3-fix,K6,K8-fix | X2 | turn compared against other's ORDER (int != bytes)
+N12  | KILLED                 | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | `or` -> `and` between the order and the turn compare
+N13  | KILLED                 | K1,K10,K12,K13,K3-fault,K4-fault,K6-fault,K7-fault,K7-fix,K8-fault,K9-fault | X1,X3,X4 | switch: `!= "1"` -> `!= "0"`
+N14  | KILLED                 | K10,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X4 | switch: os.getenv(SW, "1") (fault by default)
+N15  | KILLED                 | K1,K10,K11,K12,K13,K3-fault,K3-fix,K4-fault,K6,K6-fault,K7-fault,K7-fix,K8-fault,K8-fix,K9-fault | X1,X2,X3,X4 | guard: `and` -> `or` between switch and fields
+N16  | KILLED                 | K10,K12,K13,K2,K3-fix,K4-fix,K5,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | guard returns True instead of False
+N17  | EQUIV                  | SURVIVES | - | guard returns NotImplemented instead of False
+N18  | KILLED                 | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | switch read ONCE, lazily, into a module global (read inside the if-test, so W3/W4 hold)
+N19  | KILLED                 | C0,C1,K1,K10,K13,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K6,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | isinstance check removed (`if True:`)
+N20  | KILLED                 | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | guard moved AFTER the return (dead code)
+N21  | SURVIVES               | K12 | X3 | switch: `not in ("1", "on")`
+N22  | KILLED                 | K12,K7-fix | X3 | switch: value .strip()'d
+N23  | KILLED                 | K12,K7-fix | X3 | switch: `.lower() not in ("1", "true")`
+N24  | EQUIV                  | K12 | X3 | switch: `is not "1"` instead of `!= "1"`
+N25  | KILLED                 | K12,K7-fix | X3 | switch: int(value or 0) != 1
+N26  | KILLED                 | C0,C1,K1,K10,K13,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | __ne__ added: `return not self.__eq__(other)` (bool(NotImplemented))
+N27  | KILLED                 | K10,K13,K2,K3-fix,K4-fix,K6-fix,K8-fix,K9-fix | X1,X4 | __ne__ added with UPSTREAM's 9-field compare (inconsistent with __eq__)
+N28  | EQUIV                  | SURVIVES | - | __ne__ added: `return not (self == other)`
+N29  | SURVIVES               | K11 | X2 | 9-field compare: drop _battle_type
+N30  | SURVIVES               | K11 | X2 | 9-field compare: drop _side_timers
+N31  | SURVIVES               | K11 | X2 | 9-field compare: drop _battler_party_indexes
+N32  | SURVIVES               | K11 | X2 | 9-field compare: drop _battler_count
+N33  | KILLED                 | K11,K5,K6 | X2 | 9-field compare: drop _battler
+N34  | SURVIVES               | K11 | X2 | 9-field compare: drop _battler_status3
+N35  | SURVIVES               | K11 | X2 | 9-field compare: drop _battler_disable_structs
+N36  | SURVIVES               | K11 | X2 | 9-field compare: drop _absent_battler_flags
+N37  | SURVIVES               | K11 | X2 | 9-field compare: drop _weather
+N38  | SURVIVES               | K11 | X2 | 9-field compare: _battler compared for battler 0 only ([:0x58])
+N39  | SURVIVES               | K11 | X2 | the FAULT arm drops _weather (switch no longer restores upstream's exact compare)
+N40  | KILLED                 | C0,K1,K10,K13,K2,K3-fault,K3-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | get_battle_state: order read with size 2
+N41  | KILLED                 | C0,K10,K4-fault,K4-fix | X1 | get_battle_state: turn read at offset 0x12
+N42  | EQUIV                  | SURVIVES | - | get_battle_state: early return on `age <= 0`
+N43  | KILLED                 | K1,K10,K13,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault | X1,X4 | get_battle_state: bypasses the setter (`.value =`, always stores)
+N44  | KILLED                 | K1,K10,K13,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault | X1,X4 | setter: `is not` instead of `!=`
+N45  | EQUIV                  | SURVIVES | - | setter: `not (old == new)`
+N46  | EQUIV                  | SURVIVES | - | setter: operands swapped (`new != old`)
+N47  | KILLED                 | K1,K10,K13,K3-fault,K3-fix,K4-fault,K9-fault | X1,X4 | setter: equal branch REPLACES the object but keeps the stamps
+N48  | KILLED                 | K1,K10,K13,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault,K9-runA | X1,X4 | setter: equal branch does nothing (checked() removed)
+N49  | EQUIV                  | SURVIVES | - | setter: store branch also calls checked()
+N50  | KILLED                 | C0,K1,K10,K13,K2,K3-fault,K4-fault,K4-fix,K5,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames off by one (-1)
+N51  | KILLED                 | C1,K1,K10,K13,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames off by one (+1)
+N52  | KILLED                 | C1,K1,K10,K13,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames: reset branch `>` -> `>=`
+N53  | SURVIVES               | K13 | X4 | age_in_frames: reset branch returns 0 (stale data trusted after a reset)
+N54  | SURVIVES               | SURVIVES | - | age_in_frames: reset branch deleted (negative age)
+N55  | KILLED                 | C1,K10,K13,K2,K4-fix,K5,K9-fix | X1,X4 | value setter: _last_check_frame not updated
+N56  | KILLED                 | K8-fault,K8-fix | - | value setter: frame stamp not updated
+N57  | KILLED                 | K1,K10,K13,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault,K9-runA | X1,X4 | checked(): resets the check to the STORE frame
+N58  | KILLED                 | K8-fault,K8-fix | - | checked(): also bumps the frame stamp
+N59  | KILLED                 | C0,K1,K10,K3-fault,K4-fault,K8-fault,K8-fix | X1 | StateCacheItem init: _last_check_frame = 1 (age 0 at frame 1: first call returns None)
+WA   | KILLED(behaviour only) | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | fix removed; the guarded block kept under a dead `if False:`
+WB   | KILLED(behaviour only) | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | fix removed; the guarded block kept inside an UNUSED nested helper
+WC   | KILLED(W1-4 + behaviour) | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | fix removed; the guarded block's text kept as a string statement (docstring-like)
+WD   | KILLED(behaviour only) | K10,K12,K13,K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | a SECOND __eq__ (upstream's) appended: the AST rows read the first, Python runs the second
+WE   | KILLED(behaviour only) | K1,K10,K13,K3-fault,K4-fault,K9-fault | X1,X4 | get_battle_state returns the cache value; a dead `return battle_state` satisfies W6
+WF   | KILLED(behaviour only) | K1,K10,K12,K13,K3-fault,K4-fault,K6-fault,K7-fault,K7-fix,K8-fault,K9-fault | X1,X3,X4 | switch read at IMPORT through a lambda (W4 sees it 'inside a function'), dead per-call read kept in the test
+WG   | FALSE-POSITIVE(W3,W4)  | SURVIVES | - | EQUIVALENT refactor: the literal hoisted into a module constant
+WH   | FALSE-POSITIVE(W6)     | SURVIVES | - | EQUIVALENT refactor: early return on `age_in_frames < 1`
+WI   | EQUIV                  | SURVIVES | - | EQUIVALENT refactor: `from os import environ as _env` + `_env.get(SW)` (X3 control)
+WJ   | EQUIV                  | SURVIVES | - | EQUIVALENT refactor: reversed operands `"1" != os.environ.get(SW)` (X3 control)
+W5a  | SURVIVES               | R1 | X5 | registry row's literal typo'd to a SUPERSTRING (`..._OLDEQX`)
+W5b  | SURVIVES               | R1 | X5 | registry §B row deleted; a 'retired' mention left in prose
+
+THE GATE'S OWN 14 MUTANTS under the X rows (what their predicted red sets would gain):
+  M0   X red: ['X1', 'X3', 'X4']
+  M1   X red: ['X1', 'X3', 'X4']
+  M2   X red: ['X1']
+  M3   X red: ['X1', 'X3', 'X4']
+  M4   X red: ['X1', 'X3', 'X4']
+  M5   X red: ['X1', 'X3', 'X4']
+  M6   X red: ['X1', 'X4']
+  M7   X red: ['X1', 'X4']
+  M8   X red: none
+  M9   X red: ['X1', 'X3', 'X4']
+  M10  X red: ['X1', 'X4']
+  M11  X red: ['X1', 'X4']
+  M12  X red: none
+  M13  X red: ['X5']
+  M14  X red: ['X1']
+  M15  X red: ['X1']
+  M16  X red: ['X1']
+  M17  X red: ['X1']
+  M18  X red: ['X1']
+  M19  X red: ['X1']
+  M20  X red: ['X3']
+  M21  X red: ['X2']
+  M22  X red: ['X2']
+  M23  X red: ['X2']
+  M24  X red: ['X2']
+  M25  X red: ['X4']
+  M26  X red: ['X5']
+  M27  X red: ['X5']
+  E1   X red: none
+  E2   X red: none
+  E3   X red: none
+  E4   X red: none
+  E5   X red: none
+  E6   X red: ['X3']
+
+## fault test of K12's os.environ.get shadow (scratchpad k12_vs_x3_e6.py)
+baseline  X3: True  K12: True
+E6        X3: (False, 'switch value compared only with \'1\': wrong: ["\'1\': equal=False", "\'1\': compared/used as nothing (never compared with ==/!=)", "\'on\': compared/used as nothing (never compared with ==/!=)", "\'ON\': compared/used as nothing (never compared with ==/!=)", "\'True\': compared/used as nothing (never compared with ==/!=)", "\'y\': compared/used as nothing (never compared with ==/!=)", "\'0\': compared/used as nothing (never compared with ==/!=)", "\'\': compared/used as nothing (never compared with ==/!=)", "\'1.0\': compared/used as nothing (never compared with ==/!=)", "\'ï¼‘\': compared/used as nothing (never compared with ==/!=)"]') 
+          K12: (True, "the switch value is compared only with '1'; wrong: none")
+os.environ.get restored to the class method: True
+
+## run_gates.py --quick after the fold (4:11-4:18 PM Los Angeles), exit 0
+STANDING GATE SUITE — 131 gate(s) (quick: ROM gates skipped)
+  PASS  probe_battle_state_eq.py           exit=0     0.9s
+ALL 129 ENFORCING GATES PASS  (455.7s total)   [+2 ADVISORY probe(s) — run, NOT gated]
+‼ --quick RAN 131 OF 145 — 14 ROM GATE(S) WERE NOT RUN. THIS IS NOT A GREEN SUITE.

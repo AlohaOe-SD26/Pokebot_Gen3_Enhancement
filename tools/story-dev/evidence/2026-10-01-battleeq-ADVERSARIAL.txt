@@ -1,0 +1,646 @@
+# 2026-10-01 — `#27-battleeq` (KI-108): the INDEPENDENT ADVERSARIAL PASS (BE-5), verbatim
+# A NOTE, NOT TRUTH: three fresh agents (a mutant hunter, a harness reviewer, an evidence re-derivation) on the
+# build commit ccc3cede. How each finding was folded is in the design note's GRADED section.
+
+====================================================================================================
+MUTANT HUNTER — hunt_out.txt (raw output)
+====================================================================================================
+BASELINE real subject: gate red=none  X red=none
+   X1: (True, '15 order/turn changes x 2 arms; wrong: none')
+   X2: (True, '9 fields x first/last x 2 arms; wrong: none')
+   X3: (True, "switch value compared only with '1': wrong: none")
+   X4: (True, "(first, second, second_is_first, second_is_old) fault=('104523', '012345', False, True) fix=('104523', '104523', True, False)")
+   X5: (True, 'a §B table row whose first cell is exactly `POKEBOT_KI108_FAULT_OLDEQ`: True')
+
+id   | pred                   | gate red rows | X red rows | description
+N01  | SURVIVES               | SURVIVES | X1 | order: compare only byte 0
+N02  | SURVIVES               | SURVIVES | X1 | order: compare only bytes [:2]
+N03  | SURVIVES               | SURVIVES | X1 | order: compare only the last byte
+N04  | KILLED                 | K3-fix,K6,K8-fix | X2 | order: `is not` instead of `!=`
+N05  | EQUIV                  | SURVIVES | - | turn: `is not` instead of `!=`
+N06  | SURVIVES               | SURVIVES | X1 | order: byte SUM compared
+N07  | SURVIVES               | SURVIVES | X1 | order: byte SET compared
+N08  | SURVIVES               | SURVIVES | X1 | order: `<` (asymmetric: only an increase is a change)
+N09  | SURVIVES               | SURVIVES | X1 | turn: `<` (asymmetric: only an increase is a change)
+N10  | SURVIVES               | SURVIVES | X1 | turn: compared modulo 2
+N11  | KILLED                 | K3-fix,K6,K8-fix,W2 | X2 | turn compared against other's ORDER (int != bytes)
+N12  | KILLED                 | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | `or` -> `and` between the order and the turn compare
+N13  | KILLED                 | K1,K3-fault,K4-fault,K6-fault,K7-fault,K7-fix,K8-fault,K9-fault | X1,X3,X4 | switch: `!= "1"` -> `!= "0"`
+N14  | KILLED                 | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X4 | switch: os.getenv(SW, "1") (fault by default)
+N15  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K6,K6-fault,K7-fault,K7-fix,K8-fault,K8-fix,K9-fault | X1,X2,X3,X4 | guard: `and` -> `or` between switch and fields
+N16  | KILLED                 | K2,K3-fix,K4-fix,K5,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | guard returns True instead of False
+N17  | EQUIV                  | SURVIVES | - | guard returns NotImplemented instead of False
+N18  | KILLED                 | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | switch read ONCE, lazily, into a module global (read inside the if-test, so W3/W4 hold)
+N19  | KILLED                 | C0,C1,K1,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K6,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | isinstance check removed (`if True:`)
+N20  | KILLED                 | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | guard moved AFTER the return (dead code)
+N21  | SURVIVES               | SURVIVES | X3 | switch: `not in ("1", "on")`
+N22  | KILLED                 | K7-fix | X3 | switch: value .strip()'d
+N23  | KILLED                 | K7-fix | X3 | switch: `.lower() not in ("1", "true")`
+N24  | EQUIV                  | SURVIVES | X3 | switch: `is not "1"` instead of `!= "1"`
+N25  | KILLED                 | K7-fix | X3 | switch: int(value or 0) != 1
+N26  | KILLED                 | C0,C1,K1,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | __ne__ added: `return not self.__eq__(other)` (bool(NotImplemented))
+N27  | KILLED                 | K2,K3-fix,K4-fix,K6-fix,K8-fix,K9-fix | X1,X4 | __ne__ added with UPSTREAM's 9-field compare (inconsistent with __eq__)
+N28  | EQUIV                  | SURVIVES | - | __ne__ added: `return not (self == other)`
+N29  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _battle_type
+N30  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _side_timers
+N31  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _battler_party_indexes
+N32  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _battler_count
+N33  | KILLED                 | K5,K6 | X2 | 9-field compare: drop _battler
+N34  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _battler_status3
+N35  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _battler_disable_structs
+N36  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _absent_battler_flags
+N37  | SURVIVES               | SURVIVES | X2 | 9-field compare: drop _weather
+N38  | SURVIVES               | SURVIVES | X2 | 9-field compare: _battler compared for battler 0 only ([:0x58])
+N39  | SURVIVES               | SURVIVES | X2 | the FAULT arm drops _weather (switch no longer restores upstream's exact compare)
+N40  | KILLED                 | C0,K1,K2,K3-fault,K3-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | get_battle_state: order read with size 2
+N41  | KILLED                 | C0,K4-fault,K4-fix | X1 | get_battle_state: turn read at offset 0x12
+N42  | EQUIV                  | W6 | - | get_battle_state: early return on `age <= 0`
+N43  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault,W6 | X1,X4 | get_battle_state: bypasses the setter (`.value =`, always stores)
+N44  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault | X1,X4 | setter: `is not` instead of `!=`
+N45  | EQUIV                  | SURVIVES | - | setter: `not (old == new)`
+N46  | EQUIV                  | SURVIVES | - | setter: operands swapped (`new != old`)
+N47  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K9-fault | X1,X4 | setter: equal branch REPLACES the object but keeps the stamps
+N48  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault,K9-runA | X1,X4 | setter: equal branch does nothing (checked() removed)
+N49  | EQUIV                  | SURVIVES | - | setter: store branch also calls checked()
+N50  | KILLED                 | C0,K1,K2,K3-fault,K4-fault,K4-fix,K5,K8-fault,K8-fix,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames off by one (-1)
+N51  | KILLED                 | C1,K1,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames off by one (+1)
+N52  | KILLED                 | C1,K1,K2,K3-fault,K3-fix,K4-fault,K4-fix,K5,K9-fault,K9-fix,K9-runA | X1,X4 | age_in_frames: reset branch `>` -> `>=`
+N53  | SURVIVES               | SURVIVES | X4 | age_in_frames: reset branch returns 0 (stale data trusted after a reset)
+N54  | SURVIVES               | SURVIVES | - | age_in_frames: reset branch deleted (negative age)
+N55  | KILLED                 | C1,K2,K4-fix,K5,K9-fix | X1,X4 | value setter: _last_check_frame not updated
+N56  | KILLED                 | K8-fault,K8-fix | - | value setter: frame stamp not updated
+N57  | KILLED                 | K1,K3-fault,K3-fix,K4-fault,K8-fault,K8-fix,K9-fault,K9-runA | X1,X4 | checked(): resets the check to the STORE frame
+N58  | KILLED                 | K8-fault,K8-fix | - | checked(): also bumps the frame stamp
+N59  | KILLED                 | C0,K1,K3-fault,K4-fault,K8-fault,K8-fix | X1 | StateCacheItem init: _last_check_frame = 1 (age 0 at frame 1: first call returns None)
+WA   | KILLED(behaviour only) | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | fix removed; the guarded block kept under a dead `if False:`
+WB   | KILLED(behaviour only) | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | fix removed; the guarded block kept inside an UNUSED nested helper
+WC   | KILLED(W1-4 + behaviour) | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix,W1,W2,W3,W4 | X1,X3,X4 | fix removed; the guarded block's text kept as a string statement (docstring-like)
+WD   | KILLED(behaviour only) | K2,K3-fix,K4-fix,K6-fix,K7-fix,K8-fix,K9-fix | X1,X3,X4 | a SECOND __eq__ (upstream's) appended: the AST rows read the first, Python runs the second
+WE   | KILLED(behaviour only) | K1,K3-fault,K4-fault,K9-fault | X1,X4 | get_battle_state returns the cache value; a dead `return battle_state` satisfies W6
+WF   | KILLED(behaviour only) | K1,K3-fault,K4-fault,K6-fault,K7-fault,K7-fix,K8-fault,K9-fault | X1,X3,X4 | switch read at IMPORT through a lambda (W4 sees it 'inside a function'), dead per-call read kept in the test
+WG   | FALSE-POSITIVE(W3,W4)  | W3,W4 | - | EQUIVALENT refactor: the literal hoisted into a module constant
+WH   | FALSE-POSITIVE(W6)     | W6 | - | EQUIVALENT refactor: early return on `age_in_frames < 1`
+WI   | EQUIV                  | SURVIVES | - | EQUIVALENT refactor: `from os import environ as _env` + `_env.get(SW)` (X3 control)
+WJ   | EQUIV                  | SURVIVES | - | EQUIVALENT refactor: reversed operands `"1" != os.environ.get(SW)` (X3 control)
+W5a  | SURVIVES               | SURVIVES | X5 | registry row's literal typo'd to a SUPERSTRING (`..._OLDEQX`)
+W5b  | SURVIVES               | SURVIVES | X5 | registry §B row deleted; a 'retired' mention left in prose
+
+THE GATE'S OWN 14 MUTANTS under the X rows (what their predicted red sets would gain):
+  M0   X red: ['X1', 'X3', 'X4']
+  M1   X red: ['X1', 'X3', 'X4']
+  M2   X red: ['X1']
+  M3   X red: ['X1', 'X3', 'X4']
+  M4   X red: ['X1', 'X3', 'X4']
+  M5   X red: ['X1', 'X3', 'X4']
+  M6   X red: ['X1', 'X4']
+  M7   X red: ['X1', 'X4']
+  M8   X red: none
+  M9   X red: ['X1', 'X3', 'X4']
+  M10  X red: ['X1', 'X4']
+  M11  X red: ['X1', 'X4']
+  M12  X red: none
+  M13  X red: ['X5']
+
+====================================================================================================
+MUTANT HUNTER — hunt.py (the 71 mutants with their predictions)
+====================================================================================================
+r"""Independent mutant hunt on `#27-battleeq` (KI-108), commit ccc3cede, worktree pokebot-wt-ch24. READ-ONLY on the
+worktree: the gate module is exec'd from its own path (so its REPO/BS/SC resolve there) with bytecode writing off, and
+every mutant is applied IN MEMORY to the source text and handed to the gate's own `Subject` (which exec's source).
+
+Run: PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 py -3.12 hunt.py
+"""
+import os
+import pathlib
+import sys
+import types
+import warnings
+
+sys.dont_write_bytecode = True
+warnings.simplefilter("ignore")  # N23's `is not "1"` SyntaxWarning, N14's bool(NotImplemented) DeprecationWarning
+
+HERE = pathlib.Path(__file__).resolve().parent
+GATE = pathlib.Path(r"C:/Remote Projects/pokebot-wt-ch24/tools/story-dev/probe_battle_state_eq.py")
+g = types.ModuleType("bseq_gate")
+g.__file__ = str(GATE)
+sys.modules["bseq_gate"] = g
+exec(compile(GATE.read_text(encoding="utf-8"), str(GATE), "exec"), g.__dict__)
+sys.path.insert(0, str(HERE))
+import killing_rows  # noqa: E402
+
+XROWS = killing_rows.bind(g)
+SW = g.SWITCH
+os.environ.pop(SW, None)
+BS0 = g.BS.read_text(encoding="utf-8")
+SC0 = g.SC.read_text(encoding="utf-8")
+REG0 = g.REGISTRY.read_text(encoding="utf-8")
+
+
+def sub(src, old, new):
+    n = src.count(old)
+    if n != 1:
+        raise RuntimeError(f"anchor x{n}: {old[:80]!r}")
+    return src.replace(old, new)
+
+
+def ind(block, k=4):
+    return "".join(" " * k + ln if ln.strip() else ln for ln in block.splitlines(True))
+
+
+GUARD = g.GUARD
+ORD = "self._battler_party_order != other._battler_party_order"
+TRN = "self._current_turn != other._current_turn"
+IF_BLOCK = g.IF_BLOCK
+EQ_TAIL = g.EQ_TAIL
+STORE_RETURN = g.STORE_RETURN
+PROP_BP = "    @property\n    def battling_pokemon"
+NINE_EXPR = ("self._battle_type == other._battle_type and self._side_timers == other._side_timers and "
+             "self._battler_party_indexes == other._battler_party_indexes and self._battler_count == other._battler_count"
+             " and self._battler == other._battler and self._battler_status3 == other._battler_status3 and "
+             "self._battler_disable_structs == other._battler_disable_structs and "
+             "self._absent_battler_flags == other._absent_battler_flags and self._weather == other._weather")
+
+
+def bs(*pairs):
+    s = BS0
+    for old, new in pairs:
+        s = sub(s, old, new)
+    return s
+
+
+def sc(*pairs):
+    s = SC0
+    for old, new in pairs:
+        s = sub(s, old, new)
+    return s
+
+
+def drop_field(f):
+    if f == "_battle_type":
+        return bs(("self._battle_type == other._battle_type\n                and ", ""))
+    return bs((f"\n                and self.{f} == other.{f}", ""))
+
+
+# (id, description, my prediction BEFORE running, builder -> (bs, sc, reg))
+M = [
+    # ---- the order compare
+    ("N01", "order: compare only byte 0", "SURVIVES", lambda: (bs((ORD, "self._battler_party_order[0] != other._battler_party_order[0]")), SC0, REG0)),
+    ("N02", "order: compare only bytes [:2]", "SURVIVES", lambda: (bs((ORD, "self._battler_party_order[:2] != other._battler_party_order[:2]")), SC0, REG0)),
+    ("N03", "order: compare only the last byte", "SURVIVES", lambda: (bs((ORD, "self._battler_party_order[-1] != other._battler_party_order[-1]")), SC0, REG0)),
+    ("N04", "order: `is not` instead of `!=`", "KILLED", lambda: (bs((ORD, "self._battler_party_order is not other._battler_party_order")), SC0, REG0)),
+    ("N05", "turn: `is not` instead of `!=`", "EQUIV", lambda: (bs((TRN, "self._current_turn is not other._current_turn")), SC0, REG0)),
+    ("N06", "order: byte SUM compared", "SURVIVES", lambda: (bs((ORD, "sum(self._battler_party_order) != sum(other._battler_party_order)")), SC0, REG0)),
+    ("N07", "order: byte SET compared", "SURVIVES", lambda: (bs((ORD, "set(self._battler_party_order) != set(other._battler_party_order)")), SC0, REG0)),
+    ("N08", "order: `<` (asymmetric: only an increase is a change)", "SURVIVES", lambda: (bs((ORD, "self._battler_party_order < other._battler_party_order")), SC0, REG0)),
+    ("N09", "turn: `<` (asymmetric: only an increase is a change)", "SURVIVES", lambda: (bs((TRN, "self._current_turn < other._current_turn")), SC0, REG0)),
+    ("N10", "turn: compared modulo 2", "SURVIVES", lambda: (bs((TRN, "self._current_turn % 2 != other._current_turn % 2")), SC0, REG0)),
+    ("N11", "turn compared against other's ORDER (int != bytes)", "KILLED", lambda: (bs((TRN, "self._current_turn != other._battler_party_order")), SC0, REG0)),
+    ("N12", "`or` -> `and` between the order and the turn compare", "KILLED", lambda: (bs((ORD + " or " + TRN, ORD + " and " + TRN)), SC0, REG0)),
+    # ---- the guard / switch
+    ("N13", 'switch: `!= "1"` -> `!= "0"`', "KILLED", lambda: (bs((GUARD, f'os.environ.get("{SW}") != "0"')), SC0, REG0)),
+    ("N14", 'switch: os.getenv(SW, "1") (fault by default)', "KILLED", lambda: (bs((GUARD, f'os.getenv("{SW}", "1") != "1"')), SC0, REG0)),
+    ("N15", "guard: `and` -> `or` between switch and fields", "KILLED", lambda: (bs((GUARD + " and (", GUARD + " or (")), SC0, REG0)),
+    ("N16", "guard returns True instead of False", "KILLED", lambda: (bs((IF_BLOCK, IF_BLOCK.replace("return False", "return True"))), SC0, REG0)),
+    ("N17", "guard returns NotImplemented instead of False", "EQUIV", lambda: (bs((IF_BLOCK, IF_BLOCK.replace("return False", "return NotImplemented"))), SC0, REG0)),
+    ("N18", "switch read ONCE, lazily, into a module global (read inside the if-test, so W3/W4 hold)", "KILLED",
+     lambda: (bs(("import os\n", "import os\n_KI108_SEEN = []\n"),
+                 (GUARD, f'(_KI108_SEEN or _KI108_SEEN.append(os.environ.get("{SW}")) or _KI108_SEEN)[0] != "1"')), SC0, REG0)),
+    ("N19", "isinstance check removed (`if True:`)", "KILLED", lambda: (bs(("if isinstance(other, BattleState):", "if True:")), SC0, REG0)),
+    ("N20", "guard moved AFTER the return (dead code)", "KILLED",
+     lambda: (bs((IF_BLOCK, ""), (EQ_TAIL, EQ_TAIL.replace("            )\n", "            )\n" + IF_BLOCK, 1))), SC0, REG0)),
+    ("N21", 'switch: `not in ("1", "on")`', "SURVIVES", lambda: (bs((GUARD, f'os.environ.get("{SW}") not in ("1", "on")')), SC0, REG0)),
+    ("N22", "switch: value .strip()'d", "KILLED", lambda: (bs((GUARD, f'(os.environ.get("{SW}") or "").strip() != "1"')), SC0, REG0)),
+    ("N23", 'switch: `.lower() not in ("1", "true")`', "KILLED", lambda: (bs((GUARD, f'(os.environ.get("{SW}") or "").lower() not in ("1", "true")')), SC0, REG0)),
+    ("N24", 'switch: `is not "1"` instead of `!= "1"`', "EQUIV", lambda: (bs((GUARD, f'os.environ.get("{SW}") is not "1"')), SC0, REG0)),
+    ("N25", "switch: int(value or 0) != 1", "KILLED", lambda: (bs((GUARD, f'int(os.environ.get("{SW}") or 0) != 1')), SC0, REG0)),
+    # ---- __ne__
+    ("N26", "__ne__ added: `return not self.__eq__(other)` (bool(NotImplemented))", "KILLED",
+     lambda: (bs((PROP_BP, "    def __ne__(self, other):\n        return not self.__eq__(other)\n\n" + PROP_BP)), SC0, REG0)),
+    ("N27", "__ne__ added with UPSTREAM's 9-field compare (inconsistent with __eq__)", "KILLED",
+     lambda: (bs((PROP_BP, "    def __ne__(self, other):\n        if not isinstance(other, BattleState):\n"
+                           "            return NotImplemented\n        return not (" + NINE_EXPR + ")\n\n" + PROP_BP)), SC0, REG0)),
+    ("N28", "__ne__ added: `return not (self == other)`", "EQUIV",
+     lambda: (bs((PROP_BP, "    def __ne__(self, other):\n        return not (self == other)\n\n" + PROP_BP)), SC0, REG0)),
+    # ---- upstream's 9 compared fields
+    *[(f"N{29 + i:02d}", f"9-field compare: drop {f}", "KILLED" if f == "_battler" else "SURVIVES",
+       (lambda f=f: (drop_field(f), SC0, REG0)))
+      for i, f in enumerate(("_battle_type", "_side_timers", "_battler_party_indexes", "_battler_count", "_battler",
+                             "_battler_status3", "_battler_disable_structs", "_absent_battler_flags", "_weather"))],
+    ("N38", "9-field compare: _battler compared for battler 0 only ([:0x58])", "SURVIVES",
+     lambda: (bs(("and self._battler == other._battler\n", "and self._battler[:0x58] == other._battler[:0x58]\n")), SC0, REG0)),
+    ("N39", "the FAULT arm drops _weather (switch no longer restores upstream's exact compare)", "SURVIVES",
+     lambda: (bs(("                and self._weather == other._weather\n",
+                  f'                and (self._weather == other._weather or os.environ.get("{SW}") == "1")\n')), SC0, REG0)),
+    # ---- get_battle_state
+    ("N40", "get_battle_state: order read with size 2", "KILLED", lambda: (bs(('read_symbol("gBattlePartyCurrentOrder", size=0x03)', 'read_symbol("gBattlePartyCurrentOrder", size=0x02)')), SC0, REG0)),
+    ("N41", "get_battle_state: turn read at offset 0x12", "KILLED", lambda: (bs(('read_symbol("gBattleResults", offset=0x13, size=1)[0]', 'read_symbol("gBattleResults", offset=0x12, size=1)[0]')), SC0, REG0)),
+    ("N42", "get_battle_state: early return on `age <= 0`", "EQUIV", lambda: (bs(("age_in_frames == 0:", "age_in_frames <= 0:")), SC0, REG0)),
+    ("N43", "get_battle_state: bypasses the setter (`.value =`, always stores)", "KILLED",
+     lambda: (bs(("    state_cache.battle_state = battle_state\n", "    state_cache.battle_state.value = battle_state\n")), SC0, REG0)),
+    # ---- the battle_state setter
+    ("N44", "setter: `is not` instead of `!=`", "KILLED", lambda: (BS0, sc(("if self._battle_state.value != new_battle_state:", "if self._battle_state.value is not new_battle_state:")), REG0)),
+    ("N45", "setter: `not (old == new)`", "EQUIV", lambda: (BS0, sc(("if self._battle_state.value != new_battle_state:", "if not (self._battle_state.value == new_battle_state):")), REG0)),
+    ("N46", "setter: operands swapped (`new != old`)", "EQUIV", lambda: (BS0, sc(("if self._battle_state.value != new_battle_state:", "if new_battle_state != self._battle_state.value:")), REG0)),
+    ("N47", "setter: equal branch REPLACES the object but keeps the stamps", "KILLED",
+     lambda: (BS0, sc(("            self._battle_state.checked()\n", "            self._battle_state._value = new_battle_state\n            self._battle_state.checked()\n")), REG0)),
+    ("N48", "setter: equal branch does nothing (checked() removed)", "KILLED", lambda: (BS0, sc(("            self._battle_state.checked()\n", "            pass\n")), REG0)),
+    ("N49", "setter: store branch also calls checked()", "EQUIV",
+     lambda: (BS0, sc(("            self._battle_state.value = new_battle_state\n", "            self._battle_state.value = new_battle_state\n            self._battle_state.checked()\n")), REG0)),
+    # ---- StateCacheItem
+    ("N50", "age_in_frames off by one (-1)", "KILLED", lambda: (BS0, sc(("        return current_frame_count - self._last_check_frame\n", "        return current_frame_count - self._last_check_frame - 1\n")), REG0)),
+    ("N51", "age_in_frames off by one (+1)", "KILLED", lambda: (BS0, sc(("        return current_frame_count - self._last_check_frame\n", "        return current_frame_count - self._last_check_frame + 1\n")), REG0)),
+    ("N52", "age_in_frames: reset branch `>` -> `>=`", "KILLED", lambda: (BS0, sc(("if self._last_check_frame > current_frame_count:", "if self._last_check_frame >= current_frame_count:")), REG0)),
+    ("N53", "age_in_frames: reset branch returns 0 (stale data trusted after a reset)", "SURVIVES",
+     lambda: (BS0, sc(("            return 1000000\n", "            return 0\n")), REG0)),
+    ("N54", "age_in_frames: reset branch deleted (negative age)", "SURVIVES",
+     lambda: (BS0, sc(("        if self._last_check_frame > current_frame_count:\n            return 1000000\n", "")), REG0)),
+    ("N55", "value setter: _last_check_frame not updated", "KILLED", lambda: (BS0, sc(("        self._last_check_frame = self.frame\n", "")), REG0)),
+    ("N56", "value setter: frame stamp not updated", "KILLED",
+     lambda: (BS0, sc(("        self.frame = context.emulator.get_frame_count()\n        self.time = time.time()\n        self._last_check_frame = self.frame\n",
+                       "        self.time = time.time()\n        self._last_check_frame = context.emulator.get_frame_count()\n")), REG0)),
+    ("N57", "checked(): resets the check to the STORE frame", "KILLED", lambda: (BS0, sc(("        self._last_check_frame = context.emulator.get_frame_count()\n", "        self._last_check_frame = self.frame\n")), REG0)),
+    ("N58", "checked(): also bumps the frame stamp", "KILLED",
+     lambda: (BS0, sc(("        self._last_check_frame = context.emulator.get_frame_count()\n", "        self._last_check_frame = context.emulator.get_frame_count()\n        self.frame = self._last_check_frame\n")), REG0)),
+    ("N59", "StateCacheItem init: _last_check_frame = 1 (age 0 at frame 1: first call returns None)", "KILLED",
+     lambda: (BS0, sc(("        self._last_check_frame: int = 0\n", "        self._last_check_frame: int = 1\n")), REG0)),
+    # ---- W-row probes (dead code / docstrings / false positives / the registry)
+    ("WA", "fix removed; the guarded block kept under a dead `if False:`", "KILLED(behaviour only)",
+     lambda: (bs((IF_BLOCK, "            if False:\n" + ind(IF_BLOCK))), SC0, REG0)),
+    ("WB", "fix removed; the guarded block kept inside an UNUSED nested helper", "KILLED(behaviour only)",
+     lambda: (bs((IF_BLOCK, "            def _unused():\n" + ind(IF_BLOCK) + "\n")), SC0, REG0)),
+    ("WC", "fix removed; the guarded block's text kept as a string statement (docstring-like)", "KILLED(W1-4 + behaviour)",
+     lambda: (bs((IF_BLOCK, '            """' + IF_BLOCK.replace('"', "'") + '"""\n')), SC0, REG0)),
+    ("WD", "a SECOND __eq__ (upstream's) appended: the AST rows read the first, Python runs the second", "KILLED(behaviour only)",
+     lambda: (bs((PROP_BP, "    def __eq__(self, other):\n        if isinstance(other, BattleState):\n            return " + NINE_EXPR
+                           + "\n        return NotImplemented\n\n" + PROP_BP)), SC0, REG0)),
+    ("WE", "get_battle_state returns the cache value; a dead `return battle_state` satisfies W6", "KILLED(behaviour only)",
+     lambda: (bs((STORE_RETURN, "    state_cache.battle_state = battle_state\n    return state_cache.battle_state.value\n    return battle_state\n")), SC0, REG0)),
+    ("WF", "switch read at IMPORT through a lambda (W4 sees it 'inside a function'), dead per-call read kept in the test",
+     "KILLED(behaviour only)",
+     lambda: (bs(("import os\n", f'import os\n_KI108_OLDEQ = (lambda: os.environ.get("{SW}") == "1")()\n'),
+                 (GUARD, f'not _KI108_OLDEQ and (os.environ.get("{SW}") or True)')), SC0, REG0)),
+    ("WG", "EQUIVALENT refactor: the literal hoisted into a module constant", "FALSE-POSITIVE(W3,W4)",
+     lambda: (bs(("import os\n", f'import os\n_KI108_SWITCH = "{SW}"\n'), (GUARD, 'os.environ.get(_KI108_SWITCH) != "1"')), SC0, REG0)),
+    ("WH", "EQUIVALENT refactor: early return on `age_in_frames < 1`", "FALSE-POSITIVE(W6)",
+     lambda: (bs(("age_in_frames == 0:", "age_in_frames < 1:")), SC0, REG0)),
+    ("WI", "EQUIVALENT refactor: `from os import environ as _env` + `_env.get(SW)` (X3 control)", "EQUIV",
+     lambda: (bs(("import os\n", "import os\nfrom os import environ as _env\n"), (GUARD, f'_env.get("{SW}") != "1"')), SC0, REG0)),
+    ("WJ", "EQUIVALENT refactor: reversed operands `\"1\" != os.environ.get(SW)` (X3 control)", "EQUIV",
+     lambda: (bs((GUARD, f'"1" != os.environ.get("{SW}")')), SC0, REG0)),
+    ("W5a", "registry row's literal typo'd to a SUPERSTRING (`..._OLDEQX`)", "SURVIVES",
+     lambda: (BS0, SC0, sub(REG0, f"| `{SW}` |", f"| `{SW}X` |"))),
+    ("W5b", "registry §B row deleted; a 'retired' mention left in prose", "SURVIVES",
+     lambda: (BS0, SC0, "\n".join(ln for ln in REG0.split("\n") if not ln.startswith(f"| `{SW}` |"))
+              + f"\n\nRetired 2026-10-02: `{SW}` was removed.\n")),
+]
+
+
+def grade(bs_src, sc_src, reg):
+    S = g.Subject(bs_src, sc_src, reg)
+    red = g.run_rows(S)
+    xred = set()
+    for label, fn in XROWS:
+        try:
+            ok, _ = fn(S)
+        except Exception:  # noqa: BLE001
+            ok = False
+        if not ok:
+            xred.add(label)
+    return red, xred
+
+
+def main():
+    saved = getattr(g.context, "emulator", None)
+    try:
+        red, xred = grade(BS0, SC0, REG0)
+        print(f"BASELINE real subject: gate red={sorted(red) or 'none'}  X red={sorted(xred) or 'none'}")
+        S = g.Subject(BS0, SC0, REG0)
+        for label, fn in XROWS:
+            print(f"   {label}: {fn(S)}")
+        assert not red and not xred, "baseline must be green"
+        print()
+        rows = []
+        for mid, desc, pred, build in M:
+            try:
+                bsx, scx, regx = build()
+            except RuntimeError as e:
+                rows.append((mid, desc, pred, f"UNBUILDABLE {e}", ""))
+                continue
+            try:
+                red, xred = grade(bsx, scx, regx)
+            except Exception as e:  # noqa: BLE001 (a module that fails to load)
+                rows.append((mid, desc, pred, f"LOAD-ERROR {type(e).__name__}: {e}", ""))
+                continue
+            rows.append((mid, desc, pred, ",".join(sorted(red)) or "SURVIVES", ",".join(sorted(xred)) or "-"))
+        print(f"{'id':<4} | {'pred':<22} | gate red rows | X red rows | description")
+        for mid, desc, pred, gr, xr in rows:
+            print(f"{mid:<4} | {pred:<22} | {gr} | {xr} | {desc}")
+        print()
+        print("THE GATE'S OWN 14 MUTANTS under the X rows (what their predicted red sets would gain):")
+        for name, build, predicted in g.mutants(BS0, SC0, REG0):
+            subj = build()
+            xred = set()
+            for label, fn in XROWS:
+                try:
+                    ok, _ = fn(subj)
+                except Exception:  # noqa: BLE001
+                    ok = False
+                if not ok:
+                    xred.add(label)
+            print(f"  {name.split(' ')[0]:<4} X red: {sorted(xred) or 'none'}")
+    finally:
+        os.environ.pop(SW, None)
+        g.context.emulator = saved
+
+
+if __name__ == "__main__":
+    main()
+
+====================================================================================================
+MUTANT HUNTER — killing_rows.py (X1-X5)
+====================================================================================================
+r"""Candidate KILLING ROWS for probe_battle_state_eq.py (`#27-battleeq`), written by the independent mutant hunt.
+
+Each row has the gate's signature `row(S) -> (ok, detail)` once bound to the gate module `g` (see `bind(g)`).
+They use ONLY the gate's own fake world (World, switch, make_state's FakeMemory) so they can be pasted in as-is.
+
+  X1  every ORDER change (byte 0 only, byte 1 only, byte 2 only, a whole-byte permutation with the same byte multiset
+      and byte sum) and every TURN change (+1, -1, +2, to 0, 255 -> 0) is seen by the SECOND caller under the fix and
+      ignored under the fault, in BOTH directions (old -> new and new -> old), through the real cache.
+  X2  each of upstream's 9 compared fields, changed ALONE (its first byte, and its last byte), is unequal in BOTH arms
+      in both directions: the switch restores EXACTLY upstream's compare, and the fix drops none of it.
+  X3  the value read from the switch is compared with the string "1" and with NOTHING ELSE, and no method is called on
+      it (exhaustive, not sampled): a str-subclass probe records every comparison and attribute access.
+  X4  the frame counter going BACKWARDS (an emulator reset / state load with no cache reset: StateCacheItem's
+      "frame count lower than data" branch) makes the next call fresh; then fault = second caller old, fix = new.
+  X5  the registry holds a §B TABLE ROW whose first cell is exactly the backticked literal (W5 is a substring test).
+"""
+import re
+import types
+
+
+def bind(g):
+    SWITCH = g.SWITCH
+
+    def _args(order_bytes=None, turn=None):
+        m = g.FakeMemory()
+        if order_bytes is not None:
+            m.set_order(order_bytes)
+        if turn is not None:
+            m.set_turn(turn)
+        r = m.read_symbol
+        return [
+            r("gBattleTypeFlags", size=0x04), r("gSideTimers", size=0x18), r("gBattlerPartyIndexes", size=0x08),
+            r("gBattlePartyCurrentOrder", size=0x03), r("gBattlersCount", size=0x01)[0], r("gBattleMons", size=0x160),
+            r("gStatuses3", size=0x10), r("gDisableStructs", size=0x70), r("gAbsentBattlerFlags", size=0x01)[0],
+            r("gBattleResults", offset=0x13, size=1)[0], int.from_bytes(r("gBattleWeather", size=0x02), "little")]
+
+    # ------------------------------------------------------------------ X1
+    ORDER_VARIANTS = ("102345", "013245", "012354", "014523", "104523")
+    TURN_PAIRS = ((3, 4), (4, 3), (3, 5), (3, 0), (255, 0))
+
+    def _cache_pair(S, env, setup_old, setup_new):
+        with g.switch(env):
+            w = g.World(S)
+            setup_old(w.mem)
+            a = w.gbs()
+            w.next_frame()
+            setup_new(w.mem)
+            f = w.gbs()
+            s = w.gbs()
+            return a, f, s
+
+    def row_x1(S):
+        bad = []
+        cases = []
+        for h in ORDER_VARIANTS:
+            v = bytes.fromhex(h)
+            for old, new in ((g.ORDER_A, v), (v, g.ORDER_A)):
+                cases.append((f"order {old.hex()}->{new.hex()}",
+                              (lambda o: lambda m: m.set_order(o))(old), (lambda n: lambda m: m.set_order(n))(new),
+                              lambda st, n=new: g.order(st) == n))
+        for t0, t1 in TURN_PAIRS:
+            cases.append((f"turn {t0}->{t1}", (lambda t: lambda m: m.set_turn(t))(t0),
+                          (lambda t: lambda m: m.set_turn(t))(t1), lambda st, n=t1: st._current_turn == n))
+        for label, so, sn, is_new in cases:
+            a, f, s = _cache_pair(S, None, so, sn)
+            if not (is_new(f) and is_new(s) and s is f):
+                bad.append(f"FIX {label}")
+            a, f, s = _cache_pair(S, "1", so, sn)
+            if not (is_new(f) and s is a):
+                bad.append(f"FAULT {label}")
+        return not bad, f"{len(cases)} order/turn changes x 2 arms; wrong: {bad or 'none'}"
+
+    # ------------------------------------------------------------------ X2
+    NINE = ((0, "battle_type"), (1, "side_timers"), (2, "battler_party_indexes"), (4, "battler_count"),
+            (5, "battler"), (6, "battler_status3"), (7, "battler_disable_structs"), (8, "absent_battler_flags"),
+            (10, "weather"))
+
+    def _perturbed(i, where):
+        args = _args()
+        v = args[i]
+        if isinstance(v, int):
+            args[i] = v + 1
+        else:
+            b = bytearray(v)
+            b[0 if where == "first" else -1] ^= 0xFF
+            args[i] = bytes(b)
+        return args
+
+    def row_x2(S):
+        bad = []
+        for env in ("1", None):
+            with g.switch(env):
+                x, x2 = S.bs.BattleState(*_args()), S.bs.BattleState(*_args())
+                if not ((x == x2) is True and (x2 == x) is True and (x != x2) is False):
+                    bad.append(f"{env}: identical copies not equal")
+                for i, name in NINE:
+                    for where in ("first", "last"):
+                        y = S.bs.BattleState(*_perturbed(i, where))
+                        got = ((x == y), (y == x), (x != y), (y != x))
+                        if got != (False, False, True, True):
+                            bad.append(f"arm={env or 'fix'} {name}[{where}] -> {got}")
+        return not bad, f"9 fields x first/last x 2 arms; wrong: {bad or 'none'}"
+
+    # ------------------------------------------------------------------ X3
+    class _Probe(str):
+        log: list = []
+
+        def __eq__(self, o):
+            _Probe.log.append(("==", o))
+            return str.__eq__(self, o)
+
+        def __ne__(self, o):
+            _Probe.log.append(("!=", o))
+            return str.__ne__(self, o)
+
+        __hash__ = str.__hash__
+
+        def __getattribute__(self, name):
+            _Probe.log.append(("attr", name))
+            return str.__getattribute__(self, name)
+
+    def row_x3(S):
+        x = g.make_state(S.bs)
+        yo = g.make_state(S.bs, order_bytes=g.ORDER_B)
+        import os as _os
+        saved = dict(S.bs.__dict__)
+        # every module global that IS os / os.environ / os.getenv (any alias) is swapped for the probe's shim
+        kinds = {n: ("os" if v is _os else "environ" if v is _os.environ else "getenv" if v is _os.getenv else None)
+                 for n, v in saved.items()}
+        bad = []
+        try:
+            for v in ("1", "on", "ON", "True", "y", "0", "", "1.0", "１"):
+                env = {SWITCH: _Probe(v)}
+                getenv = (lambda e: lambda k, d=None: e.get(k, d))(env)
+                shim = types.SimpleNamespace(environ=env, getenv=getenv)
+                for n, kind in kinds.items():
+                    if kind:
+                        S.bs.__dict__[n] = {"os": shim, "environ": env, "getenv": getenv}[kind]
+                _Probe.log = []
+                got = (x == yo)
+                foreign = [e for e in _Probe.log if not (e[0] in ("==", "!=") and type(e[1]) is str and e[1] == "1")]
+                if got != (v == "1"):
+                    bad.append(f"{v!r}: equal={got}")
+                if foreign or not _Probe.log:
+                    bad.append(f"{v!r}: compared/used as {foreign or 'nothing (never compared with ==/!=)'}")
+        finally:
+            for n, kind in kinds.items():
+                if kind:
+                    S.bs.__dict__[n] = saved[n]
+        return not bad, f"switch value compared only with '1': wrong: {bad or 'none'}"
+
+    # ------------------------------------------------------------------ X4
+    def row_x4(S):
+        seen = {}
+        for env in ("1", None):
+            with g.switch(env):
+                w = g.World(S)
+                w.emu.frame = 10
+                a = w.gbs()
+                w.emu.frame = 4                  # reset / state load with no cache reset: frame < the entry's stamp
+                w.mem.set_order(g.ORDER_B)
+                f = w.gbs()
+                s = w.gbs()
+                seen[env] = (g.order(f).hex(), g.order(s).hex(), s is f, s is a)
+        ok = (seen["1"] == (g.ORDER_B.hex(), g.ORDER_A.hex(), False, True)
+              and seen[None] == (g.ORDER_B.hex(), g.ORDER_B.hex(), True, False))
+        return ok, f"(first, second, second_is_first, second_is_old) fault={seen['1']} fix={seen[None]}"
+
+    # ------------------------------------------------------------------ X5
+    def row_x5(S):
+        m = re.search(r"^## B\.[^\n]*\n(.*?)(?=^## )", S.reg, re.S | re.M)
+        sec = m.group(1) if m else ""
+        hit = re.search(r"^\| `" + re.escape(SWITCH) + r"` \|", sec, re.M) is not None
+        return hit, f"a §B table row whose first cell is exactly `{SWITCH}`: {hit}"
+
+    return [("X1", row_x1), ("X2", row_x2), ("X3", row_x3), ("X4", row_x4), ("X5", row_x5)]
+
+====================================================================================================
+MUTANT_HUNTER_REPORT
+====================================================================================================
+MUTANT HUNTER — final report (verbatim summary; the raw output, mutants and rows are the sections above)
+
+Verdict: the gate kills every mutant that touches the fix's WIRING, but BE-5 is FALSIFIED — 22 non-equivalent mutants survive all 25 rows, 19 of them in __eq__/the switch itself, because the fake world is narrow: every order change is ORDER_A->ORDER_B (all three bytes differ, a lexicographic increase from the smallest permutation 012345), the only turn change is 3->4, and the only compared field ever varied is battler 0's HP. 5 killing rows (X1-X5) kill all 22 gaps and pass on the real subject, on the gate's comment-only M8 and on the equivalent refactors tried.
+
+Counts: 71 tried (67 mutants + 4 equivalent-refactor controls). The gate kills 37 of 67 (one, N42, is equivalent and reddened only by W6: a false positive). 30 survive: 8 equivalent (proved), 22 real gaps. With X1-X5 every real gap is killed. Every prediction was written into hunt.py before its first run; all held except that N54 turned out equivalent on this path.
+
+Faithfulness: it runs the real code (Subject executes the source text of battle_state.py and state_cache.py fresh per subject; only read_symbol and state_cache are swapped). StateCacheItem/age_in_frames are real; the fake emulator supplies get_frame_count. K9's Run-B ageing matches story_harness.py:404-417. DEFECT: the "frame count lower than data" branch is never exercised (N53 survives; X4 kills it). N54 (branch deleted, negative age) is equivalent for battle_state (only reader is battle_state.py:819 == 0) but not for other cache entries (web/http.py:79 uses age_in_frames < max). No row passes vacuously; the rows are too narrow.
+
+W rows: comments/docstrings cannot satisfy them (WC reddens W1-W4). Dead code does: WA (if False:), WB (unused nested helper), WD (a second upstream-style __eq__ appended; _eq_fn reads the first definition, Python runs the last), WE (unreachable trailing `return battle_state` satisfies W6), WF (import-time read inside a lambda; W4 counts a Lambda as inside a function). Behaviour rows kill all five. Across 14 + 71 mutants W1-W4 never kill anything the behaviour rows don't. False positives on equivalent refactors: W6 reddens N42 (age <= 0) and WH (age < 1); W3 and W4 redden WG (the literal hoisted into a module constant). W5 is a bare substring test: passes with the registry literal mistyped as ..._OLDEQX (W5a) and with the section-B row deleted but a "retired" prose mention left (W5b).
+
+Survivor verdicts (GAP = real gap; EQUIV with proof):
+- GAP (X1): N01 order byte 0 only; N02 order [:2]; N03 order last byte; N06 order byte sum; N07 order byte set; N08 order `<`; N09 turn `<`; N10 turn mod 2.
+- GAP (X2): N29-N32, N34-N37 drop one of _battle_type/_side_timers/_battler_party_indexes/_battler_count/_battler_status3/_battler_disable_structs/_absent_battler_flags/_weather; N38 _battler compared for battler 0 only; N39 the FAULT arm alone drops _weather.
+- GAP (X3): N21 `not in ("1","on")` — "only '1' restores" is sampled, not enforced.
+- GAP (X4): N53 the reset branch returns 0.
+- GAP (X5): W5a, W5b.
+- EQUIV: N05 turn `is not` (a bytes index 0..255; CPython caches small ints); N17 guard returns NotImplemented (== falls back to identity -> False, != -> True, the setter stores; only a direct .__eq__() differs, none exists on BattleState); N24 `is not "1"` (an env-sourced "1" is the cached singleton on CPython 3.12.4; X3 reddens it, a defensible false positive); N28 __ne__ = not (self == other) (the default); N42 `<= 0` (age is never negative; W6 false positive); N45 setter `not (old == new)`; N46 setter operands swapped (__eq__ symmetric); N49 store branch also calls checked() (same frame value); N54 (see above).
+- Killed by the gate (for the record): N04, N11-N16, N18-N20, N22, N23, N25-N27, N33, N40, N41, N43, N44, N47, N48, N50-N52, N55-N59, WA-WF.
+
+Killing rows (scratchpad/beadv/hunt/killing_rows.py; bind(g) -> [("X1", row), ...], the gate's row(S) -> (ok, detail) signature; verified green on the real subject, red on every gap listed):
+- X1: walks the real cache through 15 cases, each old->new and new->old: order 102345, 013245, 012354 (one byte each), 014523 (same first byte, same set, same sum), 104523; turn 3->4, 4->3, 3->5, 3->0, 255->0. Fix arm: is_new(f) and is_new(s) and s is f. Fault arm: is_new(f) and s is a.
+- X2: changes each of the 9 upstream fields alone (first and last byte; int +1); in BOTH arms requires (x==y, y==x, x!=y, y!=x) == (False, False, True, True), and identical copies equal.
+- X3: the switch checked exhaustively: a str subclass logs every ==, != and attribute access on the value read; every module global that is os / os.environ / os.getenv under any alias is shimmed and restored in finally; for "1","on","ON","True","y","0","","1.0","１" requires (x == yo) == (v == "1") and only ==/!= comparisons against "1" in the log.
+- X4: the backwards frame: first read at frame 10, frame set to 4, order changed to B. Fault requires (B, A, s is a); fix (B, B, s is f).
+- X5: a table row matching ^\| `POKEBOT_KI108_FAULT_OLDEQ` \| inside the ## B. section.
+
+Claims judged wrong or overstated: (1) BE-5 falsified as filed; (2) "only '1' restores" checked by a 9-value sample; (3) the switch only partly checked to restore upstream's 9-field compare (only _battler at battler 0 pinned); (4) the gate's docstring overstates the W rows. Holding up: every caller in a frame sees what the first caller saw (all 15 X1 cases in both arms, plus X4); the switch is read per call (N18 killed by K7-fix); the in-frame-write caveat (K9-runA) is pinned (M10 reddens it).
+
+====================================================================================================
+HARNESS_REVIEWER_REPORT
+====================================================================================================
+HARNESS REVIEWER — final report (verbatim; scratch in scratchpad/beadv/harness/)
+
+Bottom line: no defect below invalidates the BE-2/BE-3/BE-4 readings that were taken. The default path is unchanged (measured), the census is observe-only and its in-frame index matches the cache's own frame notion, the lever is not duplicated and does not change the trajectory. But one premise conjunct cannot fail, one label ("explained by an in-frame write") is latent-wrong, and the commit message claims more than the census shows (acting-site coverage is one call; one of the lever's two "stale orders" is not the lever's). One emulator run (3:21-3:27 PM LA) and one offline script.
+
+1. DEFAULT PATH UNCHANGED — VERIFIED-SOUND (measured). With no knob set INSTALL is True (story_harness.py:326); the if INSTALL: branch (:405-408) is the old three lines verbatim; the verdict keys and order are unchanged (:465-480); the only additions are R install and R ki108_fault_oldeq (nothing in tools/story-dev parses these). The K108 code is inert with its knobs off (_k108_install_lever returns early at :28826; _k108_summary returns early when the census is off; the reset hook at :29366 is a no-op). Run: verify_fixtures --assert r20_pregym1_party4_r116.ss1=9710585350be -> OK; story_harness.py r20_pregym1_party4_r116.ss1 --driver ki47oor --frames 30000 with KI47_ARM=Foor POKEBOT_KI47_FAULT_STALEMAP=0 and no other knob, as on 09-28:
+  [ki47oor] R snapshot_seen = '104523'      [ki47oor] R snapshot_via_api = '104523'
+  [ki47oor] VERDICT {'reached_the_chooser': True, 'injection_reached_snapshot': True, 'froze': False, 'sent_a_bench_mon': True, 'sent_the_chosen_mon': True, 'entry_before_menu': True, 'premise_fainted_is_shedinja': True} handler_frames=148 presses={'A': 95, 'Down': 3}
+  [done] ran 23677 frames ...
+  Story-debug-20261001-152125.log: f138343 [BATTLE] [FAINT-CHOOSER] identity: chosen=Whismur#7E9BB3BA menu_slot=3 -> cursor target 3 candidates=[1, 2, 3] snapshot_order=104523
+  Diffed against evidence/2026-09-28-ki47oor-FIXED-Foor.txt: the only difference is the two added R lines; f0 138256, f1 138404, field_frame 138625, presses and the 23677-frame end all match. Side effects as the builder's runs (a ledger line, a stall save, a debug log).
+
+2. CENSUS OBSERVE-ONLY — VERIFIED-SOUND, latent blind spot in its completeness check. The wrapper calls orig() once and returns that object (:28842-28878); the memory read is modules.memory.read_symbol (memory.py:43), never state_cache or get_battle_state; the act and write wrappers make no get_battle_state call, so no extra first caller. Trajectory unchanged: Swp f0/f1/field_frame 138521/138667/138888 identical in the 09-28 FIXED-Swp run, the CENSUS arms and the LEVER arms. Coverage today: "still bound to the original: none" across nine modules; the alias story_mode.py:957 (as _ki101_state) is imported inside a function, so it resolves to the wrapper at call time. LATENT DEFECT: the rebinding (:28883-28887) and the check (:28888-28889) look only at the attribute NAMED get_battle_state; a future module-level alias, default argument or class attribute would be missed, uncounted, and would mislabel the next caller index 1. Fix: scan vars(mod) for any value `is orig`, or gc.get_referrers(orig), and fail loudly.
+
+3. IN-FRAME INDEX — SOUND as a call order; the "explained by a write" label is DEFECTIVE (latent). The frame is context.emulator.get_frame_count() (:28845) = _core.frame_counter (libmgba.py:258-262), the counter age_in_frames uses (state_cache.py:44-57); the index resets when it changes (:28846), so it follows the cache through peek_frame, a mid-step run_frame, a step that skipped run_single_frame, and a load (an equal-frame load is the only edge, where census and cache agree). Caveat: index >= 2 does not mean served-from-cache in the faint frame (the driver ages the entry at :404, so :416 is index 3-4 but fresh; excluded from BOT SITES). DEFECT: late_write_frames marks the whole frame for a write to ANY address (:28930-28932) and `wrote` excuses ANY later diff in that frame (:28857). Under FAULT a real KI-108 diff is filed "explained" if anything unrelated was written in that frame; concretely Foor with KI47_INSTALL=0 and the census on: the write at :390 follows :407's read, so :492's FAULT diff (012345 vs 104523), which IS KI-108, would count as explained. No graded run hit it (every census run logged AFTER...: none). Fix: mark per field (order [0:3], gBattleResults+0x13), record served_from_cache = age_in_frames == 0 before orig(), and explain a diff only if no fresh read came between the write and the call.
+
+4. THE LEVER — mostly sound; NOT first while BattleListener reads, which does not weaken BE-4. Appended LAST (:28827); BattleListener is first in get_bot_listeners (modes/__init__.py:97-98), its reads at _listeners.py:101 and :164 precede the lever: LEVER calls=3944 idx>=2=340 = :164 (339) + :101 (1) (Swp-LEVER-FAULT evidence lines 785-787). The comment at :28779-28782 is wrong for those sites. It does not weaken BE-4 (both read only .type, a compared field; no acting site runs then; the lever precedes every controller read). It differs from the real GUI, which reads inside run_single_frame (libmgba.py:584 then :604 _on_frame_callback -> gui/debug_tabs.py:427) before ALL listeners: fix = insert(0, ...). Re-append and de-duplication are fine (:29365 then :29366; guard :28826). Neutral under FIX by construction; trajectory identical across LEVER FAULT, LEVER FIX and no-lever runs.
+
+5. KI47_INSTALL=0's premise runb_reread_saw_memory — DEFECT: a tautology. :404 ages the entry, so the re-read at :416 always takes the fresh path and returns the new local (battle_state.py:837) built from the memory just written at :390, so driver_reread == order_written whenever write_symbol works. Demonstrated offline (runb_premise_vacuity.py on the worktree's real battle_state.py and state_cache.py with a fake memory; .out.txt): True in all 6 rows, incl. "Wid control, cache already stale" FAULT {order_written 012345, cache_held_before 104523, driver_reread 012345, snapshot_seen 104523, handler_492 104523, runb_reread_saw_memory True}. The cache can already hold a stale order under the old __eq__ (an enemy switch, then a menu refill changing no compared field): then a control differs between arms (natural KI-108, not an unfaithful injection) and Foor FAULT would read 104523 (VOID), with the premise True in both. The real 10-01 Foor evidence IS discriminating (before 012345, written 104523, handler 012345 FAULT / 104523 FIX), so BE-2 stands; the conjunct guards nothing. Fix: record old = _item_k47.value and cache_held_before before :416; Foor: cache_held_before != order_written, value `is old` in FAULT, `is not old` in FIX; controls: cache_held_before == order_written.
+
+6. OTHER WAYS THE READINGS COULD MISLEAD. (a) BE-3 coverage is one call: :809 once; :1350 and battle_move_replacing.py:149 never called; the summary omits zero-call sites so their absence reads like a pass. Fix: always print the named acting sites with calls=0. (b) BE-4 never tested the acting-site risk it exists for: the only :809 call (f137502) came when memory order had been 012345 on all 937 census lines of that battle (identity, no prior switch), so the lever cannot discriminate the KI-96 re-map ("needs a battle with a prior switch" applies). (c) Of the "2 stale orders" credited to the lever, 1 is not the lever's: :492 at f138667 also differs without the lever (Swp-CENSUS-FAULT line 450). The lever adds :407 (uses only own_side.is_fainted) plus the 4 turn diffs. (d) Those turn diffs feed a decision, not a log (:116 -> decide_turn :205; catch.py:88/:103/:275, lose_on_purpose.py:148). (e) The harness itself makes bot sites second callers: sel_wrapped's read at story_harness.py:373 makes :116 index 2 once (a harness artifact, not "headless"); the "ordinary" Swp arms ran with KI47_INSTALL=0, so the faint frame contains the ageing and re-read (no reading changed). (f) The ACT line logs at generator start (:28898), before menuing.py:144's wait for PARTY_MENU; at :831 and :1374 the caller waits at most 120 frames, and on a timeout pid_at_slot is read in field order. Fix: also log after yield from real(...).
+
+====================================================================================================
+EVIDENCE_REDERIVATION_REPORT
+====================================================================================================
+EVIDENCE RE-DERIVATION AGENT — final report (verbatim)
+
+Bottom line: the evidence is faithful and the headline numbers re-derive exactly. BE-2, BE-3, BE-4 HELD. BE-1 FAILED AS FILED on two literal clauses (substance held). Three summaries overclaim (listed under Disagreements).
+
+How I checked (read-only; worktree git status unchanged; scratch scripts in .../scratchpad/beadv/recompute/: recompute.py, arms_diff.py, harness_hash.py)
+- The raw run files still exist in the coordinator scratchpad runs/ (*.log, *.stdout.txt, the full *.census.txt) and the 14 handler debug logs in sandbox-pokebot/profiles/repro-ml/debug-logs/. Every embedding is exact for all 14 runs: evidence harness-log section == raw .log, stdout section == raw stdout, debug excerpt == grep of the debug log.
+- Fixture: md5 9710585350be10534737c4362c33189e, the pinned one, unmodified.
+- Every run used the fix build: battle_state.py sha 598c903a... in all 14 = the committed fix. Arm confirmed three ways: R ki108_fault_oldeq, the debug log's env-all: {'POKEBOT_KI108_FAULT_OLDEQ': '1'} (or "no POKEBOT_* env vars"), and the census SUMMARY arm: POKEBOT_KI108_FAULT_OLDEQ='1'/None.
+- Every run reached its subject: reached_the_chooser: True, a battle ended outcome=BattleOutcome.Won, [done] ran 3797 frames.
+
+BE-1 — FAILED AS FILED (literal); substance HELD
+- Unfixed: 12 red, not the 6 listed: -> 25 rows, red: ['K2','K3-fix','K4-fix','K6-fix','K7-fix','K8-fix','K9-fix','W1','W2','W3','W4','W5']. All 13 others passed (C0, C1, K1, K3-fault, K4-fault, K5, K6, K6-fault, K7-fault, K8-fault, K9-runA, K9-fault, W6). All 12 are item-dependent, but W5 depends on the registry doc row, not the code (M0 = the mirror file verbatim does not redden W5). The filed parenthetical omitted K7-fix and W1-W5, so "every other row passes" is false as written.
+- Fixed: my re-run at ccc3cede reproduces gate-FIXED.txt exactly (25 rows, red none; 14/14 mutants match their sets, M8 {} (nothing); the inherited-switch run's "(note: POKEBOT_KI108_FAULT_OLDEQ='1' was set...; cleared...)" then PASS).
+- The suite clause FAILS on the record: the only committed full-suite run is FAILED: 2 of 145 (audit_doc_consistency.py, audit_doc_citations.py), so the falsifier "any suite FAIL" fired. My re-run at ccc3cede of lint_docs, audit_doc_consistency, audit_doc_citations, probe_dmgaudit and probe_battle_state_eq: all exit 0. I did NOT run the other 140 gates; no committed green full run exists.
+- Unverifiable: that the mutant red sets were "written before the first run" (the probe file was created in the same commit).
+
+BE-2 — HELD (not VOID)
+- Foor FAULT (x2): handler snapshot_order=012345; R order_written = '104523', R driver_reread = '104523', R snapshot_seen = '012345', runb_reread_saw_memory: True. Not VOID (not 104523).
+- Foor FIX (x2): snapshot_order=104523, R snapshot_seen = '104523'.
+- Wid and C0, both arms: order_written = '012345', driver_reread = '012345', snapshot_order=012345 — identical by construction (Wid writes the true order, C0 writes nothing); they control the harness, not the fix.
+- The action is identical in every run: cursor target 3, A at cursor=3 pid=7E9BB3BA, presses={'A': 95, 'Down': 3}, handler_frames=148, field_pid='7E9BB3BA', sent_the_chosen_mon: True.
+- FAULT vs FIX first diverge at f138343 (the handler's identity log line) and R snapshot_seen; nothing else in the harness logs differs. That site is log-only (the chooser decides by identity), so BE-2 shows the mechanism, not a behaviour change.
+
+BE-3 — HELD as filed, but thin
+- Acting sites, recomputed from the raw census (both arms): battle_action_selection.py:809 = 1 call, index 1 (f137502); :1350 = never called; battle_move_replacing.py:149 = never called. The :809 call came while the order was still identity (012345), so even a stale value would have matched memory: it cannot discriminate.
+- Slots acted on: the same 2 [KI108-ACT] lines in both arms (and in all 4 LEVER runs): s815 slot 2 Shedinja via :831; s1921 slot 2 Whismur 7E9BB3BA via battle_handler.py:651.
+- Acceptance equal: identical VERDICT lines (premise_swp: True).
+- The only returned-vs-memory difference is FAULT's s1980 f138667 i2 battle_handler.py:492 ret=210345/t0 mem=012345/t0 ORDER-DIFF; FIX has none. The census call sequence is identical across arms (site, frame, index, memory all match; only ret differs at that one line).
+- Not in the design's site list: :116 was a second caller once (f138888), behind the harness's own story_harness.py:373 read (sel_wrapped); its object feeds strategy.decide_turn at :205. No difference resulted.
+
+BE-4 — HELD (not VOID)
+- FAULT (x2): 6 bot calls at index >= 2 differed from memory, 2 order and 4 turn. Order: f138667 i2 battle_handler.py:407 and i3 :492, ret=210345 mem=012345. Turn: f139629 :116 t2/t3, f139635 :578 t2/t3, f139967 :116 t3/t4, f139973 :578 t3/t4. None after an in-frame write (memory writes: 2 total; AFTER...: none).
+- FIX (x2): zero differences at any index across all 4306 calls (3944 lever reads included); zero calls classed "explained", so nothing is hidden.
+- The printed summaries re-derive exactly: TOTAL idx>=2 = 362, BOT idx>=2 = 19, quiet 3604 (702 embedded + 3604 quiet = 4306).
+
+Determinism
+- "Identical log hashes" holds only after normalising the run's own name in the [setup] LOG -> path; raw bytes differ. LEVER census.txt files are byte-identical between repeats. Debug logs differ between repeats only in the [STEP] 'Bot stopped' frame after the loop (e.g. f140415 vs f140416). Stdout differs in the persistent encounter-stats counters. None is a trajectory difference.
+- FAULT vs FIX: one trajectory in every pair. With instrument lines dropped, Wid/C0/CENSUS/LEVER show 0 harness-log differences; Foor shows only R snapshot_seen. Debug-log divergences between arms: the env line; Foor f138343; LEVER-FAULT's [TURN] labels (TURN 2 twice then TURN 3, where FIX prints TURN 3, TURN 4); the shutdown frame.
+
+Disagreements with the printed summaries
+1. Commit message, "every acting site was a first caller in both arms": only :809 ran, once, without discriminating power; :1350 and :149 had 0 calls.
+2. The LEVER log line "reads get_battle_state() first in every battle frame": false for 340 of 3944 lever calls (_listeners.py:164 x339, :101 x1 read first). Harmless: all 19 bot-site calls were still index >= 2.
+3. Two of the four stale turns are at :116, a decision input (its object goes to decide_turn :205; catch.py:88/:103/:275, lose_on_purpose.py:148 read current_turn). The design treats only log sites as the expected difference. Nothing changed here because _NoFlee ignores the turn. The design's motivating case is still UNMEASURED live: a GUI-tab-style first reader feeding a pre-refill order to the KI-96/KI-101 re-maps (under the lever :809 returned memory; :1350 never ran).
+4. The design's run-twice rule was not met for Wid, C0 and Swp-CENSUS (once each). Partly mitigated: CENSUS-FIX's non-lever calls are identical to LEVER-FIX's.
+
+Suspicious, nothing that changes a grade
+- The 8 BE-2 runs used a harness that is not in git: they recorded harness sha 7c5300807fdfc942; the committed file is 2421c8b7...; removing the census block from the committed file does not reproduce that hash, so the exact driver for those runs is not recoverable (its output format matches the committed driver code).
+- Four runs are not cited anywhere (same window): 145417 aborted after [BATTLE] started at f136845 with no TURN 0; 145537 a Foor run reading snapshot_order=104523 (FIX-shaped); 145729 and 145834 Swp runs (FIX-shaped). None contradicts the evidence.
+- The LEVER evidence embeds only 702 of 4306 census lines; the 3604 quiet lever reads exist only in the uncommitted scratch file.
+- The worktree has an uncommitted change to tools/story-dev/saves/magma_1f_fail.ss1, unrelated.
