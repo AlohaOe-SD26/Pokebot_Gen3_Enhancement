@@ -12,9 +12,10 @@ are descriptive only: too few runs reach them, and reaching them is itself chang
 ⇒ **Expected at the recommended 16 lanes:** a package with no effect reads NOT LOWER about 82% of the time (margin
 .08) and INCONCLUSIVE otherwise; a realistic item effect will rarely read HIGHER; a regression is flagged with power .79
 if half of today's ordinary item battles turned into losses, and .44 at 30% (§6).
-⛔ **Nothing runs before the user says go** (it spends their machine).
+⛔ **Nothing ran before the user said go** (USER RULING 28, §7).
 
-**Status:** DESIGN, adversarially reviewed and folded (§9). No tool built, no lane started.
+**Status:** DESIGN, adversarially reviewed and folded (§9); the user's answers are USER RULING 28 (§7). T1 is being
+built; no lane started.
 **Recon** (NOTES, not truth): `2026-10-01-batch14-recon/b14_recon_{machinery,flags,stats,expectations,adversary}.md`;
 the design's review: `…/b14_design_review.md` (four angles, about 40 findings).
 **Plan of record:** `2026-09-29-r23-27-DESIGN-v2.md` §Step 14 (:687-707); `06` 2026-09-30 (arm B adds DOUBLEITEMS) and
@@ -129,7 +130,7 @@ The random lane is post-stratified by its REALIZED starter (§5).
 **Why concurrent:** a user park, a machine hiccup or a slow hour cuts every arm equally, and all arms get equal
 lane-hours under one deadline.
 
-## 3. Tools, built and gated BEFORE the batch (their definitions are fixed HERE)
+## 3. Tools (their definitions are fixed HERE; T1 blocks the batch, T2-T4 block GRADING and may be built during it)
 
 ### T1 — `x4_headless.py` (blocks the batch)
 
@@ -391,13 +392,12 @@ INFERRED from a simulation model except the rows marked VERIFIED.
 - **Throughput is the main unknown.** The smoke run measures frames/s per lane. A shortfall rescales the runs per arm
   proportionally; the margins stay as pre-registered, and the realized MDD is reported beside them.
 
-## 7. Questions for the user (nothing runs before the answers)
+## 7. Questions for the user — ✅ ANSWERED 2026-10-01 (USER RULING 28, `06`)
 
-- **Q-S14a, how many lanes:** M-16 (recommended), M-8 or M-24. With the expected verdicts from §6 stated plainly.
-- **Q-S14b, when:** a 15-minute smoke run, then a ~13 h window with the machine left on, no GUI batch running, and no
-  Claude session opened in the main checkout until it ends.
-- **Q-S14c, run the open proposals as built?** The key set (Q3) and the ball top-off amounts (Q1). Otherwise, answer
-  them first.
+- **Q-S14a, how many lanes:** **M-16** (16 lanes, two arms).
+- **Q-S14b, when:** **tonight if ready.** If the 15-minute smoke run passes, the batch starts WITHOUT asking again. It
+  needs the machine left on, no GUI batch running, and no Claude session opened in the main checkout until it ends.
+- **Q-S14c, the open proposals:** **run AS BUILT** (the key set, Q3; the ball top-off amounts, Q1).
 
 ## 8. Not in this step
 

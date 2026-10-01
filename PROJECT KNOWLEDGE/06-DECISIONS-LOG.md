@@ -8846,3 +8846,18 @@ Full design: `ai-research-notes/2026-10-01-batch14-DESIGN.md` (recon and review 
   - Any STOP makes the confirmatory readings descriptive, and a restart is a new batch, never pooled.
 - **The freeze:** the batch runs the main checkout, which stays dirty so its session hook never pulls. No merges and no
   Claude session there during the window. The runner aborts if HEAD or the code's porcelain moves.
+
+## 2026-10-01 — USER RULING 28: step 14's batch — 16 lanes, two arms; start TONIGHT if the smoke run passes; Q1 and Q3 run AS BUILT (`#26-organiccatch`, v2 step 14)
+
+Asked with the DESIGN's §7 (`ai-research-notes/2026-10-01-batch14-DESIGN.md`); the user chose the recommended option
+on all three questions:
+- **Lanes: "16 lanes, 2 arms"** (M-16), headless, with no dashboard window: progress is reported instead. Rejected:
+  24 lanes / 3 arms, 8 lanes, and two GUI nights.
+- **When: "Tonight if ready".** The tools are built and tested today. **If the 15-minute smoke run passes, the 13 h
+  batch starts tonight WITHOUT asking again**, and is reported in the morning. A smoke FAILURE does not start it.
+  Conditions: the PC on, no GUI batch running, and no Claude session opened in the main checkout until it ends.
+- **Q1 and Q3: "Run as built".** The key set is `KEY_TRAINER_CLASSES` (leaders, the Elite Four and Champion, the rival
+  and Wally, the Magma/Aqua leaders and admins; not grunts). The ball top-off is 20 → 30, at most ₽6,000 per visit. If
+  the user changes either later, the affected readings are flagged as measured under the old answer.
+- ⛔ This answers step 14's go-ahead ONLY. Q1-Q9 themselves stay open as questions; this ruling only lets the batch run
+  the proposals.
