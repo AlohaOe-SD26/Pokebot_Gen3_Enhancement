@@ -3295,6 +3295,11 @@ Draw is rare, so a gate row on the hook plus a replayed log). `#27-drawdefeat`. 
 `#27-avatarne`, not started, low priority.
 
 ## KI-118 — ⚠ OPEN (filed 2026-10-02; mechanism observed, NOT yet shown causal; BLOCKS promoting step 14's package): the counter ladder's box-first step accepts a boxed Fighting mon on TYPE ALONE and spends the once-per-boss ladder on it, which walled 7 of 14 arm-B Mudkip runs at Norman (`#27-boxfirsttype`)
+**▶ 2026-10-02, recon (`tools/story-dev/evidence/2026-10-02-boxfirst-gradeid-RECON.txt`, ANGLE 3 adversarial; a NOTE whose code claims the coordinator re-read):** the Norman half SURVIVES refutation. Among B Mudkip runs that met Norman with an unevolved Marshtomp: boxed Makuhita 7 of 7 walled, none boxed 0 of 3, in the same lanes. Every Norman counter HUNT won (14 of 14). Balls 9-25 at the walls; equal team strength in both arms. The MECHANISM IS WIDER than below:
+- the untrained pick also FREEZES MAINTAIN for the whole team (KI-120);
+- with every battle lost, a level-36+ Marshtomp cannot evolve (evolution needs a won battle);
+- the B Machop-path wins came from the team plus the stop rule relaxed by a credible move, not from Machop.
+CORRECTION: H14 run 5's stop was the answer test reading Vital Throw at 0 PP right after a MAINTAIN session (KI-121), NOT the hard plateau. Tate & Liza's B excess is a DIFFERENT mechanism (KI-122), not this one. The proof driver and its predictions: `ai-research-notes/2026-10-02-boxfirst-DESIGN.md`; its fixture `prenorman_fodder_grind.ss1` is now PINNED (2026-10-02).
 **Measured** (step 14's batch `20261001-210001`; `ai-research-notes/2026-10-02-batch14-GRADED.md`; the agent's
 line-level evidence in `tools/story-dev/evidence/2026-10-02-batch14-INVESTIGATIONS.txt`, whose code claims the
 coordinator re-read):
@@ -3311,8 +3316,7 @@ coordinator re-read):
 **Not shown:** causality. The proposed check is a direct-call driver at Norman: an injected L8 Makuhita in the box,
 against an empty box, against `POKEBOT_R20_FAULT_NOBOXCOUNTER=1`. It is detailed in the GRADED note.
 **Fix direction (untested):** require a credible move or a level floor for a type-only box pick, or do not spend the
-budget when the boss still reads hopeless after the withdraw. ⚠ **The fix CHOICE is the user's:** the credible-move direction reverses `06-DECISIONS-LOG.md` 2026-09-27 (b), "it accepts an own-type match" (`counter_hunt.py:345-347`: Wattson's Ground counters score 0-3 on moves, because Magnitude and Low Kick have base power 1 in the data), so it would break Wattson's box-first. The level floor is the 2026-09-27 recon's H3, put to the user then and recorded as "NOT addressed" (06, item (d)). The proof's fixture `prenorman_fodder_grind.ss1` is NOT pinned in `saves/FIXTURES.md5`, and it loads inside a wild battle on ROUTE102 (`ai-research-notes/2026-09-27-ruling20-incB-RECON.md:454`). Also, the stop message says "no super-effective answer"
-even on the hard-plateau path, which skips that test (H14 run 5 held Vital Throw).
+budget when the boss still reads hopeless after the withdraw. ⚠ **The fix CHOICE is the user's:** the credible-move direction reverses `06-DECISIONS-LOG.md` 2026-09-27 (b), "it accepts an own-type match" (`counter_hunt.py:345-347`: Wattson's Ground counters score 0-3 on moves, because Magnitude and Low Kick have base power 1 in the data), so it would break Wattson's box-first. The level floor is the 2026-09-27 recon's H3, put to the user then and recorded as "NOT addressed" (06, item (d)). The proof's fixture `prenorman_fodder_grind.ss1` loads inside a wild battle on ROUTE102 (`ai-research-notes/2026-09-27-ruling20-incB-RECON.md:454`); it is pinned since 2026-10-02. The options and their measured blast radius are in the recon's ANGLES 2 and 5 (O6: a type-only pick does not spend the budget; O5: type-only only if it resists every ace type; a level floor).
 
 ## KI-119 — ⚠ OPEN (filed 2026-10-02; measured; a GRADER defect, the bot is unaffected): `battle_log.run_identity` takes a run's species/PID from a Hall-of-Fame save's party, so 27 of step 14's 78 runs were wrongly excluded and C2's verdict moved (`#27-gradeidentity`)
 **Measured** (`ai-research-notes/2026-10-02-batch14-GRADED.md`; the coordinator re-ran the corrected re-grade):
@@ -3329,3 +3333,38 @@ even on the hard-plateau path, which skips that test (H14 run 5 held Vital Throw
 **Fix direction:** identity from the first `[hb]` after the choosing line, the stale `[BADGE]` lines skipped before the
 new game, and a gate row on a stale-boot log. Re-grade step 14 with the fixed tools; that grade is still EXPLORATORY
 unless the user rules otherwise.
+
+## KI-120 — ⚠ OPEN (filed 2026-10-02; code verified, effect measured in step 14's batch): MAINTAIN refuses the whole team when its single weakest battler is over budget (`#27-maintainfreeze`)
+**Verified by the coordinator:**
+- `decide_maintenance` (`sandbox-pokebot/plugins/custom_modes/story_mode.py:1920`) picks
+  `slot = min(excluded, key=…)`, the ONE weakest under-floor battler.
+- At `:1932-1933` it returns `None, "… est … > budget … — refusing"` when that battler's cost is over budget. It never
+  tries the next battler.
+**Measured** (step 14's batch; recon ANGLE 3, `tools/story-dev/evidence/2026-10-02-boxfirst-gradeid-RECON.txt`):
+- After the box-first withdraw of an L6-9 Makuhita, 6 Norman walls logged 0 MAINTAIN starts and repeated `[MAINTAIN]
+  SKIPPED - slot N L8->L21: est … > budget 150000 — refusing`.
+- So the rest of the team was never trained either.
+**Consequence:** one untrainable member blocks training for everyone, which compounds KI-118.
+**Fix direction (untested):** try the next-weakest battler when the weakest is over budget, or skip a mon flagged
+untrainable. A behaviour change on a shared path, so it needs an A/B on the ordinary case.
+
+## KI-121 — ⚠ OPEN (filed 2026-10-02; code verified, one measured run): the boss answer test ignores a credible move whose PP is drained, so it can read "no answer" right after a training session (`#27-ppanswer`)
+**Verified by the coordinator:** the answer test skips `learned.pp == 0` (`story_mode.py:3043`).
+**Measured** (recon ANGLE 3; one run):
+- In H14 run 5, a MAINTAIN session trained a Makuhita L23→L25. Vital Throw went from PP 10 to PP 1, and then to 0.
+- The answer test then ran before any heal and read no credible Fighting move. The run stopped as "no super-effective
+  answer to Normal" (`L14/…-20261002-051336.log:27745-28459`).
+**Fix direction (untested):** count a credible move regardless of current PP, since a heal restores it, or run the
+test after the heal. It is one run, so prove it on a driver first.
+
+## KI-122 — ⚠ OPEN (filed 2026-10-02; measured, cause NOT diagnosed): arm B fights Tate & Liza far more often than arm A, before any counter logic acts (`#27-tatelizab`)
+**Measured** (step 14's batch, all 78 logs; recon ANGLE 3):
+- Tate & Liza fights totalled A 188, B 437. Runs with 13 or more fights: A 5 of 28, B 14 of 26.
+- First-attempt team levels are equal (median top level A 48, B 47).
+- Every Tate & Liza withdrawal came at 12 or more losses. So the excess appears BEFORE any ladder or box-first action,
+  and is NOT KI-118's mechanism.
+- By starter: Torchic A 5 of 7 with 12+ losses, B 9 of 11; Treecko A 0 of 9, B 4 of 9.
+- There were 0 Tate & Liza counter hunts in the batch, so the planner's path there is unobserved.
+**Next:** diagnose the B-only cause before promoting the package. The candidates are the package's double-battle items
+(KB-2), team composition from B's catches, and the weaken/catch flags; none is measured. Read B's Tate & Liza fights
+turn by turn against A's.
