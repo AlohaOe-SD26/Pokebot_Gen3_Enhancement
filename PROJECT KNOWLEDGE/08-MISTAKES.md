@@ -23757,3 +23757,35 @@ and give each row a mutant that turns it red. A property with no row is a claim 
     False there.
   - Graded runs come from COMMITTED code. The runner checks, rather than the operator remembering.
   - Write every citation with its file name. The citation gate cannot check a bare `:NNNN`.
+
+## 2026-10-01 — ⛔ A HANDOFF THAT ORDERED "GRADE, THEN MERGE" FOR A FAST-FORWARD-ONLY BRANCH, AND DOCS THAT LIVED ONLY ON AN UNMERGED BRANCH
+
+- **Symptoms** (the Tier 2 cold-start audit at session end, given only `main`'s `04-HANDOFF.md` and `00-README.md`):
+  - The handoff said to grade step 14's batch and THEN `git merge --ff-only wt/battleeq`. Committing the grade to
+    `main` first makes `main` no longer an ancestor of the branch, so the fast-forward fails. A real merge would then
+    conflict on the handoff's longest lines, which both sides edit.
+  - `#27-battleeq`'s DONE status, KI-108's fix and the merge instruction lived only on `wt/battleeq`. A cold reader
+    of `main` saw "not started" in four places, and the queue told it to build the fix again.
+  - The START HERE line opened with a 2026-09-28 "FIRST ACTION: ask the user to start a batch", which RULING 28
+    had already superseded. "Is code frozen? No" stood during the freeze window.
+- **Root causes:**
+  - A merge instruction written without saying what may be committed to the target before it.
+  - A branch's finished state, written only on the branch, while the next session reads `main`.
+  - A stale headline left above the live instruction in the same line.
+- **The fixes that worked:**
+  - `main` got a pointer on a line the branch never touched. The branch then merged `main` back in, resolving to the
+    branch's text, so tomorrow's merge stays a fast-forward.
+  - The START HERE line now opens with TOMORROW's ordered steps: confirm the batch ended, merge FIRST, grade with
+    outputs outside the repo, write the GRADED note, report. Its older "FIRST ACTION" is marked superseded.
+  - The freeze row tells the truth.
+- **Prevention rules:**
+  - A `--ff-only` merge instruction states what comes FIRST: nothing may be committed to the target before it.
+  - When finished work waits on an unmerged branch, the branch the next session reads (`main`) carries a pointer to
+    it. Merge that pointer back into the branch so the fast-forward survives.
+  - "Can someone START from it?" is the only real test of a handoff: Tier 2 rehearsed the commands and found an order
+    trap that every consistency pass had missed.
+  - A merge step needs a FALLBACK for the case where its precondition fails, and it must run before any routine
+    session-start write. The re-run found that the daily upstream check edits `04` and `UPDATE-LOG.md` before the
+    handoff is even read, which blocks a fast-forward.
+  - When a merge turns "pending" sentences false, the merge step names them, or says to grep for them. Retiring only
+    the one pointer leaves the other nine to lie.
