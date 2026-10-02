@@ -37602,3 +37602,25 @@ bought balls only at fixed story points.
 - **Recon finding filed separately:** KI-117 (`PlayerAvatar.__ne__` is inverted, upstream too; low impact).
 - **Next:** after step 14's batch ends, merge `wt/battleeq` into `main` (fast-forward); then ask the user about
   promoting the fix to `custom-pokebot`.
+
+## 2026-10-02 — design v2 step 14's A/B batch RAN and is GRADED (`#26-organiccatch`)
+
+- **The batch:** `20261001-210001` ran 16 headless lanes, 9:00 PM to 10:00 AM, one build (`f4509da1`), verdict OK,
+  78 runs.
+- **Graded** in `ai-research-notes/2026-10-02-batch14-GRADED.md`, with evidence in
+  `tools/story-dev/evidence/2026-10-02-batch14-GRADE-OUTPUTS.txt` and `-INVESTIGATIONS.txt`.
+  - Correctness: E1, E2, E3 and E5 PASS; E4 NOT ASSESSED (4 qualifying runs, threshold 5).
+  - Frozen: C1 PASS and C2 HIGHER (Δ +0.087), with no harm flags. That verdict rests on a grader defect (KI-119): 27
+    runs were excluded by a misread identity.
+  - Corrected, EXPLORATORY: C2 NOT LOWER (Δ +0.037, 95% CI [−0.018, +0.093]).
+  - STOP-3's one signature is a B-only Norman wall (KI-118; 7 of 14 B Mudkip runs), through a default-ON box-first
+    counter pick.
+  - M1b FAILS by one sample at the known D1 bound.
+  - Realized MDD ≈ .11-.12 at the frozen n and ≈ .09 at the corrected n, against a planned .08: about 40 runs per arm
+    against 57.
+- **Earlier the same morning:** `#27-battleeq` was merged (fast-forward), before any other write.
+- **New items:** `#27-boxfirsttype` (blocks promotion) and `#27-gradeidentity` (before any next batch).
+- **User decisions pending:**
+  - the confirmatory status of the corrected reading;
+  - ACCEPT_MARGIN;
+  - promoting `#27-battleeq`.

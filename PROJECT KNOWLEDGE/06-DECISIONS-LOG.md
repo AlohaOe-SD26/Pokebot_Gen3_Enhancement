@@ -8974,3 +8974,23 @@ on all three questions:
   batch therefore measures the UNFIXED code. Its lanes are headless, with no GUI first reader at the acting sites, so
   its confirmatory readings are not expected to move. The one known effect on its logs: `:578` can read second after
   `:116` in the same frame, so the doubles `[TURN n]` label can lag by one turn. That matters for E5's hand read.
+
+## 2026-10-02 — design v2 step 14 graded: the registered verdict is REPORTED but not RELIED ON; the corrected re-grade is EXPLORATORY; promotion is blocked
+
+- **Both grades are reported side by side** (`ai-research-notes/2026-10-02-batch14-GRADED.md`):
+  - The frozen grader, as registered, reads C1 PASS and C2 HIGHER.
+  - The same statistics with the run identity corrected read C1 PASS and C2 NOT LOWER. They are labelled EXPLORATORY,
+    because the fix came after seeing the data and DESIGN §4 forbids any read changing an analysis choice.
+  - The coordinator does not choose between them. Whether a repaired MISREAD (as opposed to a different analysis)
+    may be confirmatory is put to the user.
+  - Rejected: silently re-grading with the fix. That launders a post-hoc change into a confirmatory result.
+  - Rejected: reporting HIGHER alone. The verdict exists only because 35% of the runs were dropped unevenly by a
+    misread.
+- **No `--void`:** nobody parked the batch, and STOP-1 and STOP-2 did not fire. STOP-3's one qualifying signature (the
+  Norman wall) is diagnosed and attached to the readings as a note, which is DESIGN §4's rule for a pattern first seen
+  after the batch.
+- **The package is NOT recommended for promotion** while KI-118's wall stands. It is a real B-only harm in a key
+  battle outside K\*, so neither C2 nor C5 measures it.
+- **M1b's acceptance FAILS as pre-registered** (ACCEPT_MARGIN 3) on one sample at the known D1 bound (+4 HP). Stage 2
+  stays OFF. Changing the margin is the user's call, and so is waiting for `#27-dmgcalcfix`. The coordinator did not
+  change it.

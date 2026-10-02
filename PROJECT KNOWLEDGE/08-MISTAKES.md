@@ -23789,3 +23789,28 @@ and give each row a mutant that turns it red. A property with no row is a claim 
     handoff is even read, which blocks a fast-forward.
   - When a merge turns "pending" sentences false, the merge step names them, or says to grep for them. Retiring only
     the one pointer leaves the other nine to lie.
+
+## 2026-10-02 — ⛔ STEP 14: A FROZEN GRADER WHOSE RUN IDENTITY READ A SAVE FILE'S PARTY, AND A SAFETY STOP THAT LOOKED ONLY AT THE LAST 200 LINES
+
+- **Symptoms** (`ai-research-notes/2026-10-02-batch14-GRADED.md`):
+  - The frozen grader excluded 27 of 78 runs as "not a starter" (DECISION F8). Every one was a genuine new game. After
+    a lane's Hall of Fame, each reset boots from the save, and the first `[hb]` shows the saved champion party before
+    the new game clears it.
+  - The exclusion was uneven (A 16, B 11) and correlated with outcome, so it turned NOT LOWER into HIGHER.
+  - STOP-3 read "no" over a package-caused B-only wall: the acting line sat 7,000-18,000 lines before each run's end.
+- **Root causes:**
+  - The identity rule ("the FIRST `[hb]` with ids") was written, attacked and gated against runs that START from a
+    fresh boot. Every fixture began that way; the HoF-save boot only exists late in a long ENDLESS RESET batch.
+  - A tail window is a proxy for "what happened before the failure". A cause that acts early and fails late is
+    invisible to it.
+- **The fixes that worked:**
+  - The investigation read ALL 78 logs, not the graded subset, and confirmed that stale set == excluded set exactly.
+  - A corrected re-grade whose unpatched control reproduces the frozen output line for line.
+  - Both grades are reported, and the corrected one labelled EXPLORATORY.
+  - Fixing the tools is filed (`#27-gradeidentity`).
+- **Prevention rules:**
+  - A grader's exclusion rule gets a count-by-arm sanity check BEFORE any verdict is read. An exclusion that removes
+    35% of the runs, unevenly, is a finding about the instrument first.
+  - Identity is read AFTER the event that creates it (the choosing line), never from "the first line that has an id".
+  - A safety stop looking for a cause reads the whole run, or the window since the run's last major decision, never
+    a fixed tail.

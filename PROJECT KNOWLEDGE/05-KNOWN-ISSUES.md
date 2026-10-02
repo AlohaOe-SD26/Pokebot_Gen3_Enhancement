@@ -3293,3 +3293,39 @@ Draw is rare, so a gate row on the hook plus a replayed log). `#27-drawdefeat`. 
 - No bot decision reads the stamp.
 **Fix direction:** `!=` on that line, plus a gate row. An UPSTREAM DIVERGENCE (or an upstream report).
 `#27-avatarne`, not started, low priority.
+
+## KI-118 — ⚠ OPEN (filed 2026-10-02; mechanism observed, NOT yet shown causal; BLOCKS promoting step 14's package): the counter ladder's box-first step accepts a boxed Fighting mon on TYPE ALONE and spends the once-per-boss ladder on it, which walled 7 of 14 arm-B Mudkip runs at Norman (`#27-boxfirsttype`)
+**Measured** (step 14's batch `20261001-210001`; `ai-research-notes/2026-10-02-batch14-GRADED.md`; the agent's
+line-level evidence in `tools/story-dev/evidence/2026-10-02-batch14-INVESTIGATIONS.txt`, whose code claims the
+coordinator re-read):
+- `counter_hunt.box_counter_choice`: `if not (type_hit or credible): continue`. A Fighting type with no credible move
+  qualifies.
+- The box-first step (`plugins/custom_modes/story_mode.py:3132-3151`) registers the pick and returns True. The ladder
+  is once per boss (`:3111-3121`), so the Fiery Path Machop hunt never runs, and after one "second wind" the run stops
+  honestly.
+- In arm B, `POKEBOT_R20_OPENFENCE=1` (and `POKEBOT_R24_CATCHHURT=1` in 5 of 7) lets post-badge-1 dex catches fill
+  the party, so an L6-10 Makuhita goes to the PC box. Makuhita caught by badge 4: A 0 of 40 runs, B 25 of 38.
+- Norman, all 78 logs: A 36 of 36 eventually won; B 27 of 35 (7 walls and 1 deadline cut). Mudkip: A 13 of 13, B 7 of
+  14.
+- In all 7 walls the withdrawn Makuhita has the PID of the one dex-caught into the box.
+**Not shown:** causality. The proposed check is a direct-call driver at Norman: an injected L8 Makuhita in the box,
+against an empty box, against `POKEBOT_R20_FAULT_NOBOXCOUNTER=1`. It is detailed in the GRADED note.
+**Fix direction (untested):** require a credible move or a level floor for a type-only box pick, or do not spend the
+budget when the boss still reads hopeless after the withdraw. Also, the stop message says "no super-effective answer"
+even on the hard-plateau path, which skips that test (H14 run 5 held Vital Throw).
+
+## KI-119 — ⚠ OPEN (filed 2026-10-02; measured; a GRADER defect, the bot is unaffected): `battle_log.run_identity` takes a run's species/PID from a Hall-of-Fame save's party, so 27 of step 14's 78 runs were wrongly excluded and C2's verdict moved (`#27-gradeidentity`)
+**Measured** (`ai-research-notes/2026-10-02-batch14-GRADED.md`; the coordinator re-ran the corrected re-grade):
+- `tools/story-dev/battle_log.py:739-764` reads the identity from the FIRST `[hb]` with a non-empty `ids=`. This is the
+  frozen T2/T3 spec's own rule.
+- After a lane's run reaches the Hall of Fame, every later reset boots from that save. One `[hb]` fires after "Intro:
+  New Game" and BEFORE the new game clears the party, so the identity is the saved champion's lead (Swampert,
+  Blaziken, Mightyena, Swellow or Ninjask), and DECISION F8 (`compare_arms.py:159-160`) excludes the run.
+- Scope: exactly the 27 stale-boot logs (A 16, B 11), all genuine new games. No included run is affected.
+- Effect: the frozen C2 read HIGHER (Δ +0.087, 95% CI [+0.017, +0.159]). With the identity taken from the first `[hb]`
+  after `Story: choosing X!` it reads NOT LOWER (Δ +0.037, 95% CI [−0.018, +0.093]); EXPLORATORY.
+- Same cause: those boots log `[BADGE] n=1..8` at f301 from the loaded save, which would corrupt badge fields once
+  the runs are re-included.
+**Fix direction:** identity from the first `[hb]` after the choosing line, the stale `[BADGE]` lines skipped before the
+new game, and a gate row on a stale-boot log. Re-grade step 14 with the fixed tools; that grade is still EXPLORATORY
+unless the user rules otherwise.
