@@ -3311,7 +3311,7 @@ coordinator re-read):
 **Not shown:** causality. The proposed check is a direct-call driver at Norman: an injected L8 Makuhita in the box,
 against an empty box, against `POKEBOT_R20_FAULT_NOBOXCOUNTER=1`. It is detailed in the GRADED note.
 **Fix direction (untested):** require a credible move or a level floor for a type-only box pick, or do not spend the
-budget when the boss still reads hopeless after the withdraw. Also, the stop message says "no super-effective answer"
+budget when the boss still reads hopeless after the withdraw. ⚠ **The fix CHOICE is the user's:** the credible-move direction reverses `06-DECISIONS-LOG.md` 2026-09-27 (b), "it accepts an own-type match" (`counter_hunt.py:345-347`: Wattson's Ground counters score 0-3 on moves, because Magnitude and Low Kick have base power 1 in the data), so it would break Wattson's box-first. The level floor is the 2026-09-27 recon's H3, put to the user then and recorded as "NOT addressed" (06, item (d)). The proof's fixture `prenorman_fodder_grind.ss1` is NOT pinned in `saves/FIXTURES.md5`, and it loads inside a wild battle on ROUTE102 (`ai-research-notes/2026-09-27-ruling20-incB-RECON.md:454`). Also, the stop message says "no super-effective answer"
 even on the hard-plateau path, which skips that test (H14 run 5 held Vital Throw).
 
 ## KI-119 — ⚠ OPEN (filed 2026-10-02; measured; a GRADER defect, the bot is unaffected): `battle_log.run_identity` takes a run's species/PID from a Hall-of-Fame save's party, so 27 of step 14's 78 runs were wrongly excluded and C2's verdict moved (`#27-gradeidentity`)
