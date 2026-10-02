@@ -8994,3 +8994,43 @@ on all three questions:
 - **M1b's acceptance FAILS as pre-registered** (ACCEPT_MARGIN 3) on one sample at the known D1 bound (+4 HP). Stage 2
   stays OFF. Changing the margin is the user's call, and so is waiting for `#27-dmgcalcfix`. The coordinator did not
   change it.
+
+## 2026-10-02 — USER RULING 30: four decisions DELEGATED to the coordinator, bounded by organic gameplay and the program's purpose
+
+- **The user, verbatim (2026-10-02):** "I give you authority to make the decisions for the questions you just asked
+  me, just ensure it remains faithful to the organic gameplay as well as actually makes sense for what the program
+  does".
+- **The scope is exactly the four questions put to the user after step 14's grade.** Anything else, for example
+  promoting step 14's PACKAGE itself, still goes to the user.
+- **The bound applies to every decision below:** (a) faithful to how the game is really played; (b) sensible for what
+  the bot is for, which is to progress the story the way a player would.
+
+**The decisions:**
+1. **Step 14's operative result is the CORRECTED reading:** C2 NOT LOWER, Δ +0.037, 95% CI [−0.018, +0.093]. The
+   frozen "HIGHER" is WITHDRAWN.
+   - Why: the fix repairs a MISREAD. The grader took 27 genuine new games for "not a starter" because it read a
+     Hall-of-Fame save's party. That is not a different analysis choice, so DESIGN §4's ban does not apply in spirit.
+   - The corrected reading is also the more conservative one, so adopting it cannot flatter the package.
+   - The record keeps both: the frozen output is preserved, and the GRADER_REVISIONS label stays on the re-grade, now
+     noting this ruling.
+   - Rejected: keeping HIGHER. It exists only because 35% of the runs were dropped unevenly.
+2. **ACCEPT_MARGIN stays 3, and step 12's stage 2 (`POKEBOT_R25_WEAKEN_CALC`) stays OFF until `#27-dmgcalcfix` fixes
+   D1 and M1b passes.**
+   - Why: the one failing sample is the known D1 under-prediction of a critical hit. Widening the margin to 4 would
+     knowingly ship a calculator that under-predicts crits.
+   - Stage 2's job is to weaken a target WITHOUT knocking it out. Under-predicting a crit means KO-ing the Pokémon the
+     bot is trying to catch, the opposite of organic play.
+   - Stage 1 is unaffected.
+3. **KI-108's fix is approved for promotion to `custom-pokebot`.**
+   - Why: a proven bug fix (BE-6: the old compare plus a GUI-shaped first reader gave a Full Restore to the wrong mon;
+     the fix hit the target), with a fault switch, and no behaviour change when no second caller exists.
+   - Process: the documented promotion procedure (`promote.py`, a restore point, a byte-identity check), a
+     `DIVERGENCE-LOG` entry (an upstream-mirrored file), and a verification drive with `--build custom`.
+4. **The Norman fix (`#27-boxfirsttype`) will be chosen AFTER the proof driver's readings,** under these criteria:
+   - (i) faithful: a player does not send an untrained, moveless L8 Makuhita at Norman; they catch or train a real
+     counter;
+   - (ii) it must not break Wattson's own-type box-first, which exists because Ground moves score 0-3 in the data;
+   - (iii) as few arbitrary thresholds as possible.
+   - The lead candidate is the recon's O6: a TYPE-ONLY box pick does not spend the once-per-boss budget, so the hunt
+     that won 14 of 14 still runs if the boss stays hopeless.
+   - The choice and its rejected alternatives get their own entry once decided.
