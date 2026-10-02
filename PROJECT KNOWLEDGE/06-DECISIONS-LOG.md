@@ -8950,3 +8950,27 @@ on all three questions:
 - **T4 is merged before the 9:00 PM freeze, not after the batch** as its note's header planned, because it finished
   first. It changes only `tools/story-dev` and documentation, and the merge leaves `sandbox-pokebot/` byte-identical,
   so the batch runs the same code either way.
+
+## 2026-10-01 — `#27-battleeq` (KI-108): fix `BattleState.__eq__` as the DEFAULT, with a fault switch; the evidence is a forced second caller, not an ordinary-battle A/B
+
+- **The fix compares the party order and the turn in `__eq__`, and is ON by default.**
+  `POKEBOT_KI108_FAULT_OLDEQ=1` restores upstream's 9-field compare. This is `29` §B's standing idiom ("the fix is
+  always the default; the switch restores the bug"), so the user was not asked.
+  - Rejected: a default-OFF opt-in flag. That shape is for new FEATURES; a bug fix uses §B.
+  - Rejected: a pure read at the three acting sites. It misses every other second caller, it turns `probe_dmgaudit`'s
+    NH-gbs-count red, and it leaves the class of bug in place.
+  - Rejected: re-reading when `age_in_frames == 0`. That removes the per-frame cache for every reader, a different
+    change that nothing measured a need for.
+- **The ordinary-battle A/B that `#27-ki47range`'s deferral (2026-09-28) asked for is superseded.** Headless, every
+  acting site is already the first caller in its frame, so an ordinary A/B is identical by construction: a regression
+  check only. The evidence that decides is:
+  - an offline gate on the real cache code;
+  - KI-108's measured Run-B shape;
+  - a harness first reader that reads like the GUI debug Battle tab (BE-6). It reproduced a real wrong-target item
+    use under the old compare, and none under the fix.
+- **`battle_move_replacing.py:149` stays with KI-115 / `#27-battlestructptr`.** The fix makes a second caller CURRENT,
+  not correct. That site's mapping is itself suspect, and the fix does not change it for a first caller.
+- **The merge waits for step 14's batch to end.** It changes `sandbox-pokebot/`, which the batch is frozen on. The
+  batch therefore measures the UNFIXED code. Its lanes are headless, with no GUI first reader at the acting sites, so
+  its confirmatory readings are not expected to move. The one known effect on its logs: `:578` can read second after
+  `:116` in the same frame, so the doubles `[TURN n]` label can lag by one turn. That matters for E5's hand read.

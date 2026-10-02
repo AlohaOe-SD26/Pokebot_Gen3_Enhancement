@@ -844,7 +844,7 @@ Full entry in `28-HANDOFF-ARCHIVE.md`. Closed over a month; moved for the R3 lin
 > (`modules/faint_chooser.py`). Fixed: `Foor` 148 frames, `Swp` the chosen mon, C0 unchanged; the fault arm
 > `POKEBOT_KI47_FAULT_STALEMAP=1` brings both bugs back exactly. Gate `probe_faint_chooser_identity.py`. Graded:
 > `ai-research-notes/2026-09-28-ki47range-GRADED.md`. ⚠ OPEN IN THIS CLASS: the RotateLead refusal below
-> (`#24-ki47rotatelead`), and KI-108 (the state cache can serve a stale order to other readers).
+> (`#24-ki47rotatelead`), and KI-108 (the state cache can serve a stale order to other readers; ✅ fixed 2026-10-01 on branch `wt/battleeq`, see its own entry; `main` keeps the bug until that branch merges).
 
 > ⭐⭐ **2026-09-03 — THIS CLASS NOW HAS A DETERMINISTIC, ~22,000-FRAME REPRODUCTION.** It has only
 > ever been seen opportunistically, in batches, at a cost of *"a whole lane"* per hit. One command:
@@ -3063,7 +3063,16 @@ Fix candidates:
 - ⚠ The ROOT CAUSE is not fixed: a whiteout that strikes during a heal walk that ignores the abort latch leaves
   `_whiteout_pending` stale (F1). Gate `probe_ki107_bounded.py`.
 
-## KI-108 — ⚠ OPEN (filed 2026-09-28; NOT fixed): `BattleState.__eq__` omits the party ORDER and the TURN, so a second `get_battle_state()` in a frame can return a STALE order (`#27-battleeq`)
+## KI-108 — ✅ FIXED 2026-10-01 on branch `wt/battleeq` (`#27-battleeq`; it reaches `main` when that branch merges after step 14's batch, and until then `main` still has the bug): `BattleState.__eq__` omitted the party ORDER and the TURN, so a second `get_battle_state()` in a frame could return a STALE order and turn
+**✅ FIXED 2026-10-01** (`ai-research-notes/2026-10-01-battleeq-DESIGN.md` §GRADED; 24 final runs, `tools/story-dev/evidence/2026-10-01-battleeq-final-*.txt`):
+- `__eq__` now also compares `_battler_party_order` and `_current_turn`. `POKEBOT_KI108_FAULT_OLDEQ=1` restores the bug (`29` §B). Gate: `probe_battle_state_eq.py`.
+- **MEASURED IMPACT (BE-6):** a first reader shaped like the GUI debug Battle tab (it reads first in every frame) plus the old compare made the KI-101 item re-map give Mightyena's Full Restore to Zigzagoon. The item was not consumed, and items were disabled for the battle. With the fix the item hit Mightyena.
+- The stale TURN also reaches `decide_turn` through `battle_action_selection.py:116`.
+- **Corrections to the account below:**
+  - `~:803` / `~:1107` are now `battle_action_selection.py:809` / `:1350`.
+  - `battle_move_replacing.py:149` belongs to KI-115. It is not "correct as a first caller", and the fix makes a second caller CURRENT, not correct.
+  - In-frame writes are out of scope: the early return still serves the frame's first object.
+*(The original 2026-09-28 account follows, unchanged.)*
 **Measured** (`#27-ki47range`, `--driver ki47oor`, `evidence/2026-09-28-ki47oor-VOID-injection.txt`): memory held
 `gBattlePartyCurrentOrder = 104523`; the driver's own `get_battle_state()` returned `104523`; the handler's call IN
 THE SAME FRAME returned `012345`.
@@ -3268,3 +3277,18 @@ UPSTREAM divergence (`DIVERGENCE-LOG` when promoted). `#27-battlestructptr`. Not
 batch0927). The measurement tools treat a Draw as lost since `#27-itemprobes`.
 **Fix direction:** count `BattleOutcome.Draw` as a defeat in that hook, behind proof (an A/B on the ordinary path; a
 Draw is rare, so a gate row on the hook plus a replayed log). `#27-drawdefeat`. Not started.
+
+## KI-117 — ⚠ OPEN (filed 2026-10-01; low impact; UPSTREAM bug): `PlayerAvatar.__ne__` is INVERTED on the map field, so the avatar cache is replaced on every fresh read
+**Verified by the coordinator** (found by `#27-battleeq`'s recon, `ai-research-notes/2026-10-01-battleeq-DESIGN.md`):
+- `sandbox-pokebot/modules/player.py:82-89`: `__ne__` returns `… or other._map_group_and_number ==
+  self._map_group_and_number`. It should be `!=`. Upstream (the mirror) and `custom-pokebot` have the same line.
+- The cache setter uses `!=` (`modules/state_cache.py:162-166`), so with the map UNCHANGED it replaces the cached
+  object on every fresh read, which re-stamps `.frame`.
+**Consequence (INFERRED, not measured):**
+- The web stream (`web/http_stream.py`) watches the avatar entry's `.frame`, so it likely sends an avatar event on
+  every fresh read rather than on change.
+- The opposite case (a map change that keeps the old object) needs identical object-event bytes across the change.
+  Those bytes include the map fields, so it is likely unreachable.
+- No bot decision reads the stamp.
+**Fix direction:** `!=` on that line, plus a gate row. An UPSTREAM DIVERGENCE (or an upstream report).
+`#27-avatarne`, not started, low priority.

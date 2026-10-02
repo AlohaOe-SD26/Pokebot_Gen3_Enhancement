@@ -23718,3 +23718,42 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - When a spec is corrected after code exists, grep the code for every reading of the corrected clause in the same
     change.
   - A mutant that reddens no row is a GAP until a written reason says why it is equivalent.
+
+## 2026-10-01 — ⛔ `#27-battleeq`: A DESIGN THAT DROPPED A COLUMN FROM ITS OWN RECON, A PREMISE THAT COULD NOT FAIL, AND GRADED RUNS FROM UNCOMMITTED CODE
+
+- **Symptoms** (`tools/story-dev/evidence/2026-10-01-battleeq-ADVERSARIAL.txt`, and the builder's report):
+  - The recon's caller audit tabulated every `get_battle_state()` caller with an "acts on order/turn?" column. For
+    `battle_action_selection.py:116` it read **"Turn: YES"**, through `decide_turn` (`catch.py:88/103/275`,
+    `lose_on_purpose.py:148`).
+  - The design condensed that table and kept only the ORDER readers. It described the turn lag as a doubles log-line
+    effect. The builder then measured `:116` returning a turn one behind memory (BE-4, fault arm).
+  - BE-1 listed 6 fix rows; 12 were red on the unfixed code. The substance held and the enumeration did not.
+  - The driver's Run-B premise `runb_reread_saw_memory` could never fail. The aged re-read always takes the fresh
+    path, so it equals what was just written. An offline script showed it True on a control whose cache was already
+    stale.
+  - 8 graded runs recorded a harness hash that matches no commit, so the exact driver behind them was unrecoverable.
+  - Fixing the counts surfaced two citations on `04-HANDOFF.md:396` (`Ch24GlaciaMode` `:18007`, `Ch24DrakeMode`
+    `:18457`) that had pointed ~800 lines from their classes for weeks. `audit_doc_citations.py` checks only
+    FILE-qualified citations.
+- **Root causes:**
+  - A summary of a table kept the rows that fit the design's story (the order) and dropped a column that did not.
+  - A prediction enumerated rows from memory instead of from the gate's row list.
+  - A premise was written as "the step I just did worked", not "the state that makes the run discriminating".
+  - Arms were graded from a working tree the harness author was still editing.
+  - A citation form the checking gate cannot parse.
+- **The fixes that worked:**
+  - The turn exposure is recorded in the GRADED section and in KI-108.
+  - BE-1 is graded as FAILED AS FILED.
+  - The premise is now on the cache's state BEFORE the re-read (`cache_held_before` vs the written order, and
+    whether the setter kept the object as armed).
+  - Every graded arm was re-run through a runner that REFUSES uncommitted subject or harness code and records HEAD
+    and both hashes.
+  - The two citations are re-pointed AND file-qualified.
+- **Prevention rules:**
+  - When a design condenses a recon table, carry EVERY row the table marks as acting, in every column. A dropped
+    column is a dropped finding.
+  - A prediction that names a set of rows names it from the gate's row list, after the gate exists.
+  - A premise must be able to FAIL. Test it on a case where the run is NOT discriminating, and require it to read
+    False there.
+  - Graded runs come from COMMITTED code. The runner checks, rather than the operator remembering.
+  - Write every citation with its file name. The citation gate cannot check a bare `:NNNN`.

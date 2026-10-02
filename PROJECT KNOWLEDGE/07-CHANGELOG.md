@@ -37572,3 +37572,33 @@ bought balls only at fixed story points.
   T4-2 FAILED AS FILED (the independent pass).
 - **Merged before the 9:00 PM freeze,** because it finished first. It touches no file the batch runs.
 - **Next:** the batch grade after the batch ends (~10:00 AM 2026-10-02).
+
+## 2026-10-01 — `#27-battleeq` DONE on branch `wt/battleeq` (KI-108): every `get_battle_state()` caller in a frame now gets memory's party order and turn; merges after step 14's batch
+
+- **The fix** (`sandbox-pokebot/modules/battle_state.py`): `BattleState.__eq__` also compares `_battler_party_order`
+  and `_current_turn`. Upstream compared 9 of 11 fields, so the cache kept the OLD object on a re-read that changed
+  only those two, and every caller after the first in a frame got stale values.
+  - `POKEBOT_KI108_FAULT_OLDEQ=1` restores upstream's compare, per `29` §B ("the fix is the default; the switch
+    restores the bug").
+  - An UPSTREAM DIVERGENCE: logged in `DIVERGENCE-LOG` on promotion to `custom-pokebot` (a user decision).
+- **The gate** `probe_battle_state_eq.py` (offline, ~1 s; the suite is now 145 entries): it runs the REAL `get_battle_state` /
+  `StateCache` over a fake memory, with 24 rows and 34 mutants.
+- **Driver knobs** (`story_harness.py`, driver side only):
+  - `KI47_INSTALL=0`: KI-108's Run-B shape;
+  - `KI108_LEVER=1`: a harness first reader standing in for the GUI debug Battle tab;
+  - `KI108_CENSUS=1`: every call, returned vs memory, the slot acted on beside a PID truth.
+- **Proof** (`ai-research-notes/2026-10-01-battleeq-DESIGN.md` §GRADED; 24 final runs from committed code, ×2 each):
+  - KI-108 reproduced and fixed (Foor `012345` → `104523`).
+  - With the lever, 2 stale orders and 4 stale turns become 0 and 0.
+  - **BE-6:** with a first reader and the old compare, the KI-101 item re-map gave Mightyena's Full Restore to
+    Zigzagoon. The item was not consumed, and items were disabled for the battle. With the fix, it hit Mightyena.
+- **Independent adversarial pass** (`evidence/2026-10-01-battleeq-ADVERSARIAL.txt`, three agents):
+  - 22 gate gaps (BE-5 failed as filed);
+  - a premise that could never fail;
+  - a lever that read after the listeners;
+  - 8 early runs whose harness was never committed.
+
+  All folded, and every graded arm was re-run from committed code.
+- **Recon finding filed separately:** KI-117 (`PlayerAvatar.__ne__` is inverted, upstream too; low impact).
+- **Next:** after step 14's batch ends, merge `wt/battleeq` into `main` (fast-forward); then ask the user about
+  promoting the fix to `custom-pokebot`.

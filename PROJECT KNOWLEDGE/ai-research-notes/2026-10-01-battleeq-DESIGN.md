@@ -151,3 +151,63 @@ GUI-shaped first reader handing a pre-refill order to the KI-96 / KI-101 re-map.
 | # | Run | Prediction | Falsified by |
 |---|---|---|---|
 | BE-6 | `--driver ch24probe` from `post_ch24_atdoor.ss1`, the folded harness's lever (it reads FIRST, before every listener, as the GUI does) and census, FAULT / FIX, twice each | **FAULT:** at least one call at `battle_action_selection.py:1350` (or `:809`) at in-frame index ≥ 2 returns a party order that differs from memory, and the menu slot acted on differs from the slot holding the target's PID (the KI-101 failure itself, now CAUSED by a first reader). **FIX:** every such call returns memory's order, and the slot acted on holds the target's PID | FIX with an acting-site call that differs from memory, or a slot that does not hold the target's PID. ⛔ **VOID** (not a pass, not a refutation) if the run reaches no `:1350` / `:809` call after an order change, i.e. no call where memory's order differs from the order the cache held before the refill; then the motivating case stays UNMEASURED and is written as such |
+
+## GRADED (2026-10-01, ~5:05 PM LA; DONE on branch `wt/battleeq`, merged to `main` only after step 14's batch)
+
+⛔ **Headline: the fix works, and BE-6 measured what it is for.** With a GUI-shaped first reader and upstream's
+compare, the KI-101 item re-map aimed at the WRONG party member: the item was not consumed twice, and items were
+disabled for the battle. With the fix it hit the target. **Two predictions FAILED AS FILED:** BE-1 (its row list and its
+suite clause) and BE-5 (22 gate gaps, all folded).
+
+**Evidence:**
+- The FINAL runs: `tools/story-dev/evidence/2026-10-01-battleeq-final-*.txt` (24 files). They came from committed code
+  (`2858fadd`), through a runner that refuses an uncommitted subject or harness, with every arm run twice.
+- The adversarial pass: `tools/story-dev/evidence/2026-10-01-battleeq-ADVERSARIAL.txt`.
+- The pre-fold runs (`…-battleeq-<ARM>.txt`) are kept, but are superseded. 8 of them used a harness that was never
+  committed.
+
+| # | Grade | What the evidence shows |
+|---|---|---|
+| BE-1 | **FAILED AS FILED (two clauses); substance held** | Unfixed: 12 rows red, not the 6 listed. All 12 need the item (K7-fix and the W rows also need the fix; W5 needed the registry row), and every fault, control and vacuity row passed. Fixed: all rows pass, and every mutant matches its set. ⚠ The first full suite read `FAILED: 2 of 145`: doc counts and citations moved by the build, fixed in the build commit. The coordinator's suite after the fold: see "Suite" below. |
+| BE-2 | **HELD** | Foor (memory `104523`, cache held `012345`): `snapshot_order=012345` under FAULT, `104523` under FIX, ×2 each. The premises that replaced the tautology hold: `runb_premise_cache_differs` and `runb_setter_as_armed`. Wid and C0: `012345` in both arms (`runb_premise_cache_matches`). The chooser sent the chosen mon in every run (`handler_frames=148`). |
+| BE-3 | **HELD, but it could not discriminate** | Every acting-site call was index 1. The only one (`:809`, f137502) had `mem_order_last_changed=never`, so a stale value would have matched memory. The slots acted on are identical across arms. FAULT's one order difference is at the log-only `battle_handler.py:492`. |
+| BE-4 | **HELD** | The lever reads FIRST (index 1 in all 3,944 of its calls). Bot calls at index ≥ 2: 359. FAULT: 2 stale orders and 4 stale turns; FIX: 0 and 0. Both ×2. ⚠ The turn lags are at `:116` and `:578`, and `:116` feeds `decide_turn`, so turn-reading strategies (`catch.py`, `lose_on_purpose.py`) are exposed. |
+| BE-5 | **FAILED AS FILED** | The mutant hunter: 71 tried, 22 non-equivalent survivors. The fake world varied one order pair, one turn step and one field. Folded with K10 (every order/turn change shape, both directions), K11 (each of upstream's 9 fields alone), K12 (the switch value compared with `"1"` only, exhaustively), K13 (the backwards frame) and R1 (the §B row exactly). The W rows that dead code fooled were removed. The hunter's own `hunt.py` re-run kills all 22. 34 built-in mutants, all on their pre-written sets. |
+| BE-6 | **HELD (not VOID)** | `ch24probe` vs Sidney, lever + census, ×2 each. FAULT: `battle_action_selection.py:1350` at index 2 returned the cached `142305` while memory held `412305`. The menu refill at f4400528 had changed only the order. The Full Restore for Mightyena#5C96EA9B went to menu slot 1 (Zigzagoon): `‼ ACTED-ON SLOT != PID TRUTH`, then "NOT consumed twice; disabling items for the rest of this battle". FIX: every `:1350` call returned memory's order. Slot 0 was Mightyena and the item was `✔ CONSUMED`. Three later uses on Swellow#0B30A747 hit slot 0 = Swellow. Both arms won. |
+
+### What this establishes, and what it does not
+
+- **Established:** a `get_battle_state()` caller that reads second in a frame now gets the order and turn in memory.
+  Shown three ways: offline (K-rows, X-rows), on KI-108's own Run-B shape (BE-2), and with a GUI-shaped first reader
+  at an acting site, where the old compare caused a real wrong-target item use (BE-6).
+- **Not established:**
+  - How often a real first reader exists. The GUI debug Battle tab is the one found, and headless runs have none.
+  - That `battle_move_replacing.py:149` is correct. It is KI-115's, and it was never called here.
+  - Anything about in-frame writes (out of scope by design; K9-runA pins them).
+- **One trajectory per arm, replayed:** the ×2 repeats are determinism checks, not replications.
+
+### What the adversarial pass changed (folded `2858fadd`)
+
+- **The gate:** K10-K13 and R1 added; W1-W6 removed (dead code satisfied them, or equivalent refactors false-positived).
+- **The harness:**
+  - H1, the tautological premise, is replaced.
+  - H2: write-explained diffs are counted per field, with served-from-cache on every line.
+  - H3: the lever reads first, like the GUI.
+  - H4: rebinding by identity, with a loud failure if any reference survives.
+  - H5: the acting sites are always listed.
+  - H6: the slot actually reached is logged, beside a PID truth.
+  - `mem_order_last_changed` makes a VOID run visible.
+- **The process:** every graded arm was re-run from committed code.
+
+### The design was wrong in three places (recorded in `08`)
+
+- It dropped the recon table's "Turn: YES" for `:116`.
+- BE-1's row list was written from memory.
+- It called the controls "identical by construction". The harness reviewer showed a natural KI-108 could make a control
+  differ; the new premise now checks it.
+
+### Suite
+
+The coordinator's full `run_gates.py` on the folded branch (`2858fadd` code + the final evidence), before these doc
+edits: `ALL 141 ENFORCING GATES PASS  (591.6s total)   [+4 ADVISORY probe(s) — run, NOT gated]` (145 entries). This
+clears BE-1's suite clause on the final code. The clause was still falsified as filed, by the first run.
