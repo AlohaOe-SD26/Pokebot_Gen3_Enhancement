@@ -95,7 +95,61 @@ Today's code, with no fix. Each arm runs TWICE (KI-112: the repeats are a determ
 | BF-8 | stage 2 on X (optional) | after the Petalburg heal the Makuhita is in the party; the boss still reads `(True, ['Fighting'])`; CALL 3 returns False with planner calls still 0 | the boss reads not hopeless; a planner call |
 | BF-9 | an INDEPENDENT adversarial pass on the driver | no reading is an artifact; every guard's fault arm fails for its own reason | an artifact or a guard without a working fault arm |
 
-## What comes after the proof (the USER decides)
+## THE FIX: decided under USER RULING 30, filed 2026-10-02 BEFORE any fix code
+
+**The decision:** a credible box counter is still used first; a type-only box pick becomes a FALLBACK. The rule is
+"use a real answer from the box if you have one; otherwise go catch one; only if that is impossible, field what you
+have". It matches what a player does at Norman: catch a Machop at Fiery Path rather than send out an untrained L8
+Makuhita with no Fighting move.
+- It KEEPS `06`'s own-type acceptance as the fallback, so Wattson's Ground picks still work.
+- It sets no level threshold.
+- It costs no extra losses. Each loss halves the money, which "field it first, then hunt" (the recon's O6) would pay
+  6 or more times.
+- **Rejected:**
+  - O6, field first and hunt after: extra losses, and the proof review warned that a naive version loops without the
+    latch.
+  - A credible-move requirement: it breaks Wattson.
+  - A level floor: arbitrary, and H14 run 5 walled at L21-23.
+
+**The change** (`story_mode.py` `_counter_ladder`; nothing else):
+- box-first registers its pick only when it is CREDIBLE (`credible` in `box_counter_choice`'s answer);
+- a type-only pick is held as `fallback`, and the ladder goes on to the planner and the hunt exactly as today;
+- at each point where the ladder would return False after that, the held fallback is registered instead and the
+  ladder returns True. Those points are: the planner raises, a resource blocker, no shortlist, a hunt that finds
+  nothing, and no destination working;
+- the `_counter_hunts[key]` text names the fallback and why;
+- the once-per-boss latch is UNCHANGED: it is written before anything acts, so a lost or uncleared latch cannot loop;
+- **the fault switch `POKEBOT_KI118_FAULT_TYPEONLYFIRST=1` restores today's behaviour** (a type-only pick taken at
+  once). It is a §B row in `29`.
+- An UPSTREAM-mirrored file? No: `story_mode.py` is ours, so this is a fork change, logged in `DIVERGENCE-LOG` only if
+  it is promoted.
+
+**The driver extensions**, folding the proof review (`BFREV-1`…`BFREV-8`):
+- the hunt stand-in can return a caught counter (a boxed Machop L15 with Karate Chop) as well as None;
+- a Wattson cfg (copied from `story_mode.py`) with a boxed type-only Geodude, needing Ground;
+- STAGE2 is allowed on X13 (a positive control for the hopeless reading);
+- `reg4 == reg3` (no second registration) is graded;
+- a T0 conjunct: FIERY_PATH is reachable from PETALBURG_CITY within `COUNTER_MAX_HOPS`;
+- fault arms: CONFIG (X plus the old fault switch gives a CONFIG ABORT), and DERIV (5 seeded defeats → not hopeless →
+  a DERIVATION ABORT);
+- the post-verdict restore exception is annotated in each evidence header.
+
+### PREDICTIONS for the fix (each graded arm runs twice; the repeats are a determinism check)
+
+| # | Arm | Prediction | Falsified by |
+|---|---|---|---|
+| BF-10 | **XF**: the fix; L8 Makuhita boxed; hunt stand-in returns None | the pick is still 'own type' (type-only), but CALL 1 ENTERS the planner (1 call); the stand-in is called with `Machop@FIERY_PATH`; the fallback then registers the Makuhita; CALL 1 returns True; `_counter_hunts` names the fallback and "none found"; CALL 2 returns False with planner calls still 1 and no second register | 0 planner calls (the fix not live); no fallback register |
+| BF-11 | **XF-CAUGHT**: the fix; L8 Makuhita boxed; the stand-in returns a boxed Machop | 1 planner call; the Machop is registered (`PC box`), and the Makuhita is NOT; CALL 1 returns True | the Makuhita registered |
+| BF-12 | **X13F**: the fix; a credible L13 Makuhita | identical to today's X13: box-first registers it with 0 planner calls (the credible path is unchanged) | a planner call |
+| BF-13 | **YF**: the fix; empty box | identical to today's Y | any difference from Y |
+| BF-14 | **XFAULT**: L8 Makuhita plus `POKEBOT_KI118_FAULT_TYPEONLYFIRST=1` | identical to today's X: 0 planner calls, immediate box-first registration | a planner call |
+| BF-15 | **WATTSON-F / WATTSON-OLD**: a boxed type-only Geodude; the Wattson cfg; the stand-in returns None | the fix registers the Geodude as the fallback after 1 planner call. The old code registers it at once with 0 planner calls. Either way the Ground pick is accepted | the Geodude never registered (Wattson broken) |
+| BF-16 | **X13 STAGE2**: today's code (positive control) | after the heal withdraws the credible Makuhita L13, the T5 hopeless reading returns (False, []) | it reads (True, …) (then the stage-2 hopeless reading cannot discriminate) |
+| BF-17 | fault arms **CONFIG** and **DERIV** | CONFIG ABORTs at the config check; DERIV ABORTs at the derivation premise | no ABORT |
+| BF-18 | the gate: `run_gates.py`, and the existing `probe_r20_counterbox.py` | the full suite passes. `probe_r20_counterbox`'s C1 ("own type is enough") still passes: `box_counter_choice` is unchanged | a suite FAIL |
+| BF-19 | an INDEPENDENT adversarial pass on the fix | no non-equivalent mutant of the fallback logic survives the driver plus gate rows | a survivor |
+
+## What comes after the proof (the USER decides; superseded for the Norman fix by USER RULING 30 above)
 
 The options and their measured blast radius from the batch are in the recon (ANGLES 2 and 5):
 - **O6:** a TYPE-ONLY pick does not spend the budget, so the hunt still runs once if the boss stays hopeless. Own-type
