@@ -844,7 +844,7 @@ Full entry in `28-HANDOFF-ARCHIVE.md`. Closed over a month; moved for the R3 lin
 > (`modules/faint_chooser.py`). Fixed: `Foor` 148 frames, `Swp` the chosen mon, C0 unchanged; the fault arm
 > `POKEBOT_KI47_FAULT_STALEMAP=1` brings both bugs back exactly. Gate `probe_faint_chooser_identity.py`. Graded:
 > `ai-research-notes/2026-09-28-ki47range-GRADED.md`. ⚠ OPEN IN THIS CLASS: the RotateLead refusal below
-> (`#24-ki47rotatelead`), and KI-108 (the state cache can serve a stale order to other readers; ✅ fixed 2026-10-01 on branch `wt/battleeq`, see its own entry; `main` keeps the bug until that branch merges).
+> (`#24-ki47rotatelead`), and KI-108 (the state cache can serve a stale order to other readers; ✅ fixed 2026-10-01, merged to `main` 2026-10-02, see its own entry).
 
 > ⭐⭐ **2026-09-03 — THIS CLASS NOW HAS A DETERMINISTIC, ~22,000-FRAME REPRODUCTION.** It has only
 > ever been seen opportunistically, in batches, at a cost of *"a whole lane"* per hit. One command:
@@ -3063,7 +3063,8 @@ Fix candidates:
 - ⚠ The ROOT CAUSE is not fixed: a whiteout that strikes during a heal walk that ignores the abort latch leaves
   `_whiteout_pending` stale (F1). Gate `probe_ki107_bounded.py`.
 
-## KI-108 — ✅ FIXED 2026-10-01 on branch `wt/battleeq` (`#27-battleeq`; it reaches `main` when that branch merges after step 14's batch, and until then `main` still has the bug): `BattleState.__eq__` omitted the party ORDER and the TURN, so a second `get_battle_state()` in a frame could return a STALE order and turn
+## KI-108 — ✅ FIXED 2026-10-01, MERGED to `main` 2026-10-02 (`#27-battleeq`): `BattleState.__eq__` omitted the party ORDER and the TURN, so a second `get_battle_state()` in a frame could return a STALE order and turn
+**✅ MERGED 2026-10-02:** `wt/battleeq` was fast-forwarded into `main` (to `139b17d8`) after step 14's batch ended, so `main` has the fix. Tonight's batch (`20261001-210001`) ran the UNFIXED code.
 **✅ FIXED 2026-10-01** (`ai-research-notes/2026-10-01-battleeq-DESIGN.md` §GRADED; 24 final runs, `tools/story-dev/evidence/2026-10-01-battleeq-final-*.txt`):
 - `__eq__` now also compares `_battler_party_order` and `_current_turn`. `POKEBOT_KI108_FAULT_OLDEQ=1` restores the bug (`29` §B). Gate: `probe_battle_state_eq.py`.
 - **MEASURED IMPACT (BE-6):** a first reader shaped like the GUI debug Battle tab (it reads first in every frame) plus the old compare made the KI-101 item re-map give Mightyena's Full Restore to Zigzagoon. The item was not consumed, and items were disabled for the battle. With the fix the item hit Mightyena.
