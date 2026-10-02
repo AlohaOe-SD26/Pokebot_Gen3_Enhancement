@@ -3357,7 +3357,16 @@ untrainable. A behaviour change on a shared path, so it needs an A/B on the ordi
 **Fix direction (untested):** count a credible move regardless of current PP, since a heal restores it, or run the
 test after the heal. It is one run, so prove it on a driver first.
 
-## KI-122 — ⚠ OPEN (filed 2026-10-02; measured, cause NOT diagnosed): arm B fights Tate & Liza far more often than arm A, before any counter logic acts (`#27-tatelizab`)
+## KI-122 — ⚠ OPEN (filed 2026-10-02; DIAGNOSED the same day, NOT yet driven): arm B fights Tate & Liza far more often than arm A — mostly starter selection plus a STALE per-run counter registry that makes Winona's counter lead every later boss (`#27-tatelizab`)
+**▶ DIAGNOSED 2026-10-02** (`tools/story-dev/evidence/2026-10-02-tateliza-DIAGNOSIS.txt`, two independent read-only agents agreeing; the code path re-verified by the coordinator):
+- **A stale-counter lead bug, default ON, which B's package triggers.** `_hunted_counter_pids` is per RUN (`story_mode.py:2502`), only ever added to (`:3274`), and passed to EVERY boss's `_lead_best_matchup` (`:5295`, `:5329`, `:5525`, `:5579`, `:5753`, `:5901`, `:6083`). `lead_rank_key` ranks `is_hunted_counter` above level, and its docstring says the counter was caught "FOR THIS BOSS" (`team_policy.py:262-298`). So the code contradicts its documented intent: a Castform registered box-first for WINONA leads every later Tate & Liza attempt at L25-36, ahead of mons 7-24 levels higher.
+  - B's open fence fills the party, so the Weather Institute's gift Castform goes to the PC (B 27 of 27 runs, A 14 of 32), and Winona's box-first step registers it.
+  - First T&L attempts led by that stale Castform: B 10 of 26, A 3 of 28. Non-Torchic per-fight wins without Castform leading: A 13/46, B 6/24 (equal); with it: B 2/54.
+- **Selection:** KI-118's Norman wall removed half of B's Mudkip runs, so B reaches T&L Torchic-heavy (11 of 26 against A's 7 of 28). Torchic walls at the same rate in both arms.
+- **Post-plateau length:** 175 of the 249 excess fights come after the 12-loss plateau (B walls run longer).
+- With starter and Castform-led runs both controlled, the remaining arm effect is P = .17. REFUTED as the differential: item use, money, MAINTAIN, KI-108.
+**Not yet driven.** The decisive check is a direct-call driver on the pinned `d13_tateliza.ss1`: `_lead_best_matchup(['Rock','Psychic'], hunted_pids={Castform})` against `hunted_pids=set()`, then the fight. Slot 0 is the premise; T&L wins per attempt over ~25-30 RNG-varied replicates per arm are the reading.
+**Fix direction (a bug fix to the documented intent, not a new policy):** pass the lead pick only the counters registered for the CURRENT boss (the RULING 20 Phase 1 badge-at-registration map gives this). Prove it with the driver above.
 **Measured** (step 14's batch, all 78 logs; recon ANGLE 3):
 - Tate & Liza fights totalled A 188, B 437. Runs with 13 or more fights: A 5 of 28, B 14 of 26.
 - First-attempt team levels are equal (median top level A 48, B 47).
