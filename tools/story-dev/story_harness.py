@@ -36,7 +36,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor", "r101hunt", "huntfirst"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23stage", "ch23swapprobe", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal", "ch24swaptrigger", "ch24train", "ch24entry", "ch24handoff", "amuletcoin", "earlybasket", "gymtm", "gymtmbattle", "woodsleg", "ch24room", "ch24bridge", "ch24champion", "ch24gauntlet", "hmpcfirst", "evgpcwedge", "lavaheal", "petaheal", "r20makeroom", "strengthbox", "wfboxfirst", "counterbox", "flybox", "restock", "ki47oor", "r101hunt", "huntfirst", "normanboxfirst"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -28353,6 +28353,612 @@ class WallyMauvilleMode(BotMode):
             yield
 
 
+class NormanBoxFirstMode(BotMode):
+    """`--driver normanboxfirst` — `#27-boxfirsttype` (KI-118), the PROOF half, on TODAY's code (no fix): does a TYPE-ONLY
+    box-first pick spend Norman's once-per-boss counter ladder and block the Fiery Path Machop hunt?
+    Spec and predictions BF-1..BF-9 (filed BEFORE this code): `ai-research-notes/2026-10-02-boxfirst-DESIGN.md`; the
+    sketch: recon ANGLE 1 (`evidence/2026-10-02-boxfirst-gradeid-RECON.txt`). The shape of `CounterBoxMode` (a sibling,
+    defined down here so the insertion does not renumber the many citations of the classes after `CounterBoxMode`).
+
+    ⛔ IT PROVES THE BRANCH, NOT THE OUTCOME: budget spent, hunt blocked, boss still hopeless. Whether the run would beat
+    Norman without the pick is observational (the design's caveat), and nothing here claims it.
+
+    FIXTURE `prenorman_fodder_grind.ss1` (PINNED 2026-10-02, md5 2580a3df…) loads INSIDE a wild battle on ROUTE102; the
+    harness listener resolves it during `normalize_to_overworld`, and every premise is read AFTER that.
+
+    STEPS — every reading is logged at its take point as `[normanbf] R T<n> <name> = …`, with an ORDER trace:
+      T0  premise, before any write: ROUTE102 + tile + hops to FIERY_PATH (from here AND from PETALBURG_CITY, the
+          production origin); overworld + controllable; 4 badges (BADGE04_GET set — the flag reader's positive
+          control), BADGE05_GET / RECEIVED_HM_SURF unset; the party by (PID, species); the box empty AND readable
+          (`box_views` answers [] on a read failure, so the storage count is read directly too); no resource blocker;
+          no super-effective party move scoring >= 75 against Normal (PP ignored: stricter than production).
+      T1  a fresh production `StoryMode()`; Norman's cfg copied from `story_mode.py:5566-5572`; 8 defeats + 6 flat
+          losses seeded (inside 6..11: below 6 nothing fires, at 12+ the hard plateau skips the answer test); the REAL
+          `_boss_plan_is_hopeless` must return (True, ['Fighting']) and its `needed` is the one passed on; the REAL
+          planner's shortlist must contain Machop@FIERY_PATH (else Y and Z are vacuous); the production
+          `box_counter_choice` must return None before the injection.
+      T2  inject (`debug_create_pokemon` + `debug_write_box_slot`, box 0 slot 0, then 2 frames); read back through the
+          production reader (species, level, moves, exactly one boxed mon); the PID new to party and box; the pick must
+          equal the arm's expectation EXACTLY. A read-back failure and a pick failure ABORT with DIFFERENT messages.
+      INSTRUMENT THE ACTIONS (all restored in `finally`): DELEGATING recorders on `counter_plan.find_counter_candidates`
+          and `counter_hunt.box_counter_choice` (the value the ladder itself acted on); a stand-in for
+          `counter_hunt.hunt` that records its (species, map, tile) and returns None, travelling nowhere; an instance
+          wrapper on `_register_counter` that records what was REGISTERED (read back from the registry after the call).
+      T3  CALL 1 `_counter_ladder(norman_fight, 8, needed)`.  XLATCH only: `_counter_hunts.clear()`.  T4  CALL 2.
+      T5  (`NORMANBF_STAGE2=1`, arms X and Y) the REAL `heal_at_petalburg` collects the owed counter; the hopeless
+          reading again (same seed); CALL 3.
+      Then: the fixture is RESTORED in-emulator, the verdict prints, `set_manual_mode()`.
+    A premise failure ABORTS (`ACCEPTANCE: ABORT`), never FAILs: it is a fixture finding, not a grade.
+
+    ARMS (`NORMANBF_ARM`, harness-only, deliberately not `POKEBOT_`):
+      X       Makuhita L8 (Tackle, Focus Energy, Sand-Attack): a TYPE-ONLY pick              -> BF-2
+      Y       nothing injected (empty box)                                                    -> BF-3
+      Z       X + `POKEBOT_R20_FAULT_NOBOXCOUNTER=1` (the production guard's own fault arm)   -> BF-4
+      X13     Makuhita L13 (Vital Throw): a CREDIBLE pick — the arm a fix must NOT flip       -> BF-5
+      XBAD    Zigzagoon L8 graded against X's expectation: the T2 choice premise's fault arm  -> BF-6 (must ABORT)
+      XLATCH  X with `_counter_hunts` cleared between the calls: the latch reading's fault arm -> BF-7
+    ⛔ The env must MATCH the arm: Z requires `POKEBOT_R20_FAULT_NOBOXCOUNTER=1` and every other arm requires it UNSET,
+      or a stale variable would silently turn X into Z (checked; a mismatch ABORTS as CONFIG).
+    ⚠ r2 == False alone does not separate X from Y (Y reads it too): the grade rests on the cumulative planner, hunt and
+      register calls. Every run also prints the OTHER shape's conjuncts, which must FAIL there (a no-op cannot pass).
+    DECLARED DEVIATIONS from production: the origin is ROUTE102, not PETALBURG_CITY (hops recorded from both); the party
+    has 5 mons (so the stage-2 withdraw needs no make-room deposit)."""
+
+    ARMS = ("X", "Y", "Z", "X13", "XBAD", "XLATCH")
+
+    @staticmethod
+    def name() -> str:
+        return "NormanBoxFirst"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        return StoryItemBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[normanbf] WHITEOUT #{self.whiteouts} — abort LATCHED. A whiteout FAILS this run.")
+        return True
+
+    def run(self):
+        import os as _os
+        import traceback as _tb
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.memory import GameState, get_event_flag, get_game_state
+        from modules.modes.util import pc_interaction as _pci
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon import get_species_by_name, get_type_by_name
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.story import counter_hunt as _ch
+        from modules.story import counter_plan as _cp
+        from modules.story import early_game as EG
+        from modules.story import pc_trip as _pt
+        from modules.story import region_reach as _rr
+        from plugins.custom_modes import story_mode as _sm
+
+        TAG = "normanbf"
+        ARM = (_os.environ.get("NORMANBF_ARM") or "X").strip().upper()
+        STAGE2 = _os.environ.get("NORMANBF_STAGE2") == "1"
+        NOBOX = _os.environ.get("POKEBOT_R20_FAULT_NOBOXCOUNTER")
+        KEY = tuple(MapRSE.PETALBURG_CITY_GYM.value)
+        SKEY = str(KEY)
+        #: The fixture's party by IDENTITY (the recon's offline decode; FIXTURES.md5). The Shedinja/Ninjask PID twin is
+        #: real (KI-78), which is why the identity is (PID, species) and never PID alone.
+        EXPECTED_PARTY = sorted([(0x341D550A, "Combusken"), (0x42207D6F, "Shedinja"), (0xB2768B68, "Whismur"),
+                                 (0x42207D6F, "Ninjask"), (0x3BDA9D98, "Mightyena")])
+        INJECT = {"X": ("Makuhita", 8), "Z": ("Makuhita", 8), "XLATCH": ("Makuhita", 8), "X13": ("Makuhita", 13),
+                  "XBAD": ("Zigzagoon", 8), "Y": None}
+        #: The pick each arm's T2 premise REQUIRES (species, level, why). XBAD keeps X's expectation over a Zigzagoon on
+        #: purpose: it is the choice premise's fault arm and must ABORT at T2 for that reason alone.
+        EXPECT_PICK = {"X": ("Makuhita", 8, "own type"), "Z": ("Makuhita", 8, "own type"),
+                       "XLATCH": ("Makuhita", 8, "own type"), "XBAD": ("Makuhita", 8, "own type"),
+                       "X13": ("Makuhita", 13, "Vital Throw scores 210, own type"), "Y": None}
+        #: The moves the design names for the created mon (debug_create_pokemon takes the last 4 learnset moves <= level).
+        #: ‼ The data spells it "Sand-attack" (moves.json), not the design's "Sand-Attack": the first smoke ABORTED on it.
+        EXPECT_MOVES = {"X": ["Tackle", "Focus Energy", "Sand-attack"], "Z": ["Tackle", "Focus Energy", "Sand-attack"],
+                        "XLATCH": ["Tackle", "Focus Energy", "Sand-attack"]}
+
+        R: dict = {}
+        ORDER: list = []
+        planner_calls: list = []
+        choice_calls: list = []
+        hunt_calls: list = []
+        register_calls: list = []
+        withdraws: list = []
+        deposits: list = []
+        abort = None
+        failure = None
+        real_planner = _cp.find_counter_candidates
+        real_choice = _ch.box_counter_choice
+        real_hunt = _ch.hunt
+        real_withdraw_descr = _pci.PCAction.__dict__["withdraw_pokemon_from_box"]
+        real_deposit_descr = _pci.PCAction.__dict__["deposit_pokemon_to_box"]
+        real_withdraw = _pci.PCAction.withdraw_pokemon_from_box
+        real_deposit = _pci.PCAction.deposit_pokemon_to_box
+        _fixture_bytes = None if FRESH else state_path.read_bytes()
+        mode = None
+        mon_pid = None
+        pid_hex = None
+        inj = INJECT.get(ARM)
+
+        class _PremiseAbort(Exception):
+            """A config, fixture or injection premise failed: the run ABORTS, which is distinct from a FAIL."""
+
+        def _take(tp, name, value):
+            R[f"{tp}.{name}"] = value
+            ORDER.append(f"{tp}.{name}")
+            log(f"[{TAG}] R {tp} {name} = {value!r}")
+
+        def _hx(pid):
+            return None if pid is None else format(int(pid), "08X")
+
+        def _party_ids():
+            return sorted((int(m.personality_value), m.species.name) for m in get_party() if m is not None)
+
+        def _party_view():
+            return [(_hx(m.personality_value), m.species.name, int(m.level)) for m in get_party() if m is not None]
+
+        def _box_records():
+            """(pid, species, level, moves) for every boxed mon, read through the PRODUCTION reader."""
+            return [(int(m.personality_value), m.species.name, int(m.level),
+                     [lm.move.name for lm in m.moves if lm is not None])
+                    for m in (_pt.box_views()[1] or []) if m is not None]
+
+        def _box_view():
+            return [(_hx(p), s, lv, mv) for p, s, lv, mv in _box_records()]
+
+        def _best_vs_normal():
+            """Per battler: its best SUPER-EFFECTIVE damaging move against Normal, scored base power x effectiveness x
+            STAB — production's answer test (`story_mode.py:3042-3059`) except that PP is ignored (stricter)."""
+            normal = get_type_by_name("Normal")
+            out = []
+            for m in get_party():
+                if m is None or m.is_egg:
+                    continue
+                own = tuple(m.species.types)
+                best, best_move = 0.0, None
+                for lm in m.moves:
+                    if lm is None or lm.move.base_power <= 0:
+                        continue
+                    eff = lm.move.type.get_effectiveness_against(normal)
+                    if eff < 2.0:
+                        continue
+                    score = lm.move.base_power * eff * (1.5 if lm.move.type in own else 1.0)
+                    if score > best:
+                        best, best_move = score, lm.move.name
+                out.append((_hx(m.personality_value), m.species.name, best_move, best))
+            return out
+
+        def _label(c):
+            return f"{c.get('species_name')}@{getattr(c.get('map_enum'), 'name', '?')}"
+
+        def _rec_planner(*a, **k):
+            entry = {"n": len(planner_calls) + 1, "needed": list(a[0]) if a else k.get("needed_type_names"),
+                     "allow": getattr(k.get("allow"), "__name__", repr(k.get("allow"))),
+                     "max_results": k.get("max_results")}
+            planner_calls.append(entry)
+            result = real_planner(*a, **k)
+            try:
+                entry["shortlist"] = [_label(c) for c in _cp.huntable_candidates(result)
+                                      [: _sm.StoryMode.COUNTER_HUNT_MAX_DESTINATIONS]]
+            except Exception as _rec_err:  # noqa: BLE001 - a recorder must never change the call it records
+                entry["shortlist"] = f"<unreadable: {_rec_err!r}>"
+            entry["candidates"] = len(result or [])
+            log(f"[{TAG}] ACTION planner call {entry}")
+            return result
+
+        def _rec_choice(*a, **k):
+            result = real_choice(*a, **k)
+            choice_calls.append(None if result is None else (_hx(result[0]),) + tuple(result[1:]))
+            log(f"[{TAG}] ACTION box_counter_choice (inside the ladder) returned {choice_calls[-1]!r}")
+            return result
+
+        def _stub_hunt(candidate, needed):
+            hunt_calls.append(_label(candidate))
+            log(f"[{TAG}] ACTION hunt stand-in called with {_label(candidate)} tile={candidate.get('hunt_tile')} "
+                f"needed={list(needed or [])} — returns None and travels nowhere")
+            return None
+            yield  # a generator, like the real hunt
+
+        def _rec_withdraw(pokemon):
+            withdraws.append(_hx(pokemon.personality_value))
+            log(f"[{TAG}] ACTION PC withdraw {withdraws[-1]} {pokemon.species.name}")
+            return real_withdraw(pokemon)
+
+        def _rec_deposit(pokemon, target_box=None):
+            deposits.append(_hx(pokemon.personality_value))
+            log(f"[{TAG}] ACTION PC deposit {deposits[-1]} {pokemon.species.name}")
+            return real_deposit(pokemon, target_box)
+
+        def _bounded(gen, frames, out):
+            """Drive `gen` within `frames` REAL frames and append its RETURN value to `out` (the ladder returns a bool,
+            which `_yield_bounded_by_frames` would discard). With the stand-in the ladder never yields; this bound is
+            the backstop for a stand-in that failed to install and let a real hunt travel."""
+            start = context.emulator.get_frame_count()
+            while True:
+                EG._check_abort()
+                try:
+                    next(gen)
+                except StopIteration as stop:
+                    out.append(stop.value)
+                    return context.emulator.get_frame_count() - start
+                if context.emulator.get_frame_count() - start > frames:
+                    gen.close()
+                    raise BotModeError(f"{TAG}: a ladder call ran past {frames} frames — it TRAVELLED, so the hunt "
+                                       f"stand-in was not in place")
+                yield
+
+        def _snapshot(tp):
+            _take(tp, "planner_calls", len(planner_calls))
+            _take(tp, "box_choice_calls", list(choice_calls))
+            _take(tp, "hunt_calls", list(hunt_calls))
+            _take(tp, "register_calls", [tuple(e) for e in register_calls])
+            _take(tp, "counter_hunts", {str(k): v for k, v in mode._counter_hunts.items()})
+            _take(tp, "registry", sorted(_hx(p) for p in mode._hunted_counter_pids))
+            _take(tp, "badges_map", {_hx(p): b for p, b in mode._hunted_counter_badges.items()})
+            _take(tp, "owed", sorted(_hx(p) for p in _pt.owed_counter_pids(mode)))
+            _take(tp, "box", _box_view())
+            _take(tp, "party", _party_view())
+
+        try:
+            # ---- CONFIG: the env must match the arm ----
+            log(f"[{TAG}] START arm={ARM} stage2={STAGE2} POKEBOT_R20_FAULT_NOBOXCOUNTER={NOBOX!r} "
+                f"frame={context.emulator.get_frame_count()}")
+            if ARM not in self.ARMS:
+                raise _PremiseAbort(f"CONFIG: NORMANBF_ARM={ARM!r} is not one of {self.ARMS}")
+            if (ARM == "Z") != (NOBOX == "1"):
+                raise _PremiseAbort(f"CONFIG: arm {ARM} requires POKEBOT_R20_FAULT_NOBOXCOUNTER "
+                                    f"{'=1' if ARM == 'Z' else 'UNSET'}, and it is {NOBOX!r}")
+            if STAGE2 and ARM not in ("X", "Y"):
+                raise _PremiseAbort(f"CONFIG: NORMANBF_STAGE2=1 is defined for arms X and Y only, not {ARM}")
+
+            # ---- 1. NORMALIZE: the fixture loads inside a wild battle; the harness listener resolves it ----
+            f0 = context.emulator.get_frame_count()
+            normalized = yield from EG._yield_bounded_by_frames(EG.normalize_to_overworld(timeout_frames=6000), 15_000)
+            yield from EG.wait_until_truly_controllable()
+            _take("T0", "normalize_finished", normalized)
+            _take("T0", "normalize_frames", context.emulator.get_frame_count() - f0)
+
+            # ---- T0: THE FIXTURE PREMISE, before any write ----
+            av = get_player_avatar()
+            here = tuple(av.map_group_and_number)
+            _take("T0", "map", here)
+            _take("T0", "tile", tuple(av.local_coordinates))
+            _take("T0", "hops_to_FIERY_PATH_from_here", _rr.hops_to(MapRSE.FIERY_PATH))
+            _take("T0", "hops_to_FIERY_PATH_from_PETALBURG_CITY",
+                  _rr.hops_to(MapRSE.FIERY_PATH, from_map=MapRSE.PETALBURG_CITY))
+            _take("T0", "fiery_path_within_COUNTER_MAX_HOPS",
+                  _rr.is_map_reachable(MapRSE.FIERY_PATH, max_hops=_sm.COUNTER_MAX_HOPS))
+            state = get_game_state()
+            _take("T0", "game_state", getattr(state, "name", str(state)))
+            _take("T0", "controllable", bool(player_avatar_is_controllable()))
+            _take("T0", "badges", _pt.badge_count())
+            flags = {f: bool(get_event_flag(f))
+                     for f in ("BADGE04_GET", "BADGE05_GET", "RECEIVED_HM_SURF", "DEFEATED_PETALBURG_GYM")}
+            _take("T0", "flags", flags)
+            party0 = _party_ids()
+            _take("T0", "party", _party_view())
+            box0 = _box_records()
+            _take("T0", "box", _box_view())
+            _take("T0", "storage_count", int(get_pokemon_storage().pokemon_count))
+            _take("T0", "balls", _ch._ball_count())
+            _take("T0", "resource_blocker", _ch.resource_blocker())
+            best = _best_vs_normal()
+            _take("T0", "best_super_effective_vs_Normal", best)
+            t0 = {
+                "map_is_ROUTE102": here == tuple(MapRSE.ROUTE102.value),
+                "overworld_not_in_battle": state is GameState.OVERWORLD,
+                "controllable": R["T0.controllable"],
+                "badges_4": R["T0.badges"] == 4,
+                "BADGE04_set_positive_control": flags["BADGE04_GET"],
+                "BADGE05_unset": not flags["BADGE05_GET"],
+                "RECEIVED_HM_SURF_unset": not flags["RECEIVED_HM_SURF"],
+                "party_identity": party0 == EXPECTED_PARTY,
+                "box_empty_and_readable": box0 == [] and R["T0.storage_count"] == 0,
+                "no_resource_blocker": R["T0.resource_blocker"] is None,
+                "no_credible_answer_to_Normal": bool(best) and max(s for *_x, s in best) < 75,
+            }
+            _take("T0", "premise_checks", t0)
+            if not all(t0.values()):
+                raise _PremiseAbort("FIXTURE PREMISE FAILED at T0 — " + ", ".join(k for k, v in t0.items() if not v))
+
+            # ---- T1: SEED AND DERIVE (production StoryMode, production hopeless test, production planner) ----
+            mode = _sm.StoryMode()
+            _take("T1", "fresh_counter_hunts", dict(mode._counter_hunts))
+            _take("T1", "fresh_registry", sorted(mode._hunted_counter_pids))
+            # Copied from story_mode.py:5566-5572 (the Norman segment's own cfg).
+            norman_fight = {
+                "keys": [MapRSE.PETALBURG_CITY_GYM.value, MapRSE.PETALBURG_CITY.value],
+                "band": (27, 31),
+                "ace_types": ("Normal",), "ace_level": 31,
+                "grass": EG.PETALBURG_TRAINING_GRASS,
+                "heal": PokemonCenter.PetalburgCity,
+            }
+            mode._defeat_counts.update({k: 8 for k in norman_fight["keys"]})
+            mode._loss_ko_history[KEY] = [(i, 1) for i in range(6)]
+            _take("T1", "seed", {"defeat_counts": {str(k): v for k, v in mode._defeat_counts.items()},
+                                 "loss_ko_history": {str(k): v for k, v in mode._loss_ko_history.items()}})
+            hopeless = mode._boss_plan_is_hopeless(norman_fight)
+            _take("T1", "hopeless", hopeless)
+            needed = list(hopeless[1])
+            cands = _cp.find_counter_candidates(needed, allow=_sm._counter_area_allowed, max_results=10)
+            _take("T1", "planner_candidates", [(_label(c), bool(c.get("huntable")), c.get("hunt_tile")) for c in cands])
+            shortlist = [_label(c) for c in _cp.huntable_candidates(cands)[: mode.COUNTER_HUNT_MAX_DESTINATIONS]]
+            _take("T1", "shortlist", shortlist)
+            _take("T1", "machop_is_shortlist_head", shortlist[:1] == ["Machop@FIERY_PATH"])
+            pre = _ch.box_counter_choice(needed, exclude_pids=frozenset(p for p, _s in party0),
+                                         taught=getattr(mode, "_gym_tm_taught_moves", None) or {})
+            _take("T1", "choice_before_injection", pre)
+            t1 = {
+                "counter_hunts_empty": mode._counter_hunts == {},
+                "registry_empty": not mode._hunted_counter_pids,
+                "hopeless_True_Fighting": hopeless[0] is True and needed == ["Fighting"],
+                "shortlist_has_Machop_FIERY_PATH": "Machop@FIERY_PATH" in shortlist,
+                "no_pick_before_injection": pre is None,
+            }
+            _take("T1", "premise_checks", t1)
+            if not all(t1.values()):
+                raise _PremiseAbort("DERIVATION PREMISE FAILED at T1 — "
+                                    + ", ".join(k for k, v in t1.items() if not v))
+
+            # ---- T2: INJECT, READ BACK, AND THE PICK PREMISE ----
+            created_moves = None
+            if inj is not None:
+                species, level = inj
+                mon = debug_create_pokemon(species=get_species_by_name(species), level=level)
+                mon_pid = int(mon.personality_value)
+                pid_hex = _hx(mon_pid)
+                created_moves = [lm.move.name for lm in mon.moves if lm is not None]
+                where = debug_write_box_slot(mon, box_index=0, slot_index=0)
+                yield from wait_for_n_frames(2)  # storage is cached per frame: a same-frame read-back sees the old box
+                _take("T2", "injected", {"species": species, "level": level, "pid": pid_hex, "moves": created_moves,
+                                         "box_slot": where})
+            box2 = _box_records()
+            _take("T2", "box_after_injection", _box_view())
+            party2 = _party_ids()
+            pick = _ch.box_counter_choice(needed, exclude_pids=frozenset(p for p, _s in party2),
+                                          taught=getattr(mode, "_gym_tm_taught_moves", None) or {})
+            _take("T2", "pick", None if pick is None else (_hx(pick[0]),) + tuple(pick[1:]))
+            if inj is None:
+                t2 = {"box_still_empty": box2 == [], "party_unchanged": party2 == party0}
+                expected = None
+            else:
+                found = [r for r in box2 if r[0] == mon_pid]
+                t2 = {
+                    "readback_one_record": len(box2) == 1 and len(found) == 1,
+                    "readback_species_level": bool(found) and found[0][1] == inj[0] and found[0][2] == inj[1],
+                    "readback_moves_equal_created": bool(found) and found[0][3] == created_moves,
+                    "moves_as_designed": (created_moves == EXPECT_MOVES[ARM] if ARM in EXPECT_MOVES
+                                          else ("Vital Throw" in created_moves if ARM == "X13" else True)),
+                    "pid_new_to_party_and_box": mon_pid not in {p for p, _s in party0} and mon_pid not in
+                    {r[0] for r in box0},
+                    "party_unchanged": party2 == party0,
+                }
+                expected = (mon_pid,) + tuple(EXPECT_PICK[ARM])
+            _take("T2", "premise_checks", t2)
+            _take("T2", "expected_pick", None if expected is None else (_hx(expected[0]),) + tuple(expected[1:]))
+            if not all(t2.values()):
+                raise _PremiseAbort("INJECTION PREMISE FAILED at T2 (read-back) — "
+                                    + ", ".join(k for k, v in t2.items() if not v))
+            _take("T2", "pick_equals_expectation", pick == expected)
+            if pick != expected:
+                raise _PremiseAbort(f"INJECTION PREMISE FAILED at T2 (choice) — the pick {R['T2.pick']!r} is not the "
+                                    f"arm's expectation {R['T2.expected_pick']!r}; the arm would not test what it "
+                                    f"names")
+
+            # ---- INSTRUMENT THE ACTIONS (restored in `finally`) ----
+            _cp.find_counter_candidates = _rec_planner
+            _ch.box_counter_choice = _rec_choice
+            _ch.hunt = _stub_hunt
+            real_register = mode._register_counter
+
+            def _rec_register(pid, where):
+                entry = [_hx(pid), where, None, None]
+                register_calls.append(entry)
+                try:
+                    real_register(pid, where)
+                finally:
+                    entry[2] = pid in mode._hunted_counter_pids
+                    entry[3] = mode._hunted_counter_badges.get(pid)
+                    log(f"[{TAG}] ACTION registered {tuple(entry)} (pid, where, in_registry, owed_to_badge)")
+
+            mode._register_counter = _rec_register
+            log(f"[{TAG}] INSTRUMENTED planner={_cp.find_counter_candidates is _rec_planner} "
+                f"choice={_ch.box_counter_choice is _rec_choice} hunt={_ch.hunt is _stub_hunt} "
+                f"register={mode.__dict__.get('_register_counter') is _rec_register}")
+
+            # ---- T3: CALL 1 ----
+            out = []
+            frames1 = yield from _bounded(mode._counter_ladder(norman_fight, 8, needed), 3000, out)
+            _take("T3", "r1", out[0])
+            _take("T3", "call_frames", frames1)
+            _snapshot("T3")
+            ch_t3 = dict(mode._counter_hunts)
+
+            if ARM == "XLATCH":
+                mode._counter_hunts.clear()
+                _take("T3x", "latch_cleared", mode._counter_hunts == {})
+
+            # ---- T4: CALL 2 (the same call) ----
+            out = []
+            frames2 = yield from _bounded(mode._counter_ladder(norman_fight, 8, needed), 3000, out)
+            _take("T4", "r2", out[0])
+            _take("T4", "call_frames", frames2)
+            _snapshot("T4")
+            _take("T4", "counter_hunts_unchanged_vs_T3", dict(mode._counter_hunts) == ch_t3)
+
+            # ---- T5: OPTIONAL STAGE 2 — the real heal collects the owed counter ----
+            if STAGE2:
+                # The heal reads `context.bot_mode_instance` (this driver): copy production's registration onto it.
+                self._hunted_counter_pids = set(mode._hunted_counter_pids)
+                self._hunted_counter_badges = dict(mode._hunted_counter_badges)
+                _pci.PCAction.withdraw_pokemon_from_box = _rec_withdraw
+                _pci.PCAction.deposit_pokemon_to_box = _rec_deposit
+                f5 = context.emulator.get_frame_count()
+                healed = yield from EG._yield_bounded_by_frames(EG.heal_at_petalburg(), 60_000)
+                _take("T5", "heal_finished", healed)
+                _take("T5", "heal_frames", context.emulator.get_frame_count() - f5)
+                _take("T5", "withdraws", list(withdraws))
+                _take("T5", "deposits", list(deposits))
+                _take("T5", "map", tuple(get_player_avatar().map_group_and_number))
+                _take("T5", "party_after_heal", _party_view())
+                _take("T5", "box_after_heal", _box_view())
+                _take("T5", "hopeless", mode._boss_plan_is_hopeless(norman_fight))
+                out = []
+                frames3 = yield from _bounded(mode._counter_ladder(norman_fight, 8, needed), 3000, out)
+                _take("T5", "r3", out[0])
+                _take("T5", "call_frames", frames3)
+                _snapshot("T5")
+        except _PremiseAbort as premise:
+            abort = str(premise)
+            log(f"[{TAG}] ‼ ABORT — {abort}")
+        except Exception as error:  # noqa: BLE001 - the verdict must print from partial state, a whiteout included
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] ‼ EXCEPTION — {failure}\n{_tb.format_exc()}")
+        finally:
+            _cp.find_counter_candidates = real_planner
+            _ch.box_counter_choice = real_choice
+            _ch.hunt = real_hunt
+            setattr(_pci.PCAction, "withdraw_pokemon_from_box", real_withdraw_descr)
+            setattr(_pci.PCAction, "deposit_pokemon_to_box", real_deposit_descr)
+            if mode is not None:
+                mode.__dict__.pop("_register_counter", None)
+            log(f"[{TAG}] patches RESTORED planner={_cp.find_counter_candidates is real_planner} "
+                f"choice={_ch.box_counter_choice is real_choice} hunt={_ch.hunt is real_hunt} "
+                f"pc={_pci.PCAction.__dict__['withdraw_pokemon_from_box'] is real_withdraw_descr} "
+                f"register={mode is None or '_register_counter' not in mode.__dict__}")
+
+        try:
+            if _fixture_bytes:
+                context.emulator.load_save_state(_fixture_bytes)
+                R["fixture_restored"] = True
+                log(f"[{TAG}] fixture RESTORED in-emulator — the injection and every write do not persist.")
+        except Exception as restore_error:  # noqa: BLE001 - reported, and printed with the verdict
+            R["fixture_restored"] = False
+            log(f"[{TAG}] ⛔ COULD NOT RESTORE THE FIXTURE: {restore_error!r}")
+
+        # ================================ VERDICT ================================
+        def g(k, default=None):
+            return R.get(k, default)
+
+        whiteouts = getattr(self, "whiteouts", 0)
+        ran = abort is None and failure is None and whiteouts == 0
+        ch3 = (g("T3.counter_hunts") or {}).get(SKEY)
+        reg3 = [(e[0], e[1]) for e in (g("T3.register_calls") or [])]
+        reg4 = [(e[0], e[1]) for e in (g("T4.register_calls") or [])]
+        lvl = inj[1] if inj else None
+        box4 = [r[0] for r in (g("T4.box") or [])]
+        # BF-2 / BF-5: the box-first pick SPENDS the ladder (no planner, no hunt) and the latch holds on CALL 2.
+        boxfirst = {
+            "call1_returned_True": g("T3.r1") is True,
+            "call1_no_planner_call": g("T3.planner_calls") == 0,
+            "call1_no_hunt_call": g("T3.hunt_calls") == [],
+            "call1_one_register_boxfirst": reg3 == [(pid_hex, "PC box (box-first)")],
+            "counter_hunts_says_boxfirst": str(ch3 or "").startswith(f"box-first Makuhita L{lvl}"),
+            "call2_returned_False": g("T4.r2") is False,
+            "call2_planner_still_0": g("T4.planner_calls") == 0,
+            "call2_counter_hunts_unchanged": g("T4.counter_hunts_unchanged_vs_T3") is True,
+        }
+        # BF-3 / BF-4: no pick; the planner is entered and the hunt stand-in records Machop@FIERY_PATH.
+        hunt = {
+            "no_box_first_registration": reg3 == [],
+            "call1_planner_entered": (g("T3.planner_calls") or 0) >= 1,
+            "call1_hunt_Machop_FIERY_PATH": "Machop@FIERY_PATH" in (g("T3.hunt_calls") or []),
+            "call1_returned_False": g("T3.r1") is False,
+            "counter_hunts_none_found": ch3 == "Machop@FIERY_PATH: none found",
+        }
+        extra = {
+            "counter_hunts_text_exact": ch3,
+            "registered_owed_to_badge": (g("T3.badges_map") or {}).get(pid_hex),
+            "owed_after_call1": (g("T3.owed") or []),
+            "call2_no_second_register": reg4 == reg3,
+            "call2_hunt_calls_still": g("T4.hunt_calls"),
+            "call2_planner_calls": g("T4.planner_calls"),
+            "ladder_box_choice_calls_T3": g("T3.box_choice_calls"),
+            "injected_still_boxed_T4": (pid_hex in box4) if (pid_hex and g("T4.box") is not None) else None,
+        }
+        for k, v in extra.items():
+            log(f"[{TAG}] EXTRA {k} = {v!r}")
+
+        verdicts = {}
+        if ARM in ("X", "X13"):
+            bf = "BF-2" if ARM == "X" else "BF-5"
+            verdicts[bf] = {"ran_clean": ran, "pick_as_expected": g("T2.pick_equals_expectation") is True, **boxfirst}
+            log(f"[{TAG}] CROSS-CHECK the hunt shape on this {ARM} run (must NOT all hold): {hunt} -> "
+                f"{'⛔ ALL HOLD — the grade cannot tell the arms apart' if all(hunt.values()) else 'does not hold (good)'}")
+        elif ARM in ("Y", "Z"):
+            bf = "BF-3" if ARM == "Y" else "BF-4"
+            conj = {"ran_clean": ran, **hunt}
+            if ARM == "Y":
+                conj["ladder_pick_None"] = g("T3.box_choice_calls") == [None]
+            else:
+                conj["injected_Makuhita_still_boxed"] = bool(pid_hex) and pid_hex in box4
+                conj["no_box_first_registration_after_call2"] = reg4 == []
+            verdicts[bf] = conj
+            log(f"[{TAG}] CROSS-CHECK the box-first shape on this {ARM} run (must NOT all hold): {boxfirst} -> "
+                f"{'⛔ ALL HOLD — the grade cannot tell the arms apart' if all(boxfirst.values()) else 'does not hold (good)'}")
+        elif ARM == "XLATCH":
+            entered = (g("T4.planner_calls") or 0) > (g("T3.planner_calls") or 0)
+            verdicts["BF-7"] = {"ran_clean": ran, "latch_cleared": g("T3x.latch_cleared") is True,
+                                "call2_entered_planner": entered}
+            latch = {k: boxfirst[k] for k in ("call2_returned_False", "call2_planner_still_0",
+                                              "call2_counter_hunts_unchanged")}
+            latch["call2_no_second_register"] = reg4 == reg3
+            log(f"[{TAG}] FAULT-ARM READING (not a filed prediction): X's CALL-2 latch conjuncts with the latch "
+                f"cleared = {latch}; r2={g('T4.r2')!r} register_calls={g('T4.register_calls')!r}")
+        elif ARM == "XBAD":
+            verdicts["BF-6"] = {"aborted_at_T2_choice": str(abort or "").startswith(
+                "INJECTION PREMISE FAILED at T2 (choice)"), "no_exception": failure is None}
+
+        bf1 = all((g("T0.premise_checks") or {"T0 not reached": False}).values()) and all(
+            (g("T1.premise_checks") or {"T1 not reached": False}).values())
+        log(f"[{TAG}] VERDICT BF-1 (premise T0/T1): {'HOLDS' if bf1 else 'DOES NOT HOLD'} "
+            f"(T0={g('T0.premise_checks')} T1={g('T1.premise_checks')})")
+        if STAGE2:
+            if ARM == "X":
+                verdicts["BF-8"] = {
+                    "ran_clean": ran, "heal_finished": g("T5.heal_finished") is True,
+                    "withdrew_the_injected_pid": g("T5.withdraws") == [pid_hex],
+                    "makuhita_in_party": any(p == pid_hex and s == "Makuhita" for p, s, _l in
+                                             (g("T5.party_after_heal") or [])),
+                    "makuhita_gone_from_box": pid_hex not in [r[0] for r in (g("T5.box_after_heal") or [])],
+                    "boss_still_hopeless_Fighting": g("T5.hopeless") == (True, ["Fighting"]),
+                    "call3_returned_False": g("T5.r3") is False,
+                    "planner_calls_still_0": g("T5.planner_calls") == 0}
+            else:
+                verdicts["Y-stage2-control"] = {
+                    "ran_clean": ran, "heal_finished": g("T5.heal_finished") is True,
+                    "no_withdraw": g("T5.withdraws") == [], "no_deposit": g("T5.deposits") == [],
+                    "boss_still_hopeless_Fighting": g("T5.hopeless") == (True, ["Fighting"]),
+                    "call3_returned_False": g("T5.r3") is False,
+                    "planner_calls_unchanged": g("T5.planner_calls") == g("T4.planner_calls")}
+        for name, conj in verdicts.items():
+            log(f"[{TAG}] conjuncts {name} = {conj}")
+            if abort is not None and ARM != "XBAD":
+                log(f"[{TAG}] VERDICT {name} (arm {ARM}): NOT GRADED — the run ABORTED on a premise ({abort})")
+            else:
+                log(f"[{TAG}] VERDICT {name} (arm {ARM}): {'HOLDS' if all(conj.values()) else 'FALSIFIED'}")
+        log(f"[{TAG}] ORDER = {ORDER}")
+        log(f"[{TAG}] ACTIONS planner_calls={planner_calls} box_choice_calls={choice_calls} hunt_calls={hunt_calls} "
+            f"register_calls={[tuple(e) for e in register_calls]} withdraws={withdraws} deposits={deposits} "
+            f"whiteouts={whiteouts} abort={abort!r} failure={failure!r} fixture_restored={R.get('fixture_restored')}")
+        if ARM == "XBAD":
+            acc = "PASS" if all(verdicts["BF-6"].values()) else "FAIL"
+        elif abort is not None:
+            acc = "ABORT"
+        else:
+            acc = "PASS" if verdicts and all(all(c.values()) for c in verdicts.values()) else "FAIL"
+        log(f"[{TAG}] ACCEPTANCE: {acc} (arm={ARM} stage2={STAGE2}; rests on {', '.join(verdicts) or 'nothing'})")
+        context.set_manual_mode()
+
+
 from modules.plugins import load_plugins
 
 load_plugins()  # registers the custom Story bot mode (plugins/custom_modes/)
@@ -30150,6 +30756,8 @@ for step in range(args.frames):
             context.bot_mode_instance = WfBoxFirstMode()
         elif args.driver == "counterbox":
             context.bot_mode_instance = CounterBoxMode()
+        elif args.driver == "normanboxfirst":
+            context.bot_mode_instance = NormanBoxFirstMode()
         elif args.driver == "flybox":
             context.bot_mode_instance = FlyBoxMode()
         elif args.driver == "restock":

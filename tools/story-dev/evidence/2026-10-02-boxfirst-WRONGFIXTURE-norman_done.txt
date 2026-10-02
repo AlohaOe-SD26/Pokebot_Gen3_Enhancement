@@ -1,0 +1,139 @@
+# 2026-10-02 — `#27-boxfirsttype` (KI-118) proof driver `--driver normanboxfirst`, arm X, run 1
+# Spec + predictions (filed before code): PROJECT KNOWLEDGE/ai-research-notes/2026-10-02-boxfirst-DESIGN.md
+# worktree: C:\Remote Projects\pokebot-wt-ch24  branch: wt/boxfirst  HEAD: 0a08b334cb8b9d3674cea9818002d28edc650ab9
+# worktree status (porcelain): M tools/story-dev/party_accounting_ledger.jsonl |  M tools/story-dev/saves/magma_1f_fail.ss1 |  M tools/story-dev/story_harness.py | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X-stage2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X13-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X13.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-XBAD.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-XLATCH-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-XLATCH.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Y-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Y-stage2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Y.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Z-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Z.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-smoke.txt
+# sha256 tools/story-dev/story_harness.py: ee93dda1a780bedad8b107969689baacf75eda8128c0ff9474ddb663b6604589
+# sha256 sandbox-pokebot/plugins/custom_modes/story_mode.py: cf0fb4dd7d64af6826acfeede2398ede0f94d3f7ed8d7db501bd8c5f9de8d0a5
+# sha256 sandbox-pokebot/modules/story/counter_hunt.py: 1907f8fb89bf44ab8ba83599422ad50f2a7f3e063fd2b523f9f0d193a77c79ec
+# knobs (every NORMANBF_*/POKEBOT_* in the child env): NORMANBF_ARM=X
+# command (cwd tools/story-dev): PYTHONUTF8=1 NORMANBF_ARM=X py -3.12 story_harness.py norman_done.ss1 --driver normanboxfirst --frames 3000 --log C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\WRONGFIXTURE-norman_done.log
+# fixture norman_done.ss1 md5 before: e6fb7d5f36dbbff660d0bd0598a4d54e  after: e6fb7d5f36dbbff660d0bd0598a4d54e  UNCHANGED
+# started 2026-10-02 12:35:30  ended 2026-10-02 12:36:21  exit code 0
+
+====================================================================================================
+===== --log (WRONGFIXTURE-norman_done.log) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\WRONGFIXTURE-norman_done.log
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[normanbf] START arm=X stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER=None frame=2974242
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 44
+[normanbf] R T0 map = (0, 0)
+[normanbf] R T0 tile = (7, 6)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 8
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 5
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': True, 'RECEIVED_HM_SURF': True, 'DEFEATED_PETALBURG_GYM': True}
+[normanbf] R T0 party = [('42207D6F', 'Shedinja', 29), ('341D550A', 'Blaziken', 36), ('3BDA9D98', 'Mightyena', 33), ('42207D6F', 'Ninjask', 29), ('B2768B68', 'Loudred', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('42207D6F', 'Shedinja', None, 0.0), ('341D550A', 'Blaziken', 'Double Kick', 90.0), ('3BDA9D98', 'Mightyena', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('B2768B68', 'Loudred', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': False, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': False, 'BADGE04_set_positive_control': True, 'BADGE05_unset': False, 'RECEIVED_HM_SURF_unset': False, 'party_identity': False, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': False}
+[normanbf] ‼ ABORT — FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = None
+[normanbf] EXTRA registered_owed_to_badge = None
+[normanbf] EXTRA owed_after_call1 = []
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = None
+[normanbf] EXTRA call2_planner_calls = None
+[normanbf] EXTRA ladder_box_choice_calls_T3 = None
+[normanbf] EXTRA injected_still_boxed_T4 = None
+[normanbf] CROSS-CHECK the hunt shape on this X run (must NOT all hold): {'no_box_first_registration': True, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False} -> does not hold (good)
+[normanbf] VERDICT BF-1 (premise T0/T1): DOES NOT HOLD (T0={'map_is_ROUTE102': False, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': False, 'BADGE04_set_positive_control': True, 'BADGE05_unset': False, 'RECEIVED_HM_SURF_unset': False, 'party_identity': False, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': False} T1=None)
+[normanbf] conjuncts BF-2 = {'ran_clean': False, 'pick_as_expected': False, 'call1_returned_True': False, 'call1_no_planner_call': False, 'call1_no_hunt_call': False, 'call1_one_register_boxfirst': False, 'counter_hunts_says_boxfirst': False, 'call2_returned_False': False, 'call2_planner_still_0': False, 'call2_counter_hunts_unchanged': False}
+[normanbf] VERDICT BF-2 (arm X): NOT GRADED — the run ABORTED on a premise (FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal)
+[normanbf] ORDER = ['T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[] hunt_calls=[] register_calls=[] withdraws=[] deposits=[] whiteouts=0 abort='FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal' failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: ABORT (arm=X stage2=False; rests on BF-2)
+f45: CONTROLLER -> <none>   (state=OVERWORLD)
+f945: SAVED stall state #1 to stalls/repro-ml-f945.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+f1245: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (7, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f1245:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[done] ran 3000 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 3002 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 3002 recomputes (party_accounting_ledger.jsonl)
+
+====================================================================================================
+===== stdout + stderr (WRONGFIXTURE-norman_done.stdout.txt) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\WRONGFIXTURE-norman_done.log
+Running mGBA 0.10.2
+[setup] loaded save state norman_done.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[normanbf] START arm=X stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER=None frame=2974242
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 44
+[normanbf] R T0 map = (0, 0)
+[normanbf] R T0 tile = (7, 6)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 8
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 5
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': True, 'RECEIVED_HM_SURF': True, 'DEFEATED_PETALBURG_GYM': True}
+[normanbf] R T0 party = [('42207D6F', 'Shedinja', 29), ('341D550A', 'Blaziken', 36), ('3BDA9D98', 'Mightyena', 33), ('42207D6F', 'Ninjask', 29), ('B2768B68', 'Loudred', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('42207D6F', 'Shedinja', None, 0.0), ('341D550A', 'Blaziken', 'Double Kick', 90.0), ('3BDA9D98', 'Mightyena', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('B2768B68', 'Loudred', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': False, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': False, 'BADGE04_set_positive_control': True, 'BADGE05_unset': False, 'RECEIVED_HM_SURF_unset': False, 'party_identity': False, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': False}
+[normanbf] ‼ ABORT — FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = None
+[normanbf] EXTRA registered_owed_to_badge = None
+[normanbf] EXTRA owed_after_call1 = []
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = None
+[normanbf] EXTRA call2_planner_calls = None
+[normanbf] EXTRA ladder_box_choice_calls_T3 = None
+[normanbf] EXTRA injected_still_boxed_T4 = None
+[normanbf] CROSS-CHECK the hunt shape on this X run (must NOT all hold): {'no_box_first_registration': True, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False} -> does not hold (good)
+[normanbf] VERDICT BF-1 (premise T0/T1): DOES NOT HOLD (T0={'map_is_ROUTE102': False, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': False, 'BADGE04_set_positive_control': True, 'BADGE05_unset': False, 'RECEIVED_HM_SURF_unset': False, 'party_identity': False, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': False} T1=None)
+[normanbf] conjuncts BF-2 = {'ran_clean': False, 'pick_as_expected': False, 'call1_returned_True': False, 'call1_no_planner_call': False, 'call1_no_hunt_call': False, 'call1_one_register_boxfirst': False, 'counter_hunts_says_boxfirst': False, 'call2_returned_False': False, 'call2_planner_still_0': False, 'call2_counter_hunts_unchanged': False}
+[normanbf] VERDICT BF-2 (arm X): NOT GRADED — the run ABORTED on a premise (FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal)
+[normanbf] ORDER = ['T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[] hunt_calls=[] register_calls=[] withdraws=[] deposits=[] whiteouts=0 abort='FIXTURE PREMISE FAILED at T0 — map_is_ROUTE102, badges_4, BADGE05_unset, RECEIVED_HM_SURF_unset, party_identity, no_credible_answer_to_Normal' failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: ABORT (arm=X stage2=False; rests on BF-2)
+f45: CONTROLLER -> <none>   (state=OVERWORLD)
+f945: SAVED stall state #1 to stalls/repro-ml-f945.ss1 (bt='BLAZIKEN learned BLAZE KICK!')
+f1245: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767', (7, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='BLAZIKEN learned BLAZE KICK!' bot_mode=Manual
+f1245:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[done] ran 3000 frames; final mode=Manual party=[Shedinja:L29:exp37384|Blaziken:L36:exp40752|Mightyena:L33:exp37626|Ninjask:L29:exp35792|Loudred:L30:exp21767]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Shedinja L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Blaziken L36: Scratch, Blaze Kick, Double Kick, Rock Smash
+[moveset] Mightyena L33: Tackle, Scary Face, Sand-attack, Bite
+[moveset] Ninjask L29: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Loudred L30: Pound, Uproar, Astonish, Stomp
+[PARTY-ACCT] STAGE 0 SUMMARY — 3002 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 3002 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-02_12
+-36-21.ss1 created!
+Updated `current_state.ss1`!

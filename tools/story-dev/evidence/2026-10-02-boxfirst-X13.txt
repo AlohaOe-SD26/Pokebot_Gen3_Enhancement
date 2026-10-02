@@ -1,0 +1,340 @@
+# 2026-10-02 — `#27-boxfirsttype` (KI-118) proof driver `--driver normanboxfirst`, arm X13, run 1
+# Spec + predictions (filed before code): PROJECT KNOWLEDGE/ai-research-notes/2026-10-02-boxfirst-DESIGN.md
+# worktree: C:\Remote Projects\pokebot-wt-ch24  branch: wt/boxfirst  HEAD: 2e9d35c287790cbe5548316f1469253d82b20da9
+# worktree status (porcelain): M tools/story-dev/party_accounting_ledger.jsonl |  M tools/story-dev/saves/magma_1f_fail.ss1 |  M tools/story-dev/story_harness.py | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-X.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Y-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Y.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Z-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-Z.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-smoke.txt
+# sha256 tools/story-dev/story_harness.py: ee93dda1a780bedad8b107969689baacf75eda8128c0ff9474ddb663b6604589
+# sha256 sandbox-pokebot/plugins/custom_modes/story_mode.py: cf0fb4dd7d64af6826acfeede2398ede0f94d3f7ed8d7db501bd8c5f9de8d0a5
+# sha256 sandbox-pokebot/modules/story/counter_hunt.py: 1907f8fb89bf44ab8ba83599422ad50f2a7f3e063fd2b523f9f0d193a77c79ec
+# knobs (every NORMANBF_*/POKEBOT_* in the child env): NORMANBF_ARM=X13
+# command (cwd tools/story-dev): PYTHONUTF8=1 NORMANBF_ARM=X13 py -3.12 story_harness.py prenorman_fodder_grind.ss1 --driver normanboxfirst --frames 3000 --log C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13.log
+# fixture prenorman_fodder_grind.ss1 md5 before: 2580a3dfc57b27d270931c1a8be59069  after: 2580a3dfc57b27d270931c1a8be59069  UNCHANGED
+# started 2026-10-02 12:27:00  ended 2026-10-02 12:27:41  exit code 0
+
+====================================================================================================
+===== --log (X13.log) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13.log
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=X13 stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER=None frame=3000000
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f575: PARTY CHANGE [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f640: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f650: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f676: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 720
+[normanbf] R T0 map = (0, 17)
+[normanbf] R T0 tile = (9, 2)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 7
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 4
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': False, 'RECEIVED_HM_SURF': False, 'DEFEATED_PETALBURG_GYM': False}
+[normanbf] R T0 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('341D550A', 'Combusken', 'Rock Smash', 60.0), ('42207D6F', 'Shedinja', None, 0.0), ('B2768B68', 'Whismur', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('3BDA9D98', 'Mightyena', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True}
+[normanbf] R T1 fresh_counter_hunts = {}
+[normanbf] R T1 fresh_registry = []
+[normanbf] R T1 seed = {'defeat_counts': {'(8, 1)': 8, '(0, 0)': 8}, 'loss_ko_history': {'(8, 1)': [(0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1)]}}
+[normanbf] R T1 hopeless = (True, ['Fighting'])
+[normanbf] R T1 planner_candidates = [('Machop@FIERY_PATH', True, (18, 19)), ('Machop@JAGGED_PASS', False, None), ('Makuhita@GRANITE_CAVE_B1F', False, None), ('Makuhita@GRANITE_CAVE_1F', False, None), ('Makuhita@GRANITE_CAVE_STEVENS_ROOM', False, None), ('Hariyama@VICTORY_ROAD_1F', False, None), ('Makuhita@VICTORY_ROAD_1F', False, None), ('Hariyama@VICTORY_ROAD_B1F', False, None), ('Heracross@SAFARI_ZONE_NORTH', False, None), ('Pinsir@SAFARI_ZONE_NORTHWEST', False, None)]
+[normanbf] R T1 shortlist = ['Machop@FIERY_PATH']
+[normanbf] R T1 machop_is_shortlist_head = True
+[normanbf] R T1 choice_before_injection = None
+[normanbf] R T1 premise_checks = {'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'shortlist_has_Machop_FIERY_PATH': True, 'no_pick_before_injection': True}
+[normanbf] R T2 injected = {'species': 'Makuhita', 'level': 13, 'pid': 'DE18597D', 'moves': ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'], 'box_slot': (0, 0)}
+[normanbf] R T2 box_after_injection = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T2 pick = ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 premise_checks = {'readback_one_record': True, 'readback_species_level': True, 'readback_moves_equal_created': True, 'moves_as_designed': True, 'pid_new_to_party_and_box': True, 'party_unchanged': True}
+[normanbf] R T2 expected_pick = ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 pick_equals_expectation = True
+[normanbf] INSTRUMENTED planner=True choice=True hunt=True register=True
+[normanbf] ACTION box_counter_choice (inside the ladder) returned ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] ACTION registered ('DE18597D', 'PC box (box-first)', True, 4) (pid, where, in_registry, owed_to_badge)
+[normanbf] R T3 r1 = True
+[normanbf] R T3 call_frames = 0
+[normanbf] R T3 planner_calls = 0
+[normanbf] R T3 box_choice_calls = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T3 hunt_calls = []
+[normanbf] R T3 register_calls = [('DE18597D', 'PC box (box-first)', True, 4)]
+[normanbf] R T3 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'}
+[normanbf] R T3 registry = ['DE18597D']
+[normanbf] R T3 badges_map = {'DE18597D': 4}
+[normanbf] R T3 owed = ['DE18597D']
+[normanbf] R T3 box = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T3 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 r2 = False
+[normanbf] R T4 call_frames = 0
+[normanbf] R T4 planner_calls = 0
+[normanbf] R T4 box_choice_calls = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T4 hunt_calls = []
+[normanbf] R T4 register_calls = [('DE18597D', 'PC box (box-first)', True, 4)]
+[normanbf] R T4 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'}
+[normanbf] R T4 registry = ['DE18597D']
+[normanbf] R T4 badges_map = {'DE18597D': 4}
+[normanbf] R T4 owed = ['DE18597D']
+[normanbf] R T4 box = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T4 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 counter_hunts_unchanged_vs_T3 = True
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'
+[normanbf] EXTRA registered_owed_to_badge = 4
+[normanbf] EXTRA owed_after_call1 = ['DE18597D']
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = []
+[normanbf] EXTRA call2_planner_calls = 0
+[normanbf] EXTRA ladder_box_choice_calls_T3 = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] EXTRA injected_still_boxed_T4 = True
+[normanbf] CROSS-CHECK the hunt shape on this X13 run (must NOT all hold): {'no_box_first_registration': False, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False} -> does not hold (good)
+[normanbf] VERDICT BF-1 (premise T0/T1): HOLDS (T0={'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True} T1={'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'shortlist_has_Machop_FIERY_PATH': True, 'no_pick_before_injection': True})
+[normanbf] conjuncts BF-5 = {'ran_clean': True, 'pick_as_expected': True, 'call1_returned_True': True, 'call1_no_planner_call': True, 'call1_no_hunt_call': True, 'call1_one_register_boxfirst': True, 'counter_hunts_says_boxfirst': True, 'call2_returned_False': True, 'call2_planner_still_0': True, 'call2_counter_hunts_unchanged': True}
+[normanbf] VERDICT BF-5 (arm X13): HOLDS
+[normanbf] ORDER = ['T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks', 'T1.fresh_counter_hunts', 'T1.fresh_registry', 'T1.seed', 'T1.hopeless', 'T1.planner_candidates', 'T1.shortlist', 'T1.machop_is_shortlist_head', 'T1.choice_before_injection', 'T1.premise_checks', 'T2.injected', 'T2.box_after_injection', 'T2.pick', 'T2.premise_checks', 'T2.expected_pick', 'T2.pick_equals_expectation', 'T3.r1', 'T3.call_frames', 'T3.planner_calls', 'T3.box_choice_calls', 'T3.hunt_calls', 'T3.register_calls', 'T3.counter_hunts', 'T3.registry', 'T3.badges_map', 'T3.owed', 'T3.box', 'T3.party', 'T4.r2', 'T4.call_frames', 'T4.planner_calls', 'T4.box_choice_calls', 'T4.hunt_calls', 'T4.register_calls', 'T4.counter_hunts', 'T4.registry', 'T4.badges_map', 'T4.owed', 'T4.box', 'T4.party', 'T4.counter_hunts_unchanged_vs_T3']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')] hunt_calls=[] register_calls=[('DE18597D', 'PC box (box-first)', True, 4)] withdraws=[] deposits=[] whiteouts=0 abort=None failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=X13 stage2=False; rests on BF-5)
+f722: STUCK-OW cb=HandleTurnActionSelectionState instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=[] ctrl=NormanBoxFirstMode.run bt='TYPE/NORMAL' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f723: CONTROLLER -> <none>   (state=BATTLE)
+f723: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f723: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f724: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31030, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+f1623: SAVED stall state #1 to stalls/repro-ml-f1623.ss1 (bt='TYPE/NORMAL')
+f1923: !!! NO-PROGRESS x1200 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f1923:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[done] ran 3000 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 3002 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 3002 recomputes (party_accounting_ledger.jsonl)
+
+====================================================================================================
+===== stdout + stderr (X13.stdout.txt) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13.log
+Running mGBA 0.10.2
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=X13 stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER=None frame=3000000
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Wurmple♂ encountered at Route 102 ─────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ BE182AB0        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │ 21  │ 26↑ │ 29  │ 9  │ 31↓ │ 1… │ │
+│ │       Nature │ Relaxed         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dragon (37)     │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 5,381           │EV Yield: 1 HP                            │
+│ │    Evolution │ Silcoon         │                                          │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Abra   │  25 /  │   1,035 /   │   110 │  6.25% │     0 │    110 │   N/A │ │
+│ │        │  136   │   64,828    │       │        │       │        │       │ │
+│ │ Aron   │  48 /  │   1,687 /   │    15 │  0.85% │     0 │     15 │   N/A │ │
+│ │        │  121   │   53,042    │       │        │       │        │       │ │
+│ │ Geodu… │  90 /  │    724 /    │    12 │  0.68% │     0 │     12 │   N/A │ │
+│ │        │   96   │   14,272    │       │        │       │        │       │ │
+│ │ Gloom  │ 111 /  │  47,298 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │  111   │   47,298    │       │        │       │        │       │ │
+│ │ Kecle… │  88 /  │  20,914 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   88   │   20,914    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     2 │  0.11% │     0 │      2 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Linoo… │  93 /  │  12,044 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   93   │   12,044    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  0.17% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Makuh… │  86 /  │  32,273 /   │    10 │  0.57% │     0 │     10 │   N/A │ │
+│ │        │   86   │   54,166    │       │        │       │        │       │ │
+│ │ Ninca… │  46 /  │   1,493 /   │   245 │ 13.92% │     0 │    245 │   N/A │ │
+│ │        │  147   │   59,889    │       │        │       │        │       │ │
+│ │ Oddish │  77 /  │  12,220 /   │    18 │  1.02% │     0 │     18 │   N/A │ │
+│ │        │  120   │   13,961    │       │        │       │        │       │ │
+│ │ Pooch… │  26 /  │    403 /    │   501 │ 28.47% │     0 │    501 │   N/A │ │
+│ │        │  148   │   65,468    │       │        │       │        │       │ │
+│ │ Shupp… │  88 /  │   4,437 /   │    78 │  4.43% │     0 │     78 │   N/A │ │
+│ │        │  121   │   60,077    │       │        │       │        │       │ │
+│ │ Skitty │  65 /  │  13,297 /   │    20 │  1.14% │     0 │     20 │   N/A │ │
+│ │        │  140   │   59,019    │       │        │       │        │       │ │
+│ │ Taill… │  22 /  │   1,352 /   │   360 │ 20.45% │     0 │    360 │   N/A │ │
+│ │        │  141   │   65,260    │       │        │       │        │       │ │
+│ │ Torko… │ 121 /  │   7,026 /   │    15 │  0.85% │     0 │     15 │   N/A │ │
+│ │        │  121   │    7,026    │       │        │       │        │       │ │
+│ │ Whism… │  16 /  │   1,322 /   │   320 │ 18.18% │     0 │    320 │   N/A │ │
+│ │        │  152   │   64,723    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │   5,381 /   │    19 │  1.08% │     0 │     19 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │  0.23% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Zubat  │  94 /  │  38,183 /   │    25 │  1.42% │     0 │     25 │   N/A │ │
+│ │        │  113   │   60,501    │       │        │       │        │       │ │
+│ │ Total  │  16 /  │    403 /    │ 1,760 │   100% │     0 │  1,760 │   N/A │ │
+│ │        │  152   │   65,468    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f575: PARTY CHANGE [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f640: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f650: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f676: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 720
+[normanbf] R T0 map = (0, 17)
+[normanbf] R T0 tile = (9, 2)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 7
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 4
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': False, 'RECEIVED_HM_SURF': False, 'DEFEATED_PETALBURG_GYM': False}
+[normanbf] R T0 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('341D550A', 'Combusken', 'Rock Smash', 60.0), ('42207D6F', 'Shedinja', None, 0.0), ('B2768B68', 'Whismur', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('3BDA9D98', 'Mightyena', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True}
+[normanbf] R T1 fresh_counter_hunts = {}
+[normanbf] R T1 fresh_registry = []
+[normanbf] R T1 seed = {'defeat_counts': {'(8, 1)': 8, '(0, 0)': 8}, 'loss_ko_history': {'(8, 1)': [(0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1)]}}
+[normanbf] R T1 hopeless = (True, ['Fighting'])
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 11 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 12 hops away 
+(limit 8)
+[normanbf] R T1 planner_candidates = [('Machop@FIERY_PATH', True, (18, 19)), ('Machop@JAGGED_PASS', False, None), ('Makuhita@GRANITE_CAVE_B1F', False, None), ('Makuhita@GRANITE_CAVE_1F', False, None), ('Makuhita@GRANITE_CAVE_STEVENS_ROOM', False, None), ('Hariyama@VICTORY_ROAD_1F', False, None), ('Makuhita@VICTORY_ROAD_1F', False, None), ('Hariyama@VICTORY_ROAD_B1F', False, None), ('Heracross@SAFARI_ZONE_NORTH', False, None), ('Pinsir@SAFARI_ZONE_NORTHWEST', False, None)]
+[normanbf] R T1 shortlist = ['Machop@FIERY_PATH']
+[normanbf] R T1 machop_is_shortlist_head = True
+[normanbf] R T1 choice_before_injection = None
+[normanbf] R T1 premise_checks = {'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'shortlist_has_Machop_FIERY_PATH': True, 'no_pick_before_injection': True}
+[normanbf] R T2 injected = {'species': 'Makuhita', 'level': 13, 'pid': 'DE18597D', 'moves': ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'], 'box_slot': (0, 0)}
+[normanbf] R T2 box_after_injection = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T2 pick = ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 premise_checks = {'readback_one_record': True, 'readback_species_level': True, 'readback_moves_equal_created': True, 'moves_as_designed': True, 'pid_new_to_party_and_box': True, 'party_unchanged': True}
+[normanbf] R T2 expected_pick = ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 pick_equals_expectation = True
+[normanbf] INSTRUMENTED planner=True choice=True hunt=True register=True
+[normanbf] ACTION box_counter_choice (inside the ladder) returned ('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+Story: counter registered (pid=DE18597D, in the PC box (box-first)); it will 
+lead this boss and is protected from PC deposit until its badge.
+[normanbf] ACTION registered ('DE18597D', 'PC box (box-first)', True, 4) (pid, where, in_registry, owed_to_badge)
+Story: a counter for this boss is already in the PC: Makuhita L13 (Vital Throw 
+scores 210, own type). It is collected at the next heal instead of hunting a 
+new one.
+[normanbf] R T3 r1 = True
+[normanbf] R T3 call_frames = 0
+[normanbf] R T3 planner_calls = 0
+[normanbf] R T3 box_choice_calls = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T3 hunt_calls = []
+[normanbf] R T3 register_calls = [('DE18597D', 'PC box (box-first)', True, 4)]
+[normanbf] R T3 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'}
+[normanbf] R T3 registry = ['DE18597D']
+[normanbf] R T3 badges_map = {'DE18597D': 4}
+[normanbf] R T3 owed = ['DE18597D']
+[normanbf] R T3 box = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T3 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+Story: already hunted a counter for this boss this run (box-first Makuhita L13 
+pid=DE18597D (Vital Throw scores 210, own type)) — not trying again; stopping 
+honestly.
+[normanbf] R T4 r2 = False
+[normanbf] R T4 call_frames = 0
+[normanbf] R T4 planner_calls = 0
+[normanbf] R T4 box_choice_calls = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T4 hunt_calls = []
+[normanbf] R T4 register_calls = [('DE18597D', 'PC box (box-first)', True, 4)]
+[normanbf] R T4 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'}
+[normanbf] R T4 registry = ['DE18597D']
+[normanbf] R T4 badges_map = {'DE18597D': 4}
+[normanbf] R T4 owed = ['DE18597D']
+[normanbf] R T4 box = [('DE18597D', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T4 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 counter_hunts_unchanged_vs_T3 = True
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = 'box-first Makuhita L13 pid=DE18597D (Vital Throw scores 210, own type)'
+[normanbf] EXTRA registered_owed_to_badge = 4
+[normanbf] EXTRA owed_after_call1 = ['DE18597D']
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = []
+[normanbf] EXTRA call2_planner_calls = 0
+[normanbf] EXTRA ladder_box_choice_calls_T3 = [('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] EXTRA injected_still_boxed_T4 = True
+[normanbf] CROSS-CHECK the hunt shape on this X13 run (must NOT all hold): {'no_box_first_registration': False, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False} -> does not hold (good)
+[normanbf] VERDICT BF-1 (premise T0/T1): HOLDS (T0={'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True} T1={'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'shortlist_has_Machop_FIERY_PATH': True, 'no_pick_before_injection': True})
+[normanbf] conjuncts BF-5 = {'ran_clean': True, 'pick_as_expected': True, 'call1_returned_True': True, 'call1_no_planner_call': True, 'call1_no_hunt_call': True, 'call1_one_register_boxfirst': True, 'counter_hunts_says_boxfirst': True, 'call2_returned_False': True, 'call2_planner_still_0': True, 'call2_counter_hunts_unchanged': True}
+[normanbf] VERDICT BF-5 (arm X13): HOLDS
+[normanbf] ORDER = ['T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks', 'T1.fresh_counter_hunts', 'T1.fresh_registry', 'T1.seed', 'T1.hopeless', 'T1.planner_candidates', 'T1.shortlist', 'T1.machop_is_shortlist_head', 'T1.choice_before_injection', 'T1.premise_checks', 'T2.injected', 'T2.box_after_injection', 'T2.pick', 'T2.premise_checks', 'T2.expected_pick', 'T2.pick_equals_expectation', 'T3.r1', 'T3.call_frames', 'T3.planner_calls', 'T3.box_choice_calls', 'T3.hunt_calls', 'T3.register_calls', 'T3.counter_hunts', 'T3.registry', 'T3.badges_map', 'T3.owed', 'T3.box', 'T3.party', 'T4.r2', 'T4.call_frames', 'T4.planner_calls', 'T4.box_choice_calls', 'T4.hunt_calls', 'T4.register_calls', 'T4.counter_hunts', 'T4.registry', 'T4.badges_map', 'T4.owed', 'T4.box', 'T4.party', 'T4.counter_hunts_unchanged_vs_T3']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[('DE18597D', 'Makuhita', 13, 'Vital Throw scores 210, own type')] hunt_calls=[] register_calls=[('DE18597D', 'PC box (box-first)', True, 4)] withdraws=[] deposits=[] whiteouts=0 abort=None failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=X13 stage2=False; rests on BF-5)
+f722: STUCK-OW cb=HandleTurnActionSelectionState instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=[] ctrl=NormanBoxFirstMode.run bt='TYPE/NORMAL' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f723: CONTROLLER -> <none>   (state=BATTLE)
+f723: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f723: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f724: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31030, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+f1623: SAVED stall state #1 to stalls/repro-ml-f1623.ss1 (bt='TYPE/NORMAL')
+f1923: !!! NO-PROGRESS x1200 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f1923:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[done] ran 3000 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 3002 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 3002 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-02_12
+-27-41.ss1 created!
+Updated `current_state.ss1`!
