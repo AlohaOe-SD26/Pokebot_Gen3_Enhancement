@@ -47,6 +47,11 @@ THE CHECKS (DESIGN §5; the spec's table; the rulings):
       an ACTING package tag (RULING 3, `ACTING_TAGS`); the pattern reads yes if ANY of those tails holds one, and the
       number of qualifying signatures with NO acting tag is printed beside it.
 
+KI-119 (`#27-gradeidentity`): a reset booted from a lane's Hall-of-Fame save logs that save's badges and party BEFORE the
+run's `Story: choosing X!` line, so `extract` reads the PROGRESS fields (money, map, era, leg 11, the Rustboro errand,
+badges, catches) only after that line and the CORRECTNESS reads above over the WHOLE log; badges are the run's leader
+WINS, and the `[BADGE]` lines a control (`extract`'s docstring; the tables print it in D-funnel).
+
 EXIT: 0 the checks were computed (FINDINGs are reported, not errors); 1 an instrument control failed (nothing checked);
 2 usage.
 
@@ -171,6 +176,14 @@ def _check_trainers(table: dict) -> None:
 
 _check_trainers(TRAINERS)
 
+#: KI-119 (`#27-gradeidentity`): BADGE n is the run's first WIN over gym leader n — a `[TRAINER] end opp=<id> res=Won`
+#: line after the run's choosing line — with the leaders in badge order (opponents.h :265-272). ⛔ The `[BADGE]` lines
+#: are a CONTROL only: a boot-loaded Hall-of-Fame save logs all 8 at f301, and the bot's recorder then never logs the
+#: run's real ones (step 14: 27 of 78 logs; the recorder is a SEPARATE bot item). Validated on the 51 fresh logs: the
+#: same badge set as `[BADGE]` in 51 of 51 (the `[BADGE]` line comes 833-3,514 frames after the win).
+BADGE_LEADERS = ("ROXANNE", "BRAWLY", "WATTSON", "FLANNERY", "NORMAN", "WINONA", "TATE_AND_LIZA", "JUAN")
+LEADER_BADGE = {TRAINERS[name][0]: n for n, name in enumerate(BADGE_LEADERS, 1)}
+
 # ---------------------------------------------------------------------------------------------------- line patterns
 #: `f<frame> [CATEGORY] message` (the frame prefix optional, as `battle_log._PREFIX`).
 _CAT = re.compile(r"^(?:f(\d+) )?\[([A-Za-z0-9_-]+)\] (.*)$")
@@ -194,6 +207,8 @@ _RARE = re.compile(r"\brare=(\S+)")
 #: `[DEXFENCE] skip #263 Zigzagoon — no Pokédex yet[ rare=… tier=… note=…]` / `[DEXFENCE] CATCH #63 Abra — …`.
 _FENCE = re.compile(r"^(\S+) #(\d+) (.+?) — (.*)$")
 _BADGE = re.compile(r"\bn=(\d+)\b")
+#: A `[CATCH] end` line's own `badges=` field: the game's badge count at the catch (`story_mode.py:6336/6795`)
+_CATCH_BADGES = re.compile(r"\bbadges=(\d+)\b")
 _MONEY_SIGN = re.compile(r"money=₽([\d,]+)")
 _MONEY_HB = re.compile(r"\bmoney=(\d+)\b")
 _WHY = re.compile(r"\bwhy=(\S+)")
@@ -383,7 +398,16 @@ class M1bPool:
 
 def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | None" = None) -> dict:
     """PURE (lines in, a dict out; `m1b` an optional accumulator): everything T4 needs from ONE run log. `forbid` =
-    the arms file's `monitor.<lane arm>.forbid` (E3)."""
+    the arms file's `monitor.<lane arm>.forbid` (E3).
+    ⛔ KI-119 (`#27-gradeidentity`), PROGRESS vs CORRECTNESS. A reset booted from a Hall-of-Fame save logs THAT game
+    before the run's `Story: choosing X!` line (`battle_log.run_start`, `start` below). So the PROGRESS fields — money,
+    the map (and with it the era, leg 11 and the Rustboro errand, whose heal needs a map read), the badges and the
+    catches — are read only AFTER that line (none at all without one). The CORRECTNESS reads — the battles (E1, E2,
+    E4, E5), the monitor and the dex-loss filing (E3), STOP-3's tail, `[DMGAUDIT]` (M1b) and `[WEAKEN-OBS]` — read
+    the WHOLE log: an invariant holds for every line the bot wrote. Badges are the leader wins (`LEADER_BADGE`); a
+    catch's Stone-Badge tag is its `[CATCH] end` line's own `badges=`; the `[BADGE]` lines are a CONTROL
+    (`badge_pre_start`: lines before the start, the run's badge telemetry POISONED; `badge_lines`: after it)."""
+    start = bl.run_start(lines)
     telemetry = bl.has_trainer_telemetry(lines)
     battles = [b for b in bl.split_battles(lines) if b.started]
     recs = [battle_rec(k, b, telemetry) for k, b in enumerate(battles)]
@@ -396,6 +420,7 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         "tail": tail_of(lines), "badges": {}, "caught": [], "fence": set(), "fence_unparsed": 0,
         "balls_buy": [], "kit_buy": [], "leg11_loaded": False, "leg11_old": [], "leg11_new": [], "leg11_money": None,
         "weaken": collections.Counter(), "rare": [], "frames": 0, "dmg_lines": 0, "transient_maps": len(transient),
+        "start": start, "badge_lines": {}, "badge_pre_start": 0,
     }
     k = -1
     cur_map = None
@@ -411,6 +436,8 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         frame = int(m.group(1)) if m and m.group(1) else None
         if frame is not None:
             out["frames"] = max(out["frames"], frame)
+        # ⛔ KI-119: a PROGRESS field is read only AFTER the run's choosing line (none without one)
+        progress = start is not None and pos > start
         r = bl.route(line)
         if r == "start":
             k += 1
@@ -437,7 +464,14 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
                 events[k].append(("use", pos, g.group(1) if g else None, t.group(1) if t else None, line))
             elif d.get("kind") == "after":
                 events[k].append(("after", pos, g.group(1) if g else None, d, line))
-        elif cat == "MAP":
+        elif r == "trainer" and progress:
+            # BADGE n = the run's first WIN over gym leader n (KI-119, `LEADER_BADGE`)
+            t = bl.parse_trainer(line)
+            if t and t["kind"] == "end" and t["res"] == "Won" and frame is not None:
+                for i in sorted(bl.opp_ids(t["opp"])):
+                    if i in LEADER_BADGE:
+                        out["badges"].setdefault(LEADER_BADGE[i], frame)
+        elif cat == "MAP" and progress:
             mm = parse_map(msg)
             if mm:
                 cur_map = mm[1]
@@ -449,6 +483,8 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
                     if heal_window and cur_map not in (RUSTBORO_PC, RUSTBORO_CITY, RUSTBORO_MART):
                         heal_window = False
         elif cat == "PC" and _HEAL_MARK.match(msg):
+            # KI-119: bounded THROUGH the map — a heal counts only at RUSTBORO_PC, which only a [MAP] read after the
+            # start can set
             heal_window = False                     # a heal ends the previous heal's errand window
             if out["rustboro"] is None and cur_map == RUSTBORO_PC:
                 out["rustboro"] = {"marker": line, "topoff": None, "kit": None}
@@ -476,8 +512,13 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
                         recs[k]["catch"] = True
                         if end_v == "lost":
                             recs[k]["catch_lost"].append(line)
-                    if end_v == "caught":
-                        out["caught"].append((sp.group(1) if sp else "?", max(out["badges"], default=0)))
+                    if end_v == "caught" and progress:
+                        # D-lead's Stone-Badge tag (KI-119): the line's OWN badges= field, the game's badge count at
+                        # the catch (equal to the leader wins there on 723 of 723 real lines); a line without the
+                        # field takes the highest leader-win badge so far
+                        bg = _CATCH_BADGES.search(msg)
+                        out["caught"].append((sp.group(1) if sp else "?",
+                                              int(bg.group(1)) if bg else max(out["badges"], default=0)))
                     if kind and kind.group(1) == "dex" and end_v == "lost":
                         out["loss_lost_dex"].append(line)
                         pending_loss.append(line)
@@ -500,14 +541,18 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
             else:
                 out["fence_unparsed"] += 1
         elif cat == "BADGE":
+            # a CONTROL only (KI-119): before the start the lines are the boot-loaded save's (the run is POISONED)
             bm = _BADGE.search(msg)
             if bm and frame is not None:
-                out["badges"].setdefault(int(bm.group(1)), frame)
-        elif cat == "MONEY":
+                if progress:
+                    out["badge_lines"].setdefault(int(bm.group(1)), frame)
+                else:
+                    out["badge_pre_start"] += 1
+        elif cat == "MONEY" and progress:
             mm = _MONEY_SIGN.search(msg)
             if mm:
                 money = int(mm.group(1).replace(",", ""))
-        elif cat == "hb":
+        elif cat == "hb" and progress:
             mm = _MONEY_HB.search(msg)
             if mm:
                 money = int(mm.group(1))

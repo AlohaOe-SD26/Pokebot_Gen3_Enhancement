@@ -19,8 +19,10 @@ EACH LOG IS ONE RUN (`run_record`):
   * its lane (tag, slot) from its directory; its arm from the header's `env-all:` (`battle_log.arm_of`).
     ⛔ A log whose arm DISAGREES with its lane's `ARMS.json` arm is REFUSED (counted and listed), never re-assigned —
     a CUT log included: a run that loaded the wrong flags must void the grade, not move to the other arm;
-  * species + PID (`battle_log.run_identity`); the CLUSTER is (arm, species, PID): replays of one seed are one unit.
-    Only Torchic, Mudkip and Treecko form strata, and the species must agree with the run's `Story: choosing X!`;
+  * species + PID (`battle_log.run_identity`: the first non-empty `[hb]` AFTER the run's `Story: choosing X!` line —
+    KI-119, a reset booted from a Hall-of-Fame save logs that save's party before it); the CLUSTER is (arm, species,
+    PID): replays of one seed are one unit. Only Torchic, Mudkip and Treecko form strata, and the species must agree
+    with the run's `Story: choosing X!` (a log with no such line is `no_starter`, KI-119's decision);
   * status: `cut` (the lane's `cut_log`), `lost` (the log a DYING spawn had open), `capped` (the 30 MiB cap), else
     `complete`. The first three are CENSORED: they say nothing about a trainer they never met;
   * per K* trainer: met (any `[TRAINER] start`), the FIRST attempt's outcome (`battle_log.first_attempts`; a Draw is
@@ -45,8 +47,10 @@ estimate and for every bootstrap draw, so the two can never disagree):
   arm × species; percentile CIs; a draw in which a statistic is undefined is dropped, and the count is printed.
 THE STATUS of C1 / C2 (DESIGN §4, DECISIONS F1 F6 F7): CONFIRMATORY only with none of — a STOP that voids them
   (an automated abort in summary.json, or `--void`), a LIVE read without summary.json (PROVISIONAL), a non-pre-
-  registered draws / seed / δ (EXPLORATORY), K* not fully estimable, C1 not passing. The JSON carries the rule's word
-  (`rule_reading`) apart from the `verdict`, which is that word only when CONFIRMATORY.
+  registered draws / seed / δ (EXPLORATORY), a GRADER revised after the batch started (`GRADER_REVISIONS`, fail-
+  closed: EXPLORATORY), K* not fully estimable, C1 not passing. The JSON carries the rule's word (`rule_reading`)
+  apart from the `verdict`, which is that word only when CONFIRMATORY — or OPERATIVE: a grader revision a recorded
+  user ruling made operative for that batch (`GRADER_RULINGS`); the status then names the ruling AND the revision.
 
 EXIT: 0 the grade was computed (whatever the verdicts); 1 an INSTRUMENT CONTROL failed (zero runs, a refused log, an
 arm with no usable runs, an INCOMPLETE batch directory) — then NO statistic is printed, so no verdict word can be read
@@ -111,6 +115,24 @@ ARM_A, ARM_B = "A", "B"   # B − A is the one confirmatory comparison (DESIGN �
 #: after "FAILED — "); an "x4h error: …" abort voids too. ⛔ A user park does NOT void: "a user park stands".
 AUTOMATED_STOPS = ("ARM LEAK", "VACUITY", "ARM HEADER ASSERTION FAILED", "EMULATION ASSERTION FAILED", "FREEZE BROKEN")
 USER_PARK = "interrupted by user (Ctrl-C)"
+#: ⛔ FAIL-CLOSED (`#27-gradeidentity`, KI-119): every revision of how THIS grader reads a log, as (date, what changed).
+#: A batch whose ARMS.json `started` is not on a LATER day than a revision was graded by a grader revised after it ran:
+#: its C1-C2 are EXPLORATORY naming the revision (DESIGN §4: no read may change "any analysis choice"), unless a
+#: recorded user ruling for that batch covers the revision (`GRADER_RULINGS`). The date carries no time, so a batch
+#: started ON a revision's day counts as before it; an unreadable `started` predates every revision.
+GRADER_REVISIONS = (
+    ("2026-10-02", "KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' "
+                   "line; badges from leader wins"),
+)
+#: batch STAMP (exact; never a pattern) -> the recorded user ruling that makes its grade OPERATIVE despite the
+#: revisions it names: the status then reads "OPERATIVE BY <ruling> — graded by a grader revised after the batch (…)",
+#: so the revision stays visible, and the verdict is the rule's word. A revision the ruling does not name stays
+#: EXPLORATORY.
+GRADER_RULINGS = {
+    "20261001-210001": {"ruling": "USER RULING 30", "revisions": ("2026-10-02",),
+                        "why": "06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected "
+                               "grade is the operative result"},
+}
 #: Per-cluster fields: (C, K) matrices, then (C,) vectors. N/W = decided first attempts fought / won; RN/RD = reach
 #: numerator / denominator; CN = composite numerator (denominator RD); H/Hn = C1's per-run means summed / counted;
 #: L5/B5 = non-key trainer battles lost (Draw included) / decided; NR = runs.
@@ -155,7 +177,9 @@ def run_record(lines, *, log: str, lane: dict, arms: dict, cut: bool = False, lo
     elif species is None:
         # SPEC-SILENT: a run with no starter cannot be stratified, so it is EXCLUDED and listed (normally a run cut
         # seconds after it began, before any trainer; the RUNS table still shows anything it did fight).
-        excluded, kind = "no starter read (no [hb] line with a non-empty ids=)", "no_starter"
+        # ⛔ KI-119 DECISION (`#27-gradeidentity`; supersedes T23-PREDICTIONS.md:49-50): a log with NO choosing line is
+        # no_starter too — its identity is never read from an earlier `[hb]` (`battle_log.run_identity`)
+        excluded, kind = "no starter read (no non-empty [hb] after 'Story: choosing X!')", "no_starter"
     elif species not in STARTERS:
         excluded, kind = f"species {species!r} is not one of the three starters (DECISION F8)", "not_a_starter"
     elif chosen != species:
@@ -249,6 +273,26 @@ def exploratory_reasons(draws: int, seed: int, delta: float, prereg: "float | No
     elif delta != prereg:
         out.append(f"δ {delta} (pre-registered {prereg})")
     return out
+
+
+def grader_revision_reasons(started, stamp=None) -> "tuple[list, list]":
+    """`#27-gradeidentity`, FAIL-CLOSED: (EXPLORATORY reasons, OPERATIVE notes) for a batch, by its ARMS.json `started`
+    (ISO) and `stamp`. Each grader revision (`GRADER_REVISIONS`) the batch did not start on a LATER day than is a
+    reason its grade is not the one designed: an EXPLORATORY reason — or, when a recorded user ruling for EXACTLY this
+    stamp names that revision (`GRADER_RULINGS`), an OPERATIVE note that keeps the revision visible."""
+    day = started[:10] if isinstance(started, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", started[:10]) else None
+    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None
+    exploratory, operative = [], []
+    for date, why in GRADER_REVISIONS:
+        if day is not None and day > date:
+            continue                          # the batch started on a later day: graded as designed
+        when = f"started {day}" if day else "its start is unknown: ARMS.json has no readable 'started'"
+        text = f"graded by a grader revised after the batch ({when}; revision {date}: {why})"
+        if ruling is not None and date in ruling["revisions"]:
+            operative.append(f"OPERATIVE BY {ruling['ruling']} — {text} [{ruling['why']}]")
+        else:
+            exploratory.append(text)
+    return exploratory, operative
 
 
 def completeness_failures(lanes, logs_per_lane: dict, summary: "dict | None", live: bool, tag=None) -> list:
@@ -465,10 +509,16 @@ def c5_flag(lo90: float, hi90: float) -> "str | None":
 def status_of(reasons) -> "tuple[str, str | None]":
     """(status text, verdict word) from the ORDERED non-confirmatory reasons [(word, text)]: ("CONFIRMATORY", None)
     with none; else the first reason's label ("DESCRIPTIVE" for VOID / NOT ESTIMABLE / C1, "PROVISIONAL",
-    "EXPLORATORY") followed by EVERY reason, and the first reason's word as the verdict (DECISION F7)."""
+    "EXPLORATORY") followed by EVERY reason, and the first reason's word as the verdict (DECISION F7).
+    `#27-gradeidentity`: an OPERATIVE note (a grader revision a recorded user ruling made operative) is no reason
+    against the verdict — with ONLY such notes the status is their text and the verdict stays the rule's word; beside
+    any other reason it is listed, and that reason labels the status."""
     if not reasons:
         return "CONFIRMATORY", None
-    word = reasons[0][0]
+    hard = [r for r in reasons if r[0] != "OPERATIVE"]
+    if not hard:
+        return "; ".join(text for _w, text in reasons), None
+    word = hard[0][0]
     label = word if word in ("PROVISIONAL", "EXPLORATORY") else "DESCRIPTIVE"
     return f"{label} — " + "; ".join(text for _w, text in reasons), word
 
@@ -480,10 +530,11 @@ def _f(x) -> "float | None":
 
 def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: float = PREREG_DELTA[(16, 2)],
           a: str = ARM_A, b: str = ARM_B, void: "str | None" = None, provisional: bool = False,
-          exploratory=()) -> dict:
+          exploratory=(), operative=()) -> dict:
     """PURE (numpy): the full §5 grade of the USABLE runs of arms `a` and `b`. `void` / `provisional` /
     `exploratory` are the batch-level reasons C1-C2 cannot be confirmatory (`void_reason`, no summary.json,
-    `exploratory_reasons`). JSON-ready (NaN -> None)."""
+    `exploratory_reasons` + `grader_revision_reasons`); `operative` the OPERATIVE notes (`grader_revision_reasons`),
+    which name a recorded user ruling and leave the verdict the rule's word. JSON-ready (NaN -> None)."""
     runs = [r for r in runs if usable(r) and r["arm"] in (a, b)]
     if not runs:
         raise ValueError("grade() needs usable runs; `controls` fails first on a batch without them")
@@ -508,6 +559,8 @@ def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: 
         batch_reasons.append(("PROVISIONAL", "PROVISIONAL: a LIVE read with no summary.json (the batch is running)"))
     if exploratory:
         batch_reasons.append(("EXPLORATORY", "EXPLORATORY: " + ", ".join(exploratory)))
+    for note in operative:
+        batch_reasons.append(("OPERATIVE", note))
     c1 = one("c1_diff")
     c1_pass = nz(c1["ci95"][0]) > 0
     c1_rule = "NOT ESTIMABLE" if c1["point"] is None else "PASS" if c1_pass else "FAIL"     # RC-3
@@ -551,7 +604,7 @@ def grade(runs, *, draws: int = DEFAULT_DRAWS, seed: int = DEFAULT_SEED, delta: 
     clusters = collections.Counter(arm for (arm, _s) in strata for _ in strata[(arm, _s)]["keys"])
     return {
         "arms": [a, b], "draws": draws, "seed": seed, "delta_margin": delta, "species": species,
-        "void": void, "provisional": provisional, "exploratory": list(exploratory),
+        "void": void, "provisional": provisional, "exploratory": list(exploratory), "operative": list(operative),
         "runs_per_arm": dict(collections.Counter(r["arm"] for r in runs)), "clusters_per_arm": dict(clusters),
         "species_per_arm": {arm: dict(collections.Counter(r["species"] for r in runs if r["arm"] == arm))
                             for arm in (a, b)},
@@ -840,6 +893,10 @@ def main(argv=None) -> int:
     summ = facts["summary"]
     void = void_reason(summ, args.void)
     exploratory = exploratory_reasons(args.draws, args.seed, delta, prereg)
+    # ⛔ #27-gradeidentity, FAIL-CLOSED: a grader revised after the batch started makes C1-C2 EXPLORATORY, unless a
+    # recorded user ruling for THIS batch made that revision's grade OPERATIVE (the status then says so)
+    revised, operative = grader_revision_reasons(man["raw"].get("started"), man["raw"].get("stamp"))
+    exploratory += revised
     park = summ and (summ.get("verdict") or "").endswith(USER_PARK)
     header = {
         "source": (f"LIVE lanes endless-{args.tag}-H* under {bl.default_profiles().absolute()}" if args.tag
@@ -852,13 +909,14 @@ def main(argv=None) -> int:
         "C1-C2": (f"VOID: {void} (DESIGN §4)" if void else "not void"),
         "design": (f"{man['raw'].get('lanes_n') or len(man['lanes'])} lanes x {len(man['arms'])} arms; pre-registered δ "
                    f"{prereg if prereg is not None else 'NONE'}; used δ {delta}"
-                   + (f"; EXPLORATORY: {', '.join(exploratory)}" if exploratory else "")),
+                   + (f"; EXPLORATORY: {', '.join(exploratory)}" if exploratory else "")
+                   + (f"; {'; '.join(operative)}" if operative else "")),
         "grade": f"draws {args.draws}, seed {args.seed}, numpy {np.__version__}",
     }
     failures, info = controls(runs, completeness=completeness_failures(
         man["lanes"], facts["logs_per_lane"], summ, live=bool(args.tag), tag=man["raw"].get("profile_tag")))
     result = None if failures else grade(runs, draws=args.draws, seed=args.seed, delta=delta, void=void,
-                                         provisional=summ is None, exploratory=exploratory)
+                                         provisional=summ is None, operative=operative, exploratory=exploratory)
     print("\n".join(render(header, runs, failures, info, result)))
     if args.json:
         slim = [{k: v for k, v in r.items()} for r in runs]

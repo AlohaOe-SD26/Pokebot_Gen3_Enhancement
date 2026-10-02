@@ -26,6 +26,13 @@ ROWS (each a function; a row that raises is red)
             the C2 line, F4 completeness, F5 undefined draws printed, F6 the pre-registered δ / EXPLORATORY, F7 the
             JSON verdict, F8 the starter strata, F9 no-starter counts, F10 censored during a first attempt, F11 a lost
             headerless log, RC-3 C1 NOT ESTIMABLE).
+  KI-119 (`#27-gradeidentity`, `ai-research-notes/2026-10-02-gradeidentity-DESIGN.md`): a reset that boots from a
+            lane's Hall-of-Fame save logs the SAVED game (its [BADGE] lines, one [hb] with the champion's party) before
+            the run's `Story: choosing X!` line. TB11 the stale identity (real lines), TB12 `run_start` and the
+            no-fallback rule, TB13 an empty [hb] after the start, TB14 a real mid-run party misread, CR5 the stale run
+            USABLE, DV14 the FAIL-CLOSED grader-revision rule (EXPLORATORY), DV15 a log with no choosing line is
+            no_starter. DV9's no-choose case moved to DV15 (its kind changed by that decision); TB3's malformed-first
+            case gained a choosing line (without one it would be vacuous). Mutants D30-D40 (+ CM2) revert each rule.
 
 THE SYNTHETIC MODEL (`synth`; spec: "8 lanes per arm, two per starter (the random lane's species drawn); 11-seed pools
 per lane; same-species-PID replays; about 6 runs per lane; K* first-attempt rates from the baseline"):
@@ -49,7 +56,9 @@ per lane; same-species-PID replays; about 6 runs per lane; K* first-attempt rate
 
 THE LINES. Real lines are quoted VERBATIM in `QUOTES`; the PROVENANCE check (not a row: it guards the gate's data) re-reads
 each at its cited line — in the committed spec, or in the 2026-10-01 16-lane smoke batch of the MAIN checkout (that
-batch is not committed; on a machine without it those quotes are reported SKIPPED, never passed).
+batch is not committed; on a machine without it those quotes are reported SKIPPED, never passed). KI-119's stale-boot
+lines (source `stale`) are checked against the COMMITTED excerpt `evidence/2026-10-02-gradeidentity-STALEBOOT.txt`
+always, and against step 14's raw batch log (20261001-210001, the MAIN checkout) when it is here (else SKIPPED).
 
 MUTANTS: source edits of `battle_log.py` / `compare_arms.py`, exec'd in memory (never written to disk), each with the
 EXACT set of FAST rows it must turn red, written before its first run. Mention-only edits must turn NOTHING red.
@@ -70,6 +79,7 @@ import json
 import math
 import pathlib
 import random
+import re
 import sys
 import tempfile
 import time
@@ -104,6 +114,12 @@ def CA():
 ARMS = json.loads((HERE / "arms" / "batch14.json").read_text(encoding="utf-8"))["arms"]
 SPEC = REPO / "PROJECT KNOWLEDGE" / "ai-research-notes" / "2026-10-01-batch14-T23-PREDICTIONS.md"
 SMOKE = None  # set in main(): the MAIN checkout's 16-lane smoke batch (read-only)
+#: KI-119: the committed excerpt of step 14's stale-boot lines, and that batch in the MAIN checkout (set in main())
+STALEBOOT = HERE / "evidence" / "2026-10-02-gradeidentity-STALEBOOT.txt"
+BATCH14 = None
+_L16S = "L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log"   # arm B, a Hall-of-Fame boot (Torchic#759DE59A)
+_L02S = "L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log"   # arm A, KI-119's cited example (Mudkip#68D2F871)
+_L02M = "L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log"   # arm A, a mid-run one-frame party misread
 
 # ============================================================================================ the real lines
 #: name -> (source, relative path or lane, line number, the line VERBATIM). `spec` = the committed spec file (the four
@@ -128,7 +144,47 @@ QUOTES = {
     "h7_start_won": ("L07", None, 4266, "f486406 [TRAINER] start opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 double=False two=False money=684 heal_stock=Full_Heal:1 map=11,3 enemy_alive=3"),
     "h7_end_won": ("L07", None, 4310, "f499537 [TRAINER] end opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 res=Won money=684->2184 delta=1500 mult=1 heal_stock=Full_Heal:1 map=11,3"),
     "h7_ended_won": ("L07", None, 4319, "f501919 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Grovyle:L16', 'Zigzagoon:L5', 'Nincada:L13', 'Whismur:L6']"),
+    # ---- KI-119 (`#27-gradeidentity`): REAL stale-boot lines (source `stale`: the committed excerpt, and the raw log
+    # of step 14's batch when it is here). L16 …-040658 (arm B): a Hall-of-Fame boot logs the SAVED game first.
+    "s16_env": ("stale", _L16S, 13, "    env-all:       {'POKEBOT_BOX_OVERFLOW_CATCH': '1', 'POKEBOT_MAINTAIN': '1', 'POKEBOT_R20_HUNTFIRST': '0', 'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R20_TEAM6': '0', 'POKEBOT_R23_BALLRESTOCK': '1', 'POKEBOT_R24_CATCHHURT': '1', 'POKEBOT_R24_CATCHTRAIN': '1', 'POKEBOT_R24_NOFAINTBAIL': '1', 'POKEBOT_R24_OVERSURVIVAL': '1', 'POKEBOT_R25_CAP': '1', 'POKEBOT_R25_DMGAUDIT': '1', 'POKEBOT_R25_RARE': '1', 'POKEBOT_R25_WEAKEN': 'observe', 'POKEBOT_R25_WEAKEN_CALC': '1', 'POKEBOT_R26_KITTOPOFF': '1', 'POKEBOT_R27_DOUBLEITEMS': '1', 'POKEBOT_R27_KEYITEMS': '1'}"),
+    **{f"s16_b{n}": ("stale", _L16S, 30 + n, f"f301 [BADGE] n={n} party=6/6 box=11 owned=25 spare=24") for n in range(1, 9)},
+    "s16_newgame": ("stale", _L16S, 39, 'f377 [STEP] "Intro: New Game + Professor Birch\'s welcome speech..."'),
+    "s16_hold": ("stale", _L16S, 63, "f2808 [STEP] 'Intro: holding 97f before confirming (RNG decorrelation)...'"),
+    "s16_hb_stale": ("stale", _L16S, 83, "f3601 [hb] mode=Story (ENDLESS RESET) state=10 controllable=False map=LITTLEROOT TOWN(16,11) pos=(7, 5) party=['Swellow:L65', 'Azumarill:L67', 'Skitty:L65', 'Sceptile:L65', 'Linoone:L66', 'Mightyena:L65'] ids=['Swellow#ED2C8CFD:L65:exp282113', 'Azumarill#D4DDD3B3:L67:exp241077', 'Skitty#0CB56F6D:L65:exp222768', 'Sceptile#274110E3:L65:exp285725', 'Linoone#71068797:L66:exp287893', 'Mightyena#5F4049F0:L65:exp282375'] owned=25 balls=25 money=35923 box=11 badges=8 msg='Intro: confirming the name and riding to Littleroot...'"),
+    "s16_clear": ("stale", _L16S, 86, "f3882 [PARTY] size 6 -> 0: []"),
+    "s16_choose": ("stale", _L16S, 298, "f13123 [STEP] 'Story: choosing Torchic!'"),
+    "s16_hb": ("stale", _L16S, 311, "f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Torchic:L5'] ids=['Torchic#759DE59A:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Torchic ♂.\\n\\nNature:\\xa0Brave | Ability:\\xa0Blaze | Item:\\xa0- | IV\\xa0sum:\\xa085 | SV:\\xa033,599'"),
+    # L02 …-010951 (arm A): KI-119's cited example (the frozen reading: Swampert#41027B14)
+    "s02_newgame": ("stale", _L02S, 39, 'f377 [STEP] "Intro: New Game + Professor Birch\'s welcome speech..."'),
+    "s02_hold": ("stale", _L02S, 63, "f2807 [STEP] 'Intro: holding 53f before confirming (RNG decorrelation)...'"),
+    "s02_hb_stale": ("stale", _L02S, 83, "f3601 [hb] mode=Story (ENDLESS RESET) state=10 controllable=False map=LITTLEROOT TOWN(16,11) pos=(7, 5) party=['Swampert:L78', 'Ninjask:L65', 'Dustox:L65', 'Mightyena:L66', 'Shedinja:L47', 'Castform:L26'] ids=['Swampert#41027B14:L78:exp501723', 'Ninjask#14CB9A5A:L65:exp237019', 'Dustox#510372FE:L65:exp285898', 'Mightyena#3221B7CF:L66:exp293985', 'Shedinja#14CB9A5A:L47:exp110436', 'Castform#4180FCC3:L26:exp18520'] owned=17 balls=12 money=75883 box=5 badges=8 msg='Intro: confirming the name and riding to Littleroot...'"),
+    "s02_clear": ("stale", _L02S, 86, "f3839 [PARTY] size 6 -> 0: []"),
+    "s02_choose": ("stale", _L02S, 298, "f13080 [STEP] 'Story: choosing Mudkip!'"),
+    "s02_hb": ("stale", _L02S, 311, "f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Mudkip:L5'] ids=['Mudkip#68D2F871:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Mudkip ♂.\\n\\nNature:\\xa0Hardy | Ability:\\xa0Torrent | Item:\\xa0- | IV\\xa0sum:\\xa068 | SV:\\xa022,832'"),
+    # L02 …-015003 (arm A): a one-frame party misread mid-run; the [hb] after it leads with Poochyena
+    "m_choose": ("stale", _L02M, 298, "f13112 [STEP] 'Story: choosing Mudkip!'"),
+    "m_hb": ("stale", _L02M, 311, "f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Mudkip:L5'] ids=['Mudkip#067116B6:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Mudkip ♂.\\n\\nNature:\\xa0Adamant | Ability:\\xa0Torrent | Item:\\xa0- | IV\\xa0sum:\\xa080 | SV:\\xa012,612'"),
+    "m_clear": ("stale", _L02M, 5274, "f586361 [PARTY] size 4 -> 0: []"),
+    "m_restore": ("stale", _L02M, 5275, "f586362 [PARTY] size 0 -> 4: ['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12']"),
+    "m_hb_after": ("stale", _L02M, 5276, "f586801 [hb] mode=Story (ENDLESS RESET) state=5 controllable=False map=ROUTE 117(0,32) pos=(17, 8) party=['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12'] ids=['Poochyena#A0BAEB85:L12:exp1813', 'Marshtomp#067116B6:L26:exp13717', 'Lombre#A2539333:L15:exp2283', 'Whismur#AEBEEBDD:L12:exp1012'] owned=6 balls=33 money=3218 box=0 badges=8 msg='Encountered Gulpin ♀.\\n\\nNature:\\xa0Hasty | Ability:\\xa0Liquid Ooze | Item:\\xa0- | IV\\xa0sum:\\xa067 | SV:\\xa065,154'"),
 }
+#: KI-119's real runs as fixtures, in log order. STALE16: the L16 boot (the saved game's 8 [BADGE] lines, New Game, the
+#: run's hold, the champion's [hb], the party clear) and then the run's choosing line and its first [hb].
+STALE16 = tuple(f"s16_b{n}" for n in range(1, 9)) + ("s16_newgame", "s16_hold", "s16_hb_stale", "s16_clear",
+                                                     "s16_choose", "s16_hb")
+STALE02 = ("s02_newgame", "s02_hold", "s02_hb_stale", "s02_clear", "s02_choose", "s02_hb")
+MISREAD = ("m_choose", "m_hb", "m_clear", "m_restore", "m_hb_after")
+_STALE_ROW = re.compile(r"^(L\d+/\S+?\.log):(\d+): (.*)$")
+
+
+def stale_excerpt() -> dict:
+    """The committed excerpt: (`<lane>/<log>`, line number) -> the line."""
+    out = {}
+    for row in STALEBOOT.read_text(encoding="utf-8").splitlines():
+        m = _STALE_ROW.match(row)
+        if m:
+            out[(m.group(1), int(m.group(2)))] = m.group(3)
+    return out
 
 
 def Q(name: str) -> str:
@@ -143,7 +199,21 @@ def provenance() -> None:
         logs = sorted((SMOKE / lane / "debug-logs").glob("*.log")) if SMOKE else []
         smoke[lane] = logs[0].read_text(encoding="utf-8", errors="replace").splitlines() if len(logs) == 1 else None
     bad, skipped = [], []
+    excerpt, raw, raw_skipped = stale_excerpt(), {}, []
     for name, (src, _rel, n, text) in QUOTES.items():
+        if src == "stale":
+            # KI-119: the committed excerpt ALWAYS; the raw log when step 14's batch is on this machine
+            if excerpt.get((_rel, n)) != text:
+                bad.append(f"{name} (excerpt {_rel}:{n})")
+            if _rel not in raw:
+                p = BATCH14 / _rel.split("/")[0] / "debug-logs" / _rel.split("/", 1)[1] if BATCH14 else None
+                raw[_rel] = (p.read_text(encoding="utf-8", errors="replace").splitlines()
+                             if p is not None and p.is_file() else None)
+            if raw[_rel] is None:
+                raw_skipped.append(name)
+            elif raw[_rel][n - 1] != text:
+                bad.append(f"{name} (raw {_rel}:{n})")
+            continue
         if src == "spec":
             if text not in spec_lines[n - 1]:
                 bad.append(f"{name} (spec:{n})")
@@ -153,10 +223,15 @@ def provenance() -> None:
             bad.append(f"{name} ({src}:{n})")
     check("PROVENANCE every quoted line is at its cited line, byte for byte", not bad,
           f"{len(QUOTES) - len(skipped)} checked, mismatches {bad}" + (f"; SKIPPED (no smoke batch here) {skipped}"
-                                                                        if skipped else ""))
+                                                                        if skipped else "")
+          + (f"; stale-boot quotes vs the RAW batch log SKIPPED (step 14's batch is not here; the committed excerpt "
+             f"was checked) {raw_skipped}" if raw_skipped else ""))
     # the env-all quote must also be EXACTLY what the debug logger writes for arm A (`debug_logger.py:262-266`)
     check("PROVENANCE the arms file's A, rendered as the logger renders it, IS the real A header line",
           Q("env_all_A") == env_line(ARMS["A"]))
+    # KI-119: and the stale-boot fixture's header (`header(ARMS["B"])`) is what the real L16 lane wrote
+    check("PROVENANCE the arms file's B, rendered as the logger renders it, IS the real stale-boot B header line",
+          Q("s16_env") == env_line(ARMS["B"]))
 
 
 # ============================================================================================ helpers
@@ -472,16 +547,18 @@ def _tb2():
     return eq(got, ("A", "B", "?", "?", "ambiguous", "?"))
 
 
-@row("TB3", "run_identity: the FIRST non-empty [hb] decides (a malformed first one -> None, never a later one); "
-            "missing values None; hold 0 when absent; a double-quoted STEP repr parses")
+@row("TB3", "run_identity: the FIRST non-empty [hb] after the choosing line decides (a malformed first one -> None, "
+            "never a later one); missing values None; hold 0 when absent; a double-quoted STEP repr parses")
 def _tb3():
     b = BL()
     bad_first = Q("hb_first").replace("ids=['Treecko#1304646B:", "ids=['?:")
-    got = (b.run_identity([bad_first, hb("Mudkip", "0BADF00D")]),
+    # KI-119: the malformed-first case carries a choosing line (with none, the identity is None for THAT reason and
+    # the case would test nothing)
+    got = (b.run_identity([Q("choose_treecko"), bad_first, hb("Mudkip", "0BADF00D")]),
            b.run_identity([Q("hb_empty")]),
            b.run_identity(['f2788 [STEP] "Intro: holding 12f before confirming (RNG decorrelation)..."',
                            "f9 [STEP] \"Story: choosing Mudkip!\"", hb("Mudkip", "b4321ac5")]))
-    return eq(got, ({"species": None, "pid": None, "hold": 0, "chosen": None},
+    return eq(got, ({"species": None, "pid": None, "hold": 0, "chosen": "Treecko"},
                     {"species": None, "pid": None, "hold": 0, "chosen": None},
                     {"species": "Mudkip", "pid": "B4321AC5", "hold": 12, "chosen": "Mudkip"}))
 
@@ -574,6 +651,46 @@ def _tb10():
     return eq(b.keys_met(battles, {"ROXANNE": (265,), "BRAWLY": (266,)}), {"BRAWLY"})
 
 
+# ---- KI-119 (`#27-gradeidentity`): the run's identity is read AFTER its choosing line
+@row("TB11", "KI-119: a Hall-of-Fame boot's [hb] (the SAVED champion's party, logged BEFORE 'Story: choosing X!') is NOT "
+             "the run's identity — real L16 …-040658 (frozen reading Swellow#ED2C8CFD) and L02 …-010951 (frozen "
+             "Swampert#41027B14)")
+def _tb11():
+    b = BL()
+    return eq((b.run_identity(header(ARMS["B"]) + [Q(n) for n in STALE16]), b.run_identity([Q(n) for n in STALE02])),
+              ({"species": "Torchic", "pid": "759DE59A", "hold": 97, "chosen": "Torchic"},
+               {"species": "Mudkip", "pid": "68D2F871", "hold": 53, "chosen": "Mudkip"}))
+
+
+@row("TB12", "run_start: the index of the FIRST 'Story: choosing X!' line (a second one does not move it), None without "
+             "one; with NO choosing line the identity is None even after a non-empty [hb] — and a stale-boot log cut "
+             "before its choosing line never reads the champion (NO fallback to the stale reading)")
+def _tb12():
+    b = BL()
+    two = [Q("hb_empty"), Q("hold_7"), Q("choose_treecko"), Q("hb_first"),
+           Q("choose_treecko").replace("Treecko", "Mudkip"), hb("Mudkip", "0BADF00D")]
+    nochoose = [Q("hb_empty"), Q("hold_7"), Q("hb_first")]
+    cut = [Q(n) for n in STALE16 if n not in ("s16_choose", "s16_hb")]
+    none = {"species": None, "pid": None, "chosen": None}
+    return eq((b.run_start(two), b.run_identity(two), b.run_start(nochoose), b.run_identity(nochoose),
+               b.run_identity(cut)),
+              (2, {"species": "Treecko", "pid": "1304646B", "hold": 7, "chosen": "Treecko"}, None, {**none, "hold": 7},
+               {**none, "hold": 97}))
+
+
+@row("TB13", "an EMPTY [hb] (ids=[]) AFTER the choosing line is skipped: the first NON-EMPTY one after it decides")
+def _tb13():
+    return eq(BL().run_identity([Q("choose_treecko"), Q("hb_empty"), Q("hb_first")]),
+              {"species": "Treecko", "pid": "1304646B", "hold": 0, "chosen": "Treecko"})
+
+
+@row("TB14", "a one-frame mid-run party misread AFTER the starter (real L02 …-015003:5274-5275, 'size 4 -> 0' and back) "
+             "does not move the identity: the [hb] after it leads with Poochyena#A0BAEB85, the run is Mudkip#067116B6")
+def _tb14():
+    return eq(BL().run_identity([Q(n) for n in MISREAD]),
+              {"species": "Mudkip", "pid": "067116B6", "hold": 0, "chosen": "Mudkip"})
+
+
 # ============================================================================================ CR — one run's record
 LANE_A = {"tag": "H1", "slot": 0, "arm": "A"}
 
@@ -643,6 +760,17 @@ def _cr4():
     b10 = [(r["lane"], r["slot"], r["arm"], r["refused"]) for r in r1 if r["lane"] == "H10"]
     return eq((len(r1), b10, cuts(r1), cuts(r2), cuts(r3)),
               (19, [("H10", 9, "B", None)], [("H1", "r1"), ("H10", "r3")], [("H2", "r2")], [("H1", "r2"), ("H2", "r2")]))
+
+
+LANE_B16 = {"tag": "H16", "slot": 15, "arm": "B"}
+
+
+@row("CR5", "KI-119: run_record on the REAL stale-boot run (L16 …-040658, arm B) is USABLE, cluster (B, Torchic, "
+            "759DE59A) — the frozen reading excluded it as 'Swellow' (not a starter, F8)")
+def _cr5():
+    r = CA().run_record(header(ARMS["B"]) + [Q(n) for n in STALE16], log="x", lane=LANE_B16, arms=ARMS)
+    return eq((CA().usable(r), r["arm"], r["species"], r["pid"], r["chosen"], r["excluded_kind"]),
+              (True, "B", "Torchic", "759DE59A", "Torchic", None))
 
 
 # ============================================================================================ CS — the estimand
@@ -1166,14 +1294,15 @@ def _dv8():
 
 
 @row("DV9", "F8 only Torchic / Mudkip / Treecko are strata, and the species must match `Story: choosing X!` (a "
-            "mismatch or a missing line is excluded and listed)")
+            "mismatch is excluded and listed; a MISSING line is DV15's since KI-119)")
 def _dv9():
+    # KI-119 (`#27-gradeidentity`): the no-choosing-line case MOVED to DV15 — its kind is that decision's
+    # (`no_starter`, superseding T23-PREDICTIONS.md:49-50's `chosen_mismatch`), not F8's
     c = CA()
     mism = [ln.replace("choosing Treecko", "choosing Mudkip") for ln in log_text(ARMS["A"])]
-    nochoose = [ln for ln in log_text(ARMS["A"]) if "Story: choosing" not in ln]
     kinds = [c.run_record(lines, log="x", lane=LANE_A, arms=ARMS)["excluded_kind"]
-             for lines in (log_text(ARMS["A"], species="Pikachu"), mism, nochoose, log_text(ARMS["A"]))]
-    return eq(kinds, ["not_a_starter", "chosen_mismatch", "chosen_mismatch", None])
+             for lines in (log_text(ARMS["A"], species="Pikachu"), mism, log_text(ARMS["A"]))]
+    return eq(kinds, ["not_a_starter", "chosen_mismatch", None])
 
 
 @row("DV10", "F9 complete runs that never got a starter are counted per arm (a CUT one is not)")
@@ -1216,14 +1345,95 @@ def _dv13():
               ("NOT ESTIMABLE", "DESCRIPTIVE — C1 NOT ESTIMABLE", True, True, False))
 
 
+# ---- KI-119 (`#27-gradeidentity`): the grader-revision rule (FAIL-CLOSED) and the no-choosing-line decision
+_REV = "graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119"
+
+
+def _a_b_lines():
+    return (log_text(ARMS["A"], battles=[fight(1000, 265, LEADER, "Won")]),
+            log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))
+
+
+@row("DV14", "#27-gradeidentity FAIL-CLOSED: a batch with NO ruling that STARTED before a grader revision is "
+             "EXPLORATORY naming it — C1 and C2 status, both JSON verdicts and the header, end to end on the SMOKE "
+             "batch's stamp 20261001-090649 (it shares its date with the ruled 20261001-210001); the revision's own day "
+             "and an unreadable start count as before it; a later day does not")
+def _dv14():
+    c = CA()
+    g = c.grader_revision_reasons
+    smoke = "20261001-090649"
+    cases = (g("2026-10-01T09:06:49", smoke), g("2026-10-02T23:59:59", "x"), g(None, "x"), g("not a date", "x"),
+             g("2026-10-03T00:00:00", "x"))
+    shape = [(len(e), len(o)) for e, o in cases]
+    texts = (cases[0][0][0].startswith(_REV) if cases[0][0] else False,
+             "its start is unknown" in (cases[2][0] or [""])[0])
+    a, b = _a_b_lines()
+    j = TMP["root"] / "dv14.json"
+    code, text = cli([str(batch16("dv14", a, b, started="2026-10-01T09:06:49", stamp=smoke)), "--json", str(j)])
+    gr = json.loads(j.read_text(encoding="utf-8"))["grade"]
+    want = "EXPLORATORY — EXPLORATORY: " + _REV
+    design = [ln for ln in text.splitlines() if ln.startswith("  design")]
+    return eq((shape, texts, code, gr["c1"]["status"].startswith(want), gr["c2"]["status"].startswith(want),
+               gr["c1"]["verdict"], gr["c2"]["verdict"], gr["operative"],
+               len(design) == 1 and ("EXPLORATORY: " + _REV) in design[0]),
+              ([(1, 0), (1, 0), (1, 0), (1, 0), (0, 0)], (True, True), 0, True, True, "EXPLORATORY", "EXPLORATORY", [],
+               True))
+
+
+@row("DV16", "USER RULING 30: the RULED stamp 20261001-210001 (started before the KI-119 revision) reads 'OPERATIVE BY "
+             "USER RULING 30 — graded by a grader revised after the batch (… KI-119 …)' as C1 and C2 status with the "
+             "RULE's word as the verdict; the header names it (end to end); a revision the ruling does not name stays "
+             "EXPLORATORY")
+def _dv16():
+    c = CA()
+    g = c.grader_revision_reasons
+    stamp = "20261001-210001"
+    exp, op = g("2026-10-01T21:00:01", stamp)
+    want = "OPERATIVE BY USER RULING 30 — " + _REV
+    saved = c.GRADER_REVISIONS
+    try:
+        c.GRADER_REVISIONS = tuple(saved) + (("2026-12-01", "a later revision"),)
+        exp2, op2 = g("2026-10-01T21:00:01", stamp)
+    finally:
+        c.GRADER_REVISIONS = saved
+    gr = c.grade(synth(1), draws=50, seed=1, operative=op)
+    a, b = _a_b_lines()
+    j = TMP["root"] / "dv16.json"
+    code, text = cli([str(batch16("dv16", a, b, started="2026-10-01T21:00:01", stamp=stamp)), "--json", str(j)])
+    cj = json.loads(j.read_text(encoding="utf-8"))["grade"]
+    design = [ln for ln in text.splitlines() if ln.startswith("  design")]
+    return eq((exp, len(op), bool(op) and op[0].startswith(want), len(exp2), len(op2),
+               bool(exp2) and "revision 2026-12-01" in exp2[0],
+               bool(op) and gr["c1"]["status"] == op[0] and gr["c2"]["status"] == op[0],
+               gr["c2"]["verdict"] == gr["c2"]["rule_reading"], gr["c1"]["verdict"], code,
+               cj["c1"]["status"].startswith(want), cj["exploratory"],
+               len(design) == 1 and "OPERATIVE BY USER RULING 30" in design[0]),
+              ([], 1, True, 1, 1, True, True, True, "PASS", 0, True, [], True))
+
+
+@row("DV15", "KI-119 DECISION (supersedes T23-PREDICTIONS.md:49-50): a log with NO choosing line is 'no_starter' "
+             "(excluded, its reason naming the choosing line) — not 'chosen_mismatch', even with a non-empty [hb]; a "
+             "stale-boot log cut before its choosing line is 'no_starter', never 'not_a_starter' (the champion)")
+def _dv15():
+    c = CA()
+    nochoose = [ln for ln in log_text(ARMS["A"]) if "Story: choosing" not in ln]
+    cut = header(ARMS["B"]) + [Q(n) for n in STALE16 if n not in ("s16_choose", "s16_hb")]
+    r1 = c.run_record(nochoose, log="x", lane=LANE_A, arms=ARMS)
+    r2 = c.run_record(cut, log="y", lane=LANE_B16, arms=ARMS)
+    return eq((r1["excluded_kind"], "after 'Story: choosing X!'" in (r1["excluded"] or ""), r2["excluded_kind"]),
+              ("no_starter", True, "no_starter"))
+
+
 # ============================================================================================ fixtures on disk
 def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_tag=None, verdict="OK",
-               stop="deadline", interrupted=False, collected=None) -> pathlib.Path:
+               stop="deadline", interrupted=False, collected=None, started="2099-01-01T00:00:00",
+               stamp=None) -> pathlib.Path:
     """A batch directory in T1's layout: `ARMS.json` (the REAL arms; `lanes_n` = the lane count, as T1 writes it),
     `L<nn>/debug-logs/*.log`, `summary.json` (its verdict / stop / `collect_interrupted`, and per lane the cut log and
     `debug_logs_collected` = the logs written, unless `collected` overrides a lane's). `lanes` = [(arm, [(log name,
     lines)])] in slot order. With `profiles_tag`, the logs ALSO go to a fake MAIN checkout's lane profiles
-    (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`)."""
+    (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`). `started` / `stamp` are T1's
+    (`#27-gradeidentity`): by default a start AFTER every grader revision, so only DV14 / DV16 plant an older one."""
     d = TMP["root"] / name
     d.mkdir()
     rows = []
@@ -1238,7 +1448,8 @@ def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_
             dd.mkdir(parents=True)
             for log, lines in logs:
                 (dd / log).write_text("\n".join(lines) + "\n", encoding="utf-8")
-    (d / "ARMS.json").write_text(json.dumps({"stamp": name, "profile_tag": profiles_tag, "arms_sha256": "0" * 64,
+    (d / "ARMS.json").write_text(json.dumps({"stamp": stamp or name, "started": started,
+                                             "profile_tag": profiles_tag, "arms_sha256": "0" * 64,
                                              "code_commit": "test", "arms_text": json.dumps({"arms": ARMS}),
                                              "lanes_n": len(rows), "lanes": rows}), encoding="utf-8")
     if summary:
@@ -1331,15 +1542,17 @@ MUTANTS: list = [
        "all(env.get(k) == v for k, v in spec.items())]")], {"TB2", "CX3"}),
     ("B08 ambiguous resolved to the first match", "bl",
      [('    if len(hits) > 1:\n        return "ambiguous"\n', "")], {"TB2"}),
+    # B09-B12 RE-ANCHORED with KI-119 (`#27-gradeidentity`: run_identity now reads after `run_start`). B10's set
+    # SHRANK to TB13: every other fixture's empty [hb] sits BEFORE its choosing line, where no reading looks now
     ("B09 identity from a LATER [hb] when the first does not parse", "bl",
-     [("        if not ids_seen and _HB_LINE.match(line):",
-       '        if out["species"] is None and _HB_LINE.match(line):')], {"TB3"}),
+     [('                out["species"], out["pid"] = m.group(1), m.group(2).upper()\n            break\n',
+       '                out["species"], out["pid"] = m.group(1), m.group(2).upper()\n                break\n')],
+     {"TB3"}),
     ("B10 the empty ids=[] heartbeat taken as the identity line", "bl",
-     [('            if opened and opened.group(1) != "]":', "            if opened:")],
-     {"CA10", "CR1", "CX1", "CX2", "AH5", "DV3", "DV7", "DV9"}),
+     [('        if opened and opened.group(1) != "]":', "        if opened:")], {"TB13"}),
     ("B11 hold None when absent", "bl",
      [('    out = {"species": None, "pid": None, "hold": 0, "chosen": None}',
-       '    out = {"species": None, "pid": None, "hold": None, "chosen": None}')], {"TB3"}),
+       '    out = {"species": None, "pid": None, "hold": None, "chosen": None}')], {"TB3", "TB13", "TB14"}),
     ("B12 the PID not normalised to upper case", "bl",
      [('out["species"], out["pid"] = m.group(1), m.group(2).upper()',
        'out["species"], out["pid"] = m.group(1), m.group(2)')], {"TB3"}),
@@ -1350,7 +1563,7 @@ MUTANTS: list = [
      {"TB5", "TB6", "TB8"}),
     ("B15 the OLD L0* lanes (L10-L16 missed)", "bl",
      [('_LANE_DIR = re.compile(r"L\\d{2,}")', '_LANE_DIR = re.compile(r"L0\\d")')],
-     {"TB5", "TB6", "TB8", "CR4", "CX2", "DV3", "DV6", "DV7"}),
+     {"TB5", "TB6", "TB8", "CR4", "CX2", "DV3", "DV6", "DV7", "DV14", "DV16"}),   # DV14 / DV16: M-16 batches too
     ("B16 x4_logs resolves under the WORKTREE", "bl",
      [('else main_story_dev()) / "x4-runs" / stamp)', 'else HERE) / "x4-runs" / stamp)')], {"TB6"}),
     ("B17 live_logs endless-<tag>* (s14 reads s14smoke)", "bl",
@@ -1367,6 +1580,13 @@ MUTANTS: list = [
        "    modes = sum(bool(x) for x in (args.stamp, args.since or args.until, args.logs))")], {"TB8"}),
     ("B22 every log has a header", "bl",
      [("    return any(line.startswith(HEADER_END) for line in lines)", "    return True")], {"CR1", "DV12"}),
+    # ADDED AFTER THE KI-119 FOLD'S FIRST RUN (every row and mutant matched; COVERAGE failed): B10 was CA10's only
+    # mutant, and with the identity read after the choosing line B10 reddens only TB13. B23's set was written before
+    # ITS first run.
+    ("B23 the identity from the LAST non-empty [hb] after the start", "bl",
+     [('                out["species"], out["pid"] = m.group(1), m.group(2).upper()\n            break\n    return out',
+       '                out["species"], out["pid"] = m.group(1), m.group(2).upper()\n    return out')],
+     {"CA10", "TB3", "TB12", "TB14"}),
     ("BM1 MENTION ONLY: a docstring quoting a `first=` filter turns NOTHING red", "bl",
      [("    read: it stays True on every lost re-attempt (`trainer_identity.is_first_fight`; review S10).",
        '    read: never `if t["first"] == "True"` (`trainer_identity.is_first_fight`; review S10).')], set()),
@@ -1478,7 +1698,7 @@ MUTANTS: list = [
     ("C36 a cut or lost log with no header is REFUSED", "ca", [("    if (cut or lost) and not header:", "    if False:")],
      {"CR1", "DV12"}),
     ("C37 a run with no starter is kept (then caught as not-a-starter: the KIND is what changes)", "ca",
-     [("    elif species is None:", "    elif False:")], {"CR1"}),
+     [("    elif species is None:", "    elif False:")], {"CR1", "DV15"}),
     ("C38 lost_logs ignores x4h's own stop", "ca",
      [('        if sp.get("end") is None or sp.get("stopped_by") == "x4h" or sp.get("exit") == 0:',
        '        if sp.get("end") is None or sp.get("exit") == 0:')], {"CR3"}),
@@ -1491,7 +1711,8 @@ MUTANTS: list = [
      [('        detail = s.get("lanes") if isinstance(s.get("lanes"), dict) else {}', "        detail = {}")], {"CR4"}),
     ("C42 the lane slot off by one", "ca",
      [("            lane = by_slot.get(int(m.group(1)) - 1) if m else None",
-       "            lane = by_slot.get(int(m.group(1))) if m else None")], {"CR4", "CA7", "CX1", "CX2", "DV3", "DV7"}),
+       "            lane = by_slot.get(int(m.group(1))) if m else None")],
+     {"CR4", "CA7", "CX1", "CX2", "DV3", "DV7", "DV14", "DV16"}),
     ("C43 K*: May's three Route 110 ids dropped", "ca",
      [('    "RIVAL_ROUTE_110": (521, 524, 527, 530, 533, 536),', '    "RIVAL_ROUTE_110": (521, 524, 527),')], {"CK1"}),
     ("C44 the default seed is not 14", "ca", [("DEFAULT_SEED = 14", "DEFAULT_SEED = 15")], {"CX2", "DV7"}),
@@ -1637,7 +1858,7 @@ MUTANTS: list = [
     # crashes every row that renders a report. Kept as found; D11b is the non-crashing form of the same revert.
     ("D11 F3 REACH DIFFERS not in the JSON c2 object (the report then crashes)", "ca",
      [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est},')],
-     {"CA9", "CX1", "CX2", "DV13", "DV3", "DV4", "DV5", "DV7"}),
+     {"CA9", "CX1", "CX2", "DV13", "DV3", "DV4", "DV5", "DV7", "DV14", "DV16"}),
     ("D11b F3 the JSON c2 object carries no REACH DIFFERS", "ca",
      [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est, "reach_differs": []},')],
      {"DV5"}),
@@ -1656,7 +1877,7 @@ MUTANTS: list = [
      [('    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]" + (f" ({nan_draws} draws undefined, excluded)" if nan_draws else "")',
        '    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]"')], {"DV4"}),
     ("D18 F6 the exploratory reasons never reach the grade", "ca",
-     [("exploratory=exploratory)", "exploratory=[])")], {"DV7"}),
+     [("exploratory=exploratory)", "exploratory=[])")], {"DV7", "DV14"}),
     ("D19 F6 δ not derived from the design (always .08)", "ca",
      [("    delta = args.delta if args.delta is not None else prereg", "    delta = args.delta if args.delta is not None else 0.08")],
      {"DV7"}),
@@ -1664,9 +1885,9 @@ MUTANTS: list = [
      [("    if seed != DEFAULT_SEED:", "    if False:")], {"DV7"}),
     ("D21 F7 the C2 verdict is the rule's word whatever the status", "ca",
      [('"verdict": reading if c2_word is None else c2_word,', '"verdict": reading,')],
-     {"CA9", "DV2", "DV3", "DV4", "DV7", "DV8"}),
+     {"CA9", "DV2", "DV3", "DV4", "DV7", "DV8", "DV14"}),
     ("D22 F7 the C1 verdict is the rule's word whatever the status", "ca",
-     [('"verdict": c1_rule if c1_word is None else c1_word,', '"verdict": c1_rule,')], {"DV2"}),
+     [('"verdict": c1_rule if c1_word is None else c1_word,', '"verdict": c1_rule,')], {"DV2", "DV14"}),
     ("D23 F8 any species forms a stratum", "ca", [("    elif species not in STARTERS:", "    elif False:")], {"DV9"}),
     ("D24 F8 the 'choosing' cross-check dropped", "ca", [("    elif chosen != species:", "    elif False:")], {"DV9"}),
     ("D25 F9 cut no-starter runs counted too", "ca",
@@ -1686,6 +1907,56 @@ MUTANTS: list = [
     ("CM1 MENTION ONLY: a comment quoting the one-arm species rule turns NOTHING red", "ca",
      [('#: DESIGN §5 "Per-group" (leaders, rivals, Magma/Aqua), each restricted to K*.',
        '#: DESIGN §5 "Per-group" — never `ok = (na > 0) | (nb > 0)` (leaders, rivals, Magma/Aqua).')], set()),
+    # ---- KI-119 (`#27-gradeidentity`): one REVERT per rule, written before the fix's first run (the recon's D30-D34
+    # renumbered where DV9's no-choose case moved to DV15; D35-D43 are this build's own)
+    ("D30 REVERT: the identity from the first non-empty [hb] ANYWHERE (the frozen reading)", "bl",
+     [('    start = run_start(lines)\n    if start is None:\n        return out\n'
+       '    out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n    for line in lines[start + 1:]:\n',
+       '    start = run_start(lines)\n    if start is not None:\n'
+       '        out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n    for line in lines:\n')],
+     {"TB11", "TB12", "CR5", "DV15"}),
+    ("D31 the identity boundary = the 'Intro: New Game' step (else the choosing line)", "bl",
+     [("    for line in lines[start + 1:]:\n",
+       '    _ng = [i for i, s in enumerate(lines) if "Intro: New Game" in s]\n'
+       "    for line in lines[(_ng[0] if _ng else start) + 1:]:\n")], {"TB11", "CR5"}),
+    ("D32 the scratch re-grade's no-choosing-line FALLBACK to the frozen reading", "bl",
+     [('    if start is None:\n        return out\n    out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n',
+       '    if start is None:\n        start = -1\n    else:\n        out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n')],
+     {"TB12", "DV15"}),
+    ("D33 the identity boundary = the LAST party clear (else the choosing line)", "bl",
+     [("    for line in lines[start + 1:]:\n",
+       '    _cl = [i for i, s in enumerate(lines) if re.search(r"\\[PARTY\\] size \\d+ -> 0:", s)]\n'
+       "    for line in lines[(_cl[-1] if _cl else start) + 1:]:\n")], {"TB14"}),
+    ("D39 run_start = the LAST choosing line", "bl",
+     [('    for i, line in enumerate(lines):\n        if "Story: choosing" in line and _CHOSEN.search(line):\n'
+       '            return i\n    return None\n',
+       '    hits = [i for i, line in enumerate(lines) if "Story: choosing" in line and _CHOSEN.search(line)]\n'
+       '    return hits[-1] if hits else None\n')], {"TB12"}),
+    ("D40 the no_starter reason does not name the choosing line (the pre-KI-119 text)", "ca",
+     [("\"no starter read (no non-empty [hb] after 'Story: choosing X!')\"",
+       '"no starter read (no [hb] line with a non-empty ids=)"')], {"DV15"}),
+    ("D34 the grader-revision EXPLORATORY reason never reaches the grade", "ca",
+     [("    exploratory += revised\n", "")], {"DV14"}),
+    ("D35 a batch started ON a revision's day counts as after it (fail-OPEN on the day)", "ca",
+     [("        if day is not None and day > date:", "        if day is not None and day >= date:")], {"DV14"}),
+    ("D36 an unreadable start counts as after every revision (fail-OPEN)", "ca",
+     [("        if day is not None and day > date:", "        if day is None or day > date:")], {"DV14"}),
+    ("D37 REVERT: the ruling table ignored (USER RULING 30 lifts nothing)", "ca",
+     [("    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None", "    ruling = None")], {"DV16"}),
+    ("D38 a ruling matched by the stamp's DATE PREFIX, not the exact stamp", "ca",
+     [("    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if isinstance(stamp, str) and stamp[:8] == k[:8]), None)")],
+     {"DV14"}),
+    ("D41 a ruling covers EVERY revision, not only the ones it names", "ca",
+     [('        if ruling is not None and date in ruling["revisions"]:', "        if ruling is not None:")], {"DV16"}),
+    ("D42 an OPERATIVE note is treated as a reason against the verdict", "ca",
+     [('    hard = [r for r in reasons if r[0] != "OPERATIVE"]', "    hard = list(reasons)")], {"DV16"}),
+    ("D43 the OPERATIVE notes never reach the grade", "ca",
+     [("operative=operative, exploratory=exploratory)", "operative=(), exploratory=exploratory)")], {"DV16"}),
+    ("CM2 MENTION ONLY: a comment quoting the ruling-table revert turns NOTHING red", "ca",
+     [("#: batch STAMP (exact; never a pattern) -> the recorded user ruling that makes its grade OPERATIVE despite the",
+       "#: batch STAMP (never `stamp[:8] == k[:8]`, never `day >= date`) -> the user ruling making it OPERATIVE despite the")],
+     set()),
 ]
 
 
@@ -1767,9 +2038,10 @@ def run_all_mutants(serial: bool) -> list:
 
 
 def main() -> int:
-    global SMOKE
+    global SMOKE, BATCH14
     t0 = time.perf_counter()
     SMOKE = BL().main_story_dev() / "x4-runs" / "20261001-090649"
+    BATCH14 = BL().main_story_dev() / "x4-runs" / "20261001-210001"
     with tempfile.TemporaryDirectory(prefix="compare-arms-") as tmp:
         TMP.update(build_tree(pathlib.Path(tmp)))
         print("PROVENANCE — the gate's own data")

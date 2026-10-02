@@ -1,0 +1,453 @@
+# 2026-10-02 — #27-gradeidentity (KI-119): step 14's batch 20261001-210001 RE-GRADED with the FIXED tools (this
+# branch's battle_log.py / compare_arms.py / batch14_checks.py / batch14_tables.py), verbatim. A MEASUREMENT.
+# Its status is "OPERATIVE BY USER RULING 30" (06-DECISIONS-LOG 2026-10-02): the batch started BEFORE the grader
+# revision (FAIL-CLOSED: EXPLORATORY without a ruling), and the recorded ruling for THIS stamp makes the corrected
+# grade operative while keeping the revision visible. GI-2 as FILED says "EXPLORATORY"; it predates the ruling.
+#
+# Comparisons the builder ran (scratch scripts; read, not graded):
+#   * compare_arms vs the scratch corrected re-grade (grade14/f8/my_corrected.txt), INSTRUMENT CONTROLS to the closing
+#     rule with only the status wording normalised: 120 lines vs 120, 0 differing lines.
+#   * batch14_checks vs the FROZEN grade (evidence/2026-10-02-batch14-GRADE-OUTPUTS.txt :215-256), E1 through STOP-3:
+#     42 lines vs 42, 0 differing lines. Instrument controls now: 78 logs, usable A 40 / B 38, 0 excluded.
+#   * batch14_tables vs the recon's proposed tables (recon27/gradeid/tables_proposed.txt, ANGLE 4), table by table:
+#     every table identical; D-funnel adds exactly two lines (the badge source, and the [BADGE] control: poisoned
+#     A 16 / B 11, disagreeing A 0 / B 0).
+#   * the D-M1b pool written here is BYTE-IDENTICAL to the frozen grade's (SHA-1 46e60f68360c2b008410bdd5c69c52bdd77af610,
+#     477,613,435 bytes); `audit_damage_calc.py <pool>` ends: "ACCEPTANCE: FAIL — 194304 clean whitelisted hits
+#     (floor 300); 1 over crit_max + 3 (ACCEPT_MARGIN 3, a PROPOSAL for the user): f214702 obs 132 > 128+3".
+#
+# Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 compare_arms.py 20261001-210001 --json <scratch>.json
+#      PYTHONUTF8=1 py -3.12 batch14_checks.py 20261001-210001
+#      PYTHONUTF8=1 py -3.12 batch14_tables.py 20261001-210001 --m1b-out <scratch>.log
+
+==================================================================================================== compare_arms.py 20261001-210001 (FIXED)
+====================================================================================================
+DESIGN v2 STEP 14 — compare_arms (T3): B − A
+⛔ A MEASUREMENT. A non-significant result is NOT confirmation; a missing harm flag is NOT 'no harm'.
+====================================================================================================
+  source        batch C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001
+  ARMS.json     C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001\ARMS.json (arms ['A', 'B'], sha256 5c0009763752f081…, commit f4509da1)
+  batch         verdict 'OK'; stop 'deadline'; lanes lost none
+  C1-C2         not void
+  design        16 lanes x 2 arms; pre-registered δ 0.08; used δ 0.08; OPERATIVE BY USER RULING 30 — graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins) [06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected grade is the operative result]
+  grade         draws 10000, seed 14, numpy 2.1.3
+
+INSTRUMENT CONTROLS
+  logs read: 78   usable runs per arm: {'A': 40, 'B': 38}
+  REFUSED (header arm ≠ the lane's ARMS.json arm): 0
+  excluded (not refused): 0
+  COMPLETE runs that never got a starter (out of every denominator), per arm: none
+  K* first attempts with an unreadable/missing heal_stock (excluded from C1): 0; item names the item data does not know: none; first attempts with no won/lost outcome (excluded from C2): 0
+
+RUNS (one log = one run)
+  H1   A   Torchic#36203CE8 hold=91  complete non-key W/L/? 145/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210004.log 
+  H1   A   Torchic#3E751CAF hold=3   complete non-key W/L/? 81/2/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-015806.log 
+  H1   A   Torchic#36203CE8 hold=107 complete non-key W/L/? 83/3/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-031317.log 
+  H1   A   Torchic#FD4FABF6 hold=54  complete non-key W/L/? 121/3/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-045628.log 
+  H1   A   Torchic#ACF69186 hold=39  complete non-key W/L/? 62/3/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-064702.log 
+  H1   A   Torchic#FD4FABF6 hold=57  complete non-key W/L/? 123/2/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-075217.log 
+  H1   A   Torchic#06858C11 hold=119 cut      non-key W/L/? 30/0/1  ROXANNE:W0 BRAWLY:W0 WATTSON:- FLANNER:- RIVAL_R:W0 TABITHA:- MAXIE_M:-  Story_(ENDLESS_RESET)-debug-20261002-092228.log 
+  H2   A   Mudkip#41027B14 hold=111 complete non-key W/L/? 140/8/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-210016.log 
+  H2   A   Mudkip#68D2F871 hold=53  complete non-key W/L/? 50/2/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:- RIVAL_R:W0 TABITHA:W0 MAXIE_M:-  Story_(ENDLESS_RESET)-debug-20261002-010951.log 
+  H2   A   Mudkip#067116B6 hold=87  complete non-key W/L/? 136/7/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-015003.log 
+  H2   A   Mudkip#2A507349 hold=96  complete non-key W/L/? 140/5/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-041756.log 
+  H2   A   Mudkip#7BE67842 hold=32  cut      non-key W/L/? 124/5/0  ROXANNE:W0 BRAWLY:W4 WATTSON:W0 FLANNER:L0 RIVAL_R:L0 TABITHA:W1 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-072416.log 
+  H3   A   Treecko#272F8B2D hold=114 complete non-key W/L/? 145/1/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210028.log 
+  H3   A   Treecko#8274F3C5 hold=55  complete non-key W/L/? 83/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-012411.log 
+  H3   A   Treecko#E7D8A5C8 hold=99  complete non-key W/L/? 138/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-032413.log 
+  H3   A   Treecko#87BE8B0B hold=90  cut      non-key W/L/? 144/3/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-055319.log 
+  H4   A   Treecko#EB63E5E7 hold=83  complete non-key W/L/? 82/3/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210041.log 
+  H4   A   Mudkip#23090F6C hold=66  complete non-key W/L/? 142/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-225315.log 
+  H4   A   Mudkip#1A669E50 hold=71  complete non-key W/L/? 129/8/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-012728.log 
+  H4   A   Torchic#0CBF44A7 hold=83  complete non-key W/L/? 132/5/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-030152.log 
+  H4   A   Mudkip#22FF9553 hold=104 complete non-key W/L/? 133/5/0  ROXANNE:W0 BRAWLY:L0 WATTSON:W0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-051252.log 
+  H4   A   Torchic#B5D91189 hold=21  cut      non-key W/L/? 65/0/1  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-091415.log 
+  H5   A   Torchic#FD9997D9 hold=68  complete non-key W/L/? 119/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210053.log 
+  H5   A   Torchic#3E751CAF hold=1   complete non-key W/L/? 62/1/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-225654.log 
+  H5   A   Torchic#5CC0627D hold=61  complete non-key W/L/? 138/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-235600.log 
+  H5   A   Torchic#FA1335F8 hold=93  complete non-key W/L/? 141/5/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-042929.log 
+  H5   A   Torchic#16937967 hold=39  cut      non-key W/L/? 57/1/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:m RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-090919.log 
+  H6   A   Mudkip#227A732A hold=55  complete non-key W/L/? 140/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-210105.log 
+  H6   A   Mudkip#7489227A hold=62  complete non-key W/L/? 135/6/0  ROXANNE:W1 BRAWLY:W2 WATTSON:W0 FLANNER:W0 RIVAL_R:W0 TABITHA:W1 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-235901.log 
+  H6   A   Mudkip#6A570334 hold=83  complete non-key W/L/? 138/2/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-035547.log 
+  H6   A   Mudkip#D50F535A hold=103 cut      non-key W/L/? 146/5/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-061829.log 
+  H7   A   Treecko#59812718 hold=4   complete non-key W/L/? 138/3/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210118.log 
+  H7   A   Treecko#E4935884 hold=85  complete non-key W/L/? 140/3/0  ROXANNE:W0 BRAWLY:L0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-232344.log 
+  H7   A   Treecko#51BF9553 hold=42  complete non-key W/L/? 143/3/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-040433.log 
+  H7   A   Treecko#8FD9E3F2 hold=46  cut      non-key W/L/? 16/0/0  ROXANNE:W0 BRAWLY:- WATTSON:- FLANNER:- RIVAL_R:- TABITHA:- MAXIE_M:-  Story_(ENDLESS_RESET)-debug-20261002-093137.log 
+  H8   A   Treecko#AB2E2A16 hold=82  complete non-key W/L/? 62/1/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210130.log 
+  H8   A   Mudkip#4EE407E0 hold=58  complete non-key W/L/? 132/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-222008.log 
+  H8   A   Treecko#D66E1A42 hold=71  complete non-key W/L/? 133/4/0  ROXANNE:L0 BRAWLY:L0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-024849.log 
+  H8   A   Treecko#3622E589 hold=115 complete non-key W/L/? 140/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-050702.log 
+  H8   A   Mudkip#A541BF6F hold=18  cut      non-key W/L/? 127/4/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-073916.log 
+  H9   B   Torchic#FD9997D9 hold=68  complete non-key W/L/? 127/2/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210010.log 
+  H9   B   Torchic#C8E0A305 hold=26  complete non-key W/L/? 118/1/0  ROXANNE:W0 BRAWLY:L3 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-231152.log 
+  H9   B   Torchic#36203CE8 hold=105 complete non-key W/L/? 137/2/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L2 FLANNER:W0 RIVAL_R:W3 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-014748.log 
+  H9   B   Torchic#B44AA60C hold=82  complete non-key W/L/? 120/4/0  ROXANNE:W1 BRAWLY:W15 WATTSON:L13 FLANNER:L6 RIVAL_R:W15 TABITHA:W7 MAXIE_M:W6  Story_(ENDLESS_RESET)-debug-20261002-065751.log 
+  H9   B   Torchic#223CEB18 hold=60  cut      non-key W/L/? 60/2/0  ROXANNE:W0 BRAWLY:W14 WATTSON:L6 FLANNER:W6 RIVAL_R:L10 TABITHA:W6 MAXIE_M:W6  Story_(ENDLESS_RESET)-debug-20261002-085707.log 
+  H10  B   Mudkip#A0F63663 hold=21  complete non-key W/L/? 60/1/0  ROXANNE:W0 BRAWLY:W1 WATTSON:W0 FLANNER:L0 RIVAL_R:W1 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210023.log 
+  H10  B   Mudkip#043A52B9 hold=114 complete non-key W/L/? 61/5/0  ROXANNE:L0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:L2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-222014.log 
+  H10  B   Mudkip#043A52B9 hold=117 complete non-key W/L/? 133/5/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:W2 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-231848.log 
+  H10  B   Mudkip#707D51CB hold=38  complete non-key W/L/? 60/4/0  ROXANNE:W1 BRAWLY:W6 WATTSON:W5 FLANNER:W1 RIVAL_R:L6 TABITHA:W3 MAXIE_M:W2  Story_(ENDLESS_RESET)-debug-20261002-035402.log 
+  H10  B   Mudkip#ADEC35FD hold=103 complete non-key W/L/? 54/2/0  ROXANNE:W0 BRAWLY:W1 WATTSON:L0 FLANNER:- RIVAL_R:W1 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-045709.log 
+  H10  B   Mudkip#14F8AC29 hold=21  complete non-key W/L/? 123/3/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-054805.log 
+  H10  B   Mudkip#7BE67842 hold=28  cut      non-key W/L/? 111/8/0  ROXANNE:W0 BRAWLY:W3 WATTSON:W0 FLANNER:L0 RIVAL_R:L0 TABITHA:L0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-075933.log 
+  H11  B   Treecko#EBACC968 hold=57  complete non-key W/L/? 57/0/0  ROXANNE:L0 BRAWLY:W2 WATTSON:L0 FLANNER:L0 RIVAL_R:L2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210035.log 
+  H11  B   Treecko#272F8B2D hold=105 complete non-key W/L/? 119/2/0  ROXANNE:W0 BRAWLY:W2 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-223415.log 
+  H11  B   Treecko#2965A42C hold=92  complete non-key W/L/? 135/2/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-010137.log 
+  H11  B   Treecko#8C192965 hold=77  cut      non-key W/L/? 131/2/0  ROXANNE:W0 BRAWLY:W4 WATTSON:L0 FLANNER:W0 RIVAL_R:W3 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-060010.log 
+  H12  B   Mudkip#1304646B hold=12  complete non-key W/L/? 140/5/0  ROXANNE:W0 BRAWLY:W0 WATTSON:W0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-210047.log 
+  H12  B   Treecko#EB63E5E7 hold=86  complete non-key W/L/? 133/6/0  ROXANNE:L0 BRAWLY:W1 WATTSON:L0 FLANNER:L0 RIVAL_R:L1 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-015129.log 
+  H12  B   Torchic#1304646B hold=40  cut      non-key W/L/? 123/2/1  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-070043.log 
+  H13  B   Torchic#3E751CAF hold=14  complete non-key W/L/? 135/1/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210059.log 
+  H13  B   Torchic#06858C11 hold=109 complete non-key W/L/? 140/2/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-014239.log 
+  H13  B   Torchic#3E751CAF hold=3   complete non-key W/L/? 120/2/0  ROXANNE:W0 BRAWLY:W4 WATTSON:L0 FLANNER:L0 RIVAL_R:W4 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-043756.log 
+  H13  B   Torchic#3E751CAF hold=14  complete non-key W/L/? 131/1/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:L2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-063412.log 
+  H13  B   Torchic#36203CE8 hold=104 cut      non-key W/L/? 61/2/0  ROXANNE:W0 BRAWLY:W2 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-084230.log 
+  H14  B   Mudkip#5252D05D hold=38  complete non-key W/L/? 59/12/0  ROXANNE:W0 BRAWLY:W1 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261001-210111.log 
+  H14  B   Mudkip#D5E412FD hold=106 complete non-key W/L/? 60/0/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-220515.log 
+  H14  B   Mudkip#EDA590C0 hold=103 complete non-key W/L/? 61/4/0  ROXANNE:W0 BRAWLY:W1 WATTSON:W0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-233616.log 
+  H14  B   Mudkip#57A090D3 hold=88  complete non-key W/L/? 134/6/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-004037.log 
+  H14  B   Mudkip#1B13EED2 hold=114 complete non-key W/L/? 59/0/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:W0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-051336.log 
+  H14  B   Mudkip#4060B732 hold=76  cut      non-key W/L/? 136/6/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:L0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-063741.log 
+  H15  B   Treecko#CFB979A1 hold=65  complete non-key W/L/? 139/1/0  ROXANNE:L0 BRAWLY:W2 WATTSON:L1 FLANNER:L0 RIVAL_R:W2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210124.log 
+  H15  B   Treecko#59812718 hold=14  complete non-key W/L/? 118/3/0  ROXANNE:L0 BRAWLY:W0 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-014328.log 
+  H15  B   Treecko#4BA4CE81 hold=61  complete non-key W/L/? 118/2/0  ROXANNE:W0 BRAWLY:W0 WATTSON:L0 FLANNER:L0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-041644.log 
+  H15  B   Treecko#CFB979A1 hold=68  cut      non-key W/L/? 134/3/0  ROXANNE:W0 BRAWLY:W3 WATTSON:L0 FLANNER:L0 RIVAL_R:L2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-063454.log 
+  H16  B   Treecko#274110E3 hold=97  complete non-key W/L/? 141/3/0  ROXANNE:L0 BRAWLY:L2 WATTSON:L0 FLANNER:W0 RIVAL_R:L0 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261001-210136.log 
+  H16  B   Torchic#B9D85971 hold=77  complete non-key W/L/? 119/2/0  ROXANNE:W0 BRAWLY:W1 WATTSON:L0 FLANNER:W0 RIVAL_R:L1 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-015910.log 
+  H16  B   Torchic#759DE59A hold=97  complete non-key W/L/? 112/5/0  ROXANNE:W0 BRAWLY:W2 WATTSON:L0 FLANNER:W0 RIVAL_R:L2 TABITHA:W0 MAXIE_M:W0  Story_(ENDLESS_RESET)-debug-20261002-040658.log 
+  H16  B   Mudkip#6BBD76C5 hold=39  cut      non-key W/L/? 139/7/0  ROXANNE:W0 BRAWLY:W4 WATTSON:L0 FLANNER:W0 RIVAL_R:W3 TABITHA:W0 MAXIE_M:L0  Story_(ENDLESS_RESET)-debug-20261002-060919.log 
+  (per trainer: W/L = the first attempt's outcome, then its HP-item count; ? = an attempt with no won/lost outcome; m = met, no finished attempt; - = not met)
+
+THE DATA: runs {'A': 40, 'B': 38}; clusters (arm, species, PID) {'A': 37, 'B': 33}; species {'A': {'Torchic': 14, 'Mudkip': 14, 'Treecko': 12}, 'B': {'Torchic': 13, 'Mudkip': 15, 'Treecko': 10}}; status {'A': {'complete': 32, 'cut': 8}, 'B': {'complete': 30, 'cut': 8}}
+  bootstrap: 10000 draws, seed 14, clusters resampled within arm × species; percentile CIs; δ = 0.08
+
+C1 — the manipulation check (HP items held at K* first attempts; per run, then per arm)  [OPERATIVE BY USER RULING 30 — graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins) [06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected grade is the operative result]]
+  A 0.032  B 0.930  (runs with a value {'A': 40, 'B': 38})   B − A +0.898  95% CI [+0.442, +1.479]
+  → C1 PASS (lower95 > 0): the C1 -> C2 gate is open (C2's own status is below)
+
+C2 — first-attempt win rate over the FROZEN K* (7 of 7 trainers estimable)  [OPERATIVE BY USER RULING 30 — graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins) [06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected grade is the operative result]]
+  θA 0.625  θB 0.662  Δ +0.037  95% CI [-0.018, +0.093]  90% CI [-0.009, +0.085]
+  → C2: OPERATIVE BY USER RULING 30 — graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins) [06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected grade is the operative result]. The rule reads 'NOT LOWER'   (margin δ = 0.08)
+  C2 LOWER (harm flag, upper90 < 0): no flag
+
+  trainer                 p A    p B       Δ  95% CI              fought A/B  won A/B  reach A  reach B   B − A  90% CI                n A/B
+  ROXANNE               0.833  0.811  -0.022  [-0.157, +0.120]         40/38    34/32    1.000    1.000  +0.000  [+0.000, +0.000]      40/38
+  BRAWLY                0.916  0.941  +0.025  [-0.102, +0.145]         39/38    36/36    1.000    1.000  +0.000  [+0.000, +0.000]      39/38
+  WATTSON               0.216  0.111  -0.105  [-0.233, +0.024]         38/38      9/5    1.000    1.000  +0.000  [+0.000, +0.000]      38/38
+  FLANNERY              0.318  0.566  +0.248  [+0.056, +0.452]         36/37    12/21    0.973    0.974  +0.001  [-0.057, +0.058]      37/38
+  RIVAL_ROUTE_110       0.346  0.450  +0.103  [-0.094, +0.292]         39/38    14/18    1.000    1.000  +0.000  [+0.000, +0.000]      39/38
+  TABITHA_MT_CHIMNEY    1.000  0.956  -0.044  [-0.111, +0.000]         38/38    38/36    1.000    1.000  +0.000  [+0.000, +0.000]      38/38
+  MAXIE_MT_CHIMNEY      0.744  0.800  +0.056  [-0.079, +0.195]         37/38    27/29    0.974    1.000  +0.026  [+0.000, +0.077]      38/38
+  censored DURING a first attempt (out of that trainer's reach and composite, DECISION F10): FLANNERY A 1 (Story_(ENDLESS_RESET)-debug-20261002-090919.log)
+  REACH: no 90% CI excludes 0 (a WEAK check, DESIGN §6)
+  COMPOSITE P(met X and won the first attempt), species-weighted, mean over K*: A 0.622  B 0.661  B − A +0.039  95% CI [-0.015, +0.095]
+
+C5 — losses (Lost + Draw) per decided NON-KEY trainer battle (ratio of sums)
+  A 139/4674 = 0.0297   B 120/4238 = 0.0283   (undecided, not counted: {'A': 2, 'B': 1})
+  B − A -0.0014  90% CI [-0.0071, +0.0048]  → no flag (its absence is NOT no harm)
+
+PER GROUP (descriptive): θB − θA over each group's K* trainers (all of them estimable, or n/a)
+  leaders     +0.036  95% CI [-0.036, +0.115]  90% CI [-0.024, +0.102]
+  rivals      +0.103  95% CI [-0.094, +0.292]  90% CI [-0.063, +0.262]
+  magma_aqua  +0.006  95% CI [-0.075, +0.085]  90% CI [-0.061, +0.072]
+====================================================================================================
+JSON written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fix_20261001-210001_ca.json
+
+==================================================================================================== batch14_checks.py (FIXED)
+====================================================================================================
+DESIGN v2 STEP 14 — batch14_checks (T4a): the correctness invariants E1-E5 and STOP-3
+⛔ A MEASUREMENT. A FINDING is a defect to diagnose with a driver; a PASS is 'no violation in the lines read'.
+====================================================================================================
+  source        batch C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001
+  ARMS.json     C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001\ARMS.json (arms ['A', 'B'], commit f4509da1, profile_tag 's14')
+  batch         verdict 'OK'; stop 'deadline'; lanes lost none
+  C1-C2         not void
+
+INSTRUMENT CONTROLS (compare_arms.controls)
+  logs read: 78   usable runs per arm: {'A': 40, 'B': 38}   refused: 0   excluded (still read by the checks): 0
+
+E1  PASS — B NON-KEY battles 4239; WILD battles (both arms) 115970; violating lines 0; exempted fail-open battles 0
+E2  PASS — B [KEYBATTLE] lines 6000; violations 0; not comparable (key=? or UNCLASSIFIED) 0; fail-open lines (key= tallied, not compared) 0; trainer battles with NO [KEYBATTLE], by offline class: {'KEY': 18}
+E3  PASS (loss-filing half had 0 trials) — 0 miss(es): forbidden texts, unfiled dex losses and first Rustboro heals without both lines (each listed)
+      A: 0 line(s) carrying one of its 9 forbidden texts over 40 run(s)
+      B: 0 line(s) carrying one of its 3 forbidden texts over 38 run(s)
+      B: [CATCH] end kind=dex … end=lost 0; followed by a loss-filed kind=dex 0; without one 0; loss-filed lines with no lost end before them 0
+      B: runs with a Pokémon Center heal in Rustboro 38 of 38; its FIRST heal logged why=topoff… AND [KIT-BUY] in 38
+      counts only (their triggers are not observable): A [CATCH] trainee 0 (trainee-after 0), [DEXCATCH-NOBAIL] 0; B [CATCH] trainee 331 (trainee-after 331), [DEXCATCH-NOBAIL] 24
+E4  NOT ASSESSED — B runs whose Tate & Liza FIRST attempt held >= 1 HP item: 4 (assessed at >= 5); [DBLITEM] use lines in those first attempts 1; in all B battles 11
+E5  PASS — B [DBLITEM] after readings 11; the partner's HP rose in 0 (each listed for reading BY HAND; never counted as a defect)
+STOP-3  no — non-finished run ends: A 32 (17 signatures), B 30 (11 signatures)
+        run-end signature A 2 / B 8: Tate & Liza: N losses with no super-effective answer to Rock/Psychic. Need one of: Ground, Bug, Ghost, Steel, Water, Grass, Dark. Grinding l
+        run-end signature A 0 / B 7: this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co
+        run-end signature A 3 / B 4: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — League basket short: Hyper Potion N/N Full Restore N/N Revive N/N. The
+        run-end signature A 2 / B 2: Juan: N losses with no super-effective answer to Water/Dragon. Need one of: Dragon. Grinding levels will not fix this. Nearest reachable cou
+        run-end signature A 4 / B 0: Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest
+        run-end signature A 1 / B 3: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_HALL_OF_FAME (N N) — League basket short: Hyper Potion N/N Full Restore N/N Re
+        run-end signature A 2 / B 1: ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN leg N: the missing basket lines [('Hyper Potion', N), ('Full Restor
+        run-end signature A 3 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — N mōn below the LN floor — only N of N at it, RULING N needs N: Castfo
+        run-end signature A 2 / B 1: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_HALL_OF_FAME (N N) — League basket short: Hyper Potion N/N Full Restore N/N. T
+        run-end signature A 2 / B 0: Could not reach (N N) on MapRSE.ROUTEN: the field is idle and we are still at (N N), so retrying cannot change the result (Cannot reach ROUT
+        run-end signature A 2 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — N mōn below the LN floor — only N of N at it, RULING N needs N: Zigzag
+        run-end signature A 2 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_HALL_OF_FAME (N N) — League basket short: Full Restore N/N. The gauntlet is on
+        run-end signature A 2 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY_HALL_OF_FAME (N N) — League basket short: Hyper Potion N/N. The gauntlet is on
+        run-end signature A 1 / B 0: Cannot hunt a Surf learner: no Poké Balls and no money to buy any.
+        run-end signature A 1 / B 0: ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: a chunk banked NO EXP for Abra#PID (LN → sub-target LN; f
+        run-end signature A 0 / B 1: Story: global watchdog — nothing progressed for N frames (the current step is wedged); derailing into recovery.
+        run-end signature A 0 / B 1: Story: too many whiteout recoveries at one location (N without the story moving on, at (N N)) — stopping so I don't loop forever. Check the 
+        run-end signature A 1 / B 0: heal_in_pokemon_center: the walk to FallarborTown is BLOCKED, not interrupted — not retrying, because riding out a scene cannot change map g
+        run-end signature A 0 / B 1: this boss: N losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest rea
+        run-end signature A 0 / B 1: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — League basket short: Hyper Potion N/N Full Restore N/N Full Heal N/N R
+        run-end signature A 1 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — N mōn below the LN floor — only N of N at it, RULING N needs N: Explou
+        run-end signature A 1 / B 0: §ChN RN: REFUSING to enter the Elite Four at EVER_GRANDE_CITY (N N) — N mōn below the LN floor — only N of N at it, RULING N needs N: Mighty
+        QUALIFYING (>= 2 B runs, 0 A runs): 7 B run(s): 'this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co'
+          H10 run 1 Story_(ENDLESS_RESET)-debug-20261001-210023.log: acting tags none
+          H10 run 2 Story_(ENDLESS_RESET)-debug-20261001-222014.log: acting tags none
+          H10 run 4 Story_(ENDLESS_RESET)-debug-20261002-035402.log: acting tags none
+          H14 run 1 Story_(ENDLESS_RESET)-debug-20261001-210111.log: acting tags none
+          H14 run 2 Story_(ENDLESS_RESET)-debug-20261001-220515.log: acting tags none
+          H14 run 3 Story_(ENDLESS_RESET)-debug-20261001-233616.log: acting tags none
+          H14 run 5 Story_(ENDLESS_RESET)-debug-20261002-051336.log: acting tags none
+      STOP-3 pattern: no (1 qualifying signature(s), none with an acting tag in a tail)
+====================================================================================================
+
+==================================================================================================== batch14_tables.py --m1b-out (FIXED)
+====================================================================================================
+DESIGN v2 STEP 14 — batch14_tables (T4b): the DESCRIPTIVE tables, per arm (counts; no reading)
+====================================================================================================
+  source        batch C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001
+  ARMS.json     C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-210001\ARMS.json (arms ['A', 'B'], commit f4509da1, profile_tag 's14')
+  batch         verdict 'OK'; stop 'deadline'; lanes lost none
+  C1-C2         not void
+
+INSTRUMENT CONTROLS (compare_arms.controls)
+  logs read: 78   usable runs per arm: {'A': 40, 'B': 38}   refused: 0   excluded (not in any table): 0
+
+D-funnel — runs started -> met X -> beat X on the first try -> beat X eventually (per arm, every key trainer met)
+  arm A: runs started 40 (usable; 0 excluded runs not counted); status {'complete': 32, 'cut': 8}; frame-cap ends 0
+  arm B: runs started 38 (usable; 0 excluded runs not counted); status {'complete': 30, 'cut': 8}; frame-cap ends 0
+  trainer                              met/elig A   1st W/dec A  eventually A  unbeaten A   met/elig B   1st W/dec B  eventually B  unbeaten B
+  ROXANNE                                   40/40         34/40            40           0        38/38         32/38            38           0
+  BRAWLY                                    39/39         36/39            39           0        38/38         36/38            38           0
+  WATTSON                                   38/38          9/38            38           0        38/38          5/38            38           0
+  FLANNERY                                  37/37         12/36            36           0        37/38         21/37            36  1 (max 13)
+  RIVAL_ROUTE_110                           39/39         14/39            39           0        38/38         18/38            38           0
+  TABITHA_MT_CHIMNEY                        38/38         38/38            38           0        38/38         36/38            38           0
+  MAXIE_MT_CHIMNEY                          37/38         27/37            37           0        38/38         29/38            38           0
+  NORMAN                                    36/37          2/36            36           0        35/37          5/35            27  7 (max 15)
+  WINONA                                    32/36          1/32            28  4 (max 25)        27/36          0/27            27           0
+  TATE_AND_LIZA                             28/36          7/28            26  2 (max 25)        26/35          3/26            17  9 (max 41)
+  JUAN                                      25/35         11/25            23  2 (max 13)        16/34          4/16            14  2 (max 12)
+  SIDNEY                                    10/32         10/10            10           0         9/30           9/9             9           0
+  PHOEBE                                    10/32         10/10            10           0         9/30           9/9             9           0
+  GLACIA                                    10/32         10/10            10           0         9/30           9/9             9           0
+  DRAKE                                     10/32          9/10            10           0         9/30           9/9             9           0
+  WALLACE                                   10/32          6/10             7   3 (max 5)         9/30           4/9             4   5 (max 2)
+  RIVAL_ROUTE_103                           40/40         40/40            40           0        38/38         38/38            38           0
+  RIVAL_RUSTBORO                            39/39         39/39            39           0        38/38         38/38            38           0
+  RIVAL_ROUTE_119                           32/36         23/32            32           0        27/36         22/27            27           0
+  WALLY_MAUVILLE                            39/39         39/39            39           0        38/38         38/38            38           0
+  WALLY_VICTORY_ROAD                        21/34         21/21            21           0        13/33         12/13            13           0
+  MAXIE_MAGMA_HIDEOUT                       28/36          9/28            28           0        27/36          9/27            26           0
+  TABITHA_MAGMA_HIDEOUT                     28/36         28/28            28           0        27/36         27/27            27           0
+  MAXIE_TABITHA_SPACE_CENTER                26/36         25/26            26           0        17/35         16/17            17           0
+  SHELLY_WEATHER_INSTITUTE                  32/36         28/32            32           0        27/36         24/27            27           0
+  SHELLY_SEAFLOOR_CAVERN                    25/35         25/25            25           0        17/35         17/17            17           0
+  opp=30 class=0x0B                         28/36         28/28            28           0        26/35         26/26            26           0
+  opp=34 class=0x0D                         25/35         19/25            25           0        17/35         16/17            17           0
+  (elig = compare_arms' reach denominator; 1st W/dec = first attempts won / decided, a Draw a loss; unbeaten = COMPLETE runs that met X and never beat it, with their most attempts)
+  arm A: badges reached (max per run -> runs) {1: 1, 2: 1, 3: 2, 5: 8, 6: 2, 7: 3, 8: 23}
+  arm A: frames to each badge #1: n=40 median 201,088 [161,297..1,229,438]; #2: n=39 median 935,707 [464,980..1,637,062]; #3: n=38 median 1,679,264 [791,889..2,950,177]; #4: n=36 median 1,946,658 [1,207,334..3,221,359]; #5: n=36 median 2,358,946 [1,517,055..3,598,065]; #6: n=28 median 2,851,146 [1,824,418..3,868,156]; #7: n=26 median 3,575,620 [2,243,891..5,526,291]; #8: n=23 median 3,912,559 [2,469,136..5,832,189]
+  arm A: K* rows cross-checked against compare_arms' run records: equal
+  arm B: badges reached (max per run -> runs) {3: 2, 4: 9, 6: 10, 7: 3, 8: 14}
+  arm B: frames to each badge #1: n=38 median 200,982 [160,879..945,015]; #2: n=38 median 1,340,948 [834,083..1,772,951]; #3: n=38 median 2,223,834 [1,191,697..3,547,931]; #4: n=36 median 2,543,045 [1,605,427..3,797,219]; #5: n=27 median 2,928,837 [1,919,281..3,862,819]; #6: n=27 median 3,520,412 [2,883,799..4,584,636]; #7: n=17 median 4,373,350 [3,508,335..6,562,689]; #8: n=14 median 4,649,044 [3,739,357..6,445,511]
+  arm B: K* rows cross-checked against compare_arms' run records: equal
+  badge source (KI-119): badge n = the run's first [TRAINER] end res=Won over gym leader n (opp 265-272) after its 'Story: choosing X!' line; D-lead's catch tag = the [CATCH] end line's own badges= field
+  [BADGE] lines, a CONTROL only — runs with [BADGE] lines before their choosing line (badge telemetry poisoned by a boot-loaded save): A 16   B 11; un-poisoned runs whose [BADGE] set differs from the leader-win set: A 0   B 0
+
+D-attempt — won / (won + lost) per ATTEMPT, per key group (a summary: looping runs weigh more)
+  arm A:
+      key group          n    won   lost  other   won/(won+lost)
+      leaders         1057    266    790      1            25.2%
+      elite_four        94     82     12      0            87.2%
+      rivals           268    210     58      0            78.4%
+      magma_aqua       385    267    118      0            69.4%
+  arm B:
+      key group          n    won   lost  other   won/(won+lost)
+      leaders         1184    235    948      1            19.9%
+      elite_four        50     44      6      0            88.0%
+      rivals           235    192     43      0            81.7%
+      magma_aqua       310    233     77      0            75.2%
+
+D-boss — first-attempt rates with run counts (later bosses: DESCRIPTIVE only, DESIGN §5)
+  TATE_AND_LIZA   A 7/28 = 0.25 (met 28)   B 3/26 = 0.12 (met 26)
+  WINONA          A 1/32 = 0.03 (met 32)   B 0/27 = 0.00 (met 27)
+  NORMAN          A 2/36 = 0.06 (met 36)   B 5/35 = 0.14 (met 35)
+  JUAN            A 11/25 = 0.44 (met 25)   B 4/16 = 0.25 (met 16)
+  ELITE_FOUR      A NOT ASSESSED (10)   B NOT ASSESSED (9)
+
+D-lead (K3) — ⚠ conditioned on a post-treatment variable (OPENFENCE causes it; biased toward B, DESIGN §5); species-level: evolved catches are missed
+  key first attempts led by a species caught after the Stone Badge: A 1/801 (0%)   B 40/726 (6%)
+  (a species match: the [TURN] line has no PID — evolved catches are missed, and an earlier catch of the same species counts)
+  C2's per-trainer point rates (compare_arms' estimator: species-weighted, no bootstrap), all first attempts vs without those:
+  trainer                  p A     p B   p A w/o   p B w/o  dropped A/B
+  ROXANNE                0.833   0.811     0.833     0.811          0/0
+  BRAWLY                 0.916   0.941     0.916     0.936          0/6
+  WATTSON                0.216   0.111     0.216     0.111          0/2
+  FLANNERY               0.318   0.566     0.318     0.547          0/1
+  RIVAL_ROUTE_110        0.346   0.450     0.346     0.531          0/6
+  TABITHA_MT_CHIMNEY     1.000   0.956     1.000     0.956          0/0
+  MAXIE_MT_CHIMNEY       0.744   0.800     0.744     0.800          0/0
+
+D-loss — Lost + Draw per battle, split three ways (and the two other classes, for completeness)
+  non-key trainer   A 139/4676   B 120/4239
+  wild catch        A 2/322   B 0/669
+  other wild        A 3/57164   B 3/57815
+  key trainer       A 978/1804   B 1074/1779
+  unclassified      A 0/0   B 0/0
+  wild catch battles' `[CATCH] end … end=lost` lines: A 2   B 0
+  Victory Road, arm A: VICTORY_ROAD_1F lost 0/25019 {'WILD': 24956, 'KEY': 21, 'NON-KEY': 42}; VICTORY_ROAD_B1F lost 1/130 {'WILD': 87, 'NON-KEY': 43}; VICTORY_ROAD_B2F lost 0/49 {'NON-KEY': 21, 'WILD': 28}
+  Victory Road, arm B: VICTORY_ROAD_1F lost 2/22409 {'WILD': 22368, 'KEY': 14, 'NON-KEY': 27}; VICTORY_ROAD_B1F lost 0/94 {'WILD': 68, 'NON-KEY': 26}; VICTORY_ROAD_B2F lost 0/34 {'NON-KEY': 13, 'WILD': 21}
+
+D-leg11 — runs that loaded EVER GRANDE CITY (16,10), and money-refusal derails (both texts)
+  arm A: loaded (16,10) 21; runs with a refusal derail 2 (of them loaded (16,10) 2); derail lines: old 'the basket costs ₽' 0, current 'the missing basket lines … short by' 10
+  arm B: loaded (16,10) 13; runs with a refusal derail 1 (of them loaded (16,10) 1); derail lines: old 'the basket costs ₽' 0, current 'the missing basket lines … short by' 5
+
+D-fence — [DEXFENCE] reasons as DISTINCT (species, reason) pairs per run, numbers stripped — distinct pairs, not frequency
+  era: before Sootopolis (the first load of SOOTOPOLIS CITY (0,7))   distinct pairs: A 2045   B 1725
+      234   878  skip: only N spare balls — below the dex reserve of N
+      890     0  skip: party is N/N — a catch would consume the HM/counter runway
+      111   306  CATCH: dex catch #N (goes to the PC box)
+      167   154  skip: no Pokédex yet
+      139   126  CATCH: pre-gym-N team building (joins the party)
+      148    28  skip: no spare Poké Balls (the last ball is reserved)
+      170     0  skip: party is not at full strength
+       73    82  skip: pre-gym-N team already at its target of N
+      106     0  skip: a training grind is in progress
+        0    86  CATCH: dex catch #N (joins the party)
+        7    16  skip: #N: ~N expected throws at full HP with the balls we hold — above N
+        0    20  skip: a catch-on-sight hunt is armed
+        0    15  skip: a hunt is walking to its ground — a party join now would change the party it planned for
+        0    14  skip: already attempted #N Nx this run
+  era: after Sootopolis (the first load of SOOTOPOLIS CITY (0,7))   distinct pairs: A 418   B 136
+      229     0  skip: a training grind is in progress
+       93   117  skip: only N spare balls — below the dex reserve of N
+       50     0  skip: party is not at full strength
+       14    16  CATCH: dex catch #N (goes to the PC box)
+       14     0  skip: no spare Poké Balls (the last ball is reserved)
+       14     0  skip: party is N/N — a catch would consume the HM/counter runway
+        3     1  skip: #N: ~N expected throws at full HP with the balls we hold — above N
+        1     2  skip: already attempted #N Nx this run
+    (columns: A, B)   unparsed [DEXFENCE] lines: A 0   B 0
+
+D-economy — [BALLS-BUY] (both prefixes), [KIT-BUY], T1 money per map, money at leg 11
+  arm A PACKAGE (top-off + kit errands, de-duplicated per errand: the joint ball+kit budget): ₽0 over 0 paying errand(s), 0 of them joint ball+kit
+  arm A [BALLS-BUY] by why (errand money, joint errands counted in both): mandatory lines 34 bought 851 ₽170,200
+  arm A why=topoff… by ball: none
+  arm A [KIT-BUY] by why (errand money, joint errands counted in both): none; items bought (counts) none
+  arm A money at leg 11 (the last reading before the first (16,10) load): n=21 median ₽36,185 [₽18,196..₽129,468]
+  arm B PACKAGE (top-off + kit errands, de-duplicated per errand: the joint ball+kit budget): ₽257,600 over 174 paying errand(s), 39 of them joint ball+kit
+  arm B [BALLS-BUY] by why (errand money, joint errands counted in both): mandatory lines 26 bought 768 ₽153,600; topoff lines 123 bought 570 ₽203,300; topoff-forecast lines 55 bought 0 ₽0; topoff-none lines 2116 bought 0 ₽0
+  arm B why=topoff… by ball: Poké Ball bought 551 (errand money, joint errands counted in both: ₽173,900); Ultra Ball bought 19 (errand money, joint errands counted in both: ₽29,400)
+  arm B [KIT-BUY] by why (errand money, joint errands counted in both): kit lines 90 ₽193,800; kit-forecast lines 55 ₽0; kit-none lines 2149 ₽0; items bought (counts) {'Super Potion': 160, 'Full Heal': 5, 'Hyper Potion': 8}
+  arm B money at leg 11 (the last reading before the first (16,10) load): n=13 median ₽39,252 [₽16,513..₽63,950]
+  T1 [TRAINER] end delta per map: map       battles A        ₽ A  battles B        ₽ B
+                                 0,2              39     37,440         38     36,480
+                                 0,3              39     34,200         38     34,200
+                                 0,17            161     10,240        152      9,728
+                                 0,18            185    116,000        150    117,840
+                                 0,19            160    121,504        153    115,520
+                                 0,21             39     17,160         38     16,720
+                                 0,24             39     18,252         38     17,784
+                                 0,25            217    179,712        195    175,104
+                                 0,26            257    155,256        215    128,400
+                                 0,27            206    120,688        197    120,688
+                                 0,28            248    103,512        236    101,384
+                                 0,29            152     98,496        152     98,496
+                                 0,30              6      5,104          0          0
+                                 0,31            160     43,680        159     41,496
+                                 0,32            216    127,072        223    131,664
+                                 0,33            161    132,240        133    144,168
+                                 0,34            238    377,652        205    338,732
+                                 0,35            190    303,444        169    282,864
+                                 0,36            150    374,980        143    365,424
+                                 0,38            114    258,936        115    228,672
+                                 0,39             53     35,088         47     26,472
+                                 0,41              6      4,288          0          0
+                                 0,42             10     19,040          8     16,320
+                                 0,43             51     84,976         30     50,416
+                                 0,44             50     77,520         32     46,240
+                                 0,45             24     10,032         15      6,336
+                                 0,46             30     69,088         21     41,344
+                                 3,3              42     74,100         40     72,200
+                                 4,1             121    145,248        113    145,248
+                                 8,1             316    246,384        334    217,236
+                                 9,8              78     22,620         76     22,040
+                                 10,0            256    194,016        239    197,144
+                                 11,3             87     77,920         82     74,024
+                                 12,1            350    367,608        288    331,920
+                                 14,0            356    749,376        593    563,424
+                                 14,9             52     53,280         34     29,760
+                                 14,10           105    323,840         69    203,520
+                                 15,0            104    197,800         55    115,000
+                                 16,0             19    166,600         10     88,200
+                                 16,1             19    178,500         10     91,800
+                                 16,2             19    180,200         10     90,100
+                                 16,3             19    187,000         10     99,000
+                                 16,4             18    150,800         10     81,200
+                                 24,4             81     31,840         74     31,400
+                                 24,11           120     12,960        114     12,312
+                                 24,12           138    137,840        145    139,840
+                                 24,13            81     55,352         80     56,848
+                                 24,22            90    110,160         88     90,440
+                                 24,23            28     27,520         26     22,400
+                                 24,24            28     58,280         26     47,120
+                                 24,25            56    117,440         52    100,400
+                                 24,28            25     30,240         17     18,000
+                                 24,30            25     95,920         17     63,220
+                                 24,36            31    158,240         18    106,640
+                                 24,43            63    230,496         41    150,168
+                                 24,44            43    140,736         26     83,664
+                                 24,45            21     70,560         13     40,320
+                                 24,86            28     23,200         27     21,460
+                                 24,87            47     40,580         43     33,200
+                                 24,89            56     47,560         54     43,500
+                                 24,91           194    286,520        149    278,660
+                                 32,0             66     45,100         55     41,260
+                                 32,1             94    109,280         76     93,840
+
+D-rare — [CATCH] battles and their ends per rare species
+  both arms under ONE rule (the offline species-level join; `variant` is not visible to it):
+    Kecleon#352         A battles   1 ends {'bail': 1}   B battles   2 ends {'caught': 2}
+    Plusle#311          A battles   2 ends {'caught': 2}   B battles   0 ends {}
+    Ralts#280           A battles   0 ends {}   B battles   2 ends {'caught': 1, 'out_of_balls': 1}
+    Seedot#273          A battles   1 ends {'caught': 1}   B battles   4 ends {'bail': 2, 'caught': 2}
+    Skitty#300          A battles   2 ends {'caught': 2}   B battles  41 ends {'caught': 38, 'out_of_balls': 1, 'bail': 2}
+    Volbeat#313         A battles   0 ends {}   B battles   2 ends {'bail': 2}
+  arm B by its own line's ` rare=` (variant included; A prints no suffix): 94 catch battle(s) over 6 species
+    Abra#63              battles  44  ends {'caught': 14, 'foe_fled': 30}  rare {'variant': 44}
+    Kecleon#352          battles   2  ends {'caught': 2}  rare {'rate': 2}
+    Ralts#280            battles   2  ends {'caught': 1, 'out_of_balls': 1}  rare {'rate': 2}
+    Seedot#273           battles   4  ends {'bail': 2, 'caught': 2}  rare {'rate': 4}
+    Skitty#300           battles  40  ends {'caught': 37, 'out_of_balls': 1, 'bail': 2}  rare {'rate,variant': 13, 'rate': 27}
+    Volbeat#313          battles   2  ends {'bail': 2}  rare {'rate': 2}
+
+D-M1b — [DMGAUDIT] blocks (CTL to CTL) pooled over BOTH arms, de-duplicated by content (frames stripped)
+  lines read 805823; blocks 128911; unique blocks 128303 (804789 lines); BEFORE records in the unique blocks (candidate samples) 338507
+  written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fix_20261001-210001_m1b.log  (audit_damage_calc.py reads it as one log); its accepted samples: 194304
+
+D-weaken — [WEAKEN-OBS] would= by verdict and stage (stage1/stage2 from the reason; '-' = no stage)
+  would=DAMAGE   stage stage1 A 4   B 0
+  would=DAMAGE   stage stage2 A 27   B 56
+  would=STATUS   stage -      A 0   B 3
+  would=THROW    stage -      A 716   B 1294
+
+D-throughput — frames per run (a log's last frame), lane-hours from summary.json spawns, log sizes
+  arm A: runs 40 (complete 32); frames per complete run median 5,454,655 [1,581,255..11,561,163]; cut / lost / capped runs median 2,437,686 [1,121,566..9,264,725]
+  arm A: lane-hours 103.91; complete runs per lane-hour 0.308; frames/s per lane 616 (all logs' frames 230,354,539)
+  arm A: log sizes n=40 median 8.79 MB [2.04..19.88] total 394.3 MB; capped logs none
+  arm B: runs 38 (complete 30); frames per complete run median 4,919,669 [1,949,174..11,623,908]; cut / lost / capped runs median 7,123,598 [2,393,658..8,962,192]
+  arm B: lane-hours 103.89; complete runs per lane-hour 0.289; frames/s per lane 624 (all logs' frames 233,426,607)
+  arm B: log sizes n=38 median 8.72 MB [3.43..20.95] total 411.9 MB; capped logs none
+====================================================================================================

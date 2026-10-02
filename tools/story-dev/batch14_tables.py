@@ -15,7 +15,9 @@ the runs T3 grades; D-funnel CROSS-CHECKS its K* rows against compare_arms' own 
 THE TABLES (per arm):
   D-funnel     runs started -> met X -> beat X on the first try -> beat X eventually, for EVERY key trainer; attempts of
                runs that stopped unbeaten; badges reached; frames to each badge; frame-cap ends; run status (cut / lost /
-               capped / complete).
+               capped / complete). KI-119: badges are the run's LEADER WINS (`batch14_checks.LEADER_BADGE`), printed
+               with that source and the `[BADGE]` CONTROL — runs poisoned by a boot-loaded save, and un-poisoned runs
+               whose `[BADGE]` set differs from the leader wins.
   D-attempt    won / (won + lost) per ATTEMPT, per key group (`battle_log.group_outcome_lines`).
   D-boss       Tate & Liza, Winona, Norman, Juan: first-attempt rates with run counts; the Elite Four NOT ASSESSED (n).
   D-lead       the share of key first attempts whose lead (the first `[TURN]` own species) was caught after the Stone
@@ -96,7 +98,9 @@ def d_funnel(runs, stdout: dict) -> dict:
     runs), `badge_frames` ({n: [frames]}), and per trainer `met`, `eligible` (compare_arms' reach denominator: a
     complete run, or a censored run that met X and decided it — DECISION F10's `censored_during` is compare_arms'),
     `decided`, `first_won`, `eventually`, `unbeaten_stopped` (COMPLETE runs that met X and never beat it) and their
-    `attempts`. `crosscheck`: the K* rows against compare_arms' run records (`[]` = equal)."""
+    `attempts`. `crosscheck`: the K* rows against compare_arms' run records (`[]` = equal). KI-119's [BADGE] CONTROL:
+    `badge_poisoned` (runs with [BADGE] lines before their choosing line) and `badge_disagree` (un-poisoned runs whose
+    [BADGE] set differs from their leader-win set, each as (log, [BADGE] set, leader-win set))."""
     out = {}
     order = _trainer_order([r for arm in ARMS for r in usable_runs(runs, arm)])
     for arm in ARMS:
@@ -138,7 +142,14 @@ def d_funnel(runs, stdout: dict) -> dict:
                 badge_frames[n].append(f)
         caps = sum(1 for lane, s in stdout.items() if s["arm"] == arm and s["runs"]
                    for x in s["runs"] if x["bucket"] == "frame_cap")
+        # KI-119: the [BADGE] lines are a CONTROL on the leader-win badges
+        poisoned = [r for r in rs if r["t4"]["badge_pre_start"]]
+        disagree = [r for r in rs if not r["t4"]["badge_pre_start"]
+                    and set(r["t4"]["badge_lines"]) != set(r["t4"]["badges"])]
         out[arm] = {"started": len(rs), "rows": rows, "crosscheck": cross,
+                    "badge_poisoned": len(poisoned),
+                    "badge_disagree": [(pathlib.Path(r["log"]).name, sorted(r["t4"]["badge_lines"]),
+                                        sorted(r["t4"]["badges"])) for r in disagree],
                     "status": dict(collections.Counter(r["status"] for r in rs)),
                     "excluded": sum(1 for r in runs if r.get("lane_arm") == arm and r.get("excluded")),
                     "frame_cap": caps,
@@ -175,6 +186,16 @@ def render_funnel(f: dict) -> list:
             or "none"))
         out.append(f"  arm {arm}: K* rows cross-checked against compare_arms' run records: "
                    + ("equal" if not a["crosscheck"] else "DIFFER — " + "; ".join(a["crosscheck"])))
+    out.append("  badge source (KI-119): badge n = the run's first [TRAINER] end res=Won over gym leader n "
+               "(opp 265-272) after its 'Story: choosing X!' line; D-lead's catch tag = the [CATCH] end line's own "
+               "badges= field")
+    out.append("  [BADGE] lines, a CONTROL only — runs with [BADGE] lines before their choosing line (badge telemetry "
+               "poisoned by a boot-loaded save): " + "   ".join(f"{arm} {f[arm]['badge_poisoned']}" for arm in ARMS)
+               + "; un-poisoned runs whose [BADGE] set differs from the leader-win set: "
+               + "   ".join(f"{arm} {len(f[arm]['badge_disagree'])}" for arm in ARMS))
+    for arm in ARMS:
+        for name, got, wins in f[arm]["badge_disagree"]:
+            out.append(f"    arm {arm} {name}: [BADGE] {got} vs leader wins {wins}")
     return out
 
 

@@ -694,7 +694,8 @@ HEADER_END = "--- END RUN HEADER ---"
 #: missing, never empty — the comparator treats it as censored there, exactly like a run cut by the deadline.
 CAP_MARKER = "event log size cap reached"
 #: A heartbeat line (`f<frame> [hb] … ids=[…] …`). Its FIRST line has `ids=[]` (no party yet), so identity is the
-#: first `[hb]` whose `ids=` list is NON-EMPTY: `ids=['<Species>#<PID8>:L5:exp135', …]`.
+#: first `[hb]` whose `ids=` list is NON-EMPTY — after the run's choosing line (KI-119, `run_start`):
+#: `ids=['<Species>#<PID8>:L5:exp135', …]`.
 _HB_LINE = re.compile(r"^(?:f\d+ )?\[hb\] ")
 _HB_IDS_OPEN = re.compile(r"\bids=\[(.)")
 _HB_FIRST_ID = re.compile(r"\bids=\['([^'#:]+)#([0-9A-Fa-f]{8}):")
@@ -736,30 +737,48 @@ def arm_of(lines, arms: dict) -> str:
     return hits[0] if hits else "?"
 
 
+def run_start(lines) -> "int | None":
+    """KI-119 (`#27-gradeidentity`): the index of the run's FIRST `Story: choosing X!` STEP line, or None when the log
+    has none. A RUN's own readings start after it: its identity here, and `batch14_checks.extract`'s PROGRESS fields.
+    WHY: after a lane's run reaches the Hall of Fame, every later reset boots from that save, and the boot logs the
+    SAVED game before the new one begins (step 14: 27 of its 78 logs). L16 …-040658: `[BADGE] n=1..8` at f301
+    (:31-38), the New Game step (:39), one `[hb]` carrying the champion's party (:83), the party clear (:86), and only
+    then `Story: choosing Torchic!` (:298). The line appears exactly once in each of the 78 logs.
+    ⛔ NOT the New Game step: the stale `[hb]` comes AFTER it. ⛔ NOT the party clear (`[PARTY] size N -> 0`): fresh
+    logs have none before the choosing line, and one-frame misreads write one mid-run (L02 …-015003:5274-5275)."""
+    for i, line in enumerate(lines):
+        if "Story: choosing" in line and _CHOSEN.search(line):
+            return i
+    return None
+
+
 def run_identity(lines) -> dict:
     """`{"species", "pid", "hold", "chosen"}` of one run. `species` / `pid` from the FIRST `[hb]` line whose `ids=` is
-    non-empty (if that line does not parse, both stay None: the first is the identity, never a later one); `hold` from
-    the `Intro: holding Nf` STEP line (0 when absent: the hold was 0; kept for audit only); `chosen` from
-    `Story: choosing X!`. ⛔ A missing value is None, never guessed (e.g. a run cut before its starter was given)."""
+    non-empty AFTER the run's choosing line (`run_start`; KI-119: a boot-loaded Hall-of-Fame save logs ITS party in an
+    `[hb]` before it); if that line does not parse, both stay None (the first is the identity, never a later one).
+    ⛔ NO choosing line -> species / pid None, with NO fallback to an earlier `[hb]` (that is the stale reading KI-119
+    removed; compare_arms then excludes the log as `no_starter`). `hold` from the `Intro: holding Nf` STEP line (0 when
+    absent: the hold was 0; kept for audit only) and `chosen` from `Story: choosing X!`: both unchanged by KI-119.
+    ⛔ A missing value is None, never guessed (e.g. a run cut before its starter was given)."""
     out = {"species": None, "pid": None, "hold": 0, "chosen": None}
-    ids_seen = hold_seen = False
     for line in lines:
-        if not hold_seen and "Intro: holding" in line:
+        if "Intro: holding" in line:
             m = _HOLD.search(line)
             if m:
-                out["hold"], hold_seen = int(m.group(1)), True
-        if out["chosen"] is None and "Story: choosing" in line:
-            m = _CHOSEN.search(line)
+                out["hold"] = int(m.group(1))
+                break
+    start = run_start(lines)
+    if start is None:
+        return out
+    out["chosen"] = _CHOSEN.search(lines[start]).group(1)
+    for line in lines[start + 1:]:
+        if not _HB_LINE.match(line):
+            continue
+        opened = _HB_IDS_OPEN.search(line)
+        if opened and opened.group(1) != "]":
+            m = _HB_FIRST_ID.search(line)
             if m:
-                out["chosen"] = m.group(1)
-        if not ids_seen and _HB_LINE.match(line):
-            opened = _HB_IDS_OPEN.search(line)
-            if opened and opened.group(1) != "]":
-                ids_seen = True
-                m = _HB_FIRST_ID.search(line)
-                if m:
-                    out["species"], out["pid"] = m.group(1), m.group(2).upper()
-        if ids_seen and out["chosen"] is not None:
+                out["species"], out["pid"] = m.group(1), m.group(2).upper()
             break
     return out
 

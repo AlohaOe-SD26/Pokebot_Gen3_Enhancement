@@ -1,0 +1,54 @@
+# 2026-10-02 — #27-gradeidentity (KI-119): a VERBATIM excerpt of real lines from step 14's batch x4-runs/20261001-210001
+# (the MAIN checkout). x4-runs is gitignored, so the lines the gates quote are committed here.
+# Each row: <lane>/<log>:<line number>: <the line, byte for byte>. The two gates that quote them
+# (probe_compare_arms.py, probe_batch14_checks.py) check every quote against THIS file always, and against the raw log
+# when the batch is on the machine (else SKIPPED, never passed).
+#
+# What they show — a reset that boots from a lane's Hall-of-Fame save (27 of the batch's 78 logs):
+#   L16 …-040658 (arm B): the SAVED game's [BADGE] n=1..8 at f301 (:31-38) BEFORE the new game, the New Game step
+#   (:39), the run's own RNG hold (:63), ONE [hb] carrying the saved champion's party (:83, money=35923), the party
+#   clear (:86), and only then 'Story: choosing Torchic!' (:298) and the run's real first [hb] (:311,
+#   Torchic#759DE59A). Later: a team catch at badges=0 (:879), Roxanne won (:1890), a dex catch at badges=1 (:2398).
+#   The log has NO other [BADGE] line: the bot's badge recorder took the boot's 8 as already recorded.
+#   L02 …-010951 (arm A): KI-119's cited example (the frozen identity read Swampert#41027B14; the run is
+#   Mudkip#68D2F871).
+#   L02 …-015003 (arm A): a one-frame mid-run party misread (:5274-5275) after the starter; the [hb] after it (:5276)
+#   leads with Poochyena#A0BAEB85 (the run is Mudkip#067116B6).
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:13:     env-all:       {'POKEBOT_BOX_OVERFLOW_CATCH': '1', 'POKEBOT_MAINTAIN': '1', 'POKEBOT_R20_HUNTFIRST': '0', 'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R20_TEAM6': '0', 'POKEBOT_R23_BALLRESTOCK': '1', 'POKEBOT_R24_CATCHHURT': '1', 'POKEBOT_R24_CATCHTRAIN': '1', 'POKEBOT_R24_NOFAINTBAIL': '1', 'POKEBOT_R24_OVERSURVIVAL': '1', 'POKEBOT_R25_CAP': '1', 'POKEBOT_R25_DMGAUDIT': '1', 'POKEBOT_R25_RARE': '1', 'POKEBOT_R25_WEAKEN': 'observe', 'POKEBOT_R25_WEAKEN_CALC': '1', 'POKEBOT_R26_KITTOPOFF': '1', 'POKEBOT_R27_DOUBLEITEMS': '1', 'POKEBOT_R27_KEYITEMS': '1'}
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:31: f301 [BADGE] n=1 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:32: f301 [BADGE] n=2 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:33: f301 [BADGE] n=3 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:34: f301 [BADGE] n=4 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:35: f301 [BADGE] n=5 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:36: f301 [BADGE] n=6 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:37: f301 [BADGE] n=7 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:38: f301 [BADGE] n=8 party=6/6 box=11 owned=25 spare=24
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:39: f377 [STEP] "Intro: New Game + Professor Birch's welcome speech..."
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:63: f2808 [STEP] 'Intro: holding 97f before confirming (RNG decorrelation)...'
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:83: f3601 [hb] mode=Story (ENDLESS RESET) state=10 controllable=False map=LITTLEROOT TOWN(16,11) pos=(7, 5) party=['Swellow:L65', 'Azumarill:L67', 'Skitty:L65', 'Sceptile:L65', 'Linoone:L66', 'Mightyena:L65'] ids=['Swellow#ED2C8CFD:L65:exp282113', 'Azumarill#D4DDD3B3:L67:exp241077', 'Skitty#0CB56F6D:L65:exp222768', 'Sceptile#274110E3:L65:exp285725', 'Linoone#71068797:L66:exp287893', 'Mightyena#5F4049F0:L65:exp282375'] owned=25 balls=25 money=35923 box=11 badges=8 msg='Intro: confirming the name and riding to Littleroot...'
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:86: f3882 [PARTY] size 6 -> 0: []
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:298: f13123 [STEP] 'Story: choosing Torchic!'
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:311: f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Torchic:L5'] ids=['Torchic#759DE59A:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Torchic ♂.\n\nNature:\xa0Brave | Ability:\xa0Blaze | Item:\xa0- | IV\xa0sum:\xa085 | SV:\xa033,599'
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:879: f67594 [CATCH] end kind=team sp=Poochyena#261 end=caught res=Caught thrown=1 frames=1702 dest=party pid=9FF2BE0D party=2/6 box=0 spare=4 badges=0 bail=-
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:1890: f184413 [TRAINER] end opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 res=Won money=7368->8868 delta=1500 mult=1 heal_stock=- map=11,3
+L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:2398: f234542 [CATCH] end kind=dex sp=Abra#63 end=caught res=Caught thrown=1 frames=1632 dest=party pid=CFF60025 party=5/6 box=0 spare=14 badges=1 bail=-
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:13:     env-all:       {'POKEBOT_BOX_OVERFLOW_CATCH': '1', 'POKEBOT_MAINTAIN': '1', 'POKEBOT_R20_HUNTFIRST': '0', 'POKEBOT_R20_OPENFENCE': '0', 'POKEBOT_R20_TEAM6': '0', 'POKEBOT_R23_BALLRESTOCK': '0', 'POKEBOT_R24_CATCHHURT': '0', 'POKEBOT_R24_CATCHTRAIN': '0', 'POKEBOT_R24_NOFAINTBAIL': '0', 'POKEBOT_R24_OVERSURVIVAL': '0', 'POKEBOT_R25_CAP': '0', 'POKEBOT_R25_DMGAUDIT': '1', 'POKEBOT_R25_RARE': '0', 'POKEBOT_R25_WEAKEN': 'observe', 'POKEBOT_R25_WEAKEN_CALC': '1', 'POKEBOT_R26_KITTOPOFF': '0', 'POKEBOT_R27_DOUBLEITEMS': '0', 'POKEBOT_R27_KEYITEMS': '0'}
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:31: f301 [BADGE] n=1 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:32: f301 [BADGE] n=2 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:33: f301 [BADGE] n=3 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:34: f301 [BADGE] n=4 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:35: f301 [BADGE] n=5 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:36: f301 [BADGE] n=6 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:37: f301 [BADGE] n=7 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:38: f301 [BADGE] n=8 party=6/6 box=5 owned=17 spare=11
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:39: f377 [STEP] "Intro: New Game + Professor Birch's welcome speech..."
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:63: f2807 [STEP] 'Intro: holding 53f before confirming (RNG decorrelation)...'
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:83: f3601 [hb] mode=Story (ENDLESS RESET) state=10 controllable=False map=LITTLEROOT TOWN(16,11) pos=(7, 5) party=['Swampert:L78', 'Ninjask:L65', 'Dustox:L65', 'Mightyena:L66', 'Shedinja:L47', 'Castform:L26'] ids=['Swampert#41027B14:L78:exp501723', 'Ninjask#14CB9A5A:L65:exp237019', 'Dustox#510372FE:L65:exp285898', 'Mightyena#3221B7CF:L66:exp293985', 'Shedinja#14CB9A5A:L47:exp110436', 'Castform#4180FCC3:L26:exp18520'] owned=17 balls=12 money=75883 box=5 badges=8 msg='Intro: confirming the name and riding to Littleroot...'
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:86: f3839 [PARTY] size 6 -> 0: []
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:298: f13080 [STEP] 'Story: choosing Mudkip!'
+L02/Story_(ENDLESS_RESET)-debug-20261002-010951.log:311: f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Mudkip:L5'] ids=['Mudkip#68D2F871:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Mudkip ♂.\n\nNature:\xa0Hardy | Ability:\xa0Torrent | Item:\xa0- | IV\xa0sum:\xa068 | SV:\xa022,832'
+L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:298: f13112 [STEP] 'Story: choosing Mudkip!'
+L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:311: f14401 [hb] mode=Story (ENDLESS RESET) state=4 controllable=False map=ROUTE 101(0,16) pos=(6, 13) party=['Mudkip:L5'] ids=['Mudkip#067116B6:L5:exp135'] owned=1 balls=0 money=3000 box=0 badges=8 msg='Received Mudkip ♂.\n\nNature:\xa0Adamant | Ability:\xa0Torrent | Item:\xa0- | IV\xa0sum:\xa080 | SV:\xa012,612'
+L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5274: f586361 [PARTY] size 4 -> 0: []
+L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5275: f586362 [PARTY] size 0 -> 4: ['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12']
+L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5276: f586801 [hb] mode=Story (ENDLESS RESET) state=5 controllable=False map=ROUTE 117(0,32) pos=(17, 8) party=['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12'] ids=['Poochyena#A0BAEB85:L12:exp1813', 'Marshtomp#067116B6:L26:exp13717', 'Lombre#A2539333:L15:exp2283', 'Whismur#AEBEEBDD:L12:exp1012'] owned=6 balls=33 money=3218 box=0 badges=8 msg='Encountered Gulpin ♀.\n\nNature:\xa0Hasty | Ability:\xa0Liquid Ooze | Item:\xa0- | IV\xa0sum:\xa067 | SV:\xa065,154'
