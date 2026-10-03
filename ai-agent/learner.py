@@ -2,24 +2,32 @@
 
 Each CYCLE:
 1. sizes itself to the machine (lanes = parallel games, in fours, one per starter for each strategy);
-2. picks one strategy per four lanes (`brain.choose_arms`);
+2. picks one strategy per four lanes (`brain.choose_arms`): the current best as the control, an inbox proposal, then
+   the next rows of a screening design that measures every knob's own effect;
 3. runs them side by side through the story bot's own batch runner (`tools/story-dev/x4_headless.py --arms`), which
    plays real games in the emulator and refuses anything malformed;
 4. turns the logs into small run records (`scoring.py`), updates what it has learned and rewrites
    `findings/LATEST.md` (`report.py`);
 5. optionally asks Claude for advice (`consult.py`, off by default);
-6. deletes its own old raw logs, keeping the newest few cycles.
+6. deletes its own old raw logs, keeping the newest `keep_raw_cycles` cycles.
+
+Resilience:
+- If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
+  then scores it, so no cycle is lost.
+- Between cycles, if its own code has changed and `test_agent.py` passes, it exits with code 3 so the wrapper
+  restarts it into the new code. If the tests fail, it keeps running the old code and says so.
 
 Safety: it never edits code and never runs git. It writes only inside `ai-agent/`, plus the batch runner's lane
 profiles, which it deletes later by exact name. One instance at a time (a lock). It waits instead of starting while
-another bot or batch is running on this PC, stops cleanly when the `STOP` file exists, and after repeated failures
-pauses and writes `findings/ATTENTION.md` instead of retrying forever.
+another batch is running, stops cleanly when the `STOP` file exists, and after repeated failures pauses and writes
+`findings/ATTENTION.md` instead of retrying forever.
 
 Commands (run from this folder with `py -3.12 learner.py <command>`):
   run        the 24/7 loop (what `run_agent.ps1` starts)
   once       exactly one cycle, then exit
   plan       show the next cycle's strategies and the exact batch command, without running anything
   ingest D   add an existing batch directory's runs as data (e.g. step 14's)
+  reparse    re-read every batch whose raw logs still exist with the current parser (after a parser upgrade)
   report     rewrite findings/LATEST.md from the data
   status     where the learner is now
   publish    copy the findings and data into published/, small enough to commit for a cloud session
@@ -28,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import random
@@ -54,13 +63,15 @@ PROFILES = REPO / "sandbox-pokebot" / "profiles"
 DATA, FINDINGS, INBOX, RUNS, PUBLISHED = AI / "data", AI / "findings", AI / "inbox", AI / "runs", AI / "published"
 RUNS_FILE, CYCLES_FILE, STATE_FILE = DATA / "runs.jsonl", DATA / "cycles.jsonl", DATA / "state.json"
 LOCK, LOG, STOP, ATTENTION = DATA / "agent.lock", DATA / "learner.log", AI / "STOP", FINDINGS / "ATTENTION.md"
+RESTART_CODE = 3
 
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
-    "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25,
+    "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "pb12", "auto_update": True,
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
-    "consult": {"enabled": False, "max_calls_per_day": 2, "max_turns": 8, "timeout_minutes": 20},
+    "consult": {"enabled": False, "max_calls_per_day": 2, "model": "sonnet", "max_usd_per_call": 0.75,
+                "timeout_minutes": 20},
 }
 
 
@@ -108,6 +119,12 @@ def append_jsonl(path: Path, rows: list[dict]) -> None:
             fh.write(json.dumps(r, default=str) + "\n")
 
 
+def write_jsonl(path: Path, rows: list[dict]) -> None:
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text("".join(json.dumps(r, default=str) + "\n" for r in rows), encoding="utf-8")
+    tmp.replace(path)
+
+
 def load_state() -> dict:
     if STATE_FILE.exists():
         return json.loads(STATE_FILE.read_text(encoding="utf-8"))
@@ -119,6 +136,53 @@ def save_state(state: dict) -> None:
     tmp = STATE_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(state, indent=1, default=str), encoding="utf-8")
     tmp.replace(STATE_FILE)
+
+
+def code_signature(folder: Path = AI) -> str:
+    """A hash of the learner's own Python files: it changes when anyone edits the code."""
+    h = hashlib.sha1()
+    for p in sorted(folder.glob("*.py")):
+        h.update(p.name.encode() + b"\0" + p.read_bytes())
+    return h.hexdigest()[:12]
+
+
+#: The learner RUNS only from a deployment checkout: a separate full clone (2026-10-03), so commits made while
+#: developing never move the HEAD its batches run on. The batch runner's freeze watch aborts a cycle when HEAD moves,
+#: and a docs-only commit on the main checkout killed cycle ai0002 that way. This file (git-ignored) marks the clone.
+DEPLOYMENT = AI / "DEPLOYMENT"
+
+
+def update_commands() -> list[list[str]]:
+    """The ONLY git the learner runs: in its own clone, between cycles, fetch and fast-forward. A fast-forward
+    cannot discard anything, and the clone carries no local work."""
+    return [["git", "-C", str(REPO), "fetch", "--quiet", "origin"],
+            ["git", "-C", str(REPO), "merge", "--ff-only", "--quiet", "origin/main"]]
+
+
+def update_checkout() -> str:
+    """Fast-forward the deployment clone to origin/main. Returns a one-line outcome for the log."""
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True, timeout=120)
+    try:
+        if git("status", "--porcelain", "--untracked-files=no").stdout.strip():
+            return "update: skipped, the deployment clone has tracked changes (it should never have any)"
+        before = git("rev-parse", "--short", "HEAD").stdout.strip()
+        for cmd in update_commands():
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if r.returncode != 0:
+                return f"update: `{' '.join(cmd[3:])}` failed: {(r.stderr or r.stdout).strip()[:200]}"
+        after = git("rev-parse", "--short", "HEAD").stdout.strip()
+        return f"update: {before} -> {after}" if before != after else ""
+    except Exception as exc:
+        return f"update: failed: {exc!r}"
+
+
+def tests_pass() -> bool:
+    try:
+        return subprocess.run([sys.executable, str(AI / "test_agent.py")], cwd=AI, capture_output=True,
+                              timeout=600).returncode == 0
+    except Exception:
+        return False
 
 
 # ----------------------------------------------------------------------------------------------------- safety checks
@@ -148,23 +212,32 @@ def release_lock() -> None:
         pass
 
 
+def _cmdlines():
+    me = os.getpid()
+    for p in psutil.process_iter(["pid", "cmdline"]):
+        try:
+            if p.info["pid"] != me:
+                yield p.info["pid"], " ".join(p.info["cmdline"] or [])
+        except (psutil.Error, TypeError):
+            continue
+
+
 def other_bots_running() -> tuple[list[str], list[str]]:
     """(BATCHES, SINGLES) running on this PC now. A batch (`x4_headless.py`) or a harness drive (`story_harness.py`) is
     active work the learner must not compete with: it waits. A single bot (`pokebot.py`, e.g. a GUI window left open)
-    only costs a lane's worth of CPU: the learner reserves a thread for each."""
-    batches, singles, me = [], [], os.getpid()
-    for p in psutil.process_iter(["pid", "cmdline"]):
-        try:
-            cmd = " ".join(p.info["cmdline"] or [])
-        except (psutil.Error, TypeError):
-            continue
-        if p.info["pid"] == me:
-            continue
+    only costs a lane's worth of CPU: the learner reserves a thread for each. Lanes of a batch are not singles."""
+    batches, singles = [], []
+    for pid, cmd in _cmdlines():
         if "x4_headless.py" in cmd or "story_harness.py" in cmd:
-            batches.append(f"pid {p.info['pid']}: {cmd[:120]}")
-        elif "pokebot.py" in cmd:
-            singles.append(f"pid {p.info['pid']}: {cmd[:120]}")
+            batches.append(f"pid {pid}: {cmd[:120]}")
+        elif "pokebot.py" in cmd and "--endless-target" not in cmd:
+            singles.append(f"pid {pid}: {cmd[:120]}")
     return batches, singles
+
+
+def batch_running(cdir: Path) -> bool:
+    """True while the batch runner that writes into `cdir` is alive."""
+    return any("x4_headless.py" in cmd and str(cdir) in cmd for _, cmd in _cmdlines())
 
 
 def size_lanes(cfg: dict, singles: int = 0) -> tuple[int, str]:
@@ -217,8 +290,11 @@ def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
     records = load_jsonl(RUNS_FILE)
     proposals = read_inbox()
     k = lanes // 4
+    design = None
+    if cfg.get("design") == "pb12" and brain.pb12_rows():
+        design = {"rows": brain.pb12_rows(), "next": int(state.get("design_next", 0))}
     picks = brain.choose_arms(k, brain.summarize(records), proposals, random.Random(),
-                              float(cfg["two_flip_prob"]), int(cfg["max_proposals_per_cycle"]))
+                              float(cfg["two_flip_prob"]), int(cfg["max_proposals_per_cycle"]), design)
     n = state["cycle"] + 1
     while any(PROFILES.glob(f"endless-ai{n:04d}-*")) or (RUNS / f"ai{n:04d}").exists():
         n += 1
@@ -228,6 +304,7 @@ def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
     running = {brain.genome_id(g) for g, _ in picks}
     used = [p.get("_file") for p in proposals if brain.genome_id(p["genes"]) in running]
     return {"n": n, "tag": tag, "lanes": lanes, "minutes": float(cfg["cycle_minutes"]),
+            "design_next": design["next"] if design else state.get("design_next", 0),
             "arms": {name: {"genome": brain.genome_id(g), "label": brain.label(g), "why": why,
                             "env": brain.full_env(g)} for name, (g, why) in zip(names, picks)},
             "proposal_files": [f for f in used if f]}
@@ -248,6 +325,7 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     (cdir / "arms.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     (cdir / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
     state["cycle"] = plan["n"]
+    state["design_next"] = plan["design_next"]
     state["current"] = {"tag": tag, "started": now(), "lanes": lanes, "minutes": plan["minutes"]}
     save_state(state)
     for a, v in plan["arms"].items():
@@ -258,7 +336,13 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     with open(cdir / "x4.out.txt", "w", encoding="utf-8") as out:
         rc = subprocess.run(batch_command(plan, cdir), cwd=STORY_DEV, env=env, stdout=out,
                             stderr=subprocess.STDOUT).returncode
-    batch = cdir / "batch"
+    return finish_cycle(cfg, load_state(), plan, rc)
+
+
+def finish_cycle(cfg: dict, state: dict, plan: dict, rc) -> bool:
+    """Score a finished batch and record it. Used both after a normal run and when ADOPTING an orphaned one."""
+    tag = plan["tag"]
+    batch = RUNS / tag / "batch"
     records = []
     if (batch / "ARMS.json").exists():
         try:
@@ -271,15 +355,16 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     usable = sum(1 for r in records if r.get("usable"))
     meta = json.loads((batch / "ARMS.json").read_text(encoding="utf-8")) if (batch / "ARMS.json").exists() else {}
     created = [str(batch)] + [str(PROFILES / ln["profile"]) for ln in meta.get("lanes", [])]
-    cycle = {"source": "cycle", "tag": tag, "finished": now(), "exit": rc, "lanes": lanes, "runs": len(records),
-             "usable": usable, "arms_label": ", ".join(f"{a}={v['genome']}" for a, v in plan["arms"].items()),
+    cycle = {"source": "cycle", "tag": tag, "finished": now(), "exit": rc, "lanes": plan["lanes"],
+             "runs": len(records), "usable": usable,
+             "arms_label": ", ".join(f"{a}={v['genome']}" for a, v in plan["arms"].items()),
              "code_commit": meta.get("code_commit"), "created": created, "pruned": False}
     append_jsonl(CYCLES_FILE, [{k: v for k, v in cycle.items() if k != "created"}])
     state["cycles"].append(cycle)
     state["current"] = None
     ok = usable > 0
     if ok:
-        for f in plan["proposal_files"]:
+        for f in plan.get("proposal_files", []):
             (INBOX / "done").mkdir(parents=True, exist_ok=True)
             if (INBOX / f).exists():
                 shutil.move(str(INBOX / f), INBOX / "done" / f)
@@ -289,6 +374,30 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     log(consult.maybe_consult(cfg, REPO, AI, tag))
     prune(cfg, state)
     return ok
+
+
+def adopt_unfinished(cfg: dict) -> bool | None:
+    """If a previous learner died mid-cycle, finish that cycle: wait for its batch, then score it.
+    None = nothing to adopt; False = STOP appeared while waiting; True/False otherwise = the cycle's outcome."""
+    state = load_state()
+    cur = state.get("current")
+    if not cur:
+        return None
+    tag = cur["tag"]
+    cdir = RUNS / tag
+    if tag in {c.get("tag") for c in state["cycles"]} or not (cdir / "plan.json").exists():
+        log(f"adopt: {tag} has no plan or is already recorded; clearing it")
+        state["current"] = None
+        save_state(state)
+        return None
+    if batch_running(cdir):
+        log(f"adopt: {tag}'s batch is still running (the previous learner stopped mid-cycle); waiting for it")
+        while batch_running(cdir):
+            if not sleep_unless_stopped(2):
+                return False
+    log(f"adopt: scoring {tag}")
+    plan = json.loads((cdir / "plan.json").read_text(encoding="utf-8"))
+    return finish_cycle(cfg, state, plan, "adopted")
 
 
 def prune(cfg: dict, state: dict) -> None:
@@ -318,12 +427,22 @@ def sleep_unless_stopped(minutes: float) -> bool:
     return True
 
 
-def loop(single: bool) -> int:
+def loop(single: bool, dev: bool = False) -> int:
+    if not DEPLOYMENT.exists() and not dev:
+        print(f"This is not the learner's deployment checkout ({DEPLOYMENT} is missing). The learner runs from its own "
+              f"clone so development commits cannot abort its batches: see README.md 'Where it runs'. Pass --dev to "
+              f"run here anyway (smoke tests only).")
+        return 2
     why = acquire_lock()
     if why:
         print(why)
         return 2
+    started_sig, refused_sig = code_signature(), None
+    log(f"learner started (code {started_sig})")
     try:
+        adopted = adopt_unfinished(load_config())
+        if adopted is False and STOP.exists():
+            return 0
         while True:
             if STOP.exists():
                 log("STOP file found: stopping (delete ai-agent/STOP to allow the next start)")
@@ -331,6 +450,17 @@ def loop(single: bool) -> int:
             if ATTENTION.exists():
                 log(f"{ATTENTION} exists: not starting a cycle until it is resolved and deleted")
                 return 0
+            if load_config().get("auto_update") and not single:
+                msg = update_checkout()
+                if msg:
+                    log(msg)
+            sig = code_signature()
+            if not single and sig != started_sig and sig != refused_sig:
+                if tests_pass():
+                    log(f"code changed ({started_sig} -> {sig}) and test_agent.py passes: restarting into it")
+                    return RESTART_CODE
+                refused_sig = sig
+                log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
             cfg, state = load_config(), load_state()
             if free_gb() < float(cfg["min_free_gb"]):
                 prune({**cfg, "keep_raw_cycles": 1}, state)
@@ -356,6 +486,7 @@ def loop(single: bool) -> int:
                 log(f"cycle crashed:\n{traceback.format_exc()}")
                 state = load_state()
                 state["current"] = None
+                save_state(state)
                 ok = False
             state = load_state()
             state["failures"] = 0 if ok else state.get("failures", 0) + 1
@@ -374,18 +505,49 @@ def loop(single: bool) -> int:
 
 # ---------------------------------------------------------------------------------------------------------- commands
 def cmd_ingest(batch_dir: str) -> int:
+    path = str(Path(batch_dir).resolve())
+    state = load_state()
+    if path not in state.setdefault("ingested", []):
+        state["ingested"].append(path)
+        save_state(state)
     existing = {(r.get("batch"), r.get("lane"), r.get("log")) for r in load_jsonl(RUNS_FILE)}
-    records = [r for r in scoring.parse_batch(Path(batch_dir), "ingest")
+    records = [r for r in scoring.parse_batch(Path(path), "ingest")
                if (r.get("batch"), r.get("lane"), r.get("log")) not in existing]
     for r in records:
         r["genome_id"] = brain.genome_id(r["genome"])
     append_jsonl(RUNS_FILE, records)
     if records:
         append_jsonl(CYCLES_FILE, [{"source": "ingest", "tag": f"ingest {records[0]['batch']}", "finished": now(),
-                                    "exit": "-", "runs": len(records),
+                                    "exit": "-", "runs": len(records), "path": path,
                                     "usable": sum(1 for r in records if r["usable"]), "arms_label": "step-14 arms"}])
-    log(f"ingested {len(records)} new runs from {batch_dir}")
+    log(f"ingested {len(records)} new runs from {path}")
     report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "ingested")
+    return 0
+
+
+def cmd_reparse() -> int:
+    """Re-read every batch whose raw logs still exist; keep the records of batches already pruned."""
+    state = load_state()
+    sources = {}
+    for c in state["cycles"]:
+        b = RUNS / c["tag"] / "batch"
+        if (b / "ARMS.json").exists():
+            sources[str(b)] = c["tag"]
+    for p in state.get("ingested", []):
+        if (Path(p) / "ARMS.json").exists():
+            sources[p] = "ingest"
+    fresh, covered = [], set()
+    for path, label in sources.items():
+        recs = scoring.parse_batch(Path(path), label)
+        for r in recs:
+            r["genome_id"] = brain.genome_id(r["genome"])
+        fresh += recs
+        covered.add(json.loads((Path(path) / "ARMS.json").read_text(encoding="utf-8")).get("stamp"))
+    old = load_jsonl(RUNS_FILE)
+    kept = [r for r in old if r.get("batch") not in covered]
+    write_jsonl(RUNS_FILE, kept + fresh)
+    log(f"reparse: {len(fresh)} records re-read from {len(sources)} batches; {len(kept)} kept from pruned batches")
+    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "reparsed")
     return 0
 
 
@@ -406,11 +568,16 @@ def cmd_plan() -> int:
 
 def cmd_status() -> int:
     state, cfg = load_state(), load_config()
-    print(f"cycles started: {state['cycle']}; current: {state.get('current')}; failures in a row: "
-          f"{state.get('failures', 0)}")
-    batches, singles = other_bots_running()
+    cur = state.get("current")
+    alive = bool(cur) and batch_running(RUNS / cur["tag"])
+    pid = LOCK.read_text().strip() if LOCK.exists() else None
+    learner_alive = bool(pid) and pid.isdigit() and psutil.pid_exists(int(pid))
+    print(f"learner process: {'RUNNING (pid ' + pid + ')' if learner_alive else 'NOT running'}")
+    print(f"current cycle: {cur}; its batch is {'RUNNING' if alive else 'not running'}")
+    print(f"cycles started: {state['cycle']}; failures in a row: {state.get('failures', 0)}; "
+          f"design row next: {state.get('design_next', 0)}")
     print(f"runs recorded: {len(load_jsonl(RUNS_FILE))}; free disk: {free_gb():.0f} GB; "
-          f"lanes now: {size_lanes(cfg, len(singles))}; other batches running: {len(batches)}")
+          f"raw cycles kept: {cfg['keep_raw_cycles']}")
     print(f"STOP file: {STOP.exists()}; ATTENTION: {ATTENTION.exists()}; consult: {cfg['consult']['enabled']}")
     print(f"findings: {FINDINGS / 'LATEST.md'}")
     return 0
@@ -418,7 +585,8 @@ def cmd_status() -> int:
 
 def cmd_publish() -> int:
     PUBLISHED.mkdir(exist_ok=True)
-    for src in [FINDINGS / "LATEST.md", FINDINGS / "latest.json", RUNS_FILE, CYCLES_FILE, LOG]:
+    for src in [FINDINGS / "LATEST.md", FINDINGS / "latest.json", FINDINGS / "DEVELOPER-NOTES.md", RUNS_FILE,
+                CYCLES_FILE, LOG]:
         if src.exists():
             shutil.copy2(src, PUBLISHED / src.name)
     print(f"copied into {PUBLISHED}; commit that folder (explicit paths) for a cloud session to read it")
@@ -427,17 +595,18 @@ def cmd_publish() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["run", "once", "plan", "ingest", "report", "status", "publish"])
+    ap.add_argument("command", choices=["run", "once", "plan", "ingest", "reparse", "report", "status", "publish"])
     ap.add_argument("batch_dir", nargs="?")
     ap.add_argument("--lanes", default=None, help="override config.json's lanes for this process (e.g. a smoke test)")
     ap.add_argument("--minutes", type=float, default=None, help="override config.json's cycle_minutes")
+    ap.add_argument("--dev", action="store_true", help="allow run/once outside the deployment clone (smoke tests)")
     a = ap.parse_args()
     if a.lanes is not None:
         DEFAULTS["_override_lanes"] = a.lanes
     if a.minutes is not None:
         DEFAULTS["_override_minutes"] = a.minutes
     if a.command in ("run", "once"):
-        return loop(single=a.command == "once")
+        return loop(single=a.command == "once", dev=a.dev)
     if a.command == "ingest":
         if not a.batch_dir:
             ap.error("ingest needs a batch directory")
@@ -446,7 +615,7 @@ def main() -> int:
         report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "report")
         print(FINDINGS / "LATEST.md")
         return 0
-    return {"plan": cmd_plan, "status": cmd_status, "publish": cmd_publish}[a.command]()
+    return {"plan": cmd_plan, "status": cmd_status, "publish": cmd_publish, "reparse": cmd_reparse}[a.command]()
 
 
 if __name__ == "__main__":

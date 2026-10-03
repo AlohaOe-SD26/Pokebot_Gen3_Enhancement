@@ -5,4 +5,5 @@ findings/
 inbox/*
 !inbox/README.md
 STOP
+DEPLOYMENT
 __pycache__/

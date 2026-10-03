@@ -40,8 +40,12 @@ def make_batch(root: Path) -> Path:
         "stamp": "T", "code_commit": "abc", "arms_text": json.dumps({"arms": {"A": a_env, "B": b_env}}),
         "lanes": [{"arm": "A", "starter": "mudkip", "profile": "endless-x-H1-mudkip"},
                   {"arm": "B", "starter": "torchic", "profile": "endless-x-H2-torchic"}]}), encoding="utf-8")
+    hb = ("f{f} [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=PETALBURG CITY(0,7) pos=(5, 6) "
+          "party={p} ids=[]")
     run1 = [win(265), win(266),  # a stale boot's battles BEFORE the run starts must not count
-            "f13000 [STEP] 'Story: choosing Mudkip!'", win(265), win(266), win(269, "Lost"), win(269, "Lost"),
+            "f13000 [STEP] 'Story: choosing Mudkip!'", win(265), win(266),
+            hb.format(f=500, p="['Marshtomp:L20', 'Poochyena:L10']"), win(269, "Lost"),
+            hb.format(f=600, p="['Marshtomp:L30', 'Poochyena:L20']"), win(269, "Lost"),
             "f900 [STORY] DERAIL #5: this boss: 5 losses with no super-effective answer to Normal. Need one"]
     run2 = ["f13000 [STEP] 'Story: choosing Torchic!'", win(265)]  # last log of the lane, no end: censored
     champ = ["f13000 [STEP] 'Story: choosing Torchic!'"] + [win(o) for o in range(265, 273)] + \
@@ -62,6 +66,12 @@ def test_scoring(tmp: Path) -> None:
     check("S5 a Champion scores 13/13", c["champion"] and c["score"] == 1.0, c["score"])
     check("S6 the Norman message is named as his wall", r1["wall"] == "boss wall: Norman", r1["wall"])
     check("S7 genome read from the lane's arm", r1["genome"] == K.STEP14_A and c["genome"] == K.STEP14_B)
+    nb = r1["boss_log"].get("NORMAN", {})
+    check("S8 the party at a boss's FIRST loss is the heartbeat before it, not a later one",
+          nb.get("losses") == 2 and not nb.get("won") and "L20'" in (nb.get("party_first_loss") or ""), nb)
+    check("S9 milestones are the first wins, in order", [m[0] for m in c["milestones"]][:3] ==
+          ["ROXANNE", "BRAWLY", "WATTSON"] and c["milestones"][-1][0] == "WALLACE", c["milestones"][:3])
+    check("S10 money after the last battle is read", r1["money_last"] == 2, r1["money_last"])
 
 
 def test_brain() -> None:
@@ -83,6 +93,22 @@ def test_brain() -> None:
     check("B6 an inbox proposal runs", brain.genome_id(prop["genes"]) in ids)
     check("B7 FAULT: an unknown knob is refused", K.validate_genes({"POKEBOT_FAKE": "1"}) != [])
     check("B8 FAULT: a disallowed value is refused", K.validate_genes({"POKEBOT_R25_CAP": "2"}) != [])
+    def balanced(rs: list[dict]) -> bool:
+        cols = list(zip(*[[r[g] != brain.BASE[g] for g in sorted(K.GENES)] for r in rs]))
+        return all(sum(c) == 6 for c in cols) and all(
+            sum(a and b for a, b in zip(cols[i], cols[j])) == 3 for i in range(len(cols)) for j in range(i + 1, len(cols)))
+
+    rows = brain.pb12_rows()
+    check("B9 the screening design: 12 distinct rows, each knob ON in 6, every pair ON together in 3",
+          len({brain.genome_id(r) for r in rows}) == 12 and balanced(rows))
+    design = {"rows": rows, "next": 0}
+    picks = brain.choose_arms(6, brain.summarize(recs), [], random.Random(5), design=design)
+    check("B10 a design cycle = the incumbent + the next design rows, and the row pointer advances",
+          brain.genome_id(picks[0][0]) == brain.genome_id(K.STEP14_A) and design["next"] == 5
+          and all("screening design row" in w for _, w in picks[1:]), [w for _, w in picks])
+    bad = [dict(r) for r in rows]
+    bad[0]["POKEBOT_R25_CAP"] = "1" if bad[0]["POKEBOT_R25_CAP"] == "0" else "0"
+    check("B11 FAULT: one flipped cell makes the balance check fail", not balanced(bad))
 
 
 def test_effects() -> None:
@@ -147,13 +173,70 @@ def test_prune_and_inbox(tmp: Path) -> None:
     check("I1 a valid proposal is read", [p["name"] for p in got] == ["g"])
     check("I2 FAULT: an invalid proposal is moved to rejected/", (inbox / "rejected" / "bad.json").exists())
     check("C1 consult is off by default", consult.maybe_consult(learner.DEFAULTS, tmp, tmp, "x") == "consult: off")
+    cmd = consult.build_command("claude", learner.DEFAULTS["consult"])
+    joined = " ".join(cmd)
+    check("C2 consult skips project hooks (no git pull), is read-only, capped and on a cheap model",
+          "--setting-sources user" in joined and "--allowedTools Read,Grep,Glob" in joined
+          and "--max-budget-usd" in cmd and "--model sonnet" in joined and "--max-turns" not in cmd, joined[-160:])
+
+
+def test_adopt_and_reparse(tmp: Path) -> None:
+    """A learner that dies mid-cycle must not lose the cycle: the next one waits for the batch, then scores it."""
+    learner.RUNS, learner.PROFILES, learner.INBOX = tmp / "runs", tmp / "profiles", tmp / "inbox"
+    learner.DATA, learner.FINDINGS = tmp / "data", tmp / "findings"
+    learner.STATE_FILE, learner.LOG = tmp / "data" / "state.json", tmp / "data" / "learner.log"
+    learner.RUNS_FILE, learner.CYCLES_FILE = tmp / "data" / "runs.jsonl", tmp / "data" / "cycles.jsonl"
+    cdir = learner.RUNS / "ai0007"
+    make_batch(cdir)  # creates cdir/batch
+    plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}
+    (cdir / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    learner.save_state({"cycle": 7, "cycles": [], "current": {"tag": "ai0007"}, "failures": 0})
+    polls = []
+    real_running, real_sleep = learner.batch_running, learner.sleep_unless_stopped
+    learner.batch_running = lambda d: len(polls) < 2  # "still running" for two polls, then finished
+    learner.sleep_unless_stopped = lambda m: polls.append(m) or True
+    try:
+        out = learner.adopt_unfinished(dict(learner.DEFAULTS))
+    finally:
+        learner.batch_running, learner.sleep_unless_stopped = real_running, real_sleep
+    st = learner.load_state()
+    recs = learner.load_jsonl(learner.RUNS_FILE)
+    check("L1 adoption waits while the orphaned batch still runs", len(polls) == 2, polls)
+    check("L2 then scores it and clears the current cycle",
+          out is True and st["current"] is None and len(recs) == 3 and st["cycles"][-1]["exit"] == "adopted",
+          (out, st["current"], len(recs)))
+    check("L3 FAULT: nothing to adopt returns None", learner.adopt_unfinished(dict(learner.DEFAULTS)) is None)
+    a = tmp / "sig"
+    a.mkdir()
+    (a / "m.py").write_text("x = 1", encoding="utf-8")
+    s1 = learner.code_signature(a)
+    (a / "m.py").write_text("x = 2", encoding="utf-8")
+    check("L4 an edited code file changes the code signature (hot reload trigger)", s1 != learner.code_signature(a))
+    cmds = learner.update_commands()
+    flat = [" ".join(c[3:]) for c in cmds]
+    check("L5 the learner's only git is fetch + fast-forward-only merge (nothing that can discard work)",
+          flat == ["fetch --quiet origin", "merge --ff-only --quiet origin/main"], flat)
+    real_dep = learner.DEPLOYMENT
+    learner.DEPLOYMENT = tmp / "no-such-marker"
+    try:
+        refused = learner.loop(single=True)
+    finally:
+        learner.DEPLOYMENT = real_dep
+    check("L6 FAULT: run/once refuse outside the deployment clone", refused == 2 and not (tmp / "data" / "agent.lock")
+          .exists(), refused)
+    stale = dict(recs[0], boss_log={}, batch="OLD-PRUNED")
+    learner.write_jsonl(learner.RUNS_FILE, recs + [stale])
+    learner.cmd_reparse()
+    after = learner.load_jsonl(learner.RUNS_FILE)
+    check("R3 reparse re-reads batches that still exist and keeps records of pruned ones",
+          len(after) == 4 and sum(r["batch"] == "OLD-PRUNED" for r in after) == 1, len(after))
 
 
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="aiagent-test-"))
     try:
         for t in (lambda: test_scoring(tmp / "s"), test_brain, test_effects, lambda: test_preflight(tmp),
-                  lambda: test_prune_and_inbox(tmp / "p")):
+                  lambda: test_prune_and_inbox(tmp / "p"), lambda: test_adopt_and_reparse(tmp / "a")):
             try:
                 t()
             except Exception as exc:  # a crash is a failed check, not a silent pass

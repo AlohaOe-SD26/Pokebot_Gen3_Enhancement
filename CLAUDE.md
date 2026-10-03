@@ -473,10 +473,14 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
 - The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in
   `ai-agent/` (manual: `ai-agent/README.md`) runs 24/7 on the user's PC and is the active line of work. The user
   authorized it to run as many parallel runs as the hardware allows.
-- **At session start**, after the sync ritual, run `py -3.12 ai-agent/learner.py status` and read
-  `ai-agent/findings/LATEST.md` (and `ATTENTION.md`, if present). The learner's data is the session's input.
-- ⛔ **While it runs, a change to `sandbox-pokebot/` aborts its current cycle** (the batch runner's freeze watch).
-  This includes a `git pull` that touches that folder. Do story-bot work in a WORKTREE. Pull main when the
-  learner's `status` shows no cycle mid-way, or accept the cut (finished runs are still scored).
-- The 24/7 process never edits code or runs git. Knob changes, consult enablement and relaunches are made in an
-  interactive session and recorded in the docs like any other change.
+- ⭐ **It RUNS from its own deployment clone, `C:/Remote Projects/pokebot-learner`**, never from this checkout.
+  The batch runner abandons a cycle when HEAD moves mid-batch, and on 2026-10-03 a docs commit here killed cycle
+  ai0002. So commit here freely: changes reach the learner only when IT fast-forwards its clone to `origin/main`,
+  between cycles (`auto_update`). If its own code changed, it restarts into it only after `test_agent.py` passes.
+  ⇒ **Deploying a learner change = commit + push to main.** Never edit files inside the clone.
+- **At session start**, after the sync ritual, run
+  `py -3.12 "C:/Remote Projects/pokebot-learner/ai-agent/learner.py" status`. Then read that clone's
+  `ai-agent/findings/LATEST.md`, `DEVELOPER-NOTES.md` (Claude's consult notes) and `ATTENTION.md`, if present. The
+  learner's data lives THERE; this checkout's `ai-agent/data` is not the live data.
+- The 24/7 process never edits code. Its only git is that fetch plus fast-forward of its own clone. Knob changes,
+  consult enablement and relaunches are made in an interactive session and recorded like any other change.

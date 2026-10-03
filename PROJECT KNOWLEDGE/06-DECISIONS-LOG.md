@@ -9036,3 +9036,42 @@ on all three questions:
 - **Consequence for every session while the learner runs:** the batch runner's freeze watch aborts a cycle if
   `sandbox-pokebot/` changes mid-batch. So a `git pull` on main that touches it, or a sandbox edit, cuts the running
   cycle short. Its finished runs are still scored. Story-bot work goes in a WORKTREE.
+
+## 2026-10-03 — The AI learner runs from its OWN deployment clone and updates itself between cycles (supersedes "never runs git" in the RULING 31 entry); its knobs are screened with a Plackett–Burman design
+
+- **The trigger (measured, not theory):** cycle ai0002 (24 lanes, 12 hours) died 10 minutes in, with `batch exit 3`.
+  The batch runner's freeze watch abandons a batch when HEAD moves, and the coordinator's docs-only commit
+  `718a34c7` moved it. The watch is right to do that: it keeps a batch attributable to one commit. But it makes the
+  development checkout an unsafe home for a 24/7 learner. Every commit there, from any session including the
+  user's own on 2026-10-07, would kill the running cycle, and a third kill in a row pauses the learner.
+- **Decision:** the learner runs from a separate FULL clone, `C:/Remote Projects/pokebot-learner`, whose origin is
+  GitHub. A full clone is needed because `x4_headless.py --arms` refuses a worktree. Between cycles, and only then,
+  the learner runs `git fetch` plus `git merge --ff-only origin/main` in that clone (`auto_update`). If its own code
+  changed, it re-runs `test_agent.py` and restarts into the new code only on a pass.
+  - Deploying a change is therefore commit + push, from anywhere, cloud sessions included.
+  - A git-ignored `DEPLOYMENT` marker makes `run` and `once` refuse anywhere else (gate L6). The
+    lock is per checkout, so without it two learners could run from two checkouts.
+  - Rejected: teaching the freeze watch to ignore HEAD moves that leave `sandbox-pokebot/` unchanged. Lane headers
+    record the build commit too, so that change spreads into header verification. It also edits a gate-pinned
+    story-dev tool, and editing `x4_headless.py` is itself a freeze-scope change that would kill the running cycle.
+  - Rejected: committing only at cycle boundaries. Unenforceable across sessions and machines.
+  - The RULING 31 entry's "never runs git" is superseded by "only fetch plus fast-forward of its own clone,
+    between cycles" (gate L5 pins the exact commands). A fast-forward cannot discard work, and the clone carries
+    none.
+- **Screening design (`design: pb12`, default):** after the control, each cycle runs the next rows of the
+  12-genome Plackett–Burman design for the 11 knobs.
+  - Every knob is ON in 6 rows and every pair ON together in 3 (gate B9; B11 proves one flipped cell fails it).
+    So one pass of about 2 cycles estimates every knob's main effect. Step 14 changed all 11 together, which left
+    them confounded.
+  - Rejected: one-knob mutants of the incumbent. Each mutant informs one knob, so 11 knobs need about 11 arms of
+    runs for what 12 PB rows give for all of them at once.
+  - Interactions are aliased in a PB design. A knob that looks important gets a confirming A/B in the story-bot
+    workflow before anything relies on it.
+- **Raw logs are kept until the next interactive session** (`keep_raw_cycles` 12, about 4 GB a cycle; the
+  `min_free_gb` guard still applies), so a better parser can re-read everything (`learner.py reparse`).
+- **Consult hardening, still OFF by default:**
+  - `--setting-sources user` skips the project's session-start hook, whose `git pull` would move HEAD;
+  - `--max-budget-usd` is a hard per-call cap;
+  - `--model sonnet`;
+  - `--max-turns`, which this CLI version does not have, is removed.
+  - "For the developer" notes accumulate in `findings/DEVELOPER-NOTES.md`.

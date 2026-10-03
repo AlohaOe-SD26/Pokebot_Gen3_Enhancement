@@ -1,4 +1,4 @@
-"""Turn one batch's raw debug logs into small per-RUN records (about 1 KB each), so the 2 GB of logs can be deleted.
+"""Turn one batch's raw debug logs into small per-RUN records (a few KB each), so the logs can be deleted later.
 
 A batch directory (`x4_headless.py --out`) holds `ARMS.json` and `L01..Lnn/debug-logs/*.log`, one log per run.
 Lane `Lnn` is `ARMS.json["lanes"][nn-1]`, which names its arm and starter.
@@ -8,6 +8,10 @@ Rules (each one is a lesson the grader learned, see KI-119):
 - badges are counted from LEADER WINS (`[TRAINER] end opp=265..272 ... res=Won`), not from the party or a save.
 - a run is COMPLETE if it became Champion, if a later log follows it in the same lane, or if it reached the fifth
   derail. Otherwise the batch's time limit cut it off: it is CENSORED and kept out of the scores.
+
+Per key trainer, `boss_log` keeps the losses, whether it was beaten, and the party from the newest heartbeat before
+the first loss and before the win. That is what an analysis of a wall needs ("what did the team look like when it
+lost to Tate & Liza?"). The heartbeat is periodic, so the party is the one shortly BEFORE the battle ended.
 """
 from __future__ import annotations
 
@@ -19,28 +23,35 @@ import knowledge as K
 
 STARTER_RE = re.compile(r"Story: choosing (\w+)!")
 TRAINER_END_RE = re.compile(r"\[TRAINER\] end opp=(\d+)\b.*?\bres=(\w+)")
+MONEY_RE = re.compile(r"\bmoney=(\d+)->(\d+)")
 DERAIL_RE = re.compile(r"\[STORY\] DERAIL #(\d+): (.*)")
 HB_RE = re.compile(r"\[hb\] mode=(.+?) state=\S+ controllable=\S+ map=(.+?)\(\d+,\d+\) pos=\((\d+), (\d+)\) "
                    r"party=(\[[^\]]*\])")
 FRAME_RE = re.compile(r"^f(\d+) ")
+LEVEL_RE = re.compile(r":L(\d+)")
 #: A run is ended by its fifth derail (every finished run in step 14's logs ends on `DERAIL #5`).
 DERAIL_CAP = 5
+
+
+def party_levels(party: str | None) -> list[int]:
+    return [int(x) for x in LEVEL_RE.findall(party or "")]
 
 
 def parse_log(path: Path) -> dict:
     """One run's record from one log. Pure reading; never raises on odd lines."""
     rec = {"log": path.name, "starter": None, "badges": [], "e4": [], "champion": False, "wins": {}, "losses": {},
-           "derails": 0, "last_derail": None, "end_map": None, "end_pos": None, "end_party": None, "frames": 0,
-           "mode_at_end": None}
-    started = False
+           "boss_log": {}, "milestones": [], "derails": 0, "derail_walls": [], "last_derail": None,
+           "end_map": None, "end_pos": None, "end_party": None, "frames": 0, "mode_at_end": None, "money_last": None}
+    started, last_party = False, None
     with open(path, "rb") as fh:
         for raw in fh:
             if not (b"choosing" in raw or b"[TRAINER] end" in raw or b"DERAIL #" in raw or b"[hb]" in raw):
                 continue
             line = raw.decode("utf-8", "replace").rstrip("\r\n")
             m = FRAME_RE.match(line)
-            if m:
-                rec["frames"] = max(rec["frames"], int(m.group(1)))
+            frame = int(m.group(1)) if m else None
+            if frame is not None:
+                rec["frames"] = max(rec["frames"], frame)
             if not started:
                 s = STARTER_RE.search(line)
                 if s:
@@ -48,25 +59,38 @@ def parse_log(path: Path) -> dict:
                 continue
             if (t := TRAINER_END_RE.search(line)):
                 opp, res = int(t.group(1)), t.group(2)
+                if (mo := MONEY_RE.search(line)):
+                    rec["money_last"] = int(mo.group(2))
                 name = K.KEY_TRAINERS.get(opp)
                 if name is None:
                     continue
                 bucket = rec["wins"] if res == "Won" else rec["losses"]
                 bucket[name] = bucket.get(name, 0) + 1
+                b = rec["boss_log"].setdefault(name, {"losses": 0, "won": False, "party_first_loss": None,
+                                                      "party_win": None})
                 if res == "Won":
+                    if not b["won"]:
+                        b["won"], b["party_win"] = True, last_party
+                        rec["milestones"].append([name, frame])
                     if opp in K.LEADERS and name not in rec["badges"]:
                         rec["badges"].append(name)
                     elif opp in K.ELITE_FOUR and name not in rec["e4"]:
                         rec["e4"].append(name)
                     elif opp in K.CHAMPION:
                         rec["champion"] = True
+                else:
+                    b["losses"] += 1
+                    if b["party_first_loss"] is None:
+                        b["party_first_loss"] = last_party
             elif (d := DERAIL_RE.search(line)):
                 rec["derails"] = max(rec["derails"], int(d.group(1)))
                 rec["last_derail"] = d.group(2)[:240]
+                if len(rec["derail_walls"]) < 12:
+                    rec["derail_walls"].append(K.classify_wall(d.group(2)))
             elif (h := HB_RE.search(line)):
                 rec["mode_at_end"], rec["end_map"] = h.group(1), h.group(2).strip()
                 rec["end_pos"] = [int(h.group(3)), int(h.group(4))]
-                rec["end_party"] = h.group(5)[:200]
+                rec["end_party"] = last_party = h.group(5)[:200]
     rec["progress"] = len(rec["badges"]) + len(rec["e4"]) + (1 if rec["champion"] else 0)
     rec["score"] = round(rec["progress"] / K.MAX_PROGRESS, 4)
     rec["wall"] = "CHAMPION" if rec["champion"] else K.classify_wall(rec["last_derail"])
@@ -91,8 +115,8 @@ def parse_batch(batch_dir: Path, source: str) -> list[dict]:
             last_in_lane = j == len(logs) - 1
             rec["complete"] = bool(rec["champion"] or not last_in_lane or rec["derails"] >= DERAIL_CAP)
             rec["usable"] = rec["complete"] and rec["starter"] is not None
-            rec.update(source=source, batch=meta.get("stamp"), code_commit=meta.get("code_commit"),
-                       lane=i + 1, lane_starter=lane.get("starter"), arm=lane.get("arm"),
-                       genome=genome_of_env(arms[lane["arm"]]))
+            rec.update(source=source, batch=meta.get("stamp"), batch_dir=str(batch_dir),
+                       code_commit=meta.get("code_commit"), lane=i + 1, lane_starter=lane.get("starter"),
+                       arm=lane.get("arm"), genome=genome_of_env(arms[lane["arm"]]))
             records.append(rec)
     return records

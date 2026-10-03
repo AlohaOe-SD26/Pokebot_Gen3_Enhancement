@@ -411,8 +411,13 @@ it.
   - keep a control strategy in every cycle;
   - size its lanes to the PC;
   - stop or pause itself safely (STOP file, `ATTENTION.md`).
-- **Must not do:** edit code; run git; turn a knob to a value no batch has run (v1: step 14's values only); delete
-  anything it did not create; compete with another batch.
+- **Must not do:**
+  - edit code;
+  - run git beyond a fast-forward of its own deployment clone (`C:/Remote Projects/pokebot-learner`) between
+    cycles;
+  - turn a knob to a value no batch has run (v1: step 14's values only);
+  - delete anything it did not create;
+  - compete with another batch.
 - **Next stages:**
   - Claude consults: built, OFF by default;
   - more knobs, aimed at the walls the learner measures;

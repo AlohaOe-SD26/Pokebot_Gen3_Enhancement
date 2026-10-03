@@ -6,8 +6,13 @@
   "reserve_ram_gb": 8,
   "ram_per_lane_gb": 1.5,
   "cycle_minutes": 720,
-  "keep_raw_cycles": 3,
+  "_keep_raw_cycles": "12 keeps every raw log until the next interactive session (about 4 GB a cycle; min_free_gb still guards the disk)",
+  "keep_raw_cycles": 12,
   "min_free_gb": 25,
+  "_design": "pb12 = after the control, run the rows of a 12-genome screening design that measures each knob's own effect; anything else = Thompson draw + mutants",
+  "design": "pb12",
+  "_auto_update": "between cycles only: fast-forward this deployment clone to origin/main, then restart into new learner code if test_agent.py passes",
+  "auto_update": true,
   "wait_if_other_bots_running": true,
   "idle_wait_minutes": 15,
   "max_consecutive_failures": 3,
@@ -16,7 +21,8 @@
   "consult": {
     "enabled": false,
     "max_calls_per_day": 2,
-    "max_turns": 8,
+    "model": "sonnet",
+    "max_usd_per_call": 0.75,
     "timeout_minutes": 20
   }
 }

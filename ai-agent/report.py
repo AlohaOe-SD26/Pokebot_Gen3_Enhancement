@@ -12,6 +12,7 @@ from pathlib import Path
 
 import brain
 import knowledge as K
+import scoring
 
 
 def _pct(a: int, b: int) -> str:
@@ -66,6 +67,7 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
         else:
             hint = next((h for name, _, h in K.WALLS if name == wall), "")
         lines.append(f"| {wall} | {n} | {100 * n / len(usable):.0f}% | {hint} |")
+    lines += _boss_table(usable)
     losses = collections.Counter()
     for r in usable:
         losses.update(r["losses"])
@@ -83,6 +85,34 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
                        for s in ranked],
             "effects": effects, "walls": walls.most_common(), "losses": losses.most_common()}
     return "\n".join(lines) + "\n", data
+
+
+def _mean(xs: list[float]) -> str:
+    return f"{sum(xs) / len(xs):.1f} (n={len(xs)})" if xs else "-"
+
+
+def _boss_table(usable: list[dict]) -> list[str]:
+    """Per key trainer: who reached it, who beat it, and the team's level when it lost first and when it won."""
+    out = ["", "## Boss by boss (scored runs)", "",
+           "Average team level comes from the newest heartbeat before the battle ended (a heartbeat is periodic, so "
+           "it is the party shortly before). A big gap between 'first loss' and 'win' means the bot wins by "
+           "grinding, not by planning.", "",
+           "| trainer | runs that fought | beat it | losses per run (mean) | never beat it | avg team level at first "
+           "loss | at the win |", "|---|---|---|---|---|---|---|"]
+    order = list(K.LEADERS.values()) + list(K.ELITE_FOUR.values()) + list(K.CHAMPION.values())
+    for name in order:
+        logs = [r["boss_log"][name] for r in usable if name in r.get("boss_log", {})]
+        if not logs:
+            continue
+        won = [b for b in logs if b["won"]]
+        lv_loss = [sum(lv) / len(lv) for b in logs if (lv := scoring.party_levels(b.get("party_first_loss")))]
+        lv_win = [sum(lv) / len(lv) for b in won if (lv := scoring.party_levels(b.get("party_win")))]
+        out.append(f"| {name} | {len(logs)} | {len(won)} ({100 * len(won) / len(logs):.0f}%) | "
+                   f"{sum(b['losses'] for b in logs) / len(logs):.1f} | {len(logs) - len(won)} | {_mean(lv_loss)} | "
+                   f"{_mean(lv_win)} |")
+    if len(out) == 6:
+        out.append("_No per-boss data yet (records from before the parser upgrade: run `learner.py reparse`)._")
+    return out
 
 
 def _questions(walls, n, effects, ranked) -> list[str]:

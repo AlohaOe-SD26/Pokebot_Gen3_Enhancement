@@ -92,9 +92,32 @@ def mutate(genes: dict, rng: random.Random, flips: int) -> dict:
     return g
 
 
+#: Plackett-Burman screening design for 11 two-level knobs in 12 genomes: the 11 cyclic shifts of this generator
+#: plus the all-baseline row. Every knob is ON in exactly 6 rows, and every PAIR of knobs is ON together in exactly 3,
+#: so each knob's own effect is estimable from one pass. One-knob mutants need far more runs for the same answer.
+PB12_GEN = "++-+++---+-"
+
+
+def pb12_rows() -> list[dict]:
+    """The 12 design genomes, or [] if the knob count is not 11 (the design only fits 11)."""
+    genes = sorted(K.GENES)
+    if len(genes) != len(PB12_GEN):
+        return []
+    rows = []
+    for shift in range(len(PB12_GEN)):
+        signs = PB12_GEN[len(PB12_GEN) - shift:] + PB12_GEN[:len(PB12_GEN) - shift]
+        rows.append({g: K.GENES[g][0][1 if s == "+" else 0] for g, s in zip(genes, signs)})
+    rows.append(dict(BASE))
+    return rows
+
+
 def choose_arms(k: int, summary: dict, proposals: list[dict], rng: random.Random,
-                two_flip_prob: float = 0.3, max_proposals: int = 1) -> list[tuple[dict, str]]:
-    """k distinct genomes for the next cycle, each with the reason it was picked."""
+                two_flip_prob: float = 0.3, max_proposals: int = 1,
+                design: dict | None = None) -> list[tuple[dict, str]]:
+    """k distinct genomes for the next cycle, each with the reason it was picked.
+
+    `design` = {"rows": [...], "next": i}: after the incumbent and any proposal, fill the cycle with the next design
+    rows (skipping any already picked) and advance `design["next"]`. Without it: Thompson draw, then mutants."""
     mu0 = prior_mean(summary)
     tested = {gid: s for gid, s in summary.items() if s["n"] > 0}
     picks: list[tuple[dict, str]] = []
@@ -117,6 +140,14 @@ def choose_arms(k: int, summary: dict, proposals: list[dict], rng: random.Random
     incumbent = picks[0][0]
     for p in proposals[:max_proposals]:
         add(p["genes"], f"inbox proposal '{p.get('name', '?')}': {p.get('why', '')}"[:200])
+    if design and design.get("rows"):
+        rows, n = design["rows"], len(design["rows"])
+        for _ in range(n):
+            if len(picks) >= k:
+                break
+            i = design["next"] % n
+            design["next"] += 1
+            add(rows[i], f"screening design row {i + 1} of {n} (pass {(design['next'] - 1) // n + 1})")
     if len(picks) < k and len(tested) > 1:
         draws = {gid: rng.gauss(*posterior(s, mu0)) for gid, s in tested.items() if gid not in seen}
         if draws:

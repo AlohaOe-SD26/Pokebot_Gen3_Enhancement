@@ -27,7 +27,7 @@ orientation error — see the "which copy" table below the tree.
 Pokebot_Gen3_Enhancement/
 ├── CLAUDE.md                      # Kit directives + project rules (3-copy layout, daily upstream check, sandbox rule §"Sandbox area")
 ├── Pokemon_Emerald_AI_Notes.md    # Cross-project transfer notes (Emerald AI project)
-├── ai-agent/                      # ★ Emerald AI strategy learner (2026-10-03): 24/7, drives x4_headless --arms; see its README.md
+├── ai-agent/                      # ★ Emerald AI strategy learner (dev copy); it RUNS from the clone C:/Remote Projects/pokebot-learner; README.md
 ├── install.py, install_sandbox.py # installer/updater/healer for custom-pokebot and for sandbox-pokebot
 ├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–31 + playbooks + batch-evidence/)
 │   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, logs

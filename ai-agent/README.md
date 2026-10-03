@@ -14,9 +14,27 @@ measuring stick that stage needs.
 runs that finished, 11 became Champion. Most others ended at Tate & Liza, Norman, or the Elite Four door, refused
 for a short basket of healing items or a team below the level floor.
 
+## Where it runs: its own copy of the project
+
+The learner runs from a **separate full clone**, `C:\Remote Projects\pokebot-learner`, never from the development
+checkout. The reason: the batch runner abandons a cycle when the checkout's commit (HEAD) moves mid-batch, so results
+can never mix two versions of the bot. On 2026-10-03 a docs-only commit in the development checkout killed a 12-hour
+cycle 10 minutes in. In its own clone, HEAD moves only when the learner itself updates, between cycles.
+
+- **Deploying a change:** commit and push to `main` as usual. Between cycles, the learner fast-forwards its clone
+  to `origin/main` (`auto_update`; the only git it ever runs). If its own code changed, it re-runs `test_agent.py`
+  and restarts into the new code only if that passes.
+- The clone holds a git-ignored `DEPLOYMENT` marker. `run` and `once` refuse to start anywhere else, so two
+  learners can never run from two checkouts (`--dev` overrides, for smoke tests only).
+- The clone needs two untracked things the repo does not carry: the emulator library `sandbox-pokebot/mgba/` and
+  one lane-profile template, `sandbox-pokebot/profiles/endless-P1-torchic/metadata.yml` (the ROM binding). Both were
+  copied in when it was set up.
+
 ## Start, stop, check
 
-| to... | do this (PowerShell, in this folder) |
+Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone:
+
+| to... | do this (PowerShell, in that folder) |
 |---|---|
 | start it 24/7 | `.\run_agent.ps1` (keep the window open; the PC must not sleep) |
 | stop it cleanly | create a file named `STOP` here: `New-Item STOP`. The running cycle finishes first, up to 12 hours |
@@ -27,6 +45,9 @@ for a short basket of healing items or a team below the level floor.
 
 If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again.
 
+If the learner process dies mid-cycle, the batch keeps playing. The next start ADOPTS it: it waits for the batch to
+end, then scores it.
+
 ## One cycle (12 hours by default)
 
 1. **Size itself to the PC.** Lanes are parallel games, in fours: one per starter (Torchic, Mudkip, Treecko,
@@ -36,21 +57,29 @@ If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, de
 2. **Pick strategies** (`brain.py`):
    - the current best (the control);
    - a proposal from `inbox/`, if one is waiting;
-   - a "Thompson draw": a strategy that may be underrated because it has few runs;
-   - mutants of the best, changing one or two knobs, preferring combinations never run.
+   - the next rows of a **screening design** (`design: pb12`).
+     - This is a 12-strategy Plackett–Burman pattern. Every knob is ON in exactly 6 of the 12, and every pair of
+       knobs is ON together in exactly 3, so each knob's own effect is measurable.
+     - Step 14 changed all 11 knobs at once, which made them inseparable.
+   - With any other `design` value, the old way: a Thompson draw (an underrated strategy with few runs), then
+     mutants of the best.
 3. **Play.** Real games, through `tools/story-dev/x4_headless.py --arms`. That runner refuses a misspelt knob, a
    duplicate strategy or a bad lane split before any game starts.
-4. **Score** (`scoring.py`): each run becomes a ~1 KB record.
+4. **Score** (`scoring.py`): each run becomes a small record.
    - Score = progress out of 13 (8 badges, 4 Elite Four, the Champion).
+   - Per boss: losses, whether it was beaten, and the team just before the first loss and before the win.
+   - The order and timing of each first win; every derail; money after the last battle.
    - A run the time limit cut off is kept but not scored.
+   - `learner.py reparse` re-reads every batch whose raw logs still exist after a parser upgrade.
 5. **Learn and report** (`report.py`): `findings/LATEST.md` holds:
    - the strategy ranking;
    - what each knob seems worth (a regression);
    - where runs end, with hints from `05-KNOWN-ISSUES.md`;
    - questions for Claude.
 6. **Ask Claude** (`consult.py`, OFF until enabled; see below).
-7. **Clean up.** It deletes its own raw logs (about 3 GB a cycle) except the newest 3 cycles. The run records are
-   kept forever.
+7. **Clean up.** It deletes its own raw logs (about 4 GB a cycle) except the newest `keep_raw_cycles`. That is
+   12 until the next interactive session, so every log survives for re-analysis. The disk guard still applies, and
+   the run records are kept forever.
 
 ## Talking to Claude
 
@@ -64,15 +93,20 @@ If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, de
   - It is checked against the allowed knobs first.
   - `config.json` is re-read every cycle, so lane counts, cycle length and so on can change without a restart.
 - **Automatic consults** (`config.json` -> `consult.enabled: true`):
-  - after each cycle the learner runs the `claude` command with READ-ONLY tools;
+  - after each cycle the learner runs the `claude` command with READ-ONLY tools, on `model` (default sonnet), with
+    a hard per-call cap (`max_usd_per_call`);
+  - it skips the project's settings (`--setting-sources user`), and with them the session-start hook, whose
+    `git pull` could move HEAD;
   - it saves the reply as `findings/claude-<cycle>.md` and queues up to 2 checked proposals;
+  - it appends Claude's "for the developer" note to `findings/DEVELOPER-NOTES.md`, the first thing an
+    interactive session should read;
   - capped at `max_calls_per_day`, and every call is logged in `data/consult_log.jsonl`.
-  - It costs Claude usage, so it starts OFF.
 - **Code changes, new knobs, relaunches:** these stay with an interactive Claude session, where you can see them.
 
 ## Safety rules (built in, not just written down)
 
-- It never edits code and never runs git. It writes inside `ai-agent/`, plus the batch runner's lane profiles
+- It never edits code. Its only git is fetch plus a fast-forward-only merge of its own clone, between cycles
+  (test L5). It writes inside `ai-agent/`, plus the batch runner's lane profiles
   (`sandbox-pokebot/profiles/endless-ai####-*`), which it later deletes by exact name. A test (R2) proves it never
   deletes anything else.
 - It allows one learner at a time (a lock file) and never runs two batches at once.
@@ -80,11 +114,8 @@ If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, de
 - It pauses itself, instead of retrying forever:
   - after 3 cycles in a row with no scored runs;
   - when the disk falls below 25 GB free.
-- **It plays the code in `sandbox-pokebot/` as it is.** The batch runner aborts a cycle if that folder changes
-  mid-batch, so a cycle never mixes two versions of the bot. While the learner runs:
-  - do story-bot work in a git WORKTREE;
-  - expect a `git pull` that changes `sandbox-pokebot/` to cut the current cycle short. Finished runs are still
-    scored.
+- **It plays the code its clone holds.** Commits and pulls in the development checkout cannot touch a running
+  cycle. New bot code reaches the learner at the next cycle boundary, through `auto_update`.
 
 ## Changing the knobs
 
@@ -102,7 +133,7 @@ That is an interactive-session job. The obvious next knobs are the walls above:
 
 | file | job |
 |---|---|
-| `learner.py` | the loop and its commands (`run`, `once`, `plan`, `ingest`, `report`, `status`, `publish`) |
+| `learner.py` | the loop and its commands (`run`, `once`, `plan`, `ingest`, `reparse`, `report`, `status`, `publish`) |
 | `knowledge.py` | what it knows up front: knobs, bosses, named failure shapes, with sources |
 | `scoring.py` | logs -> run records (the run-identity rules learned from KI-119) |
 | `brain.py` | strategy choice and knob-effect estimates |
@@ -110,4 +141,4 @@ That is an interactive-session job. The obvious next knobs are the walls above:
 | `consult.py` | the optional Claude call |
 | `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune safety) |
 | `config.json` | the settings, re-read every cycle |
-| `run_agent.ps1` | the 24/7 wrapper (restarts after a crash; stops on `STOP`, a pause or `ATTENTION.md`) |
+| `run_agent.ps1` | the 24/7 wrapper (restarts after a crash or into updated code; stops on `STOP` or `ATTENTION.md`) |

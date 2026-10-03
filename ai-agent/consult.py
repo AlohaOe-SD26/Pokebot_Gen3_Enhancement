@@ -40,6 +40,19 @@ def _calls_today(log: Path) -> int:
     return sum(1 for line in log.read_text(encoding="utf-8").splitlines() if line.startswith(f'{{"day": "{today}"'))
 
 
+def build_command(exe: str, c: dict) -> list[str]:
+    """The consult's command line. Each flag is a safety property:
+    - `--setting-sources user` skips the PROJECT settings, and with them the session-start hook, which runs
+      `git pull` when the checkout is behind. A pull that touches `sandbox-pokebot/` aborts the learner's running
+      batch (the batch runner's freeze watch).
+    - `--allowedTools Read,Grep,Glob`: it can read and search, never edit, run commands or push.
+    - `--max-budget-usd`: a hard cap on what one consult can spend. `--model`: a cheaper model by default.
+    - `--no-session-persistence`: no saved session clutters the user's session list."""
+    return [exe, "-p", PROMPT, "--output-format", "text", "--model", str(c.get("model", "sonnet")),
+            "--max-budget-usd", str(c.get("max_usd_per_call", 0.75)), "--allowedTools", "Read,Grep,Glob",
+            "--setting-sources", "user", "--no-session-persistence"]
+
+
 def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
     """Run one consult if enabled and under the daily cap. Returns a one-line outcome for the learner's log."""
     c = cfg.get("consult", {})
@@ -51,8 +64,7 @@ def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
     exe = shutil.which("claude")
     if not exe:
         return "consult: the `claude` command is not on PATH"
-    cmd = [exe, "-p", PROMPT, "--output-format", "text", "--max-turns", str(c.get("max_turns", 8)),
-           "--allowedTools", "Read,Grep,Glob"]
+    cmd = build_command(exe, c)
     started = dt.datetime.now()
     try:
         proc = subprocess.run(cmd, cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -74,6 +86,11 @@ def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
                 (ai / "inbox").mkdir(exist_ok=True)
                 (ai / "inbox" / f"claude-{tag}-{i + 1}.json").write_text(json.dumps(p, indent=1), encoding="utf-8")
                 accepted += 1
+        note = body.get("for_the_developer")
+        if isinstance(note, str) and note.strip():
+            # One running file for the next interactive session to read first.
+            with open(ai / "findings" / "DEVELOPER-NOTES.md", "a", encoding="utf-8") as fh:
+                fh.write(f"\n## {started:%Y-%m-%d %I:%M %p}, after cycle {tag}\n\n{note.strip()}\n")
     with open(log, "a", encoding="utf-8") as fh:
         fh.write(json.dumps({"day": dt.date.today().isoformat(), "tag": tag, "started": started.isoformat(),
                              "seconds": round((dt.datetime.now() - started).total_seconds()), "exit": rc,

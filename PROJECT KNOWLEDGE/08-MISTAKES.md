@@ -23829,3 +23829,19 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   changelog cites that file.
 - **Prevention rule:** archive a run's evidence into a COMMITTED file before cleaning up anything it produced. A
   claim whose only backing is a scratchpad, a chat transcript or "the commit message" is unbacked.
+
+## 2026-10-03 — ⛔ A DOCS-ONLY COMMIT KILLED THE LEARNER'S 12-HOUR CYCLE: THE 24/7 PROCESS RAN FROM THE DEVELOPMENT CHECKOUT
+
+- **Symptom:** cycle ai0002 (24 lanes, planned 12 hours) ended after 10 minutes with `batch exit 3`, 24 runs logged,
+  0 scored. The learner counted it as a failure and started ai0003. Two such failures plus one more would have paused
+  it with `ATTENTION.md`.
+- **Root cause:** the batch runner's freeze watch abandons a batch when HEAD moves ("aborts this A/B if HEAD or the
+  code moves", printed in every batch header), and the coordinator committed docs (`718a34c7`) in the same checkout
+  the learner ran from. The coordinator had read that header line, and even written "a pull that changes
+  `sandbox-pokebot/` cuts the cycle" into CLAUDE.md, but modelled the trigger as "the CODE changes" when it is "HEAD
+  moves".
+- **The fix that worked:** the learner moved to its own full clone, which updates itself only between cycles (see
+  `06`). Development commits can no longer reach a running batch.
+- **Prevention rule:** before running a long-lived process from a checkout, list everything that aborts it, as
+  measured (read the guard's own condition), and keep every one of those triggers out of that checkout's
+  day-to-day use. "Only code changes matter" was an assumption; the guard says HEAD.

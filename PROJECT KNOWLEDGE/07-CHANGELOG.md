@@ -37656,3 +37656,23 @@ bought balls only at fixed story points.
     - Smoke 1's data was deleted before its evidence was archived; Tier 1 caught the unbacked claim (`08`).
       Smoke 2's records stay in `ai-agent/data/`.
 - **Seeded:** step 14's 78 runs are ingested as the learner's starting data.
+
+## 2026-10-03 (PM) — `#28-aiagent` v1.1: deployment clone, self-update between cycles, crash adoption, screening design, richer run records
+
+- **Why:** the user approved using the remaining credit to strengthen the learner before 2026-10-07. Then cycle
+  ai0002 died when a docs commit moved HEAD in the checkout the learner ran from (see `06` and `08`).
+- **What changed (`ai-agent/`):**
+  - **It runs from its own clone**, `C:/Remote Projects/pokebot-learner`, marked with `DEPLOYMENT`. Between cycles it
+    fast-forwards that clone to `origin/main` (`auto_update`) and restarts into new learner code only after
+    `test_agent.py` passes. The wrapper treats exit code 3 as "restart now".
+  - **Crash adoption:** if the learner dies mid-cycle, the batch keeps playing. The next start waits for it, then
+    scores it (`adopt_unfinished`). This path was exercised live: the v1 learner was stopped mid-cycle and its batch
+    kept running.
+  - **The screening design** (`brain.pb12_rows`) fills each cycle after the control.
+  - **Richer run records:** per boss, the losses, whether it was beaten, and the party just before the first loss and
+    before the win; the order and frames of first wins; every derail; money after the last battle. `LATEST.md` gains
+    a boss-by-boss table. A new command, `learner.py reparse`, re-reads every retained batch with the current parser.
+  - **Config:** `keep_raw_cycles` 12; the consult flags hardened (see `06`).
+- **Verified:** `test_agent.py` ALL PASS (41 checks, up from 27). New rows: S8–S10 (boss log, milestones, money);
+  B9–B11 (the design's balance, and that one flipped cell fails it); L1–L6 (adoption waits and then scores; the
+  code-signature trigger; the exact git commands; the refusal outside the clone); R3 (reparse); C2 (consult flags).
