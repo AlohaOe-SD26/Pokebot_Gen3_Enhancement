@@ -412,7 +412,8 @@ it.
   - How the signals combine into one ranking is the user's call (`#28-aiagent-v2`).
   - First reading: a Champion run of step 14 caught 8 species and entered 60 places all game, far from what a
     person does.
-- **Purpose:** the first stage of the AI version. A 24/7 offline learner that plays real batches through the story
+- ⛔ **USER RULING 35:** the AI version PLAYS THE GAME ITSELF (navigation, battles, menus, decisions), with no bot code and no bot-like behaviour. The bot's logic, scripts and docs only TEACH it. The learner described next tunes the BOT, so it is TEACHER-side, not the AI player (that is `#28-aiagent-v2`).
+- **Purpose (of this learner):** the first, teacher-side stage of the AI version. A 24/7 offline learner that plays real batches through the story
   bot (`x4_headless.py --arms`) and learns which STRATEGY settings get runs furthest. Its findings
   (`ai-agent/findings/LATEST.md`) are written for Claude to read and act on. The story bot is the "hands" and the
   learner the strategist: the HYBRID the user chose over pausing the bot or starting the AI from scratch.

@@ -4,12 +4,17 @@
 > `PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` (2026-10-03, verbatim). This file organises them into design pillars and
 > records what the bot does today against each. Edit it as decisions are made; never contradict the rulings.
 
-## How it is built (USER RULING 34)
+## How it is built (USER RULINGS 34 + 35)
 
-- The AI version is the focus. The story bot is parked, not abandoned.
-- Any behaviour below that needs story-bot code ships behind an AI-only flag whose default is the bot's current
-  behaviour, so the bot version is untouched.
-- Concepts move to the bot version later, only when the user says so.
+- The AI version is the focus. The story bot is parked, not abandoned. Concepts move to the bot version later, only
+  when the user says so.
+- ⛔ **The AI PLAYS THE GAME ITSELF:** navigation, battles, menus and decisions, with no bot code in its play and no
+  bot-like movement.
+- **The bot is its TEACHER:** its logic, scripts and documentation teach what to do, how and why, as a head start.
+  Every pillar below describes the AI player's behaviour. "Today" notes describe what the BOT does, which is useful
+  as a lesson or as a counter-example, never as the AI's mechanism.
+- The 24/7 learner in this folder tunes the BOT: teacher-side knowledge and a corpus of games. The AI player is
+  still to be designed (`#28-aiagent-v2`).
 
 ## The goal
 

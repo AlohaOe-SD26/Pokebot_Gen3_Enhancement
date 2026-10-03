@@ -469,16 +469,22 @@ passes and (for a completed item) Tier 1 returns PASS; step 5 (commit) may not b
 that. The session's final step-6 push may not happen before Tier 2 returns clean.** `/wrapup`
 and `/checkpoint` carry these steps explicitly (they are outside the managed block).
 
-### ⭐ FOCUS: the AI version (USER RULING 34, 2026-10-03)
+### ⭐ FOCUS: the AI version (USER RULINGS 34 + 35, 2026-10-03)
 - **The main focus is developing the AI version.** The story bot is NOT abandoned: it reached a good point and
   is parked, and the user will return to it.
 - **AI concepts move to the bot version only LATER, and only when the user says so.**
-- ⇒ **An AI-version behaviour that needs story-bot code ships behind an AI-only flag whose DEFAULT is the bot's
-  current behaviour**, as `POKEBOT_BOSSMODE_TOPUP` does. Examples: roaming training, buying more Poké Balls,
-  varied counter teams.
-  - The bot version stays exactly as it is unless the AI sets the flag.
-  - "Porting a concept to the bot" later means changing a default, on the user's word.
-  - Never change the bot's default behaviour to serve the AI.
+- ⛔⛔ **USER RULING 35: THE AI PLAYS THE GAME ITSELF, AND THE BOT IS ONLY ITS TEACHER.**
+  - The AI does the map navigation, battles, interfaces and decisions by interacting with the game directly, with
+    NO bot code in its play and no bot-like movement or behaviour.
+  - The bot's logic, scripts and documentation are TEACHING material (what to do, how and why), a head start for
+    its learning, never its hands.
+  - This SUPERSEDES ruling 34's "AI behaviours ship behind AI-only flags in the bot's code" and ruling 31's "the
+    story bot is the hands".
+- ⇒ **The 24/7 learner in `ai-agent/` tunes the BOT. It is TEACHER-side: strategy knowledge plus a corpus of games.
+  It is NOT the AI player.** The AI player (its perception of the game, its button-level control, and how it learns
+  from the bot's demonstrations) is still to be designed: `#28-aiagent-v2`.
+- **Never change the bot's default behaviour to serve the AI.** (The one knob already added,
+  `POKEBOT_BOSSMODE_TOPUP`, defaults to the bot's old behaviour.)
 
 ### AI learner — the hybrid direction (USER RULING 31, 2026-10-03)
 - The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in

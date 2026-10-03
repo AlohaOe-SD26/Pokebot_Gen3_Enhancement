@@ -9216,3 +9216,13 @@ on all three questions:
   - Porting a concept to the bot later = changing a default, on the user's word.
   - Rejected: changing bot defaults to serve the AI (it would silently alter the parked bot version); forking the bot's code into `ai-agent/` (two copies of the same hands drift apart).
 - Recorded in `CLAUDE.md` (project rules: FOCUS), `ai-agent/HUMAN-PLAY-DESIGN.md` and memory.
+
+## 2026-10-03 — USER RULING 35: the AI PLAYS THE GAME ITSELF; the bot is only its TEACHER (supersedes ruling 34's "AI-only flags in the bot's code" and ruling 31's "the bot is the hands")
+
+- **The user, VERBATIM:** "The AI should be doing the navigation of the map, battles, interfaces, decisions, etc... as I would like to not have any bot like movements or usage of the bot in the AI version, we are simply using the bot logic/scripts and documentation to help teach the ai what to do, how to do it and why to do it so it gets a head start with learning how to play, part of being human is the ai interacting with the game itself without any bot usage or bot like behaviors"
+- **What it corrects:** the coordinator had framed the AI as driving the story bot's code as its "hands" (RULING 31's hybrid as implemented; RULING 34's application), and the 24/7 learner as "the AI". Both framings are WITHDRAWN.
+  - The learner tunes the BOT. It is TEACHER-side: strategy knowledge (what works, where games fail, how levels and catching relate to success) plus a corpus of bot games.
+  - The AI PLAYER, which perceives the game and presses the buttons itself, learning what/how/why from the bot as a head start, is NOT built yet. Designing it is `#28-aiagent-v2`.
+- **Kept:** the learner runs until the user decides otherwise. It costs no credits, and its knowledge and games are teaching material. `POKEBOT_BOSSMODE_TOPUP` stays, since its default is the bot's old behaviour. Never change the bot's defaults for the AI.
+- **Facts for the design (measured 2026-10-03):** the user's PC has an AMD Ryzen 9 5950X (16 cores, 32 threads), 128 GB RAM and an NVIDIA RTX 2060 (6 GB), enough to train a modest game-playing model locally.
+- Recorded in `CLAUDE.md` (FOCUS), `ai-agent/README.md`, `ai-agent/HUMAN-PLAY-DESIGN.md`, `01`, `03`, `04` and memory.

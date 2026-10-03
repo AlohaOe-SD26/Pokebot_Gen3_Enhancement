@@ -37748,3 +37748,5 @@ bought balls only at fixed story points.
 - Addendum, the same day: PC team swapping (hunting teams with Arena Trap or Mean Look; legendary teams; gym and Elite Four counter teams, VARIED at random among sensible choices so runs do not look alike) and Game Corner gambling as a future note. Both are logged verbatim in `06` (RULING 33 addendum) and are pillars 5-6 of `HUMAN-PLAY-DESIGN.md`.
 
 ## 2026-10-03 (PM) — USER RULING 34 recorded: focus on the AI version; AI behaviours ship behind AI-only flags whose default is the bot's current behaviour; porting to the bot happens only when the user says (`CLAUDE.md`, `06`, `HUMAN-PLAY-DESIGN.md`)
+
+## 2026-10-03 (PM) — USER RULING 35 recorded: the AI plays the game itself and the bot is only its teacher. The 24/7 learner is reclassified as teacher-side; the AI player (perception, button-level control, learning from the bot) is `#28-aiagent-v2`
