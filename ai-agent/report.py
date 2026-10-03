@@ -57,6 +57,7 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
                      f"{e['se']:.3f} | {e['runs_on']} / {e['runs_off']} | {sep} |")
     if not effects:
         lines.append("_Not enough scored runs yet._")
+    lines += _design_line(records)
     walls = collections.Counter(r["wall"] for r in usable)
     lines += ["", "## Where runs end", "", "| how the run ended | runs | share | hint from our research |",
               "|---|---|---|---|"]
@@ -75,16 +76,43 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
               ", ".join(f"{name} {n}" for name, n in losses.most_common()) or "_none_", "",
               "## Questions for Claude", ""]
     lines += _questions(walls, len(usable), effects, ranked) or ["_None this cycle._"]
-    lines += ["", "## Recent cycles", "", "| cycle | when | exit | runs logged | scored | arms |", "|---|---|---|---|---|---|"]
+    lines += ["", "## Recent cycles", "",
+              "A cycle with 0 scored runs carries NO strategy information: either it was a short smoke test, or the "
+              "batch was abandoned early (exit 3 = the batch runner's freeze watch saw the code's commit move). "
+              "Only scored runs feed the rankings and knob effects.", "",
+              "| cycle | when | lanes | exit | runs logged | scored | what it was | arms |", "|---|---|---|---|---|---|---|---|"]
     for c in cycles[-8:]:
-        lines.append(f"| {c.get('tag')} | {c.get('finished', '')} | {c.get('exit')} | {c.get('runs')} | "
-                     f"{c.get('usable')} | {c.get('arms_label', '')} |")
+        lines.append(f"| {c.get('tag')} | {c.get('finished', '')} | {c.get('lanes', '-')} | {c.get('exit')} | "
+                     f"{c.get('runs')} | {c.get('usable')} | {_cycle_kind(c)} | {c.get('arms_label', '')} |")
     data = {"generated": now, "status": status, "runs": len(records), "scored": len(usable),
             "ranked": [{"genome": brain.genome_id(s["genes"]), "label": s["label"], "n": s["n"],
                         "mean": s["mean"], "estimate": brain.posterior(s, mu0)[0], "genes": s["genes"]}
                        for s in ranked],
             "effects": effects, "walls": walls.most_common(), "losses": losses.most_common()}
     return "\n".join(lines) + "\n", data
+
+
+def _cycle_kind(c: dict) -> str:
+    if c.get("source") == "ingest":
+        return "prior data (step 14's batch)"
+    if c.get("usable"):
+        return "a real cycle"
+    if str(c.get("exit")) == "3":
+        return "ABANDONED early (commit moved), no data"
+    if (c.get("lanes") or 0) <= 8:
+        return "smoke test, no data"
+    return "no scored runs (see data/learner.log)"
+
+
+def _design_line(records: list[dict]) -> list[str]:
+    """How far the screening design has got: rows with at least one scored run."""
+    rows = brain.pb12_rows()
+    if not rows:
+        return []
+    scored = collections.Counter(brain.genome_id(r["genome"]) for r in records if r.get("usable"))
+    done = [i + 1 for i, row in enumerate(rows) if scored.get(brain.genome_id(row))]
+    return ["", f"Screening design: {len(done)} of {len(rows)} rows have scored runs "
+                f"({', '.join(map(str, done)) or 'none yet'}). Knob effects become separable as rows fill in.", ""]
 
 
 def _mean(xs: list[float]) -> str:

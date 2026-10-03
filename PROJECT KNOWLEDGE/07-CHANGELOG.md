@@ -37676,3 +37676,28 @@ bought balls only at fixed story points.
 - **Verified:** `test_agent.py` ALL PASS (41 checks, up from 27). New rows: S8–S10 (boss log, milestones, money);
   B9–B11 (the design's balance, and that one flipped cell fails it); L1–L6 (adoption waits and then scores; the
   code-signature trigger; the exact git commands; the refusal outside the clone); R3 (reparse); C2 (consult flags).
+
+## 2026-10-03 (PM) — The learner moved to its deployment clone and runs there; Claude consults ON; the decision-point map for 2026-10-07
+
+- **Live:**
+  - The clone `C:/Remote Projects/pokebot-learner` was set up at `845029b3`. Copied in: the emulator library, the
+    ROM-binding template, and the learner's data, with `current` and `failures` reset because both failures were
+    the coordinator's commits.
+  - Its own `test_agent.py`: ALL PASS (41).
+  - Step 14 was registered and re-read with the richer parser: 78 records, now with boss tables.
+  - The learner started there at 1:57 PM. Cycle ai0004 runs 24 lanes: the control plus screening-design rows 1-5,
+    every lane's arm header verified (4 x A-F).
+  - The development checkout's old batch ai0003 ended at its freeze watch, as expected, when `845029b3` moved HEAD.
+- **First boss table** (step 14, 62 scored runs): Tate & Liza were fought in 45 runs and beaten in 34, with 11.2
+  losses per run. The team's average level was about the same at the first loss and at the win (33.0 vs 33.7).
+- **Claude consults ON** (`config.json`). A live test against the clone's findings took 60 s and queued 2 proposals
+  ("restock-only", "catch-depth-only") plus a developer note.
+  - It also exposed a report gap: the reply read the 0-scored smoke and abandoned cycles as a failed screening
+    design.
+  - So `LATEST.md` now labels every cycle (prior data / real / smoke / abandoned at exit 3) and shows design
+    progress, and the consult prompt now says that 0-scored cycles are not evidence.
+- **Decision-point map** (`ai-research-notes/2026-10-03-decision-points-MAP.md`; agent output, five citations
+  spot-checked by the coordinator): every strategic decision in the story bot, with file:line and candidate knobs.
+  - Its central finding, verified: after 2 losses on fodder grass, boss mode tops up only +1 level
+    (`story_mode.py:3865`), and `HARD_PLATEAU_LOSS_THRESHOLD = 12` (`:2230`). That fits the flat team level.
+  - It is `#28-aiagent-v2`'s starting point.

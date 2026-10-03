@@ -76,7 +76,7 @@ end, then scores it.
    - what each knob seems worth (a regression);
    - where runs end, with hints from `05-KNOWN-ISSUES.md`;
    - questions for Claude.
-6. **Ask Claude** (`consult.py`, OFF until enabled; see below).
+6. **Ask Claude** (`consult.py`; ON since 2026-10-03, at most 2 calls a day; see below).
 7. **Clean up.** It deletes its own raw logs (about 4 GB a cycle) except the newest `keep_raw_cycles`. That is
    12 until the next interactive session, so every log survives for re-analysis. The disk guard still applies, and
    the run records are kept forever.

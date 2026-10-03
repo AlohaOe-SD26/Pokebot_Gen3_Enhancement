@@ -20,8 +20,10 @@ from pathlib import Path
 import knowledge as K
 
 PROMPT = """You are advising the Emerald AI strategy learner (folder ai-agent/ of this repo). Read ai-agent/README.md
-and ai-agent/findings/LATEST.md. You may also read PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md for what each failure means.
-Do NOT edit any file.
+and ai-agent/findings/LATEST.md. You may also read PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md for what each failure means,
+and PROJECT KNOWLEDGE/ai-research-notes/2026-10-03-decision-points-MAP.md for where the bot makes each decision.
+Do NOT edit any file. Base every claim on a number in LATEST.md and say which. A cycle with 0 scored runs is a smoke
+test or an abandoned batch, never evidence about a strategy (LATEST.md's cycles table says which).
 Reply with:
 1. A diagnosis of at most 10 lines: which strategy is winning, where runs end, and what the knob effects suggest.
 2. Exactly one fenced ```json block of the form

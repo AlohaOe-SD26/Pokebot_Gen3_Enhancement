@@ -419,7 +419,7 @@ it.
   - delete anything it did not create;
   - compete with another batch.
 - **Next stages:**
-  - Claude consults: built, OFF by default;
+  - Claude consults: ON since 2026-10-03 (read-only, capped, at most 2 a day);
   - more knobs, aimed at the walls the learner measures;
   - then a decision layer that chooses in-game, not only per run.
 

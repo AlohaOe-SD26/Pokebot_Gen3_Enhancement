@@ -19,7 +19,8 @@
   "max_proposals_per_cycle": 1,
   "two_flip_prob": 0.3,
   "consult": {
-    "enabled": false,
+    "_enabled": "turned ON 2026-10-03 after a live test (60 s, 2 proposals, a developer note); at most 2 calls a day, each capped at max_usd_per_call",
+    "enabled": true,
     "max_calls_per_day": 2,
     "model": "sonnet",
     "max_usd_per_call": 0.75,
