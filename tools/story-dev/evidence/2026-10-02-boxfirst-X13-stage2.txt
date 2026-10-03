@@ -1,0 +1,437 @@
+# 2026-10-02 — `#27-boxfirsttype` (KI-118) `--driver normanboxfirst`, arm X13 + stage 2, run 1
+# Spec + predictions (BF-1..BF-9 the proof, BF-10..BF-19 the fix; each filed before its code): PROJECT KNOWLEDGE/ai-research-notes/2026-10-02-boxfirst-DESIGN.md
+# worktree: C:\Remote Projects\pokebot-wt-ch24  branch: wt/boxfirst  HEAD: 5c78fab2cf6877d45476a61226d50592b45aa084
+# worktree status (porcelain): M "PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md" |  M tools/story-dev/party_accounting_ledger.jsonl |  M tools/story-dev/probe_r20_counterbox.py |  M tools/story-dev/saves/magma_1f_fail.ss1 |  M tools/story-dev/story_harness.py | ?? tools/story-dev/evidence/2026-10-02-boxfirst-CONFIG-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-CONFIG.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-DERIV-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-DERIV.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-X-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-X.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-Y-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-Y.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-WATTSON-OLD-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-WATTSON-OLD.txt
+# sha256 tools/story-dev/story_harness.py: 5cfde25d6332da40ab98b422ecdf003a1e1b20220cf0d3ac0a839f5090260f1a
+# sha256 sandbox-pokebot/plugins/custom_modes/story_mode.py: cf0fb4dd7d64af6826acfeede2398ede0f94d3f7ed8d7db501bd8c5f9de8d0a5
+# sha256 sandbox-pokebot/modules/story/counter_hunt.py: 1907f8fb89bf44ab8ba83599422ad50f2a7f3e063fd2b523f9f0d193a77c79ec
+# knobs (every NORMANBF_*/POKEBOT_* in the child env): NORMANBF_ARM=X13 NORMANBF_STAGE2=1
+# command (cwd tools/story-dev): PYTHONUTF8=1 NORMANBF_ARM=X13 NORMANBF_STAGE2=1 py -3.12 story_harness.py prenorman_fodder_grind.ss1 --driver normanboxfirst --frames 12000 --log C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13-stage2.log
+# fixture prenorman_fodder_grind.ss1 md5 before: 2580a3dfc57b27d270931c1a8be59069  after: 2580a3dfc57b27d270931c1a8be59069  UNCHANGED
+# started 2026-10-02 13:36:50  ended 2026-10-02 13:39:18  exit code 0
+# harness exceptions in the --log: 1 line(s) at --log line(s) [132], ALL AFTER the ACCEPTANCE line (127) — a POST-VERDICT harness artifact, not part of the graded run: the driver restores the fixture, which is MID-BATTLE, and the harness's Manual stub has no on_battle_started. Kinds: ["'ManualBotMode' object has no attribute 'on_battle_started'"]
+
+====================================================================================================
+===== --log (X13-stage2.log) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13-stage2.log
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 12000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=X13 boss=Norman hunt=none code=OLD prediction=BF-5 stage2=True POKEBOT_R20_FAULT_NOBOXCOUNTER=None POKEBOT_KI118_FAULT_TYPEONLYFIRST=None frame=3000000
+[normanbf] R CFG code_has_ki118_fix = False
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f575: PARTY CHANGE [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f640: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f650: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f676: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 720
+[normanbf] R T0 map = (0, 17)
+[normanbf] R T0 tile = (9, 2)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 7
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS_of_PETALBURG_CITY = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 4
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': False, 'RECEIVED_HM_SURF': False, 'DEFEATED_PETALBURG_GYM': False}
+[normanbf] R T0 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('341D550A', 'Combusken', 'Rock Smash', 60.0), ('42207D6F', 'Shedinja', None, 0.0), ('B2768B68', 'Whismur', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('3BDA9D98', 'Mightyena', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True, 'FIERY_PATH_reachable_from_PETALBURG_CITY': True}
+[normanbf] R T1 fresh_counter_hunts = {}
+[normanbf] R T1 fresh_registry = []
+[normanbf] R T1 boss = {'name': 'Norman', 'keys': ['(8, 1)', '(0, 0)'], 'ace_types': ('Normal',)}
+[normanbf] R T1 seed = {'defeat_counts': {'(8, 1)': 8, '(0, 0)': 8}, 'loss_ko_history': {'(8, 1)': [(0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1)]}}
+[normanbf] R T1 hopeless = (True, ['Fighting'])
+[normanbf] R T1 planner_candidates = [('Machop@FIERY_PATH', True, (18, 19)), ('Machop@JAGGED_PASS', False, None), ('Makuhita@GRANITE_CAVE_B1F', False, None), ('Makuhita@GRANITE_CAVE_1F', False, None), ('Makuhita@GRANITE_CAVE_STEVENS_ROOM', False, None), ('Hariyama@VICTORY_ROAD_1F', False, None), ('Makuhita@VICTORY_ROAD_1F', False, None), ('Hariyama@VICTORY_ROAD_B1F', False, None), ('Heracross@SAFARI_ZONE_NORTH', False, None), ('Pinsir@SAFARI_ZONE_NORTHWEST', False, None)]
+[normanbf] R T1 shortlist = ['Machop@FIERY_PATH']
+[normanbf] R T1 shortlist_head = ['Machop@FIERY_PATH']
+[normanbf] R T1 choice_before_injection = None
+[normanbf] R T1 premise_checks = {'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'no_pick_before_injection': True, 'shortlist_has_Machop_FIERY_PATH': True}
+[normanbf] R T2 injected = {'species': 'Makuhita', 'level': 13, 'pid': 'BA3B64AF', 'moves': ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'], 'box_slot': (0, 0)}
+[normanbf] R T2 box_after_injection = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T2 pick = ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 premise_checks = {'readback_one_record': True, 'readback_species_level': True, 'readback_moves_equal_created': True, 'moves_as_designed': True, 'pid_new_to_party_and_box': True, 'party_unchanged': True}
+[normanbf] R T2 expected_pick = ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 pick_equals_expectation = True
+[normanbf] INSTRUMENTED planner=True choice=True hunt=True register=True
+[normanbf] ACTION box_counter_choice (inside the ladder) returned ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] ACTION registered ('BA3B64AF', 'PC box (box-first)', True, 4) (pid, where, in_registry, owed_to_badge)
+[normanbf] R T3 r1 = True
+[normanbf] R T3 call_frames = 0
+[normanbf] R T3 planner_calls = 0
+[normanbf] R T3 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T3 hunt_calls = []
+[normanbf] R T3 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T3 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T3 registry = ['BA3B64AF']
+[normanbf] R T3 badges_map = {'BA3B64AF': 4}
+[normanbf] R T3 owed = ['BA3B64AF']
+[normanbf] R T3 box = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T3 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 r2 = False
+[normanbf] R T4 call_frames = 0
+[normanbf] R T4 planner_calls = 0
+[normanbf] R T4 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T4 hunt_calls = []
+[normanbf] R T4 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T4 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T4 registry = ['BA3B64AF']
+[normanbf] R T4 badges_map = {'BA3B64AF': 4}
+[normanbf] R T4 owed = ['BA3B64AF']
+[normanbf] R T4 box = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T4 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 counter_hunts_unchanged_vs_T3 = True
+f1001: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f2000: heartbeat mode=Story ctrl=NormanBoxFirstMode.run state=OVERWORLD party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f2070: SAVED stall state #1 to stalls/repro-ml-f2070.ss1 (bt='COMBUSKEN gained 23 EXP. Points!')
+[normanbf] ACTION PC withdraw BA3B64AF Makuhita
+f2918: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f2934: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_AccessPokemonStorage'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f2991: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_DrawFieldMessage'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_PCMainMenu'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f3048: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_PCMainMenu'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+[normanbf] R T5 heal_finished = True
+[normanbf] R T5 heal_frames = 2666
+[normanbf] R T5 withdraws = ['BA3B64AF']
+[normanbf] R T5 deposits = []
+[normanbf] R T5 map = (0, 0)
+[normanbf] R T5 party_after_heal = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30), ('BA3B64AF', 'Makuhita', 13)]
+[normanbf] R T5 box_after_heal = []
+[normanbf] R T5 hopeless = (False, [])
+[normanbf] R T5 r3 = False
+[normanbf] R T5 call_frames = 0
+[normanbf] R T5 planner_calls = 0
+[normanbf] R T5 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T5 hunt_calls = []
+[normanbf] R T5 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T5 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T5 registry = ['BA3B64AF']
+[normanbf] R T5 badges_map = {'BA3B64AF': 4}
+[normanbf] R T5 owed = ['BA3B64AF']
+[normanbf] R T5 box = []
+[normanbf] R T5 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30), ('BA3B64AF', 'Makuhita', 13)]
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'
+[normanbf] EXTRA registered_owed_to_badge = 4
+[normanbf] EXTRA owed_after_call1 = ['BA3B64AF']
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = []
+[normanbf] EXTRA call2_planner_calls = 0
+[normanbf] EXTRA ladder_box_choice_calls_T3 = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] EXTRA injected_still_boxed_T4 = True
+[normanbf] EXTRA caught = []
+[normanbf] CROSS-CHECK the hunt (no pick) shape on this X13 run (must NOT all hold): does not hold (good) {'no_box_first_registration': False, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False}
+[normanbf] CROSS-CHECK the fallback (the fix) shape on this X13 run (must NOT all hold): does not hold (good) {'call1_planner_entered_once': False, 'call1_fallback_registered': False, 'fallback_registered_after_the_planner': False, 'call1_returned_True': True, 'counter_hunts_names_the_fallback': False, 'call2_returned_False': True, 'call2_planner_still_1': False, 'call2_no_second_register': True}
+[normanbf] CROSS-CHECK the caught shape on this X13 run (must NOT all hold): does not hold (good) {'call1_planner_entered_once': False, 'call1_hunt_Machop_FIERY_PATH': False, 'caught_Machop_knows_Karate_Chop': False, 'caught_pid_new': False, 'machop_registered_PC_box': False, 'makuhita_NOT_registered': False, 'call1_returned_True': True, 'counter_hunts_caught_Machop': False, 'call2_returned_False': True, 'call2_no_second_register': True}
+[normanbf] VERDICT BF-1 (premise T0/T1): HOLDS (T0={'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True, 'FIERY_PATH_reachable_from_PETALBURG_CITY': True} T1={'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'no_pick_before_injection': True, 'shortlist_has_Machop_FIERY_PATH': True})
+[normanbf] conjuncts BF-5 = {'ran_clean': True, 'pick_as_expected': True, 'call1_returned_True': True, 'call1_no_planner_call': True, 'call1_no_hunt_call': True, 'call1_one_register_boxfirst': True, 'counter_hunts_says_boxfirst': True, 'call2_returned_False': True, 'call2_planner_still_0': True, 'call2_counter_hunts_unchanged': True, 'call2_no_second_register': True}
+[normanbf] VERDICT BF-5 (arm X13): HOLDS
+[normanbf] conjuncts BF-16 = {'ran_clean': True, 'heal_finished': True, 'withdrew_the_injected_pid': True, 'makuhita_in_party': True, 'makuhita_gone_from_box': True, 'call3_returned_False': True, 'planner_calls_still_0': True, 'boss_reads_NOT_hopeless': True}
+[normanbf] VERDICT BF-16 (arm X13): HOLDS
+[normanbf] ORDER = ['CFG.code_has_ki118_fix', 'T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.fiery_path_within_COUNTER_MAX_HOPS_of_PETALBURG_CITY', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks', 'T1.fresh_counter_hunts', 'T1.fresh_registry', 'T1.boss', 'T1.seed', 'T1.hopeless', 'T1.planner_candidates', 'T1.shortlist', 'T1.shortlist_head', 'T1.choice_before_injection', 'T1.premise_checks', 'T2.injected', 'T2.box_after_injection', 'T2.pick', 'T2.premise_checks', 'T2.expected_pick', 'T2.pick_equals_expectation', 'T3.r1', 'T3.call_frames', 'T3.planner_calls', 'T3.box_choice_calls', 'T3.hunt_calls', 'T3.register_calls', 'T3.counter_hunts', 'T3.registry', 'T3.badges_map', 'T3.owed', 'T3.box', 'T3.party', 'T4.r2', 'T4.call_frames', 'T4.planner_calls', 'T4.box_choice_calls', 'T4.hunt_calls', 'T4.register_calls', 'T4.counter_hunts', 'T4.registry', 'T4.badges_map', 'T4.owed', 'T4.box', 'T4.party', 'T4.counter_hunts_unchanged_vs_T3', 'T5.heal_finished', 'T5.heal_frames', 'T5.withdraws', 'T5.deposits', 'T5.map', 'T5.party_after_heal', 'T5.box_after_heal', 'T5.hopeless', 'T5.r3', 'T5.call_frames', 'T5.planner_calls', 'T5.box_choice_calls', 'T5.hunt_calls', 'T5.register_calls', 'T5.counter_hunts', 'T5.registry', 'T5.badges_map', 'T5.owed', 'T5.box', 'T5.party']
+[normanbf] EVENTS = ['box_choice', 'register BA3B64AF PC box (box-first)']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')] hunt_calls=[] register_calls=[('BA3B64AF', 'PC box (box-first)', True, 4)] withdraws=['BA3B64AF'] deposits=[] whiteouts=0 abort=None failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=X13 stage2=True; rests on BF-5, BF-16)
+f3388: STUCK-OW cb=HandleTurnActionSelectionState instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=[] ctrl=NormanBoxFirstMode.run bt='TYPE/NORMAL' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f3389: CONTROLLER -> <none>   (state=BATTLE)
+f3389: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f3389: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230] -> [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f3390: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31230, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+f4000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f4289: SAVED stall state #2 to stalls/repro-ml-f4289.ss1 (bt='TYPE/NORMAL')
+f4589: !!! NO-PROGRESS x1200 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f4589:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f6389: !!! NO-PROGRESS x3000 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f6389:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f10000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f11389: !!! NO-PROGRESS x8000 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f11389:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 12000 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 12002 get_party() recomputes, 41 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 12002 recomputes (party_accounting_ledger.jsonl)
+
+====================================================================================================
+===== stdout + stderr (X13-stage2.stdout.txt) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\X13-stage2.log
+Running mGBA 0.10.2
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 12000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=X13 boss=Norman hunt=none code=OLD prediction=BF-5 stage2=True POKEBOT_R20_FAULT_NOBOXCOUNTER=None POKEBOT_KI118_FAULT_TYPEONLYFIRST=None frame=3000000
+[normanbf] R CFG code_has_ki118_fix = False
+f1: CONTROLLER -> NormanBoxFirstMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Wurmple♂ encountered at Route 102 ─────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ BE182AB0        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 3               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  9  │ 21  │ 26↑ │ 29  │ 9  │ 31↓ │ 1… │ │
+│ │       Nature │ Relaxed         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Shield Dust     │                                          │
+│ │ Hidden Power │ Dragon (37)     │Moves: Tackle, String Shot                │
+│ │  Shiny Value │ 5,381           │EV Yield: 1 HP                            │
+│ │    Evolution │ Silcoon         │                                          │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Abra   │  25 /  │   1,035 /   │   110 │  6.19% │     0 │    110 │   N/A │ │
+│ │        │  136   │   64,828    │       │        │       │        │       │ │
+│ │ Aron   │  48 /  │   1,687 /   │    15 │  0.84% │     0 │     15 │   N/A │ │
+│ │        │  121   │   53,042    │       │        │       │        │       │ │
+│ │ Geodu… │  90 /  │    724 /    │    12 │  0.68% │     0 │     12 │   N/A │ │
+│ │        │   96   │   14,272    │       │        │       │        │       │ │
+│ │ Gloom  │ 111 /  │  47,298 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │  111   │   47,298    │       │        │       │        │       │ │
+│ │ Kecle… │  88 /  │  20,914 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   88   │   20,914    │       │        │       │        │       │ │
+│ │ Lairon │  79 /  │  42,560 /   │     2 │  0.11% │     0 │      2 │   N/A │ │
+│ │        │   79   │   42,560    │       │        │       │        │       │ │
+│ │ Linoo… │  93 /  │  12,044 /   │     1 │  0.06% │     0 │      1 │   N/A │ │
+│ │        │   93   │   12,044    │       │        │       │        │       │ │
+│ │ Magik… │  55 /  │  25,074 /   │     3 │  0.17% │     0 │      3 │   N/A │ │
+│ │        │   72   │   50,292    │       │        │       │        │       │ │
+│ │ Makuh… │  86 /  │  32,273 /   │    10 │  0.56% │     0 │     10 │   N/A │ │
+│ │        │   86   │   54,166    │       │        │       │        │       │ │
+│ │ Ninca… │  46 /  │   1,493 /   │   245 │ 13.80% │     0 │    245 │   N/A │ │
+│ │        │  147   │   59,889    │       │        │       │        │       │ │
+│ │ Oddish │  77 /  │  12,220 /   │    18 │  1.01% │     0 │     18 │   N/A │ │
+│ │        │  120   │   13,961    │       │        │       │        │       │ │
+│ │ Pooch… │  26 /  │    403 /    │   501 │ 28.21% │     0 │    501 │   N/A │ │
+│ │        │  148   │   65,468    │       │        │       │        │       │ │
+│ │ Shupp… │  88 /  │   4,437 /   │    78 │  4.39% │     0 │     78 │   N/A │ │
+│ │        │  121   │   60,077    │       │        │       │        │       │ │
+│ │ Skitty │  65 /  │  13,297 /   │    20 │  1.13% │     0 │     20 │   N/A │ │
+│ │        │  140   │   59,019    │       │        │       │        │       │ │
+│ │ Taill… │  22 /  │   1,352 /   │   360 │ 20.27% │     0 │    360 │   N/A │ │
+│ │        │  141   │   65,260    │       │        │       │        │       │ │
+│ │ Torko… │ 121 /  │   7,026 /   │    15 │  0.84% │     0 │     15 │   N/A │ │
+│ │        │  121   │    7,026    │       │        │       │        │       │ │
+│ │ Whism… │  16 /  │   1,322 /   │   320 │ 18.02% │     0 │    320 │   N/A │ │
+│ │        │  152   │   64,723    │       │        │       │        │       │ │
+│ │ Wurmp… │  66 /  │   5,381 /   │    35 │  1.97% │     0 │     35 │   N/A │ │
+│ │        │  127   │   42,981    │       │        │       │        │       │ │
+│ │ Zigza… │  67 /  │  65,081 /   │     4 │  0.23% │     0 │      4 │   N/A │ │
+│ │        │   67   │   65,081    │       │        │       │        │       │ │
+│ │ Zubat  │  94 /  │  38,183 /   │    25 │  1.41% │     0 │     25 │   N/A │ │
+│ │        │  113   │   60,501    │       │        │       │        │       │ │
+│ │ Total  │  16 /  │    403 /    │ 1,776 │   100% │     0 │  1,776 │   N/A │ │
+│ │        │  152   │   65,468    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f575: PARTY CHANGE [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f640: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f650: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f676: CONTROLLER -> NormanBoxFirstMode.run   (state=OVERWORLD)
+[normanbf] R T0 normalize_finished = True
+[normanbf] R T0 normalize_frames = 720
+[normanbf] R T0 map = (0, 17)
+[normanbf] R T0 tile = (9, 2)
+[normanbf] R T0 hops_to_FIERY_PATH_from_here = 7
+[normanbf] R T0 hops_to_FIERY_PATH_from_PETALBURG_CITY = 8
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS = True
+[normanbf] R T0 fiery_path_within_COUNTER_MAX_HOPS_of_PETALBURG_CITY = True
+[normanbf] R T0 game_state = 'OVERWORLD'
+[normanbf] R T0 controllable = True
+[normanbf] R T0 badges = 4
+[normanbf] R T0 flags = {'BADGE04_GET': True, 'BADGE05_GET': False, 'RECEIVED_HM_SURF': False, 'DEFEATED_PETALBURG_GYM': False}
+[normanbf] R T0 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T0 box = []
+[normanbf] R T0 storage_count = 0
+[normanbf] R T0 balls = 31
+[normanbf] R T0 resource_blocker = None
+[normanbf] R T0 best_super_effective_vs_Normal = [('341D550A', 'Combusken', 'Rock Smash', 60.0), ('42207D6F', 'Shedinja', None, 0.0), ('B2768B68', 'Whismur', None, 0.0), ('42207D6F', 'Ninjask', None, 0.0), ('3BDA9D98', 'Mightyena', None, 0.0)]
+[normanbf] R T0 premise_checks = {'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True, 'FIERY_PATH_reachable_from_PETALBURG_CITY': True}
+[normanbf] R T1 fresh_counter_hunts = {}
+[normanbf] R T1 fresh_registry = []
+[normanbf] R T1 boss = {'name': 'Norman', 'keys': ['(8, 1)', '(0, 0)'], 'ace_types': ('Normal',)}
+[normanbf] R T1 seed = {'defeat_counts': {'(8, 1)': 8, '(0, 0)': 8}, 'loss_ko_history': {'(8, 1)': [(0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1)]}}
+[normanbf] R T1 hopeless = (True, ['Fighting'])
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: SAFARI_ZONE_NORTH rejected — reachable but 11 hops away (limit 8)
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 12 hops away 
+(limit 8)
+[normanbf] R T1 planner_candidates = [('Machop@FIERY_PATH', True, (18, 19)), ('Machop@JAGGED_PASS', False, None), ('Makuhita@GRANITE_CAVE_B1F', False, None), ('Makuhita@GRANITE_CAVE_1F', False, None), ('Makuhita@GRANITE_CAVE_STEVENS_ROOM', False, None), ('Hariyama@VICTORY_ROAD_1F', False, None), ('Makuhita@VICTORY_ROAD_1F', False, None), ('Hariyama@VICTORY_ROAD_B1F', False, None), ('Heracross@SAFARI_ZONE_NORTH', False, None), ('Pinsir@SAFARI_ZONE_NORTHWEST', False, None)]
+[normanbf] R T1 shortlist = ['Machop@FIERY_PATH']
+[normanbf] R T1 shortlist_head = ['Machop@FIERY_PATH']
+[normanbf] R T1 choice_before_injection = None
+[normanbf] R T1 premise_checks = {'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'no_pick_before_injection': True, 'shortlist_has_Machop_FIERY_PATH': True}
+[normanbf] R T2 injected = {'species': 'Makuhita', 'level': 13, 'pid': 'BA3B64AF', 'moves': ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'], 'box_slot': (0, 0)}
+[normanbf] R T2 box_after_injection = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T2 pick = ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 premise_checks = {'readback_one_record': True, 'readback_species_level': True, 'readback_moves_equal_created': True, 'moves_as_designed': True, 'pid_new_to_party_and_box': True, 'party_unchanged': True}
+[normanbf] R T2 expected_pick = ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+[normanbf] R T2 pick_equals_expectation = True
+[normanbf] INSTRUMENTED planner=True choice=True hunt=True register=True
+[normanbf] ACTION box_counter_choice (inside the ladder) returned ('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')
+Story: counter registered (pid=BA3B64AF, in the PC box (box-first)); it will 
+lead this boss and is protected from PC deposit until its badge.
+[normanbf] ACTION registered ('BA3B64AF', 'PC box (box-first)', True, 4) (pid, where, in_registry, owed_to_badge)
+Story: a counter for this boss is already in the PC: Makuhita L13 (Vital Throw 
+scores 210, own type). It is collected at the next heal instead of hunting a 
+new one.
+[normanbf] R T3 r1 = True
+[normanbf] R T3 call_frames = 0
+[normanbf] R T3 planner_calls = 0
+[normanbf] R T3 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T3 hunt_calls = []
+[normanbf] R T3 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T3 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T3 registry = ['BA3B64AF']
+[normanbf] R T3 badges_map = {'BA3B64AF': 4}
+[normanbf] R T3 owed = ['BA3B64AF']
+[normanbf] R T3 box = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T3 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+Story: already hunted a counter for this boss this run (box-first Makuhita L13 
+pid=BA3B64AF (Vital Throw scores 210, own type)) — not trying again; stopping 
+honestly.
+[normanbf] R T4 r2 = False
+[normanbf] R T4 call_frames = 0
+[normanbf] R T4 planner_calls = 0
+[normanbf] R T4 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T4 hunt_calls = []
+[normanbf] R T4 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T4 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T4 registry = ['BA3B64AF']
+[normanbf] R T4 badges_map = {'BA3B64AF': 4}
+[normanbf] R T4 owed = ['BA3B64AF']
+[normanbf] R T4 box = [('BA3B64AF', 'Makuhita', 13, ['Focus Energy', 'Sand-attack', 'Arm Thrust', 'Vital Throw'])]
+[normanbf] R T4 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30)]
+[normanbf] R T4 counter_hunts_unchanged_vs_T3 = True
+f1001: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f2000: heartbeat mode=Story ctrl=NormanBoxFirstMode.run state=OVERWORLD party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f2070: SAVED stall state #1 to stalls/repro-ml-f2070.ss1 (bt='COMBUSKEN gained 23 EXP. Points!')
+Story: PC — counter withdraw: starting for 1 hunted PID(s)
+Story: PC — withdrawing Makuhita from the box.
+[normanbf] ACTION PC withdraw BA3B64AF Makuhita
+f2918: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850] -> [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f2934: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_AccessPokemonStorage'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f2991: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent', 'Task_DrawFieldMessage'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_PCMainMenu'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f3048: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] ctrl=NormanBoxFirstMode.run bt='COMBUSKEN gained 23 EXP. Points!' scripts=['EventScript_PCMainMenu'] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+Story: PC — Makuhita is in the party; party is now 6.
+Story: PC — counter withdraw result: landed — the counter is in the party and 
+usable this fight — Makuhita :: verdict landed=True code=landed
+[normanbf] R T5 heal_finished = True
+[normanbf] R T5 heal_frames = 2666
+[normanbf] R T5 withdraws = ['BA3B64AF']
+[normanbf] R T5 deposits = []
+[normanbf] R T5 map = (0, 0)
+[normanbf] R T5 party_after_heal = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30), ('BA3B64AF', 'Makuhita', 13)]
+[normanbf] R T5 box_after_heal = []
+[normanbf] R T5 hopeless = (False, [])
+Story: already hunted a counter for this boss this run (box-first Makuhita L13 
+pid=BA3B64AF (Vital Throw scores 210, own type)) — not trying again; stopping 
+honestly.
+[normanbf] R T5 r3 = False
+[normanbf] R T5 call_frames = 0
+[normanbf] R T5 planner_calls = 0
+[normanbf] R T5 box_choice_calls = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] R T5 hunt_calls = []
+[normanbf] R T5 register_calls = [('BA3B64AF', 'PC box (box-first)', True, 4)]
+[normanbf] R T5 counter_hunts = {'(8, 1)': 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'}
+[normanbf] R T5 registry = ['BA3B64AF']
+[normanbf] R T5 badges_map = {'BA3B64AF': 4}
+[normanbf] R T5 owed = ['BA3B64AF']
+[normanbf] R T5 box = []
+[normanbf] R T5 party = [('341D550A', 'Combusken', 35), ('42207D6F', 'Shedinja', 25), ('B2768B68', 'Whismur', 18), ('42207D6F', 'Ninjask', 27), ('3BDA9D98', 'Mightyena', 30), ('BA3B64AF', 'Makuhita', 13)]
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = 'box-first Makuhita L13 pid=BA3B64AF (Vital Throw scores 210, own type)'
+[normanbf] EXTRA registered_owed_to_badge = 4
+[normanbf] EXTRA owed_after_call1 = ['BA3B64AF']
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = []
+[normanbf] EXTRA call2_planner_calls = 0
+[normanbf] EXTRA ladder_box_choice_calls_T3 = [('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')]
+[normanbf] EXTRA injected_still_boxed_T4 = True
+[normanbf] EXTRA caught = []
+[normanbf] CROSS-CHECK the hunt (no pick) shape on this X13 run (must NOT all hold): does not hold (good) {'no_box_first_registration': False, 'call1_planner_entered': False, 'call1_hunt_Machop_FIERY_PATH': False, 'call1_returned_False': False, 'counter_hunts_none_found': False}
+[normanbf] CROSS-CHECK the fallback (the fix) shape on this X13 run (must NOT all hold): does not hold (good) {'call1_planner_entered_once': False, 'call1_fallback_registered': False, 'fallback_registered_after_the_planner': False, 'call1_returned_True': True, 'counter_hunts_names_the_fallback': False, 'call2_returned_False': True, 'call2_planner_still_1': False, 'call2_no_second_register': True}
+[normanbf] CROSS-CHECK the caught shape on this X13 run (must NOT all hold): does not hold (good) {'call1_planner_entered_once': False, 'call1_hunt_Machop_FIERY_PATH': False, 'caught_Machop_knows_Karate_Chop': False, 'caught_pid_new': False, 'machop_registered_PC_box': False, 'makuhita_NOT_registered': False, 'call1_returned_True': True, 'counter_hunts_caught_Machop': False, 'call2_returned_False': True, 'call2_no_second_register': True}
+[normanbf] VERDICT BF-1 (premise T0/T1): HOLDS (T0={'map_is_ROUTE102': True, 'overworld_not_in_battle': True, 'controllable': True, 'badges_4': True, 'BADGE04_set_positive_control': True, 'BADGE05_unset': True, 'RECEIVED_HM_SURF_unset': True, 'party_identity': True, 'box_empty_and_readable': True, 'no_resource_blocker': True, 'no_credible_answer_to_Normal': True, 'FIERY_PATH_reachable_from_PETALBURG_CITY': True} T1={'counter_hunts_empty': True, 'registry_empty': True, 'hopeless_True_Fighting': True, 'no_pick_before_injection': True, 'shortlist_has_Machop_FIERY_PATH': True})
+[normanbf] conjuncts BF-5 = {'ran_clean': True, 'pick_as_expected': True, 'call1_returned_True': True, 'call1_no_planner_call': True, 'call1_no_hunt_call': True, 'call1_one_register_boxfirst': True, 'counter_hunts_says_boxfirst': True, 'call2_returned_False': True, 'call2_planner_still_0': True, 'call2_counter_hunts_unchanged': True, 'call2_no_second_register': True}
+[normanbf] VERDICT BF-5 (arm X13): HOLDS
+[normanbf] conjuncts BF-16 = {'ran_clean': True, 'heal_finished': True, 'withdrew_the_injected_pid': True, 'makuhita_in_party': True, 'makuhita_gone_from_box': True, 'call3_returned_False': True, 'planner_calls_still_0': True, 'boss_reads_NOT_hopeless': True}
+[normanbf] VERDICT BF-16 (arm X13): HOLDS
+[normanbf] ORDER = ['CFG.code_has_ki118_fix', 'T0.normalize_finished', 'T0.normalize_frames', 'T0.map', 'T0.tile', 'T0.hops_to_FIERY_PATH_from_here', 'T0.hops_to_FIERY_PATH_from_PETALBURG_CITY', 'T0.fiery_path_within_COUNTER_MAX_HOPS', 'T0.fiery_path_within_COUNTER_MAX_HOPS_of_PETALBURG_CITY', 'T0.game_state', 'T0.controllable', 'T0.badges', 'T0.flags', 'T0.party', 'T0.box', 'T0.storage_count', 'T0.balls', 'T0.resource_blocker', 'T0.best_super_effective_vs_Normal', 'T0.premise_checks', 'T1.fresh_counter_hunts', 'T1.fresh_registry', 'T1.boss', 'T1.seed', 'T1.hopeless', 'T1.planner_candidates', 'T1.shortlist', 'T1.shortlist_head', 'T1.choice_before_injection', 'T1.premise_checks', 'T2.injected', 'T2.box_after_injection', 'T2.pick', 'T2.premise_checks', 'T2.expected_pick', 'T2.pick_equals_expectation', 'T3.r1', 'T3.call_frames', 'T3.planner_calls', 'T3.box_choice_calls', 'T3.hunt_calls', 'T3.register_calls', 'T3.counter_hunts', 'T3.registry', 'T3.badges_map', 'T3.owed', 'T3.box', 'T3.party', 'T4.r2', 'T4.call_frames', 'T4.planner_calls', 'T4.box_choice_calls', 'T4.hunt_calls', 'T4.register_calls', 'T4.counter_hunts', 'T4.registry', 'T4.badges_map', 'T4.owed', 'T4.box', 'T4.party', 'T4.counter_hunts_unchanged_vs_T3', 'T5.heal_finished', 'T5.heal_frames', 'T5.withdraws', 'T5.deposits', 'T5.map', 'T5.party_after_heal', 'T5.box_after_heal', 'T5.hopeless', 'T5.r3', 'T5.call_frames', 'T5.planner_calls', 'T5.box_choice_calls', 'T5.hunt_calls', 'T5.register_calls', 'T5.counter_hunts', 'T5.registry', 'T5.badges_map', 'T5.owed', 'T5.box', 'T5.party']
+[normanbf] EVENTS = ['box_choice', 'register BA3B64AF PC box (box-first)']
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[('BA3B64AF', 'Makuhita', 13, 'Vital Throw scores 210, own type')] hunt_calls=[] register_calls=[('BA3B64AF', 'PC box (box-first)', True, 4)] withdraws=['BA3B64AF'] deposits=[] whiteouts=0 abort=None failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=X13 stage2=True; rests on BF-5, BF-16)
+f3388: STUCK-OW cb=HandleTurnActionSelectionState instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=[] ctrl=NormanBoxFirstMode.run bt='TYPE/NORMAL' scripts=[] party=[Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230]
+f3389: CONTROLLER -> <none>   (state=BATTLE)
+f3389: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f3389: PARTY CHANGE [Combusken:L35:exp39342|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850|Makuhita:L13:exp1230] -> [Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f3390: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31230, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+f4000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f4289: SAVED stall state #2 to stalls/repro-ml-f4289.ss1 (bt='TYPE/NORMAL')
+f4589: !!! NO-PROGRESS x1200 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f4589:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f6389: !!! NO-PROGRESS x3000 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f6389:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f10000: heartbeat mode=Manual ctrl=<none> state=BATTLE party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+f11389: !!! NO-PROGRESS x8000 sig=('<none>', 'BATTLE', 'BattleScript_PayDayMoneyAndPickUpItems', 'DialogueNotActive', 'Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850', (9, 2)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=HandleTurnActionSelectionState ml_tasks=[] tasks=[] scripts=[] bt='TYPE/NORMAL' bot_mode=Manual
+f11389:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 12000 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 12002 get_party() recomputes, 41 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 12002 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-02_13
+-39-18.ss1 created!
+Updated `current_state.ss1`!

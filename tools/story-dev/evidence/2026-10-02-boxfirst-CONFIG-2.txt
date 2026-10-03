@@ -1,0 +1,116 @@
+# 2026-10-02 — `#27-boxfirsttype` (KI-118) `--driver normanboxfirst`, arm CONFIG, run 2
+# Spec + predictions (BF-1..BF-9 the proof, BF-10..BF-19 the fix; each filed before its code): PROJECT KNOWLEDGE/ai-research-notes/2026-10-02-boxfirst-DESIGN.md
+# worktree: C:\Remote Projects\pokebot-wt-ch24  branch: wt/boxfirst  HEAD: 5c78fab2cf6877d45476a61226d50592b45aa084
+# worktree status (porcelain): M "PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md" |  M tools/story-dev/party_accounting_ledger.jsonl |  M tools/story-dev/probe_r20_counterbox.py |  M tools/story-dev/saves/magma_1f_fail.ss1 |  M tools/story-dev/story_harness.py | ?? tools/story-dev/evidence/2026-10-02-boxfirst-CONFIG.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-X-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-X.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-Y-2.txt | ?? tools/story-dev/evidence/2026-10-02-boxfirst-REPRO-Y.txt
+# sha256 tools/story-dev/story_harness.py: 5cfde25d6332da40ab98b422ecdf003a1e1b20220cf0d3ac0a839f5090260f1a
+# sha256 sandbox-pokebot/plugins/custom_modes/story_mode.py: cf0fb4dd7d64af6826acfeede2398ede0f94d3f7ed8d7db501bd8c5f9de8d0a5
+# sha256 sandbox-pokebot/modules/story/counter_hunt.py: 1907f8fb89bf44ab8ba83599422ad50f2a7f3e063fd2b523f9f0d193a77c79ec
+# knobs (every NORMANBF_*/POKEBOT_* in the child env): NORMANBF_ARM=CONFIG POKEBOT_R20_FAULT_NOBOXCOUNTER=1
+# command (cwd tools/story-dev): PYTHONUTF8=1 NORMANBF_ARM=CONFIG POKEBOT_R20_FAULT_NOBOXCOUNTER=1 py -3.12 story_harness.py prenorman_fodder_grind.ss1 --driver normanboxfirst --frames 600 --log C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\CONFIG-2.log
+# fixture prenorman_fodder_grind.ss1 md5 before: 2580a3dfc57b27d270931c1a8be59069  after: 2580a3dfc57b27d270931c1a8be59069  UNCHANGED
+# started 2026-10-02 13:33:56  ended 2026-10-02 13:34:08  exit code 0
+# harness exceptions in the --log: 1 line(s) at --log line(s) [27], ALL AFTER the ACCEPTANCE line (26) — a POST-VERDICT harness artifact, not part of the graded run: the driver restores the fixture, which is MID-BATTLE, and the harness's Manual stub has no on_battle_started. Kinds: ["'ManualBotMode' object has no attribute 'on_battle_started'"]
+
+====================================================================================================
+===== --log (CONFIG-2.log) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\CONFIG-2.log
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 600 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=CONFIG boss=Norman hunt=none code=ANY prediction=BF-17 stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER='1' POKEBOT_KI118_FAULT_TYPEONLYFIRST=None frame=3000000
+[normanbf] R CFG code_has_ki118_fix = False
+[normanbf] ‼ ABORT — CONFIG: arm X requires POKEBOT_R20_FAULT_NOBOXCOUNTER UNSET, and it is '1'
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = None
+[normanbf] EXTRA registered_owed_to_badge = None
+[normanbf] EXTRA owed_after_call1 = []
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = None
+[normanbf] EXTRA call2_planner_calls = None
+[normanbf] EXTRA ladder_box_choice_calls_T3 = None
+[normanbf] EXTRA injected_still_boxed_T4 = None
+[normanbf] EXTRA caught = []
+[normanbf] VERDICT BF-1 (premise T0/T1): DOES NOT HOLD (T0=None T1=None)
+[normanbf] conjuncts BF-17 = {'aborted_at_CONFIG': True, 'aborted_before_normalize': True, 'no_exception': True}
+[normanbf] VERDICT BF-17 (arm CONFIG): HOLDS
+[normanbf] ORDER = ['CFG.code_has_ki118_fix']
+[normanbf] EVENTS = []
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[] hunt_calls=[] register_calls=[] withdraws=[] deposits=[] whiteouts=0 abort="CONFIG: arm X requires POKEBOT_R20_FAULT_NOBOXCOUNTER UNSET, and it is '1'" failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=CONFIG stage2=False; rests on BF-17)
+f1: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31230, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+[done] ran 600 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 601 get_party() recomputes, 3 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 601 recomputes (party_accounting_ledger.jsonl)
+
+====================================================================================================
+===== stdout + stderr (CONFIG-2.stdout.txt) =====
+====================================================================================================
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\normanbf\runs\CONFIG-2.log
+Running mGBA 0.10.2
+[setup] loaded save state prenorman_fodder_grind.ss1; build=sandbox
+[run] starting faithful loop for up to 600 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[normanbf] START arm=CONFIG boss=Norman hunt=none code=ANY prediction=BF-17 stage2=False POKEBOT_R20_FAULT_NOBOXCOUNTER='1' POKEBOT_KI118_FAULT_TYPEONLYFIRST=None frame=3000000
+[normanbf] R CFG code_has_ki118_fix = False
+[normanbf] ‼ ABORT — CONFIG: arm X requires POKEBOT_R20_FAULT_NOBOXCOUNTER UNSET, and it is '1'
+[normanbf] patches RESTORED planner=True choice=True hunt=True pc=True register=True
+[normanbf] fixture RESTORED in-emulator — the injection and every write do not persist.
+[normanbf] EXTRA counter_hunts_text_exact = None
+[normanbf] EXTRA registered_owed_to_badge = None
+[normanbf] EXTRA owed_after_call1 = []
+[normanbf] EXTRA call2_no_second_register = True
+[normanbf] EXTRA call2_hunt_calls_still = None
+[normanbf] EXTRA call2_planner_calls = None
+[normanbf] EXTRA ladder_box_choice_calls_T3 = None
+[normanbf] EXTRA injected_still_boxed_T4 = None
+[normanbf] EXTRA caught = []
+[normanbf] VERDICT BF-1 (premise T0/T1): DOES NOT HOLD (T0=None T1=None)
+[normanbf] conjuncts BF-17 = {'aborted_at_CONFIG': True, 'aborted_before_normalize': True, 'no_exception': True}
+[normanbf] VERDICT BF-17 (arm CONFIG): HOLDS
+[normanbf] ORDER = ['CFG.code_has_ki118_fix']
+[normanbf] EVENTS = []
+[normanbf] ACTIONS planner_calls=[] box_choice_calls=[] hunt_calls=[] register_calls=[] withdraws=[] deposits=[] whiteouts=0 abort="CONFIG: arm X requires POKEBOT_R20_FAULT_NOBOXCOUNTER UNSET, and it is '1'" failure=None fixture_restored=True
+[normanbf] ACCEPTANCE: PASS (arm=CONFIG stage2=False; rests on BF-17)
+f1: *** EXCEPTION: 'ManualBotMode' object has no attribute 'on_battle_started'
+Traceback (most recent call last):
+  File "C:\Remote Projects\pokebot-wt-ch24\tools\story-dev\story_harness.py", line 31230, in <module>
+    listener.handle_frame(context.bot_mode_instance, frame_info)
+  File "C:\Remote Projects\pokebot-wt-ch24\sandbox-pokebot\modules\modes\_listeners.py", line 108, in handle_frame
+    action = bot_mode.on_battle_started(self._active_wild_encounter)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ManualBotMode' object has no attribute 'on_battle_started'
+
+[done] ran 600 frames; final mode=Manual party=[Combusken:L35:exp39319|Shedinja:L25:exp25811|Whismur:L18:exp4111|Ninjask:L27:exp30553|Mightyena:L30:exp28850]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Combusken L35: Scratch, Peck, Rock Smash, Ember
+[moveset] Shedinja L25: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Whismur L18: Pound, Uproar, Astonish, Howl
+[moveset] Ninjask L27: Scratch, Fury Swipes, Leech Life, Fury Cutter
+[moveset] Mightyena L30: Tackle, Swagger, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 601 get_party() recomputes, 3 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += normanboxfirst 601 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\pokebot-wt-ch24\sandbox-pokebot\profiles\repro-ml\states\2026-10-02_13
+-34-07.ss1 created!
+Updated `current_state.ss1`!
