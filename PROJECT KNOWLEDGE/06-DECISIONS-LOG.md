@@ -8994,3 +8994,45 @@ on all three questions:
 - **M1b's acceptance FAILS as pre-registered** (ACCEPT_MARGIN 3) on one sample at the known D1 bound (+4 HP). Stage 2
   stays OFF. Changing the margin is the user's call, and so is waiting for `#27-dmgcalcfix`. The coordinator did not
   change it.
+
+## 2026-10-03 — USER RULING 31: the HYBRID direction. The story bot is parked; the Emerald AI strategy learner (`ai-agent/`) is built on top of it
+
+- **The ruling (user, 2026-10-03).** After the step-14 review the coordinator offered three paths: keep going as-is,
+  pause and start the AI version from scratch, or a hybrid. The user chose the hybrid: "Lets proceed with option 3:
+  Hybrid approach." The goal is a learning agent that runs 24/7 on the user's PC and whose findings Claude improves
+  from, starting 2026-10-07, when credits refresh. It lives in a separate folder of this repo so it can use the
+  existing docs. The story bot is "not given up", only paused. A follow-up note: "able to launch multiple runs to
+  train off of and learn from (with respect to available hardware limitations/availability)".
+- **Why the hybrid.** Step 14 showed what fails now: strategy, meaning which counter, which lead, when to train,
+  what to buy. Mechanics no longer fail; navigation, battles and menus are mature. Each strategic fix in the
+  story-bot workflow costs a design, proof and review cycle, so a learner that tests strategies automatically
+  attacks the actual failure mode at near-zero credit cost.
+  - Rejected: an AI model playing live. It needs credits around the clock, beyond the user's $80 budget.
+  - Rejected: training a network from pixels. It needs weeks of compute and engineering, and would relearn
+    mechanics that already work.
+  - Rejected: continuing as-is. Slow and expensive per gain.
+- **v1 design decisions (coordinator, under this ruling):**
+  - The knobs are ONLY the 11 step-14 flags whose arms differed, with ONLY the two values each ran for 13 hours.
+    The other 7 arm variables are held fixed. So the learner can never send the bot an untested setting, and the
+    batch runner's own preflight refuses a misspelt one (gate P1–P4).
+  - Score = progress out of 13 (8 badges + 4 Elite Four + Champion). It is counted from key-trainer WINS after the
+    run's first `Story: choosing` line: KI-119's identity lesson, applied from the start. A lane's last log without
+    an end (Champion, or the fifth derail) is CENSORED and never scored.
+    - Checked against step 14: the learner's reader reproduces the corrected grade's badge distributions for BOTH
+      arms exactly, the 7 and 4 Champions, and the 62 complete runs.
+  - Choice per cycle: an incumbent control, an inbox proposal, a Thompson draw, then mutants of one or two knobs.
+    Knob effects come from ridge regression with the starter as a covariate. A knob confounded with another (all of
+    step 14) is reported as NOT separable, never as an effect (gate E3).
+  - Lanes are auto-sized in fours, one per starter for each strategy: logical threads minus 4, memory minus 8 GB,
+    capped at 24. This is the user's multiple-runs authorization, kept inside the hardware.
+    - Rejected: waiting for ANY other `pokebot.py`. A GUI window idle since 2026-09-27 would have blocked the learner
+      forever. Now only another batch or harness drive makes it wait; an open single bot costs one thread.
+  - Live output is git-ignored, and `learner.py publish` copies a small snapshot for a cloud session. Rejected:
+    tracking the live files, which would leave the main checkout permanently dirty, the session-start ritual's STOP
+    condition.
+  - Claude consults are built but OFF by default, read-only tools only, with a daily cap. Proposals are validated
+    against the knobs before they can run. Rejected: letting the 24/7 process edit code or relaunch itself. Those
+    stay in interactive sessions a person can see.
+- **Consequence for every session while the learner runs:** the batch runner's freeze watch aborts a cycle if
+  `sandbox-pokebot/` changes mid-batch. So a `git pull` on main that touches it, or a sandbox edit, cuts the running
+  cycle short. Its finished runs are still scored. Story-bot work goes in a WORKTREE.

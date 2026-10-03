@@ -23814,3 +23814,18 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - Identity is read AFTER the event that creates it (the choosing line), never from "the first line that has an id".
   - A safety stop looking for a cause reads the whole run, or the window since the run's last major decision, never
     a fixed tail.
+
+## 2026-10-03 — ⛔ A SMOKE TEST'S DATA WAS CLEANED BEFORE ITS EVIDENCE WAS ARCHIVED, SO "RAN END TO END" HAD NOTHING BEHIND IT
+
+- **Symptom:** the `#28-aiagent` changelog said the learner's live smoke cycle "ran end to end" and pointed to the
+  commit message as proof. The Tier 1 reviewer found no cycle row in `ai-agent/data/cycles.jsonl`, no
+  "starting 8 lanes" line in `learner.log`, and only 78 records (the ingest) in `runs.jsonl`. The claim was true but
+  not checkable, and it concerned the one code path that then runs unattended all night.
+- **Root cause:** to give the learner a clean start, the coordinator deleted the smoke's data, batch and profiles
+  before step 14 was ingested. The only remaining record was a console transcript in a session scratchpad, which
+  nobody else can read.
+- **The fix that worked:** a second smoke cycle whose records were KEPT. Both smokes' outputs, assembled from the
+  learner's own files rather than chat output, are committed as `ai-agent/evidence/2026-10-03-smoke.txt`. The
+  changelog cites that file.
+- **Prevention rule:** archive a run's evidence into a COMMITTED file before cleaning up anything it produced. A
+  claim whose only backing is a scratchpad, a chat transcript or "the commit message" is unbacked.

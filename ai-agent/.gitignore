@@ -1,0 +1,8 @@
+# Live output stays on this PC; `learner.py publish` copies a small snapshot into published/ for committing.
+runs/
+data/
+findings/
+inbox/*
+!inbox/README.md
+STOP
+__pycache__/

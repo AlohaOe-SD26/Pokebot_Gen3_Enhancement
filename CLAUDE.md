@@ -468,3 +468,15 @@ the managed block, so the requirement lives here: **steps 2–4 are not COMPLETE
 passes and (for a completed item) Tier 1 returns PASS; step 5 (commit) may not begin before
 that. The session's final step-6 push may not happen before Tier 2 returns clean.** `/wrapup`
 and `/checkpoint` carry these steps explicitly (they are outside the managed block).
+
+### AI learner — the hybrid direction (USER RULING 31, 2026-10-03)
+- The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in
+  `ai-agent/` (manual: `ai-agent/README.md`) runs 24/7 on the user's PC and is the active line of work. The user
+  authorized it to run as many parallel runs as the hardware allows.
+- **At session start**, after the sync ritual, run `py -3.12 ai-agent/learner.py status` and read
+  `ai-agent/findings/LATEST.md` (and `ATTENTION.md`, if present). The learner's data is the session's input.
+- ⛔ **While it runs, a change to `sandbox-pokebot/` aborts its current cycle** (the batch runner's freeze watch).
+  This includes a `git pull` that touches that folder. Do story-bot work in a WORKTREE. Pull main when the
+  learner's `status` shows no cycle mid-way, or accept the cut (finished runs are still scored).
+- The 24/7 process never edits code or runs git. Knob changes, consult enablement and relaunches are made in an
+  interactive session and recorded in the docs like any other change.

@@ -37624,3 +37624,35 @@ bought balls only at fixed story points.
   - the confirmatory status of the corrected reading;
   - ACCEPT_MARGIN;
   - promoting `#27-battleeq`.
+
+## 2026-10-03 — `#28-aiagent`: the Emerald AI strategy learner v1 (`ai-agent/`), under USER RULING 31
+
+- **What:** a new folder, `ai-agent/`, holding a 24/7 offline learner. Its manual is `ai-agent/README.md`.
+  - **Modules:**
+    - `learner.py`: the loop, plus `run`, `once`, `plan`, `ingest`, `report`, `status`, `publish`;
+    - `knowledge.py`: the knobs with their sources, the bosses, and the named walls;
+    - `scoring.py`: logs to run records;
+    - `brain.py`: strategy choice and knob effects;
+    - `report.py`: `findings/LATEST.md`;
+    - `consult.py`: the optional Claude CLI call, read-only and off by default.
+  - **Supporting files:** `config.json`, re-read every cycle; `run_agent.ps1`, the 24/7 wrapper; and
+    `test_agent.py`, the offline gate.
+- **How it works:** each cycle sizes its lanes to the PC (here, 24 at most: 6 strategies x 4 starters). It runs them
+  through `tools/story-dev/x4_headless.py --arms`, unchanged, scores every run, rewrites the findings, and deletes its
+  own raw logs beyond the newest 3 cycles.
+- **Verified:**
+  - `test_agent.py` passes all 27 checks. Ten are FAULT rows proving a guard bites, e.g. prune never deletes a path it
+    did not create (R2), and a misspelt knob is refused by the batch runner's own preflight (P3).
+    - The first run of the gate failed P1 and P4. The test passed `BUILD_ROOTS["sandbox"]`, a folder NAME relative
+      to the repo, as a path, so the runner read no source and refused every knob. The test was wrong, not the
+      learner; the fix resolves it against `REPO_ROOT`.
+  - The scorer, run over step 14's batch, reproduces the corrected grade's figures exactly: badge distributions
+    A {1:1, 2:1, 3:2, 5:8, 6:2, 7:3, 8:23} and B {3:2, 4:9, 6:10, 7:3, 8:14}, Champions 7 and 4, 62 complete runs
+    of 78.
+  - Live smoke cycles ran end to end; the evidence is `ai-agent/evidence/2026-10-03-smoke.txt`:
+    - the runner verified each lane's arm header and the batch exited 0;
+    - every run was logged and correctly CENSORED;
+    - the report was written.
+    - Smoke 1's data was deleted before its evidence was archived; Tier 1 caught the unbacked claim (`08`).
+      Smoke 2's records stay in `ai-agent/data/`.
+- **Seeded:** step 14's 78 runs are ingested as the learner's starting data.

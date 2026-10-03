@@ -1,0 +1,22 @@
+{
+  "_help": "Read by the learner at the start of EVERY cycle, so an edit applies to the next cycle without a restart. Keys starting with _ are ignored. See README.md.",
+  "lanes": "auto",
+  "max_lanes": 24,
+  "reserve_threads": 4,
+  "reserve_ram_gb": 8,
+  "ram_per_lane_gb": 1.5,
+  "cycle_minutes": 720,
+  "keep_raw_cycles": 3,
+  "min_free_gb": 25,
+  "wait_if_other_bots_running": true,
+  "idle_wait_minutes": 15,
+  "max_consecutive_failures": 3,
+  "max_proposals_per_cycle": 1,
+  "two_flip_prob": 0.3,
+  "consult": {
+    "enabled": false,
+    "max_calls_per_day": 2,
+    "max_turns": 8,
+    "timeout_minutes": 20
+  }
+}

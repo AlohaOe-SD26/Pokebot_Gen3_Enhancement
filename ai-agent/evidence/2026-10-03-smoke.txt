@@ -1,0 +1,59 @@
+# ai-agent live smoke cycles, 2026-10-03 (evidence for #28-aiagent)
+
+## Smoke 1 (ai0001, `learner.py once --lanes 8 --minutes 8`): console transcript.
+Its data, batch and profiles were removed afterwards, before step 14 was ingested; only this transcript remains.
+
+[2026-10-03 12:56:48 PM] lanes = 8 (fixed in config.json); 1 single bot(s) open, a thread reserved for each
+[2026-10-03 12:56:48 PM] ai0001 arm A = gb39938e5 baseline (step 14 arm A) | baseline: nothing measured yet
+[2026-10-03 12:56:48 PM] ai0001 arm B = g40156397 R24_OVERSURVIVAL | mutant of the incumbent: changed R24_OVERSURVIVAL
+[2026-10-03 12:56:48 PM] ai0001: starting 8 lanes for 8 minutes
+[2026-10-03 01:04:54 PM] ai0001: batch exit 0; 8 runs logged, 0 scored
+[2026-10-03 01:04:54 PM] consult: off
+exit=1
+
+## Smoke 2 (`learner.py once --lanes 8 --minutes 6`), whose records are KEPT in ai-agent/data/
+Its tag is ai0001 again: removing smoke 1's artifacts freed that tag. Its two arms are the ingested step-14 arms
+(the incumbent A, and B by a Thompson draw), so its arm header lines prove the runner received those exact settings.
+
+### console
+[2026-10-03 01:13:40 PM] lanes = 8 (fixed in config.json); 1 single bot(s) open, a thread reserved for each
+[2026-10-03 01:13:40 PM] ai0001 arm A = gb39938e5 baseline (step 14 arm A) | incumbent: best estimate 0.649 +/- 0.042 over 32 runs
+[2026-10-03 01:13:40 PM] ai0001 arm B = g04da416b ALL (step 14 arm B) | Thompson draw 0.517 (estimate 0.572 over 30 runs)
+[2026-10-03 01:13:40 PM] ai0001: starting 8 lanes for 6 minutes
+[2026-10-03 01:19:46 PM] ai0001: batch exit 0; 8 runs logged, 0 scored
+[2026-10-03 01:19:46 PM] consult: off
+exit=1
+
+### data/cycles.jsonl, this cycle's row
+{"source": "cycle", "tag": "ai0001", "finished": "2026-10-03 01:19:46 PM", "exit": 0, "lanes": 8, "runs": 8, "usable": 0, "arms_label": "A=gb39938e5, B=g04da416b", "code_commit": "76bae15b", "pruned": false}
+
+### data/runs.jsonl, this cycle's records (lane, arm, starter, badges, complete, usable, frames, end_map)
+1 A Torchic ['ROXANNE'] complete=False usable=False frames=298801 end_map=ROUTE 116
+2 A Mudkip ['ROXANNE'] complete=False usable=False frames=291601 end_map=ROUTE 116
+3 A Treecko ['ROXANNE'] complete=False usable=False frames=277201 end_map=ROUTE 116
+4 A Mudkip ['ROXANNE'] complete=False usable=False frames=248401 end_map=ROUTE 116
+5 B Torchic ['ROXANNE'] complete=False usable=False frames=280801 end_map=ROUTE 116
+6 B Mudkip ['ROXANNE'] complete=False usable=False frames=273601 end_map=RUSTBORO CITY
+7 B Treecko ['ROXANNE'] complete=False usable=False frames=266401 end_map=ROUTE 116
+8 B Mudkip ['ROXANNE'] complete=False usable=False frames=248401 end_map=RUSTBORO CITY
+
+### runs/ai0001/x4.out.txt: the batch runner's arm-header verdicts and its last 8 lines
+[x4h] H1 arm A header OK — Story_(ENDLESS_RESET)-debug-20261003-131342.log
+[x4h] H2 arm A header OK — Story_(ENDLESS_RESET)-debug-20261003-131355.log
+[x4h] H3 arm A header OK — Story_(ENDLESS_RESET)-debug-20261003-131407.log
+[x4h] H4 arm A header OK — Story_(ENDLESS_RESET)-debug-20261003-131419.log
+[x4h] H5 arm B header OK — Story_(ENDLESS_RESET)-debug-20261003-131349.log
+[x4h] H6 arm B header OK — Story_(ENDLESS_RESET)-debug-20261003-131401.log
+[x4h] H7 arm B header OK — Story_(ENDLESS_RESET)-debug-20261003-131413.log
+[x4h] H8 arm B header OK — Story_(ENDLESS_RESET)-debug-20261003-131425.log
+tag   starter   profile                     runs  fin header   restarts  arm  armhdr
+A/B INTEGRITY (arm headers, the monitor, the freeze watch)
+...
+------------------------------------------------------------------------
+summary.json  — per-lane finish rate, end_reasons, canaries (KI-38/KI-40), outcomes
+L*/stdout.txt — run boundaries and outcomes
+L*/debug-logs — one file per run: [MAP]/[PARTY]/[BATTLE]/[STEP] + STUCK dumps
+
+!! A batch may only be compared against the code whose commit is recorded above.
+
+[x4h] batch summary: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai-agent\runs\ai0001\batch\summary.json

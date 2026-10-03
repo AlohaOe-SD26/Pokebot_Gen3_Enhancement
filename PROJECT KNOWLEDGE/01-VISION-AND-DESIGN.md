@@ -401,6 +401,23 @@ it.
 - **Design constraint:** the dashboard has **no Tk mainloop** — its event queue is pumped
   from the frame callback. See `02-ARCHITECTURE.md` for why that shapes Endless Loop ×4.
 
+### Emerald AI strategy learner (`ai-agent/`, v1 built 2026-10-03, USER RULING 31)
+- **Purpose:** the first stage of the AI version. A 24/7 offline learner that plays real batches through the story
+  bot (`x4_headless.py --arms`) and learns which STRATEGY settings get runs furthest. Its findings
+  (`ai-agent/findings/LATEST.md`) are written for Claude to read and act on. The story bot is the "hands" and the
+  learner the strategist: the HYBRID the user chose over pausing the bot or starting the AI from scratch.
+- **Must do:**
+  - score every run by progress (badges + Elite Four + Champion, out of 13);
+  - keep a control strategy in every cycle;
+  - size its lanes to the PC;
+  - stop or pause itself safely (STOP file, `ATTENTION.md`).
+- **Must not do:** edit code; run git; turn a knob to a value no batch has run (v1: step 14's values only); delete
+  anything it did not create; compete with another batch.
+- **Next stages:**
+  - Claude consults: built, OFF by default;
+  - more knobs, aimed at the walls the learner measures;
+  - then a decision layer that chooses in-game, not only per run.
+
 ### Still future
 - Further custom features as the punch list dictates; each gets a section here when built.
 
