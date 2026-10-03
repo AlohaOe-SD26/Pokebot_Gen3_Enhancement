@@ -43,8 +43,8 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
         "## Strategies ranked (best estimate first)",
         "",
         "| genome | knobs changed from baseline | runs | mean score | estimate +/- sd | champions | species caught "
-        "/ run | places explored / run | by starter (n, mean) |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "/ run | Pokedex owned / run | places explored / run | by starter (n, mean) |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     ranked = sorted((s for s in summary.values() if s["n"]), key=lambda s: -brain.posterior(s, mu0)[0])
     organic = _organic(usable)
@@ -52,9 +52,10 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
         m, sd = brain.posterior(s, mu0)
         o = organic.get(brain.genome_id(s["genes"]), {})
         lines.append(f"| `{brain.genome_id(s['genes'])}` | {s['label']} | {s['n']} | {s['mean']:.3f} | "
-                     f"{m:.3f} +/- {sd:.3f} | {s['champions']} | {_avg(o.get('species'))} | {_avg(o.get('maps'))} | "
-                     f"{s['starters']} |")
+                     f"{m:.3f} +/- {sd:.3f} | {s['champions']} | {_avg(o.get('species'))} | {_avg(o.get('dex'))} | "
+                     f"{_avg(o.get('maps'))} | {s['starters']} |")
     lines += _humanlike_check(ranked, organic)
+    lines += _skip_table(usable)
     lines += ["", "## What each knob seems worth", "",
               "Ridge regression of score on every knob plus the starter. **Effect** is the change in score (out of "
               "1.0) from turning the knob away from baseline. Only a SEPARABLE knob's number means anything: a knob "
@@ -109,6 +110,23 @@ def _organic(usable: list[dict]) -> dict:
             o = out[brain.genome_id(r["genome"])]
             o["species"].append(len(r.get("species_caught", [])))
             o["maps"].append(r["maps_visited"])
+            if "dex_owned" in r:
+                o.setdefault("dex", []).append(r["dex_owned"])
+    return out
+
+
+def _skip_table(usable: list[dict]) -> list[str]:
+    """Why the bot passed up new species. Each reason is a rule a person would not follow, and a knob candidate."""
+    rows = [r for r in usable if "catch_skips" in r]
+    if not rows:
+        return []
+    total = collections.Counter()
+    for r in rows:
+        total.update(r["catch_skips"])
+    out = ["", "## New species the bot chose NOT to catch (scored runs)", "",
+           f"Over {len(rows)} runs. A person catches most new species when first met; each reason below is a bot rule.",
+           "", "| reason | skips | per run |", "|---|---|---|"]
+    out += [f"| {reason} | {n} | {n / len(rows):.1f} |" for reason, n in total.most_common(8)]
     return out
 
 
@@ -171,8 +189,8 @@ def _boss_table(usable: list[dict]) -> list[str]:
            "Average team level comes from the newest heartbeat before the battle ended (a heartbeat is periodic, so "
            "it is the party shortly before). A big gap between 'first loss' and 'win' means the bot wins by "
            "grinding, not by planning.", "",
-           "| trainer | runs that fought | beat it | losses per run (mean) | never beat it | avg team level at first "
-           "loss | at the win |", "|---|---|---|---|---|---|---|"]
+           "| trainer | its levels (decomp) | runs that fought | beat it | losses per run (mean) | never beat it | "
+           "avg team level at first loss | at the win |", "|---|---|---|---|---|---|---|---|"]
     order = list(K.LEADERS.values()) + list(K.ELITE_FOUR.values()) + list(K.CHAMPION.values())
     for name in order:
         logs = [r["boss_log"][name] for r in usable if name in r.get("boss_log", {})]
@@ -181,11 +199,18 @@ def _boss_table(usable: list[dict]) -> list[str]:
         won = [b for b in logs if b["won"]]
         lv_loss = [sum(lv) / len(lv) for b in logs if (lv := scoring.party_levels(b.get("party_first_loss")))]
         lv_win = [sum(lv) / len(lv) for b in won if (lv := scoring.party_levels(b.get("party_win")))]
-        out.append(f"| {name} | {len(logs)} | {len(won)} ({100 * len(won) / len(logs):.0f}%) | "
+        lv = K.BOSS_LEVELS.get(name)
+        boss = f"{min(lv)}-{max(lv)}" if lv else "-"
+        out.append(f"| {name} | {boss} | {len(logs)} | {len(won)} ({100 * len(won) / len(logs):.0f}%) | "
                    f"{sum(b['losses'] for b in logs) / len(logs):.1f} | {len(logs) - len(won)} | {_mean(lv_loss)} | "
                    f"{_mean(lv_win)} |")
     if len(out) == 6:
         out.append("_No per-boss data yet (records from before the parser upgrade: run `learner.py reparse`)._")
+    else:
+        out += ["", "For scale, a typical HUMAN first playthrough is estimated (Gemini, unverified; "
+                "`ai-research-notes/2026-10-03-human-reference-NOTE.md`) to reach Tate & Liza at about Lv 37-43 and "
+                "the Champion with about 65-95 species owned."]
+    return out
     return out
 
 

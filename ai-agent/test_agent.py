@@ -58,6 +58,10 @@ def make_batch(root: Path) -> Path:
             "f13300 [MAP] OLDALE TOWN(0,1) -> ROUTE 101(0,16) pos=(1, 1)",
             cat.format(f=13400, s="Wurmple", n=265, r="Caught"), cat.format(f=13500, s="Poochyena", n=261, r="Fled"),
             cat.format(f=13600, s="Zigzagoon", n=263, r="Caught"), cat.format(f=13700, s="Wurmple", n=265, r="Caught"),
+            "f13710 [DEX] owned 1 -> 2: +#265", "f13720 [DEX] owned 2 -> 3: +#263",
+            "f13730 [DEXFENCE] skip #278 Wingull — party is not at full strength",
+            "f13740 [DEXFENCE] skip #122 Mr. Mime — party is not at full strength",
+            "f13750 [DEXFENCE] skip #41 Zubat — a training grind is in progress",
             "f900 [STORY] DERAIL #5: Could not reach (1, 1)"]
     (b / "L01" / "debug-logs" / "a-1.log").write_text("\n".join(run1), encoding="utf-8")
     (b / "L01" / "debug-logs" / "a-2.log").write_text("\n".join(run2), encoding="utf-8")
@@ -87,6 +91,10 @@ def test_scoring(tmp: Path) -> None:
     check("S11 human-like signals: successful catches by species, distinct places entered (failed catch ignored)",
           r3["species_caught"] == ["Wurmple", "Zigzagoon"] and r3["catches"] == 3 and r3["maps_visited"] == 2,
           (r3["species_caught"], r3["catches"], r3["maps_visited"]))
+    check("S13 Pokedex owned and the reasons new species were skipped (a species name with a space included)",
+          r3["dex_owned"] == 3 and r3["catch_skips"] == {"party is not at full strength": 2,
+                                                         "a training grind is in progress": 1},
+          (r3["dex_owned"], r3["catch_skips"]))
     import report
     text, _ = report.build(list(recs.values()), [], "test")
     check("S12 the report states the human-like goal and shows the play columns",

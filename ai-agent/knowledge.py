@@ -60,6 +60,17 @@ KEY_TRAINERS = {**LEADERS, **ELITE_FOUR, **CHAMPION}
 #: badges + Elite Four + Champion: a run that becomes Champion scores 13 of 13.
 MAX_PROGRESS = len(LEADERS) + len(ELITE_FOUR) + len(CHAMPION)
 
+#: Each key trainer's FIRST-battle party levels in Emerald, read from pret/pokeemerald `src/data/trainer_parties.h`
+#: (sParty_Roxanne1 ... sParty_Wallace, linked by `src/data/trainers.h`) on 2026-10-03 by one agent, and
+#: re-read INDEPENDENTLY by an adversarial second agent: 13 of 13 agree. The note is
+#: `ai-research-notes/2026-10-03-human-reference-NOTE.md`. Keyed by the names `scoring` uses.
+BOSS_LEVELS = {
+    "ROXANNE": (12, 12, 15), "BRAWLY": (16, 16, 19), "WATTSON": (20, 20, 22, 24), "FLANNERY": (24, 24, 26, 29),
+    "NORMAN": (27, 27, 29, 31), "WINONA": (29, 29, 30, 31, 33), "TATE_AND_LIZA": (41, 41, 42, 42),
+    "JUAN": (41, 41, 43, 43, 46), "SIDNEY": (46, 48, 46, 48, 49), "PHOEBE": (48, 49, 50, 49, 51),
+    "GLACIA": (50, 50, 52, 52, 53), "DRAKE": (52, 54, 53, 53, 55), "WALLACE": (57, 55, 56, 56, 56, 58),
+}
+
 #: What our own research already says about a boss that walls runs. A HINT for the reader, never a diagnosis.
 #: Keyed by the boss name `classify_wall` puts in "boss wall: <name>".
 BOSS_HINTS = {

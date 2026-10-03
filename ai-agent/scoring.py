@@ -33,7 +33,11 @@ LEVEL_RE = re.compile(r":L(\d+)")
 #: map transition. Bump PARSER_VERSION whenever the parser changes: the learner then re-reads every retained batch.
 CATCH_OK_RE = re.compile(r"\[CATCH\] end .*?\bsp=([^#\s]+)#\d+.*?\bres=Caught\b")
 MAP_RE = re.compile(r"\[MAP\] .+? -> (.+?)\(\d+,\d+\)")
-PARSER_VERSION = 2
+#: v3: the Pokedex count (`[DEX] owned 3 -> 4: +#261`) and every new species the bot chose NOT to catch, with its
+#: reason (`[DEXFENCE] skip #278 Wingull — party is not at full strength`). A person catches most of those.
+DEX_RE = re.compile(r"\[DEX\] owned \d+ -> (\d+)")
+SKIP_RE = re.compile(r"\[DEXFENCE\] skip #\d+ .+? — (.+)$")
+PARSER_VERSION = 3
 #: A run is ended by its fifth derail (every finished run in step 14's logs ends on `DERAIL #5`).
 DERAIL_CAP = 5
 
@@ -47,12 +51,12 @@ def parse_log(path: Path) -> dict:
     rec = {"log": path.name, "starter": None, "badges": [], "e4": [], "champion": False, "wins": {}, "losses": {},
            "boss_log": {}, "milestones": [], "derails": 0, "derail_walls": [], "last_derail": None,
            "end_map": None, "end_pos": None, "end_party": None, "frames": 0, "mode_at_end": None, "money_last": None,
-           "species_caught": [], "catches": 0, "maps_visited": 0}
+           "species_caught": [], "catches": 0, "maps_visited": 0, "dex_owned": 0, "catch_skips": {}}
     started, last_party, maps = False, None, set()
     with open(path, "rb") as fh:
         for raw in fh:
             if not (b"choosing" in raw or b"[TRAINER] end" in raw or b"DERAIL #" in raw or b"[hb]" in raw
-                    or b"[CATCH] end" in raw or b"[MAP]" in raw):
+                    or b"[CATCH] end" in raw or b"[MAP]" in raw or b"[DEX] owned" in raw or b"[DEXFENCE] skip" in raw):
                 continue
             line = raw.decode("utf-8", "replace").rstrip("\r\n")
             m = FRAME_RE.match(line)
@@ -104,6 +108,13 @@ def parse_log(path: Path) -> dict:
                     rec["species_caught"].append(c.group(1))
             elif (mp := MAP_RE.search(line)):
                 maps.add(mp.group(1).strip())
+            elif (dx := DEX_RE.search(line)):
+                rec["dex_owned"] = max(rec["dex_owned"], int(dx.group(1)))
+            elif (sk := SKIP_RE.search(line)):
+                # " rare=- tier=..." is an annotation some flags append; it is the same reason without it.
+                reason = re.sub(r"\d+", "#", sk.group(1).split(" rare=")[0].strip())[:60]
+                if reason in rec["catch_skips"] or len(rec["catch_skips"]) < 12:
+                    rec["catch_skips"][reason] = rec["catch_skips"].get(reason, 0) + 1
     rec["maps_visited"] = len(maps)
     rec["progress"] = len(rec["badges"]) + len(rec["e4"]) + (1 if rec["champion"] else 0)
     rec["score"] = round(rec["progress"] / K.MAX_PROGRESS, 4)

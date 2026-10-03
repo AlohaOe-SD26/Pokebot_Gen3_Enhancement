@@ -37729,3 +37729,12 @@ bought balls only at fixed story points.
 - `test_agent.py` ALL PASS (48). S11 covers the play signals (a failed catch is ignored; places are distinct); S12 checks that the report states the goal.
 - First reading: step 14's first Champion run caught 8 species and entered 60 places.
 - Docs: `01` (THE ULTIMATE GOAL), `03` (`#28-aiagent-v2` now starts with a human-like score, decided with the user), `06` (RULING 32), README.
+
+## 2026-10-03 (PM) — Human reference data, Pokédex and catch-skip tracking, and the 2026-10-07 decision brief
+
+- **Verified boss levels:** one agent read every first-battle party (8 leaders, the Elite Four, Wallace) from pret/pokeemerald `src/data/trainer_parties.h`, and an adversarial second agent re-read it independently: 13 of 13 agree. They are in `ai-agent/knowledge.BOSS_LEVELS`, and the learner's boss table prints them.
+- **Human estimates (Gemini, NOTE):** typical team levels and species counts per badge, and human habits. Kept separate from the verified data in `ai-research-notes/2026-10-03-human-reference-NOTE.md`.
+- **Learner parser v3:** Pokédex owned at run end, and every `[DEXFENCE] skip` reason (the new species the bot chose NOT to catch). `LATEST.md` gains a Pokédex column and a skip-reason table. The learner re-reads all retained batches by itself because `PARSER_VERSION` changed. `test_agent.py` ALL PASS (49; S13 is new).
+- **Measured** (step 14, 62 scored runs): a median Pokédex of 18.5 at run end (Champion runs 21), against about 65-95 for a person (estimate). The top skip reason is running out of Poké Balls, about 23 per run; the party-slot "runway" reserve is next, about 14.
+- **`ai-research-notes/2026-10-07-humanlike-score-BRIEF.md`:** the plain-English questions for the user and three ways to score human-like play (recommended: one combined score). It is the first step of `#28-aiagent-v2`.
+- **Daily upstream check 2026-10-03:** unchanged (`3bd0b70c`), still parked (`UPDATE-LOG.md`).
