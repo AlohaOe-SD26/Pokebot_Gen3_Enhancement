@@ -34,18 +34,27 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
         f"Cycles run by the learner: {sum(1 for c in cycles if c.get('source') == 'cycle')}.",
         f"Champions: {_pct(sum(r['champion'] for r in usable), len(usable))} of scored runs.",
         "",
-        "A run's SCORE is its progress out of 13: eight badges, four Elite Four members, the Champion.",
+        "**THE GOAL IS HUMAN-LIKE PLAY** (the user, 2026-10-03): follow the story, catch Pokemon along the way, pick "
+        "up items, explore, train sensibly, work on the Pokedex. Never a speedrun. A run's SCORE below counts only "
+        "PROGRESS (out of 13: eight badges, four Elite Four members, the Champion). Read it together with the "
+        "human-like columns, and never prefer a strategy that wins by playing less like a person. How the two "
+        "combine into one ranking is the user's call (`#28-aiagent-v2`).",
         "",
         "## Strategies ranked (best estimate first)",
         "",
-        "| genome | knobs changed from baseline | runs | mean score | estimate +/- sd | champions | by starter (n, mean) |",
-        "|---|---|---|---|---|---|---|",
+        "| genome | knobs changed from baseline | runs | mean score | estimate +/- sd | champions | species caught "
+        "/ run | places explored / run | by starter (n, mean) |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     ranked = sorted((s for s in summary.values() if s["n"]), key=lambda s: -brain.posterior(s, mu0)[0])
+    organic = _organic(usable)
     for s in ranked[:15]:
         m, sd = brain.posterior(s, mu0)
+        o = organic.get(brain.genome_id(s["genes"]), {})
         lines.append(f"| `{brain.genome_id(s['genes'])}` | {s['label']} | {s['n']} | {s['mean']:.3f} | "
-                     f"{m:.3f} +/- {sd:.3f} | {s['champions']} | {s['starters']} |")
+                     f"{m:.3f} +/- {sd:.3f} | {s['champions']} | {_avg(o.get('species'))} | {_avg(o.get('maps'))} | "
+                     f"{s['starters']} |")
+    lines += _humanlike_check(ranked, organic)
     lines += ["", "## What each knob seems worth", "",
               "Ridge regression of score on every knob plus the starter. **Effect** is the change in score (out of "
               "1.0) from turning the knob away from baseline. Only a SEPARABLE knob's number means anything: a knob "
@@ -90,6 +99,43 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
                        for s in ranked],
             "effects": effects, "walls": walls.most_common(), "losses": losses.most_common()}
     return "\n".join(lines) + "\n", data
+
+
+def _organic(usable: list[dict]) -> dict:
+    """genome id -> per-run lists of species caught and distinct places entered (records parsed by parser v2+)."""
+    out: dict = collections.defaultdict(lambda: {"species": [], "maps": []})
+    for r in usable:
+        if "maps_visited" in r:
+            o = out[brain.genome_id(r["genome"])]
+            o["species"].append(len(r.get("species_caught", [])))
+            o["maps"].append(r["maps_visited"])
+    return out
+
+
+def _avg(xs) -> str:
+    return f"{sum(xs) / len(xs):.1f}" if xs else "-"
+
+
+def _humanlike_check(ranked: list[dict], organic: dict) -> list[str]:
+    """Flag strategies that play LESS like a person than the baseline: fewer species caught or fewer places
+    explored. A progress gain that comes with one of these flags is suspect, not a win."""
+    base = organic.get(brain.genome_id(brain.BASE), {})
+    if not base.get("species"):
+        return ["", "_Human-like check: no baseline runs with play data yet._"]
+    b_sp, b_mp = sum(base["species"]) / len(base["species"]), sum(base["maps"]) / len(base["maps"])
+    flags = []
+    for s in ranked:
+        o = organic.get(brain.genome_id(s["genes"]), {})
+        if len(o.get("species", [])) < 3:
+            continue
+        sp, mp = sum(o["species"]) / len(o["species"]), sum(o["maps"]) / len(o["maps"])
+        why = [f"catches fewer species ({sp:.1f} vs {b_sp:.1f})"] if sp < 0.8 * b_sp else []
+        why += [f"explores fewer places ({mp:.1f} vs {b_mp:.1f})"] if mp < 0.9 * b_mp else []
+        if why:
+            flags.append(f"- ⚠ `{brain.genome_id(s['genes'])}` {s['label']}: plays LESS like a person than "
+                         f"baseline: {'; '.join(why)}.")
+    return ["", "## Human-like check (vs baseline)", ""] + (flags or ["_No strategy plays noticeably less like a "
+                                                                      "person than the baseline._"])
 
 
 def _cycle_kind(c: dict) -> str:

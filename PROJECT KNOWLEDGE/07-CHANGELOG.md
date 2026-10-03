@@ -37720,3 +37720,12 @@ bought balls only at fixed story points.
   - `lint_docs` reports 250 flags in code, 250 documented.
   - No story-dev gate pins the replaced line (grep). The boss-mode log text is unchanged.
 - **Deploys** at the learner's next cycle boundary (about 2 AM on 2026-10-04), through `auto_update`.
+
+## 2026-10-03 (PM) — USER RULING 32 (human-like play is the goal): the learner records species caught and places explored, flags less-human strategies, and tells the consult the goal
+
+- `scoring.py` parser v2 reads `species_caught`, `catches` and `maps_visited` per run. The learner re-reads every retained batch on its own when `PARSER_VERSION` changes (on its first start after the update).
+- `LATEST.md` states the goal first and gains two columns per strategy (species caught per run, places explored per run) plus a "Human-like check" against baseline.
+- The consult prompt opens with the goal: never propose progress bought by catching or exploring less.
+- `test_agent.py` ALL PASS (48). S11 covers the play signals (a failed catch is ignored; places are distinct); S12 checks that the report states the goal.
+- First reading: step 14's first Champion run caught 8 species and entered 60 places.
+- Docs: `01` (THE ULTIMATE GOAL), `03` (`#28-aiagent-v2` now starts with a human-like score, decided with the user), `06` (RULING 32), README.

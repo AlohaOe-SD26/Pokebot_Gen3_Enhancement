@@ -29,6 +29,11 @@ HB_RE = re.compile(r"\[hb\] mode=(.+?) state=\S+ controllable=\S+ map=(.+?)\(\d+
                    r"party=(\[[^\]]*\])")
 FRAME_RE = re.compile(r"^f(\d+) ")
 LEVEL_RE = re.compile(r":L(\d+)")
+#: Human-like play signals (USER GOAL, 2026-10-03: play like a person, never a speedrun). A successful catch, and a
+#: map transition. Bump PARSER_VERSION whenever the parser changes: the learner then re-reads every retained batch.
+CATCH_OK_RE = re.compile(r"\[CATCH\] end .*?\bsp=([^#\s]+)#\d+.*?\bres=Caught\b")
+MAP_RE = re.compile(r"\[MAP\] .+? -> (.+?)\(\d+,\d+\)")
+PARSER_VERSION = 2
 #: A run is ended by its fifth derail (every finished run in step 14's logs ends on `DERAIL #5`).
 DERAIL_CAP = 5
 
@@ -41,11 +46,13 @@ def parse_log(path: Path) -> dict:
     """One run's record from one log. Pure reading; never raises on odd lines."""
     rec = {"log": path.name, "starter": None, "badges": [], "e4": [], "champion": False, "wins": {}, "losses": {},
            "boss_log": {}, "milestones": [], "derails": 0, "derail_walls": [], "last_derail": None,
-           "end_map": None, "end_pos": None, "end_party": None, "frames": 0, "mode_at_end": None, "money_last": None}
-    started, last_party = False, None
+           "end_map": None, "end_pos": None, "end_party": None, "frames": 0, "mode_at_end": None, "money_last": None,
+           "species_caught": [], "catches": 0, "maps_visited": 0}
+    started, last_party, maps = False, None, set()
     with open(path, "rb") as fh:
         for raw in fh:
-            if not (b"choosing" in raw or b"[TRAINER] end" in raw or b"DERAIL #" in raw or b"[hb]" in raw):
+            if not (b"choosing" in raw or b"[TRAINER] end" in raw or b"DERAIL #" in raw or b"[hb]" in raw
+                    or b"[CATCH] end" in raw or b"[MAP]" in raw):
                 continue
             line = raw.decode("utf-8", "replace").rstrip("\r\n")
             m = FRAME_RE.match(line)
@@ -91,6 +98,13 @@ def parse_log(path: Path) -> dict:
                 rec["mode_at_end"], rec["end_map"] = h.group(1), h.group(2).strip()
                 rec["end_pos"] = [int(h.group(3)), int(h.group(4))]
                 rec["end_party"] = last_party = h.group(5)[:200]
+            elif (c := CATCH_OK_RE.search(line)):
+                rec["catches"] += 1
+                if c.group(1) not in rec["species_caught"]:
+                    rec["species_caught"].append(c.group(1))
+            elif (mp := MAP_RE.search(line)):
+                maps.add(mp.group(1).strip())
+    rec["maps_visited"] = len(maps)
     rec["progress"] = len(rec["badges"]) + len(rec["e4"]) + (1 if rec["champion"] else 0)
     rec["score"] = round(rec["progress"] / K.MAX_PROGRESS, 4)
     rec["wall"] = "CHAMPION" if rec["champion"] else K.classify_wall(rec["last_derail"])

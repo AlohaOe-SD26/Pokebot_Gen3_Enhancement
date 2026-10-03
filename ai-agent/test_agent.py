@@ -50,8 +50,19 @@ def make_batch(root: Path) -> Path:
     run2 = ["f13000 [STEP] 'Story: choosing Torchic!'", win(265)]  # last log of the lane, no end: censored
     champ = ["f13000 [STEP] 'Story: choosing Torchic!'"] + [win(o) for o in range(265, 273)] + \
             [win(o) for o in range(261, 265)] + [win(335)]
+    cat = "f{f} [CATCH] end kind=team sp={s}#{n} end=caught res={r} thrown=2 frames=10 dest=party"
+    run3 = ["f1 [MAP] LITTLEROOT TOWN(0,9) -> ROUTE 101(0,16) pos=(1, 1)",  # before the run starts: ignored
+            "f13000 [STEP] 'Story: choosing Mudkip!'",
+            "f13100 [MAP] LITTLEROOT TOWN(0,9) -> ROUTE 101(0,16) pos=(1, 1)",
+            "f13200 [MAP] ROUTE 101(0,16) -> OLDALE TOWN(0,1) pos=(1, 1)",
+            "f13300 [MAP] OLDALE TOWN(0,1) -> ROUTE 101(0,16) pos=(1, 1)",
+            cat.format(f=13400, s="Wurmple", n=265, r="Caught"), cat.format(f=13500, s="Poochyena", n=261, r="Fled"),
+            cat.format(f=13600, s="Zigzagoon", n=263, r="Caught"), cat.format(f=13700, s="Wurmple", n=265, r="Caught"),
+            "f900 [STORY] DERAIL #5: Could not reach (1, 1)"]
     (b / "L01" / "debug-logs" / "a-1.log").write_text("\n".join(run1), encoding="utf-8")
     (b / "L01" / "debug-logs" / "a-2.log").write_text("\n".join(run2), encoding="utf-8")
+    # named to sort FIRST, so a-2.log stays the lane's last (censored) log
+    (b / "L01" / "debug-logs" / "a-0.log").write_text("\n".join(run3), encoding="utf-8")
     (b / "L02" / "debug-logs" / "b-1.log").write_text("\n".join(champ), encoding="utf-8")
     return b
 
@@ -72,6 +83,14 @@ def test_scoring(tmp: Path) -> None:
     check("S9 milestones are the first wins, in order", [m[0] for m in c["milestones"]][:3] ==
           ["ROXANNE", "BRAWLY", "WATTSON"] and c["milestones"][-1][0] == "WALLACE", c["milestones"][:3])
     check("S10 money after the last battle is read", r1["money_last"] == 2, r1["money_last"])
+    r3 = recs["a-0.log"]
+    check("S11 human-like signals: successful catches by species, distinct places entered (failed catch ignored)",
+          r3["species_caught"] == ["Wurmple", "Zigzagoon"] and r3["catches"] == 3 and r3["maps_visited"] == 2,
+          (r3["species_caught"], r3["catches"], r3["maps_visited"]))
+    import report
+    text, _ = report.build(list(recs.values()), [], "test")
+    check("S12 the report states the human-like goal and shows the play columns",
+          "HUMAN-LIKE PLAY" in text and "species caught / run" in text and "Human-like check" in text)
 
 
 def test_brain() -> None:
@@ -218,7 +237,7 @@ def test_adopt_and_reparse(tmp: Path) -> None:
     recs = learner.load_jsonl(learner.RUNS_FILE)
     check("L1 adoption waits while the orphaned batch still runs", len(polls) == 2, polls)
     check("L2 then scores it and clears the current cycle",
-          out is True and st["current"] is None and len(recs) == 3 and st["cycles"][-1]["exit"] == "adopted",
+          out is True and st["current"] is None and len(recs) == 4 and st["cycles"][-1]["exit"] == "adopted",
           (out, st["current"], len(recs)))
     check("L3 FAULT: nothing to adopt returns None", learner.adopt_unfinished(dict(learner.DEFAULTS)) is None)
     a = tmp / "sig"
@@ -244,7 +263,7 @@ def test_adopt_and_reparse(tmp: Path) -> None:
     learner.cmd_reparse()
     after = learner.load_jsonl(learner.RUNS_FILE)
     check("R3 reparse re-reads batches that still exist and keeps records of pruned ones",
-          len(after) == 4 and sum(r["batch"] == "OLD-PRUNED" for r in after) == 1, len(after))
+          len(after) == 5 and sum(r["batch"] == "OLD-PRUNED" for r in after) == 1, len(after))
 
 
 def main() -> int:

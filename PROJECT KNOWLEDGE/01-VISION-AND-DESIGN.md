@@ -402,6 +402,16 @@ it.
   from the frame callback. See `02-ARCHITECTURE.md` for why that shapes Endless Loop ×4.
 
 ### Emerald AI strategy learner (`ai-agent/`, v1 built 2026-10-03, USER RULING 31)
+- ⭐⭐ **THE ULTIMATE GOAL (the user, 2026-10-03): an AI that plays Emerald the way a PERSON does, faithfully and
+  organically.** That means completing the story, catching Pokémon along the way, picking up items, exploring the
+  world, training sensibly and completing the Pokédex, looking and acting as human as possible. **It must never
+  robotically speedrun to the end.** Every stage is judged against this goal, not against "beats the game".
+  - The progress score (badges + Elite Four + Champion) is only a PARTIAL proxy. On its own it rewards speed.
+  - The learner records human-like signals beside it (species caught, places explored) and flags strategies that
+    play less like a person.
+  - How the signals combine into one ranking is the user's call (`#28-aiagent-v2`).
+  - First reading: a Champion run of step 14 caught 8 species and entered 60 places all game, far from what a
+    person does.
 - **Purpose:** the first stage of the AI version. A 24/7 offline learner that plays real batches through the story
   bot (`x4_headless.py --arms`) and learns which STRATEGY settings get runs furthest. Its findings
   (`ai-agent/findings/LATEST.md`) are written for Claude to read and act on. The story bot is the "hands" and the

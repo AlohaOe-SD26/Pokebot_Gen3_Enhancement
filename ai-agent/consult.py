@@ -19,7 +19,11 @@ from pathlib import Path
 
 import knowledge as K
 
-PROMPT = """You are advising the Emerald AI strategy learner (folder ai-agent/ of this repo). Read ai-agent/README.md
+PROMPT = """THE GOAL: an AI that plays Pokemon Emerald the way a PERSON does: the story, catching Pokemon along the way,
+picking up items, exploring, training sensibly, the Pokedex. Never a speedrun. The progress score is only part of
+that: NEVER propose a strategy that gains progress by catching less, exploring less or skipping what a person would do,
+and weigh LATEST.md's human-like columns and its "Human-like check" alongside the score.
+You are advising the Emerald AI strategy learner (folder ai-agent/ of this repo). Read ai-agent/README.md
 and ai-agent/findings/LATEST.md. You may also read PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md for what each failure means,
 and PROJECT KNOWLEDGE/ai-research-notes/2026-10-03-decision-points-MAP.md for where the bot makes each decision.
 Do NOT edit any file. Base every claim on a number in LATEST.md and say which. A cycle with 0 scored runs is a smoke

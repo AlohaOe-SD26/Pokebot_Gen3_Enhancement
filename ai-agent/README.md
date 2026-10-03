@@ -1,5 +1,11 @@
 # Emerald AI: the strategy learner (v1)
 
+> ⭐ **THE ULTIMATE GOAL (the user, 2026-10-03): play Pokémon Emerald the way a PERSON does.** That means the story,
+> catching Pokémon along the way, picking up items, exploring, training sensibly and the Pokédex, looking and acting
+> as human as possible, and **never a robotic speedrun**. The progress score below is only part of that. `LATEST.md`
+> shows human-like signals beside it and flags strategies that play less like a person. Never optimise progress at
+> their expense.
+
 **What it is.** The first stage of the AI version of this project. It runs 24/7 on this PC with no AI credits. It
 plays real Pokemon Emerald games through the story bot's own engine, measures which STRATEGIES get furthest, keeps
 the winners and tries new combinations. What it learns is written down for Claude to read and act on.

@@ -9108,3 +9108,26 @@ on all three questions:
 - Rejected: shipping more wall knobs at once (the map's plateau thresholds, basket profile, box-first tier). Each
   one is a story-bot change with its own risk, and one knob with a clean default is the cheapest first test of
   the whole knob pipeline (bot → registry → learner → screen → report).
+
+## 2026-10-03 — USER RULING 32: the AI's ultimate goal is HUMAN-LIKE, organic play, never a speedrun; the learner's progress-only score is a partial proxy
+
+- **The ruling (user, 2026-10-03), verbatim:** "The ultimate goal for this ai agent is for it to be able to
+  understand how to play pokemon emerald and play it faithfully as well as organically like a human, including
+  completing the story, catching pokemon on the way, picking up items, exploring the world, training, completing
+  the pokedex, etc... the goal is to make it play exactly as a human would and make sure it doesnt robotically speed
+  run to the end ... the ultimate goal of this is to look and act as human as possible in the end".
+- **Why it changes the learner now:** its score counts only PROGRESS (badges + Elite Four + Champion). On its own,
+  that rewards whatever reaches the Champion fastest, including catching less and exploring less. The incumbent,
+  baseline A, keeps the extra catch knobs OFF.
+- **Decisions (coordinator, under this ruling):**
+  - Record the human-like signals the logs already carry, per run: species caught (`[CATCH] end ... res=Caught`)
+    and distinct places entered (`[MAP] ... -> X`). The parser is v2, and the learner re-reads every retained
+    batch on its own when the parser version changes.
+  - Show them beside the score in `LATEST.md`, with a "Human-like check" that flags a strategy catching under 80%
+    of baseline's species or exploring under 90% of its places.
+  - Put the goal first in the consult prompt: never propose progress bought by playing less like a person.
+  - **NOT decided:** how the signals combine into one ranking score. What "human-like" weighs numerically
+    (a species against a badge) is a value judgment for the user, and goes first in `#28-aiagent-v2` for 2026-10-07.
+- **Not yet measurable from the logs:** overworld item pickups (only 6 `obtained` lines in a whole run; battle item
+  use is `[ITEM-FLOW]`). A dedicated item-pickup signal is v2 work.
+- **First reading:** step 14's first Champion run caught 8 species and entered 60 places in the whole game.

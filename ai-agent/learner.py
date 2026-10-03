@@ -446,6 +446,12 @@ def loop(single: bool, dev: bool = False) -> int:
     started_sig, refused_sig = code_signature(), None
     log(f"learner started (code {started_sig})")
     try:
+        if load_state().get("parser_version") != scoring.PARSER_VERSION and not single:
+            # A parser upgrade arrived (e.g. through auto_update): re-read every retained batch once.
+            cmd_reparse()
+            st = load_state()
+            st["parser_version"] = scoring.PARSER_VERSION
+            save_state(st)
         adopted = adopt_unfinished(load_config())
         if adopted is False and STOP.exists():
             return 0
