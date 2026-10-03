@@ -3862,7 +3862,11 @@ class StoryMode(BotMode):
                     return
                 if grass_is_fodder:  # ⛔⛔ KI-80: boss_mode STAYS behind the patch test. Removing
                     boss_mode = True  # this guard is KI-23's MIRROR regression (arm 4 catches it).
-                    target = team_max + 1  # light top-up — the boss battle is the trainer
+                    from modules.story.bossmode_topup import topup_levels
+
+                    # Light top-up — the boss battle is the trainer. +1 unless the AI learner's
+                    # POKEBOT_BOSSMODE_TOPUP knob says otherwise (`modules/story/bossmode_topup.py`).
+                    target = team_max + topup_levels()
                     console.print(
                         f"[bold cyan]Story: boss-training mode — local wilds (max L{wild_max}) are "
                         f"far below the team (L{team_max}); re-attempting the boss is the real "

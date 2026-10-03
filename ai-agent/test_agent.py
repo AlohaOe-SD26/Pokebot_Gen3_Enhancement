@@ -78,6 +78,9 @@ def test_brain() -> None:
     g = dict(K.STEP14_A)
     check("B1 genome id is stable and order-free", brain.genome_id(g) == brain.genome_id(dict(reversed(g.items()))))
     check("B2 baseline and arm B have different ids", brain.genome_id(K.STEP14_A) != brain.genome_id(K.STEP14_B))
+    partial = {k: v for k, v in K.STEP14_B.items() if k != "POKEBOT_BOSSMODE_TOPUP"}
+    check("B2b adding a knob at its default never renames a genome (ids hash only the changed knobs)",
+          brain.genome_id(partial) == brain.genome_id(K.STEP14_B))
     rng = random.Random(1)
     m = brain.mutate(g, rng, 2)
     changed = [k for k in K.GENES if m[k] != g[k]]
@@ -94,21 +97,33 @@ def test_brain() -> None:
     check("B7 FAULT: an unknown knob is refused", K.validate_genes({"POKEBOT_FAKE": "1"}) != [])
     check("B8 FAULT: a disallowed value is refused", K.validate_genes({"POKEBOT_R25_CAP": "2"}) != [])
     def balanced(rs: list[dict]) -> bool:
+        n = len(rs)
         cols = list(zip(*[[r[g] != brain.BASE[g] for g in sorted(K.GENES)] for r in rs]))
-        return all(sum(c) == 6 for c in cols) and all(
-            sum(a and b for a, b in zip(cols[i], cols[j])) == 3 for i in range(len(cols)) for j in range(i + 1, len(cols)))
+        return all(sum(c) == n // 2 for c in cols) and all(
+            sum(a and b for a, b in zip(cols[i], cols[j])) == n // 4
+            for i in range(len(cols)) for j in range(i + 1, len(cols)))
 
-    rows = brain.pb12_rows()
-    check("B9 the screening design: 12 distinct rows, each knob ON in 6, every pair ON together in 3",
-          len({brain.genome_id(r) for r in rows}) == 12 and balanced(rows))
+    name, rows = brain.screen_rows()
+    check(f"B9 the screening design ({name}, {len(K.GENES)} knobs): distinct rows, each knob ON in half, every pair "
+          f"ON together in a quarter", rows and len({brain.genome_id(r) for r in rows}) == len(rows) and balanced(rows),
+          (name, len(rows)))
+    check("B9b the design matches the knob count (PB12 for 11, H16 for 12-15)",
+          (name, len(rows)) == (("pb12", 12) if len(K.GENES) == 11 else ("h16", 16)), (name, len(rows)))
     design = {"rows": rows, "next": 0}
     picks = brain.choose_arms(6, brain.summarize(recs), [], random.Random(5), design=design)
     check("B10 a design cycle = the incumbent + the next design rows, and the row pointer advances",
-          brain.genome_id(picks[0][0]) == brain.genome_id(K.STEP14_A) and design["next"] == 5
-          and all("screening design row" in w for _, w in picks[1:]), [w for _, w in picks])
+          brain.genome_id(picks[0][0]) == brain.genome_id(K.STEP14_A) and 5 <= design["next"] <= 6
+          and all("screening design row" in w for _, w in picks[1:]) and len(picks) == 6, [w for _, w in picks])
     bad = [dict(r) for r in rows]
-    bad[0]["POKEBOT_R25_CAP"] = "1" if bad[0]["POKEBOT_R25_CAP"] == "0" else "0"
+    bad[1]["POKEBOT_R25_CAP"] = "1" if bad[1]["POKEBOT_R25_CAP"] == "0" else "0"
     check("B11 FAULT: one flipped cell makes the balance check fail", not balanced(bad))
+    sys.path.insert(0, str(learner.REPO / "sandbox-pokebot"))
+    from modules.story import bossmode_topup as bt
+    check("K1 the boss-mode knob defaults to the old +1 when unset", bt.topup_levels({}) == 1)
+    check("K2 the learner's values reach the bot as integers", [bt.topup_levels({bt.ENV: v}) for v in
+                                                                K.GENES[bt.ENV][0]] == [1, 4])
+    check("K3 FAULT: junk or out-of-range values fall back to 1, never a huge grind",
+          [bt.topup_levels({bt.ENV: v}) for v in ("", "x", "0", "11", "-3", "4.5")] == [1] * 6)
 
 
 def test_effects() -> None:

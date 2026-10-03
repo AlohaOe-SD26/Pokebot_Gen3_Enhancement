@@ -110,7 +110,10 @@ end, then scores it.
   (`sandbox-pokebot/profiles/endless-ai####-*`), which it later deletes by exact name. A test (R2) proves it never
   deletes anything else.
 - It allows one learner at a time (a lock file) and never runs two batches at once.
-- It only uses knob values that have already run for 13 hours (step 14). Anything else is refused (tests B7, B8).
+- It only uses knob values listed in `knowledge.GENES`, and anything else is refused (tests B7, B8).
+  - The eleven step-14 knobs use only values that ran for 13 hours.
+  - The one documented exception is the boss-mode knob's `4`, which drives training the bot already runs every
+    game (`06`, 2026-10-03).
 - It pauses itself, instead of retrying forever:
   - after 3 cycles in a row with no scored runs;
   - when the disk falls below 25 GB free.
@@ -125,9 +128,15 @@ takes three things:
 - it must be registered in `PROJECT KNOWLEDGE/29-DISABLED-FEATURES-REGISTRY.md`;
 - `test_agent.py` must pass.
 
-That is an interactive-session job. The obvious next knobs are the walls above:
-- the Elite Four level floor and basket targets;
-- the counter-catch rules behind Norman (KI-118) and Tate & Liza (KI-122).
+That is an interactive-session job.
+- **The first wall knob shipped on 2026-10-03:** `POKEBOT_BOSSMODE_TOPUP` (1 vs 4), how many levels boss mode
+  trains before re-fighting a boss it keeps losing to. Its default 1 is the old behaviour.
+  - With 12 knobs, the screen is now Hadamard-16.
+- **Next candidates**, in `PROJECT KNOWLEDGE/ai-research-notes/2026-10-03-decision-points-MAP.md`:
+  - the plateau-loss thresholds;
+  - the League basket;
+  - the box-first tier (KI-118);
+  - counter-lead scope (KI-122).
 
 ## Files
 

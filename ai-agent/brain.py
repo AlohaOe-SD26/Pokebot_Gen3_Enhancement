@@ -32,14 +32,16 @@ def canonical(genes: dict) -> dict:
 
 
 def genome_id(genes: dict) -> str:
-    blob = json.dumps(canonical(genes), sort_keys=True).encode()
-    return "g" + hashlib.sha1(blob).hexdigest()[:8]
+    """Hashes only the knobs that DIFFER from baseline, so adding a new knob (at its default) never renames an
+    existing genome. (Until 2026-10-03 PM every knob was hashed, and adding one renamed them all.)"""
+    diff = {g: v for g, v in canonical(genes).items() if v != BASE[g]}
+    return "g" + hashlib.sha1(json.dumps(diff, sort_keys=True).encode()).hexdigest()[:8]
 
 
 def label(genes: dict) -> str:
     """The knobs that differ from the baseline, e.g. 'R25_CAP+R27_KEYITEMS'; 'baseline' when none do."""
     on = [g.removeprefix("POKEBOT_") for g, v in canonical(genes).items() if v != BASE[g]]
-    if len(on) == len(K.GENES):
+    if canonical(genes) == canonical(K.STEP14_B):
         return "ALL (step 14 arm B)"
     return "+".join(on) if on else "baseline (step 14 arm A)"
 
@@ -109,6 +111,28 @@ def pb12_rows() -> list[dict]:
         rows.append({g: K.GENES[g][0][1 if s == "+" else 0] for g, s in zip(genes, signs)})
     rows.append(dict(BASE))
     return rows
+
+
+def h16_rows() -> list[dict]:
+    """A 16-genome screening design for 12-15 knobs, from the Sylvester Hadamard matrix. Column 0 (all +1) is
+    dropped. Every other column is balanced (+1 in 8 rows) and every pair of columns is orthogonal (both -1 in 4
+    rows). -1 means "knob changed from baseline", so row 0 is the all-baseline control. [] outside 12-15 knobs."""
+    genes = sorted(K.GENES)
+    if not 12 <= len(genes) <= 15:
+        return []
+    h = [[1]]
+    for _ in range(4):
+        h = [r + r for r in h] + [r + [-x for x in r] for r in h]
+    return [{g: K.GENES[g][0][1 if row[j + 1] == -1 else 0] for j, g in enumerate(genes)} for row in h]
+
+
+def screen_rows() -> tuple[str, list[dict]]:
+    """(design name, rows) for the current knob count: PB12 for 11 knobs, H16 for 12-15, none otherwise."""
+    if (rows := pb12_rows()):
+        return "pb12", rows
+    if (rows := h16_rows()):
+        return "h16", rows
+    return "none", []
 
 
 def choose_arms(k: int, summary: dict, proposals: list[dict], rng: random.Random,

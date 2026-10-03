@@ -9075,3 +9075,36 @@ on all three questions:
   - `--model sonnet`;
   - `--max-turns`, which this CLI version does not have, is removed.
   - "For the developer" notes accumulate in `findings/DEVELOPER-NOTES.md`.
+
+## 2026-10-03 — The first WALL knob: `POKEBOT_BOSSMODE_TOPUP` (boss mode's +1 top-up becomes learnable); the screen grows to Hadamard-16; genome ids hash only changed knobs
+
+- **Evidence:**
+  - The learner's boss table: Tate & Liza were fought in 45 of 62 scored runs and beaten in 34, with 11.2 losses
+    per run, and the team's average level at the first loss (33.0) was about the same as at the win (33.7).
+  - The decision map, verified by the coordinator at `sandbox-pokebot/plugins/custom_modes/story_mode.py:3865`:
+    after 2 or more losses, when the local wilds are fodder and the boss still loses mons, boss mode tops up only
+    `team_max + 1` ("the boss battle is the trainer").
+  - So the bot re-fights at the same strength until variance wins or the plateau stop (`:2230`, 12 losses) ends the
+    run.
+- **Decision:**
+  - The top-up becomes an env knob with an UNCHANGED default:
+    - unset = 1, the old behaviour exactly; integers 1-10 honoured; junk falls back to 1;
+    - the pure helper is `modules/story/bossmode_topup.py`, gated by `test_agent.py` K1-K3.
+  - The learner A/Bs `1` vs `4` inside its screening design.
+  - The A/B itself is the measurement, which follows the playbook's split: batches answer frequency questions, and
+    "does training more before a retry beat Tate & Liza more often?" is one. No driver proof is claimed or needed
+    for the default path, which is byte-for-byte the old arithmetic.
+- **An exception to "only values that already ran", made deliberately:** `4` never ran in step 14. It drives the
+  same target-level training the non-boss retry path already runs every game (`team_max + 5`, `:3876-3890`), so it
+  exercises no new machinery. A value that hurt would show up as lower scores, a safe failure the learner itself
+  measures.
+- **Faithful to organic gameplay:** training a few levels before re-challenging a gym that keeps beating you is what
+  a human does. The knob changes how much, never the method.
+- **Design:** 12 knobs no longer fit Plackett–Burman 12. The screen now picks PB12 for 11 knobs and Hadamard-16
+  (Sylvester; balanced, pairwise orthogonal) for 12-15 (`design: screen`). A design change restarts the row pointer.
+- **Genome ids now hash only the knobs that differ from baseline** (gate B2b), so a future knob, added at its
+  default, renames nothing. Every id changed once with this commit; the records hold the genomes themselves, so
+  nothing is lost.
+- Rejected: shipping more wall knobs at once (the map's plateau thresholds, basket profile, box-first tier). Each
+  one is a story-bot change with its own risk, and one knob with a clean default is the cheapest first test of
+  the whole knob pipeline (bot → registry → learner → screen → report).

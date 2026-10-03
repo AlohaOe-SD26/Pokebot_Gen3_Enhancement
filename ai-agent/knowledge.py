@@ -38,13 +38,18 @@ GENES: dict[str, tuple[tuple[str, ...], str]] = {
     "POKEBOT_R26_KITTOPOFF": (("0", "1"), "top off the healing kit at the Rustboro mart"),
     "POKEBOT_R27_DOUBLEITEMS": (("0", "1"), "use healing items in double battles"),
     "POKEBOT_R20_OPENFENCE": (("0", "1"), "after gym 1, catch new species into the party"),
+    # The first knob aimed at a WALL (2026-10-03). Unlike the eleven above, its alternative value never ran in step
+    # 14. The exception to "only values that already ran" is deliberate: "4" drives the same target-level training
+    # the bot's non-boss retry path runs every game (team_max + 5), so no new machinery is exercised.
+    "POKEBOT_BOSSMODE_TOPUP": (("1", "4"), "levels boss mode trains before re-fighting a boss it keeps losing to"),
 }
 
 ALL_KEYS = tuple(FIXED) + tuple(GENES)
 
-#: Step 14's two arms, as genomes over GENES (every gene's value), so its 78 runs seed the learner.
+#: Step 14's two arms, as genomes over GENES (every gene's value), so its 78 runs seed the learner. Step 14 predates
+#: the boss-mode knob and ran its default ("1") in both arms.
 STEP14_A = {g: vals[0] for g, (vals, _) in GENES.items()}
-STEP14_B = {g: "1" for g in GENES}
+STEP14_B = {g: "1" for g in GENES}  # every step-14 knob ON; the boss-mode knob at its default "1"
 
 # ---------------------------------------------------------------------------------------------------------- trainers
 LEADERS = {265: "ROXANNE", 266: "BRAWLY", 267: "WATTSON", 268: "FLANNERY",

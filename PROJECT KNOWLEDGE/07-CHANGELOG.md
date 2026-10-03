@@ -37701,3 +37701,22 @@ bought balls only at fixed story points.
   - Its central finding, verified: after 2 losses on fodder grass, boss mode tops up only +1 level
     (`story_mode.py:3865`), and `HARD_PLATEAU_LOSS_THRESHOLD = 12` (`:2230`). That fits the flat team level.
   - It is `#28-aiagent-v2`'s starting point.
+
+## 2026-10-03 (PM) — `#28-aiagent-v2` started early: the boss-mode top-up knob `POKEBOT_BOSSMODE_TOPUP`, a Hadamard-16 screen, stable genome ids
+
+- **Story bot (sandbox only):** `plugins/custom_modes/story_mode.py`'s boss-mode `target = team_max + 1` is now
+  `team_max + topup_levels()`, read from `POKEBOT_BOSSMODE_TOPUP` by the new pure module
+  `modules/story/bossmode_topup.py`. Unset, the knob is 1, the old arithmetic exactly. It is registered in `29` §C.
+- **Learner:**
+  - `knowledge.GENES` gains the knob, with values 1 and 4;
+  - `brain.screen_rows()` picks PB12 for 11 knobs or H16 for 12-15;
+  - the learner tracks the design's name and restarts its row pointer on a change;
+  - genome ids hash only the changed knobs;
+  - the report names the design.
+- **Verified:**
+  - `test_agent.py` ALL PASS (46). New rows: B2b (stable ids), B9b (the design fits the knob count), K1-K3
+    (default 1; the learner's values arrive as 1 and 4; junk falls back to 1).
+  - The H16 balance: each knob ON in 8 of 16 rows, every pair ON together in 4. B11 proves one flipped cell fails it.
+  - `lint_docs` reports 250 flags in code, 250 documented.
+  - No story-dev gate pins the replaced line (grep). The boss-mode log text is unchanged.
+- **Deploys** at the learner's next cycle boundary (about 2 AM on 2026-10-04), through `auto_update`.

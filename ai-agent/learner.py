@@ -67,7 +67,7 @@ RESTART_CODE = 3
 
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
-    "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "pb12", "auto_update": True,
+    "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "screen", "auto_update": True,
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
     "consult": {"enabled": False, "max_calls_per_day": 2, "model": "sonnet", "max_usd_per_call": 0.75,
@@ -290,9 +290,13 @@ def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
     records = load_jsonl(RUNS_FILE)
     proposals = read_inbox()
     k = lanes // 4
-    design = None
-    if cfg.get("design") == "pb12" and brain.pb12_rows():
-        design = {"rows": brain.pb12_rows(), "next": int(state.get("design_next", 0))}
+    design, design_name = None, None
+    if cfg.get("design") in ("screen", "pb12"):
+        design_name, rows = brain.screen_rows()
+        if rows:
+            # A new knob changes the design's size; its row pointer then starts again at row 1.
+            start = int(state.get("design_next", 0)) if state.get("design_name", "pb12") == design_name else 0
+            design = {"rows": rows, "next": start}
     picks = brain.choose_arms(k, brain.summarize(records), proposals, random.Random(),
                               float(cfg["two_flip_prob"]), int(cfg["max_proposals_per_cycle"]), design)
     n = state["cycle"] + 1
@@ -305,6 +309,7 @@ def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
     used = [p.get("_file") for p in proposals if brain.genome_id(p["genes"]) in running]
     return {"n": n, "tag": tag, "lanes": lanes, "minutes": float(cfg["cycle_minutes"]),
             "design_next": design["next"] if design else state.get("design_next", 0),
+            "design_name": design_name if design else state.get("design_name"),
             "arms": {name: {"genome": brain.genome_id(g), "label": brain.label(g), "why": why,
                             "env": brain.full_env(g)} for name, (g, why) in zip(names, picks)},
             "proposal_files": [f for f in used if f]}
@@ -326,6 +331,7 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     (cdir / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
     state["cycle"] = plan["n"]
     state["design_next"] = plan["design_next"]
+    state["design_name"] = plan.get("design_name")
     state["current"] = {"tag": tag, "started": now(), "lanes": lanes, "minutes": plan["minutes"]}
     save_state(state)
     for a, v in plan["arms"].items():

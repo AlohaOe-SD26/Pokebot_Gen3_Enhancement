@@ -415,7 +415,8 @@ it.
   - edit code;
   - run git beyond a fast-forward of its own deployment clone (`C:/Remote Projects/pokebot-learner`) between
     cycles;
-  - turn a knob to a value no batch has run (v1: step 14's values only);
+  - turn a knob to a value outside `knowledge.GENES` (step 14's tested values, plus the one documented boss-mode
+    exception, `06` 2026-10-03);
   - delete anything it did not create;
   - compete with another batch.
 - **Next stages:**

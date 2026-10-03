@@ -106,12 +106,12 @@ def _cycle_kind(c: dict) -> str:
 
 def _design_line(records: list[dict]) -> list[str]:
     """How far the screening design has got: rows with at least one scored run."""
-    rows = brain.pb12_rows()
+    name, rows = brain.screen_rows()
     if not rows:
         return []
     scored = collections.Counter(brain.genome_id(r["genome"]) for r in records if r.get("usable"))
     done = [i + 1 for i, row in enumerate(rows) if scored.get(brain.genome_id(row))]
-    return ["", f"Screening design: {len(done)} of {len(rows)} rows have scored runs "
+    return ["", f"Screening design ({name}): {len(done)} of {len(rows)} rows have scored runs "
                 f"({', '.join(map(str, done)) or 'none yet'}). Knob effects become separable as rows fill in.", ""]
 
 
