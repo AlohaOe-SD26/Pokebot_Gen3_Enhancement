@@ -338,7 +338,7 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 
 > **The ordered work queue** (the cold-start orientation is the single `>    ➡➡➡ START HERE` line below and the
 > banner at line 6; the old YOU ARE HERE block is retired history). Everything is committed and pushed **as of the commit carrying this line** —
-> trust `git status` over this sentence. **No work is parked MID-TASK (`wt/battleeq` was merged and step 14 GRADED on 2026-10-02; see the mid-task row)** (nothing half-edited, no
+> trust `git status` over this sentence. **Two story-bot branches ARE parked mid-task (`wt/gradeidentity`, `wt/boxfirst`; see the mid-task row and START HERE ➡➡➡). The AI learner `ai-agent/` runs 24/7.** (nothing half-edited, no
 > `/checkpoint` debt). ⛔ *(This used to add: "that is NOT the same as nothing is parked — §Ch20 chapter assembly IS
 > parked ... (item 0)". **RETIRED 2026-09-01: §Ch20 SHIPPED AS A CHAPTER 2026-08-24**, so that
 > pointer sent a cold reader to item 0 to finish work that had already shipped. ⇒ nothing is parked MID-TASK **and** no chapter is parked awaiting assembly; what IS outstanding is the drift promotion, which is a USER DECISION, not parked work.)*
