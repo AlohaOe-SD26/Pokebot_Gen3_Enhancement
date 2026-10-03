@@ -33,6 +33,11 @@ ROWS (each a function; a row that raises is red)
             USABLE, DV14 the FAIL-CLOSED grader-revision rule (EXPLORATORY), DV15 a log with no choosing line is
             no_starter. DV9's no-choose case moved to DV15 (its kind changed by that decision); TB3's malformed-first
             case gained a choosing line (without one it would be vacuous). Mutants D30-D40 (+ CM2) revert each rule.
+            THE INDEPENDENT REVIEW'S FOLD (`scratchpad/adv27/gihunt`, the coordinator's rulings): revisions carry a
+            UNIQUE id and a LOCAL time to the second, and a ruling is keyed by ARMS.json's (stamp, code_commit,
+            started) — DV16 the ruled batch OPERATIVE, DV17 (GS-2), DV18 (GS-8), DV19 (GS-1); DV20 the choosing-line
+            control (GS-6); TB15 a stale save whose lead is an unevolved starter (GS-9); GK01-GK09 the mutant hunter's
+            rows, adapted. Mutants D44-D63 and B24-B27 (the hunter's survivors are labelled [GH<n>]).
 
 THE SYNTHETIC MODEL (`synth`; spec: "8 lanes per arm, two per starter (the random lane's species drawn); 11-seed pools
 per lane; same-species-PID replays; about 6 runs per lane; K* first-attempt rates from the baseline"):
@@ -691,6 +696,39 @@ def _tb14():
               {"species": "Mudkip", "pid": "067116B6", "hold": 0, "chosen": "Mudkip"})
 
 
+@row("TB15", "GS-9: a stale save whose lead is still an UNEVOLVED starter ([hb] Mudkip#41027B14 BEFORE 'Story: choosing "
+             "Mudkip!') is not the run: the [hb] after it (Mudkip#68D2F871) is — a species check alone never sees this")
+def _tb15():
+    lines = [hb("Mudkip", "41027B14", frame=3601), Q("choose_treecko").replace("Treecko", "Mudkip"),
+             hb("Mudkip", "68D2F871")]
+    return eq(BL().run_identity(lines), {"species": "Mudkip", "pid": "68D2F871", "hold": 0, "chosen": "Mudkip"})
+
+
+# ---- the mutant hunter's rows on run_start / run_identity (`scratchpad/adv27/gihunt/killing_rows.py`), adopted
+@row("GK01", "run_start is the first [STEP] choosing line: an earlier line that merely QUOTES 'Story: choosing X!' (an "
+             "[hb] whose msg= carries it) is not the start, and the identity is still read after the STEP line")
+def _gk01():
+    quote = Q("hb_empty").replace("msg='Intro: confirming the name and riding to Littleroot...'",
+                                  "msg='Story: choosing Treecko!'")
+    lines = [quote, Q("choose_treecko"), Q("hb_first")]
+    return eq((quote != Q("hb_empty"), BL().run_start(lines), BL().run_identity(lines)),
+              (True, 1, {"species": "Treecko", "pid": "1304646B", "hold": 0, "chosen": "Treecko"}))
+
+
+@row("GK02", "run_identity's hold is the FIRST 'Intro: holding Nf' STEP line (two -> the first), as before KI-119")
+def _gk02():
+    lines = [Q("hold_7"), Q("hold_7").replace("holding 7f", "holding 12f"), Q("choose_treecko"), Q("hb_first")]
+    return eq(BL().run_identity(lines)["hold"], 7)
+
+
+@row("GK03", "an [hb] with NO ids= field after the choosing line is skipped (it has no NON-EMPTY ids=): the next "
+             "non-empty one decides")
+def _gk03():
+    noids = Q("hb_first").replace(" ids=['Treecko#1304646B:L5:exp135']", "")
+    return eq(("ids=" not in noids, BL().run_identity([Q("choose_treecko"), noids, Q("hb_first")])),
+              (True, {"species": "Treecko", "pid": "1304646B", "hold": 0, "chosen": "Treecko"}))
+
+
 # ============================================================================================ CR — one run's record
 LANE_A = {"tag": "H1", "slot": 0, "arm": "A"}
 
@@ -1345,8 +1383,18 @@ def _dv13():
               ("NOT ESTIMABLE", "DESCRIPTIVE — C1 NOT ESTIMABLE", True, True, False))
 
 
-# ---- KI-119 (`#27-gradeidentity`): the grader-revision rule (FAIL-CLOSED) and the no-choosing-line decision
-_REV = "graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119"
+# ---- KI-119 (`#27-gradeidentity`): the grader-revision rule (FAIL-CLOSED) and the no-choosing-line decision. FOLDED
+# with the independent review: revisions carry a unique ID and a LOCAL time to the second (GS-1, GS-2); a ruling is
+# keyed by ARMS.json's (stamp, code_commit, started), all three exact (GS-8); GK04-GK09 are the mutant hunter's rows
+_RULED = ("20261001-210001", "f4509da1", "2026-10-01T21:00:01")    # step 14's ARMS.json (USER RULING 30)
+_SMOKE = ("20261001-090649", "1f3872ac", "2026-10-01T09:06:49")    # the smoke batch's ARMS.json (no ruling)
+_KI119_AT = "2026-10-02T12:48:21"                                   # the build commit 5cf32dc4's local time
+
+
+def _rev(started: str) -> str:
+    """The head of the KI-119 revision's text for a batch that started at `started`."""
+    return (f"graded by a grader revised after the batch (started {started}; revision KI-119/#27-gradeidentity at "
+            f"{_KI119_AT}: a run's identity")
 
 
 def _a_b_lines():
@@ -1354,61 +1402,190 @@ def _a_b_lines():
             log_text(ARMS["B"], battles=[fight(1000, 265, LEADER, "Won")]))
 
 
-@row("DV14", "#27-gradeidentity FAIL-CLOSED: a batch with NO ruling that STARTED before a grader revision is "
-             "EXPLORATORY naming it — C1 and C2 status, both JSON verdicts and the header, end to end on the SMOKE "
-             "batch's stamp 20261001-090649 (it shares its date with the ruled 20261001-210001); the revision's own day "
-             "and an unreadable start count as before it; a later day does not")
-def _dv14():
+def _with_revisions(extra, fn):
+    """`fn()` with `extra` revisions appended to (or, for a negative position, placed before) the real ones."""
     c = CA()
-    g = c.grader_revision_reasons
-    smoke = "20261001-090649"
-    cases = (g("2026-10-01T09:06:49", smoke), g("2026-10-02T23:59:59", "x"), g(None, "x"), g("not a date", "x"),
-             g("2026-10-03T00:00:00", "x"))
+    saved = c.GRADER_REVISIONS
+    try:
+        c.GRADER_REVISIONS = tuple(saved) + tuple(extra)
+        return fn()
+    finally:
+        c.GRADER_REVISIONS = saved
+
+
+@row("DV14", "#27-gradeidentity FAIL-CLOSED: a batch with NO ruling that started before a grader revision is "
+             "EXPLORATORY naming it — C1 and C2 status, both JSON verdicts and the header, end to end on the SMOKE "
+             "batch's ARMS.json (20261001-090649, 1f3872ac, 2026-10-01T09:06:49); an unreadable `started` (none, a date "
+             "alone, not a date) counts as before every revision")
+def _dv14():
+    g = CA().grader_revision_reasons
+    stamp, commit, started = _SMOKE
+    cases = (g(started, stamp, commit), g(None, stamp, commit), g("2026-10-03", "x", "y"), g("not a date", "x", "y"))
     shape = [(len(e), len(o)) for e, o in cases]
-    texts = (cases[0][0][0].startswith(_REV) if cases[0][0] else False,
-             "its start is unknown" in (cases[2][0] or [""])[0])
+    texts = (bool(cases[0][0]) and cases[0][0][0].startswith(_rev(started)),
+             all("its start is unknown" in (e or [""])[0] for e, _o in cases[1:]))
     a, b = _a_b_lines()
     j = TMP["root"] / "dv14.json"
-    code, text = cli([str(batch16("dv14", a, b, started="2026-10-01T09:06:49", stamp=smoke)), "--json", str(j)])
+    code, text = cli([str(batch16("dv14", a, b, started=started, stamp=stamp, code_commit=commit)), "--json", str(j)])
     gr = json.loads(j.read_text(encoding="utf-8"))["grade"]
-    want = "EXPLORATORY — EXPLORATORY: " + _REV
+    want = "EXPLORATORY — EXPLORATORY: " + _rev(started)
     design = [ln for ln in text.splitlines() if ln.startswith("  design")]
     return eq((shape, texts, code, gr["c1"]["status"].startswith(want), gr["c2"]["status"].startswith(want),
                gr["c1"]["verdict"], gr["c2"]["verdict"], gr["operative"],
-               len(design) == 1 and ("EXPLORATORY: " + _REV) in design[0]),
-              ([(1, 0), (1, 0), (1, 0), (1, 0), (0, 0)], (True, True), 0, True, True, "EXPLORATORY", "EXPLORATORY", [],
-               True))
+               len(design) == 1 and ("EXPLORATORY: " + _rev(started)) in design[0]),
+              ([(1, 0)] * 4, (True, True), 0, True, True, "EXPLORATORY", "EXPLORATORY", [], True))
 
 
-@row("DV16", "USER RULING 30: the RULED stamp 20261001-210001 (started before the KI-119 revision) reads 'OPERATIVE BY "
-             "USER RULING 30 — graded by a grader revised after the batch (… KI-119 …)' as C1 and C2 status with the "
-             "RULE's word as the verdict; the header names it (end to end); a revision the ruling does not name stays "
-             "EXPLORATORY")
+@row("DV16", "USER RULING 30: the RULED batch (ARMS.json 20261001-210001, f4509da1, 2026-10-01T21:00:01) reads 'OPERATIVE "
+             "BY USER RULING 30 — graded by a grader revised after the batch (… KI-119 …)' as C1 and C2 status with the "
+             "RULE's word as the verdict; the header names it, end to end")
 def _dv16():
     c = CA()
-    g = c.grader_revision_reasons
-    stamp = "20261001-210001"
-    exp, op = g("2026-10-01T21:00:01", stamp)
-    want = "OPERATIVE BY USER RULING 30 — " + _REV
-    saved = c.GRADER_REVISIONS
-    try:
-        c.GRADER_REVISIONS = tuple(saved) + (("2026-12-01", "a later revision"),)
-        exp2, op2 = g("2026-10-01T21:00:01", stamp)
-    finally:
-        c.GRADER_REVISIONS = saved
+    stamp, commit, started = _RULED
+    exp, op = c.grader_revision_reasons(started, stamp, commit)
+    want = "OPERATIVE BY USER RULING 30 — " + _rev(started)
     gr = c.grade(synth(1), draws=50, seed=1, operative=op)
     a, b = _a_b_lines()
     j = TMP["root"] / "dv16.json"
-    code, text = cli([str(batch16("dv16", a, b, started="2026-10-01T21:00:01", stamp=stamp)), "--json", str(j)])
+    code, text = cli([str(batch16("dv16", a, b, started=started, stamp=stamp, code_commit=commit)), "--json", str(j)])
     cj = json.loads(j.read_text(encoding="utf-8"))["grade"]
     design = [ln for ln in text.splitlines() if ln.startswith("  design")]
-    return eq((exp, len(op), bool(op) and op[0].startswith(want), len(exp2), len(op2),
-               bool(exp2) and "revision 2026-12-01" in exp2[0],
+    return eq((exp, len(op), bool(op) and op[0].startswith(want),
                bool(op) and gr["c1"]["status"] == op[0] and gr["c2"]["status"] == op[0],
                gr["c2"]["verdict"] == gr["c2"]["rule_reading"], gr["c1"]["verdict"], code,
                cj["c1"]["status"].startswith(want), cj["exploratory"],
                len(design) == 1 and "OPERATIVE BY USER RULING 30" in design[0]),
-              ([], 1, True, 1, 1, True, True, True, "PASS", 0, True, [], True))
+              ([], 1, True, True, True, "PASS", 0, True, [], True))
+
+
+@row("DV17", "GS-2: ARMS.json `started` is compared with the revision's LOCAL time to the SECOND (KI-119: "
+             "2026-10-02T12:48:21, the build commit's) — 1 s before and the same second are EXPLORATORY; 1 s after "
+             "carries no revision note and grades CONFIRMATORY, end to end")
+def _dv17():
+    g = CA().grader_revision_reasons
+    shape = [tuple(map(len, g(s, "x", "y"))) for s in ("2026-10-02T12:48:20", "2026-10-02T12:48:21",
+                                                       "2026-10-02T12:48:22")]
+    a, b = _a_b_lines()
+    j = TMP["root"] / "dv17.json"
+    code, _text = cli([str(batch16("dv17", a, b, started="2026-10-02T12:48:22")), "--json", str(j)])
+    gr = json.loads(j.read_text(encoding="utf-8"))["grade"]
+    return eq((shape, code, gr["c1"]["status"], gr["exploratory"], gr["operative"]),
+              ([(1, 0), (1, 0), (0, 0)], 0, "CONFIRMATORY", [], []))
+
+
+@row("DV18", "GS-8: a ruling is keyed by ALL THREE of ARMS.json's stamp, code_commit and started: the ruled stamp with "
+             "another code_commit, or another started (both still before the revision), stays EXPLORATORY")
+def _dv18():
+    g = CA().grader_revision_reasons
+    stamp, commit, started = _RULED
+    cases = (g(started, stamp, "1f3872ac"), g("2026-10-01T21:00:02", stamp, commit), g(started, stamp, commit))
+    return eq([(len(e), len(o)) for e, o in cases], [(1, 0), (1, 0), (0, 1)])
+
+
+@row("DV19", "GS-1: a revision is named by its UNIQUE id — a SECOND revision at the very same second as KI-119's stays "
+             "EXPLORATORY for the ruled batch while KI-119's reads OPERATIVE; the import guard refuses a duplicate id "
+             "and an `at` that is not at second precision")
+def _dv19():
+    c = CA()
+    stamp, commit, started = _RULED
+    same = {"id": "TEST/same-second", "at": _KI119_AT, "what": "a second revision at the same second"}
+    exp, op = _with_revisions([same], lambda: c.grader_revision_reasons(started, stamp, commit))
+    refused = []
+    for bad in (tuple(c.GRADER_REVISIONS) + (dict(c.GRADER_REVISIONS[0]),),
+                ({"id": "TEST/a-day", "at": "2026-10-02", "what": "a date alone"},)):
+        try:
+            c.check_revisions(bad)
+            refused.append(False)
+        except AssertionError:
+            refused.append(True)
+    return eq((len(exp), len(op), bool(exp) and "revision TEST/same-second" in exp[0],
+               bool(op) and "revision KI-119/#27-gradeidentity" in op[0], refused), (1, 1, True, True, [True, True]))
+
+
+@row("DV20", "GS-6 INSTRUMENT CONTROL: logs whose count of 'Story: choosing X!' lines is not 1 are counted and listed "
+             "(0: a run cut before its starter; 2: a second start) — a control, never a failure")
+def _dv20():
+    c = CA()
+    one = log_text(ARMS["A"])
+    zero = [ln for ln in one if "Story: choosing" not in ln]
+    two = one + [Q("choose_treecko")]
+    runs = [c.run_record(lines, log=name, lane=LANE_A, arms=ARMS)
+            for name, lines in (("one.log", one), ("zero.log", zero), ("two.log", two))]
+    failures, info = c.controls(runs, arm_names=("A",))
+    # the report up to its controls (a planted stop, so no grade is needed); `failures` itself must stay empty
+    text = c.render({}, runs, ["(this row reads the controls only)"], info, None)
+    return eq(([r["choosing_lines"] for r in runs], info["choosing_not_one"], failures,
+               "  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): 2" in text,
+               "    - zero.log: 0" in text, "    - two.log: 2" in text),
+              ([1, 0, 2], [("zero.log", 0), ("two.log", 2)], [], True, True, True))
+
+
+# ---- the mutant hunter's rows on the revision rule (`scratchpad/adv27/gihunt/killing_rows.py`), adapted to GS-1/2/8
+@row("GK04", "FAIL-CLOSED across SEVERAL revisions: a batch that postdates the first revision but not a later one is "
+             "EXPLORATORY naming the later one")
+def _gk04():
+    later = {"id": "TEST/later", "at": "2026-12-01T00:00:00", "what": "a later revision"}
+    exp, op = _with_revisions([later], lambda: CA().grader_revision_reasons("2026-11-01T00:00:00", "x", "y"))
+    return eq((len(exp), len(op), bool(exp) and "revision TEST/later" in exp[0]), (1, 0, True))
+
+
+@row("GK05", "GRADER_RULINGS is matched EXACTLY: the ruled commit and start with a stamp that CONTAINS the ruled one, "
+             "one CONTAINED in it, one sharing its date, and an empty stamp all stay EXPLORATORY")
+def _gk05():
+    g = CA().grader_revision_reasons
+    stamp, commit, started = _RULED
+    cases = [g(started, s, commit) for s in (stamp + "-rerun", "x" + stamp, stamp[:11], "")]
+    return eq([(len(e), len(o)) for e, o in cases], [(1, 0)] * 4)
+
+
+@row("GK06", "a ruling lifts ONLY the revision ids it names: an unnamed revision EARLIER than KI-119 (but after the ruled "
+             "batch began) stays EXPLORATORY beside the OPERATIVE note")
+def _gk06():
+    stamp, commit, started = _RULED
+    earlier = {"id": "TEST/earlier", "at": "2026-10-02T00:00:00", "what": "an unnamed earlier revision"}
+    exp, op = _with_revisions([earlier], lambda: CA().grader_revision_reasons(started, stamp, commit))
+    return eq((len(exp), len(op), bool(exp) and "revision TEST/earlier" in exp[0],
+               bool(op) and "revision KI-119/#27-gradeidentity" in op[0]), (1, 1, True, True))
+
+
+@row("GK07", "end to end, the RULED batch's JSON carries its OPERATIVE note in 'operative' (one, naming USER RULING 30 "
+             "and the KI-119 revision)")
+def _gk07():
+    stamp, commit, started = _RULED
+    a, b = _a_b_lines()
+    j = TMP["root"] / "gk07.json"
+    code, _text = cli([str(batch16("gk07", a, b, started=started, stamp=stamp, code_commit=commit)), "--json", str(j)])
+    ops = json.loads(j.read_text(encoding="utf-8"))["grade"].get("operative")
+    return eq((code, len(ops or []), bool(ops) and ops[0].startswith("OPERATIVE BY USER RULING 30 — " + _rev(started))),
+              (0, 1, True))
+
+
+@row("GK08", "an OPERATIVE note BESIDE a hard reason: the hard reason labels the status AND is the verdict word; the "
+             "note stays listed (status_of directly, and a ruled grade whose C1 does not pass)")
+def _gk08():
+    c = CA()
+    stamp, commit, started = _RULED
+    _e, op = c.grader_revision_reasons(started, stamp, commit)
+    g = c.grade(synth(1, heal="equal"), draws=50, seed=1, operative=op)
+    st = c.status_of([("OPERATIVE", "O"), ("DESCRIPTIVE", "C1 did not pass")])
+    return eq((st, g["c2"]["verdict"], g["c2"]["status"].startswith("DESCRIPTIVE — "),
+               bool(op) and op[0] in g["c2"]["status"]),
+              (("DESCRIPTIVE — O; C1 did not pass", "DESCRIPTIVE"), "DESCRIPTIVE", True, True))
+
+
+@row("GK09", "end to end, the RULED batch with a LATER revision its ruling does not name: EXPLORATORY naming that "
+             "revision, the OPERATIVE note still listed (the fail-closed rule survives a ruling)")
+def _gk09():
+    stamp, commit, started = _RULED
+    a, b = _a_b_lines()
+    j = TMP["root"] / "gk09.json"
+    later = {"id": "TEST/later", "at": "2026-12-01T00:00:00", "what": "an unnamed later revision"}
+    code, _text = _with_revisions([later], lambda: cli(
+        [str(batch16("gk09", a, b, started=started, stamp=stamp, code_commit=commit)), "--json", str(j)]))
+    cj = json.loads(j.read_text(encoding="utf-8"))["grade"]
+    return eq((code, any("revision TEST/later" in e for e in cj["exploratory"]),
+               cj["c2"]["status"].startswith("EXPLORATORY — "), "OPERATIVE BY USER RULING 30" in cj["c2"]["status"],
+               cj["c2"]["verdict"]), (0, True, True, True, "EXPLORATORY"))
 
 
 @row("DV15", "KI-119 DECISION (supersedes T23-PREDICTIONS.md:49-50): a log with NO choosing line is 'no_starter' "
@@ -1427,13 +1604,14 @@ def _dv15():
 # ============================================================================================ fixtures on disk
 def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_tag=None, verdict="OK",
                stop="deadline", interrupted=False, collected=None, started="2099-01-01T00:00:00",
-               stamp=None) -> pathlib.Path:
+               stamp=None, code_commit="test") -> pathlib.Path:
     """A batch directory in T1's layout: `ARMS.json` (the REAL arms; `lanes_n` = the lane count, as T1 writes it),
     `L<nn>/debug-logs/*.log`, `summary.json` (its verdict / stop / `collect_interrupted`, and per lane the cut log and
     `debug_logs_collected` = the logs written, unless `collected` overrides a lane's). `lanes` = [(arm, [(log name,
     lines)])] in slot order. With `profiles_tag`, the logs ALSO go to a fake MAIN checkout's lane profiles
-    (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`). `started` / `stamp` are T1's
-    (`#27-gradeidentity`): by default a start AFTER every grader revision, so only DV14 / DV16 plant an older one."""
+    (`<root>/<name>-main/sandbox-pokebot/profiles/endless-<tag>-H<n>-x/debug-logs`). `started` / `stamp` /
+    `code_commit` are T1's (`#27-gradeidentity`): by default a start AFTER every grader revision, so only the revision
+    rows plant an older one (and the ruled batch's exact three)."""
     d = TMP["root"] / name
     d.mkdir()
     rows = []
@@ -1450,7 +1628,7 @@ def make_batch(name, lanes, cut=None, provisional=False, summary=True, profiles_
                 (dd / log).write_text("\n".join(lines) + "\n", encoding="utf-8")
     (d / "ARMS.json").write_text(json.dumps({"stamp": stamp or name, "started": started,
                                              "profile_tag": profiles_tag, "arms_sha256": "0" * 64,
-                                             "code_commit": "test", "arms_text": json.dumps({"arms": ARMS}),
+                                             "code_commit": code_commit, "arms_text": json.dumps({"arms": ARMS}),
                                              "lanes_n": len(rows), "lanes": rows}), encoding="utf-8")
     if summary:
         per = {r["tag"]: {"cut_log": (cut or {}).get(r["tag"]), "spawns": [],
@@ -1552,7 +1730,8 @@ MUTANTS: list = [
      [('        if opened and opened.group(1) != "]":', "        if opened:")], {"TB13"}),
     ("B11 hold None when absent", "bl",
      [('    out = {"species": None, "pid": None, "hold": 0, "chosen": None}',
-       '    out = {"species": None, "pid": None, "hold": None, "chosen": None}')], {"TB3", "TB13", "TB14"}),
+       '    out = {"species": None, "pid": None, "hold": None, "chosen": None}')],
+     {"TB3", "TB13", "TB14", "TB15", "GK01", "GK03"}),   # FOLD: + TB15, GK01, GK03 (each expects hold 0)
     ("B12 the PID not normalised to upper case", "bl",
      [('out["species"], out["pid"] = m.group(1), m.group(2).upper()',
        'out["species"], out["pid"] = m.group(1), m.group(2)')], {"TB3"}),
@@ -1563,7 +1742,8 @@ MUTANTS: list = [
      {"TB5", "TB6", "TB8"}),
     ("B15 the OLD L0* lanes (L10-L16 missed)", "bl",
      [('_LANE_DIR = re.compile(r"L\\d{2,}")', '_LANE_DIR = re.compile(r"L0\\d")')],
-     {"TB5", "TB6", "TB8", "CR4", "CX2", "DV3", "DV6", "DV7", "DV14", "DV16"}),   # DV14 / DV16: M-16 batches too
+     {"TB5", "TB6", "TB8", "CR4", "CX2", "DV3", "DV6", "DV7", "DV14", "DV16",
+      "DV17", "GK07", "GK09"}),   # DV14 / DV16 / DV17 / GK07 / GK09: M-16 batches too
     ("B16 x4_logs resolves under the WORKTREE", "bl",
      [('else main_story_dev()) / "x4-runs" / stamp)', 'else HERE) / "x4-runs" / stamp)')], {"TB6"}),
     ("B17 live_logs endless-<tag>* (s14 reads s14smoke)", "bl",
@@ -1656,7 +1836,7 @@ MUTANTS: list = [
     # C19 / C20 RE-ANCHORED with DECISIONS F1-F7 (the status is now composed from its reasons)
     ("C19 the C1 -> C2 gate removed (C2 always confirmatory)", "ca",
      [("    if not c1_pass:\n        c2_reasons.append(", "    if False:\n        c2_reasons.append(")],
-     {"CA9", "AH1", "DV8", "DV13"}),
+     {"CA9", "AH1", "DV8", "DV13", "GK08"}),   # FOLD: + GK08 (its ruled grade's C1 does not pass)
     ("C20 the report prints C2's word as if confirmatory", "ca",
      [('    word = (c2["rule_reading"] if c2["status"] == "CONFIRMATORY"', '    word = (c2["rule_reading"] if True')],
      {"CA9"}),
@@ -1712,7 +1892,7 @@ MUTANTS: list = [
     ("C42 the lane slot off by one", "ca",
      [("            lane = by_slot.get(int(m.group(1)) - 1) if m else None",
        "            lane = by_slot.get(int(m.group(1))) if m else None")],
-     {"CR4", "CA7", "CX1", "CX2", "DV3", "DV7", "DV14", "DV16"}),
+     {"CR4", "CA7", "CX1", "CX2", "DV3", "DV7", "DV14", "DV16", "DV17", "GK07", "GK09"}),
     ("C43 K*: May's three Route 110 ids dropped", "ca",
      [('    "RIVAL_ROUTE_110": (521, 524, 527, 530, 533, 536),', '    "RIVAL_ROUTE_110": (521, 524, 527),')], {"CK1"}),
     ("C44 the default seed is not 14", "ca", [("DEFAULT_SEED = 14", "DEFAULT_SEED = 15")], {"CX2", "DV7"}),
@@ -1722,7 +1902,7 @@ MUTANTS: list = [
     ("C46 a FAILED control still prints a grade", "ca",
      [("    result = None if failures else grade(", "    result = grade("),
       ('    if failures:\n        out.append("⛔ INSTRUMENT CONTROL FAILED', '    if False:\n        out.append("⛔ INSTRUMENT CONTROL FAILED')],
-     {"CA7", "CX1", "CX3", "DV6"}),
+     {"CA7", "CX1", "CX3", "DV6", "DV20"}),   # FOLD: + DV20 (its report stops at a planted control failure)
     # ---- the INDEPENDENT hunter's survivors (X<n>, `evidence/2026-10-01-batch14-T23-ADVERSARIAL.txt`), re-anchored
     # where the code moved; each must now be red on the AH row that was proposed for it
     ("H74 a CUT log's arm is not checked", "ca",
@@ -1858,7 +2038,7 @@ MUTANTS: list = [
     # crashes every row that renders a report. Kept as found; D11b is the non-crashing form of the same revert.
     ("D11 F3 REACH DIFFERS not in the JSON c2 object (the report then crashes)", "ca",
      [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est},')],
-     {"CA9", "CX1", "CX2", "DV13", "DV3", "DV4", "DV5", "DV7", "DV14", "DV16"}),
+     {"CA9", "CX1", "CX2", "DV13", "DV3", "DV4", "DV5", "DV7", "DV14", "DV16", "DV17", "GK07", "GK09"}),
     ("D11b F3 the JSON c2 object carries no REACH DIFFERS", "ca",
      [('"n_estimable": n_est, "reach_differs": reach_differs},', '"n_estimable": n_est, "reach_differs": []},')],
      {"DV5"}),
@@ -1877,7 +2057,7 @@ MUTANTS: list = [
      [('    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]" + (f" ({nan_draws} draws undefined, excluded)" if nan_draws else "")',
        '    return f"[{_n(c[0], fmt)}, {_n(c[1], fmt)}]"')], {"DV4"}),
     ("D18 F6 the exploratory reasons never reach the grade", "ca",
-     [("exploratory=exploratory)", "exploratory=[])")], {"DV7", "DV14"}),
+     [("exploratory=exploratory)", "exploratory=[])")], {"DV7", "DV14", "GK09"}),
     ("D19 F6 δ not derived from the design (always .08)", "ca",
      [("    delta = args.delta if args.delta is not None else prereg", "    delta = args.delta if args.delta is not None else 0.08")],
      {"DV7"}),
@@ -1885,7 +2065,7 @@ MUTANTS: list = [
      [("    if seed != DEFAULT_SEED:", "    if False:")], {"DV7"}),
     ("D21 F7 the C2 verdict is the rule's word whatever the status", "ca",
      [('"verdict": reading if c2_word is None else c2_word,', '"verdict": reading,')],
-     {"CA9", "DV2", "DV3", "DV4", "DV7", "DV8", "DV14"}),
+     {"CA9", "DV2", "DV3", "DV4", "DV7", "DV8", "DV14", "GK08", "GK09"}),
     ("D22 F7 the C1 verdict is the rule's word whatever the status", "ca",
      [('"verdict": c1_rule if c1_word is None else c1_word,', '"verdict": c1_rule,')], {"DV2", "DV14"}),
     ("D23 F8 any species forms a stratum", "ca", [("    elif species not in STARTERS:", "    elif False:")], {"DV9"}),
@@ -1914,7 +2094,7 @@ MUTANTS: list = [
        '    out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n    for line in lines[start + 1:]:\n',
        '    start = run_start(lines)\n    if start is not None:\n'
        '        out["chosen"] = _CHOSEN.search(lines[start]).group(1)\n    for line in lines:\n')],
-     {"TB11", "TB12", "CR5", "DV15"}),
+     {"TB11", "TB12", "CR5", "DV15", "TB15"}),   # FOLD: + TB15 (GS-9's unevolved-starter stale save)
     ("D31 the identity boundary = the 'Intro: New Game' step (else the choosing line)", "bl",
      [("    for line in lines[start + 1:]:\n",
        '    _ng = [i for i, s in enumerate(lines) if "Intro: New Game" in s]\n'
@@ -1935,27 +2115,114 @@ MUTANTS: list = [
     ("D40 the no_starter reason does not name the choosing line (the pre-KI-119 text)", "ca",
      [("\"no starter read (no non-empty [hb] after 'Story: choosing X!')\"",
        '"no starter read (no [hb] line with a non-empty ids=)"')], {"DV15"}),
+    # FOLDED with the independent review (2026-10-02): D35-D38 / D41 RE-ANCHORED on the ID / second / three-key rule
+    # (GS-1, GS-2, GS-8), their sets re-predicted; every set below written BEFORE the fold's first run
     ("D34 the grader-revision EXPLORATORY reason never reaches the grade", "ca",
-     [("    exploratory += revised\n", "")], {"DV14"}),
-    ("D35 a batch started ON a revision's day counts as after it (fail-OPEN on the day)", "ca",
-     [("        if day is not None and day > date:", "        if day is not None and day >= date:")], {"DV14"}),
+     [("    exploratory += revised\n", "")], {"DV14", "GK09"}),
+    ("D35 a batch started in the revision's OWN second counts as after it (fail-OPEN at the second)", "ca",
+     [('        if when is not None and when > at_second(rev["at"]):',
+       '        if when is not None and when >= at_second(rev["at"]):')], {"DV17"}),
     ("D36 an unreadable start counts as after every revision (fail-OPEN)", "ca",
-     [("        if day is not None and day > date:", "        if day is None or day > date:")], {"DV14"}),
+     [('        if when is not None and when > at_second(rev["at"]):',
+       '        if when is None or when > at_second(rev["at"]):')], {"DV14"}),
     ("D37 REVERT: the ruling table ignored (USER RULING 30 lifts nothing)", "ca",
-     [("    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None", "    ruling = None")], {"DV16"}),
-    ("D38 a ruling matched by the stamp's DATE PREFIX, not the exact stamp", "ca",
-     [("    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None",
-       "    ruling = next((v for k, v in GRADER_RULINGS.items() if isinstance(stamp, str) and stamp[:8] == k[:8]), None)")],
-     {"DV14"}),
-    ("D41 a ruling covers EVERY revision, not only the ones it names", "ca",
-     [('        if ruling is not None and date in ruling["revisions"]:', "        if ruling is not None:")], {"DV16"}),
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None", "    ruling = None")],
+     {"DV16", "DV18", "DV19", "GK06", "GK07", "GK08", "GK09"}),
+    ("D38 a ruling's stamp matched by its DATE PREFIX (commit and start exact)", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if isinstance(stamp, str) and stamp[:8] == k[0][:8]"
+       " and k[1:] == key[1:]), None)")], {"GK05"}),
+    ("D41 a ruling covers EVERY revision, not only the ids it names", "ca",
+     [('        if ruling is not None and rev["id"] in ruling["revisions"]:', "        if ruling is not None:")],
+     {"DV19", "GK06", "GK09"}),
     ("D42 an OPERATIVE note is treated as a reason against the verdict", "ca",
-     [('    hard = [r for r in reasons if r[0] != "OPERATIVE"]', "    hard = list(reasons)")], {"DV16"}),
+     [('    hard = [r for r in reasons if r[0] != "OPERATIVE"]', "    hard = list(reasons)")], {"DV16", "GK08"}),
     ("D43 the OPERATIVE notes never reach the grade", "ca",
-     [("operative=operative, exploratory=exploratory)", "operative=(), exploratory=exploratory)")], {"DV16"}),
-    ("CM2 MENTION ONLY: a comment quoting the ruling-table revert turns NOTHING red", "ca",
-     [("#: batch STAMP (exact; never a pattern) -> the recorded user ruling that makes its grade OPERATIVE despite the",
-       "#: batch STAMP (never `stamp[:8] == k[:8]`, never `day >= date`) -> the user ruling making it OPERATIVE despite the")],
+     [("operative=operative, exploratory=exploratory)", "operative=(), exploratory=exploratory)")],
+     {"DV16", "GK07", "GK09"}),
+    # ---- GS-9 / GS-2 / GS-8 / GS-1 / GS-6 REVERTS, and the mutant hunter's survivors (GH*, `adv27/gihunt/hunt.py`)
+    ("D44 GS-9: the identity = the first non-empty [hb] whose species IS a starter, anywhere", "bl",
+     [('    for line in lines[start + 1:]:\n        if not _HB_LINE.match(line):\n            continue\n'
+       '        opened = _HB_IDS_OPEN.search(line)\n        if opened and opened.group(1) != "]":\n'
+       '            m = _HB_FIRST_ID.search(line)\n',
+       '    for line in lines:\n        if not _HB_LINE.match(line):\n            continue\n'
+       '        opened = _HB_IDS_OPEN.search(line)\n        _sm = _HB_FIRST_ID.search(line)\n'
+       '        if opened and opened.group(1) != "]" and _sm and _sm.group(1) in ("Torchic", "Mudkip", "Treecko"):\n'
+       '            m = _sm\n')], {"DV9", "TB3", "TB15"}),
+    ("D45 GS-2 REVERT: the revision compared by DAY, not to the second", "ca",
+     [('        if when is not None and when > at_second(rev["at"]):',
+       '        if when is not None and when.date() > at_second(rev["at"]).date():')], {"DV17"}),
+    ("D46 [GH15] the revision loop STOPS at the first revision the batch postdates", "ca",
+     [("            continue                          # the batch's data began AFTER this revision: graded as designed",
+       "            break                             # the batch's data began AFTER this revision: graded as designed")],
+     {"GK04"}),
+    ("D47 [GH17] a ruling's stamp matched by SUBSTRING (the ruled stamp inside the batch's)", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if isinstance(stamp, str) and k[0] in stamp"
+       " and k[1:] == key[1:]), None)")], {"GK05"}),
+    ("D47b [GH17b] a ruling's stamp matched by SUBSTRING (the batch's stamp inside the ruled one; '' matches)", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if isinstance(stamp, str) and stamp in k[0]"
+       " and k[1:] == key[1:]), None)")], {"GK05"}),
+    ("D48 GS-8 REVERT: a ruling keyed by the stamp ALONE", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if k[0] == stamp), None)")], {"DV18"}),
+    ("D49 GS-8: a ruling ignores the code_commit", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if (k[0], k[2]) == (stamp, started)), None)")],
+     {"DV18"}),
+    ("D50 GS-8: a ruling ignores the start", "ca",
+     [("    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None",
+       "    ruling = next((v for k, v in GRADER_RULINGS.items() if k[:2] == (stamp, code_commit)), None)")], {"DV18"}),
+    ("D51 GS-1 REVERT: a ruling names revisions by their TIME, not their id", "ca",
+     [('        if ruling is not None and rev["id"] in ruling["revisions"]:',
+       '        if ruling is not None and rev["at"] in {r["at"] for r in GRADER_REVISIONS if r["id"] in ruling["revisions"]}:')],
+     {"DV19"}),
+    ("D52 GS-1: a duplicate revision id accepted", "ca",
+     [('        if rev["id"] in seen:\n            raise AssertionError(', '        if False:\n            raise AssertionError(')],
+     {"DV19"}),
+    ("D53 GS-2: a revision's `at` not checked to the second", "ca",
+     [('        if at_second(rev["at"]) is None:\n            raise AssertionError(',
+       '        if False:\n            raise AssertionError(')], {"DV19"}),
+    ("D55 [GH18] a ruling lifts every revision AT OR BEFORE the latest one it names", "ca",
+     [('        if ruling is not None and rev["id"] in ruling["revisions"]:',
+       '        if ruling is not None and at_second(rev["at"]) <= max(at_second(r["at"]) for r in GRADER_REVISIONS'
+       ' if r["id"] in ruling["revisions"]):')], {"DV19", "GK06"}),
+    ("D56 [GH19] a ruling lifts every revision AT OR AFTER the earliest one it names", "ca",
+     [('        if ruling is not None and rev["id"] in ruling["revisions"]:',
+       '        if ruling is not None and at_second(rev["at"]) >= min(at_second(r["at"]) for r in GRADER_REVISIONS'
+       ' if r["id"] in ruling["revisions"]):')], {"DV19", "GK09"}),
+    ("D57 [GH21] the JSON 'operative' field always empty", "ca",
+     [('"operative": list(operative),', '"operative": [],')], {"GK07"}),
+    ("D58 [GH22] status_of: the verdict word from reasons[0] (an OPERATIVE note can be the word)", "ca",
+     [("    word = hard[0][0]", "    word = reasons[0][0]")], {"GK08"}),
+    ("D59 [GH23] status_of: OPERATIVE notes dropped from the text beside a hard reason", "ca",
+     [('    return f"{label} — " + "; ".join(text for _w, text in reasons), word',
+       '    return f"{label} — " + "; ".join(text for _w, text in hard), word')], {"GK08", "GK09"}),
+    ("D60 [GH28] main(): the EXPLORATORY revision reasons dropped whenever ANY operative note exists", "ca",
+     [("    exploratory += revised\n", "    exploratory += revised if not operative else []\n")], {"GK09"}),
+    ("D61 GS-6: the choosing-line count not recorded (every log reads 1)", "ca",
+     [('"choosing_lines": bl.choosing_lines(lines)}', '"choosing_lines": 1}')], {"DV20"}),
+    ("D62 GS-6: the control lists only logs with MORE than one choosing line (a cut-before-start log hidden)", "ca",
+     [('if r.get("choosing_lines") is not None and r["choosing_lines"] != 1]',
+       'if r.get("choosing_lines") is not None and r["choosing_lines"] > 1]')], {"DV20"}),
+    ("D63 GS-6: the control not printed in the report", "ca",
+     [("""    out.append(f"  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): {len(odd)}")\n"""
+       """    out += [f"    - {pathlib.Path(log).name}: {n}" for log, n in odd]\n""", "")], {"DV20"}),
+    ("B24 GS-6: choosing_lines reads 1 whenever the run has a start", "bl",
+     [('    return sum(1 for line in lines if "Story: choosing" in line and _CHOSEN.search(line))',
+       "    return 1 if run_start(lines) is not None else 0")], {"DV20"}),
+    ("B25 [GH01] run_start: any line CONTAINING 'Story: choosing' (the [STEP] guard dropped)", "bl",
+     [('        if "Story: choosing" in line and _CHOSEN.search(line):\n            return i',
+       '        if "Story: choosing" in line:\n            return i')], {"GK01"}),
+    ("B26 [GH03] run_identity: the hold from the LAST hold line", "bl",
+     [('                out["hold"] = int(m.group(1))\n                break\n', '                out["hold"] = int(m.group(1))\n')],
+     {"GK02"}),
+    ("B27 [GH07] an [hb] with NO ids= field after the start ends the identity scan", "bl",
+     [('        if opened and opened.group(1) != "]":', '        if not opened or opened.group(1) != "]":')], {"GK03"}),
+    ("CM2 MENTION ONLY: a comment quoting the ruling-key reverts turns NOTHING red", "ca",
+     [("#: (stamp, code_commit, started) -> the recorded user ruling that makes that batch's grade OPERATIVE despite the",
+       "#: (stamp, code_commit, started) — never `k[0] == stamp`, never `when >= at` — -> the ruling making it OPERATIVE despite the")],
      set()),
 ]
 

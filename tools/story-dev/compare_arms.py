@@ -115,24 +115,55 @@ ARM_A, ARM_B = "A", "B"   # B − A is the one confirmatory comparison (DESIGN �
 #: after "FAILED — "); an "x4h error: …" abort voids too. ⛔ A user park does NOT void: "a user park stands".
 AUTOMATED_STOPS = ("ARM LEAK", "VACUITY", "ARM HEADER ASSERTION FAILED", "EMULATION ASSERTION FAILED", "FREEZE BROKEN")
 USER_PARK = "interrupted by user (Ctrl-C)"
-#: ⛔ FAIL-CLOSED (`#27-gradeidentity`, KI-119): every revision of how THIS grader reads a log, as (date, what changed).
-#: A batch whose ARMS.json `started` is not on a LATER day than a revision was graded by a grader revised after it ran:
-#: its C1-C2 are EXPLORATORY naming the revision (DESIGN §4: no read may change "any analysis choice"), unless a
-#: recorded user ruling for that batch covers the revision (`GRADER_RULINGS`). The date carries no time, so a batch
-#: started ON a revision's day counts as before it; an unreadable `started` predates every revision.
+#: ⛔ FAIL-CLOSED (`#27-gradeidentity`, KI-119; the review's GS-1 / GS-2): every revision of how THIS grader reads a
+#: log — a UNIQUE `id`, the LOCAL time it took effect (`at`: naive ISO at second precision, the build commit's time)
+#: and `what` changed. A batch whose ARMS.json `started` (the same clock, the same precision) is NOT AFTER a revision's
+#: `at` was graded by a grader revised after its data began: its C1-C2 are EXPLORATORY naming the revision (DESIGN §4:
+#: no read may change "any analysis choice"), unless a recorded user ruling for EXACTLY that batch names the
+#: revision's id (`GRADER_RULINGS`). A batch whose data began after the change cannot have shaped it; an unreadable
+#: `started` predates every revision.
 GRADER_REVISIONS = (
-    ("2026-10-02", "KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' "
-                   "line; badges from leader wins"),
+    {"id": "KI-119/#27-gradeidentity", "at": "2026-10-02T12:48:21",
+     "what": "a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins"},
 )
-#: batch STAMP (exact; never a pattern) -> the recorded user ruling that makes its grade OPERATIVE despite the
-#: revisions it names: the status then reads "OPERATIVE BY <ruling> — graded by a grader revised after the batch (…)",
-#: so the revision stays visible, and the verdict is the rule's word. A revision the ruling does not name stays
-#: EXPLORATORY.
+#: (stamp, code_commit, started) -> the recorded user ruling that makes that batch's grade OPERATIVE despite the
+#: revisions it names BY ID. GS-8: all three are ARMS.json's, matched EXACTLY (never a pattern), so a re-run or a
+#: re-collected directory under the same stamp is not covered. The status then reads "OPERATIVE BY <ruling> — graded
+#: by a grader revised after the batch (…)": the revision stays visible, and the verdict is the rule's word. A
+#: revision the ruling does not name stays EXPLORATORY.
 GRADER_RULINGS = {
-    "20261001-210001": {"ruling": "USER RULING 30", "revisions": ("2026-10-02",),
-                        "why": "06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected "
-                               "grade is the operative result"},
+    ("20261001-210001", "f4509da1", "2026-10-01T21:00:01"): {
+        "ruling": "USER RULING 30", "revisions": ("KI-119/#27-gradeidentity",),
+        "why": "06-DECISIONS-LOG 2026-10-02: the KI-119 identity repair fixes a MISREAD; the corrected grade is the "
+               "operative result"},
 }
+_AT_SHAPE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+
+
+def at_second(text) -> "datetime.datetime | None":
+    """`#27-gradeidentity` (GS-2): a naive local ISO timestamp at SECOND precision (`YYYY-MM-DDTHH:MM:SS`) -> a
+    datetime; anything else (None, a date alone, a fraction, a zone, an impossible date) -> None, which the revision
+    rule reads as UNKNOWN (fail-closed)."""
+    if not isinstance(text, str) or not _AT_SHAPE.fullmatch(text):
+        return None
+    try:
+        return datetime.datetime.strptime(text, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def check_revisions(revisions) -> None:
+    """Raise unless every grader revision has a UNIQUE id (GS-1) and an `at` at second precision (GS-2)."""
+    seen: set = set()
+    for rev in revisions:
+        if rev["id"] in seen:
+            raise AssertionError(f"grader revision id {rev['id']!r} is listed twice")
+        seen.add(rev["id"])
+        if at_second(rev["at"]) is None:
+            raise AssertionError(f"grader revision {rev['id']!r}: at {rev['at']!r} is not YYYY-MM-DDTHH:MM:SS")
+
+
+check_revisions(GRADER_REVISIONS)
 #: Per-cluster fields: (C, K) matrices, then (C,) vectors. N/W = decided first attempts fought / won; RN/RD = reach
 #: numerator / denominator; CN = composite numerator (denominator RD); H/Hn = C1's per-run means summed / counted;
 #: L5/B5 = non-key trainer battles lost (Draw included) / decided; NR = runs.
@@ -188,7 +219,7 @@ def run_record(lines, *, log: str, lane: dict, arms: dict, cut: bool = False, lo
     return {"log": log, "lane": lane.get("tag"), "slot": lane.get("slot"), "lane_arm": lane.get("arm"), "arm": arm,
             "refused": refused, "excluded": excluded, "excluded_kind": kind, "species": species, "pid": ident["pid"],
             "hold": ident["hold"], "chosen": chosen, "status": status, "capped": capped, "header": header,
-            "keys": keys, "nonkey": dict(nonkey)}
+            "keys": keys, "nonkey": dict(nonkey), "choosing_lines": bl.choosing_lines(lines)}   # GS-6's control
 
 
 def usable(run: dict) -> bool:
@@ -275,20 +306,23 @@ def exploratory_reasons(draws: int, seed: int, delta: float, prereg: "float | No
     return out
 
 
-def grader_revision_reasons(started, stamp=None) -> "tuple[list, list]":
+def grader_revision_reasons(started, stamp=None, code_commit=None) -> "tuple[list, list]":
     """`#27-gradeidentity`, FAIL-CLOSED: (EXPLORATORY reasons, OPERATIVE notes) for a batch, by its ARMS.json `started`
-    (ISO) and `stamp`. Each grader revision (`GRADER_REVISIONS`) the batch did not start on a LATER day than is a
-    reason its grade is not the one designed: an EXPLORATORY reason — or, when a recorded user ruling for EXACTLY this
-    stamp names that revision (`GRADER_RULINGS`), an OPERATIVE note that keeps the revision visible."""
-    day = started[:10] if isinstance(started, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", started[:10]) else None
-    ruling = GRADER_RULINGS.get(stamp) if isinstance(stamp, str) else None
+    (local ISO, second precision), `stamp` and `code_commit`. Each grader revision (`GRADER_REVISIONS`) the batch did
+    not start strictly AFTER is a reason its grade is not the one designed: an EXPLORATORY reason — or, when the
+    recorded user ruling keyed by EXACTLY this (stamp, code_commit, started) names that revision's ID
+    (`GRADER_RULINGS`), an OPERATIVE note that keeps the revision visible."""
+    when = at_second(started)
+    key = (stamp, code_commit, started)
+    ruling = GRADER_RULINGS.get(key) if all(isinstance(x, str) for x in key) else None
     exploratory, operative = [], []
-    for date, why in GRADER_REVISIONS:
-        if day is not None and day > date:
-            continue                          # the batch started on a later day: graded as designed
-        when = f"started {day}" if day else "its start is unknown: ARMS.json has no readable 'started'"
-        text = f"graded by a grader revised after the batch ({when}; revision {date}: {why})"
-        if ruling is not None and date in ruling["revisions"]:
+    for rev in GRADER_REVISIONS:
+        if when is not None and when > at_second(rev["at"]):
+            continue                          # the batch's data began AFTER this revision: graded as designed
+        since = (f"started {started}" if when is not None
+                 else "its start is unknown: ARMS.json has no 'started' at second precision")
+        text = f"graded by a grader revised after the batch ({since}; revision {rev['id']} at {rev['at']}: {rev['what']})"
+        if ruling is not None and rev["id"] in ruling["revisions"]:
             operative.append(f"OPERATIVE BY {ruling['ruling']} — {text} [{ruling['why']}]")
         else:
             exploratory.append(text)
@@ -338,9 +372,13 @@ def controls(runs, arm_names=(ARM_A, ARM_B), completeness=()) -> "tuple[list, di
     # "runs started", so the count is reported per arm.
     no_starter = collections.Counter(r["arm"] for r in runs
                                      if r.get("excluded_kind") == "no_starter" and r["status"] == "complete")
+    # GS-6 (KI-119): a CONTROL, never a failure — every read log whose count of choosing lines is not exactly 1
+    choosing = [(r["log"], r["choosing_lines"]) for r in runs
+                if r.get("choosing_lines") is not None and r["choosing_lines"] != 1]
     info = {"runs": len(runs), "refused": [(r["log"], r["refused"]) for r in refused],
             "excluded": [(r["log"], r["excluded"]) for r in runs if r["excluded"]],
-            "usable_per_arm": dict(per_arm), "complete_no_starter_per_arm": dict(no_starter)}
+            "usable_per_arm": dict(per_arm), "complete_no_starter_per_arm": dict(no_starter),
+            "choosing_not_one": choosing}
     return failures, info
 
 
@@ -659,6 +697,9 @@ def render(header: dict, runs, failures, info, result) -> list:
         out.append(f"    - {log}: {why}")
     out.append(f"  COMPLETE runs that never got a starter (out of every denominator), per arm: "
                f"{info.get('complete_no_starter_per_arm') or 'none'}")
+    odd = info.get("choosing_not_one") or []
+    out.append(f"  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): {len(odd)}")
+    out += [f"    - {pathlib.Path(log).name}: {n}" for log, n in odd]
     unread = sum(1 for r in runs if usable(r) for k in r["keys"].values() if k["attempted"] and k["hp"] is None)
     unknown = sorted({n for r in runs for k in r["keys"].values() for n in k["hp_unknown"]})
     undecided = sum(1 for r in runs if usable(r) for k in r["keys"].values() if k["attempted"] and k["won"] is None)
@@ -895,7 +936,8 @@ def main(argv=None) -> int:
     exploratory = exploratory_reasons(args.draws, args.seed, delta, prereg)
     # ⛔ #27-gradeidentity, FAIL-CLOSED: a grader revised after the batch started makes C1-C2 EXPLORATORY, unless a
     # recorded user ruling for THIS batch made that revision's grade OPERATIVE (the status then says so)
-    revised, operative = grader_revision_reasons(man["raw"].get("started"), man["raw"].get("stamp"))
+    revised, operative = grader_revision_reasons(man["raw"].get("started"), man["raw"].get("stamp"),
+                                                 man["raw"].get("code_commit"))
     exploratory += revised
     park = summ and (summ.get("verdict") or "").endswith(USER_PARK)
     header = {

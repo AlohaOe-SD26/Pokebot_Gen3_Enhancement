@@ -30,7 +30,7 @@
 - **Verdict OK:** 0 arm-integrity violations, no lanes lost, stopped at the deadline. **STOP-1 and STOP-2 did not
   fire.**
 - **78 logs:** 40 A and 38 B, one log = one run.
-- **Throughput:** about 620 frames/s per lane. Complete runs per lane-hour: A 0.212, B 0.221. The plan assumed about
+- **Throughput:** about 620 frames/s per lane. Complete runs per lane-hour: A 0.212, B 0.221 (⛔ graded runs only; with all 78 runs A .308, B .289, see the ERRATUM). The plan assumed about
   57 runs per arm and got 40 / 38.
 
 ## Correctness (E1-E5): the checks read ALL 78 logs
@@ -184,7 +184,7 @@ evidence.
   - +4 is the known D1 divergence's documented bound: the crit ×2 is applied after STAB and type (`#27-dmgcalcfix`;
     the audit's header says "M1a bound 4").
   - ⇒ Step 12's stage 2 (`POKEBOT_R25_WEAKEN_CALC`) stays OFF, as pre-registered.
-  - ⚠ The pool came from the 51 graded runs only; the 27 wrongly excluded logs are not in it.
+  - ~~⚠ The pool came from the 51 graded runs only; the 27 wrongly excluded logs are not in it.~~ ⛔ **WRONG (see the ERRATUM below):** the pool read ALL 78 logs.
 - **D-throughput:** about 616 / 624 frames/s per lane (A / B), 104 lane-hours per arm, no capped logs.
 - **D-rare and D-weaken:** in the GRADE-OUTPUTS evidence; nothing notable was read from them.
 
@@ -217,3 +217,54 @@ P(NOT LOWER | Δ = 0) .817.
 4. **Tooling, before the next batch:**
    - fix `run_identity` (and the stale `[BADGE]` lines) with a gate;
    - give STOP-3 a whole-run view: the 200-line tail missed the acting line here.
+
+## ERRATUM and ADDENDUM (2026-10-02, afternoon: `#27-gradeidentity`, KI-119; USER RULING 30)
+
+**Erratum: two statements above were wrong.**
+- **The M1b pool covered ALL 78 logs, not 51.** `batch14_checks.load`'s `visit` hook runs on every log, excluded ones
+  included (`tools/story-dev/batch14_checks.py:652-657`). So E1-E5, STOP-3 and D-M1b were never affected by the
+  exclusion. The fixed tools reproduce the pool byte for byte (SHA-1 `46e60f68…`, 194,304 accepted samples, the same
+  1 FAIL sample).
+- **Complete runs per lane-hour counted the graded runs only.** With all 78 runs: A .308, B .289.
+
+**The operative result: USER RULING 30** (`06-DECISIONS-LOG.md`, 2026-10-02).
+- The user delegated the decision to the coordinator, bounded by organic gameplay and the program's purpose. The
+  corrected reading is the operative result, and the frozen "HIGHER" is WITHDRAWN.
+- Why: the fix repairs a MISREAD of 27 genuine new games, not an analysis choice, and it is the more conservative
+  reading.
+
+**The re-grade with the fixed tools** (`tools/story-dev/evidence/2026-10-02-gradeidentity-REGRADE.txt`).
+- It reproduces the scratch corrected re-grade line for line: 78 logs, A 40 / B 38, 0 excluded, clusters 37 / 33.
+- C1 PASS, Δ +0.898. C2 NOT LOWER, Δ +0.037, 95% CI [−0.018, +0.093]. C5 Δ −0.0014. No harm flag.
+- Its status line reads "OPERATIVE BY USER RULING 30 — graded by a grader revised after the batch". A batch with no
+  ruling reads EXPLORATORY: the fail-closed GRADER_REVISIONS rule.
+
+**The descriptive tables over ALL 78 runs.** Badges come from leader wins, because the bot never logged real
+`[BADGE]` lines after a Hall-of-Fame boot.
+- **Badges, max per run:** A {1: 1, 2: 1, 3: 2, 5: 8, 6: 2, 7: 3, 8: 23}; B {3: 2, 4: 9, 6: 10, 7: 3, 8: 14}.
+- **D-lead:** key first attempts led by a post-Stone-Badge catch: A 1 of 801, B 40 of 726.
+- **D-boss, first attempts:**
+
+  | Boss | A | B |
+  |---|---|---|
+  | Norman | 2/36 | 5/35 |
+  | Winona | 1/32 | 0/27 |
+  | Tate & Liza | 7/28 | 3/26 |
+  | Juan | 11/25 | 4/16 |
+
+- **Champions:** Wallace was met by A 10 times, with 7 eventual wins (6 on the first attempt); B met him 9 times and won
+  4.
+- **D-attempt, A/B:**
+
+  | Group | A | B |
+  |---|---|---|
+  | leaders | 25.2% | 19.9% |
+  | rivals | 78.4% | 81.7% |
+  | Magma/Aqua | 69.4% | 75.2% |
+  | Elite Four | 87.2% | 88.0% |
+
+**What the corrected data changes in the reading above:**
+- The package is NOT worse at key first attempts (C2). But arm B trails at later bosses: Norman's wall (KI-118), and
+  Tate & Liza (KI-122, mostly starter selection plus a stale-counter lead bug). B also has fewer champions.
+- So "not worse at K\*" must not be read as "not worse overall". The promotion block stands until KI-118 and KI-122
+  are fixed and re-measured.

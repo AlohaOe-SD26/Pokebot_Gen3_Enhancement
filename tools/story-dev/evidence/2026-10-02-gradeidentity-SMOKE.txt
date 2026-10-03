@@ -1,26 +1,32 @@
 # 2026-10-02 — #27-gradeidentity (KI-119): GI-4 — the 16-lane SMOKE batch 20261001-090649 (no stale boot) graded by
-# the FIXED tools, then by the UNFIXED ones (the main checkout's copies at 8f4b8d3d, identical to this branch's base),
-# verbatim. A MEASUREMENT.
+# the FIXED tools (RE-RUN after the independent review's FOLD), then by the UNFIXED ones (the main checkout's copies at
+# 8f4b8d3d, identical to this branch's base), verbatim. A MEASUREMENT.
 #
 # Comparisons the builder ran (scratch scripts; read, not graded):
-#   * compare_arms: every line from INSTRUMENT CONTROLS on is identical except the STATUS wording: C1 was
-#     CONFIRMATORY and is now EXPLORATORY ("graded by a grader revised after the batch (started 2026-10-01; revision
-#     2026-10-02 …)"; this stamp has NO ruling); C2 was "DESCRIPTIVE — NOT ESTIMABLE over the frozen K* (1 of 7); C1
-#     did not pass" and is now "EXPLORATORY — EXPLORATORY: …; NOT ESTIMABLE …; C1 did not pass".
+#   * FIXED (folded) vs the pre-fold FIXED outputs (this file's previous version, commit 5cf32dc4): NO number changed;
+#     the label now names the revision by id and second ("graded by a grader revised after the batch (started
+#     2026-10-01T09:06:49; revision KI-119/#27-gradeidentity at 2026-10-02T12:48:21 …)"), and the same control lines
+#     were added: "logs with != 1 'Story: choosing X!' line …: 0" (compare_arms and both headers), the reworded
+#     [BADGE] control (A 0 / B 0), "[CATCH] end badges= vs the leader wins …: A 24 lines, 0 differ   B 49 lines, 0
+#     differ", and "runs whose badges are UNKNOWN …: A 0   B 0".
+#   * FIXED vs UNFIXED compare_arms: every line from INSTRUMENT CONTROLS on is identical except the STATUS wording and
+#     the added control line. C1 was CONFIRMATORY and is now EXPLORATORY (this batch has NO ruling: its ARMS.json is
+#     20261001-090649 / 1f3872ac / 2026-10-01T09:06:49); C2 was "DESCRIPTIVE — NOT ESTIMABLE over the frozen K* (1 of
+#     7); C1 did not pass" and is now "EXPLORATORY — EXPLORATORY: …; NOT ESTIMABLE …; C1 did not pass". JSON: c1 and
+#     c2 verdicts EXPLORATORY.
 #   * batch14_checks: E1 through STOP-3, 12 lines vs 12, 0 differing.
 #   * batch14_tables: every table identical EXCEPT D-funnel's "frames to each badge" — A #1 median 190,291 -> 189,412,
-#     #2 623,701 -> 622,329; B #1 206,041 -> 204,002 (and their ranges) — plus the two new D-funnel lines (badge
-#     source; [BADGE] control: poisoned 0 / 0, disagreeing 0 / 0). WHY the frames moved: the design's badge source is
-#     now the leader-WIN frame, which comes 833-3,514 frames before the [BADGE] line in a fresh log (the recon's own
-#     measurement). This is a definition change the design made, and it FALSIFIES GI-4's "every number is identical"
-#     for these numbers only; badges reached, D-lead and every other table are unchanged. The D-M1b pools are
-#     byte-identical (SHA-1 71efcbc92b916494877e16e36f163a3074baaf22).
+#     #2 623,701 -> 622,329; B #1 206,041 -> 204,002 (and their ranges) — plus the D-funnel control lines. WHY the
+#     frames moved: the design's badge source is the leader-WIN frame, which comes 833-3,514 frames before the
+#     [BADGE] line in a fresh log (the recon's measurement). A definition change the design made; it FALSIFIES GI-4's
+#     "every number is identical" for these numbers only. The D-M1b pools are byte-identical (SHA-1
+#     71efcbc92b916494877e16e36f163a3074baaf22).
 #
 # Run (FIXED):   cd <worktree>/tools/story-dev && PYTHONUTF8=1 py -3.12 compare_arms.py 20261001-090649 --json <scratch>
 #                PYTHONUTF8=1 py -3.12 batch14_checks.py 20261001-090649 ; batch14_tables.py 20261001-090649 --m1b-out <scratch>
 # Run (UNFIXED): the same three commands from the MAIN checkout's tools/story-dev.
 
-==================================================================================================== FIXED: compare_arms.py 20261001-090649
+==================================================================================================== FIXED (folded): compare_arms.py 20261001-090649
 ====================================================================================================
 DESIGN v2 STEP 14 — compare_arms (T3): B − A
 ⛔ A MEASUREMENT. A non-significant result is NOT confirmation; a missing harm flag is NOT 'no harm'.
@@ -29,7 +35,7 @@ DESIGN v2 STEP 14 — compare_arms (T3): B − A
   ARMS.json     C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\x4-runs\20261001-090649\ARMS.json (arms ['A', 'B'], sha256 5c0009763752f081…, commit 1f3872ac)
   batch         verdict 'OK'; stop 'deadline'; lanes lost none
   C1-C2         not void
-  design        16 lanes x 2 arms; pre-registered δ 0.08; used δ 0.08; EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins)
+  design        16 lanes x 2 arms; pre-registered δ 0.08; used δ 0.08; EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01T09:06:49; revision KI-119/#27-gradeidentity at 2026-10-02T12:48:21: a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins)
   grade         draws 10000, seed 14, numpy 2.1.3
 
 INSTRUMENT CONTROLS
@@ -37,6 +43,7 @@ INSTRUMENT CONTROLS
   REFUSED (header arm ≠ the lane's ARMS.json arm): 0
   excluded (not refused): 0
   COMPLETE runs that never got a starter (out of every denominator), per arm: none
+  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): 0
   K* first attempts with an unreadable/missing heal_stock (excluded from C1): 0; item names the item data does not know: none; first attempts with no won/lost outcome (excluded from C2): 0
 
 RUNS (one log = one run)
@@ -61,13 +68,13 @@ RUNS (one log = one run)
 THE DATA: runs {'A': 8, 'B': 8}; clusters (arm, species, PID) {'A': 8, 'B': 8}; species {'A': {'Torchic': 2, 'Mudkip': 2, 'Treecko': 4}, 'B': {'Torchic': 4, 'Mudkip': 2, 'Treecko': 2}}; status {'A': {'cut': 8}, 'B': {'cut': 8}}
   bootstrap: 10000 draws, seed 14, clusters resampled within arm × species; percentile CIs; δ = 0.08
 
-C1 — the manipulation check (HP items held at K* first attempts; per run, then per arm)  [EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins)]
+C1 — the manipulation check (HP items held at K* first attempts; per run, then per arm)  [EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01T09:06:49; revision KI-119/#27-gradeidentity at 2026-10-02T12:48:21: a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins)]
   A 0.500  B 0.000  (runs with a value {'A': 8, 'B': 8})   B − A -0.500  95% CI [-1.500, +0.000]
   → C1 FAIL: C2 is DESCRIPTIVE
 
-C2 — first-attempt win rate over the FROZEN K* (1 of 7 trainers estimable)  [EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins); NOT ESTIMABLE over the frozen K* (1 of 7); C1 did not pass]
+C2 — first-attempt win rate over the FROZEN K* (1 of 7 trainers estimable)  [EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01T09:06:49; revision KI-119/#27-gradeidentity at 2026-10-02T12:48:21: a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins); NOT ESTIMABLE over the frozen K* (1 of 7); C1 did not pass]
   θA n/a  θB n/a  Δ n/a  95% CI [n/a, n/a] (10000 draws undefined, excluded)  90% CI [n/a, n/a]
-  → C2: EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01; revision 2026-10-02: KI-119 (#27-gradeidentity): a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins); NOT ESTIMABLE over the frozen K* (1 of 7); C1 did not pass   (margin δ = 0.08)
+  → C2: EXPLORATORY — EXPLORATORY: graded by a grader revised after the batch (started 2026-10-01T09:06:49; revision KI-119/#27-gradeidentity at 2026-10-02T12:48:21: a run's identity and progress are read after its 'Story: choosing X!' line; badges from leader wins); NOT ESTIMABLE over the frozen K* (1 of 7); C1 did not pass   (margin δ = 0.08)
   C2 LOWER (harm flag, upper90 < 0): no flag
 
   trainer                 p A    p B       Δ  95% CI              fought A/B  won A/B  reach A  reach B   B − A  90% CI                n A/B
@@ -91,9 +98,9 @@ PER GROUP (descriptive): θB − θA over each group's K* trainers (all of them 
   rivals      n/a  95% CI [n/a, n/a] (10000 draws undefined, excluded)  90% CI [n/a, n/a]
   magma_aqua  n/a  95% CI [n/a, n/a] (10000 draws undefined, excluded)  90% CI [n/a, n/a]
 ====================================================================================================
-JSON written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fix_20261001-090649_ca.json
+JSON written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fold_20261001-090649_ca.json
 
-==================================================================================================== batch14_checks.py (FIXED)
+==================================================================================================== batch14_checks.py (FIXED, folded)
 ====================================================================================================
 DESIGN v2 STEP 14 — batch14_checks (T4a): the correctness invariants E1-E5 and STOP-3
 ⛔ A MEASUREMENT. A FINDING is a defect to diagnose with a driver; a PASS is 'no violation in the lines read'.
@@ -105,6 +112,7 @@ DESIGN v2 STEP 14 — batch14_checks (T4a): the correctness invariants E1-E5 and
 
 INSTRUMENT CONTROLS (compare_arms.controls)
   logs read: 16   usable runs per arm: {'A': 8, 'B': 8}   refused: 0   excluded (still read by the checks): 0
+  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): 0
 
 E1  PASS — B NON-KEY battles 132; WILD battles (both arms) 2606; violating lines 0; exempted fail-open battles 0
 E2  PASS — B [KEYBATTLE] lines 149; violations 0; not comparable (key=? or UNCLASSIFIED) 0; fail-open lines (key= tallied, not compared) 0; trainer battles with NO [KEYBATTLE], by offline class: none
@@ -120,7 +128,7 @@ STOP-3  no — non-finished run ends: A 0 (0 signatures), B 0 (0 signatures)
       STOP-3 pattern: no (no qualifying signature)
 ====================================================================================================
 
-==================================================================================================== batch14_tables.py --m1b-out (FIXED)
+==================================================================================================== batch14_tables.py --m1b-out (FIXED, folded)
 ====================================================================================================
 DESIGN v2 STEP 14 — batch14_tables (T4b): the DESCRIPTIVE tables, per arm (counts; no reading)
 ====================================================================================================
@@ -131,6 +139,7 @@ DESIGN v2 STEP 14 — batch14_tables (T4b): the DESCRIPTIVE tables, per arm (cou
 
 INSTRUMENT CONTROLS (compare_arms.controls)
   logs read: 16   usable runs per arm: {'A': 8, 'B': 8}   refused: 0   excluded (not in any table): 0
+  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): 0
 
 D-funnel — runs started -> met X -> beat X on the first try -> beat X eventually (per arm, every key trainer met)
   arm A: runs started 8 (usable; 0 excluded runs not counted); status {'cut': 8}; frame-cap ends 0
@@ -149,7 +158,9 @@ D-funnel — runs started -> met X -> beat X on the first try -> beat X eventual
   arm B: frames to each badge #1: n=8 median 204,002 [176,999..487,027]
   arm B: K* rows cross-checked against compare_arms' run records: equal
   badge source (KI-119): badge n = the run's first [TRAINER] end res=Won over gym leader n (opp 265-272) after its 'Story: choosing X!' line; D-lead's catch tag = the [CATCH] end line's own badges= field
-  [BADGE] lines, a CONTROL only — runs with [BADGE] lines before their choosing line (badge telemetry poisoned by a boot-loaded save): A 0   B 0; un-poisoned runs whose [BADGE] set differs from the leader-win set: A 0   B 0
+  [BADGE] lines, a CONTROL only — runs with [BADGE] lines before their choosing line (badge telemetry poisoned by a boot-loaded save): A 0   B 0; runs whose [BADGE] set after the start differs from the leader-win set (every un-poisoned run, and any run with such lines): A 0   B 0
+  [CATCH] end badges= vs the leader wins at that line (D-lead's tag; a CONTROL over every run, poisoned included): A 24 lines, 0 differ   B 49 lines, 0 differ
+  runs whose badges are UNKNOWN (no [TRAINER] telemetry, yet a [BADGE] line or a catch at badges>=1 after the start; read 'unknown', never 0): A 0   B 0
 
 D-attempt — won / (won + lost) per ATTEMPT, per key group (a summary: looping runs weigh more)
   arm A:
@@ -248,7 +259,7 @@ D-rare — [CATCH] battles and their ends per rare species
 
 D-M1b — [DMGAUDIT] blocks (CTL to CTL) pooled over BOTH arms, de-duplicated by content (frames stripped)
   lines read 22085; blocks 2944; unique blocks 2911 (22052 lines); BEFORE records in the unique blocks (candidate samples) 9591
-  written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fix_20261001-090649_m1b.log  (audit_damage_calc.py reads it as one log); its accepted samples: 5759
+  written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\01ddd963-7a1a-4b49-8ecd-33397f5304e2\scratchpad\gibuild\fold_20261001-090649_m1b.log  (audit_damage_calc.py reads it as one log); its accepted samples: 5759
 
 D-weaken — [WEAKEN-OBS] would= by verdict and stage (stage1/stage2 from the reason; '-' = no stage)
   would=DAMAGE   stage stage2 A 2   B 5

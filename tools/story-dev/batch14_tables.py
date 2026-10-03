@@ -93,14 +93,22 @@ def _won(t) -> "bool | None":
 
 
 # ---------------------------------------------------------------------------------------------------- D-funnel
+def _badge_key(item):
+    """Sort 'badges reached' items: the badge numbers in order, then GS-5's 'unknown'."""
+    return (isinstance(item[0], str), item[0] if isinstance(item[0], int) else 0)
+
+
 def d_funnel(runs, stdout: dict) -> dict:
     """PURE. Per arm: `started` (usable runs), `status`, `excluded`, `frame_cap`, `badges` (max badge per run ->
     runs), `badge_frames` ({n: [frames]}), and per trainer `met`, `eligible` (compare_arms' reach denominator: a
     complete run, or a censored run that met X and decided it — DECISION F10's `censored_during` is compare_arms'),
     `decided`, `first_won`, `eventually`, `unbeaten_stopped` (COMPLETE runs that met X and never beat it) and their
-    `attempts`. `crosscheck`: the K* rows against compare_arms' run records (`[]` = equal). KI-119's [BADGE] CONTROL:
-    `badge_poisoned` (runs with [BADGE] lines before their choosing line) and `badge_disagree` (un-poisoned runs whose
-    [BADGE] set differs from their leader-win set, each as (log, [BADGE] set, leader-win set))."""
+    `attempts`. `crosscheck`: the K* rows against compare_arms' run records (`[]` = equal). KI-119's CONTROLS on the
+    leader-win badges: `badge_poisoned` (runs with [BADGE] lines before their choosing line); `badge_disagree` (every
+    un-poisoned run, and — GS-5 — any run with [BADGE] lines after its start, whose [BADGE] set after the start differs
+    from its leader-win set, each as (log, [BADGE] set, leader-win set)); `catch_tags` (GS-5: [CATCH] end lines with
+    badges=, and how many differ from the leader wins at that line, poisoned runs included); `badges_unknown` (GS-5:
+    runs with no [TRAINER] telemetry whose own lines say they hold badges — their badges read 'unknown', never 0)."""
     out = {}
     order = _trainer_order([r for arm in ARMS for r in usable_runs(runs, arm)])
     for arm in ARMS:
@@ -142,18 +150,23 @@ def d_funnel(runs, stdout: dict) -> dict:
                 badge_frames[n].append(f)
         caps = sum(1 for lane, s in stdout.items() if s["arm"] == arm and s["runs"]
                    for x in s["runs"] if x["bucket"] == "frame_cap")
-        # KI-119: the [BADGE] lines are a CONTROL on the leader-win badges
+        # KI-119 / GS-5: the [BADGE] lines and each catch line's badges= are CONTROLS on the leader-win badges
         poisoned = [r for r in rs if r["t4"]["badge_pre_start"]]
-        disagree = [r for r in rs if not r["t4"]["badge_pre_start"]
+        disagree = [r for r in rs if (r["t4"]["badge_lines"] or not r["t4"]["badge_pre_start"])
                     and set(r["t4"]["badge_lines"]) != set(r["t4"]["badges"])]
+        tags = [x for r in rs for x in r["t4"]["catch_badges"]]
+        reached = collections.Counter("unknown" if r["t4"]["badges_unknown"] else max(r["t4"]["badges"], default=0)
+                                      for r in rs)
         out[arm] = {"started": len(rs), "rows": rows, "crosscheck": cross,
                     "badge_poisoned": len(poisoned),
                     "badge_disagree": [(pathlib.Path(r["log"]).name, sorted(r["t4"]["badge_lines"]),
                                         sorted(r["t4"]["badges"])) for r in disagree],
+                    "catch_tags": (len(tags), sum(1 for field, wins in tags if field != wins)),
+                    "badges_unknown": sum(1 for r in rs if r["t4"]["badges_unknown"]),
                     "status": dict(collections.Counter(r["status"] for r in rs)),
                     "excluded": sum(1 for r in runs if r.get("lane_arm") == arm and r.get("excluded")),
                     "frame_cap": caps,
-                    "badges": dict(sorted(collections.Counter(max(r["t4"]["badges"], default=0) for r in rs).items())),
+                    "badges": dict(sorted(reached.items(), key=_badge_key)),
                     "badge_frames": {n: sorted(v) for n, v in sorted(badge_frames.items())}}
     out["order"] = order
     return out
@@ -191,11 +204,16 @@ def render_funnel(f: dict) -> list:
                "badges= field")
     out.append("  [BADGE] lines, a CONTROL only — runs with [BADGE] lines before their choosing line (badge telemetry "
                "poisoned by a boot-loaded save): " + "   ".join(f"{arm} {f[arm]['badge_poisoned']}" for arm in ARMS)
-               + "; un-poisoned runs whose [BADGE] set differs from the leader-win set: "
-               + "   ".join(f"{arm} {len(f[arm]['badge_disagree'])}" for arm in ARMS))
+               + "; runs whose [BADGE] set after the start differs from the leader-win set (every un-poisoned run, and "
+               "any run with such lines): " + "   ".join(f"{arm} {len(f[arm]['badge_disagree'])}" for arm in ARMS))
     for arm in ARMS:
         for name, got, wins in f[arm]["badge_disagree"]:
             out.append(f"    arm {arm} {name}: [BADGE] {got} vs leader wins {wins}")
+    out.append("  [CATCH] end badges= vs the leader wins at that line (D-lead's tag; a CONTROL over every run, poisoned "
+               "included): " + "   ".join(f"{arm} {f[arm]['catch_tags'][0]} lines, {f[arm]['catch_tags'][1]} differ"
+                                          for arm in ARMS))
+    out.append("  runs whose badges are UNKNOWN (no [TRAINER] telemetry, yet a [BADGE] line or a catch at badges>=1 after "
+               "the start; read 'unknown', never 0): " + "   ".join(f"{arm} {f[arm]['badges_unknown']}" for arm in ARMS))
     return out
 
 

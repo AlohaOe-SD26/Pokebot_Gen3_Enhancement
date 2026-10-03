@@ -14,6 +14,9 @@
 #   Mudkip#68D2F871).
 #   L02 …-015003 (arm A): a one-frame mid-run party misread (:5274-5275) after the starter; the [hb] after it (:5276)
 #   leads with Poochyena#A0BAEB85 (the run is Mudkip#067116B6).
+#   ADDED with the independent review's fold (gate row GK14): L13 …-043756 (arm B) :31085, a REAL leader DRAW (Tate &
+#   Liza, res=Draw). That run never beat Tate & Liza afterwards, so a reader that took a Draw for a win would give it
+#   badge 7 it never earned (the mutant hunter's GH40, live on this batch).
 L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:13:     env-all:       {'POKEBOT_BOX_OVERFLOW_CATCH': '1', 'POKEBOT_MAINTAIN': '1', 'POKEBOT_R20_HUNTFIRST': '0', 'POKEBOT_R20_OPENFENCE': '1', 'POKEBOT_R20_TEAM6': '0', 'POKEBOT_R23_BALLRESTOCK': '1', 'POKEBOT_R24_CATCHHURT': '1', 'POKEBOT_R24_CATCHTRAIN': '1', 'POKEBOT_R24_NOFAINTBAIL': '1', 'POKEBOT_R24_OVERSURVIVAL': '1', 'POKEBOT_R25_CAP': '1', 'POKEBOT_R25_DMGAUDIT': '1', 'POKEBOT_R25_RARE': '1', 'POKEBOT_R25_WEAKEN': 'observe', 'POKEBOT_R25_WEAKEN_CALC': '1', 'POKEBOT_R26_KITTOPOFF': '1', 'POKEBOT_R27_DOUBLEITEMS': '1', 'POKEBOT_R27_KEYITEMS': '1'}
 L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:31: f301 [BADGE] n=1 party=6/6 box=11 owned=25 spare=24
 L16/Story_(ENDLESS_RESET)-debug-20261002-040658.log:32: f301 [BADGE] n=2 party=6/6 box=11 owned=25 spare=24
@@ -52,3 +55,4 @@ L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:311: f14401 [hb] mode=Story 
 L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5274: f586361 [PARTY] size 4 -> 0: []
 L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5275: f586362 [PARTY] size 0 -> 4: ['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12']
 L02/Story_(ENDLESS_RESET)-debug-20261002-015003.log:5276: f586801 [hb] mode=Story (ENDLESS RESET) state=5 controllable=False map=ROUTE 117(0,32) pos=(17, 8) party=['Poochyena:L12', 'Marshtomp:L26', 'Lombre:L15', 'Whismur:L12'] ids=['Poochyena#A0BAEB85:L12:exp1813', 'Marshtomp#067116B6:L26:exp13717', 'Lombre#A2539333:L15:exp2283', 'Whismur#AEBEEBDD:L12:exp1012'] owned=6 balls=33 money=3218 box=0 badges=8 msg='Encountered Gulpin ♀.\n\nNature:\xa0Hasty | Ability:\xa0Liquid Ooze | Item:\xa0- | IV\xa0sum:\xa067 | SV:\xa065,154'
+L13/Story_(ENDLESS_RESET)-debug-20261002-043756.log:31085: f3814604 [TRAINER] end opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 res=Draw money=2->2 delta=0 mult=0 heal_stock=- map=14,0

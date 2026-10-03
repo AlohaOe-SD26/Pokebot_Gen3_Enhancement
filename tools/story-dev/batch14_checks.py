@@ -177,7 +177,8 @@ def _check_trainers(table: dict) -> None:
 _check_trainers(TRAINERS)
 
 #: KI-119 (`#27-gradeidentity`): BADGE n is the run's first WIN over gym leader n — a `[TRAINER] end opp=<id> res=Won`
-#: line after the run's choosing line — with the leaders in badge order (opponents.h :265-272). ⛔ The `[BADGE]` lines
+#: line after the run's choosing line (a Draw is no win) — with the leaders in badge order: pret/pokeemerald
+#: `include/constants/opponents.h`:269-276, TRAINER_ROXANNE_1 (id 265) .. TRAINER_JUAN_1 (id 272). ⛔ The `[BADGE]` lines
 #: are a CONTROL only: a boot-loaded Hall-of-Fame save logs all 8 at f301, and the bot's recorder then never logs the
 #: run's real ones (step 14: 27 of 78 logs; the recorder is a SEPARATE bot item). Validated on the 51 fresh logs: the
 #: same badge set as `[BADGE]` in 51 of 51 (the `[BADGE]` line comes 833-3,514 frames after the win).
@@ -406,7 +407,9 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
     E4, E5), the monitor and the dex-loss filing (E3), STOP-3's tail, `[DMGAUDIT]` (M1b) and `[WEAKEN-OBS]` — read
     the WHOLE log: an invariant holds for every line the bot wrote. Badges are the leader wins (`LEADER_BADGE`); a
     catch's Stone-Badge tag is its `[CATCH] end` line's own `badges=`; the `[BADGE]` lines are a CONTROL
-    (`badge_pre_start`: lines before the start, the run's badge telemetry POISONED; `badge_lines`: after it)."""
+    (`badge_pre_start`: lines before the start, the run's badge telemetry POISONED; `badge_lines`: after it). GS-5:
+    `catch_badges` holds each tagged catch's (badges= field, leader wins at that line), a control; `badges_unknown` is
+    True for a run with no `[TRAINER]` telemetry whose own lines say it holds badges (its badges are unknown, not 0)."""
     start = bl.run_start(lines)
     telemetry = bl.has_trainer_telemetry(lines)
     battles = [b for b in bl.split_battles(lines) if b.started]
@@ -420,7 +423,7 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         "tail": tail_of(lines), "badges": {}, "caught": [], "fence": set(), "fence_unparsed": 0,
         "balls_buy": [], "kit_buy": [], "leg11_loaded": False, "leg11_old": [], "leg11_new": [], "leg11_money": None,
         "weaken": collections.Counter(), "rare": [], "frames": 0, "dmg_lines": 0, "transient_maps": len(transient),
-        "start": start, "badge_lines": {}, "badge_pre_start": 0,
+        "start": start, "badge_lines": {}, "badge_pre_start": 0, "catch_badges": [], "badges_unknown": False,
     }
     k = -1
     cur_map = None
@@ -441,6 +444,7 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         r = bl.route(line)
         if r == "start":
             k += 1
+            # GS-7 (KI-119): a battle's map is UNKNOWN (None) until the first [MAP] read after the run's start
             recs[k]["map"] = cur_map
             continue
         cat, msg = (m.group(2), m.group(3)) if m else (None, "")
@@ -517,6 +521,9 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
                         # the catch (equal to the leader wins there on 723 of 723 real lines); a line without the
                         # field takes the highest leader-win badge so far
                         bg = _CATCH_BADGES.search(msg)
+                        if bg:
+                            # GS-5's CONTROL: the line's field beside the leader wins at that line
+                            out["catch_badges"].append((int(bg.group(1)), len(out["badges"])))
                         out["caught"].append((sp.group(1) if sp else "?",
                                               int(bg.group(1)) if bg else max(out["badges"], default=0)))
                     if kind and kind.group(1) == "dex" and end_v == "lost":
@@ -589,6 +596,9 @@ def extract(lines, *, forbid=(), param_of=bl.item_parameter, m1b: "M1bPool | Non
         m1b.add(block)
     if out["rustboro"] is not None:
         out["rustboro"]["open_at_end"] = heal_window      # the log ENDED inside the errand (a cut run's tail)
+    # GS-5: a run with NO leader-win telemetry (no [TRAINER] line at all) whose own lines say it holds badges — a
+    # [BADGE] line after its start, or a catch at badges>=1 — has UNKNOWN badges, never 0
+    out["badges_unknown"] = not telemetry and bool(out["badge_lines"] or any(t >= 1 for _s, t in out["caught"]))
     out["loss_missed"] = pending_loss
     for k2, evs in events.items():
         recs[k2]["e5"] = _e5_readings(evs)
@@ -996,6 +1006,10 @@ def control_lines(b: dict, what: str = "CHECK", excluded_note: str = "still read
            f"{len(info['refused'])}   excluded ({excluded_note}): {len(info['excluded'])}"]
     out += [f"    ⛔ refused {log}: {why}" for log, why in info["refused"]]
     out += [f"    - excluded {pathlib.Path(log).name}: {why}" for log, why in info["excluded"]]
+    # GS-6 (KI-119): compare_arms' control, printed here too
+    odd = info.get("choosing_not_one") or []
+    out.append(f"  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): {len(odd)}")
+    out += [f"    - {pathlib.Path(log).name}: {n}" for log, n in odd]
     if failures:
         out.append(f"⛔ INSTRUMENT CONTROL FAILED — NO {what} (nothing would be about the batch that ran):")
         out += [f"  ⛔ {f}" for f in failures]

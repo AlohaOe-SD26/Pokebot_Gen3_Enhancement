@@ -21,7 +21,12 @@ ROWS (each a function; a row that raises is red)
         badges=, the run POISONED), TS2 D-lead, TS3 PROGRESS before the start NOT read, TS4 CORRECTNESS before it STILL
         read, TS5 the [BADGE] CONTROL counts printed, TS6 D-funnel's badges from leader wins. QS4's [BADGE]-frame
         assertion moved to TS5 and T2's frame value / B maximum to TS6 (the design changed those values); T22's
-        pre-Stone catch line now reads badges=0, as a real one does. Mutants K-SB1..K-SB16, TT1-TT5, MS1.
+        pre-Stone catch line now reads badges=0, as a real one does. Mutants K-SB1..K-SB16, TT1-TT6, MS1.
+        THE INDEPENDENT REVIEW'S FOLD (`scratchpad/adv27/gihunt`, the coordinator's rulings): TS7-TS9 GS-5's badge
+        controls (each catch line's badges= vs the leader wins, poisoned runs included; [BADGE] lines after the start
+        compared in every run that has them; a run with no [TRAINER] telemetry but badge evidence reads 'unknown'), X7
+        GS-6's choosing-line control in both headers, GK10-GK19 the mutant hunter's rows (GK14 quotes a REAL leader Draw
+        from step 14). Mutants K-SB21..K-SB35, TT7-TT12 (the hunter's survivors are labelled [GH<n>]).
 
 THE FOLD of the independent pass (`evidence/2026-10-01-batch14-T4-ADVERSARIAL.txt`, the coordinator's RULINGS 1-10):
   * the hunter's 24 killing rows are adopted (E1f E1g, E2c's production flag_off, E3c/d/g's added cases, E3h, E4a/c's
@@ -255,6 +260,8 @@ QUOTES = {
     "s16_catch_pooch": ("stale", _L16S, 879, "f67594 [CATCH] end kind=team sp=Poochyena#261 end=caught res=Caught thrown=1 frames=1702 dest=party pid=9FF2BE0D party=2/6 box=0 spare=4 badges=0 bail=-", "eq"),
     "s16_roxanne": ("stale", _L16S, 1890, "f184413 [TRAINER] end opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 res=Won money=7368->8868 delta=1500 mult=1 heal_stock=- map=11,3", "eq"),
     "s16_catch_abra": ("stale", _L16S, 2398, "f234542 [CATCH] end kind=dex sp=Abra#63 end=caught res=Caught thrown=1 frames=1632 dest=party pid=CFF60025 party=5/6 box=0 spare=14 badges=1 bail=-", "eq"),
+    # the review's fold (GK14): a REAL leader DRAW from step 14 (that run never beat Tate & Liza afterwards)
+    "s13_tl_draw": ("stale", "L13/Story_(ENDLESS_RESET)-debug-20261002-043756.log", 31085, "f3814604 [TRAINER] end opp=271 class=0x20(LEADER) value=25 lvl_last=42 first=True base=8400 res=Draw money=2->2 delta=0 mult=0 heal_stock=- map=14,0", "eq"),
 }
 _STALE_ROW = re.compile(r"^(L\d+/\S+?\.log):(\d+): (.*)$")
 
@@ -1421,8 +1428,8 @@ def _ts5():
     agree = rec("B", B(*ROX_WON, "badge"), lane="H10")
     f = TB().d_funnel([stale, nobadge, agree, rec("A", for_a(B(*RIVAL)), lane="H1")], {})
     text = "\n".join(TB().render_funnel(f))
-    control = ("poisoned by a boot-loaded save): A 0   B 1; un-poisoned runs whose [BADGE] set differs from the "
-               "leader-win set: A 0   B 1")
+    control = ("poisoned by a boot-loaded save): A 0   B 1; runs whose [BADGE] set after the start differs from the "
+               "leader-win set (every un-poisoned run, and any run with such lines): A 0   B 1")
     source = "badge source (KI-119): badge n = the run's first [TRAINER] end res=Won over gym leader n"
     listed = [ln for ln in text.splitlines() if ln.startswith("    arm B ") and ln.endswith(": [BADGE] [] vs leader wins [1]")]
     return eq((f["B"]["badge_poisoned"], f["A"]["badge_poisoned"], [d[1:] for d in f["B"]["badge_disagree"]],
@@ -1436,6 +1443,117 @@ def _ts6():
     f = TB().d_funnel(TR(), _stdout_fixture())
     return eq((f["A"]["badge_frames"], f["B"]["badges"], f["B"]["badge_frames"]),
               ({1: [203335]}, {0: 1, 7: 1}, {1: [203335], 7: [3464107]}))
+
+
+# ---- the independent review's fold: GS-5 (the badge CONTROLS)
+@row("TS7", "GS-5 CONTROL: each [CATCH] end badges= beside the leader wins at that line, over EVERY run (the poisoned "
+            "stale run included): B 3 lines, 1 differs (a catch reading badges=1 before any leader win); printed")
+def _ts7():
+    stale = rec_lines("B", stale_lines(body=B("s16_catch_pooch", "s16_roxanne", "s16_catch_abra")))
+    early = rec("B", B(*RIVAL, "catch_end"), lane="H9")          # badges=1 on the line, no leader win yet
+    f = TB().d_funnel([stale, early, rec("A", for_a(B(*RIVAL)), lane="H1")], {})
+    text = "\n".join(TB().render_funnel(f))
+    return eq((f["B"]["catch_tags"], f["A"]["catch_tags"], "included): A 0 lines, 0 differ   B 3 lines, 1 differ" in text),
+              ((3, 1), (0, 0), True))
+
+
+@row("TS8", "GS-5: [BADGE] lines AFTER the start are compared with the leader wins in EVERY run that has them, a POISONED "
+            "one included (the stale run + a [BADGE] n=1 line after its start, no leader win: listed)")
+def _ts8():
+    f = TB().d_funnel([rec_lines("B", stale_lines(body=B("badge"))), rec("A", for_a(B(*RIVAL)), lane="H1")], {})
+    return eq((f["B"]["badge_poisoned"], [d[1:] for d in f["B"]["badge_disagree"]]), (1, [([1], [])]))
+
+
+@row("TS9", "GS-5: a run with NO [TRAINER] telemetry whose own lines say it holds badges (a [BADGE] line, or a catch at "
+            "badges=1, after its start) reads badges 'unknown', never 0; one with no such line reads 0; counted in "
+            "D-funnel")
+def _ts9():
+    runs = [rec("B", B("badge"), lane="H9"),
+            rec("B", B("skitty_started", "skitty_start", "w_turn", "caught_ended", "catch_end"), lane="H10"),
+            rec("B", B(*WILD), lane="H11"), rec("A", for_a(B(*RIVAL)), lane="H1")]
+    f = TB().d_funnel(runs, {})
+    text = "\n".join(TB().render_funnel(f))
+    return eq((f["B"]["badges"], f["B"]["badges_unknown"], f["A"]["badges"],
+               "read 'unknown', never 0): A 0   B 2" in text, [r["t4"]["badges_unknown"] for r in runs]),
+              ({0: 1, "unknown": 2}, 2, {0: 1}, True, [True, True, False, False]))
+
+
+# ---- the mutant hunter's rows (`scratchpad/adv27/gihunt/killing_rows.py`), adopted
+def _leg11():
+    return sub(Q("map_vr"), "-> EVER GRANDE CITY(0,8)", "-> EVER GRANDE CITY(16,10)")
+
+
+@row("GK10", "extract with NO choosing line reads NO progress ('none at all without one'): a Roxanne win, a catch and a "
+             "(16,10) load -> no badge, no catch, leg 11 not loaded")
+def _gk10():
+    lines = header("B") + B("hb", *ROX_WON) + [Q("catch_end"), Q("n_money"), _leg11()] + ["=== DEBUG LOG END ==="]
+    t = CK().extract(lines, forbid=MONITOR["B"]["forbid"])
+    return eq((t["start"], t["badges"], t["caught"], t["leg11_loaded"]), (None, {}, [], False))
+
+
+@row("GK11", "a [MONEY] line BEFORE the choosing line is not the run's money: a (16,10) load right after the start reads "
+             "money None")
+def _gk11():
+    t = rec_lines("B", stale_lines(pre=[Q("n_money")], mid=[_leg11()]))["t4"]
+    return eq((t["leg11_loaded"], t["leg11_money"]), (True, None))
+
+
+@row("GK12", "a (16,10) load ONLY before the choosing line: leg 11 NOT loaded (TS3's load after the start masks this)")
+def _gk12():
+    t = rec_lines("B", stale_lines(pre=[_leg11()]))["t4"]
+    return eq((t["leg11_loaded"], t["leg11_money"]), (False, None))
+
+
+@row("GK13", "a whole wild CATCH battle (started ... caught) before the choosing line is not a catch of the run")
+def _gk13():
+    pre = B("skitty_started", "skitty_start", "w_turn", "caught_ended", "catch_end")
+    return eq(rec_lines("B", stale_lines(pre=pre))["t4"]["caught"], [])
+
+
+@row("GK14", "a leader DRAW is not a badge: the REAL Tate & Liza res=Draw line (L13 …-043756:31085, live on step 14: "
+             "that run never beat Tate & Liza after it), and Roxanne's real end line with res=Draw -> no badge")
+def _gk14():
+    rox_draw = sub(Q("x_end"), "res=Won money=1368->2868 delta=1500 mult=1", "res=Draw money=1368->1368 delta=0 mult=0")
+    body = [Q(n) for n in ROX_WON if n != "x_end"] + [rox_draw]
+    return eq((rec("B", body)["t4"]["badges"], rec("B", B("s13_tl_draw"))["t4"]["badges"]), ({}, {}))
+
+
+@row("GK15", "LEADER_BADGE is the decomp's gym order: TRAINER_ROXANNE_1 265 .. TRAINER_JUAN_1 272 -> badges 1..8 "
+             "(pret/pokeemerald include/constants/opponents.h:269-276)")
+def _gk15():
+    return eq(CK().LEADER_BADGE, {265: 1, 266: 2, 267: 3, 268: 4, 269: 5, 270: 6, 271: 7, 272: 8})
+
+
+@row("GK16", "extract's start is the FIRST choosing line: a second one later does not move it (progress between them is "
+             "read)")
+def _gk16():
+    lines = (header("B") + B("choose", "hb", *ROX_WON) + [Q("choose").replace("Torchic", "Mudkip")]
+             + ["=== DEBUG LOG END ==="])
+    t = CK().extract(lines, forbid=MONITOR["B"]["forbid"])
+    return eq((t["start"], t["badges"]), (5, {1: 203335}))
+
+
+@row("GK17", "a catch's tag is its OWN badges= even when it is LOWER than the leader wins so far")
+def _gk17():
+    caught0 = sub(Q("catch_end"), " badges=1 ", " badges=0 ")
+    return eq(rec("B", B(*ROX_WON) + [caught0])["t4"]["caught"], [("Skitty", 0)])
+
+
+@row("GK18", "a catch line WITHOUT badges= takes the HIGHEST leader-win badge so far, not their count (a Brawly-only win "
+             "-> 2)")
+def _gk18():
+    nofield = sub(Q("catch_end"), " badges=1 ", " ")
+    t = rec("B", _brawly_led_by("Combusken") + [nofield])["t4"]
+    return eq((t["badges"], t["caught"]), ({2: 203335}, [("Skitty", 2)]))
+
+
+@row("GK19", "the [BADGE] CONTROL compares SETS: an un-poisoned run whose [BADGE] lines read {1, 2} and whose leader wins "
+             "read {2} is listed, though the highest badge agrees")
+def _gk19():
+    badge2 = sub(Q("badge"), "n=1", "n=2")
+    r = rec("B", _brawly_led_by("Combusken") + [Q("badge"), badge2], lane="H9")
+    f = TB().d_funnel([r, rec("A", for_a(B(*RIVAL)), lane="H1")], {})
+    return eq([d[1:] for d in f["B"]["badge_disagree"]], [([1, 2], [2])])
 
 
 # ============================================================================================ X — the CLIs end to end
@@ -1553,6 +1671,20 @@ def _x4():
     text = out_file.read_text(encoding="utf-8")
     return eq((code, text.count("[DMGAUDIT] CTL"), "blocks 2; unique blocks 1" in out, "accepted samples:" in out),
               (0, 1, True, True))
+
+
+@row("X7", "GS-6: the checks AND the tables headers print the INSTRUMENT CONTROL 'logs with != 1 Story: choosing X! "
+           "line' and list each (a B log with a second choosing line: 1, listed with its count 2)")
+def _x7():
+    a = lines_of("A", for_a(B(*RIVAL, *WILD)) + [Q("runway")])
+    b = header("B") + B("choose", "hb", *RIVAL, "choose") + ["=== DEBUG LOG END ==="]
+    d = make_batch("x7", [("A", [("a-debug-20261001-210000.log", a, None)]),
+                          ("B", [("b-debug-20261001-210000.log", b, None)])])
+    code, out = cli(CK(), [str(d)])
+    tcode, tout = cli(TB(), [str(d)])
+    want = "  logs with != 1 'Story: choosing X!' line (the run's start, KI-119): 1"
+    return eq((code, want in out.splitlines(), "    - b-debug-20261001-210000.log: 2" in out.splitlines(), tcode,
+               want in tout.splitlines()), (0, True, True, 0, True))
 
 
 # ============================================================================================ R — reuse
@@ -1831,7 +1963,8 @@ MUTANTS: list = [
      set()),
     # RE-ANCHORED with KI-119 (the tag is the catch line's own badges= now)
     ("K49 a catch's badge count not recorded", "ck",
-     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', "0))")], {"T5", "TS1", "TS2"}),
+     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', "0))")],
+     {"T5", "TS1", "TS2", "GK18", "TS9"}),   # FOLD: + GK18 (adoption), TS9 (a catch at 0 is no badge evidence)
     ("K50 the battle map not recorded", "ck", [('            recs[k]["map"] = cur_map', "            pass")], {"T6"}),
     # NOT equivalent after all (the builder, on the fold): a run CUT inside a catch battle has its start and no end
     ("K51 a WILD battle with a [CATCH] start is not a catch battle", "ck",
@@ -1859,7 +1992,7 @@ MUTANTS: list = [
      [('    "RIVAL_ROUTE_103": (520, 523, 526, 529, 532, 535),', '    "RIVAL_ROUTE_103": (520,),')], {"T1"}),
     # FIRST RUN: (270,) — Winona's id — made the module refuse to IMPORT (`_check_trainers`); that guard is K66 now
     ("K59 Tate & Liza's id wrong", "ck", [('"TATE_AND_LIZA": (271,)', '"TATE_AND_LIZA": (273,)')],
-     {"E4a", "E4b", "E4c", "E4e", "R1", "T1", "T4", "T21", "TS6"}),   # TS6: badge 7 is T&L's win (LEADER_BADGE)
+     {"E4a", "E4b", "E4c", "E4e", "R1", "T1", "T4", "T21", "TS6", "GK15"}),   # TS6 / GK15: LEADER_BADGE reads 271
     ("K66 two trainers share an id -> the module refuses to import", "ck",
      [('"TATE_AND_LIZA": (271,)', '"TATE_AND_LIZA": (270,)')], "RAISES"),
     ("K63 the heal marker also matches the 'withdraw result' line", "ck",
@@ -1868,7 +2001,7 @@ MUTANTS: list = [
     ("K64 [MAP] from and to swapped", "ck",
      [("    return (int(m.group(1)), int(m.group(2))), (int(m.group(3)), int(m.group(4)))",
        "    return (int(m.group(3)), int(m.group(4))), (int(m.group(1)), int(m.group(2)))")],
-     {"QS1", "E3d", "E3e", "E3g", "E3h", "E3i", "E3j", "T7", "T8", "T9", "X1", "TS3"}),   # no Rustboro heal is seen
+     {"QS1", "E3d", "E3e", "E3g", "E3h", "E3i", "E3j", "T7", "T8", "T9", "X1", "TS3", "GK11"}),   # no Rustboro heal is seen
     # FOLD-PREDICTION (K64): T27 survives it by symmetry — swapped, the flick's RETURN read lands on (0,7) and the real
     # Sootopolis load lands on (24,43), so the two runs trade eras and the totals stay 1 / 1 (T8 still kills it)
     ("K65 K* COPIED into TRAINERS (equal values, not compare_arms' objects)", "ck",
@@ -2005,21 +2138,21 @@ MUTANTS: list = [
        '                else:\n                    out["badge_pre_start"] += 1\n',
        '                out["badges"].setdefault(int(bm.group(1)), frame)\n'),
       ('int(bg.group(1)) if bg else max(out["badges"], default=0)))', 'max(out["badges"], default=0)))')],
-     {"TS1", "TS2", "TS3", "TS5", "TS6"}),
+     {"TS1", "TS2", "TS3", "TS5", "TS6", "GK16", "GK18", "GK19", "TS7", "TS8", "TS9"}),   # FOLD: + GK16 GK18 GK19
     ("K-SB2 KI-119's LITERAL fix: [BADGE] read after the start, no leader-win source, no poison count", "ck",
      [('        elif r == "trainer" and progress:', '        elif r == "trainer" and False:'),
       ('                if progress:\n                    out["badge_lines"].setdefault(int(bm.group(1)), frame)\n'
        '                else:\n                    out["badge_pre_start"] += 1\n',
        '                if progress:\n                    out["badges"].setdefault(int(bm.group(1)), frame)\n'),
       ('int(bg.group(1)) if bg else max(out["badges"], default=0)))', 'max(out["badges"], default=0)))')],
-     {"TS1", "TS2", "TS5", "TS6"}),
+     {"TS1", "TS2", "TS5", "TS6", "GK16", "GK18", "GK19", "TS7", "TS8", "TS9"}),   # FOLD: + GK16 GK18 GK19, TS7-9
     ("K-SB3 money read before the start", "ck",
      [('        elif cat == "MONEY" and progress:', '        elif cat == "MONEY":'),
-      ('        elif cat == "hb" and progress:', '        elif cat == "hb":')], {"TS3"}),
+      ('        elif cat == "hb" and progress:', '        elif cat == "hb":')], {"TS3", "GK11"}),
     ("K-SB4 the boundary applied to CORRECTNESS: the battles", "ck",
      [("    battles = [b for b in bl.split_battles(lines) if b.started]",
        "    battles = [b for b in bl.split_battles(lines[start + 1:] if start is not None else []) if b.started]")],
-     {"TS4"}),
+     {"TS4", "GK10", "GK13"}),   # FOLD: GK10 / GK13's battles sit before (or without) a start
     ("K-SB4b the boundary applied to CORRECTNESS: the monitor", "ck",
      [("x4.scan_lines(lines, list(forbid), ())[0]",
        "x4.scan_lines(lines[start + 1:] if start is not None else [], list(forbid), ())[0]")], {"TS4"}),
@@ -2033,19 +2166,23 @@ MUTANTS: list = [
     ("K-SB4f the boundary applied to CORRECTNESS: STOP-3's tail", "ck",
      [('"tail": tail_of(lines),', '"tail": tail_of(lines[start + 1:] if start is not None else []),')], {"TS4"}),
     ("K-SB5 the map (era, leg 11, the Rustboro heal) read before the start", "ck",
-     [('        elif cat == "MAP" and progress:', '        elif cat == "MAP":')], {"TS3"}),
+     [('        elif cat == "MAP" and progress:', '        elif cat == "MAP":')], {"TS3", "GK10", "GK12"}),
     ("K-SB5b only cur_map read before the start (era and leg 11 still bounded)", "ck",
      [('        elif cat == "MAP" and progress:',
        '        elif cat == "MAP" and not progress:\n            mm = parse_map(msg)\n            if mm:\n'
        '                cur_map = mm[1]\n        elif cat == "MAP":')], {"TS3"}),
     ("K-SB7 leader wins read before the start", "ck",
-     [('        elif r == "trainer" and progress:', '        elif r == "trainer":')], {"TS3"}),
+     [('        elif r == "trainer" and progress:', '        elif r == "trainer":')], {"TS3", "GK10"}),
     ("K-SB8 catches read before the start", "ck",
-     [('                    if end_v == "caught" and progress:', '                    if end_v == "caught":')], {"TS3"}),
+     [('                    if end_v == "caught" and progress:', '                    if end_v == "caught":')],
+     {"TS3", "GK10", "GK13"}),
     ("K-SB9 the catch tag from the leader-win count, not the line's own badges= (equal on 723/723 REAL lines)", "ck",
-     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', 'max(out["badges"], default=0)))')], {"T5"}),
+     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', 'max(out["badges"], default=0)))')],
+     {"T5", "GK17", "TS9"}),
     ("K-SB10 a catch line with no badges= is tagged 0", "ck",
-     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', "int(bg.group(1)) if bg else 0))")], {"TS1"}),
+     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', "int(bg.group(1)) if bg else 0))")], {"TS1", "GK18"}),
+    # FOLD: adoption.txt adds GK19 here, measured on the PRE-fold rule; under GS-5 a run WITH [BADGE] lines after its
+    # start is compared even when poisoned, so GK19's run stays listed — the set stays {TS5} (a prediction)
     ("K-SB11 the poison count reads [BADGE] lines AFTER the start too", "ck",
      [('                else:\n                    out["badge_pre_start"] += 1\n',
        '                out["badge_pre_start"] += 1\n')], {"TS5"}),
@@ -2054,26 +2191,29 @@ MUTANTS: list = [
        '                        out["badges"][LEADER_BADGE[i]] = frame')], {"TS1"}),
     ("K-SB13 a LOST leader battle counts as the badge", "ck",
      [('            if t and t["kind"] == "end" and t["res"] == "Won" and frame is not None:',
-       '            if t and t["kind"] == "end" and frame is not None:')], {"TS6"}),
+       '            if t and t["kind"] == "end" and frame is not None:')], {"TS6", "GK14"}),
     ("K-SB14 the leaders' badge numbers off by one (Roxanne = badge 0)", "ck",
      [("LEADER_BADGE = {TRAINERS[name][0]: n for n, name in enumerate(BADGE_LEADERS, 1)}",
-       "LEADER_BADGE = {TRAINERS[name][0]: n for n, name in enumerate(BADGE_LEADERS)}")], {"T2", "TS1", "TS5", "TS6"}),
+       "LEADER_BADGE = {TRAINERS[name][0]: n for n, name in enumerate(BADGE_LEADERS)}")],
+     {"T2", "TS1", "TS5", "TS6", "GK15", "GK16", "GK18", "GK19"}),
     ("K-SB15 extract's boundary = the 'Intro: New Game' step (else the choosing line)", "ck",
      [("    start = bl.run_start(lines)",
        '    start = next((i for i, s in enumerate(lines) if "Intro: New Game" in s), bl.run_start(lines))')],
-     {"TS1", "TS3"}),
+     {"TS1", "TS3", "GK11", "GK12", "GK13"}),
     ("K-SB16 extract's boundary = the LAST party clear (else the choosing line)", "ck",
      [("    start = bl.run_start(lines)",
        '    start = ([i for i, s in enumerate(lines) if re.search(r"\\[PARTY\\] size \\d+ -> 0:", s)]'
-       " or [bl.run_start(lines)])[-1]")], {"TS1", "TS3"}),
+       " or [bl.run_start(lines)])[-1]")], {"TS1", "TS3", "GK11", "GK12", "GK13"}),
     ("TT1 the poisoned count reads any run with a [BADGE] line", "tb",
      [('        poisoned = [r for r in rs if r["t4"]["badge_pre_start"]]',
        '        poisoned = [r for r in rs if r["t4"]["badge_pre_start"] or r["t4"]["badge_lines"]]')], {"TS5"}),
     ("TT2 the disagreement list never fills", "tb",
      [('                    and set(r["t4"]["badge_lines"]) != set(r["t4"]["badges"])]', "                    and False]")],
-     {"TS5"}),
+     {"TS5", "TS8", "GK19"}),
+    # RE-ANCHORED with GS-5 (the disagreement also reads a poisoned run that has [BADGE] lines after its start)
     ("TT3 the disagreement read on POISONED runs too", "tb",
-     [('        disagree = [r for r in rs if not r["t4"]["badge_pre_start"]\n', "        disagree = [r for r in rs if True\n")],
+     [('        disagree = [r for r in rs if (r["t4"]["badge_lines"] or not r["t4"]["badge_pre_start"])\n',
+       "        disagree = [r for r in rs if True\n")],
      {"TS5"}),
     ("TT4 the control counts not printed", "tb",
      [("""\"poisoned by a boot-loaded save): " + "   ".join(f"{arm} {f[arm]['badge_poisoned']}" for arm in ARMS)""",
@@ -2089,6 +2229,69 @@ MUTANTS: list = [
      [("#: are a CONTROL only: a boot-loaded Hall-of-Fame save logs all 8 at f301, and the bot's recorder then never logs the",
        '#: are a CONTROL only (never `out["badges"].setdefault(int(bm.group(1)), frame)`; f301 [BADGE] n=8); the bot never logs the')],
      set()),
+    # ---- THE INDEPENDENT REVIEW'S FOLD (2026-10-02): the mutant hunter's survivors ([GH<n>], `adv27/gihunt/hunt.py`)
+    # and one REVERT per GS-5 / GS-6 rule; every set written BEFORE the fold's first run
+    ("K-SB21 [GH33] progress FAIL-OPEN without a choosing line", "ck",
+     [("        progress = start is not None and pos > start", "        progress = start is None or pos > start")],
+     {"GK10"}),
+    ("K-SB22 [GH34] the [MONEY] line read before the start ([hb] money still bounded)", "ck",
+     [('        elif cat == "MONEY" and progress:', '        elif cat == "MONEY":')], {"GK11"}),
+    ("K-SB23 [GH36] leg 11 (the (16,10) load) read before the start; era / cur_map / Rustboro still bounded", "ck",
+     [('        elif cat == "MAP" and progress:',
+       '        elif cat == "MAP" and not progress:\n            mm = parse_map(msg)\n'
+       '            if mm and mm[1] == LEAGUE_1F and not out["leg11_loaded"]:\n'
+       '                out["leg11_loaded"], out["leg11_money"] = True, money\n'
+       '        elif cat == "MAP" and progress:')], {"GK10", "GK12"}),
+    ("K-SB24 [GH39] a catch before the start counted when it sits inside a battle", "ck",
+     [('                    if end_v == "caught" and progress:',
+       '                    if end_v == "caught" and (progress or k >= 0):')], {"GK10", "GK13"}),
+    ("K-SB25 [GH40, LIVE on step 14] a leader DRAW counts as the badge", "ck",
+     [('            if t and t["kind"] == "end" and t["res"] == "Won" and frame is not None:',
+       '            if t and t["kind"] == "end" and t["res"] != "Lost" and frame is not None:')], {"GK14"}),
+    ("K-SB26 [GH41, LIVE] BADGE_LEADERS: Flannery and Norman swapped (badges 4 <-> 5)", "ck",
+     [('"FLANNERY", "NORMAN", "WINONA"', '"NORMAN", "FLANNERY", "WINONA"')], {"GK15"}),
+    ("K-SB27 [GH42, LIVE] BADGE_LEADERS: Wattson and Flannery swapped (badges 3 <-> 4)", "ck",
+     [('"WATTSON", "FLANNERY", "NORMAN"', '"FLANNERY", "WATTSON", "NORMAN"')], {"GK15"}),
+    ("K-SB28 [GH44, LIVE] BADGE_LEADERS: Juan dropped (no badge 8 from a win)", "ck",
+     [('"TATE_AND_LIZA", "JUAN")', '"TATE_AND_LIZA")')], {"GK15"}),
+    ("K-SB29 [GH45] extract's boundary = the LAST choosing line", "ck",
+     [("    start = bl.run_start(lines)",
+       "    start = max((i for i, s in enumerate(lines) if bl._CHOSEN.search(s)), default=None)")], {"GK16"}),
+    ("K-SB30 [GH46] the catch tag = max(the line's badges=, the leader wins so far)", "ck",
+     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))',
+       'max(int(bg.group(1)), max(out["badges"], default=0)) if bg else max(out["badges"], default=0)))')],
+     {"GK17"}),
+    ("K-SB31 [GH47] a catch line without badges= takes the COUNT of leader-win badges, not the highest", "ck",
+     [('int(bg.group(1)) if bg else max(out["badges"], default=0)))', 'int(bg.group(1)) if bg else len(out["badges"])))')],
+     {"GK18"}),
+    ("K-SB32 GS-5: the catch-tag control compares the line's field with ITSELF (never differs)", "ck",
+     [('out["catch_badges"].append((int(bg.group(1)), len(out["badges"])))',
+       'out["catch_badges"].append((int(bg.group(1)), int(bg.group(1))))')], {"TS7"}),
+    ("K-SB33 GS-5: badges never 'unknown' (a run without telemetry reads 0)", "ck",
+     [('    out["badges_unknown"] = not telemetry and bool(', '    out["badges_unknown"] = False and bool(')], {"TS9"}),
+    ("K-SB34 GS-5: badges 'unknown' for EVERY run without telemetry (evidence of badges not required)", "ck",
+     [("""    out["badges_unknown"] = not telemetry and bool(out["badge_lines"] or any(t >= 1 for _s, t in out["caught"]))""",
+       '    out["badges_unknown"] = not telemetry')], {"TS9"}),
+    ("K-SB35 GS-6: the checks / tables headers drop the choosing-line control", "ck",
+     [('    odd = info.get("choosing_not_one") or []', "    odd = []")], {"X7"}),
+    ("TT7 GS-5 REVERT: a POISONED run's [BADGE] lines after its start are never compared", "tb",
+     [('        disagree = [r for r in rs if (r["t4"]["badge_lines"] or not r["t4"]["badge_pre_start"])\n',
+       '        disagree = [r for r in rs if not r["t4"]["badge_pre_start"]\n')], {"TS8"}),
+    ("TT8 GS-5: the catch-tag control skips POISONED runs", "tb",
+     [('        tags = [x for r in rs for x in r["t4"]["catch_badges"]]',
+       '        tags = [x for r in rs if not r["t4"]["badge_pre_start"] for x in r["t4"]["catch_badges"]]')], {"TS7"}),
+    ("TT9 GS-5: the catch-tag control not printed", "tb",
+     [("""f"{arm} {f[arm]['catch_tags'][0]} lines, {f[arm]['catch_tags'][1]} differ\"""", '''f"{arm} -"''')], {"TS7"}),
+    ("TT10 GS-5: an 'unknown' run counted as 0 badges", "tb",
+     [('"unknown" if r["t4"]["badges_unknown"] else max(r["t4"]["badges"], default=0)', 'max(r["t4"]["badges"], default=0)')],
+     {"TS9"}),
+    ("TT11 [GH52] the disagreement compares the HIGHEST badge only, not the sets", "tb",
+     [('                    and set(r["t4"]["badge_lines"]) != set(r["t4"]["badges"])]',
+       '                    and max(r["t4"]["badge_lines"], default=0) != max(r["t4"]["badges"], default=0)]')],
+     {"GK19"}),
+    ("TT12 GS-5: the 'unknown' count not printed", "tb",
+     [("""" + "   ".join(f"{arm} {f[arm]['badges_unknown']}" for arm in ARMS))""",
+       """" + "   ".join(f"{arm} -" for arm in ARMS))""")], {"TS9"}),
     # ---- mention-only edits turn NOTHING red
     ("M01 MENTION ONLY: a comment quoting a mutant's text", "ck",
      [("#: E2: DESIGN AI-6 — `flag_off` cannot reach a log line, so one that does is a violation.",

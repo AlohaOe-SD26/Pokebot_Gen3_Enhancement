@@ -752,6 +752,13 @@ def run_start(lines) -> "int | None":
     return None
 
 
+def choosing_lines(lines) -> int:
+    """KI-119 (`#27-gradeidentity`, GS-6): how many `Story: choosing X!` STEP lines the log holds — 1 for every run
+    that got its starter. compare_arms' INSTRUMENT CONTROLS list any log with another count (0: cut before its
+    starter; 2 or more: a second start, which `run_start` ignores)."""
+    return sum(1 for line in lines if "Story: choosing" in line and _CHOSEN.search(line))
+
+
 def run_identity(lines) -> dict:
     """`{"species", "pid", "hold", "chosen"}` of one run. `species` / `pid` from the FIRST `[hb]` line whose `ids=` is
     non-empty AFTER the run's choosing line (`run_start`; KI-119: a boot-loaded Hall-of-Fame save logs ITS party in an
