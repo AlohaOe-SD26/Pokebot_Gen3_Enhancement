@@ -469,6 +469,17 @@ passes and (for a completed item) Tier 1 returns PASS; step 5 (commit) may not b
 that. The session's final step-6 push may not happen before Tier 2 returns clean.** `/wrapup`
 and `/checkpoint` carry these steps explicitly (they are outside the managed block).
 
+### ⭐ FOCUS: the AI version (USER RULING 34, 2026-10-03)
+- **The main focus is developing the AI version.** The story bot is NOT abandoned: it reached a good point and
+  is parked, and the user will return to it.
+- **AI concepts move to the bot version only LATER, and only when the user says so.**
+- ⇒ **An AI-version behaviour that needs story-bot code ships behind an AI-only flag whose DEFAULT is the bot's
+  current behaviour**, as `POKEBOT_BOSSMODE_TOPUP` does. Examples: roaming training, buying more Poké Balls,
+  varied counter teams.
+  - The bot version stays exactly as it is unless the AI sets the flag.
+  - "Porting a concept to the bot" later means changing a default, on the user's word.
+  - Never change the bot's default behaviour to serve the AI.
+
 ### AI learner — the hybrid direction (USER RULING 31, 2026-10-03)
 - The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in
   `ai-agent/` (manual: `ai-agent/README.md`) runs 24/7 on the user's PC and is the active line of work. The user

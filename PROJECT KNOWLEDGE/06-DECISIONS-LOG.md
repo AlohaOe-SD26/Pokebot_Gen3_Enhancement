@@ -9207,3 +9207,12 @@ on all three questions:
 - **Today's related code:** counter hunts and box-first (`counter_hunt`, `_counter_ladder`; KI-118's fix on
   `wt/boxfirst`) and `team_policy.lead_rank_key`. Whether they break near-ties at random is UNAUDITED.
 - **Game Corner:** a future feature, not a requirement.
+
+## 2026-10-03 — USER RULING 34: the focus is the AI version; the bot is parked, not abandoned; AI concepts reach the bot only when the user says so
+
+- **The user, VERBATIM:** "Note we are focusing on the ai agent, the bot is not abandoned as we wil return to it in the future but our main focus is developing the AI version now since we got to a good point working on the bot version, just clarifying but once we settle the ai version some of the ai logic (concepts) should definitely be brought over to the bot version but at a later time when I mention it. Understood?"
+- **How it is applied (coordinator, confirmed to the user in the same reply):** the AI version drives the story bot's code as its hands. So an AI behaviour that needs bot code (roaming training, buying more Poké Balls, varied counter teams, ...) ships behind an AI-only flag whose DEFAULT is the bot's current behaviour, as `POKEBOT_BOSSMODE_TOPUP` already does.
+  - The bot version is unchanged unless the AI sets the flag.
+  - Porting a concept to the bot later = changing a default, on the user's word.
+  - Rejected: changing bot defaults to serve the AI (it would silently alter the parked bot version); forking the bot's code into `ai-agent/` (two copies of the same hands drift apart).
+- Recorded in `CLAUDE.md` (project rules: FOCUS), `ai-agent/HUMAN-PLAY-DESIGN.md` and memory.

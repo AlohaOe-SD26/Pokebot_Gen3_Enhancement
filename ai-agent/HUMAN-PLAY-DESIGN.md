@@ -4,6 +4,13 @@
 > `PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` (2026-10-03, verbatim). This file organises them into design pillars and
 > records what the bot does today against each. Edit it as decisions are made; never contradict the rulings.
 
+## How it is built (USER RULING 34)
+
+- The AI version is the focus. The story bot is parked, not abandoned.
+- Any behaviour below that needs story-bot code ships behind an AI-only flag whose default is the bot's current
+  behaviour, so the bot version is untouched.
+- Concepts move to the bot version later, only when the user says so.
+
 ## The goal
 
 Play Pokémon Emerald the way a PERSON does:
