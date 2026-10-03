@@ -37738,3 +37738,11 @@ bought balls only at fixed story points.
 - **Measured** (step 14, 62 scored runs): a median Pokédex of 18.5 at run end (Champion runs 21), against about 65-95 for a person (estimate). The top skip reason is running out of Poké Balls, about 23 per run; the party-slot "runway" reserve is next, about 14.
 - **`ai-research-notes/2026-10-07-humanlike-score-BRIEF.md`:** the plain-English questions for the user and three ways to score human-like play (recommended: one combined score). It is the first step of `#28-aiagent-v2`.
 - **Daily upstream check 2026-10-03:** unchanged (`3bd0b70c`), still parked (`UPDATE-LOG.md`).
+
+## 2026-10-03 (PM) — USER RULING 33 recorded (the human-play design); the learner ranks by a provisional balanced human score
+
+- The user's answers to the brief are logged VERBATIM in `06` (RULING 33) and organised into five pillars in `ai-agent/HUMAN-PLAY-DESIGN.md`: personalities; catching and the Pokédex; training and battling with type and recoil awareness, roaming not spinning; exploring and items, gift items included; the post-game (event Pokémon via a simulated Mystery Gift, trade-only spawns, simulated trades).
+- Gaps found while recording it: story training uses `spin()` in place (`early_game.py` `_story_spin` :202), and dex catches are refused under 10 spare balls (`DEX_CATCH_BALL_RESERVE`, `story_mode.py:1757`).
+- Learner (parser v4): `human_score` = 0.5 x progress/13 + 0.5 x Pokédex/202. `config.json` `objective: human_balanced` (the default; `progress` restores the old ranking) drives the ranking, the incumbent control and the knob effects. The report names the objective. `test_agent.py` ALL PASS (52; new S14, B12, B13).
+- The running learner was NOT stopped. Its screen measures every signal, and its raw logs are kept, so personalities and scores apply retroactively. This deploys at the 2026-10-04 ~2 AM cycle boundary (auto_update, then a reparse at the parser-version change).
+- Addendum, the same day: PC team swapping (hunting teams with Arena Trap or Mean Look; legendary teams; gym and Elite Four counter teams, VARIED at random among sensible choices so runs do not look alike) and Game Corner gambling as a future note. Both are logged verbatim in `06` (RULING 33 addendum) and are pillars 5-6 of `HUMAN-PLAY-DESIGN.md`.

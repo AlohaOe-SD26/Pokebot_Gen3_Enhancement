@@ -13,6 +13,8 @@
   "design": "screen",
   "_auto_update": "between cycles only: fast-forward this deployment clone to origin/main, then restart into new learner code if test_agent.py passes",
   "auto_update": true,
+  "_objective": "what the learner ranks strategies by: human_balanced = half progress, half Pokedex owned (USER RULINGS 32/33, provisional); progress = badges/E4/Champion only",
+  "objective": "human_balanced",
   "wait_if_other_bots_running": true,
   "idle_wait_minutes": 15,
   "max_consecutive_failures": 3,

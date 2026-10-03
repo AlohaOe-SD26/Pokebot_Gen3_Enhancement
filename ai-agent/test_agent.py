@@ -95,6 +95,9 @@ def test_scoring(tmp: Path) -> None:
           r3["dex_owned"] == 3 and r3["catch_skips"] == {"party is not at full strength": 2,
                                                          "a training grind is in progress": 1},
           (r3["dex_owned"], r3["catch_skips"]))
+    check("S14 the balanced human score = half progress/13 + half Pokedex/202",
+          r3["human_score"] == round(0.5 * 0 / 13 + 0.5 * 3 / 202, 4) and c["human_score"] == round(0.5, 4),
+          (r3["human_score"], c["human_score"]))
     import report
     text, _ = report.build(list(recs.values()), [], "test")
     check("S12 the report states the human-like goal and shows the play columns",
@@ -121,6 +124,16 @@ def test_brain() -> None:
     check("B4 k distinct genomes", len(ids) == 4 and len(set(ids)) == 4, ids)
     check("B5 the best-measured genome is the incumbent", ids[0] == brain.genome_id(K.STEP14_A), picks[0][1])
     check("B6 an inbox proposal runs", brain.genome_id(prop["genes"]) in ids)
+    catcher = dict(K.STEP14_A, POKEBOT_R25_CAP="1")
+    mix = [{"genome": K.STEP14_A, "usable": True, "score": 0.7, "human_score": 0.40, "champion": False,
+            "starter": "Mudkip"}] * 6 + \
+          [{"genome": catcher, "usable": True, "score": 0.6, "human_score": 0.50, "champion": False,
+            "starter": "Mudkip"}] * 6
+    best = {k: max(brain.summarize(mix, k).values(), key=lambda s: s["mean"])["label"] for k in ("score", "human_score")}
+    check("B12 the objective decides the ranking: progress prefers the faster genome, the human score the catcher",
+          best["score"].startswith("baseline") and best["human_score"] == "R25_CAP", best)
+    check("B13 the learner ranks by the balanced human score by default (USER RULINGS 32/33)",
+          learner.score_key(learner.DEFAULTS) == "human_score" and learner.score_key({"objective": "progress"}) == "score")
     check("B7 FAULT: an unknown knob is refused", K.validate_genes({"POKEBOT_FAKE": "1"}) != [])
     check("B8 FAULT: a disallowed value is refused", K.validate_genes({"POKEBOT_R25_CAP": "2"}) != [])
     def balanced(rs: list[dict]) -> bool:

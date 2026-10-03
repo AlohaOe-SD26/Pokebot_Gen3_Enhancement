@@ -9131,3 +9131,79 @@ on all three questions:
 - **Not yet measurable from the logs:** overworld item pickups (only 6 `obtained` lines in a whole run; battle item
   use is `[ITEM-FLOW]`). A dedicated item-pickup signal is v2 work.
 - **First reading:** step 14's first Champion run caught 8 species and entered 60 places in the whole game.
+
+## 2026-10-03 — USER RULING 33: the human-play design. Personalities, catching, training with type and recoil awareness, no speedrunning, roaming (not spinning), a favourite-Pokémon shiny hunt, visible and gift items, and the post-game (event Pokémon, trade-only species, simulated trades)
+
+- **The user's answers to the human-like-score brief (2026-10-03), VERBATIM:**
+  > 1: the goal is not to get there insanely fast, it should be playing the game as realistically as possible but we
+  > can create multiple personalities the ai starts with and maintains through out the playthrough or maybe allow it
+  > to change personalities as it plays/over time but revert to what its starting personality was (periodically
+  > changes personalities) like one more focused on catching Pokémon, one more focused on story mode, one more
+  > focused on training, etc.. (we will come up with more) but post champion/elite 4 main personality should change
+  > to focusing on completing the pokedex.
+  >
+  > 2: no real fixed target but the more it is able to catch, the better!
+  >
+  > 3: Yes and also consider type advantages (both pokemon type and move types) as well as recoil damage (to
+  > consider when fighting)
+  >
+  > 4: Speed as in gameplay? The ai should not speed through the game (the personality that wants to beat the game
+  > as fast as possible will focus on progressing the story as fast as it can but does not miss opportunities to get
+  > money, items, stock up, training and catch pokemon)
+  >
+  > 5: Training/hunting pokemon (not spinning in place but running through areas that spawn pokemon like grass, sand
+  > or water for a few examples) others are the obvious movement/exploration, "favorite pokemon" (gets assigned a
+  > random pokemon catchable in the wild in pokemon emerald and periodically wants to shiny hunt it for random
+  > periods of times until it gets one but does not laser focus on this, just another personality maybe? Makes it
+  > seem more human)
+  >
+  > 6: Yes picking up visible items is what it should do if it can reach them, also gift items like Amulet Coin,
+  > Quick Claw, Black Glasses to name a few (there are still many to name and for it to decide to try to get)
+  >
+  > Note: event pokemon (deoxys, jirachi, mew to name a few) would need to be cheated into the game and should be
+  > post game content (we have taken notes on this as simulating the mystery gifts) and also pokemon that are
+  > technically available in the national pokedex that are only obtainable via trade should be added to pokemon
+  > spawn pools that make sense post game and after getting the national dex (i forget if this already happens
+  > natively in the game but if not we should design and add this somehow in the game) and trade evolution locked
+  > pokemon should be obtainable somehow (maybe simulate a trade with a trainer and make up a random but possible
+  > pokemon the trainer wants to trade for the evolution trade pokemon like Machamp and Alakazam to name a few, we can
+  > detail this later but worth mentioning)
+- **Where it lives:** organised into five design pillars in `ai-agent/HUMAN-PLAY-DESIGN.md` (the living design
+  doc), with what the bot does today against each.
+- **Two gaps found while recording it (verified in code):**
+  - Story training and hunting use `spin()`, walking in place on one tile (`modules/story/early_game.py`
+    `_story_spin` :202). The user's answer 5 rules that out.
+  - Dex catches are refused under 10 spare balls (`DEX_CATCH_BALL_RESERVE = 10`, `story_mode.py:1757`). That is the
+    top catch-skip reason, about 23 a game.
+- **Coordinator decisions under this ruling:**
+  - **The 24/7 learner is NOT stopped.** Its screening design measures every knob's effect on every recorded signal,
+    and the raw logs are kept, so personalities and their scores can be applied retroactively.
+  - **The learner's ranking switches tonight from progress-only to a provisional "balanced" human score:** 0.5 x
+    progress/13 + 0.5 x Pokédex owned/202. Per answers 1 and 2, more caught is better, with no target and no cap.
+    It is one personality's placeholder, not the final design. `objective` in `config.json` can switch it back
+    (`progress`).
+  - **Not decided:**
+    - the personality set and how it switches;
+    - its score weights;
+    - the roaming-training behaviour;
+    - item-pickup measurement;
+    - the post-game mechanics.
+
+    These are `#28-aiagent-v2` and later, designed WITH the user.
+
+## 2026-10-03 — USER RULING 33, addendum: PC team swapping for situations (hunting, legendaries, gym and Elite Four counters), VARIED across playthroughs; Game Corner as a future note
+
+- **The user, VERBATIM (sent mid-session, the same day):**
+  > I forgot to mention about a human trait is using the pokemon pc to swap pokemon out for different scenarios
+  > (hunting pokemon that flee for example using arena trap or mean look, legendary pokemon/pokemon hunting teams with
+  > moves to help catch pokemon), battle teams for countering specific gym leaders and or the elite 4 (variable to
+  > prevent each ai playthrough looking too similar to eachother, teams should make sense but not always be the exact
+  > same team, for example if it needs a water counter it should choose water type pokemon randomly so each water
+  > counter team for each run are relatively unique) does this make sense? Also the ai should be able to gamble at the
+  > game corner if it would like (work in progress, more of a note for a future feature than a demand)
+- **Recorded as** pillars 5 and 6 of `ai-agent/HUMAN-PLAY-DESIGN.md`.
+- **The design rule that follows:** choose AT RANDOM among options that are ALL good enough, never among bad ones.
+  Variety must not cost competence.
+- **Today's related code:** counter hunts and box-first (`counter_hunt`, `_counter_ladder`; KI-118's fix on
+  `wt/boxfirst`) and `team_policy.lead_rank_key`. Whether they break near-ties at random is UNAUDITED.
+- **Game Corner:** a future feature, not a requirement.

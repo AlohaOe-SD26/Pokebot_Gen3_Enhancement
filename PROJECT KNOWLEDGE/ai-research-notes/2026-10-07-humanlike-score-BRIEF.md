@@ -1,5 +1,20 @@
 # Decision brief for 2026-10-07: what should "human-like play" score?
 
+> ✅ **ANSWERED by the user on 2026-10-03.** USER RULING 33 in `06` holds the answers verbatim; they are organised
+> into design pillars in `ai-agent/HUMAN-PLAY-DESIGN.md`. In short:
+> - PERSONALITIES (catcher, story, trainer, ...), each keeping its own objective; Pokédex completion after the
+>   Champion;
+> - more caught is always better, with no target;
+> - train to the leader's level, using move and Pokémon types and recoil;
+> - no speedrunning;
+> - roam through grass, sand and water, never spin in place;
+> - a favourite-Pokémon shiny hunt;
+> - visible items and gift items;
+> - post-game event Pokémon, trade-only spawns and simulated trades.
+>
+> Interim: the learner ranks by a provisional "balanced" score (half progress, half Pokédex) until the
+> personalities exist. The text below is the brief as it was asked.
+
 > **For the user.** Read this before 2026-10-07. Answering the questions in §3 is the FIRST step of `#28-aiagent-v2`.
 > The learner keeps collecting every signal below until then, and its raw logs are kept, so any answer can be
 > applied to all past games.

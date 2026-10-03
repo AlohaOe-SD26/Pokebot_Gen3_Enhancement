@@ -37,7 +37,11 @@ MAP_RE = re.compile(r"\[MAP\] .+? -> (.+?)\(\d+,\d+\)")
 #: reason (`[DEXFENCE] skip #278 Wingull — party is not at full strength`). A person catches most of those.
 DEX_RE = re.compile(r"\[DEX\] owned \d+ -> (\d+)")
 SKIP_RE = re.compile(r"\[DEXFENCE\] skip #\d+ .+? — (.+)$")
-PARSER_VERSION = 3
+#: v4: `human_score`, the PROVISIONAL "balanced" objective (USER RULINGS 32/33: play like a person; the more caught
+#: the better, no target, no cap): half progress out of 13, half Pokedex owned out of the 202-species Hoenn Dex.
+#: A placeholder for one personality, not the final design (`HUMAN-PLAY-DESIGN.md`).
+HOENN_DEX = 202
+PARSER_VERSION = 4
 #: A run is ended by its fifth derail (every finished run in step 14's logs ends on `DERAIL #5`).
 DERAIL_CAP = 5
 
@@ -118,6 +122,7 @@ def parse_log(path: Path) -> dict:
     rec["maps_visited"] = len(maps)
     rec["progress"] = len(rec["badges"]) + len(rec["e4"]) + (1 if rec["champion"] else 0)
     rec["score"] = round(rec["progress"] / K.MAX_PROGRESS, 4)
+    rec["human_score"] = round(0.5 * rec["progress"] / K.MAX_PROGRESS + 0.5 * rec["dex_owned"] / HOENN_DEX, 4)
     rec["wall"] = "CHAMPION" if rec["champion"] else K.classify_wall(rec["last_derail"])
     return rec
 

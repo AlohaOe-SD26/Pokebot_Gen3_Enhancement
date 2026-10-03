@@ -51,20 +51,21 @@ def full_env(genes: dict) -> dict:
     return {**K.FIXED, **canonical(genes)}
 
 
-def summarize(records: list[dict]) -> dict:
-    """genome id -> its stats over USABLE runs (complete, with a known starter)."""
+def summarize(records: list[dict], key: str = "score") -> dict:
+    """genome id -> its stats over USABLE runs (complete, with a known starter), measured by `key` ("score" =
+    progress only; "human_score" = the provisional balanced human objective)."""
     out: dict = {}
     for r in records:
         gid = genome_id(r["genome"])
         s = out.setdefault(gid, {"genes": canonical(r["genome"]), "label": label(r["genome"]), "scores": [],
                                  "champions": 0, "censored": 0, "starters": {}})
-        if not r.get("usable"):
+        if not r.get("usable") or r.get(key) is None:
             s["censored"] += 1
             continue
-        s["scores"].append(r["score"])
+        s["scores"].append(r[key])
         s["champions"] += int(r["champion"])
         st = s["starters"].setdefault(r["starter"], [])
-        st.append(r["score"])
+        st.append(r[key])
     for s in out.values():
         n = len(s["scores"])
         s["n"] = n
@@ -209,9 +210,9 @@ def _solve(a: list[list[float]], b: list[float]) -> tuple[list[float], list[list
     return [row[-1] for row in m], [row[n:2 * n] for row in m]
 
 
-def gene_effects(records: list[dict], ridge: float = 1.0) -> list[dict]:
-    """Per knob: the estimated change in score from turning it away from baseline, with a standard error."""
-    rows = [r for r in records if r.get("usable")]
+def gene_effects(records: list[dict], ridge: float = 1.0, key: str = "score") -> list[dict]:
+    """Per knob: the estimated change in `key` from turning it away from baseline, with a standard error."""
+    rows = [r for r in records if r.get("usable") and r.get(key) is not None]
     genes = sorted(K.GENES)
     if len(rows) < len(genes) + 5:
         return []
@@ -219,7 +220,7 @@ def gene_effects(records: list[dict], ridge: float = 1.0) -> list[dict]:
     names = ["(intercept)"] + genes + [f"starter={s}" for s in starters]
     xs = [[1.0] + [float(canonical(r["genome"])[g] != BASE[g]) for g in genes]
           + [float(r["starter"] == s) for s in starters] for r in rows]
-    ys = [r["score"] for r in rows]
+    ys = [r[key] for r in rows]
     p = len(names)
     xtx = [[sum(x[i] * x[j] for x in xs) + (ridge if i == j and i > 0 else 0.0) for j in range(p)] for i in range(p)]
     xty = [sum(x[i] * y for x, y in zip(xs, ys)) for i in range(p)]

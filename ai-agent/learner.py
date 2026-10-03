@@ -68,11 +68,20 @@ RESTART_CODE = 3
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
     "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "screen", "auto_update": True,
+    "objective": "human_balanced",
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
     "consult": {"enabled": False, "max_calls_per_day": 2, "model": "sonnet", "max_usd_per_call": 0.75,
                 "timeout_minutes": 20},
 }
+
+
+#: config `objective` -> the run-record field the learner ranks by (USER RULINGS 32/33, `HUMAN-PLAY-DESIGN.md`).
+OBJECTIVES = {"progress": "score", "human_balanced": "human_score"}
+
+
+def score_key(cfg: dict) -> str:
+    return OBJECTIVES.get(str(cfg.get("objective", "human_balanced")), "human_score")
 
 
 def now() -> str:
@@ -297,7 +306,7 @@ def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
             # A new knob changes the design's size; its row pointer then starts again at row 1.
             start = int(state.get("design_next", 0)) if state.get("design_name", "pb12") == design_name else 0
             design = {"rows": rows, "next": start}
-    picks = brain.choose_arms(k, brain.summarize(records), proposals, random.Random(),
+    picks = brain.choose_arms(k, brain.summarize(records, score_key(cfg)), proposals, random.Random(),
                               float(cfg["two_flip_prob"]), int(cfg["max_proposals_per_cycle"]), design)
     n = state["cycle"] + 1
     while any(PROFILES.glob(f"endless-ai{n:04d}-*")) or (RUNS / f"ai{n:04d}").exists():
@@ -376,7 +385,7 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc) -> bool:
                 shutil.move(str(INBOX / f), INBOX / "done" / f)
     save_state(state)
     log(f"{tag}: batch exit {rc}; {len(records)} runs logged, {usable} scored")
-    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), f"after cycle {tag}")
+    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status=f"after cycle {tag}")
     log(consult.maybe_consult(cfg, REPO, AI, tag))
     prune(cfg, state)
     return ok
@@ -533,7 +542,7 @@ def cmd_ingest(batch_dir: str) -> int:
                                     "exit": "-", "runs": len(records), "path": path,
                                     "usable": sum(1 for r in records if r["usable"]), "arms_label": "step-14 arms"}])
     log(f"ingested {len(records)} new runs from {path}")
-    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "ingested")
+    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status="ingested")
     return 0
 
 
@@ -559,7 +568,7 @@ def cmd_reparse() -> int:
     kept = [r for r in old if r.get("batch") not in covered]
     write_jsonl(RUNS_FILE, kept + fresh)
     log(f"reparse: {len(fresh)} records re-read from {len(sources)} batches; {len(kept)} kept from pruned batches")
-    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "reparsed")
+    report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status="reparsed")
     return 0
 
 
@@ -624,7 +633,7 @@ def main() -> int:
             ap.error("ingest needs a batch directory")
         return cmd_ingest(a.batch_dir)
     if a.command == "report":
-        report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), "report")
+        report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status="report")
         print(FINDINGS / "LATEST.md")
         return 0
     return {"plan": cmd_plan, "status": cmd_status, "publish": cmd_publish, "reparse": cmd_reparse}[a.command]()

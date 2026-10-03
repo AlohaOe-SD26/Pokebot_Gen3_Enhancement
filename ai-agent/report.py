@@ -19,11 +19,19 @@ def _pct(a: int, b: int) -> str:
     return f"{a}/{b} ({100 * a / b:.0f}%)" if b else "0/0"
 
 
-def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, dict]:
-    summary = brain.summarize(records)
+#: What each learner objective ranks by, in words.
+OBJECTIVE_WORDS = {
+    "score": "PROGRESS only (out of 13)",
+    "human_score": "the provisional BALANCED human score: half progress out of 13, half Pokedex owned out of 202 "
+                   "(USER RULINGS 32/33: the more caught the better; a placeholder for one personality)",
+}
+
+
+def build(records: list[dict], cycles: list[dict], status: str, key: str = "score") -> tuple[str, dict]:
+    summary = brain.summarize(records, key)
     mu0 = brain.prior_mean(summary)
     usable = [r for r in records if r.get("usable")]
-    effects = brain.gene_effects(records)
+    effects = brain.gene_effects(records, key=key)
     now = dt.datetime.now().strftime("%Y-%m-%d %I:%M %p")
     lines = [
         "# Emerald AI strategy learner: findings",
@@ -41,6 +49,9 @@ def build(records: list[dict], cycles: list[dict], status: str) -> tuple[str, di
         "combine into one ranking is the user's call (`#28-aiagent-v2`).",
         "",
         "## Strategies ranked (best estimate first)",
+        "",
+        f"**Ranked by:** {OBJECTIVE_WORDS.get(key, key)}. The 'mean score' and 'estimate' columns use it; so do the "
+        f"knob effects below.",
         "",
         "| genome | knobs changed from baseline | runs | mean score | estimate +/- sd | champions | species caught "
         "/ run | Pokedex owned / run | places explored / run | by starter (n, mean) |",
@@ -229,8 +240,8 @@ def _questions(walls, n, effects, ranked) -> list[str]:
     return qs
 
 
-def write(findings: Path, records: list[dict], cycles: list[dict], status: str) -> Path:
-    text, data = build(records, cycles, status)
+def write(findings: Path, records: list[dict], cycles: list[dict], status: str, key: str = "score") -> Path:
+    text, data = build(records, cycles, status, key)
     findings.mkdir(parents=True, exist_ok=True)
     (findings / "LATEST.md").write_text(text, encoding="utf-8")
     (findings / "latest.json").write_text(json.dumps(data, indent=1, default=str), encoding="utf-8")
