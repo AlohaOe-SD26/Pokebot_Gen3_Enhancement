@@ -9236,3 +9236,11 @@ on all three questions:
   - The teacher-side learner's `consult.py` (the `claude` CLI on this PC) stays as it is; it is not the portable path.
   - Current focus: how the FIRST version uses Claude.
 - Recorded in `ai-agent/HUMAN-PLAY-DESIGN.md` (architecture table) and memory.
+
+## 2026-10-03 — USER RULING 36, addendum: only the PRODUCTION version needs an API key; dev/prototype/test versions consult Claude through the chat (reports and logs); a standing setup prompt for the production version, later
+
+- **The user, VERBATIM:** "keep in mind that the "development/prototype/testing" versions should still be able to consult you without the api, they can consult you through the chat and by you reading their reports/logs. Only production/final version would require api keys (we should also note and work on this later but we should also include some sort of initial prompt to send alongside the request for information/help from claude so claude is setup to be ready to be helpful to the ai in the final version)"
+- **Applied:**
+  - The dev/test path is the file mailbox (reports, logs, `inbox/`, `DEVELOPER-NOTES.md`) read in Claude sessions, plus the local `claude` CLI (`consult.py`), with no key.
+  - The production path is the Anthropic API with the user's own key, behind a toggle, carrying a standing INITIAL PROMPT (the game, the AI's goals and personality, its state, the help needed). That prompt is to be written later.
+  - Recorded in `ai-agent/HUMAN-PLAY-DESIGN.md` (architecture table) and memory.

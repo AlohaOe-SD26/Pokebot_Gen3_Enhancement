@@ -24,13 +24,15 @@
 | **Controller (action)** | The AI presses the BUTTONS itself through the emulator. |
 | **Brain (behaviour)** | Entirely the AI's own: walking, exploring, battling, menus, decisions. NONE of the bot's pathfinding, battle strategies or menu scripts while it plays (RULING 35). The bot's logic and docs only TEACH it. |
 | **Claude (coach)** | The FIRST version ASKS Claude for help. Later training versions can still consult Claude. In the FINAL version Claude is optional: **toggled on, with the user's OWN API key** supplied to the program, so anyone it is shared with uses their own Claude, and nothing depends on the user's personal setup. Current focus: how the FIRST version uses Claude. |
+| **How each version reaches Claude** (ruling 36 addendum) | **Development / prototype / testing versions need NO API key.** They consult Claude through the CHAT: they write reports, logs and questions to files, which Claude reads and answers in sessions. They can also call the local `claude` CLI on this PC, as `consult.py` does today. **Only the PRODUCTION / final version requires an API key.** |
+| **Setup prompt** (later) | The production version sends a standing INITIAL PROMPT with every request (the game, the AI's goals and personality, its current state, what kind of help it needs), so the user's own Claude is ready to help from its first reply. To be written later. |
 
 Implications for the build:
-- Claude calls go through the Anthropic API, with the key taken from the user's config or environment, never
-  hard-coded. The teacher-side learner's `consult.py` uses the `claude` CLI on this PC, which is fine for that tool
-  but not portable.
-- The toggle defaults OFF whenever no key is present.
-- Every call is capped and logged, as `consult.py` already does.
+- The dev and test path is the file mailbox (reports, logs, `inbox/` proposals, `DEVELOPER-NOTES.md`) plus the
+  local `claude` CLI, so no key is needed.
+- The production path is the Anthropic API, with the key taken from the user's config or environment, never
+  hard-coded, behind a toggle that is OFF without a key. It carries the setup prompt.
+- Every call on either path is capped and logged, as `consult.py` already does.
 
 ## The goal
 
