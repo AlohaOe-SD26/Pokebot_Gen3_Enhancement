@@ -16,6 +16,22 @@
 - The 24/7 learner in this folder tunes the BOT: teacher-side knowledge and a corpus of games. The AI player is
   still to be designed (`#28-aiagent-v2`).
 
+## The AI player's architecture: decisions so far (USER RULING 36, 2026-10-03)
+
+| part | decision |
+|---|---|
+| **Eyes (perception)** | Read the game's MEMORY by injection, as the bot does: position, map, party, battle state, bag, flags. The user: "the ai sees the game like the bot by injection as it makes more sense". The emulator and memory-reading layer can be shared with the bot. |
+| **Controller (action)** | The AI presses the BUTTONS itself through the emulator. |
+| **Brain (behaviour)** | Entirely the AI's own: walking, exploring, battling, menus, decisions. NONE of the bot's pathfinding, battle strategies or menu scripts while it plays (RULING 35). The bot's logic and docs only TEACH it. |
+| **Claude (coach)** | The FIRST version ASKS Claude for help. Later training versions can still consult Claude. In the FINAL version Claude is optional: **toggled on, with the user's OWN API key** supplied to the program, so anyone it is shared with uses their own Claude, and nothing depends on the user's personal setup. Current focus: how the FIRST version uses Claude. |
+
+Implications for the build:
+- Claude calls go through the Anthropic API, with the key taken from the user's config or environment, never
+  hard-coded. The teacher-side learner's `consult.py` uses the `claude` CLI on this PC, which is fine for that tool
+  but not portable.
+- The toggle defaults OFF whenever no key is present.
+- Every call is capped and logged, as `consult.py` already does.
+
 ## The goal
 
 Play Pokémon Emerald the way a PERSON does:

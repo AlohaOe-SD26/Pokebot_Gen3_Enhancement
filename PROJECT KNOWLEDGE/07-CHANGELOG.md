@@ -37750,3 +37750,5 @@ bought balls only at fixed story points.
 ## 2026-10-03 (PM) — USER RULING 34 recorded: focus on the AI version; AI behaviours ship behind AI-only flags whose default is the bot's current behaviour; porting to the bot happens only when the user says (`CLAUDE.md`, `06`, `HUMAN-PLAY-DESIGN.md`)
 
 ## 2026-10-03 (PM) — USER RULING 35 recorded: the AI plays the game itself and the bot is only its teacher. The 24/7 learner is reclassified as teacher-side; the AI player (perception, button-level control, learning from the bot) is `#28-aiagent-v2`
+
+## 2026-10-03 (PM) — USER RULING 36 recorded: the AI player perceives the game by memory injection; the first version asks Claude; later versions consult Claude only when toggled on with the user's own API key (`HUMAN-PLAY-DESIGN.md` architecture table)

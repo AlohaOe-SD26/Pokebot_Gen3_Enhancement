@@ -9226,3 +9226,13 @@ on all three questions:
 - **Kept:** the learner runs until the user decides otherwise. It costs no credits, and its knowledge and games are teaching material. `POKEBOT_BOSSMODE_TOPUP` stays, since its default is the bot's old behaviour. Never change the bot's defaults for the AI.
 - **Facts for the design (measured 2026-10-03):** the user's PC has an AMD Ryzen 9 5950X (16 cores, 32 threads), 128 GB RAM and an NVIDIA RTX 2060 (6 GB), enough to train a modest game-playing model locally.
 - Recorded in `CLAUDE.md` (FOCUS), `ai-agent/README.md`, `ai-agent/HUMAN-PLAY-DESIGN.md`, `01`, `03`, `04` and memory.
+
+## 2026-10-03 — USER RULING 36: the AI player's eyes and its Claude coach. Perception by memory injection (as the bot does); the first version asks Claude; later versions consult Claude only when toggled on with the USER'S OWN API key (shareable, no dependency on one person's setup)
+
+- **The user, VERBATIM:** "1: the ai sees the game like the bot by injection as it makes more sense" and "2: first version should ask claude, all future training version should still be able to consult claude and potentially the final version but requires to be toggled on and an api key to be provided to the program so the user can use their own claude agent (prevents dependency on my claude setup, I plan to share this with friends) but for now we can focus on the first versions goal of how it uses claude"
+- **The boundary, as confirmed to the user:** EYES = memory reading through the emulator (shareable with the bot's framework); CONTROLLER = the AI presses buttons itself; BRAIN = entirely the AI's own (no bot pathfinding, battle strategies or menu scripts while playing, RULING 35).
+- **Build implications:**
+  - Claude is reached through the Anthropic API with a user-supplied key (config or environment, never hard-coded), behind a toggle that is OFF without a key, every call capped and logged.
+  - The teacher-side learner's `consult.py` (the `claude` CLI on this PC) stays as it is; it is not the portable path.
+  - Current focus: how the FIRST version uses Claude.
+- Recorded in `ai-agent/HUMAN-PLAY-DESIGN.md` (architecture table) and memory.
