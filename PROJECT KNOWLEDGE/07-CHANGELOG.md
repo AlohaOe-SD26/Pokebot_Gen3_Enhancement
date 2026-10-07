@@ -37768,3 +37768,27 @@ bought balls only at fixed story points.
 - Daily upstream check 2026-10-07: unchanged (`3bd0b70c`).
 
 ## 2026-10-07 — USER RULING 37 recorded (AI player v1 decisions: badge 1 split into four chapters; a standalone-ready `ai_player/` package; strict listener isolation; a Sonnet coach with escalation to Opus; human but never-idle pacing; three personalities). The learner goes to 16 lanes.
+
+## 2026-10-07 — AI player step 0 (purity scaffolding) BUILT and PROVEN: `ai_player/` + the hook `sandbox-pokebot/plugins/custom_modes/ai_player_mode.py`
+
+- **What:** the AI's package (`py -3.12 -m ai_player run --profile NAME ...`).
+  - It isolates listeners: on entry it removes every framework listener it does not own, keeps a guard, and restores them on exit.
+  - It attributes every press, memory write and save-state load (foreign vs AI), with a live bot-code monitor (`sys.monitoring`) and latched-input and memory diffs.
+  - It has a guaranteed exit: give-up, a crash, parking or a restarted mode all end the process with `[AI-EXIT] reason=... code=N`, and the launcher has a wall clock.
+  - An AST gate (`ai_player/gates/check_purity.py`, 26 fault tests) allows framework doors only, and no write, load or reset calls. The launcher refuses to start an ungated package.
+  - The step-0 brain is a placeholder that presses nothing.
+- **How it was built:** a workflow (implement, an independent verifier, 2 fix rounds, an adversarial review); the verifier found gate gaps twice, all closed.
+- **Proven:** `live_step0.py` OVERALL PASS over 27 arms (evidence `ai_player/evidence/2026-10-07-step0-*.txt`). Re-read by the coordinator:
+  - A, a fresh New Game: CLEAN, exit 0;
+  - A2, a battle fixture with the AI isolating: CLEAN;
+  - B, the same fixture with listeners kept (FAULT): `foreign_presses=356`, BREACH, exit 6, from `battle_handler.py:414`;
+  - C, an injected crash: exit 2, no parking;
+  - plus write, load, tamper, frame and stray-exit plant arms, each caught.
+- **The adversarial review's open items (MEDIUM and below; the next step, 0.1):**
+  - a reset or state load rebuilds the framework listeners (`main.py:120-132`), and no arm covers it;
+  - the A2/W2 after-state checks can pass on the untouched seed;
+  - the counters are mutable at run time;
+  - the hook puts the repo root ahead of the stdlib;
+  - the `platform` subpackage shadows the stdlib (rename it);
+  - the clock/HTTP channels; debug mode; Ctrl+C; a thread-local peek;
+  - Arm B uses a wild, not a trainer, battle.

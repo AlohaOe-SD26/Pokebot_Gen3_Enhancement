@@ -1,0 +1,81 @@
+AI PLAYER BUILD STEP 0 - LIVE PROOF - ARM XR: the XP plant WITHOUT --allow-ungated: the launcher must refuse
+date: 2026-10-07 12:04:28
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fixture --frames 3000 --wall-seconds 240 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-120427-XR --state C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\oldale.ss1
+cwd: a TEMPORARY planted copy of the package (deleted after the run)
+env switches: none
+seed: fixture tools/story-dev/saves/oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a
+code: HEAD 0d70f692; ai_player/ + hook have UNCOMMITTED changes (the code under test is the working tree)
+exit code: 7   elapsed: 0.5s
+run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-120427-XR
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step0.py's docstring):
+  [PASS] the launcher's gate failed the planted copy: [AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_y5a55slz\ai_player
+  [PASS] and refused: [AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+  [PASS] exit code 7 (got 7)
+  [PASS] the framework was never started
+  [PASS] the AI never started
+  [PASS] no verdict file
+  [PASS] the refusal names the planted file
+
+---- the instrument's verdict file (purity.json): what the grade rests on ----
+(none)
+
+---- the plant (ai_player/_plant.py in the copy; mode.py calls tick(step, self) every brain step) ----
+"""PLANTED by ai_player/gates/live_step0.py into a TEMPORARY COPY of the package. Never in the real one."""
+from modules.context import context
+
+__all__ = ["tick"]
+
+
+def tick(step: int, session=None) -> None:
+    if step % 8 == 0:
+        context.emulator._pressed_inputs |= 1  # press A through no door
+
+---- static gate on the planted copy (exit 1) ----
+AI PLAYER PURITY GATE (offline AST)
+  play       10: __init__.py, _plant.py, mode.py, options.py, runlog.py, platform/__init__.py, platform/controller.py, platform/isolation.py, platform/lifecycle.py, <hook>
+  instrument 1: platform/attribution.py
+  launcher   2: __main__.py, platform/launcher.py
+  test side (not scanned for a/b/d/f): gates/__init__.py, gates/check_purity.py, gates/inspect_state.py, gates/live_step0.py, gates/test_check_purity.py
+  framework top-level names: 17 (discovered in the build root)
+  libraries: 26 allowlisted, judged against Python 3.12.4 (cpython-312)
+  __pycache__: 0 current cache file(s) proven equal to their source; 0 of another interpreter not judged (it cannot load them)
+  instrument sha256: ae29ece922c245f0d4730431cf9546c1a3cb932b0284a6d117d22e887473b6ec (pinned)
+  allowlisted framework imports found: 8
+  ok   ai_player/platform/attribution.py:91 import modules.memory as framework_memory
+  ok   ai_player/platform/attribution.py:92 from mgba import ffi
+  ok   ai_player/platform/attribution.py:93 from modules.context import context
+  ok   ai_player/platform/controller.py:20 from modules.context import context
+  ok   ai_player/platform/isolation.py:31 from modules.context import context
+  ok   ai_player/platform/isolation.py:32 from modules.modes._interface import BotListener
+  ok   ai_player/platform/lifecycle.py:40 from modules.context import context
+  ok   <hook> ai_player_mode.py:27 from modules.modes._interface import BotMode
+  platform exports (__all__), pinned by rule g:
+    platform/__init__.py: (empty)
+    platform/attribution.py: Attribution, PurityCounters, Sealed
+    platform/controller.py: BUTTONS, MAX_ACTION_FRAMES, Controller, ControllerError
+    platform/isolation.py: GuardListener, ListenerIsolation, describe
+    platform/launcher.py: ENV_BUILD_ROOT, GATE_REFUSED_EXIT, NO_VERDICT_EXIT, PROFILE_MARKER, UNTRUSTED_ENV, WALL_CLOCK_EXIT, ChildResult, GateRun, LaunchError, bot_command, child_env, ensure_profile, hook_path, kill_tree, package_root, read_verdict, resolve_build_root, run_child, run_gate, seed_profile, soft_deadline_margin
+    platform/lifecycle.py: EXIT_BRAIN_RETURNED, EXIT_CRASH, EXIT_FRAME_BUDGET, EXIT_OK, EXIT_PARKED, EXIT_PURITY_BREACH, EXIT_WALL_CLOCK, Lifecycle, current_bot_mode
+  VIOLATIONS: 3
+  FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+  FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+  FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+VERDICT: FAIL
+
+---- evidence lines (the [AI-*] lines from stdout) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_y5a55slz\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+[AI-GATE] FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+[AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+
+---- stdout (full) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_y5a55slz\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+[AI-GATE] FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+[AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+
+---- ai_player.log (the AI's own log file) ----
+(none)
