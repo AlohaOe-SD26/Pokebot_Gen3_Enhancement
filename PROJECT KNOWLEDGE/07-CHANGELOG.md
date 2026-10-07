@@ -37753,3 +37753,16 @@ bought balls only at fixed story points.
 
 ## 2026-10-03 (PM) — USER RULING 36 recorded: the AI player perceives the game by memory injection; the first version asks Claude; later versions consult Claude only when toggled on with the user's own API key (`HUMAN-PLAY-DESIGN.md` architecture table)
 - Addendum, the same day: only the production version needs an API key. Dev/prototype/test versions consult Claude through the chat (reports and logs) or the local CLI. The production version will send a standing setup prompt (later).
+
+## 2026-10-07 — Session start: the learner's four days read; the AI-player v1 design draft written, adversarially reviewed and folded
+
+- **The learner (clone, unattended since 2026-10-03):**
+  - cycles ai0004-ai0009 finished with no failures (75-87 scored runs each); ai0010 is running; 732 runs logged, 540 scored, 77 Champions; it updated and restarted by itself on 10-04;
+  - the H16 screen is complete (16 of 16 rows), so every knob is separable. ALL knob effects on the balanced human score are small (|effect| <= 0.024, se ~0.013, none past 2 se);
+  - ⇒ tuning the bot has hit diminishing returns. Its limits are rules, not knobs: the ball reserve (~19 skips per run), the party-slot runway (~16), under-levelling, spin training. This supports RULING 35;
+  - 5 consults ran; their notes (`DEVELOPER-NOTES.md` in the clone) agree on ball supply, catch-to-box, train to ~Lv 38 before Tate & Liza, KI-122 and KI-118.
+- **`ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md`** comes from a workflow of three research angles (prior art, the codebase eyes/controller/brain boundary, how v1 asks Claude), a synthesizer and an adversarial reviewer.
+  - v1 = a vertical slice: New Game to Petalburg, played by the AI's own code.
+  - The review found 5 HIGH problems. Three were re-verified in code by the coordinator: `BattleListener` forces the bot's `DefaultBattleStrategy` in trainer battles; plugin listeners write memory; a finished or crashed mode restarts or parks silently.
+  - All fixes are adopted in §10, which wins over §2-§9. 8 open questions go to the user.
+- Daily upstream check 2026-10-07: unchanged (`3bd0b70c`).
