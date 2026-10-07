@@ -1,0 +1,267 @@
+AI PLAYER BUILD STEP 0.1 - LIVE PROOF - ARM M1r: MUTANT of RLF: the rebuild door reverted (isolation never takes get_bot_listeners)
+date: 2026-10-07 16:09:50
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fixture --frames 3000 --wall-seconds 60 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r --state C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\oldale.ss1 --allow-ungated
+package run: a TEMPORARY copy of the package (deleted after the run)
+env switches: none
+seed: fixture tools/story-dev/saves/oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a
+code: HEAD 7393a848; ai_player/ + hook have UNCOMMITTED changes (the code under test is the working tree)
+exit code: 6   elapsed: 3.8s
+run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step0.py's docstring):
+  [PASS] the mutation was applied in the copy: ['host/session.py: APPLIED: rebind=False,  # MUTANT M1r']
+  [PASS] REVERTED FIX DETECTED: grade_RLF FAILS on the mutant (9 behavioural checks of 23 fail; 0 provenance checks fail by construction and are not counted)
+  [PASS]   grade_RLF failing check: NON-VACUITY: main.py rebuilt its listeners through the AI's door: rebuilds_served=0
+  [PASS]   grade_RLF failing check: the foreign listener was never built (the rebuild got the AI's list)
+  [PASS]   grade_RLF failing check: foreign_presses=1 (want 0)
+  [PASS]   grade_RLF failing check: isolation_lost=1 (want 0)
+  [PASS]   grade_RLF failing check: the AI was NOT starved: it reached its own give-up: MISSING
+  [PASS]   grade_RLF failing check: verdict file: exit_reason=isolation-lost exit_code=6 (want purity-breach / 6)
+  [PASS]   grade_RLF failing check: printed exit line agrees: [AI-EXIT] reason=isolation-lost code=6
+  [PASS]   grade_RLF failing check: afterwards the wild battle is STILL waiting (no framework listener fought it): 
+
+---- MUTANT: the fix this arm reverts (text mutations, each applied exactly once) ----
+host/session.py: APPLIED: rebind=False,  # MUTANT M1r
+
+---- the instrument's verdict file (purity.json): what the grade rests on ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 0,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 1,
+    "foreign_presses": 1,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 1,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 302,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 6,
+    "exit_reason": "isolation-lost",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=FRAMEWORK (FAULT_NO_REBIND)",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0 isolation_held_until_exit=False members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=None rebuild_door_restored=False"
+    },
+    "package_root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\ai_player_plant_RLF_24bbymtw"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {
+    "isolation": {
+      "a real frame was about to run without the AI's guard in context.bot_listeners (n=15 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener,StarvingListener]): the framework rebuilt or replaced its listeners": 1
+    },
+    "loads": {
+      "foreign_rewinder_plugin.py:31 rewind->load_save_state": 1
+    },
+    "presses": {
+      "foreign_rewinder_plugin.py:8 _starve->press_button": 1
+    }
+  },
+  "pid": 9788,
+  "verdict": "BREACH",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- the plant (ai_player/_plant.py in the copy; host/session.py calls tick(step, self) every brain step) ----
+"""PLANTED by ai_player/gates/live_step0.py into a TEMPORARY COPY of the package. Never in the real one."""
+from textwrap import dedent as textwrap_dedent
+import modules.main as framework_main
+import modules.plugins as framework_plugins
+from modules.context import context
+
+__all__ = ["tick"]
+SAVED = []
+FOREIGN_SOURCE = """
+from modules.context import context
+from modules.plugin_interface import BotPlugin
+
+
+def _starve():
+    for _ in range(10_000_000):
+        context.emulator.press_button("A")
+        yield
+
+
+class StarvingListener:
+    def __init__(self):
+        self.pushed = False
+
+    def handle_frame(self, bot_mode, frame):
+        if not self.pushed:
+            self.pushed = True
+            print("[PLANT] a FRESH foreign listener ran and pushed a pressing handler on top of the AI", flush=True)
+            context.controller_stack.append(_starve())
+
+
+class StarvingPlugin(BotPlugin):
+    def get_additional_bot_listeners(self):
+        return [StarvingListener()]
+
+
+def make_rewinder(state):
+    def rewind():
+        print("[PLANT] the FOREIGN rewinder runs from main.py's work_queue, between frames", flush=True)
+        context.emulator.load_save_state(state)
+    return rewind
+"""
+FOREIGN = {}
+# A plain relative file name: it resolves under the framework's folder, never under ai_player/.
+exec(compile(textwrap_dedent(FOREIGN_SOURCE), "foreign_rewinder_plugin.py", "exec"), FOREIGN)
+
+
+def tick(step: int, session=None) -> None:
+    if step == 20:
+        framework_plugins.plugins.append(FOREIGN["StarvingPlugin"]())
+        print("[PLANT] registered a foreign plugin; only a listener REBUILD would construct its listener", flush=True)
+    if step == 30:
+        SAVED.append(context.emulator.get_save_state())
+    if step == 300 and SAVED:
+        print("[PLANT] queued a FOREIGN rewind of 270 frames on main.py's work_queue", flush=True)
+        framework_main.work_queue.put(FOREIGN["make_rewinder"](SAVED[0]))
+
+---- static gate run by the driver on the package that ran (exit 1) ----
+AI PLAYER PURITY GATE (offline AST)
+  play       11: __init__.py, _plant.py, mode.py, options.py, runlog.py, host/__init__.py, host/controller.py, host/isolation.py, host/lifecycle.py, host/session.py, <hook>
+  instrument 1: host/attribution.py
+  launcher   2: __main__.py, host/launcher.py
+  test side (not scanned for a/b/d/f): gates/__init__.py, gates/check_purity.py, gates/console_signal.py, gates/inspect_state.py, gates/live_step0.py, gates/make_trainer_fixture.py, gates/test_check_purity.py, gates/test_host.py
+  framework top-level names: 17 (discovered in the build root)
+  libraries: 28 allowlisted, judged against Python 3.12.4 (cpython-312)
+  __pycache__: 0 current cache file(s) proven equal to their source; 0 of another interpreter not judged (it cannot load them)
+  instrument sha256: 4ba24f27f519d53b66d6e38119338b7ee7f46795554cb71f910b93845e9b0103 (pinned)
+  allowlisted framework imports found: 10
+  ok   ai_player/host/attribution.py:169 import modules.memory as framework_memory
+  ok   ai_player/host/attribution.py:170 from mgba import ffi
+  ok   ai_player/host/attribution.py:171 from modules.context import context
+  ok   ai_player/host/controller.py:23 from modules.context import context
+  ok   ai_player/host/isolation.py:44 import modules.main as framework_main
+  ok   ai_player/host/isolation.py:45 from modules.context import context
+  ok   ai_player/host/isolation.py:46 from modules.modes._interface import BotListener
+  ok   ai_player/host/session.py:56 from modules.context import context
+  ok   <hook> ai_player_mode.py:41 from modules.context import context
+  ok   <hook> ai_player_mode.py:42 from modules.modes._interface import BotMode
+  host exports (__all__), pinned by rule g:
+    host/__init__.py: (empty)
+    host/attribution.py: Attribution, Guarded, PurityCounters, Sealed, seal_module
+    host/controller.py: BUTTONS, MAX_ACTION_FRAMES, Controller, ControllerError
+    host/isolation.py: GuardListener, ListenerIsolation, describe
+    host/launcher.py: ENV_BUILD_ROOT, GATE_REFUSED_EXIT, NO_VERDICT_EXIT, PROFILE_MARKER, UNTRUSTED_ENV, WALL_CLOCK_EXIT, ChildResult, GateRun, LaunchError, bot_command, check_package_resolution, child_env, ensure_profile, force_http_off, hook_path, kill_tree, package_root, read_verdict, resolve_build_root, run_child, run_gate, seed_profile, soft_deadline_margin
+    host/lifecycle.py: EXIT_BRAIN_RETURNED, EXIT_CRASH, EXIT_FRAME_BUDGET, EXIT_INTERRUPTED, EXIT_OK, EXIT_PARKED, EXIT_PURITY_BREACH, EXIT_REFUSED, EXIT_WALL_CLOCK, Lifecycle
+    host/session.py: Session, start_session
+  VIOLATIONS: 6
+  FAIL ai_player/_plant.py:3 [a] `import modules.main as framework_main` is a framework import that is not on any allowlist for this file
+  FAIL ai_player/_plant.py:4 [a] `import modules.plugins as framework_plugins` is a framework import that is not on any allowlist for this file
+  FAIL ai_player/_plant.py:5 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+  FAIL ai_player/_plant.py:44 [d] uses the name `exec`: it imports, evaluates or looks up names at run time
+  FAIL ai_player/_plant.py:44 [d] uses the name `compile`: it imports, evaluates or looks up names at run time
+  FAIL ai_player/_plant.py:44 [d] has a string naming `exec`: it imports, evaluates or looks up names at run time
+VERDICT: FAIL
+
+---- evidence lines (the [AI-*] / [SIGNAL] / [PLANT] lines from stdout) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:3 [a] `import modules.main as framework_main` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:4 [a] `import modules.plugins as framework_plugins` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:5 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] uses the name `exec`: it imports, evaluates or looks up names at run time
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] uses the name `compile`: it imports, evaluates or looks up names at run time
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] has a string naming `exec`: it imports, evaluates or looks up names at run time
+[AI-GATE] launching ANYWAY (--allow-ungated): this run is a fault arm, not an AI run
+[AI-RUN] package: the child imports ai_player from C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step0-fixture exists (ai_player-owned=True)
+[AI-RUN] state: seeded from oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step0-fixture/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=3000 wall_seconds=60 soft_deadline_margin=6s switches=none dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fixture -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=3000 switches=none wall_deadline=1791414641.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=FRAMEWORK (FAULT_NO_REBIND) keep_foreign=False
+[PLANT] registered a foreign plugin; only a listener REBUILD would construct its listener
+[PLANT] queued a FOREIGN rewind of 270 frames on main.py's work_queue
+[PLANT] the FOREIGN rewinder runs from main.py's work_queue, between frames
+[PLANT] a FRESH foreign listener ran and pushed a pressing handler on top of the AI
+[AI-LIFECYCLE] the instrument found a real frame about to run without the AI's guard listener: the framework rebuilt its listeners behind the AI's back; ending the run before that frame
+[AI-PURITY] foreign_presses=1 foreign_writes=0 foreign_loads=1 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=1 real_frames=302 peek_restores=0 verdict=BREACH
+[AI-PURITY-ORIGINS] presses=[foreign_rewinder_plugin.py:8 _starve->press_button x1]; loads=[foreign_rewinder_plugin.py:31 rewind->load_save_state x1]; isolation=[a real frame was about to run without the AI's guard in context.bot_listeners (n=15 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener,StarvingListener]): the framework rebuilt or replaced its listeners x1]
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0 isolation_held_until_exit=False members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=None rebuild_door_restored=False
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r\purity.json
+[AI-EXIT] reason=isolation-lost code=6
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=6 elapsed=3.3s killed=False
+[AI-RUN] verdict file: verdict=BREACH exit_reason=isolation-lost exit_code=6 pid=9788 package_is_the_gated_one=True
+
+---- stdout (full) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:3 [a] `import modules.main as framework_main` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:4 [a] `import modules.plugins as framework_plugins` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:5 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] uses the name `exec`: it imports, evaluates or looks up names at run time
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] uses the name `compile`: it imports, evaluates or looks up names at run time
+[AI-GATE] FAIL ai_player/_plant.py:44 [d] has a string naming `exec`: it imports, evaluates or looks up names at run time
+[AI-GATE] launching ANYWAY (--allow-ungated): this run is a fault arm, not an AI run
+[AI-RUN] package: the child imports ai_player from C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step0-fixture exists (ai_player-owned=True)
+[AI-RUN] state: seeded from oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step0-fixture/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=3000 wall_seconds=60 soft_deadline_margin=6s switches=none dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fixture -m AI Player -s 0 -na -hl
+Starting PokéBot Gen3 dev!
+Running mGBA 0.10.2
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=3000 switches=none wall_deadline=1791414641.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=FRAMEWORK (FAULT_NO_REBIND) keep_foreign=False
+[PLANT] registered a foreign plugin; only a listener REBUILD would construct its listener
+[PLANT] queued a FOREIGN rewind of 270 frames on main.py's work_queue
+[PLANT] the FOREIGN rewinder runs from main.py's work_queue, between frames
+[PLANT] a FRESH foreign listener ran and pushed a pressing handler on top of the AI
+[AI-LIFECYCLE] the instrument found a real frame about to run without the AI's guard listener: the framework rebuilt its listeners behind the AI's back; ending the run before that frame
+[AI-PURITY] foreign_presses=1 foreign_writes=0 foreign_loads=1 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=1 real_frames=302 peek_restores=0 verdict=BREACH
+[AI-PURITY-ORIGINS] presses=[foreign_rewinder_plugin.py:8 _starve->press_button x1]; loads=[foreign_rewinder_plugin.py:31 rewind->load_save_state x1]; isolation=[a real frame was about to run without the AI's guard in context.bot_listeners (n=15 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener,StarvingListener]): the framework rebuilt or replaced its listeners x1]
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0 isolation_held_until_exit=False members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=None rebuild_door_restored=False
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r\purity.json
+[AI-EXIT] reason=isolation-lost code=6
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+Shutting down...
+Save state C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\states\2026-10-07_16-09-50.ss1 created!
+Updated `current_state.ss1`!
+Exception ignored in atexit callback: <function on_exit at 0x000002228E1CD940>
+Traceback (most recent call last):
+  File "C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py", line 41, in on_exit
+    if gui is not None and gui.window is not None:
+                           ^^^^^^^^^^
+AttributeError: 'PokebotHeadless' object has no attribute 'window'
+[AI-RUN] child exit code=6 elapsed=3.3s killed=False
+[AI-RUN] verdict file: verdict=BREACH exit_reason=isolation-lost exit_code=6 pid=9788 package_is_the_gated_one=True
+
+---- ai_player.log (the AI's own log file) ----
+[AI-START] mode='AI Player' frames=3000 switches=none wall_deadline=1791414641.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_RLF_24bbymtw
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=FRAMEWORK (FAULT_NO_REBIND) keep_foreign=False
+[AI-LIFECYCLE] the instrument found a real frame about to run without the AI's guard listener: the framework rebuilt its listeners behind the AI's back; ending the run before that frame
+[AI-PURITY] foreign_presses=1 foreign_writes=0 foreign_loads=1 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=1 real_frames=302 peek_restores=0 verdict=BREACH
+[AI-PURITY-ORIGINS] presses=[foreign_rewinder_plugin.py:8 _starve->press_button x1]; loads=[foreign_rewinder_plugin.py:31 rewind->load_save_state x1]; isolation=[a real frame was about to run without the AI's guard in context.bot_listeners (n=15 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener,StarvingListener]): the framework rebuilt or replaced its listeners x1]
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x222c5ef73c0 isolation_held_until_exit=False members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=None rebuild_door_restored=False
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261007-160946-M1r\purity.json
+[AI-EXIT] reason=isolation-lost code=6

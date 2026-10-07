@@ -23,7 +23,9 @@ __all__ = [
     "ENV_FAULT_HANG",
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
+    "ENV_FAULT_NO_REBIND",
     "ENV_FAULT_RAISE",
+    "ENV_FAULT_SKIP_RESTORE",
     "ENV_FRAMES",
     "ENV_PACKAGE_ROOT",
     "ENV_RUN_DIR",
@@ -33,6 +35,8 @@ __all__ = [
 
 ENV_FRAMES = "AI_PLAYER_FRAMES"
 ENV_RUN_DIR = "AI_PLAYER_RUN_DIR"
+#: The folder that CONTAINS `ai_player/`. The hook APPENDS it to `sys.path` (never in front of the
+#: standard library), and the session checks that `ai_player` really loaded from there.
 ENV_PACKAGE_ROOT = "AI_PLAYER_PACKAGE_ROOT"
 #: Unix time at which the mode ends ITSELF with reason `wall-clock`, a few seconds before the
 #: launcher's hard kill, so that a run that runs out of time still prints its purity verdict.
@@ -46,13 +50,27 @@ ENV_FAULT_RAISE = "AI_PLAYER_FAULT_RAISE"
 #: Manual (`modules/main.py` 155-166). Proves the guard ends the process instead of parking.
 ENV_FAULT_MANUAL = "AI_PLAYER_FAULT_MANUAL"
 #: FAULT: the brain blocks the main thread (bounded), so neither the guard nor the soft deadline can
-#: run. Proves the launcher's HARD wall clock still ends the run, and says it has no verdict.
+#: run. Proves the launcher's HARD wall clock still ends the run, and says it has no verdict (arm T2);
+#: and that Ctrl+Break in the framework's own console still ends it, WITH a verdict, through the
+#: session's interrupt watch (arm IH).
 ENV_FAULT_HANG = "AI_PLAYER_FAULT_HANG"
+#: FAULT: isolation does NOT take over the framework's listener-rebuild door
+#: (`modules.main.get_bot_listeners`). With a reset or a rewind in the run, the framework's fresh
+#: listeners come back without the AI's guard: proves the instrument's per-frame isolation check
+#: ends that run as `isolation-lost` instead of letting it starve silently.
+ENV_FAULT_NO_REBIND = "AI_PLAYER_FAULT_NO_REBIND"
+#: FAULT: isolation does not give the framework its listener list back at the end. Proves the hook's
+#: INDEPENDENT `[AI-HOOK]` observation of the list at process exit can fail (it is not true by
+#: construction).
+ENV_FAULT_SKIP_RESTORE = "AI_PLAYER_FAULT_SKIP_RESTORE"
 #: CONTROL (not a fault): the placeholder taps B through the controller. Proves AI presses are
 #: COUNTED as AI presses, so `ai_presses=0` in the normal arm is a measurement, not a dead counter.
 ENV_CONTROL_TAP = "AI_PLAYER_CONTROL_TAP"
 
-ALL_SWITCHES = (ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_CONTROL_TAP)
+ALL_SWITCHES = (
+    ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
+    ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP,
+)
 
 DEFAULT_FRAMES = 3000
 
@@ -76,6 +94,8 @@ class RunOptions:
     fault_raise: bool
     fault_manual: bool
     fault_hang: bool
+    fault_no_rebind: bool
+    fault_skip_restore: bool
     control_tap: bool
 
     @classmethod
@@ -94,6 +114,8 @@ class RunOptions:
             fault_raise=_flag(ENV_FAULT_RAISE),
             fault_manual=_flag(ENV_FAULT_MANUAL),
             fault_hang=_flag(ENV_FAULT_HANG),
+            fault_no_rebind=_flag(ENV_FAULT_NO_REBIND),
+            fault_skip_restore=_flag(ENV_FAULT_SKIP_RESTORE),
             control_tap=_flag(ENV_CONTROL_TAP),
         )
 
@@ -105,6 +127,8 @@ class RunOptions:
                 ("FAULT_RAISE", self.fault_raise),
                 ("FAULT_MANUAL", self.fault_manual),
                 ("FAULT_HANG", self.fault_hang),
+                ("FAULT_NO_REBIND", self.fault_no_rebind),
+                ("FAULT_SKIP_RESTORE", self.fault_skip_restore),
                 ("CONTROL_TAP", self.control_tap),
             )
             if on

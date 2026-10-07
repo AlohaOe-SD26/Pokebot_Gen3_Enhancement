@@ -9262,3 +9262,14 @@ on all three questions:
   - Q7: the learner goes to `max_lanes` 16 while the AI is developed (`ai-agent/config.json`; it applies at the learner's next cycle boundary).
 - **Chapters within badges:** badge 1 = Ch1 intro to the Pokédex; Ch2 to Petalburg (Wally); Ch3 Route 104, Petalburg Woods, Rustboro; Ch4 Roxanne. Each chapter is developed and accepted on its own. Smaller units localise failures, and the badge stays the user-facing milestone.
 - Recorded in the design draft §11, which wins over §1-§10.
+
+## 2026-10-07 — The AI player's purity hardening STOPS at step 0.1; the remaining residuals are documented limits, and work moves to the AI itself (step 1, EYES)
+
+- **Why stop:** steps 0 and 0.1 took two workflow rounds (about 3 hours and 4.6M subagent tokens) and now defend against the AI's OWN code deliberately tampering with its instrument: 25 tamper attacks refused, sealed modules, frame fences, a `sys.monitoring` monitor.
+  - The real threat is narrower: our own future code ACCIDENTALLY using bot logic, or the framework acting on its own. The static gate (framework doors only; no write/load/reset) and the live attribution of foreign presses, writes and loads cover that, and both are fault-tested.
+  - Every further round costs hours and finds subtler self-tampering routes that our code will never take.
+- **Documented limits, accepted:**
+  - `vars(module)`/`object.__setattr__` on the registry (refused statically);
+  - the GUI debug menu reassigning the listener list (counted, not silent);
+  - a launcher Ctrl+C has no in-child verdict, because the child has no console (the launcher reports INTERRUPTED).
+- **Rejected:** another hardening round before any AI behaviour exists. That trades progress on the user's goal for defence against an attacker that does not exist. Revisit only if a real bypass appears, e.g. when the AI's own code grows.

@@ -37792,3 +37792,21 @@ bought balls only at fixed story points.
   - the `platform` subpackage shadows the stdlib (rename it);
   - the clock/HTTP channels; debug mode; Ctrl+C; a thread-local peek;
   - Arm B uses a wild, not a trainer, battle.
+
+## 2026-10-07 — AI player step 0.1: the step-0 review's 10 findings fixed and proven; `platform/` renamed `host/`; 3 delta-review items fixed by the coordinator
+
+- **Workflow (fix, verify, 2 refix rounds, delta review):** every finding has a fix and an arm or test that fails when the fix is reverted.
+  - Reset or state-load listener rebuilds are served the AI's list, and a missing guard is a BREACH (arms RL/RLX/RLF).
+  - After-state checks require md5 != seed and the frames to have advanced (A2/W2).
+  - The counters live in a closure in sealed modules (XK: 25 attacks refused).
+  - The hook APPENDS the repo root, so the stdlib wins.
+  - RTC, `_prev_pressed_inputs` and HTTP-off are watched or forced; debug mode is refused; SIGINT ends with a verdict; the peek depth is thread-local.
+  - New: a TRAINER-battle arm (BT/BT2) and an independent restoration proof (DX).
+  - `ai_player/platform/` is now `ai_player/host/` (it shadowed the stdlib `platform`), and the session and guard wiring moved into `host/session.py`.
+  - Result: 63 of 63 live arms PASS; `test_check_purity.py` 29 OK; `test_host.py` 20 OK.
+- **The delta review's 3 items, fixed by the coordinator:**
+  1. The launcher polls in 0.5 s waits, because one long `Popen.wait()` cannot be interrupted on Windows, so Ctrl+C had sat unseen until the wall clock. A Ctrl+C after the child has ended keeps its verdict.
+  2. `check_package_resolution`: before launch, the child's own interpreter is asked which `ai_player` it would import, and the launch is refused unless it is this repo's. Appending the root alone would let an earlier one win.
+  3. A finish off the frame-loop thread no longer restores the listeners, since the process ends anyway.
+  - The review's extra suggestion, starting the child with `python -s`, BROKE the framework: its dependencies are in the USER site-packages here (`ModuleNotFoundError: confz`). It was reverted and the reason is written beside `bot_command` (`08`).
+- **Hardening stops here** (`06`): the remaining residuals are documented limits.

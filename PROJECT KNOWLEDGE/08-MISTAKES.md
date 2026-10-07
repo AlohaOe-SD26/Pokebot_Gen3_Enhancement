@@ -23845,3 +23845,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rule:** before running a long-lived process from a checkout, list everything that aborts it, as
   measured (read the guard's own condition), and keep every one of those triggers out of that checkout's
   day-to-day use. "Only code changes matter" was an assumption; the guard says HEAD.
+
+## 2026-10-07 — ⛔ A REVIEWER'S `python -s` SUGGESTION BROKE THE AI PLAYER'S LAUNCH: THE FRAMEWORK'S DEPENDENCIES LIVE IN THE USER SITE-PACKAGES
+
+- **Symptom:** after the step 0.1 delta fixes, every live arm failed in 0.7 s with exit 1 and no verdict file.
+- **Root cause:** the delta review suggested starting the child with `-s` (no user site-packages), to stop a foreign `ai_player` from shadowing ours. On this PC `confz` and the other framework dependencies are installed per-user, so `-s` made `modules/config` fail at import. A reviewer's fix is a CLAIM too.
+- **The fix that worked:** `-s` was reverted. The shadowing risk is covered instead by `check_package_resolution`, which asks the child's own interpreter which `ai_player` it would import, before launch.
+- **Prevention rule:** before adopting any interpreter or launch flag, run ONE real launch with it; never adopt a flag on reasoning alone. Here the first live arm caught it within a minute.

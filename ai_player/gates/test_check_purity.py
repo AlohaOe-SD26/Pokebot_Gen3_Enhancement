@@ -12,9 +12,15 @@ would be. The real package is never touched.
 the first gate let 29 through. `VERIFIER2_PROBES` are the second verifier's 22 static probes and its
 two live plants (VB, VP), verbatim; the second gate let 20 through. Each must now be caught, by the
 rule named next to it, IN the planted file (a failure somewhere else would not prove the plant was
-seen). `ROUND3_PROBES` plant the rules added for that report. `LegitimateCodeTests` is the other
-direction: ordinary code using every allowed surface must pass, so the rules are not just "refuse
-everything".
+seen). `ROUND3_PROBES` plant the rules added for that report, and `STEP01_PROBES` the rules added for
+the adversarial review of step 0 (step 0.1), including its later rounds (S18-S22: the verifier's report
+on step 0.1; S23-S26: its notes on round 2, the frame fence's thread surface and the instrument's
+registry). `LegitimateCodeTests` is the other direction: ordinary
+code using every allowed surface must pass, so the rules are not just "refuse everything".
+
+‼ "Verbatim" with one exception: step 0.1 renamed the subpackage `ai_player/platform/` to
+`ai_player/host/` (finding 10: `platform` shadowed the standard library), so every probe path and
+module name that said `platform` now says `host`. Nothing else in any probe changed.
 """
 
 from __future__ import annotations
@@ -46,7 +52,7 @@ VERIFIER_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("P03 from modules import menuing as mm", "brain_x.py", "new", "from modules import menuing as mm\n", "a"),
     ("P04 star import of a bot module", "brain_x.py", "new", "from modules.menuing import *\n", "a"),
     ("P05 from-import of a state-changing name", "brain_x.py", "new",
-     "from ai_player.platform.attribution import framework_memory as fm\nfrom somewhere import write_bytes\n", "b"),
+     "from ai_player.host.attribution import framework_memory as fm\nfrom somewhere import write_bytes\n", "b"),
     ("P06 getattr with a constant banned name", "brain_x.py", "new", "def f(emu):\n    getattr(emu, 'write_bytes')(0, b'')\n", "b"),
     ("P07 getattr with a concatenated name", "brain_x.py", "new", "def f(emu):\n    getattr(emu, 'write_' + 'bytes')(0, b'')\n", "d"),
     ("P08 getattr through a variable", "brain_x.py", "new", "def f(emu):\n    n = 'load_save_state'\n    getattr(emu, n)(b'')\n", "d"),
@@ -57,10 +63,10 @@ VERIFIER_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("P13 sys.modules[...]", "brain_x.py", "new", "import sys\ndef f():\n    return sys.modules['modules.battle_handler'].handle_battle\n", "d"),
     ("P14 sys.modules.get(...)", "brain_x.py", "new", "import sys\nm = sys.modules.get('modules.menuing')\n", "d"),
     ("P15 re-export of context through the controller", "brain_x.py", "new",
-     "from ai_player.platform.controller import context\ndef f():\n    context.emulator._held_inputs |= 1\n", "a"),
+     "from ai_player.host.controller import context\ndef f():\n    context.emulator._held_inputs |= 1\n", "a"),
     ("P16 re-export of modules.memory through attribution", "brain_x.py", "new",
-     "from ai_player.platform.attribution import framework_memory\ndef f():\n    framework_memory.set_event_flag_by_number(5)\n", "a"),
-    ("P17 attribute walk from an allowlisted file", "platform/controller.py", "append",
+     "from ai_player.host.attribution import framework_memory\ndef f():\n    framework_memory.set_event_flag_by_number(5)\n", "a"),
+    ("P17 attribute walk from an allowlisted file", "host/controller.py", "append",
      "\nimport modules.context\ndef _sneak():\n    return modules.battle_handler.handle_battle\n", "a"),
     ("P18 importlib.util exec_module", "brain_x.py", "new",
      "import importlib.util\ns = importlib.util.spec_from_file_location('sm', 'plugins/custom_modes/story_mode.py')\n"
@@ -85,7 +91,7 @@ VERIFIER_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("P34 bare `import modules` + attribute walk", "brain_x.py", "new", "import modules\nx = modules.menuing\n", "a"),
     ("P35 __import__ direct", "brain_x.py", "new", "m = __import__('modules.menuing')\n", "d"),
     ("P36 importlib.__import__", "brain_x.py", "new", "import importlib\nm = importlib.__import__('modules.menuing')\n", "a"),
-    ("P37 modules.context in a non-platform file", "brain_x.py", "new", "from modules.context import context\n", "a"),
+    ("P37 modules.context in a non-host file", "brain_x.py", "new", "from modules.context import context\n", "a"),
     ("P38 a .pyw file", "sneaky.pyw", "new", "import modules.menuing\nfrom modules.memory import write_symbol\n", "a"),
     ("P39 set_event_flag_by_number", "brain_x.py", "new", "def f(fm):\n    fm.set_event_flag_by_number(5)\n", "b"),
     ("P40 hook: absolute import of story_mode", None, "hook", "from plugins.custom_modes.story_mode import StoryMode\n", "a"),
@@ -95,19 +101,19 @@ VERIFIER_PROBES: list[tuple[str, str | None, str, str, str]] = [
 
 # Plants for the rules added after the first verifier's report, in the same format.
 NEW_RULE_PROBES: list[tuple[str, str | None, str, str, str]] = [
-    ("N01 a module exports a value derived from an import", "platform/leaky.py", "new",
+    ("N01 a module exports a value derived from an import", "host/leaky.py", "new",
      "import os\nENVIRONMENT = os.environ\n__all__ = ['ENVIRONMENT']\n", "a"),
-    ("N02 import from a module with no __all__", "brain_x.py", "new", "from ai_player.platform.planted_helper import X\n", "a"),
-    ("N03 import of a submodule object", "brain_x.py", "new", "from ai_player.platform import controller\n", "a"),
-    ("N04 `import ai_player.x` binds a module object", "brain_x.py", "new", "import ai_player.platform.controller as c\n", "a"),
-    ("N05 the play loop imports the launcher side", "brain_x.py", "new", "from ai_player.platform.launcher import run_child\n", "c"),
-    ("N06 the launcher side imports the framework", "platform/launcher.py", "append", "\nfrom modules.context import context\n", "c"),
+    ("N02 import from a module with no __all__", "brain_x.py", "new", "from ai_player.host.planted_helper import X\n", "a"),
+    ("N03 import of a submodule object", "brain_x.py", "new", "from ai_player.host import controller\n", "a"),
+    ("N04 `import ai_player.x` binds a module object", "brain_x.py", "new", "import ai_player.host.controller as c\n", "a"),
+    ("N05 the play loop imports the launcher side", "brain_x.py", "new", "from ai_player.host.launcher import run_child\n", "c"),
+    ("N06 the launcher side imports the framework", "host/launcher.py", "append", "\nfrom modules.context import context\n", "c"),
     ("N07 a button outside the controller", "brain_x.py", "new", "def f(emu):\n    emu.press_button('A')\n", "b"),
-    ("N08 the controller walks a path its door does not list", "platform/controller.py", "append",
+    ("N08 the controller walks a path its door does not list", "host/controller.py", "append",
      "\ndef _sneak():\n    return context.bot_listeners\n", "a"),
-    ("N09 the controller aliases the emulator", "platform/controller.py", "append",
+    ("N09 the controller aliases the emulator", "host/controller.py", "append",
      "\ndef _sneak():\n    emulator = context.emulator\n    return emulator\n", "a"),
-    ("N10 a module door without `as`", "platform/attribution.py", "append", "\nimport modules.memory\n", "a"),
+    ("N10 a module door without `as`", "host/attribution.py", "append", "\nimport modules.memory\n", "a"),
     ("N11 a dunder attribute", "brain_x.py", "new", "def f(x):\n    return x.__class__\n", "d"),
     ("N12 typing.get_type_hints evaluates strings", "brain_x.py", "new", "import typing\ndef f(g):\n    return typing.get_type_hints(g)\n", "d"),
     ("N13 threading outside the instrument", "brain_x.py", "new", "import threading\n", "a"),
@@ -116,7 +122,7 @@ NEW_RULE_PROBES: list[tuple[str, str | None, str, str, str]] = [
     # Rule letter changed from d to a in round 3: a library module used as a value is a SURFACE breach.
     ("N16 the sys module passed around", "brain_x.py", "new", "import sys\nS = sys\n", "a"),
     ("N17 a star import from the standard library", "brain_x.py", "new", "from os import *\n", "a"),
-    ("N18 the instrument's exemption is exact", "platform/attribution_helper.py", "new",
+    ("N18 the instrument's exemption is exact", "host/attribution_helper.py", "new",
      "def f(emu):\n    emu.write_bytes(0, b'')\n", "b"),
     ("N19 tracing hooks", "brain_x.py", "new", "import sys\nsys.settrace(None)\n", "d"),
     ("N20 a module path string", "brain_x.py", "new", "TARGET = 'modules.battle_handler'\n", "a"),
@@ -219,7 +225,7 @@ VERIFIER2_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("G08 match class pattern binds an INPUT method outside the controller", "brain_v.py", "new",
      "def f(emu):\n    match emu:\n        case object(press_button=pb):\n            pb('A')\n", "b"),
     ("G09 match class pattern reads a DUNDER", "brain_v.py", "new",
-     "from ai_player.platform.controller import Controller\n"
+     "from ai_player.host.controller import Controller\n"
      "def f():\n    match Controller.tap:\n        case object(__globals__={'context': ctx}):\n            return ctx\n", "d"),
     ("G10 match pattern frame walk", "brain_v.py", "new", _G10_FRAME_WALK, "a"),
     ("G11 dataclasses.inspect.getmembers", "brain_v.py", "new",
@@ -255,7 +261,7 @@ VERIFIER2_PROBES: list[tuple[str, str | None, str, str, str]] = [
      "import typing, contextlib, enum\nP = typing.sys.path\nQ = contextlib.sys\nR = enum.sys\n", "a"),
     ("G19 bytes constant decoded to a forbidden name", "brain_v.py", "new",
      "import dataclasses\ndef f(emu):\n    return dict(dataclasses.inspect.getmembers(emu))[b'write_bytes'.decode()]\n", "a"),
-    ("G20 instrument exports a function returning context.emulator", "platform/attribution.py", "append",
+    ("G20 instrument exports a function returning context.emulator", "host/attribution.py", "append",
      "\ndef handle():\n    return context.emulator\n__all__ = ['Attribution', 'PurityCounters', 'Sealed', 'handle']\n", "g"),
     ("VB live plant: the bot's pathfinder through getmembers", "_plant.py", "new", _VB_PLANT, "a"),
     ("VP live plant: a press through a frame walk", "_plant.py", "new", _VP_PLANT, "a"),
@@ -301,9 +307,9 @@ ROUND3_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("R31 the os module passed around", "brain_r.py", "new", "import os\ndef f(g):\n    return g(os)\n", "a"),
     ("R32 a partial library path used as a value", "brain_r.py", "new", "import os\nE = os.environ\n", "a"),
     ("R33 sys.monitoring outside the instrument", "brain_r.py", "new", "import sys\nsys.monitoring.set_events(4, 0)\n", "a"),
-    ("R34 a new export from a platform adapter", "platform/controller.py", "append",
+    ("R34 a new export from a host module", "host/controller.py", "append",
      "\ndef extra():\n    return 1\n__all__ = ['BUTTONS', 'MAX_ACTION_FRAMES', 'Controller', 'ControllerError', 'extra']\n", "g"),
-    ("R35 a platform adapter the gate does not list", "platform/eyes.py", "new", "__all__ = []\n", "g"),
+    ("R35 a host module the gate does not list", "host/eyes.py", "new", "__all__ = []\n", "g"),
     ("R36 a `__dict__` slot (it would undo the slots)", "brain_r.py", "new", "class C:\n    __slots__ = ('__dict__',)\n", "d"),
     ("R37 getattr(x, 'open') bypassing the mode check", "brain_r.py", "new", "def f(p):\n    getattr(p, 'open')('w')\n", "f"),
     ("R38 an instrument's private state through a match pattern", "brain_r.py", "new",
@@ -317,13 +323,69 @@ ROUND3_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("R43 an async generator's code object", "brain_r.py", "new", "def f(g):\n    return g.ag_code\n", "d"),
 ]
 
+# Plants for the rules added for the adversarial review of step 0 (step 0.1, 2026-10-07).
+STEP01_PROBES: list[tuple[str, str | None, str, str, str]] = [
+    ("S01 the brain imports the host side (finding 10)", "mode.py", "append",
+     "\nfrom ai_player.host.controller import Controller\n", "c"),
+    ("S02 the brain imports a host module object (finding 10)", "mode.py", "append",
+     "\nimport ai_player.host.session as s\n", "a"),
+    ("S03 the hook puts a path IN FRONT of the standard library (finding 4)", None, "hook",
+     "sys.path.insert(0, 'x')\n", "a"),
+    ("S04 the hook rewrites sys.path by slice (finding 4)", None, "hook", "sys.path[:] = ['x'] + sys.path\n", "f"),
+    ("S05 the hook passes sys.path around (finding 4)", None, "hook", "P = sys.path\n", "a"),
+    ("S06 signal handlers outside the session (finding 7)", "brain_s.py", "new",
+     "import signal\nsignal.signal(signal.SIGINT, print)\n", "a"),
+    ("S07 the session uses signal beyond its surface (finding 7)", "host/session.py", "append",
+     "\ndef _sneak():\n    return signal.raise_signal(signal.SIGINT)\n", "a"),
+    ("S08 atexit outside the hook (finding 9)", "brain_s.py", "new", "import atexit\natexit.register(print)\n", "a"),
+    ("S09 the framework's main-loop module outside isolation (finding 1)", "brain_s.py", "new",
+     "import modules.main as m\nm.get_bot_listeners = None\n", "a"),
+    ("S10 isolation walks modules.main beyond its door (finding 1)", "host/isolation.py", "append",
+     "\ndef _sneak():\n    return framework_main.main_loop\n", "a"),
+    ("S11 isolation assigns another modules.main name (finding 1)", "host/isolation.py", "append",
+     "\ndef _sneak():\n    framework_main.work_queue = None\n", "a"),
+    ("S12 the session reads context beyond its door (findings 5, 6)", "host/session.py", "append",
+     "\ndef _sneak():\n    return context.emulator\n", "a"),
+    ("S13 the hook reads context beyond its door (finding 9)", None, "hook", "E = context.emulator\n", "a"),
+    ("S14 the instrument's isolation check named outside the session (finding 1)", "brain_s.py", "new",
+     "def f(a):\n    a.watch_guard(None, None)\n", "g"),
+    ("S15 the instrument's exit watchdog named outside the lifecycle", "brain_s.py", "new",
+     "def f(a):\n    a.arm_exit_watchdog(0)\n", "g"),
+    ("S16 a new export from the session (rule g)", "host/session.py", "append",
+     "\ndef extra():\n    return 1\n__all__ = ['Session', 'start_session', 'extra']\n", "g"),
+    ("S17 threading.Timer outside the instrument", "brain_s.py", "new", "import threading\nT = threading.Timer\n", "a"),
+    # Round 2 (the verifier's report on step 0.1): threading spread to the session (the interrupt watch)
+    # and the lifecycle (single-entry finish), each on its own narrow surface; the instrument reads
+    # main.py's pass counter for its frame-continuity check, and no other file may.
+    ("S18 the session uses threading beyond Thread (round 2)", "host/session.py", "append",
+     "\ndef _sneak():\n    return threading.Timer(1, print)\n", "a"),
+    ("S19 the lifecycle uses threading beyond Lock and get_ident (round 2)", "host/lifecycle.py", "append",
+     "\ndef _sneak():\n    return threading.Thread(target=print)\n", "a"),
+    ("S20 the brain imports threading (round 2)", "mode.py", "append", "\nimport threading\n", "a"),
+    ("S21 the session reads main.py's pass counter, the instrument's door only (round 2)", "host/session.py", "append",
+     "\ndef _sneak():\n    return context.frame\n", "a"),
+    ("S22 the controller uses threading at all (round 2)", "host/controller.py", "append",
+     "\nimport threading\nL = threading.Lock\n", "a"),
+    # Round 3 (the verifier's notes on round 2): the instrument's FRAME FENCE takes `threading.RLock`
+    # and `threading.get_ident`; the re-entrant lock is the instrument's alone, and `get_ident` is the
+    # instrument's and the lifecycle's, never the session's or the brain's.
+    ("S23 the session takes the instrument's frame lock type (round 3)", "host/session.py", "append",
+     "\ndef _sneak():\n    return threading.RLock()\n", "a"),
+    ("S24 the session reads thread ids (round 3: the instrument and the lifecycle only)", "host/session.py", "append",
+     "\ndef _sneak():\n    return threading.get_ident()\n", "a"),
+    ("S25 AI code imports the instrument's registry (round 3; not in its __all__)", "brain_s.py", "new",
+     "from ai_player.host.attribution import _REGISTRY\n", "a"),
+    ("S26 AI code reaches the instrument's registry as an attribute (round 3)", "brain_s.py", "new",
+     "import ai_player.host.attribution as instrument\nR = instrument._REGISTRY\n", "d"),
+]
+
 
 @contextmanager
 def planted_copy(target: str | None, mode: str, source: str, extra: dict[str, str] | None = None):
     """A temporary copy of the real package (and hook) with one plant. Yields (package, hook)."""
     with tempfile.TemporaryDirectory(prefix="ai_player_gate_") as tmp:
         package = Path(tmp) / "ai_player"
-        shutil.copytree(REAL_PACKAGE, package, ignore=shutil.ignore_patterns("__pycache__", "evidence"))
+        shutil.copytree(REAL_PACKAGE, package, ignore=shutil.ignore_patterns("__pycache__", "evidence", "fixtures"))
         hook = Path(tmp) / "ai_player_mode.py"
         hook.write_text(REAL_HOOK.read_text(encoding="utf-8"), encoding="utf-8")
         for relative, text in (extra or {}).items():
@@ -372,8 +434,8 @@ class ControlTests(GateTestCase):
         self.assertTrue(result.passed)
         self.assertIn("mode.py", result.scanned)
         self.assertIn(check_purity.HOOK_KEY, result.scanned)
-        self.assertEqual(result.roles["platform/attribution.py"], "instrument")
-        self.assertEqual(result.roles["platform/launcher.py"], "launcher")
+        self.assertEqual(result.roles["host/attribution.py"], "instrument")
+        self.assertEqual(result.roles["host/launcher.py"], "launcher")
 
     def test_control_unchanged_copy_passes(self) -> None:
         """The copying itself must not trip the gate, or every plant below would 'fail' for free."""
@@ -401,7 +463,7 @@ class VerifierProbeTests(GateTestCase):
 
 class NewRuleTests(GateTestCase):
     def test_every_new_rule_fires(self) -> None:
-        helper = {"platform/planted_helper.py": "X = 1\n"}  # a module WITHOUT __all__, for N02
+        helper = {"host/planted_helper.py": "X = 1\n"}  # a module WITHOUT __all__, for N02
         for probe in NEW_RULE_PROBES:
             with self.subTest(probe[0]):
                 self.run_probe(probe, helper)
@@ -410,6 +472,29 @@ class NewRuleTests(GateTestCase):
         for probe in ROUND3_PROBES:
             with self.subTest(probe[0]):
                 self.run_probe(probe)
+
+    def test_every_step01_rule_fires(self) -> None:
+        for probe in STEP01_PROBES:
+            with self.subTest(probe[0]):
+                self.run_probe(probe)
+
+    def test_a_package_folder_named_like_the_standard_library_fails(self) -> None:
+        """Finding 10: step 0's `ai_player/platform/` shadowed the standard library's `platform` for
+        anything that put `ai_player/` on sys.path. A folder (or module) named like a library fails."""
+        with planted_copy("platform/__init__.py", "new", "__all__ = []\n") as (package, hook):
+            result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
+            hits = [v for v in result.violations if v.rule == "a" and v.file == "ai_player/platform"]
+            self.assertTrue(hits, check_purity.report(result))
+        with planted_copy("statistics.py", "new", "__all__ = []\n") as (package, hook):
+            result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
+            hits = [v for v in result.violations if v.rule == "a" and v.file == "ai_player/statistics.py"]
+            self.assertTrue(hits, check_purity.report(result))
+
+    def test_the_host_folder_is_not_a_library_name(self) -> None:
+        """CONTROL for the test above: the real package's top-level names shadow nothing."""
+        result = check_purity.scan(REAL_PACKAGE, REAL_HOOK, REAL_BUILD_ROOT)
+        self.assertFalse([v for v in result.violations if "named like the standard library" in v.message])
+        self.assertNotIn("host", sys.stdlib_module_names)
 
     def test_e_sourceless_bytecode_fails(self) -> None:
         with planted_copy(None, "new", "") as (package, hook):
@@ -483,8 +568,8 @@ class FileRuleTests(GateTestCase):
 
     def test_e_any_other_file_in_pycache_fails(self) -> None:
         with planted_copy(None, "new", "") as (package, hook):
-            (package / "platform" / "__pycache__").mkdir()
-            (package / "platform" / "__pycache__" / "notes.txt").write_text("x", encoding="utf-8")
+            (package / "host" / "__pycache__").mkdir()
+            (package / "host" / "__pycache__" / "notes.txt").write_text("x", encoding="utf-8")
             self.assert_caught(check_purity.scan(package, hook, REAL_BUILD_ROOT), "e", "notes.txt")
 
     def _forge(self, package: Path, hash_based: bool) -> Path:
@@ -568,13 +653,13 @@ class PinTests(GateTestCase):
     """Rule (g): the surfaces the gate cannot judge are pinned."""
 
     def test_g_instrument_change_fails(self) -> None:
-        self.run_probe(("instrument edited", "platform/attribution.py", "append", "\n# an innocent-looking comment\n", "g"))
+        self.run_probe(("instrument edited", "host/attribution.py", "append", "\n# an innocent-looking comment\n", "g"))
 
     def test_g_brain_lists_must_agree(self) -> None:
-        source = (REAL_PACKAGE / "platform" / "attribution.py").read_text(encoding="utf-8")
+        source = (REAL_PACKAGE / "host" / "attribution.py").read_text(encoding="utf-8")
         self.assertIn('    "modules/map_path.py",\n', source)
         with planted_copy(None, "new", "") as (package, hook):
-            (package / "platform" / "attribution.py").write_text(source.replace('    "modules/map_path.py",\n', ""), encoding="utf-8")
+            (package / "host" / "attribution.py").write_text(source.replace('    "modules/map_path.py",\n', ""), encoding="utf-8")
             result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
             hits = [v for v in result.violations if v.rule == "g" and "modules.map_path" in v.message]
             self.assertTrue(hits, check_purity.report(result))
@@ -679,7 +764,11 @@ class MentionTests(GateTestCase):
             # emulator._core.load_state(vf); sys.path.insert(0, "gates"); import importlib; vars(x)
             # from sys import _getframe; os.environ['X'] = '1'; time.sleep = print; setattr(x, 'y', 1)
 
+            # step 0.1: a.watch_guard(g, f); a.arm_exit_watchdog(0); signal.signal(signal.SIGINT, h)
+            # atexit.register(f); modules.main.get_bot_listeners = f; sys.path.insert(0, "x")
+
             NOTE = "never call write_to_save_block or set_event_var or load_save_state from here"
+            LATER = "watch_guard and arm_exit_watchdog belong to the host; get_bot_listeners is main.py's"
             MORE = f"see modules.menuing and {NOTE}, and never touch _pressed_inputs or sys.modules"
             WHY = "the press_button door is the controller's; run_frame belongs to the main loop"
             ALSO = "never use str.format with {0.attribute} fields, nor write_text, nor rename"

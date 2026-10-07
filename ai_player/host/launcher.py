@@ -25,6 +25,14 @@ written by the instrument from its own counters. A child that exits 0 without a 
 that agrees with that exit is reported and the launcher exits 8: printed lines can be forged by any
 code in the process, the file cannot be written by the AI's own code (gate rule f, and the instrument
 accepts only the lifecycle's `finish` as its caller).
+
+THE HTTP SERVER IS OFF FOR EVERY AI RUN (step 0.1, the adversarial review's finding 5). The
+framework's HTTP server queues callbacks (`modules/main.py` `work_queue`) that run framework code on
+the main thread between the AI's frames, and a profile's `http.yml` may switch it on. Step 0 wrote
+`http.yml` only when it CREATED a profile, so an existing profile kept whatever it had. Now the
+launcher rewrites it OFF on every run of an ai_player-owned profile, prints that in the run header,
+and the session refuses to start (exit 9) if the server is on anyway (a profile the launcher does not
+own, or a framework started by hand).
 """
 
 from __future__ import annotations
@@ -55,8 +63,10 @@ __all__ = [
     "GateRun",
     "LaunchError",
     "bot_command",
+    "check_package_resolution",
     "child_env",
     "ensure_profile",
+    "force_http_off",
     "hook_path",
     "kill_tree",
     "package_root",
@@ -112,11 +122,31 @@ def md5_of(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
+HTTP_CONFIG = (
+    "# Written by ai_player/host/launcher.py on EVERY run of this profile.\n"
+    "# OFF: the HTTP server's work_queue callbacks would run framework code between the AI's frames,\n"
+    "# and several headless processes cannot share one port anyway.\n"
+    "http_server:\n  enable: false\n  ip: 127.0.0.1\n  port: 8888\n"
+)
+
+
+def force_http_off(profile_dir: Path) -> str:
+    """Rewrite the profile's `http.yml` with the server OFF, if the launcher owns the profile.
+    Returns the run-header line that says what the run will have."""
+    if not (profile_dir / PROFILE_MARKER).is_file():
+        return (
+            f"[AI-RUN] http_server=UNCHANGED: profile {profile_dir.name} is not ai_player-owned, so its http.yml is "
+            f"left alone; the session refuses to start (exit 9) if the server is on"
+        )
+    (profile_dir / "http.yml").write_text(HTTP_CONFIG, encoding="utf-8")
+    return f"[AI-RUN] http_server=off (forced: {profile_dir.name}/http.yml rewritten with enable: false)"
+
+
 def ensure_profile(build_root: Path, name: str, template: str | None = None) -> tuple[Path, str]:
     """Create the profile if missing. Returns (profile dir, a log line saying what was done).
 
     Copies ONLY `metadata.yml` from a donor profile, as `x4_headless.py` `ensure_lane_profile`
-    does, and writes the same `http.yml` (HTTP server OFF: N processes cannot share port 8888).
+    does. `http.yml` is written by `force_http_off`, on every run, not only here.
     """
     if not _PROFILE_NAME_RE.match(name):
         raise LaunchError(f"profile name {name!r} may only contain letters, digits, '_', '-' and '.'")
@@ -137,12 +167,7 @@ def ensure_profile(build_root: Path, name: str, template: str | None = None) -> 
         donor_dir = candidates[0]
     path.mkdir(parents=True, exist_ok=True)
     shutil.copy2(donor_dir / "metadata.yml", meta)
-    (path / "http.yml").write_text(
-        "# Written by ai_player/platform/launcher.py.\n"
-        "# OFF: several headless processes cannot share one port, and the bind failures are noise.\n"
-        "http_server:\n  enable: false\n  ip: 127.0.0.1\n  port: 8888\n",
-        encoding="utf-8",
-    )
+    (path / "http.yml").write_text(HTTP_CONFIG, encoding="utf-8")
     (path / PROFILE_MARKER).write_text(
         f"Created by ai_player on {time.strftime('%Y-%m-%d %H:%M:%S')}; ROM binding copied from "
         f"profile '{donor_dir.name}'. The launcher may wipe or replace this profile's game state.\n",
@@ -185,7 +210,32 @@ def seed_profile(profile_dir: Path, state: Path | None, fresh: bool) -> str:
 
 
 def bot_command(build_root: Path, profile: str) -> list[str]:
+    # NOT `python -s`: the framework's dependencies (confz, ...) live in the USER site-packages on this PC, so `-s`
+    # breaks the framework at import (measured 2026-10-07). An `ai_player` shadowing ours from any site directory is
+    # refused instead by `check_package_resolution`, which asks the child's own interpreter before launch.
     return [sys.executable, str(build_root / "pokebot.py"), profile, "-m", MODE_NAME, "-s", "0", "-na", "-hl"]
+
+
+#: Run in the CHILD's interpreter and environment, with the child's path order (the script's folder first, the
+#: repo root appended by the hook): which `ai_player` would the framework import?
+_RESOLVE_PROBE = ("import sys, importlib.util as u; sys.path.insert(0, sys.argv[1]); sys.path.append(sys.argv[2]); "
+                  "s = u.find_spec('ai_player'); print(s.origin if s and s.origin else '')")
+
+
+def check_package_resolution(build_root: Path, env: dict[str, str]) -> str:
+    """Refuse to launch unless the child would import THIS `ai_player`. The hook APPENDS the repo root to `sys.path`
+    (so the standard library wins name clashes), which means an `ai_player` found earlier (the script folder,
+    site-packages, a .pth entry) would win the import and could write its own CLEAN verdict. The session's in-package
+    check cannot catch a package that never runs it, so this check runs from outside, before the child starts."""
+    root = package_root()
+    expected = (root / "ai_player" / "__init__.py").resolve()
+    probe = subprocess.run([sys.executable, "-c", _RESOLVE_PROBE, str(build_root), str(root)], cwd=str(build_root),
+                           env=env, capture_output=True, text=True, timeout=60)
+    origin = probe.stdout.strip()
+    if probe.returncode != 0 or not origin or Path(origin).resolve() != expected:
+        raise LaunchError(f"the child would import ai_player from {origin or '(nothing)'}, not {expected} "
+                          f"(probe exit {probe.returncode}: {probe.stderr.strip()[:200]})")
+    return f"[AI-RUN] package: the child imports ai_player from {origin} (checked before launch)"
 
 
 def soft_deadline_margin(wall_seconds: float) -> float:
@@ -268,6 +318,7 @@ class ChildResult:
     killed: bool
     killed_pids: list[int] = field(default_factory=list)
     survivors: list[int] = field(default_factory=list)
+    interrupted: bool = False  # Ctrl+C reached the LAUNCHER; the child (no console) was killed
 
 
 def _process_tree(pid: int) -> list[int]:
@@ -349,13 +400,32 @@ def run_child(cmd: list[str], cwd: Path, env: dict[str, str], wall_seconds: floa
 
     reader = threading.Thread(target=pump, name="ai-player-child-output", daemon=True)
     reader.start()
+    interrupted = killed = False
+    pids: list[int] = []
+    survivors: list[int] = []
+    deadline = start + wall_seconds
     try:
-        proc.wait(timeout=wall_seconds)
-        killed, pids, survivors = False, [], []
-    except subprocess.TimeoutExpired:
-        killed = True
-        pids, survivors = kill_tree(proc)
+        # Short waits in a loop: on Windows one long `Popen.wait()` cannot be interrupted, so Ctrl+C used to sit
+        # unseen until the wall clock ran out (measured in the step 0.1 delta review).
+        while proc.poll() is None:
+            if time.monotonic() >= deadline:
+                killed = True
+                pids, survivors = kill_tree(proc)
+                break
+            try:
+                proc.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                pass
+    except KeyboardInterrupt:
+        # The child runs without a console (CREATE_NO_WINDOW), so the user's Ctrl+C reached only
+        # the launcher. Never leave an orphaned emulator behind: kill the tree and say so. (A
+        # framework run in a console receives Ctrl+C itself and ends with a verdict: session.py.)
+        # If the child already ended on its own, its exit code and verdict stand.
+        if proc.poll() is None:
+            killed, interrupted = True, True
+            pids, survivors = kill_tree(proc)
     reader.join(timeout=10)
     elapsed = time.monotonic() - start
-    code = WALL_CLOCK_EXIT if killed else int(proc.returncode)
-    return ChildResult(exit_code=code, elapsed=elapsed, killed=killed, killed_pids=pids, survivors=survivors)
+    code = WALL_CLOCK_EXIT if killed and not interrupted else (130 if interrupted else int(proc.returncode))
+    return ChildResult(exit_code=code, elapsed=elapsed, killed=killed, killed_pids=pids, survivors=survivors,
+                       interrupted=interrupted)

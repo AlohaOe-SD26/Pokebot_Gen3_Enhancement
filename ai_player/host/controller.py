@@ -6,6 +6,9 @@ asking "is this file on the call stack?". A press that comes from AI code but NO
 counted as `ai_unrouted_presses` and breaks purity. That is how "the AI pressed it" stays a
 measurement instead of a belief.
 
+It implements the brain's abstract `Controls` interface (`ai_player/mode.py`): the brain never sees
+this class, only `wait`, `tap` and `hold`, so a standalone build can hand it a different controller.
+
 Every action is a generator with a hard frame budget: the main loop advances one frame per `yield`
 (`modules/main.py`), and an unbounded wait is how a mode hangs.
 
@@ -18,6 +21,8 @@ from __future__ import annotations
 from collections.abc import Generator
 
 from modules.context import context
+
+from ai_player.host.attribution import seal_module
 
 #: The controller's public surface. `context` is deliberately NOT on it: the purity gate refuses any
 #: `__all__` entry that is an imported name, so the controller cannot hand the framework to anyone.
@@ -76,3 +81,6 @@ class Controller:
             yield from self.wait(frames)
         finally:
             context.emulator.release_button(button)
+
+
+seal_module(__name__)

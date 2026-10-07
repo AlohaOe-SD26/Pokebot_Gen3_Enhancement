@@ -1,0 +1,76 @@
+AI PLAYER BUILD STEP 0.1 - LIVE PROOF - ARM T2: HARD wall clock: FAULT the brain hangs; the launcher kills it
+date: 2026-10-07 16:02:40
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fresh --frames 10000000 --wall-seconds 25 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2 --fresh
+package run: C:\Remote Projects\Pokebot_Gen3_Enhancement
+env switches: AI_PLAYER_FAULT_HANG=1
+seed: FRESH New Game (no state, no cartridge save)
+code: HEAD 7393a848; ai_player/ + hook have UNCOMMITTED changes (the code under test is the working tree)
+exit code: 124   elapsed: 26.3s
+run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step0.py's docstring):
+  [PASS] the launcher gated the real package before launch: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] the session says the gated package loaded: [AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] exit code 124 (got 124)
+  [PASS] hard wall-clock line: [AI-RUN] WALL CLOCK: 25s reached; killed process tree pids=[13820, 26860] survivors=[]
+  [PASS] the launcher saw no survivors
+  [PASS] the launcher says the run has no verdict: [AI-RUN] NO PURITY VERDICT: the child was killed before it could report one (it did not reach its soft deadline, so it was stuck); treat this run as UNVERIFIED
+  [PASS] no verdict file: a hung run cannot report, and does not pretend to
+  [PASS] no [AI-PURITY] line either
+  [PASS] the brain really hung (its own line)
+  [PASS] driver re-check: killed pids [13820, 26860], still alive []
+
+---- the instrument's verdict file (purity.json): what the grade rests on ----
+(none)
+
+---- evidence lines (the [AI-*] / [SIGNAL] / [PLANT] lines from stdout) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step0-fresh exists (ai_player-owned=True)
+[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
+[AI-RUN] http_server=off (forced: ai-step0-fresh/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=10000000 wall_seconds=25 soft_deadline_margin=5s switches=AI_PLAYER_FAULT_HANG=1 dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fresh -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=10000000 switches=FAULT_HANG wall_deadline=1791414154.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2 http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x24bc50b71c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-LIFECYCLE] FAULT_HANG: the brain blocks the main thread (at most 300s)
+[AI-RUN] WALL CLOCK: 25s reached; killed process tree pids=[13820, 26860] survivors=[]
+[AI-RUN] NO PURITY VERDICT: the child was killed before it could report one (it did not reach its soft deadline, so it was stuck); treat this run as UNVERIFIED
+[AI-RUN] child exit code=124 elapsed=25.8s killed=True
+[AI-RUN] NO VERDICT FILE: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2\purity.json was not written by the instrument
+
+---- stdout (full) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step0-fresh exists (ai_player-owned=True)
+[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
+[AI-RUN] http_server=off (forced: ai-step0-fresh/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=10000000 wall_seconds=25 soft_deadline_margin=5s switches=AI_PLAYER_FAULT_HANG=1 dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fresh -m AI Player -s 0 -na -hl
+Starting PokéBot Gen3 dev!
+Running mGBA 0.10.2
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=10000000 switches=FAULT_HANG wall_deadline=1791414154.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2 http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x24bc50b71c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-LIFECYCLE] FAULT_HANG: the brain blocks the main thread (at most 300s)
+[AI-RUN] WALL CLOCK: 25s reached; killed process tree pids=[13820, 26860] survivors=[]
+[AI-RUN] NO PURITY VERDICT: the child was killed before it could report one (it did not reach its soft deadline, so it was stuck); treat this run as UNVERIFIED
+[AI-RUN] child exit code=124 elapsed=25.8s killed=True
+[AI-RUN] NO VERDICT FILE: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2\purity.json was not written by the instrument
+
+---- ai_player.log (the AI's own log file) ----
+[AI-START] mode='AI Player' frames=10000000 switches=FAULT_HANG wall_deadline=1791414154.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261007-160213-T2 http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x24bc50b71c0
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-LIFECYCLE] FAULT_HANG: the brain blocks the main thread (at most 300s)

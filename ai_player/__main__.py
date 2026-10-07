@@ -20,21 +20,24 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
 
 from ai_player import MODE_NAME
 from ai_player.options import ALL_SWITCHES, VERDICT_FILE_NAME
-from ai_player.platform.launcher import (
+from ai_player.host.launcher import (
     GATE_REFUSED_EXIT,
     NO_VERDICT_EXIT,
     UNTRUSTED_ENV,
     ChildResult,
     LaunchError,
     bot_command,
+    check_package_resolution,
     child_env,
     ensure_profile,
+    force_http_off,
     package_root,
     read_verdict,
     resolve_build_root,
@@ -136,7 +139,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     try:
         profile_dir, profile_note = ensure_profile(build_root, args.profile, args.template_profile)
         state_note = seed_profile(profile_dir, args.state.resolve() if args.state else None, args.fresh)
-    except LaunchError as error:
+        http_note = force_http_off(profile_dir)
+    except (LaunchError, OSError) as error:
         print(f"[AI-RUN] cannot start: {error}", flush=True)
         return 2
 
@@ -147,11 +151,18 @@ def cmd_run(args: argparse.Namespace) -> int:
         stale.unlink()  # a verdict file must come from THIS run
     cmd = bot_command(build_root, args.profile)
     env = child_env(args.frames, run_dir, args.wall_seconds)
+    try:
+        package_note = check_package_resolution(build_root, env)
+    except (LaunchError, OSError, subprocess.SubprocessError) as error:
+        print(f"[AI-RUN] cannot start: {error}", flush=True)
+        return 2
+    print(package_note, flush=True)
     switches = [f"{name}={env[name]}" for name in ALL_SWITCHES if env.get(name)]
     dropped = [name for name in UNTRUSTED_ENV if name in os.environ]
 
     print(profile_note, flush=True)
     print(state_note, flush=True)
+    print(http_note, flush=True)
     print(
         f"[AI-RUN] build_root={build_root} frames={args.frames} wall_seconds={args.wall_seconds:g} "
         f"soft_deadline_margin={soft_deadline_margin(args.wall_seconds):g}s switches={','.join(switches) or 'none'} "
@@ -162,7 +173,14 @@ def cmd_run(args: argparse.Namespace) -> int:
     print(f"[AI-RUN] command={' '.join(cmd)}", flush=True)
 
     result = run_child(cmd, build_root, env, args.wall_seconds, run_dir / "stdout.txt")
-    if result.killed:
+    if result.interrupted:
+        print(
+            f"[AI-RUN] INTERRUPTED: Ctrl+C reached the launcher; killed process tree pids={result.killed_pids} "
+            f"survivors={result.survivors}. NO PURITY VERDICT (the child has no console to receive Ctrl+C; "
+            f"a framework run in a console ends with a verdict instead)",
+            flush=True,
+        )
+    elif result.killed:
         print(
             f"[AI-RUN] WALL CLOCK: {args.wall_seconds:g}s reached; killed process tree pids={result.killed_pids} "
             f"survivors={result.survivors}",

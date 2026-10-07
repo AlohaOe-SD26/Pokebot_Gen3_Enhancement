@@ -23,9 +23,12 @@ attributes on its surface. Everything else is refused, whatever it is called.
 FILE ROLES
   play loop   every file of `ai_player/` except the ones below, plus the hook file in
               `sandbox-pokebot/plugins/custom_modes/`. Runs inside the framework's process.
-  launcher    `__main__.py` and `platform/launcher.py`: run in the LAUNCHER process, never inside
+  brain       `mode.py`: a play-loop file that is framework-FREE: no door into the framework, and it
+              may not import the host side (rule c). It sees the game only through abstract
+              interfaces, so a standalone build can keep it unchanged (finding 10 of the step-0 review).
+  launcher    `__main__.py` and `host/launcher.py`: run in the LAUNCHER process, never inside
               the framework. Rules (a) imports, (b), (c), (d), (e) apply; library surfaces and (f) do not.
-  instrument  `platform/attribution.py`: a play-loop file that must name the state-changing
+  instrument  `host/attribution.py`: a play-loop file that must name the state-changing
               functions and use reflection to wrap and count them, so (b), (d) and (f) do not apply
               to it. In exchange its exact bytes are pinned (rule g): every change is a reviewed change.
   test side   `ai_player/gates/`: may use the framework to GRADE the AI. Not scanned by a, b, d, f.
@@ -34,10 +37,11 @@ RULES
 (a) IMPORTS AND SURFACES. Every import, and every USE of an imported name, must be on an allowlist:
     * framework: only `from M import N` for an explicit DOOR (module, name, file). A door that is an
       OBJECT lists the attribute paths each file may walk on it (`context.emulator.press_button` in
-      the controller; `bot_listeners` and, with "=", assigning it, in isolation), so an allowed
-      object cannot be walked over to the bot, aliased or handed on. `import modules.x` without `as`
-      binds the whole `modules` package and is always refused. The bot's brain is refused even if a
-      door would let it in (a backstop).
+      the controller; `bot_listeners` and, with "=", assigning it, in isolation;
+      `get_bot_listeners=` on `modules.main`, the framework's listener-rebuild door, in isolation
+      only), so an allowed object cannot be walked over to the bot, aliased or handed on.
+      `import modules.x` without `as` binds the whole `modules` package and is always refused. The
+      bot's brain is refused even if a door would let it in (a backstop).
     * standard library: only the modules in `LIBRARIES`, each for the files listed, and each name
       bound to one may be used ONLY as `name.<attribute>` with the attribute on that module's
       SURFACE: an explicit list for powerful modules (`sys`, `os`, `traceback`, `pathlib`, ...), or
@@ -50,12 +54,15 @@ RULES
       entry a name x DEFINES (no re-exports), and x a file this gate scanned (never a path through
       `__pycache__` or another dunder folder). `import ai_player...` and star imports are refused.
     * a string whose whole value is a bot module path (`'modules.menuing'`) is refused.
+    * no top-level module or folder of the package may be named like a standard-library module
+      (step 0's `ai_player/platform/` shadowed `platform` for anything that put `ai_player/` on the path).
 (b) STATE CHANGES. No play-loop file may name a function that writes game memory, loads or resets
     the emulator, or advances frames (`STATE_CHANGING_NAMES`), as a call, an attribute, a name, an
     import, a `match` class-pattern attribute, a `getattr` constant or a string whose whole value is
-    the name. The button functions (`INPUT_NAMES`) may be named only in `platform/controller.py`.
+    the name. The button functions (`INPUT_NAMES`) may be named only in `host/controller.py`.
 (c) SIDES. The play loop may not import the test side (`ai_player.gates`) or the launcher side,
-    and the launcher side may not import the framework.
+    the launcher side may not import the framework, and the brain (`mode.py`) may not import the
+    host side (`ai_player.host`).
 (d) REFLECTION. Refused in the play loop: `__import__`, `eval`, `exec`, `compile`, `globals`,
     `locals`, `vars`, `help`, `breakpoint` and the other `REFLECTION_NAMES` (as names or attributes);
     `setattr` and `delattr`; `getattr` / `hasattr` except as a direct call with a constant name, which
@@ -78,11 +85,15 @@ RULES
     mode but read are refused (`os` and `shutil` writers are on no surface at all). No play-loop file may assign to, or delete, an attribute or item of anything it imported
     (a library the framework shares, a framework object, another AI module's class): that would
     change code other modules run.
-(g) PINNED SURFACES. Each platform adapter's `__all__` must equal the list in `PLATFORM_EXPORTS`
-    (a new adapter or a new export is a reviewed gate change); the instrument's bytes must match
+(g) PINNED SURFACES. Each host module's `__all__` must equal the list in `HOST_EXPORTS`
+    (a new host module or a new export is a reviewed gate change); the instrument's bytes must match
     `INSTRUMENT_SHA256`; the instrument's run-time list of bot code (`BOT_BRAIN_PATHS`) must cover
-    every module the backstop refuses; and the instrument's finalizing methods may be named only in
-    `platform/lifecycle.py`.
+    every module the backstop refuses; the instrument's finalizing methods may be named only in
+    `host/lifecycle.py`, and its isolation check (`watch_guard`) only in `host/session.py`.
+
+THE HOOK'S PATH. The hook may touch `sys.path` only as `sys.path.append(...)`: putting the repo root
+in FRONT of the standard library would let a repo-root file named like a library module replace it
+(finding 4 of the step-0 review). Item assignment to `sys.path` is refused like any other.
 
 Comments, docstrings and strings that merely MENTION a name never fire: the AST has no comments, a
 string statement (a docstring) is skipped, f-string text is skipped, and a string is only flagged
@@ -93,8 +104,10 @@ mentions and on ordinary code.
 LIMITS, stated so nobody over-reads a PASS.
 * Static analysis cannot see values. A name bound by assignment is not tracked: `cls = type(obj)` and
   then `cls.method = f` is not refused here. The classes the verdict depends on are SEALED at run time
-  instead (`attribution.Sealed`, with `__slots__`), and the verdict is a file only the instrument can
-  write, read by the launcher; any other class the AI changes is its own.
+  instead (`attribution.Sealed`, with `__slots__`), the objects that decide how a run ends are
+  `attribution.Guarded` (writable only from the file that defines their class, every other write
+  refused and counted), and the verdict is a file only the instrument can write, read by the
+  launcher; any other class the AI changes is its own.
 * The PUBLIC surfaces are computed from THIS interpreter's standard library: run the gate with the
   Python the bot runs (3.12). The gate trusts the interpreter, its standard library and
   site-packages, and the framework's own code; it judges only which framework code the AI may reach.
@@ -135,12 +148,18 @@ HOOK_KEY = "<hook>"
 
 TEST_SIDE_DIR = "gates/"
 TEST_SIDE_MODULE = "ai_player.gates"
-LAUNCHER_FILES = frozenset({"__main__.py", "platform/launcher.py"})
-LAUNCHER_MODULES = frozenset({"ai_player.__main__", "ai_player.platform.launcher"})
-INSTRUMENT = "platform/attribution.py"
-CONTROLLER = "platform/controller.py"
-LIFECYCLE = "platform/lifecycle.py"
+HOST_DIR = "host/"
+HOST_MODULE = "ai_player.host"
+LAUNCHER_FILES = frozenset({"__main__.py", "host/launcher.py"})
+LAUNCHER_MODULES = frozenset({"ai_player.__main__", "ai_player.host.launcher"})
+INSTRUMENT = "host/attribution.py"
+CONTROLLER = "host/controller.py"
+ISOLATION = "host/isolation.py"
+LIFECYCLE = "host/lifecycle.py"
+SESSION = "host/session.py"
 RUNLOG = "runlog.py"
+#: The brain: framework-free, and it may not import the host side (rule c).
+BRAIN_FILES = frozenset({"mode.py"})
 
 ANY_FILE = None
 
@@ -168,18 +187,30 @@ DOORS: tuple[Door, ...] = (
         "context",
         {
             CONTROLLER: frozenset({"emulator.press_button", "emulator.hold_button", "emulator.release_button"}),
-            "platform/isolation.py": frozenset({"bot_listeners", "bot_listeners="}),
-            LIFECYCLE: frozenset({"bot_mode"}),
-            INSTRUMENT: frozenset({"emulator"}),
+            ISOLATION: frozenset({"bot_listeners", "bot_listeners="}),
+            SESSION: frozenset({"bot_mode", "debug", "config.http.http_server.enable"}),
+            INSTRUMENT: frozenset({"emulator", "bot_listeners", "frame"}),
+            HOOK_KEY: frozenset({"bot_listeners"}),
         },
         "the framework's singleton. The controller may only press, hold and release buttons through "
-        "it; isolation only reads and swaps the listener list; the lifecycle only reads the bot-mode "
-        "name; the instrument only takes the emulator handle it wraps.",
+        "it; isolation only reads and swaps the listener list; the session only reads the bot-mode "
+        "name, the debug flag and whether the HTTP server is on; the instrument only takes the "
+        "emulator handle it wraps, reads the listener list to check the AI's guard is in it, and "
+        "reads main.py's pass counter (`frame`) to check the audit saw every main-loop frame; the "
+        "hook only reads the listener list, for its own before/after record.",
+    ),
+    Door(
+        "modules.main",
+        None,
+        {ISOLATION: frozenset({"get_bot_listeners", "get_bot_listeners="})},
+        "the framework's main loop module, ONLY so isolation can own the name `main.py` calls to "
+        "rebuild its listeners after a reset or a state load (and give it back on exit). Without it a "
+        "rebuild ran the framework's listeners for a frame, behind the AI's back.",
     ),
     Door(
         "modules.modes._interface",
         "BotListener",
-        {"platform/isolation.py": None},
+        {ISOLATION: None},
         "the base class of the AI's own GuardListener: the plugin seam itself, no bot logic.",
     ),
     Door(
@@ -296,14 +327,41 @@ LIBRARIES: dict[str, Library] = {
             "stdout": ANY_FILE,
             "stderr": ANY_FILE,
             "version_info": ANY_FILE,
-            "path": frozenset({HOOK_KEY}),  # the hook puts the repo root first on the path
+            # The hook APPENDS the repo root: never in front of the standard library (finding 4).
+            "path.append": frozenset({HOOK_KEY}),
             "modules.values": _INSTRUMENT_ONLY,  # re-binding every copy of a wrapped memory function
+            "modules.get": _INSTRUMENT_ONLY,  # `seal_module` finds the module object it seals
             "_getframe": _INSTRUMENT_ONLY,  # who called a door
             "monitoring": _INSTRUMENT_ONLY,  # the bot-code monitor (layer 3)
         },
     ),
-    "threading": Library(_INSTRUMENT_ONLY, {"local": _INSTRUMENT_ONLY}),  # a per-thread depth counter
+    # The instrument: per-thread depth counters, the daemon exit watchdog that ends a finished
+    # process a non-daemon framework thread would otherwise hold open (at once when the run finished
+    # off the main thread), and (round 3) the FRAME FENCE: a re-entrant frame lock and the finishing
+    # thread's id, so no other thread runs a frame while `finish` runs. The session: the interrupt
+    # watch thread, which ends a run whose main thread is stuck after Ctrl+C. The lifecycle: the lock
+    # that makes `finish` single-entry across threads.
+    "threading": Library(
+        frozenset({INSTRUMENT, SESSION, LIFECYCLE}),
+        {
+            "local": _INSTRUMENT_ONLY,
+            "Timer": _INSTRUMENT_ONLY,
+            "current_thread": _INSTRUMENT_ONLY,
+            "main_thread": _INSTRUMENT_ONLY,
+            "RLock": _INSTRUMENT_ONLY,
+            "Thread": frozenset({SESSION}),
+            "Lock": frozenset({LIFECYCLE}),
+            "get_ident": frozenset({LIFECYCLE, INSTRUMENT}),
+        },
+    ),
     "types": Library(_INSTRUMENT_ONLY, {"FrameType": _INSTRUMENT_ONLY, "ModuleType": _INSTRUMENT_ONLY}),
+    # Ctrl+C / Ctrl+Break handlers that only set a flag (finding 7). Process-wide, so the session only.
+    "signal": Library(
+        frozenset({SESSION}),
+        {"signal": frozenset({SESSION}), "SIGINT": frozenset({SESSION}), "SIGBREAK": frozenset({SESSION})},
+    ),
+    # The hook's after-the-run record of the framework's listener list (finding 9).
+    "atexit": Library(frozenset({HOOK_KEY}), {"register": frozenset({HOOK_KEY})}),
 }
 #: The launcher process may also manage files and child processes. It never runs inside the bot.
 LAUNCHER_LIBRARIES = frozenset(LIBRARIES) | frozenset({"argparse", "hashlib", "psutil", "shutil", "subprocess", "threading"})
@@ -448,29 +506,33 @@ FILE_WRITE_NAMES = frozenset(
 READ_MODE_CHARACTERS = frozenset("rbt")
 
 # ---------------------------------------------------------------------------------- (g) pinned surfaces
-#: Each platform adapter's exported names. A new adapter, or a new export, is a gate change.
-PLATFORM_EXPORTS: dict[str, frozenset[str]] = {
-    "platform/__init__.py": frozenset(),
-    INSTRUMENT: frozenset({"Attribution", "PurityCounters", "Sealed"}),
+#: Each host module's exported names. A new host module, or a new export, is a gate change.
+HOST_EXPORTS: dict[str, frozenset[str]] = {
+    "host/__init__.py": frozenset(),
+    INSTRUMENT: frozenset({"Attribution", "Guarded", "PurityCounters", "Sealed", "seal_module"}),
     CONTROLLER: frozenset({"BUTTONS", "MAX_ACTION_FRAMES", "Controller", "ControllerError"}),
-    "platform/isolation.py": frozenset({"GuardListener", "ListenerIsolation", "describe"}),
+    ISOLATION: frozenset({"GuardListener", "ListenerIsolation", "describe"}),
     LIFECYCLE: frozenset(
         {
-            "EXIT_BRAIN_RETURNED", "EXIT_CRASH", "EXIT_FRAME_BUDGET", "EXIT_OK", "EXIT_PARKED",
-            "EXIT_PURITY_BREACH", "EXIT_WALL_CLOCK", "Lifecycle", "current_bot_mode",
+            "EXIT_BRAIN_RETURNED", "EXIT_CRASH", "EXIT_FRAME_BUDGET", "EXIT_INTERRUPTED", "EXIT_OK",
+            "EXIT_PARKED", "EXIT_PURITY_BREACH", "EXIT_REFUSED", "EXIT_WALL_CLOCK", "Lifecycle",
         }
     ),
+    SESSION: frozenset({"Session", "start_session"}),
 }
-#: sha256 of `platform/attribution.py` (line endings normalised to LF). The instrument is exempt from
+#: sha256 of `host/attribution.py` (line endings normalised to LF). The instrument is exempt from
 #: rules b, d and f, so this gate cannot judge what it does; it pins WHAT IT IS instead. After a
 #: change: re-read the whole file (no public method or attribute may hand out `context`, the emulator,
 #: `modules.memory`, `ffi` or a frame), then set this to `--instrument-digest`'s output.
-INSTRUMENT_SHA256 = "ae29ece922c245f0d4730431cf9546c1a3cb932b0284a6d117d22e887473b6ec"
-#: The instrument's finalizing methods: only the lifecycle's `finish` may call them (the instrument
-#: also refuses any other caller at run time).
+INSTRUMENT_SHA256 = "4ba24f27f519d53b66d6e38119338b7ee7f46795554cb71f910b93845e9b0103"
+#: The instrument's control methods and the only files that may name them. The finalizers: only the
+#: lifecycle's `finish` (the instrument also refuses any other caller at run time). The isolation
+#: check: only the session, which hands it the real guard (a second call is refused and counted).
 INSTRUMENT_CONTROL_NAMES: dict[str, frozenset[str]] = {
     "finalize_audit": frozenset({LIFECYCLE}),
     "write_verdict_file": frozenset({LIFECYCLE}),
+    "arm_exit_watchdog": frozenset({LIFECYCLE}),
+    "watch_guard": frozenset({SESSION}),
 }
 
 
@@ -652,7 +714,7 @@ class _Context:
         return None
 
     def module_file(self, module: str) -> Path | None:
-        """`ai_player.platform.controller` -> its source file in the package being judged, if that is
+        """`ai_player.host.controller` -> its source file in the package being judged, if that is
         a file this scan reads (never one under `__pycache__`, the test side, or a dunder folder)."""
         parts = module.split(".")[1:]
         if any(not part.isidentifier() or _is_dunder(part) for part in parts):
@@ -709,7 +771,7 @@ class _FileScanner(ast.NodeVisitor):
         return self.role == "play"
 
     def _absolute(self, node: ast.ImportFrom) -> str:
-        """`from .x import y` in ai_player/platform/z.py -> `ai_player.platform.x`. Without this a
+        """`from .x import y` in ai_player/host/z.py -> `ai_player.host.x`. Without this a
         relative import could reach the test side (or, from the hook, the bot's modes) unseen."""
         if node.level == 0:
             return node.module or ""
@@ -830,14 +892,16 @@ class _FileScanner(ast.NodeVisitor):
         if name in STATE_CHANGING_NAMES:
             self.fail(node, "b", f"{how} `{name}`: the AI must not write memory, load or reset the emulator, or advance frames")
         if name in INPUT_NAMES and self.key != CONTROLLER:
-            self.fail(node, "b", f"{how} `{name}`: only platform/controller.py may touch the buttons")
+            self.fail(node, "b", f"{how} `{name}`: only {CONTROLLER} may touch the buttons")
         # The builtins are reflection; an ATTRIBUTE that shares a name is judged in _check_attribute.
         if name in REFLECTION_NAMES and not isinstance(node, ast.Attribute):
             self.fail(node, "d", f"{how} `{name}`: it imports, evaluates or looks up names at run time")
         if name in FORBIDDEN_ATTRIBUTES:
             self.fail(node, "d", f"{how} `{name}`: the import system, tracing hooks and frames are off limits")
         if name in INSTRUMENT_CONTROL_NAMES and self.key not in INSTRUMENT_CONTROL_NAMES[name]:
-            self.fail(node, "g", f"{how} `{name}`: only the lifecycle's finish may finalize the audit or write the verdict")
+            owners = ", ".join(sorted(INSTRUMENT_CONTROL_NAMES[name]))
+            self.fail(node, "g", f"{how} `{name}`: only {owners} may name this instrument control (the finalizers "
+                      f"belong to the lifecycle's finish, the isolation check to the session)")
         if (
             self.judges_effects
             and not self.writes_files
@@ -957,6 +1021,10 @@ class _FileScanner(ast.NodeVisitor):
                 return
         if self.role != "launcher" and (base in LAUNCHER_MODULES or full in LAUNCHER_MODULES):
             self.fail(node, "c", f"`{shown}`: the play loop may not import the launcher side")
+            return
+        if self.key in BRAIN_FILES and any(m == HOST_MODULE or m.startswith(HOST_MODULE + ".") for m in (base, full)):
+            self.fail(node, "c", f"`{shown}`: the brain is framework-free; it sees the game only through its "
+                      f"abstract interfaces and may not import the host side")
             return
         path = self.ctx.module_file(base)
         facts = self.ctx.facts(path) if path is not None else None
@@ -1146,17 +1214,11 @@ class _FileScanner(ast.NodeVisitor):
                       f"object changes code that module (or the framework) runs")
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
+        # No exemption for the hook any more: it may only APPEND to `sys.path` (finding 4).
         if self.judges_effects and isinstance(node.ctx, (ast.Store, ast.Del)):
             root = self._root_name(node.value)
             binding = self.bindings.get(root.id) if root is not None else None
-            hook_path_store = (
-                self.is_hook
-                and binding is not None
-                and binding.kind == "library"
-                and binding.library == "sys"
-                and self._chain(root) == ["path"]
-            )
-            if binding is not None and not hook_path_store:
+            if binding is not None:
                 self.fail(node, "f", f"assigns to an item of the imported `{root.id}`: changing another module's (or the "
                           f"framework's) data changes code it runs")
         self.generic_visit(node)
@@ -1342,18 +1404,18 @@ def _check_exports(ctx: _Context, path: Path, key: str, display: str, role: str)
     if facts is None:
         return
     names = list(facts.all_names or [])
-    if key.startswith("platform/"):
+    if key.startswith(HOST_DIR):
         ctx.result.exports[key] = names
         if role != "launcher":
-            pinned = PLATFORM_EXPORTS.get(key)
+            pinned = HOST_EXPORTS.get(key)
             if pinned is None:
-                ctx.result.violations.append(Finding(display, 0, "g", "a platform adapter that PLATFORM_EXPORTS does not list: "
+                ctx.result.violations.append(Finding(display, 0, "g", "a host module that HOST_EXPORTS does not list: "
                                                      "add it there with its exports (a reviewed gate change)"))
             elif set(names) != pinned:
                 extra, missing = sorted(set(names) - pinned), sorted(pinned - set(names))
-                ctx.result.violations.append(Finding(display, facts.all_line, "g", f"__all__ differs from PLATFORM_EXPORTS "
-                                                     f"(new: {extra or 'none'}; gone: {missing or 'none'}): a change to an "
-                                                     f"adapter's surface is a reviewed gate change"))
+                ctx.result.violations.append(Finding(display, facts.all_line, "g", f"__all__ differs from HOST_EXPORTS "
+                                                     f"(new: {extra or 'none'}; gone: {missing or 'none'}): a change to a "
+                                                     f"host module's surface is a reviewed gate change"))
     for name in names:
         if name not in facts.defined:
             what = "an imported name" if name in facts.imported else "not a name this module defines"
@@ -1398,6 +1460,19 @@ def _check_shadowing(ctx: _Context) -> None:
                 Finding("<library allowlist>", 0, "a", f"the framework provides a top-level `{top}`, which would "
                         f"shadow the standard library's `{library}` in the bot process")
             )
+    # Step 0.1, finding 10: the package's own top-level modules and subpackages must not be named like
+    # the standard library (`ai_player/platform/` was): with `ai_player/` itself on sys.path, they
+    # would replace the library module for the framework and for everything else in the process.
+    stdlib = getattr(sys, "stdlib_module_names", frozenset())
+    if ctx.package_dir.is_dir():
+        for entry in sorted(ctx.package_dir.iterdir()):
+            name = entry.name.split(".", 1)[0] if entry.is_file() else entry.name
+            importable = entry.is_dir() or entry.name.lower().endswith(SOURCE_SUFFIXES + OPAQUE_SUFFIXES)
+            if importable and not _is_dunder(name) and name in stdlib:
+                ctx.result.violations.append(
+                    Finding(f"ai_player/{entry.name}", 0, "a", f"named like the standard library's `{name}`: with "
+                            f"ai_player/ on sys.path it would shadow that module for the whole process; rename it")
+                )
 
 
 # ---------------------------------------------------------------------------------- driver
@@ -1470,7 +1545,7 @@ def report(result: GateResult) -> str:
     lines.append(f"  instrument sha256: {result.instrument_sha256 or '?'} ({'pinned' if result.instrument_sha256 == INSTRUMENT_SHA256 else 'NOT the pinned one'})")
     lines.append(f"  allowlisted framework imports found: {len(result.allowed_imports)}")
     lines.extend(result.allowed_imports)
-    lines.append("  platform exports (__all__), pinned by rule g:")
+    lines.append("  host exports (__all__), pinned by rule g:")
     for key, names in sorted(result.exports.items()):
         lines.append(f"    {key}: {', '.join(names) or '(empty)'}")
     if result.violations:
