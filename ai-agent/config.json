@@ -1,7 +1,8 @@
 {
   "_help": "Read by the learner at the start of EVERY cycle, so an edit applies to the next cycle without a restart. Keys starting with _ are ignored. See README.md.",
   "lanes": "auto",
-  "max_lanes": 24,
+  "_max_lanes": "16 from 2026-10-07 (USER RULING 37 Q7): leaves CPU for the AI player's development runs",
+  "max_lanes": 16,
   "reserve_threads": 4,
   "reserve_ram_gb": 8,
   "ram_per_lane_gb": 1.5,

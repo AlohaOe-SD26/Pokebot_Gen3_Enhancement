@@ -371,6 +371,19 @@ acceptance batches start; (a) is fine for development).
 **Q8. Personalities in v1?** (a) All three (Catcher, Story, Trainer) as weight sets (recommended: cheap, and it
 exercises variety from day one). (b) Story only for now.
 
+## 11. The user's answers to §9 (USER RULING 37, 2026-10-07): THESE WIN over §1-§10
+
+| Q | decision |
+|---|---|
+| 1 code location | `ai_player/` package at the repo root, with its own entry point (`py -3.12 -m ai_player ...`). It reaches the framework ONLY through two thin adapters (eyes = memory reads, controller = buttons/frames), plus ONE thin hook file in `sandbox-pokebot/plugins/custom_modes/`. **Built from day one to become a single standalone program** that loads the ROM itself and runs as an art piece (the user's stated plan): no hard-coded paths to the bot, and everything else behind the adapters. |
+| 2 framework helpers | STRICT (option a): the AI removes every listener it does not own, from its own side, and restores them on exit. The framework is NOT edited (§10.1-2). |
+| 3 milestone | **v1's goal = BADGE 1 (beat Roxanne).** Milestones are per GYM BADGE, each split into CHAPTERS that are developed and accepted one at a time. Badge 1 = Ch1 intro to the Pokédex (Route 103 rival); Ch2 Oldale to Petalburg (Wally's tutorial); Ch3 Route 104, Petalburg Woods, Rustboro; Ch4 Roxanne. §6's criteria apply per chapter, extended for Ch3-4. |
+| 4 acceptance start | A real New Game for OFFICIAL acceptance runs (naming and clock included). Development may use saves. |
+| 5 Claude | The everyday coach is a cheaper model (Sonnet), about 20 calls a day, at most $0.50 each. The coach, or the chat agent it talks to, MAY use a few other agents to DELIBERATE, and may ESCALATE to a higher model (Opus 5.5) for supervision, correction, intervention or deliberation. Escalations are capped and logged separately. |
+| 6 pacing | HUMAN pacing, but always goal-directed and never idle: it never stands still (for now). Detours are allowed: training, exploring, item collecting, gift items, fishing, later the Game Corner. |
+| 7 PC sharing | The learner drops to `max_lanes` 16 (from 24) while the AI is developed; the AI's runs use the rest. |
+| 8 personalities | All three (Catcher, Story, Trainer) from day one. |
+
 ## 10. Adversarial review: findings ADOPTED into this draft (2026-10-07)
 
 > An independent reviewer opened all ~90 citations above, and every one resolves. Paths written without a folder are

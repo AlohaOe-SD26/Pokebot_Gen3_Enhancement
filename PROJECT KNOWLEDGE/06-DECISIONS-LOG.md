@@ -9244,3 +9244,21 @@ on all three questions:
   - The dev/test path is the file mailbox (reports, logs, `inbox/`, `DEVELOPER-NOTES.md`) read in Claude sessions, plus the local `claude` CLI (`consult.py`), with no key.
   - The production path is the Anthropic API with the user's own key, behind a toggle, carrying a standing INITIAL PROMPT (the game, the AI's goals and personality, its state, the help needed). That prompt is to be written later.
   - Recorded in `ai-agent/HUMAN-PLAY-DESIGN.md` (architecture table) and memory.
+
+## 2026-10-07 — USER RULING 37: the AI player v1 decisions (answers to the design draft's §9)
+
+- **The user, VERBATIM:**
+  > 1: Whatever you think is best for organization, I do plan to eventually split things up to the point where it would be a single program that would run as the ai and load the rom automatically and all that so keep that in mind so it would be easy to run as an art piece like I mentioned.
+  > 2: Whatever you think is best.
+  > 3: Go all the way to beating Roxanne, we should chunk these out into gym badges unless you think smaller "chapters/milestones" are better.
+  > 4: Yes, for the official acceptance runs (including naming and clock setting)
+  > 5: A daily cap of about 20 calls on a cheaper model, at most $0.50 each. I have my weekly credits refreshed again so I am not too worried about usage since the ai will be training and conversing with you so allow the ai or the chat agent its talking to to use a few other ai agents to deliberate and/or escalate to a higher model (opus 5.5) if needed for supervision/correction/intervention/deliberation assistance.
+  > 6: Human pacing is fine, the AI should look more human like but not loafing around, should still be working towards the goal and not just standing around but can detour for training, exploring, item collecting, gift items, fishing, gambling at game corner (future maybe), etc... like a human would but should not really stand still at any point (for now anyways)
+  > 7: Whatever you think is best.
+  > 8: All three (Catcher, Story, Trainer) from day one, since it's cheap and gives variety immediately.
+- **Coordinator decisions on the delegated questions (1, 2, 7):**
+  - Q1: the `ai_player/` package at the repo root with its own entry point. It reaches the framework only through two thin adapters (eyes, controller) plus one thin hook file in `sandbox-pokebot/plugins/custom_modes/`, built from day one to become the standalone single program (loads the ROM itself; an art piece).
+  - Q2: STRICT. The AI removes every listener it does not own, from its own side, and the framework is not edited.
+  - Q7: the learner goes to `max_lanes` 16 while the AI is developed (`ai-agent/config.json`; it applies at the learner's next cycle boundary).
+- **Chapters within badges:** badge 1 = Ch1 intro to the Pokédex; Ch2 to Petalburg (Wally); Ch3 Route 104, Petalburg Woods, Rustboro; Ch4 Roxanne. Each chapter is developed and accepted on its own. Smaller units localise failures, and the badge stays the user-facing milestone.
+- Recorded in the design draft §11, which wins over §1-§10.

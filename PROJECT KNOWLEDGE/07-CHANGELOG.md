@@ -37766,3 +37766,5 @@ bought balls only at fixed story points.
   - The review found 5 HIGH problems. Three were re-verified in code by the coordinator: `BattleListener` forces the bot's `DefaultBattleStrategy` in trainer battles; plugin listeners write memory; a finished or crashed mode restarts or parks silently.
   - All fixes are adopted in §10, which wins over §2-§9. 8 open questions go to the user.
 - Daily upstream check 2026-10-07: unchanged (`3bd0b70c`).
+
+## 2026-10-07 — USER RULING 37 recorded (AI player v1 decisions: badge 1 split into four chapters; a standalone-ready `ai_player/` package; strict listener isolation; a Sonnet coach with escalation to Opus; human but never-idle pacing; three personalities). The learner goes to 16 lanes.
