@@ -9,26 +9,35 @@ framework, so a standalone build keeps it unchanged.
 
 WHAT IS AND IS NOT IN IT (§10.7, "perception like a person"):
   * the tiles and objects INSIDE the on-screen window only (`eyes/view.py` explains the window); an
-    object the game keeps loaded off screen is not here, and a hidden item never is;
+    object the game keeps loaded off screen is not here, and a hidden item never is. Every person on
+    the overworld is an "npc": nothing on screen marks a trainer before it engages (step 1.1);
   * the party, the bag's balls and healing items, money, badges, the Pokedex counts and a small set
-    of story flags: a player knows all of these from the menus;
-  * in battle, both sides' active Pokemon. ‼ The FOE's exact HP and its moves are more than a person
-    sees (the HP bar, and the moves only once used); they are reported because the build plan asks
-    for them, and the battle decider (step 4) must treat foe HP as a fraction and foe moves as
-    unknown until seen;
+    of story flags: a player knows all of these from the menus; the Pokemon in the PC boxes
+    (`storage`: who they are and whose, the PC's menus show it), so a catch sent to a box is seen;
+  * the player's trainer ID is the VISIBLE 16-bit one (the trainer card's "IDNo."), and so is every
+    Pokemon's OT id: ownership is decided on it, and the SECRET id, shown nowhere, is never reported;
+  * in battle, both sides' active Pokemon. The FOE is seen as a person sees it (step 1.1): its HP as
+    the HP BAR (`BattleMon.hp_bar`, filled pixels of 48; `hp` and `max_hp` are None), and only the
+    moves it has USED in this battle (`eyes/view.py` foe_move_seen), with no PP. The player's own
+    battlers keep their numbers and all their moves (the player's healthbox and move menu show them);
   * `problems`: what could not be read this frame (a torn party read, no player avatar on the title
-    screen). An Observation is always returned; a part that could not be read is None or empty,
-    and says why here.
+    screen). An Observation is always returned; a part that could not be read is None and says why
+    here. ‼ None and EMPTY differ: `party` None = not read (the title screen, a torn read), `party`
+    () = read, and the player has no Pokemon (a New Game before the starter). Code that counts must
+    never read None as 0 (step 1.1: `memory_log.py` took a catch's `dest` from the party COUNT).
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from ai_player.eyes.view import HP_BAR_PIXELS
+
 __all__ = [
     "BagSummary",
     "BattleMon",
     "BattleView",
+    "MenuView",
     "MonSummary",
     "MoveSlot",
     "Observation",
@@ -36,6 +45,7 @@ __all__ = [
     "Progress",
     "ScreenState",
     "SeenObject",
+    "StoredMon",
     "Tile",
     "View",
 ]
@@ -117,7 +127,7 @@ class Tile:
 class SeenObject:
     """A thing on screen: a person, a Pokemon, an item ball, a cut tree, a sign."""
 
-    kind: str  # item_ball, trainer, npc, cut_tree, smash_rock, boulder, berry_tree, sign
+    kind: str  # item_ball, npc (every person), cut_tree, smash_rock, boulder, berry_tree, sign
     x: int
     y: int
     dx: int
@@ -153,7 +163,7 @@ class View:
         marks = {}
         for seen in self.objects:
             marks[(seen.dx, seen.dy)] = {
-                "item_ball": "o", "trainer": "T", "npc": "n", "cut_tree": "t", "smash_rock": "r",
+                "item_ball": "o", "npc": "n", "cut_tree": "t", "smash_rock": "r",
                 "boulder": "b", "berry_tree": "B", "sign": "s",
             }.get(seen.kind, "?")
         lines = []
@@ -168,13 +178,19 @@ class PlayerState:
     map_number: int
     map_name: str  # the region-map name the bot's logs use ("ROUTE 101"); interiors share their town's
     map_const: str | None  # the map's own name ("ROUTE_101", "LITTLEROOT_TOWN_BRENDANS_HOUSE_1F")
-    x: int
-    y: int
+    x: int | None  # None while `settling`
+    y: int | None
     facing: str  # down, up, left, right
     movement: str  # walking, running, mach_bike, acro_bike, surfing, underwater
     elevation: int
     avatar_flags: int
-    trainer_id: int  # the player's FULL trainer id (visible | secret << 16), as a Pokemon's OT field holds it
+    #: The player's VISIBLE trainer id (16 bits: the trainer card's "IDNo.", what a person sees). Ownership
+    #: is `MonSummary.ot_id == trainer_id`. (Until step 1.1 this was the full 32-bit id, secret half included.)
+    trainer_id: int
+    #: True while a WARP settles: the save block already holds the new map and its arrival tile while the
+    #: player object still stands on the old map's tile (`eyes/view.py` settled_position). Then `x` and `y`
+    #: are None and there is no view: the position is unknown, never one map's tile with the other's name.
+    settling: bool = False
 
 
 @dataclass(frozen=True)
@@ -182,8 +198,8 @@ class MoveSlot:
     name: str
     type: str
     power: int
-    pp: int
-    max_pp: int
+    pp: int | None  # None: not shown to the player (a foe's move)
+    max_pp: int | None
 
 
 @dataclass(frozen=True)
@@ -198,7 +214,19 @@ class MonSummary:
     types: tuple[str, ...]
     moves: tuple[MoveSlot, ...]
     pid: int  # personality value: the IDENTITY of this Pokemon (CLAUDE.md rule 3: never a slot)
-    ot_id: int  # its original trainer's id
+    ot_id: int  # its original trainer's VISIBLE id (16 bits, the summary screen's "IDNo.")
+    is_egg: bool
+
+
+@dataclass(frozen=True)
+class StoredMon:
+    """A Pokemon in a PC box: who it is (PID) and whose (the VISIBLE OT id). Read from the box's
+    unencrypted header, so the eyes decrypt nothing for it (`host/eyes.py` _storage)."""
+
+    box: int  # 0-13
+    slot: int  # 0-29
+    pid: int
+    ot_id: int
     is_egg: bool
 
 
@@ -224,10 +252,13 @@ class BattleMon:
     species: str
     dex: int
     level: int
-    hp: int
-    max_hp: int
+    hp: int | None  # None for a FOE: a person sees its HP bar, not its numbers
+    max_hp: int | None
+    hp_bar: int  # filled pixels of the 48-pixel HP bar (`eyes/view.py` hp_bar_pixels): what is drawn
     status: str
     types: tuple[str, ...]  # the LIVE types (Color Change, Camouflage, ... change them)
+    #: The player's own battler: all its moves with PP. A FOE: only the moves it has USED in this battle
+    #: (seen on screen, `eyes/view.py` foe_move_seen), without PP; the rest are unknown, as for a person.
     moves: tuple[MoveSlot, ...]
 
 
@@ -242,6 +273,31 @@ class BattleView:
 
 
 @dataclass(frozen=True)
+class MenuView:
+    """BUILD STEP 2: the interactive thing on screen that takes the D-pad and A/B, and WHERE ITS CURSOR IS
+    (`eyes/screens.py` read_ui says how each is recognised and read). A person sees which option is
+    highlighted; the hands move a cursor by reading this, never by counting presses."""
+
+    kind: str  # yes_no, gender, main_menu, start_menu, multichoice, mart_menu, mart_buy, mart_quantity,
+    #            naming, clock, bag, party, title, intro_movie
+    options: tuple[str, ...] = ()  # top to bottom, as shown ("" where the name is not known)
+    cursor: int | None = None  # the highlighted option (an index into `options`), or the bag / party row
+    #: False while the thing is not taking input yet (a window still opening, a page swapping, the clock's hand
+    #: still turning): a press now would be dropped, so the hands wait for True.
+    accepts_input: bool = True
+    page: str | None = None  # naming: "upper", "lower" or "symbols"
+    cursor_xy: tuple[int, int] | None = None  # naming: (column, row); column == the page's count = the buttons
+    text: str | None = None  # naming: what is typed so far
+    max_chars: int | None = None  # naming
+    hours: int | None = None  # clock
+    minutes: int | None = None  # clock
+    quantity: int | None = None  # mart_quantity: "x NN"
+    max_quantity: int | None = None  # mart_quantity: what the money (or the bag) allows
+    prices: tuple[int, ...] = ()  # mart_buy: each item's price, as the list shows it
+    pocket: str | None = None  # bag: the open pocket
+
+
+@dataclass(frozen=True)
 class ScreenState:
     game_state: str  # the framework's GameState name (OVERWORLD, BATTLE, PARTY_MENU, ...)
     screen: str  # overworld, battle, text, menu, transition, title, other
@@ -250,8 +306,30 @@ class ScreenState:
     waits_for_button: bool  # the game is waiting for A or B (a script's waitbuttonpress, or a text printer's wait)
     in_battle: bool
     #: WHY it waits, when it does: "script waitbuttonpress", or "text printer N WAIT / CLEAR / SCROLL_START"
-    #: (`eyes/view.py` text_printer_wait: WAIT is `{PAUSE_UNTIL_PRESS}`, no arrow; the other two show it).
+    #: (`eyes/view.py` text_printer_wait: WAIT is `{PAUSE_UNTIL_PRESS}`, no arrow; the other two show it), or
+    #: (build step 2) "task NAME (A or B)": a task that polls the buttons with no text printer waiting
+    #: (`eyes/screens.py` TASK_WAITS).
     wait_reason: str | None = None
+    #: BUILD STEP 2: the interactive thing on screen and its cursor (`MenuView`), or None.
+    ui: MenuView | None = None
+    #: BUILD STEP 2: the message on screen as far as it has PRINTED (`eyes/screens.py` decode_text; a
+    #: paragraph break is "¶"): the field / intro / shop message (`gStringVar4`), the battle's
+    #: (`gDisplayedStringBattle`) or a string printed straight from the ROM; with no printer active, the
+    #: last message printed, while a wait, a menu or the field box shows it (`host/eyes.py` _text has the rule
+    #: and its limit); None otherwise.
+    text: str | None = None
+    #: BUILD STEP 2: an overworld script is running (`sGlobalScriptContextStatus` is not CONTEXT_SHUTDOWN),
+    #: and the player's field controls are locked (`sLockFieldControls`, `src/script.c`). While either holds,
+    #: an A press next to a person is not "start talking" (the museum-greeter lesson, `08-MISTAKES.md`).
+    script_running: bool = False
+    controls_locked: bool = False
+    #: STEP 2.1: the screen is FADING (`gPaletteFade.active`): a person sees it darken or brighten, and no press
+    #: hurries it.
+    fading: bool = False
+    #: STEP 2.1: WHAT PLAYS, in a person's words, when the game runs by itself ("Professor Birch's speech", "the
+    #: wall clock", "the map loading"): `eyes/screens.py` scene_of. The hands name it when they stand still, so no
+    #: idle stretch is logged under a catch-all reason. None when no table names it.
+    scene: str | None = None
 
 
 @dataclass(frozen=True)
@@ -260,19 +338,25 @@ class Observation:
     screen: ScreenState
     player: PlayerState | None
     view: View | None
-    party: tuple[MonSummary, ...]
+    party: tuple[MonSummary, ...] | None  # None = NOT READ (see the module docstring); () = no Pokemon
     bag: BagSummary | None
     progress: Progress | None
     battle: BattleView | None
     last_battle_outcome: int  # gBattleOutcome: 0 while a battle runs; the result after it
     problems: tuple[str, ...]
     cost_ms: float  # how long this look took
+    #: Every Pokemon in the 14 PC boxes (None = not read). Step 1.1: a catch sent to a box is SEEN here.
+    storage: tuple[StoredMon, ...] | None = None
+
+    #: The compact columns of a stored Pokemon in the action log.
+    STORAGE_FIELDS = ("box", "slot", "pid", "ot_id", "is_egg")
 
     def to_dict(self, compact: bool = True) -> dict:
         """JSON-able. The view carries its picture (`ascii`), for people reading the log. COMPACT (the
         action log's form) writes each tile as `Tile.compact()` instead of 17 named fields: a full
         record is ~42 KB, a compact one a tenth of that, and nothing is lost (names and booleans are
-        derived from the numbers and the flags)."""
+        derived from the numbers and the flags). The PC boxes are written as rows too
+        (`STORAGE_FIELDS`)."""
         data = asdict(self)
         if self.view is not None:
             data["view"]["ascii"] = list(self.view.ascii())
@@ -280,6 +364,9 @@ class Observation:
                 del data["view"]["rows"]
                 data["view"]["tiles"] = [tile.compact() for row in self.view.rows for tile in row]
                 data["view"]["tile_fields"] = ["x", "y", "metatile", "behavior", "collision", "elevation", "flags"]
+        if compact and self.storage is not None:
+            data["storage"] = [[m.box, m.slot, m.pid, m.ot_id, int(m.is_egg)] for m in self.storage]
+            data["storage_fields"] = list(self.STORAGE_FIELDS)
         return data
 
     def digest(self) -> str:
@@ -289,14 +376,22 @@ class Observation:
             parts.append(f"menu={self.screen.menu}")
         if self.screen.waits_for_button:
             parts.append(f"waits=A/B({self.screen.wait_reason})" if self.screen.wait_reason else "waits=A/B")
+        ui = self.screen.ui
+        if ui is not None:
+            parts.append(f"ui={ui.kind}" + ("" if ui.accepts_input else "(busy)") + _ui_detail(ui))
         player = self.player
         if player is not None:
             parts.append(f"{player.map_name}({player.map_group},{player.map_number})")
-            parts.append(f"xy=({player.x},{player.y}) facing={player.facing} {player.movement}")
-        if self.party:
+            where = "xy=settling" if player.settling else f"xy=({player.x},{player.y})"
+            parts.append(f"{where} facing={player.facing} {player.movement}")
+        if self.party is None:
+            parts.append("party=?")
+        elif self.party:
             parts.append("party=[" + ",".join(f"{m.species}:L{m.level} {m.hp}/{m.max_hp}" for m in self.party) + "]")
+        if self.storage:
+            parts.append(f"boxed={len(self.storage)}")
         if self.battle is not None:
-            foe = ",".join(f"{m.species}:L{m.level} {m.hp}/{m.max_hp}" for m in self.battle.foe)
+            foe = ",".join(f"{m.species}:L{m.level} bar {m.hp_bar}/{HP_BAR_PIXELS}" for m in self.battle.foe)
             parts.append(f"battle={self.battle.kind} foe=[{foe}]")
             if self.battle.opponent_trainer_id is not None:
                 parts.append(f"trainer={self.battle.opponent_trainer_id}")
@@ -309,3 +404,18 @@ class Observation:
             parts.append(f"problems={len(self.problems)}")
         parts.append(f"cost={self.cost_ms:.2f}ms")
         return " ".join(parts)
+
+
+def _ui_detail(ui: MenuView) -> str:
+    """The cursor of a `MenuView` in a few characters, for the one-line digest."""
+    if ui.kind == "naming":
+        return f"[{ui.page} at {ui.cursor_xy} text={ui.text!r}]"
+    if ui.kind == "clock":
+        return f"[{ui.hours}:{ui.minutes:02d}]" if ui.hours is not None and ui.minutes is not None else ""
+    if ui.kind == "mart_quantity":
+        return f"[x{ui.quantity} max {ui.max_quantity}]"
+    if ui.cursor is not None and 0 <= ui.cursor < len(ui.options):
+        return f"[{ui.options[ui.cursor]}]"
+    if ui.cursor is not None:
+        return f"[{ui.cursor}]"
+    return ""

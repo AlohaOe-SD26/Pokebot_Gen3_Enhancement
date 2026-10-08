@@ -15,10 +15,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-__all__ = ["PARTY_MON_SIZE", "RawMon", "SUBSTRUCT_POSITIONS", "decode_party_mon", "substruct_positions"]
+__all__ = ["PARTY_MON_SIZE", "RawMon", "SUBSTRUCT_POSITIONS", "decode_party_mon", "present_pids", "substruct_positions"]
 
 #: sizeof(struct Pokemon).
 PARTY_MON_SIZE = 100
+#: `include/pokemon.h` struct BoxPokemon: the unencrypted bit-field byte @19, `hasSpecies` bit 1 (set by
+#: `SetBoxMonData(MON_DATA_SPECIES)`, cleared with the whole slot by `ZeroBoxMonData`).
+_FLAGS_AT, _HAS_SPECIES = 19, 0x02
+
+
+def present_pids(raw: bytes, slots: int = 6) -> frozenset[int]:
+    """The PIDs of the occupied slots of a raw party (`gPlayerParty` / `gEnemyParty`, 100 bytes a slot),
+    from the unencrypted header only: a slot counts when its `hasSpecies` bit is set. No decryption, so a
+    slot the game is writing (a torn read) still gives its PID. Used to tell a battler that belongs to THIS
+    battle from a stale one (`host/eyes.py` _battle, step 1.1)."""
+    return frozenset(
+        int.from_bytes(raw[slot * PARTY_MON_SIZE:slot * PARTY_MON_SIZE + 4], "little")
+        for slot in range(slots)
+        if len(raw) >= (slot + 1) * PARTY_MON_SIZE and raw[slot * PARTY_MON_SIZE + _FLAGS_AT] & _HAS_SPECIES
+    )
 #: `src/pokemon.c` GetSubstruct, the SUBSTRUCT_CASE table verbatim: for personality % 24, the POSITION
 #: (0-3) of the growth, attacks, EVs and misc substructures among the four 12-byte encrypted blocks.
 SUBSTRUCT_POSITIONS: tuple[tuple[int, int, int, int], ...] = (

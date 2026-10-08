@@ -1,0 +1,179 @@
+AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM E4: WILD BATTLE on Route 101
+date: 2026-10-07 22:01:51
+code: HEAD 9f859914; ai_player/ has UNCOMMITTED changes (the code under test is the working tree)
+fixture: tools/story-dev/saves/oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a
+fixture documentation: live_step0.py: oldale.ss1 = a WILD battle on Route 101
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step1-eyes --frames 600 --wall-seconds 120 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4 --state C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\oldale.ss1
+env: AI_PLAYER_BRAIN=watcher AI_PLAYER_WATCH_EVERY=60 
+exit code: 0   elapsed: 4.5s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4
+VERDICT: FAIL
+checks (pre-registered in ai_player/gates/live_step1.py's docstring; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=0 (want 0: the watcher presses nothing)
+  [PASS] every breach counter 0, incl. ai_bot_calls=0 (non-zero: none)
+  [PASS] real_frames=600 (want >= 600)
+  [PASS] ended by itself: exit_reason=watcher-done exit_code=0 process=0
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] action log: 10 records (want 10, one per 60 frames)
+  [PASS] action log frames [79839, 79899, 79959]...[80379] step [60] (want 60)
+  [PASS] every record: decision/action/observation/digest = [('observe', 'none', True, True)]
+  [PASS] no part of any look was unreadable: problems=none
+  [FAIL] the probe and the first look read the same frame: probe fNone, look f79839
+  [FAIL] MAP (group, number) eyes (0, 16) (save block 1 location) == truth (None, None) (the live gMapHeader is byte-identical to exactly one header of the ROM table gMapGroups, walked by the probe: None)
+  [FAIL] MAP NAME eyes 'ROUTE 101' (the framework's MapLocation.map_name) == truth None (region-map section None of the ROM header -> gRegionMapEntries -> decoded by the probe's own charmap)
+  [FAIL] POSITION eyes [13, 5] (object currentCoords - 7) == truth None (save block 1 pos)
+  [FAIL] FACING CONSISTENCY ONLY, NOT GROUND TRUTH (the player's sprite slot now runs None: this screen freed the overworld sprites, so the game holds no second copy): eyes 'left' == the same byte decoded by the probe None
+  [PASS] documentation: map 'ROUTE 101'; eyes 'ROUTE 101'
+  [FAIL] IN BATTLE eyes True (theirs: is gMain.callback1 BattleMainCB1) == truth gMain.inBattle bit None (bit 1 of gMain+0x439, which the eyes do not read)
+  [FAIL] PARTY (species, level, hp, max, PID) eyes [('Mudkip', 8, 19, 28, '550A9BE6')] == truth (framework get_party) []
+  [FAIL] party levels == the raw level bytes []
+  [FAIL] PARTY MOVES, PP / MAX PP AND STATUS by PID: eyes (their own decryption, max PP from the move table and the PP-up bits) == truth (framework get_party: its decryption, LearnedMove.pp / total_pp, StatusCondition); 0 moves, 0 with PP used, statuses []:  || eyes [('550A9BE6', 'ok', [('Tackle', 27, 35), ('Growl', 40, 40), ('Mud-slap', 10, 10)])]
+  [FAIL] MONEY eyes 3300 (framework get_player) == truth None (save block 1 money XOR save block 2 key)
+  [PASS] BADGES eyes [] (framework get_event_flag) == truth [] (the probe's own bits at the decomp's flag ids 0x867..0x86E)
+  [FAIL] STORY FLAGS eyes == truth (bits at the decomp's ids): ['RESCUED_BIRCH=F', 'SYS_POKEMON_GET=F', 'DEFEATED_RIVAL_ROUTE103=F', 'RECEIVED_POKEDEX_FROM_BIRCH=F', 'SYS_POKEDEX_GET=F', 'ADVENTURE_STARTED=F', 'HIDE_PETALBURG_CITY_WALLYS_MOM=F', 'SYS_B_DASH=F', 'DEFEATED_RUSTBORO_GYM=F', 'BADGE01_GET=F']; eyes [('RESCUED_BIRCH', True), ('SYS_POKEMON_GET', True), ('DEFEATED_RIVAL_ROUTE103', True), ('RECEIVED_POKEDEX_FROM_BIRCH', True), ('SYS_POKEDEX_GET', True), ('ADVENTURE_STARTED', True), ('HIDE_PETALBURG_CITY_WALLYS_MOM', False), ('SYS_B_DASH', True), ('DEFEATED_RUSTBORO_GYM', False), ('BADGE01_GET', False)]
+  [FAIL] POKEDEX eyes owned 1 seen 6 (framework get_pokedex) == truth owned None seen None (the game's rule over the THREE seen copies, save block 2 seen + save block 1 seen1/seen2, and save block 2 owned); owned numbers None
+  [FAIL] BALLS eyes [['Poké Ball', 5]] total 5 (framework get_item_bag) == truth [] (the poke-ball pocket of save block 1, quantities XOR the key, names from the ROM's gItems by the probe's charmap)
+  [PASS] HEALING ITEMS eyes [] (the framework's item table says 'healing') == truth [] (items/berries pockets whose ROM gItems use function is ItemUseOutOfBattle_Medicine or ItemUseInBattle_Medicine); left out as not healing: none in the bag
+  [PASS] PC BOXES (box, slot, PID, visible OT id, egg): eyes 0 Pokemon (their own read of the unencrypted box headers) == truth 0 (the framework's get_pokemon_storage): empty boxes
+  [FAIL] TRAINER ID eyes 22640 == truth 0: the visible 16 bits of save block 2's playerTrainerId (the probe's raw read, 00000000)
+  [FAIL] OT IDS (party, then boxes) eyes [22640] == truth [] (the low 16 bits of each Pokemon's otId)
+  [FAIL] THE SECRET ID IS IN NO RECORD: the full 32-bit id 0 (00000000, secret half 0000: non-zero, so it differs from the visible id) occurs 106 times in the 10 action-log records
+  [PASS] screen=battle in_battle=True
+  [FAIL] battle kind eyes 'wild'; truth gBattleTypeFlags=None trainer bit=None
+  [FAIL] OWN SIDE CONSISTENCY ONLY, NOT GROUND TRUTH (the SAME gBattleMons bytes the eyes read, decoded by the probe): eyes [('Mudkip', 8, 19, 28, ['Water'])] == []
+  [FAIL] OWN SIDE (species, level, hp, max, HP bar, status, types, moves with PP / max PP) eyes [('Mudkip', 8, 19, 28, 32, 'ok', ['Water'], [('Tackle', 27, 35), ('Growl', 40, 40), ('Mud-slap', 10, 10)])] == truth: the SECOND COPY the game keeps, the party struct with the battler's PID (; the framework's decryption), types from the species table []
+  [FAIL] FOE SIDE CONSISTENCY ONLY, NOT GROUND TRUTH (the SAME gBattleMons bytes the eyes read, decoded by the probe; the foe as (species, level, HP BAR pixels, -, types)): eyes [('Wurmple', 2, 48, None, ['Bug'])] == []
+  [FAIL] FOE SIDE (species, level, (hp, max) HIDDEN, HP BAR pixels from the copy's hp and max by the decomp's GetScaledHPFraction, status, types, the moves USED (PP below max in the copy), no PP) eyes [('Wurmple', 2, (None, None), 48, 'ok', ['Bug'], [])] == truth: the SECOND COPY the game keeps, the party struct with the battler's PID (; the framework's decryption), types from the species table []; the copy's moves: []
+  [FAIL] the foe battler [('Wurmple', 2)] is in the live gEnemyParty [] (framework Pokemon decode)
+  [PASS] no overworld view in a battle (a person sees the battle screen)
+  [PASS] no battle-end line (the battle is still waiting; nobody pressed): none
+  [FAIL] gTextFlags in a battle = None: bit 1 (useAlternateDownArrow, set by BattlePutTextOnWindow) set and no bit above 3, so the bit-fields run from bit 0 and autoScroll is bit 2 (TEXT_FLAG_AUTO_SCROLL = 0x04), here clear
+  [FAIL] the behaviour test starts on the first look's frame fNone (look f79839), where the probe's own look agrees with the watcher's: waits=None / True
+  [FAIL] WAITS FOR A BUTTON eyes True (reason 'text printer 0 CLEAR') == truth BY BEHAVIOUR None: text on screen=None, None frames with no input changed nothing=None (the text moved by itself at frame None), one A press moved that text=None (moved anything=None)
+  [PASS] BEFORE the press: on all 0 frames where a text was PRINTING by itself (its currentChar changed on the next frame, no input) the eyes said waits=False (wrong: none; the eyes' reasons []; printers (index, state) [])
+  [FAIL] BEFORE the press: on all 0 WAITING frames (the screen sat still from there until the press, >= 30 frames, a printer active, no menu task, and the press then moved that text) the eyes said waits=True (wrong: none; the eyes' reasons []; printers (index, state) []) (NON-VACUITY: pre-registered > 0)
+  [FAIL] after the press: on all 0 frames where a text was PRINTING by itself the eyes said waits=False (wrong: none; the eyes' reasons []; printers (index, state) []) (NON-VACUITY: pre-registered > 0)
+  [PASS] after the press: on all 0 frames from which a text then sat still for 30 frames (no menu task) the eyes said waits=True (wrong: none; the eyes' reasons []; printers (index, state) [])
+  [FAIL] MAP HEADER CHECK: unchanged state -> header problems None, player seen None; with map None's ROM header written over gMapHeader (the probe's emulator) -> refused: NOT REFUSED, player seen None
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 0,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 600,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "watcher-done",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 8432,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- the action log: 10 records (digests) ----
+f79839 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.52ms
+f79899 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.06ms
+f79959 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.93ms
+f80019 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+f80079 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+f80139 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.94ms
+f80199 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+f80259 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+f80319 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+f80379 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+
+---- the FIRST record in full (compact tiles: [x, y, metatile, behavior, collision, elevation, flags]) ----
+{"action": "none", "decision": "observe", "digest": "f79839 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.52ms", "frame": 79839, "observation": {"bag": {"ball_total": 5, "balls": [["Pok\u00e9 Ball", 5]], "healing": []}, "battle": {"double": false, "foe": [{"dex": 265, "hp": null, "hp_bar": 48, "level": 2, "max_hp": null, "moves": [], "species": "Wurmple", "status": "ok", "types": ["Bug"]}], "kind": "wild", "opponent_trainer_id": null, "own": [{"dex": 258, "hp": 19, "hp_bar": 32, "level": 8, "max_hp": 28, "moves": [{"max_pp": 35, "name": "Tackle", "power": 35, "pp": 27, "type": "Normal"}, {"max_pp": 40, "name": "Growl", "power": 0, "pp": 40, "type": "Normal"}, {"max_pp": 10, "name": "Mud-slap", "power": 20, "pp": 10, "type": "Ground"}], "species": "Mudkip", "status": "ok", "types": ["Water"]}], "type_flags": 4}, "cost_ms": 1.523, "frame": 79839, "last_battle_outcome": 0, "party": [{"dex": 258, "hp": 19, "is_egg": false, "level": 8, "max_hp": 28, "moves": [{"max_pp": 35, "name": "Tackle", "power": 35, "pp": 27, "type": "Normal"}, {"max_pp": 40, "name": "Growl", "power": 0, "pp": 40, "type": "Normal"}, {"max_pp": 10, "name": "Mud-slap", "power": 20, "pp": 10, "type": "Ground"}], "ot_id": 22640, "pid": 1426758630, "slot": 0, "species": "Mudkip", "status": "ok", "types": ["Water"]}], "player": {"avatar_flags": 1, "elevation": 3, "facing": "left", "map_const": "ROUTE101", "map_group": 0, "map_name": "ROUTE 101", "map_number": 16, "movement": "walking", "settling": false, "trainer_id": 22640, "x": 13, "y": 5}, "problems": [], "progress": {"badges": [], "dex_owned": 1, "dex_seen": 6, "flags": [["RESCUED_BIRCH", true], ["SYS_POKEMON_GET", true], ["DEFEATED_RIVAL_ROUTE103", true], ["RECEIVED_POKEDEX_FROM_BIRCH", true], ["SYS_POKEDEX_GET", true], ["ADVENTURE_STARTED", true], ["HIDE_PETALBURG_CITY_WALLYS_MOM", false], ["SYS_B_DASH", true], ["DEFEATED_RUSTBORO_GYM", false], ["BADGE01_GET", false]], "money": 3300, "owned_dex": [258]}, "screen": {"controls_locked": true, "game_state": "BATTLE", "in_battle": true, "menu": null, "screen": "battle", "script_running": false, "text": "Wild WURMPLE appeared!\u00b6", "text_box_open": false, "ui": null, "wait_reason": "text printer 0 CLEAR", "waits_for_button": true}, "storage": [], "storage_fields": ["box", "slot", "pid", "ot_id", "is_egg"], "view": null}, "reason": "watcher: observe every 60 frames, press nothing"}
+
+---- evidence lines from stdout ([AI-*] and the scorer lines) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step1-eyes exists (ai_player-owned=True)
+[AI-RUN] state: seeded from oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step1-eyes/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=600 wall_seconds=120 soft_deadline_margin=12s switches=none dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step1-eyes -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=600 brain=watcher watch_every=60 switches=none wall_deadline=1791435815.6 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4 http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+f79839 [AI-STARTER] Story: choosing Mudkip! (inferred at run start: party slot 1 Mudkip Lv8 is the player's own Mudkip-family Pokemon)
+f79839 [MAP] None -> ROUTE 101(0,16) pos=(13, 5)
+[AI-EYES] f79839 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.52ms
+[AI-EYES] f79899 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.06ms
+[AI-EYES] f79959 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.93ms
+[AI-EYES] f80019 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+[AI-EYES] f80079 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+[AI-EYES] f80139 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.94ms
+[AI-EYES] f80199 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+[AI-EYES] f80259 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+[AI-EYES] f80319 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+[AI-EYES] f80379 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+f80379 [hb] mode=AI Player state=BATTLE controllable=False map=ROUTE 101(0,16) pos=(13, 5) party=['Mudkip:L8'] owned=1 balls=5 money=3300 badges=0 source=ai-eyes end=1
+[AI-EYES] cost over 10 looks: mean=0.99ms median=0.92ms min=0.90ms max=1.52ms records=10
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=600 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4\purity.json
+[AI-EXIT] reason=watcher-done code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=3.6s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=watcher-done exit_code=0 pid=8432 package_is_the_gated_one=True
+
+---- ai_player.log (the AI's own log: what scoring.parse_log reads) ----
+[AI-START] mode='AI Player' frames=600 brain=watcher watch_every=60 switches=none wall_deadline=1791435815.6 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4 http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+f79839 [AI-STARTER] Story: choosing Mudkip! (inferred at run start: party slot 1 Mudkip Lv8 is the player's own Mudkip-family Pokemon)
+f79839 [MAP] None -> ROUTE 101(0,16) pos=(13, 5)
+[AI-EYES] f79839 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.52ms
+[AI-EYES] f79899 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=1.06ms
+[AI-EYES] f79959 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.93ms
+[AI-EYES] f80019 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+[AI-EYES] f80079 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+[AI-EYES] f80139 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.94ms
+[AI-EYES] f80199 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+[AI-EYES] f80259 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.90ms
+[AI-EYES] f80319 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.91ms
+[AI-EYES] f80379 battle waits=A/B(text printer 0 CLEAR) ROUTE 101(0,16) xy=(13,5) facing=left walking party=[Mudkip:L8 19/28] battle=wild foe=[Wurmple:L2 bar 48/48] dex=1/6 money=3300 badges=0 cost=0.92ms
+f80379 [hb] mode=AI Player state=BATTLE controllable=False map=ROUTE 101(0,16) pos=(13, 5) party=['Mudkip:L8'] owned=1 balls=5 money=3300 badges=0 source=ai-eyes end=1
+[AI-EYES] cost over 10 looks: mean=0.99ms median=0.92ms min=0.90ms max=1.52ms records=10
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=600 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2c4d4f27d00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step1-eyes\ai_player_runs\20261007-220146-E4\purity.json
+[AI-EXIT] reason=watcher-done code=0

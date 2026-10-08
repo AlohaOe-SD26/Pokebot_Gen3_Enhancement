@@ -1,0 +1,16 @@
+AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM XW: THE WAITS FIX, REVERTED: the pre-fix states {2,3} and printer count 1, each in a copy, probed on E10 and E7
+date: 2026-10-07 22:42:15
+code: HEAD 9f859914; ai_player/ has UNCOMMITTED changes (the code under test is the working tree)
+fixture: (several, see below)
+fixture documentation: probes only, on temporary copies of the package
+command: (no AI run: probes only)
+env: -
+exit code: -1   elapsed: 0.0s   run dir: None
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step1.py's docstring; each quotes both values):
+  [PASS] [XW-0] trainer_defeat_text_r116.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_lbwib2xd\ai_player\host\eyes.py; wait states [1, 2, 3], printers 32); first look waits=True (text printer 0 WAIT) vs truth True; wrong frames per kind {'idle printing': 0, 'idle waiting': 0, 'printing': 0, 'frozen': 0} of {'idle printing': 0, 'idle waiting': 301, 'printing': 26, 'frozen': 160}: PASSES (predicted passes)
+  [PASS] [XW-0] ki17_partymenu_wedge.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_lbwib2xd\ai_player\host\eyes.py; wait states [1, 2, 3], printers 32); first look waits=False (None) vs truth False; wrong frames per kind {'idle printing': 0, 'idle waiting': 0, 'printing': 0, 'frozen': 0} of {'idle printing': 26, 'idle waiting': 200, 'printing': 0, 'frozen': 0}: PASSES (predicted passes)
+  [PASS] [XW-A] trainer_defeat_text_r116.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_41epbwu1\ai_player\host\eyes.py; wait states [2, 3], printers 32); first look waits=False (None) vs truth True; wrong frames per kind {'idle printing': 0, 'idle waiting': 301, 'printing': 0, 'frozen': 0} of {'idle printing': 0, 'idle waiting': 301, 'printing': 26, 'frozen': 160}: CAUGHT (predicted caught)
+  [PASS] [XW-A] ki17_partymenu_wedge.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_41epbwu1\ai_player\host\eyes.py; wait states [2, 3], printers 32); first look waits=False (None) vs truth False; wrong frames per kind {'idle printing': 0, 'idle waiting': 200, 'printing': 0, 'frozen': 0} of {'idle printing': 26, 'idle waiting': 200, 'printing': 0, 'frozen': 0}: CAUGHT (predicted caught)
+  [PASS] [XW-B] trainer_defeat_text_r116.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_kp_l6zom\ai_player\host\eyes.py; wait states [1, 2, 3], printers 1); first look waits=True (text printer 0 WAIT) vs truth True; wrong frames per kind {'idle printing': 0, 'idle waiting': 0, 'printing': 0, 'frozen': 0} of {'idle printing': 0, 'idle waiting': 301, 'printing': 26, 'frozen': 160}: PASSES (predicted passes)
+  [PASS] [XW-B] ki17_partymenu_wedge.ss1: the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step1_waits_kp_l6zom\ai_player\host\eyes.py; wait states [1, 2, 3], printers 1); first look waits=False (None) vs truth False; wrong frames per kind {'idle printing': 0, 'idle waiting': 200, 'printing': 0, 'frozen': 0} of {'idle printing': 26, 'idle waiting': 200, 'printing': 0, 'frozen': 0}: CAUGHT (predicted caught)

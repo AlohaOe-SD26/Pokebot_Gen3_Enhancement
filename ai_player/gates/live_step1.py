@@ -1,6 +1,7 @@
 """LIVE PROOF of AI-player build step 1 (the EYES): the watcher's Observations against ground truth.
 
-    py -3.12 ai_player/gates/live_step1.py [--arms E1,E2,E2X,E3,E4,E5,E6,E7,E8,E9,E10,XW,SC,GEO,XG]
+    py -3.12 ai_player/gates/live_step1.py [--arms E1,E2,E2X,E3,E4,E5,E6,E7,E8,E9,E10,XW,SC,GEO,XG,WARP,WARPY,SW,BS,BLT,BLW]
+                                           [--evidence-tag step1]
 
 Each live arm runs the REAL launcher (`py -3.12 -m ai_player run`, which gates the real package first)
 with `AI_PLAYER_BRAIN=watcher` on a pinned fixture: the watcher looks every 60 frames for 600 frames,
@@ -172,6 +173,56 @@ XG  FAULT HALF OF THE TRUTH CHECKS (no emulator; needs E1-E7 and E10 in the same
     and the defeat text without its control bytes (truth). A truth-side mutant that is caught proves the
     check READS its independent signal; a check that only looked at the eyes would pass it.
 COST: the probe times 30 looks per fixture (one per frame); each live run prints its own `[AI-EYES] cost`.
+
+STEP 1.1 (2026-10-07, the step-1 adversarial review; predictions written from probe runs, before the graded run)
+------------------------------------------------------------------------------------------------------------------
+EVERY ARM WITH A PROBE ALSO checks: the PC BOXES (the eyes' read of each slot's unencrypted header == the
+    framework's `get_pokemon_storage`; E3: 2 Pokemon, the others none); the TRAINER ID is the VISIBLE 16 bits of
+    save block 2's playerTrainerId, every OT id (party, boxes) the low 16 bits, and the full 32-bit id occurs in
+    NO action-log record (its secret half is non-zero on every fixture); every PERSON on screen is an "npc" (E2:
+    local 3 has a raw trainerType and is still "npc"). In battles (E4, E5, E10) the FOE is graded as a person
+    sees it: (hp, max) hidden, the HP BAR = the second copy's HP through the decomp's GetScaledHPFraction (E4
+    Wurmple 14/14 -> 48, E5 Machop 31/31 -> 48, E10 0/31 -> 0), the moves = those with PP below max in the
+    second copy, no PP (E4, E5: none; E10: Leer, Focus Energy). E10 ALSO: those are the moves the SCREEN showed,
+    "Foe MACHOP used FOCUS ENERGY!" and "... LEER!", in the battle REPLAYED from E5's fixture with the presses
+    its builder recorded (the replay ends on E10's pinned md5).
+WARP  `dewford.ss1`, walk left to x 8, up into the door (8, 8). PREDICT 6 frames of CHANGE_MAP on which the
+    player object stands on (8, 8) while save block 1 holds map (3, 5) pos (3, 8); the eyes say settling, no
+    position, no view there; on every other frame the eyes' (map, x, y) is the save block's, on the map whose
+    ROM header the live gMapHeader is; ONE [MAP] line to (3,5) pos=(3, 8), at the first settled frame.
+    WARP-X (the fix reverted in a copy): those frames report (8, 8) with map (3, 5): CAUGHT.
+WARPY STEP 2.1 (pre-registered 2026-10-07 before its graded run; the step-2 verifier: "no live warp that differs only
+    in y"; the warp found by a scratch search of every map's ROM warp events for a departure and an arrival tile that
+    share x, near a fixture): `post_league_lobby.ss1` (League 1F (3, 4)), down to y 7, left onto the escalator at
+    (1, 7), arriving on 2F (16, 14) at (1, 6). PREDICT (the dev run of `probe_step11.py warp_y`) 15 CHANGE_MAP frames
+    on which the object stands on (1, 7) while save block 1 holds (16, 14) (1, 6): differing in y ONLY; the eyes say
+    settling (2) or between screens (13) there; every reported position the save block's on the map loaded; ONE
+    [MAP] line to (16,14) pos=(1, 6) at the first settled frame. WARPY-R4x (the x-only rule) and WARPY-X (the step-1
+    rule) in copies: CAUGHT (a mixed position on the settling frames). WARP-R4x, the x-only rule on arm WARP's Dewford
+    door: NOT caught (its tiles differ in x, so that rule still says settling): the gap this arm closes.
+SW    `dewford.ss1`, one step left, face down, A on the sign. PREDICT the fixture's first frame: status 2 (a
+    finished script), native WaitForAorBPress left behind, no printer: eyes waits=False. Reading the sign ends in
+    status 0, native WaitForAorBPress, no printer active, the box mode already HIDDEN: eyes waits=True for
+    'script waitbuttonpress'; 300 idle frames move nothing, waits=True on all; one A ends the script (status 2)
+    and waits=False after. SW-X1 (neither the context's status nor its mode checked): the first frame reads
+    True: CAUGHT. SW-R1, SW-R2 (only the status check, only the mode check removed): NOT caught, each alone is
+    redundant (the leftover is status 2 AND mode Stopped; a first graded run of SW-X1 removed only the status
+    check and was not caught, which is how this was found). SW-X2 (the script branch removed): the wait is never
+    found: CAUGHT.
+BS    `route116team.ss1`, down into the grass, left/right until a wild battle, RUN. PREDICT 9 BATTLE frames on
+    which gBattleMons holds the previous battle's foe (Abra, PID 85BC0236; gEnemyParty[0] is Poochyena,
+    B11EC02B): the eyes report NO foe there and Poochyena after; ONE [AI-BATTLE] end sp=Poochyena#261
+    res=RanAway. BS-X1 (the eyes' identity guard removed): Abra on those frames: CAUGHT. BS-X2 (guard and the
+    lines' refresh removed, i.e. the step-1 code): the line says sp=Abra: CAUGHT.
+BLT   E10's fixture, A on every text wait until the overworld is back. PREDICT ONE [TRAINER] end opp=322
+    last_seen=Machop#66 res=Won money=6680->6824 delta=144 (the probe's save-block decode; the battle's text
+    "NICK got <B7>144 for winning!"), no InProgress, no [DEX] line that drops; scoring.parse_log money_last 6824.
+    BLT-X (the between-screens guard removed): the save blocks move at the battle's end and the Pokedex reads 0
+    for a frame: `[DEX] owned 5 -> 0`: CAUGHT.
+BLW   `oldale.ss1` (wild Wurmple), after an idle of CATCH_DELAY frames: BAG, the ball, until one holds, YES to
+    the nickname, the default name kept. PREDICT ONE [CATCH] end sp=Wurmple# dest=party pid=7D6D2751 (the foe's
+    PID; the framework's party afterwards has it, OT = the player's visible id), the NAMING_SCREEN visited with
+    in_battle True there, no InProgress, scoring.parse_log catches 1 ['Wurmple'].
 """
 
 from __future__ import annotations
@@ -196,14 +247,22 @@ if str(REPO) not in sys.path:
 if str(REPO / "ai-agent") not in sys.path:
     sys.path.insert(0, str(REPO / "ai-agent"))
 
-from ai_player.eyes.view import BADGE_FLAGS, STORY_FLAGS, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_UP  # noqa: E402
+from ai_player.eyes.view import BADGE_FLAGS, GFX_KINDS, STORY_FLAGS, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_UP  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
 from ai_player.options import ENV_BRAIN, ENV_FAULT_NO_CROP, ENV_WATCH_EVERY  # noqa: E402
 
 SAVES = REPO / "tools" / "story-dev" / "saves"
 EVIDENCE_DIR = REPO / "ai_player" / "evidence"
+#: Evidence file names: `<date>-<tag>-<ARM>.txt` (`--evidence-tag`; step 1.1's run used `step11`, so the step-1
+#: run of the same date keeps its files).
 EVIDENCE_TAG = "step1"
 PROBE = Path(__file__).with_name("probe_eyes.py")
+#: Step 1.1: the scenarios PLAYED in a throwaway emulator (`gates/probe_step11.py`).
+PROBE11 = Path(__file__).with_name("probe_step11.py")
+#: The catch arm's pinned idle before it acts: the RNG (advanced every frame) decides a ball. Measured
+#: 2026-10-07: delay 0 misses with all five balls; delay 1 catches with the third. Identical output on a
+#: re-run is the determinism of one trajectory, not a replication (CLAUDE.md rule 8).
+CATCH_DELAY = 1
 PROFILE = "ai-step1-eyes"
 FRAMES, WATCH_EVERY, WALL = 600, 60, 120.0
 LOOKS = FRAMES // WATCH_EVERY
@@ -266,6 +325,7 @@ class Run:
     ai_log: str = ""
     probe: dict | None = None
     probe_raw: str = ""
+    probe11: dict | None = None  # a step-1.1 scenario's PROBE11 result (`gates/probe_step11.py`)
     checks: list[tuple[bool, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -317,6 +377,20 @@ ARMS: list[Arm] = [
     Arm("GEO", "THE WINDOW, MEASURED: the player sprite on screen, the camera pans", None),
     Arm("XG", "FAULT: each new truth check FAILS when one value (the eyes' or the truth's) is made wrong", None,
         doc="re-grades copies of E1-E7's data, no emulator"),
+    # step 1.1: PLAYED in the probe's throwaway emulator (`gates/probe_step11.py`), the eyes looking at every frame
+    Arm("WARP", "STEP 1.1 finding 4: a warp settles before a position is reported (Dewford's door)", None,
+        doc="probe_step11.py warp, from tools/story-dev/saves/dewford.ss1; and WARP-X, the fix reverted in a copy"),
+    Arm("WARPY", "STEP 2.1: a warp whose tiles differ in y ONLY settles before a position is reported (the League's escalator)",
+        None, doc="probe_step11.py warp_y, from tools/story-dev/saves/post_league_lobby.ss1; WARPY-R4x and WARPY-X reverted in "
+                  "copies; WARP-R4x: the x-only rule NOT caught on the Dewford door (the gap this arm closes)"),
+    Arm("SW", "STEP 1.1 finding 6: the script's waitbuttonpress, captured on Dewford's sign", None,
+        doc="probe_step11.py sign, from tools/story-dev/saves/dewford.ss1; and SW-X1, SW-X2, each half reverted in a copy"),
+    Arm("BS", "STEP 1.1 finding 2: a battle's start, the previous battle's foe still in gBattleMons", None,
+        doc="probe_step11.py start, from tools/story-dev/saves/route116team.ss1; and BS-X1, BS-X2 (the step-1 code)"),
+    Arm("BLT", "STEP 1.1 finding 2: a trainer battle played to its end, the [TRAINER] end line", None,
+        doc="probe_step11.py trainer, from E10's fixture; and BLT-X, the between-screens guard reverted"),
+    Arm("BLW", "STEP 1.1 findings 1, 2, 5: a wild Pokemon caught (bag, nickname screen), the [CATCH] line by PID", None,
+        doc=f"probe_step11.py catch --delay {CATCH_DELAY}, from tools/story-dev/saves/oldale.ss1"),
 ]
 
 
@@ -348,6 +422,42 @@ def probe(fixture: str, behaviour: bool = True, root: Path | None = None) -> tup
         if line.startswith("PROBE "):
             return json.loads(line[len("PROBE "):]), raw
     return None, raw
+
+
+#: Each step-1.1 scenario's save state, passed explicitly (a revert copy's own repo root has no `tools/`).
+SCENARIO_STATES = {"warp": SAVES / "dewford.ss1", "warp_y": SAVES / "post_league_lobby.ss1", "sign": SAVES / "dewford.ss1",
+                   "start": SAVES / "route116team.ss1",
+                   "catch": SAVES / "oldale.ss1", "trainer": FIXTURES["trainer_defeat_text_r116.ss1"][0],
+                   "replay": FIXTURES["trainer_battle_r116.ss1"][0]}
+
+
+def probe11(scenario: str, root: Path | None = None, delay: int | None = None) -> tuple[dict | None, str]:
+    """One step-1.1 scenario (`gates/probe_step11.py`). With `root` (a temporary copy of the package), the
+    COPY's probe runs and imports the copy's eyes (a revert arm)."""
+    script = PROBE11 if root is None else root / "ai_player" / "gates" / PROBE11.name
+    command = [sys.executable, str(script), scenario, "--state", str(SCENARIO_STATES[scenario])]
+    command += [] if delay is None else ["--delay", str(delay)]
+    env = clean_env({} if root is None else {launcher.ENV_BUILD_ROOT: str(REPO / "sandbox-pokebot")})
+    done = subprocess.run(command, cwd=str(REPO), env=env, capture_output=True, timeout=600)
+    raw = done.stdout.decode("utf-8", errors="replace") + done.stderr.decode("utf-8", errors="replace")
+    for line in raw.splitlines():
+        if line.startswith("PROBE11 "):
+            return json.loads(line[len("PROBE11 "):]), raw
+    return None, raw
+
+
+def decomp_bar(hp: int, max_hp: int) -> int:
+    """The HP bar's filled pixels, transcribed from `src/battle_interface.c` GetScaledHPFraction with C
+    integer truncation (the truth side's own copy, so the eyes' `hp_bar_pixels` is not graded by itself)."""
+    if not max_hp:
+        return 0
+    result = int(hp * 48 / max_hp)
+    return 1 if result == 0 and hp > 0 else result
+
+
+def move_key(name: str) -> str:
+    """A move name compared across the screen's text ('FOCUS ENERGY') and the move table ('Focus Energy')."""
+    return "".join(c for c in name.casefold() if c.isalnum())
 
 
 def run_watcher(arm: Arm, build_root: Path) -> Run:
@@ -482,6 +592,46 @@ def check_party(run: Run) -> None:
               + ("" if eyes_moves == true_moves else f" || eyes {eyes_moves}"))
 
 
+def check_storage(run: Run) -> None:
+    """Step 1.1: the PC boxes. The eyes read each box slot's unencrypted header; the truth is the FRAMEWORK's
+    `get_pokemon_storage()` (its own `Pokemon` decode and its own rule for an empty slot)."""
+    stored = run.first.get("storage")
+    eyes = sorted(tuple(row) for row in (stored or []))
+    truth = sorted((b, s, p, o, int(e)) for b, s, p, o, e, _ in run.truth.get("storage", []))
+    names = {(b, s): n for b, s, _, _, _, n in run.truth.get("storage", [])}
+    run.check(stored is not None and eyes == truth,
+              f"PC BOXES (box, slot, PID, visible OT id, egg): eyes {len(eyes)} Pokemon (their own read of the unencrypted box "
+              f"headers) == truth {len(truth)} (the framework's get_pokemon_storage): "
+              f"{[(b, s, f'{p:08X}', o, names.get((b, s))) for b, s, p, o, _ in truth[:6]] or 'empty boxes'}"
+              + ("" if eyes == truth else f" || eyes {eyes[:6]}"))
+
+
+def check_ids(run: Run) -> None:
+    """Step 1.1: ownership on the VISIBLE 16-bit id, and the secret id in no record."""
+    full = run.truth.get("trainer_id") or 0
+    visible, secret = full & 0xFFFF, full >> 16
+    player = run.first.get("player") or {}
+    run.check(player.get("trainer_id") == visible,
+              f"TRAINER ID eyes {player.get('trainer_id')} == truth {visible}: the visible 16 bits of save block 2's playerTrainerId "
+              f"(the probe's raw read, {full:08X})")
+    eyes_ots = [m["ot_id"] for m in run.first.get("party", [])] + [row[3] for row in run.first.get("storage") or []]
+    true_ots = ([m["ot_id"] & 0xFFFF for m in run.truth.get("party", [])]
+                + [o for _, _, _, o, _, _ in sorted(run.truth.get("storage", []))])
+    run.check(eyes_ots == true_ots and all(o <= 0xFFFF for o in eyes_ots),
+              f"OT IDS (party, then boxes) eyes {eyes_ots} == truth {true_ots} (the low 16 bits of each Pokemon's otId)")
+    blob = json.dumps(run.records)
+    hits = len(re.findall(rf"(?<![0-9]){full}(?![0-9])", blob))
+    run.check(secret != 0 and hits == 0,
+              f"THE SECRET ID IS IN NO RECORD: the full 32-bit id {full} ({full:08X}, secret half {secret:04X}: non-zero, so it "
+              f"differs from the visible id) occurs {hits} times in the {len(run.records)} action-log records")
+
+
+def check_step11(run: Run) -> None:
+    """The step-1.1 checks every arm with a probe runs: the PC boxes, and the ids."""
+    check_storage(run)
+    check_ids(run)
+
+
 def item_key(name: str) -> str:
     """An item name compared across the framework's table ('Poké Ball', "King's Rock") and the ROM's
     ('POKé BALL', 'KING’S ROCK'): letters and digits only, accents dropped, case folded."""
@@ -542,6 +692,13 @@ def check_objects(run: Run) -> None:
     off = sorted((o["local_id"], o["dx"], o["dy"]) for o in run.truth.get("objects", []) if not o["on_screen"])
     run.check(eyes == truth, f"OBJECTS on screen (local id, dx, dy): eyes {eyes} == truth (raw gObjectEvents, own window test) {truth}; "
               f"off screen and left out: {off or 'none'}")
+    # Step 1.1: every PERSON is an "npc" (no trainer label before a trainer engages).
+    seen = [o for o in (run.first.get("view") or {}).get("objects", []) if o["source"] == "object"]
+    people = [(o["local_id"], o["kind"]) for o in seen if o["graphics_id"] not in GFX_KINDS]
+    trainers = sorted(o["local_id"] for o in run.truth.get("objects", []) if o.get("trainer_type") and o["on_screen"] and not o["invisible"])
+    run.check(all(kind == "npc" for _, kind in people) and all(o["kind"] != "trainer" for o in seen),
+              f"PEOPLE: every person the eyes see is an 'npc': {people or 'none on screen'}; of them, a trainer type in the raw "
+              f"gObjectEvents (trainerType @7, which the eyes no longer read): {trainers or 'none'}")
     check_drawn_objects(run)
 
 
@@ -824,23 +981,40 @@ def check_battle(run: Run, kind: str) -> None:
               f"battle kind eyes {battle.get('kind')!r}; truth gBattleTypeFlags={truth.get('type_flags')} trainer bit={truth.get('trainer')}")
     for side, key in (("own", "own"), ("foe", "foe")):
         battlers = [b for b in truth.get("battlers", []) if b["side"] == side]
-        eyes = [(m["species"], m["level"], m["hp"], m["max_hp"], m["types"]) for m in battle.get(key, [])]
-        raw = [(b["species"], b["level"], b["hp"], b["max_hp"], b["types"]) for b in battlers]
+        own = side == "own"
+        # Step 1.1: a FOE is seen as a person sees it: its HP BAR (no numbers) and only the moves it has USED.
+        eyes = [(m["species"], m["level"], m["hp"] if own else m["hp_bar"], m["max_hp"] if own else None, m["types"])
+                for m in battle.get(key, [])]
+        raw = [(b["species"], b["level"], b["hp"] if own else decomp_bar(b["hp"], b["max_hp"]), b["max_hp"] if own else None, b["types"])
+               for b in battlers]
         run.check(bool(raw) and eyes == raw,
                   f"{side.upper()} SIDE CONSISTENCY ONLY, NOT GROUND TRUTH (the SAME gBattleMons bytes the eyes read, decoded by the "
-                  f"probe): eyes {eyes} == {raw}")
+                  f"probe{'' if own else '; the foe as (species, level, HP BAR pixels, -, types)'}): eyes {eyes} == {raw}")
         # THE TRUTH (round 2): the second copy, the party struct with the same PID.
-        mine = [(m["species"], m["level"], m["hp"], m["max_hp"], m["status"], sorted(m["types"]),
-                 [(x["name"], x["pp"], x["max_pp"]) for x in m["moves"]]) for m in battle.get(key, [])]
+        if own:
+            mine = [(m["species"], m["level"], m["hp"], m["max_hp"], m["hp_bar"], m["status"], sorted(m["types"]),
+                     [(x["name"], x["pp"], x["max_pp"]) for x in m["moves"]]) for m in battle.get(key, [])]
+        else:
+            mine = [(m["species"], m["level"], (m["hp"], m["max_hp"]), m["hp_bar"], m["status"], sorted(m["types"]),
+                     [(x["name"], x["pp"], x["max_pp"]) for x in m["moves"]]) for m in battle.get(key, [])]
         copies = [b.get("second_copy") for b in battlers]
-        theirs = [(c["species"], c["level"], c["hp"], c["max_hp"], STATUS_NAMES.get(c["status"], c["status"]), sorted(c["types"]),
-                   [tuple(x) for x in c["moves"]]) for c in copies if c]
+        if own:
+            theirs = [(c["species"], c["level"], c["hp"], c["max_hp"], decomp_bar(c["hp"], c["max_hp"]),
+                       STATUS_NAMES.get(c["status"], c["status"]), sorted(c["types"]), [tuple(x) for x in c["moves"]])
+                      for c in copies if c]
+        else:
+            theirs = [(c["species"], c["level"], (None, None), decomp_bar(c["hp"], c["max_hp"]), STATUS_NAMES.get(c["status"], c["status"]),
+                       sorted(c["types"]), [(name, None, None) for name, pp, top in c["moves"] if pp < top]) for c in copies if c]
         where = [f"{c['party']}[{c['slot']}] PID {b['pid']:08X}" if c else f"NO single copy of PID {b['pid']:08X} ({b['copies_with_this_pid']})"
                  for b, c in zip(battlers, copies)]
+        shape = ("species, level, hp, max, HP bar, status, types, moves with PP / max PP" if own else
+                 "species, level, (hp, max) HIDDEN, HP BAR pixels from the copy's hp and max by the decomp's GetScaledHPFraction, "
+                 "status, types, the moves USED (PP below max in the copy), no PP")
         run.check(bool(theirs) and len(theirs) == len(battlers) and mine == theirs,
-                  f"{side.upper()} SIDE (species, level, hp, max, status, types, moves with PP / max PP) eyes {mine} == truth: the SECOND "
-                  f"COPY the game keeps, the party struct with the battler's PID ({'; '.join(where)}; the framework's decryption), "
-                  f"types from the species table {theirs if mine != theirs else '(equal)'}")
+                  f"{side.upper()} SIDE ({shape}) eyes {mine} == truth: the SECOND COPY the game keeps, the party struct with the "
+                  f"battler's PID ({'; '.join(where)}; the framework's decryption), types from the species table "
+                  f"{theirs if mine != theirs else '(equal)'}"
+                  + ("" if own else f"; the copy's moves: {[tuple(x) for c in copies if c for x in c['moves']]}"))
         for b, c in zip(battlers, copies):
             if c:
                 run.notes.append(f"identity vs index: battler {b['battler']} ({side}) PID {b['pid']:08X} is {c['party']} slot {c['slot']}; "
@@ -871,6 +1045,7 @@ def grade_E1(run: Run) -> None:
     check_place(run, doc_map="DEWFORD TOWN", doc_xy=(11, 9))
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_objects(run)
     check_tiles(run, want={"door": 2, "warp": 2})
     grade_overworld_basics(run)
@@ -893,6 +1068,7 @@ def grade_E2(run: Run) -> None:
     progress = run.first.get("progress") or {}
     run.check((progress.get("money"), progress.get("badges")) == (824, []), f"documentation: ₽824, no badges; eyes money={progress.get('money')} badges={progress.get('badges')}")
     check_progress(run)
+    check_step11(run)
     check_objects(run)
     check_tiles(run, want={"ledge": 8})
     grade_overworld_basics(run)
@@ -908,6 +1084,28 @@ def grade_E2(run: Run) -> None:
     present = objects_in_every_look(run, 3)
     run.check(len(absent) == LOOKS and not any(absent), f"CROP: the off-screen item ball (local 7) in the {len(absent)} looks: {absent} (want all False)")
     run.check(len(present) == LOOKS and all(present), f"CROP: the on-screen trainer (local 3, dx=+1) in the {len(present)} looks: {present} (want all True)")
+    joey = next((o for o in run.truth.get("objects", []) if o["local_id"] == 3), {})
+    kinds = sorted({o["kind"] for r in run.records for o in ((r.get("observation") or {}).get("view") or {}).get("objects", [])
+                    if o["local_id"] == 3 and o["source"] == "object"})
+    run.check(bool(joey.get("trainer_type")) and kinds == ["npc"],
+              f"NON-VACUITY of PEOPLE (step 1.1): local 3 IS a trainer (raw trainerType {joey.get('trainer_type')}, the probe's "
+              f"gObjectEvents parse; Route116_EventScript_Joey), and in all {LOOKS} looks the eyes call it {kinds} (a person "
+              f"sees no trainer until it engages)")
+    # ... and the step-1 label REVERTED (`gates/revert_step11.py` R3c: object_kind takes the trainer type again) in a copy,
+    # whose eyes the probe runs on this fixture: they call local 3 a "trainer" (the unit test only sees the signature).
+    from ai_player.gates.revert_step11 import REVERTS
+
+    root = make_copy(REVERTS["R3c"][2])
+    try:
+        data, _ = probe("route116team.ss1", behaviour=False, root=root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    module = ((data or {}).get("eyes_code") or {}).get("module", "")
+    reverted = sorted({o["kind"] for o in (((data or {}).get("eyes") or {}).get("view") or {}).get("objects", [])
+                       if o["local_id"] == 3 and o["source"] == "object"})
+    run.check(root.name in module and reverted == ["trainer"],
+              f"[E2-X] REVERTED the step-1 label (R3c: view.py object_kind and host/eyes.py take the template's trainer type) in a "
+              f"copy whose eyes ran ({module}): local 3 is called {reverted}: {'CAUGHT' if reverted == ['trainer'] else 'NOT CAUGHT'}")
     run.check((run.first.get("view") or {}).get("cropped") is True, f"the view says cropped={(run.first.get('view') or {}).get('cropped')}")
 
 
@@ -931,6 +1129,7 @@ def grade_E3(run: Run) -> None:
     check_place(run, doc_map="ROUTE 121")
     check_party(run)
     counts = check_progress(run)
+    check_step11(run)
     run.check((counts["healing"], counts["others"]) == (1, 1),
               f"NON-VACUITY of the healing check: {counts['healing']} healing item(s) and {counts['others']} other(s) in the bag (want 1 and 1)")
     check_objects(run)
@@ -950,6 +1149,7 @@ def grade_E4(run: Run) -> None:
     check_place(run, doc_map="ROUTE 101")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_battle(run, "wild")
     check_text_flags(run)
     check_waits(run, want_printing=True, want_idle_waiting=True)
@@ -963,6 +1163,7 @@ def grade_E5(run: Run) -> None:
     check_place(run, doc_map="ROUTE 116")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_battle(run, "trainer")
     check_text_flags(run)
     check_waits(run, want_printing=True, want_idle_waiting=True)
@@ -1003,6 +1204,7 @@ def grade_E6(run: Run) -> None:
     check_place(run, doc_map="RUSTBORO CITY")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_objects(run)
     check_tiles(run, want={"warp": 3})
     check_header_guard(run)
@@ -1029,6 +1231,7 @@ def grade_E7(run: Run) -> None:
     check_place(run, doc_map="MAUVILLE CITY")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     screen = run.first.get("screen") or {}
     tscreen = run.truth.get("screen") or {}
     run.check((screen.get("screen"), screen.get("menu"), screen.get("in_battle")) == ("menu", "party", True)
@@ -1064,6 +1267,7 @@ def grade_E8(run: Run) -> None:
     check_place(run, doc_map="FALLARBOR TOWN")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_objects(run)
     check_tiles(run, want_connection=True)
     grade_overworld_basics(run)
@@ -1080,6 +1284,7 @@ def grade_E9(run: Run) -> None:
               f"documentation: EVER_GRANDE_CITY_POKEMON_LEAGUE_1F; eyes map_const={player.get('map_const')!r}")
     check_party(run)
     counts = check_progress(run)
+    check_step11(run)
     run.check((counts["healing"], counts["others"]) == (7, 5),
               f"NON-VACUITY of the healing check: {counts['healing']} healing items and {counts['others']} others in the bag (want 7 and 5)")
     check_objects(run)
@@ -1095,6 +1300,7 @@ def grade_E10(run: Run) -> None:
     check_place(run, doc_map="ROUTE 116")
     check_party(run)
     check_progress(run)
+    check_step11(run)
     check_battle(run, "trainer")
     check_text_flags(run)
     check_waits(run, want_printing=True, want_frozen=True, want_idle_waiting=True)
@@ -1120,12 +1326,32 @@ def grade_E10(run: Run) -> None:
               f"(pinned) from md5 {made.get('source_md5')} (E5's fixture) with {len(presses)} button presses only "
               f"({sorted({p[1] for p in presses})}), stopping at frame {made.get('found_at_frame')} with printer 0 "
               f"{made.get('printer0')}")
+    check_foe_moves_on_screen(run)
     enemy_hp = [c.get("hp") for b in (run.truth.get("battle") or {}).get("battlers", []) if b["side"] == "foe"
                 for c in [b.get("second_copy") or {}]]
     outcome = run.first.get("last_battle_outcome")
     run.check(outcome == 1 and enemy_hp and all(hp == 0 for hp in enemy_hp) and len((run.truth.get("battle") or {}).get("enemy_party", [])) == 1,
               f"BATTLE OUTCOME eyes {outcome} (gBattleOutcome; 1 = Won) == truth: every Pokemon of the enemy party has 0 HP in its "
               f"second copy {enemy_hp} (the party {(run.truth.get('battle') or {}).get('enemy_party')})")
+
+
+def check_foe_moves_on_screen(run: Run) -> None:
+    """Step 1.1 (E10): the foe's moves the eyes report are the moves the SCREEN showed it using. Truth: the
+    battle that made E10's fixture, REPLAYED from E5's fixture with the presses its builder recorded
+    (`probe_step11.py replay`), every battle text decoded by the probe's charmap; the replay must end on the
+    pinned fixture's md5, so these are this fixture's texts."""
+    data = run.probe11 if run.probe11 is not None else probe11("replay")[0]
+    run.probe11 = data
+    data = data or {}
+    used = [t for _, t in data.get("texts", []) if t.startswith("Foe ") and " used" in t]
+    shown = sorted({move_key(t.split("used", 1)[1].replace("<FE>", " ").rstrip("!")) for t in used})
+    foe = ((run.first.get("battle") or {}).get("foe") or [{}])[0]
+    seen = sorted(move_key(m["name"]) for m in foe.get("moves", []))
+    run.check(data.get("end_md5") == FIXTURES["trainer_defeat_text_r116.ss1"][1] and bool(shown) and seen == shown
+              and all(m["pp"] is None and m["max_pp"] is None for m in foe.get("moves", [])),
+              f"FOE MOVES = WHAT THE SCREEN SHOWED: the eyes' foe moves {[m['name'] for m in foe.get('moves', [])]} (no PP) == the moves "
+              f"in the battle's own texts {used} (the battle replayed from E5's fixture, {len(data.get('texts', []))} texts; it ends on "
+              f"md5 {data.get('end_md5')}, pinned {FIXTURES['trainer_defeat_text_r116.ss1'][1]})")
 
 
 #: Arm XW: the waits fix, reverted in a copy of the package (file, old text, new text).
@@ -1182,6 +1408,334 @@ def grade_XW(run: Run) -> None:
                     run.notes.append(f"[{name}] {fixture}: no PROBE line: {raw[-1500:]}")
         finally:
             shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------- step 1.1: the PLAYED scenarios
+def make_copy(mutations: list[tuple[str, str, str]]) -> Path:
+    """A temporary copy of the real package with each (file, old, new) applied exactly once."""
+    root = Path(tempfile.mkdtemp(prefix="ai_player_step11_"))
+    shutil.copytree(REPO / "ai_player", root / "ai_player", ignore=shutil.ignore_patterns("__pycache__", "evidence"))
+    for relative, old, new in mutations:
+        path = root / "ai_player" / relative
+        text = path.read_text(encoding="utf-8")
+        if text.count(old) != 1:
+            raise SystemExit(f"mutation anchor not unique in {relative} ({text.count(old)} hits): {old!r}")
+        path.write_text(text.replace(old, new), encoding="utf-8")
+    return root
+
+
+def mutant(run: Run, name: str, mutations: list[tuple[str, str, str]], scenario: str, caught, what: str,
+           delay: int | None = None, expect_caught: bool = True) -> None:
+    """A revert arm: `scenario` from a COPY of the package with `mutations` applied; `caught(data)` returns
+    (True if the copy's eyes got it wrong, the evidence). Passes only when the copy RAN its own eyes and is
+    caught; with `expect_caught=False` (a REDUNDANCY arm, CLAUDE.md rule 8: "without X the bug survives" is a
+    claim), only when the copy is NOT caught: the removed part is shown not to be load-bearing on its own."""
+    root = make_copy(mutations)
+    try:
+        data, raw = probe11(scenario, root=root, delay=delay)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    module = ((data or {}).get("eyes_code") or {}).get("module", "")
+    ran_copy = root.name in module
+    hit, evidence = caught(data or {}) if data else (False, f"no PROBE11 line: {raw[-800:]}")
+    run.check(ran_copy and bool(data) and hit is expect_caught,
+              f"[{name}] REVERTED: {what}; the copy's eyes ran ({module}): {'CAUGHT' if hit else 'NOT CAUGHT'} (predicted "
+              f"{'caught' if expect_caught else 'NOT caught: redundant alone'}): {evidence}")
+
+
+def map_lines(lines: list[str]) -> list[str]:
+    return [line for line in lines if "[MAP]" in line]
+
+
+def grade_WARP(run: Run) -> None:
+    """Finding 4: a warp settles before a position is reported (`probe_step11.py warp`)."""
+    data, raw = probe11("warp")
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the warp scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    frames = data["frames"]
+    differ = [f for f in frames if f["object_xy"] != f["save_xy"]]
+    run.check(len(differ) > 0 and frames[-1]["save_map"] != frames[0]["save_map"],
+              f"NON-VACUITY: the walk went through Dewford's door, map {frames[0]['save_map']} -> {frames[-1]['save_map']}, and on "
+              f"{len(differ)} frames (pre-registered > 0; measured 6, CHANGE_MAP) the player object's tile (- 7) differs from save block 1's "
+              f"pos: {[(f['frame'], f['state'], f['object_xy'], f['save_map'], f['save_xy']) for f in differ[:8]]}")
+    def unknown(f: dict) -> str | None:
+        """How the eyes left the position unknown on this frame: 'settling' (the object and the save block
+        disagree), or 'between screens' (gMain.vblankCallback NULL: the player is not read at all)."""
+        if f["xy"] is not None or f["view"]:
+            return None
+        if f["settling"] is True:
+            return "settling"
+        if f["settling"] is None and any("between screens" in p for p in f["problems"]):
+            return "between screens"
+        return None
+
+    run.check(bool(differ) and all(unknown(f) for f in differ),
+              f"on every one of those frames the eyes report NO position and no view, and say why: "
+              f"{[(f['frame'], unknown(f)) for f in differ[:8]]}")
+    reported = [f for f in frames if f["xy"] is not None]
+    bad = [f for f in reported if f["xy"] != f["save_xy"] or f["map"] != f["save_map"] or f["header_maps"] != [f["map"]]]
+    run.check(len(reported) > 0 and not bad,
+              f"on every frame the eyes report a position ({len(reported)} of {len(frames)}), it is save block 1's pos on THE MAP LOADED: "
+              f"the live gMapHeader byte-identical to that map's ROM header (the probe walks gMapGroups; independent of the save "
+              f"block): mismatches {[(f['frame'], f['map'], f['xy'], f['save_xy'], f['header_maps']) for f in bad[:6]] or 'none'}")
+    lines = map_lines(data["lines"])
+    arrival = next((f for f in frames if f["save_map"] == frames[-1]["save_map"] and f["xy"] is not None), None)
+    want = f"({frames[-1]['save_map'][0]},{frames[-1]['save_map'][1]}) pos=({arrival['save_xy'][0]}, {arrival['save_xy'][1]})" if arrival else "?"
+    run.check(len(lines) == 2 and lines[1].endswith(want) and arrival is not None and lines[1].startswith(f"f{arrival['frame']} "),
+              f"SCORER: the map line is written at the first SETTLED frame on the new map (f{arrival and arrival['frame']}) with its "
+              f"arrival tile, want '...{want}': {lines}")
+
+    def mixed(copy: dict) -> tuple[bool, str]:
+        wrong = [(f["frame"], f["map"], f["xy"], f["save_xy"]) for f in copy.get("frames", []) if f["xy"] is not None and f["xy"] != f["save_xy"]]
+        return bool(wrong), f"positions that are not the save block's on its map {wrong[:6]}; its map lines {map_lines(copy.get('lines', []))}"
+
+    mutant(run, "WARP-X", [("eyes/view.py", "    return object_xy if object_xy == saved_xy else None", "    return object_xy  # MUTANT WARP-X")],
+           "warp", mixed, "the step-1 position (the object's tile, always)")
+
+
+def grade_WARPY(run: Run) -> None:
+    """STEP 2.1 (the step-2 verifier: "no live warp that differs only in y"): finding 4 on a warp whose two tiles share
+    x, the League's escalator (`probe_step11.py warp_y`)."""
+    data, raw = probe11("warp_y")
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the warp_y scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    frames = data["frames"]
+    differ = [f for f in frames if f["object_xy"] != f["save_xy"]]
+    run.check(len(differ) > 0 and frames[-1]["save_map"] != frames[0]["save_map"],
+              f"NON-VACUITY: the walk went up the escalator, map {frames[0]['save_map']} -> {frames[-1]['save_map']}, and on "
+              f"{len(differ)} frames (pre-registered > 0; dev 15) the player object's tile (- 7) differs from save block 1's pos: "
+              f"{[(f['frame'], f['state'], f['object_xy'], f['save_map'], f['save_xy']) for f in differ[:4]]}")
+    y_only = [f for f in differ if f["object_xy"][0] == f["save_xy"][0] and f["object_xy"][1] != f["save_xy"][1]]
+    run.check(bool(differ) and len(y_only) == len(differ),
+              f"THE POINT OF THIS ARM: on all {len(differ)} of those frames the two tiles differ in y ONLY ({len(y_only)}: x "
+              f"{sorted({f['object_xy'][0] for f in differ})} on both sides; Dewford's door, arm WARP, differs in x only)")
+
+    def unknown(f: dict) -> str | None:
+        if f["xy"] is not None or f["view"]:
+            return None
+        if f["settling"] is True:
+            return "settling"
+        if f["settling"] is None and any("between screens" in p for p in f["problems"]):
+            return "between screens"
+        return None
+
+    run.check(bool(differ) and all(unknown(f) for f in differ) and any(unknown(f) == "settling" for f in differ),
+              f"on every one of those frames the eyes report NO position and no view, and say why (at least one by the "
+              f"settling rule itself, not only between screens): {[(f['frame'], unknown(f)) for f in differ[:16]]}")
+    reported = [f for f in frames if f["xy"] is not None]
+    bad = [f for f in reported if f["xy"] != f["save_xy"] or f["map"] != f["save_map"] or f["header_maps"] != [f["map"]]]
+    run.check(len(reported) > 0 and not bad,
+              f"on every frame the eyes report a position ({len(reported)} of {len(frames)}), it is save block 1's pos on THE MAP "
+              f"LOADED (the live gMapHeader byte-identical to that map's ROM header): mismatches "
+              f"{[(f['frame'], f['map'], f['xy'], f['save_xy'], f['header_maps']) for f in bad[:6]] or 'none'}")
+    lines = map_lines(data["lines"])
+    arrival = next((f for f in frames if f["save_map"] == frames[-1]["save_map"] and f["xy"] is not None), None)
+    want = f"({frames[-1]['save_map'][0]},{frames[-1]['save_map'][1]}) pos=({arrival['save_xy'][0]}, {arrival['save_xy'][1]})" if arrival else "?"
+    run.check(len(lines) == 2 and lines[1].endswith(want) and arrival is not None and lines[1].startswith(f"f{arrival['frame']} "),
+              f"SCORER: the map line is written at the first SETTLED frame on the new map (f{arrival and arrival['frame']}) with its "
+              f"arrival tile, want '...{want}': {lines}")
+
+    def mixed(copy: dict) -> tuple[bool, str]:
+        wrong = [(f["frame"], f["map"], f["xy"], f["save_xy"]) for f in copy.get("frames", []) if f["xy"] is not None and f["xy"] != f["save_xy"]]
+        return bool(wrong), f"positions that are not the save block's on its map {wrong[:6]}; its map lines {map_lines(copy.get('lines', []))}"
+
+    x_only = [("eyes/view.py", "    return object_xy if object_xy == saved_xy else None",
+               "    return object_xy if object_xy[0] == saved_xy[0] else None  # MUTANT R4x")]
+    mutant(run, "WARPY-R4x", x_only, "warp_y", mixed, "a rule that compares x and ignores y (the step-2 verifier's V4)")
+    mutant(run, "WARPY-X", [("eyes/view.py", "    return object_xy if object_xy == saved_xy else None", "    return object_xy  # MUTANT WARP-X")],
+           "warp_y", mixed, "the step-1 position (the object's tile, always)")
+    # the gap this arm closes: the Dewford door (tiles differ in x) cannot see a rule that ignores y
+    mutant(run, "WARP-R4x", x_only, "warp", mixed, "the same x-only rule on the Dewford door (arm WARP's scenario): its tiles differ "
+           "in x, so the rule still says settling there", expect_caught=False)
+
+
+def grade_SW(run: Run) -> None:
+    """Finding 6: the script's `waitbuttonpress`, captured on Dewford's sign (`probe_step11.py sign`)."""
+    data, raw = probe11("sign")
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the sign scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    first, found = data["first"], data.get("found")
+    run.check(first["script"]["status"] == 2 and first["script"]["native"] == "WaitForAorBPress" and not first["printers"]
+              and first["waits"] is False,
+              f"CONTROL, the fixture's first frame f{first['frame']}: a FINISHED script (raw status {first['script']['status']} = "
+              f"CONTEXT_SHUTDOWN) left native {first['script']['native']} behind, no text printer active ({first['printers']}): nothing "
+              f"waits, and the eyes say waits={first['waits']} ({first['reason']})")
+    run.check(bool(found) and found["reason"] == "script waitbuttonpress" and found["script"]["status"] == 0
+              and found["script"]["native"] == "WaitForAorBPress" and not found["printers"] and found["facing"] == "down",
+              f"CAPTURED: reading the sign (facing {found and found['facing']}), at f{found and found['frame']} the eyes say waits=True "
+              f"reason {found and found['reason']!r}; truth: raw status {found and found['script']['status']} (running), native "
+              f"{found and found['script']['native']} (the probe's own symbol lookup of sGlobalScriptContext), no text printer active "
+              f"({found and found['printers']}): the end of `Std_MsgboxSign` (message; waitmessage; waitbuttonpress)")
+    idle = data.get("idle") or []
+    run.check(len(idle) == 300 and all(i[3] for i in idle) and all(i[1] and i[2] == "script waitbuttonpress" for i in idle),
+              f"BEHAVIOUR: {len(idle)} frames with no input moved nothing (every text printer, the box mode, the tasks, callback2, the "
+              f"script's status and pointer: still={all(i[3] for i in idle) if idle else None}), and on every one the eyes said waits=True "
+              f"for 'script waitbuttonpress' (wrong: {[i[0] for i in idle if not (i[1] and i[2] == 'script waitbuttonpress')][:6] or 'none'})")
+    moved = data.get("moved_at")
+    after = data.get("after") or []
+    later = [a for a in after if moved and a[0] >= moved[0]]
+    run.check(bool(data.get("press_moved_the_script")) and moved and moved[3]["status"] == 2 and later and not any(a[1] for a in later),
+              f"BEHAVIOUR: the one A press moved the script (status {data['before_idle']['status']} -> {moved and moved[3]['status']} at "
+              f"f{moved and moved[0]}), and from then on the eyes say waits=False ({len(later)} frames)")
+    gated = [p for p in data.get("presses_before", []) if p[1] == "A" and p[2] == "a text waits"]
+    run.check(all(p[3] for p in gated),
+              f"every A press that advanced a text was GATED on the eyes' waits=True: {gated or 'none was needed (one paragraph)'}")
+
+    def first_waits(copy: dict) -> tuple[bool, str]:
+        frame = copy.get("first") or {}
+        return frame.get("waits") is True, f"the fixture's first frame (a finished script) reads waits={frame.get('waits')} ({frame.get('reason')})"
+
+    def never_waits(copy: dict) -> tuple[bool, str]:
+        idle_copy = copy.get("idle") or []
+        hit = copy.get("found") is None or not all(i[1] for i in idle_copy)
+        return hit, f"script wait found: {copy.get('found') is not None}; idle frames reading waits=True: {sum(1 for i in idle_copy if i[1])} of {len(idle_copy)}"
+
+    mutant(run, "SW-X1", [("eyes/view.py", "    return status != SCRIPT_CONTEXT_SHUTDOWN and mode == \"Native\" and native_function == _WAIT_FOR_BUTTON_NATIVE",
+                           "    return native_function == _WAIT_FOR_BUTTON_NATIVE  # MUTANT SW-X1")],
+           "sign", first_waits, "neither the context's status nor its mode checked (a finished script's leftover native function "
+                                "reads as waiting; each check alone refuses it, measured: removing only the status check is not caught)")
+    rule = "    return status != SCRIPT_CONTEXT_SHUTDOWN and mode == \"Native\" and native_function == _WAIT_FOR_BUTTON_NATIVE"
+    mutant(run, "SW-R1", [("eyes/view.py", rule, "    return mode == \"Native\" and native_function == _WAIT_FOR_BUTTON_NATIVE  # REDUNDANCY SW-R1")],
+           "sign", first_waits, "the status check alone removed (the mode check stays)", expect_caught=False)
+    mutant(run, "SW-R2", [("eyes/view.py", rule, "    return status != SCRIPT_CONTEXT_SHUTDOWN and native_function == _WAIT_FOR_BUTTON_NATIVE  # REDUNDANCY SW-R2")],
+           "sign", first_waits, "the mode check alone removed (the status check stays)", expect_caught=False)
+    mutant(run, "SW-X2", [("host/eyes.py", "        if script_waits_for_button(status, script.mode, script.native_function_name):\n",
+                           "        if False:  # MUTANT SW-X2: the script branch removed\n")],
+           "sign", never_waits, "the script branch removed (only text printers wait)")
+
+
+def battle_ends(lines: list[str]) -> list[str]:
+    return [line for line in lines if "[TRAINER] end" in line or "[AI-BATTLE] end" in line or "[CATCH] end" in line]
+
+
+def dex_drops(lines: list[str]) -> list[str]:
+    out = []
+    for line in lines:
+        found = re.search(r"\[DEX\] owned (\d+) -> (\d+)", line)
+        if found and int(found.group(2)) < int(found.group(1)):
+            out.append(line)
+    return out
+
+
+def grade_BLT(run: Run) -> None:
+    """Finding 2, live: a trainer battle played to its end (`probe_step11.py trainer`, from E10's fixture)."""
+    import scoring
+
+    data, raw = probe11("trainer")
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the trainer scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    ends = battle_ends(data["lines"])
+    won = next((t for _, t in data["texts"] if "for winning" in t), "")
+    prize = re.search(r"<B7>(\d+)", won)
+    before, after = data["money_before"], data["money_after"]
+    want = f"opp=322 last_seen=Machop#66 lvl_last_seen=9 res=Won money={before}->{after} delta={after - before}"
+    run.check(data["ended"] and len(ends) == 1 and want in ends[0] and prize and int(prize.group(1)) == after - before,
+              f"[TRAINER] end, ONE line: {ends}; truth: money {before} -> {after} (the probe's decode of save block 1, XOR the key, "
+              f"before the first press and after the overworld is back), the battle's own text {won!r} (prize {prize and prize.group(1)}), "
+              f"the opponent of E5/E10 (322 JOEY), the foe Machop L9; want '{want}'")
+    run.check(not any("InProgress" in line for line in data["lines"]) and not dex_drops(data["lines"]),
+              f"no line says InProgress, and no [DEX] line drops (the save blocks move at the battle's end): "
+              f"{[line for line in data['lines'] if '[DEX]' in line or 'InProgress' in line] or 'none'}")
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "ai_player.log"
+        path.write_text("\n".join(data["lines"] + data.get("final", [])) + "\n", encoding="utf-8")
+        record = scoring.parse_log(path)
+    run.check(record["money_last"] == after and record["losses"] == {},
+              f"scoring.parse_log(the scenario's lines): money_last={record['money_last']} (want {after}), losses={record['losses']}")
+    run.notes.append("the scenario's scorer lines:\n    " + "\n    ".join(data["lines"] + data.get("final", [])))
+    run.notes.append(f"frames where the screen changed: {[(r['frame'], r['state'], r['in_battle'], r['outcome'], r['reason'], r['problems'][:1]) for r in data['rows']]}")
+
+    def drops(copy: dict) -> tuple[bool, str]:
+        bad = dex_drops(copy.get("lines", []))
+        return bool(bad), f"[DEX] lines that drop: {bad}"
+
+    mutant(run, "BLT-X", [("host/eyes.py", "            if moving:\n", "            if False:  # MUTANT BLT-X: no between-screens guard\n")],
+           "trainer", drops, "the between-screens guard removed (save blocks read while MoveSaveBlocks_ResetHeap moves them)")
+
+
+def grade_BLW(run: Run) -> None:
+    """Findings 1, 2, 5, live: a wild Pokemon caught through the bag and the nickname screen (`probe_step11.py catch`)."""
+    import scoring
+
+    data, raw = probe11("catch", delay=CATCH_DELAY)
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the catch scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    foe = data["foe_pid"]
+    new = [m for m in data["party_after"] if m[0] not in data["party_before"]]
+    catch = [line for line in data["lines"] if "[CATCH] end" in line]
+    me = data["player_visible_id"]
+    run.check(data["ended"] and len(new) == 1 and new[0][0] == foe and new[0][2] == me,
+              f"TRUTH: the battle ended, and the party gained ONE Pokemon (the framework's get_party, before {data['party_before']} after "
+              f"{data['party_after']}): PID {new and new[0][0]}, the wild foe's PID {foe} (gEnemyParty[0] before the battle ended), OT "
+              f"{new and new[0][2]} = the player's visible id {me}")
+    species = new[0][1] if new else "?"
+    run.check(len(catch) == 1 and f"sp={species}#" in catch[0] and f"dest=party pid={foe}" in catch[0],
+              f"[CATCH] end, ONE line, by IDENTITY: {catch}; want sp={species}, dest=party, pid={foe}")
+    naming = [r for r in data["rows"] if r["state"] == "NAMING_SCREEN"]
+    run.check(bool(naming) and data["named"]["yes"] and not any("InProgress" in line for line in data["lines"]),
+              f"through the NICKNAME screen ({len(naming)} changes seen there; YES pressed {data['named']['yes']}, the default name kept), "
+              f"and no line says InProgress. Measured there: {[(r['frame'], r['in_battle'], r['outcome']) for r in naming]} (in_battle "
+              f"stays True: gMain.callback1 is still BattleMainCB1)")
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / "ai_player.log"
+        path.write_text("\n".join(data["lines"] + data.get("final", [])) + "\n", encoding="utf-8")
+        record = scoring.parse_log(path)
+    run.check((record["catches"], record["species_caught"]) == (1, [species]),
+              f"scoring.parse_log(the scenario's lines): catches={record['catches']} species_caught={record['species_caught']}")
+    run.notes.append("the scenario's scorer lines:\n    " + "\n    ".join(data["lines"] + data.get("final", [])))
+    run.notes.append(f"presses: {data['presses']}")
+
+
+def grade_BS(run: Run) -> None:
+    """Finding 2 at a battle's START (`probe_step11.py start`): the previous battle's foe is still in gBattleMons."""
+    data, raw = probe11("start")
+    run.probe11 = data
+    if data is None:
+        run.check(False, f"the start scenario printed no PROBE11 line: {raw[-1500:]}")
+        return
+    frames = [f for f in data["frames"] if f["state"] == "BATTLE"]
+    stale = [f for f in frames if f["stale"]]
+    fresh = [f for f in frames if not f["stale"] and f["battle_foe"] is not None]
+    run.check(len(stale) > 0 and all(f["raw_foe"] != data["enemy_first_species"] for f in stale),
+              f"NON-VACUITY: on {len(stale)} frames of state BATTLE (pre-registered > 0; measured 9) the foe battler in gBattleMons is "
+              f"NOT of this battle (its PID is no occupied slot of gEnemyParty): {[(f['frame'], f['raw_foe'], f['raw_foe_pid'], f['enemy_pids']) for f in stale[:4]]}; "
+              f"this battle's foe: {data['enemy_first_species']}")
+    run.check(bool(stale) and all(f["battle_foe"] == [] for f in stale),
+              f"on every one of them the eyes report NO foe: {[(f['frame'], f['battle_foe']) for f in stale[:9]]}")
+    run.check(bool(fresh) and all(f["battle_foe"] == [f["raw_foe"]] for f in fresh),
+              f"on the {len(fresh)} BATTLE frames after it the eyes report the battler of this battle: "
+              f"{sorted({(tuple(f['battle_foe']), f['raw_foe']) for f in fresh})}")
+    ends = battle_ends(data["lines"])
+    run.check(data["ended"] and len(ends) == 1 and f"sp={data['enemy_first_species']}#" in ends[0] and "res=RanAway" in ends[0],
+              f"the battle's line names THIS battle's foe ({data['enemy_first_species']}, the framework's gEnemyParty[0] decode): {ends}")
+
+    def shows_stale(copy: dict) -> tuple[bool, str]:
+        hit = [(f["frame"], f["battle_foe"]) for f in copy.get("frames", []) if f["state"] == "BATTLE" and f["stale"] and f["battle_foe"]]
+        return bool(hit), f"stale frames on which the eyes report a foe: {hit[:6]}"
+
+    def names_stale(copy: dict) -> tuple[bool, str]:
+        lines = battle_ends(copy.get("lines", []))
+        stale_names = {f["raw_foe"] for f in copy.get("frames", []) if f["stale"]}
+        hit = any(f"sp={name}#" in line for line in lines for name in stale_names)
+        return hit, f"its battle line {lines} names the previous battle's foe {sorted(stale_names)}"
+
+    guard = ("host/eyes.py", "            foe=tuple(self._battle_mon(mon, own=False) for mon in state.opponent.active_battlers\n"
+                             "                      if mon.personality_value in enemies),\n",
+             "            foe=tuple(self._battle_mon(mon, own=False) for mon in state.opponent.active_battlers),  # MUTANT\n")
+    refresh = ("memory_log.py", "                record[\"latest\"] = observation  # the refresh: the first look can show the previous battle's foe\n",
+               "                pass  # MUTANT: no refresh\n")
+    mutant(run, "BS-X1", [guard], "start", shows_stale, "the eyes' identity guard removed (a foe battler of any battle is reported)")
+    mutant(run, "BS-X2", [guard, refresh], "start", names_stale, "the guard AND the scorer lines' refresh removed: the step-1 code")
 
 
 def grade_SC(run: Run) -> None:
@@ -1279,6 +1833,23 @@ GRADER_FAULTS = [
     ("E10", "gTextFlags read as MSB-first (0xC0)", "truth", _set("screen.text_flags", 0xC0), check_text_flags, "gTextFlags"),
     ("E10", "the defeat text without its PAUSE_UNTIL_PRESS bytes", "truth", _set("screen.active_printers.0.last_two_bytes", "2100"),
      None, "THE DEFEAT TEXT"),
+    # step 1.1
+    ("E1", "the player's id reported as the full 32 bits", "eyes", _set("player.trainer_id", lambda v: v | 0x10000), check_ids,
+     "TRAINER ID"),
+    ("E1", "a party OT id with its secret half", "eyes", _set("party.0.ot_id", lambda v: v | 0x10000), check_ids, "OT IDS"),
+    ("E3", "a boxed Pokemon's PID + 1", "eyes", _set("storage.0.2", lambda v: v + 1), check_storage, "PC BOXES"),
+    ("E3", "the framework's box decode loses a Pokemon", "truth", _set("storage", lambda v: v[1:]), check_storage, "PC BOXES"),
+    ("E2", "the trainer (local 3) labelled 'trainer'", "eyes", None, check_objects, "PEOPLE"),
+    ("E10", "the foe's HP bar + 1 pixel", "eyes", _set("battle.foe.0.hp_bar", lambda v: v + 1), lambda r: check_battle(r, "trainer"),
+     "SECOND COPY"),
+    ("E10", "the foe's exact HP reported", "eyes", _set("battle.foe.0.hp", 0), lambda r: check_battle(r, "trainer"), "SECOND COPY"),
+    ("E10", "a used foe move dropped", "eyes", _set("battle.foe.0.moves", lambda v: v[:1]), lambda r: check_battle(r, "trainer"),
+     "SECOND COPY"),
+    ("E4", "the foe's unused move reported", "eyes", _set("battle.foe.0.moves", [{"name": "Tackle", "type": "Normal", "power": 35,
+                                                                               "pp": None, "max_pp": None}]),
+     lambda r: check_battle(r, "wild"), "SECOND COPY"),
+    ("E10", "the replayed screen showed one more foe move", "probe11",
+     lambda d: d["texts"].append([0, "Foe MACHOP used<FE>LOW KICK!"]), check_foe_moves_on_screen, "FOE MOVES"),
 ]
 
 
@@ -1290,9 +1861,17 @@ def _move_drawn(local_id: int, dx: float):
     return apply
 
 
+def _label_trainer(local_id: int):
+    """An eyes-side mutation: the object `local_id` is reported as a 'trainer' (the step-1 label)."""
+    def apply(observation: dict) -> None:
+        next(o for o in observation["view"]["objects"] if o["local_id"] == local_id)["kind"] = "trainer"
+    return apply
+
+
 OBJECT_FAULTS = {
     "the trainer's (local 3) DRAWN position one tile right": _move_drawn(3, lambda v: v + 1),
     "the item ball (local 7) DRAWN inside the window": _move_drawn(7, 7.0),
+    "the trainer (local 3) labelled 'trainer'": _label_trainer(3),
 }
 
 
@@ -1314,10 +1893,11 @@ def grade_XG(run: Run, graded: dict[str, Run]) -> None:
 
         def regrade(apply: bool) -> list[str]:
             clone = Run(base.arm, records=copy.deepcopy(base.records), probe=copy.deepcopy(base.probe), ai_log=base.ai_log,
-                        run_dir=base.run_dir, stdout=base.stdout, verdict=base.verdict, exit_code=base.exit_code)
+                        run_dir=base.run_dir, stdout=base.stdout, verdict=base.verdict, exit_code=base.exit_code,
+                        probe11=copy.deepcopy(base.probe11))
             if apply:
                 target = {"eyes": clone.records[0]["observation"], "truth": clone.probe.get("truth"), "probe": clone.probe,
-                          "behaviour": clone.probe.get("behaviour")}[side]
+                          "behaviour": clone.probe.get("behaviour"), "probe11": clone.probe11}[side]
                 mutate(target)
             if checker is None:
                 whole[arm](clone)
@@ -1334,7 +1914,8 @@ def grade_XG(run: Run, graded: dict[str, Run]) -> None:
 
 GRADERS = {"E1": grade_E1, "E2": grade_E2, "E2X": grade_E2X, "E3": grade_E3, "E4": grade_E4, "E5": grade_E5,
            "E6": grade_E6, "E7": grade_E7, "E8": grade_E8, "E9": grade_E9, "E10": grade_E10, "XW": grade_XW,
-           "SC": grade_SC, "GEO": grade_GEO, "XG": None}
+           "SC": grade_SC, "GEO": grade_GEO, "XG": None, "WARP": grade_WARP, "WARPY": grade_WARPY, "SW": grade_SW,
+           "BS": grade_BS, "BLT": grade_BLT, "BLW": grade_BLW}
 
 
 # ---------------------------------------------------------------------- evidence
@@ -1352,9 +1933,9 @@ def md5_of(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
-def write_evidence(run: Run, code_ref: str) -> Path:
+def write_evidence(run: Run, code_ref: str, tag: str = EVIDENCE_TAG) -> Path:
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    path = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{EVIDENCE_TAG}-{run.arm.name}.txt"
+    path = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{tag}-{run.arm.name}.txt"
     fixture = run.arm.fixture
     out = [
         f"AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title}",
@@ -1377,6 +1958,9 @@ def write_evidence(run: Run, code_ref: str) -> Path:
         out += ["", f"---- the action log: {len(run.records)} records (digests) ----", *[r.get("digest") or "" for r in run.records],
                 "", "---- the FIRST record in full (compact tiles: [x, y, metatile, behavior, collision, elevation, flags]) ----",
                 json.dumps(run.records[0], sort_keys=True)]
+    if run.probe11 is not None:
+        out += ["", "---- STEP 1.1: gates/probe_step11.py (the scenario PLAYED in the probe's emulator; every frame's look and truth) ----",
+                json.dumps(run.probe11, sort_keys=True)]
     if run.probe is not None:
         out += ["", "---- GROUND TRUTH: gates/probe_eyes.py on the same fixture (truth, window, behaviour, cost; its own eyes look omitted) ----",
                 json.dumps({k: v for k, v in run.probe.items() if k not in ("eyes",)}, sort_keys=True)]
@@ -1402,7 +1986,7 @@ def leftover_processes() -> list[str]:
             cmd = " ".join(proc.info["cmdline"] or [])
         except Exception:  # noqa: BLE001
             continue
-        if ("pokebot.py" in cmd and PROFILE in cmd) or "probe_eyes.py" in cmd:
+        if ("pokebot.py" in cmd and PROFILE in cmd) or "probe_eyes.py" in cmd or "probe_step11.py" in cmd:
             found.append(f"pid {proc.info['pid']}: {cmd[:160]}")
     return found
 
@@ -1414,6 +1998,7 @@ def main() -> int:
         pass
     parser = argparse.ArgumentParser(description="Live proof of AI-player build step 1 (the eyes).")
     parser.add_argument("--arms", default=",".join(a.name for a in ARMS))
+    parser.add_argument("--evidence-tag", default=EVIDENCE_TAG, help="evidence/<date>-<tag>-<ARM>.txt")
     args = parser.parse_args()
     wanted = [name.strip() for name in args.arms.split(",") if name.strip()]
     unknown = [name for name in wanted if name not in GRADERS]
@@ -1439,7 +2024,7 @@ def main() -> int:
             grade_XG(run, {done.arm.name: done for done in results})
         else:
             GRADERS[arm.name](run)
-        evidence = write_evidence(run, code_ref)
+        evidence = write_evidence(run, code_ref, args.evidence_tag)
         results.append(run)
         print(f"ARM {arm.name}: {'PASS' if run.passed else 'FAIL'}  (exit {run.exit_code}, {run.elapsed:.1f}s) -> {evidence.relative_to(REPO)}")
         for ok, text in run.checks:

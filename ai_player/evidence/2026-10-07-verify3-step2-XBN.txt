@@ -1,0 +1,483 @@
+AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM XBN: FAULT blind count: the same New Game, the keyboard moved by counts from the top-left key
+date: 2026-10-07 22:51:08
+code: HEAD 9f859914; ai_player/ has UNCOMMITTED changes (the code under test is the working tree)
+start: --fresh (no state, no cartridge save: the title screen and a New Game)
+fixture documentation: -
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step2-hands --frames 12000 --wall-seconds 900 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261007-225052-XBN --fresh
+env: AI_PLAYER_BRAIN=intro AI_PLAYER_SEED=3 AI_PLAYER_FAULT_BLIND_COUNT=1
+exit code: 0   elapsed: 14.4s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261007-225052-XBN
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
+  [PASS] the AI's logged intent for seed 3 is the personality's draw, recomputed here from ai_player/personality.py (Catcher, GIRL, 'Rosa'): [AI-HANDS] intro: personality Catcher (seed; seed 3): gender GIRL (drawn with P(GIRL)=0.6), name 'Rosa' (from GIRL's list)
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=424 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 212 ([AI-HANDS] outcome='stopped: not finished within 12000 frames' presses=212 frames=11999 looks=5558 records=365), and > 0
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='intro: stopped: not finished within 12000 frames' exit_code=0 process=0 real_frames=12000 (budget 12000)
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 14.3s after the run started; frame 12000 == start 0 + 12000 real frames (+-5); md5 747aeea471efe1e78f4ce7a5ec519a4b (fixture -: a fresh boot)
+  [PASS] HARM, by the second path: the name in save block 2 is 'R.qq', not 'Rosa'
+  [PASS] the truck was never reached: outcome 'intro: stopped: not finished within 12000 frames', map [0, 0]
+  [PASS] 212 presses in the action log, every one with its gate (without: 0)
+  [PASS] 19 A presses advanced a text, each on a look whose digest says waits=A/B(<that reason>) (mismatched: none)
+  [PASS] human pace: 212 presses held 3-7 frames (seen [3, 4, 5, 6, 7]) with gaps 8-18 (seen 8-18); 0 short taps (a turn in place, or a single minute on the clock)
+  [PASS] 19 reading delays, 59-150 frames (bound 18-150), each logged with the page it read
+  [PASS] the names the game asked about (read by the AI, which then answered NO): ['So it’s R.qq?', 'So it’s R.qq?', 'So it’s R.qq?', 'So it’s R.qq?']
+  [PASS] 136 keyboard moves by count (gate 'NONE (FAULT blind count: pressed by count from the top, the cursor not read)')
+
+---- notes ----
+presses by button and gate: {"A: NONE (FAULT blind count": 47, "A: task Task_NewGameBirchSpeech_WaitPressBeforeName": 6, "A: text printer # CLEAR": 11, "A: text printer # SCROLL_START": 2, "Down: NONE (FAULT blind count": 52, "Right: NONE (FAULT blind count": 78, "Select: NONE (FAULT blind count": 6, "Start: NONE (FAULT blind count": 6, "Start: intro movie / title animation": 3, "Start: title screen": 1}
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 424,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 12000,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "intro: stopped: not finished within 12000 frames",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x248d7ddc440",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x248d7ddc440 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 31336,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- TRUTH of the state the run LEFT (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 0, "balls": {}, "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 12000, "gLocalTime": [0, 0, 0, 0], "game_state": "MAIN_MENU", "gender": 1, "gender_name": "GIRL", "localTimeOffset": [0, 0, 0, 0], "map": [0, 0], "money": 0, "name": "R.qq", "name_bytes": "ccade5e5ffffffff", "party": [], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "747aeea471efe1e78f4ce7a5ec519a4b"}
+
+---- the action log: 365 records (frame | decision | action | gate or reason | digest) ----
+f0 | start | intro | the first look | f0 other party=? problems=1 cost=0.08ms
+f0 | tell | say | intro: personality Catcher (seed; seed 3): gender GIRL (drawn with P(GIRL)=0.6), name 'Rosa' (from GIRL's list) | f0 other party=? problems=1 cost=0.08ms
+f0 | decide | gender GIRL | personality-weighted draw | f0 other party=? problems=1 cost=0.08ms
+f0 | decide | name Rosa | drawn from the personality's list | f0 other party=? problems=1 cost=0.08ms
+f13 | watch | busy 13f | watching: the game is busy (unknown) | f13 title party=? cost=0.19ms
+f176 | watch | busy 163f | watching: the game is busy (title_screen) | f176 title ui=intro_movie[SKIP] party=? cost=0.21ms
+f176 | idle | idle 35f | the intro plays; a person skips it | f176 title ui=intro_movie[SKIP] party=? cost=0.21ms
+f211 | skip the intro | press Start 5f | intro movie / title animation: any key skips it | f211 title ui=intro_movie[SKIP] party=? cost=0.31ms
+f231 | idle | idle 22f | the intro plays; a person skips it | f231 title ui=intro_movie[SKIP] party=? cost=0.30ms
+f253 | skip the intro | press Start 4f | intro movie / title animation: any key skips it | f253 title ui=intro_movie[SKIP] party=? cost=0.32ms
+f273 | idle | idle 27f | the intro plays; a person skips it | f273 title ui=intro_movie[SKIP] party=? cost=0.31ms
+f300 | skip the intro | press Start 7f | intro movie / title animation: any key skips it | f300 title ui=intro_movie[SKIP] party=? cost=0.30ms
+f318 | idle | idle 28f | the title screen: PRESS START | f318 title ui=title[PRESS START] party=? cost=0.31ms
+f346 | start the game | press Start 7f | title screen: Task_TitleScreenPhase3 takes START | f346 title ui=title[PRESS START] party=? cost=0.31ms
+f362 | idle | idle 22f | the title screen: PRESS START | f362 other ui=title[PRESS START] dex=0/0 money=0 badges=0 problems=1 cost=1.09ms
+f425 | watch | busy 41f | watching: the game is busy (main_menu) | f425 menu menu=main_menu ui=main_menu(busy)[NEW GAME] party=? cost=0.18ms
+f426 | watch | busy 1f | waiting for the main_menu to open (a new game) | f426 menu menu=main_menu ui=main_menu[NEW GAME] party=? cost=0.21ms
+f426 | idle | idle 16f | looking at the main_menu: ['NEW GAME', 'OPTION'], cursor on 0 (NEW GAME); wanted 0 (NEW GAME) | f426 menu menu=main_menu ui=main_menu[NEW GAME] party=? cost=0.21ms
+f442 | a new game | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f442 menu menu=main_menu ui=main_menu[NEW GAME] party=? cost=0.28ms
+f471 | watch | busy 8f | waiting for the main_menu to take the choice | f471 menu menu=main_menu party=? cost=0.28ms
+f1001 | watch | busy 530f | watching: the game is busy (main_menu) | f1001 menu menu=main_menu party=? cost=0.18ms
+f1122 | watch | busy 121f | reading along: a text is printing | f1122 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.20ms
+f1122 | idle | idle 91f | reading 30 new characters: 'Hi! Sorry to keep you waiting!' | f1122 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.20ms
+f1213 | read | text | Hi! Sorry to keep you waiting! | f1213 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.32ms
+f1213 | the intro: from the title to the truck | press A 4f | text printer 0 CLEAR | f1213 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.32ms
+f1346 | watch | busy 111f | reading along: a text is printing | f1346 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f1346 | idle | idle 86f | reading 32 new characters: 'Welcome to the world of POKéMON!' | f1346 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f1432 | read | text | Welcome to the world of POKéMON! | f1432 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f1432 | the intro: from the title to the truck | press A 7f | text printer 0 CLEAR | f1432 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f1505 | watch | busy 56f | reading along: a text is printing | f1505 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.24ms
+f1505 | idle | idle 59f | reading 17 new characters: 'My name is BIRCH.' | f1505 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.24ms
+f1564 | read | text | My name is BIRCH. | f1564 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.35ms
+f1564 | the intro: from the title to the truck | press A 7f | text printer 0 CLEAR | f1564 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.35ms
+f1744 | watch | busy 156f | reading along: a text is printing | f1744 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.24ms
+f1744 | idle | idle 104f | reading 44 new characters: 'But everyone calls me the POKéMON PROFESSOR.' | f1744 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.24ms
+f1848 | read | text | But everyone calls me the POKéMON PROFESSOR. | f1848 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.42ms
+f1848 | the intro: from the title to the truck | press A 4f | text printer 0 CLEAR | f1848 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.42ms
+f2083 | watch | busy 220f | reading along: a text is printing | f2083 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f2083 | idle | idle 82f | reading 33 new characters: 'This is what we call a “POKéMON.”' | f2083 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f2165 | read | text | This is what we call a “POKéMON.” | f2165 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f2165 | the intro: from the title to the truck | press A 6f | text printer 0 CLEAR | f2165 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f2414 | watch | busy 233f | reading along: a text is printing | f2414 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f2414 | idle | idle 150f | reading 61 new characters: 'This world is widely inhabited by creatures known as POKéMON.' | f2414 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.21ms
+f2564 | read | text | This world is widely inhabited by creatures known as POKéMON. | f2564 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f2564 | the intro: from the title to the truck | press A 3f | text printer 0 CLEAR | f2564 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.33ms
+f2844 | watch | busy 264f | reading along: a text is printing | f2844 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.25ms
+f2844 | idle | idle 150f | reading 69 new characters: 'We humans live alongside POKéMON, at times as friendly playmates, and' | f2844 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.25ms
+f2994 | read | text | We humans live alongside POKéMON, at times as friendly playmates, and | f2994 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.36ms
+f2994 | the intro: from the title to the truck | press A 7f | text printer 0 SCROLL_START | f2994 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.36ms
+f3144 | watch | busy 135f | reading along: a text is printing | f3144 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.25ms
+f3144 | idle | idle 82f | reading 35 new characters: 'We humans live alongside POKéMON, at times as friendly playmates, and at times as cooperative workmates.' | f3144 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.25ms
+f3226 | read | text | We humans live alongside POKéMON, at times as friendly playmates, and at times as cooperative workmates. | f3226 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.38ms
+f3226 | the intro: from the title to the truck | press A 4f | text printer 0 CLEAR | f3226 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.38ms
+f3462 | watch | busy 223f | reading along: a text is printing | f3462 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.28ms
+f3462 | idle | idle 150f | reading 58 new characters: 'And sometimes, we band together and battle others like us.' | f3462 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.28ms
+f3612 | read | text | And sometimes, we band together and battle others like us. | f3612 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.42ms
+f3612 | the intro: from the title to the truck | press A 5f | text printer 0 CLEAR | f3612 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.42ms
+f3880 | watch | busy 251f | reading along: a text is printing | f3880 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.31ms
+f3880 | idle | idle 150f | reading 66 new characters: 'But despite our closeness, we don’t know everything about POKéMON.' | f3880 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.31ms
+f4030 | read | text | But despite our closeness, we don’t know everything about POKéMON. | f4030 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.44ms
+f4030 | the intro: from the title to the truck | press A 4f | text printer 0 CLEAR | f4030 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.44ms
+f4266 | watch | busy 221f | reading along: a text is printing | f4266 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.34ms
+f4266 | idle | idle 130f | reading 58 new characters: 'In fact, there are many, many secrets surrounding POKéMON.' | f4266 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.34ms
+f4396 | read | text | In fact, there are many, many secrets surrounding POKéMON. | f4396 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.48ms
+f4396 | the intro: from the title to the truck | press A 5f | text printer 0 CLEAR | f4396 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.48ms
+f4644 | watch | busy 227f | reading along: a text is printing | f4644 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.37ms
+f4644 | idle | idle 150f | reading 61 new characters: 'To unravel POKéMON mysteries, I’ve been undertaking research.' | f4644 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.37ms
+f4794 | read | text | To unravel POKéMON mysteries, I’ve been undertaking research. | f4794 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.53ms
+f4794 | the intro: from the title to the truck | press A 5f | text printer 0 SCROLL_START | f4794 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.53ms
+f4876 | watch | busy 59f | reading along: a text is printing | f4876 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.38ms
+f4876 | idle | idle 72f | reading 18 new characters: 'To unravel POKéMON mysteries, I’ve been undertaking research. That’s what I do.' | f4876 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.38ms
+f4948 | read | text | To unravel POKéMON mysteries, I’ve been undertaking research. That’s what I do. | f4948 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.63ms
+f4948 | the intro: from the title to the truck | press A 5f | text printer 0 CLEAR | f4948 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.63ms
+f5002 | watch | busy 39f | reading along: a text is printing | f5002 menu menu=main_menu party=? cost=0.18ms
+f5166 | watch | busy 164f | watching: the game is busy (main_menu) | f5166 menu menu=main_menu party=? cost=0.19ms
+f5298 | watch | busy 132f | reading along: a text is printing | f5298 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f5298 | idle | idle 17f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f5298 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f5298 | the personality chose GIRL | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5298 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f5337 | the personality chose GIRL | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5337 menu menu=main_menu party=? cost=0.31ms
+f5399 | watch | busy 45f | waiting for the gender to take the choice | f5399 menu menu=main_menu ui=gender[GIRL] party=? cost=0.22ms
+f5399 | idle | idle 24f | looking at the gender: ['BOY', 'GIRL'], cursor on 1 (GIRL); wanted 1 (GIRL) | f5399 menu menu=main_menu ui=gender[GIRL] party=? cost=0.22ms
+f5399 | the personality chose GIRL | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5399 menu menu=main_menu ui=gender[GIRL] party=? cost=0.22ms
+f5438 | the personality chose GIRL | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5438 menu menu=main_menu ui=gender[GIRL] party=? cost=0.33ms
+f5553 | watch | busy 99f | reading along: a text is printing | f5553 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f5553 | idle | idle 96f | reading 28 new characters: 'All right. What’s your name?' | f5553 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f5649 | read | text | All right. What’s your name? | f5649 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.32ms
+f5649 | the intro: from the title to the truck | press A 7f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f5649 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.32ms
+f5672 | watch | busy 3f | watching: the game is busy (main_menu) | f5672 menu menu=naming ui=naming(busy)[page17 at (0, 0) text='ÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙ'] dex=0/0 money=0 badges=0 problems=1 cost=0.36ms
+f5713 | watch | busy 41f | waiting for the naming to open (the name 'Rosa') | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Select 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | idle | idle 30f | letting the page turn (counted, not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press Start 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f5713 | the name 'Rosa' | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f5713 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.86ms
+f6207 | watch | busy 11f | waiting for the keyboard to close | f6207 other dex=0/0 money=0 badges=0 problems=1 cost=0.31ms
+f6210 | watch | busy 3f | watching: the game is busy (unknown) | f6210 menu menu=main_menu party=? cost=0.19ms
+f6218 | watch | busy 8f | watching: the game is busy (main_menu) | f6218 menu menu=main_menu party=? cost=0.19ms
+f6271 | read | text | So it’s R.qq? | f6271 menu menu=main_menu ui=yes_no[YES] party=? cost=0.19ms
+f6271 | watch | busy 53f | reading along: a text is printing | f6271 menu menu=main_menu ui=yes_no[YES] party=? cost=0.32ms
+f6271 | idle | idle 32f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f6271 menu menu=main_menu ui=yes_no[YES] party=? cost=0.32ms
+f6271 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6271 menu menu=main_menu ui=yes_no[YES] party=? cost=0.32ms
+f6326 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6326 menu menu=main_menu ui=yes_no[NO] party=? cost=0.36ms
+f6461 | watch | busy 122f | reading along: a text is printing | f6461 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f6461 | idle | idle 34f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f6461 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f6461 | the personality chose GIRL | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6461 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f6511 | the personality chose GIRL | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6511 menu menu=main_menu ui=gender[BOY] party=? cost=0.34ms
+f6626 | watch | busy 97f | reading along: a text is printing | f6626 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f6626 | idle | idle 86f | reading 28 new characters: 'All right. What’s your name?' | f6626 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f6712 | read | text | All right. What’s your name? | f6712 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.31ms
+f6712 | the intro: from the title to the truck | press A 4f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f6712 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.31ms
+f6735 | watch | busy 11f | watching: the game is busy (main_menu) | f6735 menu menu=naming ui=naming(busy)[lower at (0, 0) text='R.qq'] dex=0/0 money=0 badges=0 problems=1 cost=0.34ms
+f6775 | watch | busy 40f | waiting for the naming to open (the name 'Rosa') | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Select 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | idle | idle 30f | letting the page turn (counted, not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press Start 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f6775 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f6775 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.83ms
+f7281 | watch | busy 6f | waiting for the keyboard to close | f7281 other dex=0/0 money=0 badges=0 problems=1 cost=0.31ms
+f7283 | watch | busy 2f | watching: the game is busy (unknown) | f7283 menu menu=main_menu party=? cost=0.32ms
+f7292 | watch | busy 9f | watching: the game is busy (main_menu) | f7292 menu menu=main_menu party=? cost=0.18ms
+f7345 | read | text | So it’s R.qq? | f7345 menu menu=main_menu ui=yes_no[YES] party=? cost=0.18ms
+f7345 | watch | busy 53f | reading along: a text is printing | f7345 menu menu=main_menu ui=yes_no[YES] party=? cost=0.22ms
+f7345 | idle | idle 15f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f7345 menu menu=main_menu ui=yes_no[YES] party=? cost=0.22ms
+f7345 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7345 menu menu=main_menu ui=yes_no[YES] party=? cost=0.22ms
+f7379 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7379 menu menu=main_menu ui=yes_no[NO] party=? cost=0.32ms
+f7514 | watch | busy 111f | reading along: a text is printing | f7514 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f7514 | idle | idle 26f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f7514 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f7514 | the personality chose GIRL | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7514 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f7555 | the personality chose GIRL | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7555 menu menu=main_menu party=? cost=0.28ms
+f7575 | watch | busy 5f | watching: the game is busy (main_menu) | f7575 menu menu=main_menu ui=gender[GIRL] party=? cost=0.19ms
+f7575 | idle | idle 27f | looking at the gender: ['BOY', 'GIRL'], cursor on 1 (GIRL); wanted 1 (GIRL) | f7575 menu menu=main_menu ui=gender[GIRL] party=? cost=0.19ms
+f7575 | the personality chose GIRL | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7575 menu menu=main_menu ui=gender[GIRL] party=? cost=0.19ms
+f7618 | the personality chose GIRL | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7618 menu menu=main_menu ui=gender[GIRL] party=? cost=0.34ms
+f7733 | watch | busy 103f | reading along: a text is printing | f7733 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.21ms
+f7733 | idle | idle 75f | reading 28 new characters: 'All right. What’s your name?' | f7733 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.21ms
+f7808 | read | text | All right. What’s your name? | f7808 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.32ms
+f7808 | the intro: from the title to the truck | press A 3f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f7808 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.32ms
+f7831 | watch | busy 8f | watching: the game is busy (main_menu) | f7831 menu menu=naming ui=naming(busy)[lower at (0, 0) text='R.qq'] dex=0/0 money=0 badges=0 problems=1 cost=0.35ms
+f7872 | watch | busy 41f | waiting for the naming to open (the name 'Rosa') | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Select 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | idle | idle 30f | letting the page turn (counted, not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press Start 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f7872 | the name 'Rosa' | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f7872 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f8397 | watch | busy 11f | waiting for the keyboard to close | f8397 other dex=0/0 money=0 badges=0 problems=1 cost=0.45ms
+f8399 | watch | busy 2f | watching: the game is busy (unknown) | f8399 menu menu=main_menu party=? cost=0.41ms
+f8408 | watch | busy 9f | watching: the game is busy (main_menu) | f8408 menu menu=main_menu party=? cost=0.38ms
+f8461 | read | text | So it’s R.qq? | f8461 menu menu=main_menu ui=yes_no[YES] party=? cost=0.20ms
+f8461 | watch | busy 53f | reading along: a text is printing | f8461 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f8461 | idle | idle 28f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f8461 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f8461 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8461 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f8512 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8512 menu menu=main_menu ui=yes_no[NO] party=? cost=0.34ms
+f8647 | watch | busy 113f | reading along: a text is printing | f8647 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f8647 | idle | idle 37f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f8647 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f8647 | the personality chose GIRL | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8647 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f8702 | the personality chose GIRL | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8702 menu menu=main_menu party=? cost=0.28ms
+f8719 | watch | busy 3f | watching: the game is busy (main_menu) | f8719 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f8719 | idle | idle 43f | looking at the gender: ['BOY', 'GIRL'], cursor on 1 (GIRL); wanted 1 (GIRL) | f8719 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f8719 | the personality chose GIRL | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8719 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f8780 | the personality chose GIRL | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f8780 menu menu=main_menu ui=gender[GIRL] party=? cost=0.35ms
+f8895 | watch | busy 98f | reading along: a text is printing | f8895 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.23ms
+f8895 | idle | idle 77f | reading 28 new characters: 'All right. What’s your name?' | f8895 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.23ms
+f8972 | read | text | All right. What’s your name? | f8972 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.33ms
+f8972 | the intro: from the title to the truck | press A 5f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f8972 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.33ms
+f8995 | watch | busy 7f | watching: the game is busy (main_menu) | f8995 menu menu=naming ui=naming(busy)[lower at (0, 0) text='R.qq'] dex=0/0 money=0 badges=0 problems=1 cost=0.62ms
+f9036 | watch | busy 41f | waiting for the naming to open (the name 'Rosa') | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Select 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | idle | idle 30f | letting the page turn (counted, not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press Start 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9036 | the name 'Rosa' | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9036 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.81ms
+f9557 | watch | busy 9f | waiting for the keyboard to close | f9557 other dex=0/0 money=0 badges=0 problems=1 cost=0.31ms
+f9560 | watch | busy 3f | watching: the game is busy (unknown) | f9560 menu menu=main_menu party=? cost=0.21ms
+f9568 | watch | busy 8f | watching: the game is busy (main_menu) | f9568 menu menu=main_menu party=? cost=0.23ms
+f9621 | read | text | So it’s R.qq? | f9621 menu menu=main_menu ui=yes_no[YES] party=? cost=0.21ms
+f9621 | watch | busy 53f | reading along: a text is printing | f9621 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f9621 | idle | idle 21f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f9621 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f9621 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9621 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f9658 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9658 menu menu=main_menu ui=yes_no[NO] party=? cost=0.31ms
+f9793 | watch | busy 120f | reading along: a text is printing | f9793 menu menu=main_menu ui=gender[BOY] party=? cost=0.21ms
+f9793 | idle | idle 14f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f9793 menu menu=main_menu ui=gender[BOY] party=? cost=0.21ms
+f9793 | the personality chose GIRL | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9793 menu menu=main_menu ui=gender[BOY] party=? cost=0.21ms
+f9828 | the personality chose GIRL | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f9828 menu menu=main_menu ui=gender[BOY] party=? cost=0.33ms
+f9943 | watch | busy 94f | reading along: a text is printing | f9943 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.19ms
+f9943 | idle | idle 94f | reading 28 new characters: 'All right. What’s your name?' | f9943 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.19ms
+f10037 | read | text | All right. What’s your name? | f10037 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.33ms
+f10037 | the intro: from the title to the truck | press A 6f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f10037 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.33ms
+f10060 | watch | busy 1f | watching: the game is busy (main_menu) | f10060 menu menu=naming ui=naming(busy)[lower at (0, 0) text='R.qq'] dex=0/0 money=0 badges=0 problems=1 cost=0.37ms
+f10100 | watch | busy 40f | waiting for the naming to open (the name 'Rosa') | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Select 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | idle | idle 30f | letting the page turn (counted, not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press Start 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10100 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10100 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.80ms
+f10620 | watch | busy 4f | waiting for the keyboard to close | f10620 other dex=0/0 money=0 badges=0 problems=1 cost=0.32ms
+f10623 | watch | busy 3f | watching: the game is busy (unknown) | f10623 menu menu=main_menu party=? cost=0.21ms
+f10631 | watch | busy 8f | watching: the game is busy (main_menu) | f10631 menu menu=main_menu party=? cost=0.20ms
+f10684 | read | text | So it’s R.qq? | f10684 menu menu=main_menu ui=yes_no[YES] party=? cost=0.20ms
+f10684 | watch | busy 53f | reading along: a text is printing | f10684 menu menu=main_menu ui=yes_no[YES] party=? cost=0.27ms
+f10684 | idle | idle 39f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f10684 menu menu=main_menu ui=yes_no[YES] party=? cost=0.27ms
+f10684 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10684 menu menu=main_menu ui=yes_no[YES] party=? cost=0.27ms
+f10739 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10739 menu menu=main_menu ui=yes_no[NO] party=? cost=0.32ms
+f10874 | watch | busy 114f | reading along: a text is printing | f10874 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f10874 | idle | idle 40f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f10874 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f10874 | the personality chose GIRL | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10874 menu menu=main_menu ui=gender[BOY] party=? cost=0.19ms
+f10927 | the personality chose GIRL | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10927 menu menu=main_menu party=? cost=0.30ms
+f10949 | watch | busy 4f | watching: the game is busy (main_menu) | f10949 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f10949 | idle | idle 17f | looking at the gender: ['BOY', 'GIRL'], cursor on 1 (GIRL); wanted 1 (GIRL) | f10949 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f10949 | the personality chose GIRL | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10949 menu menu=main_menu ui=gender[GIRL] party=? cost=0.20ms
+f10984 | the personality chose GIRL | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f10984 menu menu=main_menu ui=gender[GIRL] party=? cost=0.34ms
+f11099 | watch | busy 95f | reading along: a text is printing | f11099 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f11099 | idle | idle 83f | reading 28 new characters: 'All right. What’s your name?' | f11099 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.20ms
+f11182 | read | text | All right. What’s your name? | f11182 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.29ms
+f11182 | the intro: from the title to the truck | press A 7f | task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B) | f11182 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.29ms
+f11205 | watch | busy 2f | watching: the game is busy (main_menu) | f11205 menu menu=naming ui=naming(busy)[lower at (0, 0) text='R.qq'] dex=0/0 money=0 badges=0 problems=1 cost=0.35ms
+f11246 | watch | busy 41f | waiting for the naming to open (the name 'Rosa') | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Select 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | idle | idle 30f | letting the page turn (counted, not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Right 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Down 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press Start 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11246 | the name 'Rosa' | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11246 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=0.79ms
+f11758 | watch | busy 1f | waiting for the keyboard to close | f11758 other dex=0/0 money=0 badges=0 problems=1 cost=0.34ms
+f11760 | watch | busy 2f | watching: the game is busy (unknown) | f11760 menu menu=main_menu party=? cost=0.23ms
+f11769 | watch | busy 9f | watching: the game is busy (main_menu) | f11769 menu menu=main_menu party=? cost=0.19ms
+f11822 | read | text | So it’s R.qq? | f11822 menu menu=main_menu ui=yes_no[YES] party=? cost=0.19ms
+f11822 | watch | busy 53f | reading along: a text is printing | f11822 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f11822 | idle | idle 29f | looking at the yes_no: ['YES', 'NO'], cursor on 0 (YES); wanted 1 (NO) | f11822 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f11822 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press Down 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11822 menu menu=main_menu ui=yes_no[YES] party=? cost=0.23ms
+f11864 | 'So it’s R.qq?' (it does NOT name 'Rosa') | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f11864 menu menu=main_menu ui=yes_no[NO] party=? cost=0.34ms
+f11999 | watch | busy 122f | reading along: a text is printing | f11999 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f11999 | idle | idle 20f | looking at the gender: ['BOY', 'GIRL'], cursor on 0 (BOY); wanted 1 (GIRL) | f11999 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f11999 | tell | say | the skill did not finish within 12000 frames: stopped | f11999 menu menu=main_menu ui=gender[BOY] party=? cost=0.20ms
+f12000 | end | intro | stopped: not finished within 12000 frames | f12000 menu menu=main_menu party=? cost=0.20ms
+
+---- evidence lines from stdout ([AI-*]) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step2-hands exists (ai_player-owned=True)
+[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
+[AI-RUN] http_server=off (forced: ai-step2-hands/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=12000 wall_seconds=900 soft_deadline_margin=30s switches=AI_PLAYER_FAULT_BLIND_COUNT=1 dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261007-225052-XBN
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step2-hands -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=12000 brain=intro watch_every=60 switches=none wall_deadline=1791439523.1 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261007-225052-XBN http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x248d7ddc440
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-HANDS] brain=intro seed=3 (given) personality=Catcher (seed) faults=ungated_a:False,blind_count:True frames=12000
+[AI-HANDS] intro: personality Catcher (seed; seed 3): gender GIRL (drawn with P(GIRL)=0.6), name 'Rosa' (from GIRL's list)
+[AI-HEARTBEAT] frames=1000 ai_steps=999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=10 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=2000 ai_steps=1999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=18 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=3000 ai_steps=2999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=23 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=4000 ai_steps=3999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=28 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=5000 ai_steps=4999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=36 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=6000 ai_steps=5999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=78 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=7000 ai_steps=6999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=131 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=8000 ai_steps=7999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=188 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=9000 ai_steps=8999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=240 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=10000 ai_steps=9999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=300 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=11000 ai_steps=10999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=366 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=12000 ai_steps=11999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=424 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HANDS] the skill did not finish within 12000 frames: stopped
+[AI-HANDS] outcome='stopped: not finished within 12000 frames' presses=212 frames=11999 looks=5558 records=365
+[AI-HANDS] presses by gate: {'A:NONE': 47, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 6, 'A:text printer 0 CLEAR': 11, 'A:text printer 0 SCROLL_START': 2, 'Down:NONE': 52, 'Right:NONE': 78, 'Select:NONE': 6, 'Start:NONE': 6, 'Start:intro movie / title animation': 3, 'Start:title screen': 1}
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=424 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=12000 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x248d7ddc440 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261007-225052-XBN\purity.json
+[AI-EXIT] reason=intro: stopped: not finished within 12000 frames code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=13.5s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=intro: stopped: not finished within 12000 frames exit_code=0 pid=31336 package_is_the_gated_one=True

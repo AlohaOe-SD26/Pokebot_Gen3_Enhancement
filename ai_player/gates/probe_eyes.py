@@ -397,7 +397,9 @@ def truth(context) -> dict:
         dx, dy = ox - x, oy - y
         drawn = drawn_tile(read_symbol("gSprites", event[4] * SPRITE_SIZE, SPRITE_SIZE))
         objects.append({
-            "slot": slot, "local_id": event[8], "graphics_id": event[5], "x": ox, "y": oy, "dx": dx, "dy": dy,
+            # trainerType @7 (struct ObjectEvent): the map template's trainer type, which the eyes no longer
+            # report (step 1.1: every person is an "npc" until it engages); kept here as the non-vacuity of that check
+            "slot": slot, "local_id": event[8], "graphics_id": event[5], "trainer_type": event[7], "x": ox, "y": oy, "dx": dx, "dy": dy,
             "previous_dx_dy": [px - x, py - y], "invisible": bool(flags & (1 << 13)),
             "on_screen": -WINDOW_X <= dx <= WINDOW_X and -WINDOW_UP <= dy <= WINDOW_DOWN,
             "drawn": None if drawn is None or player_drawn is None else {
@@ -503,6 +505,17 @@ def truth(context) -> dict:
     except Exception as error:  # noqa: BLE001
         out["problems"].append(f"party: {type(error).__name__}: {error}")
     out["party"] = party
+
+    # the PC boxes (step 1.1): the FRAMEWORK's reader (`get_pokemon_storage`, its own `Pokemon` decode and its
+    # own emptiness rule), against the eyes' read of the unencrypted headers: box, slot, PID, the VISIBLE OT id
+    try:
+        from modules.pokemon_storage import get_pokemon_storage
+
+        out["storage"] = [[box.number, slot.slot_index, slot.pokemon.personality_value, slot.pokemon.original_trainer.id,
+                           bool(slot.pokemon.is_egg), slot.pokemon.species.name]
+                          for box in get_pokemon_storage().boxes for slot in box.slots]
+    except Exception as error:  # noqa: BLE001
+        out["problems"].append(f"storage: {type(error).__name__}: {error}")
 
     out["progress"] = own_progress(context, save_block_1, save_block_2)
 

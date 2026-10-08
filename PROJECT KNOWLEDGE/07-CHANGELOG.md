@@ -37829,3 +37829,28 @@ bought balls only at fixed story points.
   - the Observation carries things a person cannot see (the foe's exact HP and moves, "trainer" labels, the secret ID);
   - a stale position for a few frames per warp; party `None` vs empty; catch `dest` from the party count;
   - the untested script `waitbuttonpress` branch.
+
+## 2026-10-08 — AI player step 1.1 (the eyes review fixes) and step 2 (HANDS: a pad with human pacing; the dialogue and menu driver; the intro, nurse, mart and clock skills), proven
+
+- **Step 1.1:**
+  - A catch is logged only for a NEW PID owned by the player's visible ID (Wally's tutorial no longer counts; the eyes read the 14 PC boxes).
+  - The foe is refreshed on every in-battle look, and a battle ends only on a non-zero `gBattleOutcome` (arm BS: the previous battle's Abra stayed in `gBattleMons` for 9 frames).
+  - Perception like a person: the foe's HP as the 48-pixel bar; only foe moves SEEN this battle; every person is an "npc"; no secret ID.
+  - The warp-settling position; party None vs empty; catch destination by PID.
+  - `test_eyes.py` 55 OK; `revert_step11.py` 13 reverts caught; `live_step1.py` 20/20 (new arms WARP, WARPY, SW, BS, BLT, BLW).
+- **Step 2 (`ai_player/hands/`, `ai_player/skills/`, an extended `eyes/screens.py`):**
+  - The pad has seeded, bounded human pacing: holds of 3-7 frames, gaps of 8-18, reading delays of 18-150 frames by text length. The idle reason is always named.
+  - Text advances ONLY when the game waits. Each A press is checked against the game's own behaviour by `probe_presses.py`: text not printing, still for 300 frames, the A moves it, B does the same.
+  - The cursor-reading menu driver: yes/no, lists, the naming keyboard, the clock.
+  - Skills: the INTRO (title to truck, choosing gender and name), the NURSE heal, the MART purchase, the CLOCK.
+  - `live_step2.py`: every arm is verified by an independent read (save-block name and gender, party HP, bag count and money). Fault arms: an ungated A puts 118 of 243 presses on still-printing text; a fake wait is caught. RATE: 20 seeds per skill.
+  - `test_hands.py` 37 OK; purity CLEAN with only AI presses.
+  - The coordinator re-ran `live_step2.py --seed 9` on the shipped code (the review found the workflow's seed-9 run had used stale code); the result is in the commit.
+- **Open (step 2.1), from the review, none blocking:**
+  - a STALL detector: an unknown prompt reads as "watching a scene" for up to 3 minutes;
+  - a working-tree digest in the evidence provenance;
+  - assert the pad's frames == `real_frames`;
+  - probe Start and B, and count fades as not taking input;
+  - the intro's yes/no on an unreadable page (exact match; no re-typing loop);
+  - report sub-skill failures immediately;
+  - a revert proof for the host's torn-party -> None.

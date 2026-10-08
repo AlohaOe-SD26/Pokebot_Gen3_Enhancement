@@ -20,10 +20,15 @@ __all__ = [
     "BRAINS",
     "DEFAULT_BRAIN",
     "DEFAULT_FRAMES",
+    "DEFAULT_MART_COUNT",
+    "DEFAULT_MART_ITEM",
     "DEFAULT_WATCH_EVERY",
+    "HANDS_BRAINS",
     "VERDICT_FILE_NAME",
     "ENV_BRAIN",
+    "ENV_CLOCK",
     "ENV_CONTROL_TAP",
+    "ENV_FAULT_BLIND_COUNT",
     "ENV_FAULT_HANG",
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
@@ -31,11 +36,17 @@ __all__ = [
     "ENV_FAULT_NO_REBIND",
     "ENV_FAULT_RAISE",
     "ENV_FAULT_SKIP_RESTORE",
+    "ENV_FAULT_UNGATED_A",
     "ENV_FRAMES",
+    "ENV_MART_COUNT",
+    "ENV_MART_ITEM",
     "ENV_PACKAGE_ROOT",
+    "ENV_PERSONALITY",
     "ENV_RUN_DIR",
+    "ENV_SEED",
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
+    "HandsOptions",
     "RunOptions",
 ]
 
@@ -78,19 +89,48 @@ ENV_CONTROL_TAP = "AI_PLAYER_CONTROL_TAP"
 #: i.e. that the "outside object is absent" check is not true by construction (live arm E2X).
 ENV_FAULT_NO_CROP = "AI_PLAYER_FAULT_NO_CROP"
 
-ALL_SWITCHES = (
-    ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
-    ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP,
-)
-
 #: Which brain plays (build step 1). `placeholder` is step 0's (presses nothing, waits, gives up);
 #: `watcher` OBSERVES every `AI_PLAYER_WATCH_EVERY` frames through the eyes, writes each Observation
 #: to the action log and the scorer-compatible lines to the run's log, and presses nothing.
+#: Build step 2 adds the HANDS brains (`HANDS_BRAINS`), each of which plays ONE skill with the AI's own
+#: hands and gives up with the skill's outcome: `intro` (fresh boot to the truck), `nurse` (heal at the
+#: nurse in front of the player), `mart` (buy at the clerk in front of the player), `clock` (set the wall
+#: clock in front of the player).
 ENV_BRAIN = "AI_PLAYER_BRAIN"
 ENV_WATCH_EVERY = "AI_PLAYER_WATCH_EVERY"
-BRAINS = ("placeholder", "watcher")
+HANDS_BRAINS = ("intro", "nurse", "mart", "clock")
+BRAINS = ("placeholder", "watcher") + HANDS_BRAINS
 DEFAULT_BRAIN = "placeholder"
 DEFAULT_WATCH_EVERY = 60
+
+#: BUILD STEP 2, the hands brains' options. WHY THE BRAIN READS THEM ITSELF: the host (`ai_player/host/`) is
+#: FINISHED (the orchestrator's rule for step 2: no change to the purity layer), and the session hands the
+#: brain only step 0's `BrainSettings`; so `ai_player/mode.py` `Brain` reads these through `HandsOptions`
+#: from the SAME environment the session read its options from.
+#: The run's seed (an integer): the choices stream (gender, name, personality) and the pacing stream are
+#: both derived from it. Unset: a seed from the clock, logged.
+ENV_SEED = "AI_PLAYER_SEED"
+#: The base personality (Catcher, Story, Trainer); unset: drawn from the seed.
+ENV_PERSONALITY = "AI_PLAYER_PERSONALITY"
+#: The mart brain: what to buy and how many (default "POKé BALL" x 5).
+ENV_MART_ITEM = "AI_PLAYER_MART_ITEM"
+ENV_MART_COUNT = "AI_PLAYER_MART_COUNT"
+#: The clock brain: the time to set, "HH:MM" (default: the computer's local time, as a person would).
+ENV_CLOCK = "AI_PLAYER_CLOCK"
+#: FAULT (build step 2): the dialogue driver presses A on its cadence without the eyes' wait gate and never
+#: stops for a menu (the naive driver; `hands/pad.py` Faults). Proves the gate is what keeps choices by intent.
+ENV_FAULT_UNGATED_A = "AI_PLAYER_FAULT_UNGATED_A"
+#: FAULT (build step 2): the menu driver moves a cursor by a press count from the top without reading it.
+#: Proves reading the cursor is what types the right name (the keyboard's cursor starts on the last key).
+ENV_FAULT_BLIND_COUNT = "AI_PLAYER_FAULT_BLIND_COUNT"
+DEFAULT_MART_ITEM = "POKé BALL"
+DEFAULT_MART_COUNT = 5
+
+#: Every fault and control switch (the launcher prints the ones that are set).
+ALL_SWITCHES = (
+    ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
+    ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP, ENV_FAULT_UNGATED_A, ENV_FAULT_BLIND_COUNT,
+)
 
 DEFAULT_FRAMES = 3000
 
@@ -171,4 +211,48 @@ class RunOptions:
         return (
             f"frames={self.frames} brain={self.brain} watch_every={self.watch_every} "
             f"switches={','.join(switches) or 'none'} wall_deadline={deadline} run_dir={self.run_dir}"
+        )
+
+
+@dataclass(frozen=True)
+class HandsOptions:
+    """BUILD STEP 2: what a hands brain needs that step 0's `BrainSettings` does not carry (see ENV_SEED for
+    why the brain reads it itself). `seed` None = not given (the brain draws one from the clock and logs it)."""
+
+    brain: str
+    run_dir: Path | None
+    seed: int | None
+    personality: str | None
+    mart_item: str
+    mart_count: int
+    clock: tuple[int, int] | None
+    fault_ungated_a: bool
+    fault_blind_count: bool
+
+    @classmethod
+    def from_env(cls) -> "HandsOptions":
+        brain = os.environ.get(ENV_BRAIN, "").strip() or DEFAULT_BRAIN
+        raw_dir = os.environ.get(ENV_RUN_DIR, "").strip()
+        raw_seed = os.environ.get(ENV_SEED, "").strip()
+        raw_count = os.environ.get(ENV_MART_COUNT, "").strip()
+        count = int(raw_count) if raw_count else DEFAULT_MART_COUNT
+        if not 1 <= count <= 99:
+            raise ValueError(f"{ENV_MART_COUNT} must be 1..99, got {count}")
+        raw_clock = os.environ.get(ENV_CLOCK, "").strip()
+        clock = None
+        if raw_clock:
+            hours, minutes = (int(part) for part in raw_clock.split(":", 1))
+            if not (0 <= hours < 24 and 0 <= minutes < 60):
+                raise ValueError(f"{ENV_CLOCK} must be HH:MM, got {raw_clock!r}")
+            clock = (hours, minutes)
+        return cls(
+            brain=brain,
+            run_dir=Path(raw_dir) if raw_dir else None,
+            seed=int(raw_seed) if raw_seed else None,
+            personality=os.environ.get(ENV_PERSONALITY, "").strip() or None,
+            mart_item=os.environ.get(ENV_MART_ITEM, "").strip() or DEFAULT_MART_ITEM,
+            mart_count=count,
+            clock=clock,
+            fault_ungated_a=_flag(ENV_FAULT_UNGATED_A),
+            fault_blind_count=_flag(ENV_FAULT_BLIND_COUNT),
         )

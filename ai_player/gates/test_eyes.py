@@ -28,37 +28,61 @@ What each class proves, and its FAULT half (a check that cannot fail proves noth
                        missing its (group,number) is not counted (so the format is load-bearing).
   ActionLogTests       one JSON line per record with frame, digest, decision, action, reason and the
                        compact observation (165 tiles); a record with a newline is refused.
+
+STEP 1.1 (the step-1 adversarial review's findings; each test FAILS when its fix is reverted, which
+`gates/revert_step11.py` proves on copies of the package, one revert per copy):
+  CatchTests           (1) Wally's tutorial ends `Caught` with no new Pokemon of the player's: no [CATCH];
+                       a real catch is logged with the NEW PID and where THAT PID is (party or box), also
+                       when the battle's first look could not read the party (5: dest by PID, not count).
+  BattleLineTests      (2) the foe is refreshed on every in-battle look (the first look can hold the
+                       previous battle's foe); a battle ends only on a result (`gBattleOutcome` != 0), so
+                       a look out of the battle before its result writes no `res=InProgress`.
+  PerceptionTests      (3) the foe's HP is the 48-pixel bar (the decomp's GetScaledHPFraction), its moves
+                       only those used (PP below max), no PP; every person is an "npc"; the OT id and the
+                       player's id are the VISIBLE 16 bits (the host's own `_mon` and `_battle_mon`).
+  SettlingTests        (4) the position is None while the object's tile and the save block's differ (a
+                       warp, measured: 6 frames); the [MAP] line waits for the settled position.
+  PartyNoneTests       (5) None (not read) is not () (no Pokemon): the starter is not "observed" after an
+                       unread party; the closing heartbeat comes from the last complete look.
+  ScriptWaitTests      (6) the script's `waitbuttonpress` waits only while the context is not shut down
+                       (a finished script leaves WaitForAorBPress behind: measured on dewford.ss1).
 """
 
 from __future__ import annotations
 
 import ast
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 PACKAGE = REPO / "ai_player"
-BUILD_ROOT = REPO / "sandbox-pokebot"
-for entry in (str(REPO), str(BUILD_ROOT), str(REPO / "ai-agent")):
+#: Where the framework and the learner's scorer live. A REVERT copy of the package (`gates/revert_step11.py`)
+#: runs this file from a temporary folder and points here at the real repo.
+SUPPORT = Path(os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT") or REPO)
+BUILD_ROOT = SUPPORT / "sandbox-pokebot"
+for entry in (str(REPO), str(BUILD_ROOT), str(SUPPORT / "ai-agent")):
     if entry not in sys.path:
         sys.path.insert(0, entry)
 
 from ai_player.eyes import party as party_module  # noqa: E402
 from ai_player.eyes.observation import (  # noqa: E402
-    BagSummary, BattleMon, BattleView, MonSummary, Observation, PlayerState, Progress, ScreenState, Tile, View,
+    BagSummary, BattleMon, BattleView, MonSummary, Observation, PlayerState, Progress, ScreenState, StoredMon, Tile, View,
 )
 from ai_player.eyes.party import PARTY_MON_SIZE, decode_party_mon  # noqa: E402
 from ai_player.eyes import view as view_module  # noqa: E402
 from ai_player.eyes.view import (  # noqa: E402
-    BADGE_FLAGS, BEHAVIOR, BEHAVIOR_NAMES, DOOR_BEHAVIORS, LEDGE_DIRECTIONS, RENDER_STATE_NAMES, STORY_FLAGS,
-    TALL_GRASS_BEHAVIORS, TEXT_FLAG_AUTO_SCROLL, TEXT_PRINTER_COUNT, TEXT_PRINTER_WAIT_STATES, VIEW_DOWN, VIEW_HALF_WIDTH,
-    VIEW_UP, classify_screen, in_view, text_printer_wait, view_offsets,
+    BADGE_FLAGS, BATTLE_TYPE_WALLY_TUTORIAL, BEHAVIOR, BEHAVIOR_NAMES, DOOR_BEHAVIORS, GFX_KINDS, HP_BAR_PIXELS,
+    LEDGE_DIRECTIONS, RENDER_STATE_NAMES, STORY_FLAGS, TALL_GRASS_BEHAVIORS, TEXT_FLAG_AUTO_SCROLL, TEXT_PRINTER_COUNT,
+    TEXT_PRINTER_WAIT_STATES, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_UP, classify_screen, foe_move_seen, hp_bar_pixels, in_view,
+    object_kind, script_waits_for_button, settled_position, text_printer_wait, view_offsets, visible_id,
 )
-from ai_player.memory_log import ActionLog, ScorerLines  # noqa: E402
+from ai_player.memory_log import ActionLog, ScorerLines, owned_pids  # noqa: E402
 from ai_player.runlog import RecordFile  # noqa: E402
 
 #: The files that must stay framework-free (and host-free).
@@ -98,30 +122,49 @@ def make_view(px: int, py: int) -> View:
     return View(left=7, right=7, up=5, down=5, rows=rows, objects=(), cropped=True)
 
 
-def mon(species: str, dex: int, level: int, slot: int = 0, ot_id: int = 0xABCD1234, pid: int = 1) -> MonSummary:
+#: The player's VISIBLE trainer id in the synthetic runs (the eyes report the visible 16 bits only).
+ME = 0x1234
+
+
+def mon(species: str, dex: int, level: int, slot: int = 0, ot_id: int = ME, pid: int = 1) -> MonSummary:
     return MonSummary(slot=slot, species=species, dex=dex, level=level, hp=20, max_hp=20, status="ok", types=("Water",),
                       moves=(), pid=pid, ot_id=ot_id, is_egg=False)
 
 
+def boxed(pid: int, box: int = 0, slot: int = 0, ot_id: int = ME) -> StoredMon:
+    return StoredMon(box=box, slot=slot, pid=pid, ot_id=ot_id, is_egg=False)
+
+
 def observe(frame: int, *, where=("ROUTE 101", 0, 16), xy=(5, 5), party=(), owned=(), money=3000, in_battle=False,
-            battle: BattleView | None = None, outcome: int = 0, badges=(), trainer_id=0xABCD1234) -> Observation:
+            battle: BattleView | None = None, outcome: int = 0, badges=(), trainer_id=ME, storage=(),
+            settling: bool = False, game_state: str | None = None) -> Observation:
+    """A synthetic look. `party=None` / `storage=None` = not read; `game_state` overrides the screen (e.g.
+    NAMING_SCREEN, the nickname screen a catch opens outside the battle screen)."""
     name, group, number = where
-    player = PlayerState(map_group=group, map_number=number, map_name=name, map_const=None, x=xy[0], y=xy[1],
-                         facing="down", movement="walking", elevation=3, avatar_flags=1, trainer_id=trainer_id)
-    screen = ScreenState(game_state="BATTLE" if in_battle else "OVERWORLD", screen="battle" if in_battle else "overworld",
-                         menu=None, text_box_open=False, waits_for_button=False, in_battle=in_battle)
+    player = PlayerState(map_group=group, map_number=number, map_name=name, map_const=None,
+                         x=None if settling else xy[0], y=None if settling else xy[1], facing="down", movement="walking",
+                         elevation=3, avatar_flags=1, trainer_id=trainer_id, settling=settling)
+    state = game_state or ("BATTLE" if in_battle else "OVERWORLD")
+    kind = {"BATTLE": "battle", "OVERWORLD": "overworld"}.get(state, "menu")
+    screen = ScreenState(game_state=state, screen=kind, menu=None, text_box_open=False, waits_for_button=False,
+                         in_battle=in_battle)
     progress = Progress(money=money, badges=tuple(badges), dex_owned=len(owned), dex_seen=len(owned),
                         owned_dex=tuple(owned), flags=())
-    return Observation(frame=frame, screen=screen, player=player, view=None if in_battle else make_view(*xy),
-                       party=tuple(party), bag=BagSummary(balls=(("Poke Ball", 5),), healing=(), ball_total=5),
-                       progress=progress, battle=battle, last_battle_outcome=outcome, problems=(), cost_ms=1.0)
+    return Observation(frame=frame, screen=screen, player=player,
+                       view=None if (in_battle or settling or state != "OVERWORLD") else make_view(*xy),
+                       party=None if party is None else tuple(party),
+                       bag=BagSummary(balls=(("Poke Ball", 5),), healing=(), ball_total=5),
+                       progress=progress, battle=battle, last_battle_outcome=outcome, problems=(), cost_ms=1.0,
+                       storage=None if storage is None else tuple(storage))
 
 
-def battle_view(kind: str, foe: str, dex: int, level: int, trainer: int | None = None) -> BattleView:
-    foe_mon = BattleMon(species=foe, dex=dex, level=level, hp=10, max_hp=10, status="ok", types=("Bug",), moves=())
-    own = BattleMon(species="Mudkip", dex=258, level=8, hp=20, max_hp=20, status="ok", types=("Water",), moves=())
-    return BattleView(kind=kind, double=False, type_flags=8 if kind == "trainer" else 4, opponent_trainer_id=trainer,
-                      own=(own,), foe=(foe_mon,))
+def battle_view(kind: str, foe: str, dex: int, level: int, trainer: int | None = None, flags: int | None = None) -> BattleView:
+    foe_mon = BattleMon(species=foe, dex=dex, level=level, hp=None, max_hp=None, hp_bar=HP_BAR_PIXELS, status="ok",
+                        types=("Bug",), moves=())
+    own = BattleMon(species="Mudkip", dex=258, level=8, hp=20, max_hp=20, hp_bar=HP_BAR_PIXELS, status="ok",
+                    types=("Water",), moves=())
+    type_flags = flags if flags is not None else (8 if kind == "trainer" else 4)
+    return BattleView(kind=kind, double=False, type_flags=type_flags, opponent_trainer_id=trainer, own=(own,), foe=(foe_mon,))
 
 
 def scorer_lines(observations: list[Observation]) -> list[str]:
@@ -404,7 +447,7 @@ class ScorerTests(unittest.TestCase):
     def synthetic_run(self) -> list[Observation]:
         """A run from a save with a party: Route 101, a wild Wurmple caught, Oldale, Roxanne beaten."""
         mudkip = mon("Mudkip", 258, 8)
-        wurmple = mon("Wurmple", 265, 3, slot=1, ot_id=0xABCD1234, pid=2)
+        wurmple = mon("Wurmple", 265, 3, slot=1, ot_id=ME, pid=2)
         return [
             observe(100, party=[mudkip], owned=(258,)),
             observe(160, party=[mudkip], owned=(258,), in_battle=True, battle=battle_view("wild", "Wurmple", 265, 3)),
@@ -477,7 +520,7 @@ class ScorerTests(unittest.TestCase):
         self.assertEqual((record["starter"], record["maps_visited"]), ("Torchic", 1))  # maps before the starter: ignored, as for the bot
 
     def test_a_traded_starter_family_mon_is_not_the_starter(self) -> None:
-        lines = scorer_lines([observe(10, party=[mon("Marshtomp", 259, 20, ot_id=0x11112222)])])
+        lines = scorer_lines([observe(10, party=[mon("Marshtomp", 259, 20, ot_id=0x2222)])])
         self.assertIn("choosing Unknown!", lines[0])
 
     def test_fault_events_before_the_starter_line_are_ignored_by_the_scorer(self) -> None:
@@ -491,6 +534,309 @@ class ScorerTests(unittest.TestCase):
         good = parse(["f1 [AI-STARTER] Story: choosing Mudkip! (x)", "f2 [MAP] None -> ROUTE 101(0,16) pos=(1, 1)"])
         broken = parse(["f1 [AI-STARTER] Story: choosing Mudkip! (x)", "f2 [MAP] None -> ROUTE 101 pos=(1, 1)"])
         self.assertEqual((good["maps_visited"], broken["maps_visited"]), (1, 0))
+
+
+# ------------------------------------------------------------------------------------------- step 1.1
+def lines_of(observations: list[Observation]) -> list[str]:
+    """The scorer lines AFTER the starter line (each test's subject)."""
+    return [line for line in scorer_lines(observations) if "[AI-STARTER]" not in line]
+
+
+def framework_rom() -> None:
+    """The framework's ROM and data tables, for the tests that run the host's own conversions."""
+    from modules.context import context
+    from modules.game import set_rom
+    from modules.profiles import load_profile_by_name
+
+    if getattr(context, "rom", None) is None:
+        profile = load_profile_by_name("ai-step0-fixture")
+        context.profile = profile
+        set_rom(profile.rom)
+
+
+class CatchTests(unittest.TestCase):
+    """Finding 1 (Wally's tutorial is not a player catch) and finding 5's `dest` by PID."""
+
+    MUDKIP = mon("Mudkip", 258, 8, pid=0x550A9BE6)
+    DEFAULT = object()  # "the Mudkip party" (None means NOT READ, so it cannot be the default's marker)
+
+    def battle(self, frame: int, foe=("Wurmple", 265, 3), flags: int | None = None, party=DEFAULT, storage=()) -> Observation:
+        return observe(frame, party=[self.MUDKIP] if party is self.DEFAULT else party, owned=(258,), in_battle=True,
+                       battle=battle_view("wild", *foe, flags=flags), storage=storage)
+
+    def test_wally_tutorial_is_not_a_player_catch(self) -> None:
+        """`BATTLE_TYPE_WALLY_TUTORIAL`: `BattleScript_WallyBallThrow` sets B_OUTCOME_CAUGHT with no
+        `givecaughtmon` (`data/battle_scripts_2.s`), so the party and the boxes are unchanged."""
+        tutorial = BATTLE_TYPE_WALLY_TUTORIAL | 4
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)),
+               self.battle(160, foe=("Ralts", 280, 5), flags=tutorial), self.battle(220, foe=("Ralts", 280, 5), flags=tutorial),
+               observe(280, party=[self.MUDKIP], owned=(258,), outcome=7)]
+        lines = lines_of(run)
+        record = parse(scorer_lines(run))
+        print(f"\n  Wally's tutorial: {lines}")
+        self.assertFalse([line for line in lines if "[CATCH]" in line], lines)
+        self.assertEqual(record["catches"], 0)
+        self.assertTrue(any("res=Caught" in line and "tutorial=wally" in line and "player_catch=none" in line for line in lines), lines)
+
+    def test_a_catch_into_the_party_names_the_new_pid(self) -> None:
+        wurmple = mon("Wurmple", 265, 3, slot=1, pid=0x7D6D2751)
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)), self.battle(160), self.battle(220),
+               observe(280, party=[self.MUDKIP, wurmple], owned=(258, 265), outcome=7)]
+        catch = [line for line in lines_of(run) if "[CATCH]" in line]
+        self.assertEqual(len(catch), 1, catch)
+        self.assertIn("sp=Wurmple#265", catch[0])
+        self.assertIn("dest=party pid=7D6D2751", catch[0])
+        self.assertEqual(parse(scorer_lines(run))["catches"], 1)
+
+    def test_a_catch_sent_to_a_box_is_found_there_by_pid(self) -> None:
+        full = [mon(f"Mon{i}", 258, 8, slot=i, pid=0x100 + i) for i in range(6)]
+        run = [observe(100, party=full, owned=(258,), storage=[boxed(0x900)]),
+               self.battle(160, party=full, storage=[boxed(0x900)]),
+               observe(280, party=full, owned=(258, 265), outcome=7, storage=[boxed(0x900), boxed(0x7D6D2751, slot=1)])]
+        catch = [line for line in lines_of(run) if "[CATCH]" in line]
+        self.assertEqual(len(catch), 1, catch)
+        self.assertIn("dest=box pid=7D6D2751", catch[0])
+
+    def test_dest_is_by_pid_even_when_the_first_look_could_not_read_the_party(self) -> None:
+        """Finding 5: the battle's FIRST look had a torn party (None). The party COUNT (None -> 6) would say
+        "party"; the new PID is in a BOX. (Until step 1.1 an unread party was () and dest came from the count.)"""
+        full = [mon(f"Mon{i}", 258, 8, slot=i, pid=0x100 + i) for i in range(6)]
+        run = [observe(100, party=full, owned=(258,)),
+               self.battle(160, party=None),  # the battle's first look: party not read
+               self.battle(220, party=full),  # the next look reads it: the baseline of who is the player's
+               observe(280, party=full, owned=(258, 265), outcome=7, storage=[boxed(0x7D6D2751)])]
+        catch = [line for line in lines_of(run) if "[CATCH]" in line]
+        self.assertEqual(len(catch), 1, catch)
+        self.assertIn("dest=box pid=7D6D2751", catch[0])
+
+    def test_someone_elses_pokemon_is_not_the_players_catch(self) -> None:
+        """Ownership is the VISIBLE id: a new Pokemon whose OT is not the player's is no catch of the player's."""
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)), self.battle(160),
+               observe(280, party=[self.MUDKIP, mon("Ralts", 280, 5, slot=1, pid=0x77, ot_id=0x4321)], owned=(258,), outcome=7)]
+        self.assertFalse([line for line in lines_of(run) if "[CATCH]" in line])
+
+    def test_owned_pids_is_none_when_anything_is_unread(self) -> None:
+        self.assertIsNone(owned_pids(observe(1, party=None)))
+        self.assertIsNone(owned_pids(observe(1, party=[self.MUDKIP], storage=None)))
+        self.assertEqual(owned_pids(observe(1, party=[self.MUDKIP], storage=[boxed(9)])), {0x550A9BE6: "party", 9: "box"})
+
+
+class BattleLineTests(unittest.TestCase):
+    """Finding 2: the foe refreshed on every in-battle look; a battle ends only on a result."""
+
+    MUDKIP = mon("Mudkip", 258, 8, pid=0x550A9BE6)
+
+    def test_the_foe_is_refreshed_on_every_in_battle_look(self) -> None:
+        """The battle's first look holds the PREVIOUS battle's foe (`gBattleMons` is filled a few frames in,
+        `BattleIntroGetMonsData`); the lines must name the foe of the LAST look."""
+        wurmple = mon("Wurmple", 265, 3, slot=1, pid=0x7D6D2751)
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)),
+               observe(160, party=[self.MUDKIP], owned=(258,), in_battle=True, battle=battle_view("wild", "Zigzagoon", 263, 2)),
+               observe(220, party=[self.MUDKIP], owned=(258,), in_battle=True, battle=battle_view("wild", "Wurmple", 265, 3)),
+               observe(280, party=[self.MUDKIP, wurmple], owned=(258, 265), outcome=7)]
+        lines = lines_of(run)
+        self.assertTrue(lines and all("Zigzagoon" not in line for line in lines), lines)
+        self.assertTrue(any("[CATCH]" in line and "sp=Wurmple#265" in line for line in lines), lines)
+
+    def test_a_foe_not_out_yet_is_refreshed_when_it_is(self) -> None:
+        """The eyes report NO foe while `gBattleMons` still holds the previous battle's (`host/eyes.py`
+        _battle's identity guard): the record opens on that look and takes the foe of a later one."""
+        empty = BattleView(kind="wild", double=False, type_flags=4, opponent_trainer_id=None,
+                           own=battle_view("wild", "X", 1, 1).own, foe=())
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)),
+               observe(160, party=[self.MUDKIP], owned=(258,), in_battle=True, battle=empty),
+               observe(220, party=[self.MUDKIP], owned=(258,), in_battle=True, battle=battle_view("wild", "Poochyena", 261, 4)),
+               observe(280, party=[self.MUDKIP], owned=(258,), outcome=4)]
+        ends = [line for line in lines_of(run) if "[AI-BATTLE] end" in line]
+        self.assertEqual(len(ends), 1, ends)
+        self.assertIn("sp=Poochyena#261 res=RanAway", ends[0])
+
+    def test_present_pids_reads_the_occupied_slots(self) -> None:
+        """`eyes/party.py` present_pids: the PIDs of a raw party's occupied slots (hasSpecies), no decryption."""
+        from modules.pokemon import POKEMON_DATA_SUBSTRUCTS_ORDER
+
+        raw = (encode_mon(0xB11EC02B, 0x5870, 280, (33, 0, 0, 0), (35, 0, 0, 0), 4, POKEMON_DATA_SUBSTRUCTS_ORDER)
+               + bytes(PARTY_MON_SIZE * 5))
+        self.assertEqual(party_module.present_pids(raw), frozenset({0xB11EC02B}))
+        self.assertEqual(party_module.present_pids(bytes(PARTY_MON_SIZE * 6)), frozenset())
+
+    def test_no_result_no_end_and_never_in_progress(self) -> None:
+        """A look out of the battle screen (in_battle False) while `gBattleOutcome` is still 0 must end
+        nothing, and no line may say InProgress (the step-1 rule wrote `res=InProgress`, a LOSS for the
+        scorer). SYNTHETIC: the live catch (`live_step1.py` arm BLW) measured the nickname screen as
+        in_battle True and the result set before in_battle first reads False, so this order is the rule's
+        guarantee, not a captured state."""
+        wurmple = mon("Wurmple", 265, 3, slot=1, pid=0x7D6D2751)
+        run = [observe(100, party=[self.MUDKIP], owned=(258,)),
+               observe(160, party=[self.MUDKIP], owned=(258,), in_battle=True, battle=battle_view("wild", "Wurmple", 265, 3)),
+               observe(220, party=[self.MUDKIP], owned=(258,), outcome=0, game_state="UNKNOWN"),
+               observe(280, party=[self.MUDKIP, wurmple], owned=(258, 265), outcome=7)]
+        lines = lines_of(run)
+        print(f"\n  a look out of the battle before its result: {lines}")
+        self.assertFalse([line for line in lines if "InProgress" in line], lines)
+        ends = [line for line in lines if "[AI-BATTLE] end" in line]
+        self.assertEqual(len(ends), 1, lines)
+        self.assertIn("res=Caught", ends[0])
+        self.assertEqual(parse(scorer_lines(run))["catches"], 1)
+
+    def test_the_end_waits_for_a_readable_look(self) -> None:
+        """Between two screens the eyes withhold the save-block parts (`host/eyes.py`
+        _save_blocks_may_be_moving): a result seen on such a look ends nothing; the next readable look ends
+        the battle with ITS money, and no [DEX] line comes from the withheld Pokedex."""
+        between = observe(220, party=None, owned=(258,), money=3144, outcome=1, storage=None)
+        between = Observation(**{**between.__dict__, "progress": None, "player": None})
+        run = [observe(100, party=[self.MUDKIP], owned=(258,), money=3000),
+               observe(160, party=[self.MUDKIP], owned=(258,), money=3000, in_battle=True,
+                       battle=battle_view("trainer", "Machop", 66, 9, trainer=322)),
+               between,
+               observe(280, party=[self.MUDKIP], owned=(258,), money=3144, outcome=1)]
+        lines = lines_of(run)
+        trainer = [line for line in lines if "[TRAINER] end" in line]
+        self.assertEqual(len(trainer), 1, lines)
+        self.assertTrue(trainer[0].startswith("f280 ") and "money=3000->3144" in trainer[0], trainer)
+        self.assertFalse([line for line in lines if "[DEX]" in line], lines)
+
+    def test_a_trainer_battle_ends_won_with_its_money(self) -> None:
+        run = [observe(100, party=[self.MUDKIP], owned=(258,), money=3000),
+               observe(160, party=[self.MUDKIP], owned=(258,), money=3000, in_battle=True,
+                       battle=battle_view("trainer", "Machop", 66, 9, trainer=322)),
+               observe(220, party=[self.MUDKIP], owned=(258,), money=3144, outcome=1)]
+        lines = lines_of(run)
+        trainer = [line for line in lines if "[TRAINER] end" in line]
+        self.assertEqual(len(trainer), 1, lines)
+        self.assertIn("opp=322 last_seen=Machop#66", trainer[0])
+        self.assertIn("res=Won money=3000->3144 delta=144", trainer[0])
+
+
+class PerceptionTests(unittest.TestCase):
+    """Finding 3: what a person sees of a foe, of people on the map, and of trainer ids."""
+
+    def test_the_hp_bar_is_the_decomps_48_pixels(self) -> None:
+        """`src/battle_interface.c` GetScaledHPFraction(hp, maxhp, B_HEALTHBAR_PIXELS = 48), C integer maths,
+        at least 1 pixel while hp > 0. Checked against a transcription with C truncation for every hp of
+        three max values, and on the battle fixtures' values (Wurmple 14/14, Machop 31/31 and 0/31)."""
+        self.assertEqual(HP_BAR_PIXELS, 48)
+
+        def decomp(hp: int, maxhp: int) -> int:
+            result = int(hp * 48 / maxhp)  # u8 result = hp * scale / maxhp (both non-negative: truncation)
+            return 1 if result == 0 and hp > 0 else result
+
+        for maxhp in (14, 31, 714):
+            self.assertEqual([hp_bar_pixels(hp, maxhp) for hp in range(maxhp + 1)], [decomp(hp, maxhp) for hp in range(maxhp + 1)])
+        self.assertEqual((hp_bar_pixels(14, 14), hp_bar_pixels(31, 31), hp_bar_pixels(0, 31), hp_bar_pixels(1, 714)), (48, 48, 0, 1))
+        self.assertEqual(hp_bar_pixels(15, 31), 23)
+
+    def test_a_foe_move_is_seen_once_used(self) -> None:
+        self.assertTrue(foe_move_seen(29, 30))  # E10's Machop: Leer 29/30 after "Foe MACHOP used LEER!"
+        self.assertFalse(foe_move_seen(20, 20))  # Low Kick, never used
+
+    @staticmethod
+    def battler(hp: int, max_hp: int, moves: list[tuple]) -> SimpleNamespace:
+        """A stand-in for the framework's BattlePokemon (`modules/battle_state.py`), with the attributes the
+        host's `_battle_mon` reads."""
+        return SimpleNamespace(
+            species=SimpleNamespace(name="Machop", national_dex_number=66), level=9, current_hp=hp, total_hp=max_hp,
+            status_permanent=SimpleNamespace(name="Healthy"), types=[SimpleNamespace(name="Fighting")],
+            moves=[SimpleNamespace(move=SimpleNamespace(name=n, type=SimpleNamespace(name=t), base_power=p), pp=pp, total_pp=top)
+                   for n, t, p, pp, top in moves] + [None])
+
+    def test_a_foe_is_seen_as_a_person_sees_it(self) -> None:
+        """The HOST's conversion (`host/eyes.py` FrameworkEyes._battle_mon), E10's Machop: 0/31 HP, Low Kick
+        20/20, Leer 29/30, Focus Energy 29/30. A foe: the bar, no numbers, only the used moves, no PP."""
+        from ai_player.host.eyes import FrameworkEyes
+
+        moves = [("Low Kick", "Fighting", 0, 20, 20), ("Leer", "Normal", 0, 29, 30), ("Focus Energy", "Normal", 0, 29, 30)]
+        foe = FrameworkEyes._battle_mon(self.battler(15, 31, moves), own=False)
+        self.assertEqual((foe.hp, foe.max_hp, foe.hp_bar), (None, None, 23))
+        self.assertEqual([(m.name, m.pp, m.max_pp) for m in foe.moves], [("Leer", None, None), ("Focus Energy", None, None)])
+        own = FrameworkEyes._battle_mon(self.battler(15, 31, moves), own=True)
+        self.assertEqual((own.hp, own.max_hp, own.hp_bar), (15, 31, 23))
+        self.assertEqual([(m.name, m.pp, m.max_pp) for m in own.moves], [(n, pp, top) for n, _, _, pp, top in moves])
+
+    def test_every_person_is_an_npc(self) -> None:
+        """No "trainer" label before a trainer engages: the kind comes from the LOOK only (one argument)."""
+        self.assertEqual(object_kind(7), "npc")  # a person's graphics
+        self.assertEqual(object_kind(59), "item_ball")
+        self.assertNotIn("trainer", set(GFX_KINDS.values()))
+        self.assertNotIn("trainer", view_module.GLYPHS)
+
+    def test_ids_are_the_visible_16_bits(self) -> None:
+        """The HOST's party decode (`host/eyes.py` FrameworkEyes._mon) reports the VISIBLE OT id; the secret
+        half (0xCAFE of 0xCAFEBABE) is in no field of the Observation's party."""
+        from ai_player.host.eyes import FrameworkEyes
+        from modules.pokemon import POKEMON_DATA_SUBSTRUCTS_ORDER
+
+        framework_rom()
+        self.assertEqual(visible_id(0xCAFEBABE), 0xBABE)
+        data = encode_mon(0x1234500, 0xCAFEBABE, 280, (33, 45, 0, 0), (35, 40, 0, 0), 9, POKEMON_DATA_SUBSTRUCTS_ORDER)
+        summary = FrameworkEyes._mon(0, data)
+        self.assertEqual((summary.ot_id, summary.pid, summary.level), (0xBABE, 0x1234500, 9))
+        self.assertNotIn(0xCAFE, (summary.ot_id >> 16, summary.ot_id))
+
+
+class SettlingTests(unittest.TestCase):
+    """Finding 4: a warp's settling frames report no position, and no map line is written from them."""
+
+    def test_the_rule(self) -> None:
+        """BOTH coordinates must agree. The measured warp (Dewford's door) differs in x only, so the y-only and
+        both-differ cases are here on purpose: a rule that compares x alone (or y alone) passed the measured
+        case and still mixed maps (the step-2 verifier's mutant V4; `gates/revert_step11.py` R4x, R4y)."""
+        self.assertEqual(settled_position((3, 8), (3, 8)), (3, 8))
+        self.assertIsNone(settled_position((8, 8), (3, 8)))  # measured: Dewford's door tile vs the arrival tile (x differs)
+        self.assertIsNone(settled_position((3, 5), (3, 8)))  # y differs only (a door straight above its arrival tile)
+        self.assertIsNone(settled_position((8, 5), (3, 8)))  # both differ
+
+    def test_the_map_line_waits_for_the_settled_position(self) -> None:
+        party = [mon("Mudkip", 258, 8)]
+        run = [observe(100, where=("DEWFORD TOWN", 0, 11), xy=(8, 8), party=party),
+               observe(160, where=("DEWFORD TOWN", 3, 5), party=party, settling=True),  # mid-warp: unknown
+               observe(220, where=("DEWFORD TOWN", 3, 5), xy=(3, 8), party=party)]
+        maps = [line for line in lines_of(run) if "[MAP]" in line]
+        self.assertEqual(len(maps), 2, maps)
+        self.assertTrue(maps[1].startswith("f220 ") and maps[1].endswith("(3,5) pos=(3, 8)"), maps)
+
+
+class PartyNoneTests(unittest.TestCase):
+    """Finding 5: an unread party (None) is not an empty one (())."""
+
+    def test_an_unread_party_is_not_an_empty_one_for_the_starter(self) -> None:
+        """A look that could not read the party, then a party: the starter is INFERRED (the run started with
+        a party), never "observed: the party went from 0 to 1". (Before step 1.1 an unread party was ().)"""
+        lines = scorer_lines([observe(10, party=None), observe(70, party=[mon("Torchic", 255, 5)])])
+        self.assertIn("inferred at run start", lines[0])
+        empty = scorer_lines([observe(10, party=()), observe(70, party=[mon("Torchic", 255, 5)])])
+        self.assertIn("observed: the party went from 0 to 1", empty[0])
+
+    def test_the_closing_heartbeat_comes_from_the_last_complete_look(self) -> None:
+        import scoring
+
+        scorer = ScorerLines()
+        party = [mon("Mudkip", 258, 8)]
+        scorer.update(observe(100, party=party, xy=(4, 4)))
+        last = observe(160, party=None, xy=(5, 5))  # the brain's last look could not read the party
+        scorer.update(last)
+        beat = scorer.final(last)
+        self.assertEqual(len(beat), 1, beat)
+        self.assertTrue(beat[0].startswith("f100 ") and scoring.HB_RE.search(beat[0]), beat)
+
+    def test_the_digest_says_the_party_was_not_read(self) -> None:
+        self.assertIn("party=?", observe(10, party=None).digest())
+        self.assertNotIn("party=", observe(10, party=()).digest())
+
+
+class ScriptWaitTests(unittest.TestCase):
+    """Finding 6: the script's waitbuttonpress branch (`eyes/view.py` script_waits_for_button)."""
+
+    def test_the_rule(self) -> None:
+        # measured on dewford.ss1, reading its sign (`gates/live_step1.py` arm SW): status 0, Native, WaitForAorBPress
+        self.assertTrue(script_waits_for_button(0, "Native", "WaitForAorBPress"))
+        # measured on dewford.ss1's first frame: a FINISHED script (status 2, mode Stopped) leaves WaitForAorBPress behind
+        self.assertFalse(script_waits_for_button(2, "Stopped", "WaitForAorBPress"))
+        # each check alone refuses it (`live_step1.py` arm SW: SW-R1 and SW-R2 remove one each, not caught)
+        self.assertFalse(script_waits_for_button(2, "Native", "WaitForAorBPress"))
+        self.assertFalse(script_waits_for_button(0, "Stopped", "WaitForAorBPress"))
+        self.assertFalse(script_waits_for_button(0, "Bytecode", "WaitForAorBPress"))
+        self.assertFalse(script_waits_for_button(0, "Native", "IsFieldMessageBoxHidden"))  # waitmessage: the text prints
 
 
 class ActionLogTests(unittest.TestCase):

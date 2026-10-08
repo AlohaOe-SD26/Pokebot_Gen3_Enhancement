@@ -28,13 +28,21 @@ same purity audit as every run, and it is the recorder later brains build on.
 
 from __future__ import annotations
 
+import random
 import time
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from typing import Protocol
 
 from ai_player.eyes.observation import Observation
+from ai_player.hands.menus import mart_buy, nurse_heal
+from ai_player.hands.pad import Faults, Hands
 from ai_player.memory_log import ActionLog, ScorerLines
+from ai_player.options import HANDS_BRAINS, HandsOptions
+from ai_player.personality import pick_personality
+from ai_player.runlog import RecordFile
+from ai_player.skills.clock import set_wall_clock
+from ai_player.skills.intro import play_intro
 
 __all__ = [
     "CONTROL_TAP_EVERY_STEPS",
@@ -47,6 +55,7 @@ __all__ = [
     "BrainSettings",
     "Controls",
     "Eyes",
+    "HandsBrain",
     "WatcherBrain",
 ]
 
@@ -98,14 +107,24 @@ class BrainSettings:
 
 
 class Brain:
-    """STEP 0 PLACEHOLDER. Presses nothing (except under the CONTROL switch); waits; gives up."""
+    """STEP 0 PLACEHOLDER. Presses nothing (except under the CONTROL switch); waits; gives up.
+
+    BUILD STEP 2: also the door to the HANDS brains. The session builds a `Brain` for every brain but the
+    watcher, and the host is finished (no change to it in step 2), so the choice is made HERE: when the run
+    asks for a hands brain (`AI_PLAYER_BRAIN` in `options.HANDS_BRAINS`, read through `HandsOptions`, the
+    same environment the session read), `play` hands the run to a `HandsBrain`. For `placeholder` nothing
+    changes: `HandsOptions.from_env` is read and ignored."""
 
     def __init__(self, settings: BrainSettings, say: Callable[[str], None]) -> None:
         self.settings = settings
         self._say = say
+        options = HandsOptions.from_env()
+        self._hands = HandsBrain(settings, say, options) if options.brain in HANDS_BRAINS else None
 
     def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
         """One `yield` per frame. Returns the give-up reason."""
+        if self._hands is not None:
+            return (yield from self._hands.play(controls, eyes))
         settings = self.settings
         step = 0
         while step < settings.frames:
@@ -179,3 +198,81 @@ class WatcherBrain:
         median = costs[len(costs) // 2]
         return (f"[AI-EYES] cost over {len(costs)} looks: mean={mean:.2f}ms median={median:.2f}ms "
                 f"min={costs[0]:.2f}ms max={costs[-1]:.2f}ms records={self._actions.records}")
+
+
+class HandsBrain:
+    """BUILD STEP 2: plays ONE skill with the AI's own hands (`ai_player/hands/`, `ai_player/skills/`) and gives
+    up with the skill's outcome as its reason: `intro` (fresh boot to the truck), `nurse` (heal at the nurse in
+    front of the player), `mart` (buy `HandsOptions.mart_count` of `mart_item` from the clerk in front of the
+    player), `clock` (set the wall clock in front of the player).
+
+    THE SEED: one integer per run (`AI_PLAYER_SEED`, or drawn from the clock and logged), split into two
+    streams: CHOICES (personality, gender, name) and PACING (the pad's jitter), so that a change of pacing never
+    changes a choice. BOUNDED: the skill gets at most `settings.frames` frames; past that it is stopped and the
+    reason says so. THE LOG: the first and the last look go into the action log whole, every press and every
+    page read in between (`hands/pad.py`), and `[AI-HANDS]` lines into the run's log."""
+
+    def __init__(self, settings: BrainSettings, say: Callable[[str], None], options: HandsOptions) -> None:
+        self.settings = settings
+        self.options = options
+        self._say = say
+        self.seed = options.seed if options.seed is not None else time.time_ns() % 1_000_000_007
+        self.actions = ActionLog(RecordFile(options.run_dir))
+
+    def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
+        if eyes is None:
+            raise RuntimeError("the hands brain needs eyes")
+        options = self.options
+        choices = random.Random(f"{self.seed}:choices")
+        pacing = random.Random(f"{self.seed}:pacing")
+        faults = Faults(ungated_a=options.fault_ungated_a, blind_count=options.fault_blind_count)
+        hands = Hands(eyes, controls, pacing, choices, self.actions, self._say, faults)
+        personality = pick_personality(choices, self.seed, options.personality)
+        self._say(f"[AI-HANDS] brain={options.brain} seed={self.seed} ({'given' if options.seed is not None else 'from the clock'}) "
+                  f"personality={personality.name} ({personality.chosen_by}) faults=ungated_a:{faults.ungated_a},"
+                  f"blind_count:{faults.blind_count} frames={self.settings.frames}")
+        first = hands.look()
+        self.actions.record(first, decision="start", action=options.brain, reason="the first look", full=True,
+                            extra={"seed": self.seed, "personality": personality.name})
+        outcome = yield from self._bounded(self._skill(hands, personality), hands)
+        hands.pad.finish()
+        last = hands.look()
+        self.actions.record(last, decision="end", action=options.brain, reason=outcome, full=True)
+        gates: dict[str, int] = {}
+        for press in hands.pad.history:
+            key = f"{press['button']}:{press['gate'].split(':', 1)[0].split(' (', 1)[0][:40]}"
+            gates[key] = gates.get(key, 0) + 1
+        self._say(f"[AI-HANDS] outcome={outcome!r} presses={hands.pad.presses} frames={hands.pad.frames} "
+                  f"looks={hands.looks} records={self.actions.records}")
+        self._say(f"[AI-HANDS] presses by gate: {dict(sorted(gates.items()))}")
+        return f"{options.brain}: {outcome}"
+
+    def _skill(self, hands: Hands, personality) -> Generator[None, None, str]:
+        options = self.options
+        if options.brain == "intro":
+            return (yield from play_intro(hands, personality))
+        if options.brain == "nurse":
+            return (yield from nurse_heal(hands))
+        if options.brain == "mart":
+            return (yield from mart_buy(hands, options.mart_item, options.mart_count))
+        if options.brain == "clock":
+            hours, minutes = options.clock if options.clock is not None else (None, None)
+            return (yield from set_wall_clock(hands, hours, minutes))
+        raise ValueError(f"no hands skill named {options.brain!r}")
+
+    def _bounded(self, skill: Generator[None, None, str], hands: Hands) -> Generator[None, None, str]:
+        """Drive `skill` one frame per `yield`, for at most `settings.frames` frames."""
+        frames = 0
+        try:
+            while True:
+                if frames >= self.settings.frames:
+                    hands.tell(f"the skill did not finish within {frames} frames: stopped")
+                    return f"stopped: not finished within {frames} frames"
+                try:
+                    next(skill)
+                except StopIteration as done:
+                    return str(done.value)
+                yield
+                frames += 1
+        finally:
+            skill.close()

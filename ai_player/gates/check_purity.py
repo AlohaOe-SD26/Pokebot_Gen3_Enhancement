@@ -39,8 +39,9 @@ RULES
       OBJECT lists the attribute paths each file may walk on it (`context.emulator.press_button` in
       the controller; `bot_listeners` and, with "=", assigning it, in isolation;
       `get_bot_listeners=` on `modules.main`, the framework's listener-rebuild door, in isolation
-      only; build step 1's EYES: fifteen read-only framework functions plus `context.emulator.
-      read_bytes` / `get_frame_count` and `context.rom.is_emerald`, in `host/eyes.py` only), so an
+      only; build step 1's EYES: fifteen read-only framework functions (sixteen since build step 2 added
+      `modules.game.get_symbol`, a symbol-table lookup) plus `context.emulator.read_bytes` /
+      `get_frame_count` and `context.rom.is_emerald`, in `host/eyes.py` only), so an
       allowed object cannot be walked over to the bot, aliased or handed on.
       `import modules.x` without `as` binds the whole `modules` package and is always refused. The
       bot's brain is refused even if a door would let it in (a backstop).
@@ -316,6 +317,15 @@ DOORS: tuple[Door, ...] = (
         "modules.tasks", "get_global_script_context", {EYES: frozenset({""})},
         "reads `sGlobalScriptContext` into a `ScriptContext` (mode, native function name by symbol "
         "lookup); memoised in `state_cache`.",
+    ),
+    # ---- BUILD STEP 2 (the hands): one more READ-ONLY door for the eyes, added under the orchestrator's rule
+    # "you may only add READ-ONLY doors (documented) to the gate's allowlist".
+    Door(
+        "modules.game", "get_symbol", {EYES: frozenset({""})},
+        "BUILD STEP 2: a lookup in the symbol table (`modules/game.py`: `_symbols[name.strip().upper()]`, a "
+        "dict; an unknown name raises): a symbol's (address, size). The eyes use it to tell WHICH buffer a "
+        "text printer's `currentChar` points into (`gStringVar4`, `gDisplayedStringBattle`), so they can read "
+        "the text on screen. It reads no memory at all, and cannot press, write, load or run a frame.",
     ),
 )
 

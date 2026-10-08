@@ -38,16 +38,20 @@ from collections.abc import Iterable
 
 __all__ = [
     "BADGE_FLAGS",
+    "BATTLE_TYPE_WALLY_TUTORIAL",
     "BEHAVIOR",
     "BEHAVIOR_NAMES",
     "DOOR_BEHAVIORS",
     "GFX_KINDS",
     "GLYPHS",
+    "HP_BAR_PIXELS",
     "LEDGE_DIRECTIONS",
     "MENU_STATES",
     "MENU_TASKS",
+    "OUTCOME_CAUGHT",
     "OUTCOME_NAMES",
     "RENDER_STATE_NAMES",
+    "SCRIPT_CONTEXT_SHUTDOWN",
     "STORY_FLAGS",
     "TALL_GRASS_BEHAVIORS",
     "TEXT_FLAG_AUTO_SCROLL",
@@ -61,12 +65,17 @@ __all__ = [
     "behavior_name",
     "classify_screen",
     "facing_name",
+    "foe_move_seen",
+    "hp_bar_pixels",
     "in_view",
     "movement_mode",
     "object_kind",
+    "script_waits_for_button",
+    "settled_position",
     "status_name",
     "text_printer_wait",
     "view_offsets",
+    "visible_id",
 ]
 
 # ------------------------------------------------------------------------------------------- the window
@@ -180,14 +189,14 @@ GFX_KINDS: dict[int, str] = {
 }
 
 
-def object_kind(graphics_id: int, is_trainer: bool) -> str:
-    """What a person would call this object. A trainer looks like any person until it spots you, but
-    its stance (it faces the path, it may be standing still) is part of what a player learns to read,
-    so the eyes say so."""
-    kind = GFX_KINDS.get(graphics_id)
-    if kind is not None:
-        return kind
-    return "trainer" if is_trainer else "npc"
+def object_kind(graphics_id: int) -> str:
+    """What a person would call this object: a THING by its look (`GFX_KINDS`), otherwise a person,
+    "npc". ‼ Step 1.1 (the step-1 review, "perception like a person"): until then a person whose map
+    template has a trainer type was labelled "trainer". Nothing on screen says so: a trainer looks like
+    any other person until it spots the player and walks up (the "!" and the approach are what a player
+    sees), so a label read from the object's trainer type told the AI who would fight before the game
+    showed it. The battle itself is seen (`BattleView.kind`), and that is when the AI learns it."""
+    return GFX_KINDS.get(graphics_id, "npc")
 
 
 #: `facingDirection` values (`include/constants/global.h` DIR_SOUTH = 1 ... DIR_EAST = 4).
@@ -229,11 +238,75 @@ def status_name(bits: int) -> str:
 
 
 #: `gBattleOutcome` (`include/constants/battle.h` B_OUTCOME_*), named as the bot's logs name them
-#: (`modules/battle_state.py` BattleOutcome), because the learner's scorer reads `res=Won`.
+#: (`modules/battle_state.py` BattleOutcome), because the learner's scorer reads `res=Won`. 0 means NO
+#: result yet: `BattleStartClearSetData` (`src/battle_main.c`, run by `BeginBattleIntro`, the battle's
+#: first main function) sets it to 0, and the battle scripts set the result as the battle ends.
 OUTCOME_NAMES: dict[int, str] = {
     0: "InProgress", 1: "Won", 2: "Lost", 3: "Draw", 4: "RanAway", 5: "PlayerTeleported", 6: "OpponentFled",
     7: "Caught", 8: "NoSafariBallsLeft", 9: "Forfeited", 10: "OpponentTeleported", 128: "LinkBattleRanAway",
 }
+#: B_OUTCOME_CAUGHT. ‼ It does NOT mean the PLAYER caught something: Wally's tutorial
+#: (`BATTLE_TYPE_WALLY_TUTORIAL`) ends with `BattleScript_WallyBallThrow` (`data/battle_scripts_2.s`):
+#: `printstring STRINGID_GOTCHAPKMNCAUGHTWALLY; setbyte gBattleOutcome, B_OUTCOME_CAUGHT; finishturn`, with
+#: no `givecaughtmon`, so the Ralts goes to Wally. A player's catch runs `givecaughtmon` BEFORE the same
+#: `setbyte` (`BattleScript_SuccessBallThrow`), so it shows as a NEW Pokemon of the player's in the party
+#: or a box: `ai_player/memory_log.py` logs a catch only on that.
+OUTCOME_CAUGHT = 7
+#: `include/constants/battle.h`: `#define BATTLE_TYPE_WALLY_TUTORIAL (1 << 9)`.
+BATTLE_TYPE_WALLY_TUTORIAL = 1 << 9
+
+# ------------------------------------------------------------------------------------------- the battle
+#: The width of a battle HP bar in pixels: `src/battle_interface.c` `#define B_HEALTHBAR_PIXELS 48`.
+HP_BAR_PIXELS = 48
+
+
+def hp_bar_pixels(hp: int, max_hp: int) -> int:
+    """How many of the HP bar's 48 pixels are filled: what a person SEES of a foe's HP (perception like a
+    person, step 1.1; the foe's numbers are not on screen). `src/battle_interface.c` GetScaledHPFraction:
+    `result = hp * scale / maxhp; if (result == 0 && hp > 0) return 1;` (C integer division, both
+    non-negative). This is the bar the game settles on; while it drains it shows values in between."""
+    if max_hp <= 0:
+        return 0
+    filled = hp * HP_BAR_PIXELS // max_hp
+    if filled == 0 and hp > 0:
+        return 1
+    return filled
+
+
+def foe_move_seen(pp: int, max_pp: int) -> bool:
+    """Has the foe USED this move in this battle, i.e. has the screen shown "Foe X used MOVE!"? A foe's
+    Pokemon starts every battle with full PP (wild: `CreateMon`; trainer: `CreateNPCTrainerParty`), and
+    the battle takes PP only in `ppreduce`, which the move scripts run right after `attackstring`, the
+    command that prints "used MOVE!" (`data/battle_scripts_1.s`: `attackcanceler; accuracycheck ...;
+    attackstring; ppreduce`; a move that missed runs `attackstring; ppreduce` in
+    `BattleScript_PrintMoveMissed`). Checked 2026-10-07 over all 134 `ppreduce` of that file: 121 follow
+    `attackstring` directly; 6 follow it a few commands later (Mirror Move, Rampage, Leech Seed, Rollout,
+    Beat Up, Uproar); 5 come right before a path that prints it in the same turn (Substitute, the three
+    `..._PPLoss` ability scripts, `BattleScript_SolarBeamOnFirstTurn`); 2 take PP with a message of their
+    own instead of "used MOVE!", which names the move to a player anyway: a two-turn move's charging turn
+    ("X took in sunlight!", `BattleScriptFirstChargingTurn`) and a Focus Punch that lost focus
+    (`BattleScript_EffectFocusPunch`). So a move with PP below its
+    maximum is a move the player has seen used (`gates/live_step1.py` arm E10 compares it with the
+    "Foe X used MOVE!" texts of the battle, replayed). Moves never used stay unknown, as for a person.
+    (Known misses: Struggle takes no PP; a Leppa Berry that restores PP hides that move again.)"""
+    return pp < max_pp
+
+
+def visible_id(full_ot_id: int) -> int:
+    """The trainer ID a PERSON sees (the summary screen's "IDNo.", the trainer card): the low 16 bits of
+    the 32-bit OT field. The high half is the SECRET id, shown nowhere; the eyes never report it."""
+    return full_ot_id & 0xFFFF
+
+
+def settled_position(object_xy: tuple[int, int], saved_xy: tuple[int, int]) -> tuple[int, int] | None:
+    """The player's position, or None while it is SETTLING. `object_xy` is the player object's
+    `currentCoords` minus MAP_OFFSET (where the object stands on the map it was built for), `saved_xy` is
+    save block 1's `pos` (the game's own copy, written together with the map in `WarpIntoMap`). At rest
+    and while walking they agree on every frame (measured 2026-10-07 on a 700-frame walk into Dewford's
+    door: 0 of the walking frames differ). During a warp the save block holds the NEW map and its arrival
+    tile while the object still stands on the OLD map's tile (6 frames of CHANGE_MAP, measured): reporting
+    the object's tile with the save block's map would MIX two maps, so the position is unknown then."""
+    return object_xy if object_xy == saved_xy else None
 
 # ------------------------------------------------------------------------------------------- progress
 #: The badge flags (`include/constants/flags.h` FLAG_BADGE01_GET ...), as the framework's flag table names them.
@@ -310,6 +383,31 @@ TEXT_PRINTER_COUNT = 32
 TEXT_FLAG_AUTO_SCROLL = 1 << 2
 
 
+#: `src/script.c` the global script context's status (`sGlobalScriptContextStatus`): CONTEXT_RUNNING 0,
+#: CONTEXT_WAITING 1, CONTEXT_SHUTDOWN 2.
+SCRIPT_CONTEXT_SHUTDOWN = 2
+#: The script's native function while it waits in `waitbuttonpress` (`src/scrcmd.c` ScrCmd_waitbuttonpress
+#: -> `SetupNativeScript(ctx, WaitForAorBPress)`; `WaitForAorBPress` returns TRUE on `JOY_NEW(A_BUTTON)`
+#: or `JOY_NEW(B_BUTTON)`).
+_WAIT_FOR_BUTTON_NATIVE = "WaitForAorBPress"
+
+
+def script_waits_for_button(status: int, mode: str, native_function: str | None) -> bool:
+    """Is the overworld SCRIPT waiting in `waitbuttonpress`? Its context runs a native function, and that
+    function is WaitForAorBPress, AND the context is not shut down. A finished script leaves its last native
+    function behind (measured 2026-10-07: `dewford.ss1` idles with status 2 = shut down, mode Stopped and
+    native WaitForAorBPress, and nothing waits there). The mode check and the status check EACH refuse that
+    leftover (`src/script.c`: a script that ends stops its context, `SCRIPT_MODE_STOPPED`, and the run loop
+    then shuts it down): `gates/live_step1.py` arm SW removes both (SW-X1, caught on the fixture's first
+    frame) and each alone (SW-R1, SW-R2, not caught): neither is load-bearing alone; together they are.
+    This is the wait at the END of most dialogues and of every
+    sign (`Std_MsgboxSign`, `Std_MsgboxDefault`: `message; waitmessage; waitbuttonpress`): the text has
+    finished printing, its printer is inactive and the message box's mode is already HIDDEN, though the
+    box is still on screen (`gates/live_step1.py` arm SW captures it on Dewford's sign).
+    `mode` is the framework's ScriptContext mode name ("Native", "Bytecode", "Stopped")."""
+    return status != SCRIPT_CONTEXT_SHUTDOWN and mode == "Native" and native_function == _WAIT_FOR_BUTTON_NATIVE
+
+
 def text_printer_wait(printers: Iterable[tuple[int, int, int]], text_flags: int) -> str | None:
     """Which text waits for A or B: `printers` is (index, active, state) for each text printer, and
     `text_flags` the byte `gTextFlags`. Returns the reason ("text printer 6 WAIT") or None. Under
@@ -325,7 +423,7 @@ def text_printer_wait(printers: Iterable[tuple[int, int, int]], text_flags: int)
 #: One character per tile and object, for the human-readable picture of the view (`View.ascii`).
 GLYPHS: dict[str, str] = {
     "player": "@", "blocked": "#", "water": "~", "tall_grass": '"', "encounter": ":", "door": "D", "warp": "W",
-    "floor": ".", "item_ball": "o", "trainer": "T", "npc": "n", "cut_tree": "t", "smash_rock": "r", "boulder": "b",
+    "floor": ".", "item_ball": "o", "npc": "n", "cut_tree": "t", "smash_rock": "r", "boulder": "b",
     "berry_tree": "B", "sign": "s",
 }
 
