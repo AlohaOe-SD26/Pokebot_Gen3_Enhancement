@@ -34,15 +34,19 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from typing import Protocol
 
+from ai_player.brain.explore import explore_intent, goto_intent, weights_for
+from ai_player.brain.navigator import Navigator
 from ai_player.eyes.observation import Observation
 from ai_player.hands.menus import mart_buy, nurse_heal
 from ai_player.hands.pad import Faults, Hands
 from ai_player.memory_log import ActionLog, ScorerLines
-from ai_player.options import HANDS_BRAINS, HandsOptions
+from ai_player.options import HANDS_BRAINS, INTENT_MARGIN, WORLD_BRAINS, HandsOptions
 from ai_player.personality import pick_personality
 from ai_player.runlog import RecordFile
 from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.intro import play_intro
+from ai_player.skills.roam_train import roam_train
+from ai_player.world.memory import WorldMemory, read_world
 
 __all__ = [
     "CONTROL_TAP_EVERY_STEPS",
@@ -51,6 +55,7 @@ __all__ = [
     "FAULT_RAISE_AT_STEP",
     "PLACEHOLDER_REASON",
     "WATCHER_REASON",
+    "WORLD_FILE_NAME",
     "Brain",
     "BrainSettings",
     "Controls",
@@ -71,6 +76,8 @@ CONTROL_TAP_EVERY_STEPS = 60
 PLACEHOLDER_REASON = "step0-placeholder"
 #: The watcher's give-up reason, after it has watched `frames` frames.
 WATCHER_REASON = "watcher-done"
+#: BUILD STEP 3: the world memory's snapshots, one JSON line each, in the run directory.
+WORLD_FILE_NAME = "world.jsonl"
 
 
 class Controls(Protocol):
@@ -119,7 +126,7 @@ class Brain:
         self.settings = settings
         self._say = say
         options = HandsOptions.from_env()
-        self._hands = HandsBrain(settings, say, options) if options.brain in HANDS_BRAINS else None
+        self._hands = HandsBrain(settings, say, options) if options.brain in HANDS_BRAINS + WORLD_BRAINS else None
 
     def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
         """One `yield` per frame. Returns the give-up reason."""
@@ -210,7 +217,15 @@ class HandsBrain:
     streams: CHOICES (personality, gender, name) and PACING (the pad's jitter), so that a change of pacing never
     changes a choice. BOUNDED: the skill gets at most `settings.frames` frames; past that it is stopped and the
     reason says so. THE LOG: the first and the last look go into the action log whole, every press and every
-    page read in between (`hands/pad.py`), and `[AI-HANDS]` lines into the run's log."""
+    page read in between (`hands/pad.py`), and `[AI-HANDS]` lines into the run's log.
+
+    BUILD STEP 3 adds the WORLD brains (`options.WORLD_BRAINS`): `explore` (the navigator explores with the
+    personality's taste until `AI_PLAYER_GOAL_MAP`, `brain/explore.py`), `roam` (train by roaming through grass,
+    `skills/roam_train.py`), `goto` (errands to tiles of the current map, `AI_PLAYER_GOTO`). They keep a WORLD
+    MEMORY (`world/memory.py`), told every look the hands take, started empty or from a previous run's
+    `world.jsonl` (`AI_PLAYER_WORLD`), and written to `<run_dir>/world.jsonl` (one snapshot line at every map change
+    and at the end); `[AI-WORLD]` lines go into the run's log. The navigator's path noise and detours come from the
+    CHOICES stream."""
 
     def __init__(self, settings: BrainSettings, say: Callable[[str], None], options: HandsOptions) -> None:
         self.settings = settings
@@ -218,6 +233,10 @@ class HandsBrain:
         self._say = say
         self.seed = options.seed if options.seed is not None else time.time_ns() % 1_000_000_007
         self.actions = ActionLog(RecordFile(options.run_dir))
+        #: BUILD STEP 3: the world brains' memory, its snapshots (`<run_dir>/world.jsonl`) and its navigator.
+        self.world: WorldMemory | None = None
+        self.navigator: Navigator | None = None
+        self._world_file = RecordFile(options.run_dir, WORLD_FILE_NAME)
 
     def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
         if eyes is None:
@@ -231,6 +250,8 @@ class HandsBrain:
         self._say(f"[AI-HANDS] brain={options.brain} seed={self.seed} ({'given' if options.seed is not None else 'from the clock'}) "
                   f"personality={personality.name} ({personality.chosen_by}) faults=ungated_a:{faults.ungated_a},"
                   f"blind_count:{faults.blind_count} frames={self.settings.frames}")
+        if options.brain in WORLD_BRAINS:
+            self._start_world(hands, choices, personality.name)
         first = hands.look()
         self.actions.record(first, decision="start", action=options.brain, reason="the first look", full=True,
                             extra={"seed": self.seed, "personality": personality.name})
@@ -238,6 +259,10 @@ class HandsBrain:
         hands.pad.finish()
         last = hands.look()
         self.actions.record(last, decision="end", action=options.brain, reason=outcome, full=True)
+        if self.world is not None:
+            self._save_world("the end of the run")
+            self._say(f"[AI-WORLD] memory at the end: {self._memory_line()}")
+            self._say(f"[AI-WORLD] navigator: {self.navigator.summary()}")
         gates: dict[str, int] = {}
         for press in hands.pad.history:
             key = f"{press['button']}:{press['gate'].split(':', 1)[0].split(' (', 1)[0][:40]}"
@@ -258,7 +283,42 @@ class HandsBrain:
         if options.brain == "clock":
             hours, minutes = options.clock if options.clock is not None else (None, None)
             return (yield from set_wall_clock(hands, hours, minutes))
+        budget = options.intent_frames or max(600, self.settings.frames - INTENT_MARGIN)
+        if options.brain == "explore":
+            intent = explore_intent(options.goal_map, personality.name, budget)
+            return (yield from self.navigator.run(intent, f"explore{' to ' + options.goal_map if options.goal_map else ''}"))
+        if options.brain == "roam":
+            return (yield from roam_train(hands, self.navigator, options.roam_steps))
+        if options.brain == "goto":
+            return (yield from self.navigator.run(goto_intent(list(options.goto), budget), "errands on this map"))
         raise ValueError(f"no hands skill named {options.brain!r}")
+
+    # ------------------------------------------------------------------ build step 3: the world
+    def _start_world(self, hands: Hands, choices: random.Random, personality: str) -> None:
+        """The memory (empty, or a previous run's, `AI_PLAYER_WORLD`), told every look the hands take, and the
+        navigator over it (the CHOICES stream: its path noise and detours never shift with the pacing)."""
+        options = self.options
+        world = read_world(options.world_in) if options.world_in is not None else None
+        source = f"the last snapshot of {options.world_in}" if world is not None else "nothing (a new memory)"
+        self.world = world if world is not None else WorldMemory()
+        hands.watchers.append(self.world.observe)
+        weights = weights_for(personality)
+        self.navigator = Navigator(hands, self.world, choices, weights.grass_cost, personality,
+                                   on_map_change=lambda: self._save_world("a map change"))
+        self._say(f"[AI-WORLD] memory from {source}: {self._memory_line()}; goal {options.goal_map or '-'}; personality "
+                  f"{personality} (weights {weights})")
+
+    def _memory_line(self) -> str:
+        world = self.world
+        names = world.names()
+        maps = ", ".join(f"{names[key]} {len(memory.tiles)} tiles {len(memory.bumped)} bumped" for key, memory in world.maps.items())
+        return (f"{len(world.maps)} maps ({maps or 'none'}), {world.tiles_learned} tiles learned, {len(world.warps)} warp links, "
+                f"{len(world.connections)} connections, {len(world.transitions)} map changes")
+
+    def _save_world(self, why: str) -> None:
+        self._world_file.append(self.world.snapshot())
+        self.actions.record(None, decision="world", action="snapshot", reason=why, frame=None,
+                            extra={"maps": len(self.world.maps), "tiles": self.world.tiles_learned})
 
     def _bounded(self, skill: Generator[None, None, str], hands: Hands) -> Generator[None, None, str]:
         """Drive `skill` one frame per `yield`, for at most `settings.frames` frames."""

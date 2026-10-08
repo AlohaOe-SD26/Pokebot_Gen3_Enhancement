@@ -37854,3 +37854,30 @@ bought balls only at fixed story points.
   - the intro's yes/no on an unreadable page (exact match; no re-typing loop);
   - report sub-skill failures immediately;
   - a revert proof for the host's torn-party -> None.
+
+## 2026-10-08 — AI player step 2.1 (the step-2 review items) and step 3 (a WORLD MEMORY from seen tiles, the AI's own NAVIGATOR, frontier EXPLORATION, ROAMING training, a FLEE skill), proven; a checkpoint before step 3.1
+
+- **Step 2.1, all 7 items fixed with revert proofs:**
+  - a stall detector (an unknown prompt returns `stuck:` instead of a 3-minute silent stall);
+  - a working-tree digest in every evidence header (`gates/provenance.py`);
+  - the pad's frames == the instrument's real_frames;
+  - Start and B probed against the game, and fades counted as not taking input;
+  - the intro name compared exactly, with no re-typing loop;
+  - sub-skill failures returned at once;
+  - a torn-party revert proof.
+  - Making failures return at once EXPOSED A REAL BUG: choosing GIRL failed in every intro, because Birch's sprites slide while the gender menu ignores input and the eyes read the menu as closed. The old code hid it by silently re-choosing. The eyes now report "on screen, not taking input".
+- **Step 3:**
+  - `world/memory.py`: a per-run map memory built ONLY from on-screen looks (tiles, ledges, water, grass, warps, bumps, visits, the frontier, the learned warp graph and map connections), persisted as `world.jsonl`.
+  - `brain/navigator.py`: A* over KNOWN tiles (unknown is optimistic but costly); ledges, doors and edges; seeded path variation; people blocking the way; frame budgets that progress does not reset; NOVELTY-only progress.
+  - `brain/explore.py`: personality-weighted frontier exploration.
+  - `skills/roam_train.py`: ROAMING training. `skills/flee.py`: RUN from wild battles.
+  - `live_step3.py` 11/11 arms (HOUSE, TOWN, ROUTE: Littleroot to Oldale by exploring; ROAM; CROP fault; STUCK; BUMP; XP novelty; reverts), each checked by save-block reads; frames and presses equal the pre-registered predictions.
+  - `revert_step3.py`: 28 mutants caught. `test_world.py` 46 OK. Every earlier suite PASS on the final tree (digest `2652e886e7844ce4`).
+- **Open: step 3.1, from the adversarial review (the next step):**
+  - HIGH: the explorer knows where a map ENDS from negative coordinates (top and left edges), which a person cannot see.
+  - HIGH: stale frontier targets cause A-B-A reversals.
+  - MEDIUM: a repeating scene can make it retry for about 50 s.
+  - MEDIUM: one bump becomes a permanent wall from every side.
+  - LOW: warp tiles come from the ROM warp table rather than the visible tile behaviour.
+  - LOW: the crop check shares the eyes' constants.
+  - Also: the RATE seed sweep and the revert transcripts name an older tree (the verifier re-ran the reverts on the final tree: PASS); an exit target could in theory be an unseen tile; the spin metric's definition (a strict count of every non-moving press gives 8.6%, while back-and-forth spins are under 2%).

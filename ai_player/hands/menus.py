@@ -140,6 +140,12 @@ def choose(hands: Hands, kind: str, option: str | int, why: str, budget: int = W
         look = hands.look()  # THE GATE: the cursor is on the option, on the look right before the press
         ui = look.screen.ui
         if hands.faults.blind_count:
+            # The naive driver is blind to the CURSOR only (the one thing the fault isolates): like the real driver
+            # it waits for the menu to take input before its A. STEP 2.1: moving the gender menu's cursor slides
+            # Birch's sprites, and the menu ignores input meanwhile (`eyes/screens.py` UI_BUSY_TASKS); an A pressed
+            # into the slide was dropped, which the intro's old loop hid by choosing again (the review's item 6).
+            if (yield from wait_for_ui(hands, kind, why)) is None:
+                return False
             yield from hands.pad.press("A", why, BLIND_GATE)
         elif ui is not None and ui.kind == kind and ui.cursor == index and ui.accepts_input:
             yield from hands.pad.press("A", why, f"{kind} cursor on {_name(ui.options, index)}")
@@ -284,6 +290,11 @@ def set_clock(hands: Hands, hours: int, minutes: int, why: str) -> Generator[Non
         ui = look.screen.ui
         if ui is not None and ui.kind == "yes_no":
             confirmed = yield from answer_yes_no(hands, True, f"{why}: the clock reads {hours}:{minutes:02d}")
+            if not confirmed:
+                # STEP 2.1 (the step-2 review, item 6): a failed answer is reported at once, not retried until
+                # CLOCK_BUDGET runs out (`answer_yes_no` has said why in the run's log).
+                hands.tell(f"{why}: 'Is this the correct time?' could not be answered YES")
+                return False
             continue
         if ui is None or ui.kind != "clock":
             if confirmed:
@@ -339,7 +350,10 @@ def nurse_heal(hands: Hands, why: str = "heal the party at the nurse") -> Genera
         if outcome == "done":
             break
         if outcome == "menu:yes_no":
-            yield from answer_yes_no(hands, True, f"{why}: 'Would you like to rest your POKéMON?' YES")
+            # STEP 2.1 (the step-2 review, item 6): a failed answer ends the skill at once with its reason, instead
+            # of going round this loop until its 6 turns run out.
+            if not (yield from answer_yes_no(hands, True, f"{why}: 'Would you like to rest your POKéMON?' YES")):
+                return "the nurse's yes/no could not be answered YES"
             continue
         return f"the nurse's dialogue ended in {outcome}"
     else:
@@ -406,7 +420,11 @@ def mart_buy(hands: Hands, item: str, count: int, why: str = "buy at the mart") 
         if outcome == "done":
             break
         if outcome == "menu:mart_menu":
-            yield from choose(hands, "mart_menu", "QUIT" if bought else "BUY", f"{why}: the shop menu")
+            # STEP 2.1 (the step-2 review, item 6): a failed choice ends the skill at once with its reason, instead
+            # of going round this loop until its 12 turns run out.
+            wanted = "QUIT" if bought else "BUY"
+            if not (yield from choose(hands, "mart_menu", wanted, f"{why}: the shop menu")):
+                return f"could not choose {wanted} in the shop menu"
         elif outcome == "menu:mart_buy" and not bought:
             look = yield from wait_for_ui(hands, "mart_buy", why)
             names = [item_key(n) for n in look.screen.ui.options] if look is not None else []

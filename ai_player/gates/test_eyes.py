@@ -43,7 +43,9 @@ STEP 1.1 (the step-1 adversarial review's findings; each test FAILS when its fix
   SettlingTests        (4) the position is None while the object's tile and the save block's differ (a
                        warp, measured: 6 frames); the [MAP] line waits for the settled position.
   PartyNoneTests       (5) None (not read) is not () (no Pokemon): the starter is not "observed" after an
-                       unread party; the closing heartbeat comes from the last complete look.
+                       unread party; the closing heartbeat comes from the last complete look; and (step 2.1,
+                       the step-2 verifier's weak proof) the HOST's own `_party` makes the whole party None
+                       when one slot is torn (revert R5c).
   ScriptWaitTests      (6) the script's `waitbuttonpress` waits only while the context is not shut down
                        (a finished script leaves WaitForAorBPress behind: measured on dewford.ss1).
 """
@@ -295,10 +297,12 @@ class PartyDecoderTests(unittest.TestCase):
             if isinstance(mine, str):
                 failures.append(f"residue {residue}: {mine}")
                 continue
-            got = (mine.species_id, mine.moves, mine.pp, mine.level, mine.hp, mine.max_hp, mine.is_egg)
-            want = (280, (33, 45, 0, 0), (35, 40, 0, 0), 9, 20, 25, False)
-            if got != want or framework.species.index != mine.species_id:
-                failures.append(f"residue {residue}: got {got}, framework species {framework.species.index}")
+            got = (mine.species_id, mine.moves, mine.pp, mine.level, mine.hp, mine.max_hp, mine.is_egg, mine.experience)
+            want = (280, (33, 45, 0, 0), (35, 40, 0, 0), 9, 20, 25, False, 1000)
+            # step 3: the experience (growth @4, `encode_mon` writes 1000) against the framework's own `total_exp`
+            if got != want or framework.species.index != mine.species_id or framework.total_exp != mine.experience:
+                failures.append(f"residue {residue}: got {got}, framework species {framework.species.index} "
+                                f"experience {framework.total_exp}")
         return failures
 
     def test_all_24_orders_against_the_frameworks_table_and_decoder(self) -> None:
@@ -822,6 +826,54 @@ class PartyNoneTests(unittest.TestCase):
     def test_the_digest_says_the_party_was_not_read(self) -> None:
         self.assertIn("party=?", observe(10, party=None).digest())
         self.assertNotIn("party=", observe(10, party=()).digest())
+
+    def test_a_torn_slot_makes_the_whole_party_none(self) -> None:
+        """Finding 5, the HOST half (`host/eyes.py` FrameworkEyes._party: `return None if torn else party`). STEP 2.1:
+        the step-2 verifier's weak proof: reverting it to `return party` failed no test (its V3; `revert_step11.py`
+        covered only the memory_log half). The host's OWN `_party` reads a party of two through the framework's
+        `read_symbol`, from a FAKE emulator memory: slot 1 a Pokemon encoded as the game encodes it, slot 2 another
+        whose encrypted area has one byte changed (a slot caught while the game writes it: its checksum fails). The
+        whole party is None and the problem names slot 2; with both slots whole the same path reads both
+        (non-vacuity: the fake memory reaches the decoder). `revert_step11.py` R5c reverts it."""
+        from modules.context import context
+        from modules.game import get_symbol
+        from modules.pokemon import POKEMON_DATA_SUBSTRUCTS_ORDER
+
+        from ai_player.host.eyes import FrameworkEyes
+
+        framework_rom()
+        # the game's INTERNAL species indices: 280 Torchic, 283 Mudkip
+        first = encode_mon(0x1234500, ME, 280, (33, 0, 0, 0), (35, 0, 0, 0), 5, POKEMON_DATA_SUBSTRUCTS_ORDER)
+        second = encode_mon(0x1234501, ME, 283, (33, 0, 0, 0), (35, 0, 0, 0), 6, POKEMON_DATA_SUBSTRUCTS_ORDER)
+        torn = bytearray(second)
+        torn[40] ^= 0xFF  # as PartyDecoderTests.test_a_torn_slot_is_refused
+        count_at, party_at = get_symbol("gPlayerPartyCount")[0], get_symbol("gPlayerParty")[0]
+
+        class Memory:
+            """The two symbols `_party` reads, at their real addresses; anything else is a test error."""
+
+            def __init__(self, party: bytes) -> None:
+                self.party = party
+
+            def read_bytes(self, address: int, length: int) -> bytes:
+                if address == count_at:
+                    return bytes([2]) + bytes(length - 1)
+                if address == party_at:
+                    return (self.party + bytes(length))[:length]
+                raise AssertionError(f"_party read 0x{address:08X}")
+
+        def read(party: bytes) -> tuple[list | None, list[str]]:
+            problems: list[str] = []
+            with mock.patch.object(context, "emulator", Memory(party), create=True):
+                return FrameworkEyes()._party(problems), problems
+
+        whole, problems = read(first + second)
+        self.assertEqual([(m.species, m.level, m.pid) for m in whole], [("Torchic", 5, 0x1234500), ("Mudkip", 6, 0x1234501)])
+        self.assertEqual(problems, [])
+        party, problems = read(first + bytes(torn))
+        self.assertIsNone(party, "a party with a torn slot was reported one Pokemon short instead of not read")
+        self.assertEqual(len(problems), 1)
+        self.assertTrue(problems[0].startswith("party slot 2: "), problems)
 
 
 class ScriptWaitTests(unittest.TestCase):

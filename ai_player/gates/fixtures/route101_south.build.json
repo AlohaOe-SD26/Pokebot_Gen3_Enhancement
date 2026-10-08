@@ -1,0 +1,99 @@
+{
+ "fixture": "ai_player\\gates\\fixtures\\route101_south.ss1",
+ "world": "ai_player\\gates\\fixtures\\route101_south.world.jsonl",
+ "from": "tools\\story-dev\\saves\\pokedex_done.ss1",
+ "from_md5": "380fba7a4bf4afdf2fc9a0ad158de29e",
+ "played": "the AI's own step-3 navigator (hands_harness run: brain explore, goal ROUTE101, Story, seed 3)",
+ "reason": "explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisions (1 detours); 3 maps, 889 tiles learned)",
+ "frames": 4961,
+ "presses": 101,
+ "lines": [
+  "[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal ROUTE101; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))",
+  "[AI-WORLD] intent 'explore to ROUTE101': budget 19400 frames; on LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB at (6, 5); 165 tiles known on 1 maps",
+  "[AI-WORLD] go to the frontier at (6, 10): 1 unseen tile(s) beside it (score 11.2)",
+  "[AI-WORLD] go to the door at (6, 11) then use it pressing down: an exit not used yet: where does it go? (score 7.1)",
+  "[AI-WORLD] MAP LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB -> LITTLEROOT_TOWN at (7, 16): the warp at (6, 12) (the AI, f62198); 165 tiles of it known",
+  "[AI-WORLD] go to the frontier at (14, 18): 1 unseen tile(s) beside it (score 9.0; a detour by (10, 17))",
+  "[AI-WORLD] the frontier at (14, 18) cannot be reached that way (unreachable): another target",
+  "[AI-WORLD] go to the frontier at (14, 11): 2 unseen tile(s) beside it (score 13.3)",
+  "[AI-WORLD] go to the frontier at (18, 6): 1 unseen tile(s) beside it (score 10.9)",
+  "[AI-WORLD] go to the frontier at (11, 1): 2 unseen tile(s) beside it (score 10.4)",
+  "[AI-WORLD] go to the road at (11, -1): a road leads up, off this map (score 44.8)",
+  "[AI-WORLD] MAP LITTLEROOT_TOWN -> ROUTE101 at (11, 19): the up edge from (11, 0) (the AI, f66849); 165 tiles of it known",
+  "[AI-WORLD] memory at the end: 3 maps (LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 270 tiles 0 bumped, LITTLEROOT_TOWN 619 tiles 0 bumped, ROUTE101 165 tiles 0 bumped), 889 tiles learned, 2 warp links, 1 connections, 2 map changes",
+  "[AI-WORLD] navigator: 43 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisions (1 detours); 3 maps, 889 tiles learned"
+ ],
+ "truth": {
+  "frame": 66883,
+  "game_state": "OVERWORLD",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   16
+  ],
+  "party": [
+   [
+    "Mudkip",
+    19,
+    28
+   ]
+  ],
+  "money": 3300,
+  "balls": {
+   "POKé BALL": 5
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "gLocalTime": [
+   80,
+   0,
+   6,
+   47
+  ],
+  "localTimeOffset": [
+   9698,
+   1,
+   51,
+   30
+  ],
+  "pos": [
+   11,
+   19
+  ],
+  "game_stats": {
+   "steps": 621,
+   "total_battles": 11,
+   "wild_battles": 10,
+   "trainer_battles": 1
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "md5": "81bf318a1532c5364f60064530f9984b",
+ "world_md5": "dae9c609f1b55ad76fd7f310d9cc35f5",
+ "ok": true
+}

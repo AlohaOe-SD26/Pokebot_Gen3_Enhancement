@@ -22,9 +22,12 @@ __all__ = [
     "DEFAULT_FRAMES",
     "DEFAULT_MART_COUNT",
     "DEFAULT_MART_ITEM",
+    "DEFAULT_ROAM_STEPS",
     "DEFAULT_WATCH_EVERY",
     "HANDS_BRAINS",
+    "INTENT_MARGIN",
     "VERDICT_FILE_NAME",
+    "WORLD_BRAINS",
     "ENV_BRAIN",
     "ENV_CLOCK",
     "ENV_CONTROL_TAP",
@@ -38,16 +41,22 @@ __all__ = [
     "ENV_FAULT_SKIP_RESTORE",
     "ENV_FAULT_UNGATED_A",
     "ENV_FRAMES",
+    "ENV_GOAL_MAP",
+    "ENV_GOTO",
+    "ENV_INTENT_FRAMES",
     "ENV_MART_COUNT",
     "ENV_MART_ITEM",
     "ENV_PACKAGE_ROOT",
     "ENV_PERSONALITY",
+    "ENV_ROAM_STEPS",
     "ENV_RUN_DIR",
     "ENV_SEED",
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
+    "ENV_WORLD",
     "HandsOptions",
     "RunOptions",
+    "parse_tiles",
 ]
 
 ENV_FRAMES = "AI_PLAYER_FRAMES"
@@ -99,7 +108,12 @@ ENV_FAULT_NO_CROP = "AI_PLAYER_FAULT_NO_CROP"
 ENV_BRAIN = "AI_PLAYER_BRAIN"
 ENV_WATCH_EVERY = "AI_PLAYER_WATCH_EVERY"
 HANDS_BRAINS = ("intro", "nurse", "mart", "clock")
-BRAINS = ("placeholder", "watcher") + HANDS_BRAINS
+#: BUILD STEP 3: the WORLD brains (the world model and the AI's own navigator, `ai_player/world/`, `ai_player/brain/`),
+#: played by the same `HandsBrain`: `explore` (explore with the personality's taste until `AI_PLAYER_GOAL_MAP`, or
+#: until stuck / out of frames), `roam` (train by roaming through grass for `AI_PLAYER_ROAM_STEPS` steps, fleeing wild
+#: battles), `goto` (walk to each tile of `AI_PLAYER_GOTO` on the current map in turn).
+WORLD_BRAINS = ("explore", "roam", "goto")
+BRAINS = ("placeholder", "watcher") + HANDS_BRAINS + WORLD_BRAINS
 DEFAULT_BRAIN = "placeholder"
 DEFAULT_WATCH_EVERY = 60
 
@@ -125,6 +139,21 @@ ENV_FAULT_UNGATED_A = "AI_PLAYER_FAULT_UNGATED_A"
 ENV_FAULT_BLIND_COUNT = "AI_PLAYER_FAULT_BLIND_COUNT"
 DEFAULT_MART_ITEM = "POKé BALL"
 DEFAULT_MART_COUNT = 5
+#: BUILD STEP 3 (the world brains). The map to reach by exploring (a map constant as the eyes name it, e.g.
+#: "LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN"); unset: explore with no goal.
+ENV_GOAL_MAP = "AI_PLAYER_GOAL_MAP"
+#: The roam brain's training steps.
+ENV_ROAM_STEPS = "AI_PLAYER_ROAM_STEPS"
+DEFAULT_ROAM_STEPS = 120
+#: The goto brain's errands: tiles of the current map, "x,y;x,y;...".
+ENV_GOTO = "AI_PLAYER_GOTO"
+#: A `world.jsonl` a previous run wrote: the AI starts with that memory (its last line), so knowledge grows over a
+#: playthrough. Unset: it starts knowing nothing.
+ENV_WORLD = "AI_PLAYER_WORLD"
+#: The intent's own frame budget (it ends itself with "budget:" before the run's frame budget stops it); unset:
+#: the run's frames minus `INTENT_MARGIN`.
+ENV_INTENT_FRAMES = "AI_PLAYER_INTENT_FRAMES"
+INTENT_MARGIN = 600
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
@@ -228,6 +257,12 @@ class HandsOptions:
     clock: tuple[int, int] | None
     fault_ungated_a: bool
     fault_blind_count: bool
+    # BUILD STEP 3 (the world brains); defaults so a caller that names only the step-2 fields still works
+    goal_map: str | None = None
+    roam_steps: int = DEFAULT_ROAM_STEPS
+    goto: tuple[tuple[int, int], ...] = ()
+    world_in: Path | None = None
+    intent_frames: int | None = None
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -245,6 +280,12 @@ class HandsOptions:
             if not (0 <= hours < 24 and 0 <= minutes < 60):
                 raise ValueError(f"{ENV_CLOCK} must be HH:MM, got {raw_clock!r}")
             clock = (hours, minutes)
+        raw_steps = os.environ.get(ENV_ROAM_STEPS, "").strip()
+        steps = int(raw_steps) if raw_steps else DEFAULT_ROAM_STEPS
+        if not 1 <= steps <= 5000:
+            raise ValueError(f"{ENV_ROAM_STEPS} must be 1..5000, got {steps}")
+        raw_world = os.environ.get(ENV_WORLD, "").strip()
+        raw_intent = os.environ.get(ENV_INTENT_FRAMES, "").strip()
         return cls(
             brain=brain,
             run_dir=Path(raw_dir) if raw_dir else None,
@@ -255,4 +296,21 @@ class HandsOptions:
             clock=clock,
             fault_ungated_a=_flag(ENV_FAULT_UNGATED_A),
             fault_blind_count=_flag(ENV_FAULT_BLIND_COUNT),
+            goal_map=os.environ.get(ENV_GOAL_MAP, "").strip() or None,
+            roam_steps=steps,
+            goto=parse_tiles(os.environ.get(ENV_GOTO, "")),
+            world_in=Path(raw_world) if raw_world else None,
+            intent_frames=int(raw_intent) if raw_intent else None,
         )
+
+
+def parse_tiles(text: str) -> tuple[tuple[int, int], ...]:
+    """"x,y;x,y" -> ((x, y), (x, y)); empty -> ()."""
+    tiles = []
+    for part in text.split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        x, y = (int(v) for v in part.split(",", 1))
+        tiles.append((x, y))
+    return tuple(tiles)

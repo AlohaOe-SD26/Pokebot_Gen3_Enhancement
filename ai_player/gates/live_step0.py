@@ -2351,15 +2351,11 @@ GRADERS["M8"] = grade_M8  # grade_mutant against XW, plus the second layer's che
 
 
 def provenance() -> str:
-    try:
-        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(REPO), capture_output=True, text=True, timeout=30).stdout.strip()
-        dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=all", "--", "ai_player", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"],
-            cwd=str(REPO), capture_output=True, text=True, timeout=30,
-        ).stdout.strip()
-        return f"HEAD {head}; " + ("ai_player/ + hook have UNCOMMITTED changes (the code under test is the working tree)" if dirty else "ai_player/ + hook clean at HEAD")
-    except Exception as error:  # noqa: BLE001
-        return f"unknown ({error})"
+    """STEP 2.1 (the step-2 review, item 2): with a digest of the working tree, the hook included
+    (`gates/provenance.py`)."""
+    from ai_player.gates.provenance import HOOK_SCOPE, provenance as tree_provenance
+
+    return tree_provenance(REPO, HOOK_SCOPE, "ai_player/ + hook")
 
 
 def key_lines(run: Run) -> list[str]:

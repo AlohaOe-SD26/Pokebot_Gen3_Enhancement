@@ -327,6 +327,17 @@ DOORS: tuple[Door, ...] = (
         "text printer's `currentChar` points into (`gStringVar4`, `gDisplayedStringBattle`), so they can read "
         "the text on screen. It reads no memory at all, and cannot press, write, load or run a frame.",
     ),
+    # ---- BUILD STEP 3 (the world and the navigator): one more READ-ONLY door for the eyes, under the same rule.
+    Door(
+        "modules.game", "get_symbol_name", {EYES: frozenset({""})},
+        "BUILD STEP 3: the REVERSE lookup in the symbol table (`modules/game.py`: `_reverse_symbols.get(address, "
+        "('', ''))[0]`, a dict): the name of the symbol AT an address. The eyes name the player's battle "
+        "controller function (`gBattlerControllerFuncs[0]`) to see the battle's action menu (FIGHT / BAG / "
+        "POKéMON / RUN) take input. `get_symbol` cannot do it: `HandleInputChooseAction` is a static function in "
+        "two files (`src/battle_controller_player.c`, `src/battle_controller_safari.c`) and the forward table "
+        "keeps one of them (measured 2026-10-08: it returned the Safari one, 0x081593D8, while the player's "
+        "controller ran 0x08057588). It reads no memory at all, and cannot press, write, load or run a frame.",
+    ),
 )
 
 #: The bot's brain. Refused even if a door would let it through. Every entry must also be covered by

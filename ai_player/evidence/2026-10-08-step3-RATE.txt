@@ -1,0 +1,210 @@
+AI PLAYER BUILD STEP 3 - RATE SWEEP (gates/rate_step3.py; in-process gates/hands_harness.py, each run graded by its second-path truth)
+date: 2026-10-08 04:39:23
+code: HEAD f7d007d5; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:1446987412c17a51 over git diff HEAD (21 files, 155973 bytes) and 19 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+a FREQUENCY measurement (CLAUDE.md rule 9); the purity of the same code is live_step3.py's launcher arms
+
+HOUSE: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to LITTLEROOT_TOWN (18 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3316 map [0, 9] | first exploring choice 1:1 frontier [6, 7] from [5, 2]; headings by map {'1:1': 'down'}
+    OK  seed 2: 'explore: done: explore to LITTLEROOT_TOWN (31 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 2 scenes, 4 ' frames 3610 map [0, 9] | first exploring choice 1:1 frontier [0, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 3: 'explore: done: explore to LITTLEROOT_TOWN (18 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3344 map [0, 9] | first exploring choice 1:1 frontier [5, 7] from [5, 2]; headings by map {'1:1': 'down'}
+    OK  seed 4: 'explore: done: explore to LITTLEROOT_TOWN (21 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3403 map [0, 9] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down'}
+    OK  seed 5: 'explore: done: explore to LITTLEROOT_TOWN (34 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 2 scenes, 4 ' frames 3606 map [0, 9] | first exploring choice 1:1 frontier [1, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 6: 'explore: done: explore to LITTLEROOT_TOWN (19 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3366 map [0, 9] | first exploring choice 1:1 frontier [6, 7] from [5, 2]; headings by map {'1:1': 'down'}
+    OK  seed 7: 'explore: done: explore to LITTLEROOT_TOWN (28 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 2 scenes, 4 ' frames 3517 map [0, 9] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 8: 'explore: done: explore to LITTLEROOT_TOWN (26 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 2 scenes, 4 ' frames 3477 map [0, 9] | first exploring choice 1:1 frontier [5, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'left'}
+    OK  seed 9: 'explore: done: explore to LITTLEROOT_TOWN (20 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3415 map [0, 9] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down'}
+    OK  seed 10: 'explore: done: explore to LITTLEROOT_TOWN (26 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 ' frames 3456 map [0, 9] | first exploring choice 1:1 frontier [1, 7] from [5, 2]; headings by map {'1:1': 'down'}
+TOWN: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to ROUTE101 (37 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 4986 map [0, 16] | first exploring choice 1:4 frontier [7, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 2: 'explore: done: explore to ROUTE101 (67 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5452 map [0, 16] | first exploring choice 1:4 frontier [2, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 3: 'explore: done: explore to ROUTE101 (37 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 4969 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 4: 'explore: done: explore to ROUTE101 (57 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 5215 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 5: 'explore: done: explore to ROUTE101 (65 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5355 map [0, 16] | first exploring choice 1:4 frontier [2, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 6: 'explore: done: explore to ROUTE101 (50 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 5183 map [0, 16] | first exploring choice 1:4 frontier [5, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'up'}
+    OK  seed 7: 'explore: done: explore to ROUTE101 (47 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5074 map [0, 16] | first exploring choice 1:4 frontier [7, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 8: 'explore: done: explore to ROUTE101 (55 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5335 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 9: 'explore: done: explore to ROUTE101 (46 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5097 map [0, 16] | first exploring choice 1:4 frontier [5, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 10: 'explore: done: explore to ROUTE101 (51 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5151 map [0, 16] | first exploring choice 1:4 frontier [9, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+ROUTE: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to OLDALE_TOWN (37 steps, 0 bumps, 0 people in the way, 0 exits used, 2 battles, 0 scenes, 5 deci' frames 2890 map [0, 10] | first exploring choice 0:16 frontier [10, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 2: 'explore: done: explore to OLDALE_TOWN (43 steps, 0 bumps, 0 people in the way, 0 exits used, 2 battles, 0 scenes, 5 deci' frames 2987 map [0, 10] | first exploring choice 0:16 frontier [11, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 3: 'explore: done: explore to OLDALE_TOWN (51 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 6 deci' frames 2083 map [0, 10] | first exploring choice 0:16 frontier [11, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 4: 'explore: done: explore to OLDALE_TOWN (40 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 5 deci' frames 1847 map [0, 10] | first exploring choice 0:16 frontier [10, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 5: 'explore: done: explore to OLDALE_TOWN (44 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 5 deci' frames 1930 map [0, 10] | first exploring choice 0:16 frontier [8, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 6: 'explore: done: explore to OLDALE_TOWN (48 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 5 deci' frames 964 map [0, 10] | first exploring choice 0:16 frontier [11, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 7: 'explore: done: explore to OLDALE_TOWN (42 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 5 deci' frames 1857 map [0, 10] | first exploring choice 0:16 frontier [8, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 8: 'explore: done: explore to OLDALE_TOWN (41 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 5 deci' frames 1845 map [0, 10] | first exploring choice 0:16 frontier [7, 14] from [11, 19]; headings by map {'0:16': 'up'}
+    OK  seed 9: 'explore: done: explore to OLDALE_TOWN (47 steps, 0 bumps, 0 people in the way, 0 exits used, 3 battles, 0 scenes, 5 deci' frames 4197 map [0, 10] | first exploring choice 0:16 frontier [4, 14] from [11, 19]; headings by map {'0:16': 'left'}
+    OK  seed 10: 'explore: done: explore to OLDALE_TOWN (41 steps, 0 bumps, 0 people in the way, 0 exits used, 3 battles, 0 scenes, 5 deci' frames 4083 map [0, 10] | first exploring choice 0:16 frontier [8, 14] from [11, 19]; headings by map {'0:16': 'up'}
+ROAM: 10 of 10 seeds as intended
+    OK  seed 1: 'roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a battle or a scene), 71 distinct tiles, spin ratio 0.0' frames 13400 map [0, 16]
+    OK  seed 2: 'roam: roamed: roam: 150 training steps (161 pressed, 11 ran into a battle or a scene), 71 distinct tiles, spin ratio 0.0' frames 14579 map [0, 16]
+    OK  seed 3: 'roam: roamed: roam: 150 training steps (163 pressed, 13 ran into a battle or a scene), 78 distinct tiles, spin ratio 0.0' frames 16646 map [0, 16]
+    OK  seed 4: 'roam: roamed: roam: 150 training steps (159 pressed, 9 ran into a battle or a scene), 66 distinct tiles, spin ratio 0.00' frames 12503 map [0, 16]
+    OK  seed 5: 'roam: roamed: roam: 150 training steps (162 pressed, 12 ran into a battle or a scene), 68 distinct tiles, spin ratio 0.0' frames 15667 map [0, 16]
+    OK  seed 6: 'roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a battle or a scene), 68 distinct tiles, spin ratio 0.0' frames 13347 map [0, 16]
+    OK  seed 7: 'roam: roamed: roam: 150 training steps (162 pressed, 12 ran into a battle or a scene), 68 distinct tiles, spin ratio 0.0' frames 15808 map [0, 16]
+    OK  seed 8: 'roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a battle or a scene), 68 distinct tiles, spin ratio 0.0' frames 13398 map [0, 16]
+    OK  seed 9: 'roam: roamed: roam: 150 training steps (159 pressed, 9 ran into a battle or a scene), 74 distinct tiles, spin ratio 0.00' frames 12586 map [0, 16]
+    OK  seed 10: 'roam: roamed: roam: 150 training steps (159 pressed, 9 ran into a battle or a scene), 67 distinct tiles, spin ratio 0.00' frames 12388 map [0, 16]
+STUCK: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12965..f14185) with nothing new since its second use, f13581 ' frames 1550 map [1, 0] | first exploring choice 1:1 frontier [6, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 2: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13142..f14303) with nothing new since its second use, f13715 ' frames 1668 map [1, 0] | first exploring choice 1:1 frontier [0, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 3: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12992..f14154) with nothing new since its second use, f13590 ' frames 1519 map [1, 0] | first exploring choice 1:1 frontier [5, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 4: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13017..f14203) with nothing new since its second use, f13619 ' frames 1568 map [1, 0] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 5: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13110..f14272) with nothing new since its second use, f13681 ' frames 1637 map [1, 0] | first exploring choice 1:1 frontier [1, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 6: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12998..f14231) with nothing new since its second use, f13631 ' frames 1596 map [1, 0] | first exploring choice 1:1 frontier [6, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 7: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13003..f14117) with nothing new since its second use, f13582 ' frames 1482 map [1, 0] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 8: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12976..f14130) with nothing new since its second use, f13555 ' frames 1495 map [1, 0] | first exploring choice 1:1 frontier [5, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 9: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13036..f14274) with nothing new since its second use, f13665 ' frames 1639 map [1, 0] | first exploring choice 1:1 frontier [4, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+    OK  seed 10: 'explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f13112..f14316) with nothing new since its second use, f13717 ' frames 1681 map [1, 0] | first exploring choice 1:1 frontier [1, 7] from [5, 2]; headings by map {'1:1': 'down', '1:0': 'down'}
+TOWN-Catcher: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to ROUTE101 (45 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 5024 map [0, 16] | first exploring choice 1:4 frontier [7, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 2: 'explore: done: explore to ROUTE101 (69 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5484 map [0, 16] | first exploring choice 1:4 frontier [2, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 3: 'explore: done: explore to ROUTE101 (52 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5149 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 4: 'explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 4981 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 5: 'explore: done: explore to ROUTE101 (52 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5110 map [0, 16] | first exploring choice 1:4 frontier [2, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 6: 'explore: done: explore to ROUTE101 (37 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 4964 map [0, 16] | first exploring choice 1:4 frontier [5, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 7: 'explore: done: explore to ROUTE101 (37 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 4961 map [0, 16] | first exploring choice 1:4 frontier [7, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 8: 'explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5096 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'left'}
+    OK  seed 9: 'explore: done: explore to ROUTE101 (46 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5151 map [0, 16] | first exploring choice 1:4 frontier [6, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 10: 'explore: done: explore to ROUTE101 (40 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5003 map [0, 16] | first exploring choice 1:4 frontier [9, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+TOWN-Trainer: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to ROUTE101 (69 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5504 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'up'}
+    OK  seed 2: 'explore: done: explore to ROUTE101 (49 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 6 decisio' frames 5142 map [0, 16] | first exploring choice 1:4 frontier [10, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 3: 'explore: done: explore to ROUTE101 (46 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5035 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 4: 'explore: done: explore to ROUTE101 (63 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5266 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 5: 'explore: done: explore to ROUTE101 (71 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 9 decisio' frames 5556 map [0, 16] | first exploring choice 1:4 frontier [10, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 6: 'explore: done: explore to ROUTE101 (73 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 9 decisio' frames 5662 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 7: 'explore: done: explore to ROUTE101 (72 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5514 map [0, 16] | first exploring choice 1:4 frontier [9, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 8: 'explore: done: explore to ROUTE101 (52 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5249 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 9: 'explore: done: explore to ROUTE101 (57 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 8 decisio' frames 5323 map [0, 16] | first exploring choice 1:4 frontier [8, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+    OK  seed 10: 'explore: done: explore to ROUTE101 (56 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 7 decisio' frames 5231 map [0, 16] | first exploring choice 1:4 frontier [9, 10] from [6, 5]; headings by map {'1:4': 'down', '0:9': 'right'}
+CROP: 10 of 10 seeds as intended
+    OK  seed 1: 'explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4683 map [0, 16] | first exploring choice 0:9 road [10, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 2: 'explore: done: explore to ROUTE101 (27 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4690 map [0, 16] | first exploring choice 0:9 road [10, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 3: 'explore: done: explore to ROUTE101 (30 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4640 map [0, 16] | first exploring choice 0:9 road [11, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 4: 'explore: done: explore to ROUTE101 (27 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4652 map [0, 16] | first exploring choice 0:9 road [10, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 5: 'explore: done: explore to ROUTE101 (28 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4682 map [0, 16] | first exploring choice 0:9 road [11, -3] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 6: 'explore: done: explore to ROUTE101 (28 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4697 map [0, 16] | first exploring choice 0:9 road [10, -2] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 7: 'explore: done: explore to ROUTE101 (28 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4710 map [0, 16] | first exploring choice 0:9 road [11, -4] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 8: 'explore: done: explore to ROUTE101 (27 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4737 map [0, 16] | first exploring choice 0:9 road [10, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 9: 'explore: done: explore to ROUTE101 (28 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4754 map [0, 16] | first exploring choice 0:9 road [11, -1] from [7, 17]; headings by map {'0:9': 'up'}
+    OK  seed 10: 'explore: done: explore to ROUTE101 (32 steps, 0 bumps, 0 people in the way, 1 exits used, 0 battles, 2 scenes, 2 decisio' frames 4761 map [0, 16] | first exploring choice 0:9 road [11, -1] from [7, 17]; headings by map {'0:9': 'up'}
+
+---- CHOICES (the verifier's weak proof 2): the targets each seed chose (map, kind, tile), from its action log ----
+HOUSE: 10 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'1:0': ['down', 'left'], '1:1': ['down']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:1 frontier [6, 7]; 1:1 door [7, 2]; 1:0 door [8, 7]
+    seed 2: 1:1 frontier [0, 7]; 1:1 door [7, 2]; 1:0 frontier [7, 8]; 1:0 door [9, 7]
+    seed 3: 1:1 frontier [5, 7]; 1:1 door [7, 2]; 1:0 door [8, 7]
+    seed 4: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:0 door [9, 7]
+    seed 5: 1:1 frontier [1, 7]; 1:1 door [7, 2]; 1:0 frontier [5, 8]; 1:0 door [8, 7]
+    seed 6: 1:1 frontier [6, 7]; 1:1 door [7, 2]; 1:0 door [9, 7]
+    seed 7: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:0 frontier [10, 8]; 1:0 door [8, 7]
+    seed 8: 1:1 frontier [5, 7]; 1:1 door [7, 2]; 1:0 frontier [1, 8]; 1:0 door [8, 7]
+    seed 9: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:0 door [8, 7]
+    seed 10: 1:1 frontier [1, 7]; 1:1 door [7, 2]; 1:0 door [8, 7]
+TOWN: 10 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'0:9': ['left', 'right', 'up'], '1:4': ['down']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:4 frontier [7, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 12]; 0:9 frontier [11, 7]; 0:9 frontier [9, 2]; 0:9 road [10, -3]
+    seed 2: 1:4 frontier [2, 10]; 1:4 frontier [12, 12]; 1:4 door [7, 11]; 0:9 frontier [14, 19]; 0:9 frontier [15, 12]; 0:9 frontier [18, 7]; 0:9 frontier [15, 2]; 0:9 road [10, -3]
+    seed 3: 1:4 frontier [6, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 18]; 0:9 frontier [13, 11]; 0:9 frontier [12, 6]; 0:9 frontier [10, 1]; 0:9 road [11, -2]
+    seed 4: 1:4 frontier [6, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 11]; 0:9 frontier [7, 6]; 0:9 frontier [0, 5]; 0:9 road [11, -1]
+    seed 5: 1:4 frontier [2, 10]; 1:4 door [6, 11]; 0:9 frontier [0, 16]; 0:9 frontier [2, 11]; 0:9 frontier [14, 11]; 0:9 frontier [18, 6]; 0:9 frontier [11, 3]; 0:9 road [11, -2]
+    seed 6: 1:4 frontier [5, 10]; 1:4 door [6, 11]; 0:9 frontier [12, 11]; 0:9 frontier [11, 6]; 0:9 frontier [19, 5]; 0:9 road [10, -1]
+    seed 7: 1:4 frontier [7, 10]; 1:4 door [7, 11]; 0:9 frontier [0, 16]; 0:9 frontier [0, 11]; 0:9 frontier [1, 6]; 0:9 frontier [8, 6]; 0:9 road [10, -1]
+    seed 8: 1:4 frontier [6, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 15]; 0:9 frontier [16, 10]; 0:9 frontier [3, 10]; 0:9 frontier [0, 5]; 0:9 frontier [8, 3]; 0:9 road [11, -2]
+    seed 9: 1:4 frontier [5, 10]; 1:4 door [7, 11]; 0:9 frontier [0, 17]; 0:9 frontier [0, 11]; 0:9 frontier [0, 6]; 0:9 frontier [7, 3]; 0:9 road [11, -1]
+    seed 10: 1:4 frontier [9, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 18]; 0:9 frontier [17, 12]; 0:9 frontier [19, 7]; 0:9 frontier [17, 2]; 0:9 road [11, -1]
+ROUTE: 10 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'0:16': ['left', 'up']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 0:16 frontier [10, 14]; 0:16 frontier [8, 9]; 0:16 frontier [15, 8]; 0:16 frontier [15, 3]; 0:16 road [12, -2]
+    seed 2: 0:16 frontier [11, 14]; 0:16 frontier [8, 9]; 0:16 frontier [18, 9]; 0:16 frontier [17, 4]; 0:16 road [11, -1]
+    seed 3: 0:16 frontier [11, 14]; 0:16 frontier [4, 13]; 0:16 frontier [4, 8]; 0:16 frontier [18, 9]; 0:16 frontier [17, 4]; 0:16 road [13, -1]
+    seed 4: 0:16 frontier [10, 14]; 0:16 frontier [6, 9]; 0:16 frontier [15, 9]; 0:16 frontier [15, 4]; 0:16 road [10, -1]
+    seed 5: 0:16 frontier [8, 14]; 0:16 frontier [6, 9]; 0:16 frontier [15, 9]; 0:16 frontier [17, 4]; 0:16 road [10, -1]
+    seed 6: 0:16 frontier [11, 14]; 0:16 frontier [4, 10]; 0:16 frontier [18, 9]; 0:16 frontier [16, 4]; 0:16 road [9, -1]
+    seed 7: 0:16 frontier [8, 14]; 0:16 frontier [8, 9]; 0:16 frontier [17, 9]; 0:16 frontier [17, 4]; 0:16 road [10, -1]
+    seed 8: 0:16 frontier [7, 14]; 0:16 frontier [6, 9]; 0:16 frontier [15, 9]; 0:16 frontier [14, 4]; 0:16 road [13, -1]
+    seed 9: 0:16 frontier [4, 14]; 0:16 frontier [6, 9]; 0:16 frontier [14, 9]; 0:16 frontier [17, 4]; 0:16 road [13, -1]
+    seed 10: 0:16 frontier [8, 14]; 0:16 frontier [7, 9]; 0:16 frontier [17, 9]; 0:16 frontier [17, 4]; 0:16 road [10, -1]
+STUCK: 9 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'1:0': ['down'], '1:1': ['down']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:1 frontier [6, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]
+    seed 2: 1:1 frontier [0, 7]; 1:1 door [7, 2]; 1:0 frontier [7, 8]; 1:1 back [7, 2]; 1:0 frontier [7, 8]; 1:1 back [7, 2]
+    seed 3: 1:1 frontier [5, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [3, 8]; 1:1 back [7, 2]
+    seed 4: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [7, 8]; 1:1 back [7, 2]
+    seed 5: 1:1 frontier [1, 7]; 1:1 door [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]; 1:0 frontier [7, 8]; 1:1 back [7, 2]
+    seed 6: 1:1 frontier [6, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]
+    seed 7: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]; 1:0 frontier [5, 8]; 1:1 back [7, 2]
+    seed 8: 1:1 frontier [5, 7]; 1:1 door [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]; 1:0 frontier [7, 8]; 1:1 back [7, 2]
+    seed 9: 1:1 frontier [4, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [6, 8]; 1:1 back [7, 2]
+    seed 10: 1:1 frontier [1, 7]; 1:1 door [7, 2]; 1:1 back [7, 2]; 1:0 frontier [5, 8]; 1:1 back [7, 2]
+TOWN-Catcher: 10 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'0:9': ['left', 'right'], '1:4': ['down']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:4 frontier [7, 10]; 1:4 door [7, 11]; 0:9 frontier [0, 11]; 0:9 frontier [0, 6]; 0:9 frontier [7, 5]; 0:9 road [10, -1]
+    seed 2: 1:4 frontier [2, 10]; 1:4 frontier [12, 12]; 1:4 door [7, 11]; 0:9 frontier [0, 17]; 0:9 frontier [0, 11]; 0:9 frontier [1, 6]; 0:9 frontier [8, 7]; 0:9 road [10, -1]
+    seed 3: 1:4 frontier [6, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 18]; 0:9 frontier [13, 11]; 0:9 frontier [5, 11]; 0:9 frontier [1, 6]; 0:9 frontier [8, 3]; 0:9 road [10, -2]
+    seed 4: 1:4 frontier [6, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 14]; 0:9 frontier [13, 9]; 0:9 frontier [8, 4]; 0:9 road [11, -1]
+    seed 5: 1:4 frontier [2, 10]; 1:4 door [6, 11]; 0:9 frontier [0, 15]; 0:9 frontier [2, 10]; 0:9 frontier [9, 8]; 0:9 frontier [11, 3]; 0:9 road [10, -1]
+    seed 6: 1:4 frontier [5, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 14]; 0:9 frontier [11, 9]; 0:9 frontier [10, 4]; 0:9 road [11, -1]
+    seed 7: 1:4 frontier [7, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 13]; 0:9 frontier [11, 8]; 0:9 frontier [12, 3]; 0:9 road [10, -1]
+    seed 8: 1:4 frontier [6, 10]; 1:4 door [7, 11]; 0:9 frontier [0, 17]; 0:9 frontier [0, 11]; 0:9 frontier [1, 6]; 0:9 frontier [8, 3]; 0:9 road [10, -1]
+    seed 9: 1:4 frontier [6, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 14]; 0:9 frontier [14, 9]; 0:9 frontier [7, 7]; 0:9 frontier [6, 2]; 0:9 road [10, -1]
+    seed 10: 1:4 frontier [9, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 16]; 0:9 frontier [13, 11]; 0:9 frontier [11, 6]; 0:9 frontier [10, 1]; 0:9 road [10, -2]
+TOWN-Trainer: 10 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'0:9': ['right', 'up'], '1:4': ['down']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:4 frontier [8, 10]; 1:4 door [7, 11]; 0:9 frontier [12, 11]; 0:9 frontier [3, 9]; 0:9 frontier [19, 10]; 0:9 frontier [19, 4]; 0:9 frontier [11, 4]; 0:9 road [10, -1]
+    seed 2: 1:4 frontier [10, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 14]; 0:9 frontier [16, 9]; 0:9 frontier [15, 4]; 0:9 road [10, -1]
+    seed 3: 1:4 frontier [8, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 18]; 0:9 frontier [15, 12]; 0:9 frontier [18, 7]; 0:9 frontier [17, 2]; 0:9 road [11, -3]
+    seed 4: 1:4 frontier [8, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 15]; 0:9 frontier [13, 10]; 0:9 frontier [5, 10]; 0:9 frontier [8, 5]; 0:9 frontier [0, 4]; 0:9 road [10, -1]
+    seed 5: 1:4 frontier [10, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 15]; 0:9 frontier [13, 10]; 0:9 frontier [10, 5]; 0:9 frontier [3, 10]; 0:9 frontier [2, 3]; 0:9 frontier [10, 0]; 0:9 road [11, -1]
+    seed 6: 1:4 frontier [8, 10]; 1:4 frontier [1, 12]; 1:4 door [7, 11]; 0:9 frontier [14, 15]; 0:9 frontier [16, 10]; 0:9 frontier [16, 9]; 0:9 frontier [4, 10]; 0:9 frontier [7, 4]; 0:9 road [10, -1]
+    seed 7: 1:4 frontier [9, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 13]; 0:9 frontier [18, 8]; 0:9 frontier [3, 9]; 0:9 frontier [0, 4]; 0:9 frontier [8, 2]; 0:9 road [11, -1]
+    seed 8: 1:4 frontier [8, 10]; 1:4 door [7, 11]; 0:9 frontier [14, 19]; 0:9 frontier [13, 11]; 0:9 frontier [19, 6]; 0:9 frontier [11, 1]; 0:9 road [11, -3]
+    seed 9: 1:4 frontier [8, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 16]; 0:9 frontier [11, 11]; 0:9 frontier [4, 9]; 0:9 frontier [2, 4]; 0:9 frontier [11, 4]; 0:9 road [11, -1]
+    seed 10: 1:4 frontier [9, 10]; 1:4 door [6, 11]; 0:9 frontier [14, 16]; 0:9 frontier [13, 11]; 0:9 frontier [4, 9]; 0:9 frontier [4, 4]; 0:9 road [10, -1]
+CROP: 7 different target sequences in 10 seeds; the first exploring choice's headings, by map: {'0:9': ['up']}; seeds 3 and 7 chose the same sequence: False
+    seed 1: 1:4 door [6, 11]; 0:9 road [10, -1]
+    seed 2: 1:4 door [7, 11]; 0:9 road [10, -1]
+    seed 3: 1:4 door [6, 11]; 0:9 road [11, -1]
+    seed 4: 1:4 door [7, 11]; 0:9 road [10, -1]
+    seed 5: 1:4 door [7, 11]; 0:9 road [11, -3]
+    seed 6: 1:4 door [6, 11]; 0:9 road [10, -2]
+    seed 7: 1:4 door [7, 11]; 0:9 road [11, -4]
+    seed 8: 1:4 door [7, 11]; 0:9 road [10, -1]
+    seed 9: 1:4 door [7, 11]; 0:9 road [11, -1]
+    seed 10: 1:4 door [7, 11]; 0:9 road [11, -1]
+
+---- CROP-SEP (the verifier's weak proof 1): what separates a cropped walk (TOWN, Story) from an uncropped one (CROP), seed by seed ----
+    columns: known tiles OUTSIDE the window they were first seen from / all known; the first target on LITTLEROOT_TOWN (kind, tile, from; SEEN = known and inside the window of the tile it was first seen from; in the window NOW, for the record); walking steps on the town (NOT a discriminator)
+    TOWN seed  1: outside 0 / 968; first town target frontier [14, 12] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 32
+    TOWN seed  2: outside 0 / 1226; first town target frontier [14, 19] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 42
+    TOWN seed  3: outside 0 / 972; first town target frontier [14, 18] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 33
+    TOWN seed  4: outside 0 / 1092; first town target frontier [14, 11] from [7, 17], seen from [7, 16]: SEEN True (in the window now False); town steps 53
+    TOWN seed  5: outside 0 / 1214; first town target frontier [0, 16] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 53
+    TOWN seed  6: outside 0 / 1031; first town target frontier [12, 11] from [7, 17], seen from [7, 16]: SEEN True (in the window now False); town steps 44
+    TOWN seed  7: outside 0 / 1088; first town target frontier [0, 16] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 42
+    TOWN seed  8: outside 0 / 1119; first town target frontier [14, 15] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 50
+    TOWN seed  9: outside 0 / 1099; first town target frontier [0, 17] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 39
+    TOWN seed 10: outside 0 / 1129; first town target frontier [14, 18] from [7, 17], seen from [7, 16]: SEEN True (in the window now True); town steps 41
+    CROP seed  1: outside 2641 / 3136; first town target road [10, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 22
+    CROP seed  2: outside 2641 / 3136; first town target road [10, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 22
+    CROP seed  3: outside 2641 / 3136; first town target road [11, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 26
+    CROP seed  4: outside 2641 / 3136; first town target road [10, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 22
+    CROP seed  5: outside 2641 / 3136; first town target road [11, -3] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 23
+    CROP seed  6: outside 2641 / 3136; first town target road [10, -2] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 24
+    CROP seed  7: outside 2641 / 3136; first town target road [11, -4] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 23
+    CROP seed  8: outside 2641 / 3136; first town target road [10, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 22
+    CROP seed  9: outside 2641 / 3136; first town target road [11, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 23
+    CROP seed 10: outside 2641 / 3136; first town target road [11, -1] from [7, 17], seen from [7, 16]: SEEN False (in the window now False); town steps 23
+CROP-SEP: every TOWN seed knows 0 tiles from outside a window and its first town target was SEEN: True; every CROP seed knows > 100 from outside and its first town target was NOT seen: True; => the two discriminators separate all 10 + 10 runs: True. The town steps (TOWN [32, 33, 39, 41, 42, 42, 44, 50, 53, 53], CROP [22, 22, 22, 22, 23, 23, 23, 23, 24, 26]) overlap: False (the step count is not a check: the step-3 sweep before the whim had an honest TOWN seed of 26 steps, CROP's own total)
+
+---- ROAM (the verifier's weak proof 5): spins over TRAINING STEPS (the stricter ratio) ----
+    seed  1: {"steps": 150, "attempts": 160, "interrupted": 10, "not_moved": 0, "spins": 0, "spin_ratio": 0.0, "spin_ratio_of_attempts": 0.0, "distinct": 71, "most_visited": 5, "encounters": 10, "fled": 10}
+    seed  2: {"steps": 150, "attempts": 161, "interrupted": 11, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006211, "distinct": 71, "most_visited": 5, "encounters": 11, "fled": 11}
+    seed  3: {"steps": 150, "attempts": 163, "interrupted": 13, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006135, "distinct": 78, "most_visited": 5, "encounters": 13, "fled": 13}
+    seed  4: {"steps": 150, "attempts": 159, "interrupted": 9, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006289, "distinct": 66, "most_visited": 4, "encounters": 9, "fled": 9}
+    seed  5: {"steps": 150, "attempts": 162, "interrupted": 12, "not_moved": 0, "spins": 0, "spin_ratio": 0.0, "spin_ratio_of_attempts": 0.0, "distinct": 68, "most_visited": 4, "encounters": 12, "fled": 12}
+    seed  6: {"steps": 150, "attempts": 160, "interrupted": 10, "not_moved": 0, "spins": 0, "spin_ratio": 0.0, "spin_ratio_of_attempts": 0.0, "distinct": 68, "most_visited": 4, "encounters": 10, "fled": 10}
+    seed  7: {"steps": 150, "attempts": 162, "interrupted": 12, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006173, "distinct": 68, "most_visited": 4, "encounters": 12, "fled": 12}
+    seed  8: {"steps": 150, "attempts": 160, "interrupted": 10, "not_moved": 0, "spins": 0, "spin_ratio": 0.0, "spin_ratio_of_attempts": 0.0, "distinct": 68, "most_visited": 4, "encounters": 10, "fled": 10}
+    seed  9: {"steps": 150, "attempts": 159, "interrupted": 9, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006289, "distinct": 74, "most_visited": 4, "encounters": 9, "fled": 9}
+    seed 10: {"steps": 150, "attempts": 159, "interrupted": 9, "not_moved": 0, "spins": 1, "spin_ratio": 0.006667, "spin_ratio_of_attempts": 0.006289, "distinct": 67, "most_visited": 5, "encounters": 9, "fled": 9}
+
+80 of 80 runs as intended; 248 s of wall clock with 4 workers

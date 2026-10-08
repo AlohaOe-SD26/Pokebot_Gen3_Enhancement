@@ -64,6 +64,7 @@ class RawMon:
     level: int
     hp: int
     max_hp: int
+    experience: int = 0  # total experience points (the growth substructure @4; step 3: progress counts experience gained)
 
 
 def _u16(data: bytes, offset: int) -> int:
@@ -98,4 +99,5 @@ def decode_party_mon(data: bytes) -> RawMon | str:
         level=data[84],
         hp=_u16(data, 86),
         max_hp=_u16(data, 88),
+        experience=_u32(secure, growth + 4),
     )

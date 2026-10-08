@@ -1920,13 +1920,10 @@ GRADERS = {"E1": grade_E1, "E2": grade_E2, "E2X": grade_E2X, "E3": grade_E3, "E4
 
 # ---------------------------------------------------------------------- evidence
 def provenance() -> str:
-    try:
-        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(REPO), capture_output=True, text=True, timeout=30).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", "ai_player"], cwd=str(REPO),
-                               capture_output=True, text=True, timeout=30).stdout.strip()
-        return f"HEAD {head}; " + ("ai_player/ has UNCOMMITTED changes (the code under test is the working tree)" if dirty else "ai_player/ clean at HEAD")
-    except Exception as error:  # noqa: BLE001
-        return f"unknown ({error})"
+    """STEP 2.1 (the step-2 review, item 2): with a digest of the working tree (`gates/provenance.py`)."""
+    from ai_player.gates.provenance import provenance as tree_provenance
+
+    return tree_provenance(REPO)
 
 
 def md5_of(path: Path) -> str:

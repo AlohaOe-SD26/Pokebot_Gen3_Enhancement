@@ -72,7 +72,8 @@ class Pad:
         self._rng = rng
         self._record = record
         self.pacing = pacing
-        self.frames = 0  # frames the pad has let pass (presses, gaps, idles)
+        #: Frames the pad has let pass (presses, gaps, idles), counted ONE BY ONE as each is handed on (`_count`).
+        self.frames = 0
         self.presses = 0
         self.history: list[dict] = []  # every press: frame index, button, hold, gap, gate, why
         self._idle_reason: str | None = None
@@ -91,9 +92,8 @@ class Pad:
         self.history.append(entry)
         self.presses += 1
         self._record(why, f"press {button} {held}f", gate, {"hold": held, "gap": gap, "pad_frame": self.frames})
-        yield from self._controls.hold(button, held)
-        yield from self._controls.wait(gap)
-        self.frames += held + gap
+        yield from self._count(self._controls.hold(button, held))
+        yield from self._count(self._controls.wait(gap))
 
     def turn(self, button: str, why: str, gate: str) -> Generator[None, None, None]:
         """A short tap of a direction: the player turns to face it without taking a step."""
@@ -110,8 +110,7 @@ class Pad:
         self.history.append(entry)
         self.presses += 1
         self._record(why, f"hold {button} {frames}f", gate, {"hold": frames, "pad_frame": self.frames})
-        yield from self._controls.hold(button, frames)
-        self.frames += frames
+        yield from self._count(self._controls.hold(button, frames))
 
     # ------------------------------------------------------------------ time, always with a reason
     def idle(self, frames: int, reason: str) -> Generator[None, None, None]:
@@ -124,8 +123,7 @@ class Pad:
             return
         self._flush_idle()
         self._record("idle", f"idle {frames}f", reason, {"pad_frame": self.frames})
-        yield from self._controls.wait(frames)
-        self.frames += frames
+        yield from self._count(self._controls.wait(frames))
 
     def busy(self, reason: str) -> Generator[None, None, None]:
         """One frame of watching the game do something the AI cannot hurry (a text printing, a fade, a scene).
@@ -136,8 +134,24 @@ class Pad:
             self._flush_idle()
             self._idle_reason = reason
         self._idle_frames += 1
-        yield from self._controls.wait(1)
-        self.frames += 1
+        yield from self._count(self._controls.wait(1))
+
+    def _count(self, frames: Generator[None, None, None]) -> Generator[None, None, None]:
+        """Hand on the frames of one `Controls` action, COUNTING each as it is handed on.
+
+        STEP 2.1 (the step-2 review, item 3: "assert pad frames == counters.real_frames"): the pad used to add a
+        press's hold and gap to `frames` after the whole press, so a skill STOPPED mid-press (the brain's frame
+        budget, `mode.py` HandsBrain._bounded) left those frames uncounted. Measured on the step-2 evidence: the
+        two arms stopped by their budget logged `frames=11999` against the instrument's `real_frames=12000` (XBN)
+        and 5991 against 6000 (XBC); the arms that ended by themselves agreed. Counting here makes the pad's count
+        the frames that really ran, which `gates/live_step2.py` now asserts against the instrument on every
+        launcher arm. The inner action is CLOSED with this one (a hold always releases its button)."""
+        try:
+            for _ in frames:
+                self.frames += 1
+                yield
+        finally:
+            frames.close()
 
     def finish(self) -> None:
         """Write out a pending busy record (the brain calls this when a skill ends)."""
@@ -190,10 +204,15 @@ class Hands:
         self.last = None
         self.looks = 0
         self.pad = Pad(controls, pacing_rng, self.note, pacing)
+        #: BUILD STEP 3: callables told EVERY look (the world model, `world/memory.py` WorldMemory.observe), so what the
+        #: eyes showed during a scene, a menu or a battle is remembered too, not only what the navigator looked at.
+        self.watchers: list[Callable] = []
 
     def look(self):
         self.last = self.eyes.look()
         self.looks += 1
+        for watcher in self.watchers:
+            watcher(self.last)
         return self.last
 
     def note(self, decision: str, action: str, reason: str, extra: dict | None = None) -> None:

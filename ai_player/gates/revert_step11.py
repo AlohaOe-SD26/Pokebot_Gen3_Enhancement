@@ -25,6 +25,10 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from ai_player.gates.provenance import provenance  # noqa: E402  (the evidence's code line, since step 3's verifier)
+
 EVIDENCE = REPO / "ai_player" / "evidence"
 TIMEOUT = 300
 
@@ -80,6 +84,11 @@ REVERTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str]]] = {
             [("memory_log.py", "        dest = owned_after[pid] if pid is not None else \"?\"\n",
               "        dest = \"party\" if len(observation.party or ()) > len(start.party or ()) else \"box\"  # MUTANT R5b\n")],
             ["CatchTests.test_dest_is_by_pid_even_when_the_first_look_could_not_read_the_party"]),
+    # R5c: STEP 2.1 (the step-2 verifier's weak proof, its V3): the HOST half of finding 5 had no test that failed on
+    # its revert. Now PartyNoneTests runs the host's own `_party` on a fake emulator memory.
+    "R5c": ("5 torn slot (host)", "the host returns the slots it could read when one is torn (a party one Pokemon short)",
+            [("host/eyes.py", "        return None if torn else party\n", "        return party  # MUTANT R5c\n")],
+            ["PartyNoneTests.test_a_torn_slot_makes_the_whole_party_none"]),
     "R6": ("6 script wait", "neither the status nor the mode checked: a finished script's leftover WaitForAorBPress reads as "
                             "waiting (each check alone refuses it; the live arm SW-X1 removes both too)",
            [("eyes/view.py", "    return status != SCRIPT_CONTEXT_SHUTDOWN and mode == \"Native\" and native_function == _WAIT_FOR_BUTTON_NATIVE",
@@ -131,7 +140,8 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-    out = [f"AI PLAYER BUILD STEP 1.1 - REVERT PROOF (gates/revert_step11.py)", f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}", ""]
+    out = [f"AI PLAYER BUILD STEP 1.1 - REVERT PROOF (gates/revert_step11.py)", f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+           f"code: {provenance(REPO)}", ""]
     ok_all = True
     for name, (finding, what, edits, must_fail) in REVERTS.items():
         root = make_copy(edits)

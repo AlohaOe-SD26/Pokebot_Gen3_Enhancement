@@ -1,0 +1,73 @@
+{
+ "fixture": "ai_player\\gates\\fixtures\\house_2f_clockset.ss1",
+ "from": "ai_player\\gates\\fixtures\\clock_room.ss1",
+ "from_md5": "5d1d0ce0974470bf11040fc39f832041",
+ "played": "the AI's own clock skill (hands_harness run: brain clock, seed 3, clock 13:37)",
+ "reason": "clock: clock set to 13:37",
+ "frames": 2614,
+ "presses": 16,
+ "truth": {
+  "frame": 15268,
+  "game_state": "OVERWORLD",
+  "name": "Rowan",
+  "name_bytes": "cce3ebd5e2ffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   1,
+   1
+  ],
+  "party": [],
+  "money": 3000,
+  "balls": {},
+  "flags": {
+   "RESCUED_BIRCH": false,
+   "SYS_POKEMON_GET": false,
+   "DEFEATED_RIVAL_ROUTE103": false,
+   "RECEIVED_POKEDEX_FROM_BIRCH": false,
+   "SYS_POKEDEX_GET": false,
+   "ADVENTURE_STARTED": false,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": false,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 6,
+  "gLocalTime": [
+   0,
+   13,
+   37,
+   3
+  ],
+  "localTimeOffset": [
+   9777,
+   12,
+   21,
+   6
+  ],
+  "pos": [
+   5,
+   2
+  ],
+  "game_stats": {
+   "steps": 9,
+   "total_battles": 0,
+   "wild_battles": 0,
+   "trainer_battles": 0
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "md5": "2cc0b61450870d34646f7583bfd0c787",
+ "ok": true
+}

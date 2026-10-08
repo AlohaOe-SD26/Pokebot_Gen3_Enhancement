@@ -3,6 +3,8 @@
     py -3.12 ai_player/gates/hands_harness.py BRAIN [--state PATH | --fresh] [--seed N] [--frames N]
                                               [--fault ungated_a|blind_count] [--mart-count N] [--clock HH:MM]
                                               [--save-end PATH] [--run-dir DIR] [--record PATH]
+                 BUILD STEP 3, the world brains (explore, roam, goto): [--goal-map MAP] [--roam-steps N]
+                                              [--goto 'x,y;x,y'] [--world-in world.jsonl] [--intent-frames N] [--no-crop]
     prints one line: HANDS {json}
     py -3.12 ai_player/gates/hands_harness.py truth STATE      (the second-path truth of a saved state: TRUTH {json})
 
@@ -45,6 +47,9 @@ SB1_FLAGS, SB1_VARS, VARS_START = 0x1270, 0x139C, 0x4000
 FLAG_SET_WALL_CLOCK, VAR_LITTLEROOT_INTRO_STATE = 0x51, 0x4092
 #: `include/constants/items.h` ITEM_POKE_BALL = 4; `include/item.h` struct Item (0x2C bytes): price @0x10.
 ITEM_POKE_BALL, ITEM_SIZE, ITEM_PRICE = 4, 0x2C, 0x10
+#: BUILD STEP 3: `include/global.h` SaveBlock1.gameStats @0x159C, SaveBlock2.encryptionKey @0xAC; the stats read.
+SB1_GAME_STATS, SB2_ENCRYPTION_KEY = 0x159C, 0xAC
+GAME_STATS = {"steps": 5, "total_battles": 7, "wild_battles": 8, "trainer_battles": 9}
 
 
 class HarnessControls:
@@ -91,7 +96,11 @@ def truth(context) -> dict:
            "name_bytes": raw_name.hex(), "gender": gender, "gender_name": {0: "BOY", 1: "GIRL"}.get(gender, "?"),
            "map": [location[0], location[1]]}
     try:
-        out["party"] = [[m.species.name, m.current_hp, m.total_hp] for m in get_party()]
+        party = get_party()
+        out["party"] = [[m.species.name, m.current_hp, m.total_hp] for m in party]
+        # (the step-3 verifier's second round) each party Pokemon's IDENTITY and total experience, by the framework's
+        # own decoder (`Pokemon.personality_value`, `Pokemon.total_exp`): the XP arm's second path for the eyes' claim
+        out["party_exp"] = [[f"{m.personality_value:08x}", m.species.name, m.total_exp, m.level] for m in party]
     except Exception as error:  # noqa: BLE001
         out["party"] = f"unreadable: {type(error).__name__}: {error}"
     try:
@@ -115,6 +124,16 @@ def truth(context) -> dict:
 
     out["gLocalTime"] = as_time(local)
     out["localTimeOffset"] = as_time(offset)
+    # BUILD STEP 3 (`gates/live_step3.py`): the player's tile (save block 1 `pos`, s16 x and y @0) and the game's OWN
+    # counters of steps and battles (`include/global.h` SaveBlock1.gameStats[] @0x159C, each u32 XOR'd with save
+    # block 2's encryptionKey @0xAC: `src/overworld.c` GetGameStat; `include/constants/game_stat.h` GAME_STAT_STEPS 5,
+    # GAME_STAT_TOTAL_BATTLES 7, GAME_STAT_WILD_BATTLES 8, GAME_STAT_TRAINER_BATTLES 9), never the AI's eyes.
+    pos = bytes(emulator.read_bytes(sb1, 4))
+    out["pos"] = [int.from_bytes(pos[0:2], "little", signed=True), int.from_bytes(pos[2:4], "little", signed=True)]
+    key = int.from_bytes(bytes(emulator.read_bytes(sb2 + SB2_ENCRYPTION_KEY, 4)), "little")
+    stats = bytes(emulator.read_bytes(sb1 + SB1_GAME_STATS, 4 * 10))
+    out["game_stats"] = {name: int.from_bytes(stats[4 * index:4 * index + 4], "little") ^ key
+                         for name, index in GAME_STATS.items()}
     item = read_symbol("gItems", ITEM_POKE_BALL * ITEM_SIZE, ITEM_SIZE)
     out["rom_poke_ball"] = {"name": own_text(item[:14]), "price": int.from_bytes(item[ITEM_PRICE:ITEM_PRICE + 2], "little")}
     return out
@@ -158,21 +177,28 @@ class RecordingEyes:
 
 def play(context, brain: str, seed: int, frames: int, run_dir: Path, fault: str | None = None,
          mart_count: int | None = None, clock: str | None = None, personality: str | None = None,
-         record: Path | None = None) -> dict:
-    """Run the hands brain `brain` on the already booted emulator of `context`, one frame per `next`."""
+         record: Path | None = None, world: dict | None = None) -> dict:
+    """Run the hands brain `brain` on the already booted emulator of `context`, one frame per `next`. BUILD STEP 3:
+    `world` holds the world brains' options (goal_map, roam_steps, goto, world_in, intent_frames, no_crop)."""
     from ai_player.host.eyes import FrameworkEyes
     from ai_player.mode import BrainSettings, HandsBrain
-    from ai_player.options import DEFAULT_MART_COUNT, DEFAULT_MART_ITEM, HandsOptions
+    from ai_player.options import DEFAULT_MART_COUNT, DEFAULT_MART_ITEM, DEFAULT_ROAM_STEPS, HandsOptions, parse_tiles
 
     emulator = context.emulator
+    world = world or {}
     clock_value = tuple(int(p) for p in clock.split(":")) if clock else None
     options = HandsOptions(brain=brain, run_dir=run_dir, seed=seed, personality=personality, mart_item=DEFAULT_MART_ITEM,
                            mart_count=mart_count or DEFAULT_MART_COUNT, clock=clock_value,
-                           fault_ungated_a=fault == "ungated_a", fault_blind_count=fault == "blind_count")
+                           fault_ungated_a=fault == "ungated_a", fault_blind_count=fault == "blind_count",
+                           goal_map=world.get("goal_map"), roam_steps=world.get("roam_steps") or DEFAULT_ROAM_STEPS,
+                           goto=parse_tiles(world.get("goto") or ""),
+                           world_in=Path(world["world_in"]) if world.get("world_in") else None,
+                           intent_frames=world.get("intent_frames"))
     lines: list[str] = []
     brain_object = HandsBrain(BrainSettings(frames=frames), lines.append, options)
     controls = HarnessControls(emulator)
-    eyes = RecordingEyes(FrameworkEyes()) if record is not None else FrameworkEyes()
+    eyes = FrameworkEyes(crop=not world.get("no_crop"))
+    eyes = RecordingEyes(eyes) if record is not None else eyes
     started = time.monotonic()
     steps = brain_object.play(controls, eyes)
     reason = None
@@ -194,18 +220,18 @@ def play(context, brain: str, seed: int, frames: int, run_dir: Path, fault: str 
                                       "records": eyes.records}, ensure_ascii=False), encoding="utf-8")
     return {"brain": brain, "seed": seed, "fault": fault, "reason": reason, "frames": count,
             "seconds": round(time.monotonic() - started, 1), "presses": controls.presses, "lines": lines,
-            "actions": str(run_dir / "actions.jsonl")}
+            "actions": str(run_dir / "actions.jsonl"), "world_file": str(run_dir / "world.jsonl")}
 
 
 def run(brain: str, state: Path | None, seed: int, frames: int, fault: str | None, mart_count: int | None,
         clock: str | None, run_dir: Path, save_end: Path | None, personality: str | None = None,
-        record: Path | None = None) -> dict:
+        record: Path | None = None, world: dict | None = None) -> dict:
     context = boot(PROFILE)
     emulator = context.emulator
     if state is not None:
         emulator.load_save_state(state.read_bytes())
     start_truth = truth(context) if state is not None else None
-    result = play(context, brain, seed, frames, run_dir, fault, mart_count, clock, personality, record)
+    result = play(context, brain, seed, frames, run_dir, fault, mart_count, clock, personality, record, world)
     end = truth(context)
     if save_end is not None:
         save_end.parent.mkdir(parents=True, exist_ok=True)
@@ -222,7 +248,13 @@ def main() -> int:
         print("TRUTH " + json.dumps(truth_of(Path(sys.argv[2])), ensure_ascii=False), flush=True)
         return 0
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("brain", choices=("intro", "nurse", "mart", "clock"))
+    parser.add_argument("brain", choices=("intro", "nurse", "mart", "clock", "explore", "roam", "goto"))
+    parser.add_argument("--goal-map", help="step 3, explore: the map constant to reach")
+    parser.add_argument("--roam-steps", type=int, help="step 3, roam: training steps")
+    parser.add_argument("--goto", help="step 3, goto: 'x,y;x,y'")
+    parser.add_argument("--world-in", help="step 3: a world.jsonl to start from")
+    parser.add_argument("--intent-frames", type=int, help="step 3: the intent's own budget")
+    parser.add_argument("--no-crop", action="store_true", help="step 3 FAULT: the eyes see the whole map (AI_PLAYER_FAULT_NO_CROP)")
     parser.add_argument("--state", type=Path)
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--seed", type=int, default=1)
@@ -238,8 +270,10 @@ def main() -> int:
     if args.state is None and not args.fresh:
         parser.error("--state PATH or --fresh")
     run_dir = args.run_dir or Path(tempfile.mkdtemp(prefix="ai_hands_"))
+    world = {"goal_map": args.goal_map, "roam_steps": args.roam_steps, "goto": args.goto, "world_in": args.world_in,
+             "intent_frames": args.intent_frames, "no_crop": args.no_crop}
     result = run(args.brain, args.state, args.seed, args.frames, args.fault, args.mart_count, args.clock, run_dir,
-                 args.save_end, args.personality, args.record)
+                 args.save_end, args.personality, args.record, world)
     print("HANDS " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

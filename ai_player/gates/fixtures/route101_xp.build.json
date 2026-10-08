@@ -1,0 +1,586 @@
+{
+ "fixture": "ai_player\\gates\\fixtures\\route101_xp.ss1",
+ "world": "ai_player\\gates\\fixtures\\route101_xp.world.jsonl",
+ "from": "ai_player\\gates\\fixtures\\route101_south.ss1",
+ "from_md5": "81bf318a1532c5364f60064530f9984b",
+ "played": "stage 1: the AI's own hands (hands_harness run: brain goto, errands 7,15;5,15;6,15, Story, seed 3); stage 2: test-side presses (Left/Right between (6, 15) and (5, 15) until a wild battle; FIGHT, the first move; A on an arrow or a stall), saved on the first frame the foe's HP was 0",
+ "stage1_reason": "goto: done: walk to [(7, 15), (5, 15), (6, 15)] (11 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 291 tiles learned)",
+ "stage1_frames": 267,
+ "stage1_presses": 20,
+ "stage1_lines": [
+  "[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))",
+  "[AI-WORLD] intent 'walk to [(7, 15), (5, 15), (6, 15)]': budget 5400 frames; on ROUTE101 at (11, 19); 165 tiles known on 1 maps",
+  "[AI-WORLD] go to the goto at (7, 15): errand 1 of 3: walk to (7, 15) (score 0.0)",
+  "[AI-WORLD] go to the goto at (5, 15): errand 2 of 3: walk to (5, 15) (score 0.0)",
+  "[AI-WORLD] go to the goto at (6, 15): errand 3 of 3: walk to (6, 15) (score 0.0)",
+  "[AI-WORLD] memory at the end: 1 maps (ROUTE101 291 tiles 0 bumped), 291 tiles learned, 0 warp links, 0 connections, 0 map changes",
+  "[AI-WORLD] navigator: 11 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 291 tiles learned"
+ ],
+ "walk": [
+  [
+   67150,
+   "Left"
+  ],
+  [
+   67183,
+   "Right"
+  ],
+  [
+   67216,
+   "Left"
+  ],
+  [
+   69506,
+   "Right"
+  ],
+  [
+   69539,
+   "Left"
+  ],
+  [
+   69572,
+   "Right"
+  ],
+  [
+   69605,
+   "Left"
+  ]
+ ],
+ "first_battle_not_saved": {
+  "began_on": [
+   5,
+   15
+  ],
+  "experience_at_start": {
+   "550a9be6": [
+    "Mudkip",
+    418,
+    8
+   ]
+  },
+  "experience_after": {
+   "550a9be6": [
+    "Mudkip",
+    441,
+    9
+   ]
+  }
+ },
+ "battle_began_on": [
+  5,
+  15
+ ],
+ "battle_began_at_frame": 69632,
+ "experience_at_battle_start": {
+  "550a9be6": [
+   "Mudkip",
+   441,
+   9
+  ]
+ },
+ "saved": {
+  "frame": 71324,
+  "foe": {
+   "species": 290,
+   "hp": 0,
+   "level": 2
+  },
+  "experience": {
+   "550a9be6": [
+    "Mudkip",
+    441,
+    9
+   ]
+  },
+  "md5": "ac5bc2645ad980386be12d2b4a8704e6"
+ },
+ "truth_of_the_save": {
+  "frame": 71324,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   16
+  ],
+  "party": [
+   [
+    "Mudkip",
+    19,
+    30
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Mudkip",
+    441,
+    9
+   ]
+  ],
+  "money": 3300,
+  "balls": {
+   "POKé BALL": 5
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "gLocalTime": [
+   80,
+   0,
+   6,
+   47
+  ],
+  "localTimeOffset": [
+   9698,
+   1,
+   51,
+   30
+  ],
+  "pos": [
+   5,
+   15
+  ],
+  "game_stats": {
+   "steps": 639,
+   "total_battles": 13,
+   "wild_battles": 12,
+   "trainer_battles": 1
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "presses": [
+  [
+   67489,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "the first battle"
+  ],
+  [
+   67497,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "the first battle"
+  ],
+  [
+   67505,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "the first battle"
+  ],
+  [
+   67513,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "the first battle"
+  ],
+  [
+   67521,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "the first battle"
+  ],
+  [
+   67703,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "the first battle"
+  ],
+  [
+   67906,
+   "A",
+   "HandleInputChooseAction",
+   "the first battle"
+  ],
+  [
+   67914,
+   "A",
+   "HandleInputChooseMove",
+   "the first battle"
+  ],
+  [
+   68358,
+   "A",
+   "HandleInputChooseAction",
+   "the first battle"
+  ],
+  [
+   68366,
+   "A",
+   "HandleInputChooseMove",
+   "the first battle"
+  ],
+  [
+   68748,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   68756,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   68764,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   68772,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   68780,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   68872,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "the first battle"
+  ],
+  [
+   69004,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "the first battle"
+  ],
+  [
+   69143,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "the first battle"
+  ],
+  [
+   69269,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   69277,
+   "A",
+   "PlayerBufferRunCommand",
+   "the first battle"
+  ],
+  [
+   69878,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "before the save"
+  ],
+  [
+   69886,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "before the save"
+  ],
+  [
+   69894,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "before the save"
+  ],
+  [
+   69902,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "before the save"
+  ],
+  [
+   69910,
+   "A",
+   "CompleteOnBattlerSpriteCallbackDummy",
+   "before the save"
+  ],
+  [
+   70087,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "before the save"
+  ],
+  [
+   70290,
+   "A",
+   "HandleInputChooseAction",
+   "before the save"
+  ],
+  [
+   70298,
+   "A",
+   "HandleInputChooseMove",
+   "before the save"
+  ],
+  [
+   70762,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70770,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70778,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70786,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70794,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70802,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70810,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70818,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70826,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70834,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70842,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70850,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70858,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70866,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   70874,
+   "A",
+   "PlayerBufferRunCommand",
+   "before the save"
+  ],
+  [
+   71118,
+   "A",
+   "HandleInputChooseAction",
+   "before the save"
+  ],
+  [
+   71126,
+   "A",
+   "HandleInputChooseMove",
+   "before the save"
+  ],
+  [
+   71383,
+   "A",
+   "PlayerBufferRunCommand",
+   "after the save"
+  ],
+  [
+   71391,
+   "A",
+   "PlayerBufferRunCommand",
+   "after the save"
+  ],
+  [
+   71399,
+   "A",
+   "PlayerBufferRunCommand",
+   "after the save"
+  ],
+  [
+   71407,
+   "A",
+   "PlayerBufferRunCommand",
+   "after the save"
+  ],
+  [
+   71498,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "after the save"
+  ],
+  [
+   71630,
+   "A",
+   "CompleteOnInactiveTextPrinter2",
+   "after the save"
+  ]
+ ],
+ "after_the_save_played_on": {
+  "experience": {
+   "550a9be6": [
+    "Mudkip",
+    456,
+    9
+   ]
+  },
+  "gained": {
+   "550a9be6": [
+    441,
+    456
+   ]
+  },
+  "levels": {
+   "550a9be6": [
+    9,
+    9
+   ]
+  },
+  "back_on_the_map": true,
+  "truth": {
+   "frame": 71854,
+   "game_state": "OVERWORLD",
+   "name": "NICK",
+   "name_bytes": "c8c3bdc5ffffffff",
+   "gender": 0,
+   "gender_name": "BOY",
+   "map": [
+    0,
+    16
+   ],
+   "party": [
+    [
+     "Mudkip",
+     19,
+     30
+    ]
+   ],
+   "party_exp": [
+    [
+     "550a9be6",
+     "Mudkip",
+     456,
+     9
+    ]
+   ],
+   "money": 3300,
+   "balls": {
+    "POKé BALL": 5
+   },
+   "flags": {
+    "RESCUED_BIRCH": true,
+    "SYS_POKEMON_GET": true,
+    "DEFEATED_RIVAL_ROUTE103": true,
+    "RECEIVED_POKEDEX_FROM_BIRCH": true,
+    "SYS_POKEDEX_GET": true,
+    "ADVENTURE_STARTED": true,
+    "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+    "SYS_B_DASH": true,
+    "DEFEATED_RUSTBORO_GYM": false,
+    "BADGE01_GET": false,
+    "BADGE02_GET": false,
+    "BADGE03_GET": false,
+    "BADGE04_GET": false,
+    "BADGE05_GET": false,
+    "BADGE06_GET": false,
+    "BADGE07_GET": false,
+    "BADGE08_GET": false
+   },
+   "FLAG_SET_WALL_CLOCK": true,
+   "VAR_LITTLEROOT_INTRO_STATE": 7,
+   "gLocalTime": [
+    80,
+    3,
+    35,
+    16
+   ],
+   "localTimeOffset": [
+    9698,
+    1,
+    51,
+    30
+   ],
+   "pos": [
+    5,
+    15
+   ],
+   "game_stats": {
+    "steps": 639,
+    "total_battles": 13,
+    "wild_battles": 12,
+    "trainer_battles": 1
+   },
+   "rom_poke_ball": {
+    "name": "POKé BALL",
+    "price": 200
+   }
+  }
+ },
+ "md5": "ac5bc2645ad980386be12d2b4a8704e6",
+ "world_md5": "ce8287a37f03394b19fcb3e28f964feb",
+ "ok": true
+}

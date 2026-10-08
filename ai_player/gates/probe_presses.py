@@ -39,6 +39,17 @@ The truth per A press is graded by `gates/live_step2.py` (arms WBI, WBN, WBM, WB
 (`gate_kind`): a WAIT gate must be still, moved by A, the same under B, and not printing; a MENU gate not
 printing, still (the menu waited for input) and moved by A; a TALK gate free and started. This file is test side
 (`ai_player/gates/`): the purity gate forbids the play loop to import it.
+
+STEP 2.1 (the step-2 review, item 4: "presses other than A are never checked against the game"): every START, B
+and SELECT press is forked too (`PressTester.check_other`). Such a press is not a "continue": it skips the intro
+movie, starts the game at the title, leaves the mart's list, deletes a letter, puts the keyboard's cursor on OK,
+turns the keyboard's page. So it is judged by ONE question, asked of the game: was it TAKEN? From the saved frame,
+PRESS_WATCH frames with NO input, and (the state reloaded) the same frames with the press held as long as the AI
+holds it; the press was taken when the two runs differ (`effect`: the snapshot above plus every active task's
+DATA, `sMenu`, and the naming keyboard's state, page and cursor). The emulator is deterministic, so two runs from
+one state with the same inputs are equal frame for frame (the A forks' "B-same" relies on the same fact); a press
+the game DROPPED (a key during a palette fade, which the intro movie ignores: `src/intro.c` MainCB2_Intro) leaves
+the two runs equal. The probe also reads, itself, whether a fade ran on the press's frame (`gPaletteFade.active`).
 """
 
 from __future__ import annotations
@@ -71,6 +82,13 @@ CONTEXT_SHUTDOWN = 2
 PRINTER_SIZE, PRINTER_COUNT = 0x24, 32
 #: A gate that says the game WAITED for the press (`ScreenState.wait_reason`).
 WAIT_GATE = re.compile(r"^(text printer \d+ (WAIT|CLEAR|SCROLL_START)|script waitbuttonpress|task \S+ \(A( or B)?\))$")
+#: STEP 2.1 (the review's item 4): the presses other than A the probe forks, judged by "was it taken?".
+OTHER_BUTTONS = ("Start", "B", "Select")
+#: `include/palette.h` struct PaletteFadeControl: `active` is bit 7 of byte 7 (read here by the probe itself).
+FADE_BYTE, FADE_BIT = 0x07, 0x80
+#: `src/naming_screen.c` struct NamingScreenData: state @0x1E10 ... template @0x1E28 (the block read by `effect`);
+#: cursorSpriteId @0x1E23; `include/sprite.h` struct Sprite: 0x44 bytes, data[] @0x2E.
+NAMING_BLOCK, NAMING_BLOCK_SIZE, NAMING_CURSOR_SPRITE, SPRITE_SIZE, SPRITE_DATA = 0x1E10, 0x1C, 0x1E23, 0x44, 0x2E
 #: The menu gates the hands write (`hands/menus.py`), each with the `MenuView.kind` it names.
 _MENU_GATES = (
     (re.compile(r"^(?P<kind>[a-z_]+) cursor on -?\d+ \("), None),
@@ -125,6 +143,34 @@ def naming_text() -> str | None:
     return bytes(context.emulator.read_bytes(pointer + 0x1800, 16)).hex()
 
 
+def effect() -> dict:
+    """STEP 2.1: what a press other than A may change, read raw by this file: the `snapshot`, every active task's
+    DATA (a menu's cursor, a timer, the title's phase counters), `sMenu` (the yes/no and list cursors), and the
+    naming keyboard's state, page and cursor (its block of `NamingScreenData` and the cursor sprite's data)."""
+    from modules.context import context
+    from modules.memory import read_symbol
+
+    out = snapshot()
+    raw_tasks = read_symbol("gTasks", size=40 * 16)
+    out["task_data"] = [bytes(raw_tasks[40 * i + 8:40 * i + 40]).hex() for i in range(16) if raw_tasks[40 * i + 4]]
+    out["menu"] = bytes(read_symbol("sMenu", size=12)).hex()
+    pointer = _u32(read_symbol("sNamingScreen", size=4), 0)
+    out["naming"] = None
+    if 0x02000000 <= pointer < 0x02040000 - NAMING_BLOCK - NAMING_BLOCK_SIZE:
+        block = bytes(context.emulator.read_bytes(pointer + NAMING_BLOCK, NAMING_BLOCK_SIZE))
+        sprite = block[NAMING_CURSOR_SPRITE - NAMING_BLOCK]
+        cursor = bytes(read_symbol("gSprites", sprite * SPRITE_SIZE + SPRITE_DATA, 4)).hex() if sprite < 64 else None
+        out["naming"] = [block.hex(), cursor]
+    return out
+
+
+def fading_now() -> bool:
+    """`gPaletteFade.active`, read by the probe itself."""
+    from modules.memory import read_symbol
+
+    return bool(read_symbol("gPaletteFade", FADE_BYTE, 1)[0] & FADE_BIT)
+
+
 def _diff(a: dict, b: dict) -> list[str]:
     return sorted(k for k in a if a[k] != b.get(k))
 
@@ -135,6 +181,34 @@ class PressTester:
     def __init__(self, context) -> None:
         self.context = context
         self.results: list[dict] = []
+        self.others: list[dict] = []  # STEP 2.1: the START / B / SELECT presses (`check_other`)
+
+    def check_other(self, entry: dict | None, button: str, held: int) -> None:
+        """STEP 2.1 (the review's item 4): was this START / B / SELECT TAKEN? PRESS_WATCH frames with no input,
+        then (reloaded) the same frames with the press; taken at the first frame the two `effect` runs differ.
+        Leaves the emulator exactly where it found it."""
+        emulator = self.context.emulator
+        state = emulator.get_save_state()
+        frame0 = emulator.get_frame_count()
+        held_before = emulator.reset_held_buttons()
+        result: dict = {"frame": frame0, "button": button, "action": (entry or {}).get("action"),
+                        "gate": (entry or {}).get("reason"), "digest": (entry or {}).get("digest"), "held": held}
+        try:
+            result["fading"] = fading_now()
+            idle = []
+            for _ in range(PRESS_WATCH):
+                emulator.run_single_frame()
+                idle.append(effect())
+            emulator.load_save_state(state)
+            pressed = self._press(button, held, effect)
+            taken = next((i + 1 for i, (a, b) in enumerate(zip(idle, pressed)) if a != b), None)
+            result["taken_at"] = taken
+            result["taken_by"] = _diff(idle[taken - 1], pressed[taken - 1]) if taken else []
+        finally:
+            emulator.load_save_state(state)
+            emulator.restore_held_buttons(held_before)
+        result["restored"] = emulator.get_frame_count() == frame0
+        self.others.append(result)
 
     def check(self, entry: dict | None, held: int) -> None:
         emulator = self.context.emulator
@@ -187,7 +261,7 @@ class PressTester:
         result["restored"] = emulator.get_frame_count() == frame0
         self.results.append(result)
 
-    def _press(self, button: str, held: int) -> list[dict]:
+    def _press(self, button: str, held: int, read=snapshot) -> list[dict]:
         emulator = self.context.emulator
         out = []
         emulator.hold_button(button)
@@ -196,7 +270,7 @@ class PressTester:
                 if i == held:
                     emulator.release_button(button)
                 emulator.run_single_frame()
-                out.append(snapshot())
+                out.append(read())
         finally:
             emulator.release_button(button)
         return out
@@ -214,6 +288,8 @@ class ForkingControls(HarnessControls):
     def hold(self, button: str, frames: int):
         if button == "A":
             self.tester.check(self.last_entry, frames)
+        elif button in OTHER_BUTTONS:  # STEP 2.1 (the review's item 4)
+            self.tester.check_other(self.last_entry, button, frames)
         yield from super().hold(button, frames)
 
 
@@ -256,7 +332,8 @@ def play(context, brain: str, seed: int, frames: int, run_dir: Path, fault: str 
             reason = "harness: the brain overran its budget"
             break
     return {"brain": brain, "seed": seed, "fault": fault, "reason": reason, "frames": count, "presses": controls.presses,
-            "seconds": round(time.monotonic() - started, 1), "lines": lines, "a_presses": tester.results}
+            "seconds": round(time.monotonic() - started, 1), "lines": lines, "a_presses": tester.results,
+            "other_presses": tester.others}
 
 
 def main() -> int:
@@ -285,7 +362,8 @@ def main() -> int:
                   args.mart_count, args.clock)
     result["truth"] = truth(context)
     result["eyes_code"] = {"screens": screens_module.__file__, "task_waits": sorted(screens_module.TASK_WAITS)}
-    result["constants"] = {"IDLE_FRAMES": IDLE_FRAMES, "PRESS_WATCH": PRESS_WATCH, "PRINT_WINDOW": PRINT_WINDOW}
+    result["constants"] = {"IDLE_FRAMES": IDLE_FRAMES, "PRESS_WATCH": PRESS_WATCH, "PRINT_WINDOW": PRINT_WINDOW,
+                           "OTHER_BUTTONS": list(OTHER_BUTTONS)}
     print("PRESSES " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

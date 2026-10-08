@@ -30,6 +30,9 @@ __all__ = [
     "DIALOGUE_BUDGET",
     "FREE_BUDGET",
     "GENERIC_BUSY",
+    "STALL_FRAMES",
+    "STALL_FRAMES_SCENE",
+    "STUCK",
     "TALK_START_BUDGET",
     "UNGATED_GATE",
     "advance",
@@ -38,12 +41,27 @@ __all__ = [
     "facing_direction",
     "new_characters",
     "player_free",
+    "seen_now",
+    "stall_limit",
     "talk",
     "talk_direction",
 ]
 
 #: The longest any one `advance` may run: three minutes of game time (a long scene). A budget, not a target.
 DIALOGUE_BUDGET = 3 * 60 * 60
+#: STEP 2.1 (the step-2 review, item 1: "an unrecognised prompt causes a silent 3-minute stall with a false
+#: reason"): how many frames `advance` watches a screen on which NOTHING the eyes see changes (`seen_now`) before it
+#: says it is STUCK, instead of watching on to the budget above. 300 frames (5 s) when the eyes name nothing that
+#: plays (an unlisted menu in a script looks exactly like "a scene plays": the review's case); 900 (15 s) while
+#: they NAME the scene (`ScreenState.scene`: a person who knows the healing jingle waits it out). MEASURED
+#: 2026-10-08 (in-process, seed 3, every busy frame of `advance` in the four step-2 skills): the longest still
+#: stretches were 455 frames of "Professor Birch's speech" (his opening: timers and a sprite blend the eyes do not
+#: report) and 319 of "the nurse healing the party" (the machine and its jingle), both NAMED; the longest unnamed
+#: one was 58 (the nurse's script). One threshold of 300 would have stopped the intro and the nurse falsely.
+STALL_FRAMES = 300
+STALL_FRAMES_SCENE = 900
+#: The outcome prefix `advance` returns when it is stuck: "stuck:<what it was watching>".
+STUCK = "stuck:"
 #: After the A that starts a conversation, how long the script has to start before the attempt failed.
 TALK_START_BUDGET = 90
 #: How long `talk` waits for the player to be free (a scene ending) before it gives up.
@@ -88,6 +106,21 @@ def busy_reason(look: Observation) -> str:
     if screen.scene is not None:
         return f"watching: {screen.scene} (it runs by itself: nothing on screen takes a press now)"
     return f"{GENERIC_BUSY} ({screen.game_state.lower()})"
+
+
+def seen_now(look: Observation) -> tuple:
+    """Everything the eyes see in one look, without WHEN (the frame) and what the look cost (and its problems,
+    which say what could not be read, not what is on screen): the screen (menu, wait, text as printed, fade,
+    scene), the player, the window and the people in it, the party, the bag, the progress, the battle. Two looks
+    with equal `seen_now` show a person the same thing (step 2.1's stall detector compares them)."""
+    return (look.screen, look.player, look.view, look.party, look.bag, look.progress, look.battle,
+            look.last_battle_outcome, look.storage)
+
+
+def stall_limit(look: Observation) -> int:
+    """How long `advance` watches an unchanging screen before it is stuck (`STALL_FRAMES`, or `STALL_FRAMES_SCENE`
+    while the eyes name the scene that plays)."""
+    return STALL_FRAMES_SCENE if look.screen.scene is not None else STALL_FRAMES
 
 
 def player_free(look: Observation) -> bool:
@@ -136,17 +169,27 @@ def _same(seen: SeenObject, target: SeenObject) -> bool:
 def advance(hands: Hands, until: Callable[[Observation], bool], why: str,
             budget: int = DIALOGUE_BUDGET) -> Generator[None, None, str]:
     """Move a dialogue or a scene on until `until(look)`: "done". Returns "menu:<kind>" WITHOUT pressing the
-    moment a menu is on screen (the caller chooses), or "budget" after `budget` frames. A is pressed only when
-    the eyes say the game waits for it, after reading the page, on a look taken right before the press.
+    moment a menu is on screen (the caller chooses), "stuck:<what it watched>" when nothing the eyes see has
+    changed for `stall_limit` frames while it waits (step 2.1), or "budget" after `budget` frames. A is pressed
+    only when the eyes say the game waits for it, after reading the page, on a look taken right before the press.
 
     The TWO wait checks (measured by `gates/revert_step2.py`): the FIRST (the look that starts the reading)
     makes the reading delay start on a page that has finished printing (H2-outer, caught by
     `test_each_page_is_read_after_it_has_printed`); the SECOND (the gate) is REDUNDANT ALONE, because a wait
     the eyes report ends only on a press (H2-gate; the decomp citations are in that script). It stays: it is
     the press's logged gate, and it is what refuses A while printing if the first check is ever removed
-    (H2-both is caught)."""
+    (H2-both is caught).
+
+    THE STALL DETECTOR (step 2.1, the step-2 review's item 1): every frame it stands still, `advance` compares
+    what the eyes see (`seen_now`) with the look before. A screen that waits for a press the eyes do not
+    recognise (a list menu, a number input, a scrolling multichoice in a script) reads as "a scene plays" or
+    "a text is printing", and before step 2.1 the AI watched it for the whole budget, three minutes, under that
+    false reason. Now it returns "stuck:<reason>" (and says so in the run's log) once the screen has not changed
+    for `stall_limit(look)` frames, and the caller reports it (`gates/test_hands.py` StallTests; the live arms
+    XSTALL and XSTALLR of `gates/live_step2.py`, where the nurse's yes/no is made unknown to the eyes)."""
     start = hands.pad.frames
     last_page: str | None = None
+    seen, still = None, 0  # what the eyes saw on the last busy frame; for how many looks it has not changed
     while hands.pad.frames - start < budget:
         look = hands.look()
         if until(look):
@@ -169,8 +212,19 @@ def advance(hands: Hands, until: Callable[[Observation], bool], why: str,
                     hands.note("read", "text", page)
                 yield from hands.pad.press("A", why, look.screen.wait_reason or "waits")
                 last_page = page
+            seen, still = None, 0
             continue
-        yield from hands.pad.busy(busy_reason(look))
+        reason = busy_reason(look)
+        now = seen_now(look)
+        if now != seen:
+            seen, still = now, 0
+        still += 1
+        if still > stall_limit(look):
+            hands.tell(f"{why}: STUCK: nothing on screen changed for {still - 1} frames while {reason} "
+                       f"(scene {look.screen.scene!r}, {look.screen.game_state}; the limit {stall_limit(look)}): "
+                       f"{look.digest()}")
+            return f"{STUCK}{reason}"
+        yield from hands.pad.busy(reason)
     return "budget"
 
 

@@ -26,17 +26,26 @@ WHAT IS READ FOR EACH (the host reads the bytes; `read_ui` interprets them):
   * the mart's buy list: `sMartInfo` (itemList @8, itemCount @0xC, martType @0xF) and `sShopData`
     (selectedRow @0x2006, scrollOffset @0x2008, maxQuantity @0x200A); the quantity: its task's data[1];
   * the bag: `gBagPosition` (pocket @5, cursorPosition[5] @8, scrollPosition[5] @0x12); the party menu:
-    `gPartyMenu.slotId` @9.
+    `gPartyMenu.slotId` @9;
+  * BUILD STEP 3, the battle's ACTION menu (FIGHT / BAG / POKéMON / RUN): a battle runs no task for it; the
+    player's battle CONTROLLER does (`src/battle_controller_player.c`: `gBattlerControllerFuncs[battler]` is
+    `HandleInputChooseAction` while the menu takes input), and its cursor is `gActionSelectionCursor[battler]`
+    (a 2 x 2 grid: bit 0 the column, bit 1 the row; HandleInputChooseAction: Left/Right toggle bit 0 only from
+    the other column, Up/Down bit 1 only from the other row). Measured 2026-10-08 on `oldale.ss1` (a wild
+    battle): the function is HandleInputChooseAction from the first frame the menu is drawn, the cursor 0 ->
+    Right 1 -> Down 3 (RUN), A, "Got away safely!".
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
 
 from ai_player.eyes.observation import MenuView
 
 __all__ = [
     "BAG_POCKETS",
+    "BATTLE_ACTIONS",
     "CHARMAP",
     "GENDER_OPTIONS",
     "KEYBOARD_COLUMNS",
@@ -50,6 +59,7 @@ __all__ = [
     "SHOP_OPTIONS",
     "START_MENU_ACTIONS",
     "TASK_WAITS",
+    "UI_BUSY_TASKS",
     "UI_TASKS",
     "YES_NO",
     "decode_text",
@@ -181,6 +191,16 @@ UI_TASKS: dict[str, str] = {
     "Task_HighlightSelectedMainMenuItem": "main_menu",
     "Task_TitleScreenPhase3": "title",  # src/title_screen.c: A or START goes to the main menu
 }
+#: STEP 2.1: tasks during which a menu STAYS ON SCREEN but takes no input, by the menu's kind. Found by the step-2
+#: review's item 6 (a failed choice now ends the skill): moving the gender menu's cursor switches its task to a
+#: sprite slide (`src/main_menu.c` Task_NewGameBirchSpeech_ChooseGender: `if (gender2 != tPlayerGender) ...
+#: gTasks[taskId].func = Task_NewGameBirchSpeech_SlideOutOldGenderSprite`, then SlideInNewGenderSprite, then
+#: back to ChooseGender), and the eyes reported the menu CLOSED: `move_cursor` gave up after its one Down, and the
+#: intro's old loop chose again on its next turn and hid it (measured 2026-10-08, seed 3, frame ~5,370).
+UI_BUSY_TASKS: dict[str, str] = {
+    "Task_NewGameBirchSpeech_SlideOutOldGenderSprite": "gender",
+    "Task_NewGameBirchSpeech_SlideInNewGenderSprite": "gender",
+}
 YES_NO = ("YES", "NO")  # src/strings.c gText_YesNo "YES\nNO"
 GENDER_OPTIONS = ("BOY", "GIRL")  # src/main_menu.c sMenuActions_Gender (gText_BirchBoy, gText_BirchGirl)
 SHOP_OPTIONS = {0: ("BUY", "SELL", "QUIT"), 1: ("BUY", "QUIT"), 2: ("BUY", "QUIT")}  # by MartInfo.martType
@@ -197,6 +217,10 @@ START_MENU_ACTIONS = ("POKéDEX", "POKéMON", "BAG", "POKéNAV", "PLAYER", "SAVE
                       "PLAYER", "REST", "RETIRE", "BAG")
 #: include/item_menu.h: the pockets in `gBagPosition.pocket` order (ITEMS_POCKET ... KEYITEMS_POCKET).
 BAG_POCKETS = ("items", "poke_balls", "tms_hms", "berries", "key_items")
+#: BUILD STEP 3: the battle's action menu, by `gActionSelectionCursor` (`src/battle_controller_player.c`
+#: HandleInputChooseAction: B_ACTION_USE_MOVE 0 top-left, B_ACTION_USE_ITEM 1 top-right, B_ACTION_SWITCH 2
+#: bottom-left, B_ACTION_RUN 3 bottom-right; `src/battle_bg.c` sText_... "FIGHT", "BAG", "POKéMON", "RUN").
+BATTLE_ACTIONS = ("FIGHT", "BAG", "POKéMON", "RUN")
 #: Tasks that poll A or B themselves with NO text printer waiting, so the text-printer rule cannot see the
 #: wait: each `func` and what it waits for (`gTasks[].func` names).
 TASK_WAITS: dict[str, str] = {
@@ -242,6 +266,10 @@ SCENE_CALLBACKS: dict[str, str] = {
     "CB2_ReturnToFieldFadeFromBlack": "the map loading",
     "CB2_LoadMap": "the map loading",
     "CB2_DoChangeMap": "the map loading",
+    # BUILD STEP 3 (flee.py): a battle's own animations (a Pokemon sent out, the healthboxes sliding in) run with
+    # nothing the eyes report changing for up to ~80 frames (measured 2026-10-08 on `oldale.ss1`); named, so the
+    # hands' stall detector gives a battle the named-scene allowance and the busy reason is never the catch-all.
+    "BattleMainCB2": "a battle",  # src/battle_main.c (gMain.callback2 for the whole battle)
 }
 #: By a task's name PREFIX (first match), when the callback names no scene:
 SCENE_TASKS: tuple[tuple[str, str], ...] = (
@@ -295,7 +323,31 @@ def _s16(data: bytes, offset: int) -> int:
 def read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, object]) -> MenuView | None:
     """The interactive thing on screen, from the active tasks (`func` name -> its 32 data bytes) and the raw
     reads the host made for it (`raw`, keys below). None when nothing on screen takes a menu input. Order:
-    a whole-screen state first (naming, bag, party), then the task tables, most specific first."""
+    a whole-screen state first (naming, bag, party), then the task tables, most specific first.
+
+    STEP 2.1 (the step-2 review, item 4): while a palette fade RUNS (`raw["fading"]`, `gPaletteFade.active`) NOTHING
+    on screen takes input (`accepts_input` False), whatever its own rule says. The decomp: the intro movie ends on a
+    key only `if (gMain.newKeys != 0 && !gPaletteFade.active)` (`src/intro.c` MainCB2_Intro); while the title screen
+    fades in, `CB2_InitTitleScreen` runs no task at all, so its logo task cannot see a key (`src/title_screen.c`,
+    state 5: `if (!UpdatePaletteFade())`); the main menu, the naming keyboard, the shop and the wall clock each start
+    taking input only `if (!gPaletteFade.active)` (`src/main_menu.c`, `src/naming_screen.c`, `src/shop.c`,
+    `src/wallclock.c`). A press the game drops is not a press a person makes on purpose: measured 2026-10-08, the
+    intro's FIRST Start (seed 3, frame 211) was pressed on a look that said "intro_movie, fading". Measured on the
+    four step-2 skills (seed 3): a menu was on screen during a fade only as the intro movie (2 looks), the title (1)
+    and the naming keyboard (35, already not taking input), so the rule moves nothing else."""
+    ui = _read_ui(game_state, tasks, raw)
+    if ui is not None and ui.accepts_input and raw.get("fading"):
+        return replace(ui, accepts_input=False)
+    return ui
+
+
+def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, object]) -> MenuView | None:
+    """`read_ui` before its fade rule: what each menu's own input rule says."""
+    action = raw.get("battle_action")  # BUILD STEP 3: the battle's action menu (module docstring)
+    if isinstance(action, dict) and action.get("choosing"):
+        cursor = action.get("cursor")
+        return MenuView(kind="battle_action", options=BATTLE_ACTIONS,
+                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(BATTLE_ACTIONS) else None)
     if game_state == "NAMING_SCREEN" or "Task_NamingScreen" in tasks:
         naming = raw.get("naming")
         if isinstance(naming, dict):
@@ -365,6 +417,10 @@ def read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, objec
                 options = tuple(START_MENU_ACTIONS[a] if a < len(START_MENU_ACTIONS) else f"action{a}" for a in actions)
                 return MenuView(kind=kind, options=options, cursor=start["cursor"])
             return MenuView(kind=kind, accepts_input=False)
+    for task, kind in sorted(UI_BUSY_TASKS.items()):  # STEP 2.1: on screen, not taking input
+        if task in tasks:
+            cursor = _s8(menu[2]) if isinstance(menu, (bytes, bytearray)) else None
+            return MenuView(kind=kind, options=GENDER_OPTIONS if kind == "gender" else (), cursor=cursor, accepts_input=False)
     if game_state == "TITLE_SCREEN" and tasks:
         # The intro movie (src/intro.c MainCB2_Intro: any new key, once no palette fade runs, ends it) and the
         # title's first two phases (src/title_screen.c Task_TitleScreenPhase1/2: A, B, START or SELECT skips

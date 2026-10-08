@@ -49,10 +49,25 @@ What each class proves, and its FAULT half (a check that cannot fail proves noth
   PressKindTests      STEP 2.1: `live_step2.py` classify_a on digests copied from the evidence: a wait, a menu
                       confirm, a talk; FAULT: a wait for another reason, a busy menu, another menu, a talk while a
                       script waits, an ungated A: each refused.
+STEP 2.1, THE STEP-2 REVIEW'S ITEMS (each fix with a mutant in `gates/revert_step2.py` that this file catches):
+  StallTests          (1) an unknown prompt (a script runs, nothing on screen changes, no menu the eyes know) is
+                      "stuck:<reason>" after STALL_FRAMES, not the 3-minute budget; a scene the eyes NAME gets
+                      STALL_FRAMES_SCENE; a screen that changes is never stuck; the measured still stretches.
+  ProvenanceTests     (2) two different uncommitted trees give two different evidence CODE lines (a digest).
+  PadFrameTests       (3) the pad counts each frame as it passes (a skill stopped mid-press: the frames it ran), and
+                      `live_step2.check_purity` fails the step-2 XBC numbers (pad 5991, instrument 6000).
+  FadeTests           (4) nothing takes input while a palette fade runs (`read_ui`), and the intro presses START only
+                      on a movie that takes it (a model of `src/intro.c` MainCB2_Intro, which drops a key in a fade).
+  NameQuestionTests   (5) "So it's NAME?" names EXACTLY the typed name; an unreadable page is answered from what the
+                      keyboard confirmed (no NO-and-retype loop); another name is answered NO.
+  SubSkillFailureTests (6) a failed choice, name or answer ends the intro, the nurse, the mart and the clock AT ONCE.
+  GenderSlideTests    FOUND through (6): the gender menu stays on screen, not taking input, while Birch's sprites slide
+                      after a cursor move (the eyes used to report it closed; the old intro chose again and hid it).
+(7) is `gates/test_eyes.py` PartyNoneTests.test_a_torn_slot_makes_the_whole_party_none (`revert_step11.py` R5c).
 
 The FAULT switches show the tests catch a NAIVE driver. That each check of the REAL code carries weight is
-`gates/revert_step2.py`: it breaks one check per copy of the package and runs this file there (25 mutants since
-step 2.1: 21 caught by their predicted tests, 4 REDUNDANT ALONE, each with the reason it is redundant).
+`gates/revert_step2.py`: it breaks one check per copy of the package and runs this file there (44 mutants since
+the review's items: 39 caught by their predicted tests, 5 REDUNDANT ALONE, each with the reason it is redundant).
 """
 
 from __future__ import annotations
@@ -82,11 +97,16 @@ from ai_player.eyes.screens import (  # noqa: E402
     KEYBOARD_COLUMNS, KEYBOARD_PAGES, PARAGRAPH, SCENE_CALLBACKS, SCENE_STATES, decode_text, key_position, page_text, read_ui,
     scene_of, task_wait,
 )
-from ai_player.hands.dialogue import GENERIC_BUSY, UNGATED_GATE, advance, busy_reason, player_free, talk  # noqa: E402
+from ai_player.hands.dialogue import (  # noqa: E402
+    GENERIC_BUSY, STALL_FRAMES, STALL_FRAMES_SCENE, STUCK, UNGATED_GATE, advance, busy_reason, player_free, talk,
+)
 from ai_player.hands.menus import (  # noqa: E402
-    BLIND_GATE, answer_yes_no, choose, clock_hold_frames, move_cursor, set_clock, set_quantity, type_name,
+    BLIND_GATE, CLOCK_BUDGET, MART_CLERK_GFX, NURSE_GFX, TYPE_BUDGET, WAIT_UI_BUDGET, answer_yes_no, choose, clock_hold_frames,
+    mart_buy, move_cursor, nurse_heal, set_clock, set_quantity, type_name,
 )
 from ai_player.hands.pad import HUMAN_PACING, Faults, Hands, Pad, PadError  # noqa: E402
+from ai_player.personality import Personality, choose_gender, choose_name  # noqa: E402
+from ai_player.skills.intro import TRUCK_MAP, name_in_question, play_intro  # noqa: E402
 
 PACKAGE = REPO / "ai_player"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -1061,6 +1081,470 @@ class PressKindTests(unittest.TestCase):
                                talk_look.replace("overworld", "overworld waits=A/B(script waitbuttonpress)")), ("talk", False))
         self.assertEqual(press(UNGATED_GATE, wait), ("other", False))
         self.assertEqual(gate_kind("mart_buy cursor on 0 (POKé BALL)"), ("menu", "mart_buy"))
+
+
+# ------------------------------------------------------------------------------------------- STEP 2.1: the review's items
+#: The reason an overworld script gives (`busy_reason`), which an unlisted menu in a script reads as.
+SCENE_REASON = "watching: a scene plays (a script runs, the controls are locked)"
+#: A frozen menu: its input delay never ends (`MenuModel`), so `choose` cannot press on it.
+FOREVER = 10 ** 9
+#: The personality the intro tests play (seed 5, as `rig`).
+PERSONALITY = Personality("Catcher", 5, "seed")
+
+
+def intended(seed: int = 5) -> tuple[str, str]:
+    """(gender, name) `play_intro` draws first from `rig(..., seed)`'s CHOICES stream."""
+    choices = random.Random(f"{seed}:choices")
+    gender, _ = choose_gender(choices, PERSONALITY)
+    return gender, choose_name(choices, gender)
+
+
+def person_view(graphics_id: int) -> View:
+    """A person (by graphics id) two tiles up, across a COUNTER: the nurse's and the clerk's place."""
+    person = SeenObject(kind="npc", x=5, y=3, dx=0, dy=-2, local_id=1, graphics_id=graphics_id, facing="down", elevation=3,
+                        source="object")
+    counter = Tile(x=5, y=4, dx=0, dy=-1, metatile=1, behavior=0x80, behavior_name="COUNTER", collision=1, elevation=3,
+                   blocked=True, water=False, encounter=None, tall_grass=False, ledge=None, door=False, warp=False,
+                   half_visible=False)
+    floor = Tile(x=5, y=5, dx=0, dy=0, metatile=1, behavior=0, behavior_name="NORMAL", collision=0, elevation=3,
+                 blocked=False, water=False, encounter=None, tall_grass=False, ledge=None, door=False, warp=False,
+                 half_visible=False)
+    rows = tuple(tuple(counter if (dx, dy) == (0, -1) else floor for dx in range(-7, 8)) for dy in range(-5, 6))
+    return View(left=7, right=7, up=5, down=5, rows=rows, objects=(person,), cropped=True)
+
+
+def standing(facing: str = "up", map_const: str = "TEST") -> PlayerState:
+    return PlayerState(map_group=0, map_number=0, map_name="TEST", map_const=map_const, x=5, y=5, facing=facing,
+                       movement="walking", elevation=3, avatar_flags=0, trainer_id=1)
+
+
+class StillModel(Model):
+    """A screen on which NOTHING the eyes see changes: an overworld script runs, the controls are locked, no menu, no
+    text, nothing waits. An unlisted menu in a script (a list menu, a number input) looks exactly so to the eyes: the
+    review's item 1. `scene` is what the eyes name (None: nothing); `changes_every` > 0 turns the player around every
+    that many frames (something on screen moves)."""
+
+    def __init__(self, scene: str | None = None, changes_every: int = 0) -> None:
+        self.scene = scene
+        self.changes_every = changes_every
+        self.presses: list[tuple[int, str]] = []
+
+    def press(self, button: str) -> None:
+        self.presses.append((self.frame, button))
+
+    def screen(self) -> ScreenState:
+        return overworld_screen(script_running=True, controls_locked=True, scene=self.scene)
+
+    def player(self) -> PlayerState:
+        turned = self.changes_every and (self.frame // self.changes_every) % 2
+        return standing("left" if turned else "up")
+
+
+class StallTests(unittest.TestCase):
+    """STEP 2.1, the review's item 1 (`hands/dialogue.py` advance's stall detector): an unknown prompt is reported as
+    "stuck:<reason>" after STALL_FRAMES unchanged frames, not watched for the 3-minute budget under a false reason."""
+
+    def test_an_unknown_prompt_is_stuck_after_300_frames(self) -> None:
+        model = StillModel()
+        hands = rig(model)
+        self.assertEqual(drive(advance(hands, lambda look: False, "test")), f"{STUCK}{SCENE_REASON}")
+        self.assertEqual(hands.pad.frames, STALL_FRAMES)  # not DIALOGUE_BUDGET (10,800): the pre-review "budget"
+        self.assertEqual(model.presses, [])
+
+    def test_a_scene_the_eyes_name_is_watched_longer(self) -> None:
+        """While the eyes NAME what plays (the nurse's machine, Birch's opening) the AI waits STALL_FRAMES_SCENE."""
+        hands = rig(StillModel(scene="the nurse healing the party"))
+        self.assertEqual(drive(advance(hands, lambda look: False, "test")), f"{STUCK}{SCENE_REASON}")
+        self.assertEqual(hands.pad.frames, STALL_FRAMES_SCENE)
+
+    def test_a_screen_that_changes_is_never_stuck(self) -> None:
+        """Non-vacuity: a scene in which something moves every 250 frames (less than the limit) runs 3,000 frames,
+        ten times the limit, and ends "done"."""
+        model = StillModel(changes_every=250)
+        hands = rig(model)
+        self.assertEqual(drive(advance(hands, lambda look: look.frame >= 3000, "test")), "done")
+        self.assertGreaterEqual(hands.pad.frames, 3000)
+
+    def test_the_measured_still_stretches_fit_their_limits(self) -> None:
+        """MEASURED 2026-10-08 (seed 3, in-process, every busy frame of `advance` in the four step-2 skills): the
+        longest stretches on which nothing the eyes see changed, with the scene the eyes named."""
+        measured = {"Professor Birch's speech": 455, "the nurse healing the party": 319, "the copyright screen": 119, None: 58}
+        for scene, frames in measured.items():
+            limit = STALL_FRAMES_SCENE if scene is not None else STALL_FRAMES
+            self.assertLess(frames, limit, scene)
+        # why there are two limits: one limit of STALL_FRAMES would have stopped Birch's opening and the nurse
+        self.assertGreater(measured["Professor Birch's speech"], STALL_FRAMES)
+        self.assertGreater(measured["the nurse healing the party"], STALL_FRAMES)
+
+
+class ReleaseControls(FakeControls):
+    """`FakeControls` that records each button a hold RELEASES (the controller always releases, even when closed)."""
+
+    def __init__(self, model: Model) -> None:
+        super().__init__(model)
+        self.released: list[str] = []
+
+    def hold(self, button: str, frames: int):
+        try:
+            yield from super().hold(button, frames)
+        finally:
+            self.released.append(button)
+
+
+class PadFrameTests(unittest.TestCase):
+    """STEP 2.1, the review's item 3: the pad's frame count is the frames that ran, also when a skill is STOPPED in
+    the middle of a press (the brain's frame budget): `gates/live_step2.py` asserts it against the instrument."""
+
+    def test_frames_are_counted_as_they_pass(self) -> None:
+        controls = ReleaseControls(DialogueModel(["x"]))
+        pad = Pad(controls, random.Random(1), lambda *a: None)
+        press = pad.press("A", "why", "gate", hold=6)
+        for _ in range(4):  # four frames of the 6-frame hold, then the skill is stopped
+            next(press)
+        press.close()
+        self.assertEqual(pad.frames, 4)  # before 2.1: 0 (the press was counted only once it had finished)
+        self.assertEqual(controls.released, ["A"])
+        drive(pad.press("B", "why", "gate", hold=5))
+        self.assertEqual(pad.frames, 4 + 5 + pad.history[-1]["gap"])
+        hold = pad.hold("Right", 30, "why", "gate")
+        for _ in range(7):
+            next(hold)
+        hold.close()
+        self.assertEqual(pad.frames, 4 + 5 + pad.history[-2]["gap"] + 7)
+        self.assertEqual(controls.released, ["A", "B", "Right"])
+
+    def test_the_driver_compares_the_pad_with_the_instrument(self) -> None:
+        """`live_step2.check_purity`'s new check, on synthetic runs: the step-2 XBC numbers (pad 5991, instrument
+        6000) fail it; equal numbers pass."""
+        from ai_player.gates.live_step2 import ARMS, Run, check_purity
+
+        def frame_check(pad_frames: int, real_frames: int) -> bool:
+            run = Run(ARMS[0], ai_log=f"[AI-HANDS] outcome='x' presses=119 frames={pad_frames} looks=1 records=1\n",
+                      verdict={"verdict": "CLEAN", "counters": {"real_frames": real_frames}, "facts": {}})
+            check_purity(run, None)
+            return next(ok for ok, text in run.checks if text.startswith("the AI pad's own frame count"))
+
+        self.assertTrue(frame_check(6000, 6000))
+        self.assertFalse(frame_check(5991, 6000))
+        self.assertFalse(frame_check(11999, 12000))
+
+
+class MovieModel(Model):
+    """`src/intro.c` MainCB2_Intro: a NEW key ends the movie only `if (gMain.newKeys != 0 && !gPaletteFade.active)`.
+    The movie fades during FADES (frame ranges); a START pressed during a fade is DROPPED; one that is taken ends the
+    movie, and here the screen becomes the truck so that `play_intro` ends (what follows the movie is other tests').
+    The eyes' picture of it is built by the REAL `read_ui` from the task and the fade."""
+
+    FADES = ((0, 50), (60, 130))  # a 10-frame gap, shorter than a 'think' (14-45 frames), then a second fade
+
+    def __init__(self) -> None:
+        self.dropped = 0
+        self.taken_at: int | None = None
+
+    def fading(self) -> bool:
+        return any(start <= self.frame < end for start, end in self.FADES)
+
+    def press(self, button: str) -> None:
+        if self.taken_at is not None:
+            return
+        if self.fading():
+            self.dropped += 1
+        else:
+            self.taken_at = self.frame
+
+    def screen(self) -> ScreenState:
+        if self.taken_at is not None:
+            return overworld_screen()
+        fading = self.fading()
+        ui = read_ui("TITLE_SCREEN", {"Task_Scene1_WaterDrops": bytes(32)}, {"fading": fading})
+        return ScreenState(game_state="TITLE_SCREEN", screen="title", menu=None, text_box_open=False, waits_for_button=False,
+                           in_battle=False, ui=ui, fading=fading, scene=SCENE_STATES["TITLE_SCREEN"])
+
+    def player(self) -> PlayerState | None:
+        return standing(map_const=TRUCK_MAP) if self.taken_at is not None else None
+
+
+class FadeTests(unittest.TestCase):
+    """STEP 2.1, the review's item 4: while a palette fade runs nothing takes input (`eyes/screens.py` read_ui), and
+    the intro presses START only on a screen that takes it (`skills/intro.py`)."""
+
+    def test_nothing_takes_input_while_a_fade_runs(self) -> None:
+        data = bytes(32)
+        main = (0).to_bytes(2, "little") + (0).to_bytes(2, "little") + bytes(28)
+        for state, tasks, kind in (("TITLE_SCREEN", {"Task_Scene1_WaterDrops": data}, "intro_movie"),
+                                   ("TITLE_SCREEN", {"Task_TitleScreenPhase3": data}, "title"),
+                                   ("MAIN_MENU", {"Task_HandleMainMenuInput": main}, "main_menu")):
+            calm = read_ui(state, tasks, {"fading": False})
+            fading = read_ui(state, tasks, {"fading": True})
+            self.assertEqual((calm.kind, calm.accepts_input), (kind, True))
+            self.assertEqual((fading.kind, fading.accepts_input, fading.cursor), (kind, False, calm.cursor))
+
+    def test_the_intro_waits_out_a_fade_before_start(self) -> None:
+        """Against `MovieModel`: exactly one START, taken; none dropped in a fade. Without the eyes' fade rule the AI
+        presses within its first 'think' (14-45 frames), inside the first fade (0-50): dropped; without the press
+        gate's own input check, after the first fade it presses inside the second (60-130): dropped."""
+        model = MovieModel()
+        hands = rig(model)
+        gender, name = intended()
+        self.assertEqual(drive(play_intro(hands, PERSONALITY)), f"in the truck; intended {name} ({gender})")
+        self.assertEqual(model.dropped, 0, "a START was pressed while the movie faded, and the game dropped it")
+        self.assertEqual([p["button"] for p in hands.pad.history], ["Start"])
+        self.assertFalse(any(start <= model.taken_at < end for start, end in MovieModel.FADES))
+
+
+class GenderSlideModel(MenuModel):
+    """`src/main_menu.c` Task_NewGameBirchSpeech_ChooseGender: a cursor move starts Birch's sprite slide (the tasks
+    SlideOutOldGenderSprite, SlideInNewGenderSprite; SLIDE frames here), during which the menu STAYS on screen and
+    ignores input. The eyes' picture is built by the REAL `read_ui` from the task that runs and `sMenu`."""
+
+    SLIDE = 30
+
+    def __init__(self, start: ScreenState) -> None:
+        super().__init__(start)
+        self.slide = 0
+        self.dropped_in_slide = 0
+
+    def press(self, button: str) -> None:
+        if self.slide:
+            self.dropped_in_slide += 1
+            return
+        before = self.cursor
+        super().press(button)
+        if self.chosen is None and self.cursor != before:
+            self.slide = self.SLIDE
+
+    def step(self, held: str | None) -> None:
+        if self.slide:
+            self.slide -= 1
+
+    def screen(self) -> ScreenState:
+        if self.chosen is not None:
+            return ScreenState(**{**self.base.__dict__, "ui": None})
+        task = "Task_NewGameBirchSpeech_SlideOutOldGenderSprite" if self.slide else "Task_NewGameBirchSpeech_ChooseGender"
+        menu = bytearray(ScreenReadTests.GENDER_SMENU)
+        menu[2] = self.cursor
+        return ScreenState(**{**self.base.__dict__, "ui": read_ui("MAIN_MENU", {task: bytes(32)}, {"menu": bytes(menu)})})
+
+
+class GenderSlideTests(unittest.TestCase):
+    """STEP 2.1, FOUND by the review's item 6 (a failed choice now ends the skill): the gender menu stays on screen,
+    NOT taking input, while Birch's sprites slide after a cursor move (`eyes/screens.py` UI_BUSY_TASKS). Before, the
+    eyes said it had closed: `move_cursor` gave up after its Down, `choose` failed, and the intro's old loop chose
+    again on its next turn and hid it."""
+
+    def gender_menu(self) -> ScreenState:
+        return screen_from(find(recorded("intro"), lambda r: (r["screen"]["ui"] or {}).get("kind") == "gender")["screen"])
+
+    def test_girl_is_chosen_through_the_slide(self) -> None:
+        start = self.gender_menu()
+        self.assertEqual(start.ui.cursor, 0)  # recorded: the menu opens on BOY
+        model = GenderSlideModel(start)
+        hands = rig(model)
+        self.assertTrue(drive(choose(hands, "gender", "GIRL", "test")))
+        self.assertEqual(model.chosen, 1)
+        self.assertEqual(model.dropped_in_slide, 0)
+        self.assertEqual([p["button"] for p in hands.pad.history], ["Down", "A"])
+
+    def test_the_slide_reads_as_the_menu_not_taking_input(self) -> None:
+        menu = bytearray(ScreenReadTests.GENDER_SMENU)
+        menu[2] = 1
+        for task in ("Task_NewGameBirchSpeech_SlideOutOldGenderSprite", "Task_NewGameBirchSpeech_SlideInNewGenderSprite"):
+            ui = read_ui("MAIN_MENU", {task: bytes(32)}, {"menu": bytes(menu)})
+            self.assertEqual((ui.kind, ui.cursor, ui.accepts_input), ("gender", 1, False), task)
+
+
+class NameTailModel(Model):
+    """The end of the intro: the naming keyboard (`KeyboardModel`, from a recorded screen), then "So it's NAME?" (a
+    yes/no opening on YES, its page from `question(typed, typings)`: None = a page the eyes cannot read), then the truck
+    on YES, or the keyboard again, empty, on NO (`src/main_menu.c` Task_NewGameBirchSpeech_ProcessNameYesNoMenu)."""
+
+    def __init__(self, keyboard: ScreenState, question) -> None:
+        self.start = keyboard
+        self.question = question
+        self.keyboard = KeyboardModel(keyboard)
+        self.typings = 1
+        self.answers: list[int] = []
+        self.menu: MenuModel | None = None
+        self.in_truck = False
+
+    def tick(self, button: str | None, new: bool) -> None:
+        self.frame += 1
+        if self.in_truck:
+            return
+        if self.menu is not None:
+            self.menu.tick(button, new)
+            if self.menu.chosen is not None:
+                self.answers.append(self.menu.chosen)
+                if self.menu.chosen == 0:
+                    self.in_truck = True
+                else:
+                    self.keyboard = KeyboardModel(self.start)
+                    self.typings += 1
+                self.menu = None
+            return
+        self.keyboard.tick(button, new)
+        if self.keyboard.closed:
+            asked = ScreenState(game_state="MAIN_MENU", screen="menu", menu="yes_no", text_box_open=False, waits_for_button=False,
+                                in_battle=False, text=self.question(self.keyboard.text, self.typings),
+                                ui=MenuView(kind="yes_no", options=("YES", "NO"), cursor=0))
+            self.menu = MenuModel(asked)
+
+    def screen(self) -> ScreenState:
+        if self.in_truck:
+            return overworld_screen()
+        if self.menu is not None:
+            return self.menu.screen()
+        return self.keyboard.screen()
+
+    def player(self) -> PlayerState | None:
+        return standing(map_const=TRUCK_MAP) if self.in_truck else None
+
+
+class NameQuestionTests(unittest.TestCase):
+    """STEP 2.1, the review's item 5 (`skills/intro.py`): "So it's NAME?" names EXACTLY the typed name or not; a page
+    the eyes cannot read is answered from what the keyboard CONFIRMED, never by NO and a re-typing loop."""
+
+    def keyboard(self) -> ScreenState:
+        return screen_from(find(recorded("intro"), lambda r: (r["screen"]["ui"] or {}).get("kind") == "naming"
+                                and r["screen"]["ui"]["accepts_input"] and r["screen"]["ui"]["text"] == ""
+                                and r["screen"]["ui"]["page"] == "upper")["screen"])
+
+    def test_the_name_is_compared_exactly(self) -> None:
+        self.assertTrue(name_in_question("So it’s Rosa?", "Rosa"))  # as the eyes read it (charmap 0xB4)
+        self.assertTrue(name_in_question("So it's Rosa?", "Rosa"))
+        self.assertFalse(name_in_question("So it’s Kaiden?", "Kai"))  # the pre-2.1 substring rule said YES
+        self.assertFalse(name_in_question("So it’s R.qq?", "Rosa"))  # XBN's question
+        self.assertFalse(name_in_question("So it’s L   ?", "Luna"))  # XBN's question, seed 9
+        self.assertIsNone(name_in_question(None, "Rosa"))
+        self.assertIsNone(name_in_question("Hi! Sorry to keep you waiting!", "Rosa"))  # a stale page, not the question
+
+    def test_an_unreadable_question_relies_on_the_keyboard(self) -> None:
+        gender, name = intended()
+        model = NameTailModel(self.keyboard(), lambda typed, typings: None)
+        self.assertEqual(drive(play_intro(rig(model), PERSONALITY)), f"in the truck; intended {name} ({gender})")
+        self.assertEqual((model.typings, model.answers), (1, [0]))  # typed once, YES; before 2.1: NO and re-typed
+
+    def test_a_question_naming_another_name_is_answered_no(self) -> None:
+        gender, name = intended()
+        model = NameTailModel(self.keyboard(), lambda typed, typings: f"So it’s {typed}{'a' if typings == 1 else ''}?")
+        self.assertEqual(drive(play_intro(rig(model), PERSONALITY)), f"in the truck; intended {name} ({gender})")
+        self.assertEqual((model.typings, model.answers), (2, [1, 0]))  # NO to "So it's {name}a?", then YES
+
+
+class CounterModel(Model):
+    """A person (`graphics_id`) across a counter; the player stands free, facing them. Each A moves the conversation
+    to the next of `screens` (the last one stays: a menu that never takes input, so the skill's choice FAILS)."""
+
+    def __init__(self, graphics_id: int, screens: list[ScreenState]) -> None:
+        self.graphics_id = graphics_id
+        self.screens = screens
+        self.at = -1  # -1: not talking yet
+
+    def press(self, button: str) -> None:
+        if button == "A" and self.at < len(self.screens) - 1:
+            self.at += 1
+
+    def screen(self) -> ScreenState:
+        return overworld_screen() if self.at < 0 else self.screens[self.at]
+
+    def player(self) -> PlayerState:
+        return standing()
+
+    def view(self) -> View:
+        return person_view(self.graphics_id)
+
+
+class SubSkillFailureTests(unittest.TestCase):
+    """STEP 2.1, the review's item 6: a sub-skill that FAILS (`choose`, `type_name`, `answer_yes_no`; here: a menu that
+    never takes input) ends the skill AT ONCE with its reason. Before 2.1 the skills ignored the result and went round
+    their loops (60 turns in the intro, 6 at the nurse, 12 at the mart, CLOCK_BUDGET at the clock)."""
+
+    def recorded_ui(self, kind: str) -> ScreenState:
+        return screen_from(find(recorded("intro"), lambda r: (r["screen"]["ui"] or {}).get("kind") == kind)["screen"])
+
+    def play(self, model: Model) -> tuple[str, Hands]:
+        hands = rig(model)
+        return drive(play_intro(hands, PERSONALITY)), hands
+
+    def test_the_intro_reports_each_failure_at_once(self) -> None:
+        gender, name = intended()
+        keyboard = KeyboardModel(screen_from(find(recorded("intro"), lambda r: (r["screen"]["ui"] or {}).get("kind") == "naming"
+                                                  and r["screen"]["ui"]["accepts_input"])["screen"]))
+        keyboard.busy = FOREVER  # the keyboard never takes input
+        question = ScreenState(game_state="MAIN_MENU", screen="menu", menu="yes_no", text_box_open=False, waits_for_button=False,
+                               in_battle=False, text=f"So it’s {name}?", ui=MenuView(kind="yes_no", options=("YES", "NO"), cursor=0))
+        cases = (
+            (MenuModel(self.recorded_ui("main_menu"), delay=FOREVER), "intro: NEW GAME could not be chosen on the main menu",
+             WAIT_UI_BUDGET),
+            (MenuModel(self.recorded_ui("gender"), delay=FOREVER), f"intro: {gender} could not be chosen on the gender menu",
+             WAIT_UI_BUDGET),
+            (keyboard, f"intro: the name {name!r} could not be typed on the keyboard", TYPE_BUDGET),
+            (MenuModel(question, delay=FOREVER), "intro: the name question could not be answered", WAIT_UI_BUDGET),
+        )
+        for model, outcome, budget in cases:
+            got, hands = self.play(model)
+            self.assertEqual(got, outcome)
+            self.assertLessEqual(hands.pad.frames, budget + 60, outcome)  # ONE try, not 60
+
+    def test_the_nurse_reports_a_failed_yes_no_at_once(self) -> None:
+        page = overworld_screen(screen="text", text_box_open=True, waits_for_button=True, wait_reason="text printer 0 CLEAR",
+                                text=f"Hello, and welcome to the POKéMON CENTER.{PARAGRAPH}", script_running=True,
+                                controls_locked=True)
+        asked = overworld_screen(screen="menu", menu="yes_no", text="Would you like to rest your POKéMON?", script_running=True,
+                                 controls_locked=True, ui=MenuView(kind="yes_no", options=("YES", "NO"), cursor=0, accepts_input=False))
+        hands = rig(CounterModel(NURSE_GFX, [page, asked]))
+        self.assertEqual(drive(nurse_heal(hands)), "the nurse's yes/no could not be answered YES")
+        self.assertLessEqual(hands.pad.frames, WAIT_UI_BUDGET + 400)  # before 2.1: 6 tries, "the nurse's dialogue did not end"
+
+    def test_the_mart_reports_a_failed_choice_at_once(self) -> None:
+        shop = overworld_screen(screen="menu", menu="mart_menu", text="How may I serve you?", script_running=True,
+                                controls_locked=True, ui=MenuView(kind="mart_menu", options=("BUY", "SELL", "QUIT"), cursor=0,
+                                                                  accepts_input=False))
+        hands = rig(CounterModel(MART_CLERK_GFX, [shop]))
+        self.assertEqual(drive(mart_buy(hands, "POKé BALL", 5)), "could not choose BUY in the shop menu")
+        self.assertLessEqual(hands.pad.frames, WAIT_UI_BUDGET + 400)  # before 2.1: 12 tries
+
+    def test_the_clock_reports_a_failed_yes_no_at_once(self) -> None:
+        class FrozenQuestionClock(ClockModel):
+            """The clock, whose "Is this the correct time?" never takes input."""
+
+            def tick(self, button: str | None, new: bool) -> None:
+                super().tick(button, new)
+                if self.asking is not None:
+                    self.asking.delay = FOREVER
+
+        start = screen_from(find(recorded("clock"), lambda r: (r["screen"]["ui"] or {}).get("kind") == "clock")["screen"])
+        model = FrozenQuestionClock(start)
+        hands = rig(model)
+        self.assertFalse(drive(set_clock(hands, 10, 2, "test")))
+        self.assertEqual(model.asked, 1)  # before 2.1: asked again for up to CLOCK_BUDGET turns
+        self.assertLess(hands.pad.frames, CLOCK_BUDGET)
+
+
+class ProvenanceTests(unittest.TestCase):
+    """STEP 2.1, the review's item 2 (`gates/provenance.py`): the evidence's CODE line tells two uncommitted trees
+    apart. Before 2.1 every uncommitted tree printed the same "HEAD x; ai_player/ has UNCOMMITTED changes"."""
+
+    def test_two_different_trees_give_two_lines(self) -> None:
+        from ai_player.gates.provenance import line
+
+        one = line("abc1234", "ai_player/", b"diff --git a/x b/x\n-1\n+2\n", {}, 1)
+        two = line("abc1234", "ai_player/", b"diff --git a/x b/x\n-1\n+3\n", {}, 1)
+        self.assertNotEqual(one, two)
+        self.assertIn("working-tree digest sha256:", one)
+        self.assertEqual(one, line("abc1234", "ai_player/", b"diff --git a/x b/x\n-1\n+2\n", {}, 1))  # the same tree: the same line
+        new_a = line("abc1234", "ai_player/", b"", {"ai_player/new.py": b"a = 1\n"}, 0)
+        new_b = line("abc1234", "ai_player/", b"", {"ai_player/new.py": b"a = 2\n"}, 0)
+        self.assertNotEqual(new_a, new_b)  # an UNTRACKED file's content counts
+        self.assertIn("clean at HEAD", line("abc1234", "ai_player/", b"", {}, 0))
+
+    def test_this_trees_line_is_recomputable(self) -> None:
+        """Read-only git on the real repository (`SUPPORT`, also from a copy of the package): the same line twice."""
+        from ai_player.gates.provenance import provenance
+
+        first, second = provenance(SUPPORT), provenance(SUPPORT)
+        self.assertEqual(first, second)
+        self.assertIn("working-tree digest sha256:", first)
 
 
 if __name__ == "__main__":

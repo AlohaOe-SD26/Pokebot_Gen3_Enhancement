@@ -54,6 +54,18 @@ BUILD STEP 2 (the hands), each rule in `eyes/screens.py` with its decomp source:
   * ‼ every pointer the eyes FOLLOW is range-checked first (`_rom_bytes`, `_ewram_bytes`): the framework's
     `read_bytes` does not bound a cartridge read, and a garbage pointer there killed the process.
 
+BUILD STEP 3 (the world model and the navigator), READ ONLY: the doors of steps 1 and 2, plus ONE new read-only door,
+`modules.game.get_symbol_name` (a dict lookup by address; the gate's door says why `get_symbol` cannot do it), used
+only for the first point below:
+  * in a battle, the ACTION menu (FIGHT / BAG / POKéMON / RUN) and its cursor (`_battle_action`:
+    `gBattlerControllerFuncs[0]` NAMED by the symbol table through the new door, `gActionSelectionCursor[0]`), so the
+    AI's own flee skill can choose RUN by reading the cursor (`eyes/screens.py` has the decomp source);
+  * each party Pokemon's total EXPERIENCE (`MonSummary.experience`, the growth substructure @4 of the bytes `_party`
+    already decodes: no new read), so the navigator's progress counts experience gained (design draft §10.4);
+  * under the FAULT switch `AI_PLAYER_FAULT_NO_CROP` the view now holds EVERY tile of the live grid (the map
+    and its margin), not only the 15 x 11 window: the CROP arm of `gates/live_step3.py` gives the navigator
+    tiles a person could not see and shows its behaviour change. On the happy path the window is unchanged.
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -63,7 +75,7 @@ import time
 
 from modules.battle_state import battle_is_active, get_battle_state
 from modules.context import context
-from modules.game import get_symbol
+from modules.game import get_symbol, get_symbol_name
 from modules.items import get_item_bag
 from modules.map import get_map_data_for_current_position, get_map_objects
 from modules.map_data import get_map_enum
@@ -158,13 +170,16 @@ TEXT_PRINTER_SIZE, TEXT_PRINTER_ACTIVE, TEXT_PRINTER_STATE = 0x24, 0x1B, 0x1C
 #: re-pointed at load (`gMapHeader.mapLayout = GetMapLayout()`, `src/overworld.c`), so it may differ from
 #: the ROM's; every other byte is the ROM header's, copied (`gMapHeader = *Overworld_GetMapHeaderByGroupAndId`).
 MAP_HEADER_SIZE, MAP_HEADER_COPIED_FROM = 0x1C, 4
-#: `include/constants/battle.h` BATTLE_TYPE_TRAINER.
+#: `include/constants/battle.h` BATTLE_TYPE_TRAINER, BATTLE_TYPE_SAFARI.
 BATTLE_TYPE_TRAINER = 1 << 3
+BATTLE_TYPE_SAFARI = 1 << 7
 #: BUILD STEP 2 (`eyes/screens.py` has each source). The tasks whose menu keeps its cursor in `sMenu`.
 _SMENU_TASKS = frozenset({
     "Task_HandleYesNoInput", "Task_CallYesOrNoCallback", "Task_NewGameBirchSpeech_ProcessNameYesNoMenu",
     "Task_SetClock_HandleConfirmInput", "Task_NewGameBirchSpeech_ChooseGender", "Task_HandleMultichoiceInput",
     "Task_HandleMultichoiceGridInput", "Task_ShopMenu",
+    # STEP 2.1 (`eyes/screens.py` UI_BUSY_TASKS): the gender menu stays on screen while its sprites slide
+    "Task_NewGameBirchSpeech_SlideOutOldGenderSprite", "Task_NewGameBirchSpeech_SlideInNewGenderSprite",
 })
 #: `src/shop.c` struct MartInfo: itemList @8, itemCount @0xC (u16), martType @0xF; struct ShopData:
 #: tilemapBuffers[4][0x400] (0x2000 bytes), totalCost @0x2000, itemsShowed @0x2004, selectedRow @0x2006,
@@ -352,14 +367,16 @@ class FrameworkEyes:
         if reason is None:
             reason = task_wait(tasks)  # build step 2: a task polling A/B with no text printer waiting
         kind, menu = classify_screen(game_state, in_battle, text_box_mode, tasks)
-        ui = self._guarded("menu cursor", problems, lambda: self._ui(game_state, task_data))
+        # STEP 2.1: what a person sees when nothing takes input (`eyes/screens.py` scene_of): a fade, and the scene.
+        # Read BEFORE the menu since the step-2 review (item 4): while a fade runs nothing takes input
+        # (`eyes/screens.py` read_ui), so the menu's `accepts_input` needs it. The same read as before, moved up.
+        fading = self._guarded("palette fade", problems, lambda: bool(
+            read_symbol("gPaletteFade", PALETTE_FADE_ACTIVE_BYTE, 1)[0] & PALETTE_FADE_ACTIVE_BIT))
+        ui = self._guarded("menu cursor", problems, lambda: self._ui(game_state, task_data, bool(fading)))
         shown = reason is not None or ui is not None or text_box_mode != 0
         text = self._guarded("text", problems, lambda: self._text(shown))
         status = self._guarded("script status", problems, lambda: read_symbol("sGlobalScriptContextStatus", size=1)[0])
         locked = self._guarded("field controls", problems, lambda: read_symbol("sLockFieldControls", size=1)[0])
-        # STEP 2.1: what a person sees when nothing takes input (`eyes/screens.py` scene_of): a fade, and the scene
-        fading = self._guarded("palette fade", problems, lambda: bool(
-            read_symbol("gPaletteFade", PALETTE_FADE_ACTIVE_BYTE, 1)[0] & PALETTE_FADE_ACTIVE_BIT))
         callback = self._guarded("main callback", problems, self._callback_name)
         scene = scene_of(game_state, tasks, callback)
         return ScreenState(game_state=game_state, screen=kind, menu=menu, text_box_open=text_box_mode != 0,
@@ -387,10 +404,11 @@ class FrameworkEyes:
         return self._scene_callbacks.get(address & ~1)
 
     # ------------------------------------------------------------------ build step 2: menus, cursors, text
-    def _ui(self, game_state: str, tasks: dict[str, bytes]):
+    def _ui(self, game_state: str, tasks: dict[str, bytes], fading: bool = False):
         """The bytes `eyes/screens.py` read_ui needs for the menu that is open, read only for THAT menu (its
-        input task is active). Every read is a symbol or a pointer the decomp names (`eyes/screens.py`)."""
-        raw: dict = {}
+        input task is active). Every read is a symbol or a pointer the decomp names (`eyes/screens.py`).
+        `fading` (step 2.1, the review's item 4) is this look's palette fade, read by `_screen`: no extra read."""
+        raw: dict = {"fading": fading}
         if tasks.keys() & _SMENU_TASKS:
             raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
         if "Task_ShopMenu" in tasks:
@@ -421,7 +439,24 @@ class FrameworkEyes:
         if game_state == "PARTY_MENU":
             slot = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 1)[0]
             raw["party_slot"] = slot - 256 if slot >= 128 else slot
+        if game_state == "BATTLE":
+            raw["battle_action"] = self._battle_action()
         return read_ui(game_state, tasks, raw)
+
+    @staticmethod
+    def _battle_action() -> dict:
+        """BUILD STEP 3 (read only): the battle's action menu (`eyes/screens.py`). The player's battler is 0
+        (`B_POSITION_PLAYER_LEFT`); its controller function is `gBattlerControllerFuncs[0]`, NAMED by the symbol table
+        at its address (the thumb bit off: `get_symbol_name`, the step-3 door; `get_symbol` cannot be used, the name
+        is static in two files, the gate's door says which), and the menu takes input while it is
+        `HandleInputChooseAction`; the cursor is `gActionSelectionCursor[0]`. A Safari battle's controller has a
+        function of the same name for ITS menu (BALL / POKéBLOCK / GO NEAR / RUN), so a Safari battle is not this
+        menu (`gBattleTypeFlags` BATTLE_TYPE_SAFARI)."""
+        function = _u32(read_symbol("gBattlerControllerFuncs", 0, 4), 0)
+        safari = bool(_u32(read_symbol("gBattleTypeFlags", size=4), 0) & BATTLE_TYPE_SAFARI)
+        name = get_symbol_name(function & ~1) if function else ""
+        return {"choosing": name.upper() == "HANDLEINPUTCHOOSEACTION" and not safari,
+                "cursor": read_symbol("gActionSelectionCursor", 0, 1)[0]}
 
     def _naming(self, tasks: dict[str, bytes]) -> dict | None:
         """`src/naming_screen.c` struct NamingScreenData (via the pointer `sNamingScreen`), and the cursor
@@ -621,11 +656,19 @@ class FrameworkEyes:
         secondary = self._tileset_attributes(_u32(map_layout, 20))
         tile_bits = self._tile_flags()
         _, _, warps, signs = self._map_facts(player.map_group, player.map_number)
+        if self.crop:
+            up, down, left_of, right_of = VIEW_UP, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_HALF_WIDTH
+        else:
+            # FAULT `AI_PLAYER_FAULT_NO_CROP` only (build step 3, the CROP arm): the WHOLE live grid, the map and its
+            # margin, so a test can show that the navigator, given tiles a person could not see, plans differently.
+            # The same read-only reads as the window, over every row and column of `gBackupMapLayout`.
+            up, down = player.y + MAP_OFFSET, height - 1 - (player.y + MAP_OFFSET)
+            left_of, right_of = player.x + MAP_OFFSET, width - 1 - (player.x + MAP_OFFSET)
         rows = []
-        for dy in range(-VIEW_UP, VIEW_DOWN + 1):
+        for dy in range(-up, down + 1):
             vy = player.y + MAP_OFFSET + dy
-            left = player.x + MAP_OFFSET - VIEW_HALF_WIDTH
-            count = 2 * VIEW_HALF_WIDTH + 1
+            left = player.x + MAP_OFFSET - left_of
+            count = left_of + right_of + 1
             inside = 0 <= vy < height and 0 <= left and left + count <= width
             raw = context.emulator.read_bytes(grid + 2 * (vy * width + left), 2 * count) if inside else b""
             row = []
@@ -641,8 +684,8 @@ class FrameworkEyes:
                                       tile_bits, warps, dy))
             rows.append(tuple(row))
         objects = self._objects(player) + self._signs(player, signs)
-        return View(left=VIEW_HALF_WIDTH, right=VIEW_HALF_WIDTH, up=VIEW_UP, down=VIEW_DOWN, rows=tuple(rows),
-                    objects=tuple(objects), cropped=self.crop)
+        return View(left=left_of, right=right_of, up=up, down=down, rows=tuple(rows), objects=tuple(objects),
+                    cropped=self.crop)
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
@@ -761,6 +804,7 @@ class FrameworkEyes:
             slot=slot, species=species.name, dex=species.national_dex_number, level=raw.level, hp=raw.hp,
             max_hp=raw.max_hp, status=status_name(raw.status_bits), types=tuple(t.name for t in species.types),
             moves=tuple(moves), pid=raw.personality, ot_id=visible_id(raw.ot_id), is_egg=raw.is_egg,
+            experience=raw.experience,
         )
 
     # ------------------------------------------------------------------ the PC boxes

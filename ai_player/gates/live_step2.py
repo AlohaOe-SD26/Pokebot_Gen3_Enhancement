@@ -1,8 +1,8 @@
 """LIVE PROOF of AI-player build step 2 (the HANDS): the AI plays the intro, the nurse, the mart and the wall
 clock ITSELF, through the real launcher, under the purity instrument.
 
-    py -3.12 ai_player/gates/live_step2.py [--arms INTRO,XU,XBN,NURSE,MART,CLOCK,XBC,WBI,WBN,WBM,WBC,WBX,XTW,RATE]
-                                           [--seed 3] [--evidence-tag step2]
+    py -3.12 ai_player/gates/live_step2.py [--arms INTRO,XU,XBN,NURSE,MART,CLOCK,XBC,WBI,WBN,WBM,WBC,WBX,XTW,XFD,XSTALL,
+                                                   XSTALLR,RATE] [--seed 3] [--evidence-tag step2]
 
 Each arm runs the REAL launcher (`py -3.12 -m ai_player run`, which gates the real package first) with a hands
 brain (`AI_PLAYER_BRAIN=intro|nurse|mart|clock`, `ai_player/mode.py` HandsBrain) and the pinned seed 3 (or
@@ -111,6 +111,34 @@ STEP 2.1 (pre-registered 2026-10-07, before the graded runs; the step-2 verifier
     question takes a batch; with 0 failures of 20 the failure rate is below ~15% at 95%).
 Evidence: `ai_player/evidence/<date>-step2-<ARM>.txt` (the new arms too). With `--seed 9` (the replication) every
 arm but RATE runs again with the same pass criteria and no numbers predicted (RATE's seeds do not depend on --seed).
+
+STEP 2.1, THE STEP-2 REVIEW'S ITEMS (pre-registered 2026-10-08, before the graded runs, from in-process development
+runs of the same code: `hands_harness.py`, `probe_presses.py`, and copies of the package for the fault arms):
+(1) the STALL detector (`hands/dialogue.py` advance). XSTALL: the nurse's yes/no unknown to the eyes (a copy without
+    `Task_HandleYesNoInput` in UI_TASKS: the review's "unlisted menu"). PREDICT outcome "nurse: the nurse's dialogue
+    ended in stuck:watching: a scene plays (a script runs, the controls are locked)" (the false reason the review
+    named), its STUCK line "nothing on screen changed for 300 frames" on a look whose digest says `menu=yes_no` with
+    no `ui=`, ~1,088 frames (dev). XSTALLR (the same copy, the detector out): "nurse: stopped: not finished within
+    6000 frames", one stretch of ~5,214 frames watched under that false reason (dev). RATE: still 20 of 20 per skill
+    (no false stall: the longest still stretches measured were 455 frames in a NAMED scene, 58 in an unnamed one).
+(2) every evidence file's `code:` line carries `working-tree digest sha256:<16 hex>` (`gates/provenance.py`).
+(3) EVERY launcher arm: the pad's frames == the instrument's `real_frames`, XBN (12,000) and XBC (6,000) included,
+    where the step-2 pad said 11,999 and 5,991.
+(4) START / B / SELECT presses forked too (`probe_presses.py` check_other). WBI PREDICT 4 START (the movie, the
+    logo, the title, the keyboard's OK) and 1 SELECT, every one TAKEN, none on a fading frame (dev: f260, f322, f369,
+    f6099 START, f5798 SELECT); WBM 1 B taken; WBN, WBC none. XFD (a copy without the eyes' fade rule) PREDICT exactly
+    1 press not taken, the movie's START at f211 on a fading frame (the review's own frame), every other press taken
+    (dev: f253, f300, f346, f6038 START, f5734 SELECT). INTRO seed 3: still "in the truck; intended Rosa (GIRL)", now
+    8,742 frames and 54 presses (dev; step 2: 8,664 and 55, one START of which the game dropped); seed 9: Luna, 8,762
+    frames, 51 presses (dev).
+(5), (6): unit tests (`gates/test_hands.py` NameQuestionTests, SubSkillFailureTests, GenderSlideTests) and their
+    mutants (`gates/revert_step2.py`). FOUND through (6): the gender menu read as CLOSED while Birch's sprites slide
+    after a cursor move (`eyes/screens.py` UI_BUSY_TASKS); the old intro hid it by choosing again. XBN's blind driver
+    now waits for the menu to take input before its A (it stays blind to the CURSOR, the one thing it isolates), and
+    PREDICT it behaves as in step 2: seed 3 truth name 'R.qq', "So it's R.qq?" answered NO, the truck never reached in
+    12,000 frames (dev); seed 9 name 'L   ' (dev; step 2's run ended during a retry, with the preset 'BELLA').
+    NURSE, MART, CLOCK, XU, XBC: the same outcomes and truths as step 2 (dev: nurse 1,964 frames 7 presses, mart 1,441 /
+    17, clock at 13:37 2,614 / 16, XU 4,409 / 243 'AAAAAAA', XBC 6,000 / 119 never confirmed).
 """
 
 from __future__ import annotations
@@ -134,7 +162,8 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from ai_player.gates.probe_presses import WAIT_GATE, gate_kind  # noqa: E402
-from ai_player.hands.dialogue import GENERIC_BUSY, UNGATED_GATE  # noqa: E402
+from ai_player.gates.provenance import provenance as tree_provenance  # noqa: E402
+from ai_player.hands.dialogue import GENERIC_BUSY, STALL_FRAMES, STUCK, UNGATED_GATE  # noqa: E402
 from ai_player.hands.menus import BLIND_GATE  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
 from ai_player.options import (  # noqa: E402
@@ -180,6 +209,20 @@ RATE_SEEDS = tuple(range(1, 21))
 #: = 0xD8 down and moves on by itself; it polls no button) listed in the eyes' TASK_WAITS.
 XTW_ANCHOR = '    "Task_NewGameBirchSpeech_WaitPressBeforeNameChoice": "A or B",  # src/main_menu.c, after "...your name?"\n'
 XTW_MUTATION = ("eyes/screens.py", XTW_ANCHOR, XTW_ANCHOR + '    "Task_NewGameBirchSpeech_WaitToShowBirch": "A or B",  # MUTANT XTW\n')
+#: STEP 2.1 (the review's item 4), arm XFD: the eyes' fade rule REVERTED in a copy (`eyes/screens.py` read_ui), so the
+#: intro movie "takes input" while it fades, as before the review.
+XFD_MUTATION = ("eyes/screens.py", '    if ui is not None and ui.accepts_input and raw.get("fading"):\n',
+                "    if False:  # MUTANT XFD: a running fade no longer means 'not taking input'\n")
+#: STEP 2.1 (the review's item 1), arms XSTALL / XSTALLR: the eyes in a copy do not know a script's yes/no (its input
+#: task is taken out of UI_TASKS), so the nurse's "Would you like to rest your POKéMON?" is an UNLISTED MENU, the
+#: review's case; XSTALLR also takes the stall detector out (`hands/dialogue.py` advance).
+XSTALL_MUTATION = ("eyes/screens.py",
+                   '    "Task_HandleYesNoInput": "yes_no",  # src/script_menu.c (a script\'s yesnobox / msgbox MSGBOX_YESNO)\n',
+                   "    # MUTANT XSTALL: a script's yes/no is not a menu the eyes know\n")
+XSTALLR_MUTATION = ("hands/dialogue.py", "        if still > stall_limit(look):\n",
+                    "        if False:  # MUTANT XSTALLR: no stall detector (before the review's item 1)\n")
+#: STEP 2.1: the reason the nurse's unknown yes/no reads as (`hands/dialogue.py` busy_reason: a script runs).
+SCENE_REASON = "watching: a scene plays (a script runs, the controls are locked)"
 
 
 @dataclass
@@ -193,8 +236,8 @@ class Arm:
     env: dict[str, str] = field(default_factory=dict)
     doc: str = ""
     #: STEP 2.1: "launcher" (the real launcher, under the purity instrument), "probe" (`gates/probe_presses.py`, every
-    #: A press checked against the game's behaviour, in a throwaway emulator) or "rate" (the in-process harness, many
-    #: seeds).
+    #: A press checked against the game's behaviour, in a throwaway emulator), "rate" (the in-process harness, many
+    #: seeds) or, since the review's items, "harness" (`gates/hands_harness.py` once, from a COPY of the package).
     kind: str = "launcher"
     args: tuple[str, ...] = ()  # extra arguments of the probe
     mutations: tuple[tuple[str, str, str], ...] = ()  # a probe arm run from a COPY of the package with these edits
@@ -264,6 +307,14 @@ ARMS: list[Arm] = [
         16000, 900.0, kind="probe", args=("--fault", "ungated_a"), doc="as XU"),
     Arm("XTW", "FAULT: a timer task listed as a wait in a COPY of the eyes; the probe must catch the A pressed on it", "intro",
         None, 16000, 900.0, kind="probe", mutations=(XTW_MUTATION,), doc="gates/probe_presses.py from a copy of the package"),
+    # STEP 2.1, the step-2 review's items (pre-registered in the docstring)
+    Arm("XFD", "FAULT: the eyes' fade rule reverted in a COPY: the probe must catch the START the game drops in a fade", "intro",
+        None, 16000, 900.0, kind="probe", mutations=(XFD_MUTATION,), doc="gates/probe_presses.py from a copy of the package"),
+    Arm("XSTALL", "STALL: the nurse's yes/no unknown to the eyes (a COPY): advance must say it is stuck within 300 frames",
+        "nurse", "post_league_lobby.ss1", 6000, 600.0, kind="harness", mutations=(XSTALL_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process: the skills' code, not a purity proof)"),
+    Arm("XSTALLR", "REVERT of XSTALL: the same copy without the stall detector watches silently until its budget", "nurse",
+        "post_league_lobby.ss1", 6000, 600.0, kind="harness", mutations=(XSTALL_MUTATION, XSTALLR_MUTATION), doc="as XSTALL"),
     Arm("RATE", f"RATE: each skill once per seed {RATE_SEEDS[0]}-{RATE_SEEDS[-1]}, in-process (gates/hands_harness.py)", "all",
         None, 16000, 1800.0, kind="rate", doc="in-process: the skills' code; the purity of the same code is the launcher arms'"),
 ]
@@ -401,6 +452,31 @@ def run_probe_arm(arm: Arm) -> Run:
     return run
 
 
+def run_harness_arm(arm: Arm) -> Run:
+    """STEP 2.1: `gates/hands_harness.py` once, from a COPY of the package with the arm's mutations (in-process: the
+    skills' code; nothing here is a purity proof), and its action log."""
+    run = Run(arm)
+    root = make_copy(arm.mutations)
+    run_dir = Path(tempfile.mkdtemp(prefix=f"ai_step21_{arm.name}_"))
+    run.command = [sys.executable, str(root / "ai_player" / "gates" / HARNESS.name), arm.brain, *start_args(arm), "--seed", str(SEED),
+                   "--frames", str(arm.frames), *arm.args, "--run-dir", str(run_dir)]
+    run.started = time.time()
+    began = time.monotonic()
+    try:
+        run.harness, raw = run_json(run.command, "HANDS", clean_env({launcher.ENV_BUILD_ROOT: str(REPO / "sandbox-pokebot")}), arm.wall)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    if run.harness is None:
+        run.notes.append(f"the harness printed no HANDS line: {raw[-2000:]}")
+    actions = run_dir / "actions.jsonl"
+    if actions.is_file():
+        run.records = [json.loads(line) for line in actions.read_text(encoding="utf-8").splitlines() if line.strip()]
+    shutil.rmtree(run_dir, ignore_errors=True)
+    run.elapsed = time.monotonic() - began
+    run.exit_code = 0 if run.harness is not None else 1
+    return run
+
+
 def rate_clock(seed: int) -> str:
     """Arm RATE's clock time for a seed: spread over the day, so the hand travels a different way each time."""
     return f"{(seed * 5) % 24}:{(seed * 13) % 60:02d}"
@@ -455,6 +531,15 @@ def check_purity(run: Run, want_outcome: str | None) -> None:
     run.check((counters.get("ai_presses") or 0) > 0 and pad_presses is not None and counters.get("ai_presses") == 2 * pad_presses,
               f"ai_presses={counters.get('ai_presses')} (the instrument, at the emulator's door: hold_button + release_button) == "
               f"2 x the AI pad's own count {pad_presses} ({summary or 'no [AI-HANDS] outcome line'}), and > 0")
+    # STEP 2.1 (the step-2 review, item 3: "the pacing check grades the AI's own log"): the frames the AI's pad let
+    # pass, against the frames the INSTRUMENT counted in the main loop. Before 2.1 the two agreed on the arms that
+    # ended by themselves and NOT on the two stopped by their budget (XBN 11999 vs 12000, XBC 5991 vs 6000: the pad
+    # counted a press only once it had finished, `hands/pad.py` Pad._count).
+    frames = re.search(r"presses=\d+ frames=(\d+)", summary)
+    pad_frames = int(frames.group(1)) if frames else None
+    run.check(pad_frames is not None and pad_frames == counters.get("real_frames"),
+              f"the AI pad's own frame count {pad_frames} == the instrument's real_frames {counters.get('real_frames')} "
+              f"(every frame the AI let pass is a frame the main loop ran, and no other)")
     nonzero = {k: counters.get(k) for k in BREACH_COUNTERS if counters.get(k) != 0}
     run.check(not nonzero, f"every breach counter 0, incl. foreign_presses={counters.get('foreign_presses')} foreign_writes="
                            f"{counters.get('foreign_writes')} foreign_loads={counters.get('foreign_loads')} ai_bot_calls="
@@ -781,11 +866,41 @@ def check_forks_changed_nothing(run: Run) -> None:
               f"{[harness.get(k) for k in keys]}")
 
 
-def grade_probe(run: Run, outcome: str, need: dict[str, int], truth_check) -> None:
-    """A real skill under the probe (WBI, WBN, WBM, WBC): every A press, by the game's behaviour."""
+def other_verdict(p: dict) -> tuple[bool, str]:
+    """STEP 2.1 (the review's item 4): the GAME'S verdict on one START / B / SELECT press: TAKEN (the run with the
+    press differs from the run with no input, `probe_presses.py` check_other), from a restored fork."""
+    text = (f"f{p['frame']} {p['button']} {str(p['gate'])[:60]!r}: fading={p['fading']} taken_at={p['taken_at']} "
+            f"{p['taken_by'][:4]}")
+    return bool(p.get("restored")) and p["taken_at"] is not None, text
+
+
+def check_other_presses(run: Run, need: dict[str, int]) -> None:
+    """STEP 2.1 (the review's item 4): every START, B and SELECT press of a real skill was TAKEN by the game."""
+    others = (run.probe or {}).get("other_presses")
+    if others is None:
+        run.check(False, "the probe reported no START / B / SELECT list (a probe from before step 2.1?)")
+        return
+    counts: dict[str, int] = {}
+    for p in others:
+        counts[p["button"]] = counts.get(p["button"], 0) + 1
+    dropped = [other_verdict(p)[1] for p in others if not other_verdict(p)[0]]
+    short = {b: f"{counts.get(b, 0)} < {n}" for b, n in need.items() if counts.get(b, 0) < n}
+    run.check(not dropped and not short,
+              f"EVERY START / B / SELECT press was TAKEN by the game (the run with the press differs from the run with no "
+              f"input, within {(run.probe.get('constants') or {}).get('PRESS_WATCH')} frames): {dict(sorted(counts.items())) or 'none pressed'} "
+              f"(pre-registered at least {need or 'none'}); dropped: {dropped[:4] or 'none'}; short: {short or 'none'}")
+    run.notes.append("every START / B / SELECT press, the probe's verdict:\n    " + "\n    ".join(
+        f"{'OK ' if other_verdict(p)[0] else 'BAD'} {other_verdict(p)[1]}" for p in others) if others else
+        "no START / B / SELECT press in this run")
+
+
+def grade_probe(run: Run, outcome: str, need: dict[str, int], truth_check, need_other: dict[str, int] | None = None) -> None:
+    """A real skill under the probe (WBI, WBN, WBM, WBC): every A press, by the game's behaviour; since the review's
+    item 4, every START / B / SELECT press too (`check_other_presses`)."""
     presses = check_probe_ran(run)
     if not presses:
         return
+    check_other_presses(run, need_other or {})
     check_forks_changed_nothing(run)
     data = run.probe or {}
     run.check(data.get("reason") == outcome, f"the skill's outcome: {data.get('reason')!r} (want {outcome!r})")
@@ -847,7 +962,8 @@ def truth_clock(run: Run, truth: dict) -> None:
 def grade_WBI(run: Run) -> None:
     _, gender, name = intent(SEED)
     grade_probe(run, f"intro: in the truck; intended {name} ({gender})",
-                {"task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)": 1, "text printer 0 *": 15}, truth_intro)
+                {"task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)": 1, "text printer 0 *": 15}, truth_intro,
+                {"Start": 4, "Select": 1})
 
 
 def grade_WBN(run: Run) -> None:
@@ -856,7 +972,7 @@ def grade_WBN(run: Run) -> None:
 
 def grade_WBM(run: Run) -> None:
     grade_probe(run, "mart: bought", {"task Task_ReturnToItemListAfterItemPurchase (A or B)": 1, "script waitbuttonpress": 1,
-                                      "talk: facing *": 1}, truth_mart)
+                                      "talk: facing *": 1}, truth_mart, {"B": 1})
 
 
 def grade_WBC(run: Run) -> None:
@@ -900,6 +1016,60 @@ def grade_XTW(run: Run) -> None:
     real = [p for p in presses if p["kind"] == "wait" and p not in fake]
     run.check(bool(real) and all(press_verdict(p)[0] for p in real),
               f"CONTROL inside the arm: the {len(real)} other wait-gated presses of the same run are all proven by the game")
+
+
+def grade_XFD(run: Run) -> None:
+    """STEP 2.1, FAULT (the review's item 4): the eyes' fade rule reverted in a COPY; the probe must flag the START the
+    game drops because a fade runs, and only those (every press on a frame with no fade is taken)."""
+    presses = check_probe_ran(run)
+    data = run.probe or {}
+    code = data.get("eyes_code") or {}
+    run.check("ai_player_step21_" in str(code.get("screens")), f"the COPY's eyes ran: {code.get('screens')}")
+    others = data.get("other_presses") or []
+    dropped = [p for p in others if not other_verdict(p)[0]]
+    run.check(bool(dropped) and all(p["fading"] for p in dropped),
+              f"CAUGHT: {len(dropped)} START / B / SELECT presses NOT taken by the game, each on a frame where a fade ran "
+              f"(the copy's eyes said the screen took input): {[other_verdict(p)[1] for p in dropped][:3]}")
+    clear = [p for p in others if not p["fading"]]
+    run.check(bool(clear) and all(other_verdict(p)[0] for p in clear),
+              f"CONTROL inside the arm: the {len(clear)} presses of the same run on frames with no fade were all taken")
+    run.check(bool(presses), f"the run went on ({data.get('reason')!r}, {len(presses)} A presses probed)")
+    run.notes.append("every START / B / SELECT press, the probe's verdict:\n    " + "\n    ".join(
+        f"{'OK ' if other_verdict(p)[0] else 'BAD'} {other_verdict(p)[1]}" for p in others))
+
+
+def stuck_line(run: Run) -> str:
+    return next((line for line in (run.harness or {}).get("lines") or [] if "STUCK:" in line), "")
+
+
+def grade_XSTALL(run: Run) -> None:
+    """STEP 2.1 (the review's item 1), live: the nurse's yes/no unknown to the eyes in a COPY; `advance` must say it is
+    stuck after STALL_FRAMES unchanged frames, under the false reason the review named, and the skill must report it."""
+    data = run.harness or {}
+    want = f"nurse: the nurse's dialogue ended in {STUCK}{SCENE_REASON}"
+    run.check(data.get("reason") == want, f"the skill's outcome: {data.get('reason')!r} (want {want!r})")
+    line = stuck_line(run)
+    run.check(f"nothing on screen changed for {STALL_FRAMES} frames while {SCENE_REASON}" in line and "menu=yes_no" in line,
+              f"the AI said it was stuck, on the yes/no the eyes do not know (its digest says menu=yes_no and no ui=): {line[:300] or 'MISSING'}")
+    watches = [r for r in run.records if r.get("decision") == "watch" and r.get("reason") == SCENE_REASON]
+    longest = max((int(str(r["action"]).split()[1].rstrip("f")) for r in watches), default=0)
+    run.check(0 < longest <= STALL_FRAMES + 5,
+              f"the longest stretch it watched the unknown menu under the false reason: {longest} frames (<= {STALL_FRAMES} + 5)")
+    run.check(isinstance(data.get("frames"), int) and data["frames"] < run.arm.frames // 2,
+              f"it ended long before its budget: {data.get('frames')} frames of {run.arm.frames}")
+
+
+def grade_XSTALLR(run: Run) -> None:
+    """STEP 2.1, the REVERT of XSTALL: without the stall detector the same copy watches the unknown menu under the false
+    reason until its frame budget (before the review: until DIALOGUE_BUDGET, three minutes)."""
+    data = run.harness or {}
+    want = f"nurse: stopped: not finished within {run.arm.frames} frames"
+    run.check(data.get("reason") == want, f"the skill's outcome: {data.get('reason')!r} (want {want!r})")
+    run.check(not stuck_line(run), f"no STUCK line (the detector is out): {stuck_line(run)[:120] or 'none'}")
+    watches = [r for r in run.records if r.get("decision") == "watch" and r.get("reason") == SCENE_REASON]
+    longest = max((int(str(r["action"]).split()[1].rstrip("f")) for r in watches), default=0)
+    run.check(longest >= 10 * STALL_FRAMES,
+              f"HARM: it watched the unknown menu for {longest} frames under the false reason {SCENE_REASON!r} (>= {10 * STALL_FRAMES})")
 
 
 def grade_RATE(run: Run) -> None:
@@ -947,18 +1117,16 @@ def grade_RATE(run: Run) -> None:
 
 GRADERS = {"INTRO": grade_INTRO, "XU": grade_XU, "XBN": grade_XBN, "NURSE": grade_NURSE, "MART": grade_MART,
            "CLOCK": grade_CLOCK, "XBC": grade_XBC, "WBI": grade_WBI, "WBN": grade_WBN, "WBM": grade_WBM, "WBC": grade_WBC,
-           "WBX": grade_WBX, "XTW": grade_XTW, "RATE": grade_RATE}
+           "WBX": grade_WBX, "XTW": grade_XTW, "XFD": grade_XFD, "XSTALL": grade_XSTALL, "XSTALLR": grade_XSTALLR,
+           "RATE": grade_RATE}
 
 
 # ---------------------------------------------------------------------- evidence
 def provenance() -> str:
-    try:
-        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(REPO), capture_output=True, text=True, timeout=30).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", "ai_player"], cwd=str(REPO),
-                               capture_output=True, text=True, timeout=30).stdout.strip()
-        return f"HEAD {head}; " + ("ai_player/ has UNCOMMITTED changes (the code under test is the working tree)" if dirty else "ai_player/ clean at HEAD")
-    except Exception as error:  # noqa: BLE001
-        return f"unknown ({error})"
+    """STEP 2.1 (the step-2 review, item 2): the CODE line carries a digest of the working tree
+    (`gates/provenance.py`: git diff HEAD plus every untracked file under ai_player/, evidence left out), so the
+    code a run tested can be told apart from any other uncommitted tree."""
+    return tree_provenance(REPO)
 
 
 def md5_of(path: Path) -> str:
@@ -1024,9 +1192,19 @@ def write_evidence(run: Run, code_ref: str, tag: str) -> Path:
             out.append(f"  f{p['frame']} | {p['gate']} | {p['kind']} {p.get('menu') or ''} | printing={p['printing']} still={p['still']} "
                        f"by-itself={p['moved_by_itself_at']} {p['moved_by_itself']} | A={p['moved_by_a_at']} {p['moved_by_a']} | "
                        f"B-same={p['b_same']} {p.get('b_differs_at', '')} | free={p['free']} started={p['started']} | tasks {p['tasks']}")
+        out.append("STEP 2.1 (the review's item 4): every START / B / SELECT press, raw (frame, button, gate, a fade running on "
+                   "its frame, taken at +N frames: the first frame the pressed run differs from the run with no input, and in what):")
+        for p in run.probe.get("other_presses") or []:
+            out.append(f"  f{p['frame']} | {p['button']} held {p['held']} | {p['gate']} | fading={p['fading']} | taken_at={p['taken_at']} "
+                       f"{p['taken_by']} | restored={p['restored']}")
     if run.harness is not None:
         harness = {k: run.harness.get(k) for k in ("brain", "seed", "fault", "reason", "frames", "presses", "seconds")}
-        out += ["", "---- STEP 2.1: the unforked run of the same start (gates/hands_harness.py) ----", json.dumps(harness, ensure_ascii=False)]
+        title = ("the unforked run of the same start (gates/hands_harness.py)" if run.arm.kind == "probe" else
+                 "the run, in-process from a COPY of the package (gates/hands_harness.py)")
+        out += ["", f"---- STEP 2.1: {title} ----", json.dumps(harness, ensure_ascii=False)]
+        if run.arm.kind == "harness":
+            out += ["the brain's lines:", *[f"  {line}" for line in run.harness.get("lines") or []],
+                    "TRUTH at the end:", json.dumps(run.harness.get("truth"), ensure_ascii=False, sort_keys=True)]
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 
@@ -1085,7 +1263,8 @@ def main() -> int:
     results: list[Run] = []
     for arm in [a for a in ARMS if a.name in wanted]:
         print(f"\n=== ARM {arm.name}: {arm.title} ===", flush=True)
-        run = {"probe": run_probe_arm, "rate": run_rate_arm}[arm.kind](arm) if arm.kind != "launcher" else run_arm(arm, build_root)
+        runner = {"probe": run_probe_arm, "rate": run_rate_arm, "harness": run_harness_arm}
+        run = runner[arm.kind](arm) if arm.kind != "launcher" else run_arm(arm, build_root)
         GRADERS[arm.name](run)
         evidence = write_evidence(run, code_ref, args.evidence_tag)
         results.append(run)

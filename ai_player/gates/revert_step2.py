@@ -33,6 +33,10 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from ai_player.gates.provenance import provenance  # noqa: E402  (the evidence's code line, since step 3's verifier)
+
 EVIDENCE = REPO / "ai_player" / "evidence"
 TIMEOUT = 600
 
@@ -158,6 +162,90 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
            [("gates/live_step2.py", '        return kind, re.search(rf" ui={re.escape(menu or \'\')}\\[", digest) is not None and "waits=A/B" not in digest\n',
              '        return kind, " ui=" in digest and "(busy)" not in digest and "waits=A/B" not in digest  # MUTANT HK\n')],
            ["PressKindTests.test_the_classes_and_their_faults"]),
+    # ---- STEP 2.1, the step-2 review's items 1-6 (item 7 is revert_step11.py R5c)
+    "HST": (CAUGHT, "advance() has no stall detector (item 1: an unknown prompt is watched for the whole budget)",
+            [("hands/dialogue.py", "        if still > stall_limit(look):\n", "        if False:  # MUTANT HST\n")],
+            ["StallTests.test_an_unknown_prompt_is_stuck_after_300_frames",
+             "StallTests.test_a_scene_the_eyes_name_is_watched_longer"]),
+    "HSTn": (CAUGHT, "one stall limit for every screen (a scene the eyes name is not watched longer)",
+             [("hands/dialogue.py", "    return STALL_FRAMES_SCENE if look.screen.scene is not None else STALL_FRAMES\n",
+               "    return STALL_FRAMES  # MUTANT HSTn\n")],
+             ["StallTests.test_a_scene_the_eyes_name_is_watched_longer"]),
+    "HSTk": (CAUGHT, "the stall count does not restart when the screen changes",
+             [("hands/dialogue.py", "        if now != seen:\n            seen, still = now, 0\n",
+               "        if seen is None:  # MUTANT HSTk\n            seen, still = now, 0\n")],
+             ["StallTests.test_a_screen_that_changes_is_never_stuck"]),
+    "HPV": (CAUGHT, "the evidence's CODE line carries no digest of the working tree (item 2)",
+            [("gates/provenance.py", "    digest = tree_digest(diff, untracked)[:16]\n", "    digest = \"(none)\"  # MUTANT HPV\n")],
+            ["ProvenanceTests.test_two_different_trees_give_two_lines"]),
+    "HPF": (CAUGHT, "the pad counts a press's frames only once it has finished (item 3: the pre-2.1 count)",
+            [("hands/pad.py", "            for _ in frames:\n                self.frames += 1\n                yield\n",
+              "            passed = 0\n            for _ in frames:\n                passed += 1\n                yield\n"
+              "            self.frames += passed  # MUTANT HPF\n")],
+            ["PadFrameTests.test_frames_are_counted_as_they_pass"]),
+    "HPI": (CAUGHT, "live_step2 does not compare the pad's frames with the instrument's real_frames (item 3)",
+            [("gates/live_step2.py", "    run.check(pad_frames is not None and pad_frames == counters.get(\"real_frames\"),\n",
+              "    run.check(True,  # MUTANT HPI\n")],
+            ["PadFrameTests.test_the_driver_compares_the_pad_with_the_instrument"]),
+    "HFD": (CAUGHT, "a running palette fade does not mean 'not taking input' (item 4)",
+            [("eyes/screens.py", "    if ui is not None and ui.accepts_input and raw.get(\"fading\"):\n", "    if False:  # MUTANT HFD\n")],
+            ["FadeTests.test_nothing_takes_input_while_a_fade_runs", "FadeTests.test_the_intro_waits_out_a_fade_before_start"]),
+    "HFG": (CAUGHT, "the intro's START gate does not check the screen takes input (item 4)",
+            [("skills/intro.py", "            if ui is not None and ui.kind == kind and ui.accepts_input:\n",
+              "            if ui is not None and ui.kind == kind:  # MUTANT HFG\n")],
+            ["FadeTests.test_the_intro_waits_out_a_fade_before_start"]),
+    "HFW": (REDUNDANT, "the intro does not wait for the movie or the title to take input before its 'think' (item 4)",
+            [("skills/intro.py", "            look = yield from _until_it_takes_input(hands, kind)\n",
+              "            look = hands.look()  # MUTANT HFW\n")],
+            "the START gate re-checks `accepts_input` on its own look after the 'think' (HFG is that check, and it is "
+            "caught), so without the wait no START lands in a fade either: the AI only goes round the intro's loop once "
+            "more per fade, spending one of its INTRO_MENU_STEPS turns. The wait stays: it names the stretch it watches "
+            "('the intro_movie is not taking input yet') and keeps those turns for the menus."),
+    "HGS": (CAUGHT, "the gender menu reads as CLOSED while Birch's sprites slide (found through item 6)",
+            [("eyes/screens.py", "    for task, kind in sorted(UI_BUSY_TASKS.items()):  # STEP 2.1: on screen, not taking input\n",
+              "    for task, kind in ():  # MUTANT HGS\n")],
+            ["GenderSlideTests.test_girl_is_chosen_through_the_slide",
+             "GenderSlideTests.test_the_slide_reads_as_the_menu_not_taking_input"]),
+    "HNQ": (CAUGHT, "the name question is a SUBSTRING test again (item 5: 'Kai' is in 'So it's Kaiden?')",
+            [("skills/intro.py", "    return match.group(\"name\") == name\n", "    return name in question  # MUTANT HNQ\n")],
+            ["NameQuestionTests.test_the_name_is_compared_exactly",
+             "NameQuestionTests.test_a_question_naming_another_name_is_answered_no"]),
+    "HNK": (CAUGHT, "an unreadable name question is answered NO (item 5: the pre-2.1 re-typing loop)",
+            [("skills/intro.py", "            agrees = typed if names is None else names\n",
+              "            agrees = bool(names)  # MUTANT HNK\n")],
+            ["NameQuestionTests.test_an_unreadable_question_relies_on_the_keyboard"]),
+    "HF1": (CAUGHT, "the intro ignores a failed NEW GAME choice (item 6)",
+            [("skills/intro.py", "            if not (yield from choose(hands, \"main_menu\", \"NEW GAME\", \"a new game\")):\n"
+              "                return \"intro: NEW GAME could not be chosen on the main menu\"\n",
+              "            yield from choose(hands, \"main_menu\", \"NEW GAME\", \"a new game\")  # MUTANT HF1\n")],
+            ["SubSkillFailureTests.test_the_intro_reports_each_failure_at_once"]),
+    "HF2": (CAUGHT, "the intro ignores a failed gender choice (item 6)",
+            [("skills/intro.py", "            if not (yield from choose(hands, \"gender\", gender, f\"the personality chose {gender}\")):\n"
+              "                return f\"intro: {gender} could not be chosen on the gender menu\"\n",
+              "            yield from choose(hands, \"gender\", gender, f\"the personality chose {gender}\")  # MUTANT HF2\n")],
+            ["SubSkillFailureTests.test_the_intro_reports_each_failure_at_once"]),
+    "HF3": (CAUGHT, "the intro ignores a name it could not type (item 6)",
+            [("skills/intro.py", "            if not typed:\n                return f\"intro: the name {name!r} could not be typed on the keyboard\"\n",
+              "            pass  # MUTANT HF3\n")],
+            ["SubSkillFailureTests.test_the_intro_reports_each_failure_at_once"]),
+    "HF4": (CAUGHT, "the intro ignores a name question it could not answer (item 6)",
+            [("skills/intro.py", "            if not (yield from answer_yes_no(hands, agrees, because)):\n"
+              "                return \"intro: the name question could not be answered\"\n",
+              "            yield from answer_yes_no(hands, agrees, because)  # MUTANT HF4\n")],
+            ["SubSkillFailureTests.test_the_intro_reports_each_failure_at_once"]),
+    "HF5": (CAUGHT, "the nurse ignores a yes/no it could not answer (item 6)",
+            [("hands/menus.py", "            if not (yield from answer_yes_no(hands, True, f\"{why}: 'Would you like to rest your POKéMON?' YES\")):\n"
+              "                return \"the nurse's yes/no could not be answered YES\"\n",
+              "            yield from answer_yes_no(hands, True, f\"{why}: 'Would you like to rest your POKéMON?' YES\")  # MUTANT HF5\n")],
+            ["SubSkillFailureTests.test_the_nurse_reports_a_failed_yes_no_at_once"]),
+    "HF6": (CAUGHT, "the mart ignores a shop-menu choice it could not make (item 6)",
+            [("hands/menus.py", "            if not (yield from choose(hands, \"mart_menu\", wanted, f\"{why}: the shop menu\")):\n"
+              "                return f\"could not choose {wanted} in the shop menu\"\n",
+              "            yield from choose(hands, \"mart_menu\", wanted, f\"{why}: the shop menu\")  # MUTANT HF6\n")],
+            ["SubSkillFailureTests.test_the_mart_reports_a_failed_choice_at_once"]),
+    "HF7": (CAUGHT, "the clock ignores a 'correct time?' it could not answer (item 6)",
+            [("hands/menus.py", "            if not confirmed:\n", "            if False:  # MUTANT HF7\n")],
+            ["SubSkillFailureTests.test_the_clock_reports_a_failed_yes_no_at_once"]),
 }
 
 #: Runs the copy's test_hands.py and prints one JSON line with every test id and its result.
@@ -206,6 +294,7 @@ def main() -> int:
     except Exception:
         pass
     out = ["AI PLAYER BUILD STEP 2 - MUTANT PROOF OF THE HANDS (gates/revert_step2.py)", f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+           f"code: {provenance(REPO)}",
            "Each mutant breaks ONE check of the real code in a copy; CAUGHT = its predicted tests fail; REDUNDANT = no test "
            "fails, and the reason the check is redundant alone is stated.", ""]
     ok_all = True

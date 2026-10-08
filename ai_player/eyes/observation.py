@@ -216,6 +216,7 @@ class MonSummary:
     pid: int  # personality value: the IDENTITY of this Pokemon (CLAUDE.md rule 3: never a slot)
     ot_id: int  # its original trainer's VISIBLE id (16 bits, the summary screen's "IDNo.")
     is_egg: bool
+    experience: int = 0  # total experience points (the summary screen's "EXP. POINTS"); step 3: novelty counts a gain
 
 
 @dataclass(frozen=True)
