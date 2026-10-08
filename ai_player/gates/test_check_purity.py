@@ -309,7 +309,8 @@ ROUND3_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("R33 sys.monitoring outside the instrument", "brain_r.py", "new", "import sys\nsys.monitoring.set_events(4, 0)\n", "a"),
     ("R34 a new export from a host module", "host/controller.py", "append",
      "\ndef extra():\n    return 1\n__all__ = ['BUTTONS', 'MAX_ACTION_FRAMES', 'Controller', 'ControllerError', 'extra']\n", "g"),
-    ("R35 a host module the gate does not list", "host/eyes.py", "new", "__all__ = []\n", "g"),
+    # host/eyes.py became a LISTED host module in step 1, so R35 plants a name the gate truly does not list.
+    ("R35 a host module the gate does not list", "host/eyes_extra.py", "new", "__all__ = []\n", "g"),
     ("R36 a `__dict__` slot (it would undo the slots)", "brain_r.py", "new", "class C:\n    __slots__ = ('__dict__',)\n", "d"),
     ("R37 getattr(x, 'open') bypassing the mode check", "brain_r.py", "new", "def f(p):\n    getattr(p, 'open')('w')\n", "f"),
     ("R38 an instrument's private state through a match pattern", "brain_r.py", "new",

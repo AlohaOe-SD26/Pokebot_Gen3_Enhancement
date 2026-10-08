@@ -18,6 +18,12 @@ personality, coach). The contract stays: it yields once per frame, every press g
 The fault and control switches are read by the host from the environment (`ai_player/options.py`)
 and handed in as `BrainSettings`, so the fault arms exercise this very loop. None is set on the happy
 path.
+
+BUILD STEP 1 adds the EYES (`Eyes.look()` returns an immutable `Observation`, `ai_player/eyes/`) and a
+second brain, the WATCHER (`AI_PLAYER_BRAIN=watcher`): every `watch_every` frames it looks, writes the
+Observation to the action log (`ai_player/memory_log.py`) and prints the scorer-compatible lines for what
+changed, and it presses NOTHING. It is how the eyes are proven against ground truth live, under the
+same purity audit as every run, and it is the recorder later brains build on.
 """
 
 from __future__ import annotations
@@ -27,16 +33,21 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from typing import Protocol
 
+from ai_player.eyes.observation import Observation
+from ai_player.memory_log import ActionLog, ScorerLines
+
 __all__ = [
     "CONTROL_TAP_EVERY_STEPS",
     "FAULT_HANG_AT_STEP",
     "FAULT_HANG_MAX_SECONDS",
     "FAULT_RAISE_AT_STEP",
     "PLACEHOLDER_REASON",
+    "WATCHER_REASON",
     "Brain",
     "BrainSettings",
     "Controls",
     "Eyes",
+    "WatcherBrain",
 ]
 
 #: FAULT `AI_PLAYER_FAULT_RAISE`: the brain raises on this step.
@@ -49,6 +60,8 @@ FAULT_HANG_MAX_SECONDS = 300
 CONTROL_TAP_EVERY_STEPS = 60
 #: The step-0 placeholder's give-up reason.
 PLACEHOLDER_REASON = "step0-placeholder"
+#: The watcher's give-up reason, after it has watched `frames` frames.
+WATCHER_REASON = "watcher-done"
 
 
 class Controls(Protocol):
@@ -65,8 +78,12 @@ class Controls(Protocol):
 
 
 class Eyes(Protocol):
-    """The brain's view of the game. EMPTY in step 0: the placeholder looks at nothing. Build step 1
-    (the eyes facade, memory reads behind an interface) gives it its first methods."""
+    """The brain's view of the game (build step 1). `ai_player/host/eyes.py` implements it with memory
+    reads; a standalone build implements it some other way."""
+
+    def look(self) -> Observation:
+        """Everything on screen and in the menus, at the current frame, as an immutable snapshot. Never
+        raises for a part it cannot read: that part is None and `Observation.problems` says why."""
 
 
 @dataclass(frozen=True)
@@ -77,6 +94,7 @@ class BrainSettings:
     fault_raise: bool = False
     fault_hang: bool = False
     control_tap: bool = False
+    watch_every: int = 60
 
 
 class Brain:
@@ -110,3 +128,54 @@ class Brain:
         for _ in range(FAULT_HANG_MAX_SECONDS):
             time.sleep(1)
         raise RuntimeError("AI_PLAYER_FAULT_HANG: nobody killed the hung brain within its bound")
+
+
+class WatcherBrain:
+    """BUILD STEP 1: watches and presses nothing. Every `watch_every` frames: look, print the scorer
+    lines for what changed (`[AI-STARTER]`, `[MAP]`, `[DEX]`, `[TRAINER] end`, `[CATCH] end`, and the
+    `[hb]` heartbeat every 3600 frames), print a one-line digest (`[AI-EYES]`), and append the whole
+    Observation to the action log. After `frames` frames it prints the last look's heartbeat (`end=1`)
+    and how long its looks took (`[AI-EYES] cost ...`), and gives up with `watcher-done`. Its first look
+    is at its first step, so the run's starting state is always recorded."""
+
+    def __init__(self, settings: BrainSettings, say: Callable[[str], None], actions: ActionLog) -> None:
+        if settings.watch_every <= 0:
+            raise ValueError(f"watch_every must be positive, got {settings.watch_every}")
+        self.settings = settings
+        self._say = say
+        self._actions = actions
+        self.scorer = ScorerLines()
+        self.costs: list[float] = []
+
+    def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
+        if eyes is None:
+            raise RuntimeError("the watcher brain needs eyes")
+        settings = self.settings
+        reason = f"watcher: observe every {settings.watch_every} frames, press nothing"
+        step = 0
+        last: Observation | None = None
+        while step < settings.frames:
+            if step % settings.watch_every == 0:
+                last = eyes.look()
+                for line in self.scorer.update(last):
+                    self._say(line)
+                self._say(f"[AI-EYES] {last.digest()}")
+                for problem in last.problems:
+                    self._say(f"[AI-EYES] problem f{last.frame}: {problem}")
+                self._actions.record(last, decision="observe", action="none", reason=reason, full=True)
+                self.costs.append(last.cost_ms)
+            yield from controls.wait(1)
+            step += 1
+        for line in self.scorer.final(last):
+            self._say(line)
+        self._say(self.cost_line())
+        return WATCHER_REASON
+
+    def cost_line(self) -> str:
+        costs = sorted(self.costs)
+        if not costs:
+            return "[AI-EYES] cost: no looks"
+        mean = sum(costs) / len(costs)
+        median = costs[len(costs) // 2]
+        return (f"[AI-EYES] cost over {len(costs)} looks: mean={mean:.2f}ms median={median:.2f}ms "
+                f"min={costs[0]:.2f}ms max={costs[-1]:.2f}ms records={self._actions.records}")

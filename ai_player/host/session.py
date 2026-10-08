@@ -26,7 +26,10 @@ The brain (`ai_player/mode.py`) is framework-free; THIS file is where the run me
     the instrument to check the AI's guard listener before every real frame (finding 1);
   * runs the GUARD once per frame from the AI's own listener: parked in Manual, discarded, starved
     past the frame budget, out of wall-clock time or interrupted all end the PROCESS (`lifecycle.py`);
-  * drives the brain one frame per `yield`, re-asserting isolation between frames.
+  * drives the brain one frame per `yield`, re-asserting isolation between frames, and hands it the
+    EYES (`host/eyes.py`, build step 1) and the brain the options choose (`AI_PLAYER_BRAIN`: the step-0
+    placeholder by default, or the watcher, which looks every `AI_PLAYER_WATCH_EVERY` frames and
+    presses nothing).
 
 WHEN THINGS HAPPEN, and why that order:
   `start_session()` runs from the hook's CONSTRUCTOR. `modules/main.py` builds the mode instance,
@@ -58,6 +61,7 @@ from modules.context import context
 from ai_player import MODE_NAME
 from ai_player.host.attribution import Attribution, Guarded, seal_module
 from ai_player.host.controller import Controller
+from ai_player.host.eyes import FrameworkEyes
 from ai_player.host.isolation import GuardListener, ListenerIsolation
 from ai_player.host.lifecycle import (
     EXIT_BRAIN_RETURNED,
@@ -71,8 +75,11 @@ from ai_player.host.lifecycle import (
     EXIT_WALL_CLOCK,
     Lifecycle,
 )
-from ai_player.mode import Brain, BrainSettings
+from ai_player.memory_log import ActionLog
+from ai_player.mode import Brain, BrainSettings, WatcherBrain
 from ai_player.options import VERDICT_FILE_NAME, RunOptions
+# (RecordFile on its own line: the live driver's plant arms anchor on the exact RunLog import line.)
+from ai_player.runlog import RecordFile
 from ai_player.runlog import RunLog
 
 #: The folder that CONTAINS this `ai_player/` package: what the hook must have put on `sys.path`.
@@ -119,7 +126,7 @@ class Session(Guarded):
 
     __slots__ = (
         "options", "expected_root", "log", "controller", "brain", "attribution", "guard", "isolation",
-        "lifecycle", "frames_seen", "frame_cap", "interrupted", "watch",
+        "lifecycle", "frames_seen", "frame_cap", "interrupted", "watch", "eyes", "actions",
     )
 
     def __init__(self, options: RunOptions, expected_root: str | None) -> None:
@@ -127,15 +134,21 @@ class Session(Guarded):
         self.expected_root = expected_root
         self.log = RunLog(options.run_dir)
         self.controller = Controller()
-        self.brain = Brain(
-            BrainSettings(
-                frames=options.frames,
-                fault_raise=options.fault_raise,
-                fault_hang=options.fault_hang,
-                control_tap=options.control_tap,
-            ),
-            self.log.line,
+        # Build step 1: the eyes (memory reads, built here, read nothing until the brain looks) and the
+        # action log the brain writes to. `AI_PLAYER_FAULT_NO_CROP` turns the on-screen crop off.
+        self.eyes = FrameworkEyes(crop=not options.fault_no_crop)
+        self.actions = ActionLog(RecordFile(options.run_dir))
+        settings = BrainSettings(
+            frames=options.frames,
+            fault_raise=options.fault_raise,
+            fault_hang=options.fault_hang,
+            control_tap=options.control_tap,
+            watch_every=options.watch_every,
         )
+        if options.brain == "watcher":
+            self.brain = WatcherBrain(settings, self.log.line, self.actions)
+        else:
+            self.brain = Brain(settings, self.log.line)
         self.attribution = Attribution()
         self.guard = GuardListener(self._on_frame)
         extra = [_FaultRaisingListener()] if options.fault_manual else []
@@ -308,7 +321,7 @@ class Session(Guarded):
     # ------------------------------------------------------------------ the generator main.py drives
     def run(self) -> Generator[None, None, None]:
         try:
-            reason = yield from self._steps(self.brain.play(self.controller, None))
+            reason = yield from self._steps(self.brain.play(self.controller, self.eyes))
             if reason is None:
                 self.lifecycle.finish("brain-returned", EXIT_BRAIN_RETURNED)
             self.lifecycle.give_up(str(reason), EXIT_OK)

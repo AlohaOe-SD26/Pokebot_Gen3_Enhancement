@@ -11,8 +11,15 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 0.1, purity scaffolding after its adversarial review.** The brain is a
-placeholder that presses nothing, waits `--frames` frames and gives up with reason `step0-placeholder`.
+**Where it is now: build step 1, the EYES** (section "The eyes" below): the AI reads the game into an
+immutable `Observation` (what is on screen, the party, the bag, progress, a battle's two sides), writes an
+ACTION LOG, and prints the lines the learner's scorer reads. A second brain, the WATCHER
+(`AI_PLAYER_BRAIN=watcher`), looks every N frames and presses nothing; it is how the eyes were proven
+against ground truth live (`gates/live_step1.py`, 15 arms) under the unchanged purity audit. The default
+brain is still step 0's placeholder.
+
+**Step 0.1, purity scaffolding after its adversarial review.** The placeholder brain presses nothing,
+waits `--frames` frames and gives up with reason `step0-placeholder`.
 What step 0 delivers is the boundary every later step stands on: listener isolation (now including
 the framework's listener-REBUILD door), action attribution with a sink audit and a bot-code monitor,
 a verdict file only the instrument can write, a lifecycle that can never park, and two gates (static
@@ -72,23 +79,36 @@ py -3.12 -m ai_player run --profile NAME [--frames N] [--wall-seconds S] [--fres
   package makes it exit 8.
 
 Options travel to the mode as environment variables (`ai_player/options.py`): `AI_PLAYER_FRAMES`,
-`AI_PLAYER_RUN_DIR` (the run's `ai_player.log` and `purity.json` land there),
+`AI_PLAYER_RUN_DIR` (the run's `ai_player.log`, `actions.jsonl` and `purity.json` land there),
 `AI_PLAYER_PACKAGE_ROOT` (the hook APPENDS it to `sys.path`, after the standard library),
 `AI_PLAYER_WALL_DEADLINE`. `--build-root` / `AI_PLAYER_BUILD_ROOT` points at a different framework folder.
+Build step 1: `AI_PLAYER_BRAIN=placeholder|watcher` (default placeholder) and `AI_PLAYER_WATCH_EVERY=N`
+(default 60) choose the brain; the launcher passes its environment to the child, so
+
+```
+AI_PLAYER_BRAIN=watcher py -3.12 -m ai_player run --profile ai-step1-eyes --frames 600 --state tools/story-dev/saves/route116team.ss1
+```
+
+watches a save for 600 frames: `[AI-EYES]` digests on stdout, the Observations in `<run_dir>/actions.jsonl`.
 
 ## Layout
 
 | file | what it is for |
 |---|---|
-| `mode.py` | the BRAIN, framework-free: `Brain.play(controls, eyes)` over the abstract `Controls` / `Eyes` interfaces; returns its give-up reason (step 0: a placeholder) |
+| `mode.py` | the BRAIN, framework-free: `Brain.play(controls, eyes)` over the abstract `Controls` / `Eyes` interfaces; returns its give-up reason (step 0: a placeholder; step 1 adds `WatcherBrain`) |
+| `eyes/observation.py` | the immutable `Observation` and its parts (framework-free): what one look sees |
+| `eyes/view.py` | the AI's perception rules (framework-free): the on-screen window, tile behaviours, object kinds, the screen, when a text waits for a button (`text_printer_wait`), the story flags; tables from pret/pokeemerald |
+| `eyes/party.py` | how a party Pokemon is stored, decoded by the AI's own code (framework-free) |
+| `host/eyes.py` | the ONLY file that reads the game: implements `Eyes.look()` through read-only framework doors |
+| `memory_log.py` | the ACTION LOG records and the SCORER LINES, built from Observations (framework-free) |
 | `host/session.py` | the run inside the framework: start-up refusals (debug mode, HTTP on), Ctrl+C handlers and the interrupt watch thread, the guard callback (park, frame budget, wall clock, interrupt), listener wiring, and driving the brain one frame per `yield` |
 | `host/controller.py` | the ONLY place the AI presses buttons or lets frames pass (implements `Controls`) |
 | `host/isolation.py` | removes every framework listener the AI does not own, owns `modules.main.get_bot_listeners` (the rebuild door) while the AI runs, restores both on exit |
 | `host/attribution.py` | the instrument: counts inputs, writes, loads, clock changes, frames and bot-code calls by origin, audits the sinks, that isolation held and that it saw every main-loop frame, writes the verdict file, seals the host modules, provides `Guarded`, arms the exit watchdog, and holds the FRAME FENCE (no thread but the finishing one runs a frame while the run is being finished) |
 | `host/lifecycle.py` | the single exit door (single-entry across threads); exit codes |
 | `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file |
-| `options.py`, `runlog.py` | run options from the environment; the AI's own log |
-| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof driver, a state inspector, the trainer-fixture builder, the console-signal helper |
+| `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
+| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), a state inspector, the two fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results and the defeat text's build printout), the console-signal helper |
 | `../sandbox-pokebot/plugins/custom_modes/ai_player_mode.py` | the hook: registers "AI Player", APPENDS the repo root to `sys.path`, and keeps its own before/after record of the framework's listeners (`[AI-HOOK]`); no game logic |
 
 The subpackage is `host/`, not `platform/` (step 0's name): `platform` would shadow the standard
@@ -102,7 +122,9 @@ module or folder of the package named like a standard-library module.
    * (a) framework imports only through listed DOORS, per file, and only along the attribute paths
      each door lists (the controller may use `context.emulator.press_button/hold_button/release_button`
      and nothing else; isolation may read and assign `modules.main.get_bot_listeners` and nothing else
-     of `modules.main`); standard-library modules only from a list, each used ONLY as
+     of `modules.main`; the eyes, `host/eyes.py` only, fifteen READ functions and
+     `context.emulator.read_bytes/get_frame_count`, `context.rom.is_emerald`, each door documented in
+     the gate with what it reads and why it cannot act); standard-library modules only from a list, each used ONLY as
      `module.<attribute>` with the attribute on its SURFACE (explicit for `sys`, `os`, `pathlib`,
      `traceback`, `signal` (the session only), `atexit` (the hook only), ...; otherwise a public
      attribute that is not a module, not reflective and not from `operator`/`inspect`/`importlib`/`sys`,
@@ -202,6 +224,9 @@ py -3.12 ai_player/gates/check_purity.py          # static gate (exit 0 = PASS)
 py -3.12 ai_player/gates/test_check_purity.py     # its fault tests (both verifiers' probes, and the step-0.1 rows)
 py -3.12 ai_player/gates/test_host.py             # unit proofs: findings 3, 4, 6, 8 (both threads), the guarded objects, the registry, the frame fence; each with its mutant
 py -3.12 ai_player/gates/live_step0.py            # live proof, 63 arms (27 of step 0, 36 of step 0.1 incl. 16 mutants), ~15 min
+py -3.12 ai_player/gates/test_eyes.py             # step 1 unit proofs (32 tests, each rule with its fault half), ~1 s
+py -3.12 ai_player/gates/live_step1.py            # step 1 live proof, 15 arms (the eyes against ground truth, XW: the waits fix reverted, XG: each truth check's fault half), ~2 min
+py -3.12 ai_player/gates/make_defeat_text_fixture.py   # rebuilds E10's fixture by PLAYING E5's battle (then re-pin its md5)
 ```
 
 ## Fault and control switches
@@ -217,6 +242,7 @@ Read inside the AI's own code, never set on the happy path:
 | `AI_PLAYER_FAULT_NO_REBIND=1` | isolation does not take the framework's rebuild door | RLX, M1 |
 | `AI_PLAYER_FAULT_SKIP_RESTORE=1` | isolation does not give the framework its list back | DX |
 | `AI_PLAYER_CONTROL_TAP=1` | CONTROL: the placeholder taps B every 60 steps | P |
+| `AI_PLAYER_FAULT_NO_CROP=1` | the eyes do not crop to the screen (step 1) | E2X (live_step1) |
 
 A forbidden action cannot be a switch in the real package (the static gate would rightly fail it), so
 the PLANT arms copy the package to a temporary folder, add a `_plant.py` that does one forbidden thing
@@ -252,6 +278,165 @@ V5 as CLEAN, so each layer is shown to be load-bearing.
 
 Evidence of the live proof: `ai_player/evidence/<date>-step01-<ARM>.txt` (step 0's own runs:
 `<date>-step0-<ARM>.txt`).
+
+## The eyes (build step 1)
+
+The brain sees the game only through `Eyes.look()` (`mode.py`), which returns ONE immutable
+`Observation` (`eyes/observation.py`) read at one frame, stamped with the emulator's frame counter. A
+part that cannot be read this frame is None and says why in `problems`; a look never raises.
+
+| part | what | read from |
+|---|---|---|
+| `frame` | the emulator's frame counter | `context.emulator.get_frame_count()` |
+| `screen` | the framework's game state; `overworld` / `battle` / `text` / `menu` / `transition` / `title` / `other`; the open menu (start menu, yes/no, multichoice, bag, party, summary, naming, PC storage, starter choice, main menu); whether the overworld text box is open; whether the game waits for A/B, and WHY (`wait_reason`: `script waitbuttonpress`, or `text printer N WAIT / CLEAR / SCROLL_START`); whether a battle is running | `get_game_state`, `battle_is_active`, `sFieldMessageBoxMode`, the task list, the global script context (`WaitForAorBPress` while not shut down), all 32 `sTextPrinters` (a printer in RENDER_STATE_WAIT, the `{PAUSE_UNTIL_PRESS}` of every trainer's defeat text, or CLEAR / SCROLL_START, the down arrow) and `gTextFlags` (under autoScroll nothing waits for a button) |
+| `player` | map (group, number, the region-map name the bot logs use, the map's own constant), position, facing, movement (walking, running, Mach / Acro bike, surfing, underwater), elevation, the full trainer id | `gPlayerAvatar` and the player's object event (raw), save block 1's location, `get_map_data_for_current_position` (once per map, after checking that the live `gMapHeader` IS that map's ROM header from `gMapGroups`: a header left from another map is refused and reported), `get_map_enum`, `get_player` |
+| `view` | the 15 x 11 tiles ON SCREEN (below), each with collision, elevation, behaviour, blocked, water, wild encounters (land / water), tall grass, ledge direction, door, warp, half-visible; the objects inside it (item balls, trainers, people, cut trees, rocks, boulders, berry trees) and signs (interactable tiles); a picture (`ascii`) | the LIVE grid `gBackupMapLayout` (the map + its 7-tile margin, which holds the connected maps), the tilesets' attributes and `sTileBitAttributes` (ROM, read once), the map's warps and bg events (ROM), `get_map_objects` |
+| `party` | species, national dex number, level, HP, status, types, moves with PP, PID (identity), OT id, egg | raw `gPlayerParty`, decoded by the AI's own `eyes/party.py` (the framework's `get_party()` looks a frame AHEAD on a torn read); names from the data tables |
+| `bag`, `progress` | every ball and healing item with quantities; money, badges, Pokedex owned / seen (and the owned numbers), ten story flags for badge 1 (`eyes/view.py` STORY_FLAGS: each name checked against the framework's flag table, each id against the decomp, each MEANING against the decomp script that sets it) | `get_item_bag`, `get_player`, `get_pokedex`, `get_event_flag` |
+| `battle` | wild or trainer, double, the type flags, the opponent trainer id, both sides' active Pokemon (species, level, HP, live types, moves) | `get_battle_state` (`gBattleMons`), `gBattleTypeFlags`, `gTrainerBattleOpponent_A` |
+| `last_battle_outcome` | `gBattleOutcome` (0 in a battle, the result after it) | raw |
+
+**The window, derived and measured.** The decomp draws virtual-map metatile (j, i) at screen
+(16 j, 16 i - 40) while the player stands on (7, 7) (`src/field_camera.c`: the BG scroll is the pixel
+offset plus the camera pans 0 and 32, plus 8), so the screen shows dx -7..+7 and dy -5..+5 around the
+player, the rows dy = -5 and +5 half (`eyes/view.py` has the derivation with its citations). Arm GEO
+MEASURES it on four overworld fixtures: the player sprite's tile is drawn at screen (112, 72), the pans
+are (0, 32), the columns -7..+7 and rows -5..+5 are on screen with -5 and +5 half visible; its control
+(a battle fixture) does not give (112, 72). The game keeps objects alive up to dx -9..+10, dy -7..+9
+(`TrySpawnObjectEvents`): those, hidden items and invisible objects are NOT in an Observation (§10.7).
+
+**The action log and the scorer lines** (`memory_log.py`). Every look of the watcher is one JSON line
+in `<run_dir>/actions.jsonl` (`frame`, `digest`, `decision`, `action`, `reason`, and the compact
+Observation: each tile as `[x, y, metatile, behavior, collision, elevation, flags]`, about 10 KB a look).
+The run's log gets the bot's own line formats, so `ai-agent/scoring.py` `parse_log` scores an AI run
+like a bot run: `[AI-STARTER] Story: choosing X!` FIRST (observed when the party goes from 0 to 1, or
+inferred at run start: the player's own starter-family Pokemon, else `Unknown`), `[MAP] A -> B(g,n)`,
+`[DEX] owned a -> b`, `[TRAINER] end opp=N ... res=... money=a->b`, `[CATCH] end ... sp=Name#N ...
+res=Caught`, and the `[hb]` heartbeat every 3600 frames plus one when the brain ends (`end=1`), from which
+the scorer takes the run's end map, position, party and length.
+
+**Cost of a look** (measured 2026-10-07 in the round-2 run whose evidence is on disk,
+`evidence/2026-10-07-step1-*.txt`, with the learner's 16 lanes running alongside): in-process (the probe),
+30 looks per fixture, one per frame: overworld medians 1.38 to 1.59 ms (means 1.39 to 1.60, worst look
+1.85 ms), a battle or a full-screen menu (no view to read) medians 0.70 to 0.79 ms (worst 1.21 ms). In the
+live runs, under the purity instrument, 10 looks each: overworld medians 1.54 to 1.76 ms, battle and menu
+medians 0.82 to 0.91 ms, worst look 2.40 ms. The first look of a run also reads the ROM tables it keeps
+(tilesets, tile flags, the map's events) and is usually the slowest. The numbers move with the machine's
+load: the step-1 verifier's own re-run measured an overworld median of 1.95 ms and a worst look of
+2.96 ms (E8). Reading all 32 text printers (1152 bytes) instead of one changed none of this measurably.
+
+**Proofs.** `gates/test_eyes.py` (32 unit tests: the framework-free files import neither the framework
+nor the host side; the window's edges; the behaviour table against the decomp's values and the
+framework's own table; the party decoder against the framework's table and decoder for all 24
+substructure orders, with a swapped-row fault; every flag name, and every flag id equal in the
+framework's table and the decomp, with a wrong-id fault; the probe's charmap and the item-name
+comparison; the wait rule against the decomp's render states, with the pre-fix rule and the
+printer-0-only rule as faults; the scorer reading the AI's lines, with two format faults).
+`gates/live_step1.py` (15 arms, evidence `evidence/<date>-step1-<ARM>.txt`): ten fixtures (a town, two
+routes with tall grass and an item ball off / on screen, a wild and a trainer battle, a trainer's DEFEAT
+text, an open text box, a party menu, a map edge, the League lobby's full bag) through the real launcher
+with the watcher; the first look against `gates/probe_eyes.py`'s ground truth on the SAME frame (asserted
+in every arm), each fact by a SECOND PATH, never the eyes' bytes and code:
+
+| fact | the truth the arms compare with |
+|---|---|
+| map | (group, number): the live header byte-identical to one header of the ROM's `gMapGroups`, walked by the probe; NAME: the ROM header's region-map section -> `gRegionMapEntries`, decoded by the probe's own charmap (the decomp's `charmap.txt`) |
+| position | save block 1 `pos` |
+| facing | on the overworld (6 fixtures), what is DRAWN: the player sprite's `animNum` (ANIM_STD order) and its OAM hFlip (only the east frame is flipped). In a battle or a full-screen menu the overworld sprites are freed and the game keeps no second copy: those lines say CONSISTENCY ONLY |
+| in battle | `gMain.inBattle` (a bit the eyes do not read) |
+| party | the framework's `get_party()` (its own decryption): species, level, HP, PID, every move with PP and max PP, the status (138 moves over the ten party fixtures, 25 of them with PP used; one status other than ok, E7's paralysed Skitty); and the raw level byte |
+| battle sides | the SECOND COPY the game keeps: the party struct with the battler's PID (`gPlayerParty` / `gEnemyParty`, the framework's decryption: species, level, HP, max HP, status, moves with PP and max PP) and the species table's types. The probe's raw `gBattleMons` parse is the same bytes as the eyes, so its line says CONSISTENCY ONLY |
+| trainer id | the trainer who STARTED the battle, without `gTrainerBattleOpponent_A`: `gSpecialVar_LastTalked` -> the map's ROM object template -> its script's `trainerbattle` argument (`Route116_EventScript_Joey`: 322); the ROM's `gTrainers[322]` is JOEY with the live enemy party, the only one of 855 with it; the decomp's `TRAINER_JOEY 322` |
+| text box | `Task_DrawFieldMessage` in the probe's own task parse (the eyes read the box's mode byte) |
+| waits for a button | BEHAVIOUR, in the probe's throwaway emulator, the eyes looking at EVERY frame: text on screen, 300 frames with no input move nothing, one A press moves that text. Before and after the press, every frame on which a text PRINTS by itself must read waits=False, every idle frame from which the screen sits still until the press (which then moves that text) waits=True, and after the press every frame a text then sits still for 30 frames waits=True. Measured: 301 waiting idle frames in each battle and the text box (E4, E5, E6, E10), 200 on the party menu's printer 6 (E7), 26 printing frames before the press (E7) and 10 to 46 after it (E1, E4, E5, E6, E10), 88 to 160 still frames after it (E1, E6, E10). E2, E3, E8, E9 have no text, and E7 none after the press |
+| the defeat text | E10: printer 0 in state 1 with the two bytes it consumed last FC 09 (EXT_CTRL_CODE_PAUSE_UNTIL_PRESS) and its buffer reading Joey's defeat text from the decomp's `data/text/trainers.inc`; the fixture's build printout shows it was PLAYED (22 button presses from E5's fixture) |
+| menu | `gPartyMenu.menuType` = 1 (in battle) and the named `gMain.callback2` |
+| objects | a raw `gObjectEvents` parse with the probe's own window test, and WHAT IS DRAWN: each object's sprite on screen relative to the player's (E1, E2, E3, E6, E8, E9: every still object drawn on its coordinates; the objects the eyes see are exactly those drawn inside the window; E2's item ball is drawn at screen x 240, past the right edge) |
+| the map-header check | its fault arm: another map's ROM header written over `gMapHeader` in the probe's emulator is refused (every arm with a probe) |
+| `gTextFlags` bit order | in a battle the byte is 0x03 (E4, E5, E10): the bit-fields run from bit 0, so autoScroll is bit 2 as the eyes assume |
+| tiles | the ROM layout, tileset attributes and warps decoded by the probe (metatile, behaviour, collision, elevation, warp) and the framework's `MapLocation` (encounters, water, tall grass; ledges and doors by the FRAMEWORK's behaviour names), across a connected edge too; ledges (8), doors and warps in the window |
+| money, badges, story flags, Pokedex | the probe's decode of the save blocks: money XOR the key; flag bits at the decomp's ids; owned / seen by the game's own rule over the three seen copies |
+| balls, healing items | the bag pockets decoded by the probe, names from the ROM's `gItems`, "healing" = the ROM's use function is `ItemUseOutOfBattle_Medicine` / `ItemUseInBattle_Medicine` (E9: 7 healing items and 5 others) |
+
+plus each fixture's documentation; the crop (an item ball the game holds at dx = +8 is absent, the
+trainer at dx = +1 present) and its FAULT arm (with `AI_PLAYER_FAULT_NO_CROP=1` the ball appears); a
+CONTROL on every tile check (the window shifted one column mismatches); arm XW, the waits fix REVERTED in
+copies of the package (the pre-fix states {2, 3}: caught on E10 and E7; printer 0 only: caught on E7,
+passes on E10; the unchanged copy passes both); arm XG, the fault half of the truth checks: 36 copies of
+graded arms with ONE value made wrong, on the eyes' side or on the TRUTH's side (the sprite, a flag bit, a
+ROM tile, the script's trainer, the behaviour, the task list, the menu type, the probe's frame, a second
+copy's HP and PP, an object's drawn position, the header check, `gTextFlags`, the defeat text's bytes),
+each caught by its own check while the unchanged copy passes; the scorer on a real run; every run CLEAN
+with `ai_presses=0` and `ai_bot_calls=0`.
+
+**The eyes missed a wait, and the verifier found it from the decomp.** Until round 2 "waits for a button"
+read only `sTextPrinters[0]` in states 2 and 3 (the down arrow). The decomp has a third waiting state,
+RENDER_STATE_WAIT = 1 (`include/text.h`), which `{PAUSE_UNTIL_PRESS}` enters (`src/text.c`) and which
+`src/battle_message.c` appends to every trainer's lose and win text and to the whiteout text: so after
+every trainer v1 beats, Roxanne included, the eyes said "not waiting" while the game waited for A. The
+first natural capture was then found in a fixture already graded: the party menu's "SKITTY is already in
+battle!" waits in state 1 on PRINTER 6, which the eyes did not read at all. The rule now reads all 32
+printers and states 1, 2, 3 (`eyes/view.py` `text_printer_wait`), proven on E10 (a trainer's defeat text,
+made by playing E5's battle to its end) and E7, each half of the fix failing on revert (arm XW).
+
+**A story flag was wrong, and the second path found it.** The Ch2 flag was `THANKED_FOR_PLAYING_WITH_WALLY`
+("Wally's catching tutorial done"); the decomp sets it only when the player talks to Wally's DAD in
+Wally's house, an optional chat, so it read False on every fixture, six badges included (this project's
+ML-9, repeated). The tutorial sets only variables (`VAR_PETALBURG_CITY_STATE` 2 -> 3); its scene's one
+flag, `HIDE_PETALBURG_CITY_WALLYS_MOM` (set in `PetalburgCity_Gym_EventScript_BeginWallyTutorial`), replaced
+it, and every entry of `STORY_FLAGS` now names the decomp script that sets it.
+
+## Known limits of step 1
+
+* The watcher looks every N frames (60 in the proofs): anything shorter than N frames can be missed, and
+  a change is logged at the look that sees it. A look costs ~10 KB of action log: an hour of game time
+  watched every 60 frames is ~36 MB. On a fresh boot the first look is at frame 0, before the game has
+  run a frame: it reports that as its one problem and sees nothing (the framework's caches are empty).
+* The foe's exact HP and its moves are more than a person sees (the HP bar; moves once used). They are
+  reported because the plan asked for them; the battle decider must treat them as hidden.
+* The window is the standing-still one: the partial 16th column / 12th row while the camera scrolls a
+  step is not modelled. Objects on the half-visible rows are reported. "Signs" are a map's interactable
+  tiles (signposts, PCs, bookshelves, a few invisible triggers), not only signposts.
+* Menus are named only for the start menu, yes/no, multichoice and the whole-screen states; list menus
+  (mart, PC item lists) and the battle's own menus are not named yet. `waits_for_button` covers a script
+  waiting for A/B and every text printer in a waiting state; a wait that is a TASK polling the buttons
+  with no text printer waiting (the level-up stats box, a menu's cursor) is not a "waits for a button"
+  here (a menu is named in `menu` instead). The autoScroll branch (no wait under `gTextFlags.autoScroll`:
+  `messageautoscroll` scripts, link and recorded battles) is unit-tested only: no fixture sets it. The
+  whiteout text's state-1 wait is the decomp's (`sText_PlayerWhiteout2`), not a capture: no fixture stops
+  there (`ki90_whiteout_at_evergrande.ss1` showed no text in 4000 idle frames: the step-1 verifier's probe).
+* The behaviour test that classifies a frame as PRINTING or WAITING is behavioural, not exhaustive: a
+  text in RENDER_STATE_PAUSE for 30 frames or more after the press would read as "still" (none occurs in
+  the fixtures; before the press the stricter rule "still until the press, which then moves it" applies).
+* Battle statuses are graded only as `ok` (no battle fixture holds a status); the party status is graded
+  on E7's paralysed Skitty. Objects mid-step are checked only to lie within one tile of their coordinates,
+  and are left out of the "crop by what is drawn" check (none occurred in the fixtures).
+* Facing has no second copy during a battle or a full-screen menu (the overworld sprites are freed);
+  there the arms check it only for consistency (the same byte, decoded by test code), and say so. The
+  map NAME's truth is the same ROM string the framework decodes, read through the ROM table and decoded
+  by the probe's own charmap: a second decoder, not a second copy. Money and the bag's quantities have no
+  second copy in the game either: their truth is the probe's own decoder of the same save-block bytes.
+* The map-header check compares the live `gMapHeader` with the ROM header from byte 4 on: the layout
+  pointer (bytes 0-3) is re-pointed at load and may differ from the ROM's (`setmaplayoutindex`). It runs
+  once per map the eyes meet (the facts are kept), so a header that goes stale LATER is not re-checked.
+* The behaviour test that grades `waits_for_button` presses A in the probe's own emulator, so it shows
+  what one press does from the fixture's frame, not what the watcher run saw later (the watcher presses
+  nothing, and its looks stay on the frozen screen).
+* Out-of-map tiles were verified only across a connected edge (arm E8, 22 tiles); corner tiles and an
+  edge without a connection are reported as the live grid holds them, unverified. A warp of the NEXT
+  map visible across an edge is not marked `warp` (the eyes know the current map's warps only; its door
+  behaviour is still marked `door`).
+* Healing items were checked on two bags (E3: 1 healing and 1 other; E9: 7 and 5); no fixture holds
+  berries, so the berry pocket's classification is unmeasured.
+* A run started from a SAVE scores only what happens IN the run, exactly like a bot run: the scorer
+  takes the Pokedex from `[DEX]` lines (written on a change, as the bot's `debug_logger.py` does), badges
+  from leader wins and money from trainer-battle ends, so a watcher run on a save scores dex 0, no
+  badges and no money (arm SC and E1 assert this PARITY and quote the bot's line). A New Game run, v1's
+  case, starts at 0 anyway.
+* The framework readers the eyes call memoise into the framework's per-frame Python cache
+  (`state_cache`); nothing in the game changes. What the eyes do with a framework object's attributes is
+  not tracked statically (a value, rule a's limit); the live audit counts any write, press, load, frame or
+  bot code it could cause, and was 0 in every step-1 run.
 
 ## Known limits of step 0.1
 

@@ -37810,3 +37810,22 @@ bought balls only at fixed story points.
   3. A finish off the frame-loop thread no longer restores the listeners, since the process ends anyway.
   - The review's extra suggestion, starting the child with `python -s`, BROKE the framework: its dependencies are in the USER site-packages here (`ModuleNotFoundError: confz`). It was reverted and the reason is written beside `bot_command` (`08`).
 - **Hardening stops here** (`06`): the remaining residuals are documented limits.
+
+## 2026-10-07 — AI player step 1: the EYES (on-screen `Observation` from memory reads), the action log and scorer-compatible log lines; proven on 10+ saves
+
+- **What:**
+  - `ai_player/host/eyes.py` is the read-only framework door (15 reads; none can act).
+  - `ai_player/eyes/` (observation, view, party) builds an immutable `Observation`: screen state and waits-for-button, the player, an ON-SCREEN view crop (tiles and objects), party, bag, money, badges, Pokedex, story flags, battle sides.
+  - `ai_player/memory_log.py` writes the action log (JSONL) plus scorer lines (`[MAP]`, starter, `[TRAINER] end`, `[CATCH] end`, `[DEX] owned`) that `ai-agent/scoring.py` parses.
+  - A WATCHER brain (`AI_PLAYER_BRAIN=watcher`) looks and presses nothing.
+- **Proven:** `live_step1.py` 15 of 15 arms, 508 checks, 0 failures. Ground truth was read INDEPENDENTLY where possible: save-block position, sprite facing, ROM map table, the battle copy by PID, the trainer from its ROM script, wait-for-button by BEHAVIOUR under an A press.
+  - The crop has a fault arm.
+  - The verifier found a real bug, fixed and revert-proven (XW): the eyes missed text-printer state 1 (`{PAUSE_UNTIL_PRESS}`, used by every trainer's defeat text) and read printer 0 only.
+  - New fixture `trainer_defeat_text_r116.ss1`, made by 22 button presses with no writes.
+  - `test_eyes.py` 32 OK; the purity gate PASS; step-0 arms A, A2, B, C PASS. Row R35 was re-pointed at a truly unlisted host file.
+- **Open (step 1.1), from the review:**
+  - Wally's tutorial battle would log a player catch of Ralts (`BATTLE_TYPE_WALLY_TUTORIAL`);
+  - battle lines have not run live yet (the watcher plays nothing), with a stale-foe risk at battle start and `InProgress` counted as a loss;
+  - the Observation carries things a person cannot see (the foe's exact HP and moves, "trainer" labels, the secret ID);
+  - a stale position for a few frames per warp; party `None` vs empty; catch `dest` from the party count;
+  - the untested script `waitbuttonpress` branch.

@@ -417,7 +417,11 @@ exercises variety from day one). (b) Story only for now.
 5. **Acceptance criteria that cannot pass by doing nothing:**
    - at least T training steps and at least N wild battles before `DEFEATED_RIVAL_ROUTE103`;
    - at least 1 coach plan accepted and acted on per run;
-   - every milestone is named by its flag (e.g. `THANKED_FOR_PLAYING_WITH_WALLY`, `early_game.py:1535`);
+   - every milestone is named by its flag (e.g. `HIDE_PETALBURG_CITY_WALLYS_MOM` for Wally's catching tutorial;
+     the flag list with the decomp script that sets each is `ai_player/eyes/view.py` STORY_FLAGS). ‼ CORRECTED
+     2026-10-07 (build step 1): this example was `THANKED_FOR_PLAYING_WITH_WALLY` (`early_game.py:1535`), which only
+     Wally's DAD sets (`PetalburgCity_WallysHouse_EventScript_WallysDad`, an optional chat): the eyes read it False
+     on every fixture, six badges included. The bot's leg visits the dad; a player need not;
    - the starter is SEEDED per run, giving 9 runs = 3 per starter.
 6. **The coach:**
    - no tools: the observation is sent inline, so it is faster and cheaper, and the coach cannot read bot code and

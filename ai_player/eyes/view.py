@@ -1,0 +1,352 @@
+"""The AI's PERCEPTION RULES: what is on screen, and what a tile or an object IS. Framework-free.
+
+Everything here is a fact about Pokemon Emerald copied from pret/pokeemerald (each table names its
+source file), or a rule about what a PERSON at the screen can see. `ai_player/host/eyes.py` reads the
+raw numbers from the game and calls these functions; nothing here reads anything.
+
+THE GBA VIEW (design draft §10.7: "eyes.py crops tiles and objects to the on-screen view, about ±7 by
+±5 tiles"). Derived from the decomp, then MEASURED live (`gates/live_step1.py` arm GEO):
+
+  * The screen is 240 x 160 pixels (`include/gba/defines.h` DISPLAY_WIDTH/HEIGHT) and a map tile (a
+    metatile) is 16 x 16, so 15 columns by 10 rows fit.
+  * The overworld BG holds metatile (j, i) of the VIRTUAL map at `(gSaveBlock1Ptr->pos.x + j,
+    pos.y + i)` (`src/field_camera.c` DrawWholeMapViewInternal). The virtual map pads the map by
+    MAP_OFFSET = 7 on every side (`include/fieldmap.h`), and `pos` is the player's MAP coordinate, so
+    the player is BG metatile (7, 7).
+  * The BG is scrolled by HOFS = xPixelOffset + sHorizontalCameraPan and VOFS = yPixelOffset +
+    sVerticalCameraPan + 8 (`FieldUpdateBgTilemapScroll`); `InstallCameraPanAheadCallback` sets the
+    pans to 0 and 32, and the only code that changes them while walking is unreachable
+    (`gUnusedBikeCameraAheadPanback` is FALSE). Standing still: HOFS = 0, VOFS = 40.
+  * So metatile column j is drawn at screen x = 16*j and row i at screen y = 16*i - 40. The player's
+    tile (7, 7) is at screen (112..127, 72..87): column 7 of 0..14, with rows i = 2..12 on screen.
+  * Relative to the player: dx = -7..+7 (15 columns, all whole), dy = -5..+5 (11 rows; the rows
+    dy = -5 and dy = +5 show only HALF a tile, screen y 0..7 and 152..159). Sprites agree: an object
+    at the player's tile is drawn with its feet at screen y 72..87 (`SetSpritePosToMapCoords` + the
+    (8, 16) spawn offset + `gSpriteCoordOffsetY = gTotalCameraPixelOffsetY - 32 - 8`,
+    `UpdateCameraPanning`).
+  * While the camera scrolls one tile (a step), a 16th column / 12th row slides in partially. The
+    crop is the standing-still window; it does not chase the in-between pixels of a step.
+  * The game itself keeps objects ALIVE well outside that window: it spawns them within
+    [pos.x - 2, pos.x + 17] x [pos.y, pos.y + 16] of the virtual map (`TrySpawnObjectEvents`,
+    `RemoveObjectEventIfOutsideView`), i.e. dx = -9..+10 and dy = -7..+9 around the player. That is
+    WHY the crop exists: `gObjectEvents` holds things a person cannot see yet.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterable
+
+__all__ = [
+    "BADGE_FLAGS",
+    "BEHAVIOR",
+    "BEHAVIOR_NAMES",
+    "DOOR_BEHAVIORS",
+    "GFX_KINDS",
+    "GLYPHS",
+    "LEDGE_DIRECTIONS",
+    "MENU_STATES",
+    "MENU_TASKS",
+    "OUTCOME_NAMES",
+    "RENDER_STATE_NAMES",
+    "STORY_FLAGS",
+    "TALL_GRASS_BEHAVIORS",
+    "TEXT_FLAG_AUTO_SCROLL",
+    "TEXT_PRINTER_COUNT",
+    "TEXT_PRINTER_WAIT_STATES",
+    "TILE_FLAG_HAS_ENCOUNTERS",
+    "TILE_FLAG_SURFABLE",
+    "VIEW_DOWN",
+    "VIEW_HALF_WIDTH",
+    "VIEW_UP",
+    "behavior_name",
+    "classify_screen",
+    "facing_name",
+    "in_view",
+    "movement_mode",
+    "object_kind",
+    "status_name",
+    "text_printer_wait",
+    "view_offsets",
+]
+
+# ------------------------------------------------------------------------------------------- the window
+#: Columns left and right of the player that are on screen (derivation in the module docstring).
+VIEW_HALF_WIDTH = 7
+#: Rows above and below the player that are on screen; the outermost row on each side is HALF visible.
+VIEW_UP = 5
+VIEW_DOWN = 5
+
+
+def in_view(player_x: int, player_y: int, x: int, y: int) -> bool:
+    """Is map tile (x, y) on screen while the player stands on (player_x, player_y)?"""
+    dx, dy = x - player_x, y - player_y
+    return -VIEW_HALF_WIDTH <= dx <= VIEW_HALF_WIDTH and -VIEW_UP <= dy <= VIEW_DOWN
+
+
+def view_offsets() -> tuple[tuple[int, int], ...]:
+    """Every (dx, dy) of the window, row by row from the top-left."""
+    return tuple(
+        (dx, dy) for dy in range(-VIEW_UP, VIEW_DOWN + 1) for dx in range(-VIEW_HALF_WIDTH, VIEW_HALF_WIDTH + 1)
+    )
+
+
+# ------------------------------------------------------------------------------------------- tiles
+#: Every metatile behaviour, by value (`include/constants/metatile_behaviors.h`, the enum from MB_NORMAL
+#: = 0 to MB_UNUSED_EF = 0xEF; the MB_ prefix dropped). Generated from the header, not typed by hand.
+BEHAVIOR_NAMES: tuple[str, ...] = (
+    "NORMAL", "SECRET_BASE_WALL", "TALL_GRASS", "LONG_GRASS", "UNUSED_04", "UNUSED_05", "DEEP_SAND", "SHORT_GRASS",
+    "CAVE", "LONG_GRASS_SOUTH_EDGE", "NO_RUNNING", "INDOOR_ENCOUNTER", "MOUNTAIN_TOP", "BATTLE_PYRAMID_WARP",
+    "MOSSDEEP_GYM_WARP", "MT_PYRE_HOLE", "POND_WATER", "INTERIOR_DEEP_WATER", "DEEP_WATER", "WATERFALL",
+    "SOOTOPOLIS_DEEP_WATER", "OCEAN_WATER", "PUDDLE", "SHALLOW_WATER", "UNUSED_SOOTOPOLIS_DEEP_WATER",
+    "NO_SURFACING", "UNUSED_SOOTOPOLIS_DEEP_WATER_2", "STAIRS_OUTSIDE_ABANDONED_SHIP", "SHOAL_CAVE_ENTRANCE",
+    "UNUSED_1D", "UNUSED_1E", "UNUSED_1F", "ICE", "SAND", "SEAWEED", "UNUSED_23", "ASHGRASS", "FOOTPRINTS",
+    "THIN_ICE", "CRACKED_ICE", "HOT_SPRINGS", "LAVARIDGE_GYM_B1F_WARP", "SEAWEED_NO_SURFACING",
+    "REFLECTION_UNDER_BRIDGE", "UNUSED_2C", "UNUSED_2D", "UNUSED_2E", "UNUSED_2F", "IMPASSABLE_EAST",
+    "IMPASSABLE_WEST", "IMPASSABLE_NORTH", "IMPASSABLE_SOUTH", "IMPASSABLE_NORTHEAST", "IMPASSABLE_NORTHWEST",
+    "IMPASSABLE_SOUTHEAST", "IMPASSABLE_SOUTHWEST", "JUMP_EAST", "JUMP_WEST", "JUMP_NORTH", "JUMP_SOUTH",
+    "JUMP_NORTHEAST", "JUMP_NORTHWEST", "JUMP_SOUTHEAST", "JUMP_SOUTHWEST", "WALK_EAST", "WALK_WEST", "WALK_NORTH",
+    "WALK_SOUTH", "SLIDE_EAST", "SLIDE_WEST", "SLIDE_NORTH", "SLIDE_SOUTH", "TRICK_HOUSE_PUZZLE_8_FLOOR",
+    "UNUSED_49", "UNUSED_4A", "UNUSED_4B", "UNUSED_4C", "UNUSED_4D", "UNUSED_4E", "UNUSED_4F", "EASTWARD_CURRENT",
+    "WESTWARD_CURRENT", "NORTHWARD_CURRENT", "SOUTHWARD_CURRENT", "UNUSED_54", "UNUSED_55", "UNUSED_56",
+    "UNUSED_57", "UNUSED_58", "UNUSED_59", "UNUSED_5A", "UNUSED_5B", "UNUSED_5C", "UNUSED_5D", "UNUSED_5E",
+    "UNUSED_5F", "NON_ANIMATED_DOOR", "LADDER", "EAST_ARROW_WARP", "WEST_ARROW_WARP", "NORTH_ARROW_WARP",
+    "SOUTH_ARROW_WARP", "CRACKED_FLOOR_HOLE", "AQUA_HIDEOUT_WARP", "LAVARIDGE_GYM_1F_WARP", "ANIMATED_DOOR",
+    "UP_ESCALATOR", "DOWN_ESCALATOR", "WATER_DOOR", "WATER_SOUTH_ARROW_WARP", "DEEP_SOUTH_WARP", "UNUSED_6F",
+    "BRIDGE_OVER_OCEAN", "BRIDGE_OVER_POND_LOW", "BRIDGE_OVER_POND_MED", "BRIDGE_OVER_POND_HIGH",
+    "PACIFIDLOG_VERTICAL_LOG_TOP", "PACIFIDLOG_VERTICAL_LOG_BOTTOM", "PACIFIDLOG_HORIZONTAL_LOG_LEFT",
+    "PACIFIDLOG_HORIZONTAL_LOG_RIGHT", "FORTREE_BRIDGE", "UNUSED_79", "BRIDGE_OVER_POND_MED_EDGE_1",
+    "BRIDGE_OVER_POND_MED_EDGE_2", "BRIDGE_OVER_POND_HIGH_EDGE_1", "BRIDGE_OVER_POND_HIGH_EDGE_2", "UNUSED_BRIDGE",
+    "BIKE_BRIDGE_OVER_BARRIER", "COUNTER", "UNUSED_81", "UNUSED_82", "PC", "CABLE_BOX_RESULTS_1", "REGION_MAP",
+    "TELEVISION", "POKEBLOCK_FEEDER", "UNUSED_88", "SLOT_MACHINE", "ROULETTE", "CLOSED_SOOTOPOLIS_DOOR",
+    "TRICK_HOUSE_PUZZLE_DOOR", "PETALBURG_GYM_DOOR", "RUNNING_SHOES_INSTRUCTION", "QUESTIONNAIRE",
+    "SECRET_BASE_SPOT_RED_CAVE", "SECRET_BASE_SPOT_RED_CAVE_OPEN", "SECRET_BASE_SPOT_BROWN_CAVE",
+    "SECRET_BASE_SPOT_BROWN_CAVE_OPEN", "SECRET_BASE_SPOT_YELLOW_CAVE", "SECRET_BASE_SPOT_YELLOW_CAVE_OPEN",
+    "SECRET_BASE_SPOT_TREE_LEFT", "SECRET_BASE_SPOT_TREE_LEFT_OPEN", "SECRET_BASE_SPOT_SHRUB",
+    "SECRET_BASE_SPOT_SHRUB_OPEN", "SECRET_BASE_SPOT_BLUE_CAVE", "SECRET_BASE_SPOT_BLUE_CAVE_OPEN",
+    "SECRET_BASE_SPOT_TREE_RIGHT", "SECRET_BASE_SPOT_TREE_RIGHT_OPEN", "UNUSED_9E", "UNUSED_9F", "BERRY_TREE_SOIL",
+    "UNUSED_A1", "UNUSED_A2", "UNUSED_A3", "UNUSED_A4", "UNUSED_A5", "UNUSED_A6", "UNUSED_A7", "UNUSED_A8",
+    "UNUSED_A9", "UNUSED_AA", "UNUSED_AB", "UNUSED_AC", "UNUSED_AD", "UNUSED_AE", "UNUSED_AF", "SECRET_BASE_PC",
+    "SECRET_BASE_REGISTER_PC", "SECRET_BASE_SCENERY", "SECRET_BASE_TRAINER_SPOT", "SECRET_BASE_DECORATION",
+    "HOLDS_SMALL_DECORATION", "UNUSED_B6", "SECRET_BASE_NORTH_WALL", "SECRET_BASE_BALLOON",
+    "SECRET_BASE_IMPASSABLE", "SECRET_BASE_GLITTER_MAT", "SECRET_BASE_JUMP_MAT", "SECRET_BASE_SPIN_MAT",
+    "SECRET_BASE_SOUND_MAT", "SECRET_BASE_BREAKABLE_DOOR", "SECRET_BASE_SAND_ORNAMENT",
+    "IMPASSABLE_SOUTH_AND_NORTH", "IMPASSABLE_WEST_AND_EAST", "SECRET_BASE_HOLE", "HOLDS_LARGE_DECORATION",
+    "SECRET_BASE_TV_SHIELD", "PLAYER_ROOM_PC_ON", "SECRET_BASE_DECORATION_BASE", "SECRET_BASE_POSTER", "UNUSED_C8",
+    "UNUSED_C9", "UNUSED_CA", "UNUSED_CB", "UNUSED_CC", "UNUSED_CD", "UNUSED_CE", "UNUSED_CF", "MUDDY_SLOPE",
+    "BUMPY_SLOPE", "CRACKED_FLOOR", "ISOLATED_VERTICAL_RAIL", "ISOLATED_HORIZONTAL_RAIL", "VERTICAL_RAIL",
+    "HORIZONTAL_RAIL", "UNUSED_D7", "UNUSED_D8", "UNUSED_D9", "UNUSED_DA", "UNUSED_DB", "UNUSED_DC", "UNUSED_DD",
+    "UNUSED_DE", "UNUSED_DF", "PICTURE_BOOK_SHELF", "BOOKSHELF", "POKEMON_CENTER_BOOKSHELF", "VASE", "TRASH_CAN",
+    "SHOP_SHELF", "BLUEPRINT", "CABLE_BOX_RESULTS_2", "WIRELESS_BOX_RESULTS", "TRAINER_HILL_TIMER",
+    "SKY_PILLAR_CLOSED_DOOR", "UNUSED_EB", "UNUSED_EC", "UNUSED_ED", "UNUSED_EE", "UNUSED_EF",
+)
+#: name -> value, so no value below is typed by hand.
+BEHAVIOR: dict[str, int] = {name: value for value, name in enumerate(BEHAVIOR_NAMES)}
+
+#: `sTileBitAttributes` bits (`src/metatile_behavior.c`). The table itself is READ from the ROM by the
+#: host side (it is game data); these are the meanings of its bits.
+TILE_FLAG_HAS_ENCOUNTERS = 1 << 0
+TILE_FLAG_SURFABLE = 1 << 1
+
+#: The grass a wild Pokemon jumps out of (`MetatileBehavior_IsPokeGrass`: tall grass and long grass).
+TALL_GRASS_BEHAVIORS = frozenset({BEHAVIOR["TALL_GRASS"], BEHAVIOR["LONG_GRASS"]})
+#: A ledge: the direction the player JUMPS when walking onto it that way (`MetatileBehavior_IsJump*`).
+LEDGE_DIRECTIONS: dict[int, str] = {
+    BEHAVIOR["JUMP_EAST"]: "east", BEHAVIOR["JUMP_WEST"]: "west",
+    BEHAVIOR["JUMP_NORTH"]: "north", BEHAVIOR["JUMP_SOUTH"]: "south",
+    BEHAVIOR["JUMP_NORTHEAST"]: "northeast", BEHAVIOR["JUMP_NORTHWEST"]: "northwest",
+    BEHAVIOR["JUMP_SOUTHEAST"]: "southeast", BEHAVIOR["JUMP_SOUTHWEST"]: "southwest",
+}
+#: What a person reads as a DOOR (`MetatileBehavior_IsDoor` is ANIMATED_DOOR + PETALBURG_GYM_DOOR; the
+#: plain and the underwater doors look like doors too).
+DOOR_BEHAVIORS = frozenset(
+    {BEHAVIOR["ANIMATED_DOOR"], BEHAVIOR["NON_ANIMATED_DOOR"], BEHAVIOR["PETALBURG_GYM_DOOR"], BEHAVIOR["WATER_DOOR"]}
+)
+
+
+def behavior_name(value: int) -> str:
+    return BEHAVIOR_NAMES[value] if 0 <= value < len(BEHAVIOR_NAMES) else f"INVALID_{value:02X}"
+
+
+# ------------------------------------------------------------------------------------------- objects
+#: Graphics ids a person recognises as a THING rather than a person (`include/constants/event_objects.h`).
+GFX_KINDS: dict[int, str] = {
+    59: "item_ball",  # OBJ_EVENT_GFX_ITEM_BALL
+    60: "berry_tree",  # OBJ_EVENT_GFX_BERRY_TREE
+    61: "berry_tree",  # OBJ_EVENT_GFX_BERRY_TREE_EARLY_STAGES
+    62: "berry_tree",  # OBJ_EVENT_GFX_BERRY_TREE_LATE_STAGES
+    82: "cut_tree",  # OBJ_EVENT_GFX_CUTTABLE_TREE
+    86: "smash_rock",  # OBJ_EVENT_GFX_BREAKABLE_ROCK
+    87: "boulder",  # OBJ_EVENT_GFX_PUSHABLE_BOULDER
+}
+
+
+def object_kind(graphics_id: int, is_trainer: bool) -> str:
+    """What a person would call this object. A trainer looks like any person until it spots you, but
+    its stance (it faces the path, it may be standing still) is part of what a player learns to read,
+    so the eyes say so."""
+    kind = GFX_KINDS.get(graphics_id)
+    if kind is not None:
+        return kind
+    return "trainer" if is_trainer else "npc"
+
+
+#: `facingDirection` values (`include/constants/global.h` DIR_SOUTH = 1 ... DIR_EAST = 4).
+_FACING = {1: "down", 2: "up", 3: "left", 4: "right"}
+
+
+def facing_name(direction: int) -> str:
+    return _FACING.get(direction, "?")
+
+
+#: `gPlayerAvatar.flags` (`include/global.fieldmap.h` PLAYER_AVATAR_FLAG_*), checked in this order.
+_AVATAR_MODES = ((1 << 4, "underwater"), (1 << 3, "surfing"), (1 << 1, "mach_bike"), (1 << 2, "acro_bike"), (1 << 7, "running"))
+
+
+def movement_mode(avatar_flags: int) -> str:
+    for bit, name in _AVATAR_MODES:
+        if avatar_flags & bit:
+            return name
+    return "walking"
+
+
+# ------------------------------------------------------------------------------------------- the party
+def status_name(bits: int) -> str:
+    """A party Pokemon's status byte (`include/constants/battle.h` STATUS1_*): sleep turns in bits 0-2,
+    then poison, burn, freeze, paralysis, toxic."""
+    if bits & 0x80:
+        return "toxic"
+    if bits & 0x40:
+        return "paralysis"
+    if bits & 0x20:
+        return "freeze"
+    if bits & 0x10:
+        return "burn"
+    if bits & 0x08:
+        return "poison"
+    if bits & 0x07:
+        return "sleep"
+    return "ok"
+
+
+#: `gBattleOutcome` (`include/constants/battle.h` B_OUTCOME_*), named as the bot's logs name them
+#: (`modules/battle_state.py` BattleOutcome), because the learner's scorer reads `res=Won`.
+OUTCOME_NAMES: dict[int, str] = {
+    0: "InProgress", 1: "Won", 2: "Lost", 3: "Draw", 4: "RanAway", 5: "PlayerTeleported", 6: "OpponentFled",
+    7: "Caught", 8: "NoSafariBallsLeft", 9: "Forfeited", 10: "OpponentTeleported", 128: "LinkBattleRanAway",
+}
+
+# ------------------------------------------------------------------------------------------- progress
+#: The badge flags (`include/constants/flags.h` FLAG_BADGE01_GET ...), as the framework's flag table names them.
+BADGE_FLAGS: tuple[str, ...] = tuple(f"BADGE0{n}_GET" for n in range(1, 9))
+#: The story flags v1 needs to know where it is on the way to badge 1 (RULING 37 Q3: Ch1 intro to the
+#: Pokedex, Ch2 Oldale to Petalburg and Wally, Ch3 Route 104 / Petalburg Woods / Rustboro, Ch4 Roxanne).
+#: Each name is checked against `sandbox-pokebot/modules/data/event_flags/emerald.txt` by
+#: `gates/test_eyes.py` (the framework's `get_event_flag` returns False SILENTLY for a phantom name), and
+#: each id against `include/constants/flags.h`. Each MEANING was checked (2026-10-07) against the decomp
+#: script that SETS the flag (`setflag FLAG_...`, named per entry): a flag named after an event is not
+#: always set by it. ‼ Ch2 was `THANKED_FOR_PLAYING_WITH_WALLY` until that check: it is set only when the
+#: player talks to Wally's DAD in Wally's house (`PetalburgCity_WallysHouse_EventScript_WallysDad`), an
+#: optional chat, so it read False on every fixture, even with six badges (this project's ML-9, made a
+#: second time). The tutorial itself sets only VARIABLES (`VAR_PETALBURG_CITY_STATE` 2 -> 3); the flag
+#: below is the one flag its scene sets. Ch3 has NO entry: the Petalburg Woods scene ends in a variable
+#: (`VAR_PETALBURG_WOODS_STATE`) and a trainer flag, not a story flag; reaching Rustboro shows in the map.
+STORY_FLAGS: tuple[tuple[str, str], ...] = (
+    ("RESCUED_BIRCH", "Ch1: Birch saved from the Zigzagoon on Route 101 (0x52; Route101/scripts.inc)"),
+    ("SYS_POKEMON_GET", "Ch1: the player has a Pokemon (the starter) (SYSTEM_FLAGS + 0x0; Route101/scripts.inc)"),
+    ("DEFEATED_RIVAL_ROUTE103", "Ch1: the rival beaten on Route 103 (0x82; Route103/scripts.inc)"),
+    ("RECEIVED_POKEDEX_FROM_BIRCH", "Ch1: the Pokedex from Birch (SYSTEM_FLAGS + 0x84; ProfessorBirchsLab/scripts.inc)"),
+    ("SYS_POKEDEX_GET", "Ch1: the Pokedex menu is enabled (SYSTEM_FLAGS + 0x1; ProfessorBirchsLab/scripts.inc)"),
+    ("ADVENTURE_STARTED", "Ch1/Ch2: 'RECEIVED Pokedex'; the Oldale Mart sells Poke Balls after it (0x74; ProfessorBirchsLab)"),
+    ("HIDE_PETALBURG_CITY_WALLYS_MOM", "Ch2: Norman's scene sent the player out with Wally: the catching tutorial "
+     "has BEGUN (0x2D8; PetalburgCity_Gym_EventScript_BeginWallyTutorial, with VAR_PETALBURG_CITY_STATE = 2). It "
+     "plays as one cutscene that ends back in the gym, so once the player can move again it is DONE"),
+    ("SYS_B_DASH", "the Running Shoes: the player can run (SYSTEM_FLAGS + 0x60; LittlerootTown/scripts.inc)"),
+    ("DEFEATED_RUSTBORO_GYM", "Ch4: Roxanne beaten (0x4F0; RustboroCity_Gym/scripts.inc)"),
+    ("BADGE01_GET", "Ch4: the Stone Badge (SYSTEM_FLAGS + 0x7; RustboroCity_Gym/scripts.inc)"),
+)
+
+# ------------------------------------------------------------------------------------------- the screen
+#: Task names (`src/start_menu.c`, `src/script_menu.c`) that mean a menu is open over the overworld.
+MENU_TASKS: dict[str, str] = {
+    "StartMenuTask": "start_menu",
+    "Task_ShowStartMenu": "start_menu",
+    "Task_HandleYesNoInput": "yes_no",
+    "Task_HandleMultichoiceInput": "multichoice",
+    "Task_HandleMultichoiceGridInput": "multichoice",
+}
+#: Whole-screen states (the framework's `GameState` names) a person reads as a menu or a screen of its own.
+MENU_STATES: dict[str, str] = {
+    "BAG_MENU": "bag",
+    "PARTY_MENU": "party",
+    "POKEMON_SUMMARY_SCREEN": "summary",
+    "NAMING_SCREEN": "naming",
+    "POKE_STORAGE": "pc_storage",
+    "CHOOSE_STARTER": "choose_starter",
+    "MAIN_MENU": "main_menu",
+}
+#: A text printer's `state` (`include/text.h`, the enum from RENDER_STATE_HANDLE_CHAR = 0).
+RENDER_STATE_NAMES: tuple[str, ...] = ("HANDLE_CHAR", "WAIT", "CLEAR", "SCROLL_START", "SCROLL", "WAIT_SE", "PAUSE")
+#: The states in which a printer moves on ONLY when A or B is newly pressed (`src/text.c` RenderText):
+#:   * WAIT = 1: `case RENDER_STATE_WAIT: if (TextPrinterWait(textPrinter))`; a text enters it at
+#:     `{PAUSE_UNTIL_PRESS}` (`case EXT_CTRL_CODE_PAUSE_UNTIL_PRESS: textPrinter->state = RENDER_STATE_WAIT`),
+#:     with NO down arrow. `src/battle_message.c` appends that code to every trainer's lose and win text,
+#:     and to "{B_PLAYER_NAME} whited out!"; the party menu's "is already in battle!" (measured on
+#:     `ki17_partymenu_wedge.ss1`, printer 6) and "has no energy left to battle!" and the field's Repel,
+#:     Itemfinder and bike messages end with it too (`src/strings.c`);
+#:   * CLEAR = 2 (`\p`) and SCROLL_START = 3 (`\l`): `TextPrinterWaitWithDownArrow`, the down arrow.
+#: Both waits test `JOY_NEW(A_BUTTON | B_BUTTON)`, unless `gTextFlags.autoScroll` is set (then they
+#: time out by themselves, `TextPrinterWaitAutoMode`). ‼ Until 2026-10-07 this set was {2, 3}: the eyes
+#: said "not waiting" at every trainer's defeat text (found by the step-1 verifier from the decomp;
+#: `gates/live_step1.py` arms E10, E7 and XW prove the fix and fail on its revert).
+TEXT_PRINTER_WAIT_STATES = frozenset({1, 2, 3})
+#: How many text printers the game runs: `RunTextPrinters` (`src/text.c`) renders EVERY active one of
+#: `sTextPrinters[WINDOWS_MAX]` (32) each frame, and a printer's index is its window's id. Printer 0 is
+#: the field message box and the battle's message window, but the party menu's message is printer 6
+#: (measured on `ki17_partymenu_wedge.ss1`), so the eyes read all of them (until 2026-10-07: printer 0 only).
+TEXT_PRINTER_COUNT = 32
+#: `gTextFlags.autoScroll` (`include/text.h` TextFlags, bit-fields from bit 0: canABSpeedUpPrint,
+#: useAlternateDownArrow, autoScroll, forceMidTextSpeed; the order is measured in a battle by
+#: `gates/live_step1.py`). Set by `messageautoscroll`, `ShowFieldAutoScrollMessage` and link/recorded battles.
+TEXT_FLAG_AUTO_SCROLL = 1 << 2
+
+
+def text_printer_wait(printers: Iterable[tuple[int, int, int]], text_flags: int) -> str | None:
+    """Which text waits for A or B: `printers` is (index, active, state) for each text printer, and
+    `text_flags` the byte `gTextFlags`. Returns the reason ("text printer 6 WAIT") or None. Under
+    autoScroll no printer waits for a button (each wait times out by itself)."""
+    if text_flags & TEXT_FLAG_AUTO_SCROLL:
+        return None
+    for index, active, state in printers:
+        if active and state in TEXT_PRINTER_WAIT_STATES:
+            name = RENDER_STATE_NAMES[state] if state < len(RENDER_STATE_NAMES) else str(state)
+            return f"text printer {index} {name}"
+    return None
+
+#: One character per tile and object, for the human-readable picture of the view (`View.ascii`).
+GLYPHS: dict[str, str] = {
+    "player": "@", "blocked": "#", "water": "~", "tall_grass": '"', "encounter": ":", "door": "D", "warp": "W",
+    "floor": ".", "item_ball": "o", "trainer": "T", "npc": "n", "cut_tree": "t", "smash_rock": "r", "boulder": "b",
+    "berry_tree": "B", "sign": "s",
+}
+
+
+def classify_screen(game_state: str, in_battle: bool, text_box_mode: int, active_tasks: Iterable[str]) -> tuple[str, str | None]:
+    """(screen, menu) from what is on the screen: `battle`, `menu`, `text`, `overworld`, `transition`,
+    `title` or `other`, and the name of the open menu if one is. A whole-screen menu wins over the battle
+    it was opened from (the party menu during a battle FILLS the screen; `in_battle` still says so)."""
+    if game_state in MENU_STATES:
+        return "menu", MENU_STATES[game_state]
+    if in_battle or game_state in ("BATTLE", "BATTLE_STARTING", "BATTLE_ENDING"):
+        return "battle", None
+    if game_state == "OVERWORLD":
+        for task in sorted(active_tasks):
+            if task in MENU_TASKS:
+                return "menu", MENU_TASKS[task]
+        if text_box_mode != 0:
+            return "text", None
+        return "overworld", None
+    if game_state == "CHANGE_MAP":
+        return "transition", None
+    if game_state == "TITLE_SCREEN":
+        return "title", None
+    return "other", None

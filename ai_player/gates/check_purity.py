@@ -39,7 +39,9 @@ RULES
       OBJECT lists the attribute paths each file may walk on it (`context.emulator.press_button` in
       the controller; `bot_listeners` and, with "=", assigning it, in isolation;
       `get_bot_listeners=` on `modules.main`, the framework's listener-rebuild door, in isolation
-      only), so an allowed object cannot be walked over to the bot, aliased or handed on.
+      only; build step 1's EYES: fifteen read-only framework functions plus `context.emulator.
+      read_bytes` / `get_frame_count` and `context.rom.is_emerald`, in `host/eyes.py` only), so an
+      allowed object cannot be walked over to the bot, aliased or handed on.
       `import modules.x` without `as` binds the whole `modules` package and is always refused. The
       bot's brain is refused even if a door would let it in (a backstop).
     * standard library: only the modules in `LIBRARIES`, each for the files listed, and each name
@@ -157,6 +159,8 @@ CONTROLLER = "host/controller.py"
 ISOLATION = "host/isolation.py"
 LIFECYCLE = "host/lifecycle.py"
 SESSION = "host/session.py"
+#: Build step 1: the EYES, the only file that reads the game (through the read-only doors below).
+EYES = "host/eyes.py"
 RUNLOG = "runlog.py"
 #: The brain: framework-free, and it may not import the host side (rule c).
 BRAIN_FILES = frozenset({"mode.py"})
@@ -191,13 +195,18 @@ DOORS: tuple[Door, ...] = (
             SESSION: frozenset({"bot_mode", "debug", "config.http.http_server.enable"}),
             INSTRUMENT: frozenset({"emulator", "bot_listeners", "frame"}),
             HOOK_KEY: frozenset({"bot_listeners"}),
+            EYES: frozenset({"emulator.get_frame_count", "emulator.read_bytes", "rom.is_emerald"}),
         },
         "the framework's singleton. The controller may only press, hold and release buttons through "
         "it; isolation only reads and swaps the listener list; the session only reads the bot-mode "
         "name, the debug flag and whether the HTTP server is on; the instrument only takes the "
         "emulator handle it wraps, reads the listener list to check the AI's guard is in it, and "
         "reads main.py's pass counter (`frame`) to check the audit saw every main-loop frame; the "
-        "hook only reads the listener list, for its own before/after record.",
+        "hook only reads the listener list, for its own before/after record. The EYES (build step 1) "
+        "only read: the emulator's frame counter (`get_frame_count` returns `core.frame_counter`), "
+        "memory (`read_bytes(address, length)`, `modules/libmgba.py`, memmoves WRAM, IWRAM or ROM bytes "
+        "INTO a new bytearray it returns, and raises on any other address), and whether the ROM is "
+        "Emerald (a bool). None of the three reaches a button, a write, a load or a frame.",
     ),
     Door(
         "modules.main",
@@ -232,6 +241,81 @@ DOORS: tuple[Door, ...] = (
         {INSTRUMENT: None},
         "the C-memory view the instrument READS all of WRAM and IWRAM through, to prove nothing wrote "
         "memory between frames (the emulator's read_bytes cannot reach the last byte of either).",
+    ),
+    # ---- BUILD STEP 1: the EYES' read-only doors, for `host/eyes.py` ONLY. Each is a FUNCTION the eyes
+    # may call (path "" = call it / use its result; nothing on the function itself). Each `why` says
+    # what it reads and why it cannot act: re-read the framework function before adding one here. What
+    # the eyes do with a RESULT is not tracked statically (a value, rule-a limit); the live audit
+    # counts every write, press, load, frame and bot-code call they could cause (`gates/live_step1.py`).
+    Door(
+        "modules.memory", "read_symbol", {EYES: frozenset({""})},
+        "reads a symbol's bytes: `get_symbol(name)` (a dict lookup in the symbol table) then "
+        "`context.emulator.read_bytes`. Nothing else.",
+    ),
+    Door(
+        "modules.memory", "get_game_state", {EYES: frozenset({""})},
+        "reads `gMain.callback2` and names it (`get_symbol_name`, a dict lookup); stores the answer in "
+        "the framework's per-frame Python cache (`state_cache`), which only memoises reads.",
+    ),
+    Door(
+        "modules.memory", "get_event_flag", {EYES: frozenset({""})},
+        "reads ONE bit of save block 1 (`get_save_block`, a pointer read then `read_bytes`); an unknown "
+        "flag name returns False without reading (so `gates/test_eyes.py` checks every name the eyes use).",
+    ),
+    Door(
+        "modules.player", "get_player", {EYES: frozenset({""})},
+        "reads 8 bytes of save block 1 and 14 of save block 2 (money, trainer id) into a `Player` "
+        "that decodes them; memoised in `state_cache`.",
+    ),
+    Door(
+        "modules.map", "get_map_data_for_current_position", {EYES: frozenset({""})},
+        "reads the player's map and position (`get_player_avatar`: `gPlayerAvatar`, `gObjectEvents`, save "
+        "block 1) and wraps `gMapHeader` in a `MapLocation`, whose properties the eyes use read the ROM "
+        "(the map name, its warps and bg events). Its layout cache is a Python dict.",
+    ),
+    Door(
+        "modules.map", "get_map_objects", {EYES: frozenset({""})},
+        "reads `gObjectEvents` (16 x 0x24 bytes) into `ObjectEvent`s that decode bytes.",
+    ),
+    Door(
+        "modules.map_data", "get_map_enum", {EYES: frozenset({""})},
+        "builds the `MapRSE` enum member for (group, number): a lookup, no read at all.",
+    ),
+    Door(
+        "modules.items", "get_item_bag", {EYES: frozenset({""})},
+        "reads the bag from save block 1 (and the encryption key) into an `ItemBag` that decodes item ids "
+        "and quantities (`get_item_by_index`, a table lookup); memoised in `state_cache`.",
+    ),
+    Door(
+        "modules.pokedex", "get_pokedex", {EYES: frozenset({""})},
+        "reads the Pokedex bit fields from save blocks 1 and 2; memoised in `state_cache`.",
+    ),
+    Door(
+        "modules.pokemon", "get_species_by_index", {EYES: frozenset({""})},
+        "a lookup in the species table loaded from `modules/data` (game facts): no memory read at all.",
+    ),
+    Door(
+        "modules.pokemon", "get_move_by_index", {EYES: frozenset({""})},
+        "a lookup in the move table loaded from `modules/data` (game facts): no memory read at all.",
+    ),
+    Door(
+        "modules.battle_state", "get_battle_state", {EYES: frozenset({""})},
+        "reads `gBattleTypeFlags`, `gSideTimers`, `gBattlerPartyIndexes`, `gBattleMons` and the rest of the "
+        "battle structs into a `BattleState` that decodes bytes; memoised in `state_cache`.",
+    ),
+    Door(
+        "modules.battle_state", "battle_is_active", {EYES: frozenset({""})},
+        "reads `gMain.callback1` and compares its symbol name with BattleMainCB1.",
+    ),
+    Door(
+        "modules.tasks", "get_tasks", {EYES: frozenset({""})},
+        "reads `gTasks` into a `TaskList` whose tasks name their function pointer (a symbol lookup); "
+        "memoised in `state_cache`.",
+    ),
+    Door(
+        "modules.tasks", "get_global_script_context", {EYES: frozenset({""})},
+        "reads `sGlobalScriptContext` into a `ScriptContext` (mode, native function name by symbol "
+        "lookup); memoised in `state_cache`.",
     ),
 )
 
@@ -493,7 +577,7 @@ CACHE_FILE = re.compile(r"^(?P<stem>[A-Za-z_]\w*)\.(?P<tag>[A-Za-z0-9_-]+?)(?:\.
 # ---------------------------------------------------------------------------------- (f) side effects
 #: The files that may write files, and what they write.
 FILE_WRITERS: dict[str, str] = {
-    RUNLOG: "the AI's own log, <run_dir>/ai_player.log",
+    RUNLOG: "the AI's own logs, <run_dir>/ai_player.log and the action log <run_dir>/actions.jsonl",
     INSTRUMENT: "the verdict file, <run_dir>/purity.json",
 }
 #: `pathlib.Path` methods that create, change, move or delete files (`write_bytes` is already rule b).
@@ -519,6 +603,7 @@ HOST_EXPORTS: dict[str, frozenset[str]] = {
         }
     ),
     SESSION: frozenset({"Session", "start_session"}),
+    EYES: frozenset({"MAP_OFFSET", "FrameworkEyes"}),
 }
 #: sha256 of `host/attribution.py` (line endings normalised to LF). The instrument is exempt from
 #: rules b, d and f, so this gate cannot judge what it does; it pins WHAT IT IS instead. After a

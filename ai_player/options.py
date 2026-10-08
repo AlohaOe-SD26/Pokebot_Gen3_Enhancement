@@ -17,12 +17,17 @@ from pathlib import Path
 
 __all__ = [
     "ALL_SWITCHES",
+    "BRAINS",
+    "DEFAULT_BRAIN",
     "DEFAULT_FRAMES",
+    "DEFAULT_WATCH_EVERY",
     "VERDICT_FILE_NAME",
+    "ENV_BRAIN",
     "ENV_CONTROL_TAP",
     "ENV_FAULT_HANG",
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
+    "ENV_FAULT_NO_CROP",
     "ENV_FAULT_NO_REBIND",
     "ENV_FAULT_RAISE",
     "ENV_FAULT_SKIP_RESTORE",
@@ -30,6 +35,7 @@ __all__ = [
     "ENV_PACKAGE_ROOT",
     "ENV_RUN_DIR",
     "ENV_WALL_DEADLINE",
+    "ENV_WATCH_EVERY",
     "RunOptions",
 ]
 
@@ -66,11 +72,25 @@ ENV_FAULT_SKIP_RESTORE = "AI_PLAYER_FAULT_SKIP_RESTORE"
 #: CONTROL (not a fault): the placeholder taps B through the controller. Proves AI presses are
 #: COUNTED as AI presses, so `ai_presses=0` in the normal arm is a measurement, not a dead counter.
 ENV_CONTROL_TAP = "AI_PLAYER_CONTROL_TAP"
+#: FAULT (build step 1): the eyes do NOT crop to the on-screen view, so every object the game has
+#: loaded (up to ~10 tiles away, off screen) and every sign of the map is "seen". Proves the crop is
+#: what keeps off-screen things out of an Observation (design draft §10.7: a person cannot see them),
+#: i.e. that the "outside object is absent" check is not true by construction (live arm E2X).
+ENV_FAULT_NO_CROP = "AI_PLAYER_FAULT_NO_CROP"
 
 ALL_SWITCHES = (
     ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
-    ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP,
+    ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP,
 )
+
+#: Which brain plays (build step 1). `placeholder` is step 0's (presses nothing, waits, gives up);
+#: `watcher` OBSERVES every `AI_PLAYER_WATCH_EVERY` frames through the eyes, writes each Observation
+#: to the action log and the scorer-compatible lines to the run's log, and presses nothing.
+ENV_BRAIN = "AI_PLAYER_BRAIN"
+ENV_WATCH_EVERY = "AI_PLAYER_WATCH_EVERY"
+BRAINS = ("placeholder", "watcher")
+DEFAULT_BRAIN = "placeholder"
+DEFAULT_WATCH_EVERY = 60
 
 DEFAULT_FRAMES = 3000
 
@@ -97,6 +117,9 @@ class RunOptions:
     fault_no_rebind: bool
     fault_skip_restore: bool
     control_tap: bool
+    brain: str = DEFAULT_BRAIN
+    watch_every: int = DEFAULT_WATCH_EVERY
+    fault_no_crop: bool = False
 
     @classmethod
     def from_env(cls) -> "RunOptions":
@@ -106,6 +129,13 @@ class RunOptions:
             raise ValueError(f"{ENV_FRAMES} must be a positive frame count, got {frames}")
         raw_dir = os.environ.get(ENV_RUN_DIR, "").strip()
         raw_deadline = os.environ.get(ENV_WALL_DEADLINE, "").strip()
+        brain = os.environ.get(ENV_BRAIN, "").strip() or DEFAULT_BRAIN
+        if brain not in BRAINS:
+            raise ValueError(f"{ENV_BRAIN} must be one of {BRAINS}, got {brain!r}")
+        raw_every = os.environ.get(ENV_WATCH_EVERY, "").strip()
+        watch_every = int(raw_every) if raw_every else DEFAULT_WATCH_EVERY
+        if watch_every <= 0:
+            raise ValueError(f"{ENV_WATCH_EVERY} must be a positive frame count, got {watch_every}")
         return cls(
             frames=frames,
             run_dir=Path(raw_dir) if raw_dir else None,
@@ -117,6 +147,9 @@ class RunOptions:
             fault_no_rebind=_flag(ENV_FAULT_NO_REBIND),
             fault_skip_restore=_flag(ENV_FAULT_SKIP_RESTORE),
             control_tap=_flag(ENV_CONTROL_TAP),
+            brain=brain,
+            watch_every=watch_every,
+            fault_no_crop=_flag(ENV_FAULT_NO_CROP),
         )
 
     def describe(self) -> str:
@@ -130,11 +163,12 @@ class RunOptions:
                 ("FAULT_NO_REBIND", self.fault_no_rebind),
                 ("FAULT_SKIP_RESTORE", self.fault_skip_restore),
                 ("CONTROL_TAP", self.control_tap),
+                ("FAULT_NO_CROP", self.fault_no_crop),
             )
             if on
         ]
         deadline = "none" if self.wall_deadline is None else f"{self.wall_deadline:.1f}"
         return (
-            f"frames={self.frames} switches={','.join(switches) or 'none'} "
-            f"wall_deadline={deadline} run_dir={self.run_dir}"
+            f"frames={self.frames} brain={self.brain} watch_every={self.watch_every} "
+            f"switches={','.join(switches) or 'none'} wall_deadline={deadline} run_dir={self.run_dir}"
         )
