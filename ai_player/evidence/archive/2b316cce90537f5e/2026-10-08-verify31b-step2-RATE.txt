@@ -1,0 +1,101 @@
+AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM RATE: RATE: each skill once per seed 1-20, in-process (gates/hands_harness.py)
+date: 2026-10-08 11:08:05
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:2b316cce90537f5e over git diff HEAD (16 files, 285186 bytes) and 4 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+each skill from its own start, seeds 1-20: intro --fresh; nurse post_league_lobby.ss1; mart mart_rustboro.ss1 (5 balls); clock clock_room.ss1 (the time per seed: rate_clock)
+fixture documentation: in-process: the skills' code; the purity of the same code is the launcher arms'
+command: 
+env: none (a test-side script in its own throwaway emulator; its arguments are in the command; seed 3)
+exit code: 0   elapsed: 520.6s   run dir: None
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
+  [PASS] intro: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 8406-8767; failed: none
+  [PASS] nurse: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 1912-1974; failed: none
+  [PASS] mart: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 1412-1483; failed: none
+  [PASS] clock: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 2455-3226; failed: none
+
+---- notes ----
+intro:
+    seed 1: 'intro: in the truck; intended IRIS (GIRL)' frames 8767 'IRIS' 1 [25, 40]
+    seed 2: 'intro: in the truck; intended Milo (BOY)' frames 8505 'Milo' 0 [25, 40]
+    seed 3: 'intro: in the truck; intended Rosa (GIRL)' frames 8742 'Rosa' 1 [25, 40]
+    seed 4: 'intro: in the truck; intended Kai (BOY)' frames 8608 'Kai' 0 [25, 40]
+    seed 5: 'intro: in the truck; intended PIA (GIRL)' frames 8584 'PIA' 1 [25, 40]
+    seed 6: 'intro: in the truck; intended Jude (BOY)' frames 8598 'Jude' 0 [25, 40]
+    seed 7: 'intro: in the truck; intended Rowan (BOY)' frames 8644 'Rowan' 0 [25, 40]
+    seed 8: 'intro: in the truck; intended PIA (GIRL)' frames 8586 'PIA' 1 [25, 40]
+    seed 9: 'intro: in the truck; intended Luna (GIRL)' frames 8762 'Luna' 1 [25, 40]
+    seed 10: 'intro: in the truck; intended Wren (GIRL)' frames 8728 'Wren' 1 [25, 40]
+    seed 11: 'intro: in the truck; intended ELI (BOY)' frames 8406 'ELI' 0 [25, 40]
+    seed 12: 'intro: in the truck; intended Rowan (BOY)' frames 8764 'Rowan' 0 [25, 40]
+    seed 13: 'intro: in the truck; intended Wren (GIRL)' frames 8654 'Wren' 1 [25, 40]
+    seed 14: 'intro: in the truck; intended PIA (GIRL)' frames 8471 'PIA' 1 [25, 40]
+    seed 15: 'intro: in the truck; intended Milo (BOY)' frames 8618 'Milo' 0 [25, 40]
+    seed 16: 'intro: in the truck; intended Rosa (GIRL)' frames 8762 'Rosa' 1 [25, 40]
+    seed 17: 'intro: in the truck; intended Rosa (GIRL)' frames 8655 'Rosa' 1 [25, 40]
+    seed 18: 'intro: in the truck; intended PIA (GIRL)' frames 8566 'PIA' 1 [25, 40]
+    seed 19: 'intro: in the truck; intended Jude (BOY)' frames 8548 'Jude' 0 [25, 40]
+    seed 20: 'intro: in the truck; intended Rowan (BOY)' frames 8729 'Rowan' 0 [25, 40]
+nurse:
+    seed 1: 'nurse: healed' frames 1912 [['Mightyena', 227, 227]]
+    seed 2: 'nurse: healed' frames 1966 [['Mightyena', 227, 227]]
+    seed 3: 'nurse: healed' frames 1964 [['Mightyena', 227, 227]]
+    seed 4: 'nurse: healed' frames 1933 [['Mightyena', 227, 227]]
+    seed 5: 'nurse: healed' frames 1918 [['Mightyena', 227, 227]]
+    seed 6: 'nurse: healed' frames 1930 [['Mightyena', 227, 227]]
+    seed 7: 'nurse: healed' frames 1951 [['Mightyena', 227, 227]]
+    seed 8: 'nurse: healed' frames 1957 [['Mightyena', 227, 227]]
+    seed 9: 'nurse: healed' frames 1974 [['Mightyena', 227, 227]]
+    seed 10: 'nurse: healed' frames 1964 [['Mightyena', 227, 227]]
+    seed 11: 'nurse: healed' frames 1970 [['Mightyena', 227, 227]]
+    seed 12: 'nurse: healed' frames 1946 [['Mightyena', 227, 227]]
+    seed 13: 'nurse: healed' frames 1969 [['Mightyena', 227, 227]]
+    seed 14: 'nurse: healed' frames 1931 [['Mightyena', 227, 227]]
+    seed 15: 'nurse: healed' frames 1944 [['Mightyena', 227, 227]]
+    seed 16: 'nurse: healed' frames 1955 [['Mightyena', 227, 227]]
+    seed 17: 'nurse: healed' frames 1918 [['Mightyena', 227, 227]]
+    seed 18: 'nurse: healed' frames 1912 [['Mightyena', 227, 227]]
+    seed 19: 'nurse: healed' frames 1950 [['Mightyena', 227, 227]]
+    seed 20: 'nurse: healed' frames 1942 [['Mightyena', 227, 227]]
+mart:
+    seed 1: 'mart: bought' frames 1420 +5 balls, -1000 money
+    seed 2: 'mart: bought' frames 1435 +5 balls, -1000 money
+    seed 3: 'mart: bought' frames 1441 +5 balls, -1000 money
+    seed 4: 'mart: bought' frames 1426 +5 balls, -1000 money
+    seed 5: 'mart: bought' frames 1453 +5 balls, -1000 money
+    seed 6: 'mart: bought' frames 1460 +5 balls, -1000 money
+    seed 7: 'mart: bought' frames 1412 +5 balls, -1000 money
+    seed 8: 'mart: bought' frames 1435 +5 balls, -1000 money
+    seed 9: 'mart: bought' frames 1480 +5 balls, -1000 money
+    seed 10: 'mart: bought' frames 1442 +5 balls, -1000 money
+    seed 11: 'mart: bought' frames 1450 +5 balls, -1000 money
+    seed 12: 'mart: bought' frames 1451 +5 balls, -1000 money
+    seed 13: 'mart: bought' frames 1438 +5 balls, -1000 money
+    seed 14: 'mart: bought' frames 1428 +5 balls, -1000 money
+    seed 15: 'mart: bought' frames 1446 +5 balls, -1000 money
+    seed 16: 'mart: bought' frames 1423 +5 balls, -1000 money
+    seed 17: 'mart: bought' frames 1416 +5 balls, -1000 money
+    seed 18: 'mart: bought' frames 1428 +5 balls, -1000 money
+    seed 19: 'mart: bought' frames 1429 +5 balls, -1000 money
+    seed 20: 'mart: bought' frames 1483 +5 balls, -1000 money
+clock:
+    seed 1: 'clock: clock set to 5:13' frames 2764 set 5:13, gLocalTime [5, 13]
+    seed 2: 'clock: clock set to 10:26' frames 2455 set 10:26, gLocalTime [10, 26]
+    seed 3: 'clock: clock set to 15:39' frames 2736 set 15:39, gLocalTime [15, 39]
+    seed 4: 'clock: clock set to 20:52' frames 3082 set 20:52, gLocalTime [20, 52]
+    seed 5: 'clock: clock set to 1:05' frames 2959 set 1:05, gLocalTime [1, 5]
+    seed 6: 'clock: clock set to 6:18' frames 2678 set 6:18, gLocalTime [6, 18]
+    seed 7: 'clock: clock set to 11:31' frames 2544 set 11:31, gLocalTime [11, 31]
+    seed 8: 'clock: clock set to 16:44' frames 2858 set 16:44, gLocalTime [16, 44]
+    seed 9: 'clock: clock set to 21:57' frames 3226 set 21:57, gLocalTime [21, 57]
+    seed 10: 'clock: clock set to 2:10' frames 2921 set 2:10, gLocalTime [2, 10]
+    seed 11: 'clock: clock set to 7:23' frames 2563 set 7:23, gLocalTime [7, 23]
+    seed 12: 'clock: clock set to 12:36' frames 2656 set 12:36, gLocalTime [12, 36]
+    seed 13: 'clock: clock set to 17:49' frames 2954 set 17:49, gLocalTime [17, 49]
+    seed 14: 'clock: clock set to 22:02' frames 3116 set 22:02, gLocalTime [22, 2]
+    seed 15: 'clock: clock set to 3:15' frames 2791 set 3:15, gLocalTime [3, 15]
+    seed 16: 'clock: clock set to 8:28' frames 2599 set 8:28, gLocalTime [8, 28]
+    seed 17: 'clock: clock set to 13:41' frames 2655 set 13:41, gLocalTime [13, 41]
+    seed 18: 'clock: clock set to 18:54' frames 2995 set 18:54, gLocalTime [18, 54]
+    seed 19: 'clock: clock set to 23:07' frames 3118 set 23:07, gLocalTime [23, 7]
+    seed 20: 'clock: clock set to 4:20' frames 2819 set 4:20, gLocalTime [4, 20]

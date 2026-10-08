@@ -71,7 +71,8 @@ class Tile:
     tall_grass: bool  # tall or long grass (`MetatileBehavior_IsPokeGrass`)
     ledge: str | None  # the direction of the jump, if this tile is a ledge
     door: bool
-    warp: bool  # a warp of the current map is on this tile (a door, stairs, a ladder, a cave mouth)
+    warp: bool  # the tile LOOKS like a way out by its behaviour (a door, stairs, a ladder, an escalator, an arrow mat, a
+    #             hole: `eyes/view.py` EXIT_BEHAVIORS; build step 3.1: no longer the ROM's warp table)
     half_visible: bool  # the top and bottom rows of the window show half a tile
 
     def flags(self) -> str:

@@ -59,11 +59,48 @@ model is not the game: the live arms play the real one; these tests pin the RULE
                       own steps, the path stays one tile a step across every battle.
   FleeTests           the battle's action menu: RUN is reached by READING the 2 x 2 cursor (Right, Down, A) and only
                       pressed on it; a TRAINER battle returns the reason with no press on the menu.
+
+BUILD STEP 3.1 (the step-3 adversarial review), each with its fault half and a mutant in `gates/revert_step3.py`:
+  ShiftTests          (finding 1) the same memory with every coordinate moved by +50 gives the same choice; a tile past an
+                      edge never crossed is no road. MemoryTests: edges learned at a crossing, also from an old memory.
+  ReversalTests       (finding 2) on the town model, 12 seeds: reversals near zero and no stale frontier target walked
+                      onto; FAULTS: no turn-back cost (>= 15), no stale drop (targets walked onto, >= 8).
+  SceneTests          (finding 3) a repeating scene gives its target up after the second; FAULT: until the novelty window.
+  WalkTests           (finding 4) a bump belongs to its side: a hidden wall bumped at most once per side, a ONE-WAY tile
+                      crossed from its open side, the only way on retried once before it is given up; FAULTS: a bump
+                      walls every side, one bump closes the way.
+  ExitTests           (finding 5) a door that does not open is remembered CLOSED across intents; an arrow mat is used by
+                      its arrow. FrameworkFreeTests: no host file reads a map's warp table; the exit looks.
+  WindowTests         (finding 6) the gate's crop check flags a tile seen 8 columns away however wide the eyes' window.
+  ApproachTests       (finding 8) every candidate is a SEEN walkable tile, an exit's stand tile included.
+  RoamTests           (finding 9) both ratios and the pre-empted presses, against the model's own counts.
+  GraderTests         (finding 2's grader) `live_step3.reversals` and `walk_path` on the review's own examples.
+
+THE STEP-3.1 VERIFIER'S ROUND, each with its fault half and a mutant (W44-W51):
+  SceneTests          the EXPLORER sent back twice from one tile stops stepping on it (FAULT: the next target behind it meets
+                      the scene again); a tile seen in passing is not progress; progress lifts the tile (`StoryGame`).
+  ExitTests           a closed door is tried again once the story moves on, or after `CLOSED_RETRY_FRAMES`.
+  GraderTests         `live_step3.stale_arrivals` (a stale drop is no arrival), `edge_targets` per EDGE and its non-vacuity,
+                      `scenes_by_tile`.
+
+THE STEP-3.1 VERIFIER'S SECOND ROUND, each with its fault half and a mutant (W52-W60):
+  FrameworkFreeTests  the warp-table check catches the verifier's own `getattr(location, 'warps')` plant, `hasattr`, a dict
+                      key and `MapWarp` (a string constant names it), and does NOT fire on a docstring or a comment that
+                      mentions `location.warps`. (A RAW read names nothing: `gates/warp_reads.py`'s scan, arm WARPREAD.)
+  SceneTests          a scene known by its WORDS (`GridGame` triggers may say something): the same words on a gap two tiles
+                      wide are one scene, met at most 3 times (FAULT: by tile only, 4); different words are two scenes; the
+                      rule directly; NEWS (`NewsGame`: new words from a scene that left the player be) lifts the twin and
+                      once more gives her up again (FAULTS: news not progress, 2; once not enough, 4); `Novelty.heard`.
+  GameAnswerTests     a trial the game did not step at all asks whether the player is LOCKED (`stopped_trials`).
+  GraderTests         a locked player answered by THE ARRIVAL across a connection (SCENEX's end on Route 101); a
+                      pre-registered number that does not hold FAILS its arm (`check_predictions`); arm CLOCKS registers
+                      launcher frames only where every clock agrees (`grade_CLOCKS`: W61).
 """
 
 from __future__ import annotations
 
 import ast
+import contextlib
 import json
 import os
 import random
@@ -97,7 +134,8 @@ from ai_player.skills.flee import RUN, TRAINER_OUT_OF_SCOPE, flee  # noqa: E402
 from ai_player.skills import roam_train as roam_module  # noqa: E402
 from ai_player.skills.roam_train import roam_train, spin_count  # noqa: E402
 from ai_player.world import memory as memory_module  # noqa: E402
-from ai_player.world.memory import WorldMemory, in_window, read_world  # noqa: E402
+from ai_player.world.memory import WorldMemory, read_world  # noqa: E402
+from ai_player.gates.window import on_screen_from  # noqa: E402  (the gate's own window: build step 3.1, finding 6)
 
 PACKAGE = REPO / "ai_player"
 #: The files build step 3 added (each must stay framework-free and host-free).
@@ -114,7 +152,7 @@ class GridGame:
     map -> (frames, (map, (x, y))): arriving there starts a scene that sends the player to that place."""
 
     def __init__(self, maps: dict[str, list[str]], start: tuple[str, tuple[int, int]], warps=None, links=None, people=None,
-                 scene_on=None, crop: bool = True, leaving=None) -> None:
+                 scene_on=None, crop: bool = True, leaving=None, stubborn=None, triggers=None) -> None:
         self.maps = maps
         self.map, self.pos = start[0], start[1]
         self.warps = warps or {}
@@ -122,6 +160,18 @@ class GridGame:
         self.people = people or {}
         self.leaving = leaving or {}
         self.scene_on = scene_on or {}
+        #: (build step 3.1) (map, tile) -> how many ATTEMPTS (one per 8 frames held) a 'T' tile refuses before it opens
+        self.stubborn = stubborn or {}
+        self.refused: dict = {}
+        #: (build step 3.1) (map, tile) -> (frames, (x, y)): stepping onto it starts a scene that ends by putting the
+        #: player on (x, y) (Littleroot's twin pushing a player with no Pokemon back from the road)
+        self.triggers = triggers or {}
+        self.push_to = None
+        self.scenes_run = 0
+        #: (the step-3.1 verifier's second round) a trigger may say something: (frames, back, WORDS); the scene's page is
+        #: then on screen, waiting for a press, while it runs (the twin's "Um, um, um!")
+        self.scene_text: str | None = None
+        self.scene_log: list[tuple[str, tuple[int, int]]] = []  # (map, the trigger tile) of every scene run
         self.crop = crop
         self.facing = "down"
         self.frame = 0
@@ -138,6 +188,7 @@ class GridGame:
         self.bump_frames = 0
         self.steps = 0
         self.pressed: list[tuple[int, str, str, tuple[int, int]]] = []  # (frame, map, button, from)
+        self.trail: list[tuple[str, tuple[int, int]]] = [(self.map, self.pos)]  # (map, tile) after every step taken
 
     # ---------------------------------------------------------------- the rules
     def char(self, name: str, xy: tuple[int, int]) -> str:
@@ -187,6 +238,10 @@ class GridGame:
             if not self.scene and self.scene_to is not None:
                 self.pending, self.scene_to = self.scene_to, None
                 self.warp_out = 20
+            if not self.scene and self.push_to is not None:
+                self.pos, self.push_to = self.push_to, None
+            if not self.scene:
+                self.scene_text = None
             return
         direction = button if button in DIRS else None
         if direction != self.held:
@@ -222,8 +277,18 @@ class GridGame:
             other, (ox, oy) = self.links[(self.map, side)]
             self.map, self.pos = other, (target[0] + ox, target[1] + oy)
             self.moving, self.steps = 16, self.steps + 1
+            self.trail.append((self.map, self.pos))
             return
-        if c in "#~HD" or target in self.people_now():
+        if c in "#~HDX" or target in self.people_now():
+            self.bump()
+            return
+        # 'N': a ONE-WAY tile (IMPASSABLE_SOUTH_AND_NORTH: `src/event_object_movement.c` IsMetatileDirectionallyImpassable
+        # refuses entering it and leaving it going north or south; east and west are open)
+        if button in ("Up", "Down") and "N" in (c, here):
+            self.bump()
+            return
+        if c == "T" and self.refused.get((self.map, target), 0) < self.stubborn.get((self.map, target), 0):
+            self.refused[(self.map, target)] = self.refused.get((self.map, target), 0) + 1
             self.bump()
             return
         if c in LEDGES:
@@ -232,11 +297,19 @@ class GridGame:
                 return
             self.pos = (target[0] + dx, target[1] + dy)
             self.moving, self.steps = 32, self.steps + 1
+            self.trail.append((self.map, self.pos))
             return
         self.pos = target
         self.moving, self.steps = 16, self.steps + 1
+        self.trail.append((self.map, self.pos))
         if c == "S":
             self.start_warp(target)
+        if (self.map, target) in self.triggers:
+            frames, back, *words = self.triggers[(self.map, target)]
+            self.scene, self.push_to, self.moving = frames, back, 0
+            self.scene_text = words[0] if words else None
+            self.scenes_run += 1
+            self.scene_log.append((self.map, target))
 
     def bump(self) -> None:
         """Walking in place against something: one BUMP per press held against it (as a person counts them); every
@@ -252,9 +325,12 @@ class GridGame:
 
     # ---------------------------------------------------------------- what the eyes report
     def screen(self) -> ScreenState:
-        return ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=False,
-                           waits_for_button=False, in_battle=False, script_running=bool(self.scene),
-                           controls_locked=bool(self.scene), fading=bool(self.warp_out or self.warp_in))
+        words = self.scene_text if self.scene else None
+        return ScreenState(game_state="OVERWORLD", screen="text" if words else "overworld", menu=None,
+                           text_box_open=bool(words), waits_for_button=bool(words), in_battle=False,
+                           wait_reason="text printer 0 WAIT" if words else None, text=words,
+                           script_running=bool(self.scene), controls_locked=bool(self.scene),
+                           fading=bool(self.warp_out or self.warp_in))
 
     def player(self) -> PlayerState:
         settling = self.warp_in > 8
@@ -266,12 +342,14 @@ class GridGame:
     def tile(self, x: int, y: int, dx: int, dy: int) -> Tile:
         c = self.char(self.map, (x, y))
         names = {".": "NORMAL", "#": "NORMAL", '"': "TALL_GRASS", "~": "POND_WATER", "D": "ANIMATED_DOOR",
-                 "S": "NON_ANIMATED_DOOR", "M": "SOUTH_ARROW_WARP", "H": "NORMAL"}
+                 "S": "NON_ANIMATED_DOOR", "M": "SOUTH_ARROW_WARP", "H": "NORMAL", "N": "IMPASSABLE_SOUTH_AND_NORTH",
+                 "T": "NORMAL", "X": "ANIMATED_DOOR"}
         ledge = LEDGES[c][0] if c in LEDGES else None
+        # the eyes' `warp` is the LOOK (build step 3.1): 'X' looks like a door and is one with no warp (a closed door)
         return Tile(x=x, y=y, dx=dx, dy=dy, metatile=0, behavior=0, behavior_name=names.get(c, "JUMP"),
-                    collision=1 if c in "#D" else 0, elevation=3, blocked=c in "#D", water=c == "~",
-                    encounter="land" if c == '"' else None, tall_grass=c == '"', ledge=ledge, door=c in "DS",
-                    warp=c in "DSM", half_visible=abs(dy) == 5)
+                    collision=1 if c in "#DX" else 0, elevation=3, blocked=c in "#DX", water=c == "~",
+                    encounter="land" if c == '"' else None, tall_grass=c == '"', ledge=ledge, door=c in "DSX",
+                    warp=c in "DSMX", half_visible=abs(dy) == 5)
 
     def view(self) -> View | None:
         if self.warp_in > 8:
@@ -385,6 +463,64 @@ class FrameworkFreeTests(unittest.TestCase):
         planted = (PACKAGE / "brain/navigator.py").read_text(encoding="utf-8") + "\nfrom modules.map_path import calculate_path\n"
         self.assertEqual(self.foreign_imports(planted), ["modules.map_path"])
 
+    # ---- build step 3.1, the step-3 review's finding 5: no warp TABLE on the AI's side
+    @staticmethod
+    def warp_table_reads(source: str) -> list[str]:
+        """Every place a source NAMES a map's warp events (`gates/warp_reads.py` warp_table_reads: an attribute, a string
+        constant such as `getattr(location, 'warps')`'s, the framework's `MapWarp`). (The step-3.1 verifier's second
+        round: the attribute alone let a `getattr` read through.) A RAW read names nothing: `gates/warp_reads.py`'s scan,
+        live arm WARPREAD, records every read the real eyes make and is the guard for that."""
+        from ai_player.gates.warp_reads import warp_table_reads
+
+        return warp_table_reads(source)
+
+    def test_the_ai_never_reads_the_warp_table(self) -> None:
+        """A tile is an exit by how it LOOKS (`eyes/view.py` EXIT_BEHAVIORS); the ROM's warp table is test side only.
+        `host/` holds the only files that read the game (every other AI file is framework-free: the test above), so
+        none of them may read a map's warps (`world/memory.py`'s own `WorldMemory.warps` is the AI's learned warp
+        GRAPH, built from map changes it saw: not a read)."""
+        files = sorted((PACKAGE / "host").glob("*.py"))
+        self.assertTrue(files)
+        for path in files:
+            with self.subTest(file=path.name):
+                self.assertEqual(self.warp_table_reads(path.read_text(encoding="utf-8")), [])
+
+    def test_fault_a_planted_warp_table_read_is_caught(self) -> None:
+        source = (PACKAGE / "host/eyes.py").read_text(encoding="utf-8") + "\nwarps = frozenset(w.local_coordinates for w in location.warps)\n"
+        self.assertEqual(len(self.warp_table_reads(source)), 1)
+
+    def test_fault_the_verifiers_getattr_plant_is_caught(self) -> None:
+        """The step-3.1 verifier planted exactly this in `_map_facts` and the attribute-only check passed it."""
+        eyes = (PACKAGE / "host/eyes.py").read_text(encoding="utf-8")
+        planted = eyes.replace("            signs = tuple(\n",
+                               "            _w = frozenset(w.local_coordinates for w in getattr(location, 'warps'))\n"
+                               "            signs = tuple(\n", 1)
+        self.assertNotEqual(planted, eyes, "the plant's anchor is in host/eyes.py")
+        self.assertEqual(self.warp_table_reads(planted), ["line %d: the string 'warps'" % (
+            planted.splitlines().index("            _w = frozenset(w.local_coordinates for w in getattr(location, 'warps'))") + 1)])
+        for spelled in ("hasattr(location, 'warp_events')", "data['warpCount']", "from modules.map import MapWarp"):
+            with self.subTest(spelled=spelled):
+                self.assertTrue(self.warp_table_reads(f"x = {spelled}\n" if "import" not in spelled else spelled + "\n"))
+
+    def test_a_mention_in_a_docstring_or_a_comment_is_not_a_read(self) -> None:
+        """(CLAUDE.md rule 6: a gate must not fire on mere mentions) the host's own docstring says the warp table is no
+        longer read, and names `location.warps`; a comment may too."""
+        source = ('"""The eyes no longer read `location.warps` (the warps of the map)."""\n'
+                  "# location.warps used to be read here; getattr(location, 'warps') neither\n"
+                  "x = 'the map has warps'\n")
+        self.assertEqual(self.warp_table_reads(source), [])
+
+    def test_an_exit_is_known_by_its_look(self) -> None:
+        from ai_player.eyes.view import BEHAVIOR, DOOR_BEHAVIORS, EXIT_BEHAVIORS
+
+        looks = {name for name, value in BEHAVIOR.items() if value in EXIT_BEHAVIORS}
+        for name in ("ANIMATED_DOOR", "NON_ANIMATED_DOOR", "LADDER", "UP_ESCALATOR", "DOWN_ESCALATOR", "SOUTH_ARROW_WARP",
+                     "NORTH_ARROW_WARP", "EAST_ARROW_WARP", "WEST_ARROW_WARP", "MT_PYRE_HOLE", "AQUA_HIDEOUT_WARP"):
+            self.assertIn(name, looks)
+        self.assertTrue(DOOR_BEHAVIORS <= EXIT_BEHAVIORS)
+        for name in ("NORMAL", "TALL_GRASS", "CAVE", "BRIDGE_OVER_OCEAN", "COUNTER"):
+            self.assertNotIn(name, looks, "plain ground (and the bridges that share the Union Room exit's behaviour)")
+
 
 class MemoryTests(unittest.TestCase):
     def walk(self, crop: bool) -> WorldMemory:
@@ -397,7 +533,7 @@ class MemoryTests(unittest.TestCase):
     def test_only_what_was_on_screen(self) -> None:
         world = self.walk(crop=True)
         memory = world.here()
-        outside = [xy for xy, fact in memory.tiles.items() if not in_window(fact.seen_from, xy)]
+        outside = [xy for xy, fact in memory.tiles.items() if not on_screen_from(fact.seen_from, xy)]
         self.assertGreater(len(memory.tiles), 165)
         self.assertEqual(outside, [], "every known tile lies inside the window of the tile it was seen from")
         self.assertNotIn((39, 10), memory.tiles, "the far wall was never on screen")
@@ -405,25 +541,120 @@ class MemoryTests(unittest.TestCase):
     def test_fault_the_crop_off_learns_what_no_window_showed(self) -> None:
         world = self.walk(crop=False)
         memory = world.here()
-        outside = [xy for xy, fact in memory.tiles.items() if not in_window(fact.seen_from, xy)]
+        outside = [xy for xy, fact in memory.tiles.items() if not on_screen_from(fact.seen_from, xy)]
         self.assertGreater(len(outside), 100)
         self.assertIn((39, 10), memory.tiles)
 
+    MAPS = {"A": ["##.##", "#...#", "#...#", "#...#", "#####"], "B": ["#...#", "#...#"]}
+    LINKS = {("A", "up"): ("B", (0, 2)), ("B", "down"): ("A", (0, -2))}
+
     def test_visits_frontier_roads_and_persistence(self) -> None:
-        maps = {"A": ["##.##", "#...#", "#...#", "#...#", "#####"], "B": ["#...#", "#...#"]}
-        game = GridGame(maps, ("A", (2, 3)), links={("A", "up"): ("B", (0, 2)), ("B", "down"): ("A", (0, -2))})
+        """(build step 3.1, the step-3 review's finding 1) a tile past an edge is a ROAD only once a crossing of that
+        edge has been SEEN: before it, (2, -1) is a tile like any other (the coordinates say nothing a person sees)."""
+        game = GridGame(self.MAPS, ("A", (2, 3)), links=self.LINKS)
         hands, nav, world, _, _ = rig(game)
         drive(nav.go_to((2, 1), "to the gap", 600))
         memory = world.here()
         self.assertEqual(memory.visits[(2, 1)], 1)
-        self.assertIn((2, -1), memory.roads(), "a walkable tile past the top edge (y < 0) is a road")
-        self.assertNotIn((2, -1), memory.frontier())
-        self.assertNotIn((2, 5), memory.roads(), "past an edge the AI has not crossed, a tile is not known to be another map's")
+        self.assertIn((2, -1), memory.tiles, "seen: the screen shows the next map past the top edge")
+        self.assertEqual((memory.roads(), memory.outside((2, -1)), memory.edges), ([], False, {}),
+                         "no crossing seen yet: no edge known, so nothing is 'past' it")
+        drive(nav.run(explore_intent("B", "Story", 2000), "cross"))
+        keys = {name: key for key, name in world.names().items()}
+        a, b = world.maps[keys["A"]], world.maps[keys["B"]]
+        self.assertEqual((a.edges, b.edges), ({"up": -1}, {"down": 2}), "both maps' edges, learned at the crossing")
+        self.assertIn((2, -1), a.roads(), "now a walkable tile past A's known top edge is a road")
+        self.assertNotIn((2, 5), a.roads(), "past an edge the AI has not crossed, a tile is not known to be another map's")
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "world.jsonl"
             path.write_text(world.snapshot() + "\n", encoding="utf-8")
             again = read_world(path)
         self.assertEqual(again.to_dict(), world.to_dict())
+
+    def test_an_old_memory_learns_its_edges_from_its_crossings(self) -> None:
+        """A memory written before build step 3.1 kept only the right and bottom edges: read back, every crossing it
+        recorded teaches both maps' edges again (the fixtures' `route101_south.world.jsonl` is such a file)."""
+        game = GridGame(self.MAPS, ("A", (2, 3)), links=self.LINKS)
+        hands, nav, world, _, _ = rig(game)
+        drive(nav.run(explore_intent("B", "Story", 2000), "cross"))
+        data = world.to_dict()
+        for value in data["maps"].values():
+            value["edges"] = {side: edge for side, edge in value["edges"].items() if side in ("right", "down")}
+        again = WorldMemory.from_dict(data)
+        self.assertEqual({key: m.edges for key, m in again.maps.items()}, {key: m.edges for key, m in world.maps.items()})
+
+
+def shifted_world(world: WorldMemory, d: int) -> WorldMemory:
+    """The same memory with EVERY coordinate of every map moved by (+d, +d): tiles, where they were seen from, visits,
+    bumps, closed exits, people, items, edges, arrivals, warp links, connections, map changes, the player's tile. Every
+    map moves by the same amount, so a connection's offset is unchanged. A person's knowledge is the same: only the
+    numbering moved."""
+    def s(text: str) -> str:
+        x, y = text.split(",")
+        return f"{int(x) + d},{int(y) + d}"
+
+    def p(xy):
+        return None if xy is None else [xy[0] + d, xy[1] + d]
+
+    data = json.loads(world.snapshot())
+    for m in data["maps"].values():
+        m["tiles"] = {s(k): v[:5] + [v[5] + d, v[6] + d] for k, v in m["tiles"].items()}
+        for field_name in ("visits", "people", "items", "closed"):
+            m[field_name] = {s(k): v for k, v in m.get(field_name, {}).items()}
+        m["bumped"] = {f"{s(k.split('|')[0])}|{k.split('|')[1]}": {**v, "from": p(v.get("from"))} for k, v in m["bumped"].items()}
+        m["edges"] = {side: edge + d for side, edge in m["edges"].items()}
+        m["arrivals"] = [[a[0], a[1] + d, a[2] + d, a[3]] for a in m["arrivals"]]
+    data["warps"] = {f"{k.split('|')[0]}|{s(k.split('|')[1])}": {**v, "arrival": p(v.get("arrival"))} for k, v in data["warps"].items()}
+    data["connections"] = [{**c, "from": p(c.get("from")), "arrival": p(c.get("arrival"))} for c in data["connections"]]
+    data["transitions"] = [t[:5] + [p(t[5]), p(t[6]), t[7]] for t in data["transitions"]]
+    out = WorldMemory.from_dict(data)
+    out._last.key, out._last.xy = world._last.key, tuple(p(world._last.xy)) if world._last.xy else None
+    for key, memory in out.maps.items():
+        memory.objects_now = frozenset((x + d, y + d) for x, y in world.maps[key].objects_now)
+    return out
+
+
+class ShiftTests(unittest.TestCase):
+    """(build step 3.1, the step-3 review's finding 1, HIGH) The explorer knew where a map ENDS from NEGATIVE
+    coordinates (`MapMemory.outside`: x < 0 or y < 0) and valued those tiles as ROADS: knowledge no screen shows, and
+    only on the top and left edges. A person's choices cannot depend on how the tiles are NUMBERED: the same memory
+    with every coordinate moved by +50 must give the same choice. FAULT (the old rule: `memory.outside` from the
+    coordinates): Story goes for a 'road' at y < 0 in one and a frontier in the other."""
+
+    TOWN = ["##..##########", "#............#", "#............#", "#............#", "#............#", "##############"]
+
+    def choices(self, crossed: bool, seeds=range(1, 7)) -> list[tuple]:
+        maps = {"TOWN": self.TOWN, "ROUTE": ["#..#"] * 12}
+        links = {("TOWN", "up"): ("ROUTE", (-1, 12)), ("ROUTE", "down"): ("TOWN", (1, -12))}
+        out = []
+        for seed in seeds:
+            game = GridGame(maps, ("TOWN", (6, 2)), links=links)
+            hands, nav, world, notes, lines = rig(game, seed=seed)
+            world.observe(game.look())
+            if crossed:  # a crossing of the top edge SEEN before (the edge is then known, and shifts with the rest)
+                world.here().edges["up"] = -1
+            look = game.look()
+            moved_world = shifted_world(world, 50)
+            nav2 = Navigator(Hands(None, None, random.Random(1), random.Random(f"{seed}:choices"), None, lambda line: None),
+                             moved_world, random.Random(f"{seed}:choices"), WEIGHTS["Story"].grass_cost, "Story")
+            look2 = replace(look, player=replace(look.player, x=look.player.x + 50, y=look.player.y + 50))
+            nav.rng = random.Random(f"{seed}:choices")
+            first = choose_target(nav, look, WEIGHTS["Story"])
+            second = choose_target(nav2, look2, WEIGHTS["Story"])
+            out.append((seed, (first.kind, first.tile, round(first.score, 6)),
+                        (second.kind, (second.tile[0] - 50, second.tile[1] - 50), round(second.score, 6))))
+        return out
+
+    def test_the_same_choice_with_every_coordinate_moved_by_50(self) -> None:
+        for crossed in (False, True):
+            for seed, first, second in self.choices(crossed):
+                with self.subTest(crossed=crossed, seed=seed):
+                    self.assertEqual(first, second, "the choice depends on how the tiles are numbered")
+
+    def test_a_tile_past_an_edge_never_crossed_is_not_a_road(self) -> None:
+        kinds = {first[0] for _, first, _ in self.choices(False)}
+        self.assertNotIn("road", kinds, "no crossing seen: nothing on screen says the map ends there")
+        self.assertEqual({first[0] for _, first, _ in self.choices(True)}, {"road"}, "a crossing seen: Story goes for the road")
 
 
 class PlannerTests(unittest.TestCase):
@@ -491,14 +722,22 @@ class WalkTests(unittest.TestCase):
                 outcome = drive(nav.run(goto_intent([(5, 3), (2, 3), (5, 3)], 6000), "errands"))
         return game, world, outcome, notes, nav
 
-    def test_a_hidden_wall_is_bumped_once_and_avoided(self) -> None:
+    def test_a_hidden_wall_is_bumped_once_from_a_side_and_avoided(self) -> None:
+        """(build step 3.1, finding 4: a bump belongs to the SIDE it came from) A wall the eyes call floor, met on three
+        errands: from each side at most ONCE (a person does not know an unseen obstacle is closed from every side), and
+        never pressed into again from a side that refused the player."""
         game, world, outcome, notes, nav = self.errands()
         self.assertTrue(outcome.startswith("done"), outcome)
-        self.assertEqual(list(world.here().bumped), [(4, 3)])
-        self.assertEqual((game.bumps, nav.stats.bumps), (1, 1), "bumped once")
-        self.assertLessEqual(game.bump_frames, 40, "about one bump's worth of walking in place")
-        into = [r for r in notes.records if str(r["reason"]).startswith("walk") and "-> (4, 3)" in r["reason"]]
-        self.assertEqual(len(into), 1, f"pressed toward the hidden wall once only: {[r['reason'][:60] for r in into]}")
+        bumped = world.here().bumped
+        self.assertTrue(bumped and {xy for xy, _ in bumped} == {(4, 3)}, bumped)
+        self.assertEqual({key: info["bumps"] for key, info in bumped.items()}, {key: 1 for key in bumped}, "once per side")
+        self.assertEqual(game.bumps, nav.stats.bumps)
+        self.assertEqual(nav.stats.bumps, len(bumped), "one bump per side tried")
+        self.assertLessEqual(game.bump_frames, 40 * len(bumped), "about one bump's worth of walking in place per side")
+        for (tile, direction), info in bumped.items():
+            later = [r for r in notes.records if str(r["reason"]).startswith(f"walk {direction}:") and "-> (4, 3)" in r["reason"]
+                     and r["frame"] > info["last"]]
+            self.assertEqual(later, [], f"pressed into (4, 3) going {direction} after that side refused the player")
         self.assertEqual(game.pos, (5, 3))
 
     def test_fault_without_learning_it_bumps_again_and_again(self) -> None:
@@ -506,6 +745,64 @@ class WalkTests(unittest.TestCase):
         self.assertTrue(outcome.startswith("stuck"), outcome)
         self.assertGreater(nav.stats.bumps, 10)
         self.assertGreater(game.bump_frames, 1000, "it walked in place against the same tile for most of a minute")
+
+    #: A ONE-WAY tile 'N' (IMPASSABLE_SOUTH_AND_NORTH, as the player's room has at (1, 4)): closed going north or south,
+    #: open going east or west; the eyes call it floor.
+    ONE_WAY = ["#######", "#.....#", "#.....#", "#..N..#", "#######"]
+
+    def one_way(self):
+        game = GridGame({"ROOM": self.ONE_WAY}, ("ROOM", (3, 1)))
+        hands, nav, world, notes, lines = rig(game)
+        outcome = drive(nav.run(goto_intent([(3, 3), (5, 3), (1, 3)], 6000), "errands"), budget=40_000)
+        return game, world, outcome, notes, nav
+
+    def test_a_one_way_tile_is_crossed_from_its_open_side(self) -> None:
+        """Errand 1 is the one-way tile ITSELF, straight below the start: walked into going down, it refuses (one bump,
+        that side only), and it is reached from the side. Errands 2 and 3 cross it east and west: 2 steps each, not 4
+        round it. FAULT (the old rule: one bump = a wall from every side): the tile is unreachable, the intent stuck."""
+        game, world, outcome, notes, nav = self.one_way()
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertEqual(sorted(world.here().bumped), [((3, 3), "down")], "one bump, from the north")
+        across = [r for r in notes.records if str(r["reason"]).startswith("walk ") and "toward the goto at (1, 3)" in r["reason"]]
+        self.assertEqual(len(across), 4, f"errand 3, (5, 3) -> (1, 3): 4 steps straight through the one-way tile: "
+                                         f"{[r['reason'][:40] for r in across]}")
+        self.assertEqual(game.pos, (1, 3))
+
+    def test_fault_a_bump_from_one_side_walls_every_side(self) -> None:
+        with mock.patch.object(memory_module.MapMemory, "bumps",
+                               lambda self, xy, direction: max([i["bumps"] for (t, _), i in self.bumped.items() if t == xy] or [0]) * 2):
+            game, world, outcome, notes, nav = self.one_way()
+        self.assertTrue(outcome.startswith("stuck"), outcome)
+        self.assertNotEqual(game.pos, (3, 3), "never got onto the one-way tile")
+
+    #: A corridor whose only way on is a tile 'T' that refuses the first attempts (a hidden thing that moves away):
+    #: 4 attempts are the navigator's whole first hold (STEP_HOLD_MAX 32 frames, an attempt every 8), so it learns a bump.
+    CORRIDOR = ["#######", "#..T..#", "#######"]
+
+    def corridor(self, refusals: int):
+        game = GridGame({"HALL": self.CORRIDOR}, ("HALL", (1, 1)), stubborn={("HALL", (3, 1)): refusals})
+        hands, nav, world, notes, lines = rig(game)
+        outcome = drive(nav.run(goto_intent([(5, 1)], 4000), "along the hall"), budget=20_000)
+        return game, world, outcome, nav
+
+    def test_the_only_way_on_is_retried_before_it_is_given_up(self) -> None:
+        """'Retry at high cost before giving up': after ONE bump the way in is dear, not closed, so when it is the only
+        way the navigator presses again; the second refusal from that side closes it (`BUMP_GIVE_UP`), and an errand
+        with no other way is stuck, not a loop. FAULT (one bump = closed): a way that opened is never tried again."""
+        game, world, outcome, nav = self.corridor(refusals=4)
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertEqual((nav.stats.bumps, world.here().bumps((3, 1), "right"), game.pos), (1, 1, (5, 1)),
+                         "refused once (a bump learned), retried as the only way, through")
+        game, world, outcome, nav = self.corridor(refusals=99)
+        self.assertTrue(outcome.startswith("stuck"), outcome)
+        self.assertEqual((nav.stats.bumps, world.here().bumps((3, 1), "right")), (memory_module.BUMP_GIVE_UP,) * 2,
+                         f"given up after {memory_module.BUMP_GIVE_UP} refusals from that side, no loop")
+
+    def test_fault_one_bump_closes_the_way(self) -> None:
+        with mock.patch.object(navigator_module, "BUMP_GIVE_UP", 1):
+            game, world, outcome, nav = self.corridor(refusals=4)
+        self.assertTrue(outcome.startswith("stuck"), outcome)
+        self.assertEqual(game.pos, (2, 1))
 
 
 class ExitTests(unittest.TestCase):
@@ -564,6 +861,85 @@ class ExitTests(unittest.TestCase):
         bys = [(t.how, t.by) for t in world.transitions]
         self.assertIn(("warp", "scene"), bys, bys)
         self.assertIn(("warp", "ai"), bys, bys)
+
+    # ---- build step 3.1, the step-3 review's finding 5: exits by their LOOK, the rest learned by using them
+    #: A hall with one door-looking tile in its top wall, 'X' (2, 1), that does not open (no warp: a closed door).
+    DOORS = {"TOWN": ["#######", "##X####", "#.....#", "#.....#", "#######"]}
+
+    def doors(self, remember: bool = True) -> tuple[WorldMemory, list[list]]:
+        """Two intents in a row; the presses into the door in each."""
+        game = GridGame(self.DOORS, ("TOWN", (2, 3)))
+        hands, nav, world, notes, lines = rig(game)
+        tries = []
+        with (contextlib.nullcontext() if remember else mock.patch.object(WorldMemory, "close_exit", lambda self, xy, how, frame: None)):
+            for intent in range(2):
+                notes.records.clear()
+                drive(nav.run(explore_intent(None, "Story", 1200), "look around"), budget=40_000)
+                tries.append([r for r in notes.records if str(r["reason"]).startswith("use the door at (2, 1)")])
+        return world, tries
+
+    def test_a_door_that_does_not_open_is_remembered_closed(self) -> None:
+        """The closed door is tried in the first intent the way a door is used (from below, pressing up), and then
+        remembered CLOSED: not an exit any more (`MapMemory.exits`), so a later intent never tries it. FAULT (not
+        remembered): the next intent tries it again (an exclusion lasts one intent)."""
+        world, tries = self.doors()
+        town = world.here()
+        self.assertIn((2, 1), town.closed, f"{town.closed}")
+        self.assertNotIn((2, 1), town.exits())
+        self.assertTrue(tries[0] and all(r["action"].startswith("hold Up") for r in tries[0]), "used the way a door looks to be")
+        self.assertEqual(tries[1], [], "the second intent never pressed into the closed door")
+
+    def test_fault_a_closed_door_not_remembered_is_tried_again(self) -> None:
+        world, tries = self.doors(remember=False)
+        self.assertIn((2, 1), world.here().exits(), "still an exit to the memory")
+        self.assertTrue(tries[0] and tries[1], "tried again in the second intent")
+
+    # ---- the step-3.1 verifier's round: "a door found closed stays closed for good (MapMemory.closed has no expiry)"
+    def story_doors(self, flag_at: int | None) -> tuple[WorldMemory, list[list], list[str]]:
+        """The closed door of `doors`, two intents, the story flags on every look; `flag_at`: a story flag set from that
+        frame on (between the two intents), or None."""
+        game = StoryGame(self.DOORS, ("TOWN", (2, 3)))
+        game.events = {} if flag_at is None else {flag_at: "FLAG_SOMETHING_HAPPENED"}
+        hands, nav, world, notes, lines = rig(game)
+        tries = []
+        for intent in range(2):
+            notes.records.clear()
+            drive(nav.run(explore_intent(None, "Story", 1200), "look around"), budget=40_000)
+            tries.append([r for r in notes.records if str(r["reason"]).startswith("use the door at (2, 1)")])
+        return world, tries, lines
+
+    def test_a_closed_door_is_tried_again_once_the_story_moves_on(self) -> None:
+        """Found closed in the first intent; a story flag set before the second (what a person has SEEN happen): the
+        door is worth a try again, and the second intent tries it. Without the flag it is not (the test above). FAULT
+        (no reopening on the story: mutant W46): never tried again, the door hidden for good."""
+        world, tries, lines = self.story_doors(flag_at=1300)
+        self.assertTrue(tries[0] and tries[1], f"tried in both intents: {[len(t) for t in tries]}")
+        self.assertTrue(any("worth a try again: the story moved on" in line for line in lines), lines[-4:])
+        quiet, _, _ = self.story_doors(flag_at=None)
+        self.assertIn((2, 1), quiet.here().closed, "no story news: still closed")
+
+    def test_a_closed_door_is_tried_again_after_a_while(self) -> None:
+        """With no story news a closed door is worth a try again `CLOSED_RETRY_FRAMES` after it was found closed (a
+        person tries a locked door again later), not before. FAULT (no time rule: mutant W47): closed for good."""
+        game = GridGame(self.DOORS, ("TOWN", (2, 3)))
+        world = WorldMemory()
+        world.observe(game.look())
+        world.close_exit((2, 1), "pressed up", 100)
+        self.assertNotIn((2, 1), world.here().exits())
+        world.observe(replace(game.look(), frame=100 + memory_module.CLOSED_RETRY_FRAMES - 1))
+        self.assertNotIn((2, 1), world.here().exits(), "not yet")
+        self.assertEqual(world.take_reopened(), [])
+        world.observe(replace(game.look(), frame=100 + memory_module.CLOSED_RETRY_FRAMES))
+        self.assertIn((2, 1), world.here().exits(), "worth a try again")
+        reopened = world.take_reopened()
+        self.assertEqual([(key, xy) for _, key, xy, _ in reopened], [(world.current, (2, 1))])
+
+    def test_an_arrow_mat_is_used_by_its_arrow(self) -> None:
+        """An arrow mat (`SOUTH_ARROW_WARP`) is approached so that its ARROW is pressed (`navigator.exit_press`), even
+        when another side's press would also go into a wall."""
+        memory = PlannerTests().memory_of(["#####", "#...#", "#..M#", "#####"])
+        approaches = explore_module._approaches(memory, (3, 2), {(3, 1): 1.0, (2, 2): 1.0})
+        self.assertEqual([(stand, direction) for stand, direction, _ in approaches], [((3, 1), "down")])
 
 
 class IntentTests(unittest.TestCase):
@@ -715,6 +1091,20 @@ class GameAnswerTests(unittest.TestCase):
         self.assertFalse(walking_agrees([trial(3, True)], False), "the loaded map is not the claimed one")
         self.assertFalse(walking_agrees([], True), "no trial: inconclusive")
 
+    def test_a_trial_the_game_did_not_step_asks_whether_the_player_is_locked(self) -> None:
+        """(the step-3.1 verifier's second round) SCENEX's end on Route 101: "Down: 1 step, then the map becomes
+        Littleroot" predicted, 0 counted, no map loaded (Birch's rescue scene holds the player): LOCKED is asked."""
+        from ai_player.gates.game_answer import stopped_trials
+
+        def trial(predicted: int, counted: int, changed: bool = False, battle: bool = False) -> dict:
+            return {"predicted": {"steps": predicted}, "game_steps": counted, "map_changed": changed, "battle": battle}
+
+        self.assertTrue(stopped_trials([trial(1, 0), trial(0, 0)]), "Route 101's arrival: Down 1 predicted, 0 counted")
+        self.assertFalse(stopped_trials([trial(0, 0)]), "a wall right beside: nothing to tell")
+        self.assertFalse(stopped_trials([trial(3, 2)]), "a wrong claim walks, just not as predicted")
+        self.assertFalse(stopped_trials([trial(1, 0, changed=True)]), "a map loaded: it moved")
+        self.assertFalse(stopped_trials([trial(1, 0, battle=True)]), "a battle met: that trial says nothing")
+
 
 class GraderTests(unittest.TestCase):
     """(the step-3 verifier's second round) `gates/live_step3.py`'s graders on synthetic action logs: a press a battle
@@ -745,6 +1135,119 @@ class GraderTests(unittest.TestCase):
         self.assertTrue(self.preemption("up", 16, moved=True)["moved_before_the_battle"], "the press moved it: taken")
         self.assertEqual(self.preemption("up", 40)["battle_after_pad_frames"], 40, "a battle long after the press")
 
+    def test_reversals_in_the_looks_path(self) -> None:
+        """(build step 3.1, finding 2) `live_step3.reversals` on the review's own two examples, and `walk_path` from
+        action-log digests: a warp between two looks starts a new stretch (no reversal is counted across it)."""
+        from ai_player.gates import live_step3
+
+        town = [("0:9", xy) for xy in [(11, 8), (11, 7), (12, 7), (12, 6), (11, 6)]]
+        self.assertEqual([(r["kind"], r["tiles"]) for r in live_step3.reversals(town)],
+                         [("u-turn", [[11, 7], [12, 7], [12, 6], [11, 6]])], "TOWN (11,7) -> (12,7) -> (12,6) -> (11,6)")
+        route = [("0:16", xy) for xy in [(16, 9), (17, 9), (18, 9), (17, 9), (17, 8)]]
+        self.assertEqual([(r["kind"], r["tiles"]) for r in live_step3.reversals(route)],
+                         [("back", [[17, 9], [18, 9], [17, 9]])], "ROUTE (17,9) -> (18,9) -> (17,9)")
+        self.assertEqual(live_step3.reversals([("0:9", (x, 5)) for x in range(8)]), [], "a straight walk")
+        self.assertEqual(live_step3.reversals([("0:9", (3, 5)), ("0:9", (4, 5)), ("1:4", (3, 5))]), [], "across a map change")
+
+        def rec(frame, xy, to=None, key="0,9", decision="x"):
+            walk = to is not None
+            gate = (f"walk {'up' if to[1] < xy[1] else 'down' if to[1] > xy[1] else 'left' if to[0] < xy[0] else 'right'}: "
+                    f"({xy[0]}, {xy[1]}) -> ({to[0]}, {to[1]}) (seen NORMAL)") if walk else "watching: a scene plays"
+            return {"frame": frame, "decision": decision, "action": "hold Up 8f" if walk else "busy 30f", "reason": gate,
+                    "digest": f"f{frame} overworld LITTLEROOT TOWN({key}) xy=({xy[0]},{xy[1]}) facing=up walking"}
+
+        records = [rec(1, (5, 9), (5, 8)), rec(2, (5, 8), (5, 7)), rec(3, (5, 7), (5, 6)),
+                   rec(4, (5, 7)),  # a bump: the step to (5, 6) never happened (no look shows it)
+                   rec(5, (5, 7), (5, 8)),  # straight back: the AI's own A -> B -> A
+                   rec(6, (5, 8)), rec(7, (5, 9)),  # a SCENE moves the player (no walking press): not the AI's step
+                   rec(8, (5, 9), (5, 8)),  # begins where the scene left it: a new stretch, nothing compared across it
+                   rec(85, (5, 8)),  # the look that shows that step done
+                   rec(9, (2, 2), (2, 3), "1,4"), rec(10, (2, 3), (2, 2), "1,4"), rec(11, (2, 2), key="1,4")]
+        run = live_step3.Run(live_step3.ARMS[0], records=records)
+        self.assertEqual(live_step3.walk_path(run), [[("0:9", (5, 9)), ("0:9", (5, 8)), ("0:9", (5, 7)), ("0:9", (5, 8))],
+                                                     [("0:9", (5, 9)), ("0:9", (5, 8))],
+                                                     [("1:4", (2, 2)), ("1:4", (2, 3)), ("1:4", (2, 2))]])
+        steps, found = live_step3.path_reversals(run)
+        self.assertEqual((steps, [(r["map"], r["kind"]) for r in found]), (6, [("0:9", "back"), ("1:4", "back")]))
+
+    # ---- the step-3.1 verifier's round: the live graders that now tell the fixed code from the reverted one
+    @staticmethod
+    def decide(frame, kind, target, player, key="0:9", reason="1 unseen tile(s) beside it"):
+        return {"frame": frame, "decision": "decide", "action": f"target {kind} {tuple(target)}", "reason": reason,
+                "extra": {"map": key, "kind": kind, "target": list(target), "player": list(player)},
+                "digest": f"f{frame} overworld LITTLEROOT TOWN({key.replace(':', ',')}) xy=({player[0]},{player[1]}) facing=up"}
+
+    def test_stale_arrivals_from_the_action_log_and_the_memory(self) -> None:
+        """`live_step3.stale_arrivals`: a frontier target whose NEXT decision is made standing on it, with no stale drop
+        between, was walked onto; whether everything beside it had been seen by then comes from the memory's own
+        first-seen frames. A target dropped as stale on the way (the fix) is not one. FAULT (the drop not looked for:
+        mutant W49): the dropped target counts as walked onto."""
+        from ai_player.gates import live_step3
+
+        world = WorldMemory()
+        memory = world.maps["0:9"] = memory_module.MapMemory("0:9", "T", "LITTLEROOT_TOWN")
+        fact = memory_module.TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 10, (5, 9))
+        for xy in [(5, 4), (5, 6), (4, 5), (6, 5), (8, 4), (8, 6), (7, 5), (9, 5)]:
+            memory.tiles[xy] = fact
+        memory.tiles[(5, 4)] = replace(fact, seen_frame=45)  # seen on the way, before the arrival at f50
+        records = [self.decide(10, "frontier", (5, 5), (5, 9)), self.decide(50, "frontier", (8, 5), (5, 5)),
+                   {"frame": 60, "decision": "world", "action": "say", "reason": "the frontier at (8, 5) is not worth going to "
+                    "any more: everything beside it has been seen on the way", "extra": {"stale": [8, 5], "kind": "frontier", "map": "0:9"}},
+                   self.decide(70, "frontier", (2, 2), (8, 5))]
+        run = live_step3.Run(live_step3.ARMS[0], records=records, world=world.to_dict())
+        chosen, arrived = live_step3.stale_arrivals(run)
+        self.assertEqual(chosen, 3)
+        self.assertEqual([(a["target"], a["arrived"], a["everything_beside_it_seen"]) for a in arrived], [([5, 5], 50, True)])
+        memory.tiles[(5, 4)] = replace(fact, seen_frame=55)  # first seen only AFTER the arrival: it was not stale then
+        run = live_step3.Run(live_step3.ARMS[0], records=records, world=world.to_dict())
+        self.assertEqual([a["everything_beside_it_seen"] for a in live_step3.stale_arrivals(run)[1]], [False])
+
+    def edge_run(self, decides: list[dict], connections: list[dict]):
+        from ai_player.gates import live_step3
+
+        return live_step3.Run(live_step3.ARMS[0], records=decides, world={"maps": {}, "connections": connections})
+
+    def test_targets_past_an_edge_before_a_crossing_of_that_edge(self) -> None:
+        """`live_step3.edge_targets` / `check_no_road_before_a_crossing`: a target past a map's REAL edge (the ROM's size,
+        here pinned) before a crossing of THAT edge was seen; a road among them fails the check, and so does a run with
+        none at all (it would say nothing: the step-3.1 verifier's "never fires"). A crossing of ANOTHER edge (ROUTE's
+        loaded memory crossed Route 101's bottom edge) says nothing about the top one. FAULTS: the crossing per map
+        (mutant W50), the check without its non-vacuity (mutant W51)."""
+        from ai_player.gates import live_step3
+
+        sizes = {"0:9": [20, 20], "0:16": [20, 20]}
+        bottom = {"source": "0:9", "target": "0:16", "direction": "up", "frame": 10}  # Littleroot -> Route 101's BOTTOM edge
+        top = {"source": "0:16", "target": "0:10", "direction": "up", "frame": 100}  # Route 101's TOP edge
+        honest = [self.decide(50, "frontier", (11, -1), (11, 2), "0:16"), self.decide(60, "frontier", (11, 5), (11, 7), "0:16"),
+                  self.decide(150, "frontier", (11, -2), (11, 0), "0:16")]
+        road = self.decide(70, "road", (12, -1), (11, 2), "0:16", "a road leads up, off this map")
+        with mock.patch.dict(live_step3._MAP_SIZES, sizes):
+            past, crossings = live_step3.edge_targets(self.edge_run(honest + [road], [bottom, top]))
+            self.assertEqual([(t["target"], t["kind"], t["side"]) for t in past], [([11, -1], "frontier", "up"), ([12, -1], "road", "up")],
+                             "past the TOP edge before its crossing at f100 (the bottom edge's crossing at f10 says nothing)")
+            self.assertEqual([t["target"] for t in live_step3.road_claims(past)], [[12, -1]])
+            verdicts = []
+            for records in (honest, honest + [road], [honest[1]]):
+                run = self.edge_run(records, [bottom, top])
+                live_step3.check_no_road_before_a_crossing(run)
+                verdicts.append(run.passed)
+        self.assertEqual(verdicts, [True, False, False], "honest: pass; a road before the crossing: fail; nothing past an edge: fail")
+        self.assertEqual(live_step3.past_real_edge((20, 3), [20, 20]), "right")
+        self.assertIsNone(live_step3.past_real_edge((19, 19), [20, 20]))
+
+    def test_scenes_by_the_tile_they_began_on(self) -> None:
+        """`live_step3.scenes_by_tile`: the AI's own `began`, and the tile of the look of the walking press the scene cut
+        short (the second reading the SCENEX grade compares)."""
+        from ai_player.gates import live_step3
+
+        press = {"frame": 5, "decision": "x", "action": "hold Up 8f", "reason": "walk up: (10, 1) -> (10, 0) (seen NORMAL)",
+                 "digest": "f5 overworld LITTLEROOT TOWN(0,9) xy=(10,1) facing=up"}
+        scene = {"frame": 900, "decision": "world", "action": "say", "reason": "a scene stopped the way to the frontier at (9, -4) "
+                 "(time 1 for this target)", "extra": {"scene_for": [9, -4], "kind": "frontier", "began": [10, 1], "after": [10, 2]}}
+        found = live_step3.scenes_by_tile([press, scene])
+        self.assertEqual(list(found), [(10, 1)])
+        self.assertEqual((found[(10, 1)][0]["pressed_from"], found[(10, 1)][0]["target"]), ((10, 1), (9, -4)))
+
     def test_an_inconclusive_answer_with_nothing_else_fails(self) -> None:
         from ai_player.gates import live_step3
 
@@ -752,6 +1255,89 @@ class GraderTests(unittest.TestCase):
                              answer={"inconclusive": True, "loaded_header_is_claimed_map": True, "plans": {}})
         live_step3.check_game_answer(run)
         self.assertFalse(run.passed, run.checks)
+
+    def test_a_pre_registered_number_that_does_not_hold_fails_the_arm(self) -> None:
+        """(the step-3.1 verifier's second round: "A PRE-REGISTERED PREDICTION DID NOT HOLD AND THIS IS NOT SAID ANYWHERE":
+        ROUTER predicted 4 stale targets walked onto, measured 5, and its check asked only for >= 1) `check_predictions`
+        compares every number `PREDICTED` registers with the run's own: all equal passes; one off FAILS and says which."""
+        from ai_player.gates import live_step3
+
+        arm = next(a for a in live_step3.ARMS if a.name == "ROUTER")
+        predicted = {"ROUTER": {"frames": 2083, "presses": 108, "stale_walked": 4}}
+        run = live_step3.Run(arm, harness={"frames": 2083, "presses": 108})
+        run.measure("stale_walked", 5)
+        live_step3.check_predictions(run, predicted)
+        self.assertFalse(run.passed, run.checks)
+        self.assertIn("stale_walked 4 != 5", run.checks[-1][1])
+        run = live_step3.Run(arm, harness={"frames": 2083, "presses": 108})
+        run.measure("stale_walked", 4)
+        live_step3.check_predictions(run, predicted)
+        self.assertTrue(run.passed, run.checks)
+        run = live_step3.Run(arm, harness={"frames": 2083, "presses": 108})
+        live_step3.check_predictions(run, {})
+        self.assertEqual(run.checks, [], "an arm with no registered numbers gets no check")
+
+    def test_the_clock_arm_registers_frames_only_where_every_clock_agrees(self) -> None:
+        """(the step-3.1 verifier's second round, found by its graded run: SCENEX9 played 15,959 frames where its development
+        run played 14,462, because the game reads the host's clock) `grade_CLOCKS`: an arm whose runs at every instant are
+        the same may pre-register its launcher frames, and must, at those frames; an arm that changes with the clock is
+        exactly a declared clock-sensitive one, registers none, and its claims hold at every instant. FAULTS: a sensitive arm
+        not declared; a stable arm registered at other frames; a sensitive arm registered at all; a twin rule broken at one
+        instant."""
+        from ai_player.gates import live_step3
+
+        def rows(scenex_second: tuple = (3, 0)) -> list[dict]:
+            out = []
+            for when in ("t1", "t2"):
+                out.append({"arm": "HOUSE", "when": when, "frames": 3176, "presses": 36})
+                segments = [3, 0] if when == "t1" else list(scenex_second)
+                out.append({"arm": "SCENEX", "when": when, "frames": 16293 if when == "t1" else 14344, "presses": 489,
+                            "twin_segments": segments, "map": [0, 16], "var": 2})
+            return out
+
+        def grade(data: list[dict], sensitive=("SCENEX",), predicted=None) -> bool:
+            arm = next(a for a in live_step3.ARMS if a.name == "CLOCKS")
+            run = live_step3.Run(arm, harness={"rows": data})
+            with mock.patch.object(live_step3, "CLOCK_SENSITIVE", sensitive), \
+                    mock.patch.object(live_step3, "PREDICTED", predicted or {"HOUSE": {"frames": 3176}}):
+                live_step3.grade_CLOCKS(run)
+            return run.passed
+
+        self.assertTrue(grade(rows()), "HOUSE stable and registered at 3176; SCENEX varies, declared, unregistered")
+        self.assertFalse(grade(rows(), sensitive=()), "a clock-sensitive arm nobody declared")
+        self.assertFalse(grade(rows(), predicted={"HOUSE": {"frames": 3000}}), "a stable arm registered at other frames")
+        self.assertFalse(grade(rows(), predicted={"HOUSE": {"frames": 3176}, "SCENEX": {"frames": 16293}}),
+                         "a clock-sensitive arm registered with frames")
+        self.assertFalse(grade(rows(scenex_second=(4, 0))), "the twin rule broken at one instant")
+
+    def test_a_locked_arrival_across_a_connection(self) -> None:
+        """(the step-3.1 verifier's second round) SCENEX's end: a walking trial the game did not step, LOCKED, and THE
+        ARRIVAL across the pre-registered edge (Littleroot (11, 0) up -> Route 101 (11, 19)) agrees: PASS; the same with
+        the crossing not the pre-registered one, or the fault claim agreeing, or the player not locked: FAIL."""
+        from ai_player.gates import live_step3
+
+        arm = next(a for a in live_step3.ARMS if a.name == "SCENEX")
+        lock = {"locked": True, "held_frames": 120, "held": {"Up": {"game_steps": 0, "moved": False, "map_changed": False}}}
+        trial = {"direction": "Down", "agree": False, "game_steps": 0, "map_changed": False, "loaded_map": [0, 16],
+                 "predicted": {"steps": 1, "ends": "map", "map": [0, 9]}}
+
+        def grade(crossing=([0, 9], [11, 0], "Up"), locked=True, fault_agrees=False) -> bool:
+            arrival = {"connection": {"map": crossing[0], "tile": crossing[1], "direction": crossing[2], "offset": 0},
+                       "map": [0, 16], "landing": [11, 19], "landing_behaviour": "Normal", "exit_step": [0, 0], "tile": [11, 19],
+                       "agrees": True, "raw_landing_is_the_claim": True}
+            answer = {"inconclusive": False, "agree": False, "trials": [trial], "loaded_header_is_claimed_map": True,
+                      "locked": {**lock, "locked": locked}, "arrival": arrival, "agree_by_arrival": locked,
+                      "ruled_out": [[10, 19]], "plans": {}}
+            world = {"transitions": [[34718, "0:9", "0:16", "connection", "ai", [11, 0], [11, 19], "up"]], "maps": {}}
+            run = live_step3.Run(arm, after={"map": [0, 16], "pos": [11, 19]}, answer=answer, world=world,
+                                 answer_fault={"agree_by_arrival": False, "agree": fault_agrees})
+            live_step3.check_game_answer(run)
+            return run.passed
+
+        self.assertTrue(grade(), "locked, the pre-registered crossing, the fault claim disagrees")
+        self.assertFalse(grade(crossing=([0, 9], [10, 0], "Up")), "another crossing than the pre-registered one")
+        self.assertFalse(grade(locked=False), "not locked: the walking answer disagrees and nothing else answers")
+        self.assertFalse(grade(fault_agrees=True), "the fault claim agrees by walking")
 
 
 class CropTests(unittest.TestCase):
@@ -775,13 +1361,18 @@ class CropTests(unittest.TestCase):
                     frontier.append((nxt, d + 1))
         raise AssertionError("no way")
 
+    #: (build step 3.1) the route north is TALL, as Route 101 is: the 15 x 11 window never shows its end, so the tiles at
+    #: its top row are frontier (a road known only once crossed: the step-3 review's finding 1)
+    ROUTE_ROWS = 12
+
     def run_town(self, crop: bool, seed: int = 3):
-        maps = {"TOWN": self.TOWN, "ROUTE": ["#..#"] * 3}
-        links = {("TOWN", "up"): ("ROUTE", (-1, 3)), ("ROUTE", "down"): ("TOWN", (1, -3))}
+        maps = {"TOWN": self.TOWN, "ROUTE": ["#..#"] * self.ROUTE_ROWS}
+        links = {("TOWN", "up"): ("ROUTE", (-1, self.ROUTE_ROWS)), ("ROUTE", "down"): ("TOWN", (1, -self.ROUTE_ROWS))}
         game = GridGame(maps, ("TOWN", (18, 16)), links=links, crop=crop)
         hands, nav, world, notes, lines = rig(game, seed=seed)
         outcome = drive(nav.run(explore_intent("ROUTE", "Story", 12000), "leave town"))
         decisions = [r["extra"] for r in notes.records if r["decision"] == "decide"]
+        self.world = world
         return outcome, decisions, game
 
     def test_every_target_was_seen(self) -> None:
@@ -790,24 +1381,438 @@ class CropTests(unittest.TestCase):
             self.assertTrue(outcome.startswith("done"), outcome)
             self.assertTrue(decisions)
             for extra in decisions:
-                self.assertTrue(extra["known"] and in_window(tuple(extra["seen_from"]), tuple(extra["target"])), extra)
+                self.assertTrue(extra["known"] and on_screen_from(tuple(extra["seen_from"]), tuple(extra["target"])), extra)
             self.assertTrue(decisions[0]["in_window"], "the first target is on screen")
 
-    def test_fault_the_crop_off_beelines_to_a_road_it_could_not_see(self) -> None:
+    def test_fault_the_crop_off_beelines_to_a_place_it_could_not_see(self) -> None:
         for seed in (1, 2, 3):
             real, real_decisions, real_game = self.run_town(crop=True, seed=seed)
             outcome, decisions, game = self.run_town(crop=False, seed=seed)
             self.assertTrue(outcome.startswith("done"), outcome)
             first = decisions[0]
-            self.assertEqual(first["kind"], "road")
+            # (build step 3.1) no crossing seen: the place past the top edge is frontier, the far end of what the
+            # uncropped eyes showed (its top row), not a 'road'
+            self.assertEqual(first["kind"], "frontier")
+            self.assertLess(first["target"][1], -5, f"the first target {first['target']} is past anything a window showed")
             self.assertFalse(first["in_window"], f"the first target {first['target']} is off the screen")
-            # the road has two tiles, within the whim's margin of each other (`explore.pick`): the beeline is the true
-            # shortest walk onto the road tile it CHOSE (the step count alone does not tell a beeline: see live_step3 CROP)
-            self.assertEqual(game.steps, self.shortest(first["target"][0]), "a beeline: the true shortest walk to its road")
+            # the beeline: ONE decision, and the true shortest walk onto the road tile it CROSSED at, give or take the
+            # seeded detour (`navigator.DETOUR_P`: a tile beside the way, at most 4 steps more) (the step count alone
+            # does not tell a beeline: see live_step3 CROP)
+            crossed = self.world.connections[0]["from"]
+            detours = sum(1 for d in decisions if d.get("detour"))
+            self.assertEqual(len(decisions), 1, decisions)
+            self.assertTrue(self.shortest(crossed[0]) <= game.steps <= self.shortest(crossed[0]) + 4 * detours,
+                            f"a beeline: {game.steps} steps, the true shortest walk over the edge {self.shortest(crossed[0])}, "
+                            f"{detours} detour(s)")
             self.assertGreater(real_game.steps, game.steps, f"seed {seed}: exploring takes longer than the beeline")
 
 
+class WindowTests(unittest.TestCase):
+    """(build step 3.1, the step-3 review's finding 6) The gate's crop check writes the screen's window as LITERALS
+    (`gates/window.py`: 7 columns each side, 5 rows each way), never the eyes' VIEW_* constants: widen the eyes' window
+    and the gate must still flag a tile seen from 8 columns away. FAULT (the gate takes the eyes' constants, as
+    `world/memory.py` in_window does): the widened eyes pass their own check."""
+
+    @staticmethod
+    def check(run_world: dict) -> list[tuple[bool, str]]:
+        from ai_player.gates import live_step3
+
+        run = live_step3.Run(live_step3.ARMS[0], world=run_world, records=[])
+        live_step3.check_crop(run)
+        return run.checks
+
+    def test_a_tile_seen_from_8_columns_away_fails_the_gate_however_wide_the_eyes_are(self) -> None:
+        world = WorldMemory()
+        memory = world.maps["0:1"] = memory_module.MapMemory("0:1", "M", "M")
+        fact = memory_module.TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
+        memory.tiles[(17, 10)] = fact  # 7 columns away: on screen
+        memory.tiles[(18, 10)] = replace(fact)  # 8 columns away: never on screen
+        data = world.to_dict()
+        for widened in (False, True):
+            with self.subTest(widened=widened):
+                # the eyes' window widened to 9 columns each side, where the gate used to read it (`world/memory.py`
+                # in_window's VIEW_HALF_WIDTH): a gate that measures the eyes against themselves now passes (18, 10)
+                with (mock.patch.object(memory_module, "VIEW_HALF_WIDTH", 9) if widened else contextlib.nullcontext()):
+                    checks = self.check(data)
+                crop = next(text for ok, text in checks if text.startswith("THE CROP"))
+                self.assertFalse(next(ok for ok, text in checks if text.startswith("THE CROP")), crop)
+                self.assertIn("(18, 10)", crop)
+
+    def test_the_window_is_the_screen(self) -> None:
+        from ai_player.gates import window
+
+        self.assertEqual((window.SCREEN_HALF_WIDTH, window.SCREEN_UP, window.SCREEN_DOWN), (7, 5, 5))
+        self.assertTrue(on_screen_from((10, 10), (17, 15)) and on_screen_from((10, 10), (3, 5)))
+        self.assertFalse(on_screen_from((10, 10), (18, 10)) or on_screen_from((10, 10), (10, 16)))
+
+
+class ReversalTests(unittest.TestCase):
+    """(build step 3.1, the step-3 review's finding 2, HIGH) STALE TARGETS: the navigator kept a frontier target until it
+    ARRIVED, though the walk there had shown everything beside it, and then turned back: TOWN "(11,7) -> (12,7) -> (12,6)
+    -> (11,6)", ROUTE "(17,9) -> (18,9) -> (17,9)". Now a stale target is dropped on the move (`stale_reason`) and the
+    next plan pays `TURN_BACK_COST` for going back the way it came (`Navigator.turn_costs`). REVERSALS (`live_step3.
+    reversals`: A -> B -> A, or a U-turn's third step) are graded on the town model, 12 seeds. MEASURED 2026-10-08 before
+    the rules (`gates/revert_step3.py` W30, W31 and this file's faults): both rules 2 reversals in 730 steps; the stale
+    drop alone 28 in 677 (it re-decides on the move, toward places behind as often as ahead); the turn-back cost alone
+    12 in 788 (arrivals clear the heading); neither (step 3) 12 in 788."""
+
+    SEEDS = range(1, 13)
+
+    @staticmethod
+    def walk(seed: int):
+        from ai_player.gates.live_step3 import reversals
+
+        arrivals: list[tuple] = []
+        original = navigator_module.Navigator.toward
+
+        def toward(nav, target, look, why):
+            result = yield from original(nav, target, look, why)
+            if result == "arrived" and target.kind == "frontier":
+                memory = nav.world.here()
+                arrivals.append((target.tile, memory.unknown_neighbours(target.tile) if memory else None))
+            return result
+
+        with mock.patch.object(navigator_module.Navigator, "toward", toward):
+            outcome, decisions, game = CropTests().run_town(crop=True, seed=seed)
+        assert outcome.startswith("done"), outcome
+        return reversals(game.trail), game.steps, arrivals
+
+    def totals(self) -> tuple[int, int, list]:
+        found, steps, arrivals = [], 0, []
+        for seed in self.SEEDS:
+            r, s, a = self.walk(seed)
+            found += r
+            steps += s
+            arrivals += a
+        return len(found), steps, arrivals
+
+    def test_reversals_are_near_zero_and_no_stale_target_is_walked_onto(self) -> None:
+        count, steps, arrivals = self.totals()
+        self.assertLessEqual(count, 3, f"{count} reversals in {steps} steps over {len(self.SEEDS)} seeds")
+        self.assertEqual(arrivals, [], "a frontier target walked onto: the walk there had already shown it (stale)")
+
+    def test_fault_without_the_turn_back_cost_the_stale_drop_reverses_often(self) -> None:
+        with mock.patch.object(navigator_module, "TURN_BACK_COST", 0.0):
+            count, steps, arrivals = self.totals()
+        self.assertGreaterEqual(count, 15, f"{count} reversals in {steps} steps")
+
+    def test_fault_without_the_stale_drop_targets_are_walked_onto_and_reversed_from(self) -> None:
+        with mock.patch.object(navigator_module, "stale_reason", lambda memory, target: None):
+            count, steps, arrivals = self.totals()
+        self.assertGreaterEqual(count, 8, f"{count} reversals in {steps} steps")
+        self.assertTrue(arrivals and all(unknown == 0 for _, unknown in arrivals),
+                        f"every frontier target walked onto, everything beside it seen: {arrivals[:4]}")
+
+
+class SceneTests(unittest.TestCase):
+    """(build step 3.1, the step-3 review's finding 3) A REPEATING SCENE: stepping on a tile starts a scene that puts the
+    player back (Littleroot's twin with a player who has no Pokemon: `LittlerootTown_EventScript_NeedPokemonTrigger*`,
+    VAR_LITTLEROOT_TOWN_STATE 0). The target kept being chosen, and the ping-pong rule counts warps only, so the scene ran
+    again and again until the novelty window (~50 s). Now a target interrupted `SCENE_REPEATS` times by a scene, nothing
+    new since the first, is given up. FAULT (no such rule): the scene runs again and again, `stuck: nothing new`."""
+
+    #: The only way north is the tile (2, 2), whose scene puts the player back on (2, 3).
+    HALL = ["#####", "##.##", "##.##", "#...#", "#...#", "#####"]
+
+    def run_hall(self, repeats: int | None = None):
+        game = GridGame({"TOWN": self.HALL}, ("TOWN", (2, 4)), triggers={("TOWN", (2, 2)): (90, (2, 3))})
+        hands, nav, world, notes, lines = rig(game)
+        intent = goto_intent([(2, 1)], 20000)
+        if repeats is None:
+            outcome = drive(nav.run(intent, "past the trigger"), budget=80_000)
+        else:
+            with mock.patch.object(navigator_module, "SCENE_REPEATS", repeats):
+                outcome = drive(nav.run(intent, "past the trigger"), budget=80_000)
+        return game, outcome, hands, notes
+
+    def test_a_repeating_scene_gives_the_target_up(self) -> None:
+        game, outcome, hands, notes = self.run_hall()
+        self.assertTrue(outcome.startswith("stuck: the goto at (2, 1) cannot be reached (a scene stopped the way there 2 "
+                                           "times"), outcome)
+        self.assertEqual(game.scenes_run, 2)
+        self.assertLess(hands.pad.frames, 1500, "given up within seconds, not the novelty window")
+
+    def test_fault_without_the_rule_the_scene_repeats_until_the_novelty_window(self) -> None:
+        game, outcome, hands, notes = self.run_hall(repeats=10**6)
+        self.assertTrue(outcome.startswith("stuck: nothing new"), outcome)
+        self.assertGreaterEqual(game.scenes_run, 8)
+        self.assertGreaterEqual(hands.pad.frames, NOVELTY_WINDOW)
+
+    def test_a_scene_that_brings_something_new_is_not_held_against_the_target(self) -> None:
+        """A scene on the way that is NOT a repeat (it shows something new: a new map, a flag) does not count against
+        the target: the TOWN arm's Running Shoes scene."""
+        world = WorldMemory()
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        world._last.key = "0:1"
+        novelty = mock.Mock(last=80, last_progress=80)
+        target = Target("frontier", (3, 4), "x")
+        key = f"0:1|{target.key}"
+        self.assertFalse(nav._scene_met(key, target, 90, novelty))
+        novelty.last = novelty.last_progress = 150  # something new after the first scene (a flag: progress)
+        self.assertFalse(nav._scene_met(key, target, 200, novelty), "new since the first: kept")
+        self.assertFalse(nav.is_excluded(target))
+        self.assertTrue(nav._scene_met(key, target, 300, mock.Mock(last=80, last_progress=80)), "nothing new since the first: given up")
+        self.assertTrue(nav.is_excluded(target))
+
+    # ---- the step-3.1 verifier's round: the rule on targets the EXPLORER chose
+    def test_a_tile_seen_in_passing_is_not_progress(self) -> None:
+        """'Nothing new since the first' is PROGRESS (a story flag, a Pokemon, items, experience), not a tile that came on
+        screen while the scene pushed the player back (measured 2026-10-08 from `littleroot_twin.ss1`, explorer seed 4:
+        one new tile after the first scene, and the twin was met 4 times for ONE target). FAULT (any novelty, places
+        included, excuses the scene: mutant W45): the target is kept."""
+        world = WorldMemory()
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        world._last.key = "0:1"
+        target = Target("frontier", (3, 4), "x")
+        key = f"0:1|{target.key}"
+        self.assertFalse(nav._scene_met(key, target, 90, mock.Mock(last=80, last_progress=80), "0:1", (3, 6), (3, 7)))
+        passing = mock.Mock(last=150, last_progress=80)  # a tile seen at f150, no progress since f80
+        self.assertTrue(nav._scene_met(key, target, 300, passing, "0:1", (3, 6), (3, 7)), "a tile in passing: given up")
+        self.assertEqual(nav.scene_walls, {"0:1": {(3, 6)}}, "and the tile the scene began on is not stepped on again")
+
+    #: A tall field to the north, its only way in a gap (4, 15) whose scene puts the player back on (4, 16) (Littleroot's
+    #: twin): the field is taller than the window, so the EXPLORER keeps finding new frontier tiles behind the gap.
+    FIELD = ["#########"] + ["#.......#" for _ in range(14)] + ["####.####"] + ["#.......#" for _ in range(3)] + ["#########"]
+
+    def explore_field(self, game=None):
+        game = game or GridGame({"TOWN": self.FIELD}, ("TOWN", (4, 17)), triggers={("TOWN", (4, 15)): (90, (4, 16))})
+        hands, nav, world, notes, lines = rig(game)
+        outcome = drive(nav.run(explore_intent(None, "Story", 9000), "explore"), budget=60_000)
+        return game, outcome, nav, notes, lines
+
+    def test_an_explorer_sent_back_from_one_tile_stops_stepping_on_it(self) -> None:
+        """The explorer's targets behind the twin CHANGE (a frontier tile given up, the next one chosen behind the same
+        gap: measured live, seeds 1-6), so a count per target alone lets the same scene run again and again. Counted per
+        TILE it began on, the gap is not stepped on again after the second push back: exactly 2 scenes, and the gap is
+        a wall for the rest of the intent. FAULT (no count per tile: mutant W44): the scene runs again for the next target."""
+        game, outcome, nav, notes, lines = self.explore_field()
+        self.assertEqual(game.scenes_run, 2, f"{game.scenes_run} scenes: {[l for l in lines if 'scene' in l][:6]}")
+        self.assertEqual(nav.scene_walls.get(nav.world.current), {(4, 15)})
+        later = [r for r in notes.records if str(r["reason"]).startswith("walk ") and "-> (4, 15)" in r["reason"]
+                 and r["frame"] > max(nav.scene_spots[f"{nav.world.current}|4,15"])]
+        self.assertEqual(later, [], "stepped toward the gap after it was given up")
+
+    def test_fault_without_the_count_per_tile_the_scene_runs_again(self) -> None:
+        with mock.patch.object(navigator_module, "SCENE_REPEATS", 2), \
+                mock.patch.object(navigator_module.Navigator, "walls", lambda self, memory, here: frozenset(memory.objects_now - {here})):
+            game, outcome, nav, notes, lines = self.explore_field()
+        self.assertGreaterEqual(game.scenes_run, 3, f"{game.scenes_run} scenes")
+
+    # ---- the step-3.1 verifier's second round: "the twin guards two tiles, so the explorer meets her 4 times in total"
+    #: The same field with a gap TWO tiles wide, (4, 15) and (5, 15), guarded by ONE scene (the same words on both tiles,
+    #: each pushing the player back one tile): Littleroot's twin and her two coord events, (10, 1) and (11, 1).
+    FIELD2 = (["#########"] + ["#.......#" for _ in range(14)] + ["####..###"] + ["#.......#" for _ in range(3)]
+              + ["#########"])
+    TWIN_WORDS = "Um, um, um! If you go outside and go in the grass, wild POKéMON will jump out."
+
+    def explore_wide_gap(self, words: tuple[str, str] | None = None):
+        first, second = words or (self.TWIN_WORDS, self.TWIN_WORDS)
+        game = GridGame({"TOWN": self.FIELD2}, ("TOWN", (4, 17)),
+                        triggers={("TOWN", (4, 15)): (90, (4, 16), first), ("TOWN", (5, 15)): (90, (5, 16), second)})
+        return self.explore_field(game)
+
+    def test_one_scene_on_two_tiles_is_met_at_most_three_times(self) -> None:
+        """A person knows the girl by what she SAYS: the same words on the gap's two tiles are ONE scene. Twice with
+        nothing new and EVERY tile she began on is not stepped on again: at most 3 meetings (twice on one tile, then a
+        side-step onto the other, where the same words close both), never 2 a tile. FAULT (scenes known by tile only:
+        mutant W52 and `test_fault_...` below): 4, twice on each tile."""
+        game, outcome, nav, notes, lines = self.explore_wide_gap()
+        tiles = sorted({tile for _, tile in game.scene_log})
+        self.assertLessEqual(game.scenes_run, 3, f"{game.scenes_run} scenes: {game.scene_log}")
+        self.assertGreaterEqual(game.scenes_run, 2, "the scene was met (not vacuous)")
+        self.assertEqual(nav.scene_walls.get(nav.world.current), set(tiles),
+                         f"every tile the same scene began on is given up: {nav.scene_walls} vs {tiles}")
+        self.assertTrue(any("the same scene" in line for line in lines), lines[-8:])
+        self.assertFalse(any(xy[1] < 15 for name, xy in game.trail), "never got past her")
+
+    def test_fault_scenes_known_by_tile_only_meet_her_twice_a_tile(self) -> None:
+        with mock.patch.object(navigator_module, "scene_words", lambda pages: None):
+            game, outcome, nav, notes, lines = self.explore_wide_gap()
+        per_tile = {tile: sum(1 for _, t in game.scene_log if t == tile) for _, tile in game.scene_log}
+        self.assertEqual(game.scenes_run, 4, f"{game.scenes_run} scenes: {per_tile}")
+        self.assertEqual(sorted(per_tile.values()), [2, 2])
+
+    def test_different_words_are_different_scenes(self) -> None:
+        """Two DIFFERENT scenes on the two tiles (different words) are not one: each is held against its own tile only
+        (twice each), as before the words rule."""
+        game, outcome, nav, notes, lines = self.explore_wide_gap(("Um, um, um!", "Wait! It's dangerous!"))
+        self.assertEqual(game.scenes_run, 4, f"{game.scenes_run} scenes: {game.scene_log}")
+        self.assertFalse(any("the same scene" in line for line in lines))
+
+    def test_the_words_rule_directly(self) -> None:
+        """`Navigator._scene_met` with words: the same words from two tiles, nothing new since the first: both tiles
+        walled at the second; different words: neither; progress since the first: neither; no words: per tile only."""
+
+        def fresh() -> Navigator:
+            world = WorldMemory()
+            nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world,
+                            random.Random(1))
+            world._last.key = "0:9"
+            return nav
+
+        target = Target("frontier", (10, -4), "x")
+        key = f"0:9|{target.key}"
+        still = mock.Mock(last=80, last_progress=80)
+        nav = fresh()
+        nav._scene_met(key, target, 100, still, "0:9", (10, 1), (10, 2), "Um, um, um!")
+        nav._scene_met(f"0:9|{Target('frontier', (11, -4), 'y').key}", Target("frontier", (11, -4), "y"), 200, still,
+                       "0:9", (11, 1), (11, 2), "Um, um, um!")
+        self.assertEqual(nav.scene_walls, {"0:9": {(10, 1), (11, 1)}}, "the same words twice: every tile she began on")
+        nav = fresh()
+        nav._scene_met(key, target, 100, still, "0:9", (10, 1), (10, 2), "Um, um, um!")
+        nav._scene_met(key, target, 200, still, "0:9", (11, 1), (11, 2), "Something else.")
+        self.assertEqual(nav.scene_walls.get("0:9", set()), set(), "different words: two scenes, once each")
+        nav = fresh()
+        nav._scene_met(key, target, 100, still, "0:9", (10, 1), (10, 2), "Um, um, um!")
+        nav._scene_met(key, target, 200, mock.Mock(last=150, last_progress=150), "0:9", (11, 1), (11, 2), "Um, um, um!")
+        self.assertEqual(nav.scene_walls.get("0:9", set()), set(), "progress since the first: tried again")
+        nav = fresh()
+        nav._scene_met(key, target, 100, still, "0:9", (10, 1), (10, 2), None)
+        nav._scene_met(key, target, 200, still, "0:9", (11, 1), (11, 2), None)
+        self.assertEqual(nav.scene_walls.get("0:9", set()), set(), "no words: counted per tile only (once each)")
+
+    # ---- the step-3.1 verifier's second round: "what happens after the twin": NEWS lifts her, once more is enough
+    NEWS = "Oh, hello. And you are?"
+
+    def explore_with_news(self):
+        game = NewsGame({"TOWN": self.FIELD}, ("TOWN", (4, 17)), triggers={("TOWN", (4, 15)): (90, (4, 16), self.TWIN_WORDS)})
+        game.news = {2500: self.NEWS}  # after the twin's second push back (~2 x 350 frames in)
+        return self.explore_field(game)
+
+    def test_news_lifts_the_twin_and_once_more_gives_her_up_again(self) -> None:
+        """New words heard in a scene that left the player be (May in her house) are PROGRESS: the tiles the twin sent
+        the player back from are worth a try again; met ONCE more with her same words and nothing new since the news,
+        they are given up again at once. 3 meetings: twice, the news, once. FAULTS: new words not progress (mutant W53):
+        never tried again, 2; once is not enough after the news (mutant W54): twice more, 4."""
+        game, outcome, nav, notes, lines = self.explore_with_news()
+        twin = [t for _, t in game.scene_log if t == (4, 15)]
+        self.assertEqual(len(twin), 3, f"{game.scene_log} {[l for l in lines if 'scene' in l or 'words' in l][-8:]}")
+        self.assertTrue(any("new words heard" in line and "Oh, hello" in line for line in lines), lines[-10:])
+        self.assertTrue(any("worth a try again" in line for line in lines))
+        self.assertTrue(any("again after the news" in line for line in lines), lines[-10:])
+        self.assertEqual(nav.scene_walls.get(nav.world.current), {(4, 15)})
+
+    def test_fault_news_is_not_progress_the_twin_is_never_tried_again(self) -> None:
+        with mock.patch.object(navigator_module.Novelty, "heard", lambda self, words, frame: False):
+            game, outcome, nav, notes, lines = self.explore_with_news()
+        self.assertEqual(len([t for _, t in game.scene_log if t == (4, 15)]), 2, game.scene_log)
+
+    def test_the_words_are_progress_once(self) -> None:
+        """`Novelty.heard`: new words are progress dated at the frame given (the scene's end), the same words again are
+        not, no words are not."""
+        world = WorldMemory()
+        look = GridGame({"A": ["...."]}, ("A", (0, 0))).look()
+        novelty = Novelty(world, look)
+        self.assertTrue(novelty.heard("Huh? Who... Who are you?", 900))
+        self.assertEqual((novelty.last, novelty.last_progress), (900, 900))
+        self.assertFalse(novelty.heard("Huh? Who... Who are you?", 1500))
+        self.assertFalse(novelty.heard(None, 1600))
+        self.assertEqual((novelty.last, novelty.last_progress), (900, 900))
+
+    def test_scene_words_is_the_first_page_waited_on(self) -> None:
+        from ai_player.brain.navigator import scene_words
+
+        self.assertEqual(scene_words([None, "Um, um,\num!¶If you go", "later"]), "If you go")
+        self.assertEqual(scene_words(["Um, um,\num!"]), "Um, um, um!")
+        self.assertIsNone(scene_words([]))
+        self.assertIsNone(scene_words(["   "]))
+
+    def test_progress_lifts_the_tiles_a_scene_sent_the_player_back_from(self) -> None:
+        """Progress during the intent (a story flag: the twin lets a player WITH a Pokemon pass) makes the gap worth a
+        try again: the explorer then walks through it into the field. FAULT (never lifted: mutant W48): it never does."""
+        game = StoryGame({"TOWN": self.FIELD}, ("TOWN", (4, 17)), triggers={("TOWN", (4, 15)): (90, (4, 16))})
+        game.events = {2500: "FLAG_RECEIVED_POKEMON"}  # after the second push back (~2 x 350 frames in), the story moves on
+        game, outcome, nav, notes, lines = self.explore_field(game)
+        self.assertEqual(game.scenes_run, 2, f"{game.scenes_run} scenes")
+        self.assertTrue(any("worth a try again" in line for line in lines), lines[-6:])
+        self.assertTrue(any(xy[1] < 15 for name, xy in game.trail), "walked through the gap once the story moved on")
+
+
+class NewsGame(GridGame):
+    """(the step-3.1 verifier's second round) The grid model with NEWS: from frame F on (`news`: F -> words), the next
+    moment the player stands still a scene with those words plays and leaves the player where it found them (May's "Who
+    are you?" in her house: no flag the eyes call a story flag, only words never heard before)."""
+
+    news: dict = {}
+
+    def tick(self, button: str | None, new: bool) -> None:
+        due = [f for f in sorted(self.news) if f <= self.frame]
+        if due and not (self.scene or self.moving or self.warp_out or self.warp_in or self.pending):
+            self.scene, self.scene_text, self.push_to = 90, self.news.pop(due[0]), None
+            self.scenes_run += 1
+            self.scene_log.append((self.map, ("news", self.pos)))
+        super().tick(button, new)
+
+
+class StoryGame(GridGame):
+    """(the step-3.1 verifier's round) The grid model with STORY FLAGS on every look (`Observation.progress`): `events`
+    frame -> a flag set from that frame on; a trigger tile stops pushing back once a flag is set (the twin lets a player
+    with a Pokemon pass)."""
+
+    events: dict = {}
+
+    def flags(self) -> tuple:
+        return tuple((name, self.frame >= frame) for frame, name in sorted(self.events.items()))
+
+    def attempt(self, button: str) -> None:
+        if any(on for _, on in self.flags()):
+            self.triggers = {}
+        super().attempt(button)
+
+    def look(self) -> Observation:
+        from ai_player.eyes.observation import Progress
+
+        progress = Progress(money=0, badges=(), dex_owned=0, dex_seen=0, owned_dex=(), flags=self.flags())
+        return replace(super().look(), progress=progress)
+
+
+class ApproachTests(unittest.TestCase):
+    """(build step 3.1, the step-3 review's finding 8) An exit's STAND tile came from `distances`, which holds UNSEEN tiles
+    too (allow_unknown), so a door's target could be a tile the AI had never seen. Every candidate the explorer offers
+    must be a SEEN, walkable tile. FAULT (the stand tile not checked): a door's target is unseen."""
+
+    #: A door (4, 1) in the top wall of a hall; the player at the hall's west end. The hall's middle (3..7, 2), the
+    #: door's only stand tile (4, 2) among them, was never seen: only `distances`' optimism reaches it.
+    ROOM = ["#########", "####D####", "#.......#", "#########"]
+
+    def memory_with_unseen_stand(self):
+        game = GridGame({"TOWN": self.ROOM, "IN": ["###", "#.#", "###"]}, ("TOWN", (1, 2)), crop=False,
+                        warps={("TOWN", (4, 1)): ("IN", (1, 1))})
+        hands, nav, world, notes, lines = rig(game)
+        world.observe(game.look())
+        memory = world.here()
+        for xy in [(x, 2) for x in range(3, 8)]:
+            del memory.tiles[xy]
+        return nav, game.look(), memory
+
+    def test_every_candidate_is_a_seen_walkable_tile(self) -> None:
+        nav, look, memory = self.memory_with_unseen_stand()
+        found = candidates(nav, look, WEIGHTS["Story"])
+        self.assertTrue(found)
+        unseen = [(c.kind, c.tile) for c in found if not memory.passable(c.tile)]
+        self.assertEqual(unseen, [], "a candidate on a tile the AI never saw")
+        self.assertNotIn("door", {c.kind for c in found}, "the door's only stand tile (4, 2) is unseen: not yet a target")
+        for seed in range(1, 6):  # and over random memories of the explore model
+            game = GridGame({"FIELD": ExploreTests.FIELD, "IN": ["###", "#.#", "###"]}, ("FIELD", (5, 6)), crop=True,
+                            warps={("FIELD", (5, 5)): ("IN", (1, 1))})
+            hands, nav2, world2, notes, lines = rig(game, seed=seed)
+            drive(nav2.run(explore_intent(None, "Story", 600 + 97 * seed), "look around"), budget=20_000)
+            mem = world2.here()
+            self.assertEqual([c for c in candidates(nav2, game.look(), WEIGHTS["Story"]) if not mem.passable(c.tile)], [])
+
+    def test_fault_the_stand_tile_not_checked_gives_an_unseen_target(self) -> None:
+        nav, look, memory = self.memory_with_unseen_stand()
+        with mock.patch.object(memory_module.MapMemory, "passable",
+                               lambda self, xy: True if xy not in self.tiles else (self.tiles[xy].walkable)):
+            found = candidates(nav, look, WEIGHTS["Story"])
+        doors = [c for c in found if c.kind == "door"]
+        self.assertTrue(doors and not memory.known(doors[0].tile), f"the door's target {doors} is a tile never seen")
+
+
 class ExploreTests(unittest.TestCase):
+    #: The explore model's field (also `ApproachTests`): a road north, tall grass, a door.
+    FIELD = ["####..####", "#........#", '#..""""..#', '#..""""..#', "#........#", "#....D...#", "#........#", "##########"]
+
     def setup(self, personality: str, seed: int = 3):
         rows = ["####..####", "#........#", '#..""""..#', '#..""""..#', "#........#", "#....D...#", "#........#", "##########"]
         maps = {"FIELD": rows, "NORTH": ["#..#", "#..#"]}
@@ -815,6 +1820,9 @@ class ExploreTests(unittest.TestCase):
         game = GridGame(maps, ("FIELD", (5, 6)), links=links, crop=False)
         hands, nav, world, notes, lines = rig(game, seed=seed, personality=personality)
         world.observe(game.look())
+        # the road north is a ROAD because a crossing of that edge was SEEN before (build step 3.1, finding 1: without
+        # one, a tile past an edge is just a tile, `ShiftTests`)
+        world.here().edges["up"] = -1
         return nav, game.look()
 
     def test_personalities(self) -> None:
@@ -852,9 +1860,16 @@ class ExploreTests(unittest.TestCase):
         keys = {name: key for key, name in world.names().items()}
         self.assertGreater(world.promise(keys["B"]), 0, "the building keeps an unseen corner it cannot reach")
         self.assertGreater(world.promise(keys["TOWN"]), 0)
-        back = [c for c in candidates(nav, game.look(), WEIGHTS["Catcher"]) if c.kind == "back"]
-        self.assertTrue(back, "the door back is a candidate")
-        self.assertIn("just come from", back[0].reason)
+        found = candidates(nav, game.look(), WEIGHTS["Catcher"])
+        self.assertTrue(any(c.kind == "frontier" for c in found), "the town has somewhere new to go")
+        # (build step 3.1) while there is somewhere NEW on this map, the way just come in is no option at all (it used
+        # to be one worth `Weights.back`: once roads stopped being known from the coordinates, a far frontier scored
+        # below it and the AI went house -> town -> house: the step-3.1 sweep's TOWN-Catcher seed 8)
+        self.assertEqual([c for c in found if c.kind == "back"], [], "the door just come out of is not a candidate")
+        # with nothing new left on the map, it is one again (worth `Weights.back`: a dead end is left by its door)
+        with mock.patch.object(explore_module, "ONWARD_KINDS", ()):
+            back = [c for c in candidates(nav, game.look(), WEIGHTS["Catcher"]) if c.kind == "back"]
+        self.assertTrue(back and "just come from" in back[0].reason, back)
         self.assertLessEqual(back[0].score, VALUE_TILES * WEIGHTS["Catcher"].back + 1.5)
 
     def test_an_exclusion_belongs_to_one_map(self) -> None:
@@ -1004,6 +2019,15 @@ class RoamTests(unittest.TestCase):
                 self.assertTrue(all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(path, path[1:])), path)
                 self.assertEqual(spin_count(path), 0, "no step straight back across a battle (the tile it came from kept)")
                 self.assertEqual(m["spin_ratio"], round(m["spins"] / m["steps"], 6))
+                # (build step 3.1, the step-3 review's finding 9) BOTH ratios: the back-and-forth spins (the criterion)
+                # and every press that did not move the player; the pre-empted presses are exactly the interrupted
+                # ones that did not move it (at_once: none; else: all)
+                self.assertEqual((m["reversals"], m["in_place"]), (spin_count(path), m["not_moved"]))
+                self.assertEqual(m["spins"], m["reversals"] + m["in_place"])
+                self.assertEqual(m["preempted"], m["interrupted"] - moved_in, m)
+                self.assertEqual(m["non_moving"], m["in_place"] + m["preempted"])
+                self.assertEqual(m["strict_ratio"], round(m["non_moving"] / m["attempts"], 6))
+                self.assertEqual(m["attempts"] - m["non_moving"], m["steps"], "every press moved the player or did not")
 
 
 class BattleModel:

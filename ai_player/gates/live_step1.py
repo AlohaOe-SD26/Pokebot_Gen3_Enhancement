@@ -772,18 +772,19 @@ def tile_pair(tile: list, truth: dict) -> tuple[tuple, tuple]:
     """(eyes, truth) for one tile, field by field: metatile, behaviour, collision, elevation (the PROBE's
     decode of the ROM layout and tileset attributes), collision and elevation again (the FRAMEWORK's
     MapLocation, a third decoder), encounters, water, tall grass (MapLocation), the ledge and the door
-    (by the FRAMEWORK's behaviour names), and the warp (the probe's parse of the ROM header's warps; for a
-    tile of the NEXT map the eyes mark only the current map's warps, so the warp is compared on this map)."""
+    (by the FRAMEWORK's behaviour names), and the warp: since AI-player build step 3.1 (the step-3 review's finding
+    5) the eyes' `warp` is the tile's LOOK (a door, stairs, a mat...: `eyes/view.py` EXIT_BEHAVIORS), never the ROM's
+    warp table, so its truth is the FRAMEWORK's names for those behaviours (`probe_eyes.FRAMEWORK_EXITS`), on every
+    tile of the window, the next map's too; the ROM table is compared apart (`check_tiles`' coverage note)."""
     flags = tile[6]
     own = truth.get("own") or {}
     true_ledge = (LEDGE_GLYPH.get(truth["ledge"], "/") if truth.get("ledge") else "")
     eyes_ledge = next((c for c in flags if c in "<>^v/"), "")
-    this_map = truth.get("source", "map") == "map"
     mine = (tile[2], tile[3], tile[4], tile[5], tile[4], tile[5], "l" in flags or "s" in flags, "w" in flags, "g" in flags,
-            eyes_ledge, "d" in flags, ("p" in flags) if this_map else None)
+            eyes_ledge, "d" in flags, "p" in flags)
     theirs = (own.get("metatile"), own.get("behavior"), own.get("collision"), own.get("elevation"), truth["collision"],
               truth["elevation"], truth["encounters"], truth["surfable"], truth["tall_grass"], true_ledge, truth["door"],
-              truth["warp"] if this_map else None)
+              truth["warp"])
     return mine, theirs
 
 
@@ -827,11 +828,18 @@ def check_tiles(run: Run, want_connection: bool = False, want: dict | None = Non
     run.check(compared > 0 and not mismatches,
               f"TILES: {compared} tiles compared ({compared - across} inside the map, {across} of the NEXT map across an edge) on "
               f"{', '.join(TILE_FIELDS)}: eyes (live grid gBackupMapLayout, their own tables) == truth (the probe's decode of the ROM "
-              f"layout, tilesets and warps; the framework's MapLocation and behaviour names); ledge tiles {counts['ledge']}, doors "
-              f"{counts['door']}, warps {counts['warp']}, tall grass {grass}; mismatches: {mismatches[:6] or 'none'}")
+              f"layout and tilesets; the framework's MapLocation and behaviour names, exits by their look since step 3.1); "
+              f"ledge tiles {counts['ledge']}, doors {counts['door']}, exits {counts['warp']}, tall grass {grass}; mismatches: "
+              f"{mismatches[:6] or 'none'}")
     if counts["warp_across_edge"]:
-        run.notes.append(f"{counts['warp_across_edge']} warp tile(s) of the NEXT map are in the window: the eyes mark only the current "
-                         f"map's warps (README: known limits)")
+        run.notes.append(f"{counts['warp_across_edge']} exit-looking tile(s) of the NEXT map are in the window (marked by their look, "
+                         f"as on this map)")
+    # (build step 3.1) the eyes no longer read the ROM's warp table: how the LOOK compares with it on this window, for
+    # the record (a closed door looks like a door; a warp no step can trigger looks like ground: `eyes/view.py`)
+    looks_only = [(t["x"], t["y"], t["tile_type"]) for t in run.truth.get("tiles", []) if t.get("warp") and not t.get("rom_warp")]
+    table_only = [(t["x"], t["y"], t["tile_type"]) for t in run.truth.get("tiles", []) if t.get("rom_warp") and not t.get("warp")]
+    run.notes.append(f"exits by their look vs the ROM's warp table (not read by the eyes) in this window: looks like an exit, no "
+                     f"warp {looks_only or 'none'}; a warp that does not look like one {table_only or 'none'}")
     for kind, minimum in (want or {}).items():
         run.check(counts[kind] >= minimum, f"NON-VACUITY: {counts[kind]} {kind} tile(s) of the window compared (pre-registered >= {minimum})")
     if want_connection:

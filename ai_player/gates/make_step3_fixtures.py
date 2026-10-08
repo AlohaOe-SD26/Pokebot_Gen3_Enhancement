@@ -38,6 +38,14 @@ presses only (no memory write), in a throwaway emulator.
                              unchanged since that battle began. AFTER the save the same presses go on to the end of the
                              battle, to print what the AI will meet (the experience given, NO level gained (checked), back
                              on the map).
+  littleroot_twin.ss1     (build step 3.1, the step-3 review's finding 3: "a repeating scene") Littleroot Town just after the
+                          player's first time out of the house: `house_2f_clockset.ss1` (md5 pinned below) played on by the
+                          AI's OWN navigator (brain `explore`, goal LITTLEROOT_TOWN, Story, seed 3: the HOUSE arm's run, on
+                          the code of step 3.1), saved where it ends. VAR_LITTLEROOT_TOWN_STATE is 0 (the rival not met:
+                          checked), so the twin guards the road north (`data/maps/LittlerootTown/map.json` coord events
+                          (10,1), (11,1): `LittlerootTown_EventScript_NeedPokemonTriggerLeft/Right`, every time the player
+                          steps there: she walks up, "If you go in the grass, wild POKéMON will jump out!", pushes the
+                          player one step back south, and walks back). The SCENE arm's errand past her repeats that scene.
 Each is saved with a `.build.json` printout (what was played, the second-path truth of the end). A rebuild does not
 reproduce the bytes (the emulator's real-time clock is in a state; measured on the step-2 fixtures): re-pin the md5s in
 `live_step3.py` after one.
@@ -80,6 +88,11 @@ PRESS_GAP, STALL_FRAMES = 8, 120  # as `make_defeat_text_fixture.py`
 #: `include/pokemon.h` struct BattlePokemon (0x58 bytes): species @0, hp @0x28, level @0x2A; battler 1 = the foe.
 BATTLE_MON_SIZE, BATTLE_MON_HP, BATTLE_MON_LEVEL = 0x58, 0x28, 0x2A
 BATTLE_STATES = ("BATTLE", "BATTLE_STARTING")
+#: (build step 3.1) the SCENE arm's fixture (module docstring), its source pinned, and the variable that keeps the twin
+#: on guard (`include/constants/vars.h` VAR_LITTLEROOT_TOWN_STATE 0x4050; save block 1 vars[] @0x139C from 0x4000).
+TWIN = FIXTURES / "littleroot_twin.ss1"
+HOUSE_PINNED = (HOUSE, "2cc0b61450870d34646f7583bfd0c787")
+VAR_LITTLEROOT_TOWN_STATE = 0x4050
 
 
 def md5(path: Path) -> str:
@@ -274,13 +287,43 @@ def build_xp() -> dict:
     return out
 
 
+def littleroot_town_state() -> int:
+    """VAR_LITTLEROOT_TOWN_STATE from save block 1 of the emulator as it stands (test side, read only)."""
+    from modules.context import context
+    from modules.memory import read_symbol
+
+    from ai_player.gates.hands_harness import SB1_VARS, VARS_START
+
+    sb1 = _u32(read_symbol("gSaveBlock1Ptr", size=4), 0)
+    return int.from_bytes(bytes(context.emulator.read_bytes(sb1 + SB1_VARS + 2 * (VAR_LITTLEROOT_TOWN_STATE - VARS_START), 2)),
+                          "little")
+
+
+def build_twin() -> dict:
+    """The SCENE arm's fixture (module docstring): the AI's own walk out of the house, saved where it ends."""
+    check(HOUSE_PINNED)
+    run_dir = Path(tempfile.mkdtemp(prefix="ai_step3_fix_"))
+    result = run("explore", HOUSE, 3, 12000, None, None, None, run_dir, TWIN, "Story", None, {"goal_map": "LITTLEROOT_TOWN"})
+    truth = result["truth"]
+    state = littleroot_town_state()
+    ok = (result["reason"].startswith("explore: done") and truth["map"] == [0, 9] and truth["VAR_LITTLEROOT_INTRO_STATE"] == 7
+          and state == 0)
+    out = {"fixture": str(TWIN.relative_to(REPO)), "from": str(HOUSE.relative_to(REPO)), "from_md5": HOUSE_PINNED[1],
+           "played": "the AI's own step-3.1 navigator (hands_harness run: brain explore, goal LITTLEROOT_TOWN, Story, seed 3)",
+           "reason": result["reason"], "frames": result["frames"], "presses": result["presses"],
+           "lines": [line for line in result["lines"] if line.startswith("[AI-WORLD]")],
+           "VAR_LITTLEROOT_TOWN_STATE": state, "truth": truth, "md5": md5(TWIN), "ok": ok}
+    (FIXTURES / "littleroot_twin.build.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    return out
+
+
 def main() -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--only", choices=("house", "route", "xp"))
+    parser.add_argument("--only", choices=("house", "route", "xp", "twin"))
     args = parser.parse_args()
     results = []
     if args.only in (None, "house"):
@@ -289,6 +332,8 @@ def main() -> int:
         results.append(build_route())
     if args.only in (None, "xp"):
         results.append(build_xp())
+    if args.only in (None, "twin"):
+        results.append(build_twin())
     for result in results:
         brief = {k: v for k, v in result.items() if k not in ("truth", "lines", "stage1_lines", "walk", "presses", "truth_of_the_save")}
         print("FIXTURE " + json.dumps(brief, ensure_ascii=False))

@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM XG: FAULT: each new truth check FAILS when one value (the eyes' or the truth's) is made wrong
-date: 2026-10-08 05:56:51
-code: HEAD f7d007d5; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:2652e886e7844ce4 over git diff HEAD (21 files, 156877 bytes) and 22 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-08 12:56:33
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b94ddc58ca95f8f7 over git diff HEAD (17 files, 404833 bytes) and 5 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 fixture: (several, see below)
 fixture documentation: re-grades copies of E1-E7's data, no emulator
 command: (no AI run: probes only)

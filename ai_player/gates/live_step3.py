@@ -2,7 +2,10 @@
 player's house, through Littleroot, up Route 101 to Oldale, roams a grass patch and flees what it meets, ITSELF,
 through the real launcher, under the purity instrument; plus the fault arms that show each rule carries weight.
 
-    py -3.12 ai_player/gates/live_step3.py [--arms HOUSE,TOWN,ROUTE,ROAM,CROP,STUCK,BUMP,BUMPR,TRN,XP,XPR] [--seed 3]
+    py -3.12 ai_player/gates/live_step3.py [--arms HOUSE,TOWN,ROUTE,ROAM,CROP,STUCK,BUMP,BUMPR,TRN,XP,XPR,SCENE,SCENER,EXITS,
+                                                  SCENEX,SCENEXR,SCENENR,HOUSER,TOWNR,ROUTER,EDGER,TOWN9,ROUTE9,WARPREAD,
+                                                  BUMPSR,TOWN9R,ROUTE9R,HOUSE9,BUMP8,BUMPSR8,SCENEX9,F2AB,CLOCKS]
+                                           [--seed 3] [--evidence-tag TAG]
 
 Each launcher arm runs `py -3.12 -m ai_player run` (the gate first, the purity instrument, the verdict file) with a
 WORLD brain (`AI_PLAYER_BRAIN=explore|roam|goto`, `ai_player/mode.py` HandsBrain, `ai_player/brain/`) and the pinned
@@ -155,6 +158,155 @@ predicted (HOUSE 3,344 / 52, TOWN 4,969 / 92, ROUTE 2,083 / 108, ROAM 16,646 / 3
 BUMP 371 / 33, TRN 596 / 1, XP 3,600 / 137, XPR 3,032 / 113, BUMPR 3,123 / 386), STUCK's fault claim "by the arrival
 False, by walking False". This docstring was then edited only to say so and to correct grading part 5's sentence on
 an INCONCLUSIVE answer; the final run reads the edited text (its own `predictions:` digest) and predicts the same.
+
+AFTER STEP 3.1, THE STEP-3 ADVERSARIAL REVIEW (2026-10-08; PRE-REGISTERED before this round's graded run, from in-process
+development runs of the same code on the same starts, seed 3, `gates/hands_harness.py`; the seed sweep `rate_step3.py`
+on the same code: 90 of 90 runs as intended). What changed, and what each arm now predicts:
+  * finding 1: a tile past an edge is a ROAD only once a crossing of that edge was SEEN (`world/memory.py` outside); the
+    explorer leaves Littleroot and Route 101 by the frontier it sees past their top edge. NEW CHECK on TOWN and ROUTE: no
+    target chosen as a road before a crossing of its map's edge (`check_no_road_before_a_crossing`).
+  * finding 2: a stale frontier target is dropped on the move and turning back costs `TURN_BACK_COST`. NEW CHECK on
+    HOUSE, TOWN and ROUTE: REVERSALS on the AI's own steps as the looks confirmed them (`walk_path`, `reversals`: A -> B
+    -> A or a U-turn's third step) at most `REVERSALS_MAX` (1: near zero; since the verifier's round `REVERSALS_SEED3`, 0,
+    below). PREDICT 0 on each (seed 3). Measured on the
+    step-3 code by the same metric (a scratch A/B, seeds 1-10, five exploring plans): 68 reversals in 2,259 steps, among
+    them the review's own TOWN seed 3 (11,7) -> (12,7) -> (12,6) -> (11,6) and ROUTE seed 3 (17,9) -> (18,9) -> (17,9);
+    this code: 11 in 2,119.
+  * finding 3: NEW ARM SCENE, `littleroot_twin.ss1` (`make_step3_fixtures.py --only twin`: the AI's own HOUSE walk on this
+    code, saved where it ends; VAR_LITTLEROOT_TOWN_STATE 0), goto (10,4) then (10,0): the twin's coord event at (10,1)
+    pushes the player back to (10,2) every time. PREDICT "goto: stuck: the goto at (10, 0) cannot be reached (a scene
+    stopped the way there 2 times ... with nothing new since the first)", the scene told exactly twice, 2,471 frames, 37
+    presses (6 A, each on a wait), truth on LITTLEROOT_TOWN at [10, 2], VAR_LITTLEROOT_TOWN_STATE still 0, purity CLEAN.
+    NEW REVERT ARM SCENER (in-process, a COPY with the rule off): PREDICT the scene 3 times (a round of the twin's scene
+    takes ~1,100 frames), "goto: stuck: nothing new ...", 3,570 frames; the A/B against SCENE: 1,099 frames saved.
+  * finding 4: a bump belongs to the SIDE it came from. BUMP now PREDICTS the one-way tile (1,4) (IMPASSABLE_SOUTH_AND_
+    NORTH) bumped ONCE going down (memory: ((1, 4), 'down') only), then CROSSED from its open sides: errand 2 (0,4) ->
+    (1,4) -> (2,4) going right, errand 3 back going left (step 3 walked round it in 4); 307 frames, 25 presses (was 371 /
+    33), end [0,4]. BUMPR unchanged: 94 bumps into (1,4), 3,123 frames.
+  * finding 5: the eyes see exits by their LOOK, the warp table is test side only. NEW ARM EXITS (`gates/exit_looks.py`, a
+    ROM scan, no AI): PREDICT every look the game warps on but the Union Room's in the eyes' table and no warp tile with
+    such a look unseen; all 29 warp tiles of Littleroot, Route 101, Oldale and their buildings seen; 1,193 of 1,313 warp
+    tiles over 518 maps (the rest: script destinations); FAULT-TEST: without the doormat look the arms' maps lose tiles.
+  * finding 6: every crop check uses the gate's own literal window (`gates/window.py` 7 / 5 / 5).
+  * finding 7 (audit): no grade compares a post-warp position with a raw warp target (`game_answer.py`'s docstring); STUCK's
+    ARRIVAL check now also requires the raw landing (8,2) NOT to be save block 1's position after the transition (8,3).
+  * finding 9: ROAM PREDICTS the same trajectory (16,646 frames, 399 presses) and BOTH ratios from the AI's report and from
+    the looks: back-and-forth 1/150 = 0.0067 (1 reversal + 0 in place; the criterion, < 2%), strict non-moving 13/163 =
+    0.0798 (0 in place + 13 pre-empted by a battle; reported, each pre-emption checked as before).
+  * the other arms on this code, seed 3: HOUSE done, 3,176 frames, 36 presses (the 2F frontier dropped as stale on the
+    move: 3 decisions); TOWN done, 4,864 frames, 101 presses, 25 decisions; ROUTE done, 633 frames, 71 presses (it meets
+    no wild battle now: the game's count +0 == 0 met == 0 fled; fleeing is proven by ROAM's 13); CROP done (the fault arm
+    reaches ROUTE101 by another way: it no longer knows a road from the coordinates), 5,156 frames, 94 presses, its first
+    town target the door stand tile (5,9) NOT SEEN from where it was first 'seen' (the check no longer asks for a road);
+    STUCK unchanged in outcome (ping-pong on 1:1|7,1), 1,357 frames, 24 presses; TRN 596 / 1, XP 3,600 / 137, XPR 3,032 /
+    113 unchanged. Found while measuring and fixed before this registration (README "Step 3.1"): TOWN-Catcher seed 8
+    went house -> town -> house (the far frontier scored below the door just come out of): the way just come in is now
+    no option while the map has somewhere new to go (mutant W43).
+
+AFTER THE STEP-3.1 VERIFIER (2026-10-08; its nine weak proofs; PRE-REGISTERED before this round's graded run, from
+in-process development runs of the same code on the same starts, `gates/hands_harness.py` seed 3 (seed 9 for the
+replications), a COPY of the package for each revert arm, and the development sweep `rate_step3.py` of this code: 100 of
+100 runs as intended, both reverts as predicted). The text above about finding 2's baseline ("68 reversals in 2,259
+steps on the step-3 code") was a scratch measurement no file of the tree reproduces: it is superseded by the sweep's
+REVERT section (this code with finding 2's two rules reverted, the same plans and seeds, the same metric), PREDICTED: 89
+reversals in 2,795 steps and 252 frontier targets walked onto with everything beside them seen, against 11 in 2,119 and
+0 with the rules; all 5 exploring plans over the bound when reverted. What changed, and what each arm now predicts:
+  * finding 2's live grade did not tell the fixed code from the reverted one at seed 3 (the bound 1; the revert shows 1).
+    The seed-3 bound is now that trajectory's own count, 0 on HOUSE, TOWN and ROUTE (`REVERSALS_SEED3`; another seed is
+    held to the sweep's per-run bound, now 1), and a second check: NO STALE TARGET WALKED ONTO (`stale_arrivals`: 0 of the
+    frontier targets chosen, with targets dropped as stale on the way: HOUSE 1 dropped, TOWN 23, ROUTE 22). NEW REVERT
+    ARMS HOUSER, TOWNR, ROUTER (in-process, a COPY with STALE_MUTATIONS): PREDICT HOUSER "explore: done", 3,344 frames, 52
+    presses, 1 reversal in 18 steps ((5,6) -> (5,7) -> (5,6)) and 1 stale target walked onto ((5,7) on 2F); TOWNR done,
+    4,945 frames, 89 presses, 1 reversal in 36 steps (the review's own u-turn (11,7) -> (12,7) -> (12,6) -> (11,6)), 4
+    stale targets walked onto; ROUTER done, 2,083 frames, 108 presses, 1 reversal in 51 steps (the review's own (17,9) ->
+    (18,9) -> (17,9)), 4 walked onto (it meets and flees one wild battle). Each breaks its real arm's bound 0, and the A/B
+    against the real arm holds.
+  * finding 1's live check "never fires": it now also requires the case it is about: targets chosen past a map's REAL
+    edge (the ROM's size, `rom_map_sizes`, test side) before a crossing of THAT edge was seen, each chosen as what it looks
+    like. PREDICT TOWN 5 such (frontier (11,-1), (10,-2), (11,-3), (11,-4), (11,-5) past Littleroot's top edge), ROUTE 4
+    (frontier (15,-1), (8,-2), (12,-3), (4,-1) past Route 101's top edge: the loaded memory's crossing of its BOTTOM edge
+    says nothing about the top one), roads among them none. NEW REVERT ARM EDGER (TOWN's start, a COPY with
+    EDGE_MUTATION): PREDICT done, 4,880 frames, 103 presses, the road (10,-1) chosen past the uncrossed top edge, so the
+    same check FAILS on it; the A/B: TOWN 5 such targets, no road.
+  * finding 3 on targets the EXPLORER chose (the verifier: SCENE is a scripted errand): a scene is also counted for the
+    tile it began on when it put the player elsewhere; at 2 there, nothing new (PROGRESS: a flag, a Pokemon, items,
+    experience) since the first, the tile is not stepped on again in the intent. NEW ARM SCENEX (the explorer from
+    `littleroot_twin.ss1` toward ROUTE101, 8,100 frames: it stops outdoors right after the second tile, where the game's
+    answer concludes): PREDICT "explore: budget: 7500 frames ran out", 7,511 frames, 304 presses (12 A), 54 decisions; the
+    twin by tile {(10,1): 2, (11,1): 2} (the AI's tile == the tile of the look of the walking press it cut short), her
+    targets the explorer's own (10,-4) and (11,-4); (10,1) given up at f23710, (11,1) at f25892, neither stepped on after;
+    a decision from then on, none behind her; truth on LITTLEROOT_TOWN at (9,2), VAR_LITTLEROOT_TOWN_STATE 0; the game's
+    answer agrees. NEW REVERT ARM SCENEXR (a COPY with SCENEX_MUTATION): PREDICT "explore: stuck: nothing new", 6,413
+    frames, the twin 3 times on (10,1). SCENE unchanged (2,471 frames, 37 presses; it now also gives (10,1) up); SCENER
+    reverts BOTH rules now (per target and per tile: either alone still stops the errand) and is unchanged: 3,570 frames,
+    the scene 3 times. THE SWEEP's new plan SCENE-EXPLORE (the same explorer, 9,000 frames, seeds 1-10): PREDICT 10 of 10 as
+    intended, the twin at most 2 times a tile on every seed, 2 different targets of the explorer's own stopped on every
+    seed, 4 different over the seeds; its SCENE-TILE revert: the twin 3 times on one tile on 10 of 10 seeds (the
+    prediction asks for >= 8). ROUTE's FLEE section: 7 of 10 seeds meet a wild battle, each fled and counted by the game.
+  * the closed door (the verifier: "stays closed for good"): reopened when a story flag is newly set since, or after
+    36,000 frames (unit tests and mutants W46, W47; no arm meets a closed door).
+  * ROUTE seed 3 meets no wild battle; NEW REPLICATION ARMS through the launcher at seed 9 (another trajectory, a
+    replication, not a replay): TOWN9 PREDICT done, 4,962 frames, 105 presses, 1 reversal in 43 steps ((12,2) -> (13,2) ->
+    (12,2); the bound at seed 9 is 1), 5 frontier targets past the top edge, no road, SYS_B_DASH set; ROUTE9 PREDICT done,
+    1,820 frames, 89 presses, 0 reversals, ONE wild battle met and FLED (the game's count +1), 5 frontier targets past the
+    top edge; both answered by the game.
+  * every other arm's trajectory is unchanged (HOUSE 3,176 / 36, TOWN 4,864 / 101, ROUTE 633 / 71, ROAM 16,646 / 399, CROP
+    5,156 / 94, STUCK 1,357 / 24, BUMP 307 / 25, TRN 596 / 1, XP 3,600 / 137, XPR 3,032 / 113, BUMPR 3,123, SCENE 2,471 /
+    37, SCENER 3,570); the new checks on HOUSE, TOWN and ROUTE: 0 reversals, 0 stale targets walked onto.
+
+AFTER THE STEP-3.1 VERIFIER'S GRADED RUN, SAID HERE (its second round found it unsaid): the prediction above for ROUTER,
+"4 walked onto", DID NOT HOLD. The graded run measured 5 frontier targets walked onto with everything beside them seen:
+(11,14), (4,13), (4,8), (18,9), (17,4) (the last one's final neighbour, (17,3), first seen at f67623, 64 frames before the
+arrival at f67687). Its check asked only for ">= 1", so the arm passed and the miss went unsaid by its run and its README.
+An in-process replay of that copy and seed today gives 5 again by the same grader; the development count of 4 was not
+kept, so WHY it differed is not established. Since this round every number pre-registered is machine-checked
+(`PREDICTED`, `check_predictions`): a number that does not hold FAILS its arm, and the summary counts them.
+
+AFTER THE STEP-3.1 VERIFIER'S SECOND ROUND (2026-10-08, its eight weak proofs; PRE-REGISTERED before this round's graded
+run, from a development pass of THIS driver on the same code (its 32 files moved out of the evidence folder: not graded),
+in-process development runs (`gates/hands_harness.py`) and a development sweep (`rate_step3.py`)). The NUMBERS are the
+`PREDICTED` table below this docstring (machine-checked; pinned with this docstring in `predictions:`). What changed:
+  * FINDING 5's guard (it checked syntax only: a `getattr` read passed): NEW ARM WARPREAD (`gates/warp_reads.py`), the REAL
+    eyes on 7 starts with every memory read recorded, against the ROM's 444 warp arrays. PREDICT 0 reads overlapping a
+    warp array on every start; 5 of the 7 starts stand on a map with warps; the recorder sees each map's MapEvents struct
+    read (the signs: one pointer from its warp array); its three plants (an attribute, the verifier's getattr, a raw read
+    followed from gMapHeader's events pointer) each caught on the 5 starts with warps (Route 101 has none); the static
+    check flags the first two and NOT the raw read (only the scan can see it, and the evidence says so).
+  * the twin (finding 3) KNOWN BY HER WORDS ("Um, um, um!"), and NEWS AS PROGRESS: SCENEX now runs to the explorer's OWN
+    end (20,000 frames). PREDICT "explore: done: explore to ROUTE101", 16,293 frames, 489 presses: before any news the twin
+    sends the player back 3 times ((10,1) twice, then (11,1) once, where the same words close both); May's mother's "Oh,
+    hello. And you are?" is news (both tiles worth a try again), the twin once more and both given up again at once; May's
+    "Huh? Who... Who are you?" is news (VAR_LITTLEROOT_TOWN_STATE 1); the twin's "Um, hi!" lets the player pass (state 2);
+    Route 101 at (11,19), where Birch's rescue scene LOCKS the player: the game's answer is LOCKED + THE ARRIVAL across
+    Littleroot's top edge from (11,0) (`SCENEX_CROSSING`, `game_answer.py --after-connection`). SCENEX9 (seed 9, through the
+    launcher): the same story, 3 push-backs and none after the news, 14,462 frames. NEW REVERT ARMS: SCENEXR now reverts the
+    words rule (4 push-backs before any news, 7 in all, never past her); SCENENR (new words not progress): 3 push-backs,
+    stuck in May's house at VAR_LITTLEROOT_TOWN_STATE 1 with the road open, the twin never tried again (the verifier's
+    "inside May's house"). SCENER now turns off all three scene rules. THE SWEEP: SCENE-EXPLORE to its own end, the
+    SCENE-WORDS and SCENE-NEWS reverts (their predictions in `rate_step3.py` REVERT_PREDICTIONS).
+  * FINDING 4's live revert: NEW ARM BUMPSR (one bump walls every side, `revert_step3.py` W34's edit): PREDICT the same one
+    bump ((1,4) going down), errands 2 and 3 walked ROUND (4 steps each), BUMP's own crossing check FAILS on it, 371 frames;
+    BUMP8 / BUMPSR8 the A/B again at seed 8 (of seeds 1-10 only 3 and 8 walk down into the one-way tile: measured).
+  * FINDING 2's A/B at another seed: NEW ARMS TOWN9R, ROUTE9R (the revert at seed 9) and F2AB (every pair together). THE
+    CLAIM RESTS ON THE STALE TARGETS WALKED ONTO: PREDICT 0 with the rules on every pair, 23 in all without (HOUSER 1,
+    TOWNR 4, ROUTER 5, TOWN9R 8, ROUTE9R 5); reversals 1 with, 6 without, reported (TOWN9R 1 = TOWN9 1: no per-arm claim).
+  * HOUSE9: HOUSE at seed 9 through the launcher (3,207 frames, 0 reversals, 1 stale target dropped).
+  * every arm that existed before: its trajectory unchanged (`PREDICTED`).
+AFTER THIS ROUND'S FIRST GRADED RUN (2026-10-08, said here, not folded into the above): 31 of the 32 arms passed and 113
+of the 117 pre-registered numbers held; SCENEX9 FAILED on its numbers alone (every behavioural check passed): predicted
+14,462 frames, 439 presses, 3 push-backs [3, 0]; measured 15,959, 489, 4 [3, 1, 0]. The two runs had the same code,
+fixture, seed and presses up to f22407, where a person of Littleroot stood elsewhere. CAUSE, MEASURED (an in-process A/B,
+the cartridge's clock set by the test side in a throwaway emulator): the game reads the HOST'S CLOCK (mGBA's RTC) at every
+map load, and the berry trees' growth over the minutes passed draws from the game's random numbers; with the clock
+simulated from 09:00, 11:30, 11:59 or 12:01 SCENEX9 plays 14,462 frames, from 13:37 or 20:00 15,959 (the development pass
+ran before about 12:10, the graded run after); the host's clock offset by +6 hours, or the run slowed 4 ms a frame, did not
+change it within one window. So "re-running reproduces it exactly" holds only within a window of the clock. THE CHANGES:
+every in-process run pins the cartridge's clock (`GAME_CLOCK`, `hands_harness.py --game-clock`); NEW ARM CLOCKS runs every
+launcher arm in-process at 8 instants over 12 days: ROAM, SCENEX and SCENEX9 change with the clock (pre-registered
+`CLOCK_SENSITIVE`), the other 13 do not; those three now register NO launcher frames or presses (their numbers under
+CLOCKS, at the pinned clock, instead), and CLOCKS checks their claims hold at every instant (the twin's push-backs, Route
+101 reached, ROAM's 150 steps and spin ratio). RE-REGISTERED from a second development pass of the in-process arms and
+CLOCKS (every number held): PREDICTED below; nothing else changed.
 """
 
 from __future__ import annotations
@@ -186,7 +338,10 @@ from ai_player.host import launcher  # noqa: E402
 from ai_player.options import (  # noqa: E402
     ENV_BRAIN, ENV_FAULT_NO_CROP, ENV_GOAL_MAP, ENV_GOTO, ENV_PERSONALITY, ENV_ROAM_STEPS, ENV_SEED, ENV_WORLD,
 )
-from ai_player.world.memory import WorldMemory, in_window  # noqa: E402
+from ai_player.world.memory import WorldMemory  # noqa: E402
+#: (build step 3.1, the step-3 review's finding 6) the crop is checked against the SCREEN's window written down on the
+#: test side as literals (`gates/window.py`), never the eyes' own VIEW_* (widening both used to pass)
+from ai_player.gates.window import on_screen_from as in_window  # noqa: E402
 
 SAVES = REPO / "tools" / "story-dev" / "saves"
 GATES = Path(__file__).resolve().parent
@@ -211,6 +366,8 @@ FIXTURES: dict[str, tuple[Path, str]] = {
     "trainer_battle_r116.ss1": (GATES / "fixtures" / "trainer_battle_r116.ss1", "f55f3c2ec6efb9fb20363e8ca92b73ba"),
     "route101_xp.ss1": (GATES / "fixtures" / "route101_xp.ss1", "ac5bc2645ad980386be12d2b4a8704e6"),
     "route101_xp.world.jsonl": (GATES / "fixtures" / "route101_xp.world.jsonl", "ce8287a37f03394b19fcb3e28f964feb"),
+    # build step 3.1 (`make_step3_fixtures.py --only twin`): Littleroot after the player's first walk out of the house
+    "littleroot_twin.ss1": (GATES / "fixtures" / "littleroot_twin.ss1", "fe4661736a30dd3f34b87c0db7ae1d10"),
 }
 #: Maps by (group, number) (`data/maps/map_groups.json`; the truth reads save block 1's location).
 LITTLEROOT, ROUTE101, OLDALE, LAB, HOUSE_1F, HOUSE_2F = [0, 9], [0, 16], [0, 10], [1, 4], [1, 0], [1, 1]
@@ -219,12 +376,141 @@ BUMP_ERRANDS, BUMP_TILE = "0,4;2,4;0,4", (1, 4)
 #: The prefixes of a WALKING gate (`brain/navigator.py`, `skills/roam_train.py`).
 WALK_GATES = ("walk ", "keep walking ", "use the ", "roam ")
 #: BUMPR: the bump is told and NOT remembered (`world/memory.py` WorldMemory.learn_bump).
-BUMPR_MUTATION = ("world/memory.py", "        memory.bumped[tile] = info\n",
+BUMPR_MUTATION = ("world/memory.py", "        memory.bumped[key] = info\n",
                   "        pass  # MUTANT BUMPR: the bump is not remembered\n")
+#: (build step 3.1, finding 3) SCENE: errands past Littleroot's twin, who pushes a player with no Pokemon back from the
+#: road every time (`make_step3_fixtures.py` twin); SCENER: the same with the scene-repeat rule off, in a COPY.
+SCENE_ERRANDS, SCENE_TARGET, SCENE_PUSHED_TO = "10,4;10,0", (10, 0), [10, 2]
+SCENER_MUTATION = ("brain/navigator.py", "        if len(hits) >= SCENE_REPEATS and novelty.last_progress <= hits[0]:\n",
+                   "        if False:  # MUTANT SCENER: a repeating scene is never held against its target\n")
+SCENE_LINE = f"a scene stopped the way to the goto at {SCENE_TARGET}"
+#: (build step 3.1, finding 2) Reversals a walking arm may show. (The step-3.1 verifier's round: with the bound 1 the live
+#: grade passed the REVERTED code too at seed 3, which shows 1 reversal on each of HOUSE, TOWN and ROUTE.) At seed 3 the
+#: bound is the pre-registered count of this code's seed-3 trajectory, 0 on each ("AFTER THE STEP-3.1 VERIFIER" in the
+#: docstring); the revert arms HOUSER, TOWNR and ROUTER play the same starts and seed with the rules reverted and must
+#: break it. Another seed (the replication arms) is held to the sweep's per-run bound, `REVERSALS_PER_RUN`.
+REVERSALS_SEED3 = {"HOUSE": 0, "TOWN": 0, "ROUTE": 0}
+REVERSALS_PER_RUN = 1
+#: (the step-3.1 verifier's round) finding 2 REVERTED, both rules (`gates/revert_step3.py` W31 + W32): a stale target is
+#: kept until it is walked onto, and turning back costs nothing (the arms HOUSER, TOWNR, ROUTER; `rate_step3.py` REVERT)
+STALE_MUTATIONS = (
+    ("brain/navigator.py", "                stale = stale_reason(memory, target) if memory is not None else None\n",
+     "                stale = None  # MUTANT (finding 2 reverted): a stale target is kept until it is walked onto\n"),
+    ("brain/navigator.py", "        if not steps:\n            return {}\n",
+     "        if True:  # MUTANT (finding 2 reverted): no cost for turning back\n            return {}\n"),
+)
+#: (the step-3.1 verifier's round) finding 1 REVERTED (`revert_step3.py` W30): a map's top and left ends known from
+#: negative coordinates again (arm EDGER: the live check "no road before a crossing" must FAIL on it)
+EDGE_MUTATION = ("world/memory.py", "        return any(past_edge(self.edges, xy, side) for side in self.edges)\n",
+                 "        return xy[0] < 0 or xy[1] < 0 or any(past_edge(self.edges, xy, side) for side in self.edges)  # MUTANT (finding 1 reverted)\n")
+#: (the step-3.1 verifier's round) SCENEX: the EXPLORER (not an errand) from the twin's fixture toward Route 101: the targets
+#: behind the twin are its own choices; SCENEXR: the count per tile a scene began on off (`revert_step3.py` W44), in a COPY
+SCENEX_MUTATION = ("brain/navigator.py",
+                   "            if len(spots) >= SCENE_REPEATS and novelty.last_progress <= spots[0] and began not in walled:\n",
+                   "            if False:  # MUTANT SCENEXR: no count per tile a scene began on\n")
+#: (the step-3.1 verifier's second round) a scene known by its WORDS (`brain/navigator.py` scene_words) REVERTED: scenes
+#: are counted per target and per tile only, as in the verifier's round (arm SCENEXR; `revert_step3.py` W52; the sweep's
+#: SCENE-WORDS revert): the twin, who guards two tiles, is met twice on EACH
+SCENEWORDS_MUTATION = ("brain/navigator.py", "            if words is not None:\n",
+                       "            if False:  # MUTANT SCENEWORDS: a scene is not known by its words\n")
+#: SCENER, the errand's revert, turns off every scene rule: per target, per tile and by its words (either one alone
+#: still stops the errand)
+SCENER_ALL = (SCENER_MUTATION, SCENEX_MUTATION, SCENEWORDS_MUTATION)
+#: (the step-3.1 verifier's second round) NEW WORDS are not progress (`revert_step3.py` W53): meeting May lifts nothing,
+#: so the explorer never tries the twin again (arm SCENENR; the sweep's SCENE-NEWS revert)
+NEWS_MUTATION = ("brain/navigator.py", "                if stayed and novelty.heard(words, ended):\n",
+                 "                if False:  # MUTANT SCENENR: new words heard are not progress\n")
+#: The twin's coord events on LITTLEROOT_TOWN (`data/maps/LittlerootTown/map.json`: LittlerootTown_EventScript_
+#: NeedPokemonTriggerLeft / Right at (10, 1) and (11, 1), VAR_LITTLEROOT_TOWN_STATE 0)
+TWIN_TILES = ((10, 1), (11, 1))
+#: (the step-3.1 verifier's second round: "the twin guards two tiles, so the explorer meets her 4 times in total") the
+#: twin's scenes in ALL one explorer run may show: twice on the first tile, then once on the second, where the same
+#: words close both (pre-registered, a literal: `SCENE_REPEATS` is the AI's own number, not the grade's)
+TWIN_SCENES_IN_ALL = 3
+#: (the step-3.1 verifier's second round: "FINDING 4 ... has no live revert arm") the per-SIDE bump REVERTED
+#: (`revert_step3.py` W34): one bump from any side refuses the tile from every side, the step-3 rule (arm BUMPSR)
+BUMPSIDE_MUTATION = ("brain/navigator.py", "    tried = memory.bumps(nxt, direction)\n",
+                     "    tried = BUMP_GIVE_UP * max(memory.bumps(nxt, d) for d in DIRECTIONS)  # MUTANT BUMPSR: a bump walls every side\n")
+#: (the step-3.1 verifier's second round: "FINDING 5's guard only checks syntax") the behavioural guard: every read the
+#: real eyes make, against every map's warp array (`gates/warp_reads.py`, arm WARPREAD)
+WARP_READS = GATES / "warp_reads.py"
+#: (the step-3.1 verifier's second round, FOUND by its own graded run: SCENEX9 played 15,959 frames where its development
+#: run, the same seed, fixture and code, played 14,462) THE GAME READS THE HOST'S CLOCK (mGBA's RTC: berry trees grow by
+#: the minutes passed at every map load, and a tree reaching its berries draws from the game's random numbers), so a
+#: launcher run's trajectory can depend on WHEN it is played. Every in-process run of this driver pins the cartridge's
+#: clock to `GAME_CLOCK` (`hands_harness.py --game-clock`: it runs from there at the emulated speed), so it is the same run
+#: whenever it is played; the launcher arms cannot (the AI may not set the clock, the framework has no option for it).
+GAME_CLOCK = "2026-10-08T06:00"
+#: Arm CLOCKS: every launcher arm in-process with the clock pinned at each of these instants (a day apart and more: the
+#: berry trees' stages take hours to days), and the launcher arms MEASURED (development sweep, 2026-10-08) to change their
+#: trajectory with the clock: their launcher runs register no frame or press counts in `PREDICTED`, only what holds at
+#: any clock (their graders' checks), and their trajectory at `GAME_CLOCK` is registered under CLOCKS instead.
+CLOCK_INSTANTS = ("2026-10-08T06:00", "2026-10-08T11:00", "2026-10-08T12:30", "2026-10-08T18:00", "2026-10-09T06:00",
+                  "2026-10-10T12:00", "2026-10-14T12:00", "2026-10-20T12:00")
+CLOCK_SENSITIVE = ("ROAM", "SCENEX", "SCENEX9")
+#: (the step-3.1 verifier's second round: "A PRE-REGISTERED PREDICTION DID NOT HOLD AND THIS IS NOT SAID ANYWHERE") the
+#: NUMBERS this round pre-registers (from the development pass named in the docstring's "AFTER THE STEP-3.1 VERIFIER'S
+#: SECOND ROUND"), machine-checked by `check_predictions` on every arm listed: frames and presses (the trajectory), and
+#: each measure a grader takes (`Run.measure`). A number that does not hold FAILS that arm's check "PRE-REGISTERED
+#: NUMBERS", and the summary counts them. Read from the FILE at the start of the run and pinned in `predictions:`.
+PREDICTED: dict[str, dict] = {
+    "HOUSE": {"frames": 3176, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10},
+    "TOWN": {"frames": 4864, "presses": 101, "reversals": 0, "stale_dropped": 23, "stale_walked": 0, "steps": 41},
+    "ROUTE": {"frames": 633, "presses": 71, "reversals": 0, "stale_dropped": 22, "stale_walked": 0, "steps": 35},
+    # ROAM, SCENEX, SCENEX9: CLOCK-SENSITIVE (arm CLOCKS): no frame or press count for a launcher run; see "CLOCKS"
+    "CROP": {"frames": 5156, "presses": 94},
+    "STUCK": {"frames": 1357, "presses": 24},
+    "BUMP": {"bumps": 1, "frames": 307, "presses": 25},
+    "BUMPR": {"frames": 3123, "presses": 386},
+    "TRN": {"frames": 596, "presses": 1},
+    "XP": {"frames": 3600, "presses": 137},
+    "XPR": {"frames": 3032, "presses": 113},
+    "SCENE": {"frames": 2471, "presses": 37},
+    "SCENER": {"frames": 3570, "presses": 43},
+    "SCENEXR": {"frames": 13316, "presses": 385, "twin_pushes": 7, "twin_segments": [4, 3]},
+    "SCENENR": {"frames": 13066, "presses": 391, "twin_pushes": 3},
+    "HOUSER": {"frames": 3344, "presses": 52, "reversals": 1, "stale_walked": 1, "steps": 18},
+    "TOWNR": {"frames": 4945, "presses": 89, "reversals": 1, "stale_walked": 4, "steps": 36},
+    "ROUTER": {"frames": 2083, "presses": 108, "reversals": 1, "stale_walked": 5, "steps": 51},
+    "EDGER": {"frames": 4880, "presses": 103},
+    "TOWN9": {"frames": 4962, "presses": 105, "reversals": 1, "stale_dropped": 27, "stale_walked": 0, "steps": 43},
+    "ROUTE9": {"frames": 1820, "presses": 89, "reversals": 0, "stale_dropped": 24, "stale_walked": 0, "steps": 40},
+    "WARPREAD": {"plant_attribute_caught": 5, "plant_getattr_caught": 5, "plant_raw_caught": 5},
+    "BUMPSR": {"bumps": 1, "errand_steps": [4, 4], "frames": 371, "presses": 33},
+    "TOWN9R": {"frames": 5742, "presses": 178, "reversals": 1, "stale_walked": 8, "steps": 83},
+    "ROUTE9R": {"frames": 4220, "presses": 114, "reversals": 2, "stale_walked": 5, "steps": 48},
+    "HOUSE9": {"frames": 3207, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10},
+    "BUMP8": {"bumps": 1, "frames": 264, "presses": 25},
+    "BUMPSR8": {"bumps": 1, "errand_steps": [4, 4], "frames": 328, "presses": 33},
+    "F2AB": {"reversals_real": 1, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 23},
+    # every launcher arm in-process with the cartridge's clock pinned at GAME_CLOCK (development clock sweep, 2026-10-08)
+    "CLOCKS": {"clock_sensitive": ["ROAM", "SCENEX", "SCENEX9"],
+               "HOUSE@pinned": [3176, 36], "TOWN@pinned": [4864, 101], "ROUTE@pinned": [633, 71], "ROAM@pinned": [16646, 399],
+               "CROP@pinned": [5156, 94], "STUCK@pinned": [1357, 24], "BUMP@pinned": [307, 25], "TRN@pinned": [596, 1],
+               "XP@pinned": [3600, 137], "SCENE@pinned": [2471, 37], "SCENEX@pinned": [16293, 489], "TOWN9@pinned": [4962, 105],
+               "ROUTE9@pinned": [1820, 89], "HOUSE9@pinned": [3207, 36], "BUMP8@pinned": [264, 25],
+               "SCENEX9@pinned": [14462, 439]},
+}
+#: The replication arms (another seed, the launcher): the arm they replay, and its seed
+REPLICATION_SEED = 9
+#: (the step-3.1 verifier's second round) BUMP's replication seed: of seeds 1-10 only 3 and 8 plan errand 1 down from
+#: (1, 3) into the one-way tile (measured with `hands_harness.py`, 2026-10-08); at seed 9 nothing is bumped, which would
+#: leave the per-side rule unexercised
+BUMP_REPLICATION_SEED = 8
+#: (build step 3.1, finding 5) EXITS: the ROM's warp table against the exits the eyes see by their look (test side).
+EXIT_LOOKS = GATES / "exit_looks.py"
+ARM_MAP_PREFIXES = ("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN")
 #: (the step-3 verifier's second round) STUCK: the warp the AI used last, PRE-REGISTERED (the 2F stairs), whose ROM
 #: arrival `gates/game_answer.py --after-warp` predicts; the arms answered that way.
 STUCK_WARP = ([1, 1], [7, 1])
-ARRIVAL_ARMS = ("STUCK",)
+#: (the step-3.1 verifier's second round) SCENEX's end: the explorer walks off Littleroot's top edge at (11, 0) (the twin's
+#: GoSaveBirch tile: VAR_LITTLEROOT_TOWN_STATE 1 after May) into Route 101, where Birch's rescue scene locks the player on
+#: arrival; THE ARRIVAL across that connection is what the game's answer checks (`game_answer.py --after-connection`)
+SCENEX_CROSSING = ([0, 9], [11, 0], "up")
+#: The arms answered by THE ARRIVAL when the game is LOCKED: the kind of the last crossing and its pre-registered value
+ARRIVALS: dict[str, tuple[str, tuple]] = {"STUCK": ("warp", STUCK_WARP), "SCENEX": ("connection", SCENEX_CROSSING),
+                                          "SCENEX9": ("connection", SCENEX_CROSSING)}
+ARRIVAL_ARMS = tuple(ARRIVALS)
 #: XP: errands back and forth between two KNOWN floor tiles beside the battle's grass (`make_step3_fixtures.py` xp:
 #: the AI's own memory saw their windows), more than the novelty window can hold, so the intent ends "stuck: nothing
 #: new" and its CLOCK is the subject; XPR: experience gained is not novelty (`brain/navigator.py` Novelty.update).
@@ -250,6 +536,14 @@ class Arm:
     args: tuple[str, ...] = ()
     mutations: tuple = ()
     doc: str = ""
+    #: (the step-3.1 verifier's round) the arm's own seed (None: the run's `--seed`), and the arm it replays or reverts
+    #: (its grader's partner: a replication at another seed, or the A/B of a revert arm)
+    seed: int | None = None
+    base: str = ""
+
+    @property
+    def run_seed(self) -> int:
+        return self.seed if self.seed is not None else SEED
 
 
 @dataclass
@@ -273,9 +567,16 @@ class Run:
     answer_fault: dict | None = None  # the same probe claiming a neighbouring tile it rules out: must disagree
     checks: list[tuple[bool, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    #: (the step-3.1 verifier's second round) the numbers a grader measured that `PREDICTED` may pre-register, and each
+    #: pre-registered number against its measure: (name, predicted, measured, held)
+    measures: dict = field(default_factory=dict)
+    predictions: list = field(default_factory=list)
 
     def check(self, ok: bool, text: str) -> None:
         self.checks.append((bool(ok), text))
+
+    def measure(self, name: str, value) -> None:
+        self.measures[name] = value
 
     @property
     def passed(self) -> bool:
@@ -324,6 +625,85 @@ ARMS: list[Arm] = [
         "route101_xp.ss1", 8000, 600.0, kind="harness",
         args=("--goto", XP_ERRANDS, "--personality", "Story", "--world-in", str(FIXTURES["route101_xp.world.jsonl"][0])),
         mutations=(XPR_MUTATION,), doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)"),
+    # ---- build step 3.1 (the step-3 adversarial review)
+    Arm("SCENE", "errands past Littleroot's twin (no Pokemon yet): the same scene pushes the player back each time; the target "
+        "is given up after the second", "goto", "littleroot_twin.ss1", 6000, 600.0, {ENV_GOTO: SCENE_ERRANDS, **STORY},
+        doc="gates/make_step3_fixtures.py --only twin (littleroot_twin.build.json): the AI's own walk out of the house"),
+    Arm("SCENER", "REVERT of SCENE: the scene-repeat rules off (per target and per tile), in a COPY: the scene again and again "
+        "until the novelty window", "goto", "littleroot_twin.ss1", 8000, 600.0, kind="harness",
+        args=("--goto", SCENE_ERRANDS, "--personality", "Story"), mutations=SCENER_ALL,
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="SCENE"),
+    Arm("EXITS", "the ROM's warp table (test side) against the exits the eyes see by their LOOK", "-", "littleroot_twin.ss1",
+        0, 600.0, kind="rom", doc="gates/exit_looks.py: every map of the ROM, read only"),
+    # ---- the step-3.1 verifier's round
+    Arm("SCENEX", "the EXPLORER (its own targets) from the twin's fixture toward Route 101, to its own end: the twin known by "
+        "her words, at most 3 meetings in all, every tile she guards given up, the rest of the town explored", "explore",
+        "littleroot_twin.ss1", 20000, 900.0, {ENV_GOAL_MAP: "ROUTE101", **STORY},
+        doc="gates/make_step3_fixtures.py --only twin (littleroot_twin.build.json)"),
+    Arm("SCENEXR", "REVERT of SCENEX: a scene not known by its words (per target and per tile only), in a COPY: the twin twice "
+        "on EACH of her two tiles", "explore", "littleroot_twin.ss1", 20000, 900.0, kind="harness",
+        args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=(SCENEWORDS_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="SCENEX"),
+    Arm("SCENENR", "REVERT of SCENEX: new words are not progress, in a COPY: May lifts nothing, the twin is never tried again, "
+        "the run stops in May's house", "explore", "littleroot_twin.ss1", 20000, 900.0, kind="harness",
+        args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=(NEWS_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="SCENEX"),
+    Arm("HOUSER", "REVERT of HOUSE: finding 2's two rules off (a stale target kept, no turn-back cost), in a COPY", "explore",
+        "house_2f_clockset.ss1", 12000, 600.0, kind="harness",
+        args=("--goal-map", "LITTLEROOT_TOWN", "--personality", "Story"), mutations=STALE_MUTATIONS,
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="HOUSE"),
+    Arm("TOWNR", "REVERT of TOWN: finding 2's two rules off, in a COPY", "explore", "pokedex_done.ss1", 20000, 900.0,
+        kind="harness", args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=STALE_MUTATIONS,
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="TOWN"),
+    Arm("ROUTER", "REVERT of ROUTE: finding 2's two rules off, in a COPY", "explore", "route101_south.ss1", 24000, 900.0,
+        kind="harness", args=("--goal-map", "OLDALE_TOWN", "--personality", "Story", "--world-in",
+                              str(FIXTURES["route101_south.world.jsonl"][0])), mutations=STALE_MUTATIONS,
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="ROUTE"),
+    Arm("EDGER", "REVERT of TOWN's finding 1: a map's ends known from negative coordinates again, in a COPY: the live check "
+        "'no road before a crossing' must FAIL on it", "explore", "pokedex_done.ss1", 20000, 900.0, kind="harness",
+        args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=(EDGE_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="TOWN"),
+    Arm("TOWN9", "REPLICATION of TOWN at seed 9 (another trajectory, through the launcher)", "explore", "pokedex_done.ss1",
+        20000, 900.0, {ENV_GOAL_MAP: "ROUTE101", **STORY}, doc="as TOWN", seed=REPLICATION_SEED, base="TOWN"),
+    Arm("ROUTE9", "REPLICATION of ROUTE at seed 9 (another trajectory, through the launcher): a wild battle met and fled", "explore",
+        "route101_south.ss1", 24000, 900.0,
+        {ENV_GOAL_MAP: "OLDALE_TOWN", ENV_WORLD: str(FIXTURES["route101_south.world.jsonl"][0]), **STORY},
+        doc="as ROUTE", seed=REPLICATION_SEED, base="ROUTE"),
+    # ---- the step-3.1 verifier's second round
+    Arm("WARPREAD", "the REAL eyes on every start, every memory read recorded, against every map's warp array (and three "
+        "plants: an attribute, a getattr, a raw read: each caught)", "-", "littleroot_twin.ss1", 0, 1800.0, kind="warp",
+        doc="gates/warp_reads.py: the eyes in a throwaway emulator, read only"),
+    Arm("BUMPSR", "REVERT of BUMP's per-side rule: one bump walls the tile from every side (the step-3 rule), in a COPY: the "
+        "one-way tile is walked round, not crossed", "goto", "house_2f_clockset.ss1", 6000, 600.0, kind="harness",
+        args=("--goto", BUMP_ERRANDS, "--personality", "Story"), mutations=(BUMPSIDE_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="BUMP"),
+    Arm("TOWN9R", "REVERT of TOWN9: finding 2's two rules off, in a COPY, seed 9 (the A/B replicated at another seed)",
+        "explore", "pokedex_done.ss1", 20000, 900.0, kind="harness", args=("--goal-map", "ROUTE101", "--personality", "Story"),
+        mutations=STALE_MUTATIONS, doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
+        seed=REPLICATION_SEED, base="TOWN9"),
+    Arm("ROUTE9R", "REVERT of ROUTE9: finding 2's two rules off, in a COPY, seed 9 (the A/B replicated at another seed)",
+        "explore", "route101_south.ss1", 24000, 900.0, kind="harness",
+        args=("--goal-map", "OLDALE_TOWN", "--personality", "Story", "--world-in", str(FIXTURES["route101_south.world.jsonl"][0])),
+        mutations=STALE_MUTATIONS, doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
+        seed=REPLICATION_SEED, base="ROUTE9"),
+    Arm("HOUSE9", "REPLICATION of HOUSE at seed 9 (another trajectory, through the launcher)", "explore", "house_2f_clockset.ss1",
+        12000, 600.0, {ENV_GOAL_MAP: "LITTLEROOT_TOWN", **STORY}, doc="as HOUSE", seed=REPLICATION_SEED, base="HOUSE"),
+    Arm("BUMP8", "REPLICATION of BUMP at seed 8 (another path noise, through the launcher; of seeds 1-10 only 3 and 8 walk "
+        "down into the one-way tile, measured): bumped once from above, crossed from its open sides", "goto",
+        "house_2f_clockset.ss1", 6000, 600.0, {ENV_GOTO: BUMP_ERRANDS, **STORY}, doc="as HOUSE", seed=BUMP_REPLICATION_SEED,
+        base="BUMP"),
+    Arm("BUMPSR8", "REVERT of BUMP8: one bump walls every side, in a COPY, seed 8 (the A/B replicated at another seed)", "goto",
+        "house_2f_clockset.ss1", 6000, 600.0, kind="harness", args=("--goto", BUMP_ERRANDS, "--personality", "Story"),
+        mutations=(BUMPSIDE_MUTATION,), doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
+        seed=BUMP_REPLICATION_SEED, base="BUMP8"),
+    Arm("SCENEX9", "REPLICATION of SCENEX at seed 9 (another trajectory, through the launcher)", "explore", "littleroot_twin.ss1",
+        20000, 900.0, {ENV_GOAL_MAP: "ROUTE101", **STORY}, doc="as SCENEX", seed=REPLICATION_SEED, base="SCENEX"),
+    Arm("F2AB", "FINDING 2's live A/B over every pair of this session (HOUSE, TOWN, ROUTE at seed 3, TOWN9, ROUTE9 at seed 9, "
+        "each against its revert): which discriminator the claim rests on", "-", "pokedex_done.ss1", 0, 60.0, kind="summary",
+        doc="no run: the graded runs of this session"),
+    Arm("CLOCKS", "THE GAME'S CLOCK: every launcher arm in-process with the cartridge's clock pinned at 8 instants over 12 days: "
+        "which trajectories depend on WHEN a run is played", "-", "pokedex_done.ss1", 0, 2400.0, kind="clock",
+        doc="gates/hands_harness.py --game-clock, every launcher arm's own start, seed and options (in-process)"),
 ]
 
 
@@ -344,7 +724,7 @@ def run_arm(arm: Arm, build_root: Path) -> Run:
     run.command = [sys.executable, "-m", "ai_player", "run", "--profile", PROFILE, "--frames", str(arm.frames),
                    "--wall-seconds", f"{arm.wall:g}", "--build-root", str(build_root), "--run-dir", str(run.run_dir),
                    "--state", str(FIXTURES[arm.fixture][0])]
-    env = clean_env({ENV_BRAIN: arm.brain, ENV_SEED: str(SEED), **arm.env})
+    env = clean_env({ENV_BRAIN: arm.brain, ENV_SEED: str(arm.run_seed), **arm.env})
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
     run.started = time.time()
     began = time.monotonic()
@@ -374,8 +754,10 @@ def run_arm(arm: Arm, build_root: Path) -> Run:
         if run.after is None:
             run.notes.append(f"truth of the state left behind failed: {raw[-1500:]}")
         elif arm.name not in NO_ANSWER:
-            warp = last_ai_warp(run) if arm.name in ARRIVAL_ARMS else None
-            run.answer, run.answer_fault = game_answer(state, run.after, warp)
+            kind = ARRIVALS.get(arm.name, (None,))[0]
+            warp = last_ai_warp(run) if kind == "warp" else None
+            crossing = last_ai_connection(run) if kind == "connection" else None
+            run.answer, run.answer_fault = game_answer(state, run.after, warp, crossing)
     return run
 
 
@@ -389,15 +771,30 @@ def last_ai_warp(run: Run) -> tuple[list[int], list[int]] | None:
     return [group, number], [int(v) for v in used[-1][5]]
 
 
-def game_answer(state: Path, truth: dict, after_warp: tuple[list[int], list[int]] | None = None) -> tuple[dict, dict | None]:
+def last_ai_connection(run: Run) -> tuple[list[int], list[int], str] | None:
+    """(the step-3.1 verifier's second round) The map edge the AI walked off LAST, by its own memory (the map, the tile it
+    left from, the direction): what `game_answer.py --after-connection` is asked about."""
+    crossed = [t for t in transitions(run) if t[3] == "connection" and t[4] == "ai" and t[5] is not None]
+    if not crossed:
+        return None
+    group, number = (int(v) for v in str(crossed[-1][1]).split(":"))
+    return [group, number], [int(v) for v in crossed[-1][5]], str(crossed[-1][7])
+
+
+def game_answer(state: Path, truth: dict, after_warp: tuple[list[int], list[int]] | None = None,
+                after_connection: tuple[list[int], list[int], str] | None = None) -> tuple[dict, dict | None]:
     """`gates/game_answer.py` on the state a run left, for save block 1's claim (map, pos); then, as its FAULT-TEST
     (CLAUDE.md rule 6), the same probe claiming the first neighbouring tile it rules out, which must disagree.
-    `after_warp` (map, tile): also ask where the ROM says that warp leaves the player (`--after-warp`)."""
+    `after_warp` (map, tile): also ask where the ROM says that warp leaves the player (`--after-warp`); `after_connection`
+    (map, tile, direction), the same for a map edge walked off (`--after-connection`)."""
 
     def ask(xy) -> dict:
         command = [sys.executable, str(GAME_ANSWER), str(state), *(str(v) for v in truth["map"]), *(str(v) for v in xy)]
         if after_warp is not None:
             command += ["--after-warp", *(str(v) for v in after_warp[0]), *(str(v) for v in after_warp[1])]
+        elif after_connection is not None:
+            command += ["--after-connection", *(str(v) for v in after_connection[0]), *(str(v) for v in after_connection[1]),
+                        after_connection[2].capitalize()]
         data, raw = run_json(command, "ANSWER", clean_env({}), 300)
         return data if data is not None else {"error": raw[-1500:]}
 
@@ -412,8 +809,8 @@ def run_harness_arm(arm: Arm) -> Run:
     root = make_copy(arm.mutations)
     run.run_dir = Path(tempfile.mkdtemp(prefix=f"ai_step3_{arm.name}_"))
     run.command = [sys.executable, str(root / "ai_player" / "gates" / HARNESS.name), arm.brain, "--state",
-                   str(FIXTURES[arm.fixture][0]), "--seed", str(SEED), "--frames", str(arm.frames), *arm.args,
-                   "--run-dir", str(run.run_dir)]
+                   str(FIXTURES[arm.fixture][0]), "--seed", str(arm.run_seed), "--frames", str(arm.frames), *arm.args,
+                   "--run-dir", str(run.run_dir), "--game-clock", GAME_CLOCK]
     run.started = time.time()
     began = time.monotonic()
     try:
@@ -428,6 +825,82 @@ def run_harness_arm(arm: Arm) -> Run:
     run.world = last_world(run.run_dir / "world.jsonl")
     run.elapsed = time.monotonic() - began
     run.exit_code = 0 if run.harness is not None else 1
+    return run
+
+
+def run_rom_arm(arm: Arm) -> Run:
+    """(build step 3.1) A test-side scan of the ROM in a throwaway emulator (`gates/exit_looks.py`): no AI runs. (The
+    step-3.1 verifier's second round) arm WARPREAD: `gates/warp_reads.py`, the real eyes' every read against the warp
+    arrays, and its three plants (each from a COPY of the package)."""
+    run = Run(arm)
+    script, prefix = (WARP_READS, "WARPREADS") if arm.kind == "warp" else (EXIT_LOOKS, "EXITS")
+    run.command = [sys.executable, str(script)]
+    run.started = time.time()
+    began = time.monotonic()
+    run.harness, raw = run_json(run.command, prefix, clean_env({}), arm.wall)
+    if run.harness is None:
+        run.notes.append(f"the scan printed no {prefix} line: {raw[-2000:]}")
+    run.elapsed = time.monotonic() - began
+    run.exit_code = 0 if run.harness is not None else 1
+    return run
+
+
+def harness_args(arm: Arm) -> list[str]:
+    """A launcher arm's own start, seed and options as `hands_harness.py` arguments (arm CLOCKS)."""
+    env = arm.env
+    out = [arm.brain, "--state", str(FIXTURES[arm.fixture][0]), "--seed", str(arm.run_seed), "--frames", str(arm.frames)]
+    for key, flag in ((ENV_GOAL_MAP, "--goal-map"), (ENV_ROAM_STEPS, "--roam-steps"), (ENV_GOTO, "--goto"),
+                      (ENV_WORLD, "--world-in"), (ENV_PERSONALITY, "--personality")):
+        if env.get(key):
+            out += [flag, env[key]]
+    if env.get(ENV_FAULT_NO_CROP):
+        out.append("--no-crop")
+    return out
+
+
+def run_clock_arm(arm: Arm) -> Run:
+    """(the step-3.1 verifier's second round) Arm CLOCKS: every launcher arm, in-process (`hands_harness.py`, this repo),
+    with the cartridge's clock pinned at each of `CLOCK_INSTANTS`; its frames and presses at each."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    run = Run(arm)
+    arms = [a for a in ARMS if a.kind == "launcher"]
+    jobs = [(a, when) for a in arms for when in CLOCK_INSTANTS]
+    run.command = [sys.executable, str(HARNESS), "<each launcher arm's options>", "--game-clock", "<each instant>"]
+    run.started = time.time()
+    began = time.monotonic()
+
+    def one(job: tuple[Arm, str]) -> dict:
+        target, when = job
+        folder = Path(tempfile.mkdtemp(prefix=f"ai_step3_clock_{target.name}_"))
+        extra: dict = {}
+        try:
+            data, raw = run_json([sys.executable, str(HARNESS), *harness_args(target), "--run-dir", str(folder),
+                                  "--game-clock", when], "HANDS", clean_env({}), 1200)
+            actions = folder / "actions.jsonl"
+            if data is not None and target.name in CLOCK_SENSITIVE and actions.is_file():
+                # what the clock-sensitive arms' claims rest on, at this instant too
+                records = [json.loads(line) for line in actions.read_text(encoding="utf-8").splitlines() if line.strip()]
+                truth = data.get("truth") or {}
+                if target.name.startswith("SCENEX"):
+                    t = twin_scenes(records)
+                    extra = {"twin_segments": t["segments"], "map": truth.get("map"),
+                             "var": truth.get("VAR_LITTLEROOT_TOWN_STATE")}
+                else:
+                    metrics = next(((r.get("extra") or {}) for r in records if r.get("decision") == "roam"), {})
+                    extra = {"steps": metrics.get("steps"), "spin_ratio": metrics.get("spin_ratio")}
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+        if data is None:
+            return {"arm": target.name, "when": when, "error": raw[-400:]}
+        return {"arm": target.name, "when": when, "frames": data.get("frames"), "presses": data.get("presses"),
+                "reason": str(data.get("reason"))[:70], **extra}
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        rows = list(pool.map(one, jobs))
+    run.harness = {"rows": rows, "instants": list(CLOCK_INSTANTS), "pinned": GAME_CLOCK}
+    run.elapsed = time.monotonic() - began
+    run.exit_code = 0 if all("error" not in r for r in rows) else 1
     return run
 
 
@@ -595,32 +1068,52 @@ def check_game_answer(run: Run) -> None:
         return
     trials = a.get("trials") or []
     fault = run.answer_fault or {}
-    if a.get("inconclusive"):
+    lock = a.get("locked") or {}
+    if a.get("inconclusive") or (not a.get("agree") and lock.get("locked")):
         # (the step-3 verifier's second round: an INCONCLUSIVE answer used to pass on the loaded map header alone, so
-        # STUCK's end tile had no behavioural confirmation. It no longer passes without one.)
+        # STUCK's end tile had no behavioural confirmation. It no longer passes without one.) (The step-3.1 verifier's
+        # second round) also a walking answer the game did not step at all, the player LOCKED by a scene (SCENEX's end:
+        # Birch's rescue on Route 101): then THE ARRIVAL across the pre-registered crossing, a warp or a map edge.
         why = "; ".join(f"{d}: {p.get('why')}" for d, p in (a.get("plans") or {}).items())
-        arrival, lock = a.get("arrival") or {}, a.get("locked") or {}
+        if trials:
+            why = "the walking trials met a player who does not move: " + " | ".join(describe_trial(t) for t in trials)
+        arrival = a.get("arrival") or {}
         held = "; ".join(f"{d}: {h['game_steps']} steps, moved {h['moved']}, map changed {h['map_changed']}"
                          for d, h in (lock.get("held") or {}).items())
-        if not arrival:
-            run.check(False, f"THE GAME'S ANSWER for {claim}: INCONCLUSIVE (no clean line from this tile: {why}) and no other "
-                             f"answer asked for: the end tile has NO behavioural confirmation")
+        kind, want = ARRIVALS.get(run.arm.name, (None, None))
+        if not arrival or kind is None or "error" in arrival:
+            run.check(False, f"THE GAME'S ANSWER for {claim}: {'INCONCLUSIVE' if a.get('inconclusive') else 'LOCKED'} ({why}) "
+                             f"and no arrival answer ({arrival.get('error') if arrival else 'none asked for'}; pre-registered: "
+                             f"{kind}): the end tile has NO behavioural confirmation")
             return
         changes = transitions(run)
         last = changes[-1] if changes else None
         after_it = [(p["frame"], p["reason"][:50]) for p in run.presses if last is not None and p["frame"] >= last[0]]
-        warp = [arrival.get("warp", {}).get("map"), arrival.get("warp", {}).get("tile")]
-        run.check(bool(a.get("agree_by_arrival")) and warp == list(STUCK_WARP) and last is not None and not after_it
-                  and fault.get("agree_by_arrival") is False and fault.get("agree") is not True,
-                  f"THE GAME'S ANSWER for save block 1's claim {claim} (no walking line: {why}): (1) LOCKED: each direction held "
+        if kind == "warp":
+            crossing = [arrival.get("warp", {}).get("map"), arrival.get("warp", {}).get("tile")]
+            pre = list(want)
+            step_ok = arrival.get("raw_landing_is_the_claim") is False
+            step_text = (f"the exit step {arrival.get('exit_step')} leaves the player on {arrival.get('tile')} (build step 3.1, "
+                         f"item 7: graded against save block 1's position after the transition; the RAW landing "
+                         f"{arrival.get('landing')} is that position: {arrival.get('raw_landing_is_the_claim')}, want False: a "
+                         f"door-family landing leaves the player one tile on)")
+        else:
+            c = arrival.get("connection") or {}
+            crossing = [c.get("map"), c.get("tile"), str(c.get("direction", "")).lower()]
+            pre = [want[0], want[1], want[2]]
+            step_ok = arrival.get("exit_step") == [0, 0]
+            step_text = f"across the ROM's {c.get('direction')} connection (offset {c.get('offset')}; a connection has no exit step)"
+        run.check(bool(a.get("agree_by_arrival")) and crossing == pre and last is not None and not after_it
+                  and fault.get("agree_by_arrival") is False and fault.get("agree") is not True and step_ok,
+                  f"THE GAME'S ANSWER for save block 1's claim {claim} ({why}): (1) LOCKED: each direction held "
                   f"{lock.get('held_frames')} frames from the state left moves nothing and counts no step ({held}) -> locked "
-                  f"{lock.get('locked')}: the player cannot have moved since; (2) THE ARRIVAL by the ROM: the warp the AI used last "
-                  f"{warp} (pre-registered {list(STUCK_WARP)}) lands on {arrival.get('map')} {arrival.get('landing')} "
-                  f"({arrival.get('landing_behaviour')}), and the exit step {arrival.get('exit_step')} leaves the player on "
-                  f"{arrival.get('tile')} -> agrees {arrival.get('agrees')}; the loaded map (gMapHeader) is the claimed map's: "
-                  f"{a.get('loaded_header_is_claimed_map')}; (3) the AI pressed NOTHING from that arrival (f{last[0] if last else '?'}) "
-                  f"on: {after_it or 'none'}; FAULT-TEST: the probe claiming {(a.get('ruled_out') or [None])[0]} instead -> "
-                  f"by the arrival {fault.get('agree_by_arrival')}, by walking {fault.get('agree')} (want False, not True)")
+                  f"{lock.get('locked')}: the player cannot have moved since; (2) THE ARRIVAL by the ROM: the {kind} the AI "
+                  f"crossed last {crossing} (pre-registered {pre}) lands on {arrival.get('map')} {arrival.get('landing')} "
+                  f"({arrival.get('landing_behaviour')}), and {step_text} -> agrees {arrival.get('agrees')}; the loaded map "
+                  f"(gMapHeader) is the claimed map's: {a.get('loaded_header_is_claimed_map')}; (3) the AI pressed NOTHING from "
+                  f"that arrival (f{last[0] if last else '?'}) on: {after_it or 'none'}; FAULT-TEST: the probe claiming "
+                  f"{(a.get('ruled_out') or [None])[0]} instead -> by the arrival {fault.get('agree_by_arrival')}, by walking "
+                  f"{fault.get('agree')} (want False, not True)")
         return
     standable = 8 - len(a.get("neighbours_that_are_walls") or [])
     wrong = (a.get("ruled_out") or [None])[0]
@@ -645,8 +1138,71 @@ def grade_common(run: Run, want_prefix: str, walking: bool = True) -> None:
     run.notes.append(f"map changes (from the memory): {describe_transitions(run)}")
 
 
+def reversal_bound(name: str, seed: int) -> int:
+    """The reversals a walking arm (or the arm a replication replays) may show at `seed`: at seed 3 the pre-registered
+    count of its trajectory (`REVERSALS_SEED3`), at any other seed the sweep's per-run bound."""
+    return REVERSALS_SEED3.get(name, 0) if seed == 3 else REVERSALS_PER_RUN
+
+
+def stale_arrivals(run: Run) -> tuple[int, list[dict]]:
+    """(the step-3.1 verifier's round, finding 2) The frontier targets the AI WALKED ONTO and kept: its next decision was
+    made standing on the target (the action log's `decide` records: `player`), with no "not worth going to any more"
+    record for it between (a target dropped as stale on the move, the fix, is not one). For each, whether everything
+    beside it had been seen by then, by the memory's OWN first-seen frames (`seen_frame` of its four neighbours in
+    world.jsonl, the same memory the eyes filled, read after the run). Returns (frontier targets chosen, the arrivals)."""
+    world = memory_of(run)
+    decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
+    dropped = [((r.get("extra") or {}).get("map"), tuple((r.get("extra") or {}).get("stale") or ()), r.get("frame"))
+               for r in run.records if r.get("decision") == "world" and "is not worth going to any more" in str(r.get("reason"))]
+    chosen, out = 0, []
+    for i, record in enumerate(decides):
+        extra = record["extra"]
+        if extra.get("kind") != "frontier":
+            continue
+        chosen += 1
+        after = decides[i + 1] if i + 1 < len(decides) else None
+        if after is None or after["extra"].get("map") != extra.get("map") or after["extra"].get("player") != extra.get("target"):
+            continue
+        tile = tuple(extra["target"])
+        if any(key == extra.get("map") and xy == tile and record["frame"] <= frame <= after["frame"] for key, xy, frame in dropped):
+            continue
+        memory = world.maps.get(extra.get("map")) if world is not None else None
+        beside = [(tile[0] + dx, tile[1] + dy) for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0))]
+        seen = memory is not None and all(xy in memory.tiles and memory.tiles[xy].seen_frame <= after["frame"] for xy in beside)
+        out.append({"map": extra.get("map"), "target": list(tile), "chosen": record["frame"], "arrived": after["frame"],
+                    "everything_beside_it_seen": seen})
+    return chosen, out
+
+
+def check_reversals(run: Run) -> None:
+    """(build step 3.1, the step-3 review's finding 2) REVERSALS (A -> B -> A, or a U-turn's third step) on the player's
+    path as the LOOKS showed it (`walk_path`, the action log's digests), at most the arm's pre-registered number; and
+    every target dropped as stale on the way is named. (The step-3.1 verifier's round) the bound at seed 3 is that
+    trajectory's own count (`reversal_bound`), which the revert arms break; and no frontier target was WALKED ONTO with
+    everything beside it already seen (`stale_arrivals`: the stale target the review found, by the memory's own frames),
+    with targets dropped as stale on the way (the rule acted: not vacuous)."""
+    steps, found = path_reversals(run)
+    stale = [r for r in run.records if r.get("decision") == "world" and "is not worth going to any more" in str(r.get("reason"))]
+    limit = reversal_bound(run.arm.base or run.arm.name, run.arm.run_seed)
+    run.check(steps > 0 and len(found) <= limit,
+              f"REVERSALS (finding 2): {len(found)} on the {steps} steps the looks showed (want <= {limit}, pre-registered for "
+              f"seed {run.arm.run_seed}): {[(r['map'], r['kind'], r['tiles']) for r in found] or 'none'}; targets dropped as "
+              f"stale on the way: {len(stale)} {[str(r.get('reason'))[:70] for r in stale[:4]]}")
+    chosen, arrived = stale_arrivals(run)
+    walked = [a for a in arrived if a["everything_beside_it_seen"]]
+    run.check(chosen > 0 and stale and not walked,
+              f"NO STALE TARGET WALKED ONTO (finding 2): of the {chosen} frontier targets chosen, {len(arrived)} were walked onto "
+              f"and kept, {len(walked)} of them with everything beside them already seen by the memory's own first-seen frames "
+              f"(want 0: {walked[:3] or 'none'}); {len(stale)} targets dropped as stale on the way (want > 0: the rule acted)")
+    run.measure("steps", steps)
+    run.measure("reversals", len(found))
+    run.measure("stale_walked", len(walked))
+    run.measure("stale_dropped", len(stale))
+
+
 def grade_HOUSE(run: Run) -> None:
     grade_common(run, "explore: done: explore to LITTLEROOT_TOWN")
+    check_reversals(run)
     before, after = run.before or {}, run.after or {}
     run.check(before.get("map") == HOUSE_2F and before.get("VAR_LITTLEROOT_INTRO_STATE") == 6,
               f"NON-VACUITY (the fixture): map {before.get('map')} (the player's 2F {HOUSE_2F}), VAR_LITTLEROOT_INTRO_STATE "
@@ -698,6 +1254,88 @@ def grade_TOWN(run: Run) -> None:
               f"walking steps {ai_steps} (a scene's movements count too)")
     run.notes.append(f"TOWN: {walk_steps_on(run, '0:9')} walking steps on LITTLEROOT_TOWN; decisions "
                      f"{sum(1 for r in run.records if r.get('decision') == 'decide')}")
+    check_reversals(run)
+    check_no_road_before_a_crossing(run)
+
+
+_MAP_SIZES: dict[str, list[int]] = {}
+
+
+def rom_map_sizes(keys: list[str]) -> dict[str, list[int]]:
+    """TEST SIDE (the step-3.1 verifier's round): each map's (width, height) by the ROM's own layout (the framework's
+    `get_map_data(...).map_size`, in a throwaway emulator), for maps "group:number"; cached for the driver's run."""
+    wanted = sorted({key for key in keys if key and key not in _MAP_SIZES})
+    if wanted:
+        state = FIXTURES["pokedex_done.ss1"][0]
+        code = ("import json,sys;from pathlib import Path;sys.path.insert(0,r'%s');from ai_player.gates.probe_eyes import boot;"
+                "c=boot('ai-step0-fixture');c.emulator.load_save_state(Path(r'%s').read_bytes());c.emulator.run_single_frame();"
+                "from modules.map import get_map_data;"
+                "print('ROM '+json.dumps({k:list(get_map_data(tuple(int(v) for v in k.split(':')),(0,0)).map_size) for k in %r}))"
+                % (REPO, state, wanted))
+        data, raw = run_json([sys.executable, "-c", code], "ROM", clean_env({}), 300)
+        _MAP_SIZES.update(data or {})
+    return {key: _MAP_SIZES[key] for key in keys if key in _MAP_SIZES}
+
+
+def past_real_edge(tile: tuple[int, int], size: list[int]) -> str | None:
+    """Which edge of the map (by the ROM's size, test side) `tile` lies past, or None: inside."""
+    x, y = tile
+    width, height = size
+    return "up" if y < 0 else "down" if y >= height else "left" if x < 0 else "right" if x >= width else None
+
+
+def edge_crossings(run: Run) -> dict[tuple[str, str], int]:
+    """(map key, side) -> the frame of the first crossing of that edge the AI SAW (its memory's connections, a loaded
+    memory's included): a connection crossed going D leaves its source by side D and enters its target by the opposite."""
+    opposite = {"up": "down", "down": "up", "left": "right", "right": "left"}
+    out: dict[tuple[str, str], int] = {}
+    for c in (run.world or {}).get("connections") or []:
+        direction, frame = c.get("direction"), int(c.get("frame") or 0)
+        if direction not in opposite:
+            continue
+        for key in ((c.get("source"), direction), (c.get("target"), opposite[direction])):
+            out[key] = min(out.get(key, 10**12), frame)
+    return out
+
+
+def edge_targets(run: Run) -> tuple[list[dict], dict]:
+    """Every target the AI chose PAST a map's real edge (the ROM's size, test side) BEFORE it had seen a crossing of that
+    edge, with its kind and reason; and the crossings (`edge_crossings`)."""
+    crossings = edge_crossings(run)
+    decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
+    sizes = rom_map_sizes(sorted({(r["extra"] or {}).get("map") for r in decides if (r["extra"] or {}).get("map")}))
+    out = []
+    for r in decides:
+        extra = r["extra"]
+        size = sizes.get(extra.get("map"))
+        side = past_real_edge(tuple(extra["target"]), size) if size else None
+        if side is not None and r["frame"] < crossings.get((extra.get("map"), side), 10**12):
+            out.append({"frame": r["frame"], "map": extra.get("map"), "kind": extra.get("kind"), "target": extra["target"],
+                        "side": side, "reason": str(r.get("reason"))[:60]})
+    return out, crossings
+
+
+def road_claims(targets: list[dict]) -> list[dict]:
+    """The targets among `targets` that claim to know a map ENDS there: a road, or a road that leads back or toward the
+    goal ("the road ...": `brain/explore.py` roads)."""
+    return [t for t in targets if t["kind"] == "road" or t["reason"].startswith("the road ")]
+
+
+def check_no_road_before_a_crossing(run: Run) -> None:
+    """(build step 3.1, the step-3 review's finding 1) No target was a ROAD past a map's edge before the AI had SEEN a
+    crossing of THAT edge: the explorer no longer knows where a map ends from its coordinates. (The step-3.1 verifier's
+    round: "the live check never fires", roads chosen: none.) It now also says the case finding 1 is about WAS met: at
+    least one target was chosen past the map's real edge (the ROM's size, test side) before a crossing of that edge was
+    seen, and every such target was chosen as what it LOOKS like (frontier, a door, grass), none as a road. Its fault is
+    the revert arm EDGER (the old coordinates rule: the same targets become roads, and this check fails there)."""
+    past, crossings = edge_targets(run)
+    early = road_claims(past)
+    run.check(bool(past) and not early,
+              f"NO ROAD BEFORE A CROSSING (finding 1): {len(past)} targets chosen past a map's real edge (the ROM's size) before "
+              f"a crossing of that edge was SEEN (want >= 1: the case finding 1 is about), by kind "
+              f"{sorted({t['kind'] for t in past})} (want no road): {[(t['map'], t['kind'], t['target'], t['side']) for t in past[:4]]}; "
+              f"roads among them: {early[:3] or 'none'}; first crossings seen by (map, edge): "
+              f"{ {f'{k[0]} {k[1]}': v for k, v in sorted(crossings.items())} }")
 
 
 def grade_ROUTE(run: Run) -> None:
@@ -725,6 +1363,8 @@ def grade_ROUTE(run: Run) -> None:
     run.check(bool(p0) and [m[0] for m in p0] == [m[0] for m in p1 or []] and all(m[1] > 0 for m in p1 or []),
               f"the party (get_party): {p0} -> {p1}: nobody fainted")
     check_crop(run)
+    check_reversals(run)
+    check_no_road_before_a_crossing(run)
 
 
 def roam_record(run: Run) -> dict:
@@ -768,6 +1408,69 @@ def roam_rederived(run: Run) -> dict:
     return {"presses": len(presses), "steps": len(path) - 1, "path": path, "interrupted": interrupted, "in_place": in_place,
             "reversals": reversals, "spins": reversals + in_place, "walk_presses": len(walks), "walk_moves": walk_moves,
             "distinct": len(set(path)), "battles_logged": len(battles), "preempted": preempted}
+
+
+def reversals(path: list) -> list[dict]:
+    """(build step 3.1, the step-3 review's finding 2) Every REVERSAL within a short window in a walk: `path` is
+    [(map, (x, y))] after every step, in order. A reversal is a step back onto the tile of two steps before ("back":
+    A -> B -> A, the ROUTE arm's (17,9) -> (18,9) -> (17,9)) or the third step of a U-TURN, three steps that end beside
+    the tile they began on ("u-turn": A -> B -> C -> D with D next to A, the TOWN arm's (11,7) -> (12,7) -> (12,6) ->
+    (11,6): one step's worth of ground for three). Steps across a map change or a jump are not compared. Pure."""
+    out = []
+    for i in range(2, len(path)):
+        if not path[i][0] == path[i - 1][0] == path[i - 2][0]:
+            continue
+        a, b, c = path[i - 2][1], path[i - 1][1], path[i][1]
+        if c == a:
+            out.append({"at": i, "kind": "back", "tiles": [list(a), list(b), list(c)]})
+            continue
+        if i >= 3 and path[i - 3][0] == path[i][0]:
+            start = path[i - 3][1]
+            if abs(c[0] - start[0]) + abs(c[1] - start[1]) == 1 and len({start, a, b, c}) == 4:
+                out.append({"at": i, "kind": "u-turn", "tiles": [list(start), list(a), list(b), list(c)]})
+    return out
+
+
+WALK_GATE = re.compile(r"walk (\w+): \((-?\d+), (-?\d+)\) -> \((-?\d+), (-?\d+)\)")
+
+
+def walk_path(run: Run) -> list[list]:
+    """The AI's OWN steps, in order, as the LOOKS confirmed them: every walking press that begins a step (its gate "walk
+    D: (x, y) -> (x2, y2)") whose destination a look showed the player on before the next such press (that press's own
+    look included), as (map key, (x, y)). A step that does not begin where the last one ended (a scene or a warp moved
+    the player between: the twin's push, Mom walking the player to the TV) starts a new stretch, so `reversals` never
+    counts what a script did."""
+    walks = [i for i, r in enumerate(run.records)
+             if str(r.get("reason", "")).startswith("walk ") and str(r.get("action", "")).startswith("hold ")]
+    stretches: list[list] = []
+    current: list = []
+    for n, i in enumerate(walks):
+        record = run.records[i]
+        match, key = WALK_GATE.match(str(record.get("reason"))), map_name_of(record)
+        if match is None or key is None:
+            continue
+        frm = (int(match.group(2)), int(match.group(3)))
+        to = (int(match.group(4)), int(match.group(5)))
+        end = walks[n + 1] if n + 1 < len(walks) else len(run.records) - 1
+        if not any(map_name_of(r) == key and xy_of(r) == to for r in run.records[i + 1:end + 1]):
+            continue  # the step did not happen (a bump, a person, a battle first)
+        if current and current[-1] != (key, frm):
+            stretches.append(current)
+            current = []
+        if not current:
+            current = [(key, frm)]
+        current.append((key, to))
+    stretches.append(current)
+    return [stretch for stretch in stretches if stretch]
+
+
+def path_reversals(run: Run) -> tuple[int, list[dict]]:
+    """(steps along the looks' path, every reversal in it) over every stretch of `walk_path`."""
+    steps, found = 0, []
+    for stretch in walk_path(run):
+        steps += max(0, len(stretch) - 1)
+        found += [{**r, "map": stretch[r["at"]][0]} for r in reversals(stretch)]
+    return steps, found
 
 
 def facing_of(record: dict) -> str | None:
@@ -838,10 +1541,22 @@ def grade_ROAM(run: Run) -> None:
               f"(else: {acted[:2] or 'none'}), {other_way} of them pressed AWAY from the way it faced (a press the game took "
               f"would have turned it); {len(battles_matched)} distinct battles for {len(pre)} presses (one each), of the "
               f"{metrics.get('encounters')} met; presses that left the player standing with NO battle: {derived['in_place']}")
-    worst = (spins or 0) + len(pre)
-    run.notes.append(f"THE STRICTEST READING, reported and NOT a criterion (the design's spin is walking in place or back and "
-                     f"forth; a pre-empted press is neither, by the check above): counting every press that did not move the "
-                     f"player as a spin, {worst}/{attempts} presses = {round(worst / attempts, 4) if attempts else None}")
+    # (build step 3.1, the step-3 review's finding 9) BOTH ratios, from the AI's report AND re-derived from the looks:
+    # the back-and-forth spin ratio (the criterion above) and the strict non-moving-press ratio (reported), whose
+    # difference is exactly the pre-empted presses the check above explains
+    strict = metrics.get("strict_ratio")
+    derived_strict = (derived["in_place"] + derived["interrupted"]) / derived["presses"] if derived["presses"] else None
+    run.check(metrics.get("reversals") == derived["reversals"] and metrics.get("in_place") == derived["in_place"]
+              and metrics.get("preempted") == derived["interrupted"] == len(pre)
+              and metrics.get("non_moving") == derived["in_place"] + derived["interrupted"]
+              and isinstance(strict, float) and derived_strict is not None and abs(strict - derived_strict) < 1e-6,
+              f"BOTH RATIOS (finding 9), the AI's report == re-derived from the looks: BACK-AND-FORTH spin ratio "
+              f"{metrics.get('spin_ratio')} = ({metrics.get('reversals')} reversals + {metrics.get('in_place')} in place) / "
+              f"{steps} training steps (the criterion, < 2%); STRICT non-moving-press ratio {strict} = "
+              f"({metrics.get('in_place')} in place + {metrics.get('preempted')} pre-empted by a battle) / {attempts} presses "
+              f"(reported, NOT a criterion: each pre-empted press is the check above's, a battle rolled at the end of the step "
+              f"before took the screen while it was held); re-derived: {derived['reversals']} + {derived['in_place']} and "
+              f"{derived['in_place']} + {derived['interrupted']} over {derived['presses']} = {derived_strict}")
     run.check((metrics.get("distinct") or 0) >= 40, f"distinct tiles covered: {metrics.get('distinct')} (want >= 40); the "
                                                     f"most-visited tile {metrics.get('most_visited')} times")
     s0, s1 = stats(before, "steps"), stats(after, "steps")
@@ -884,9 +1599,12 @@ def grade_CROP(run: Run, town: Run | None) -> None:
     # "inside the window NOW", which an honest target seen two steps ago need not be (the sweep: TOWN seeds 4 and 6)
     seen = bool(first_town.get("known") and first_town.get("seen_from")
                 and in_window(tuple(first_town["seen_from"]), tuple(first_town["target"])))
-    run.check(first_town.get("kind") == "road" and not seen,
+    # (build step 3.1, finding 1: a tile past an edge is a road only after a crossing is SEEN, so the uncropped eyes no
+    # longer beeline to a 'road': their first town target is whatever far place they saw, a door or the frontier at the
+    # far end of the margin they showed; what separates them is that it was NOT SEEN, whatever its kind)
+    run.check(bool(first_town) and not seen,
               f"the first target on LITTLEROOT_TOWN: a {first_town.get('kind')} at {first_town.get('target')} from "
-              f"{first_town.get('player')}, first 'seen' from {first_town.get('seen_from')}: inside that window: {seen} (a road it "
+              f"{first_town.get('player')}, first 'seen' from {first_town.get('seen_from')}: inside that window: {seen} (a place it "
               f"could not have seen; in the window now: {first_town.get('in_window')})")
     # NOT A CHECK (the step-3 verifier): the walk's LENGTH does not tell a cropped run from an uncropped one. An honest
     # TOWN seed can be as short (the seed sweep's Story seed 1: 26 steps, CROP's own total), so the two checks above
@@ -931,26 +1649,56 @@ def rom_tile(state: Path, map_key: tuple[int, int], xy: tuple[int, int]) -> dict
     return data or {"error": raw[-500:]}
 
 
+def walk_steps_of(presses: list[dict]) -> list[tuple]:
+    """(direction, from, to) of each "walk ..." gate (the first chunk of a step the AI pressed)."""
+    out = []
+    for p in presses:
+        m = re.match(r"walk (\w+): \((-?\d+), (-?\d+)\) -> \((-?\d+), (-?\d+)\)", str(p.get("reason")))
+        out.append((m.group(1), (int(m.group(2)), int(m.group(3))), (int(m.group(4)), int(m.group(5)))) if m else None)
+    return out
+
+
+def one_way_crossed(records: list[dict]) -> tuple[bool, str, list, list]:
+    """(build step 3.1, finding 4) BUMP's errands 2, (0,4) -> (2,4), and 3, back to (0,4), from the action log's walking
+    gates: crossed STRAIGHT THROUGH the one-way tile (1,4) from its open sides (2 steps each way), as the per-side rule
+    allows; step 3's rule (one bump walls every side) walks round it. (The step-3.1 verifier's second round: the check
+    also grades the revert arm BUMPSR, where it must FAIL.)"""
+    presses = [r for r in records if str(r.get("action", "")).startswith(("press ", "hold "))]
+    errand2 = [p for p in presses if str(p.get("reason", "")).startswith("walk ") and "toward the goto at (2, 4)" in p["reason"]]
+    errand3 = [p for p in presses if str(p.get("reason", "")).startswith("walk ") and "toward the goto at (0, 4)" in p["reason"]
+               and p["frame"] > (errand2[-1]["frame"] if errand2 else 10**12)]
+    want2 = [("right", (0, 4), BUMP_TILE), ("right", BUMP_TILE, (2, 4))]
+    want3 = [("left", (2, 4), BUMP_TILE), ("left", BUMP_TILE, (0, 4))]
+    got2, got3 = walk_steps_of(errand2), walk_steps_of(errand3)
+    ok = got2 == want2 and got3 == want3
+    text = (f"THE ONE-WAY TILE CROSSED FROM ITS OPEN SIDES: errand 2, (0,4) -> (2,4): {got2} (want {want2}: straight through "
+            f"{BUMP_TILE} going right); errand 3, back: {got3} (want {want3}) (step 3 walked round it in 4: a bump walled "
+            f"every side)")
+    return ok, text, got2, got3
+
+
 def grade_BUMP(run: Run) -> None:
     grade_common(run, "goto: done:")
     after = run.after or {}
     world = memory_of(run)
-    bumped = {key: list(memory.bumped) for key, memory in (world.maps.items() if world else [])}
-    run.check(bumped == {"1:1": [BUMP_TILE]}, f"exactly one tile learned blocked by bumping: {bumped} (want {{'1:1': [{BUMP_TILE}]}})")
+    bumped = {key: sorted(memory.bumped) for key, memory in (world.maps.items() if world else [])}
+    # (build step 3.1, the step-3 review's finding 4) a bump belongs to the SIDE it came from: (1, 4) refused the player
+    # going DOWN, and that is all the AI learned of it
+    run.check(bumped == {"1:1": [(BUMP_TILE, "down")]},
+              f"exactly one way in learned blocked by bumping: {bumped} (want {{'1:1': [({BUMP_TILE}, 'down')]}})")
     bump_lines = [line for line in world_lines(run) if "BUMP:" in line]
-    run.check(len(bump_lines) == 1 and f"{BUMP_TILE} is learned blocked" in bump_lines[0],
-              f"ONE bump: {bump_lines[0][:220] if bump_lines else 'none'}")
+    run.check(len(bump_lines) == 1 and f"{BUMP_TILE} is learned blocked moving down" in bump_lines[0],
+              f"ONE bump: {bump_lines[0][:260] if bump_lines else 'none'}")
     learned_at = next((r["frame"] for r in run.records if r.get("decision") == "world" and "BUMP:" in str(r.get("reason"))), None)
-    toward = [(p["frame"], p["reason"][:60]) for p in run.presses if f"-> {BUMP_TILE}" in str(p.get("reason"))
-              and str(p.get("reason")).startswith("walk ")]
-    later = [t for t in toward if learned_at is not None and t[0] > learned_at]
-    run.check(len(toward) == 1 and not later,
-              f"pressed toward {BUMP_TILE} once (the bump, f{toward[0][0] if toward else '?'}) and NEVER after it was learned "
-              f"(f{learned_at}): later {later or 'none'}")
+    down = [(p["frame"], p["reason"][:60]) for p in run.presses if str(p.get("reason")).startswith(f"walk down: (1, 3) -> {BUMP_TILE}")]
+    later = [t for t in down if learned_at is not None and t[0] > learned_at]
+    run.check(len(down) == 1 and not later,
+              f"pressed DOWN into {BUMP_TILE} once (the bump, f{down[0][0] if down else '?'}) and never again that way after it was "
+              f"learned (f{learned_at}): later {later or 'none'}")
     decisions = [r for r in run.records if r.get("decision") == "decide"]
-    errand2 = [p for p in run.presses if str(p.get("reason", "")).startswith("walk ") and "toward the goto at (2, 4)" in p["reason"]]
-    run.check(len(errand2) == 4, f"errand 2, (0,4) -> (2,4): {len(errand2)} steps (the only 2-step way is through {BUMP_TILE}: "
-                                 f"avoided, round it in 4): {[p['reason'][:40] for p in errand2]}")
+    ok, text, _, _ = one_way_crossed(run.records)
+    run.check(ok, text)
+    run.measure("bumps", sum(len(v) for v in bumped.values()))
     rom = rom_tile(FIXTURES[run.arm.fixture][0], (1, 1), BUMP_TILE)
     run.check(rom.get("collision") == 0 and "Impassable" in str(rom.get("behaviour")),
               f"WHY, by a second path (the ROM layout via the framework's MapLocation): {BUMP_TILE} has collision {rom.get('collision')} "
@@ -970,6 +1718,165 @@ def grade_BUMPR(run: Run) -> None:
     run.check(truth.get("pos") != [0, 4], f"errand 1 was never done: the player ended at {truth.get('pos')}, not (0, 4)")
     run.check(isinstance(data.get("frames"), int) and data["frames"] < run.arm.frames,
               f"no hang: it gave up within its budget: {data.get('frames')} of {run.arm.frames} frames")
+
+
+def grade_BUMPSR(run: Run, bump: Run | None) -> None:
+    """(the step-3.1 verifier's second round: "FINDING 4 (bumps keyed by tile and direction) has no live revert arm ...
+    BUMP's live check 'THE ONE-WAY TILE CROSSED FROM ITS OPEN SIDES' has never been run against the reverted rule")
+    BUMP's start, errands and seed from a COPY where one bump walls the tile from EVERY side (`revert_step3.py` W34, the
+    step-3 rule): BUMP's own check must FAIL on this run, with the same one bump learned."""
+    data = run.harness or {}
+    run.check(str(data.get("reason", "")).startswith("goto: done"), f"the run's outcome: {str(data.get('reason'))[:160]!r}")
+    world = memory_of(run)
+    bumped = {key: sorted(memory.bumped) for key, memory in (world.maps.items() if world else [])}
+    run.check(bumped == {"1:1": [(BUMP_TILE, "down")]},
+              f"the SAME one bump as BUMP's, learned the same way: {bumped} (want {{'1:1': [({BUMP_TILE}, 'down')]}}): the "
+              f"difference is only what the AI made of it")
+    ok, text, got2, got3 = one_way_crossed(run.records)
+    run.check(not ok, f"HARM (finding 4's per-side rule reverted): BUMP's own check FAILS on this run: {text}")
+    run.check(len(got2) == 4 and len(got3) == 4 and BUMP_TILE not in [step[2] for step in got2 + got3 if step],
+              f"walked ROUND the one-way tile: errand 2 in {len(got2)} steps, errand 3 in {len(got3)}, never onto {BUMP_TILE} "
+              f"(want 4 each: step 3's way, every side walled after one bump from above)")
+    run.measure("bumps", sum(len(v) for v in bumped.values()))
+    run.measure("errand_steps", [len(got2), len(got3)])
+    if bump is not None:
+        _, _, real2, real3 = one_way_crossed(bump.records)
+        theirs = ((bump.verdict or {}).get("counters") or {}).get("real_frames")
+        run.check(len(real2) == 2 and len(real3) == 2,
+                  f"A/B on the same fixture, errands and seed: errands 2 and 3 in {len(real2)} + {len(real3)} steps with the rule "
+                  f"({bump.arm.name}, straight through), {len(got2)} + {len(got3)} without; {theirs} frames with, "
+                  f"{data.get('frames')} without")
+
+
+def grade_WARPREAD(run: Run) -> None:
+    """(the step-3.1 verifier's second round: "FINDING 5's guard only checks syntax ... a `getattr` read is not [caught]; a
+    raw-memory read of gMapHeader's events would also get past it") The behavioural guard (`gates/warp_reads.py`): the
+    REAL eyes' every read against every map's warp array, and three plants, each of which must be caught."""
+    d = run.harness or {}
+    real = d.get("real") or {}
+    starts = real.get("starts") or []
+    if not starts:
+        run.check(False, f"the scan ran: {str(real)[:400]}")
+        return
+    run.check(real.get("warp_arrays", 0) > 400 and all(s["reads"] > 1000 and s["rom_reads"] > 0 for s in starts),
+              f"THE RECORDER SAW THE EYES READ: {real.get('warp_arrays')} warp arrays in the ROM; reads per start "
+              f"{[(s['start'], s['reads'], s['rom_reads']) for s in starts]} (all, then those in the cartridge)")
+    with_warps = [s for s in starts if any(s["own_warp_arrays"].values())]
+    run.check(len(with_warps) >= 4 and all(s["map_events_read"] for s in starts),
+              f"NON-VACUITY: {len(with_warps)} of {len(starts)} starts stand on a map WITH warps "
+              f"({[(s['start'], list(s['own_warp_arrays'].values())) for s in with_warps]}), and on every start the recorder saw "
+              f"the eyes read that map's MapEvents struct, one pointer from its warp array (the signs: `bg_events`): "
+              f"{[(s['start'], s['map_events_read']) for s in starts]}")
+    hits = {s["start"]: s["warp_table_read_count"] for s in starts}
+    run.check(not any(hits.values()),
+              f"THE REAL EYES READ NO WARP TABLE, by any route: reads overlapping a warp array, per start: {hits} (want all 0)")
+    static = d.get("static_real") or {}
+    run.check(static and not any(static.values()),
+              f"and the STATIC check on every host file names none: {static}")
+    plants = d.get("plants") or {}
+    caught_all = True
+    lines = []
+    for name in ("attribute", "getattr", "raw"):
+        p = plants.get(name) or {}
+        scan = (p.get("scan") or {}).get("starts") or []
+        caught = {s["start"]: s["warp_table_read_count"] for s in scan}
+        every = bool(scan) and all(caught.get(s["start"], 0) > 0 for s in with_warps)
+        caught_all &= every
+        run.measure(f"plant_{name}_caught", sum(1 for v in caught.values() if v))
+        lines.append(f"{name} ({p.get('code', '')[:90]}): the scan caught it on {sum(1 for v in caught.values() if v)} of "
+                     f"{len(scan)} starts (every start with warps: {every}); the static check: {p.get('static') or 'NOTHING'}")
+    static_ok = bool((plants.get("attribute") or {}).get("static")) and bool((plants.get("getattr") or {}).get("static")) \
+        and not (plants.get("raw") or {}).get("static")
+    run.check(caught_all and static_ok,
+              f"FAULT-TESTS, three plants in host/eyes.py `_map_facts` (each in a COPY): " + "; ".join(lines)
+              + " (want: the scan catches all three; the static check the first two, and it cannot see the raw read: that is "
+                "what the scan is for)")
+
+
+def grade_F2AB(run: Run, done: dict) -> None:
+    """(the step-3.1 verifier's second round: "FINDING 2's live check at seed 3 separates fixed from reverted by a single
+    event per arm") Every live pair of this session for finding 2 together: the real arm against its revert. The claim
+    rests on the STALE TARGETS WALKED ONTO (0 against several, on every pair); the reversals are a few events in all,
+    reported; the frequency is the sweep's REVERT A/B."""
+    pairs = [(a, r) for a, r in (("HOUSE", "HOUSER"), ("TOWN", "TOWNR"), ("ROUTE", "ROUTER"), ("TOWN9", "TOWN9R"),
+                                 ("ROUTE9", "ROUTE9R")) if a in done and r in done]
+    rows, totals = [], {"real": [0, 0, 0], "revert": [0, 0, 0]}
+    every = bool(pairs)
+    for a, r in pairs:
+        cells = []
+        for side, name in (("real", a), ("revert", r)):
+            steps, found = path_reversals(done[name])
+            _, arrived = stale_arrivals(done[name])
+            walked = sum(1 for x in arrived if x["everything_beside_it_seen"])
+            totals[side][0] += len(found)
+            totals[side][1] += steps
+            totals[side][2] += walked
+            cells.append((len(found), steps, walked))
+        every &= cells[0][2] == 0 and cells[1][2] > 0
+        rows.append(f"{a} vs {r}: stale walked onto {cells[0][2]} vs {cells[1][2]}; reversals {cells[0][0]} in {cells[0][1]} "
+                    f"steps vs {cells[1][0]} in {cells[1][1]}")
+    real, rev = totals["real"], totals["revert"]
+    run.check(len(pairs) == 5 and every,
+              f"THE DISCRIMINATOR, on every pair ({len(pairs)} pairs, seeds 3 and 9): 0 stale targets walked onto with the rules, "
+              f"> 0 without: {every}. " + " | ".join(rows))
+    run.check(rev[2] > real[2] and rev[0] > real[0],
+              f"IN ALL: stale targets walked onto {real[2]} with the rules, {rev[2]} without (the claim rests on this); "
+              f"reversals {real[0]} in {real[1]} steps with, {rev[0]} in {rev[1]} without (a handful of events: reported; "
+              f"the frequency is the sweep's REVERT A/B, `evidence/<date>-step3-RATE.txt`)")
+    run.measure("stale_walked_real", real[2])
+    run.measure("stale_walked_revert", rev[2])
+    run.measure("reversals_real", real[0])
+    run.measure("reversals_revert", rev[0])
+
+
+def grade_CLOCKS(run: Run) -> None:
+    """(the step-3.1 verifier's second round) WHICH launcher trajectories depend on the game's clock. Every launcher arm,
+    in-process, the cartridge's clock pinned at `CLOCK_INSTANTS`: the arms whose frames and presses are the same at every
+    instant may pre-register them for a launcher run (whenever it is played); the arms that change are exactly
+    `CLOCK_SENSITIVE` (pre-registered: a new one would mean a launcher prediction that can miss by the hour); and at
+    `GAME_CLOCK` every arm's trajectory is registered here (`PREDICTED`, the numbers an in-process run reproduces)."""
+    rows = (run.harness or {}).get("rows") or []
+    errors = [r for r in rows if "error" in r]
+    run.check(bool(rows) and not errors, f"every launcher arm ran at every instant: {len(rows)} runs, failed {errors[:2] or 'none'}")
+    by_arm: dict[str, list[dict]] = {}
+    for row in rows:
+        by_arm.setdefault(row["arm"], []).append(row)
+    varies = sorted(name for name, cells in by_arm.items() if len({(c.get("frames"), c.get("presses")) for c in cells}) > 1)
+    stable = sorted(name for name in by_arm if name not in varies)
+    run.check(varies == sorted(CLOCK_SENSITIVE),
+              f"THE CLOCK-SENSITIVE ARMS: {varies} (pre-registered {sorted(CLOCK_SENSITIVE)}); per arm, the trajectories over "
+              f"{len(CLOCK_INSTANTS)} instants from {CLOCK_INSTANTS[0]} to {CLOCK_INSTANTS[-1]}: "
+              + "; ".join(f"{name} {sorted({(c.get('frames'), c.get('presses')) for c in by_arm[name]})}" for name in varies))
+    mismatch = [(name, PREDICTED.get(name, {}).get("frames"), by_arm[name][0].get("frames")) for name in stable
+                if "frames" in PREDICTED.get(name, {}) and PREDICTED[name]["frames"] != by_arm[name][0].get("frames")]
+    unregistered = [name for name in stable if "frames" not in PREDICTED.get(name, {})]
+    registered_sensitive = [name for name in varies if "frames" in PREDICTED.get(name, {})]
+    run.check(not mismatch and not unregistered and not registered_sensitive,
+              f"a launcher arm's frames are pre-registered (`PREDICTED`) exactly when they hold at EVERY clock: the {len(stable)} "
+              f"stable arms all registered, each at the frames it plays at every instant (mismatched: {mismatch or 'none'}; "
+              f"unregistered: {unregistered or 'none'}); the clock-sensitive ones registered with none: "
+              f"{registered_sensitive or 'none'} (their launcher checks are the graders' own, which hold at any clock)")
+    # what the clock-sensitive arms' launcher claims rest on must hold at EVERY instant (their trajectories differ)
+    twin_bad = [(c["arm"], c["when"], c.get("twin_segments"), c.get("map"), c.get("var")) for name in varies if name.startswith("SCENEX")
+                for c in by_arm[name] if not (c.get("twin_segments") and 1 < c["twin_segments"][0] <= TWIN_SCENES_IN_ALL
+                                              and all(n <= 1 for n in c["twin_segments"][1:]))]
+    roam_bad = [(c["when"], c.get("steps"), c.get("spin_ratio")) for c in by_arm.get("ROAM", [])
+                if not (c.get("steps") == 150 and isinstance(c.get("spin_ratio"), (int, float)) and c["spin_ratio"] < 0.02)]
+    run.check(not twin_bad and not roam_bad and all("twin_segments" in c for name in varies if name.startswith("SCENEX")
+                                                    for c in by_arm[name]),
+              f"THE CLOCK-SENSITIVE ARMS' CLAIMS HOLD AT EVERY INSTANT: the twin's push-backs before news and between news "
+              + "; ".join(f"{name} {[(c['when'][5:], c.get('twin_segments'), c.get('map'), c.get('var')) for c in by_arm[name]]}"
+                          for name in varies if name.startswith("SCENEX"))
+              + f" (want 2..{TWIN_SCENES_IN_ALL} before any news, <= 1 after each; not: {twin_bad or 'none'}); ROAM's 150 "
+              f"steps and back-and-forth spin ratio < 2% {[(c['when'][5:], c.get('steps'), c.get('spin_ratio')) for c in by_arm.get('ROAM', [])]} "
+              f"(not: {roam_bad or 'none'})")
+    for name, cells in by_arm.items():
+        pinned = next((c for c in cells if c["when"] == GAME_CLOCK), None)
+        if pinned is not None:
+            run.measure(f"{name}@pinned", [pinned.get("frames"), pinned.get("presses")])
+    run.measure("clock_sensitive", varies)
+    run.notes.append("per arm and instant (frames, presses): " + json.dumps(
+        {name: {c["when"]: [c.get("frames"), c.get("presses")] for c in cells} for name, cells in by_arm.items()}))
 
 
 def grade_TRN(run: Run) -> None:
@@ -1068,8 +1975,337 @@ def grade_XPR(run: Run, xp: Run | None) -> None:
               f"mutant ignored it")
 
 
+def scene_lines(lines: list[str]) -> list[str]:
+    return [line for line in lines if SCENE_LINE in line]
+
+
+def grade_SCENE(run: Run) -> None:
+    """(build step 3.1, the step-3 review's finding 3) A REPEATING SCENE: Littleroot's twin pushes a player with no
+    Pokemon back from the road every time; the errand past her is given up after the second time, nothing new."""
+    grade_common(run, f"goto: stuck: the goto at {SCENE_TARGET} cannot be reached (a scene stopped the way there 2 times")
+    before, after = run.before or {}, run.after or {}
+    run.check(before.get("map") == LITTLEROOT and before.get("VAR_LITTLEROOT_TOWN_STATE") == 0,
+              f"NON-VACUITY (the fixture, by save block 1): map {before.get('map')} (LITTLEROOT_TOWN {LITTLEROOT}), "
+              f"VAR_LITTLEROOT_TOWN_STATE {before.get('VAR_LITTLEROOT_TOWN_STATE')} (0: the rival not met, so the twin's coord "
+              f"events at (10,1) and (11,1) run every time: LittlerootTown_EventScript_NeedPokemonTrigger*)")
+    told = scene_lines(world_lines(run))
+    given_up = [line for line in world_lines(run) if "given up" in line and "a scene stopped the way there" in line]
+    run.check(len(told) == 2 and len(given_up) == 1,
+              f"the scene met on the way to {SCENE_TARGET} exactly TWICE, then the target given up: {told}; {given_up}")
+    frames = ((run.verdict or {}).get("counters") or {}).get("real_frames") or 0
+    run.check(0 < frames < 3000, f"no wait for the novelty window: it gave up after {frames} frames (the window alone: 3000 "
+                                 f"frames after the last novelty)")
+    run.check(after.get("map") == LITTLEROOT and after.get("pos") == SCENE_PUSHED_TO
+              and after.get("VAR_LITTLEROOT_TOWN_STATE") == 0,
+              f"TRUTH (save block 1): on {after.get('map')} at {after.get('pos')} (pushed back to {SCENE_PUSHED_TO} by the "
+              f"scene), VAR_LITTLEROOT_TOWN_STATE {after.get('VAR_LITTLEROOT_TOWN_STATE')} (0: nothing advanced)")
+    a = [p for p in run.presses if p["action"].startswith("press A ")]
+    run.check(len(a) >= 4, f"the scene's texts read through twice: {len(a)} A presses, each on a wait (the hands' check above)")
+    check_crop(run)
+
+
+def grade_SCENER(run: Run, scene: Run | None) -> None:
+    data = run.harness or {}
+    reason = str(data.get("reason", ""))
+    told = scene_lines(data.get("lines") or [])
+    run.check(reason.startswith("goto: stuck: nothing new") and len(told) >= 3,
+              f"HARM: with the rule off the same scene stopped the way to {SCENE_TARGET} {len(told)} times (want >= 3: more than "
+              f"the rule's 2; one round of the twin's scene takes ~1,100 frames, the window 3,000), and the intent ended only on "
+              f"the novelty window: {reason[:220]!r}")
+    run.check(isinstance(data.get("frames"), int) and data["frames"] >= 3000,
+              f"it took {data.get('frames')} frames (want >= 3000: the novelty window)")
+    if scene is not None:
+        there = ((scene.verdict or {}).get("counters") or {}).get("real_frames")
+        run.check(isinstance(there, int) and isinstance(data.get("frames"), int) and data["frames"] > there + 1000,
+                  f"A/B on the same fixture and seed: {data.get('frames')} frames here, {there} with the rule (SCENE): the rule "
+                  f"saved {None if not isinstance(there, int) else data['frames'] - there} frames of the same scene")
+    truth = data.get("truth") or {}
+    run.check(truth.get("VAR_LITTLEROOT_TOWN_STATE") == 0, f"nothing advanced: VAR_LITTLEROOT_TOWN_STATE {truth.get('VAR_LITTLEROOT_TOWN_STATE')}")
+
+
+#: (the step-3.1 verifier's round) the scenes one tile may stop the explorer with before it stops stepping on that tile
+#: (pre-registered, a literal: `brain/navigator.py` SCENE_REPEATS is the AI's own number, not the grade's)
+TWIN_SCENES_PER_TILE = 2
+
+
+def scenes_by_tile(records: list[dict]) -> dict:
+    """(the step-3.1 verifier's round) Every scene that stopped the way to a target, by the tile it BEGAN on: the AI's own
+    record (`began`), with a second reading from the action log, the player's tile on the look of the last walking press
+    before it (the step the scene cut short), and the target it stopped (the explorer's own choice, or an errand)."""
+    out: dict = {}
+    for i, record in enumerate(records):
+        if not (record.get("decision") == "world" and str(record.get("reason", "")).startswith("a scene stopped the way")):
+            continue
+        extra = record.get("extra") or {}
+        press = next((p for p in reversed(records[:i]) if str(p.get("reason", "")).startswith(("walk ", "keep walking "))
+                      and str(p.get("action", "")).startswith("hold ")), None)
+        began = tuple(extra.get("began") or ()) or None
+        out.setdefault(began, []).append({"frame": record.get("frame"), "target": tuple(extra.get("scene_for") or ()),
+                                          "kind": extra.get("kind"), "after": extra.get("after"),
+                                          "pressed_from": xy_of(press) if press is not None else None,
+                                          "words": extra.get("words")})
+    return out
+
+
+def scene_walls_told(records: list[dict]) -> list[tuple[int, tuple[int, int], str]]:
+    """The tiles the AI said it would not step on again (a scene sent the player back from them): (frame, tile, map)."""
+    return [(r["frame"], tuple((r.get("extra") or {})["scene_wall"]), (r.get("extra") or {}).get("map")) for r in records
+            if r.get("decision") == "world" and (r.get("extra") or {}).get("scene_wall")]
+
+
+def twin_scenes(records: list[dict]) -> dict:
+    """(the step-3.1 verifier's rounds) The twin's scenes in one run: by the tile each began on, in all, their words (the
+    AI's own record of what she said), the targets they stopped, and the tiles the AI then gave up."""
+    every = {tile: hits for tile, hits in scenes_by_tile(records).items() if tile in TWIN_TILES}
+    # (the step-3.1 verifier's second round) her PUSH-BACKS only: at VAR_LITTLEROOT_TOWN_STATE 1 her scene on (11, 1) lets
+    # the player pass ("Um, hi!": GoSaveBirchTrigger), which is no meeting that sends the player back
+    twin = {tile: [h for h in hits if h.get("after") is not None and tuple(h["after"]) != tile] for tile, hits in every.items()}
+    twin = {tile: hits for tile, hits in twin.items() if hits}
+    pushes = sorted((h["frame"], tile) for tile, hits in twin.items() for h in hits)
+    lifts = [r["frame"] for r in records if r.get("decision") == "world" and "lifted" in (r.get("extra") or {})]
+    news = [(r["frame"], (r.get("extra") or {}).get("words")) for r in records if r.get("decision") == "world"
+            and str(r.get("reason", "")).startswith("novelty at f") and (r.get("extra") or {}).get("words")]
+    bounds = [0] + lifts + [10**12]
+    segments = [sum(1 for f, _ in pushes if bounds[i] <= f < bounds[i + 1]) for i in range(len(bounds) - 1)]
+    return {"by_tile": twin, "counts": {str(tile): len(hits) for tile, hits in sorted(twin.items())},
+            "total": sum(len(h) for h in twin.values()), "worst": max((len(h) for h in twin.values()), default=0),
+            "words": sorted({str(hit.get("words")) for hits in twin.values() for hit in hits}),
+            "targets": sorted({hit["target"] for hits in twin.values() for hit in hits}),
+            "walls": scene_walls_told(records), "lifts": lifts, "news": news, "segments": segments,
+            "passed_her": [(h["frame"], str(tile), h.get("words")) for tile, hits in every.items() for h in hits
+                           if h.get("after") is None or tuple(h["after"]) == tile]}
+
+
+def grade_SCENEX(run: Run) -> None:
+    """(the step-3.1 verifier's round: "the SCENE plan ... tests the scene rule on a scripted goto target, not on a target
+    the explorer chose") The EXPLORER from the twin's fixture: its own targets behind the twin. (The step-3.1 verifier's
+    second round: "the twin guards two tiles, so the explorer meets her 4 times in total"; "SCENEX's budget was chosen so
+    the run ends outdoors ... what happens after the twin is not graded by the game's answer") The twin is now known by
+    her WORDS: at most `TWIN_SCENES_IN_ALL` meetings in all, every tile she began on given up and never stepped on after;
+    and the run goes to its OWN end (the novelty window, not a budget), with the rest of the town explored after her, and
+    the game's answer graded wherever that end is (`grade_common`). MEASURED: the end is ROUTE101. After her, the explorer
+    meets May in her house; her words are NEWS (`Novelty.heard`), so the twin's tiles are worth a try again; at
+    VAR_LITTLEROOT_TOWN_STATE 1 the twin lets the player pass ("Um, hi!", GoSaveBirchTrigger, state 2), and Birch's
+    rescue scene locks the player on Route 101's first tile: the game's answer there is LOCKED + THE ARRIVAL across the
+    edge the AI walked off (`ARRIVALS`, `game_answer.py --after-connection`)."""
+    grade_common(run, "explore: done: explore to ROUTE101")
+    before, after = run.before or {}, run.after or {}
+    run.check(before.get("map") == LITTLEROOT and before.get("VAR_LITTLEROOT_TOWN_STATE") == 0,
+              f"NON-VACUITY (the fixture, by save block 1): map {before.get('map')} (LITTLEROOT_TOWN), VAR_LITTLEROOT_TOWN_STATE "
+              f"{before.get('VAR_LITTLEROOT_TOWN_STATE')} (0: the twin's coord events at {list(TWIN_TILES)} run every time)")
+    by_tile = scenes_by_tile(run.records)
+    t = twin_scenes(run.records)
+    twin = t["by_tile"]
+    other = {tile: len(hits) for tile, hits in by_tile.items() if tile not in TWIN_TILES}
+    second = all(hit["pressed_from"] == tile for tile, hits in twin.items() for hit in hits)
+    first = t["segments"][0] if t["segments"] else 0
+    run.check(1 < first <= TWIN_SCENES_IN_ALL and t["worst"] <= TWIN_SCENES_PER_TILE + len(t["lifts"]) and len(t["targets"]) >= 2
+              and second,
+              f"THE TWIN SENDS THE PLAYER BACK, by the tile each began on: {t['counts']}; before any news {first} times (want "
+              f"2..{TWIN_SCENES_IN_ALL}: counted per tile alone it was 4, twice on each, the verifier's finding); the AI's own tile "
+              f"== the tile of the look of the walking press it cut short, every time: {second}; the targets it stopped, the "
+              f"EXPLORER's own choices: {t['targets']} (want >= 2 different); other scenes on the way: {other or 'none'}")
+    same = [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("same_scene_tiles")]
+    run.check(len(t["words"]) == 1 and t["words"][0] not in ("None", "") and bool(same),
+              f"KNOWN BY HER WORDS: every push-back's words, as the AI's own record says them: {t['words']} (want one, the same "
+              f"each time); the AI said it was the same scene from "
+              f"{[(r['frame'], (r.get('extra') or {}).get('same_scene_tiles')) for r in same] or 'NOWHERE'}")
+    walls, lifts = t["walls"], t["lifts"]
+    met = sorted(twin)
+
+    def lifted_after(frame: int) -> int:
+        return min([f for f in lifts if f > frame] or [10**12])
+
+    later = [(p["frame"], p["reason"][:50]) for frame, tile, key in walls for p in run.presses
+             if frame < p["frame"] < lifted_after(frame) and str(p.get("reason", "")).startswith("walk ")
+             and f"-> ({tile[0]}, {tile[1]})" in p["reason"] and map_name_of(p) == key]
+    first_walls = sorted({tile for frame, tile, _ in walls if frame < (lifts[0] if lifts else 10**12)})
+    run.check(bool(walls) and first_walls == met and not later,
+              f"EVERY TILE SHE GUARDS GIVEN UP, NOT STEPPED ON AGAIN until news: the tiles the AI gave up before any news "
+              f"{first_walls} == the tiles she began on {met}; walls {[(f, t2) for f, t2, _ in walls]}; a step onto one while it "
+              f"was given up: {later or 'none'}")
+    news = t["news"]
+    run.check(bool(lifts) and bool(news) and bool(walls) and lifts[0] > walls[0][0] and all(n <= 1 for n in t["segments"][1:]),
+              f"NEWS LIFTS HER, ONCE MORE IS ENOUGH: new words heard in scenes that left the player be "
+              f"{[(f, w[:40]) for f, w in news]}; the tiles worth a try again at {lifts}; her push-backs between the news "
+              f"{t['segments'][1:]} (want each <= 1: met once more with nothing new since, she is given up again at once)")
+    run.check(after.get("VAR_LITTLEROOT_TOWN_STATE") == 2 and after.get("map") == ROUTE101 and bool(t["passed_her"]),
+              f"WHAT HAPPENED AFTER THE TWIN, by save block 1: VAR_LITTLEROOT_TOWN_STATE {before.get('VAR_LITTLEROOT_TOWN_STATE')} "
+              f"-> {after.get('VAR_LITTLEROOT_TOWN_STATE')} (want 2: May met in her house (1), then the twin let the player pass "
+              f"(2): her scene that did NOT send the player back {t['passed_her'] or 'NONE'}), the player on {after.get('map')} "
+              f"(ROUTE101 {ROUTE101}) at {after.get('pos')}; the run ended by ITSELF at its goal ({run.outcome[:60]!r}), not by a "
+              f"budget; the game's answer on that tile above")
+    run.measure("twin_pushes", t["total"])
+    run.measure("twin_segments", t["segments"])
+    check_crop(run)
+
+
+def grade_SCENEXR(run: Run, real: Run | None) -> None:
+    """(the step-3.1 verifier's second round) SCENEX from a COPY where a scene is not known by its words (counted per target
+    and per tile only, the verifier's round's code): the twin, who guards two tiles, twice on EACH."""
+    data = run.harness or {}
+    t = twin_scenes(run.records)
+    first = t["segments"][0] if t["segments"] else 0
+    run.check(first > TWIN_SCENES_IN_ALL and t["counts"] and all(n >= TWIN_SCENES_PER_TILE for n in t["counts"].values()),
+              f"HARM (the words rule reverted): the twin sent the player back {first} times before any news (want > "
+              f"{TWIN_SCENES_IN_ALL}), by tile {t['counts']} in all: at least twice on each of her tiles, the per-tile rule alone "
+              f"(the verifier's 'meets her 4 times in total'); her push-backs between news {t['segments']}; the outcome "
+              f"{str(data.get('reason'))[:160]!r}")
+    truth = data.get("truth") or {}
+    if real is not None:
+        mine = twin_scenes(real.records)
+        mine_first = mine["segments"][0] if mine["segments"] else 0
+        run.check(1 < mine_first <= TWIN_SCENES_IN_ALL < first and mine["total"] < t["total"],
+                  f"A/B on the same fixture and seed: before any news {mine_first} push-backs with the rule (SCENEX, "
+                  f"{mine['counts']} in all, {mine['total']}), {first} without ({t['counts']} in all, {t['total']}); the end: "
+                  f"SCENEX on {(real.after or {}).get('map')} (VAR_LITTLEROOT_TOWN_STATE {(real.after or {}).get('VAR_LITTLEROOT_TOWN_STATE')}), "
+                  f"this copy on {truth.get('map')} ({truth.get('VAR_LITTLEROOT_TOWN_STATE')})")
+    run.check(truth.get("map") != ROUTE101,
+              f"and it never got past her: the copy ended on {truth.get('map')} at {truth.get('pos')} (VAR_LITTLEROOT_TOWN_STATE "
+              f"{truth.get('VAR_LITTLEROOT_TOWN_STATE')}), {str(data.get('reason'))[:80]!r}")
+    run.measure("twin_pushes", t["total"])
+    run.measure("twin_segments", t["segments"])
+
+
+def grade_SCENENR(run: Run, real: Run | None) -> None:
+    """(the step-3.1 verifier's second round) SCENEX from a COPY where NEW WORDS are not progress (`revert_step3.py` W53):
+    May's "Who are you?" lifts nothing, so the explorer never tries the twin again and stops in May's house, "nothing
+    new", with the road it could now take open (VAR_LITTLEROOT_TOWN_STATE 1): what the verifier's 'at 10,000 frames or
+    more ... inside May's house' was."""
+    data = run.harness or {}
+    t = twin_scenes(run.records)
+    truth = data.get("truth") or {}
+    run.check(str(data.get("reason", "")).startswith("explore: stuck: nothing new") and not t["lifts"]
+              and truth.get("map") != ROUTE101 and truth.get("VAR_LITTLEROOT_TOWN_STATE") == 1,
+              f"HARM (new words not progress): no tile worth a try again ({t['lifts'] or 'none'}), the run stuck "
+              f"{str(data.get('reason'))[:90]!r} on {truth.get('map')} at {truth.get('pos')}, VAR_LITTLEROOT_TOWN_STATE "
+              f"{truth.get('VAR_LITTLEROOT_TOWN_STATE')} (want 1: May met, the twin would let the player pass now, and the AI "
+              f"never tried her again)")
+    if real is not None:
+        run.check((real.after or {}).get("map") == ROUTE101 and truth.get("map") != ROUTE101,
+                  f"A/B on the same fixture and seed: with new words as progress (SCENEX) the explorer reached "
+                  f"{(real.after or {}).get('map')} (ROUTE101), without on {truth.get('map')}")
+    run.measure("twin_pushes", t["total"])
+
+
+def grade_REVR(run: Run, real: Run | None) -> None:
+    """(the step-3.1 verifier's round: "the live reversal grades in HOUSE, TOWN and ROUTE do not tell the fixed code from
+    the reverted code at seed 3") The arm's start and seed from a COPY with finding 2's two rules reverted: the live
+    checks of the real arm must FAIL here, and the A/B against it shows the difference.
+    (The step-3.1 verifier's second round: "FINDING 2's live check at seed 3 separates fixed from reverted by a single
+    event per arm: 0 reversals against 1".) THE DISCRIMINATOR each pair's claim RESTS ON, said in its check (CLAUDE.md
+    rule 7): the STALE TARGETS WALKED ONTO (0 with the rules, several without: the review's stale target itself). The
+    reversal count is one or two events a run; at seed 3 the revert still breaks the real arm's pre-registered bound 0
+    (a single event, labelled so), at seed 9 it need not (TOWN9R measured 1, as TOWN9). The FREQUENCY answer is the
+    sweep's REVERT A/B (`rate_step3.py`), and this session's pairs together are arm F2AB."""
+    data = run.harness or {}
+    base = run.arm.base
+    steps, found = path_reversals(run)
+    limit = reversal_bound(base, run.arm.run_seed)
+    chosen, arrived = stale_arrivals(run)
+    walked = [a for a in arrived if a["everything_beside_it_seen"]]
+    run.measure("steps", steps)
+    run.measure("reversals", len(found))
+    run.measure("stale_walked", len(walked))
+    run.check(str(data.get("reason", "")).startswith("explore: "), f"the run's outcome: {str(data.get('reason'))[:160]!r}")
+    run.check(len(walked) >= 1,
+              f"HARM, THE DISCRIMINATOR this pair rests on: {len(walked)} of the {chosen} frontier targets were walked onto with "
+              f"everything beside them already seen (the stale targets the review found): {[a['target'] for a in walked]}")
+    if run.arm.run_seed == SEED:
+        run.check(len(found) > limit,
+                  f"and at seed {SEED}: {len(found)} reversals on the {steps} steps the looks showed, more than {base}'s "
+                  f"pre-registered bound {limit}: the real arm's reversal check FAILS on the reverted code (ONE EVENT: not what "
+                  f"the claim rests on) ({[(r['map'], r['kind'], r['tiles']) for r in found][:3]})")
+    else:
+        run.notes.append(f"reversals at seed {run.arm.run_seed}: {len(found)} on {steps} steps "
+                         f"({[(r['map'], r['kind'], r['tiles']) for r in found][:3]}); the bound there is {limit}, not a claim")
+    if real is not None:
+        real_steps, real_found = path_reversals(real)
+        _, real_arrived = stale_arrivals(real)
+        real_walked = [a for a in real_arrived if a["everything_beside_it_seen"]]
+        run.check(not real_walked and len(walked) > 0 and len(real_found) <= len(found),
+                  f"A/B on the same start and seed: STALE TARGETS WALKED ONTO {len(real_walked)} with the rules ({base}), "
+                  f"{len(walked)} without (the discriminator); reversals {len(real_found)} in {real_steps} steps with, "
+                  f"{len(found)} in {steps} without (reported: not fewer without the rules)")
+
+
+def grade_EDGER(run: Run, town: Run | None) -> None:
+    """(the step-3.1 verifier's round: "the live check 'NO ROAD BEFORE A CROSSING' never fires") TOWN's start and seed
+    from a COPY with finding 1 reverted (a map's top and left ends from negative coordinates): the same live check FAILS."""
+    data = run.harness or {}
+    probe = Run(run.arm, records=run.records, world=run.world)
+    check_no_road_before_a_crossing(probe)
+    ok, text = probe.checks[-1] if probe.checks else (True, "no check ran")
+    past, _ = edge_targets(run)
+    roads = road_claims(past)
+    run.check(not ok and bool(roads),
+              f"HARM (finding 1 reverted): the live check FAILS on this run: {len(roads)} targets chosen as ROADS past an edge no "
+              f"crossing had shown ({[(t['map'], t['kind'], t['target'], t['side']) for t in roads[:3]]}); the check said: "
+              f"{text[:260]}")
+    if town is not None:
+        mine, _ = edge_targets(town)
+        run.check(not road_claims(mine) and bool(mine),
+                  f"A/B on the same start and seed: TOWN chose {len(mine)} targets past an uncrossed edge, none a road; this copy "
+                  f"chose {len(roads)} roads there")
+    run.notes.append(f"the run's outcome: {str(data.get('reason'))[:200]!r}")
+
+
+def grade_ROUTE9(run: Run) -> None:
+    """(the step-3.1 verifier's round: "ROUTE seed 3 no longer meets a wild battle, so fleeing is proven live only by
+    ROAM") ROUTE at seed 9, through the launcher: its every check, and a wild battle MET (and fled)."""
+    grade_ROUTE(run)
+    met = [line for line in world_lines(run) if line.startswith("[AI-WORLD] battle:")]
+    run.check(len(met) >= 1 and all(line.startswith("[AI-WORLD] battle: fled") for line in met),
+              f"NON-VACUITY of the flee check: {len(met)} wild battle(s) met on this trajectory, each fled: {met}")
+
+
+def grade_EXITS(run: Run) -> None:
+    """(build step 3.1, the step-3 review's finding 5) The eyes see exits by their LOOK; the ROM's warp table is read
+    here only (`gates/exit_looks.py`), against them."""
+    d = run.harness or {}
+    if not d:
+        run.check(False, "the ROM scan ran")
+        return
+    arm_maps = [w for w in d.get("v1") or [] if w["map"].startswith(ARM_MAP_PREFIXES)]
+    unseen_arm = [w for w in arm_maps if not w["seen"]]
+    run.check(not d.get("game_looks_not_in_the_eyes") and not d.get("step_warps_missed"),
+              f"THE GAME'S OWN RULE: every look the game warps on (IsWarpMetatileBehavior, IsArrowWarpMetatileBehavior, "
+              f"TryDoorWarp, a cracked floor; the Union Room's bridge look left out) is in the eyes' table (missing: "
+              f"{d.get('game_looks_not_in_the_eyes') or 'none'}), and no warp tile of the ROM with such a look is unseen "
+              f"({d.get('step_warps_missed') or 'none'})")
+    run.check(len(arm_maps) > 20 and not unseen_arm,
+              f"THE ARMS' MAPS (Littleroot, Route 101, Oldale, their buildings): all {len(arm_maps)} warp tiles LOOK like exits "
+              f"(not: {unseen_arm or 'none'})")
+    v1_unseen = d.get("v1_not_seen") or []
+    run.notes.append(f"v1's other maps (Routes 102 and 103, Petalburg): {len(v1_unseen)} warp tiles look like plain ground, places "
+                     f"a script puts the player (no step warps from such a look, by the game's rule: the first check): "
+                     f"{sorted({(w['map'], w['look']) for w in v1_unseen})}")
+    fault = d.get("fault_without_doormats") or {}
+    fault_arm = [w for w in fault.get("not_seen") or [] if str(w[0]).startswith(ARM_MAP_PREFIXES)]
+    run.check(len(fault_arm) > 0,
+              f"FAULT-TEST of the arms' maps check: the same scan with the doormat look (SOUTH_ARROW_WARP) taken out of the eyes' "
+              f"table leaves {len(fault_arm)} of their warp tiles unseen (want > 0; the real table: {len(unseen_arm)}): "
+              f"{fault_arm[:4]}")
+    run.notes.append(f"THE WHOLE ROM: {d.get('recognised')} of {d.get('warp_tiles')} warp tiles on {d.get('maps')} maps look like "
+                     f"exits; the rest by look {d.get('unrecognised')} (e.g. {d.get('unrecognised_examples')}); exit-looking tiles "
+                     f"with no warp (closed doors: tried once and remembered closed): {d.get('exits_looks_without_a_warp', d.get('exit_looks_without_a_warp'))}")
+
+
 GRADERS = {"HOUSE": grade_HOUSE, "TOWN": grade_TOWN, "ROUTE": grade_ROUTE, "ROAM": grade_ROAM, "STUCK": grade_STUCK,
-           "BUMP": grade_BUMP, "BUMPR": grade_BUMPR, "TRN": grade_TRN, "XP": grade_XP}
+           "BUMP": grade_BUMP, "BUMPR": grade_BUMPR, "TRN": grade_TRN, "XP": grade_XP, "SCENE": grade_SCENE, "EXITS": grade_EXITS,
+           "SCENEX": grade_SCENEX, "TOWN9": grade_TOWN, "ROUTE9": grade_ROUTE9,
+           # the step-3.1 verifier's second round
+           "WARPREAD": grade_WARPREAD, "HOUSE9": grade_HOUSE, "BUMP8": grade_BUMP, "SCENEX9": grade_SCENEX,
+           "CLOCKS": grade_CLOCKS}
+#: Graders that compare with another arm of the same session (the arm named): a fault arm or a revert and its real arm.
+PAIRED = {"CROP": (grade_CROP, "TOWN"), "XPR": (grade_XPR, "XP"), "SCENER": (grade_SCENER, "SCENE"),
+          "SCENEXR": (grade_SCENEXR, "SCENEX"), "HOUSER": (grade_REVR, "HOUSE"), "TOWNR": (grade_REVR, "TOWN"),
+          "ROUTER": (grade_REVR, "ROUTE"), "EDGER": (grade_EDGER, "TOWN"),
+          # the step-3.1 verifier's second round
+          "BUMPSR": (grade_BUMPSR, "BUMP"), "BUMPSR8": (grade_BUMPSR, "BUMP8"), "TOWN9R": (grade_REVR, "TOWN9"),
+          "ROUTE9R": (grade_REVR, "ROUTE9"), "SCENENR": (grade_SCENENR, "SCENEX")}
+#: Graders of the whole session (every run graded before them): FINDING 2's A/B over its pairs.
+SUMMARIES = {"F2AB": grade_F2AB}
 
 
 # ---------------------------------------------------------------------- evidence
@@ -1089,17 +2325,80 @@ def predictions_ref(source: Path = Path(__file__)) -> str:
     import ast
 
     text = ast.get_docstring(ast.parse(source.read_text(encoding="utf-8")), clean=False) or ""
-    return (f"sha256:{hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]} of live_step3.py's docstring ({len(text)} "
-            f"characters), read at the start of this run")
+    numbers = json.dumps(predicted_numbers(source), sort_keys=True)
+    # (the step-3.1 verifier's second round) the PREDICTED table is pre-registered too: it is in the digest (when the
+    # file has one; the one-line recompute of earlier rounds is the docstring-only digest, still printed beside it)
+    both = hashlib.sha256((text + "\n" + numbers).encode("utf-8")).hexdigest()[:16]
+    return (f"sha256:{both} of live_step3.py's docstring ({len(text)} characters) + its PREDICTED table ({len(numbers)} "
+            f"characters) [the docstring alone: sha256:{hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]}], read at the "
+            f"start of this run")
+
+
+def predicted_numbers(source: Path = Path(__file__)) -> dict:
+    """The `PREDICTED` table as the FILE holds it (`ast.literal_eval` of its assignment), read at the start of the run like
+    the docstring, so a run is graded against the numbers written before it began."""
+    import ast
+
+    for node in ast.parse(source.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "PREDICTED":
+            return ast.literal_eval(node.value)
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "PREDICTED" for t in node.targets):
+            return ast.literal_eval(node.value)
+    return {}
+
+
+def measured_numbers(run: Run) -> dict:
+    """What a run measured, for `PREDICTED`: its frames and presses (a launcher arm: the instrument's `real_frames` and
+    `ai_presses` / 2, the pad's presses; an in-process arm: the harness's), and every grader measure."""
+    out = dict(run.measures)
+    counters = (run.verdict or {}).get("counters") or {}
+    if run.arm.kind == "launcher" and counters:
+        out["frames"] = counters.get("real_frames")
+        out["presses"] = (counters.get("ai_presses") or 0) // 2
+    elif run.arm.kind == "harness" and run.harness:
+        out["frames"] = run.harness.get("frames")
+        out["presses"] = run.harness.get("presses")
+    return out
+
+
+def check_predictions(run: Run, predicted: dict) -> None:
+    """(the step-3.1 verifier's second round: "A PRE-REGISTERED PREDICTION DID NOT HOLD AND THIS IS NOT SAID ANYWHERE":
+    ROUTER's docstring predicted 4 stale targets walked onto, the graded run measured 5, and its check asked only for >= 1)
+    Every number this round pre-registers in `PREDICTED` is compared with what the run measured, and the arm FAILS a check
+    of its own when one differs: a miss cannot pass unsaid. The summary counts them."""
+    want = predicted.get(run.arm.name)
+    if not want:
+        return
+    got = measured_numbers(run)
+    for name, value in want.items():
+        measured = got.get(name)
+        if isinstance(measured, tuple):
+            measured = list(measured)
+        run.predictions.append((name, value, measured, measured == value))
+    missed = [(n, p, m) for n, p, m, ok in run.predictions if not ok]
+    run.check(not missed,
+              f"PRE-REGISTERED NUMBERS (PREDICTED, written before this run): " + "; ".join(
+                  f"{n} {p} {'==' if ok else '!='} {m}" for n, p, m, ok in run.predictions)
+              + f" -> {'all held' if not missed else 'NOT HELD: ' + str(missed)}")
 
 
 def write_evidence(run: Run, code_ref: str, tag: str, predictions: str = "") -> Path:
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
     path = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{tag}-{run.arm.name}.txt"
     fixture = FIXTURES[run.arm.fixture]
-    env = " ".join(f"{k}={v}" for k, v in {ENV_BRAIN: run.arm.brain, ENV_SEED: str(SEED), **run.arm.env}.items())
-    if run.arm.kind != "launcher":
-        env = f"none (a test-side script in its own throwaway emulator, from a COPY of the package; seed {SEED})"
+    env = " ".join(f"{k}={v}" for k, v in {ENV_BRAIN: run.arm.brain, ENV_SEED: str(run.arm.run_seed), **run.arm.env}.items())
+    if run.arm.kind == "harness":
+        env = f"none (a test-side script in its own throwaway emulator, from a COPY of the package; seed {run.arm.run_seed})"
+    elif run.arm.kind == "rom":
+        env = "none (a test-side scan of the ROM in its own throwaway emulator: no AI runs; the fixture is only where it boots)"
+    elif run.arm.kind == "warp":
+        env = ("none (a test-side script: the REAL eyes in a throwaway emulator on every start of gates/warp_reads.py STARTS, "
+               "every memory read recorded; then the same from three planted COPIES of the package)")
+    elif run.arm.kind == "summary":
+        env = "none (no run: the graded runs of this session, read again)"
+    elif run.arm.kind == "clock":
+        env = (f"none (test-side runs of every launcher arm's options in their own throwaway emulators, the cartridge's clock "
+               f"pinned at each of {list(CLOCK_INSTANTS)})")
     out = [
         f"AI PLAYER BUILD STEP 3 (THE WORLD MODEL AND THE NAVIGATOR) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title}",
         f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
@@ -1114,6 +2413,10 @@ def write_evidence(run: Run, code_ref: str, tag: str, predictions: str = "") -> 
         SELFTEST_LINE,
         "checks (pre-registered in ai_player/gates/live_step3.py's docstring; each quotes both values):",
         *[f"  [{'PASS' if ok else 'FAIL'}] {text}" for ok, text in run.checks],
+        f"PRE-REGISTERED NUMBERS (live_step3.py PREDICTED, machine-checked): "
+        + ("; ".join(f"{n} predicted {p}, measured {m} -> {'held' if ok else 'NOT HELD'}" for n, p, m, ok in run.predictions)
+           if run.predictions else "none registered for this arm"),
+        f"MEASURED (every number PREDICTED may register): {json.dumps(measured_numbers(run), sort_keys=True, ensure_ascii=False)}",
     ]
     if run.notes:
         out += ["", "---- notes ----", *run.notes]
@@ -1129,7 +2432,19 @@ def write_evidence(run: Run, code_ref: str, tag: str, predictions: str = "") -> 
     if run.answer_fault is not None:
         out += ["", "---- its FAULT-TEST: the same probe claiming the first neighbouring tile it rules out (must disagree) ----",
                 json.dumps(run.answer_fault, sort_keys=True, ensure_ascii=False)]
-    if run.harness is not None:
+    if run.harness is not None and run.arm.kind == "rom":
+        out += ["", "---- the scan (gates/exit_looks.py) ----", json.dumps(run.harness, ensure_ascii=False, sort_keys=True)]
+    elif run.harness is not None and run.arm.kind == "clock":
+        out += ["", "---- the runs (gates/hands_harness.py --game-clock): arm, instant, frames, presses, outcome ----",
+                *[f"  {r.get('arm')} {r.get('when')}: {r.get('frames')} frames, {r.get('presses')} presses, {r.get('reason') or r.get('error')}"
+                  for r in run.harness.get("rows") or []]]
+    elif run.harness is not None and run.arm.kind == "warp":
+        out += ["", "---- the scan (gates/warp_reads.py): the real package, then each plant ----",
+                json.dumps(run.harness.get("real"), ensure_ascii=False, sort_keys=True),
+                *[f"PLANT {name}: {json.dumps(value, ensure_ascii=False, sort_keys=True)}"
+                  for name, value in (run.harness.get("plants") or {}).items()],
+                f"STATIC (every host file): {json.dumps(run.harness.get('static_real'), ensure_ascii=False)}"]
+    elif run.harness is not None:
         harness = {k: run.harness.get(k) for k in ("brain", "seed", "reason", "frames", "presses", "seconds")}
         out += ["", "---- the run, in-process from a COPY of the package (gates/hands_harness.py) ----", json.dumps(harness, ensure_ascii=False),
                 "the brain's lines:", *[f"  {line[:400]}" for line in run.harness.get("lines") or []],
@@ -1173,7 +2488,8 @@ def leftover_processes() -> list[str]:
             cmd = " ".join(proc.info["cmdline"] or [])
         except Exception:  # noqa: BLE001
             continue
-        if ("pokebot.py" in cmd and PROFILE in cmd) or ("hands_harness.py" in cmd and "ai_step3_" in cmd) or "game_answer.py" in cmd:
+        if (("pokebot.py" in cmd and PROFILE in cmd) or ("hands_harness.py" in cmd and "ai_step3_" in cmd) or "game_answer.py" in cmd
+                or "exit_looks.py" in cmd or "warp_reads.py" in cmd):
             found.append(f"pid {proc.info['pid']}: {cmd[:160]}")
     return found
 
@@ -1198,7 +2514,7 @@ def main() -> int:
     if broken:
         return 2
     wanted = [name.strip() for name in args.arms.split(",") if name.strip()]
-    unknown = [name for name in wanted if name not in GRADERS and name not in ("CROP", "XPR")]
+    unknown = [name for name in wanted if name not in GRADERS and name not in PAIRED and name not in SUMMARIES]
     if unknown:
         print(f"unknown arms: {unknown}")
         return 2
@@ -1210,23 +2526,31 @@ def main() -> int:
     build_root = launcher.resolve_build_root()
     code_ref = tree_provenance(REPO)
     predictions = predictions_ref()
+    predicted = predicted_numbers()  # read from the FILE at the start of the run, as the docstring is
     print(f"predictions: {predictions}")
     results: list[Run] = []
-    town: Run | None = None
-    xp: Run | None = None
+    done: dict[str, Run] = {}
     for arm in [a for a in ARMS if a.name in wanted]:
         print(f"\n=== ARM {arm.name}: {arm.title} ===", flush=True)
-        run = run_harness_arm(arm) if arm.kind == "harness" else run_arm(arm, build_root)
-        if arm.name == "CROP":
-            grade_CROP(run, town)
-        elif arm.name == "XPR":
-            grade_XPR(run, xp)
+        if arm.kind == "harness":
+            run = run_harness_arm(arm)
+        elif arm.kind in ("rom", "warp"):
+            run = run_rom_arm(arm)
+        elif arm.kind == "clock":
+            run = run_clock_arm(arm)
+        elif arm.kind == "summary":
+            run = Run(arm, exit_code=0)
+        else:
+            run = run_arm(arm, build_root)
+        if arm.name in SUMMARIES:
+            SUMMARIES[arm.name](run, done)
+        elif arm.name in PAIRED:
+            grader, partner = PAIRED[arm.name]
+            grader(run, done.get(partner))
         else:
             GRADERS[arm.name](run)
-        if arm.name == "TOWN":
-            town = run
-        if arm.name == "XP":
-            xp = run
+        check_predictions(run, predicted)
+        done[arm.name] = run
         evidence = write_evidence(run, code_ref, tag, predictions)
         results.append(run)
         print(f"ARM {arm.name}: {'PASS' if run.passed else 'FAIL'}  (exit {run.exit_code}, {run.elapsed:.1f}s) -> {evidence.relative_to(REPO)}")
@@ -1236,6 +2560,10 @@ def main() -> int:
     print("\n=== SUMMARY ===")
     for run in results:
         print(f"  ARM {run.arm.name:<6} {'PASS' if run.passed else 'FAIL'}  {run.arm.title}")
+    held = [p for run in results for p in run.predictions if p[3]]
+    missed = [(run.arm.name, p[0], p[1], p[2]) for run in results for p in run.predictions if not p[3]]
+    print(f"  PRE-REGISTERED NUMBERS (PREDICTED, machine-checked): {len(held)} of {len(held) + len(missed)} held; "
+          f"NOT held: {missed or 'none'}")
     print(f"  leftover emulator processes: {leftovers or 'none'}")
     ok = all(run.passed for run in results) and not leftovers
     print(f"OVERALL: {'PASS' if ok else 'FAIL'}")

@@ -3,6 +3,7 @@
     py -3.12 ai_player/gates/hands_harness.py BRAIN [--state PATH | --fresh] [--seed N] [--frames N]
                                               [--fault ungated_a|blind_count] [--mart-count N] [--clock HH:MM]
                                               [--save-end PATH] [--run-dir DIR] [--record PATH]
+                 BUILD STEP 3.1: [--game-clock YYYY-MM-DDTHH:MM] (the cartridge's clock pinned: `pin_game_clock`)
                  BUILD STEP 3, the world brains (explore, roam, goto): [--goal-map MAP] [--roam-steps N]
                                               [--goto 'x,y;x,y'] [--world-in world.jsonl] [--intent-frames N] [--no-crop]
     prints one line: HANDS {json}
@@ -45,6 +46,8 @@ SB2_NAME, SB2_NAME_SIZE, SB2_GENDER, SB2_LOCAL_TIME_OFFSET = 0x00, 8, 0x08, 0x98
 SB1_FLAGS, SB1_VARS, VARS_START = 0x1270, 0x139C, 0x4000
 #: `include/constants/flags.h` FLAG_SET_WALL_CLOCK 0x51; `vars.h` VAR_LITTLEROOT_INTRO_STATE 0x4092.
 FLAG_SET_WALL_CLOCK, VAR_LITTLEROOT_INTRO_STATE = 0x51, 0x4092
+#: (build step 3.1) `vars.h` VAR_LITTLEROOT_TOWN_STATE 0x4050 (0: the rival not met, the twin guards the road north).
+VAR_LITTLEROOT_TOWN_STATE = 0x4050
 #: `include/constants/items.h` ITEM_POKE_BALL = 4; `include/item.h` struct Item (0x2C bytes): price @0x10.
 ITEM_POKE_BALL, ITEM_SIZE, ITEM_PRICE = 4, 0x2C, 0x10
 #: BUILD STEP 3: `include/global.h` SaveBlock1.gameStats @0x159C, SaveBlock2.encryptionKey @0xAC; the stats read.
@@ -116,6 +119,9 @@ def truth(context) -> dict:
     out["FLAG_SET_WALL_CLOCK"] = bool(flag_byte >> (FLAG_SET_WALL_CLOCK % 8) & 1)
     out["VAR_LITTLEROOT_INTRO_STATE"] = int.from_bytes(
         emulator.read_bytes(sb1 + SB1_VARS + 2 * (VAR_LITTLEROOT_INTRO_STATE - VARS_START), 2), "little")
+    # (build step 3.1) the twin guards Littleroot's road north while this is 0 (`live_step3.py` arm SCENE)
+    out["VAR_LITTLEROOT_TOWN_STATE"] = int.from_bytes(
+        emulator.read_bytes(sb1 + SB1_VARS + 2 * (VAR_LITTLEROOT_TOWN_STATE - VARS_START), 2), "little")
     local = bytes(read_symbol("gLocalTime", 0, 5))
     offset = bytes(emulator.read_bytes(sb2 + SB2_LOCAL_TIME_OFFSET, 5))
 
@@ -223,13 +229,30 @@ def play(context, brain: str, seed: int, frames: int, run_dir: Path, fault: str 
             "actions": str(run_dir / "actions.jsonl"), "world_file": str(run_dir / "world.jsonl")}
 
 
+def pin_game_clock(emulator, start: str) -> None:
+    """(build step 3.1, the step-3.1 verifier's second round) TEST SIDE, this throwaway emulator only: the cartridge's
+    real-time clock runs from `start` (ISO date and time) at the speed of the EMULATED frames (mGBA `use_simulated_time`),
+    instead of reading the host's clock. WHY: measured 2026-10-08, the game reads its RTC at every map load
+    (`DoTimeBasedEvents`: berry trees grow by the minutes passed, and a tree reaching its berries draws from the game's
+    random number generator), so the same seed, fixture and presses gave SCENEX9 14,462 frames before about 12:10 and
+    15,959 after (the people of Littleroot walked differently at f22407); a clock sweep of every launcher arm (live_step3
+    arm CLOCKS) shows ROAM, SCENEX and SCENEX9 change with the clock and the rest do not. With the clock pinned, an
+    in-process run is the same run whenever it is played. The launcher (the real framework) always reads the host clock:
+    the AI cannot set it (a write) and the framework has no option for it."""
+    import datetime
+
+    emulator._core.rtc.use_simulated_time(datetime.datetime.fromisoformat(start))  # noqa: SLF001 - test side
+
+
 def run(brain: str, state: Path | None, seed: int, frames: int, fault: str | None, mart_count: int | None,
         clock: str | None, run_dir: Path, save_end: Path | None, personality: str | None = None,
-        record: Path | None = None, world: dict | None = None) -> dict:
+        record: Path | None = None, world: dict | None = None, game_clock: str | None = None) -> dict:
     context = boot(PROFILE)
     emulator = context.emulator
     if state is not None:
         emulator.load_save_state(state.read_bytes())
+    if game_clock:
+        pin_game_clock(emulator, game_clock)
     start_truth = truth(context) if state is not None else None
     result = play(context, brain, seed, frames, run_dir, fault, mart_count, clock, personality, record, world)
     end = truth(context)
@@ -266,6 +289,8 @@ def main() -> int:
     parser.add_argument("--save-end", type=Path)
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--record", type=Path, help="write every changed screen the eyes saw (for gates/test_hands.py)")
+    parser.add_argument("--game-clock", help="step 3.1: the cartridge's clock runs from this ISO time at the emulated speed "
+                                             "(`pin_game_clock`); unset: the host's clock, as the launcher's")
     args = parser.parse_args()
     if args.state is None and not args.fresh:
         parser.error("--state PATH or --fresh")
@@ -273,7 +298,7 @@ def main() -> int:
     world = {"goal_map": args.goal_map, "roam_steps": args.roam_steps, "goto": args.goto, "world_in": args.world_in,
              "intent_frames": args.intent_frames, "no_crop": args.no_crop}
     result = run(args.brain, args.state, args.seed, args.frames, args.fault, args.mart_count, args.clock, run_dir,
-                 args.save_end, args.personality, args.record, world)
+                 args.save_end, args.personality, args.record, world, args.game_clock)
     print("HANDS " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

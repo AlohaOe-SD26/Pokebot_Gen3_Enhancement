@@ -148,6 +148,16 @@ FRAMEWORK_LEDGES = {"Jump East": "east", "Jump West": "west", "Jump North": "nor
                     "Jump North/East": "northeast", "Jump North/West": "northwest", "Jump South/East": "southeast",
                     "Jump South/West": "southwest"}
 FRAMEWORK_DOORS = frozenset({"Door Warp", "Non-Animated Door", "Petalburg Gym Door", "Water Door"})
+#: (AI-player build step 3.1, the step-3 review's finding 5) the eyes' `warp` is now the tile's LOOK (`eyes/view.py`
+#: EXIT_BEHAVIORS), so its truth is the FRAMEWORK's names for those behaviours (a third decoder): every door, and the
+#: stairs, ladders, escalators, arrow mats, holes and warp pads (`src/field_control_avatar.c` IsWarpMetatileBehavior,
+#: IsArrowWarpMetatileBehavior). The ROM warp table is kept beside it as `rom_warp` (what the eyes no longer read).
+FRAMEWORK_EXITS = FRAMEWORK_DOORS | frozenset({
+    "Battle Pyramid Warp", "Mossdeep Gym Warp", "Mount Pyre Hole", "Stairs Outside Abandoned Ship", "Shoal Cave Entrance",
+    "Lavaridge Gym B1F Warp", "Ladder", "East Arrow Warp", "West Arrow Warp", "North Arrow Warp", "South Arrow Warp",
+    "Fall Warp", "Aqua Hideout Warp", "Lavaridge Gym 1F Warp", "Escalator Up", "Escalator Down", "Water South Arrow Warp",
+    "Deep South Warp", "Trick House Puzzle Door", "Sky Pillar Closed Door",
+})
 
 
 def own_text(data) -> str:
@@ -452,7 +462,8 @@ def truth(context) -> dict:
                           "encounters": location.has_encounters, "surfable": location.is_surfable,
                           "tall_grass": location.tile_type in ("Tall Grass", "Long Grass"), "tile_type": location.tile_type,
                           "ledge": FRAMEWORK_LEDGES.get(location.tile_type), "door": location.tile_type in FRAMEWORK_DOORS,
-                          "own": own, "warp": tuple(at) in set(rom.events(where)["warps"]),
+                          "own": own, "warp": location.tile_type in FRAMEWORK_EXITS,
+                          "rom_warp": tuple(at) in set(rom.events(where)["warps"]),
                           "warp_of_this_map": source == "map", "source": source})
     out["tiles"] = tiles
 

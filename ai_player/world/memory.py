@@ -14,18 +14,33 @@ WHAT IT LEARNS, AND HOW
     again with other facts is updated (a script can open a door: `setmetatile`).
   * VISITS: how often the player has stood on each tile (the roaming metric and the explorer's "least visited").
   * PEOPLE AND THINGS: where people (transient: they walk) and item balls were seen.
-  * BUMPS: a tile the player tried to walk onto and did not move (`learn_bump`; the navigator decides it was not a
-    person in the way): "a hidden wall". The eyes call such a tile walkable (collision 0) when what stops the
-    player is something a person cannot see on a still screen either: an ELEVATION step (`src/event_object_movement.c`
-    IsElevationMismatchAt: a tile of elevation 4 next to the player's 3), a one-way tile (IMPASSABLE_*). Learned
-    blocked for every direction, so it is avoided afterwards; un-learned if the player is ever seen standing on it.
+  * BUMPS: a tile the player tried to walk onto FROM ONE SIDE and did not move (`learn_bump`; the navigator decides
+    it was not a person in the way): "a hidden wall". The eyes call such a tile walkable (collision 0) when what
+    stops the player is something a person cannot see on a still screen either: an ELEVATION step
+    (`src/event_object_movement.c` IsElevationMismatchAt: a tile of elevation 4 next to the player's 3), a one-way tile
+    (IMPASSABLE_*: `IsMetatileDirectionallyImpassable` blocks some directions only). Since build step 3.1 (the step-3
+    review's finding 4: "one bump = a permanent wall from every side") a bump is kept by (tile, DIRECTION): entering
+    that tile that way costs much more after one bump (`navigator.BUMP_RETRY_COST`: tried again only when every other
+    way is dearer) and is refused after `BUMP_GIVE_UP` bumps; entering it from another side is a fresh question, so a
+    one-way tile is crossed the way it lets the player through. Standing on the tile no longer clears its bumps (one
+    reaches a one-way tile from its open side).
   * MAP CHANGES (`Transition`), classified by what the looks showed in between: a WARP (a fade, the map loading,
     the position settling: a door, a mat, stairs) or a CONNECTION (seamless: the next look is already on the new
     map, the player walked off the edge). A warp becomes a link `(map, tile) -> (map, arrival)` in the WARP GRAPH,
     and the warp tile at or next to the arrival becomes the inferred way BACK (a person knows the door they came out
     of). A connection becomes a link with its OFFSET between the two maps' coordinates, and it teaches both maps'
-    EDGES (`MapMemory.edges`: the first coordinate outside the map on that side; up and left are 0 by the
-    coordinates themselves, a tile at x < 0 or y < 0 is always another map's or the border).
+    EDGES (`MapMemory.edges`: per side, the first coordinate OUTSIDE the map, learned only when a crossing was SEEN:
+    build step 3.1, the step-3 review's finding 1. The memory used to call every tile at x < 0 or y < 0 "past the
+    edge" from the coordinates alone, which a person cannot see: across a connection the screen shows the next map
+    seamlessly, so a tile past an edge never crossed is just a tile, and the explorer treats it as the frontier it
+    looks like. A test shifts every coordinate by +50 and expects the same choice: `gates/test_world.py`).
+  * EXITS by how they LOOK (`eyes/view.py` EXIT_BEHAVIORS: doors, stairs, mats; build step 3.1, finding 5), and what a
+    look cannot say is learned by USING them: where one leads (the warp graph) and that a door-looking tile does
+    not open (`MapMemory.closed`: pressed into properly, nothing happened). NOT FOR GOOD (the step-3.1 verifier: "a
+    door found closed stays closed for good ... could permanently hide a door that a flag opens"): a closed door is
+    worth a try again once the STORY has moved on since it was found closed (one of the eyes' story flags newly set:
+    the events a player has seen) or after `CLOSED_RETRY_FRAMES` (a person tries a locked door again later). The
+    memory reopens it (`WorldMemory.observe`) and keeps what it reopened for the navigator to tell (`take_reopened`).
   * Who caused a change: the AI's own step or warp (the navigator says what it is doing: `intend`), or a SCENE (a
     script moved the player: Mom sending you back upstairs), recorded as `by`.
 
@@ -44,6 +59,8 @@ from ai_player.eyes.view import VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_UP
 
 __all__ = [
     "ABSORB_EVERY",
+    "AXIS",
+    "CLOSED_RETRY_FRAMES",
     "DIRECTIONS",
     "LEDGE_DIRECTIONS",
     "OPPOSITE",
@@ -51,9 +68,12 @@ __all__ = [
     "TileFact",
     "Transition",
     "WorldMemory",
+    "BUMP_GIVE_UP",
     "in_window",
+    "learn_edges",
     "map_key",
     "moved",
+    "past_edge",
     "read_world",
     "road_side",
 ]
@@ -61,11 +81,19 @@ __all__ = [
 #: The D-pad directions and the step each makes (local map coordinates: x right, y down).
 DIRECTIONS: dict[str, tuple[int, int]] = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 OPPOSITE: dict[str, str] = {"up": "down", "down": "up", "left": "right", "right": "left"}
+#: The coordinate a side's edge is measured on (0: x, 1: y), and which way "past it" lies (-1: smaller, +1: larger).
+AXIS: dict[str, tuple[int, int]] = {"up": (1, -1), "down": (1, 1), "left": (0, -1), "right": (0, 1)}
 #: A ledge's jump direction as the eyes name it (`eyes/view.py` LEDGE_DIRECTIONS) -> the D-pad direction that jumps
 #: it. A diagonal ledge has no D-pad direction: the navigator treats it as a wall (none on v1's maps).
 LEDGE_DIRECTIONS: dict[str, str] = {"north": "up", "south": "down", "west": "left", "east": "right"}
 #: A look absorbs the window again when the player or the map changed, or at least this many frames after the last.
 ABSORB_EVERY = 60
+#: Bumps into one tile FROM ONE SIDE after which that way in is a wall (build step 3.1, finding 4): the first bump makes
+#: it dear (`brain/navigator.py` BUMP_RETRY_COST: tried again only when every other way costs more), the second ends it.
+BUMP_GIVE_UP = 2
+#: (the step-3.1 verifier's round) Frames after which a door found closed is worth a try again even with no story news
+#: (36,000: ten minutes of play at 60 frames a second).
+CLOSED_RETRY_FRAMES = 36_000
 
 
 def map_key(group: int, number: int) -> str:
@@ -78,18 +106,17 @@ def moved(xy: tuple[int, int], direction: str) -> tuple[int, int]:
     return xy[0] + dx, xy[1] + dy
 
 
+def past_edge(edges: dict[str, int], xy: tuple[int, int], side: str) -> bool:
+    """Is `xy` past the map's `side` edge, as far as the AI KNOWS (an edge it has seen crossed; build step 3.1)?"""
+    if side not in edges:
+        return False
+    axis, sign = AXIS[side]
+    return xy[axis] <= edges[side] if sign < 0 else xy[axis] >= edges[side]
+
+
 def road_side(memory: "MapMemory", xy: tuple[int, int]) -> str:
-    """Which side of the map a road tile (past the edge) lies on."""
-    x, y = xy
-    if y < 0:
-        return "up"
-    if x < 0:
-        return "left"
-    if "down" in memory.edges and y >= memory.edges["down"]:
-        return "down"
-    if "right" in memory.edges and x >= memory.edges["right"]:
-        return "right"
-    return "inside"
+    """Which side of the map a road tile (past an edge the AI has seen crossed) lies on; "inside" if none."""
+    return next((side for side in ("up", "down", "left", "right") if past_edge(memory.edges, xy, side)), "inside")
 
 
 def in_window(seen_from: tuple[int, int], xy: tuple[int, int]) -> bool:
@@ -154,6 +181,15 @@ def _text(xy: tuple[int, int]) -> str:
     return f"{xy[0]},{xy[1]}"
 
 
+def _bump_key(text: str, info: dict) -> tuple[tuple[int, int], str]:
+    """A persisted bump's key: "x,y|direction" (build step 3.1); a file written before keeps "x,y" and the direction in
+    its info (every bump was recorded with the direction it came from)."""
+    if "|" in text:
+        where, direction = text.split("|")
+        return _xy(where), direction
+    return _xy(text), str(info.get("direction") or "?")
+
+
 class MapMemory:
     """Everything the AI knows of ONE map, in that map's own local coordinates. Tiles past the map's edges are kept
     too (the screen shows the next map or the border there): they are where the roads lead."""
@@ -164,11 +200,15 @@ class MapMemory:
         self.const = const
         self.tiles: dict[tuple[int, int], TileFact] = {}
         self.visits: dict[tuple[int, int], int] = {}
-        self.bumped: dict[tuple[int, int], dict] = {}
+        #: (tile, the direction the player was moving when it did not get in) -> {"from", "first", "last", "bumps"}
+        self.bumped: dict[tuple[tuple[int, int], str], dict] = {}
+        #: exit-looking tiles that took the player nowhere when used properly (a closed door): tile -> {"frame", ...}
+        self.closed: dict[tuple[int, int], dict] = {}
         self.people: dict[tuple[int, int], int] = {}  # tile -> the last frame a person was seen standing there
         self.items: dict[tuple[int, int], int] = {}  # item balls: tile -> the last frame seen
         self.objects_now: frozenset[tuple[int, int]] = frozenset()  # every object on the LAST look (people, balls, ...)
-        self.edges: dict[str, int] = {}  # "right" / "down": the first x / y OUTSIDE the map, learned at a crossing
+        #: per side ("up", "down", "left", "right"): the first coordinate OUTSIDE the map, learned at a crossing SEEN
+        self.edges: dict[str, int] = {}
         self.first_frame: int | None = None
         self.arrivals: list[list] = []  # [frame, x, y, how]
 
@@ -180,31 +220,39 @@ class MapMemory:
         return xy in self.tiles
 
     def outside(self, xy: tuple[int, int]) -> bool:
-        """Past this map's edge: x or y below 0 (local coordinates start at 0), or past an edge learned at a crossing."""
-        x, y = xy
-        return x < 0 or y < 0 or ("right" in self.edges and x >= self.edges["right"]) or (
-            "down" in self.edges and y >= self.edges["down"])
+        """Past one of this map's edges, as far as the AI KNOWS: only an edge it has seen crossed (build step 3.1). The
+        coordinates alone say nothing: a person cannot see where a map ends across a connection."""
+        return any(past_edge(self.edges, xy, side) for side in self.edges)
 
     def passable(self, xy: tuple[int, int]) -> bool:
-        """Known, walkable, and not learned blocked by a bump."""
+        """Known and walkable (a bump is a matter of which way in: `bumps`)."""
         fact = self.tiles.get(xy)
-        return fact is not None and fact.walkable and xy not in self.bumped
+        return fact is not None and fact.walkable
+
+    def bumps(self, xy: tuple[int, int], direction: str) -> int:
+        """How often the player did not get onto `xy` moving `direction` (no person in the way)."""
+        return int((self.bumped.get((xy, direction)) or {}).get("bumps", 0))
+
+    def bumped_tiles(self) -> list[tuple[int, int]]:
+        return sorted({xy for xy, _ in self.bumped})
 
     def unknown_neighbours(self, xy: tuple[int, int]) -> int:
         return sum(1 for direction in DIRECTIONS if moved(xy, direction) not in self.tiles)
 
     def frontier(self) -> list[tuple[int, int]]:
-        """Seen tiles a person could walk to that border UNSEEN ones: walking there shows more of the map. Tiles past the
-        map's edge are left out (they are roads, `roads`)."""
+        """Seen tiles a person could walk to that border UNSEEN ones: walking there shows more of the map. Tiles past an
+        edge the AI has seen crossed are left out (they are roads, `roads`)."""
         return sorted(xy for xy in self.tiles if self.passable(xy) and not self.outside(xy) and self.unknown_neighbours(xy))
 
     def roads(self) -> list[tuple[int, int]]:
-        """Walkable tiles seen PAST the map's edge: the next map, across a connection (walking onto one leaves)."""
+        """Walkable tiles seen PAST an edge the AI has seen crossed: the next map (walking onto one leaves)."""
         return sorted(xy for xy in self.tiles if self.passable(xy) and self.outside(xy))
 
     def exits(self) -> list[tuple[int, int]]:
-        """Warp and door tiles seen inside the map (stairs, doors, mats, cave mouths)."""
-        return sorted(xy for xy, fact in self.tiles.items() if (fact.warp or fact.door) and not self.outside(xy))
+        """Tiles seen inside the map that LOOK like a way out (stairs, doors, mats: the eyes' `warp` and `door`, by the
+        behaviour), less those found closed."""
+        return sorted(xy for xy, fact in self.tiles.items()
+                      if (fact.warp or fact.door) and not self.outside(xy) and xy not in self.closed)
 
     def grass(self) -> list[tuple[int, int]]:
         return sorted(xy for xy, fact in self.tiles.items() if fact.grass and self.passable(xy))
@@ -244,8 +292,9 @@ class MapMemory:
         self.objects_now = frozenset(here)
 
     def visit(self, xy: tuple[int, int]) -> None:
+        # (build step 3.1) standing on a tile no longer clears its bumps: a one-way tile is reached from its open side,
+        # and that says nothing about the side that refused the player
         self.visits[xy] = self.visits.get(xy, 0) + 1
-        self.bumped.pop(xy, None)  # standing on it: whatever stopped the player before, it is not a wall
 
     # ------------------------------------------------------------------ persistence
     def to_dict(self) -> dict:
@@ -255,7 +304,8 @@ class MapMemory:
             "tile_fields": ["flags (b blocked, w water, g grass, e encounters, d door, p warp)", "ledge", "elevation",
                             "behavior", "seen_frame", "seen_from_x", "seen_from_y"],
             "visits": {_text(xy): count for xy, count in sorted(self.visits.items())},
-            "bumped": {_text(xy): info for xy, info in sorted(self.bumped.items())},
+            "bumped": {f"{_text(xy)}|{direction}": info for (xy, direction), info in sorted(self.bumped.items())},
+            "closed": {_text(xy): info for xy, info in sorted(self.closed.items())},
             "people": {_text(xy): frame for xy, frame in sorted(self.people.items())},
             "items": {_text(xy): frame for xy, frame in sorted(self.items.items())},
             "edges": dict(self.edges), "arrivals": list(self.arrivals),
@@ -267,7 +317,8 @@ class MapMemory:
         memory.first_frame = data.get("first_frame")
         memory.tiles = {_xy(k): TileFact.from_compact(v) for k, v in (data.get("tiles") or {}).items()}
         memory.visits = {_xy(k): int(v) for k, v in (data.get("visits") or {}).items()}
-        memory.bumped = {_xy(k): dict(v) for k, v in (data.get("bumped") or {}).items()}
+        memory.bumped = {_bump_key(k, v): dict(v) for k, v in (data.get("bumped") or {}).items()}
+        memory.closed = {_xy(k): dict(v) for k, v in (data.get("closed") or {}).items()}
         memory.people = {_xy(k): int(v) for k, v in (data.get("people") or {}).items()}
         memory.items = {_xy(k): int(v) for k, v in (data.get("items") or {}).items()}
         memory.edges = {str(k): int(v) for k, v in (data.get("edges") or {}).items()}
@@ -319,6 +370,11 @@ class WorldMemory:
         self.transitions: list[Transition] = []
         self.tiles_learned = 0  # every tile ever learned, all maps (the navigator's NOVELTY counter)
         self.looks = 0
+        #: (the step-3.1 verifier's round) how many of the eyes' story flags were set on the last look that read them
+        #: (None until one did): a closed door is retried once this has grown since it was found closed
+        self.story: int | None = None
+        #: closed doors reopened and not yet told: (frame, map key, tile, why) (`take_reopened`)
+        self.reopened: list[tuple[int, str, tuple[int, int], str]] = []
         self._last = _Last()
 
     # ------------------------------------------------------------------ what the navigator tells it
@@ -383,6 +439,10 @@ class WorldMemory:
     def observe(self, look: Observation) -> None:
         """Learn from one look (called on EVERY look the hands take)."""
         self.looks += 1
+        progress = look.progress
+        if progress is not None:
+            self.story = sum(1 for _, on in progress.flags if on)
+        self._reopen(look.frame)
         player = look.player
         last = self._last
         screen = look.screen
@@ -448,15 +508,7 @@ class WorldMemory:
             if frm is not None and direction in DIRECTIONS:
                 crossed = moved(frm, direction)
                 offset = [xy[0] - crossed[0], xy[1] - crossed[1]]
-                if direction == "right":
-                    source.edges["right"] = crossed[0]
-                elif direction == "down":
-                    source.edges["down"] = crossed[1]
-                back = OPPOSITE[direction]
-                if back == "right":
-                    memory.edges["right"] = xy[0] + 1
-                elif back == "down":
-                    memory.edges["down"] = xy[1] + 1
+                learn_edges(source, memory, direction, frm, xy)
             self.connections.append({"source": last.key, "target": key, "direction": direction, "from": list(frm) if frm else None,
                                      "arrival": list(xy), "offset": offset, "by": by, "frame": look.frame})
             change = Transition(look.frame, last.key, key, "connection", by, frm, xy, direction)
@@ -482,16 +534,46 @@ class WorldMemory:
 
     def learn_bump(self, frm: tuple[int, int], direction: str, frame: int) -> tuple[int, int] | None:
         """Moving `direction` from `frm` on the current map did not move the player, and no person was in the way: the
-        tile is a hidden wall. Returns it."""
+        tile does not let the player in THAT WAY (a hidden wall, or a one-way tile's closed side). Returns the tile."""
         memory = self.here()
         if memory is None:
             return None
         tile = moved(frm, direction)
-        info = memory.bumped.get(tile) or {"from": list(frm), "direction": direction, "first": frame, "bumps": 0}
+        key = (tile, direction)
+        info = memory.bumped.get(key) or {"from": list(frm), "direction": direction, "first": frame, "bumps": 0}
         info["bumps"] = int(info.get("bumps", 0)) + 1
         info["last"] = frame
-        memory.bumped[tile] = info
+        memory.bumped[key] = info
         return tile
+
+    def close_exit(self, xy: tuple[int, int], how: str, frame: int) -> None:
+        """An exit-looking tile of the current map that took the player nowhere when used properly (`how`: the press and
+        how long): remembered as CLOSED (build step 3.1, finding 5: what a look cannot say is learned by using the
+        exit), with how far the story was then (`story`), until `_reopen` (the step-3.1 verifier's round)."""
+        memory = self.here()
+        if memory is not None:
+            memory.closed[xy] = {"frame": frame, "how": how, "story": self.story}
+
+    def _reopen(self, frame: int) -> None:
+        """(The step-3.1 verifier's round: a closed door was closed for good) Every door found closed is worth a try
+        again once the story has moved on since (more of the eyes' story flags set than when it was found closed), or
+        `CLOSED_RETRY_FRAMES` after it was found closed. What is reopened is kept in `reopened` for the navigator."""
+        for key, memory in self.maps.items():
+            for xy, info in list(memory.closed.items()):
+                then = info.get("story")
+                if then is not None and self.story is not None and self.story > then:
+                    why = f"the story moved on since it was found closed ({then} -> {self.story} story flags set)"
+                elif frame - int(info.get("frame", frame)) >= CLOSED_RETRY_FRAMES:
+                    why = f"{frame - int(info['frame'])} frames since it was found closed (f{info['frame']})"
+                else:
+                    continue
+                del memory.closed[xy]
+                self.reopened.append((frame, key, xy, why))
+
+    def take_reopened(self) -> list[tuple[int, str, tuple[int, int], str]]:
+        """The closed doors reopened since the last call (the navigator tells them)."""
+        out, self.reopened = self.reopened, []
+        return out
 
     # ------------------------------------------------------------------ persistence
     def to_dict(self) -> dict:
@@ -517,7 +599,24 @@ class WorldMemory:
         world.transitions = [Transition(int(t[0]), str(t[1]), str(t[2]), str(t[3]), str(t[4]), tuple(t[5]) if t[5] else None,
                                         (int(t[6][0]), int(t[6][1])), t[7]) for t in data.get("transitions") or []]
         world.tiles_learned = int(data.get("tiles_learned") or 0)
+        # every crossing recorded teaches both maps' edges again: a memory written before build step 3.1 kept only the
+        # right and bottom edges (the top and left came from the coordinates, which a person cannot see)
+        for connection in world.connections:
+            source, target = world.maps.get(connection.get("source")), world.maps.get(connection.get("target"))
+            frm, arrival, direction = connection.get("from"), connection.get("arrival"), connection.get("direction")
+            if source is not None and target is not None and frm and arrival and direction in DIRECTIONS:
+                learn_edges(source, target, direction, (int(frm[0]), int(frm[1])), (int(arrival[0]), int(arrival[1])))
         return world
+
+
+def learn_edges(source: MapMemory, target: MapMemory, direction: str, frm: tuple[int, int], arrival: tuple[int, int]) -> None:
+    """A crossing SEEN: moving `direction` from `frm` on `source` landed on `arrival` on `target`. The tile crossed into
+    is the first one outside `source` on that side; the tile behind the arrival, going back, the first one outside
+    `target` on the opposite side (build step 3.1: all four sides, and only from a crossing)."""
+    axis, _ = AXIS[direction]
+    source.edges[direction] = moved(frm, direction)[axis]
+    back = OPPOSITE[direction]
+    target.edges[back] = moved(arrival, back)[AXIS[back][0]]
 
 
 def read_world(path) -> WorldMemory | None:

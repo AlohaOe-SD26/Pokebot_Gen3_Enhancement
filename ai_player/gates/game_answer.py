@@ -1,6 +1,7 @@
 """TEST SIDE: WHERE THE GAME SAYS THE PLAYER STANDS, by its own BEHAVIOUR (AI-player step 3, the verifier's weak proof).
 
-    py -3.12 ai_player/gates/game_answer.py STATE GROUP NUMBER X Y [--after-warp GROUP NUMBER X Y]
+    py -3.12 ai_player/gates/game_answer.py STATE GROUP NUMBER X Y [--after-warp GROUP NUMBER X Y |
+                                                                    --after-connection GROUP NUMBER X Y DIRECTION]
                                                                           prints one line: ANSWER {json}
 
 WHY: the step-3 graders read the player's map and tile from save block 1 (`location`, `pos`) in a second emulator, and
@@ -45,6 +46,28 @@ so every direction held 600 frames moved nothing and counted no step. Two additi
      Task_ExitNonAnimDoor; Task_ExitNonDoor takes no step; `src/metatile_behavior.c` MetatileBehavior_IsDoor: 0x69,
      0x8D; IsNonAnimDoor: 0x60, 0x6C, 0x6E). The predicted tile must be the claim; a claimed neighbour must not be
      (`ruled_out`). The grader also checks the AI pressed nothing after that arrival.
+
+BUILD STEP 3.1 (the step-3 review's item 7: "grep the gates for any grade that compares a post-warp position to a raw
+warp TARGET"): AUDITED 2026-10-08 over every file of `gates/`. The ROM's warp table is read in three places only: this
+file (THE ARRIVAL above, which never grades against the raw landing tile: it applies the exit step the game takes for a
+door-family landing, SetUpWarpExitTask, so a door's player rests ONE TILE SOUTH of it), `probe_eyes.py` (the tile truth
+of `live_step1.py`, a tile's look against the table, no position) and `exit_looks.py` (coverage, no position). Every
+other post-warp grade reads SAVE BLOCK 1's `pos` after the transition (`live_step1.py` WARP / WARPY: `save_xy` on the
+first settled frame of the new map; `live_step3.py` TRUTH: `hands_harness.py truth`; `make_mart_fixture.py` place).
+THE ARRIVAL itself is checked against save block 1's position after the transition, the claim (`agrees`), and now says
+how far the raw landing is from it (`raw_landing_is_the_claim`): on STUCK's state the raw landing (8, 2) is NOT where the
+player stands, (8, 3) is, so a grade on the raw target would fail there (`live_step3.py` grade_STUCK checks both).
+
+THE STEP-3.1 VERIFIER'S SECOND ROUND ("what happens after the twin is not graded by the game's answer"): the arm SCENEX
+now runs to the explorer's own end, which is Route 101 (after May, the twin lets the player pass), and the moment the
+player arrives there at VAR_LITTLEROOT_TOWN_STATE 2, Birch's rescue scene holds the controls: a clean line predicted
+"Down: 1 step, then the map becomes Littleroot" and the game counted 0 (measured 2026-10-08). Two additions:
+  6. LOCKED is now also asked when a trial predicted a STEP and the game took none, loading no map (`stopped_trials`):
+     either the claim is wrong or nothing can move the player; LOCKED tells which.
+  7. THE ARRIVAL ACROSS A CONNECTION (`--after-connection GROUP NUMBER X Y DIRECTION`: the edge the player last walked
+     off, by the AI's own memory): the ROM's connection on that side (its neighbour and offset, the arithmetic `plan`
+     uses at an edge) says where the player lands; a connection is walked across, so there is no exit step. A locked
+     player whose ROM arrival is the claim agrees (`agree_by_arrival`), as with a warp.
 """
 
 from __future__ import annotations
@@ -144,6 +167,31 @@ def arrival_after_warp(source_map: tuple[int, int], source_tile: tuple[int, int]
     return {"warp": {"map": list(source_map), "tile": list(source_tile)}, "map": list(dest), "destination_warp_id": warp_id,
             "landing": list(landing), "landing_behaviour": behaviour, "exit_step": list(EXIT_STEP.get(behaviour, (0, 0))),
             "tile": list(tile)}
+
+
+def arrival_after_connection(source_map: tuple[int, int], source_tile: tuple[int, int], direction: str) -> dict:
+    """(the step-3.1 verifier's second round) The ROM's answer to where walking `direction` off `source_tile` of
+    `source_map` across the map's edge leaves the player: the map's connection on that side (`MapConnection`: the
+    neighbour and its offset), the same arithmetic as `plan`'s edge (no exit step: a connection is walked across)."""
+    from modules.map import get_map_data
+
+    direction = direction.capitalize()
+    here = get_map_data(source_map, source_tile)
+    width, height = here.map_size
+    dx, dy = DIRECTIONS[direction]
+    x, y = source_tile[0] + dx, source_tile[1] + dy
+    if 0 <= x < width and 0 <= y < height:
+        return {"error": f"{list(source_tile)} going {direction} does not leave {list(source_map)}"}
+    link = next((c for c in here.connections if c.direction == SIDES[direction]), None)
+    if link is None:
+        return {"error": f"{list(source_map)} has no {SIDES[direction]} connection"}
+    dest = (link.destination_map_group, link.destination_map_number)
+    dest_w, dest_h = get_map_data(dest, (0, 0)).map_size
+    tile = {"Up": (x - link.offset, dest_h + y), "Down": (x - link.offset, y - height),
+            "Left": (dest_w + x, y - link.offset), "Right": (x - width, y - link.offset)}[direction]
+    return {"connection": {"map": list(source_map), "tile": list(source_tile), "direction": direction, "offset": link.offset},
+            "map": list(dest), "landing": list(tile), "landing_behaviour": get_map_data(dest, tile).tile_type,
+            "exit_step": [0, 0], "tile": list(tile)}
 
 
 def locked(context, state: bytes) -> dict:
@@ -311,8 +359,16 @@ def trial(context, state: bytes, direction: str, predicted: dict, claimed: tuple
             "game_states": sorted(state_seen), "battle": battle, "agree": agree}
 
 
+def stopped_trials(trials: list[dict]) -> bool:
+    """(the step-3.1 verifier's second round) A trial that predicted a STEP and in which the game counted none and loaded
+    no map: either the claim is wrong, or nothing can move the player (a scene holds the controls: Birch's rescue on
+    Route 101 starts the moment the player arrives at VAR_LITTLEROOT_TOWN_STATE 2). Then LOCKED is asked too. Pure."""
+    return any(t["predicted"]["steps"] > 0 and t["game_steps"] == 0 and not t["map_changed"] and not t["battle"] for t in trials)
+
+
 def answer(state_path: Path, claimed_map: tuple[int, int], claimed_pos: tuple[int, int],
-           after_warp: tuple[tuple[int, int], tuple[int, int]] | None = None) -> dict:
+           after_warp: tuple[tuple[int, int], tuple[int, int]] | None = None,
+           after_connection: tuple[tuple[int, int], tuple[int, int], str] | None = None) -> dict:
     context = boot(PROFILE)  # puts the framework on sys.path
     from modules.map import get_map_data, get_player_map_object
 
@@ -363,14 +419,16 @@ def answer(state_path: Path, claimed_map: tuple[int, int], claimed_pos: tuple[in
                 if theirs["clean"] and key(theirs) != key(mine):
                     ruled.append(list(other))
                     break
-    # (module docstring, 4 and 5) no trial: can the player move at all, and where did the last warp leave it?
-    lock = locked(context, state) if not trials else None
+    # (module docstring, 4 and 5) no trial, or (the step-3.1 verifier's second round) a trial the game did not step at
+    # all: can the player move at all, and where did the last warp (or connection) leave it?
+    lock = locked(context, state) if (not trials or stopped_trials(trials)) else None
     arrival = None
-    if after_warp is not None:
-        arrival = arrival_after_warp(*after_warp)
+    if after_warp is not None or after_connection is not None:
+        arrival = arrival_after_warp(*after_warp) if after_warp is not None else arrival_after_connection(*after_connection)
         if "error" not in arrival:
             arrival["agrees"] = arrival["map"] == list(claimed_map) and arrival["tile"] == list(claimed_pos)
-            if not trials:  # every tile beside the claim that a person could stand on gets another prediction
+            arrival["raw_landing_is_the_claim"] = arrival["map"] == list(claimed_map) and arrival["landing"] == list(claimed_pos)
+            if not trials or (lock and lock["locked"]):  # every tile beside the claim a person could stand on gets another prediction
                 ruled = [[claimed_pos[0] + nx, claimed_pos[1] + ny] for nx in (-1, 0, 1) for ny in (-1, 0, 1)
                          if (nx, ny) != (0, 0) and [claimed_pos[0] + nx, claimed_pos[1] + ny] not in walls]
     return {
@@ -393,14 +451,19 @@ def main() -> int:
     except Exception:
         pass
     state, group, number, x, y = sys.argv[1], *map(int, sys.argv[2:6])
-    after_warp = None
+    after_warp = after_connection = None
     if len(sys.argv) == 11 and sys.argv[6] == "--after-warp":
         g, n, wx, wy = map(int, sys.argv[7:11])
         after_warp = ((g, n), (wx, wy))
+    elif len(sys.argv) == 12 and sys.argv[6] == "--after-connection":
+        g, n, wx, wy = map(int, sys.argv[7:11])
+        after_connection = ((g, n), (wx, wy), sys.argv[11])
     elif len(sys.argv) != 6:
-        print(f"usage: {__doc__.splitlines()[2].strip()} [--after-warp GROUP NUMBER X Y]", file=sys.stderr)
+        print(f"usage: {__doc__.splitlines()[2].strip()} [--after-warp GROUP NUMBER X Y | --after-connection GROUP NUMBER X Y "
+              f"DIRECTION]", file=sys.stderr)
         return 2
-    print("ANSWER " + json.dumps(answer(Path(state), (group, number), (x, y), after_warp), ensure_ascii=False), flush=True)
+    print("ANSWER " + json.dumps(answer(Path(state), (group, number), (x, y), after_warp, after_connection),
+                                 ensure_ascii=False), flush=True)
     return 0
 
 

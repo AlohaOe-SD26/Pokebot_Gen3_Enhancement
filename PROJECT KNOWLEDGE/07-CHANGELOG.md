@@ -37881,3 +37881,25 @@ bought balls only at fixed story points.
   - LOW: warp tiles come from the ROM warp table rather than the visible tile behaviour.
   - LOW: the crop check shares the eyes' constants.
   - Also: the RATE seed sweep and the revert transcripts name an older tree (the verifier re-ran the reverts on the final tree: PASS); an exit target could in theory be an unseen tile; the spin metric's definition (a strict count of every non-moving press gives 8.6%, while back-and-forth spins are under 2%).
+
+## 2026-10-08 — AI player step 3.1 (fair exploration): no map-edge knowledge, no ROM warp-table reads, stale targets dropped, scene loops bounded, bumps per direction; a checkpoint before step 3.2
+
+- **Fixed and proven, each with a mutant in `revert_step3.py` (60 caught):**
+  - map edges are frontier until a crossing is SEEN (a +50 coordinate-shift test gives the same choices);
+  - stale frontier targets are dropped;
+  - scene-interrupted targets are excluded after 2 with nothing new;
+  - bumps are keyed by (tile, direction);
+  - exits are recognised by visible tile BEHAVIOUR. Guard: a static check plus a live scan of every memory read against all 444 ROM warp arrays (0 overlaps);
+  - the crop check uses its own literal window;
+  - no grade uses a raw warp target;
+  - exit targets are always SEEN tiles;
+  - ROAM reports both spin ratios.
+- **Final tree `b94ddc58ca95f8f7`, every suite PASS:** `live_step3.py` 33/33 (124 of 124 pre-registered numbers held), `rate_step3.py` 100/100, `live_step1` 21/21, `live_step2` 17/17, `test_world` 93 OK. All 95 evidence files name this digest.
+- **NEW FINDING:** the game reads the HOST CLOCK (the RTC), so arms such as ROAM and SCENEX play different trajectories at different times of day. The graded arms pin the clock where it matters.
+- **Open: step 3.2, from the adversarial review (human-likeness regressions the metrics could not see):**
+  - HIGH: the turn-back cost is charged on EVERY replan, so the AI walks LAPS (8 steps around a room where a person turns back in 2; SCENEX lines 876-899).
+  - HIGH: the reversal metric counts only A-B-A and U-turns, so laps score 0. It needs a cycle check and steps-versus-shortest-path.
+  - MEDIUM: a bump is never forgotten after walking through that way.
+  - MEDIUM: the AI changes target almost every step (22 of 23 dropped as stale).
+  - LOW: doors reopen on hidden story-flag counts.
+  - Also: SCENE-EXPLORE's reversals (1.23 per 100 steps) are outside the bounds; the warp guard's behavioural half is live-only.

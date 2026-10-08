@@ -42,6 +42,7 @@ __all__ = [
     "BEHAVIOR",
     "BEHAVIOR_NAMES",
     "DOOR_BEHAVIORS",
+    "EXIT_BEHAVIORS",
     "GFX_KINDS",
     "GLYPHS",
     "HP_BAR_PIXELS",
@@ -170,6 +171,30 @@ LEDGE_DIRECTIONS: dict[int, str] = {
 DOOR_BEHAVIORS = frozenset(
     {BEHAVIOR["ANIMATED_DOOR"], BEHAVIOR["NON_ANIMATED_DOOR"], BEHAVIOR["PETALBURG_GYM_DOOR"], BEHAVIOR["WATER_DOOR"]}
 )
+#: What a person reads as a WAY OUT by how the tile LOOKS (build step 3.1, the step-3 review's finding 5: the eyes used
+#: to mark a tile a warp from the ROM's warp-event table, which nothing on screen shows): every door above, and the
+#: stairs (`NON_ANIMATED_DOOR`), ladders, escalators, arrow mats, holes in the floor, the gyms' warp pads, and the
+#: drawn entrances. The GAME ITSELF fires a warp event on a step only for these looks: `src/field_control_avatar.c`
+#: IsWarpMetatileBehavior (a door, a ladder, an escalator, a non-animated door, the Lavaridge, Aqua Hideout, Mossdeep
+#: and Mt Pyre warps; and MB_BRIDGE_OVER_OCEAN, re-used by the Union Room's exit only and left out here: 608 bridge
+#: tiles on Routes 110 and 119 carry it), IsArrowWarpMetatileBehavior (the four arrow mats, the water arrow, the Shoal
+#: Cave entrance) and TryDoorWarp; a cracked floor is a fall (`MetatileBehavior_IsCrackedFloorHole`). MEASURED
+#: 2026-10-08 over the 518 maps of the ROM (`gates/exit_looks.py`, a test-side scan of every map's warp events; arm
+#: EXITS of `gates/live_step3.py`): 1,193 of the 1,313 warp tiles carry one of these looks; the other 120 look like
+#: plain ground or water (94 NORMAL, e.g. Petalburg Gym's rooms) and are, by the rule above, places scripts, Fly, Dig
+#: or Dive put the player, never a tile a step warps from (no warp tile with a step-warp look is missed). Every warp
+#: tile of Littleroot, Route 101 and Oldale, their buildings included, carries one. What a look cannot say is LEARNED
+#: BY USING THE EXIT: where it leads (the warp graph, `world/memory.py`), and that a door-looking tile does not open
+#: (395 tiles of these looks have no warp: a closed door, the Pokemon Centers' 2F doors, Petalburg Gym's sliding
+#: doors): pressed into properly and taking the player nowhere, it is remembered as CLOSED (`MapMemory.closed`) and
+#: not chosen as a way out while it stays so: it is tried again once one of the eyes' story flags is newly set since it
+#: was found closed, or after `world/memory.py` CLOSED_RETRY_FRAMES (36,000 frames; the step-3.1 verifier's round).
+EXIT_BEHAVIORS = DOOR_BEHAVIORS | frozenset(BEHAVIOR[name] for name in (
+    "LADDER", "UP_ESCALATOR", "DOWN_ESCALATOR", "EAST_ARROW_WARP", "WEST_ARROW_WARP", "NORTH_ARROW_WARP",
+    "SOUTH_ARROW_WARP", "WATER_SOUTH_ARROW_WARP", "DEEP_SOUTH_WARP", "CRACKED_FLOOR_HOLE", "MT_PYRE_HOLE",
+    "AQUA_HIDEOUT_WARP", "LAVARIDGE_GYM_1F_WARP", "LAVARIDGE_GYM_B1F_WARP", "MOSSDEEP_GYM_WARP", "BATTLE_PYRAMID_WARP",
+    "TRICK_HOUSE_PUZZLE_DOOR", "STAIRS_OUTSIDE_ABANDONED_SHIP", "SHOAL_CAVE_ENTRANCE", "SKY_PILLAR_CLOSED_DOOR",
+))
 
 
 def behavior_name(value: int) -> str:

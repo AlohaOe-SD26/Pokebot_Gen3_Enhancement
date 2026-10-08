@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 2 - MUTANT PROOF OF THE HANDS (gates/revert_step2.py)
-date: 2026-10-08 04:18:29
-code: HEAD f7d007d5; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:1446987412c17a51 over git diff HEAD (21 files, 155973 bytes) and 19 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-08 12:55:14
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b94ddc58ca95f8f7 over git diff HEAD (17 files, 404833 bytes) and 5 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 Each mutant breaks ONE check of the real code in a copy; CAUGHT = its predicted tests fail; REDUNDANT = no test fails, and the reason the check is redundant alone is stated.
 
 [H0] CONTROL, the unchanged copy: 56 tests, failing none (ran the copy: True) -> PASS

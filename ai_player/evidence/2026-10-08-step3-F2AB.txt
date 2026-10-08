@@ -1,0 +1,17 @@
+AI PLAYER BUILD STEP 3 (THE WORLD MODEL AND THE NAVIGATOR) - LIVE PROOF - ARM F2AB: FINDING 2's live A/B over every pair of this session (HOUSE, TOWN, ROUTE at seed 3, TOWN9, ROUTE9 at seed 9, each against its revert): which discriminator the claim rests on
+date: 2026-10-08 13:13:31
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b94ddc58ca95f8f7 over git diff HEAD (17 files, 404833 bytes) and 5 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+predictions: sha256:1ec90653b2a3c781 of live_step3.py's docstring (33768 characters) + its PREDICTED table (2620 characters) [the docstring alone: sha256:fb2e100484957735], read at the start of this run
+fixture: tools/story-dev/saves/pokedex_done.ss1 md5=380fba7a4bf4afdf2fc9a0ad158de29e
+fixture documentation: no run: the graded runs of this session
+command: 
+env: none (no run: the graded runs of this session, read again)
+exit code: 0   elapsed: 0.0s   run dir: None
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 5 synthetic runs (its own: pass; a stale mtime, a frame +3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step3.py's docstring; each quotes both values):
+  [PASS] THE DISCRIMINATOR, on every pair (5 pairs, seeds 3 and 9): 0 stale targets walked onto with the rules, > 0 without: True. HOUSE vs HOUSER: stale walked onto 0 vs 1; reversals 0 in 10 steps vs 1 in 18 | TOWN vs TOWNR: stale walked onto 0 vs 4; reversals 0 in 41 steps vs 1 in 36 | ROUTE vs ROUTER: stale walked onto 0 vs 5; reversals 0 in 35 steps vs 1 in 51 | TOWN9 vs TOWN9R: stale walked onto 0 vs 8; reversals 1 in 43 steps vs 1 in 83 | ROUTE9 vs ROUTE9R: stale walked onto 0 vs 5; reversals 0 in 40 steps vs 2 in 48
+  [PASS] IN ALL: stale targets walked onto 0 with the rules, 23 without (the claim rests on this); reversals 1 in 169 steps with, 6 in 236 without (a handful of events: reported; the frequency is the sweep's REVERT A/B, `evidence/<date>-step3-RATE.txt`)
+  [PASS] PRE-REGISTERED NUMBERS (PREDICTED, written before this run): reversals_real 1 == 1; reversals_revert 6 == 6; stale_walked_real 0 == 0; stale_walked_revert 23 == 23 -> all held
+PRE-REGISTERED NUMBERS (live_step3.py PREDICTED, machine-checked): reversals_real predicted 1, measured 1 -> held; reversals_revert predicted 6, measured 6 -> held; stale_walked_real predicted 0, measured 0 -> held; stale_walked_revert predicted 23, measured 23 -> held
+MEASURED (every number PREDICTED may register): {"reversals_real": 1, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 23}

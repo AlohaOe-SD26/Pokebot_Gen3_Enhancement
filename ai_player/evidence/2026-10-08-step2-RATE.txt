@@ -1,11 +1,11 @@
 AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM RATE: RATE: each skill once per seed 1-20, in-process (gates/hands_harness.py)
-date: 2026-10-08 06:09:20
-code: HEAD f7d007d5; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:2652e886e7844ce4 over git diff HEAD (21 files, 156877 bytes) and 22 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-08 13:05:19
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b94ddc58ca95f8f7 over git diff HEAD (17 files, 404833 bytes) and 5 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 each skill from its own start, seeds 1-20: intro --fresh; nurse post_league_lobby.ss1; mart mart_rustboro.ss1 (5 balls); clock clock_room.ss1 (the time per seed: rate_clock)
 fixture documentation: in-process: the skills' code; the purity of the same code is the launcher arms'
 command: 
 env: none (a test-side script in its own throwaway emulator; its arguments are in the command; seed 3)
-exit code: 0   elapsed: 401.1s   run dir: None
+exit code: 0   elapsed: 421.5s   run dir: None
 VERDICT: PASS
 [SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS
 checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):

@@ -22,7 +22,7 @@ WHAT EACH LOOK DOES, AND WHY THIS WAY
     (`eyes/view.py` derives the window from the decomp; `gates/live_step1.py` arm GEO measures it).
     Objects the game keeps loaded off screen and hidden items are left out. The FAULT switch
     `AI_PLAYER_FAULT_NO_CROP` (crop=False) turns the crop off, so a test can prove it is load-bearing;
-  * ROM data (tileset attributes, the tile-flag table, a map's warps and signs) never changes, so it
+  * ROM data (tileset attributes, the tile-flag table, a map's signs) never changes, so it
     is read once per tileset or map and kept; everything that lives in RAM is read every look;
   * "waits for a button" reads all 32 text printers and `gTextFlags` (`eyes/view.py` text_printer_wait
     has the decomp's rule), and says WHY in `ScreenState.wait_reason`.
@@ -66,6 +66,12 @@ only for the first point below:
     and its margin), not only the 15 x 11 window: the CROP arm of `gates/live_step3.py` gives the navigator
     tiles a person could not see and shows its behaviour change. On the happy path the window is unchanged.
 
+BUILD STEP 3.1 (the step-3 review's finding 5), ONE READ LESS: a tile's `warp` is now how it LOOKS (`eyes/view.py`
+EXIT_BEHAVIORS), and the map's warp-event table is no longer read here (it was the only source of `warp`, and nothing on
+screen shows it). The table is read on the TEST side only (`gates/live_step3.py` arm EXITS, `gates/probe_eyes.py`). Its
+guard (the step-3.1 verifier's second round) is behavioural too: `gates/warp_reads.py` (arm WARPREAD) records every read
+these eyes make and checks none touches any map's warp array, whatever the code that asked for it looks like.
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -104,6 +110,7 @@ from ai_player.eyes.screens import SCENE_CALLBACKS, decode_text, read_ui, scene_
 from ai_player.eyes.view import (
     BADGE_FLAGS,
     DOOR_BEHAVIORS,
+    EXIT_BEHAVIORS,
     LEDGE_DIRECTIONS,
     SCRIPT_CONTEXT_SHUTDOWN,
     STORY_FLAGS,
@@ -605,7 +612,7 @@ class FrameworkEyes:
         return self._map_facts(group, number)[:2]
 
     def _map_facts(self, group: int, number: int) -> tuple:
-        """(region-map name, map constant, warp tiles, interactable tiles) of a map, read once: a map's
+        """(region-map name, map constant, interactable tiles) of a map, read once: a map's
         header and events are ROM data. They are read through the LIVE header (`gMapHeader`, via
         `get_map_data_for_current_position`), and (group, number) comes from save block 1, so the two are
         first checked to be the SAME map: the live header must equal map (group, number)'s own ROM header
@@ -629,11 +636,13 @@ class FrameworkEyes:
                 const = get_map_enum(key).name
             except ValueError:
                 const = None
-            warps = frozenset(warp.local_coordinates for warp in location.warps)
+            # (build step 3.1, the step-3 review's finding 5) the map's WARP events are no longer read: nothing on screen
+            # shows the warp table. A tile is an exit by how it LOOKS (`_tile`: EXIT_BEHAVIORS), and the AI learns the
+            # rest by using them (`world/memory.py`); the table is read on the TEST side only (`gates/`).
             signs = tuple(
                 (event.local_coordinates, event.elevation) for event in location.bg_events if event.kind == "Script"
             )
-            self._maps[key] = (location.map_name, const, warps, signs)
+            self._maps[key] = (location.map_name, const, signs)
         return self._maps[key]
 
     @staticmethod
@@ -655,7 +664,7 @@ class FrameworkEyes:
         primary = self._tileset_attributes(_u32(map_layout, 16))
         secondary = self._tileset_attributes(_u32(map_layout, 20))
         tile_bits = self._tile_flags()
-        _, _, warps, signs = self._map_facts(player.map_group, player.map_number)
+        _, _, signs = self._map_facts(player.map_group, player.map_number)
         if self.crop:
             up, down, left_of, right_of = VIEW_UP, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_HALF_WIDTH
         else:
@@ -681,7 +690,7 @@ class FrameworkEyes:
                 else:
                     block = MAPGRID_UNDEFINED
                 row.append(self._tile(player, vx - MAP_OFFSET, vy - MAP_OFFSET, block, border, primary, secondary,
-                                      tile_bits, warps, dy))
+                                      tile_bits, dy))
             rows.append(tuple(row))
         objects = self._objects(player) + self._signs(player, signs)
         return View(left=left_of, right=right_of, up=up, down=down, rows=tuple(rows), objects=tuple(objects),
@@ -689,9 +698,11 @@ class FrameworkEyes:
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
-              tile_bits: bytes, warps: frozenset, dy: int) -> Tile:
+              tile_bits: bytes, dy: int) -> Tile:
         """One grid block, decoded as `src/fieldmap.c` does (`MapGridGetCollisionAt`, `...ElevationAt`,
-        `...MetatileIdAt`, `GetMetatileAttributesById`)."""
+        `...MetatileIdAt`, `GetMetatileAttributesById`). `warp`: the tile LOOKS like a way out (its behaviour is in
+        `eyes/view.py` EXIT_BEHAVIORS: a door, stairs, a ladder, an escalator, an arrow mat, a hole; build step 3.1),
+        not "the ROM's warp table has an event here", which nothing on screen shows."""
         if block == MAPGRID_UNDEFINED:
             vx, vy = x + MAP_OFFSET, y + MAP_OFFSET
             border_index = ((vx + 1) & 1) + (((vy + 1) & 1) << 1)
@@ -717,7 +728,7 @@ class FrameworkEyes:
             x=x, y=y, dx=x - player.x, dy=y - player.y, metatile=metatile, behavior=behavior,
             behavior_name=behavior_name(behavior), collision=collision, elevation=elevation,
             blocked=collision != 0, water=water, encounter=encounter, tall_grass=behavior in TALL_GRASS_BEHAVIORS,
-            ledge=LEDGE_DIRECTIONS.get(behavior), door=behavior in DOOR_BEHAVIORS, warp=(x, y) in warps,
+            ledge=LEDGE_DIRECTIONS.get(behavior), door=behavior in DOOR_BEHAVIORS, warp=behavior in EXIT_BEHAVIORS,
             half_visible=dy == -VIEW_UP or dy == VIEW_DOWN,
         )
 

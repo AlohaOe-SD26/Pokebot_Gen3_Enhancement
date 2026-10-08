@@ -32,6 +32,40 @@ INTERRUPTIONS (`handle`): a wild battle is fled (`skills/flee.py`); a scene (a s
 are locked: Mom with the Running Shoes, Mom sending the player back upstairs) is read and moved on with A only on the
 eyes' waits (`hands/dialogue.py` advance); a yes/no in a scene is answered NO (an explorer never agrees to what it does
 not know); anything else stops the intent with a reason.
+
+BUILD STEP 3.1 (the step-3 adversarial review), each rule with its proof in `gates/test_world.py` and a mutant in
+`gates/revert_step3.py`:
+  * A STALE TARGET IS DROPPED (finding 2): a frontier target with nothing unseen beside it any more (the walk there
+    showed it), or tall grass already walked, is given up AT ONCE and the next place chosen from where the player
+    stands, on the move (no thinking pause: a person who sees there is nothing over there just turns). It used to be
+    kept until it was reached, which walked the player onto a spot it no longer needed and straight back (TOWN
+    "(11,7) -> (12,7) -> (12,6) -> (11,6)", ROUTE "(17,9) -> (18,9) -> (17,9)").
+  * A SCENE THAT KEEPS INTERRUPTING ONE TARGET (finding 3): every scene met on the way to a target is counted for that
+    target; at `SCENE_REPEATS` with nothing new since the first, the target is given up (Littleroot's twin pushes a
+    player with no Pokemon back from the road every time: the same scene again and again until the novelty window, ~50 s).
+    AND (the step-3.1 verifier: the rule was proven on a scripted errand only; on targets the EXPLORER chose, measured
+    2026-10-08 from `littleroot_twin.ss1`, it gave one frontier tile up after two scenes, then chose the next tile behind
+    the same twin, and the novelty window ended it, 3 to 5 scenes on): a scene is also counted for the TILE it began on
+    when it put the player somewhere else (a push back). At `SCENE_REPEATS` such scenes on one tile, nothing new since the
+    first, that tile is not stepped on again in the intent (`scene_walls`: a person who has been sent back from a spot
+    twice stops walking onto it), so every target behind it is out of reach and the explorer looks elsewhere. "Nothing
+    new" here is PROGRESS only (`Novelty.last_progress`: a story flag, a Pokemon, items, experience): a tile that came on
+    screen while the scene pushed the player back is no reason to walk into it again (the measured seed 4 met the twin
+    4 times for ONE target that way). Progress during the intent lifts every such tile (the twin lets a trainer pass).
+    AND (the step-3.1 verifier's second round: "the twin guards two tiles, so the explorer meets her 4 times in total
+    before it gives up the road north"): a scene is known by its WORDS (`scene_words`: the first page it waited on, as
+    the eyes read it), the way a person knows "the same girl said the same thing again". `SCENE_REPEATS` scenes with the
+    same words on one map that each put the player elsewhere, nothing new since the first, and EVERY tile that scene
+    began on is not stepped on again in the intent (`scene_words` -> `scene_walls`). Measured on the twin (live arm
+    SCENEX, seed 3): twice on (10, 1), then once on (11, 1), where the same words close both: 3 meetings in all, where
+    counting per tile took 4 (twice a tile). The third is the side-step a person makes to the next tile of the road; a
+    tile the scene never began on is not guessed at. A scene with no words (nothing waited for a press) is still
+    counted per tile.
+  * A BUMP BELONGS TO ONE SIDE (finding 4): `step_from` refuses a tile only from the side it was bumped from
+    (`BUMP_GIVE_UP` bumps), after one bump it costs `BUMP_RETRY_COST` more from that side (tried again only when every
+    other way is dearer), and it is open from the others: a one-way tile is crossed the way it lets the player through.
+  * AN EXIT IS USED THE WAY IT LOOKS (finding 5): an arrow mat by pressing its arrow, a door by walking into it from
+    below (`exit_press`); one that takes the player nowhere when used so is remembered CLOSED (`WorldMemory.close_exit`).
 """
 
 from __future__ import annotations
@@ -42,18 +76,22 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 
 from ai_player.eyes.observation import Observation
+from ai_player.eyes.screens import page_text
 from ai_player.hands.dialogue import advance, busy_reason, player_free
 from ai_player.hands.menus import answer_yes_no
 from ai_player.hands.pad import Hands
 from ai_player.skills.flee import TRAINER_OUT_OF_SCOPE, flee, in_battle
-from ai_player.world.memory import DIRECTIONS, MapMemory, WorldMemory, in_window, moved
+from ai_player.world.memory import BUMP_GIVE_UP, DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, in_window, moved
 
 __all__ = [
+    "BUMP_RETRY_COST",
     "BUTTONS",
     "CHUNK_FRAMES",
     "DETOUR_P",
+    "EXIT_PRESS",
     "NOVELTY_WINDOW",
     "PINGPONG_USES",
+    "SCENE_REPEATS",
     "SEARCH_MARGIN",
     "STEP_HOLD_MAX",
     "UNKNOWN_COST",
@@ -65,7 +103,11 @@ __all__ = [
     "Target",
     "astar",
     "distances",
+    "exit_press",
+    "is_scene",
     "nav_free",
+    "scene_words",
+    "stale_reason",
     "step_from",
 ]
 
@@ -88,6 +130,27 @@ NOVELTY_WINDOW = 3000
 PINGPONG_USES = 3
 #: The chance a target gets a small detour through a seen tile beside the way (seeded).
 DETOUR_P = 0.15
+#: (build step 3.1, finding 4) What entering a tile from a side it was bumped from once costs on top (in tiles of
+#: walking): a way round up to this much longer is taken first; the side is refused at `BUMP_GIVE_UP` bumps.
+BUMP_RETRY_COST = 10.0
+#: (build step 3.1, finding 3) Scenes met on the way to ONE target, with nothing new since the first, before it is given up;
+#: and (the step-3.1 verifier's round) scenes that began on ONE tile and put the player elsewhere before that tile is not
+#: stepped on again in the intent.
+SCENE_REPEATS = 2
+#: (build step 3.1, finding 2) What turning BACK costs on the first step of a plan (in tiles of walking): straight back
+#: the way the last step came, or back the way of the step before when that one was a turn (the third step of a
+#: U-turn). A person keeps going rather than turn round, and turns round when the way ahead is clearly worse. MEASURED
+#: 2026-10-08 on the grid model's town (`gates/test_world.py` ReversalTests, 12 seeds): dropping stale targets alone
+#: re-decided on the move toward places behind as often as ahead (28 reversals in 677 steps, against 12 in 788 before).
+TURN_BACK_COST = 4.0
+#: (build step 3.1, finding 5) The press an exit's LOOK asks for (`eyes/view.py` behaviour names): an arrow mat warps when
+#: its arrow is pressed while stood on (`src/field_control_avatar.c` IsArrowWarpMetatileBehavior), an animated door only
+#: when walked into going north (TryDoorWarp). Stairs, ladders, escalators and holes warp when stepped on: any side.
+EXIT_PRESS: dict[str, str] = {
+    "SOUTH_ARROW_WARP": "down", "WATER_SOUTH_ARROW_WARP": "down", "SHOAL_CAVE_ENTRANCE": "down",
+    "NORTH_ARROW_WARP": "up", "EAST_ARROW_WARP": "right", "WEST_ARROW_WARP": "left",
+    "ANIMATED_DOOR": "up", "PETALBURG_GYM_DOOR": "up",
+}
 #: Bounds.
 SETTLE_BUDGET = 900  # frames a map change may take to settle
 PERSON_WAIT = 90  # frames to let a person in the way move on
@@ -100,27 +163,66 @@ def nav_free(look: Observation) -> bool:
     return player_free(look) and not look.screen.fading and look.view is not None
 
 
+def is_scene(look: Observation) -> bool:
+    """Something on screen holds the player: a script runs, the controls are locked, a text or a menu is up (not a
+    battle, not a fade alone)."""
+    screen = look.screen
+    return (screen.script_running or screen.controls_locked or screen.waits_for_button or screen.text_box_open
+            or screen.ui is not None)
+
+
+def scene_words(pages: list[str | None]) -> str | None:
+    """(the step-3.1 verifier's second round) What a person remembers a scene by: its WORDS, the first page it waited on
+    for a press (`eyes/screens.py` page_text, whitespace folded), or None when nothing on screen waited (a scene with no
+    text is remembered by the tile it began on only)."""
+    for page in pages:
+        words = " ".join((page_text(page) or "").split())
+        if words:
+            return words
+    return None
+
+
+def exit_press(behavior: str) -> str | None:
+    """The one press an exit's look asks for (`EXIT_PRESS`), or None: any side (stepped onto)."""
+    return EXIT_PRESS.get(behavior)
+
+
+def stale_reason(memory: MapMemory, target: "Target") -> str | None:
+    """Why a chosen target is no longer worth walking to, by what the AI has seen since it chose it (build step 3.1,
+    finding 2), or None: a FRONTIER tile with nothing unseen beside it any more, TALL GRASS already walked."""
+    if target.kind == "frontier" and memory.known(target.tile) and not memory.unknown_neighbours(target.tile):
+        return "everything beside it has been seen on the way"
+    if target.kind == "grass" and memory.visits.get(target.tile):
+        return "it has been walked already"
+    return None
+
+
 def step_from(memory: MapMemory, xy: tuple[int, int], direction: str, walls: frozenset | set, grass_cost: float,
               allow_unknown: bool = True) -> tuple[tuple[int, int], float] | None:
     """Where one press of `direction` from `xy` leads, and its cost, as far as the AI knows; None if it knows it cannot.
-    `walls`: tiles to treat as blocked now (people and things standing there)."""
+    `walls`: tiles to treat as blocked now (people and things standing there). A tile bumped from THIS side costs
+    `BUMP_RETRY_COST` more after one bump and is refused after `BUMP_GIVE_UP` (build step 3.1): other sides are open."""
     nxt = moved(xy, direction)
-    if nxt in walls or nxt in memory.bumped:
+    if nxt in walls:
         return None
+    tried = memory.bumps(nxt, direction)
+    if tried >= BUMP_GIVE_UP:
+        return None
+    retry = BUMP_RETRY_COST if tried else 0.0
     fact = memory.fact(nxt)
     if fact is None:
-        return (nxt, UNKNOWN_COST) if allow_unknown else None
+        return (nxt, UNKNOWN_COST + retry) if allow_unknown else None
     if fact.ledge is not None:
         if fact.ledge != direction:
             return None
         land = moved(nxt, direction)  # a ledge is jumped: the player lands one tile beyond it
         landing = memory.fact(land)
-        if land in walls or land in memory.bumped or (landing is not None and not landing.walkable):
+        if land in walls or memory.bumps(land, direction) >= BUMP_GIVE_UP or (landing is not None and not landing.walkable):
             return None
-        return land, 2.0
+        return land, 2.0 + retry
     if not fact.walkable:
         return None
-    return nxt, 1.0 + (grass_cost if fact.grass else 0.0)
+    return nxt, 1.0 + (grass_cost if fact.grass else 0.0) + retry
 
 
 def _bounds(memory: MapMemory, start: tuple[int, int], goals: set | None = None) -> tuple[int, int, int, int]:
@@ -132,9 +234,10 @@ def _bounds(memory: MapMemory, start: tuple[int, int], goals: set | None = None)
 
 def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]], walls: frozenset | set,
           grass_cost: float, noise: Callable[[tuple[int, int]], float] | None = None,
-          allow_unknown: bool = True) -> list[str] | None:
+          allow_unknown: bool = True, first: dict[str, float] | None = None) -> list[str] | None:
     """The cheapest way (a list of directions) from `start` to any of `goals` over what the AI knows; None if none.
-    `noise(tile)` (>= 0) varies the cost per tile; the heuristic (Manhattan, every step costs >= 1) stays admissible."""
+    `noise(tile)` (>= 0) varies the cost per tile; the heuristic (Manhattan, every step costs >= 1) stays admissible.
+    `first`: an extra cost per direction for the FIRST step only (turning back: `Navigator.turn_costs`)."""
     if start in goals:
         return []
     low_x, high_x, low_y, high_y = _bounds(memory, start, goals)
@@ -163,6 +266,8 @@ def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]]
                 continue
             if noise is not None:
                 cost += noise(nxt)
+            if first and here == start:
+                cost += first.get(direction, 0.0)
             total = best[here] + cost
             if total < best.get(nxt, float("inf")):
                 best[nxt] = total
@@ -172,8 +277,10 @@ def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]]
     return None
 
 
-def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set, grass_cost: float) -> dict[tuple[int, int], float]:
-    """The cheapest cost from `start` to every tile it can reach (known or not, within the search bounds)."""
+def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set, grass_cost: float,
+              first: dict[str, float] | None = None) -> dict[tuple[int, int], float]:
+    """The cheapest cost from `start` to every tile it can reach (known or not, within the search bounds). `first`: as
+    `astar`'s (an extra cost per direction for the first step: turning back)."""
     low_x, high_x, low_y, high_y = _bounds(memory, start)
     best: dict[tuple[int, int], float] = {start: 0.0}
     queue: list[tuple[float, tuple[int, int]]] = [(0.0, start)]
@@ -188,6 +295,8 @@ def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set,
             nxt, extra = step
             if not (low_x <= nxt[0] <= high_x and low_y <= nxt[1] <= high_y):
                 continue
+            if first and here == start:
+                extra += first.get(direction, 0.0)
             total = cost + extra
             if total < best.get(nxt, float("inf")):
                 best[nxt] = total
@@ -254,8 +363,30 @@ class Novelty:
         self.items = self._items(look)
         self.experience = self._experience(look) or {}
         self.last = look.frame
+        #: (the step-3.1 verifier's round) the frame of the newest novelty that is NOT a place (a story flag, a Pokemon,
+        #: items, experience): what a scene must have brought to be "something new" (`Navigator._scene_met`)
+        self.last_progress = look.frame
         self.events: list[tuple[int, str]] = []
         self.notable: list[str] = []
+        #: (the step-3.1 verifier's second round) the WORDS of every scene heard in the intent (`scene_words`, `heard`)
+        self.words: set[str] = set()
+
+    def heard(self, words: str | None, frame: int) -> bool:
+        """(the step-3.1 verifier's second round) A scene whose WORDS were never heard before in the intent is PROGRESS,
+        dated at the frame the scene began: a person who is told something new has learned something (May's "Who are
+        you?" in her house: the story moved on, and the road the twin guarded may be open now; measured 2026-10-08 from
+        `littleroot_twin.ss1`: meeting May sets no flag the eyes call a story flag, so the explorer never tried the twin
+        again and stopped in May's house "nothing new"). The same words again are not progress (the twin's second
+        "Um, um, um!"). The navigator asks only for a scene that left the player where it found them: a scene that SENT
+        the player back or away is an obstacle, not news (a second person's new words at the next tile do not make the
+        first one let the player pass). True when they were new."""
+        if not words or words in self.words:
+            return False
+        self.words.add(words)
+        self.last = max(self.last, frame)
+        self.last_progress = max(self.last_progress, frame)
+        self.events.append((frame, f"new words heard: {words[:40]!r}"))
+        return True
 
     @staticmethod
     def _flags(look: Observation) -> set[str] | None:
@@ -320,6 +451,8 @@ class Novelty:
         if new:
             self.last = look.frame
             self.events.append((look.frame, ", ".join(new)))
+        if self.notable:
+            self.last_progress = look.frame
         return new
 
 
@@ -347,9 +480,22 @@ class Navigator:
         self.grass_cost = grass_cost
         self.personality = personality
         self.on_map_change = on_map_change
-        self.excluded: set[str] = set()  # "map|target key": targets that failed in the current intent (`exclude`)
+        #: "map|target key" -> why: targets that failed in the current intent (`exclude`)
+        self.excluded: dict[str, str] = {}
+        #: "map|target key" -> the frames of the scenes met on the way to it, in the current intent (build step 3.1)
+        self.scene_hits: dict[str, list[int]] = {}
+        #: (the step-3.1 verifier's round) "map|x,y" -> the frames of the scenes that began on that tile and put the player
+        #: elsewhere, and map -> the tiles not stepped on again in the current intent because of them (`walls`)
+        self.scene_spots: dict[str, list[int]] = {}
+        self.scene_walls: dict[str, set[tuple[int, int]]] = {}
+        #: (the step-3.1 verifier's second round) "map|words" -> the frames of the scenes with those WORDS that put the
+        #: player elsewhere, and the tiles they began on (`scene_words`; every one walled at `SCENE_REPEATS`)
+        self.scene_said: dict[str, dict] = {}
         self.stats = _Stats()
         self.entry: dict[str, tuple[int, int]] = {}  # map -> where the AI came into it (the explorer's "away")
+        #: (build step 3.1) the AI's own last steps that moved the player, as (map, direction): the HEADING a plan's
+        #: first step is measured against (`turn_costs`)
+        self.recent: list[tuple[str | None, str]] = []
         self._noise: dict[str, tuple[float, dict[tuple[int, int], float]]] = {}
         self._seen_changes = len(world.transitions)
 
@@ -373,14 +519,31 @@ class Navigator:
         return memory, (player.x, player.y)
 
     def walls(self, memory: MapMemory, here: tuple[int, int]) -> frozenset:
-        return frozenset(memory.objects_now - {here})
+        """Tiles not to step on now: where someone stands, and (the step-3.1 verifier's round) a tile a repeating scene
+        sent the player back from in this intent (`scene_walls`)."""
+        return frozenset((memory.objects_now | self.scene_walls.get(memory.key, set())) - {here})
 
-    def exclude(self, target: Target) -> None:
+    def exclude(self, target: Target, why: str = "") -> None:
         """`target` failed on the current map, for the rest of the intent (a tile is a tile of ONE map)."""
-        self.excluded.add(f"{self.world.current}|{target.key}")
+        self.excluded[f"{self.world.current}|{target.key}"] = why
 
     def is_excluded(self, target: Target) -> bool:
         return f"{self.world.current}|{target.key}" in self.excluded
+
+    def why_excluded(self, target: Target) -> str:
+        return self.excluded.get(f"{self.world.current}|{target.key}") or "unreachable"
+
+    def turn_costs(self) -> dict[str, float]:
+        """(build step 3.1, finding 2) The extra cost of a plan's FIRST step by its direction: `TURN_BACK_COST` for
+        going straight back the way the last step came, and back the way of the step before when the last step was a
+        turn (a U-turn's third step). Only steps on the current map count (a map change starts afresh)."""
+        steps = [direction for key, direction in self.recent if key == self.world.current]
+        if not steps:
+            return {}
+        out = {OPPOSITE[steps[-1]]: TURN_BACK_COST}
+        if len(steps) >= 2 and steps[-2] not in (steps[-1], OPPOSITE[steps[-1]]):
+            out.setdefault(OPPOSITE[steps[-2]], TURN_BACK_COST)
+        return out
 
     def noise_for(self, target: Target) -> Callable[[tuple[int, int]], float]:
         """A seeded cost variation per tile, fixed for one target (so replanning every step keeps one way)."""
@@ -405,8 +568,11 @@ class Navigator:
         """One tile in `direction` (module docstring): hold in chunks, look between them. The world is told the AI is
         stepping (a map change during the step is the AI's own) and, once the step is over, that it no longer is (a
         map change later, in a scene, is the scene's)."""
+        key = self.world.current
         result = yield from self._walk(direction, why, gate)
         self.world.settle_intent()
+        if result.kind == "moved":
+            self.recent = (self.recent + [(key, direction)])[-2:]
         return result
 
     def _walk(self, direction: str, why: str, gate: str) -> Generator[None, None, StepResult]:
@@ -447,10 +613,13 @@ class Navigator:
         tile = world.learn_bump(frm, direction, look.frame)
         self.stats.bumps += 1
         fact = memory.fact(target)
+        count = memory.bumps(tile, direction) if tile is not None else 0
         self.tell(f"BUMP: moving {direction} from {frm} on {memory.const or memory.key} did not move the player: {tile} "
-                  f"is learned blocked (the eyes showed {fact.behavior if fact else 'an unseen tile'}"
+                  f"is learned blocked moving {direction} (bump {count} from this side: "
+                  f"{'refused from now on' if count >= BUMP_GIVE_UP else 'dear from now on, tried again only if every other way is dearer'}; "
+                  f"the other sides stay open) (the eyes showed {fact.behavior if fact else 'an unseen tile'}"
                   f"{', elevation %d' % fact.elevation if fact else ''}; held {held} frames)",
-                  {"bump": list(tile), "from": list(frm), "direction": direction, "map": memory.key})
+                  {"bump": list(tile), "from": list(frm), "direction": direction, "map": memory.key, "count": count})
         return StepResult("bumped", frm, tile)
 
     def settle(self, why: str) -> Generator[None, None, Observation]:
@@ -521,8 +690,16 @@ class Navigator:
             spot = (player.x, player.y) if player is not None and player.x is not None else None
             if spot not in (frm, exit_tile):
                 return "strayed"  # stepped somewhere else: not this exit's way
-        self.tell(f"the {what} at {exit_tile} did not take the player anywhere pressing {direction} from {frm} "
-                  f"({held} frames): another way next time")
+        asked = exit_press(fact.behavior) if fact is not None else None
+        if asked is None or asked == direction:
+            # used the way it looks (its arrow, a door from below, stairs stepped onto) and nothing happened: a person
+            # remembers a door that does not open (build step 3.1, finding 5: learned by using it)
+            world.close_exit(exit_tile, f"pressed {direction} from {frm} for {held} frames", look.frame)
+            self.tell(f"the {what} at {exit_tile} did not take the player anywhere pressing {direction} from {frm} "
+                      f"({held} frames), the way it looks to be used: remembered CLOSED")
+        else:
+            self.tell(f"the {what} at {exit_tile} did not take the player anywhere pressing {direction} from {frm} "
+                      f"({held} frames): another way next time")
         return "failed"
 
     def take_changes(self) -> list:
@@ -577,7 +754,7 @@ class Navigator:
                 return "arrived"
             return (yield from self.use_exit(target, why))
         walls = self.walls(memory, here)
-        path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target))
+        path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target), first=self.turn_costs())
         if path is None:
             return "unreachable"
         direction = path[0]
@@ -597,7 +774,10 @@ class Navigator:
         start = pad.frames
         first = hands.look()
         novelty = Novelty(world, first)
-        self.excluded = set()
+        self.excluded = {}
+        self.scene_hits = {}
+        self.scene_spots, self.scene_walls, self.scene_said = {}, {}, {}
+        on_the_move = False  # a target just dropped as stale: the next one is chosen without a thinking pause
         self._seen_changes = len(world.transitions)
         uses: dict[str, list[int]] = {}
         target: Target | None = None
@@ -622,6 +802,11 @@ class Navigator:
             if novelty.notable:
                 self.tell(f"novelty at f{look.frame}: {'; '.join(novelty.notable)}: progress (the intent's clock f{clock} -> "
                           f"f{novelty.last})", {"novelty": list(novelty.notable), "clock": [clock, novelty.last]})
+                # (the step-3.1 verifier's round) progress: a scene that sent the player back may let it pass now
+                self._lift_scene_walls(novelty.last_progress)
+            for frame, key, xy, why in world.take_reopened():
+                self.tell(f"the door-looking tile {xy} on {self.world.names().get(key, key)}, found closed before, is worth a "
+                          f"try again: {why}", {"reopened": list(xy), "map": key})
             for change in self.new_changes():
                 self.arrived(change, look)
                 if change.how == "warp" and change.tile is not None:
@@ -634,9 +819,44 @@ class Navigator:
             if intent.done(look):
                 return f"done: {intent.name} ({self.summary()})"
             if not nav_free(look):
-                stop = yield from self.handle(look, why)
+                # (build step 3.1, finding 3) a scene met on the way to a target is counted for THAT target, and (the
+                # step-3.1 verifier's round) for the tile it began on, when it puts the player somewhere else
+                scene_key = (f"{world.current}|{target.key}" if target is not None and not in_battle(look) and is_scene(look)
+                             else None)
+                scene_map, player = world.current, look.player
+                began = (player.x, player.y) if scene_key is not None and player is not None and player.x is not None else None
+                # (the step-3.1 verifier's second round) the pages ANY scene waited on, as the eyes read them: its WORDS
+                pages: list[str | None] = []
+
+                def listen(seen: Observation) -> None:
+                    if seen.screen.waits_for_button and seen.screen.text:
+                        pages.append(seen.screen.text)
+
+                hands.watchers.append(listen)
+                try:
+                    stop = yield from self.handle(look, why)
+                finally:
+                    hands.watchers.remove(listen)
                 if stop is not None:
                     return stop
+                after = world.position if world.current == scene_map else None
+                words = scene_words(pages) if not in_battle(look) else None
+                at = (player.x, player.y) if player is not None and player.x is not None else None
+                # news, not an obstacle: a scene that sent the player back or away (the twin, Mom upstairs) is no progress
+                stayed = at is not None and after == at
+                ended = hands.last.frame if hands.last is not None else look.frame
+                clock = novelty.last
+                if stayed and novelty.heard(words, ended):
+                    # new words are PROGRESS (`Novelty.heard`, dated when the scene ENDED: May's scene alone runs 3,500
+                    # frames, longer than the novelty window): told like every novelty that is not a place, and a scene
+                    # that sent the player back may let it pass now
+                    self.tell(f"novelty at f{ended}: new words heard ({words[:60]!r}): progress (the intent's clock "
+                              f"f{clock} -> f{novelty.last})", {"novelty": [f"new words heard: {words}"],
+                                                                 "clock": [clock, novelty.last], "words": words})
+                    self._lift_scene_walls(novelty.last_progress)
+                if scene_key is not None and self._scene_met(scene_key, target, look.frame, novelty, scene_map, began, after,
+                                                             words):
+                    target = detour = None
                 continue
             if look.frame - novelty.last >= intent.novelty_window:
                 return (f"stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for {look.frame - novelty.last} "
@@ -645,15 +865,28 @@ class Navigator:
                 if len(frames) >= PINGPONG_USES and novelty.last <= frames[1]:
                     return (f"stuck: ping-pong: the warp {name} used {len(frames)} times (f{frames[0]}..f{frames[-1]}) "
                             f"with nothing new since its second use, f{frames[1]} ({self.summary()})")
+            if target is not None:
+                # (build step 3.1, finding 2) a target the walk has made worthless is dropped at once, not walked onto
+                memory = world.here()
+                stale = stale_reason(memory, target) if memory is not None else None
+                if stale is not None:
+                    self.tell(f"the {target.kind} at {target.tile} is not worth going to any more: {stale}; choosing again "
+                              f"on the move", {"stale": list(target.tile), "kind": target.kind, "map": world.current})
+                    target = detour = None
+                    on_the_move = True
             if target is None:
                 target = intent.choose(self, look)
                 if target is None:
                     return f"stuck: nothing left to try on {self._map_name()} (no frontier, no exit, no target) ({self.summary()})"
                 if self.is_excluded(target):
-                    return f"stuck: the {target.kind} at {target.tile} cannot be reached, and nothing else is wanted ({self.summary()})"
+                    return (f"stuck: the {target.kind} at {target.tile} cannot be reached ({self.why_excluded(target)}), and "
+                            f"nothing else is wanted ({self.summary()})")
                 detour = self._detour(target, look)
                 self._decided(target, look, detour)
-                yield from pad.idle(pad.think_frames(), f"deciding where to go: the {target.kind} at {target.tile} ({target.reason})")
+                if on_the_move:
+                    on_the_move = False  # decided while walking: a person who sees there is nothing there just turns
+                else:
+                    yield from pad.idle(pad.think_frames(), f"deciding where to go: the {target.kind} at {target.tile} ({target.reason})")
                 continue
             going = detour if detour is not None else target
             result = yield from self.toward(going, look, why)
@@ -664,12 +897,92 @@ class Navigator:
                 if intent.reached is not None:
                     intent.reached(target)
                 target = None
+                # arrived and stopping to decide: a person turns round freely there (an errand behind, a dead end); the
+                # turn-back cost is for a plan changed ON THE MOVE (build step 3.1, finding 2)
+                self.recent = []
             elif result in ("unreachable", "failed", "strayed"):
-                self.exclude(target)
+                self.exclude(target, result)
                 self.tell(f"the {target.kind} at {target.tile} cannot be reached that way ({result}): another target")
                 target = detour = None
             elif result == "lost":
                 yield from pad.busy("finding the player's tile again")
+
+    def _lift_scene_walls(self, progress: int) -> None:
+        """PROGRESS at frame `progress` (a story flag, a Pokemon, items, experience, or since the step-3.1 verifier's second
+        round new words heard): a scene that sent the player back may let it pass now, so the tiles given up because of
+        scenes are worth a try again, and so are the targets given up because of them (a scene stopped the way, or none
+        could be reached once those tiles were walls: the second round, measured from `littleroot_twin.ss1`: every target
+        past the twin was excluded, so lifting the tiles alone sent the explorer nowhere new). A scene known by its WORDS
+        is not forgotten: met ONCE more with the same words and nothing new since this progress, every tile it began on is
+        given up again at once (a person tries the road once after the news, not twice a tile: `_scene_met`)."""
+        if not (self.scene_walls or self.scene_spots or any(said["frames"] for said in self.scene_said.values())):
+            return
+        lifted = {key: why for key, why in self.excluded.items() if why.startswith("a scene stopped") or why == "unreachable"}
+        self.tell(f"progress: the tiles a scene sent the player back from are worth a try again "
+                  f"({ {key: sorted(tiles) for key, tiles in self.scene_walls.items()} }), and {len(lifted)} target(s) given up "
+                  f"because of them", {"lifted": {key: sorted(tiles) for key, tiles in self.scene_walls.items()},
+                                       "targets": sorted(lifted), "progress": progress})
+        self.scene_spots, self.scene_walls = {}, {}
+        for said in self.scene_said.values():
+            said["frames"], said["lifted"] = [], progress
+        self.excluded = {key: why for key, why in self.excluded.items() if key not in lifted}
+
+    def _scene_met(self, key: str, target: Target, frame: int, novelty: "Novelty", scene_map: str | None = None,
+                   began: tuple[int, int] | None = None, after: tuple[int, int] | None = None,
+                   words: str | None = None) -> bool:
+        """A scene met on the way to `target` (its key on the map it was chosen on): counted; at `SCENE_REPEATS` with
+        nothing new since the first, the target is given up (build step 3.1, finding 3). True when it was.
+        (The step-3.1 verifier's round) `began`: the tile the player stood on when the scene began, `after`: where it
+        left the player on the same map. A scene that put the player elsewhere is also counted for the tile it began on,
+        and at `SCENE_REPEATS` such scenes there, nothing new since the first, that tile is not stepped on again in the
+        intent (`scene_walls`). "Nothing new" is PROGRESS (`Novelty.last_progress`), not a tile seen in passing.
+        (The step-3.1 verifier's second round) `words`: what the scene SAID (`scene_words`). Scenes with the same words on
+        one map that put the player elsewhere are ONE scene met again, whichever tile each began on: at `SCENE_REPEATS`,
+        nothing new since the first, every tile it began on is not stepped on again (a girl who guards a road two tiles
+        wide is met at most 3 times in all, not twice a tile)."""
+        hits = self.scene_hits.setdefault(key, [])
+        hits.append(frame)
+        self.tell(f"a scene stopped the way to the {target.kind} at {target.tile} (time {len(hits)} for this target)",
+                  {"scene_for": list(target.tile), "kind": target.kind, "hits": list(hits), "began": list(began) if began else None,
+                   "after": list(after) if after else None, "words": words})
+        if began is not None and after is not None and after != began and scene_map is not None:
+            spots = self.scene_spots.setdefault(f"{scene_map}|{began[0]},{began[1]}", [])
+            spots.append(frame)
+            walled = self.scene_walls.setdefault(scene_map, set())
+            if len(spots) >= SCENE_REPEATS and novelty.last_progress <= spots[0] and began not in walled:
+                walled.add(began)
+                self.tell(f"the tile {began} on {self.world.names().get(scene_map, scene_map)}: a scene there sent the player "
+                          f"back {len(spots)} times (f{spots[0]}..f{spots[-1]}, to {after}) with nothing new since the first: "
+                          f"not stepped on again in this intent", {"scene_wall": list(began), "map": scene_map,
+                                                                   "scenes": list(spots)})
+            if words is not None:
+                said = self.scene_said.setdefault(f"{scene_map}|{words}", {"frames": [], "tiles": [], "lifted": None})
+                said["frames"].append(frame)
+                if began not in said["tiles"]:
+                    said["tiles"].append(began)
+                fresh = [tile for tile in said["tiles"] if tile not in walled]
+                twice = len(said["frames"]) >= SCENE_REPEATS and novelty.last_progress <= said["frames"][0]
+                # met again after the news that lifted it, and nothing new since that news: once is enough
+                again = said["lifted"] is not None and novelty.last_progress <= said["lifted"]
+                if fresh and (twice or again):
+                    walled.update(fresh)
+                    for tile in fresh:
+                        self.tell(f"the tile {tile} on {self.world.names().get(scene_map, scene_map)}: the same scene "
+                                  f"({words[:60]!r}) sent the player back "
+                                  + (f"again after the news of f{said['lifted']}, nothing new since" if again and not twice
+                                     else f"{len(said['frames'])} times (f{said['frames'][0]}..f{said['frames'][-1]}, from "
+                                          f"{sorted(said['tiles'])}) with nothing new since the first")
+                                  + ": not stepped on again in this intent",
+                                  {"scene_wall": list(tile), "map": scene_map, "scenes": list(said["frames"]),
+                                   "words": words, "same_scene_tiles": [list(t) for t in said["tiles"]],
+                                   "after_news": said["lifted"] if again and not twice else None})
+        if len(hits) >= SCENE_REPEATS and novelty.last_progress <= hits[0]:
+            why = (f"a scene stopped the way there {len(hits)} times (f{hits[0]}..f{hits[-1]}) with nothing new since the "
+                   f"first")
+            self.excluded[key] = why
+            self.tell(f"the {target.kind} at {target.tile}: {why}: given up", {"given_up": list(target.tile), "why": why})
+            return True
+        return False
 
     def _map_name(self) -> str:
         memory = self.world.here()

@@ -1,6 +1,9 @@
 """TEST SIDE: the CODE line of every live driver's evidence, with a DIGEST of the working tree (AI-player step 2.1).
 
     py -3.12 ai_player/gates/provenance.py        prints the line for this tree (to compare with an evidence file)
+    py -3.12 ai_player/gates/provenance.py --check-evidence
+                                                  (the step-3.1 verifier's second round) every evidence file at the top of
+                                                  ai_player/evidence/ names THIS tree's digest (exit 0), or which do not
 
 WHY (the step-2 review, item 2): the seed-9 replication was run on code that changed afterwards, and its evidence
 said only "HEAD 9f859914; ai_player/ has UNCOMMITTED changes": every uncommitted tree printed the SAME line, so
@@ -75,11 +78,44 @@ def provenance(repo: Path = REPO, scope: Iterable[str] = PACKAGE_SCOPE, label: s
         return f"unknown ({type(error).__name__}: {error})"
 
 
+#: (the step-3.1 verifier's second round: "Older evidence files still sit in ai_player/evidence with other digests ... a
+#: literal reading of 'every evidence file' would not hold") the evidence folder's TOP LEVEL is the evidence of the tree as
+#: it stands; files of earlier trees live in `evidence/archive/<their digest>/` (kept, never rewritten).
+EVIDENCE = REPO / "ai_player" / "evidence"
+_DIGEST_MARK = "working-tree digest sha256:"
+
+
+def evidence_digests(folder: Path = EVIDENCE) -> dict[str, str | None]:
+    """Each top-level evidence file -> the 16-hex digest its code line names (within its first 12 lines), or None."""
+    out: dict[str, str | None] = {}
+    for path in sorted(folder.glob("*.txt")):
+        head = "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[:12])
+        at = head.find(_DIGEST_MARK)
+        out[path.name] = head[at + len(_DIGEST_MARK):at + len(_DIGEST_MARK) + 16] if at >= 0 else None
+    return out
+
+
+def check_evidence(folder: Path = EVIDENCE, repo: Path = REPO) -> tuple[bool, str]:
+    """(ok, report): every top-level evidence file names the CURRENT tree's digest."""
+    current = provenance(repo)
+    at = current.find(_DIGEST_MARK)
+    now = current[at + len(_DIGEST_MARK):at + len(_DIGEST_MARK) + 16] if at >= 0 else None
+    found = evidence_digests(folder)
+    other = {name: digest for name, digest in found.items() if digest != now}
+    report = (f"{len(found)} evidence files at the top of {folder.name}/; {len(found) - len(other)} name this tree's digest "
+              f"{now}; other: {len(other)} {sorted(other.items())[:12]}")
+    return bool(found) and now is not None and not other, report
+
+
 def main() -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    if "--check-evidence" in sys.argv[1:]:
+        ok, report = check_evidence()
+        print(f"EVIDENCE: {report} -> {'PASS' if ok else 'FAIL'}")
+        return 0 if ok else 1
     print(f"live_step1.py, live_step2.py: {provenance()}")
     print(f"live_step0.py: {provenance(scope=HOOK_SCOPE, label='ai_player/ + hook')}")
     return 0

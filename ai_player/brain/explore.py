@@ -8,7 +8,8 @@ the eyes showed): every candidate below is a tile it has SEEN, scored by
       + the personality's pull AWAY from where it came into this map (a traveller moves on) + a small seeded jitter
 and the best one is the next target. The candidates:
   * FRONTIER: a seen walkable tile next to unseen ones (walking there shows more);
-  * ROAD: a walkable tile seen PAST the map's edge (the screen shows the next map there): walking onto it leaves;
+  * ROAD: a walkable tile seen PAST an edge the AI has SEEN crossed (build step 3.1: until a crossing is seen, a tile
+    past an edge is just a tile, as on the screen, and counts as frontier): walking onto it leaves;
   * DOOR: a warp or door seen inside the map whose destination is unknown (used by pressing into it: `use_exit`);
   * BACK: an exit KNOWN to lead to a map already visited (the warp graph, or a road on a side whose connection is
     known): worth little, but it is how a dead end (a house) is left;
@@ -18,7 +19,8 @@ and the best one is the next target. The candidates:
 The weights are TASTE, not a plan (`WEIGHTS`): Story favours exits toward unexplored maps (roads most), Catcher grass,
 Trainer grass and people. NEVER IDLE: when nothing is left the explorer WANDERS to the least-visited seen tile (a
 person looks around for what they missed); only when even that is gone does it return None (the intent is stuck).
-A candidate that failed in this intent (`Navigator.excluded`) is not chosen again.
+A candidate that failed in this intent (`Navigator.excluded`) is not chosen again. Every candidate is a tile the AI has
+SEEN, the stand tile of an exit included (build step 3.1, finding 8: `_approaches`).
 
 A WHIM AMONG EQUALS (`pick`, `CHOICE_MARGIN`): the next target is not always the top score. Every candidate within
 `CHOICE_MARGIN` points of the best (a point is one tile of walking) is about as good, and a person picks among such
@@ -33,7 +35,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ai_player.brain.navigator import Intent, Navigator, Target, distances
+from ai_player.brain.navigator import Intent, Navigator, Target, distances, exit_press
 from ai_player.eyes.observation import Observation
 from ai_player.world.memory import DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, moved, road_side
 
@@ -82,6 +84,10 @@ WANDER_VALUE = 0.05
 #: whole of it once `PROMISE_FULL` things are left there, a share of it for fewer.
 BACK_PROMISE = 0.5
 PROMISE_FULL = 10
+#: (build step 3.1) The kinds of place that are somewhere NEW on this map, and the reason's start that marks the exit
+#: back the way the AI just came in (dropped while any new place is reachable: `candidates`).
+ONWARD_KINDS = ("frontier", "road", "door", "route", "grass")
+JUST_COME_FROM = "it leads straight back to"
 
 
 def weights_for(personality: str) -> Weights:
@@ -108,13 +114,19 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
 
 
 def _approaches(memory: MapMemory, exit_tile: tuple[int, int], reach: dict) -> list[tuple[tuple[int, int], str, float]]:
-    """Where to stand and which way to press to use the exit: from each reachable seen neighbour, pressing toward the
-    exit; the press that goes INTO a wall or off the map through it first (a door in a front wall, a mat at the
-    bottom of a room, stairs against the back wall)."""
+    """Where to stand and which way to press to use the exit: from each reachable SEEN neighbour, pressing toward the
+    exit. The press its LOOK asks for when it asks for one (`navigator.exit_press`: an arrow mat's arrow, a door from
+    below: build step 3.1); otherwise the press that goes INTO a wall or off the map through it first (stairs against
+    the back wall). (Build step 3.1, the step-3 review's finding 8: the stand tile was taken from `reach`, which holds
+    UNSEEN tiles too, so an exit's target could be a tile the AI had never seen. It must now be a known, walkable tile.)"""
+    fact = memory.fact(exit_tile)
+    asked = exit_press(fact.behavior) if fact is not None else None
     out = []
     for direction in DIRECTIONS:
+        if asked is not None and direction != asked:
+            continue
         stand = moved(exit_tile, OPPOSITE[direction])
-        if stand not in reach:
+        if stand not in reach or not memory.passable(stand):
             continue
         beyond = memory.fact(moved(exit_tile, direction))
         into_wall = beyond is None or beyond.blocked or memory.outside(moved(exit_tile, direction))
@@ -129,7 +141,8 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     if found is None:
         return []
     memory, here = found
-    reach = distances(memory, here, nav.walls(memory, here), weights.grass_cost)
+    # (build step 3.1, finding 2) the walk to each place includes turning back on its first step (`turn_costs`)
+    reach = distances(memory, here, nav.walls(memory, here), weights.grass_cost, nav.turn_costs())
     entry = nav.entry.get(memory.key, here)
     jitter = nav.rng
     out: list[Target] = []
@@ -162,7 +175,7 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         left = world.promise(target)
         name = names.get(target, target)
         if target == came_from and here_left:
-            return weights.back, f"it leads back to {name}, just come from, while {here_left} thing(s) are left to see here"
+            return weights.back, f"{JUST_COME_FROM} {name}, just come from, while {here_left} thing(s) are left to see here"
         if left:
             bonus = BACK_PROMISE * min(1.0, left / PROMISE_FULL)
             return weights.back + bonus, f"it leads back to {name}, where {left} thing(s) are left to see"
@@ -210,6 +223,13 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         for tile in memory.grass():
             if not memory.visits.get(tile):
                 add("grass", tile, weights.grass * 0.8, "tall grass not walked yet: wild Pokemon")
+    # (build step 3.1) the way JUST COME IN is no option at all while there is somewhere NEW to go on this map, however far:
+    # measured 2026-10-08 (the step-3.1 sweep's TOWN-Catcher seed 8), once roads are no longer known from the coordinates
+    # the far frontier north of Littleroot (16 tiles) scored below the house door one step away (worth `Weights.back`),
+    # and the AI went house -> town -> house until the ping-pong rule stopped it. A person walks on to the unexplored
+    # path rather than back into the house they have just seen all of.
+    if any(t.kind in ONWARD_KINDS for t in out):
+        out = [t for t in out if not (t.kind == "back" and JUST_COME_FROM in t.reason)]
     return out
 
 
@@ -233,8 +253,8 @@ def choose_target(nav: Navigator, look: Observation, weights: Weights,
     if located is None:
         return None
     memory, here = located
-    reach = distances(memory, here, nav.walls(memory, here), weights.grass_cost)
-    spots = [xy for xy in reach if xy != here and memory.passable(xy) and not memory.outside(xy)
+    reach = distances(memory, here, nav.walls(memory, here), weights.grass_cost, nav.turn_costs())
+    spots =[xy for xy in reach if xy != here and memory.passable(xy) and not memory.outside(xy)
              and not nav.is_excluded(Target("wander", xy, ""))]
     if not spots:
         return None

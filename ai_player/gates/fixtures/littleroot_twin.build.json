@@ -1,0 +1,87 @@
+{
+ "fixture": "ai_player\\gates\\fixtures\\littleroot_twin.ss1",
+ "from": "ai_player\\gates\\fixtures\\house_2f_clockset.ss1",
+ "from_md5": "2cc0b61450870d34646f7583bfd0c787",
+ "played": "the AI's own step-3.1 navigator (hands_harness run: brain explore, goal LITTLEROOT_TOWN, Story, seed 3)",
+ "reason": "explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 decisions (0 detours); 3 maps, 689 tiles learned)",
+ "frames": 3176,
+ "presses": 36,
+ "lines": [
+  "[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal LITTLEROOT_TOWN; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))",
+  "[AI-WORLD] intent 'explore to LITTLEROOT_TOWN': budget 11400 frames; on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F at (5, 2); 165 tiles known on 1 maps",
+  "[AI-WORLD] go to the frontier at (5, 7): 1 unseen tile(s) beside it (score 11.1)",
+  "[AI-WORLD] the frontier at (5, 7) is not worth going to any more: everything beside it has been seen on the way; choosing again on the move",
+  "[AI-WORLD] go to the door at (7, 2) then use it pressing up: an exit not used yet: where does it go? (score 5.4)",
+  "[AI-WORLD] MAP LITTLEROOT_TOWN_BRENDANS_HOUSE_2F -> LITTLEROOT_TOWN_BRENDANS_HOUSE_1F at (8, 2): the warp at (7, 1) (the AI, f15448); 165 tiles of it known",
+  "[AI-WORLD] go to the door at (8, 7) then use it pressing down: an exit not used yet: where does it go? (score 2.3)",
+  "[AI-WORLD] MAP LITTLEROOT_TOWN_BRENDANS_HOUSE_1F -> LITTLEROOT_TOWN at (5, 8): the warp at (8, 8) (the AI, f18400); 165 tiles of it known",
+  "[AI-WORLD] memory at the end: 3 maps (LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 219 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 305 tiles 0 bumped, LITTLEROOT_TOWN 180 tiles 0 bumped), 704 tiles learned, 4 warp links, 0 connections, 2 map changes",
+  "[AI-WORLD] navigator: 10 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 1 scenes, 3 decisions (0 detours); 3 maps, 704 tiles learned"
+ ],
+ "VAR_LITTLEROOT_TOWN_STATE": 0,
+ "truth": {
+  "frame": 18444,
+  "game_state": "OVERWORLD",
+  "name": "Rowan",
+  "name_bytes": "cce3ebd5e2ffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   9
+  ],
+  "party": [],
+  "party_exp": [],
+  "money": 3000,
+  "balls": {},
+  "flags": {
+   "RESCUED_BIRCH": false,
+   "SYS_POKEMON_GET": false,
+   "DEFEATED_RIVAL_ROUTE103": false,
+   "RECEIVED_POKEDEX_FROM_BIRCH": false,
+   "SYS_POKEDEX_GET": false,
+   "ADVENTURE_STARTED": false,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": false,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "gLocalTime": [
+   0,
+   19,
+   17,
+   11
+  ],
+  "localTimeOffset": [
+   9777,
+   12,
+   21,
+   6
+  ],
+  "pos": [
+   5,
+   9
+  ],
+  "game_stats": {
+   "steps": 21,
+   "total_battles": 0,
+   "wild_battles": 0,
+   "trainer_battles": 0
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "md5": "fe4661736a30dd3f34b87c0db7ae1d10",
+ "ok": true
+}

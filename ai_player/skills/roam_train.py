@@ -30,7 +30,11 @@ THE METRICS (design draft §7, criterion 9), logged and returned:
     interrupted or not: exactly the `roam ...` gates in the action log.
   * SPIN RATIO: SPINS (a training step that did not move the player: walking in place; or one that moved it back onto
     the tile it stood on two steps before: back and forth on the same 1-2 tiles) over TRAINING STEPS, the smaller
-    denominator (the stricter ratio); `spin_ratio_of_attempts` is also reported. Must stay < 2%.
+    denominator (the stricter ratio); `spin_ratio_of_attempts` is also reported. Must stay < 2%. Since build step 3.1
+    (the step-3 review's finding 9) the report also gives the STRICT NON-MOVING-PRESS RATIO (`strict_ratio`, reported,
+    not a criterion): every press that did not move the player (walking in place, and the presses a battle PRE-EMPTED:
+    Emerald rolls an encounter at the end of the step onto grass, so the battle takes the screen while the next step's
+    press is held, and that press never acts) over every press; and the spins split into reversals and walking in place.
     Until the step-3 verifier (2026-10-08) a step that ran into a battle was left out of BOTH counts (150 steps, 163
     presses), and the walk's "the tile it came from" went stale across the battle.
   * DISTINCT TILES covered; the MOST-VISITED tile's count; encounters met and fled.
@@ -45,7 +49,7 @@ from ai_player.brain.explore import explore_intent
 from ai_player.brain.navigator import Navigator, astar, nav_free
 from ai_player.hands.pad import Hands
 from ai_player.skills.flee import in_battle
-from ai_player.world.memory import DIRECTIONS, MapMemory, moved
+from ai_player.world.memory import BUMP_GIVE_UP, DIRECTIONS, MapMemory, moved
 
 __all__ = ["FIND_GRASS_BUDGET", "HOP_VISITS", "PERSON_LOOK", "PERSON_WAIT", "RoamReport", "patch_of", "roam_train",
            "spin_count"]
@@ -63,7 +67,10 @@ PERSON_LOOK = 15
 class RoamReport:
     steps: int = 0  # training steps taken (the player moved; a step that ran into a battle included)
     attempts: int = 0  # training steps pressed (moved or not, interrupted or not): the `roam ...` gates
-    spins: int = 0
+    spins: int = 0  # the design's spins: reversals + in_place
+    reversals: int = 0  # back and forth: a step back onto the tile of two steps before (A -> B -> A)
+    in_place: int = 0  # presses that left the player standing with nothing else happening (walking in place)
+    preempted: int = 0  # presses that did not move the player because a battle (or a scene) took the screen first
     distinct: int = 0
     most_visited: int = 0
     encounters: int = 0
@@ -73,18 +80,35 @@ class RoamReport:
 
     @property
     def spin_ratio(self) -> float:
-        """Spins over TRAINING STEPS (the moved ones): the stricter of the two ratios."""
+        """THE BACK-AND-FORTH SPIN RATIO (the design's criterion, < 2%): spins (reversals + walking in place) over
+        TRAINING STEPS (the moved ones): the stricter denominator."""
         return self.spins / self.steps if self.steps else 0.0
 
     @property
     def spin_ratio_of_attempts(self) -> float:
         return self.spins / self.attempts if self.attempts else 0.0
 
+    @property
+    def non_moving(self) -> int:
+        """Every press that did not move the player: walking in place AND the presses a battle pre-empted."""
+        return self.in_place + self.preempted
+
+    @property
+    def strict_ratio(self) -> float:
+        """THE STRICT NON-MOVING-PRESS RATIO (build step 3.1, the step-3 review's finding 9; reported, not a criterion):
+        every press that did not move the player over every press. A pre-empted press is not a spin: Emerald rolls an
+        encounter at the END of the step onto a grass tile, and the battle takes the screen while the next step's press
+        is held (the press never acts: no turn, no move; `gates/live_step3.py` ROAM checks each one)."""
+        return self.non_moving / self.attempts if self.attempts else 0.0
+
     def line(self) -> str:
         return (f"roam: {self.steps} training steps ({self.attempts} pressed, {self.interrupted} ran into a battle or a "
-                f"scene), {self.distinct} distinct tiles, spin ratio {self.spin_ratio:.4f} ({self.spins} spins / "
-                f"{self.steps} steps; {self.spin_ratio_of_attempts:.4f} of the {self.attempts} pressed), the most-visited "
-                f"tile {self.most_visited} times, {self.encounters} wild encounters, {self.fled} fled")
+                f"scene), {self.distinct} distinct tiles, back-and-forth spin ratio {self.spin_ratio:.4f} ({self.spins} "
+                f"spins = {self.reversals} reversals + {self.in_place} in place, over {self.steps} steps; criterion < 2%), "
+                f"strict non-moving-press ratio {self.strict_ratio:.4f} ({self.non_moving} presses that did not move the "
+                f"player = {self.in_place} in place + {self.preempted} pre-empted by a battle or a scene, over "
+                f"{self.attempts} pressed; reported, not a criterion), the most-visited tile {self.most_visited} times, "
+                f"{self.encounters} wild encounters, {self.fled} fled")
 
 
 def spin_count(path: list[tuple[int, int]], not_moved: int = 0) -> int:
@@ -108,8 +132,12 @@ def patch_of(memory: MapMemory, start: tuple[int, int]) -> set[tuple[int, int]]:
     return patch
 
 
-def _finish(report: RoamReport, visits: dict, not_moved: int) -> None:
+def _finish(report: RoamReport, visits: dict, not_moved: int, moved_in: int = 0) -> None:
+    """`moved_in`: the interrupted presses that DID move the player (the encounter rolled on the tile they stepped onto)."""
     report.spins = spin_count(report.path, not_moved)
+    report.reversals = spin_count(report.path)
+    report.in_place = not_moved
+    report.preempted = report.interrupted - moved_in
     report.distinct = len(set(report.path))
     report.most_visited = max(visits.values(), default=0)
 
@@ -166,6 +194,7 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
     not_moved = 0
     #: (map, the tile it was pressed from, its direction) of a training step a battle or a scene began on
     pending: tuple[str | None, tuple[int, int], str] | None = None
+    moved_in = 0  # interrupted training steps that DID move the player (the rest were pre-empted)
     for _ in range(4 * steps):
         if report.steps >= steps:
             break
@@ -178,7 +207,7 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
                 report.encounters += 1
                 report.fled += 1 if stop is None else 0
             if stop is not None:
-                _finish(report, visits, not_moved)
+                _finish(report, visits, not_moved, moved_in)
                 return f"roam: {stop}; {report.line()}"
             continue
         found = nav.where(look)
@@ -194,6 +223,7 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
             pending = None
             if (nav.world.current, here) != (frm_map, frm):
                 report.steps += 1
+                moved_in += 1
                 waited = 0
                 previous, heading = frm, frm_direction
                 visits[here] = visits.get(here, 0) + 1
@@ -205,7 +235,7 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
         options = []
         for direction in DIRECTIONS:
             nxt = moved(here, direction)
-            if nxt not in area or nxt in walls or not memory.passable(nxt):
+            if nxt not in area or nxt in walls or not memory.passable(nxt) or memory.bumps(nxt, direction) >= BUMP_GIVE_UP:
                 continue
             onward = sum(1 for d in DIRECTIONS if moved(nxt, d) in area and moved(nxt, d) != here
                          and memory.passable(moved(nxt, d)) and moved(nxt, d) not in walls)
@@ -245,7 +275,7 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
         if step is None and choice is not None:
             step = (choice[1], choice[2], "tall grass" if memory.fact(choice[2]).grass else "the edge of the grass")
         if step is None:
-            _finish(report, visits, not_moved)
+            _finish(report, visits, not_moved, moved_in)
             return f"roam: nowhere to step from {here}; {report.line()}"
         direction, nxt, why_step = step
         gate = f"roam {direction}: {here} -> {nxt} ({why_step}, stood there {visits.get(nxt, 0)} times), the player free"
@@ -267,13 +297,16 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
         else:
             # the player did not move and nothing else happened: walking in place (a bump, a person in the way)
             not_moved += 1
-    _finish(report, visits, not_moved)
+    _finish(report, visits, not_moved, moved_in)
     hands.say(f"[AI-WORLD] {report.line()}")
     hands.note("roam", "metrics", report.line(), {"path": [list(xy) for xy in report.path], "spins": report.spins,
                                                   "attempts": report.attempts, "steps": report.steps,
                                                   "interrupted": report.interrupted, "not_moved": not_moved,
                                                   "spin_ratio": round(report.spin_ratio, 6),
                                                   "spin_ratio_of_attempts": round(report.spin_ratio_of_attempts, 6),
+                                                  "reversals": report.reversals, "in_place": report.in_place,
+                                                  "preempted": report.preempted, "non_moving": report.non_moving,
+                                                  "strict_ratio": round(report.strict_ratio, 6),
                                                   "distinct": report.distinct, "encounters": report.encounters,
                                                   "fled": report.fled, "most_visited": report.most_visited})
     return f"roamed: {report.line()}"

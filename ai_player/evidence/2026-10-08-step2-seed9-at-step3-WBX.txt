@@ -1,11 +1,11 @@
 AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM WBX: CONTROL of the behaviour probe: the ungated fault's A presses (the probe must say 'not waiting')
-date: 2026-10-08 04:42:40
-code: HEAD f7d007d5; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:1446987412c17a51 over git diff HEAD (21 files, 155973 bytes) and 19 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-08 13:36:48
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b94ddc58ca95f8f7 over git diff HEAD (17 files, 404833 bytes) and 5 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 start: --fresh (no state, no cartridge save: the title screen and a New Game)
 fixture documentation: as XU
 command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\probe_presses.py intro --fresh --seed 9 --frames 16000 --fault ungated_a
 env: none (a test-side script in its own throwaway emulator; its arguments are in the command; seed 9)
-exit code: 0   elapsed: 29.4s   run dir: None
+exit code: 0   elapsed: 32.1s   run dir: None
 VERDICT: PASS
 [SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS
 checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
@@ -16,7 +16,7 @@ checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes
   [PASS] the same harm as arm XU, read at the end: 'AAAAAAA' gender 0
 
 ---- STEP 2.1: the probe (gates/probe_presses.py) ----
-{"brain": "intro", "constants": {"IDLE_FRAMES": 300, "OTHER_BUTTONS": ["Start", "B", "Select"], "PRESS_WATCH": 60, "PRINT_WINDOW": 8}, "eyes_code": {"screens": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\ai_player\\eyes\\screens.py", "task_waits": ["Task_NewGameBirchSpeech_WaitPressBeforeNameChoice", "Task_ReturnToItemListAfterDecorationPurchase", "Task_ReturnToItemListAfterItemPurchase", "Task_ViewClock_HandleInput", "Task_WaitForBatteryDryErrorWindow", "Task_WaitForSaveFileErrorWindow"]}, "fault": "ungated_a", "frames": 4530, "other_presses": [], "presses": 247, "reason": "intro: in the truck; intended Luna (GIRL)", "seconds": 24.3, "seed": 9}
+{"brain": "intro", "constants": {"IDLE_FRAMES": 300, "OTHER_BUTTONS": ["Start", "B", "Select"], "PRESS_WATCH": 60, "PRINT_WINDOW": 8}, "eyes_code": {"screens": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\ai_player\\eyes\\screens.py", "task_waits": ["Task_NewGameBirchSpeech_WaitPressBeforeNameChoice", "Task_ReturnToItemListAfterDecorationPurchase", "Task_ReturnToItemListAfterItemPurchase", "Task_ViewClock_HandleInput", "Task_WaitForBatteryDryErrorWindow", "Task_WaitForSaveFileErrorWindow"]}, "fault": "ungated_a", "frames": 4530, "other_presses": [], "presses": 247, "reason": "intro: in the truck; intended Luna (GIRL)", "seconds": 26.6, "seed": 9}
 the brain's lines:
   [AI-HANDS] brain=intro seed=9 (given) personality=Trainer (seed) faults=ungated_a:True,blind_count:False frames=16000
   [AI-HANDS] intro: personality Trainer (seed; seed 9): gender GIRL (drawn with P(GIRL)=0.5), name 'Luna' (from GIRL's list)
@@ -24,7 +24,7 @@ the brain's lines:
   [AI-HANDS] outcome='in the truck; intended Luna (GIRL)' presses=247 frames=4530 looks=251 records=253
   [AI-HANDS] presses by gate: {'A:NONE': 247}
 TRUTH at the end (gates/hands_harness.py truth, in the probe's emulator):
-{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 0, "balls": {}, "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 4530, "gLocalTime": [9778, 4, 42, 36], "game_state": "OVERWORLD", "game_stats": {"steps": 0, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "localTimeOffset": [0, 0, 0, 0], "map": [25, 40], "money": 3000, "name": "AAAAAAA", "name_bytes": "bbbbbbbbbbbbbbff", "party": [], "pos": [2, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}}
+{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 0, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 4530, "gLocalTime": [9778, 13, 36, 44], "game_state": "OVERWORLD", "game_stats": {"steps": 0, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "localTimeOffset": [0, 0, 0, 0], "map": [25, 40], "money": 3000, "name": "AAAAAAA", "name_bytes": "bbbbbbbbbbbbbbff", "party": [], "party_exp": [], "pos": [2, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}}
 every A press, raw (frame, gate, kind, printing, still, moved_by_itself_at, moved_by_a_at, b_same, free, started, the probe's task list):
   f0 | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | other  | printing=False still=False by-itself=13 ['callback2'] | A=13 ['callback2'] | B-same=True  | free=False started=True | tasks []
   f18 | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | other  | printing=False still=False by-itself=158 ['callback2', 'tasks'] | A=None [] | B-same=True  | free=False started=True | tasks []
@@ -276,4 +276,4 @@ every A press, raw (frame, gate, kind, printing, still, moved_by_itself_at, move
 STEP 2.1 (the review's item 4): every START / B / SELECT press, raw (frame, button, gate, a fade running on its frame, taken at +N frames: the first frame the pressed run differs from the run with no input, and in what):
 
 ---- STEP 2.1: the unforked run of the same start (gates/hands_harness.py) ----
-{"brain": "intro", "seed": 9, "fault": "ungated_a", "reason": "intro: in the truck; intended Luna (GIRL)", "frames": 4530, "presses": 247, "seconds": 2.3}
+{"brain": "intro", "seed": 9, "fault": "ungated_a", "reason": "intro: in the truck; intended Luna (GIRL)", "frames": 4530, "presses": 247, "seconds": 2.4}

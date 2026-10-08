@@ -11,7 +11,32 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 3, the WORLD MODEL and the AI's OWN NAVIGATOR** (section "The world and the navigator
+**Where it is now: build step 3.1, the step-3 adversarial review's findings fixed, its verifier's nine weak proofs answered,
+and that verifier's second round of eight answered** (section "Step 3.1, the verifier's second round" below: the warp-table
+guard is now BEHAVIOURAL, every read the real eyes make checked against every map's warp array, `gates/warp_reads.py`; the
+twin is known by her WORDS, at most 3 push-backs before news instead of 4; NEW WORDS heard in a scene that leaves the player
+be are PROGRESS, so after meeting May the explorer tries the twin again, she lets it pass, and the explorer arm SCENEX now
+runs to its own end on Route 101, answered there by the game; live reverts for the per-side bump and for finding 2 at
+another seed; every pre-registered number machine-checked (`PREDICTED`), which at its first graded run found that THE
+GAME READS THE HOST'S CLOCK, so three launcher arms' trajectories depend on when they are played (arm CLOCKS; every
+in-process run now pins the cartridge's clock); the evidence folder's top level holds only evidence of the current tree,
+`provenance.py --check-evidence`). Before that round (sections "Step 3.1" and "Step 3.1, the
+verifier's round" below): the explorer no longer knows where a map ENDS
+from negative coordinates (a tile past an edge is a road only once a crossing was SEEN: the same memory numbered +50 makes
+the same choices); a frontier target the walk has made worthless is dropped on the move and turning back costs extra
+(reversals on the AI's own steps, five exploring plans x 10 seeds: 11 in 2,119 steps, against 89 in 2,795 and 252 stale
+targets walked onto with these two rules reverted, `evidence/2026-10-08-step3-RATE.txt` REVERT); a scene that keeps
+sending the player back (Littleroot's twin) gives its target up after the second time, and the TILE it sent the player
+back from is not stepped on again, so the explorer's next target behind her is out of reach and it looks elsewhere; a
+bump belongs to the SIDE it came from (the player's room's one-way tile is now crossed east-west); exits are known by how
+they LOOK (the eyes no longer read the ROM's warp table; a door that does not open is remembered closed, until the story
+moves on or 10 minutes pass); the gate's crop window is written as literals; an exit's stand tile is always a seen tile;
+ROAM reports both spin ratios. Every live grade of these now tells the fixed code from the reverted one: revert arms
+HOUSER, TOWNR, ROUTER, EDGER, SCENER, SCENEXR beside their real arms, and replications at another seed through the launcher
+(TOWN9, ROUTE9). Proven by `gates/live_step3.py` (22 arms), `gates/test_world.py` (79 tests), `gates/revert_step3.py` (51
+mutants, W30-W51 this step's) and the seed sweep with its own revert A/B (`gates/rate_step3.py`).
+
+**Build step 3, the WORLD MODEL and the AI's OWN NAVIGATOR** (section "The world and the navigator
 (build step 3)" below): the AI WALKS, with its own code and its own hands, over a memory of what it has SEEN. It
 remembers every tile its 15 x 11 window has shown (and from where), learns warps when it uses them and map connections
 when it walks off an edge, learns a hidden wall by bumping into it once, explores the frontier of what it has seen
@@ -30,7 +55,10 @@ fault arm no longer leans on a step count. Its re-verification listed five more 
 round (section "Step 3, the verifier's second round" below): CROP checks the goal map by save block 1, STUCK's end tile
 is answered by the game (the controls locked) and the ROM (where the stairs leave the player), a live arm shows an
 experience gain moving an intent's novelty clock (XP, and its revert XPR), the ROAM grader shows every press that did
-not move the player was pre-empted by a battle, and the evidence pins the predictions it was graded against.
+not move the player was pre-empted by a battle, and the evidence pins the predictions it was graded against. (Since
+step 3.1 some of these facts changed: see "Step 3.1" below. The tables of this section and the two after it quote
+step 3's own final run; step 3.1's run rewrote the evidence files under the same names, so step 3's text is in git at
+commit 12b25140.)
 
 **Build step 2, the HANDS** (section "The hands (build step 2)" below): the AI presses the
 buttons ITSELF, at a person's pace, for text and menus. It plays a New Game from the title screen to the
@@ -192,7 +220,8 @@ change and at the end) beside its action log.
 | `host/lifecycle.py` | the single exit door (single-entry across threads); exit codes |
 | `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file |
 | `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
-| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`) |
+| `evidence/` | every live and mutant proof's evidence file of the CURRENT tree, at the top level (each names the tree's digest: `provenance.py --check-evidence`); earlier trees' files in `evidence/archive/<digest>/`, kept as they were (`archive/README.md` lists them) |
+| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`) |
 | `../sandbox-pokebot/plugins/custom_modes/ai_player_mode.py` | the hook: registers "AI Player", APPENDS the repo root to `sys.path`, and keeps its own before/after record of the framework's listeners (`[AI-HOOK]`); no game logic |
 
 The subpackage is `host/`, not `platform/` (step 0's name): `platform` would shadow the standard
@@ -328,19 +357,34 @@ py -3.12 ai_player/gates/hands_harness.py BRAIN --fresh | --state PATH [--seed N
                                                   # one hands brain in-process (development; not a purity proof); `truth STATE` reads a state
 py -3.12 ai_player/gates/make_mart_fixture.py     # rebuilds the MART fixture by walking rustboro.ss1 into the mart (then re-pin its md5)
 py -3.12 ai_player/gates/make_clock_fixture.py    # rebuilds the CLOCK fixture: the AI's own intro (seed 7), then walked to the clock (re-pin)
-py -3.12 ai_player/gates/test_world.py            # step 3 unit proofs (46 tests against a grid model of the overworld, and the graders' rules; each with its fault half), ~20 s
-py -3.12 ai_player/gates/revert_step3.py [W1,W2]  # step 3: each rule of the REAL navigator / memory / explorer / roam / flee / probe / grader broken in a copy (29 mutants + a control): 28 caught, 1 redundant alone (the reason), ~8 min
-py -3.12 ai_player/gates/live_step3.py            # step 3 live proof, 11 arms (HOUSE, TOWN, ROUTE, ROAM, CROP, STUCK, BUMP, BUMPR, TRN, XP, XPR), seed 3, ~5 min
+py -3.12 ai_player/gates/test_world.py            # step 3 + 3.1 unit proofs (93 tests against a grid model of the overworld, and the graders' rules; each with its fault half), ~1 min
+py -3.12 ai_player/gates/revert_step3.py [W1,W2] [--workers N]
+                                                  # step 3 + 3.1: each rule of the REAL navigator / memory / explorer / roam / flee / probe / grader broken in a copy
+                                                  # (61 mutants + a control): 60 caught, 1 redundant alone (the reason), ~50 min alone, ~12 min with --workers 6
+py -3.12 ai_player/gates/live_step3.py            # step 3 + 3.1 live proof, 33 arms (HOUSE, TOWN, ROUTE, ROAM, CROP, STUCK, BUMP, BUMPR, TRN, XP, XPR, SCENE,
+                                                  # SCENER, EXITS; the step-3.1 verifier's round: SCENEX, SCENEXR, HOUSER, TOWNR, ROUTER, EDGER, and the seed-9
+                                                  # replications TOWN9, ROUTE9; its second round: SCENENR, WARPREAD, BUMPSR, TOWN9R, ROUTE9R, HOUSE9, BUMP8,
+                                                  # BUMPSR8, SCENEX9, F2AB, CLOCKS), seed 3, ~30 min; every number in its PREDICTED table machine-checked;
+                                                  # its in-process arms pin the cartridge's clock (GAME_CLOCK), its launcher arms read the host's
+py -3.12 ai_player/gates/warp_reads.py            # step 3.1 (the verifier's second round): the REAL eyes on 7 starts, every memory read recorded, against
+                                                  # every map's warp array; and three plants in copies (an attribute, a getattr, a raw read), each caught (arm WARPREAD)
 py -3.12 ai_player/gates/rate_step3.py [--plans HOUSE,TOWN,...] [--seeds 10] [--workers 4]
-                                                  # step 3: the SEED SWEEP, 8 plans x 10 seeds in-process, each graded by its second-path truth;
-                                                  # also the targets each seed chose, CROP-SEP (TOWN vs CROP seed by seed) and the roaming metrics, ~25 min
-py -3.12 ai_player/gates/game_answer.py STATE GROUP NUMBER X Y [--after-warp GROUP NUMBER X Y]
+                                                  # step 3 + 3.1: the SEED SWEEP, 10 plans x 10 seeds in-process, each graded by its second-path truth;
+                                                  # also the targets each seed chose, CROP-SEP (TOWN vs CROP seed by seed), the reversal bounds, the
+                                                  # REVERTS (finding 2's rules and the scene's count per tile reverted in a copy: the A/B), the scenes,
+                                                  # ROUTE's flee, the seed-3 replay and the roaming metrics; ~5 min with --workers 10
+py -3.12 ai_player/gates/game_answer.py STATE GROUP NUMBER X Y [--after-warp GROUP NUMBER X Y | --after-connection GROUP NUMBER X Y DIRECTION]
                                                   # step 3: where the GAME says the player stands, by its behaviour (hold a direction; its own step
                                                   # counter and loaded map against the ROM layout's prediction at the claimed tile); with no
-                                                  # walking line: can the player move at all (LOCKED), and where the ROM says the last warp left it
-py -3.12 ai_player/gates/make_step3_fixtures.py [--only house|route|xp]   # rebuilds house_2f_clockset.ss1 (the AI's clock skill),
+                                                  # walking line, or a trial the game did not step at all: can the player move at all (LOCKED), and
+                                                  # where the ROM says the last warp (or, since step 3.1's second round, map edge) left it
+py -3.12 ai_player/gates/make_step3_fixtures.py [--only house|route|xp|twin]   # rebuilds house_2f_clockset.ss1 (the AI's clock skill),
                                                   # route101_south.ss1 + its world.jsonl (the AI's own TOWN walk), route101_xp.ss1 + its
-                                                  # world.jsonl (the AI's errands, then test-side presses to a won battle); then re-pin in live_step3.py
+                                                  # world.jsonl (the AI's errands, then test-side presses to a won battle), littleroot_twin.ss1 (the
+                                                  # AI's own HOUSE walk: the fixture of SCENE, SCENEX and SCENE-EXPLORE); then re-pin in live_step3.py
+py -3.12 ai_player/gates/provenance.py --check-evidence
+                                                  # every evidence file at the top of ai_player/evidence/ names THIS tree's digest (earlier trees'
+                                                  # files are kept in evidence/archive/<digest>/)
 ```
 
 ## Fault and control switches
@@ -358,6 +402,12 @@ Read inside the AI's own code, never set on the happy path:
 | `AI_PLAYER_CONTROL_TAP=1` | CONTROL: the placeholder taps B every 60 steps | P |
 | `AI_PLAYER_FAULT_NO_CROP=1` | the eyes do not crop to the screen (step 1: objects and signs; since step 3 also EVERY tile of the live grid, the map and its margin) | E2X (live_step1), CROP (live_step3) |
 | (a COPY) | step 3: `WorldMemory.learn_bump` remembers nothing | BUMPR (live_step3, in-process `hands_harness.py`) |
+| (a COPY) | step 3.1: the scene rules off (per target and per tile) / the count per tile off | SCENER / SCENEXR (live_step3); the sweep's SCENE-TILE revert |
+| (a COPY) | step 3.1, the verifier's round: finding 2's two rules off (`live_step3.STALE_MUTATIONS`) | HOUSER, TOWNR, ROUTER (live_step3); the sweep's FINDING-2 revert |
+| (a COPY) | step 3.1, the verifier's round: a map's ends from negative coordinates again (`live_step3.EDGE_MUTATION`) | EDGER (live_step3) |
+| (a COPY) | step 3.1, the verifier's second round: a scene not known by its words (`SCENEWORDS_MUTATION`) / new words not progress (`NEWS_MUTATION`) | SCENEXR / SCENENR (live_step3); the sweep's SCENE-WORDS / SCENE-NEWS reverts |
+| (a COPY) | step 3.1, the verifier's second round: one bump walls a tile from every side again (`BUMPSIDE_MUTATION`) | BUMPSR, BUMPSR8 (live_step3) |
+| (a COPY) | step 3.1, the verifier's second round: a warp-table read planted in `host/eyes.py` `_map_facts` (`warp_reads.PLANTS`: an attribute, a getattr, a raw read) | WARPREAD (live_step3, `gates/warp_reads.py`) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -397,7 +447,9 @@ also shows the frame-continuity check still catching V5, and `M8c` (both layers 
 V5 as CLEAN, so each layer is shown to be load-bearing.
 
 Evidence of the live proof: `ai_player/evidence/<date>-step01-<ARM>.txt` (step 0's own runs:
-`<date>-step0-<ARM>.txt`).
+`<date>-step0-<ARM>.txt`). Since the step-3.1 verifier's second round the folder's top level holds the evidence of the
+CURRENT tree only (`provenance.py --check-evidence`): `live_step0.py --arms A,A2,B,C`'s four files; the full step-0 and
+step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) are in `evidence/archive/no-digest/`, unchanged.
 
 ## The world and the navigator (build step 3)
 
@@ -412,8 +464,10 @@ during a scene, a menu or a battle is remembered too. Per map, in that map's own
 window ever showed, as the eyes reported it (blocked, water, tall grass, encounters, a ledge and its jump direction, a
 door, a warp, elevation, behaviour), with the frame and the TILE THE PLAYER STOOD ON when it was first seen
 (`TileFact.seen_from`): "it knows only what it saw" is a property of the memory itself, checked by every live arm.
-Visits per tile; people and item balls seen; tiles LEARNED BLOCKED BY BUMPING; the map's EDGES learned at a crossing
-(up and left are 0 by the coordinates; a tile at x < 0 or y < 0 is another map's or the border). Across maps: the WARP
+Visits per tile; people and item balls seen; ways in LEARNED BLOCKED BY BUMPING, per tile AND side (since step 3.1);
+door-looking tiles found CLOSED (reopened once one of the eyes' story flags is newly set since, or after 36,000 frames:
+the step-3.1 verifier's round); the map's EDGES, all four, learned only at a crossing SEEN (since step 3.1: the
+coordinates alone say nothing a person sees, so before a crossing a tile past an edge is just a tile). Across maps: the WARP
 GRAPH (`(map, tile) -> (map, arrival)`, learned when used, and the warp tile at or beside the arrival recorded as the
 inferred way BACK, as a person knows the door they came out of), the CONNECTIONS (with their offset; known both ways),
 and every map change, classified by what the looks between showed: a fade, the map loading or a settling position is a
@@ -425,8 +479,10 @@ of arm TOWN's walk.
 
 **The navigator** (`brain/navigator.py`). A* over the memory: a known tile costs 1 (plus the personality's grass cost
 while travelling: Story 2, Catcher and Trainer 0), an UNKNOWN tile 3 (optimistic: it may be walkable, so the plan
-walks toward what has not been seen; dearer, so a seen way round is preferred), a wall, water, a bumped tile or a tile
-someone stands on is refused, a LEDGE is entered only in its jump direction and lands one tile beyond it, and a warp or
+walks toward what has not been seen; dearer, so a seen way round is preferred), a wall, water or a tile someone stands on
+is refused, a tile bumped from one SIDE costs 10 more from that side and is refused from it after a second bump (other
+sides stay open: step 3.1), the FIRST step of a plan costs 4 more when it turns straight back or completes a U-turn
+(step 3.1), a LEDGE is entered only in its jump direction and lands one tile beyond it, and a warp or
 a door is never walked THROUGH: it is USED on purpose (`use_exit`): stand next to it and press toward it, into the wall
 behind it (a door in a front wall, stairs against the back wall, a mat at the bottom of a room, which warps when pressed
 on while stood on). The plan is redone at every step as the screen shows more; a seeded noise per target (+0 to 25 %
@@ -449,10 +505,20 @@ intent's clock f71324 -> f71924)`). It ends with its goal reached, or `stuck:<re
 times with nothing new since its second use (a PING-PONG through one door); nothing left to try; a target already
 found unreachable chosen again; a trainer battle (out of scope); or `budget:` when its frames run out. Interruptions:
 a wild battle is fled (`skills/flee.py`), a scene is read through with A only on the eyes' waits (`hands/dialogue.py`
-advance; a yes/no in a scene is answered NO: an explorer agrees to nothing it does not know).
+advance; a yes/no in a scene is answered NO: an explorer agrees to nothing it does not know). A scene met on the way to a
+target counts against that target, and (since the step-3.1 verifier's round) against the TILE it began on when it put the
+player somewhere else: two with no PROGRESS since the first (a story flag, a Pokemon, items, experience; a tile seen in
+passing is not progress) give the target up and make the tile one the AI does not step on again in the intent (lifted
+by progress). Since that verifier's second round a scene is also known by its WORDS (the first page it waited on): the
+same words twice on one map, sending the player back, and EVERY tile that scene began on is given up (Littleroot's twin
+guards two tiles: at most 3 push-backs before news, where per tile it was 4); and NEW WORDS heard in a scene that left the
+player where it found them (May's mother, May: "Huh? Who... Who are you?") are PROGRESS (`Novelty.heard`, dated when the
+scene ends), which makes the given-up tiles and the targets they cut off worth a try again; met ONCE more with the same
+words and nothing new since, they are given up again at once.
 
-**Where to go** (`brain/explore.py`). Candidates, every one a tile the AI has SEEN: the FRONTIER (seen walkable tiles
-beside unseen ones), ROADS (walkable tiles seen past the map's edge), DOORS (exits not used yet), BACK (an exit known
+**Where to go** (`brain/explore.py`). Candidates, every one a tile the AI has SEEN (an exit's stand tile included, since
+step 3.1): the FRONTIER (seen walkable tiles beside unseen ones), ROADS (walkable tiles seen past an edge whose crossing
+the AI has SEEN: step 3.1), DOORS (exits not used yet, by their LOOK), BACK (an exit known
 to lead to a visited map: worth little, more while that map still has something unseen, which is how a seen-all house
 is left by its door rather than its stairs), a ROUTE (an exit known to lead, through known links, to the intent's goal
 map), GRASS and PEOPLE. Score = 10 x value - the walk to it + the pull away from where it came into this map (frontier
@@ -622,20 +688,147 @@ not read as a wait. The AI watched it and gave up after 900 frames, as the stall
 STUCK: nothing on screen changed for 900 frames while watching: a battle`); reading it is the battle decider's (step
 4), and the XP fixture's battle gives experience without a level (checked by its builder).
 
+## Step 3.1: the step-3 adversarial review's findings, fixed (2026-10-08)
+
+The review (CHANGELOG 2026-10-08, "Open: step 3.1") found that the explorer used knowledge no screen shows and walked in
+ways a person would not. Each finding below has a fix in the AI's code and a proof that fails when the fix is reverted (a
+unit test with its fault half in `gates/test_world.py`, a mutant in `gates/revert_step3.py`, and where it can be played,
+a live arm of `gates/live_step3.py`). Predictions were written into `live_step3.py`'s docstring ("AFTER STEP 3.1")
+before the graded run, from in-process development runs of the same code (seed 3) and a development seed sweep. Every
+evidence file of this round says `working-tree digest sha256:b4c70735d1599fa2` and `predictions: sha256:3197e6dad9d2d6d6`
+(every suite was re-run on that tree: `check_purity.py`; the five unit suites; `live_step0.py --arms A,A2,B,C`,
+`live_step1.py`, `live_step2.py`, `live_step3.py` (14 arms, every frame and press count as predicted); `revert_step3.py`;
+`rate_step3.py`).
+
+| finding | the fix | proven by |
+|---|---|---|
+| 1 (HIGH) the explorer knew where a map ENDS from negative coordinates (`outside`: x < 0 or y < 0), scored those tiles as ROADS, and only on the top and left | `world/memory.py`: `outside` and `road_side` use only edges learned at a crossing SEEN, all four sides (`learn_edges`); an older memory re-learns its edges from its recorded crossings when read. Before a crossing, a tile past an edge is frontier like any tile | `test_world.py` ShiftTests: the same memory with every coordinate +50 gives the same choice (6 seeds, before and after a crossing); a tile past an edge never crossed is no road; MemoryTests (edges at a crossing, also from an old memory). Mutant W30 (the coordinates rule back) CAUGHT. Live TOWN / ROUTE `NO ROAD BEFORE A CROSSING ... (roads chosen: none; first crossings by map: {'0:9': 66750, '0:16': 66750}; too early: none)` |
+| 2 (HIGH) stale frontier targets: A-B-A reversals (TOWN "(11,7)->(12,7)->(12,6)->(11,6)", ROUTE "(17,9)->(18,9)->(17,9)") | `brain/navigator.py`: a frontier target with nothing unseen beside it any more (or grass already walked) is dropped at once, the next chosen on the move (`stale_reason`); the plan's first step costs `TURN_BACK_COST` = 4 for turning straight back or completing a U-turn (`turn_costs`, in `astar` and the explorer's `distances`), cleared on arrival | ReversalTests (12 seeds of the town model): `<= 3` reversals and no stale target walked onto; FAULTS: no turn-back cost `>= 15`, no stale drop `>= 8` and every frontier target walked onto. Mutants W31, W32, and W42 for the grader, CAUGHT. Live: HOUSE, TOWN, ROUTE graded `REVERSALS ... 0 on the 41 steps the looks showed (want <= 1, pre-registered)` (TOWN; HOUSE 0 on 10, ROUTE 0 on 35; 23 and 22 targets dropped as stale). RATE: the exploring plans 11 reversals in 2,119 steps (bound 2 a run, met). (A "68 in 2,259 on the step-3 code" quoted here before was a scratch measurement no file of the tree reproduces: replaced by the sweep's REVERT A/B in its evidence, 89 in 2,795 with the two rules reverted, and the bounds tightened: "Step 3.1, the verifier's round" below) |
+| 3 (MED) a repeating scene: a "scene" result kept its target, the ping-pong counted warps only | `Navigator._scene_met`: every scene met on the way to a target is counted for it; at `SCENE_REPEATS` = 2 with nothing new since the first, the target is given up (`stuck: ... cannot be reached (a scene stopped the way there 2 times ...)` for an errand) | SceneTests (a trigger that pushes the player back; FAULT: until the novelty window, `>= 8` scenes) and the pure rule (something new since the first scene keeps the target). Mutant W33 CAUGHT. Live arm SCENE (`littleroot_twin.ss1`, the twin's NeedPokemon trigger): `the scene met on the way to (10, 0) exactly TWICE, then the target given up`, `it gave up after 2471 frames`, `on [0, 9] at [10, 2] (pushed back ...), VAR_LITTLEROOT_TOWN_STATE 0`, purity CLEAN; its revert SCENER: `3 times ... ended only on the novelty window`, `3570 frames here, 2471 with the rule (SCENE): the rule saved 1099 frames` |
+| 4 (MED) one bump = a permanent wall from every side (`bumped` keyed by tile, persisted) | `MapMemory.bumped` keyed by (tile, direction); `step_from` adds `BUMP_RETRY_COST` = 10 after one bump from that side and refuses it after `BUMP_GIVE_UP` = 2; other sides stay open; standing on a tile no longer clears its bumps; old files read back | WalkTests: a one-way tile (IMPASSABLE_SOUTH_AND_NORTH in the model) reached from its side and crossed east-west (FAULT: every side walled, stuck); the only way on retried once and given up after the second refusal (FAULT: one bump closes a way that opened); a hidden wall bumped at most once per side. Mutants W34, W35 CAUGHT. Live BUMP: `exactly one way in learned blocked by bumping: {'1:1': [((1, 4), 'down')]}`, `THE ONE-WAY TILE CROSSED FROM ITS OPEN SIDES: errand 2 ... [('right', (0, 4), (1, 4)), ('right', (1, 4), (2, 4))] ...; errand 3, back: [('left', (2, 4), (1, 4)), ('left', (1, 4), (0, 4))]`; BUMPR (no memory) still 94 bumps |
+| 5 (LOW) warp tiles from the ROM's warp-event table, which nothing on screen shows | `host/eyes.py` no longer reads a map's warps: a tile's `warp` is its LOOK (`eyes/view.py` EXIT_BEHAVIORS, every look the game warps on but the Union Room's); an exit is used the way it looks (`navigator.EXIT_PRESS`: an arrow by its arrow, a door from below); one that does not open is remembered CLOSED (`MapMemory.closed`); where one leads is the warp graph, as before | FrameworkFreeTests (no host file reads `.warps`; FAULT: a planted read caught; the exit looks); ExitTests (a closed door tried once and never by a later intent, FAULT: tried again; an arrow mat by its arrow). Mutants W36, W37, W38 CAUGHT. Live arm EXITS (`gates/exit_looks.py`, test side): `every look the game warps on ... is in the eyes' table (missing: none), and no warp tile of the ROM with such a look is unseen (none)`, `all 29 warp tiles LOOK like exits`, FAULT-TEST without the doormat look `leaves 14 of their warp tiles unseen`; `1193 of 1313 warp tiles on 518 maps`. `live_step1.py`'s tile truth is now the framework's names for the exit looks, all arms PASS |
+| 6 (LOW) the crop check imported VIEW_* from the eyes | `gates/window.py`: the screen's window as literals (7, 5, 5) from the hardware and the decomp; `live_step3.py`, `rate_step3.py` and `test_world.py` check against it | WindowTests: with the eyes' window widened to 9 the gate still flags a tile seen 8 columns away. Mutant W39 (the eyes' window back in the gate) CAUGHT |
+| 7 warp-target grading | audited every gate (`game_answer.py`'s docstring): no grade compares a post-warp position with a raw warp target; THE ARRIVAL applies the exit step and is checked against save block 1's position after the transition | STUCK now also requires `the RAW landing [8, 2] is that position: False` (save block 1 says [8, 3]); unit `GameAnswerTests.test_the_exit_step`, mutant W26 (as before) |
+| 8 an exit's stand tile could be UNSEEN (`_approaches` over `distances`) | `explore._approaches`: the stand tile must be known and walkable | ApproachTests: every candidate a seen walkable tile (a door whose only stand tile is unseen is no target yet; random memories of the explore model); FAULT: an unseen stand tile becomes a target. Mutant W40 CAUGHT |
+| 9 the spin metric | `RoamReport`: the back-and-forth spin ratio (reversals + in place over training steps: the criterion < 2%) AND the strict non-moving-press ratio (in place + pre-empted over every press, reported), with `reversals`, `in_place`, `preempted`, `strict_ratio` | RoamTests on `EncounterGame` (both timings: the pre-empted presses are exactly the interrupted ones that did not move). Mutant W41 CAUGHT. Live ROAM `BOTH RATIOS ... BACK-AND-FORTH spin ratio 0.006667 = (1 reversals + 0 in place) / 150 training steps (the criterion, < 2%); STRICT non-moving-press ratio 0.079755 = (0 in place + 13 pre-empted by a battle) / 163 presses (reported, NOT a criterion ...)`, the same re-derived from the looks; RATE: every seed's back-and-forth ratio < 2% |
+| 10 the sweep and the reverts on the final tree | re-run | `rate_step3.py`: `90 of 90 runs as intended` (HOUSE, TOWN, ROUTE, ROAM, STUCK, TOWN-Catcher, TOWN-Trainer, CROP, SCENE, 10 seeds each); `revert_step3.py`: see its evidence (W0 control, 42 mutants CAUGHT, W13 redundant alone as before) |
+
+**Found while measuring, and fixed before the predictions were written:**
+* Dropping stale targets ALONE made reversals worse on the town model (28 in 677 steps against 12 in 788 before): a
+  target dropped on the move was replaced by one behind as often as ahead. The plan's first step now costs
+  `TURN_BACK_COST` = 4 tiles when it turns straight back or completes a U-turn, and arriving at a target clears the
+  heading (a person turns round freely where they stopped; the turn-back cost is for a plan changed on the move). Both
+  rules: 2 in 730. The model A/B is `ReversalTests` and its two fault halves.
+* With roads no longer known from the coordinates, the development sweep's TOWN-Catcher seed 8 went house -> town ->
+  house until the ping-pong rule stopped it: Littleroot's far frontier (16 tiles) scored below the door just come out of
+  (worth `Weights.back`). The way just come in is now no option at all while the map has somewhere new to go (mutant
+  W43; `ExploreTests.test_not_straight_back_where_it_came_from`).
+* The twin's scene takes ~1,100 frames a round, so with the scene rule off (SCENER) it runs 3 times in the novelty window,
+  not the 4 first predicted for the revert arm; the check asks for more than the rule's 2.
+* The CROP fault arm no longer beelines to a "road": with the whole map on screen and no crossing seen, its first town
+  target is a door it could not have seen, and it reaches Route 101 by another way. Its discriminators (tiles known from
+  outside every window; a first town target NOT SEEN) still separate it from TOWN on every seed (the sweep's CROP-SEP).
+
+## Step 3.1, the verifier's round (2026-10-08)
+
+The step-3.1 verifier passed every suite and broke no rule, and listed nine weak proofs and notes. Each is answered below by
+a check that can fail, beside its fault (a revert arm on the same start and seed, a unit test with its fault half, a
+mutant of the real code). Predictions are in `gates/live_step3.py`'s docstring ("AFTER THE STEP-3.1 VERIFIER"), written
+from in-process development runs, a development sweep and a development pass of the driver on the new arms (its files
+discarded) of the same code, before the graded run. Every evidence file of this round says `working-tree digest
+sha256:2b316cce90537f5e` (`py -3.12 ai_player/gates/provenance.py`), and live_step3's `predictions: sha256:730f4e3bc7d59610`;
+every suite was re-run on that tree (`check_purity.py`, the five unit suites, `live_step0.py --arms A,A2,B,C`,
+`live_step1.py`, `live_step2.py`, `live_step3.py` with all 22 arms at the predicted frames and presses, `revert_step3.py`:
+50 mutants caught and W13 redundant alone, `rate_step3.py`). The figures below are quoted from that evidence.
+
+| weak proof (the verifier's words, shortened) | what was done | proven by |
+|---|---|---|
+| 1. finding 2's live reversal grades do not tell the fixed code from the reverted one at seed 3 (the revert shows 1 reversal on each of HOUSE, TOWN, ROUTE; the bound was 1), nor the sweep's per-run bound of 2 on ROUTE | the seed-3 bound is that trajectory's own count, 0 (`REVERSALS_SEED3`; another seed: 1); a second live check, NO STALE TARGET WALKED ONTO (`stale_arrivals`: the next decision made standing on a frontier target with no stale drop between, everything beside it seen by the memory's own first-seen frames); three REVERT ARMS with both rules off; the sweep's bounds 1 a run and 1 per 100 steps a plan | HOUSER, TOWNR, ROUTER each 1 reversal (the review's own two examples among them) and stale targets walked onto, against 0 and 0 on HOUSE, TOWN, ROUTE; the sweep's FINDING-2 revert: every exploring plan over the bound; unit `GraderTests.test_stale_arrivals_from_the_action_log_and_the_memory`, mutant W49 |
+| 2. the baseline "68 reversals in 2,259 steps" is a scratch measurement, in no evidence file | the sweep runs the A/B itself: the same plans and seeds from a COPY with finding 2's two rules reverted, the same metric, written into its evidence with a pre-registered prediction | `evidence/2026-10-08-step3-RATE.txt` REVERTS: FINDING-2 (the figures there, quoted in "Where it is now") |
+| 3. finding 1's live check "never fires" (roads chosen: none) | it now also requires the case it is about: targets past a map's REAL edge (the ROM's size, test side) before a crossing of THAT edge (per edge: ROUTE's loaded crossing of Route 101's bottom edge says nothing of its top), each chosen as what it looks like; its live fault is the revert arm EDGER | TOWN and ROUTE: frontier targets past the top edge, no road; EDGER: the road (10,-1), the same check FAILS; `GraderTests.test_targets_past_an_edge_before_a_crossing_of_that_edge`, mutants W50 (a crossing of any edge counted for all), W51 (no non-vacuity) |
+| 4. SCENE is a scripted errand (one scenario replayed; "1 different target sequences in 10 seeds"), not targets the explorer chose | measured first: the explorer from the twin's fixture gave one frontier tile up after 2 scenes, then chose the next tile behind her, 3 to 5 scenes until the novelty window (seeds 1-6), and seed 4 met her 4 times for ONE target (a tile seen in passing excused the scene). Fix in `brain/navigator.py`: a scene is also counted for the TILE it began on when it put the player elsewhere; twice with no PROGRESS since the first (a flag, a Pokemon, items, experience) and the tile is not stepped on again in the intent (`scene_walls`, lifted by progress); a new arm SCENEX and its revert, and the sweep's SCENE-EXPLORE plan and SCENE-TILE revert; SCENE is labelled as one scripted scenario | SCENEX: the twin 2 times on each of (10,1) and (11,1), her targets the explorer's own, both tiles given up and never stepped on after, then it looks elsewhere; SCENEXR: 3 times on one tile; sweep SCENE-EXPLORE every seed and the revert's seeds over 2; `SceneTests` explorer, progress and lift tests, mutants W44, W45, W48 |
+| 5. replays, not replications | the sweep's seed 3 is labelled the live arm's trajectory replayed (REPLAY section, frames compared with the live evidence of the same tree); real replications through the launcher at another seed | TOWN9, ROUTE9 (seed 9); the sweep's nine other seeds |
+| 6. live_step0 and live_step2 not re-run by the verifier | all suites re-run on the final tree (the evidence of each carries its digest) | `evidence/2026-10-08-step01-{A,A2,B,C}.txt`, `evidence/2026-10-08-step2-*.txt` |
+| 7. ROUTE seed 3 meets no wild battle: fleeing proven live only by ROAM | ROUTE9 through the launcher meets one and flees it (the check requires a battle); the sweep's ROUTE FLEE section, seed by seed | ROUTE9; RATE ROUTE FLEE (7 of 10 seeds meet a battle, each fled and counted by the game) |
+| 8. a door found closed stays closed for good | `world/memory.py`: reopened once one of the eyes' story flags is newly set since it was found closed, or after `CLOSED_RETRY_FRAMES` = 36,000; the navigator tells it | `ExitTests.test_a_closed_door_is_tried_again_once_the_story_moves_on`, `..._after_a_while`, mutants W46, W47 |
+| 9. the README's command block is stale | rewritten (79 tests, 51 mutants, 22 arms, 10 plans and the reverts) | this file |
+
+## Step 3.1, the verifier's second round (2026-10-08)
+
+The re-verification passed every suite, found no rule broken, and listed eight weak proofs. Each is answered below by a
+check that can fail beside its fault (a revert arm on the same start and seed, a unit test with its fault half, a mutant
+of the real code: W52-W61, and W28, W48 follow the code they break). Predictions are in `gates/live_step3.py`'s docstring ("AFTER THE STEP-3.1 VERIFIER'S GRADED
+RUN", "AFTER THE STEP-3.1 VERIFIER'S SECOND ROUND", "AFTER THIS ROUND'S FIRST GRADED RUN") and, since this round, as
+NUMBERS in its `PREDICTED` table, every one machine-checked against the run (a number that misses FAILS its arm). Every
+evidence file of the final run names `working-tree digest sha256:b94ddc58ca95f8f7` (live_step3's also `predictions:
+sha256:1ec90653b2a3c781`, its docstring and `PREDICTED` table), and the folder's top level holds no other (`py -3.12
+ai_player/gates/provenance.py --check-evidence`: 95 files, PASS). Final run: live_step3 33 of 33 arms PASS, 124 of 124
+pre-registered numbers held; revert_step3 60 mutants caught and W13 redundant alone, of 61; rate_step3 100 of 100 runs.
+
+| weak proof (the verifier's words, shortened) | what was done | proven by |
+|---|---|---|
+| 1. FINDING 5's guard only checks syntax: a planted `getattr(location, 'warps')` passed it, and so would a raw read of gMapHeader's events | (a) the static check also flags a STRING CONSTANT naming the table (`getattr`, `hasattr`, a dict key) and the framework's `MapWarp`, and does not fire on a docstring or comment that mentions `location.warps`; (b) a BEHAVIOURAL guard, `gates/warp_reads.py`: the REAL eyes look at the game on 7 starts with every `context.emulator.read_bytes` call recorded (the one funnel of every read the eyes can make: their own, `read_symbol`, `MapLocation`), against the address range of EVERY map's warp array in the ROM (444); its three plants, each in a copy: the attribute, the verifier's getattr, and a raw read of the array followed from `gMapHeader`'s events pointer | arm WARPREAD: 0 reads overlapping a warp array on every start; 5 of the 7 starts stand on a map with warps (Route 101 has none); the recorder sees each map's MapEvents struct read, one pointer from its warp array; each plant caught on all 5 (`plant_raw_caught 5`), the static check flags the attribute and getattr plants and NOT the raw read (the scan is what sees it). Unit: `test_fault_the_verifiers_getattr_plant_is_caught`, `test_a_mention_in_a_docstring_or_a_comment_is_not_a_read`; mutants W56 (the verifier's plant), W57 (the string rule off) |
+| 2. A PRE-REGISTERED PREDICTION DID NOT HOLD AND THIS IS NOT SAID ANYWHERE (ROUTER: "4 walked onto", measured 5) | said, in the docstring: the five targets, and that WHY the development count was 4 is not established (it was not kept; the copy and seed replayed give 5). And made impossible to repeat unsaid: every number pre-registered is in `PREDICTED` and `check_predictions` compares it with the run; a miss fails the arm, the summary counts them | each evidence file's "PRE-REGISTERED NUMBERS" check and its `MEASURED` line; the summary's count. Unit `test_a_pre_registered_number_that_does_not_hold_fails_the_arm` (ROUTER's own 4 against 5); mutant W60. THIS ROUND'S FIRST GRADED RUN USED IT: SCENEX9 failed on its numbers alone (14,462 predicted, 15,959 played), which found the CLOCK (row 9) |
+| 3. FINDING 2's live check separates fixed from reverted by a single event per arm (0 reversals against 1) | each revert arm now says which discriminator its claim RESTS ON: the stale targets walked onto (0 with the rules, several without); the reversals are reported, and at seed 3 still break the real arm's bound (labelled one event); the A/B again at seed 9 (TOWN9R, ROUTE9R); arm F2AB adds every pair | F2AB: on all 5 pairs, seeds 3 and 9, 0 stale targets walked onto with the rules and > 0 without; in all 0 against 23; reversals 1 against 6 (TOWN9R 1 = TOWN9 1: no per-arm claim). The frequency is the sweep's REVERT A/B: 11 reversals in 2,119 steps and 0 walked onto, against 89 in 2,795 and 252 |
+| 4. FINDING 4 has no live revert arm: BUMP's crossing check never ran against the reverted rule | arm BUMPSR: BUMP's start, errands and seed from a copy where one bump walls every side (W34's edit); BUMP's own check (`one_way_crossed`) graded on it; BUMP8 / BUMPSR8 the same A/B at seed 8 (of seeds 1-10 only 3 and 8 walk down into the one-way tile: measured) | BUMPSR: the same one bump `((1, 4), 'down')`, BUMP's check FAILS on it, errands 2 and 3 walked ROUND in 4 steps each, never onto (1, 4); the A/B: 2 + 2 steps straight through with the rule, 4 + 4 without; BUMPSR8 the same at seed 8 |
+| 5. the twin guards two tiles, so the explorer meets her 4 times; SCENEX's budget was chosen to end outdoors; what happens after the twin is not graded by the game's answer | (a) a scene is known by its WORDS (`navigator.scene_words`: the first page it waited on): the same words that sent the player back twice give up EVERY tile that scene began on; (b) SCENEX runs to its OWN end (20,000 frames). That showed what the old budget hid: after the twin the explorer met May in her house (the story moved on: VAR_LITTLEROOT_TOWN_STATE 1, at which the twin lets the player pass) and stopped there "nothing new", because meeting May sets no flag the eyes call progress. (c) NEW WORDS heard in a scene that left the player be are PROGRESS (`Novelty.heard`, dated when the scene ends: May's scene runs 3,500 frames), which makes the twin's tiles and the targets they cut off worth a try again; met once more with the same words and nothing new since, she is given up again at once. (d) `game_answer.py` answers the end: on Route 101 Birch's rescue scene LOCKS the player, so a trial the game does not step asks LOCKED, and THE ARRIVAL across a map edge (`--after-connection`) | SCENEX (the graded run, the host's clock in the afternoon): "explore: done: explore to ROUTE101" in 14,343 frames; the twin sends the player back 3 times before any news (`{'(10, 1)': 2, '(11, 1)': 1}`; counted per tile it was 4), May's mother's "Oh, hello. And you are?" makes her tiles worth a try again (`her push-backs between the news [0]` on this clock), May's "Huh? Who... Who are you?" and the twin's "Um, hi!" (`VAR_LITTLEROOT_TOWN_STATE 0 -> 2`) let the player pass; THE GAME'S ANSWER: LOCKED (Birch's rescue), and the arrival across Littleroot's top edge from (11, 0) lands on (11, 19) == save block 1. SCENEX9: 3 before any news (`{'(10, 1)': 1, '(11, 1)': 3}`), once more after the mother's words (`[1, 0]`), then through, 15,959 frames. At the pinned clock (arm CLOCKS) SCENEX plays the morning's 16,293 frames with `[3, 1, 0]`: the twin rules hold at all 8 instants. SCENEXR (words rule off): 4 push-backs before any news, 7 in all, never past her; SCENENR (news not progress): 3 push-backs, stuck in May's house at state 1, the twin never tried again. Sweep: SCENE-EXPLORE every seed 2..3 push-backs before news, <= 1 after each; 6 of 10 reach Route 101 (the other 4 stop by the ping-pong rule at Brendan's house, "Known limits"); SCENE-WORDS revert: 10 of 10 over 3; SCENE-NEWS revert: every seed that reaches Route 101 stays off it. Unit: SceneTests (same words on a two-tile gap: 3; FAULT by tile only: 4; different words: two scenes; news lifts her, once more gives her up; FAULTS news not progress: 2, once not enough: 4), GameAnswerTests, GraderTests; mutants W52-W55, W58, W59 |
+| 6. stale text: `eyes/view.py` says a closed door is never chosen again; the README's command block omits `--only twin` | both corrected | `eyes/view.py` EXIT_BEHAVIORS' comment (story flag or `CLOSED_RETRY_FRAMES`); the command block above |
+| 7. older evidence files with other digests sit in `ai_player/evidence` | every suite re-run on the final tree, and the step-2 seed-9 replication (`--evidence-tag step2-seed9-at-step3`), `revert_step2.py` and `revert_step11.py` too; every file of an EARLIER tree moved, unchanged, to `evidence/archive/<its digest>/` (`archive/README.md` lists them); a check that can fail: `provenance.py --check-evidence` | its FAULT half, run before the move: `555 evidence files ...; 0 name this tree's digest ... -> FAIL`; after: PASS (the report's figures) |
+| 8. the re-runs are replays of the same trajectories | said so (README "Known limits", CLAUDE.md rule 8); more replications at another seed through the launcher: HOUSE9, SCENEX9, BUMP8, each with its revert A/B at that seed where there is one (TOWN9R, ROUTE9R, BUMPSR8). And measured what "replay" means here: the game reads the HOST'S CLOCK (row 9), so a launcher run is the same run only within a window of the clock | HOUSE9, BUMP8, SCENEX9, TOWN9R, ROUTE9R, BUMPSR8 (their `PREDICTED` numbers from their own development runs) |
+| 9. (FOUND by this round's own graded run) SCENEX9's trajectory changed between its development and graded runs, same code, fixture, seed and presses | CAUSE, MEASURED by an in-process A/B (the throwaway emulator's clock set test side; a development run, its figures in the docstring): the game reads its real-time clock (mGBA's RTC = the host's) at every map load, and berry growth draws random numbers: SCENEX9 plays 14,462 frames with the clock from 09:00 to 12:01 and 15,959 from 13:37 or 20:00; the host's clock offset by 6 hours, or the run slowed 4 ms a frame, changed nothing within a window. The graded form of that A/B is arm CLOCKS (SCENEX9 14,462 at 06:00 and 11:00, 15,959 at 12:30, 18:00 and the next morning, 14,647 from 2026-10-10). Every in-process run now PINS the cartridge's clock (`hands_harness.py --game-clock`, `live_step3.GAME_CLOCK`); arm CLOCKS runs every launcher arm at 8 instants over 12 days | CLOCKS: ROAM, SCENEX and SCENEX9 change with the clock (pre-registered `CLOCK_SENSITIVE`), the other 13 do not; those three register no launcher frames (their pinned numbers under CLOCKS), and their claims hold at every instant (the twin's push-backs, Route 101 reached, ROAM's 150 steps under 2% spins). Unit `test_the_clock_arm_registers_frames_only_where_every_clock_agrees`, mutant W61 |
+
 ## Known limits of step 3
 
 * The navigator walks; no brain yet CHAINS a walk and a skill (walk to the nurse, then heal): that is step 5's goals.
   The world brains end at their goal map, their errands, their roaming steps or `stuck:`.
 * Elevation is not planned over: a tile the eyes call walkable but the game refuses (an elevation step, a one-way
-  tile) is learned by BUMPING, once, from any side (tile level: a one-way tile such as (1, 4), passable east-west, is
-  then avoided from every side too, a person's caution, two steps longer in BUMP's errand 2).
-* A map's right and bottom EDGES are known only after crossing them; until then a tile past them is just a tile (it
-  shows up as frontier, not as a road). Up and left are known from the coordinates.
+  tile) is learned by BUMPING. Since step 3.1 per SIDE: a one-way tile such as (1, 4) is crossed from its open sides
+  (BUMP's errands 2 and 3), and a wall the eyes call floor is bumped at most once from each side tried (up to four
+  bumps for a hidden wall approached from everywhere, where step 3 took one). A side bumped once is tried again only
+  when every other way is dearer by 10 tiles; twice, never. The one-way look (IMPASSABLE_*) is not read as a cue yet.
+* A map's EDGES, all four, are known only after a crossing is SEEN (step 3.1); until then a tile past them is just a
+  tile, explored as frontier. So the explorer has no pull toward a town's exit as such: it leaves by the frontier it
+  sees there (Littleroot's road north is frontier until crossed). A memory written before step 3.1 learns its top and
+  left edges again from its recorded crossings when it is read.
+* Exits are known by their LOOK (step 3.1): every look the game warps on but the Union Room's exit (its behaviour,
+  MB_BRIDGE_OVER_OCEAN, is the bridges' too). A door-looking tile that did not open is remembered CLOSED until the story
+  moves on (one of the eyes' STORY_FLAGS newly set: a door opened by an event that sets none of those flags waits for the
+  time rule) or 36,000 frames pass (since the step-3.1 verifier's round; unit-proven, no live arm meets a closed door).
+  The grid model's walk-on warps start at
+  the step's attempt; the game's at the step's end (the navigator's warp records are by the exit it USED, either way).
+* Reversals are graded on the AI's own steps as the looks confirmed them (`live_step3.py` walk_path); a U-turn round a
+  single blocked tile counts as one even when it was the only way. Roaming sweeps a patch in serpentines, which the
+  same metric would call U-turns: roaming keeps its own spin criterion (A -> B -> A and walking in place).
+* The TOWN and ROUTE check "no road before a crossing" is met with no road chosen at all (once a crossing is seen, the
+  road's side is a KNOWN connection, so its tiles are "back" or "route", not "road": the kind "road" is in practice for a
+  memory whose edge was learned without its link). Since the step-3.1 verifier's round the check also requires the case
+  it is about (targets past a map's real edge, by the ROM's size, before a crossing of THAT edge: TOWN 5, ROUTE 4, every
+  one a frontier) and its live fault is the revert arm EDGER (the old coordinates rule: the road (10,-1), the check
+  fails), beside ShiftTests and mutant W30.
+* A scene that interrupts one target twice with nothing new gives that target up for the intent, and (since the
+  step-3.1 verifier's round) a tile a scene began on and sent the player back from twice is not stepped on again in the
+  intent. "Nothing new" is progress (a story flag, a Pokemon, items, experience, and since its second round new words
+  heard in a scene that left the player be), not a tile seen in passing. Since the second round the twin is known by her
+  WORDS, so the two tiles she guards, (10,1) and (11,1), are one scene: 3 push-backs before any news (twice on one tile,
+  then the side-step onto the other, where the same words close both; per tile it was 4). The third is the side-step a
+  person makes: the AI does not guess that a tile no scene began on is guarded too. The words are the FIRST PAGE a scene
+  waited on: two different scenes that open with the same page would count as one (not met in the arms' maps).
+* NEWS is any page never heard before in the intent, from a scene that did not send the player back or away: May's
+  mother's greeting is news too, so the explorer may try the twin once more before May (at most one more push-back,
+  then given up again at once; whether it walks there before meeting May depends on the run). The STORY is not read: the AI cannot tell news that changes the twin from news that does not. Measured
+  (the sweep's SCENE-EXPLORE, 10 seeds to their own end): 6 reach Route 101 (May met, the twin passed); the other 4 stop
+  by the PING-PONG rule between Brendan's house and the town before meeting May: with every reachable place in the town
+  seen and the north given up, the way just come in is the only option left and the explorer shuttles through it (May's
+  upper floor, never visited on those seeds, is not worth more than the house next door to it). That dead end is the
+  explorer's, not the scene rule's; step 5's goals are where a person's "go next door, then upstairs" belongs.
 * Wild battles are only FLED (step 4 fights and catches). A trainer battle ends the intent with its reason; so would a
   trainer who spots the player (nothing on screen says who is a trainer).
 * The ping-pong rule counts uses of one warp; a ping-pong through TWO different doors in turn is caught only by the
   novelty window (3,000 frames).
-* Fleeing is proven live by ROAM (13 battles) and ROUTE (1, since the whim moved its trajectory) and by the unit tests.
+* Fleeing is proven live by ROAM (13 battles), by ROUTE9 (the ROUTE arm at seed 9 through the launcher: one wild battle
+  met and fled, since the step-3.1 verifier's round), by ROUTER (in-process) and by the unit tests. ROUTE at seed 3
+  meets none on step 3.1's trajectory (its flee check is then 0 == 0 == 0); the sweep's ROUTE FLEE section: 7 of 10
+  seeds meet one, every one fled and counted by the game.
 * THE GAME'S ANSWER (`gates/game_answer.py`) predicts only CLEAN lines (plain floor or tall grass, no warp, no live coord
   event, no person within a tile). With no such line it can still say whether the player can move at all (LOCKED) and,
   given the warp the player last used, where the ROM puts it (THE ARRIVAL: modelled for doors, non-animated doors and
@@ -649,10 +842,28 @@ STUCK: nothing on screen changed for 900 frames while watching: a battle`); read
   (step 4) to read.
 * The evidence pins the predictions each run read (`predictions:`), not that they were written before a first look at
   a graded run: that needs a commit made before the run.
-* One launcher trajectory per arm (seed 3); re-running reproduces it exactly (the in-process dev runs and the launcher
-  runs have equal frames and presses for every arm): a determinism check, not a replication (CLAUDE.md rule 8). The
-  frequency answer is the SEED SWEEP (`gates/rate_step3.py`, `evidence/2026-10-08-step3-RATE.txt`, in-process
-  `hands_harness.py`, the final tree of the verifier's round): HOUSE, TOWN, ROUTE, ROAM, STUCK, CROP 10 of 10 seeds each
+* One launcher trajectory per arm (seed 3); re-running reproduces it exactly WITHIN ONE WINDOW OF THE HOST'S CLOCK (the
+  bullet below: ROAM, SCENEX, SCENEX9 change across windows) (the in-process dev runs and the launcher runs have equal
+  frames and presses for every arm; the step-3.1 verifier's re-run matched line for line): ONE TRAJECTORY,
+  REPLAYED, a determinism check, not a replication (CLAUDE.md rule 8). The sweep's seed 3 is that same trajectory again
+  (its REPLAY section says so and compares the frames with the live evidence of the same tree). The replications are
+  the sweep's other nine seeds and, through the launcher, TOWN9 and ROUTE9 (seed 9, since the step-3.1 verifier's
+  round), HOUSE9, SCENEX9 and BUMP8 (since its second round; BUMP's at seed 8 because of seeds 1-10 only 3 and 8 walk down
+  into the one-way tile), each revert A/B again at that seed (TOWN9R, ROUTE9R, BUMPSR8). Every `PREDICTED` number of a
+  replication arm was written from its own development run before the graded one: they are pre-registered, not
+  re-derived.
+* THE GAME READS THE HOST'S CLOCK (mGBA's real-time clock, the framework's default; measured in the step-3.1 verifier's
+  second round): at every map load the berry trees grow by the minutes passed and draw from the game's random numbers, so
+  a launcher run's trajectory can depend on WHEN it is played. Arm CLOCKS (8 instants over 12 days, the clock pinned
+  in-process) finds ROAM, SCENEX and SCENEX9 change with it and the other 13 launcher arms do not; those three register no
+  launcher frame counts, and CLOCKS checks their claims at every instant. A launcher run cannot pin the clock (the AI may
+  not set it; the framework has no option for it); every in-process run does (`GAME_CLOCK`). Earlier rounds' "the
+  verifier's re-run matched line for line" were re-runs within one window of the clock.
+* The warp-table guard (`gates/warp_reads.py`) sees the reads the eyes make on its 7 starts (the arms' maps, Rustboro's
+  mart, a battle); a read that only a map it never looks at would trigger is not exercised there. The static check covers
+  every host file but names only; the two together are the guard, neither alone. The frequency answer is the SEED SWEEP (`gates/rate_step3.py`, `evidence/2026-10-08-step3-RATE.txt`, in-process
+  `hands_harness.py`; the figures in the rest of this bullet are step 3's verifier round, the current ones are in
+  "Step 3.1, the verifier's round"): HOUSE, TOWN, ROUTE, ROAM, STUCK, CROP 10 of 10 seeds each
   as intended, and TOWN with the Catcher and the Trainer taste 10 of 10 each (`80 of 80 runs as intended`; with 0
   failures in 10 a plan's failure rate is below ~30% at 95%: the rule of three); ROAM's ten seeds 0 or 1 spins in 150
   training steps (9 to 13 more presses each, the steps a battle pre-empted). It is not a launcher gate (the purity of
@@ -758,7 +969,7 @@ graded is the one this run wrote (`check_after_is_this_run`: written after the r
 start's plus the run's real frames +-5, a fixture arm's md5 not the fixture's; before, the fresh arms relied on the
 launcher unlinking the old state without asserting it), and that check is fault-tested on 7 synthetic runs before
 any arm (`[SELFTEST]`, quoted in every evidence file: a stale mtime, a frame +-3000, no file and the fixture's md5
-each fail it). Evidence `evidence/2026-10-07-step2-<ARM>.txt`:
+each fail it). Evidence `evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt`:
 
 | arm | start | what happened (quoted from the evidence) |
 |---|---|---|
@@ -770,7 +981,7 @@ each fail it). Evidence `evidence/2026-10-07-step2-<ARM>.txt`:
 | CLOCK | `gates/fixtures/clock_room.ss1` | the step-2.1 run: `the time to set: 23:26 (the computer's local time)`, in the run's window; TRUTH `FLAG_SET_WALL_CLOCK=True VAR_LITTLEROOT_INTRO_STATE=6 gLocalTime [0, 23, 26, 3]` (the fixture: False, 5); `yes_no cursor on 1 (NO), wanted 0 (YES): one step up`, then YES. (The step-2 run set 22:37: this arm's time, frames and presses follow the computer's clock.) |
 | XBC (fault) | the clock fixture, `AI_PLAYER_FAULT_BLIND_COUNT=1`, since step 2.1 `AI_PLAYER_CLOCK=13:37` | HARM `FLAG_SET_WALL_CLOCK=False VAR_LITTLEROOT_INTRO_STATE=5`: "Is this the correct time?" answered with the cursor on NO 55 times (the count assumed it opens on YES), the same 55 on a re-run (with the computer's time it was 50, then 51, for seed 3) |
 
-**The REPLICATION, seed 9** (`live_step2.py --seed 9`, evidence `evidence/2026-10-07-step2-seed9-<ARM>.txt`; its
+**The REPLICATION, seed 9** (`live_step2.py --seed 9`, evidence `evidence/archive/no-digest/2026-10-07-step2-seed9-<ARM>.txt`; its
 predictions were written into the script's docstring BEFORE the graded runs, from the in-process harness). The
 step-2 verifier noted that re-running seed 3 gives identical numbers: a determinism check, not a replication.
 Seed 9 draws another personality and other pacing (every hold, gap, reading delay and think pause), so each arm
@@ -805,7 +1016,7 @@ and x23; no talk A while a script runs (fault: with the free check removed it la
 honours `AI_PLAYER_TEST_SUPPORT_ROOT` (as `test_eyes.py` does), so it runs from a copy of the package.
 
 **Each check of the REAL code carries weight, or is documented as redundant** (`gates/revert_step2.py`, evidence
-`evidence/2026-10-07-step2-REVERT.txt`). The fault switches show the tests catch a NAIVE driver; the step-2
+`evidence/archive/no-digest/2026-10-07-step2-REVERT.txt`). The fault switches show the tests catch a NAIVE driver; the step-2
 verifier mutated the real code and found four checks no test caught. The script now breaks ONE check per copy of
 the package and runs `test_hands.py` there (step 2.1 added HS, HSo and HK: the named busy reason, the scene's
 callback lookup, the A-press classes; each CAUGHT, so 21 caught of 25 now): the unchanged copy passes all its tests; 18 mutants of step 2 are CAUGHT by their
@@ -848,28 +1059,33 @@ equal), so a rebuild must be re-pinned. The nurse arm uses `tools/story-dev/save
 The step-2 verifier passed every arm and listed five WEAK PROOFS. Each now has a proof that can fail; the
 predictions were written into `gates/live_step2.py`'s and `gates/live_step1.py`'s docstrings before the graded runs.
 
-| weak proof | what was done | proven by (evidence `evidence/2026-10-07-step2-<ARM>.txt` unless named) |
+| weak proof | what was done | proven by (evidence `evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt` unless named) |
 |---|---|---|
 | 1. "each text A was gated" was the log agreeing with itself (the gate and the digest are ONE look), and the two task waits new in step 2 had no behavioural proof | `gates/probe_presses.py`: the real skill in a throwaway emulator; before EVERY A press it saves the frame and asks the GAME in forks of it (the state reloaded before each): is a text still printing (an active printer advancing within 8 frames, no input); does anything move in 300 frames with no input (every active printer, the box, the main callback, the tasks, the script's pointer and status, the keyboard's text); does the SAME press move it; does B, pressed instead, do exactly the same (a continue, not a choice); for the A that starts a conversation, is the player free and does a script start. Every value is the probe's own raw read; the forked run must equal an unforked `hands_harness.py` run | WBI `30 A presses`, `8 menu, 22 wait ... Wrong: none`, `f5587 wait 'task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (': printing=False still=True A moved it at +1 ['tasks'] B-same=True`, `the forks changed nothing in the run: probe [..., 8664, 55] == unforked harness [..., 8664, 55]`; WBM `f119486 wait 'task Task_ReturnToItemListAfterItemPurchase (A or B)': printing=False still=True A moved it at +1 ['tasks'] B-same=True`; WBN, WBC (the script waits, the talks: `free=True started=True`). CONTROL WBX: the ungated fault under the same probe: `118 of 243 ungated A presses landed on a text still PRINTING, 208 on a screen that moved by itself`. FAULT XTW: a COPY of the eyes listing the timer task `Task_NewGameBirchSpeech_WaitToShowBirch` as a wait: `CAUGHT: 6 A presses gated on the fake wait, 6 flagged by the game's behaviour`, `the 22 other wait-gated presses of the same run are all proven` |
 | 2. only NURSE limited the OTHER A presses (talk, menu confirms) | every real launcher arm (`check_gates`, `classify_a`) classifies EVERY A press from its look: a WAIT (`waits=A/B(<that gate>)`, no menu), a MENU confirm (that menu open and taking input, `ui=<kind>[`, nothing waiting) or a TALK (the overworld, nothing waiting, no menu); anything else fails. Still the log about itself; the GAME's side is weak proof 1's arms | INTRO `{'menu': 8, 'wait': 22}; any other: none`; NURSE `{'menu': 1, 'talk': 1, 'wait': 4}`; MART `{'menu': 5, 'talk': 1, 'wait': 3}`; CLOCK `{'menu': 2, 'talk': 1, 'wait': 7}`; `test_hands.py` PressKindTests with fault cases; `revert_step2.py` HK |
 | 3. 530 frames of Birch's opening logged under the catch-all "watching: the game is busy (main_menu)" | the eyes report the FADE (`ScreenState.fading`, `gPaletteFade.active`) and the SCENE (`ScreenState.scene`, `eyes/screens.py` scene_of: the main callback, then a task, then the game state, in a person's words: "Professor Birch's speech", "the wall clock", "the map loading"); `busy_reason` names them. Every stretch the four skills stood still under the catch-all was measured first (a spy on `busy_reason`) and is now named | INTRO `55 stretches standing still, NONE under the catch-all`, the reasons `watching: Professor Birch's speech (it runs by itself: nothing on screen takes a press now)`, `watching: the screen fades (...)`; the same check on NURSE, MART, CLOCK; `test_hands.py` SceneTests (every measured stretch has a scene; every callback name is a symbol of the ROM; FAULT: no scene IS the catch-all); `revert_step2.py` HS, HSo |
 | 4. the clock arms do not repeat (the time set is the computer's) | XBC's time is PINNED (`AI_PLAYER_CLOCK=13:37`): its harm does not depend on the time, so it now reproduces; CLOCK keeps the computer's time, the default a person uses, so ITS numbers still move with the hour (stated below) | XBC `the time to set: 13:37 (named by the run)`, `the cursor on NO 55 times` (predicted 55 from the in-process run) |
-| 5. no live warp that differs only in y; two seeds are two trajectories, not a rate; the pacing is not measured from people | WARPY (`gates/live_step1.py`, `probe_step11.py warp_y`): a scratch search of every map's ROM warp events for a departure and an arrival tile that share x, near a fixture, found the League's 1F escalator (1, 7) -> 2F (1, 6), walked from the NURSE fixture. RATE: each skill once per seed 1-20 in-process, each graded by its second-path truth (the clock at a time spread over the day per seed). The pacing: not measurable here; still a known limit | `evidence/2026-10-07-step21-WARPY.txt`: `on all 15 of those frames the two tiles differ in y ONLY`, the eyes `settling` or `between screens` on each, `[MAP] ... -> EVER GRANDE CITY(16,14) pos=(1, 6)` at the first settled frame; WARPY-R4x (the x-only rule) CAUGHT live `[(8397753, [16, 14], [1, 7], [1, 6]), ...]`, and the same rule on arm WARP's Dewford door NOT caught (the gap closed). RATE: `intro: 20 of 20 seeds succeeded by the second-path truth ... frames 8372-8792`, `nurse: 20 of 20 ... frames 1912-1974`, `mart: 20 of 20 ... frames 1416-1534`, `clock: 20 of 20 ... frames 2455-3226` (each "below ~15% at 95% confidence, the rule of three") |
+| 5. no live warp that differs only in y; two seeds are two trajectories, not a rate; the pacing is not measured from people | WARPY (`gates/live_step1.py`, `probe_step11.py warp_y`): a scratch search of every map's ROM warp events for a departure and an arrival tile that share x, near a fixture, found the League's 1F escalator (1, 7) -> 2F (1, 6), walked from the NURSE fixture. RATE: each skill once per seed 1-20 in-process, each graded by its second-path truth (the clock at a time spread over the day per seed). The pacing: not measurable here; still a known limit | `evidence/archive/no-digest/2026-10-07-step21-WARPY.txt`: `on all 15 of those frames the two tiles differ in y ONLY`, the eyes `settling` or `between screens` on each, `[MAP] ... -> EVER GRANDE CITY(16,14) pos=(1, 6)` at the first settled frame; WARPY-R4x (the x-only rule) CAUGHT live `[(8397753, [16, 14], [1, 7], [1, 6]), ...]`, and the same rule on arm WARP's Dewford door NOT caught (the gap closed). RATE: `intro: 20 of 20 seeds succeeded by the second-path truth ... frames 8372-8792`, `nurse: 20 of 20 ... frames 1912-1974`, `mart: 20 of 20 ... frames 1416-1534`, `clock: 20 of 20 ... frames 2455-3226` (each "below ~15% at 95% confidence, the rule of three") |
 
-Seed 9 (`--seed 9`, evidence `evidence/2026-10-07-step2-seed9-<ARM>.txt`) ran every arm but RATE again: 13 of 13
+Seed 9 (`--seed 9`, evidence `evidence/archive/no-digest/2026-10-07-step2-seed9-<ARM>.txt`) ran every arm but RATE again: 13 of 13
 PASS, e.g. WBI `the forks changed nothing in the run: probe ['intro: in the truck; intended Luna (GIRL)', 8792, 52]
 == unforked harness [...]`, `8 menu, 22 wait`; WBM the task wait `f119517 ... still=True`; XTW `CAUGHT: 6 A presses
 gated on the fake wait, 6 flagged`; XBC `the cursor on NO 54 times`. XBC seed 3 run again
-(`evidence/2026-10-07-step2-repro-XBC.txt`): `55 times` again, the same frames.
+(`evidence/archive/no-digest/2026-10-07-step2-repro-XBC.txt`): `55 times` again, the same frames.
 
 **Which seed-9 files are which** (the step-3 verifier's note: the README cited `2026-10-07-...` while stale
 `2026-10-08-step2-seed9-*` files lay beside them). Three sets, each a different tree:
-* `evidence/2026-10-07-step2-seed9-<ARM>.txt` (23:35-23:38): step 2.1's FIRST round, quoted above. Their code line
+* `evidence/archive/no-digest/2026-10-07-step2-seed9-<ARM>.txt` (23:35-23:38): step 2.1's FIRST round, quoted above. Their code line
   names no digest (`HEAD 9f859914; ai_player/ has UNCOMMITTED changes`): it predates `provenance.py`.
-* `evidence/2026-10-08-step2-seed9-<ARM>.txt` (00:10-00:20, 14 files with a RATE): an intermediate run on the step-2.1
-  working tree BEFORE its second round (the same digest-less code line). Superseded, kept as they were, quoted nowhere.
-* `evidence/2026-10-08-step2-seed9-at-step3-<ARM>.txt`: seed 9 re-run on the FINAL tree of the step-3 verifier's round
-  (`working-tree digest sha256:1446987412c17a51`), every arm but RATE including step 2.1's second-round arms: 16 of 16
+* `evidence/archive/no-digest/2026-10-08-step2-seed9-<ARM>.txt` (00:10-00:20, 14 files with a RATE): an intermediate run
+  on the step-2.1 working tree BEFORE its second round (the same digest-less code line). Superseded, kept as they were,
+  quoted nowhere.
+* `evidence/2026-10-08-step2-seed9-at-step3-<ARM>.txt`: seed 9 re-run on the final tree. (Since the step-3.1 verifier's
+  second round, on ITS final tree, `working-tree digest sha256:b94ddc58ca95f8f7`: 16 of 16 arms PASS, 0 failed checks, `leftover emulator processes:
+none`. The run quoted in
+  the rest of this bullet was on the step-3 verifier's round's tree, `sha256:1446987412c17a51`; the re-run rewrote its
+  files under the same names, and that version is in git at commit 12b25140.) Every arm but RATE including step 2.1's
+  second-round arms: 16 of 16
   PASS, 0 failed checks, `leftover emulator processes: none`. E.g. INTRO `personality Trainer (seed; seed 9): gender
   GIRL`, `the AI pad's own frame count 8762 == the instrument's real_frames 8762`; XBN `HARM, by the second path: the
   name in save block 2 is 'L   ', not 'Luna'`; XBC `the cursor on NO 54 times`; XTW `CAUGHT: 6 A presses gated on the
@@ -890,8 +1106,9 @@ seventh weak proof. Each fix has a unit test that FAILS when it is reverted (`ga
 caught, 5 redundant alone with the reason; `gates/revert_step11.py` R5c), and the live ones an arm. The predictions
 were written into `gates/live_step2.py`'s docstring BEFORE the graded run, from in-process development runs. Every
 evidence file of this round said `working-tree digest sha256:57ee936bee9b962c`; the files of the same names were
-re-written by the re-run of the whole set on the step-3 tree (the step-3 verifier's round), and now say
-`sha256:1446987412c17a51` (`py -3.12 ai_player/gates/provenance.py` recomputes it for the tree as it stands); the
+re-written by the re-run of the whole set on the step-3 tree (the step-3 verifier's round), and said
+`sha256:1446987412c17a51` (since then re-written again by every later round's re-run: they now name the current tree's
+digest, `py -3.12 ai_player/gates/provenance.py` recomputes it for the tree as it stands); the
 numbers quoted below held on that re-run (INTRO 8,742 frames, XBN 12,000, XBC 6,000, NURSE 1,964, MART 1,441; CLOCK
 follows the computer's hour: 2,732).
 
@@ -995,7 +1212,7 @@ for a NEW PID of the player's (visible OT id) in the party or a box, and `dest` 
 `gBattleOutcome == Caught` alone is not a catch (Wally's tutorial ends Caught; the Ralts is his).
 
 **Cost of a look** (measured 2026-10-07 in the round-2 run whose evidence is on disk,
-`evidence/2026-10-07-step1-*.txt`, with the learner's 16 lanes running alongside): in-process (the probe),
+`evidence/archive/no-digest/2026-10-07-step1-*.txt`, with the learner's 16 lanes running alongside): in-process (the probe),
 30 looks per fixture, one per frame: overworld medians 1.38 to 1.59 ms (means 1.39 to 1.60, worst look
 1.85 ms), a battle or a full-screen menu (no view to read) medians 0.70 to 0.79 ms (worst 1.21 ms). In the
 live runs, under the purity instrument, 10 looks each: overworld medians 1.54 to 1.76 ms, battle and menu
@@ -1075,7 +1292,7 @@ added after the step-2 verifier's mutant V4, compare ONE coordinate each: the me
 so `SettlingTests.test_the_rule` now also has a y-only and a both-differ case), and the
 host-side ones a live arm in `gates/live_step1.py` that PLAYS the case in the probe's throwaway emulator with
 the eyes looking at every frame (`gates/probe_step11.py`), each with its own revert copy. Evidence:
-`evidence/2026-10-07-step11-*.txt`.
+`evidence/archive/no-digest/2026-10-07-step11-*.txt`.
 
 | finding | the fix | proven by |
 |---|---|---|

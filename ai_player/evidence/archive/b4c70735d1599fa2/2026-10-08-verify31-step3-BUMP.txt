@@ -1,0 +1,182 @@
+AI PLAYER BUILD STEP 3 (THE WORLD MODEL AND THE NAVIGATOR) - LIVE PROOF - ARM BUMP: errands in the player's room across a tile the eyes call walkable: bumped once, then avoided
+date: 2026-10-08 08:56:38
+code: HEAD 12b25140; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:b4c70735d1599fa2 over git diff HEAD (16 files, 201485 bytes) and 4 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+predictions: sha256:3197e6dad9d2d6d6 of live_step3.py's docstring (21633 characters), read at the start of this run
+fixture: ai_player/gates/fixtures/house_2f_clockset.ss1 md5=2cc0b61450870d34646f7583bfd0c787
+fixture documentation: as HOUSE
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step3-world --frames 6000 --wall-seconds 600 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step3-world\ai_player_runs\20261008-085627-BUMP --state C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\fixtures\house_2f_clockset.ss1
+env: AI_PLAYER_BRAIN=goto AI_PLAYER_SEED=3 AI_PLAYER_GOTO=0,4;2,4;0,4 AI_PLAYER_PERSONALITY=Story
+exit code: 0   elapsed: 4.9s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step3-world\ai_player_runs\20261008-085627-BUMP
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 5 synthetic runs (its own: pass; a stale mtime, a frame +3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step3.py's docstring; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=50 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 25 ([AI-HANDS] outcome='done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned)' presses=25 frames=307 looks=59 records=39), and > 0
+  [PASS] the AI pad's own frame count 307 == the instrument's real_frames 307 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned)' exit_code=0 process=0 real_frames=307 (budget 6000)
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the brain's outcome: 'goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned)' (want it to begin 'goto: done:')
+  [PASS] the state graded is the one THIS run wrote: written 4.7s after the run started; frame 15575 == start 15268 + 307 real frames (+-5); md5 c0b1c6a039f8a680d9307e8a1be65f44 (fixture 2cc0b61450870d34646f7583bfd0c787)
+  [PASS] 25 presses in the action log, every one with its gate (without: 0)
+  [PASS] EVERY A press is a WAIT, a MENU confirm (the battle's RUN included) or a TALK by its look: none pressed; any other: none
+  [PASS] 25 walking holds (want some), each pressed on a look of the OVERWORLD with nothing waiting and no menu (any other: none)
+  [PASS] pace: every walking hold 8 frames (seen [8]), every other press 1-7 frames (seen [])
+  [PASS] 0 stretches standing still, NONE under the catch-all 'watching: the game is busy': none; reasons []
+  [PASS] THE GAME'S ANSWER to save block 1's claim [1, 1] [0, 4], by its behaviour from the state left (gates/game_answer.py): hold Down: the ROM predicts 3 step(s), then a stop at [0, 8] (the map's edge, no connection); the game: 3 step(s) (the game's counter), map unchanged -> agrees | hold Left: the ROM predicts 0 step(s), then a stop at [-1, 4] (the map's edge, no connection); the game: 0 step(s) (the game's counter), map unchanged -> agrees; the map the game LOADED (gMapHeader) is the claimed map's ROM header: True; the trials rule out 4 of the 4 neighbouring tiles the player could stand on [[0, 3], [0, 5], [1, 3], [1, 4]]; FAULT-TEST: the probe claiming [0, 3] instead: hold Down: the ROM predicts 4 step(s), then a stop at [0, 8] (the map's edge, no connection); the game: 3 step(s) (the game's counter), map unchanged -> DISAGREES | hold Left: the ROM predicts 0 step(s), then a stop at [-1, 3] (the map's edge, no connection); the game: 0 step(s) (the game's counter), map unchanged -> agrees -> agree=False (want False)
+  [PASS] exactly one way in learned blocked by bumping: {'1:1': [((1, 4), 'down')]} (want {'1:1': [((1, 4), 'down')]})
+  [PASS] ONE bump: [AI-WORLD] BUMP: moving down from (1, 3) on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F did not move the player: (1, 4) is learned blocked moving down (bump 1 from this side: dear from now on, tried again only if every other way is dearer; the other sides stay open) (th
+  [PASS] pressed DOWN into (1, 4) once (the bump, f15383) and never again that way after it was learned (f15415): later none
+  [PASS] THE ONE-WAY TILE CROSSED FROM ITS OPEN SIDES: errand 2, (0,4) -> (2,4): [('right', (0, 4), (1, 4)), ('right', (1, 4), (2, 4))] (want [('right', (0, 4), (1, 4)), ('right', (1, 4), (2, 4))]: straight through (1, 4) going right); errand 3, back: [('left', (2, 4), (1, 4)), ('left', (1, 4), (0, 4))] (want [('left', (2, 4), (1, 4)), ('left', (1, 4), (0, 4))]) (step 3 walked round it in 4: a bump walled every side)
+  [PASS] WHY, by a second path (the ROM layout via the framework's MapLocation): (1, 4) has collision 0 (the eyes call it walkable) and behaviour 'Impassable North and South' (it blocks a step from the north)
+  [PASS] TRUTH (save block 1): the last errand's tile [0, 4] == [0, 4] on [1, 1]
+  [PASS] THE CROP, on the AI's own memory: all 252 known tiles of 1 maps lie inside the 15 x 11 window of the tile they were first seen from (outside: none)
+  [PASS] every one of the 3 targets the AI chose was a tile it had SEEN, inside the window it was seen from (not: none)
+
+---- notes ----
+walking holds by gate: {"keep walking down": 5, "keep walking left": 6, "keep walking right": 2, "walk down": 3, "walk left": 7, "walk right": 2}
+the AI's [AI-WORLD] lines:
+    [AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))
+    [AI-WORLD] intent 'walk to [(0, 4), (2, 4), (0, 4)]': budget 5400 frames; on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F at (5, 2); 165 tiles known on 1 maps
+    [AI-WORLD] go to the goto at (0, 4): errand 1 of 3: walk to (0, 4) (score 0.0)
+    [AI-WORLD] BUMP: moving down from (1, 3) on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F did not move the player: (1, 4) is learned blocked moving down (bump 1 from this side: dear from now on, tried again only if every other way is dearer; the other sides stay open) (the eyes showed IMPASSABLE_SOUTH_AND_NORTH
+    [AI-WORLD] go to the goto at (2, 4): errand 2 of 3: walk to (2, 4) (score 0.0)
+    [AI-WORLD] go to the goto at (0, 4): errand 3 of 3: walk to (0, 4) (score 0.0)
+    [AI-WORLD] memory at the end: 1 maps (LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 252 tiles 1 bumped), 252 tiles learned, 0 warp links, 0 connections, 0 map changes
+    [AI-WORLD] navigator: 11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned
+map changes (from the memory): none
+decisions: [(15268, 'target goto (0, 4)'), (15439, 'target goto (2, 4)'), (15501, 'target goto (0, 4)')]
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 50,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 307,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned)",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x17438a57d40",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x17438a57d40 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 40356,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- TRUTH of the fixture BEFORE the run (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": true, "VAR_LITTLEROOT_INTRO_STATE": 6, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 15268, "gLocalTime": [0, 13, 37, 3], "game_state": "OVERWORLD", "game_stats": {"steps": 9, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "localTimeOffset": [9777, 12, 21, 6], "map": [1, 1], "money": 3000, "name": "Rowan", "name_bytes": "cce3ebd5e2ffffff", "party": [], "party_exp": [], "pos": [5, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "2cc0b61450870d34646f7583bfd0c787"}
+
+---- TRUTH of the state the run LEFT (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": true, "VAR_LITTLEROOT_INTRO_STATE": 6, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 15575, "gLocalTime": [0, 13, 37, 3], "game_state": "OVERWORLD", "game_stats": {"steps": 19, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "localTimeOffset": [9777, 12, 21, 6], "map": [1, 1], "money": 3000, "name": "Rowan", "name_bytes": "cce3ebd5e2ffffff", "party": [], "party_exp": [], "pos": [0, 4], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "c0b1c6a039f8a680d9307e8a1be65f44"}
+
+---- THE GAME'S ANSWER for save block 1's claim, by its behaviour from the state left (gates/game_answer.py) ----
+{"agree": true, "agree_by_arrival": false, "arrival": null, "claimed_map": [1, 1], "claimed_pos": [0, 4], "inconclusive": false, "live_coord_events": [], "loaded_header_is_claimed_map": true, "locked": null, "neighbours_that_are_walls": [[-1, 3], [-1, 4], [-1, 5], [1, 5]], "plans": {"Down": {"at": [0, 8], "clean": true, "ends": "blocked", "steps": 3, "why": "the map's edge, no connection"}, "Left": {"at": [-1, 4], "clean": true, "ends": "blocked", "steps": 0, "why": "the map's edge, no connection"}, "Right": {"clean": false, "why": "(1, 4): Impassable North and South, elevation 3"}, "Up": {"at": [0, 1], "clean": true, "ends": "blocked", "steps": 2, "why": "Normal, collision 1"}}, "player_object": {"local_id": 255, "tile": [0, 4]}, "ruled_out": [[0, 3], [0, 5], [1, 3], [1, 4]], "settled_tile": [0, 4], "state": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\sandbox-pokebot\\profiles\\ai-step3-world\\current_state.ss1", "steps_in_flight": 1, "trials": [{"agree": true, "battle": false, "changed_after_frames": null, "direction": "Down", "game_states": ["OVERWORLD"], "game_steps": 3, "held_frames": 104, "loaded_map": [1, 1], "map_changed": false, "predicted": {"at": [0, 8], "clean": true, "ends": "blocked", "steps": 3, "why": "the map's edge, no connection"}}, {"agree": true, "battle": false, "changed_after_frames": null, "direction": "Left", "game_states": ["OVERWORLD"], "game_steps": 0, "held_frames": 56, "loaded_map": [1, 1], "map_changed": false, "predicted": {"at": [-1, 4], "clean": true, "ends": "blocked", "steps": 0, "why": "the map's edge, no connection"}}], "trials_that_met_a_battle": []}
+
+---- its FAULT-TEST: the same probe claiming the first neighbouring tile it rules out (must disagree) ----
+{"agree": false, "agree_by_arrival": false, "arrival": null, "claimed_map": [1, 1], "claimed_pos": [0, 3], "inconclusive": false, "live_coord_events": [], "loaded_header_is_claimed_map": true, "locked": null, "neighbours_that_are_walls": [[-1, 2], [-1, 3], [-1, 4]], "plans": {"Down": {"at": [0, 8], "clean": true, "ends": "blocked", "steps": 4, "why": "the map's edge, no connection"}, "Left": {"at": [-1, 3], "clean": true, "ends": "blocked", "steps": 0, "why": "the map's edge, no connection"}, "Right": {"clean": false, "why": "(4, 3): Secret Base Large Mat Edge, elevation 3"}, "Up": {"at": [0, 1], "clean": true, "ends": "blocked", "steps": 1, "why": "Normal, collision 1"}}, "player_object": {"local_id": 255, "tile": [0, 4]}, "ruled_out": [[0, 2], [0, 4], [1, 2], [1, 3], [1, 4]], "settled_tile": [0, 4], "state": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\sandbox-pokebot\\profiles\\ai-step3-world\\current_state.ss1", "steps_in_flight": 1, "trials": [{"agree": false, "battle": false, "changed_after_frames": null, "direction": "Down", "game_states": ["OVERWORLD"], "game_steps": 3, "held_frames": 120, "loaded_map": [1, 1], "map_changed": false, "predicted": {"at": [0, 8], "clean": true, "ends": "blocked", "steps": 4, "why": "the map's edge, no connection"}}, {"agree": true, "battle": false, "changed_after_frames": null, "direction": "Left", "game_states": ["OVERWORLD"], "game_steps": 0, "held_frames": 56, "loaded_map": [1, 1], "map_changed": false, "predicted": {"at": [-1, 3], "clean": true, "ends": "blocked", "steps": 0, "why": "the map's edge, no connection"}}], "trials_that_met_a_battle": []}
+
+---- the AI's memory at the end (world.jsonl, its last snapshot): maps, links, bumps ----
+  1:1 LITTLEROOT_TOWN_BRENDANS_HOUSE_2F: 252 tiles known, 10 stood on, bumped [((1, 4), 'down')], edges {}, arrivals []
+
+---- the action log: 39 records (frame | decision | action | gate or reason | digest) ----
+f15268 | start | goto | the first look | f15268 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=2.20ms
+f15268 | world | say | intent 'walk to [(0, 4), (2, 4), (0, 4)]': budget 5400 frames; on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F at (5, 2); 165 tiles known on 1 maps | f15268 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.24ms 
+f15268 | decide | target goto (0, 4) | errand 1 of 3: walk to (0, 4) | f15268 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.13ms {"target": [0, 4], "kind": "goto", "player": [5, 2], "in_window": true, "seen_from": [5, 2], "map": "1:1"}
+f15268 | world | say | go to the goto at (0, 4): errand 1 of 3: walk to (0, 4) (score 0.0) | f15268 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.13ms 
+f15268 | idle | idle 35f | deciding where to go: the goto at (0, 4) (errand 1 of 3: walk to (0, 4)) | f15268 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.13ms 
+f15303 | errands on this map | hold Left 8f | walk left: (5, 2) -> (4, 2) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15303 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=right walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.05ms {"hold": 8}
+f15311 | errands on this map | hold Left 8f | keep walking left: the step from (5, 2) has not begun (8 frames held) | f15311 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=left walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.62ms {"hold": 8}
+f15319 | errands on this map | hold Down 8f | walk down: (4, 2) -> (4, 3) (seen HOLDS_SMALL_DECORATION), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15319 overworld LITTLEROOT TOWN(1,1) xy=(4,2) facing=left walking sees=[sign(-4,-1),sign(-3,-1),sign(1,-1),sign(-1,-1)] dex=0/0 money=3000 badges=0 cost=1.18ms {"hold": 8}
+f15327 | errands on this map | hold Down 8f | keep walking down: the step from (4, 2) has not begun (8 frames held) | f15327 overworld LITTLEROOT TOWN(1,1) xy=(4,2) facing=left walking sees=[sign(-4,-1),sign(-3,-1),sign(1,-1),sign(-1,-1)] dex=0/0 money=3000 badges=0 cost=1.50ms {"hold": 8}
+f15335 | errands on this map | hold Left 8f | walk left: (4, 3) -> (3, 3) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15335 overworld LITTLEROOT TOWN(1,1) xy=(4,3) facing=down walking sees=[sign(-4,-2),sign(-3,-2),sign(1,-2),sign(-1,-2)] dex=0/0 money=3000 badges=0 cost=0.95ms {"hold": 8}
+f15343 | errands on this map | hold Left 8f | keep walking left: the step from (4, 3) has not begun (8 frames held) | f15343 overworld LITTLEROOT TOWN(1,1) xy=(4,3) facing=down walking sees=[sign(-4,-2),sign(-3,-2),sign(1,-2),sign(-1,-2)] dex=0/0 money=3000 badges=0 cost=1.48ms {"hold": 8}
+f15351 | errands on this map | hold Left 8f | walk left: (3, 3) -> (2, 3) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15351 overworld LITTLEROOT TOWN(1,1) xy=(3,3) facing=left walking sees=[sign(-3,-2),sign(-2,-2),sign(2,-2),sign(0,-2)] dex=0/0 money=3000 badges=0 cost=0.96ms {"hold": 8}
+f15359 | errands on this map | hold Left 8f | keep walking left: the step from (3, 3) has not begun (8 frames held) | f15359 overworld LITTLEROOT TOWN(1,1) xy=(3,3) facing=left walking sees=[sign(-3,-2),sign(-2,-2),sign(2,-2),sign(0,-2)] dex=0/0 money=3000 badges=0 cost=1.47ms {"hold": 8}
+f15367 | errands on this map | hold Left 8f | walk left: (2, 3) -> (1, 3) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15367 overworld LITTLEROOT TOWN(1,1) xy=(2,3) facing=left walking sees=[sign(-2,-2),sign(-1,-2),sign(3,-2),sign(1,-2)] dex=0/0 money=3000 badges=0 cost=0.95ms {"hold": 8}
+f15375 | errands on this map | hold Left 8f | keep walking left: the step from (2, 3) has not begun (8 frames held) | f15375 overworld LITTLEROOT TOWN(1,1) xy=(2,3) facing=left walking sees=[sign(-2,-2),sign(-1,-2),sign(3,-2),sign(1,-2)] dex=0/0 money=3000 badges=0 cost=1.51ms {"hold": 8}
+f15383 | errands on this map | hold Down 8f | walk down: (1, 3) -> (1, 4) (seen IMPASSABLE_SOUTH_AND_NORTH), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15383 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=left walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=0.96ms {"hold": 8}
+f15391 | errands on this map | hold Down 8f | keep walking down: the step from (1, 3) has not begun (8 frames held) | f15391 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=left walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=1.50ms {"hold": 8}
+f15399 | errands on this map | hold Down 8f | keep walking down: the step from (1, 3) has not begun (16 frames held) | f15399 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=down walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=1.63ms {"hold": 8}
+f15407 | errands on this map | hold Down 8f | keep walking down: the step from (1, 3) has not begun (24 frames held) | f15407 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=down walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=1.52ms {"hold": 8}
+f15415 | world | say | BUMP: moving down from (1, 3) on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F did not move the player: (1, 4) is learned blocked moving down (bump 1 from this side: dear from now on, tried again only if every ot | f15415 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=down walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=1.53ms {"map": "1:1"}
+f15415 | errands on this map | hold Left 8f | walk left: (1, 3) -> (0, 3) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15415 overworld LITTLEROOT TOWN(1,1) xy=(1,3) facing=down walking sees=[sign(-1,-2),sign(0,-2),sign(4,-2),sign(2,-2)] dex=0/0 money=3000 badges=0 cost=0.99ms {"hold": 8}
+f15423 | errands on this map | hold Down 8f | walk down: (0, 3) -> (0, 4) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15423 overworld LITTLEROOT TOWN(1,1) xy=(0,3) facing=left walking sees=[sign(0,-2),sign(1,-2),sign(5,-2),sign(3,-2)] dex=0/0 money=3000 badges=0 cost=0.95ms {"hold": 8}
+f15431 | errands on this map | hold Down 8f | keep walking down: the step from (0, 3) has not begun (8 frames held) | f15431 overworld LITTLEROOT TOWN(1,1) xy=(0,3) facing=left walking sees=[sign(0,-2),sign(1,-2),sign(5,-2),sign(3,-2)] dex=0/0 money=3000 badges=0 cost=1.50ms {"hold": 8}
+f15439 | decide | target goto (2, 4) | errand 2 of 3: walk to (2, 4) | f15439 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=down walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=0.93ms {"target": [2, 4], "kind": "goto", "player": [0, 4], "in_window": true, "seen_from": [5, 2], "map": "1:1"}
+f15439 | world | say | go to the goto at (2, 4): errand 2 of 3: walk to (2, 4) (score 0.0) | f15439 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=down walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=0.93ms 
+f15439 | idle | idle 30f | deciding where to go: the goto at (2, 4) (errand 2 of 3: walk to (2, 4)) | f15439 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=down walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=0.93ms 
+f15469 | errands on this map | hold Right 8f | walk right: (0, 4) -> (1, 4) (seen IMPASSABLE_SOUTH_AND_NORTH), toward the goto at (2, 4); the player free (no script, no text, no menu, no fade) | f15469 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=down walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=1.00ms {"hold": 8}
+f15477 | errands on this map | hold Right 8f | keep walking right: the step from (0, 4) has not begun (8 frames held) | f15477 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=right walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=1.56ms {"hold": 8}
+f15485 | errands on this map | hold Right 8f | walk right: (1, 4) -> (2, 4) (seen NORMAL), toward the goto at (2, 4); the player free (no script, no text, no menu, no fade) | f15485 overworld LITTLEROOT TOWN(1,1) xy=(1,4) facing=right walking sees=[sign(-1,-3),sign(0,-3),sign(4,-3),sign(2,-3)] dex=0/0 money=3000 badges=0 cost=0.97ms {"hold": 8}
+f15493 | errands on this map | hold Right 8f | keep walking right: the step from (1, 4) has not begun (8 frames held) | f15493 overworld LITTLEROOT TOWN(1,1) xy=(1,4) facing=right walking sees=[sign(-1,-3),sign(0,-3),sign(4,-3),sign(2,-3)] dex=0/0 money=3000 badges=0 cost=1.51ms {"hold": 8}
+f15501 | decide | target goto (0, 4) | errand 3 of 3: walk to (0, 4) | f15501 overworld LITTLEROOT TOWN(1,1) xy=(2,4) facing=right walking sees=[sign(-2,-3),sign(-1,-3),sign(3,-3),sign(1,-3)] dex=0/0 money=3000 badges=0 cost=1.13ms {"target": [0, 4], "kind": "goto", "player": [2, 4], "in_window": true, "seen_from": [5, 2], "map": "1:1"}
+f15501 | world | say | go to the goto at (0, 4): errand 3 of 3: walk to (0, 4) (score 0.0) | f15501 overworld LITTLEROOT TOWN(1,1) xy=(2,4) facing=right walking sees=[sign(-2,-3),sign(-1,-3),sign(3,-3),sign(1,-3)] dex=0/0 money=3000 badges=0 cost=1.13ms 
+f15501 | idle | idle 42f | deciding where to go: the goto at (0, 4) (errand 3 of 3: walk to (0, 4)) | f15501 overworld LITTLEROOT TOWN(1,1) xy=(2,4) facing=right walking sees=[sign(-2,-3),sign(-1,-3),sign(3,-3),sign(1,-3)] dex=0/0 money=3000 badges=0 cost=1.13ms 
+f15543 | errands on this map | hold Left 8f | walk left: (2, 4) -> (1, 4) (seen IMPASSABLE_SOUTH_AND_NORTH), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15543 overworld LITTLEROOT TOWN(1,1) xy=(2,4) facing=right walking sees=[sign(-2,-3),sign(-1,-3),sign(3,-3),sign(1,-3)] dex=0/0 money=3000 badges=0 cost=1.01ms {"hold": 8}
+f15551 | errands on this map | hold Left 8f | keep walking left: the step from (2, 4) has not begun (8 frames held) | f15551 overworld LITTLEROOT TOWN(1,1) xy=(2,4) facing=left walking sees=[sign(-2,-3),sign(-1,-3),sign(3,-3),sign(1,-3)] dex=0/0 money=3000 badges=0 cost=1.55ms {"hold": 8}
+f15559 | errands on this map | hold Left 8f | walk left: (1, 4) -> (0, 4) (seen NORMAL), toward the goto at (0, 4); the player free (no script, no text, no menu, no fade) | f15559 overworld LITTLEROOT TOWN(1,1) xy=(1,4) facing=left walking sees=[sign(-1,-3),sign(0,-3),sign(4,-3),sign(2,-3)] dex=0/0 money=3000 badges=0 cost=0.97ms {"hold": 8}
+f15567 | errands on this map | hold Left 8f | keep walking left: the step from (1, 4) has not begun (8 frames held) | f15567 overworld LITTLEROOT TOWN(1,1) xy=(1,4) facing=left walking sees=[sign(-1,-3),sign(0,-3),sign(4,-3),sign(2,-3)] dex=0/0 money=3000 badges=0 cost=1.58ms {"hold": 8}
+f15575 | end | goto | done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned) | f15575 overworld LITTLEROOT TOWN(1,1) xy=(0,4) facing=left walking sees=[sign(0,-3),sign(1,-3),sign(5,-3),sign(3,-3)] dex=0/0 money=3000 badges=0 cost=0.95ms
+fNone | world | snapshot | the end of the run |  
+
+---- evidence lines from stdout ([AI-*]) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step3-world exists (ai_player-owned=True)
+[AI-RUN] state: seeded from house_2f_clockset.ss1 md5=2cc0b61450870d34646f7583bfd0c787 -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step3-world/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=6000 wall_seconds=600 soft_deadline_margin=30s switches=none dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step3-world\ai_player_runs\20261008-085627-BUMP
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step3-world -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=6000 brain=goto watch_every=60 switches=none wall_deadline=1791475558.6 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step3-world\ai_player_runs\20261008-085627-BUMP http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x17438a57d40
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-HANDS] brain=goto seed=3 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=6000
+[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))
+[AI-WORLD] intent 'walk to [(0, 4), (2, 4), (0, 4)]': budget 5400 frames; on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F at (5, 2); 165 tiles known on 1 maps
+[AI-WORLD] go to the goto at (0, 4): errand 1 of 3: walk to (0, 4) (score 0.0)
+[AI-WORLD] BUMP: moving down from (1, 3) on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F did not move the player: (1, 4) is learned blocked moving down (bump 1 from this side: dear from now on, tried again only if every other way is dearer; the other sides stay open) (the eyes showed IMPASSABLE_SOUTH_AND_NORTH, elevation 3; held 32 frames)
+[AI-WORLD] go to the goto at (2, 4): errand 2 of 3: walk to (2, 4) (score 0.0)
+[AI-WORLD] go to the goto at (0, 4): errand 3 of 3: walk to (0, 4) (score 0.0)
+[AI-WORLD] memory at the end: 1 maps (LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 252 tiles 1 bumped), 252 tiles learned, 0 warp links, 0 connections, 0 map changes
+[AI-WORLD] navigator: 11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned
+[AI-HANDS] outcome='done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned)' presses=25 frames=307 looks=59 records=39
+[AI-HANDS] presses by gate: {'Down:keep walking down': 5, 'Down:walk down': 3, 'Left:keep walking left': 6, 'Left:walk left': 7, 'Right:keep walking right': 2, 'Right:walk right': 2}
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=50 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=307 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x17438a57d40 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuil
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step3-world\ai_player_runs\20261008-085627-BUMP\purity.json
+[AI-EXIT] reason=goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned) code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=3.5s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 3 decisions (0 detours); 1 maps, 252 tiles learned) exit_code=0 pid=40356 package_is_the_gated_one=True
