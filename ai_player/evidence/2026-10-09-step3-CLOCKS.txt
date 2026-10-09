@@ -1,0 +1,170 @@
+AI PLAYER BUILD STEP 3 (THE WORLD MODEL AND THE NAVIGATOR) - LIVE PROOF - ARM CLOCKS: THE GAME'S CLOCK: every launcher arm in-process with the cartridge's clock pinned at 8 instants over 12 days: which trajectories depend on WHEN a run is played
+date: 2026-10-09 03:09:35
+code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+predictions: sha256:ec897a0693ef6529 of live_step3.py's docstring (45010 characters) + its PREDICTED table (4303 characters) [the docstring alone: sha256:24b060110f4f6cb2], read at the start of this run
+fixture: tools/story-dev/saves/pokedex_done.ss1 md5=380fba7a4bf4afdf2fc9a0ad158de29e
+fixture documentation: gates/hands_harness.py --game-clock, every launcher arm's own start, seed and options (in-process)
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\hands_harness.py <each launcher arm's options> --game-clock <each instant>
+env: none (test-side runs of every launcher arm's options in their own throwaway emulators, the cartridge's clock pinned at each of ['2026-10-08T06:00', '2026-10-08T11:00', '2026-10-08T12:30', '2026-10-08T18:00', '2026-10-09T06:00', '2026-10-10T12:00', '2026-10-14T12:00', '2026-10-20T12:00'])
+exit code: 0   elapsed: 260.3s   run dir: None
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 5 synthetic runs (its own: pass; a stale mtime, a frame +3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step3.py's docstring; each quotes both values):
+  [PASS] every launcher arm ran at every instant: 144 runs, failed none
+  [PASS] THE CLOCK-SENSITIVE ARMS: ['ROAM', 'SCENEX'] (pre-registered ['ROAM', 'SCENEX']); per arm, the trajectories over 8 instants from 2026-10-08T06:00 to 2026-10-20T12:00: ROAM [(13475, 383), (16646, 399)]; SCENEX [(14043, 376), (14044, 376)]
+  [PASS] a launcher arm's frames are pre-registered (`PREDICTED`) exactly when they hold at EVERY clock: the 16 stable arms all registered, each at the frames it plays at every instant (mismatched: none; unregistered: none); the clock-sensitive ones registered with none: none (their launcher checks are the graders' own, which hold at any clock)
+  [PASS] (build step 3.2) THE LAP BOUNDS OF THE CLOCK-SENSITIVE ARMS HOLD AT EVERY INSTANT (`LAP_BOUNDS`): SCENEX [('10-08T06:00', 0, 0, 0, 0, 0), ('10-08T11:00', 0, 0, 0, 0, 0), ('10-08T12:30', 0, 0, 0, 0, 0), ('10-08T18:00', 0, 0, 0, 0, 0), ('10-09T06:00', 0, 0, 0, 0, 0), ('10-10T12:00', 0, 0, 0, 0, 0), ('10-14T12:00', 0, 0, 0, 0, 0), ('10-20T12:00', 0, 0, 0, 0, 0)] (instant, laps, steps beyond the shortest ways, the worst target, rings, lap rings; not: none)
+  [PASS] (the step-4 verifier's round) THE CHURN BOUNDS OF THE CLOCK-SENSITIVE ARMS HOLD AT EVERY INSTANT (`CHURN_BOUNDS`): SCENEX [('10-08T06:00', 12.9, 0.16, 0.4), ('10-08T11:00', 12.9, 0.16, 0.4), ('10-08T12:30', 12.9, 0.16, 0.4), ('10-08T18:00', 12.9, 0.16, 0.4), ('10-09T06:00', 12.9, 0.16, 0.4), ('10-10T12:00', 12.9, 0.16, 0.4), ('10-14T12:00', 12.9, 0.16, 0.4), ('10-20T12:00', 12.9, 0.16, 0.4)] (instant, decisions on the move per 100 steps, one-step walks, journeys' share beyond; not: none)
+  [PASS] THE CLOCK-SENSITIVE ARMS' CLAIMS HOLD AT EVERY INSTANT: the twin's push-backs before news and between news SCENEX [('10-08T06:00', [3, 0], [0, 16], 2), ('10-08T11:00', [3, 0], [0, 16], 2), ('10-08T12:30', [3, 0], [0, 16], 2), ('10-08T18:00', [3, 0], [0, 16], 2), ('10-09T06:00', [3, 0], [0, 16], 2), ('10-10T12:00', [3, 0], [0, 16], 2), ('10-14T12:00', [3, 0], [0, 16], 2), ('10-20T12:00', [3, 0], [0, 16], 2)] (want 2..3 before any news, <= 1 after each; not: none); ROAM's 150 steps and back-and-forth spin ratio < 2% [('10-08T06:00', 150, 0.006667), ('10-08T11:00', 150, 0.006667), ('10-08T12:30', 150, 0.006667), ('10-08T18:00', 150, 0.006667), ('10-09T06:00', 150, 0.006667), ('10-10T12:00', 150, 0.006667), ('10-14T12:00', 150, 0.006667), ('10-20T12:00', 150, 0.006667)] (not: none)
+  [PASS] PRE-REGISTERED NUMBERS (PREDICTED, written before this run): clock_sensitive ['ROAM', 'SCENEX'] == ['ROAM', 'SCENEX']; HOUSE@pinned [3176, 36] == [3176, 36]; TOWN@pinned [4640, 71] == [4640, 71]; ROUTE@pinned [633, 71] == [633, 71]; ROAM@pinned [16646, 399] == [16646, 399]; CROP@pinned [5559, 117] == [5559, 117]; STUCK@pinned [1357, 24] == [1357, 24]; BUMP@pinned [307, 25] == [307, 25]; TRN@pinned [596, 1] == [596, 1]; XP@pinned [3600, 137] == [3600, 137]; SCENE@pinned [2471, 37] == [2471, 37]; SCENEX@pinned [14043, 376] == [14043, 376]; TOWN9@pinned [4690, 71] == [4690, 71]; ROUTE9@pinned [1732, 78] == [1732, 78]; HOUSE9@pinned [3207, 36] == [3207, 36]; BUMP8@pinned [264, 25] == [264, 25]; SCENEX9@pinned [14199, 395] == [14199, 395]; FORGET@pinned [305, 22] == [305, 22]; REOPEN@pinned [13974, 378] == [13974, 378] -> all held
+PRE-REGISTERED NUMBERS (live_step3.py PREDICTED, machine-checked): clock_sensitive predicted ['ROAM', 'SCENEX'], measured ['ROAM', 'SCENEX'] -> held; HOUSE@pinned predicted [3176, 36], measured [3176, 36] -> held; TOWN@pinned predicted [4640, 71], measured [4640, 71] -> held; ROUTE@pinned predicted [633, 71], measured [633, 71] -> held; ROAM@pinned predicted [16646, 399], measured [16646, 399] -> held; CROP@pinned predicted [5559, 117], measured [5559, 117] -> held; STUCK@pinned predicted [1357, 24], measured [1357, 24] -> held; BUMP@pinned predicted [307, 25], measured [307, 25] -> held; TRN@pinned predicted [596, 1], measured [596, 1] -> held; XP@pinned predicted [3600, 137], measured [3600, 137] -> held; SCENE@pinned predicted [2471, 37], measured [2471, 37] -> held; SCENEX@pinned predicted [14043, 376], measured [14043, 376] -> held; TOWN9@pinned predicted [4690, 71], measured [4690, 71] -> held; ROUTE9@pinned predicted [1732, 78], measured [1732, 78] -> held; HOUSE9@pinned predicted [3207, 36], measured [3207, 36] -> held; BUMP8@pinned predicted [264, 25], measured [264, 25] -> held; SCENEX9@pinned predicted [14199, 395], measured [14199, 395] -> held; FORGET@pinned predicted [305, 22], measured [305, 22] -> held; REOPEN@pinned predicted [13974, 378], measured [13974, 378] -> held
+MEASURED (every number PREDICTED may register): {"BUMP8@pinned": [264, 25], "BUMP@pinned": [307, 25], "CROP@pinned": [5559, 117], "FORGET@pinned": [305, 22], "HOUSE9@pinned": [3207, 36], "HOUSE@pinned": [3176, 36], "REOPEN@pinned": [13974, 378], "ROAM@pinned": [16646, 399], "ROUTE9@pinned": [1732, 78], "ROUTE@pinned": [633, 71], "SCENE@pinned": [2471, 37], "SCENEX9@pinned": [14199, 395], "SCENEX@pinned": [14043, 376], "STUCK@pinned": [1357, 24], "TOWN9@pinned": [4690, 71], "TOWN@pinned": [4640, 71], "TRN@pinned": [596, 1], "XP@pinned": [3600, 137], "clock_sensitive": ["ROAM", "SCENEX"]}
+
+---- notes ----
+per arm and instant (frames, presses): {"HOUSE": {"2026-10-08T06:00": [3176, 36], "2026-10-08T11:00": [3176, 36], "2026-10-08T12:30": [3176, 36], "2026-10-08T18:00": [3176, 36], "2026-10-09T06:00": [3176, 36], "2026-10-10T12:00": [3176, 36], "2026-10-14T12:00": [3176, 36], "2026-10-20T12:00": [3176, 36]}, "TOWN": {"2026-10-08T06:00": [4640, 71], "2026-10-08T11:00": [4640, 71], "2026-10-08T12:30": [4640, 71], "2026-10-08T18:00": [4640, 71], "2026-10-09T06:00": [4640, 71], "2026-10-10T12:00": [4640, 71], "2026-10-14T12:00": [4640, 71], "2026-10-20T12:00": [4640, 71]}, "ROUTE": {"2026-10-08T06:00": [633, 71], "2026-10-08T11:00": [633, 71], "2026-10-08T12:30": [633, 71], "2026-10-08T18:00": [633, 71], "2026-10-09T06:00": [633, 71], "2026-10-10T12:00": [633, 71], "2026-10-14T12:00": [633, 71], "2026-10-20T12:00": [633, 71]}, "ROAM": {"2026-10-08T06:00": [16646, 399], "2026-10-08T11:00": [16646, 399], "2026-10-08T12:30": [16646, 399], "2026-10-08T18:00": [16646, 399], "2026-10-09T06:00": [13475, 383], "2026-10-10T12:00": [13475, 383], "2026-10-14T12:00": [13475, 383], "2026-10-20T12:00": [13475, 383]}, "CROP": {"2026-10-08T06:00": [5559, 117], "2026-10-08T11:00": [5559, 117], "2026-10-08T12:30": [5559, 117], "2026-10-08T18:00": [5559, 117], "2026-10-09T06:00": [5559, 117], "2026-10-10T12:00": [5559, 117], "2026-10-14T12:00": [5559, 117], "2026-10-20T12:00": [5559, 117]}, "STUCK": {"2026-10-08T06:00": [1357, 24], "2026-10-08T11:00": [1357, 24], "2026-10-08T12:30": [1357, 24], "2026-10-08T18:00": [1357, 24], "2026-10-09T06:00": [1357, 24], "2026-10-10T12:00": [1357, 24], "2026-10-14T12:00": [1357, 24], "2026-10-20T12:00": [1357, 24]}, "BUMP": {"2026-10-08T06:00": [307, 25], "2026-10-08T11:00": [307, 25], "2026-10-08T12:30": [307, 25], "2026-10-08T18:00": [307, 25], "2026-10-09T06:00": [307, 25], "2026-10-10T12:00": [307, 25], "2026-10-14T12:00": [307, 25], "2026-10-20T12:00": [307, 25]}, "TRN": {"2026-10-08T06:00": [596, 1], "2026-10-08T11:00": [596, 1], "2026-10-08T12:30": [596, 1], "2026-10-08T18:00": [596, 1], "2026-10-09T06:00": [596, 1], "2026-10-10T12:00": [596, 1], "2026-10-14T12:00": [596, 1], "2026-10-20T12:00": [596, 1]}, "XP": {"2026-10-08T06:00": [3600, 137], "2026-10-08T11:00": [3600, 137], "2026-10-08T12:30": [3600, 137], "2026-10-08T18:00": [3600, 137], "2026-10-09T06:00": [3600, 137], "2026-10-10T12:00": [3600, 137], "2026-10-14T12:00": [3600, 137], "2026-10-20T12:00": [3600, 137]}, "SCENE": {"2026-10-08T06:00": [2471, 37], "2026-10-08T11:00": [2471, 37], "2026-10-08T12:30": [2471, 37], "2026-10-08T18:00": [2471, 37], "2026-10-09T06:00": [2471, 37], "2026-10-10T12:00": [2471, 37], "2026-10-14T12:00": [2471, 37], "2026-10-20T12:00": [2471, 37]}, "SCENEX": {"2026-10-08T06:00": [14043, 376], "2026-10-08T11:00": [14043, 376], "2026-10-08T12:30": [14044, 376], "2026-10-08T18:00": [14044, 376], "2026-10-09T06:00": [14044, 376], "2026-10-10T12:00": [14044, 376], "2026-10-14T12:00": [14044, 376], "2026-10-20T12:00": [14044, 376]}, "TOWN9": {"2026-10-08T06:00": [4690, 71], "2026-10-08T11:00": [4690, 71], "2026-10-08T12:30": [4690, 71], "2026-10-08T18:00": [4690, 71], "2026-10-09T06:00": [4690, 71], "2026-10-10T12:00": [4690, 71], "2026-10-14T12:00": [4690, 71], "2026-10-20T12:00": [4690, 71]}, "ROUTE9": {"2026-10-08T06:00": [1732, 78], "2026-10-08T11:00": [1732, 78], "2026-10-08T12:30": [1732, 78], "2026-10-08T18:00": [1732, 78], "2026-10-09T06:00": [1732, 78], "2026-10-10T12:00": [1732, 78], "2026-10-14T12:00": [1732, 78], "2026-10-20T12:00": [1732, 78]}, "HOUSE9": {"2026-10-08T06:00": [3207, 36], "2026-10-08T11:00": [3207, 36], "2026-10-08T12:30": [3207, 36], "2026-10-08T18:00": [3207, 36], "2026-10-09T06:00": [3207, 36], "2026-10-10T12:00": [3207, 36], "2026-10-14T12:00": [3207, 36], "2026-10-20T12:00": [3207, 36]}, "BUMP8": {"2026-10-08T06:00": [264, 25], "2026-10-08T11:00": [264, 25], "2026-10-08T12:30": [264, 25], "2026-10-08T18:00": [264, 25], "2026-10-09T06:00": [264, 25], "2026-10-10T12:00": [264, 25], "2026-10-14T12:00": [264, 25], "2026-10-20T12:00": [264, 25]}, "SCENEX9": {"2026-10-08T06:00": [14199, 395], "2026-10-08T11:00": [14199, 395], "2026-10-08T12:30": [14199, 395], "2026-10-08T18:00": [14199, 395], "2026-10-09T06:00": [14199, 395], "2026-10-10T12:00": [14199, 395], "2026-10-14T12:00": [14199, 395], "2026-10-20T12:00": [14199, 395]}, "FORGET": {"2026-10-08T06:00": [305, 22], "2026-10-08T11:00": [305, 22], "2026-10-08T12:30": [305, 22], "2026-10-08T18:00": [305, 22], "2026-10-09T06:00": [305, 22], "2026-10-10T12:00": [305, 22], "2026-10-14T12:00": [305, 22], "2026-10-20T12:00": [305, 22]}, "REOPEN": {"2026-10-08T06:00": [13974, 378], "2026-10-08T11:00": [13974, 378], "2026-10-08T12:30": [13974, 378], "2026-10-08T18:00": [13974, 378], "2026-10-09T06:00": [13974, 378], "2026-10-10T12:00": [13974, 378], "2026-10-14T12:00": [13974, 378], "2026-10-20T12:00": [13974, 378]}}
+
+---- the runs (gates/hands_harness.py --game-clock): arm, instant, frames, presses, outcome ----
+  HOUSE 2026-10-08T06:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-08T11:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-08T12:30: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-08T18:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-09T06:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-10T12:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-14T12:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE 2026-10-20T12:00: 3176 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  TOWN 2026-10-08T06:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-08T11:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-08T12:30: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-08T18:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-09T06:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-10T12:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-14T12:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN 2026-10-20T12:00: 4640 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  ROUTE 2026-10-08T06:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-08T11:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-08T12:30: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-08T18:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-09T06:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-10T12:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-14T12:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE 2026-10-20T12:00: 633 frames, 71 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROAM 2026-10-08T06:00: 16646 frames, 399 presses, roam: roamed: roam: 150 training steps (163 pressed, 13 ran into a bat
+  ROAM 2026-10-08T11:00: 16646 frames, 399 presses, roam: roamed: roam: 150 training steps (163 pressed, 13 ran into a bat
+  ROAM 2026-10-08T12:30: 16646 frames, 399 presses, roam: roamed: roam: 150 training steps (163 pressed, 13 ran into a bat
+  ROAM 2026-10-08T18:00: 16646 frames, 399 presses, roam: roamed: roam: 150 training steps (163 pressed, 13 ran into a bat
+  ROAM 2026-10-09T06:00: 13475 frames, 383 presses, roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a bat
+  ROAM 2026-10-10T12:00: 13475 frames, 383 presses, roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a bat
+  ROAM 2026-10-14T12:00: 13475 frames, 383 presses, roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a bat
+  ROAM 2026-10-20T12:00: 13475 frames, 383 presses, roam: roamed: roam: 150 training steps (160 pressed, 10 ran into a bat
+  CROP 2026-10-08T06:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-08T11:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-08T12:30: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-08T18:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-09T06:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-10T12:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-14T12:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  CROP 2026-10-20T12:00: 5559 frames, 117 presses, explore: done: explore to ROUTE101 (43 steps, 0 bumps, 0 people in the
+  STUCK 2026-10-08T06:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-08T11:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-08T12:30: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-08T18:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-09T06:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-10T12:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-14T12:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  STUCK 2026-10-20T12:00: 1357 frames, 24 presses, explore: stuck: ping-pong: the warp 1:1|7,1 used 3 times (f12834..f139
+  BUMP 2026-10-08T06:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-08T11:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-08T12:30: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-08T18:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-09T06:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-10T12:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-14T12:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP 2026-10-20T12:00: 307 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  TRN 2026-10-08T06:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-08T11:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-08T12:30: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-08T18:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-09T06:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-10T12:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-14T12:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  TRN 2026-10-20T12:00: 596 frames, 1 presses, explore: stuck: a trainer battle: out of scope for step 3 (a trainer c
+  XP 2026-10-08T06:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-08T11:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-08T12:30: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-08T18:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-09T06:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-10T12:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-14T12:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  XP 2026-10-20T12:00: 3600 frames, 137 presses, goto: stuck: nothing new (no new tile, map, flag, Pokemon, item or exp
+  SCENE 2026-10-08T06:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-08T11:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-08T12:30: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-08T18:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-09T06:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-10T12:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-14T12:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENE 2026-10-20T12:00: 2471 frames, 37 presses, goto: stuck: the goto at (10, 0) cannot be reached (a scene stopped th
+  SCENEX 2026-10-08T06:00: 14043 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-08T11:00: 14043 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-08T12:30: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-08T18:00: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-09T06:00: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-10T12:00: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-14T12:00: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  SCENEX 2026-10-20T12:00: 14044 frames, 376 presses, explore: done: explore to ROUTE101 (155 steps, 0 bumps, 0 people in th
+  TOWN9 2026-10-08T06:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-08T11:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-08T12:30: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-08T18:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-09T06:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-10T12:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-14T12:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  TOWN9 2026-10-20T12:00: 4690 frames, 71 presses, explore: done: explore to ROUTE101 (26 steps, 0 bumps, 0 people in the
+  ROUTE9 2026-10-08T06:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-08T11:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-08T12:30: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-08T18:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-09T06:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-10T12:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-14T12:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  ROUTE9 2026-10-20T12:00: 1732 frames, 78 presses, explore: done: explore to OLDALE_TOWN (35 steps, 0 bumps, 0 people in 
+  HOUSE9 2026-10-08T06:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-08T11:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-08T12:30: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-08T18:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-09T06:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-10T12:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-14T12:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  HOUSE9 2026-10-20T12:00: 3207 frames, 36 presses, explore: done: explore to LITTLEROOT_TOWN (10 steps, 0 bumps, 0 people
+  BUMP8 2026-10-08T06:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-08T11:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-08T12:30: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-08T18:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-09T06:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-10T12:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-14T12:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  BUMP8 2026-10-20T12:00: 264 frames, 25 presses, goto: done: walk to [(0, 4), (2, 4), (0, 4)] (11 steps, 1 bumps, 0 peo
+  SCENEX9 2026-10-08T06:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-08T11:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-08T12:30: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-08T18:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-09T06:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-10T12:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-14T12:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  SCENEX9 2026-10-20T12:00: 14199 frames, 395 presses, explore: done: explore to ROUTE101 (163 steps, 0 bumps, 0 people in th
+  FORGET 2026-10-08T06:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-08T11:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-08T12:30: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-08T18:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-09T06:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-10T12:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-14T12:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  FORGET 2026-10-20T12:00: 305 frames, 22 presses, goto: done: walk to [(0, 4), (0, 5), (0, 4), (0, 6)] (11 steps, 0 bump
+  REOPEN 2026-10-08T06:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-08T11:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-08T12:30: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-08T18:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-09T06:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-10T12:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-14T12:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th
+  REOPEN 2026-10-20T12:00: 13974 frames, 378 presses, explore: done: explore to ROUTE101 (154 steps, 0 bumps, 0 people in th

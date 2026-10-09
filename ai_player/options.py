@@ -18,6 +18,7 @@ from pathlib import Path
 __all__ = [
     "ALL_SWITCHES",
     "BRAINS",
+    "DEFAULT_BATTLES",
     "DEFAULT_BRAIN",
     "DEFAULT_FRAMES",
     "DEFAULT_MART_COUNT",
@@ -28,11 +29,17 @@ __all__ = [
     "INTENT_MARGIN",
     "VERDICT_FILE_NAME",
     "WORLD_BRAINS",
+    "ENV_BATTLES",
     "ENV_BRAIN",
     "ENV_CLOCK",
     "ENV_CONTROL_TAP",
     "ENV_FAULT_BLIND_COUNT",
     "ENV_FAULT_HANG",
+    "ENV_FAULT_FORGET_FIELD",
+    "ENV_FAULT_IGNORE_RECOIL",
+    "ENV_FAULT_IGNORE_REFUSAL",
+    "ENV_FAULT_IGNORE_TYPES",
+    "ENV_FAULT_UNCAPPED_RECOIL",
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
     "ENV_FAULT_NO_CROP",
@@ -48,9 +55,11 @@ __all__ = [
     "ENV_MART_ITEM",
     "ENV_PACKAGE_ROOT",
     "ENV_PERSONALITY",
+    "ENV_PURPOSE",
     "ENV_ROAM_STEPS",
     "ENV_RUN_DIR",
     "ENV_SEED",
+    "ENV_TALK_TO",
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
     "ENV_WORLD",
@@ -112,7 +121,11 @@ HANDS_BRAINS = ("intro", "nurse", "mart", "clock")
 #: played by the same `HandsBrain`: `explore` (explore with the personality's taste until `AI_PLAYER_GOAL_MAP`, or
 #: until stuck / out of frames), `roam` (train by roaming through grass for `AI_PLAYER_ROAM_STEPS` steps, fleeing wild
 #: battles), `goto` (walk to each tile of `AI_PLAYER_GOTO` on the current map in turn).
-WORLD_BRAINS = ("explore", "roam", "goto")
+#: BUILD STEP 4: the BATTLE brain (also a world brain: it walks and roams with the same memory and navigator), which FIGHTS
+#: with the AI's own decider (`brain/battle.py`, `skills/battle.py`): the battle on screen at the start, then the person
+#: at `AI_PLAYER_TALK_TO` (walked up to and talked to: a trainer, the rival), then wild battles met while roaming the
+#: grass, until `AI_PLAYER_BATTLES` battles have ended. The step-3 world brains above still FLEE (their proofs stand).
+WORLD_BRAINS = ("explore", "roam", "goto", "battle")
 BRAINS = ("placeholder", "watcher") + HANDS_BRAINS + WORLD_BRAINS
 DEFAULT_BRAIN = "placeholder"
 DEFAULT_WATCH_EVERY = 60
@@ -154,11 +167,32 @@ ENV_WORLD = "AI_PLAYER_WORLD"
 #: the run's frames minus `INTENT_MARGIN`.
 ENV_INTENT_FRAMES = "AI_PLAYER_INTENT_FRAMES"
 INTENT_MARGIN = 600
+#: BUILD STEP 4 (the battle brain). How many battles to play before it ends ("battles: N played"); default 1.
+ENV_BATTLES = "AI_PLAYER_BATTLES"
+DEFAULT_BATTLES = 1
+#: "x,y": a person on the current map to walk up to and talk to first (a trainer, the rival); unset: nobody.
+ENV_TALK_TO = "AI_PLAYER_TALK_TO"
+#: Why it battles: "train" (wild battles fought for experience, run from when its Pokemon is low or the foe far stronger)
+#: or "travel" (run from a wild battle it does not want, by its temperament). Default "train".
+ENV_PURPOSE = "AI_PLAYER_PURPOSE"
+#: FAULT (build step 4): the decider values every move as if every type matchup were neutral and nothing had STAB (the
+#: TYPE arm's fault: shows the type chart is what makes it choose the effective move).
+ENV_FAULT_IGNORE_TYPES = "AI_PLAYER_FAULT_IGNORE_TYPES"
+#: FAULT (build step 4): the decider ignores recoil (the RECOIL arm's fault).
+ENV_FAULT_IGNORE_RECOIL = "AI_PLAYER_FAULT_IGNORE_RECOIL"
+#: FAULTS (the step-4 verifier's round, `brain/battle.py` BattleFaults): the recoil charged on the move's whole worth (the
+#: step-4 rule); the replacement after a faint sees only the party menu's look (the step-4 bug); the party menu's refusal
+#: watched instead of read (the step-4 skill).
+ENV_FAULT_UNCAPPED_RECOIL = "AI_PLAYER_FAULT_UNCAPPED_RECOIL"
+ENV_FAULT_FORGET_FIELD = "AI_PLAYER_FAULT_FORGET_FIELD"
+ENV_FAULT_IGNORE_REFUSAL = "AI_PLAYER_FAULT_IGNORE_REFUSAL"
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
     ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
     ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP, ENV_FAULT_UNGATED_A, ENV_FAULT_BLIND_COUNT,
+    ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
+    ENV_FAULT_IGNORE_REFUSAL,
 )
 
 DEFAULT_FRAMES = 3000
@@ -263,6 +297,16 @@ class HandsOptions:
     goto: tuple[tuple[int, int], ...] = ()
     world_in: Path | None = None
     intent_frames: int | None = None
+    # BUILD STEP 4 (the battle brain); defaults so a caller that names only the earlier fields still works
+    battles: int = DEFAULT_BATTLES
+    talk_to: tuple[int, int] | None = None
+    purpose: str = "train"
+    fault_ignore_types: bool = False
+    fault_ignore_recoil: bool = False
+    # (the step-4 verifier's round)
+    fault_uncapped_recoil: bool = False
+    fault_forget_field: bool = False
+    fault_ignore_refusal: bool = False
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -286,6 +330,14 @@ class HandsOptions:
             raise ValueError(f"{ENV_ROAM_STEPS} must be 1..5000, got {steps}")
         raw_world = os.environ.get(ENV_WORLD, "").strip()
         raw_intent = os.environ.get(ENV_INTENT_FRAMES, "").strip()
+        raw_battles = os.environ.get(ENV_BATTLES, "").strip()
+        battles = int(raw_battles) if raw_battles else DEFAULT_BATTLES
+        if not 1 <= battles <= 200:
+            raise ValueError(f"{ENV_BATTLES} must be 1..200, got {battles}")
+        talk = parse_tiles(os.environ.get(ENV_TALK_TO, ""))
+        purpose = os.environ.get(ENV_PURPOSE, "").strip() or "train"
+        if purpose not in ("train", "travel"):
+            raise ValueError(f"{ENV_PURPOSE} must be train or travel, got {purpose!r}")
         return cls(
             brain=brain,
             run_dir=Path(raw_dir) if raw_dir else None,
@@ -301,6 +353,14 @@ class HandsOptions:
             goto=parse_tiles(os.environ.get(ENV_GOTO, "")),
             world_in=Path(raw_world) if raw_world else None,
             intent_frames=int(raw_intent) if raw_intent else None,
+            battles=battles,
+            talk_to=talk[0] if talk else None,
+            purpose=purpose,
+            fault_ignore_types=_flag(ENV_FAULT_IGNORE_TYPES),
+            fault_ignore_recoil=_flag(ENV_FAULT_IGNORE_RECOIL),
+            fault_uncapped_recoil=_flag(ENV_FAULT_UNCAPPED_RECOIL),
+            fault_forget_field=_flag(ENV_FAULT_FORGET_FIELD),
+            fault_ignore_refusal=_flag(ENV_FAULT_IGNORE_REFUSAL),
         )
 
 

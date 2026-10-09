@@ -40,9 +40,11 @@ RUN = 3
 FLEE_ATTEMPTS = 8
 #: The longest one stretch of the battle's text and animations may take (one `advance`).
 FLEE_BUDGET = 3600
-#: Presses to bring the grid cursor to RUN (two at most are needed), and frames for the menu to take the A.
+#: Presses to bring the grid cursor to RUN (two at most are needed), and frames for the menu to take the A; frames to
+#: wait for the menu to take input at all (build step 4: counted apart from the presses).
 GRID_PRESSES = 8
 CONFIRM_FRAMES = 60
+GRID_WAIT = 240
 TRAINER_OUT_OF_SCOPE = ("a trainer battle: out of scope for step 3 (a trainer cannot be fled, and fighting is step 4's "
                         "battle decider)")
 
@@ -59,17 +61,24 @@ def battle_over(look: Observation) -> bool:
 
 def choose_in_grid(hands: Hands, kind: str, index: int, why: str) -> Generator[None, None, bool]:
     """Bring a 2 x 2 menu's cursor (bit 0 the column, bit 1 the row) to `index` by READING it, one press at a time, and
-    press A only on a look that shows it there. True once the menu has closed after the A."""
+    press A only on a look that shows it there. True once the menu has closed after the A.
+
+    BUILD STEP 4: the frames spent waiting for the menu to take input have their own bound (`GRID_WAIT`); they no longer
+    use up the PRESS bound (found by `gates/test_battle.py`: a menu that took 6 frames to accept input left the driver 2
+    of its 8 turns for the presses, and it gave up one press short of the bag)."""
     thought = False
-    for _ in range(GRID_PRESSES):
+    presses, waited = 0, 0
+    while presses < GRID_PRESSES and waited < GRID_WAIT:
         look = hands.look()
         ui = look.screen.ui
         if ui is None or ui.kind != kind:
             hands.tell(f"{why}: the {kind} closed before the choice")
             return False
         if not ui.accepts_input or ui.cursor is None:
+            waited += 1
             yield from hands.pad.busy(f"waiting for the {kind} to take input")
             continue
+        presses += 1
         names = ui.options
         if not thought:
             thought = True
@@ -90,7 +99,10 @@ def choose_in_grid(hands: Hands, kind: str, index: int, why: str) -> Generator[N
             button = "Down" if index & 2 else "Up"
         yield from hands.pad.press(button, why, f"{kind} cursor on {ui.cursor} ({names[ui.cursor]}), wanted {index} "
                                                 f"({names[index]}): one step {button.lower()}")
-    hands.tell(f"{why}: the {kind} cursor did not reach {index} in {GRID_PRESSES} presses")
+    if waited >= GRID_WAIT:
+        hands.tell(f"{why}: the {kind} did not take input within {GRID_WAIT} frames")
+    else:
+        hands.tell(f"{why}: the {kind} cursor did not reach {index} in {GRID_PRESSES} presses")
     return False
 
 

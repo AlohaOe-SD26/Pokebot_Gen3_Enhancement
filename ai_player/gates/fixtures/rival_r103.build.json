@@ -1,0 +1,158 @@
+{
+ "fixture": "rival_r103.ss1",
+ "md5": "a5a1624d7cf617ed731070a7569ff986",
+ "source": [
+  "tools/story-dev/saves/route103.ss1",
+  "0d951fe21be35a6eafade207ddff5961"
+ ],
+ "played_by": "the AI's battle brain, Story, seed 1, talk to (10,3), clock 2026-10-08T10:00",
+ "frames": 1892,
+ "at": {
+  "lead": [
+   "Mudkip",
+   6,
+   13,
+   23
+  ],
+  "foe": "Treecko",
+  "trainer": true,
+  "opponent": 529
+ },
+ "battle_starts_seen": [
+  {
+   "seed": 1,
+   "lead": [
+    "Mudkip",
+    6,
+    13,
+    23
+   ],
+   "foe": "Treecko",
+   "trainer": true,
+   "opponent": 529
+  }
+ ],
+ "ai_lines": [
+  "[AI-HANDS] brain=battle seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))",
+  "[AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3)); talk to (10, 3); faults ignore_types:False,ignore_recoil:False",
+  "[AI-WORLD] intent 'walk to (10, 4)': budget 6000 frames; on ROUTE103 at (5, 7); 165 tiles known on 1 maps",
+  "[AI-WORLD] go to the goto at (10, 4): walk to (10, 4) (score 0.0)"
+ ],
+ "truth": {
+  "frame": 28574,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   18
+  ],
+  "party": [
+   [
+    "Mudkip",
+    13,
+    23
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Mudkip",
+    192,
+    6
+   ]
+  ],
+  "party_moves": [
+   [
+    "550a9be6",
+    "Mudkip",
+    [
+     "Tackle",
+     "Growl",
+     "Mud-slap"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "550a9be6",
+    22640
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 1,
+  "trainer_defeated": {
+   "322": false,
+   "280": false,
+   "617": false,
+   "631": false,
+   "754": false,
+   "753": false,
+   "529": false,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": false,
+   "333": false,
+   "615": false,
+   "603": false
+  },
+  "boxes": [],
+  "money": 3000,
+  "balls": {},
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": false,
+   "RECEIVED_POKEDEX_FROM_BIRCH": false,
+   "SYS_POKEDEX_GET": false,
+   "ADVENTURE_STARTED": false,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": false,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 2,
+  "gLocalTime": [
+   0,
+   10,
+   17,
+   32
+  ],
+  "localTimeOffset": [
+   9698,
+   1,
+   51,
+   30
+  ],
+  "pos": [
+   10,
+   4
+  ],
+  "game_stats": {
+   "steps": 202,
+   "total_battles": 4,
+   "wild_battles": 3,
+   "trainer_battles": 1
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 4.0
+}

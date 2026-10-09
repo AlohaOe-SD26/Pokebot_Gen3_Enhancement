@@ -33,6 +33,30 @@ W57 the static warp-table check without its string-constant rule; W58 game_answe
 did not step; W59 the live grader's locked arrival only without trials; W60 a pre-registered number that misses passes;
 W61 arm CLOCKS letting a clock-sensitive launcher arm pre-register its frames).
 W28 follows the code it breaks (the arrival branch now also takes a locked player with trials).
+
+BUILD STEP 3.2 (the step-3.1 adversarial review: human-likeness regressions its metrics could not see): W62-W75 (W62 the
+turn-back cost charged on every replan, no plan followed (the step-3.1 rule: laps); W63 the decision's plan not followed;
+W74 never switching to a clearly better way; W64 a bump never forgotten after the way let the player through; W65 a
+tile's bumps kept when it looks different; W66 the whim on the move; W67 the heading not preferred on the move; W69 a
+hidden story-flag count reopening a closed door again; W70-W73, W75 the new live graders: a lap with something new on
+the way round, the shortest way over tiles not yet seen or through ways bumped, the lap check with nothing graded, a
+detour graded). W32 (no turn charge at all) is now caught by the decision's plan (`LapTests`): with the heading kept on
+the move the town model's reversals no longer need it (measured: `ReversalTests`). W37 and W46 follow the code they
+break (a closed door keeps the NEWS count, not the story flags).
+
+THE STEP-3.2 VERIFIER'S ROUND ("the new CYCLE check does not tell the fix from the revert"; "steps-vs-shortest is measured
+per DECISION"): W76-W78 break the graders that answer it (W76 a RING counted for a walk that retraced its own steps;
+W77 a ring only where nothing new was seen, `laps`' exemption that hid every round the reverted code walked; W78 the
+JOURNEYS never joined across the targets chosen on the move).
+
+THE STEP-4 VERIFIER'S ROUND (its FAILURE: "Step 3.2 finding 4 ... is NOT fixed: the churn is still there"; its weak proofs):
+W79-W87 (W79 a decision never carried on, the step-3.2 rule; W80 carried on whatever comes into view, no margin; W81 carried
+on to a place sliding along the screen's edge; W82 every ring held to be a lap ring; W83 one loop counted again from each
+of its tiles; W84 the churn check without its one-step-walks bound; W85 carried on to a place beside the player;
+W86 `stale_arrivals` blind to the place a decision was carried on to; W87 the twin's after-news check back to "once in
+all"; W88 a doormat taken tile by tile, and W89 a way back to a floor seen all of kept, both found by this round's
+development sweeps). A SUBSET run (named mutants) writes its file beside the system's temporary files, never into `evidence/` (the
+verifier found two evidence files of an earlier tree overwritten by a subset run).
 """
 
 from __future__ import annotations
@@ -199,11 +223,12 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             [("brain/navigator.py", "                stale = stale_reason(memory, target) if memory is not None else None\n",
               "                stale = None  # MUTANT W31\n")],
             ["ReversalTests.test_reversals_are_near_zero_and_no_stale_target_is_walked_onto"]),
-    "W32": (CAUGHT, "finding 2: no cost for turning back on a plan's first step (a target dropped as stale is replaced on the "
-                    "move by one behind as often as ahead: back and forth)",
+    "W32": (CAUGHT, "finding 2: no charge at all for turning round (since step 3.2 a decision's: where to go and its first "
+                    "plan): with three ways of one length, the path noise decides, and some seeds turn straight back or "
+                    "walk a U",
             [("brain/navigator.py", "        if not steps:\n            return {}\n",
               "        if True:  # MUTANT W32\n            return {}\n")],
-            ["ReversalTests.test_reversals_are_near_zero_and_no_stale_target_is_walked_onto"]),
+            ["LapTests.test_the_decisions_plan_is_followed_and_turns_round_only_to_break_a_tie"]),
     "W33": (CAUGHT, "finding 3: a scene that keeps interrupting one target is never held against it (Littleroot's twin, again "
                     "and again until the novelty window)",
             [("brain/navigator.py", "        if len(hits) >= SCENE_REPEATS and novelty.last_progress <= hits[0]:\n",
@@ -222,7 +247,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "            warps = frozenset(w.local_coordinates for w in location.warps)  # MUTANT W36\n            signs = tuple(\n")],
             ["FrameworkFreeTests.test_the_ai_never_reads_the_warp_table"]),
     "W37": (CAUGHT, "finding 5: a door-looking tile that did not open is not remembered (every later intent tries it again)",
-            [("world/memory.py", "            memory.closed[xy] = {\"frame\": frame, \"how\": how, \"story\": self.story}\n",
+            [("world/memory.py", "            memory.closed[xy] = {\"frame\": frame, \"how\": how, \"news\": self.news}\n",
               "            pass  # MUTANT W37\n")],
             ["ExitTests.test_a_door_that_does_not_open_is_remembered_closed"]),
     "W38": (CAUGHT, "finding 5: an exit is not used the way it LOOKS (an arrow mat approached from any side)",
@@ -265,10 +290,12 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "            if len(spots) >= SCENE_REPEATS and novelty.last_progress <= spots[0] and began not in walled:\n",
               "            if len(spots) >= SCENE_REPEATS and novelty.last <= spots[0] and began not in walled:  # MUTANT W45\n")],
             ["SceneTests.test_a_tile_seen_in_passing_is_not_progress"]),
-    "W46": (CAUGHT, "a door found closed is never tried again when the story moves on (the verifier: closed for good)",
-            [("world/memory.py", "                if then is not None and self.story is not None and self.story > then:\n",
+    "W46": (CAUGHT, "a door found closed is never tried again after news (the verifier: closed for good; since step 3.2 the "
+                    "news a person could see)",
+            [("world/memory.py", "                if then is not None and self.news > int(then):\n",
               "                if False:  # MUTANT W46\n")],
-            ["ExitTests.test_a_closed_door_is_tried_again_once_the_story_moves_on"]),
+            ["ExitTests.test_a_closed_door_is_tried_again_after_news_a_person_could_see",
+             "ExitTests.test_news_is_what_a_person_could_see"]),
     "W47": (CAUGHT, "a door found closed is never tried again however long ago that was",
             [("world/memory.py", "                elif frame - int(info.get(\"frame\", frame)) >= CLOSED_RETRY_FRAMES:\n",
               "                elif False:  # MUTANT W47\n")],
@@ -286,8 +313,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             ["GraderTests.test_stale_arrivals_from_the_action_log_and_the_memory"]),
     "W50": (CAUGHT, "finding 1's live grader: a crossing of ANY edge of a map counts for every edge (ROUTE's loaded memory "
                     "crossed Route 101's bottom edge: a road past its top edge would then pass)",
-            [("gates/live_step3.py", "        if side is not None and r[\"frame\"] < crossings.get((extra.get(\"map\"), side), 10**12):\n",
-              "        if side is not None and r[\"frame\"] < min([f for (k, _), f in crossings.items() if k == extra.get(\"map\")] or [10**12]):  # MUTANT W50\n")],
+            [("gates/live_step3.py", "        if side is not None and r[\"frame\"] < crossings.get((key, side), 10**12):\n",
+              "        if side is not None and r[\"frame\"] < min([f for (k, _), f in crossings.items() if k == key] or [10**12]):  # MUTANT W50\n")],
             ["GraderTests.test_targets_past_an_edge_before_a_crossing_of_that_edge"]),
     "W51": (CAUGHT, "finding 1's live grader without its non-vacuity (the step-3.1 verifier: 'the check never fires': a run "
                     "with no target past an edge passed it)",
@@ -345,6 +372,141 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             [("gates/live_step3.py", "    run.check(not mismatch and not unregistered and not registered_sensitive,\n",
               "    run.check(not mismatch and not unregistered,  # MUTANT W61\n")],
             ["GraderTests.test_the_clock_arm_registers_frames_only_where_every_clock_agrees"]),
+    # ---- build step 3.2: the step-3.1 adversarial review's human-likeness findings (2026-10-08)
+    "W62": (CAUGHT, "finding 1 (HIGH): the turn-back cost charged on EVERY replan and no plan followed (the step-3.1 rule): "
+                    "each step forward makes turning back dearer again, and the AI walks a LAP round the room (SCENEX)",
+            [("brain/navigator.py", "        direction = self._next_step(memory, here, target, walls)\n",
+              "        path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target),  # MUTANT W62\n"
+              "                     first={k: v for k, v in self.turn_costs().items() if isinstance(k, str)})\n"
+              "        direction = path[0] if path else None\n")],
+            ["LapTests.test_a_target_behind_is_reached_by_turning_back"]),
+    "W63": (CAUGHT, "finding 1: the decision's plan not FOLLOWED (redone at every step, uncharged): the tie the decision broke "
+                    "falls to the path noise at the next step, and some seeds turn round for nothing",
+            [("brain/navigator.py",
+              "        if plan is not None and plan.key == target.key and plan.map == current and plan.at == here and plan.path:\n",
+              "        if False:  # MUTANT W63\n")],
+            ["LapTests.test_the_decisions_plan_is_followed_and_turns_round_only_to_break_a_tie",
+             "LapTests.test_a_shortcut_that_comes_into_view_is_taken"]),
+    "W74": (CAUGHT, "finding 1: a plan followed even when a clearly better way came into view (never switched)",
+            [("brain/navigator.py", "PLAN_SWITCH_MARGIN = TURN_BACK_COST\n", "PLAN_SWITCH_MARGIN = 10.0 ** 9  # MUTANT W74\n")],
+            ["LapTests.test_a_shortcut_that_comes_into_view_is_taken"]),
+    "W64": (CAUGHT, "finding 3 (MEDIUM): a bump is never forgotten after the way let the player through (the next errand walks "
+                    "round a way that is open)",
+            [("world/memory.py", "        return memory.bumped.pop((xy, direction), None)\n", "        return None  # MUTANT W64\n")],
+            ["WalkTests.test_a_bump_is_forgotten_when_the_way_lets_the_player_through",
+             "WalkTests.test_the_only_way_on_is_retried_before_it_is_given_up"]),
+    "W65": (CAUGHT, "finding 3: a tile that LOOKS different keeps the bumps learned on the old tile",
+            [("world/memory.py", "                    sides = [direction for (where, direction) in self.bumped if where == xy]\n",
+              "                    sides = []  # MUTANT W65\n")],
+            ["WalkTests.test_a_tile_that_looks_different_drops_its_bumps"]),
+    "W66": (CAUGHT, "finding 4 (MEDIUM): a target chosen ON THE MOVE picked on a whim again (the step-3.1 rule: re-picked at "
+                    "random among equals at almost every step)",
+            [("brain/explore.py", "    moving = nav.choosing_on_the_move\n", "    moving = False  # MUTANT W66\n")],
+            ["HeadingTests.test_no_draw_on_the_move"]),
+    "W67": (CAUGHT, "finding 4: on the move the heading is not preferred (the best score, wherever it lies)",
+            [("brain/explore.py", "    return best if best.score - keep.score > CHOICE_MARGIN else keep\n",
+              "    return best  # MUTANT W67\n")],
+            ["HeadingTests.test_the_heading_is_kept_unless_another_place_is_clearly_better"]),
+    "W69": (CAUGHT, "finding 5 (LOW): a closed door reopened on a HIDDEN count of the save's story flags again (nothing a person "
+                    "sees)",
+            [("world/memory.py", "        self.news = 0\n", "        self.news = 0\n        self.mutant_flags = 0  # MUTANT W69\n"),
+             ("world/memory.py", "        self._news(look)\n",
+              "        self._news(look)\n"
+              "        if look.progress is not None:  # MUTANT W69: the save's story flags counted as news\n"
+              "            flags = sum(1 for _, on in look.progress.flags if on)\n"
+              "            if flags > self.mutant_flags:\n"
+              "                self.news += 1\n"
+              "            self.mutant_flags = flags\n")],
+            ["ExitTests.test_a_hidden_story_flag_alone_does_not_reopen_a_door", "ExitTests.test_news_is_what_a_person_could_see"]),
+    "W70": (CAUGHT, "finding 2's new grader: a return to a tile counted as a LAP although something new was seen on the way round",
+            [("gates/live_step3.py", "        if not (new_tile or new_told):\n", "        if True:  # MUTANT W70\n")],
+            ["GraderTests.test_laps_in_a_walk"]),
+    "W71": (CAUGHT, "finding 2's new grader: the shortest known way over tiles the memory had not seen yet",
+            [("gates/live_step3.py", "        return f if f is not None and int(f[4]) <= by_frame else None\n",
+              "        return f  # MUTANT W71\n")],
+            ["GraderTests.test_the_shortest_known_way"]),
+    "W72": (CAUGHT, "finding 2's new grader: the shortest known way through ways in learned blocked by a bump",
+            [("gates/live_step3.py",
+              "        return f is not None and not (set(f[0]) & _NOT_WALKABLE) and not f[1] and f\"{xy[0]},{xy[1]}|{direction}\" not in bumped\n",
+              "        return f is not None and not (set(f[0]) & _NOT_WALKABLE) and not f[1]  # MUTANT W72\n")],
+            ["GraderTests.test_the_shortest_known_way"]),
+    "W73": (CAUGHT, "finding 2's new live check without its non-vacuity (a run with no walk graded passes it)",
+            [("gates/live_step3.py", "    run.check(report[\"graded\"] > 0 and len(report[\"laps\"]) <= bound[\"laps\"]",
+              "    run.check(len(report[\"laps\"]) <= bound[\"laps\"]")],
+            ["GraderTests.test_the_walk_to_each_target_against_the_shortest_known_way"]),
+    "W75": (CAUGHT, "finding 2's new grader: a walk with a DETOUR (by design) graded against the shortest way",
+            [("gates/live_step3.py", "    graded = [w for w in walks if w[\"excess\"] is not None and not w[\"detour\"]]\n",
+              "    graded = [w for w in walks if w[\"excess\"] is not None]  # MUTANT W75\n")],
+            ["GraderTests.test_the_walk_to_each_target_against_the_shortest_known_way"]),
+    # ---- the step-3.2 verifier's round: the cycle check that tells the fix from the revert, and the journeys
+    "W76": (CAUGHT, "the verifier's round's RINGS: a return counted as a ring though the walk retraced its own steps (an "
+                    "out-and-back, a turn back, is not a round walked)",
+            [("gates/live_step3.py",
+              "        if len(set(between)) == len(between) and xy not in between and all(t[0] == key for t in stretch[i:j + 1]):\n",
+              "        if all(t[0] == key for t in stretch[i:j + 1]):  # MUTANT W76\n")],
+            ["GraderTests.test_rings_in_a_walk"]),
+    "W77": (CAUGHT, "the verifier's round's RINGS: a ring only where nothing new was seen on the way (`laps`' exemption, which "
+                    "hid every round the reverted code walked)",
+            [("gates/live_step3.py", "    ringed = [ring for stretch in stretches for ring in rings(stretch)]\n",
+              "    ringed = list(found)  # MUTANT W77\n")],
+            ["GraderTests.test_a_ring_that_saw_new_tiles_is_counted_by_the_report"]),
+    "W78": (CAUGHT, "the verifier's round's JOURNEYS: the targets chosen on the move never joined (each decision its own walk)",
+            [("gates/live_step3.py", "        joined = (current is not None and walk.get(\"on_the_move\") and walk[\"map\"] == current[\"map\"]\n",
+              "        joined = False and (current is not None and walk.get(\"on_the_move\") and walk[\"map\"] == current[\"map\"]  # MUTANT W78\n")],
+            ["GraderTests.test_journeys_join_the_targets_chosen_on_the_move"]),
+    # ---- the step-4 verifier's round (its FAILURE: step 3.2 finding 4, the churn of decisions, not fixed)
+    "W79": (CAUGHT, "finding 4 (the verifier's FAILURE): a decision never CARRIED ON (the step-3.2 rule: a stale target dropped "
+                    "and a new decision made on the move at nearly every step)",
+            [("brain/navigator.py",
+              "                carried = intent.carry_on(self, look, target) if stale is not None and intent.carry_on is not None else None\n",
+              "                carried = None  # MUTANT W79\n")],
+            ["ChurnTests.test_few_decisions_and_no_longer_walk_on_the_town"]),
+    "W80": (CAUGHT, "finding 4: a decision carried on whatever came into view (no `CARRY_SWITCH_MARGIN`: a person who never "
+                    "changes their mind)",
+            [("brain/explore.py", "    if best.score - nxt.score > CARRY_SWITCH_MARGIN:\n", "    if False:  # MUTANT W80\n")],
+            ["ChurnTests.test_something_clearly_better_ends_the_decision"]),
+    "W81": (CAUGHT, "finding 4: a decision carried on to a place sliding ALONG the screen's edge (any tile further on, however "
+                    "far aside)",
+            [("brain/explore.py", "        if along >= 1 and aside <= 1:\n", "        if along >= 1:  # MUTANT W81\n")],
+            ["ChurnTests.test_a_place_aside_is_another_place"]),
+    "W82": (CAUGHT, "the step-4 verifier's round's LAP RINGS: every ring held against the walk, an excursion by the shortest "
+                    "ways included",
+            [("gates/live_step3.py", "    return any((w.get(\"excess\") or 0) > 0 and not w.get(\"detour\") for w in ring_legs(ring, walks))\n",
+              "    return True  # MUTANT W82\n")],
+            ["GraderTests.test_a_lap_ring_has_a_leg_walked_round"]),
+    "W83": (CAUGHT, "the step-4 verifier's round's RINGS: one loop counted again from each of its tiles the walk goes on to",
+            [("gates/live_step3.py",
+              "            if out and out[-1][\"map\"] == key and {tuple(t) for t in out[-1][\"tiles\"]} == {tuple(t) for t in tiles}:\n",
+              "            if False:  # MUTANT W83\n")],
+            ["GraderTests.test_a_lap_ring_has_a_leg_walked_round"]),
+    "W84": (CAUGHT, "the step-4 verifier's round's CHURN check: the one-step walks' share not held to its bound",
+            [("gates/live_step3.py",
+              "    run.check(c[\"walks\"] > 0 and c[\"move_per_100\"] <= bound[\"move_per_100\"] and c[\"ones_share\"] <= bound[\"ones\"]\n",
+              "    run.check(c[\"walks\"] > 0 and c[\"move_per_100\"] <= bound[\"move_per_100\"]  # MUTANT W84\n")],
+            ["GraderTests.test_the_churn_of_decisions"]),
+    "W85": (CAUGHT, "finding 4: a decision carried on to a place straight BESIDE the player (not on the stale target's side)",
+            [("brain/explore.py",
+              "    return (tile[0] - here[0]) * (old[0] - here[0]) + (tile[1] - here[1]) * (old[1] - here[1]) > 0\n",
+              "    return (tile[0] - here[0]) * (old[0] - here[0]) + (tile[1] - here[1]) * (old[1] - here[1]) >= 0  # MUTANT W85\n")],
+            ["ChurnTests.test_never_carried_behind_the_player"]),
+    "W86": (CAUGHT, "the step-4 verifier's round: `stale_arrivals` blind to carry-ons (the arrival at the place a decision was "
+                    "carried on to is missed, so a stale place walked onto would go uncounted)",
+            [("gates/live_step3.py", "        target = list(moved_on[-1]) if moved_on else extra.get(\"target\")\n",
+              "        target = extra.get(\"target\")  # MUTANT W86\n")],
+            ["GraderTests.test_a_carried_on_target_is_the_one_walked_onto"]),
+    "W87": (CAUGHT, "the step-4 verifier's round: the twin's check after news back to 'at most once IN ALL' (fails a run in which "
+                    "the words rule did what it says: a tile first met after the news given up at that meeting)",
+            [("gates/live_step3.py", "    return all(count <= 1 for segment in segment_tiles[1:] for count in segment.values())\n",
+              "    return all(sum(segment.values()) <= 1 for segment in segment_tiles[1:])  # MUTANT W87\n")],
+            ["GraderTests.test_after_news_the_twin_once_on_each_tile"]),
+    "W88": (CAUGHT, "the step-4 verifier's round: a doormat taken tile by tile (its other tile an exit 'not used yet': the "
+                    "development sweep's explorer left May's house by it before meeting May)",
+            [("world/memory.py", "    if not sides:\n        return []\n", "    if True:  # MUTANT W88\n        return []\n")],
+            ["ExitTests.test_a_doormat_is_one_way_out"]),
+    "W89": (CAUGHT, "the step-4 verifier's round: a way back to a floor SEEN ALL OF kept while the doormat leads to a town with "
+                    "things left to see (up and down the stairs until the ping-pong rule: the sweep's CROP seed 1)",
+            [("brain/explore.py", "    return not_back_to_seen_all(out)\n", "    return out  # MUTANT W89\n")],
+            ["ExploreTests.test_not_back_to_a_floor_seen_all_of_while_the_town_has_more"]),
 }
 
 DRIVER = '''
@@ -449,15 +611,22 @@ def main() -> int:
         print(line, flush=True)
         out.append(line)
     verdict = "PASS" if ok_all else "FAIL"
+    tried = [name for name, _ in chosen if MUTANTS[name][0] != CONTROL]
     summary = (f"{counts[CAUGHT]} mutants CAUGHT as predicted, {counts[REDUNDANT]} REDUNDANT ALONE as predicted (each with its reason), "
-               f"of {len(MUTANTS) - 1}")
+               f"of {len(tried)}" + ("" if only is None else f" (a SUBSET of the {len(MUTANTS) - 1}: {sorted(only)})"))
     out += ["", summary, f"OVERALL: {verdict}"]
     print(summary)
     print(f"OVERALL: {verdict}")
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
-    path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step3-REVERT.txt"
+    # (the step-4 verifier's round: "two files of tree 83a4581da76e0739 are lost ... The cause is a hazard that remains:
+    # revert_step3.py writes its top-level evidence file even on a subset run") only the FULL table writes the evidence file;
+    # a subset (a development run) writes beside the system's temporary files, never into evidence/
+    if only is None:
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step3-REVERT.txt"
+    else:
+        path = Path(tempfile.gettempdir()) / f"{time.strftime('%Y-%m-%d')}-step3-REVERT-subset.txt"
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
-    print(f"evidence: {path.relative_to(REPO)}")
+    print(f"evidence: {path.relative_to(REPO) if only is None else path} {'' if only is None else '(a SUBSET: not evidence)'}")
     return 0 if ok_all else 1
 
 

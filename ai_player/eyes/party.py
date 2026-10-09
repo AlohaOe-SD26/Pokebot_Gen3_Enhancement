@@ -65,6 +65,9 @@ class RawMon:
     hp: int
     max_hp: int
     experience: int = 0  # total experience points (the growth substructure @4; step 3: progress counts experience gained)
+    #: BUILD STEP 4: attack, defense, speed, sp. attack, sp. defense (`include/pokemon.h` struct Pokemon: attack @90,
+    #: defense @92, speed @94, spAttack @96, spDefense @98, unencrypted u16s after maxHP @88): the summary's SKILLS page
+    stats: tuple[int, ...] = ()
 
 
 def _u16(data: bytes, offset: int) -> int:
@@ -100,4 +103,5 @@ def decode_party_mon(data: bytes) -> RawMon | str:
         hp=_u16(data, 86),
         max_hp=_u16(data, 88),
         experience=_u32(secure, growth + 4),
+        stats=tuple(_u16(data, offset) for offset in (90, 92, 94, 96, 98)),
     )

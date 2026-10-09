@@ -34,16 +34,20 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from typing import Protocol
 
+from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
 from ai_player.brain.navigator import Navigator
 from ai_player.eyes.observation import Observation
+from ai_player.hands.dialogue import advance, player_free, talk
 from ai_player.hands.menus import mart_buy, nurse_heal
 from ai_player.hands.pad import Faults, Hands
 from ai_player.memory_log import ActionLog, ScorerLines
 from ai_player.options import HANDS_BRAINS, INTENT_MARGIN, WORLD_BRAINS, HandsOptions
 from ai_player.personality import pick_personality
 from ai_player.runlog import RecordFile
+from ai_player.skills.battle import play_battle
 from ai_player.skills.clock import set_wall_clock
+from ai_player.skills.flee import in_battle
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
 from ai_player.world.memory import WorldMemory, read_world
@@ -78,6 +82,10 @@ PLACEHOLDER_REASON = "step0-placeholder"
 WATCHER_REASON = "watcher-done"
 #: BUILD STEP 3: the world memory's snapshots, one JSON line each, in the run directory.
 WORLD_FILE_NAME = "world.jsonl"
+#: BUILD STEP 4: the battle brain's roaming (its training steps are a bound: it ends when enough battles have ended), and
+#: the frames it gives a walk up to a person it challenges.
+ROAM_FOR_BATTLES = 3000
+CHALLENGE_WALK_BUDGET = 6000
 
 
 class Controls(Protocol):
@@ -291,7 +299,91 @@ class HandsBrain:
             return (yield from roam_train(hands, self.navigator, options.roam_steps))
         if options.brain == "goto":
             return (yield from self.navigator.run(goto_intent(list(options.goto), budget), "errands on this map"))
+        if options.brain == "battle":
+            return (yield from self._battles(hands, personality.name))
         raise ValueError(f"no hands skill named {options.brain!r}")
+
+    # ------------------------------------------------------------------ build step 4: battles
+    def _battles(self, hands: Hands, personality: str) -> Generator[None, None, str]:
+        """BUILD STEP 4, the BATTLE brain: the AI's own decider (`brain/battle.py`) plays every battle through the
+        navigator's battler (`skills/battle.py` play_battle): the battle on screen at the start; then the person at
+        `AI_PLAYER_TALK_TO`, walked up to and talked to (a trainer, the rival); then wild battles met roaming the grass
+        (`skills/roam_train.py`, which now FIGHTS through the same battler), until `AI_PLAYER_BATTLES` have ended. The
+        decider's draws come from their own stream of the seed (`<seed>:battle`), so a battle never shifts a walk's
+        choices. Returns "battles: N played: [outcomes]" or why it stopped."""
+        options, nav = self.options, self.navigator
+        faults = BattleFaults(ignore_types=options.fault_ignore_types, ignore_recoil=options.fault_ignore_recoil,
+                              uncapped_recoil=options.fault_uncapped_recoil, forget_field=options.fault_forget_field,
+                              ignore_refusal=options.fault_ignore_refusal)
+        mind = BattleMind(personality, random.Random(f"{self.seed}:battle"), options.purpose, faults)
+        nav.battler = lambda: play_battle(hands, mind, f"battle ({options.purpose})")
+        nav.battle_limit = None  # set for the roaming only: a battle met on the way to a challenge does not end the brain
+        hands.tell(f"battle brain: {options.battles} battle(s), purpose {options.purpose}, personality {mind.personality} "
+                   f"({mind.temper}); talk to {options.talk_to or 'nobody'}; faults ignore_types:{options.fault_ignore_types},"
+                   f"ignore_recoil:{options.fault_ignore_recoil}"
+                   + "".join(f",{name}:True" for name, on in (("uncapped_recoil", faults.uncapped_recoil),
+                                                              ("forget_field", faults.forget_field),
+                                                              ("ignore_refusal", faults.ignore_refusal)) if on))
+        played = nav.battle_outcomes
+        look = hands.look()
+        if in_battle(look):
+            stop = yield from nav.handle(look, "the battle on screen")
+            if stop is not None and not stop.startswith("done:"):
+                return f"battles: {len(played)} played {played}; {stop}"
+        if options.talk_to is not None and len(played) < options.battles:
+            stop = yield from self._challenge(hands, options.talk_to)
+            if stop is not None and not stop.startswith("done:"):
+                return f"battles: {len(played)} played {played}; {stop}"
+        if len(played) < options.battles:
+            rest = needs_rest(hands.look().party)
+            if rest is not None:
+                return f"battles: {len(played)} played {played}; rest: {rest}: it does not go training"
+            nav.battle_limit = options.battles
+            nav.battle_rest = lambda look: needs_rest(look.party)
+            outcome = yield from roam_train(hands, nav, ROAM_FOR_BATTLES, "train: roam the grass, battling what comes")
+            if "done:" not in outcome:
+                return f"battles: {len(played)} played {played}; {outcome}"
+        return f"battles: {len(played)} played: {played}"
+
+    def _challenge(self, hands: Hands, tile: tuple[int, int]) -> Generator[None, None, str | None]:
+        """Walk up to the person standing at `tile` (on the current map, seen on screen) and talk to them: a trainer or
+        the rival, whose words lead to a battle that the navigator's battler then plays. None when the battle (if any)
+        was played and the brain goes on; otherwise why it stopped."""
+        nav = self.navigator
+        look = hands.look()
+        person = next((o for o in (look.view.objects if look.view else ()) if o.source == "object" and (o.x, o.y) == tile), None)
+        if person is None or look.player is None or look.player.x is None:
+            return f"stuck: nobody is seen at {tile}"
+        here = (look.player.x, look.player.y)
+        beside = sorted(((tile[0] + dx, tile[1] + dy) for dx, dy in ((0, 1), (-1, 0), (1, 0), (0, -1))),
+                        key=lambda xy: abs(xy[0] - here[0]) + abs(xy[1] - here[1]))
+        reached = None
+        for spot in beside:
+            # (a wild battle met on the way is played by the navigator's battler and the walk goes on: no battle limit is
+            # set while walking up to a challenge)
+            if spot != here:
+                yield from nav.go_to(spot, f"walk up to the person at {tile}", CHALLENGE_WALK_BUDGET)
+            where = hands.look().player
+            if where is not None and (where.x, where.y) == spot:
+                reached = spot
+                break
+            if in_battle(hands.last):
+                break  # a trainer saw the player first
+        look = hands.look()
+        if not in_battle(look):
+            if reached is None:
+                return f"stuck: no tile beside the person at {tile} could be reached"
+            person = next((o for o in (look.view.objects if look.view else ()) if o.source == "object"
+                           and o.local_id == person.local_id), person)
+            if not (yield from talk(hands, person, f"challenge the person at {tile}")):
+                return f"stuck: the person at {tile} did not answer"
+            outcome = yield from advance(hands, lambda l: in_battle(l) or player_free(l), f"listen to the person at {tile}")
+            look = hands.last
+            if outcome.startswith("menu:"):
+                return f"stuck: an unexpected {outcome[5:]} while the person at {tile} talked"
+        if not in_battle(look):
+            return f"stuck: talking to the person at {tile} led to no battle"
+        return (yield from nav.handle(look, f"the battle with the person at {tile}"))
 
     # ------------------------------------------------------------------ build step 3: the world
     def _start_world(self, hands: Hands, choices: random.Random, personality: str) -> None:

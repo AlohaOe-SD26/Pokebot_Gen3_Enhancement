@@ -741,6 +741,7 @@ class PerceptionTests(unittest.TestCase):
         return SimpleNamespace(
             species=SimpleNamespace(name="Machop", national_dex_number=66), level=9, current_hp=hp, total_hp=max_hp,
             status_permanent=SimpleNamespace(name="Healthy"), types=[SimpleNamespace(name="Fighting")],
+            personality_value=0x1234ABCD,  # build step 4: the own battler's identity
             moves=[SimpleNamespace(move=SimpleNamespace(name=n, type=SimpleNamespace(name=t), base_power=p), pp=pp, total_pp=top)
                    for n, t, p, pp, top in moves] + [None])
 
@@ -756,6 +757,8 @@ class PerceptionTests(unittest.TestCase):
         own = FrameworkEyes._battle_mon(self.battler(15, 31, moves), own=True)
         self.assertEqual((own.hp, own.max_hp, own.hp_bar), (15, 31, 23))
         self.assertEqual([(m.name, m.pp, m.max_pp) for m in own.moves], [(n, pp, top) for n, _, _, pp, top in moves])
+        # build step 4: which of the player's own Pokemon is out, by its PID; a foe's identity is not on screen
+        self.assertEqual((own.pid, foe.pid), (0x1234ABCD, None))
 
     def test_every_person_is_an_npc(self) -> None:
         """No "trainer" label before a trainer engages: the kind comes from the LOOK only (one argument)."""

@@ -1,0 +1,17 @@
+AI PLAYER BUILD STEP 4 - THE SEED SWEEP (rate_step4.py)
+date: 2026-10-08 19:51:36
+code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:83a4581da76e0739 over git diff HEAD (18 files, 234982 bytes) and 24 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+plans ['TYPE', 'TYPE-FAULT', 'RECOIL', 'RECOIL-FAULT', 'WILD', 'CATCH', 'TRAINER', 'RIVAL', 'FAINT', 'LEARN'], 95 runs, the cartridge's clock pinned 2026-10-08T06:00, 160 s
+[PASS] RUNS: 95 of 95 runs gave a result (errors: none)
+[PASS] TYPE: Grovyle's first move aimed Absorb at the Geodude in 10 of 10 seeds; by chance (4 moves x 2 foes, 1/8): P(>= 10 of 10) = 9.31e-10; picks [('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude'), ('Absorb', 'Geodude')]
+[PASS] TYPE-FAULT: FAULT (types ignored): Absorb at the Geodude in 0 of 10 seeds; picks [('Quick Attack', 'Geodude'), ('Pursuit', 'Shroomish'), ('Quick Attack', 'Shroomish'), ('Quick Attack', 'Geodude'), ('Quick Attack', 'Geodude'), ('Pursuit', 'Shroomish'), ('Quick Attack', 'Geodude'), ('Pursuit', 'Shroomish'), ('Pursuit', 'Geodude'), ('Quick Attack', 'Shroomish')]
+[PASS] RECOIL: at 75 % HP (Take Down worth 55 after its recoil, Water Gun 60: a draw between the two) Take Down in 2 of 10 seeds (bound < 8); picks ['Water Gun', 'Water Gun', 'Water Gun', 'Water Gun', 'Water Gun', 'Take Down', 'Water Gun', 'Water Gun', 'Take Down', 'Water Gun']
+[PASS] RECOIL-FAULT: FAULT (recoil ignored: Take Down worth 76.5) Take Down in 10 of 10 seeds; picks ['Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down', 'Take Down']
+RECOIL A/B: Take Down chosen REAL 2 of 10, FAULT 10 of 10
+[PASS] WILD: 10 of 10 runs won a wild battle by fighting and raised the Mudkip's experience; outcomes [(1, ['won', 'won', 'won', 'won']), (2, ['caught', 'caught', 'won', 'won']), (3, ['won', 'won', 'caught', 'won']), (4, ['won', 'caught', 'caught', 'won']), (5, ['caught', 'won', 'won', 'won']), (6, ['caught', 'caught', 'won', 'won']), (7, ['caught', 'caught', 'won', 'caught']), (8, ['caught', 'won', 'won', 'won']), (9, ['won', 'won', 'caught', 'caught']), (10, ['won', 'won', 'won', 'won'])]
+[PASS] CATCH: 9 of 10 caught (bound >= 8); the rest knocked out by a weakening hit judged safe: seeds [9]; balls spent [1, 1, 1, 1, 1, 1, 1, 1, 0, 4]
+[PASS] TRAINER: 10 of 10 won, Joey's flag set
+[PASS] RIVAL: WIN RATE 2 of 10 (seeds [5, 10]); every battle played to its end: True (Mudkip L6 at 13/23 HP against a full-HP Treecko: no bound, reported)
+[PASS] FAINT: the lead fainted in 6 of 10 seeds; in every one the decider chose who went in and the battle went on to its end ([(1, ['won']), (2, ['won']), (5, ['won']), (6, ['won']), (7, ['won']), (8, ['won'])])
+[PASS] LEARN: 5 of 5 seeds: Bide learned, Growl forgotten
+OVERALL: PASS (11 of 11)

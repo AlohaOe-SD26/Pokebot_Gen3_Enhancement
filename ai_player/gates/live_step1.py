@@ -1737,9 +1737,11 @@ def grade_BS(run: Run) -> None:
         hit = any(f"sp={name}#" in line for line in lines for name in stale_names)
         return hit, f"its battle line {lines} names the previous battle's foe {sorted(stale_names)}"
 
-    guard = ("host/eyes.py", "            foe=tuple(self._battle_mon(mon, own=False) for mon in state.opponent.active_battlers\n"
-                             "                      if mon.personality_value in enemies),\n",
-             "            foe=tuple(self._battle_mon(mon, own=False) for mon in state.opponent.active_battlers),  # MUTANT\n")
+    # (build step 4: the guard's line now also pairs each battler with its POSITION; the mutant follows the code it breaks)
+    guard = ("host/eyes.py", "        foe = [self._battle_mon(mon, own=False, battler=at) for mon, at in zip(state.opponent.active_battlers, foe_at)\n"
+                             "               if mon.personality_value in enemies]\n",
+             "        foe = [self._battle_mon(mon, own=False, battler=at) for mon, at in zip(state.opponent.active_battlers, foe_at)]"
+             "  # MUTANT\n")
     refresh = ("memory_log.py", "                record[\"latest\"] = observation  # the refresh: the first look can show the previous battle's foe\n",
                "                pass  # MUTANT: no refresh\n")
     mutant(run, "BS-X1", [guard], "start", shows_stale, "the eyes' identity guard removed (a foe battler of any battle is reported)")

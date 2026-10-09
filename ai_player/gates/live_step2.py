@@ -656,14 +656,16 @@ def classify_a(press: dict) -> tuple[str, bool]:
     """STEP 2.1: what an A press's GATE claims (`probe_presses.gate_kind`), and whether the look of its record
     (the digest) agrees: a WAIT says `waits=A/B(<that gate>)` and shows no menu; a MENU confirm shows that menu
     taking input (`ui=<kind>[`, not `(busy)`) and nothing waiting; a TALK shows the overworld, nothing waiting, no
-    menu. Anything else is ("other", False)."""
+    menu. Anything else is ("other", False). (The step-4 verifier's round) a WAIT may also show a menu that does NOT take
+    input (`ui=<kind>(busy)[`): the battle's party menu prints its refusal ("GROVYLE is already in battle!", printer 6, a
+    WAIT) over its list, and the A goes to the text; a menu TAKING input beside a wait is still not a wait."""
     gate = press.get("reason") or ""
     digest = press.get("digest") or ""
     kind, menu = gate_kind(gate)
     parts = digest.split()
     screen = parts[1] if len(parts) > 1 else ""
     if kind == "wait":
-        return kind, f"waits=A/B({gate})" in digest and " ui=" not in digest
+        return kind, f"waits=A/B({gate})" in digest and (" ui=" not in digest or re.search(r" ui=\w+\(busy\)\[", digest) is not None)
     if kind == "menu":
         return kind, re.search(rf" ui={re.escape(menu or '')}\[", digest) is not None and "waits=A/B" not in digest
     if kind == "talk":

@@ -218,6 +218,9 @@ class MonSummary:
     ot_id: int  # its original trainer's VISIBLE id (16 bits, the summary screen's "IDNo.")
     is_egg: bool
     experience: int = 0  # total experience points (the summary screen's "EXP. POINTS"); step 3: novelty counts a gain
+    #: BUILD STEP 4: (attack, defense, speed, sp. attack, sp. defense), as the summary screen's SKILLS page shows them
+    #: (`include/pokemon.h` struct Pokemon @90..@98: the unencrypted stats the party struct keeps). () = not read.
+    stats: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -262,6 +265,13 @@ class BattleMon:
     #: The player's own battler: all its moves with PP. A FOE: only the moves it has USED in this battle
     #: (seen on screen, `eyes/view.py` foe_move_seen), without PP; the rest are unknown, as for a person.
     moves: tuple[MoveSlot, ...]
+    #: BUILD STEP 4: WHICH of the player's Pokemon is out, by identity (its PID; CLAUDE.md rule 3: never a slot): a
+    #: person knows which of their own Pokemon they sent out. None for a FOE (nothing on screen shows a PID).
+    pid: int | None = None
+    #: BUILD STEP 4: WHERE it stands: the battler position (`include/constants/battle.h` B_POSITION_*: 0 the player's
+    #: left, 1 the foe's left, 2 the player's right, 3 the foe's right; a single battle uses 0 and 1), as a person sees
+    #: which Pokemon stands where in a double battle.
+    battler: int | None = None
 
 
 @dataclass(frozen=True)
@@ -281,7 +291,8 @@ class MenuView:
     highlighted; the hands move a cursor by reading this, never by counting presses."""
 
     kind: str  # yes_no, gender, main_menu, start_menu, multichoice, mart_menu, mart_buy, mart_quantity,
-    #            naming, clock, bag, party, title, intro_movie
+    #            naming, clock, bag, party, title, intro_movie; build step 3: battle_action; build step 4: battle_move,
+    #            battle_yes_no, move_forget, party_action, bag_action (`eyes/screens.py` read_ui)
     options: tuple[str, ...] = ()  # top to bottom, as shown ("" where the name is not known)
     cursor: int | None = None  # the highlighted option (an index into `options`), or the bag / party row
     #: False while the thing is not taking input yet (a window still opening, a page swapping, the clock's hand
@@ -297,6 +308,9 @@ class MenuView:
     max_quantity: int | None = None  # mart_quantity: what the money (or the bag) allows
     prices: tuple[int, ...] = ()  # mart_buy: each item's price, as the list shows it
     pocket: str | None = None  # bag: the open pocket
+    #: BUILD STEP 4: which of the player's battlers a battle menu is FOR (battle_action, battle_move, battle_target: the
+    #: battler position, 0 or 2 in a double battle; 0 in a single one); in battle_target the cursor is a battler position
+    battler: int | None = None
 
 
 @dataclass(frozen=True)

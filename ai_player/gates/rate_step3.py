@@ -2,7 +2,12 @@
 CLAUDE.md rule 9), in-process (`gates/hands_harness.py`, each run in its own process and throwaway emulator), each run
 graded by its SECOND-PATH truth (save block 1, read after the run, never the AI's eyes).
 
-    py -3.12 ai_player/gates/rate_step3.py [--plans HOUSE,TOWN,...] [--seeds 10] [--workers 4]
+    py -3.12 ai_player/gates/rate_step3.py [--plans HOUSE,TOWN,...] [--seeds 10] [--workers 4] [--first-seed 1]
+
+(The step-4 verifier's second round: "determinism replays aren't replications".) Seeds 1..N are the seeds of the
+development sweeps every bound below was registered from, so the graded run REPLAYS them (a determinism check of those
+numbers); `--first-seed 101` plays HELD-OUT seeds no development run played, graded by the same bounds: a replication
+(evidence `<date>-step3-RATE-SEEDS101-110.txt`).
 
 THE PLANS: HOUSE, TOWN (Story), ROUTE, ROAM, STUCK, TOWN-Catcher, TOWN-Trainer, SCENE as `live_step3.py`'s arms (the same
 fixtures, goals and budgets), and CROP (TOWN with the crop FAULT on: `--no-crop`). Besides "as intended", each run
@@ -47,6 +52,39 @@ THE STEP-3.1 VERIFIER'S SECOND ROUND:
   * THE GAME'S CLOCK IS PINNED for every run (`live_step3.GAME_CLOCK`, `hands_harness.py --game-clock`): the game reads its
     real-time clock at every map load (berry growth draws random numbers), so an unpinned sweep was a different sweep at
     another hour (measured: live_step3 arm CLOCKS). The REPLAY section says which live arms read a clock that can differ.
+BUILD STEP 3.2 (the step-3.1 adversarial review: "the reversal metric cannot see laps"):
+  * LAPS AND THE SHORTEST WAY, per run (`live_step3.lap_report`): laps (back on a tile 4..12 steps later, nothing new between)
+    and the steps walked to each target beyond the shortest way the memory knew; bounded per run on the exploring plans and
+    SCENE-EXPLORE (`LAP_SWEEP_BOUNDS`, pre-registered from the development sweep named in live_step3.py's docstring, "AFTER
+    STEP 3.2"); and the targets chosen ON THE MOVE: whether the walk kept its heading (`live_step3.choices_on_the_move`).
+  * REVERTS: LAPS (finding 1 reverted: the turn-back cost on every replan, no plan followed: `live_step3.LAPS_MUTATION`) and
+    WHIM (finding 4 reverted: a target chosen on the move picked on a whim: `WHIM_MUTATION`), each with its prediction.
+  * REVERSALS: the per-100-steps bound is over the exploring plans TOGETHER (`REVERSALS_PER_100`): a target behind is now
+    reached by turning back (laps were invisible to the reversal metric, and the step-3.1 code walked them instead), and
+    HOUSE's walks are 10 to 18 steps, so one turn back at the end of the player's room in one seed is 6 per 100 for that
+    plan alone. The per-run bound (`REVERSALS_PER_RUN`) is unchanged.
+THE STEP-3.2 VERIFIER'S ROUND ("the new CYCLE check (`laps`) does not tell the fix from the revert ... 1 lap was found in
+60 reverted runs"; "steps-vs-shortest is measured per DECISION"):
+  * RINGS per run (`live_step3.rings`: back on a tile 4..12 steps later having walked ROUND, whatever was seen on the way),
+    bounded at 1 a run on the lapped plans (`LAP_SWEEP_BOUNDS`) and `LAPS_REAL_RINGS` over them together; the LAPS revert
+    must ring at least `LAPS_REVERT_RINGS` times in at least `LAPS_REVERT_RINGED` runs (pre-registered from this round's
+    development sweep: the real code 2 rings in 60 runs, each across a target that vanished with every leg the shortest
+    way to its own target; the revert 36 in 14).
+  * JOURNEYS per run (`live_step3.journeys`), reported with the real and reverted totals, not bounded (an exploring walk
+    ends where it stopped, not at a destination).
+THE STEP-4 VERIFIER'S ROUND (its FAILURE: "Step 3.2 finding 4 ... is NOT fixed ... the churn is still there"; its weak
+proofs "SCENE-EXPLORE has 2.91 reversals per 100 steps and its journey excess is not bounded", "laps cannot tell the fix
+from the revert", the subset-evidence hazard of `revert_step3.py`):
+  * CHURN per lapped plan (`live_step3.churn`): decisions on the move per 100 steps, the one-step walks' share, and the
+    VISIBLE COST, every journey's share of steps beyond the shortest known way (detours included), bounded per plan
+    (`CHURN_SWEEP_BOUNDS`); SCENE-EXPLORE's reversals per 100 steps and journeys bounded
+    (`SCENE_EXPLORE_REVERSALS_PER_100`, `SCENE_EXPLORE_JOURNEY_SHARE`).
+  * REVERT CHURN (`live_step3.CHURN_MUTATION`: the decision never carried on, the step-3.2 rule) on the lapped plans but
+    HOUSE (no frontier there is ever carried on): PREDICTED more decisions and one-step walks, every plan over the bounds,
+    and the real code's cost no dearer (`CHURN_*`).
+  * the rings' bound is on LAP RINGS (`live_step3.lap_ring`); the LAPS revert's ring predictions are on them; the twin
+    after news at most once on each tile (`live_step3.once_a_tile_after_news`).
+  Every number re-registered from development sweeps of the final code (their files moved out of the evidence folder).
 Evidence: `ai_player/evidence/<date>-step3-RATE.txt`, with the code line of the tree (`provenance.py`).
 """
 
@@ -70,8 +108,9 @@ if str(REPO) not in sys.path:
 
 from ai_player.gates.live_step2 import make_copy  # noqa: E402
 from ai_player.gates.live_step3 import (  # noqa: E402
-    ARMS, CLOCK_SENSITIVE, GAME_CLOCK, NEWS_MUTATION, REVERSALS_PER_RUN, SCENEWORDS_MUTATION, STALE_MUTATIONS,
-    TWIN_SCENES_IN_ALL, TWIN_SCENES_PER_TILE, Run, map_name_of, path_reversals, stale_arrivals, twin_scenes,
+    ARMS, CHURN_MUTATION, CLOCK_SENSITIVE, GAME_CLOCK, LAP_STEPS, LAPS_MUTATION, NEWS_MUTATION, REVERSALS_PER_RUN, SCENEWORDS_MUTATION,
+    STALE_MUTATIONS, TWIN_SCENES_IN_ALL, TWIN_SCENES_PER_TILE, WHIM_MUTATION, Run, choices_on_the_move, churn, lap_report,
+    map_name_of, once_a_tile_after_news, path_reversals, stale_arrivals, twin_scenes,
 )
 from ai_player.gates.provenance import provenance  # noqa: E402
 from ai_player.world.memory import WorldMemory  # noqa: E402
@@ -99,8 +138,9 @@ REPLAY_NOTES: dict[str, str] = {}
 #: rule's own proof, on a scene with no words).
 REVERT_PREDICTIONS = {
     "FINDING-2": (STALE_MUTATIONS, EXPLORING,
-                  "every exploring plan breaks its reversal bound (a run over REVERSALS_PER_RUN, or the plan over "
-                  "REVERSALS_PER_100), and frontier targets are walked onto with everything beside them seen"),
+                  "(since build step 3.2) at least FINDING2_PLANS_OVER of the exploring plans have a run over REVERSALS_PER_RUN, "
+                  "the plans together are over REVERSALS_PER_100, and frontier targets are walked onto with everything beside "
+                  "them seen (none with the rules)"),
     "SCENE-WORDS": ((SCENEWORDS_MUTATION,), ("SCENE-EXPLORE",),
                     "at least 8 of the 10 seeds are sent back by the twin more than TWIN_SCENES_IN_ALL times before any news "
                     "(twice on each of her tiles), while the real code is at most that often on every seed"),
@@ -112,6 +152,113 @@ REVERT_PREDICTIONS = {
 }
 #: (the step-3.1 verifier's second round) the SCENE-NEWS prediction's floor: seeds of the 10 the real code takes to Route 101
 SCENE_NEWS_REACHED = 5
+#: (build step 3.2) the plans whose laps and walks are bounded per run (`LAP_SWEEP_BOUNDS`, pre-registered: live_step3.py's
+#: docstring "AFTER STEP 3.2"): the exploring plans and the explorer behind the twin
+LAPPED = EXPLORING + ("SCENE-EXPLORE",)
+#: per run: no lap; at most 2 steps beyond the shortest known way on any one target (a step round someone standing in the
+#: way: people move, so the memory's shortest way does not know them; measured, the development sweep's SCENE-EXPLORE
+#: seeds 3, 7, 9: (14, 9) -> (11, 0) in 14 steps for 12, past the twin), at most 4 in all
+#: (the step-3.2 verifier's round) and at most ONE ring per run: the development sweep of this round found the real code ring
+#: twice in its 60 lapped runs (SCENE-EXPLORE seeds 1 and 6, once each), each across a TARGET that vanished (unreachable;
+#: everything beside it seen), every leg the shortest known way to its own target ((12, 15) -> the door (7, 17) in 7, the
+#: shortest; (5, 3) -> (7, 2) in 3, the shortest): a person comes back by a way as short as the one gone by. The reverted
+#: code rang 36 times in 14 runs (SCENE-EXPLORE every seed, up to 4; ROUTE seed 9 six times with 0 steps beyond its targets)
+#: (the step-4 verifier's round) the bound is on LAP RINGS (`live_step3.lap_ring`: a ring with a leg walked beyond the shortest
+#: way to its own target); every ring is reported, an excursion (each leg the shortest way to its own target) included
+LAP_SWEEP_BOUNDS = {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1}
+#: (the step-3.2 verifier's round) rings over the lapped plans' runs together: the real code at most this many (development
+#: sweep: 2), the LAPS revert at least `LAPS_REVERT_RINGS` (development sweep: 36); (the step-4 verifier's round) LAP rings
+LAPS_REAL_RINGS = 4
+LAPS_SPAN = f"{LAP_STEPS[0]}..{LAP_STEPS[1]}"
+#: (build step 3.2) the LAPS revert's prediction: runs over `LAP_SWEEP_BOUNDS` with finding 1 reverted, at least (the
+#: development sweep: SCENE-EXPLORE's 10 seeds, 12 to 48 steps beyond each; HOUSE and TOWN-Trainer one seed each)
+LAPS_REVERT_OVER = 8
+#: (the step-3.2 verifier's round) the LAPS revert's RINGS prediction: rings in the reverted copy's lapped runs together, at
+#: least (the development sweep of this round: 36 in 14 runs; the real code 2), and runs with a ring, at least (14)
+LAPS_REVERT_RINGS = 20
+LAPS_REVERT_RINGED = 8
+#: (build step 3.2) the WHIM revert's prediction: the share of targets chosen on the move after which the walk keeps its
+#: heading falls by at least this much with the whim (the development sweep: 88% with the heading rule, 61% without)
+WHIM_REVERT_DROP = 0.15
+#: (build step 3.2) the FINDING-2 revert's prediction: exploring plans with a run over `REVERSALS_PER_RUN` (2 since step 3.2)
+#: when reverted, at least (the development sweep: HOUSE 3, TOWN 4, TOWN-Catcher 3, TOWN-Trainer 4; ROUTE's worst 2)
+FINDING2_PLANS_OVER = 4
+
+
+def lap_run_ok(row: dict) -> bool:
+    """(build step 3.2) One run within `LAP_SWEEP_BOUNDS` (laps, steps beyond the shortest known ways, the worst target),
+    at least one walk graded."""
+    laps = row.get("laps") or {}
+    bound = LAP_SWEEP_BOUNDS
+    return (isinstance(laps.get("laps"), int) and (laps.get("graded") or 0) > 0 and laps["laps"] <= bound["laps"]
+            and laps["excess"] <= bound["excess"] and laps["worst"] <= bound["worst"]
+            and isinstance(laps.get("lap_rings"), int) and laps["lap_rings"] <= bound["lap_rings"])
+#: (the step-4 verifier's round, its FAILURE: "Step 3.2 finding 4 ... is NOT fixed ... the churn is still there") THE CHURN
+#: per lapped plan over its seeds together (`live_step3.churn`), PRE-REGISTERED from this round's development sweep (20 seeds
+#: of TOWN, ROUTE, SCENE-EXPLORE, TOWN-Catcher, TOWN-Trainer; the docstring "THE STEP-4 VERIFIER'S ROUND"): decisions made ON
+#: THE MOVE per 100 steps walked, the share of walks to a decision that are ONE step, and THE VISIBLE COST, every journey's
+#: steps beyond the shortest known way over the steps those journeys walked.
+CHURN_SWEEP_BOUNDS = {"move_per_100": 30.0, "ones": 0.40, "journey_share": 0.50}
+#: the CHURN revert (the decision never carried on: the step-3.2 rule) over the lapped plans together, PREDICTED: at least
+#: `CHURN_REVERT_DECISIONS` times the real code's decisions and `CHURN_REVERT_ONES` times its one-step walks; and the real
+#: code's VISIBLE COST no dearer: its steps at most `CHURN_COST_STEPS` times the revert's, its journeys' share beyond at
+#: most the revert's + `CHURN_COST_SHARE` (a development sweep of the final code, 20 seeds of TOWN, ROUTE, SCENE-EXPLORE,
+#: TOWN-Catcher, TOWN-Trainer: decisions 1,290 against 2,952, one-step walks 290 against 1,920, steps 5,965 against
+#: 5,881, every journey 1,496 beyond of 5,387 walked (0.28) against 1,644 of 5,527 (0.30); this driver's own development
+#: sweep of 10 seeds is in its docstring)
+CHURN_REVERT_DECISIONS = 2.0
+CHURN_REVERT_ONES = 3.0
+CHURN_COST_STEPS = 1.10
+CHURN_COST_SHARE = 0.05
+#: (the step-4 verifier's weak proof: "SCENE-EXPLORE has 2.91 reversals per 100 steps and its journey excess is not
+#: bounded. Both are reported, not graded") its bounds, pre-registered from this round's development sweeps (the final
+#: code, 20 seeds: 79 reversals in 2,902 steps, 2.72 per 100; every journey 822 beyond of 2,324 walked, 0.35; the step-3.2
+#: rule's 2.67 per 100 and 0.36)
+SCENE_EXPLORE_REVERSALS_PER_100 = 3.5
+SCENE_EXPLORE_JOURNEY_SHARE = 0.45
+REVERT_PREDICTIONS.update({
+    "LAPS": ((LAPS_MUTATION,), LAPPED,
+             "the turn-back cost on every replan walks round where the real code turns back: over the lapped plans, more steps "
+             "beyond the shortest known ways than the real code's, and at least 3 runs over `LAP_SWEEP_BOUNDS`"),
+    "WHIM": ((WHIM_MUTATION,), ("TOWN", "TOWN-Catcher", "TOWN-Trainer"),
+             "a target chosen on the move on a whim: on the TOWN plans the walk keeps its heading after such a choice less "
+             "often than with the heading rule"),
+    # (the step-4 verifier's round, its FAILURE) the decision never carried on: the step-3.2 rule. Not HOUSE: the player's
+    # room and the house's 1F are smaller than the screen, so no frontier there is ever seen past and carried on (the
+    # development sweep: 30 decisions, 0 carried on, the same with and without), so nothing there can tell the two apart
+    "CHURN": ((CHURN_MUTATION,), tuple(p for p in LAPPED if p != "HOUSE"),
+              "the decision never carried on: over the lapped plans at least CHURN_REVERT_DECISIONS times the decisions and "
+              "CHURN_REVERT_ONES times the one-step walks of the real code, every plan over CHURN_SWEEP_BOUNDS; and the real "
+              "code's visible cost no dearer (its steps at most CHURN_COST_STEPS times the revert's, its journeys' share beyond "
+              "at most CHURN_COST_SHARE over)"),
+})
+
+
+def churn_cells(rows: list[dict]) -> dict:
+    """(the step-4 verifier's round) The churn of `rows` together: decisions, on the move, carried on, the step-3.2 rule's
+    counterfactual, steps, walks, one-step walks, every journey's walked and beyond, and the shares."""
+    cells = {key: sum((r.get("churn") or {}).get(key) or 0 for r in rows)
+             for key in ("decisions", "on_the_move", "carried", "would", "dropped", "refused_better", "steps", "walks", "ones")}
+    cells["jall_walked"] = sum((r.get("laps") or {}).get("jall_walked") or 0 for r in rows)
+    cells["jall_excess"] = sum((r.get("laps") or {}).get("jall_excess") or 0 for r in rows)
+    cells["move_per_100"] = round(100.0 * cells["on_the_move"] / cells["steps"], 1) if cells["steps"] else 0.0
+    cells["ones_share"] = round(cells["ones"] / cells["walks"], 2) if cells["walks"] else 0.0
+    cells["journey_share"] = round(cells["jall_excess"] / cells["jall_walked"], 2) if cells["jall_walked"] else 0.0
+    return cells
+
+
+def churn_ok(cells: dict) -> bool:
+    bound = CHURN_SWEEP_BOUNDS
+    return (cells["walks"] > 0 and cells["move_per_100"] <= bound["move_per_100"] and cells["ones_share"] <= bound["ones"]
+            and cells["journey_share"] <= bound["journey_share"])
+
+
+def churn_text(cells: dict) -> str:
+    return (f"{cells['decisions']} decisions in {cells['steps']} steps, {cells['on_the_move']} on the move ({cells['move_per_100']} "
+            f"per 100 steps); {cells['carried']} places carried on (the step-3.2 rule would have gone elsewhere at {cells['would']}); "
+            f"{cells['dropped']} stale targets dropped for a new decision ({cells['refused_better']} for something clearly better); "
+            f"walks of ONE step {cells['ones']} of {cells['walks']} ({cells['ones_share']}); every journey {cells['jall_excess']} "
+            f"steps beyond of {cells['jall_walked']} walked ({cells['journey_share']})")
 
 
 def _explore(state: Path, goal: str, frames: int, personality: str, *extra: str) -> list[str]:
@@ -164,7 +311,8 @@ def twin_report(records: list[dict]) -> dict:
     first_walls = sorted({f"{x},{y}" for frame, (x, y), _ in walls if frame < (lifts[0] if lifts else 10**12)})
     return {"per_tile": counts, "total": t["total"], "worst": t["worst"], "walls": [list(tile) for _, tile, _ in walls],
             "first_walls": first_walls, "targets": [list(x) for x in t["targets"]], "stepped_after": later, "words": t["words"],
-            "segments": t["segments"], "lifts": lifts, "news": [w for _, w in t["news"]], "passed_her": len(t["passed_her"])}
+            "segments": t["segments"], "segment_tiles": t["segment_tiles"], "lifts": lifts, "news": [w for _, w in t["news"]],
+            "passed_her": len(t["passed_her"])}
 
 
 def twin_ok(report: dict) -> bool:
@@ -173,7 +321,10 @@ def twin_ok(report: dict) -> bool:
     tile given up is never stepped on until news lifts it."""
     segments = report.get("segments") or [0]
     walled = report["first_walls"] == sorted(report["per_tile"]) if segments[0] >= 2 else True
-    return segments[0] <= TWIN_SCENES_IN_ALL and all(n <= 1 for n in segments[1:]) and walled and not report["stepped_after"]
+    # (the step-4 verifier's round) after each news at most once ON EACH TILE (`live_step3.once_a_tile_after_news`: the old
+    # "at most once in all" failed the development sweep's seed 10, in which the rule did exactly what it says)
+    return (segments[0] <= TWIN_SCENES_IN_ALL and once_a_tile_after_news(report.get("segment_tiles") or [{}]) and walled
+            and not report["stepped_after"])
 
 
 def run_one(name: str, seed: int, root: Path | None = None, label: str = "") -> dict:
@@ -256,6 +407,29 @@ def run_one(name: str, seed: int, root: Path | None = None, label: str = "") -> 
         # (the step-3.1 verifier's round) frontier targets WALKED ONTO with everything beside them seen (`stale_arrivals`)
         chosen, arrived = stale_arrivals(run)
         result["walked_stale"] = sum(1 for a in arrived if a["everything_beside_it_seen"])
+        # (build step 3.2) laps and the walks against the shortest known ways; the targets chosen on the move
+        report = lap_report(run)
+        worst = report["worst_walk"] or {}
+        result["laps"] = {"laps": len(report["laps"]), "excess": report["excess"], "worst": report["worst"],
+                          "graded": report["graded"], "walked": report["walked"], "shortest": report["shortest"],
+                          "which": [(lap["map"], lap["tile"], lap["steps"]) for lap in report["laps"]],
+                          "worst_walk": [worst.get("map"), worst.get("kind"), worst.get("from"), worst.get("to"),
+                                         worst.get("walked"), worst.get("shortest")] if worst else None,
+                          # (the step-3.2 verifier's round) rings, and journeys (reported); (the step-4 verifier's round)
+                          # the LAP rings (a leg walked beyond its shortest way), and EVERY journey (detours included)
+                          "rings": len(report["rings"]), "lap_rings": len(report["lap_rings"]),
+                          "ring_which": [(ring["map"], ring["tile"], ring["steps"], "LAP" if ring["lap"] else "excursion")
+                                         for ring in report["rings"]],
+                          "jgraded": report["journeys_graded"], "jtargets": report["journey_targets"],
+                          "jwalked": report["journey_walked"], "jshortest": report["journey_shortest"],
+                          "jexcess": report["journey_excess"], "jworst": report["journey_worst"],
+                          "jall_walked": report["journey_all_walked"], "jall_excess": report["journey_all_excess"]}
+        moves = choices_on_the_move(run)
+        result["moves"] = {key: moves[key] for key in ("chosen", "on", "aside", "back")}
+        # (the step-4 verifier's round, its FAILURE: finding 4's churn) how often the AI decided (`live_step3.churn`)
+        c = churn(run, report)
+        result["churn"] = {key: c[key] for key in ("decisions", "on_the_move", "carried", "would", "dropped", "refused_better",
+                                                   "steps", "walks", "ones")}
     if name == "SCENE-EXPLORE":
         result["twin"] = twin_report(records)
         result["ok"] = ok = ok and twin_ok(result["twin"])
@@ -268,9 +442,14 @@ def run_one(name: str, seed: int, root: Path | None = None, label: str = "") -> 
                          "game": (end.get("wild_battles") - start.get("wild_battles"))
                          if isinstance(end.get("wild_battles"), int) and isinstance(start.get("wild_battles"), int) else None}
     walk = result.get("walk")
+    laps, moves = result.get("laps") or {}, result.get("moves") or {}
     result["line"] = (f"seed {seed}: {data['reason'][:120]!r} frames {data['frames']} map {truth['map']}"
                       + (f" | reversals {walk['reversals']} in {walk['steps']} steps, {result['stale']} stale targets dropped, "
                          f"{result['walked_stale']} stale walked onto, {result['scenes']} scenes held against a target" if walk else "")
+                      + (f" | laps {laps['laps']}, {laps['excess']} steps beyond the shortest known ways ({laps['walked']} walked "
+                         f"to {laps['graded']} targets, {laps['shortest']} the shortest; the worst {laps['worst']}); chosen on the "
+                         f"move {moves.get('chosen')}: kept the heading {moves.get('on')}, aside {moves.get('aside')}, back "
+                         f"{moves.get('back')}" if laps else "")
                       + (f" | the twin sent the player back {result['twin']['total']} times, by tile {result['twin']['per_tile']}, "
                          f"before any news and between news {result['twin']['segments']}, given up {result['twin']['walls']}, its "
                          f"targets {result['twin']['targets']}, stepped on while given up: {result['twin']['stepped_after'] or 'none'}; "
@@ -314,9 +493,13 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--no-reverts", action="store_true", help="development only: skip the REVERT section")
     parser.add_argument("--tag", default="", help="development only: a suffix for the evidence file's name")
+    # (the step-4 verifier's second round: "determinism replays aren't replications") the graded sweep plays the SAME
+    # seeds as the development sweeps its bounds came from, so it replays them; a sweep from another first seed is a
+    # HELD-OUT replication (its evidence file named by its seeds), graded by the same pre-registered bounds
+    parser.add_argument("--first-seed", type=int, default=1)
     args = parser.parse_args()
     wanted = [p.strip() for p in args.plans.split(",") if p.strip()]
-    seeds = list(range(1, args.seeds + 1))
+    seeds = list(range(args.first_seed, args.first_seed + args.seeds))
     code = provenance(REPO)
     began = time.time()
     jobs = [(name, seed) for name in wanted for seed in seeds]
@@ -324,7 +507,10 @@ def main() -> int:
     by_plan = {name: [r for r in results if r["name"] == name] for name in wanted}
     out = ["AI PLAYER BUILD STEP 3 - RATE SWEEP (gates/rate_step3.py; in-process gates/hands_harness.py, each run graded by its "
            "second-path truth)", f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}",
-           "a FREQUENCY measurement (CLAUDE.md rule 9); the purity of the same code is live_step3.py's launcher arms", ""]
+           "a FREQUENCY measurement (CLAUDE.md rule 9); the purity of the same code is live_step3.py's launcher arms",
+           f"seeds {seeds[0]}-{seeds[-1]}: " + ("the seeds of the development sweeps the bounds came from (this run REPLAYS "
+           "them: a determinism check of those numbers, not another sample)" if args.first_seed == 1 else "HELD OUT (no "
+           "development run played them): a REPLICATION, graded by the same pre-registered bounds"), ""]
     total_ok = 0
     separated = True
     for name, rows in by_plan.items():
@@ -382,10 +568,10 @@ def main() -> int:
     reversal_ok = True
     if walking:
         out += ["", f"---- REVERSALS (finding 2): per run, on the AI's own steps as the looks confirmed them; bound "
-                    f"{REVERSALS_PER_RUN} per run and {REVERSALS_PER_100} per 100 steps per plan on the EXPLORING plans "
-                    f"{EXPLORING} (the others reported: CROP a fault arm, STUCK, SCENE and SCENE-EXPLORE a scene sending the "
-                    f"player back, by design); 'stale walked onto': frontier targets the AI walked onto with everything beside "
-                    f"them already seen (live_step3.stale_arrivals) ----"]
+                    f"{REVERSALS_PER_RUN} per run on the EXPLORING plans {EXPLORING} and (build step 3.2) "
+                    f"{REVERSALS_PER_100} per 100 steps over those plans TOGETHER (the others reported: CROP a fault arm, "
+                    f"STUCK, SCENE and SCENE-EXPLORE a scene sending the player back, by design); 'stale walked onto': frontier "
+                    f"targets the AI walked onto with everything beside them already seen (live_step3.stale_arrivals) ----"]
         for name in walking:
             line, ok = reversal_line(name, by_plan[name], name in EXPLORING)
             reversal_ok &= ok
@@ -393,6 +579,65 @@ def main() -> int:
             for r in by_plan[name]:
                 if (r.get("walk") or {}).get("which"):
                     out.append(f"    seed {r['seed']}: {r['walk']['which']}")
+        together = [r for name in walking if name in EXPLORING for r in by_plan[name]]
+        if together:
+            total, steps, rate = pooled_reversals(together)
+            pooled_ok = rate <= REVERSALS_PER_100
+            reversal_ok &= pooled_ok
+            out.append(f"THE EXPLORING PLANS TOGETHER (build step 3.2): {total} reversals in {steps} steps ({rate:.2f} per 100 "
+                       f"steps; bound {REVERSALS_PER_100}) -> {'OK' if pooled_ok else 'OVER THE BOUND'}")
+    # (build step 3.2, the step-3.1 review's finding 2: "the reversal metric cannot see laps") LAPS and the walks against
+    # the shortest known ways, per run; and (its finding 4) what the walk did after a target chosen on the move
+    lap_ok = True
+    if walking:
+        out += ["", f"---- LAPS AND THE SHORTEST WAY (build step 3.2): per run, laps (back on a tile {LAPS_SPAN} steps later, "
+                    f"nothing new between) and the steps walked to each target beyond the shortest way the memory knew "
+                    f"(live_step3.lap_report); bound {LAP_SWEEP_BOUNDS} per run on {LAPPED} (the others reported) ----"]
+        for name in walking:
+            line, ok = lap_line(name, by_plan[name], name in LAPPED)
+            lap_ok &= ok
+            out.append(line)
+            for r in by_plan[name]:
+                laps = r.get("laps") or {}
+                if laps.get("which") or (laps.get("worst") or 0) > 0 or laps.get("ring_which"):
+                    out.append(f"    seed {r['seed']}: laps {laps.get('which')}; rings {laps.get('ring_which')}; the worst walk "
+                               f"(map, kind, from, to, walked, shortest) {laps.get('worst_walk')}")
+        pooled_rings = sum((r.get("laps") or {}).get("lap_rings") or 0 for name in walking if name in LAPPED for r in by_plan[name])
+        all_rings = sum((r.get("laps") or {}).get("rings") or 0 for name in walking if name in LAPPED for r in by_plan[name])
+        rings_ok = pooled_rings <= LAPS_REAL_RINGS
+        lap_ok &= rings_ok
+        out.append(f"LAP RINGS OVER THE LAPPED PLANS TOGETHER (the step-4 verifier's round: a ring with a leg walked beyond the "
+                   f"shortest way to its own target): {pooled_rings} (bound {LAPS_REAL_RINGS}; at most "
+                   f"{LAP_SWEEP_BOUNDS['lap_rings']} a run); RINGS of any kind {all_rings} (an excursion, every leg the shortest "
+                   f"way to its own target, reported) -> {'OK' if rings_ok else 'OVER THE BOUND'}")
+        chosen, kept, back = kept_heading([r for name in walking if name in LAPPED for r in by_plan[name]])
+        out.append(f"TARGETS CHOSEN ON THE MOVE (finding 4), the lapped plans: {chosen}; the walk kept its heading after {kept} "
+                   f"({100.0 * kept / chosen if chosen else 0:.0f}%), turned straight back after {back} (a dead end: everything "
+                   f"ahead seen, the way out behind); per plan "
+                   + "; ".join(f"{name} {kept_heading(by_plan[name])}" for name in walking if name in LAPPED))
+    # (the step-4 verifier's round, its FAILURE: "Step 3.2 finding 4 ... is NOT fixed") THE CHURN per lapped plan, bounded
+    churn_all_ok = True
+    if walking:
+        out += ["", f"---- CHURN (the step-4 verifier's round, finding 4): per lapped plan over its seeds together "
+                    f"(live_step3.churn); bound {CHURN_SWEEP_BOUNDS} per plan ----"]
+        for name in walking:
+            if name not in LAPPED:
+                continue
+            cells = churn_cells(by_plan[name])
+            ok = churn_ok(cells)
+            churn_all_ok &= ok
+            out.append(f"{name}: {churn_text(cells)} -> {'OK' if ok else 'OVER THE BOUND'}")
+        if "SCENE-EXPLORE" in by_plan:
+            # (the step-4 verifier's weak proof) SCENE-EXPLORE's reversals and journeys, bounded now
+            total, steps, rate = pooled_reversals(by_plan["SCENE-EXPLORE"])
+            cells = churn_cells(by_plan["SCENE-EXPLORE"])
+            ok = rate <= SCENE_EXPLORE_REVERSALS_PER_100 and cells["journey_share"] <= SCENE_EXPLORE_JOURNEY_SHARE
+            churn_all_ok &= ok
+            out.append(f"SCENE-EXPLORE (the step-4 verifier's weak proof: 'reported, not graded'): {total} reversals in {steps} "
+                       f"steps ({rate:.2f} per 100; bound {SCENE_EXPLORE_REVERSALS_PER_100}), every journey {cells['jall_excess']} "
+                       f"beyond of {cells['jall_walked']} ({cells['journey_share']}; bound {SCENE_EXPLORE_JOURNEY_SHARE}) -> "
+                       f"{'OK' if ok else 'OVER THE BOUND'}")
+        lap_ok &= churn_all_ok
     # (the step-3.1 verifier's round) THE REVERTS: the same plans and seeds from a COPY with a rule reverted, by the same
     # metric; each must break what the real code meets (the sweep's own fault arm, and the A/B the README quotes)
     revert_ok = True
@@ -425,12 +670,81 @@ def main() -> int:
                     totals[3] += sum((r.get("walk") or {}).get("steps") or 0 for r in by_plan.get(name, []))
                 walked = sum(r.get("walked_stale") or 0 for r in rows)
                 real_walked = sum(r.get("walked_stale") or 0 for name in plans for r in by_plan.get(name, []))
-                held = all(broken) and walked > 0 and real_walked == 0
+                pooled = 100.0 * totals[0] / totals[1] if totals[1] else 0.0
+                held = (sum(broken) >= min(FINDING2_PLANS_OVER, len(plans)) and pooled > REVERSALS_PER_100 and walked > 0
+                        and real_walked == 0)
                 revert_ok &= held
                 out.append(f"FINDING-2 A/B, the exploring plans, seeds {seeds[0]}-{seeds[-1]}: REVERTED {totals[0]} reversals in "
-                           f"{totals[1]} steps, {walked} stale targets walked onto; REAL {totals[2]} in {totals[3]}, {real_walked} "
-                           f"walked onto; plans over the bound when reverted: {sum(broken)} of {len(plans)} -> the prediction "
-                           f"{'HELD' if held else 'FAILED'}")
+                           f"{totals[1]} steps ({pooled:.2f} per 100, bound {REVERSALS_PER_100}), {walked} stale targets walked "
+                           f"onto; REAL {totals[2]} in {totals[3]}, {real_walked} walked onto; plans with a run over "
+                           f"{REVERSALS_PER_RUN} when reverted: {sum(broken)} of {len(plans)} (predicted >= {FINDING2_PLANS_OVER}) "
+                           f"-> the prediction {'HELD' if held else 'FAILED'}")
+            elif label == "LAPS":
+                over = sum(1 for r in rows if not lap_run_ok(r))
+                for name in plans:
+                    mine = [r for r in rows if r["name"] == name]
+                    out.append(f"    REVERTED {lap_line(name, mine, True)[0]}")
+                    out.append(f"    REAL     {lap_line(name, by_plan.get(name, []), True)[0]}")
+                beyond = sum((r.get("laps") or {}).get("excess") or 0 for r in rows)
+                real_beyond = sum((r.get("laps") or {}).get("excess") or 0 for name in plans for r in by_plan.get(name, []))
+                real_over = sum(1 for name in plans for r in by_plan.get(name, []) if not lap_run_ok(r))
+                # (the step-3.2 verifier's round) RINGS: the lap check that sees a round walked whatever it showed; (the step-4
+                # verifier's round) LAP rings: a ring with a leg walked beyond the shortest way to its own target
+                ringed = sum(1 for r in rows if ((r.get("laps") or {}).get("lap_rings") or 0) > 0)
+                ring_total = sum((r.get("laps") or {}).get("lap_rings") or 0 for r in rows)
+                real_ringed = sum(1 for name in plans for r in by_plan.get(name, []) if ((r.get("laps") or {}).get("lap_rings") or 0) > 0)
+                nothing_new = sum((r.get("laps") or {}).get("laps") or 0 for r in rows)
+                jx = sum((r.get("laps") or {}).get("jall_excess") or 0 for r in rows)
+                real_jx = sum((r.get("laps") or {}).get("jall_excess") or 0 for name in plans for r in by_plan.get(name, []))
+                real_rings = sum((r.get("laps") or {}).get("lap_rings") or 0 for name in plans for r in by_plan.get(name, []))
+                held = (beyond > real_beyond and over >= LAPS_REVERT_OVER and real_over == 0 and ring_total >= LAPS_REVERT_RINGS
+                        and ringed >= LAPS_REVERT_RINGED and real_rings <= LAPS_REAL_RINGS and jx > real_jx)
+                revert_ok &= held
+                out.append(f"LAPS A/B, {list(plans)}, seeds {seeds[0]}-{seeds[-1]}: steps beyond the shortest known ways REVERTED "
+                           f"{beyond}, REAL {real_beyond}; LAP RINGS (a ring with a leg walked beyond the shortest way to its own "
+                           f"target) REVERTED {ring_total} in {ringed} runs (predicted >= {LAPS_REVERT_RINGS} in >= "
+                           f"{LAPS_REVERT_RINGED} runs), REAL {real_rings} in {real_ringed} runs (predicted <= {LAPS_REAL_RINGS}); "
+                           f"laps with nothing new between REVERTED {nothing_new} (reported: a round walked shows new tiles); EVERY "
+                           f"JOURNEY's steps beyond REVERTED {jx}, REAL {real_jx} (predicted more reverted); runs over "
+                           f"{LAP_SWEEP_BOUNDS} REVERTED {over} of {len(rows)} (predicted >= {LAPS_REVERT_OVER}), REAL {real_over} -> "
+                           f"the prediction {'HELD' if held else 'FAILED'}")
+            elif label == "CHURN":
+                for name in plans:
+                    out.append(f"    REVERTED {name}: {churn_text(churn_cells([r for r in rows if r['name'] == name]))}")
+                    out.append(f"    REAL     {name}: {churn_text(churn_cells(by_plan.get(name, [])))}")
+                rev = churn_cells(rows)
+                real = churn_cells([r for name in plans for r in by_plan.get(name, [])])
+                plans_over = sum(1 for name in plans if not churn_ok(churn_cells([r for r in rows if r["name"] == name])))
+                held = (rev["decisions"] >= CHURN_REVERT_DECISIONS * real["decisions"] and rev["ones"] >= CHURN_REVERT_ONES * real["ones"]
+                        and plans_over == len(plans) and real["steps"] <= CHURN_COST_STEPS * rev["steps"]
+                        and real["journey_share"] <= rev["journey_share"] + CHURN_COST_SHARE)
+                revert_ok &= held
+                reach = sorted(r["seed"] for r in rows if r["name"] == "SCENE-EXPLORE" and r.get("map") == [0, 16])
+                real_reach = sorted(r["seed"] for r in by_plan.get("SCENE-EXPLORE", []) if r.get("map") == [0, 16])
+                out.append(f"    SCENE-EXPLORE reached ROUTE101 (reported): REVERTED on seeds {reach}, REAL on seeds {real_reach}")
+                out.append(f"CHURN A/B, {list(plans)}, seeds {seeds[0]}-{seeds[-1]}: DECISIONS REVERTED {rev['decisions']} "
+                           f"({rev['on_the_move']} on the move), REAL {real['decisions']} ({real['on_the_move']} on the move, "
+                           f"{real['carried']} places carried on) (predicted >= {CHURN_REVERT_DECISIONS} x); ONE-STEP WALKS "
+                           f"REVERTED {rev['ones']} of {rev['walks']}, REAL {real['ones']} of {real['walks']} (predicted >= "
+                           f"{CHURN_REVERT_ONES} x); plans over the bounds when reverted {plans_over} of {len(plans)} (predicted "
+                           f"all); THE VISIBLE COST: steps REVERTED {rev['steps']}, REAL {real['steps']} (predicted <= "
+                           f"{CHURN_COST_STEPS} x); every journey's share beyond REVERTED {rev['journey_share']} ({rev['jall_excess']} "
+                           f"of {rev['jall_walked']}), REAL {real['journey_share']} ({real['jall_excess']} of {real['jall_walked']}) "
+                           f"(predicted <= + {CHURN_COST_SHARE}) -> the prediction {'HELD' if held else 'FAILED'}")
+            elif label == "WHIM":
+                mine, real = kept_heading(rows), kept_heading([r for name in plans for r in by_plan.get(name, [])])
+                share, real_share = (mine[1] / mine[0] if mine[0] else 0.0), (real[1] / real[0] if real[0] else 0.0)
+                rev_rev, real_rev = pooled_reversals(rows), pooled_reversals([r for name in plans for r in by_plan.get(name, [])])
+                held = real_share - share >= WHIM_REVERT_DROP
+                revert_ok &= held
+                for name in plans:
+                    out.append(f"    REVERTED {name}: chosen on the move, kept the heading, straight back "
+                               f"{kept_heading([r for r in rows if r['name'] == name])}; REAL {kept_heading(by_plan.get(name, []))}")
+                out.append(f"WHIM A/B, {list(plans)}, seeds {seeds[0]}-{seeds[-1]}: after a target chosen on the move the walk kept "
+                           f"its heading REVERTED {mine[1]} of {mine[0]} ({100 * share:.0f}%), REAL {real[1]} of {real[0]} "
+                           f"({100 * real_share:.0f}%; predicted at least {100 * WHIM_REVERT_DROP:.0f} points more); reversals "
+                           f"REVERTED {rev_rev[0]} in {rev_rev[1]} steps, REAL {real_rev[0]} in {real_rev[1]} (reported) -> the "
+                           f"prediction {'HELD' if held else 'FAILED'}")
             elif label == "SCENE-WORDS":
                 first = [((r.get("twin") or {}).get("segments") or [0])[0] for r in rows]
                 real_first = [((r.get("twin") or {}).get("segments") or [0])[0] for name in plans for r in by_plan.get(name, [])]
@@ -467,8 +781,11 @@ def main() -> int:
             rows = by_plan["SCENE-EXPLORE"]
             sequences = {tuple(r.get("sequence") or ()) for r in rows}
             targets = {tuple(t) for r in rows for t in (r.get("twin") or {}).get("targets", [])}
+            # (build step 3.2) a target chosen on the move now keeps its heading, so after the twin's first push-back the
+            # explorer may go for the SAME target again (2 seeds of the development sweep: (10, -4) twice, given up by the
+            # per-target rule, its tile walled): per seed at least one target of its own, over the seeds at least two
             scene_ok = all(r.get("twin") is not None and twin_ok(r["twin"]) for r in rows) \
-                and all(len((r.get("twin") or {}).get("targets", [])) >= 2 for r in rows) \
+                and all(len((r.get("twin") or {}).get("targets", [])) >= 1 for r in rows) and len(targets) >= 2 \
                 and all(((r.get("twin") or {}).get("segments") or [0])[0] >= 2 for r in rows)
             segments = [(r["seed"], (r.get("twin") or {}).get("segments")) for r in rows]
             ends = [(r["seed"], r.get("map"), r.get("var_town"), str(r.get("reason", ""))[:24]) for r in rows]
@@ -477,7 +794,8 @@ def main() -> int:
                        f"{len(rows)} seeds; {len(targets)} different targets the twin stopped over the seeds ({sorted(targets)}); "
                        f"the twin's push-backs per seed, before any news and between news {segments}; every seed: sent back "
                        f"2..{TWIN_SCENES_IN_ALL} times before any news, every tile she began on then given up and not stepped on "
-                       f"until news, at most once more after each news, and >= 2 different targets of its own stopped: {scene_ok}")
+                       f"until news, at most once more after each news, >= 1 target of its own stopped (>= 2 different over the "
+                       f"seeds): {scene_ok}")
             out.append(f"SCENE-EXPLORE, AFTER THE TWIN (each seed's end: map, VAR_LITTLEROOT_TOWN_STATE, outcome): {ends}; reached "
                        f"ROUTE101 (May met, the twin tried again and passed): {reached} of {len(rows)}")
     # (the step-3.1 verifier's round: "ROUTE seed 3 no longer meets a wild battle") ROUTE's flee, seed by seed
@@ -522,12 +840,14 @@ def main() -> int:
                       for r in by_plan["ROAM"])
         out.append(f"ROAM: every seed's back-and-forth spin ratio < 2%: {spin_ok}")
         reversal_ok &= spin_ok
-    verdict = total_ok == len(results) and separated and reversal_ok and revert_ok and scene_ok and flee_ok
-    out += ["", f"{total_ok} of {len(results)} runs as intended; reversal bounds met: {reversal_ok}; reverts as predicted: "
+    verdict = total_ok == len(results) and separated and reversal_ok and revert_ok and scene_ok and flee_ok and lap_ok
+    out += ["", f"{total_ok} of {len(results)} runs as intended; reversal bounds met: {reversal_ok}; lap bounds met: {lap_ok}; "
+                f"reverts as predicted: "
                 f"{revert_ok if not args.no_reverts else 'not run'}; scenes: {scene_ok}; ROUTE's flee: {flee_ok}; "
                 f"{time.time() - began:.0f} s of wall clock with {args.workers} workers", f"OVERALL: {'PASS' if verdict else 'FAIL'}"]
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step3-RATE{args.tag}.txt"
+    held_out = "" if args.first_seed == 1 else f"-SEEDS{seeds[0]}-{seeds[-1]}"
+    path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step3-RATE{held_out}{args.tag}.txt"
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     print("\n".join(line for line in out if not line.startswith("    ")))
     print(f"evidence: {path.relative_to(REPO)}")
@@ -535,15 +855,46 @@ def main() -> int:
 
 
 def reversal_line(name: str, rows: list[dict], bounded: bool) -> tuple[str, bool]:
-    """One plan's reversals over its seeds against the bounds (`REVERSALS_PER_RUN` a run, `REVERSALS_PER_100` a plan)."""
+    """One plan's reversals over its seeds against the per-run bound (`REVERSALS_PER_RUN`); its rate per 100 steps is
+    reported (build step 3.2: the per-100 bound is over the exploring plans together, `pooled_reversals`)."""
     counts = [(r.get("walk") or {}).get("reversals") for r in rows]
     steps = sum((r.get("walk") or {}).get("steps") or 0 for r in rows)
     total = sum(c or 0 for c in counts)
     rate = 100.0 * total / steps if steps else 0.0
     walked = sum(r.get("walked_stale") or 0 for r in rows)
-    ok = (not bounded) or (all(isinstance(c, int) and c <= REVERSALS_PER_RUN for c in counts) and rate <= REVERSALS_PER_100)
+    ok = (not bounded) or all(isinstance(c, int) and c <= REVERSALS_PER_RUN for c in counts)
     return (f"{name}: {total} reversals in {steps} steps over {len(rows)} seeds ({rate:.2f} per 100 steps); per seed {counts}; "
             f"stale walked onto {walked}{'' if bounded else ' (reported, not bounded)'} -> {'OK' if ok else 'OVER THE BOUND'}", ok)
+
+
+def pooled_reversals(rows: list[dict]) -> tuple[int, int, float]:
+    """(build step 3.2) Reversals and steps over every run of `rows` together, and the rate per 100 steps."""
+    total = sum((r.get("walk") or {}).get("reversals") or 0 for r in rows)
+    steps = sum((r.get("walk") or {}).get("steps") or 0 for r in rows)
+    return total, steps, (100.0 * total / steps if steps else 0.0)
+
+
+def lap_line(name: str, rows: list[dict], bounded: bool) -> tuple[str, bool]:
+    """(build step 3.2) One plan's laps and walks against the shortest known ways, seed by seed, against
+    `LAP_SWEEP_BOUNDS` per run (every run graded at least one walk) when `bounded`."""
+    cells = [(r["seed"], (r.get("laps") or {}).get("laps"), (r.get("laps") or {}).get("excess"), (r.get("laps") or {}).get("worst"),
+              (r.get("laps") or {}).get("rings"), (r.get("laps") or {}).get("lap_rings")) for r in rows]
+    ok = (not bounded) or all(lap_run_ok(r) for r in rows)
+    total = sum(c[2] or 0 for c in cells)
+    walked = sum((r.get("laps") or {}).get("walked") or 0 for r in rows)
+    jx = [((r.get("laps") or {}).get("jall_excess") or 0, (r.get("laps") or {}).get("jall_walked") or 0) for r in rows]
+    return (f"{name}: laps {sum(c[1] or 0 for c in cells)}, RINGS {sum(c[4] or 0 for c in cells)} (LAP rings "
+            f"{sum(c[5] or 0 for c in cells)}), {total} steps beyond the shortest known ways over {walked} walked (the worst "
+            f"target {max((c[3] or 0 for c in cells), default=0)}); EVERY JOURNEY {sum(j[0] for j in jx)} steps beyond over "
+            f"{sum(j[1] for j in jx)} walked (bounded per plan in CHURN); per seed (seed, laps, beyond, worst, rings, lap rings) "
+            f"{cells}{'' if bounded else ' (reported, not bounded)'} -> {'OK' if ok else 'OVER THE BOUND'}", ok)
+
+
+def kept_heading(rows: list[dict]) -> tuple[int, int, int]:
+    """(build step 3.2) Over `rows`: targets chosen on the move, how many the walk followed in the same heading, how many
+    straight back (`live_step3.choices_on_the_move`)."""
+    moves = [r.get("moves") or {} for r in rows]
+    return (sum(m.get("chosen") or 0 for m in moves), sum(m.get("on") or 0 for m in moves), sum(m.get("back") or 0 for m in moves))
 
 
 if __name__ == "__main__":

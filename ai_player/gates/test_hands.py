@@ -1081,6 +1081,11 @@ class PressKindTests(unittest.TestCase):
                                talk_look.replace("overworld", "overworld waits=A/B(script waitbuttonpress)")), ("talk", False))
         self.assertEqual(press(UNGATED_GATE, wait), ("other", False))
         self.assertEqual(gate_kind("mart_buy cursor on 0 (POKé BALL)"), ("menu", "mart_buy"))
+        # (the step-4 verifier's round) the battle party menu's refusal: its words WAIT over the list, which takes no input
+        refusal = ("f252451 menu menu=party waits=A/B(text printer 6 WAIT) ui=party(busy)[0] ROUTE 116(0,31) xy=(36,15) "
+                   "facing=up walking party=[Grovyle:L17 37/49,Nincada:L6 0/21] dex=5/17 money=7004 badges=0 cost=0.87ms")
+        self.assertEqual(press("text printer 6 WAIT", refusal), ("wait", True))
+        self.assertEqual(press("text printer 6 WAIT", refusal.replace("ui=party(busy)[", "ui=party[")), ("wait", False))
 
 
 # ------------------------------------------------------------------------------------------- STEP 2.1: the review's items

@@ -4,7 +4,8 @@ through the real launcher, under the purity instrument; plus the fault arms that
 
     py -3.12 ai_player/gates/live_step3.py [--arms HOUSE,TOWN,ROUTE,ROAM,CROP,STUCK,BUMP,BUMPR,TRN,XP,XPR,SCENE,SCENER,EXITS,
                                                   SCENEX,SCENEXR,SCENENR,HOUSER,TOWNR,ROUTER,EDGER,TOWN9,ROUTE9,WARPREAD,
-                                                  BUMPSR,TOWN9R,ROUTE9R,HOUSE9,BUMP8,BUMPSR8,SCENEX9,F2AB,CLOCKS]
+                                                  BUMPSR,TOWN9R,ROUTE9R,HOUSE9,BUMP8,BUMPSR8,SCENEX9,F2AB,CLOCKS,SCENEXL,
+                                                  SCENEXC,FORGET,FORGETR,REOPEN,REOPENR]
                                            [--seed 3] [--evidence-tag TAG]
 
 Each launcher arm runs `py -3.12 -m ai_player run` (the gate first, the purity instrument, the verdict file) with a
@@ -307,6 +308,107 @@ launcher arm in-process at 8 instants over 12 days: ROAM, SCENEX and SCENEX9 cha
 CLOCKS, at the pinned clock, instead), and CLOCKS checks their claims hold at every instant (the twin's push-backs, Route
 101 reached, ROAM's 150 steps and spin ratio). RE-REGISTERED from a second development pass of the in-process arms and
 CLOCKS (every number held): PREDICTED below; nothing else changed.
+
+AFTER STEP 3.2, THE STEP-3.1 ADVERSARIAL REVIEW'S HUMAN-LIKENESS FINDINGS (2026-10-08; PRE-REGISTERED before this round's
+graded run, from a development pass of THIS driver on the same AI code (its 34 files moved out of the evidence folder: not
+graded; it found the three restatements below), in-process development runs (`gates/hands_harness.py`, the clock pinned)
+and a development sweep (`rate_step3.py`, its file moved out too)). The NUMBERS are `PREDICTED`, `LAP_BOUNDS`,
+`REVERSALS_PER_RUN` and `CLOCK_SENSITIVE`. What changed, and what each arm now predicts:
+  * finding 1 (HIGH, laps): turning round is charged ONCE per decision (where to go: `TURN_BACK_COST` in the explorer's
+    scores; the decision's first plan: `TURN_ROUND_COST`, a tie-breaker), and that plan is FOLLOWED (dropped only for a way
+    `PLAN_SWITCH_MARGIN` better). NEW CHECK `check_laps` on TOWN, ROUTE, SCENEX, SCENEX9 within `LAP_BOUNDS` (no lap, <= 2
+    steps beyond the shortest known way on any target, <= 4 in all); every other walking arm reports it. PREDICT TOWN and
+    ROUTE 0 beyond, SCENEX and SCENEX9 2 (one walk round someone in the way past the twin: (14, 9) -> (11, 0), 14 steps for
+    12), and CLOCKS: SCENEX's bounds hold at all 8 instants. NEW REVERT ARM SCENEXL (in-process, a COPY with
+    `LAPS_MUTATION`, the step-3.1 rule): PREDICT 14,761 frames, 475 presses, 48 steps beyond the shortest known ways, the
+    worst a door 25 steps where 3 would do: SCENEX's lap check FAILS on it.
+  * finding 2 (HIGH, the metric): `lap_report` (laps: back on a tile 4..12 steps later, nothing new between; the walk to each
+    target against the shortest way the memory knew, `known_shortest`) on every walking arm, measured for `PREDICTED`.
+  * finding 3 (MEDIUM, bumps forgotten) and finding 5 (LOW, doors reopen on news a person could see): unit tests and mutants
+    only (`test_world.py` WalkTests, ExitTests; `revert_step3.py` W64, W65, W46, W69): no arm walks back through a way it
+    bumped (BUMP's one-way tile is never entered going down again) or meets a closed door.
+  * finding 4 (MEDIUM, a whim at every step): a target chosen ON THE MOVE keeps the heading, no whim. Reported per walking arm
+    (`on_the_move`: chosen, kept the heading, aside, straight back); its frequency A/B is the sweep's WHIM revert (the
+    development sweep: the heading kept after 88% of such choices on the TOWN plans, 61% with the whim).
+  * THREE RESTATEMENTS, found by the development pass and said here, not folded in: (a) `REVERSALS_PER_RUN` is 2 (was 1): a
+    target behind is now reached by turning back where the step-3.1 code walked a lap (which this metric cannot see), and a
+    run that explores two rooms to their end turns back at the end of each (the sweep's TOWN-Trainer seed 9); the sweep's
+    per-100 bound is over the exploring plans together. (b) SCENEX's twin check asks for at least ONE target of the
+    explorer's own (was two): a target chosen on the move keeps its heading and may be tried again until the per-target
+    rule gives it up (the sweep's seeds 2 and 8: (10, -4) twice). (c) SCENEXR no longer claims "never got past her": with
+    turning back the copy too meets May, whose news lifts the twin; the words rule's harm is the push-back, 4 before any
+    news against 3 (reported where the copy ends). And ROUTE9's flee non-vacuity is over the pair ROUTE and ROUTE9: ROUTE
+    at seed 3 now meets a wild battle (+1 counted by the game) and ROUTE9 none.
+  * CLOCKS: `CLOCK_SENSITIVE` is ROAM and SCENEX (SCENEX9 plays 13,148 frames at every instant now): SCENEX9 registers its
+    launcher numbers. Every other arm's trajectory is re-registered from the development pass (`PREDICTED`): unchanged
+    HOUSE, ROAM, CROP, STUCK, BUMP, BUMPR, TRN, XP, XPR, SCENE, SCENER, HOUSER, TOWNR, ROUTER, ROUTE9R, HOUSE9, BUMP8, BUMPSR,
+    BUMPSR8; changed TOWN (4,840 / 98), ROUTE (1,753 / 85), SCENEXR, SCENENR, EDGER (now TOWN's own walk), TOWN9, ROUTE9,
+    TOWN9R (+8 frames), SCENEX9.
+
+THE STEP-3.2 VERIFIER'S ROUND (2026-10-08; the AI's walking code is UNCHANGED, only the graders): its weak proofs "the new
+CYCLE check (`laps`) does not tell the fix from the revert: SCENEXL's evidence says 'laps 0 with, 0 without' ... every one is
+exempted by 'new tile between: True'" and "steps-vs-shortest is measured per DECISION ... near 0 by construction wherever
+targets churn". THE CHANGES (pre-registered from the verifier's own recomputation of SCENEX and SCENEXL at seeds 3 and 7 and
+this round's development sweep, `rate_step3.py`, before the graded run):
+  * RINGS (`rings`): back on a tile 4..12 steps later having walked ROUND (every tile between once), WHATEVER was seen on the
+    way; an out-and-back is a turn back, not a ring. The real code: SCENEX seeds 3 and 7 none; the development sweep 2 in 60
+    lapped runs (SCENE-EXPLORE seeds 1 and 6, once each), each across a target that VANISHED (unreachable; everything
+    beside it seen) with every leg the shortest known way to its own target. The reverted code: 36 rings in 14 runs, SCENEXL
+    4, every one "new tile between" (which is why `laps` saw none). `LAP_BOUNDS` and arm CLOCKS bound rings at 1 on TOWN,
+    ROUTE, SCENEX, SCENEX9; SCENEXL registers its 4 (SCENEX's lap check FAILS on it), and its A/B against SCENEX now asks
+    for fewer rings with the rule. `laps` stays, reported for what it is: a lap with NOTHING new seen on the way.
+  * JOURNEYS (`journeys`, reported, not bounded): the walks of a target chosen standing and every target re-picked on the
+    move after it, against the shortest known way from where it began to where it ended. Not bounded, because the end of
+    an exploring walk is where it stopped, not a destination: the real code's SCENEX journeys walk 20 (seed 3) and 18 (seed
+    7) steps beyond (a nook looked into and left), the reverted code's 46 and 22.
+
+THE STEP-4 VERIFIER'S ROUND (2026-10-09; its FAILURE: "Step 3.2 finding 4 ... is NOT fixed ... the churn is still there:
+'47 walks ... decisions on the move 35 of 47' ... 28 of the 47 walks a single step. Its visible cost is not bounded:
+JOURNEYS"; and its weak proofs). The AI's walking code CHANGED: a decision is CARRIED ON past a target the walk made stale
+(`brain/explore.py` carry_on, `CARRY_SWITCH_MARGIN`), a DOORMAT is one way out (`world/memory.py` mat_tiles) and a way
+back to a map seen all of is no option while another leads somewhere with something left (`not_back_to_seen_all`), the
+last two found by this round's development sweeps (May's house left by the doormat's other tile; a stair ping-pong). Every
+trajectory that walks moved, so every number is RE-REGISTERED (`PREDICTED`, `LAP_BOUNDS`, `CHURN_BOUNDS`, `CLOCK_SENSITIVE`)
+from a development pass of THIS driver on the final AI code (its files moved out of the evidence folder: not graded),
+in-process development runs (`gates/hands_harness.py`, the clock pinned) and development sweeps (`rate_step3.py`, 10 seeds;
+a scratch sweep of 20 seeds of TOWN, ROUTE, SCENE-EXPLORE, TOWN-Catcher, TOWN-Trainer and HOUSE, with and without the
+carry-on). What changed, and what each arm now predicts:
+  * CHURN (`churn`, `check_churn`, `CHURN_BOUNDS`) on TOWN, ROUTE, SCENEX, TOWN9, ROUTE9, SCENEX9 (and at every clock
+    instant, arm CLOCKS): decisions ON THE MOVE per 100 steps, the share of walks to a decision that are ONE step, and the
+    VISIBLE COST, every journey's steps beyond the shortest known way (detours included: with a decision at every step
+    nearly every journey held a detour, drawn per decision, and went ungraded, which flattered the step-3.2 rule). Reported
+    on every other walking arm. NEW REVERT ARM SCENEXC (in-process, a COPY with `CHURN_MUTATION`: the step-3.2 rule): its
+    churn check FAILS (the one-step walks), and its A/B against SCENEX is the discriminator (one-step walks, decisions on
+    the move); the cost of ONE pair is reported (the development pass: SCENEX 33 decisions, 20 on the move, 5 one-step
+    walks of 31, every journey 62 beyond of 154 walked; SCENEXC 60, 48, 35 of 57, 48 beyond of 125: SCENEX's journeys 14
+    steps dearer with the carry-on, while the sweep's are 0.27 against 0.29 beyond: the frequency is the sweep's CHURN A/B,
+    with its cost predicted there).
+  * LAP RINGS (`ring_legs`, `lap_ring`): `LAP_BOUNDS` now bound the rings with a leg walked beyond the shortest way to its
+    own target; every ring is reported (an excursion: into a room and out by the next column, each leg the shortest way to
+    its own target, which the carried-on decisions walk); `rings` counts one loop once. SCENEXL (finding 1 reverted) must
+    still break it.
+  * the graders that read decisions also read the places a decision was CARRIED ON to: `stale_arrivals` (the place walked
+    onto is the last one carried on to), `edge_targets` (the frontier past the top edge is now reached by one decision
+    carried on), the crop's "every target was SEEN" (`check_crop`), SCENEX's "the twin stopped the explorer's own targets".
+  * the twin after news: at most once ON EACH TILE (`once_a_tile_after_news`; the development sweep's SCENE-EXPLORE seed 10
+    met her twice on (10, 1) before any news and on (11, 1) only after it: the rule gave each up at its first meeting, the
+    old "once in all" check failed it).
+  * NEW ARMS FOR FINDINGS 3 AND 5 LIVE (the verifier: "proven only by unit tests and mutants ... No live arm walks back
+    through a bumped way or meets a closed door"), from the AI's own memories with ONE thing planted test side
+    (`make_step32_fixtures.py`): FORGET (launcher, goto, `house_2f_bumps.world.jsonl`: (0, 5) remembered bumped going down
+    and up; errands (0, 4), (0, 5), (0, 4), (0, 6)): PREDICT the retry into (0, 5) from above, ONE "forgotten" line, errand
+    4 straight through (2 steps), the end (0, 6) by save block 1, the up bump kept; FORGETR (W64's edit, in-process): errand
+    4 round it, 6 steps. REOPEN (launcher, explore to ROUTE101 from `littleroot_twin.ss1` with `littleroot_closed.world.jsonl`:
+    May's door (14, 8) remembered closed, no words heard): PREDICT the reopen line naming the twin's "Um, um, um!", May's
+    door used only after it, May met, the twin passed, ROUTE101 (VAR_LITTLEROOT_TOWN_STATE 0 -> 2), the game's answer THE
+    ARRIVAL; REOPENR (W46's edit, in-process): May's door never tried again, stuck in Littleroot, VAR 0.
+  * THE NUMBERS, from the development pass of the final code (`--evidence-tag step3dev3`, 2026-10-09, moved out before the
+    graded run): TOWN 26 steps, 5 decisions, 18 places carried on (the step-3.2 code: 40 steps, 23 stale targets dropped);
+    ROUTE 35 steps, 8 decisions, 15 carried on (39, 25); SCENEX9 14,199 frames, the twin's push-backs [3, 0]; SCENEXR
+    15,005 frames, [4, 0]; SCENEXL 4 lap rings (its lap check FAILS); FORGET 305 frames, errand 4 in 2 steps; FORGETR 6;
+    REOPEN 13,974 frames. CLOCK_SENSITIVE stays ROAM and SCENEX (ROAM 13,475 or 16,646 frames over the 8 instants, SCENEX
+    14,043 or 14,044); FORGET and REOPEN play the same frames at all 8 and are registered. SCENEX registers only what
+    held at every instant: no lap ring.
 """
 
 from __future__ import annotations
@@ -368,6 +470,9 @@ FIXTURES: dict[str, tuple[Path, str]] = {
     "route101_xp.world.jsonl": (GATES / "fixtures" / "route101_xp.world.jsonl", "ce8287a37f03394b19fcb3e28f964feb"),
     # build step 3.1 (`make_step3_fixtures.py --only twin`): Littleroot after the player's first walk out of the house
     "littleroot_twin.ss1": (GATES / "fixtures" / "littleroot_twin.ss1", "fe4661736a30dd3f34b87c0db7ae1d10"),
+    # (the step-4 verifier's round, `make_step32_fixtures.py`) the AI's own memories with ONE thing planted, test side
+    "house_2f_bumps.world.jsonl": (GATES / "fixtures" / "house_2f_bumps.world.jsonl", "7a5b6e187fbc45ee200de9f9c20212c0"),
+    "littleroot_closed.world.jsonl": (GATES / "fixtures" / "littleroot_closed.world.jsonl", "7bb0ac32036c1a0badadf3b47e665fe4"),
 }
 #: Maps by (group, number) (`data/maps/map_groups.json`; the truth reads save block 1's location).
 LITTLEROOT, ROUTE101, OLDALE, LAB, HOUSE_1F, HOUSE_2F = [0, 9], [0, 16], [0, 10], [1, 4], [1, 0], [1, 1]
@@ -390,7 +495,11 @@ SCENE_LINE = f"a scene stopped the way to the goto at {SCENE_TARGET}"
 #: docstring); the revert arms HOUSER, TOWNR and ROUTER play the same starts and seed with the rules reverted and must
 #: break it. Another seed (the replication arms) is held to the sweep's per-run bound, `REVERSALS_PER_RUN`.
 REVERSALS_SEED3 = {"HOUSE": 0, "TOWN": 0, "ROUTE": 0}
-REVERSALS_PER_RUN = 1
+#: (build step 3.2) 2, was 1: a target BEHIND is now reached by turning back where the step-3.1 code walked round (a lap,
+#: which this metric cannot see: the review's finding 2), and a run that explores two rooms to their end turns back at
+#: the end of each (the development sweep's TOWN-Trainer seed 9: Littleroot's west end, then May's upper floor). The laps
+#: themselves are now graded (`check_laps`), and the stale targets walked onto stay the discriminator of finding 2.
+REVERSALS_PER_RUN = 2
 #: (the step-3.1 verifier's round) finding 2 REVERTED, both rules (`gates/revert_step3.py` W31 + W32): a stale target is
 #: kept until it is walked onto, and turning back costs nothing (the arms HOUSER, TOWNR, ROUTER; `rate_step3.py` REVERT)
 STALE_MUTATIONS = (
@@ -431,6 +540,32 @@ TWIN_SCENES_IN_ALL = 3
 #: (`revert_step3.py` W34): one bump from any side refuses the tile from every side, the step-3 rule (arm BUMPSR)
 BUMPSIDE_MUTATION = ("brain/navigator.py", "    tried = memory.bumps(nxt, direction)\n",
                      "    tried = BUMP_GIVE_UP * max(memory.bumps(nxt, d) for d in DIRECTIONS)  # MUTANT BUMPSR: a bump walls every side\n")
+#: (build step 3.2, the step-3.1 review's finding 1 REVERTED: `revert_step3.py` W62) the turn-back cost charged on EVERY
+#: replan and no plan followed, as in step 3.1 (arm SCENEXL; the sweep's LAPS revert): the laps the review found
+LAPS_MUTATION = ("brain/navigator.py", "        direction = self._next_step(memory, here, target, walls)\n",
+                 "        path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target),  # MUTANT LAPS\n"
+                 "                     first={k: v for k, v in self.turn_costs().items() if isinstance(k, str)})\n"
+                 "        direction = path[0] if path else None\n")
+#: (build step 3.2, its finding 4 REVERTED: `revert_step3.py` W66) a target chosen on the move picked on a whim again (the
+#: sweep's WHIM revert)
+WHIM_MUTATION = ("brain/explore.py", "    moving = nav.choosing_on_the_move\n", "    moving = False  # MUTANT WHIM\n")
+#: (the step-4 verifier's round, its FAILURE: "Step 3.2 finding 4 ... is NOT fixed": `revert_step3.py` W79) the decision
+#: never carried on: a stale target dropped and a new one chosen on the move at every stale step, the step-3.2 rule (arm
+#: SCENEXC; the sweep's CHURN revert)
+CHURN_MUTATION = ("brain/navigator.py",
+                  "                carried = intent.carry_on(self, look, target) if stale is not None and intent.carry_on is not None else None\n",
+                  "                carried = None  # MUTANT CHURN: never carried on (the step-3.2 rule)\n")
+#: (the step-4 verifier's round: findings 3 and 5 live) FORGET's errands in the player's room: to (0, 4), INTO the planted
+#: tile (0, 5) from above (the only way not dearer: a retry of the planted bump), back up, then PAST it to (0, 6) (through
+#: it 2 steps; round it 6: (1, 4), (2, 4), (2, 5), (2, 6), (1, 6), (0, 6)); the tile and its planted sides
+FORGET_ERRANDS = "0,4;0,5;0,4;0,6"
+FORGET_TILE, FORGET_PAST = (0, 5), (0, 6)
+#: the reverts: a bump never forgotten (`revert_step3.py` W64), and news reopening no door (W46)
+FORGET_MUTATION = ("world/memory.py", "        return memory.bumped.pop((xy, direction), None)\n", "        return None  # MUTANT FORGETR\n")
+REOPEN_MUTATION = ("world/memory.py", "                if then is not None and self.news > int(then):\n",
+                   "                if False:  # MUTANT REOPENR\n")
+#: REOPEN: May's house's door on Littleroot, planted closed; the map the warp leads to (`data/maps/map_groups.json`)
+REOPEN_DOOR, MAYS_1F = (14, 8), [1, 2]
 #: (the step-3.1 verifier's second round: "FINDING 5's guard only checks syntax") the behavioural guard: every read the
 #: real eyes make, against every map's warp array (`gates/warp_reads.py`, arm WARPREAD)
 WARP_READS = GATES / "warp_reads.py"
@@ -447,18 +582,31 @@ GAME_CLOCK = "2026-10-08T06:00"
 #: any clock (their graders' checks), and their trajectory at `GAME_CLOCK` is registered under CLOCKS instead.
 CLOCK_INSTANTS = ("2026-10-08T06:00", "2026-10-08T11:00", "2026-10-08T12:30", "2026-10-08T18:00", "2026-10-09T06:00",
                   "2026-10-10T12:00", "2026-10-14T12:00", "2026-10-20T12:00")
-CLOCK_SENSITIVE = ("ROAM", "SCENEX", "SCENEX9")
+#: (build step 3.2, the development pass of this code: SCENEX9 now plays the same 13,148 frames at all 8 instants, SCENEX
+#: 13,929 / 13,930 / 13,938, ROAM 13,475 / 16,646; it was ROAM, SCENEX and SCENEX9 on the step-3.1 code)
+CLOCK_SENSITIVE = ("ROAM", "SCENEX")
 #: (the step-3.1 verifier's second round: "A PRE-REGISTERED PREDICTION DID NOT HOLD AND THIS IS NOT SAID ANYWHERE") the
-#: NUMBERS this round pre-registers (from the development pass named in the docstring's "AFTER THE STEP-3.1 VERIFIER'S
-#: SECOND ROUND"), machine-checked by `check_predictions` on every arm listed: frames and presses (the trajectory), and
+#: NUMBERS this round pre-registers (since build step 3.2: from the development pass named in the docstring's "AFTER
+#: STEP 3.2"), machine-checked by `check_predictions` on every arm listed: frames and presses (the trajectory), and
 #: each measure a grader takes (`Run.measure`). A number that does not hold FAILS that arm's check "PRE-REGISTERED
 #: NUMBERS", and the summary counts them. Read from the FILE at the start of the run and pinned in `predictions:`.
 PREDICTED: dict[str, dict] = {
-    "HOUSE": {"frames": 3176, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10},
-    "TOWN": {"frames": 4864, "presses": 101, "reversals": 0, "stale_dropped": 23, "stale_walked": 0, "steps": 41},
-    "ROUTE": {"frames": 633, "presses": 71, "reversals": 0, "stale_dropped": 22, "stale_walked": 0, "steps": 35},
-    # ROAM, SCENEX, SCENEX9: CLOCK-SENSITIVE (arm CLOCKS): no frame or press count for a launcher run; see "CLOCKS"
-    "CROP": {"frames": 5156, "presses": 94},
+    # (the step-4 verifier's round) every number from the development pass of the final code (the docstring's "THE
+    # NUMBERS"); "carried", "lap_rings", "churn" ([decisions, on the move, places carried on, walks, one-step walks]) and
+    # "journey_all" ([steps walked, steps beyond the shortest known ways]) are new
+    "HOUSE": {"frames": 3176, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10, "laps": 0,
+              "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 0, "lap_rings": 0, "churn": [3, 1, 0, 3, 1],
+              "journey_all": [10, 2]},
+    "TOWN": {"frames": 4640, "presses": 71, "reversals": 0, "stale_dropped": 3, "stale_walked": 0, "steps": 26, "laps": 0,
+             "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 18, "lap_rings": 0, "churn": [5, 3, 18, 5, 0],
+             "journey_all": [26, 0]},
+    "ROUTE": {"frames": 633, "presses": 71, "reversals": 0, "stale_dropped": 7, "stale_walked": 0, "steps": 35, "laps": 0,
+              "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 15, "lap_rings": 0, "churn": [8, 7, 15, 8, 1],
+              "journey_all": [35, 0]},
+    # ROAM, SCENEX: CLOCK-SENSITIVE (arm CLOCKS): no frame or press count for a launcher run; see "CLOCKS". SCENEX registers
+    # only what held at every instant of CLOCKS: no lap ring
+    "SCENEX": {"lap_rings": 0},
+    "CROP": {"frames": 5559, "presses": 117},
     "STUCK": {"frames": 1357, "presses": 24},
     "BUMP": {"bumps": 1, "frames": 307, "presses": 25},
     "BUMPR": {"frames": 3123, "presses": 386},
@@ -467,29 +615,47 @@ PREDICTED: dict[str, dict] = {
     "XPR": {"frames": 3032, "presses": 113},
     "SCENE": {"frames": 2471, "presses": 37},
     "SCENER": {"frames": 3570, "presses": 43},
-    "SCENEXR": {"frames": 13316, "presses": 385, "twin_pushes": 7, "twin_segments": [4, 3]},
-    "SCENENR": {"frames": 13066, "presses": 391, "twin_pushes": 3},
+    "SCENEXR": {"frames": 15005, "presses": 382, "twin_pushes": 4, "twin_segments": [4, 0]},
+    "SCENENR": {"frames": 12387, "presses": 336, "twin_pushes": 3},
     "HOUSER": {"frames": 3344, "presses": 52, "reversals": 1, "stale_walked": 1, "steps": 18},
     "TOWNR": {"frames": 4945, "presses": 89, "reversals": 1, "stale_walked": 4, "steps": 36},
     "ROUTER": {"frames": 2083, "presses": 108, "reversals": 1, "stale_walked": 5, "steps": 51},
-    "EDGER": {"frames": 4880, "presses": 103},
-    "TOWN9": {"frames": 4962, "presses": 105, "reversals": 1, "stale_dropped": 27, "stale_walked": 0, "steps": 43},
-    "ROUTE9": {"frames": 1820, "presses": 89, "reversals": 0, "stale_dropped": 24, "stale_walked": 0, "steps": 40},
+    "EDGER": {"frames": 4640, "presses": 71},
+    "TOWN9": {"frames": 4690, "presses": 71, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 26, "laps": 0,
+              "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 18, "lap_rings": 0, "churn": [3, 1, 18, 3, 0],
+              "journey_all": [26, 0]},
+    "ROUTE9": {"frames": 1732, "presses": 78, "reversals": 0, "stale_dropped": 6, "stale_walked": 0, "steps": 35, "laps": 0,
+               "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 15, "lap_rings": 0, "churn": [7, 6, 15, 7, 0],
+               "journey_all": [35, 0]},
     "WARPREAD": {"plant_attribute_caught": 5, "plant_getattr_caught": 5, "plant_raw_caught": 5},
     "BUMPSR": {"bumps": 1, "errand_steps": [4, 4], "frames": 371, "presses": 33},
-    "TOWN9R": {"frames": 5742, "presses": 178, "reversals": 1, "stale_walked": 8, "steps": 83},
+    "TOWN9R": {"frames": 5750, "presses": 179, "reversals": 1, "stale_walked": 8, "steps": 83},
     "ROUTE9R": {"frames": 4220, "presses": 114, "reversals": 2, "stale_walked": 5, "steps": 48},
-    "HOUSE9": {"frames": 3207, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10},
+    "HOUSE9": {"frames": 3207, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10, "laps": 0,
+               "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 0, "lap_rings": 0, "churn": [3, 1, 0, 3, 1],
+               "journey_all": [10, 2]},
     "BUMP8": {"bumps": 1, "frames": 264, "presses": 25},
     "BUMPSR8": {"bumps": 1, "errand_steps": [4, 4], "frames": 328, "presses": 33},
-    "F2AB": {"reversals_real": 1, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 23},
-    # every launcher arm in-process with the cartridge's clock pinned at GAME_CLOCK (development clock sweep, 2026-10-08)
-    "CLOCKS": {"clock_sensitive": ["ROAM", "SCENEX", "SCENEX9"],
-               "HOUSE@pinned": [3176, 36], "TOWN@pinned": [4864, 101], "ROUTE@pinned": [633, 71], "ROAM@pinned": [16646, 399],
-               "CROP@pinned": [5156, 94], "STUCK@pinned": [1357, 24], "BUMP@pinned": [307, 25], "TRN@pinned": [596, 1],
-               "XP@pinned": [3600, 137], "SCENE@pinned": [2471, 37], "SCENEX@pinned": [16293, 489], "TOWN9@pinned": [4962, 105],
-               "ROUTE9@pinned": [1820, 89], "HOUSE9@pinned": [3207, 36], "BUMP8@pinned": [264, 25],
-               "SCENEX9@pinned": [14462, 439]},
+    # (build step 3.2) no longer clock-sensitive (arm CLOCKS): its launcher frames are registered
+    "SCENEX9": {"frames": 14199, "presses": 395, "twin_pushes": 3, "twin_segments": [3, 0], "laps": 0, "lap_excess": 2,
+                "lap_worst": 2, "rings": 0, "lap_rings": 0, "churn": [25, 12, 17, 24, 4], "journey_all": [112, 36]},
+    "F2AB": {"reversals_real": 0, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 23},
+    # every launcher arm in-process with the cartridge's clock pinned at GAME_CLOCK (the development pass of this code)
+    "CLOCKS": {"clock_sensitive": ["ROAM", "SCENEX"],
+               "HOUSE@pinned": [3176, 36], "TOWN@pinned": [4640, 71], "ROUTE@pinned": [633, 71], "ROAM@pinned": [16646, 399],
+               "CROP@pinned": [5559, 117], "STUCK@pinned": [1357, 24], "BUMP@pinned": [307, 25], "TRN@pinned": [596, 1],
+               "XP@pinned": [3600, 137], "SCENE@pinned": [2471, 37], "SCENEX@pinned": [14043, 376], "TOWN9@pinned": [4690, 71],
+               "ROUTE9@pinned": [1732, 78], "HOUSE9@pinned": [3207, 36], "BUMP8@pinned": [264, 25],
+               "SCENEX9@pinned": [14199, 395], "FORGET@pinned": [305, 22], "REOPEN@pinned": [13974, 378]},
+    # (build step 3.2) finding 1 reverted, in-process at the pinned clock; (the step-4 verifier's round) its LAP RINGS
+    "SCENEXL": {"frames": 14851, "presses": 477, "laps": 0, "lap_excess": 46, "lap_worst": 16, "rings": 4, "lap_rings": 4},
+    # (the step-4 verifier's round) the churn's revert, and findings 3 and 5 live
+    "SCENEXC": {"frames": 12457, "presses": 315, "churn": [60, 48, 0, 57, 35], "journey_all": [125, 48]},
+    "FORGET": {"frames": 305, "presses": 22, "errand_steps": [1, 2]},
+    "FORGETR": {"frames": 369, "presses": 30, "errand_steps": [1, 6]},
+    "REOPEN": {"frames": 13974, "presses": 378, "laps": 0, "lap_excess": 0, "lap_worst": 0, "rings": 0, "lap_rings": 0,
+               "churn": [30, 17, 32, 29, 6], "journey_all": [147, 46]},
+    "REOPENR": {"frames": 6951, "presses": 319},
 }
 #: The replication arms (another seed, the launcher): the arm they replay, and its seed
 REPLICATION_SEED = 9
@@ -509,7 +675,9 @@ STUCK_WARP = ([1, 1], [7, 1])
 SCENEX_CROSSING = ([0, 9], [11, 0], "up")
 #: The arms answered by THE ARRIVAL when the game is LOCKED: the kind of the last crossing and its pre-registered value
 ARRIVALS: dict[str, tuple[str, tuple]] = {"STUCK": ("warp", STUCK_WARP), "SCENEX": ("connection", SCENEX_CROSSING),
-                                          "SCENEX9": ("connection", SCENEX_CROSSING)}
+                                          "SCENEX9": ("connection", SCENEX_CROSSING),
+                                          # (the step-4 verifier's round) REOPEN ends as SCENEX does: Birch's rescue scene
+                                          "REOPEN": ("connection", SCENEX_CROSSING)}
 ARRIVAL_ARMS = tuple(ARRIVALS)
 #: XP: errands back and forth between two KNOWN floor tiles beside the battle's grass (`make_step3_fixtures.py` xp:
 #: the AI's own memory saw their windows), more than the novelty window can hold, so the intent ends "stuck: nothing
@@ -704,6 +872,37 @@ ARMS: list[Arm] = [
     Arm("CLOCKS", "THE GAME'S CLOCK: every launcher arm in-process with the cartridge's clock pinned at 8 instants over 12 days: "
         "which trajectories depend on WHEN a run is played", "-", "pokedex_done.ss1", 0, 2400.0, kind="clock",
         doc="gates/hands_harness.py --game-clock, every launcher arm's own start, seed and options (in-process)"),
+    # ---- build step 3.2 (the step-3.1 adversarial review)
+    Arm("SCENEXL", "REVERT of SCENEX (finding 1): the turn-back cost charged on every replan, no plan followed (the step-3.1 "
+        "rule), in a COPY: the laps the review found, and SCENEX's lap check FAILS on them", "explore", "littleroot_twin.ss1",
+        20000, 900.0, kind="harness", args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=(LAPS_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="SCENEX"),
+    # ---- the step-4 verifier's round (its FAILURE: finding 4's churn)
+    Arm("SCENEXC", "REVERT of SCENEX (finding 4): the decision never carried on (the step-3.2 rule: a new decision at every "
+        "stale step), in a COPY: SCENEX's churn check FAILS on it", "explore", "littleroot_twin.ss1", 20000, 900.0,
+        kind="harness", args=("--goal-map", "ROUTE101", "--personality", "Story"), mutations=(CHURN_MUTATION,),
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="SCENEX"),
+    # ---- the step-4 verifier's round (its weak proof: "Findings 3 and 5 ... No live arm walks back through a bumped way or
+    # meets a closed door"): the AI's own memories, ONE thing planted test side (`make_step32_fixtures.py`)
+    Arm("FORGET", "finding 3 live: a way remembered bumped (planted) lets the player through; the bump is forgotten and the "
+        "next errand walks straight through it", "goto", "house_2f_clockset.ss1", 6000, 600.0,
+        {ENV_GOTO: FORGET_ERRANDS, ENV_WORLD: str(FIXTURES["house_2f_bumps.world.jsonl"][0]), **STORY},
+        doc="gates/make_step32_fixtures.py (house_2f_bumps.build.json): the AI's own errand, two bumps planted on (0, 5)"),
+    Arm("FORGETR", "REVERT of FORGET: a bump never forgotten (`revert_step3.py` W64), in a COPY: the last errand walks ROUND the "
+        "way it has just walked through", "goto", "house_2f_clockset.ss1", 6000, 600.0, kind="harness",
+        args=("--goto", FORGET_ERRANDS, "--personality", "Story", "--world-in", str(FIXTURES["house_2f_bumps.world.jsonl"][0])),
+        mutations=(FORGET_MUTATION,), doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
+        base="FORGET"),
+    Arm("REOPEN", "finding 5 live: May's house's door remembered CLOSED (planted); the twin's words are news a person sees, the "
+        "door is worth a try again, the explorer goes in, meets May and gets past the twin to Route 101", "explore",
+        "littleroot_twin.ss1", 20000, 900.0,
+        {ENV_GOAL_MAP: "ROUTE101", ENV_WORLD: str(FIXTURES["littleroot_closed.world.jsonl"][0]), **STORY},
+        doc="gates/make_step32_fixtures.py (littleroot_closed.build.json): the AI's own errand, May's door planted closed"),
+    Arm("REOPENR", "REVERT of REOPEN: news reopens no door (`revert_step3.py` W46), in a COPY: May's door stays closed, May is "
+        "never met, the twin never lets the player pass", "explore", "littleroot_twin.ss1", 20000, 900.0, kind="harness",
+        args=("--goal-map", "ROUTE101", "--personality", "Story", "--world-in", str(FIXTURES["littleroot_closed.world.jsonl"][0])),
+        mutations=(REOPEN_MUTATION,), doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
+        base="REOPEN"),
 ]
 
 
@@ -884,8 +1083,17 @@ def run_clock_arm(arm: Arm) -> Run:
                 truth = data.get("truth") or {}
                 if target.name.startswith("SCENEX"):
                     t = twin_scenes(records)
-                    extra = {"twin_segments": t["segments"], "map": truth.get("map"),
-                             "var": truth.get("VAR_LITTLEROOT_TOWN_STATE")}
+                    # (build step 3.2) the lap bounds hold at every instant too (`LAP_BOUNDS`: SCENEX reads the clock)
+                    probe = Run(target, records=records, world=last_world(folder / "world.jsonl"))
+                    laps_now = lap_report(probe)
+                    # (the step-4 verifier's round) and the churn bounds (`CHURN_BOUNDS`): at every instant too
+                    c = churn(probe, laps_now)
+                    extra = {"twin_segments": t["segments"], "twin_segment_tiles": t["segment_tiles"], "map": truth.get("map"),
+                             "var": truth.get("VAR_LITTLEROOT_TOWN_STATE"), "laps": len(laps_now["laps"]),
+                             "lap_excess": laps_now["excess"], "lap_worst": laps_now["worst"], "lap_graded": laps_now["graded"],
+                             "rings": len(laps_now["rings"]), "lap_rings": len(laps_now["lap_rings"]),
+                             "move_per_100": c["move_per_100"], "ones_share": c["ones_share"],
+                             "journey_share": c["journey_share"], "walks": c["walks"]}
                 else:
                     metrics = next(((r.get("extra") or {}) for r in records if r.get("decision") == "roam"), {})
                     extra = {"steps": metrics.get("steps"), "spin_ratio": metrics.get("spin_ratio")}
@@ -967,10 +1175,20 @@ def check_crop(run: Run, expect_inside: bool = True) -> int:
     decisions = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
     unseen = [(r["frame"], (r["extra"] or {}).get("target"), (r["extra"] or {}).get("seen_from")) for r in decisions
               if not ((r["extra"] or {}).get("known") and in_window(tuple(r["extra"]["seen_from"]), tuple(r["extra"]["target"])))]
+    # (the step-4 verifier's round) the places a decision was CARRIED ON to: each a tile the memory had first seen BEFORE it
+    # was carried there (its own first-seen frame), inside the window it was seen from
+    carried = [(r["frame"], (r.get("extra") or {}).get("map"), tuple((r.get("extra") or {})["carry_on"])) for r in run.records
+               if r.get("decision") == "world" and (r.get("extra") or {}).get("carry_on") is not None]
+    not_seen = []
+    for frame, key, xy in carried:
+        fact = world.maps[key].tiles.get(xy) if key in world.maps else None
+        if fact is None or fact.seen_frame > frame or not in_window(fact.seen_from, xy):
+            not_seen.append((frame, key, xy, None if fact is None else (fact.seen_frame, fact.seen_from)))
     if expect_inside:
-        run.check(bool(decisions) and not unseen,
+        run.check(bool(decisions) and not unseen and not not_seen,
                   f"every one of the {len(decisions)} targets the AI chose was a tile it had SEEN, inside the window it was seen "
-                  f"from (not: {unseen[:3] or 'none'})")
+                  f"from (not: {unseen[:3] or 'none'}); and every one of the {len(carried)} places a decision was carried on to "
+                  f"(not: {not_seen[:3] or 'none'})")
     return len(outside)
 
 
@@ -1154,6 +1372,9 @@ def stale_arrivals(run: Run) -> tuple[int, list[dict]]:
     decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
     dropped = [((r.get("extra") or {}).get("map"), tuple((r.get("extra") or {}).get("stale") or ()), r.get("frame"))
                for r in run.records if r.get("decision") == "world" and "is not worth going to any more" in str(r.get("reason"))]
+    # (the step-4 verifier's round) a decision CARRIED ON goes on to another tile: the target walked to is the last one
+    carries = [((r.get("extra") or {}).get("map"), tuple((r.get("extra") or {}).get("carry_on") or ()), r.get("frame"))
+               for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("carry_on") is not None]
     chosen, out = 0, []
     for i, record in enumerate(decides):
         extra = record["extra"]
@@ -1161,9 +1382,12 @@ def stale_arrivals(run: Run) -> tuple[int, list[dict]]:
             continue
         chosen += 1
         after = decides[i + 1] if i + 1 < len(decides) else None
-        if after is None or after["extra"].get("map") != extra.get("map") or after["extra"].get("player") != extra.get("target"):
+        until = after["frame"] if after is not None else 10**12
+        moved_on = [xy for key, xy, frame in carries if key == extra.get("map") and record["frame"] <= frame <= until]
+        target = list(moved_on[-1]) if moved_on else extra.get("target")
+        if after is None or after["extra"].get("map") != extra.get("map") or after["extra"].get("player") != target:
             continue
-        tile = tuple(extra["target"])
+        tile = tuple(target)
         if any(key == extra.get("map") and xy == tile and record["frame"] <= frame <= after["frame"] for key, xy, frame in dropped):
             continue
         memory = world.maps.get(extra.get("map")) if world is not None else None
@@ -1182,22 +1406,28 @@ def check_reversals(run: Run) -> None:
     everything beside it already seen (`stale_arrivals`: the stale target the review found, by the memory's own frames),
     with targets dropped as stale on the way (the rule acted: not vacuous)."""
     steps, found = path_reversals(run)
-    stale = [r for r in run.records if r.get("decision") == "world" and "is not worth going to any more" in str(r.get("reason"))]
+    stale = [r for r in run.records if r.get("decision") == "world" and STALE_PREFIX in str(r.get("reason"))]
+    # (the step-4 verifier's round) a stale target is now usually CARRIED ON (the same decision, `brain/explore.py`
+    # carry_on) rather than dropped: either is the stale rule acting
+    carried = [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("carry_on") is not None]
     limit = reversal_bound(run.arm.base or run.arm.name, run.arm.run_seed)
     run.check(steps > 0 and len(found) <= limit,
               f"REVERSALS (finding 2): {len(found)} on the {steps} steps the looks showed (want <= {limit}, pre-registered for "
               f"seed {run.arm.run_seed}): {[(r['map'], r['kind'], r['tiles']) for r in found] or 'none'}; targets dropped as "
-              f"stale on the way: {len(stale)} {[str(r.get('reason'))[:70] for r in stale[:4]]}")
+              f"stale on the way: {len(stale)} {[str(r.get('reason'))[:70] for r in stale[:4]]}; carried on: {len(carried)}")
     chosen, arrived = stale_arrivals(run)
     walked = [a for a in arrived if a["everything_beside_it_seen"]]
-    run.check(chosen > 0 and stale and not walked,
+    run.check(chosen > 0 and (stale or carried) and not walked,
               f"NO STALE TARGET WALKED ONTO (finding 2): of the {chosen} frontier targets chosen, {len(arrived)} were walked onto "
-              f"and kept, {len(walked)} of them with everything beside them already seen by the memory's own first-seen frames "
-              f"(want 0: {walked[:3] or 'none'}); {len(stale)} targets dropped as stale on the way (want > 0: the rule acted)")
+              f"and kept (the last place a decision was carried on to, since the step-4 verifier's round), {len(walked)} of them "
+              f"with everything beside them already seen by the memory's own first-seen frames (want 0: {walked[:3] or 'none'}); "
+              f"{len(stale)} targets dropped as stale on the way and {len(carried)} carried on past (want > 0 in all: the rule "
+              f"acted)")
     run.measure("steps", steps)
     run.measure("reversals", len(found))
     run.measure("stale_walked", len(walked))
     run.measure("stale_dropped", len(stale))
+    run.measure("carried", len(carried))
 
 
 def grade_HOUSE(run: Run) -> None:
@@ -1224,6 +1454,7 @@ def grade_HOUSE(run: Run) -> None:
     check_crop(run)
     s0, s1 = stats(before, "steps"), stats(after, "steps")
     run.notes.append(f"the game's own step counter: {s0} -> {s1}")
+    check_laps(run)
 
 
 def grade_TOWN(run: Run) -> None:
@@ -1256,6 +1487,7 @@ def grade_TOWN(run: Run) -> None:
                      f"{sum(1 for r in run.records if r.get('decision') == 'decide')}")
     check_reversals(run)
     check_no_road_before_a_crossing(run)
+    check_laps(run)
 
 
 _MAP_SIZES: dict[str, list[int]] = {}
@@ -1300,18 +1532,25 @@ def edge_crossings(run: Run) -> dict[tuple[str, str], int]:
 
 def edge_targets(run: Run) -> tuple[list[dict], dict]:
     """Every target the AI chose PAST a map's real edge (the ROM's size, test side) BEFORE it had seen a crossing of that
-    edge, with its kind and reason; and the crossings (`edge_crossings`)."""
+    edge, with its kind and reason; and the crossings (`edge_crossings`). (The step-4 verifier's round) a place a decision
+    was CARRIED ON to is a target the AI walked toward too (`brain/explore.py` carry_on: the frontier past the top edge is
+    now usually reached that way, one decision carried on up the road): each one counts, with the kind it was carried as."""
     crossings = edge_crossings(run)
-    decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
-    sizes = rom_map_sizes(sorted({(r["extra"] or {}).get("map") for r in decides if (r["extra"] or {}).get("map")}))
+    chosen = []
+    for r in run.records:
+        extra = r.get("extra") or {}
+        if r.get("decision") == "decide" and extra.get("target") is not None:
+            chosen.append((r, extra.get("map"), extra.get("kind"), extra["target"]))
+        elif r.get("decision") == "world" and extra.get("carry_on") is not None:
+            chosen.append((r, extra.get("map"), extra.get("kind"), extra["carry_on"]))
+    sizes = rom_map_sizes(sorted({key for _, key, _, _ in chosen if key}))
     out = []
-    for r in decides:
-        extra = r["extra"]
-        size = sizes.get(extra.get("map"))
-        side = past_real_edge(tuple(extra["target"]), size) if size else None
-        if side is not None and r["frame"] < crossings.get((extra.get("map"), side), 10**12):
-            out.append({"frame": r["frame"], "map": extra.get("map"), "kind": extra.get("kind"), "target": extra["target"],
-                        "side": side, "reason": str(r.get("reason"))[:60]})
+    for r, key, kind, target in chosen:
+        size = sizes.get(key)
+        side = past_real_edge(tuple(target), size) if size else None
+        if side is not None and r["frame"] < crossings.get((key, side), 10**12):
+            out.append({"frame": r["frame"], "map": key, "kind": kind, "target": target, "side": side,
+                        "reason": str(r.get("reason"))[:60], "carried": r.get("decision") == "world"})
     return out, crossings
 
 
@@ -1365,6 +1604,7 @@ def grade_ROUTE(run: Run) -> None:
     check_crop(run)
     check_reversals(run)
     check_no_road_before_a_crossing(run)
+    check_laps(run)
 
 
 def roam_record(run: Run) -> dict:
@@ -1440,6 +1680,12 @@ def walk_path(run: Run) -> list[list]:
     look included), as (map key, (x, y)). A step that does not begin where the last one ended (a scene or a warp moved
     the player between: the twin's push, Mom walking the player to the TV) starts a new stretch, so `reversals` never
     counts what a script did."""
+    return [[(key, xy) for key, xy, _ in stretch] for stretch in walk_stretches(run)]
+
+
+def walk_stretches(run: Run) -> list[list[tuple[str, tuple[int, int], int]]]:
+    """(build step 3.2) `walk_path` with the FRAME of each tile: the frame of the walking press that began the step onto
+    it (a stretch's first tile: the frame of its first step's press)."""
     walks = [i for i, r in enumerate(run.records)
              if str(r.get("reason", "")).startswith("walk ") and str(r.get("action", "")).startswith("hold ")]
     stretches: list[list] = []
@@ -1454,14 +1700,417 @@ def walk_path(run: Run) -> list[list]:
         end = walks[n + 1] if n + 1 < len(walks) else len(run.records) - 1
         if not any(map_name_of(r) == key and xy_of(r) == to for r in run.records[i + 1:end + 1]):
             continue  # the step did not happen (a bump, a person, a battle first)
-        if current and current[-1] != (key, frm):
+        frame = int(record.get("frame") or 0)
+        if current and current[-1][:2] != (key, frm):
             stretches.append(current)
             current = []
         if not current:
-            current = [(key, frm)]
-        current.append((key, to))
+            current = [(key, frm, frame)]
+        current.append((key, to, frame))
     stretches.append(current)
     return [stretch for stretch in stretches if stretch]
+
+
+# ---------------------------------------------------------------------- build step 3.2: LAPS, and the walk vs the shortest
+#: (build step 3.2, the step-3.1 adversarial review's second HIGH finding: "the reversal metric counts only A-B-A and
+#: U-turns, so laps score 0") A LAP: the player back on a tile of its OWN walk this many steps later (A -> B -> A is 2 and
+#: is `reversals`'; on a grid a return takes an even number of steps, so 4 is the smallest lap: round one tile), on the
+#: same map, with NOTHING NEW between (no tile first seen by the memory, no novelty told): a round walked where a step
+#: back would do. Pre-registered: a lap longer than 12 steps is a walk round a block, not a lap round a room.
+LAP_STEPS = (4, 12)
+#: (build step 3.2) THE BOUNDS, pre-registered before the graded run from development runs of this code (the docstring's
+#: "AFTER STEP 3.2"): laps (want none), and the walk to each target against the SHORTEST way over what the memory knew
+#: by the time the walk there ended (`target_walks`): the steps walked beyond it over every target of the run ("excess",
+#: at most 4) and on the worst single target ("worst", at most 2: a step round someone standing in the way, whom the
+#: memory's shortest way does not know: the development sweep's only such walks, SCENE-EXPLORE seeds 3, 7, 9, (14, 9) ->
+#: (11, 0) in 14 steps for 12; the step-3.1 rule walked up to 22 beyond on one target there). The same as `rate_step3.py`
+#: LAP_SWEEP_BOUNDS. TOWN and ROUTE also register their exact numbers in `PREDICTED`; SCENEX and SCENEX9 read the host's
+#: clock (arm CLOCKS), so only the bounds are theirs, and CLOCKS checks them at every instant.
+#: (the step-3.2 verifier's round) and "rings": laps WHATEVER was seen on the way (`rings`): at most one, pre-registered from
+#: the development sweep of this round (`rate_step3.py` LAP_SWEEP_BOUNDS: the real code rang twice in 60 lapped runs, once
+#: each, across a target that vanished; the reverted code 36 times in 14 runs, SCENEXL 4)
+#: (the step-4 verifier's round) the bound is on LAP RINGS (`lap_ring`: a ring with a leg walked beyond the shortest way to
+#: its own target); a ring every leg of which was the shortest way to its own target (an excursion: into a room and out by
+#: the next column) is reported. MEASURED (the development sweep of this round, 20 seeds of the six lapped plans): the
+#: carried-on decisions walk such excursions in SCENE-EXPLORE (seeds 5 and 8 twice by the old count, seed 5's two the SAME
+#: loop counted from two of its tiles: `rings` now counts a loop once).
+LAP_BOUNDS: dict[str, dict[str, int]] = {
+    "TOWN": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
+    "ROUTE": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
+    "SCENEX": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
+    "SCENEX9": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
+}
+#: A step's letters in the memory's compact tile (`world/memory.py` TileFact.compact): what a walk cannot enter.
+_NOT_WALKABLE = set("bwdp")
+
+
+def novelty_frames(run: Run) -> tuple[dict[str, list[int]], list[int]]:
+    """(build step 3.2) What was NEW when: per map, the frames its tiles were FIRST seen (the memory's own `seen_frame`, its
+    last snapshot in world.jsonl), and the frames of every novelty the navigator TOLD (a flag, a Pokemon, items,
+    experience, new words: its "novelty at f..." records)."""
+    seen = {key: sorted(int(fact[4]) for fact in (data.get("tiles") or {}).values())
+            for key, data in ((run.world or {}).get("maps") or {}).items()}
+    told = sorted(int(r["frame"]) for r in run.records if r.get("decision") == "world" and r.get("frame") is not None
+                  and str(r.get("reason", "")).startswith("novelty at f"))
+    return seen, told
+
+
+def laps(stretch: list[tuple[str, tuple[int, int], int]], seen: dict[str, list[int]], told: list[int]) -> list[dict]:
+    """(build step 3.2) Every LAP in one stretch of the AI's own walk (`walk_stretches`): the player back on a tile
+    `LAP_STEPS` steps after it last stood there, the same map, and nothing new between (no tile of that map first seen,
+    no novelty told, from the press that LEFT the tile to the press that came back onto it: a tile seen on arriving at it
+    the first time is not 'between'). Pure."""
+    import bisect
+
+    out: list[dict] = []
+    last: dict = {}
+    for j, (key, xy, frame) in enumerate(stretch):
+        i = last.get((key, xy))
+        last[(key, xy)] = j
+        if i is None or not LAP_STEPS[0] <= j - i <= LAP_STEPS[1]:
+            continue
+        left = stretch[i + 1][2]
+        frames = seen.get(key, [])
+        new_tile = bisect.bisect_right(frames, frame) > bisect.bisect_right(frames, left)
+        new_told = bisect.bisect_right(told, frame) > bisect.bisect_right(told, left)
+        if not (new_tile or new_told):
+            out.append({"map": key, "tile": list(xy), "steps": j - i, "tiles": [list(t[1]) for t in stretch[i:j + 1]],
+                        "frames": [left, frame]})
+    return out
+
+
+def rings(stretch: list[tuple[str, tuple[int, int], int]]) -> list[dict]:
+    """(the step-3.2 verifier's round: "the new CYCLE check (`laps`) does not tell the fix from the revert ... every one is
+    exempted by 'new tile between: True'") Every RING in one stretch of the AI's own walk: the player back on a tile
+    `LAP_STEPS` steps after it last stood there, on the same map, having walked ROUND (every tile between visited once:
+    a closed loop, not an out-and-back such as A B C B A), WHATEVER it saw on the way. A person who wants a place behind
+    turns back; walking round a room to reach it is the lap finding 1 is about, and walking round shows new tiles, which
+    is why `laps`' nothing-new exemption hid every one (the verifier's recomputation of SCENEXL: 5 rings, each "new tile
+    between"). (The step-4 verifier's round) ONE LOOP IS ONE RING: a walk that goes on along a loop it has just closed
+    comes back onto the next tile of it too, and that is the same round (the same tiles) counted again; it is counted
+    once. Pure."""
+    out: list[dict] = []
+    last: dict = {}
+    for j, (key, xy, frame) in enumerate(stretch):
+        i = last.get((key, xy))
+        last[(key, xy)] = j
+        if i is None or not LAP_STEPS[0] <= j - i <= LAP_STEPS[1]:
+            continue
+        between = [t[1] for t in stretch[i + 1:j]]
+        if len(set(between)) == len(between) and xy not in between and all(t[0] == key for t in stretch[i:j + 1]):
+            tiles = [list(t[1]) for t in stretch[i:j + 1]]
+            if out and out[-1]["map"] == key and {tuple(t) for t in out[-1]["tiles"]} == {tuple(t) for t in tiles}:
+                continue
+            out.append({"map": key, "tile": list(xy), "steps": j - i, "tiles": tiles, "frames": [stretch[i + 1][2], frame]})
+    return out
+
+
+def ring_legs(ring: dict, walks: list[dict]) -> list[dict]:
+    """(the step-4 verifier's round) The LEGS of a ring: the walks to each target (`target_walks`) that took steps inside
+    it (from the press that left its tile to the press that came back). A ring is a LAP RING when one of its legs walked
+    beyond the shortest known way to its OWN target (a round walked to reach a place: finding 1's lap, SCENEXL's "back
+    (7, 2) by a 12-step round"); a ring every leg of which was the shortest way to its own target is an EXCURSION (a look
+    into a room and the shortest way back out, by the next column: the real code's rings, read move by move in the
+    step-3.2 verifier's round). A leg with a detour (`navigator.DETOUR_P`, by design) is said, not held against it."""
+    low, high = ring["frames"]
+    return [w for w in walks if w["map"] == ring["map"] and w["frame"] <= high and w.get("end_frame", w["frame"]) >= low]
+
+
+def lap_ring(ring: dict, walks: list[dict]) -> bool:
+    """(the step-4 verifier's round) A ring with a leg walked beyond the shortest known way to its own target (`ring_legs`)."""
+    return any((w.get("excess") or 0) > 0 and not w.get("detour") for w in ring_legs(ring, walks))
+
+
+def journeys(walks: list[dict]) -> list[dict]:
+    """(the step-3.2 verifier's round: "steps-vs-shortest is measured per DECISION, and the AI re-decides every 1-3 steps
+    ... so the metric is near 0 by construction wherever targets churn") The walks of `target_walks` joined into JOURNEYS:
+    a journey begins with a target chosen STANDING and goes on through every target chosen ON THE MOVE whose walk begins
+    where the last one ended (the same map), so a target re-picked every step is one journey, from where the player
+    stood to where it stopped. `walked` is every step of it; the shortest known way is asked of `known_shortest` by the
+    caller (`journey_report`). A journey with a DETOUR decision in it is reported, not graded (as `target_walks`)."""
+    out: list[dict] = []
+    for walk in walks:
+        current = out[-1] if out else None
+        joined = (current is not None and walk.get("on_the_move") and walk["map"] == current["map"]
+                  and walk["from"] == current["to"] and walk["frame"] >= current["last_frame"])
+        if joined:
+            current["walked"] += walk["walked"]
+            current["to"] = walk["to"]
+            current["targets"] += 1
+            current["detour"] = current["detour"] or bool(walk.get("detour"))
+            current["last_frame"] = walk["frame"]
+            current["end_frame"] = walk.get("end_frame", walk["frame"])
+        else:
+            out.append({"map": walk["map"], "from": walk["from"], "to": walk["to"], "walked": walk["walked"], "targets": 1,
+                        "detour": bool(walk.get("detour")), "frame": walk["frame"], "last_frame": walk["frame"],
+                        "end_frame": walk.get("end_frame", walk["frame"])})
+    return out
+
+
+def known_shortest(world: dict | None, key: str, start: tuple[int, int], end: tuple[int, int], by_frame: int) -> int | None:
+    """(build step 3.2) The fewest steps from `start` to `end` on map `key` over what the AI's memory KNEW by `by_frame`:
+    tiles first seen by then that a walk may enter (not blocked, water, a door or a warp; a ledge only in its jump
+    direction, landing one beyond), and no way in learned blocked by a bump by then (per side). None: no known way.
+    Breadth first; people are not in the memory (they move), so a way round a person counts as steps beyond this."""
+    data = ((world or {}).get("maps") or {}).get(key)
+    if data is None:
+        return None
+    tiles = data.get("tiles") or {}
+    bumped = {k for k, info in (data.get("bumped") or {}).items() if int((info or {}).get("first") or 0) <= by_frame}
+    steps = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+
+    def fact(xy):
+        f = tiles.get(f"{xy[0]},{xy[1]}")
+        return f if f is not None and int(f[4]) <= by_frame else None
+
+    def enterable(xy, direction) -> bool:
+        f = fact(xy)
+        return f is not None and not (set(f[0]) & _NOT_WALKABLE) and not f[1] and f"{xy[0]},{xy[1]}|{direction}" not in bumped
+
+    frontier, best = [start], {start: 0}
+    while frontier:
+        here = frontier.pop(0)
+        if here == end:
+            return best[here]
+        for direction, (dx, dy) in steps.items():
+            nxt = (here[0] + dx, here[1] + dy)
+            f = fact(nxt)
+            if f is not None and f[1] == direction:  # a ledge, jumped
+                nxt = (nxt[0] + dx, nxt[1] + dy)
+                if not enterable(nxt, direction):
+                    continue
+            elif not enterable(nxt, direction):
+                continue
+            if nxt not in best:
+                best[nxt] = best[here] + 1
+                frontier.append(nxt)
+    return None
+
+
+def target_walks(run: Run) -> list[dict]:
+    """(build step 3.2, the review: "the reversal metric cannot see laps: it needs ... steps-versus-shortest-path") The
+    walk to every TARGET the AI chose: from the tile it decided on, the AI's own confirmed steps (`walk_stretches`) up to
+    the next decision, contiguous and on that map (a scene or a warp ends it), against the shortest way between the same
+    two tiles over what the memory knew by the end of that walk (`known_shortest`). `excess` = walked - shortest. A
+    decision with a DETOUR (`navigator.DETOUR_P`: a seen tile beside the way, by design) is reported, not graded."""
+    decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
+    steps = [(n, a[0], a[1], b[1], b[2]) for n, stretch in enumerate(walk_stretches(run)) for a, b in zip(stretch, stretch[1:])]
+    out = []
+    for i, record in enumerate(decides):
+        extra = record["extra"]
+        key, start = extra.get("map"), tuple(extra.get("player") or ())
+        first, until = int(record.get("frame") or 0), int(decides[i + 1].get("frame") or 0) if i + 1 < len(decides) else 10**12
+        walk: list = []
+        for stretch, step_key, frm, to, frame in steps:
+            if not first <= frame < until:
+                continue
+            if not walk:
+                if step_key != key or frm != start:
+                    break
+            elif stretch != walk[-1][0] or frm != walk[-1][3]:
+                break
+            walk.append((stretch, step_key, frm, to, frame))
+        if not walk:
+            continue
+        end = walk[-1][3]
+        shortest = known_shortest(run.world, key, start, end, walk[-1][4] + 32)
+        out.append({"frame": first, "map": key, "kind": extra.get("kind"), "target": list(extra["target"]), "from": list(start),
+                    "to": list(end), "walked": len(walk), "shortest": shortest,
+                    "excess": None if shortest is None else len(walk) - shortest, "detour": extra.get("detour"),
+                    "on_the_move": extra.get("on_the_move"), "end_frame": walk[-1][4]})
+    return out
+
+
+def lap_report(run: Run) -> dict:
+    """(build step 3.2) Every lap of the run and the walks to its targets against the shortest known way (graded: the
+    walks with no detour that have a known shortest way)."""
+    seen, told = novelty_frames(run)
+    stretches = walk_stretches(run)
+    found = [lap for stretch in stretches for lap in laps(stretch, seen, told)]
+    walks = target_walks(run)
+    graded = [w for w in walks if w["excess"] is not None and not w["detour"]]
+    worst = max(graded, key=lambda w: w["excess"], default=None)
+    # (the step-3.2 verifier's round) RINGS (laps whatever was seen on the way) and JOURNEYS (the walks of a target and
+    # every target re-picked on the move after it, against the shortest known way from where it began to where it ended)
+    ringed = [ring for stretch in stretches for ring in rings(stretch)]
+    # (the step-4 verifier's round) a ring with a leg walked round (`lap_ring`) against an excursion (every leg shortest)
+    for ring in ringed:
+        ring["lap"] = lap_ring(ring, walks)
+        ring["legs"] = [(w["kind"], w["target"], w["walked"], w["shortest"], bool(w.get("detour"))) for w in ring_legs(ring, walks)]
+    trips = journeys(walks)
+    for trip in trips:
+        trip["shortest"] = known_shortest(run.world, trip["map"], tuple(trip["from"]), tuple(trip["to"]), trip["end_frame"] + 32)
+        trip["excess"] = None if trip["shortest"] is None else trip["walked"] - trip["shortest"]
+    trips_graded = [t for t in trips if t["excess"] is not None and not t["detour"]]
+    trip_worst = max(trips_graded, key=lambda t: t["excess"], default=None)
+    # (the step-4 verifier's round: "Its visible cost is not bounded: JOURNEYS") EVERY journey with a known shortest way,
+    # a detour in it or not: with a decision at every step nearly every journey held a detour (`DETOUR_P` is drawn per
+    # decision) and so went ungraded, which made the step-3.2 rule's journeys look cheaper than they were
+    trips_all = [t for t in trips if t["excess"] is not None]
+    return {"laps": found, "walks": walks, "graded": len(graded), "walked": sum(w["walked"] for w in graded),
+            "shortest": sum(w["shortest"] for w in graded), "excess": sum(max(0, w["excess"]) for w in graded),
+            "worst": worst["excess"] if worst else 0, "worst_walk": worst,
+            "detoured": [w for w in walks if w["detour"]], "unanswered": [w for w in walks if w["excess"] is None],
+            "rings": ringed, "lap_rings": [ring for ring in ringed if ring["lap"]],
+            "journeys": trips, "journeys_graded": len(trips_graded),
+            "journey_walked": sum(t["walked"] for t in trips_graded),
+            "journey_shortest": sum(t["shortest"] for t in trips_graded),
+            "journey_excess": sum(max(0, t["excess"]) for t in trips_graded),
+            "journey_worst": trip_worst["excess"] if trip_worst else 0, "journey_worst_walk": trip_worst,
+            "journey_targets": sum(t["targets"] for t in trips_graded),
+            "journeys_all": len(trips_all), "journey_all_walked": sum(t["walked"] for t in trips_all),
+            "journey_all_excess": sum(max(0, t["excess"]) for t in trips_all),
+            "journey_all_worst": max((t["excess"] for t in trips_all), default=0)}
+
+
+def choices_on_the_move(run: Run) -> dict:
+    """(build step 3.2, the step-3.1 review's MEDIUM finding 4: "the AI changes target almost every step (22 of 23 dropped
+    as stale)", each re-picked at random) Every target chosen ON THE MOVE (the AI's own `on_the_move` decide records,
+    after a stale drop) and what the WALK did next, from the looks: the first step after it against the step before it
+    (the player's heading): on (the same way), aside, or straight BACK."""
+    out = {"chosen": 0, "on": 0, "aside": 0, "back": 0, "backs": []}
+    walks = [i for i, r in enumerate(run.records)
+             if str(r.get("reason", "")).startswith("walk ") and str(r.get("action", "")).startswith("hold ")]
+    opposite = {"up": "down", "down": "up", "left": "right", "right": "left"}
+    for n, record in enumerate(run.records):
+        extra = record.get("extra") or {}
+        if record.get("decision") != "decide" or not extra.get("on_the_move"):
+            continue
+        before = [run.records[i] for i in walks if i < n and map_name_of(run.records[i]) == extra.get("map")]
+        after = [run.records[i] for i in walks if i > n and map_name_of(run.records[i]) == extra.get("map")]
+        if not before or not after:
+            continue
+        heading, step = WALK_GATE.match(str(before[-1]["reason"])), WALK_GATE.match(str(after[0]["reason"]))
+        if heading is None or step is None:
+            continue
+        out["chosen"] += 1
+        kind = "on" if step.group(1) == heading.group(1) else "back" if step.group(1) == opposite.get(heading.group(1)) else "aside"
+        out[kind] += 1
+        if kind == "back":
+            out["backs"].append((record["frame"], extra.get("kind"), extra.get("target"), extra.get("player")))
+    return out
+
+
+def check_laps(run: Run, bounds: dict[str, int] | None = None) -> None:
+    """(build step 3.2) NO LAPS, and the walk to each target against the shortest way the memory knew, within the bounds
+    pre-registered for the arm (`LAP_BOUNDS`); measured for `PREDICTED` either way (laps, lap_excess, lap_worst)."""
+    report = lap_report(run)
+    run.measure("laps", len(report["laps"]))
+    run.measure("lap_excess", report["excess"])
+    run.measure("lap_worst", report["worst"])
+    # (the step-3.2 verifier's round) rings (since the step-4 verifier's round the LAP RINGS are bounded where `LAP_BOUNDS`
+    # names them: a ring with a leg walked beyond the shortest way to its own target), journeys (graded by `check_churn`)
+    run.measure("rings", len(report["rings"]))
+    run.measure("lap_rings", len(report["lap_rings"]))
+    run.notes.append(f"RINGS (laps whatever was seen on the way, the step-3.2 verifier's round): {len(report['rings'])} "
+                     f"{[(r['map'], r['tile'], r['steps'], 'LAP' if r['lap'] else 'excursion', r['legs']) for r in report['rings'][:4]] or ''}; "
+                     f"of them LAP RINGS (a leg walked beyond the shortest way to its own target): {len(report['lap_rings'])}; "
+                     f"JOURNEYS (a target and every target re-picked on the move after it) with no detour: "
+                     f"{report['journeys_graded']} ({report['journey_targets']} targets), {report['journey_walked']} steps walked "
+                     f"against {report['journey_shortest']}, {report['journey_excess']} beyond (the worst {report['journey_worst']}); "
+                     f"EVERY journey with a known shortest way: {report['journeys_all']}, {report['journey_all_walked']} walked, "
+                     f"{report['journey_all_excess']} beyond (the worst {report['journey_all_worst']})")
+    # (build step 3.2, the review's finding 4) the targets chosen on the move, and what the walk did next (reported)
+    moves = choices_on_the_move(run)
+    run.measure("on_the_move", [moves["chosen"], moves["on"], moves["aside"], moves["back"]])
+    run.notes.append(f"TARGETS CHOSEN ON THE MOVE (build step 3.2, finding 4): {moves['chosen']}; the first step after each "
+                     f"kept the heading {moves['on']}, turned aside {moves['aside']}, turned straight back {moves['back']} "
+                     f"{moves['backs'][:4] or ''}")
+    text = (f"{len(report['laps'])} laps {[(l['map'], l['tile'], l['steps']) for l in report['laps'][:4]] or ''}; the walks "
+            f"to {report['graded']} targets: {report['walked']} steps walked against {report['shortest']} on the shortest "
+            f"KNOWN ways, {report['excess']} beyond them, the worst target "
+            f"{(report['worst_walk'] or {}).get('kind')} {(report['worst_walk'] or {}).get('target')} "
+            f"({(report['worst_walk'] or {}).get('walked')} steps from {(report['worst_walk'] or {}).get('from')} to "
+            f"{(report['worst_walk'] or {}).get('to')}, shortest {(report['worst_walk'] or {}).get('shortest')}); "
+            f"{len(report['detoured'])} walks with a detour (by design: reported), {len(report['unanswered'])} with no known way")
+    bound = bounds if bounds is not None else LAP_BOUNDS.get(run.arm.name)
+    if bound is None:
+        run.notes.append(f"LAPS (build step 3.2; no bound for this arm): {text}")
+    else:
+        lap_rings = report["lap_rings"]
+        run.check(report["graded"] > 0 and len(report["laps"]) <= bound["laps"] and report["excess"] <= bound["excess"]
+                  and report["worst"] <= bound["worst"] and len(lap_rings) <= bound.get("lap_rings", len(lap_rings)),
+                  f"LAPS AND THE SHORTEST WAY (build step 3.2): {text}; {len(report['rings'])} RINGS, {len(lap_rings)} of them "
+                  f"LAP RINGS {[(r['map'], r['tile'], r['steps'], r['legs']) for r in lap_rings[:4]] or ''} (want <= "
+                  f"{bound['laps']} laps, <= {bound['excess']} steps beyond the shortest in all, <= {bound['worst']} on any one "
+                  f"target{', <= ' + str(bound['lap_rings']) + ' lap rings' if 'lap_rings' in bound else ''}: pre-registered "
+                  f"`LAP_BOUNDS`)")
+    # (the step-4 verifier's round) finding 4: the churn of decisions, and the journeys' visible cost
+    check_churn(run, report)
+
+
+CARRY_PREFIX = "is seen past now"
+STALE_PREFIX = "is not worth going to any more"
+#: (the step-4 verifier's round: "Step 3.2 finding 4 ... is NOT fixed ... the churn is still there: '47 walks ... decisions
+#: on the move 35 of 47'; walk length per decision 'mean 2.55', with 28 of the 47 walks a single step. Its visible cost
+#: is not bounded: JOURNEYS") THE CHURN BOUNDS per arm, PRE-REGISTERED from the development sweep of this code
+#: (2026-10-09, in-process, the clock pinned, seeds 1-20 of the final code; the docstring's "THE STEP-4 VERIFIER'S ROUND"):
+#: decisions made ON THE MOVE per 100 steps walked ("move_per_100"; the development maximum over 20 seeds of each plan:
+#: TOWN 23.3, ROUTE 23.1, SCENE-EXPLORE 14.7; the step-3.2 rule's MINIMUM 47.9, 43.6 and 14.3: on SCENE-EXPLORE this one
+#: does not separate the two), the share of walks to a decision that are ONE step ("ones"; maxima 0.43, 0.20, 0.38; the
+#: step-3.2 rule's MINIMA 0.54, 0.54, 0.46: this one separates every run), and THE VISIBLE COST, every journey's steps
+#: beyond the shortest known way from where it began to where it ended over the steps those journeys walked
+#: ("journey_share": maxima 0.40, 0.15, 0.47; the step-3.2 rule's maxima 0.42, 0.19, 0.44: no dearer than before). The
+#: revert arm SCENEXC (the carry-on off: the step-3.2 rule) must break "ones" on SCENEX's start and seed.
+CHURN_BOUNDS: dict[str, dict[str, float]] = {
+    "TOWN": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.45},
+    "ROUTE": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.25},
+    "SCENEX": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.55},
+    "TOWN9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.45},
+    "ROUTE9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.25},
+    "SCENEX9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.55},
+}
+
+
+def churn(run: Run, report: dict | None = None) -> dict:
+    """(the step-4 verifier's round, finding 4) How often the AI DECIDED, from its own action log: the decisions (`decide`
+    records), those made ON THE MOVE, the places a decision was CARRIED ON to and, of those, where the step-3.2 rule would
+    have gone elsewhere (`step32_would`: the counterfactual the AI tells), the stale targets dropped (a new decision made on
+    the move) with why the decision was not carried on (`refused`); the steps walked (the looks' path), the walks to each
+    decision (`target_walks`) and how many were ONE step; and every journey's steps beyond the shortest known way (the
+    visible cost, `lap_report` journeys_all)."""
+    report = report if report is not None else lap_report(run)
+    decides = [r for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("target") is not None]
+    world = [r for r in run.records if r.get("decision") == "world"]
+    carried = [r for r in world if (r.get("extra") or {}).get("carry_on") is not None]
+    dropped = [r for r in world if STALE_PREFIX in str(r.get("reason"))]
+    steps, _ = path_reversals(run)
+    walks = report["walks"]
+    ones = [w for w in walks if w["walked"] == 1]
+    moving = sum(1 for r in decides if (r.get("extra") or {}).get("on_the_move"))
+    return {"decisions": len(decides), "on_the_move": moving, "carried": len(carried),
+            "would": sum(1 for r in carried if (r.get("extra") or {}).get("step32_would")),
+            "dropped": len(dropped), "refused_better": sum(1 for r in dropped if "clearly more" in str((r.get("extra") or {}).get("refused"))),
+            "steps": steps, "walks": len(walks), "ones": len(ones),
+            "move_per_100": round(100.0 * moving / steps, 1) if steps else 0.0,
+            "ones_share": round(len(ones) / len(walks), 2) if walks else 0.0,
+            "mean_walk": round(sum(w["walked"] for w in walks) / len(walks), 2) if walks else 0.0,
+            "journey_all_walked": report["journey_all_walked"], "journey_all_excess": report["journey_all_excess"],
+            "journey_share": round(report["journey_all_excess"] / report["journey_all_walked"], 2) if report["journey_all_walked"] else 0.0,
+            "journey_all_worst": report["journey_all_worst"]}
+
+
+def check_churn(run: Run, report: dict | None = None, bounds: dict | None = None) -> None:
+    """(the step-4 verifier's round, finding 4) THE CHURN, measured on every walking arm (`churn`, for `PREDICTED`: churn,
+    journey_share) and checked against `CHURN_BOUNDS` where the arm has them (TOWN, ROUTE, SCENEX, SCENEX9)."""
+    c = churn(run, report)
+    run.measure("churn", [c["decisions"], c["on_the_move"], c["carried"], c["walks"], c["ones"]])
+    run.measure("journey_all", [c["journey_all_walked"], c["journey_all_excess"]])
+    text = (f"{c['decisions']} decisions in {c['steps']} steps, {c['on_the_move']} of them ON THE MOVE ({c['move_per_100']} per 100 "
+            f"steps); {c['carried']} places a decision CARRIED ON to (the step-3.2 rule would have gone elsewhere at {c['would']} "
+            f"of them), {c['dropped']} stale targets dropped for a new decision ({c['refused_better']} because something "
+            f"clearly better was worth more from there); the walks to the {c['walks']} decisions: {c['ones']} of ONE step ({c['ones_share']}), "
+            f"{c['mean_walk']} steps each on average; EVERY journey's steps beyond the shortest known way: {c['journey_all_excess']} "
+            f"of {c['journey_all_walked']} walked ({c['journey_share']}; the worst journey {c['journey_all_worst']})")
+    bound = bounds if bounds is not None else CHURN_BOUNDS.get(run.arm.name)
+    if bound is None:
+        run.notes.append(f"CHURN (the step-4 verifier's round, finding 4; no bound for this arm): {text}")
+        return
+    run.check(c["walks"] > 0 and c["move_per_100"] <= bound["move_per_100"] and c["ones_share"] <= bound["ones"]
+              and c["journey_share"] <= bound["journey_share"],
+              f"CHURN (the step-4 verifier's round, finding 4): {text} (want <= {bound['move_per_100']} decisions on the move per "
+              f"100 steps, <= {bound['ones']} of the walks one step, every journey <= {bound['journey_share']} of its steps "
+              f"beyond the shortest way: pre-registered `CHURN_BOUNDS`)")
 
 
 def path_reversals(run: Run) -> tuple[int, list[dict]]:
@@ -1859,9 +2508,32 @@ def grade_CLOCKS(run: Run) -> None:
     # what the clock-sensitive arms' launcher claims rest on must hold at EVERY instant (their trajectories differ)
     twin_bad = [(c["arm"], c["when"], c.get("twin_segments"), c.get("map"), c.get("var")) for name in varies if name.startswith("SCENEX")
                 for c in by_arm[name] if not (c.get("twin_segments") and 1 < c["twin_segments"][0] <= TWIN_SCENES_IN_ALL
-                                              and all(n <= 1 for n in c["twin_segments"][1:]))]
+                                              and once_a_tile_after_news(c.get("twin_segment_tiles") or [{}]))]
     roam_bad = [(c["when"], c.get("steps"), c.get("spin_ratio")) for c in by_arm.get("ROAM", [])
                 if not (c.get("steps") == 150 and isinstance(c.get("spin_ratio"), (int, float)) and c["spin_ratio"] < 0.02)]
+    # (build step 3.2) the lap bounds of the clock-sensitive SCENEX arms, at every instant; (the step-4 verifier's round)
+    # the LAP RINGS, and the churn bounds (`CHURN_BOUNDS`)
+    lap_bad = [(c["arm"], c["when"], c.get("laps"), c.get("lap_excess"), c.get("lap_worst"), c.get("lap_rings")) for name in varies
+               if name in LAP_BOUNDS for c in by_arm[name]
+               if not (isinstance(c.get("lap_excess"), int) and (c.get("lap_graded") or 0) > 0
+                       and c["laps"] <= LAP_BOUNDS[name]["laps"] and c["lap_excess"] <= LAP_BOUNDS[name]["excess"]
+                       and c["lap_worst"] <= LAP_BOUNDS[name]["worst"]
+                       and isinstance(c.get("lap_rings"), int) and c["lap_rings"] <= LAP_BOUNDS[name]["lap_rings"])]
+    run.check(not lap_bad,
+              f"(build step 3.2) THE LAP BOUNDS OF THE CLOCK-SENSITIVE ARMS HOLD AT EVERY INSTANT (`LAP_BOUNDS`): "
+              + "; ".join(f"{name} {[(c['when'][5:], c.get('laps'), c.get('lap_excess'), c.get('lap_worst'), c.get('rings'), c.get('lap_rings')) for c in by_arm[name]]}"
+                          for name in varies if name in LAP_BOUNDS)
+              + f" (instant, laps, steps beyond the shortest ways, the worst target, rings, lap rings; not: {lap_bad or 'none'})")
+    churn_bad = [(c["arm"], c["when"], c.get("move_per_100"), c.get("ones_share"), c.get("journey_share")) for name in varies
+                 if name in CHURN_BOUNDS for c in by_arm[name]
+                 if not ((c.get("walks") or 0) > 0 and isinstance(c.get("move_per_100"), (int, float))
+                         and c["move_per_100"] <= CHURN_BOUNDS[name]["move_per_100"] and c["ones_share"] <= CHURN_BOUNDS[name]["ones"]
+                         and c["journey_share"] <= CHURN_BOUNDS[name]["journey_share"])]
+    run.check(not churn_bad,
+              f"(the step-4 verifier's round) THE CHURN BOUNDS OF THE CLOCK-SENSITIVE ARMS HOLD AT EVERY INSTANT (`CHURN_BOUNDS`): "
+              + "; ".join(f"{name} {[(c['when'][5:], c.get('move_per_100'), c.get('ones_share'), c.get('journey_share')) for c in by_arm[name]]}"
+                          for name in varies if name in CHURN_BOUNDS)
+              + f" (instant, decisions on the move per 100 steps, one-step walks, journeys' share beyond; not: {churn_bad or 'none'})")
     run.check(not twin_bad and not roam_bad and all("twin_segments" in c for name in varies if name.startswith("SCENEX")
                                                     for c in by_arm[name]),
               f"THE CLOCK-SENSITIVE ARMS' CLAIMS HOLD AT EVERY INSTANT: the twin's push-backs before news and between news "
@@ -2067,13 +2739,28 @@ def twin_scenes(records: list[dict]) -> dict:
             and str(r.get("reason", "")).startswith("novelty at f") and (r.get("extra") or {}).get("words")]
     bounds = [0] + lifts + [10**12]
     segments = [sum(1 for f, _ in pushes if bounds[i] <= f < bounds[i + 1]) for i in range(len(bounds) - 1)]
+    # (the step-4 verifier's round) the push-backs of each segment BY TILE: after news the rule gives every tile she began
+    # on up again at its FIRST meeting, a tile she never began on before the news included (`once_a_tile_after_news`)
+    segment_tiles = [{f"{t[0]},{t[1]}": sum(1 for f, tt in pushes if tt == t and bounds[i] <= f < bounds[i + 1])
+                      for t in sorted({tt for f, tt in pushes if bounds[i] <= f < bounds[i + 1]})} for i in range(len(bounds) - 1)]
     return {"by_tile": twin, "counts": {str(tile): len(hits) for tile, hits in sorted(twin.items())},
             "total": sum(len(h) for h in twin.values()), "worst": max((len(h) for h in twin.values()), default=0),
             "words": sorted({str(hit.get("words")) for hits in twin.values() for hit in hits}),
             "targets": sorted({hit["target"] for hits in twin.values() for hit in hits}),
             "walls": scene_walls_told(records), "lifts": lifts, "news": news, "segments": segments,
+            "segment_tiles": segment_tiles,
             "passed_her": [(h["frame"], str(tile), h.get("words")) for tile, hits in every.items() for h in hits
                            if h.get("after") is None or tuple(h["after"]) == tile]}
+
+
+def once_a_tile_after_news(segment_tiles: list[dict]) -> bool:
+    """(the step-4 verifier's round) After each news, the twin met AT MOST ONCE ON EACH TILE: the words rule gives every tile
+    she began on up again at its first meeting after the news (`brain/navigator.py` _scene_met, `again`), and a tile she
+    never began on before (the walk had met her twice on one tile only) is given up at its first meeting too. FOUND by this
+    round's development sweep (SCENE-EXPLORE seed 10: twice on (10, 1) before any news, then once on (10, 1) and once, its
+    first time, on (11, 1)): the old check, "at most once in all after each news", was written when every run met her on both
+    tiles before the news, and failed a run in which the rule did exactly what it says."""
+    return all(count <= 1 for segment in segment_tiles[1:] for count in segment.values())
 
 
 def grade_SCENEX(run: Run) -> None:
@@ -2099,12 +2786,20 @@ def grade_SCENEX(run: Run) -> None:
     other = {tile: len(hits) for tile, hits in by_tile.items() if tile not in TWIN_TILES}
     second = all(hit["pressed_from"] == tile for tile, hits in twin.items() for hit in hits)
     first = t["segments"][0] if t["segments"] else 0
-    run.check(1 < first <= TWIN_SCENES_IN_ALL and t["worst"] <= TWIN_SCENES_PER_TILE + len(t["lifts"]) and len(t["targets"]) >= 2
-              and second,
+    # the explorer's own targets: its decisions, and (the step-4 verifier's round) the places a decision was CARRIED ON to
+    explorers = [tuple((r.get("extra") or {}).get("target") or ()) for r in run.records
+                 if r.get("decision") == "decide" and (r.get("extra") or {}).get("kind") != "goto"]
+    explorers += [tuple((r.get("extra") or {}).get("carry_on") or ()) for r in run.records
+                  if r.get("decision") == "world" and (r.get("extra") or {}).get("carry_on") is not None]
+    own = all(tuple(target) in explorers for target in t["targets"])
+    run.check(1 < first <= TWIN_SCENES_IN_ALL and t["worst"] <= TWIN_SCENES_PER_TILE + len(t["lifts"]) and len(t["targets"]) >= 1
+              and own and second,
               f"THE TWIN SENDS THE PLAYER BACK, by the tile each began on: {t['counts']}; before any news {first} times (want "
               f"2..{TWIN_SCENES_IN_ALL}: counted per tile alone it was 4, twice on each, the verifier's finding); the AI's own tile "
               f"== the tile of the look of the walking press it cut short, every time: {second}; the targets it stopped, the "
-              f"EXPLORER's own choices: {t['targets']} (want >= 2 different); other scenes on the way: {other or 'none'}")
+              f"EXPLORER's own choices (each one a target the explorer decided on: {own}): {t['targets']} (build step 3.2: one "
+              f"is enough, a target chosen on the move keeps its heading and may be tried again until the per-target rule "
+              f"gives it up); other scenes on the way: {other or 'none'}")
     same = [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("same_scene_tiles")]
     run.check(len(t["words"]) == 1 and t["words"][0] not in ("None", "") and bool(same),
               f"KNOWN BY HER WORDS: every push-back's words, as the AI's own record says them: {t['words']} (want one, the same "
@@ -2125,10 +2820,12 @@ def grade_SCENEX(run: Run) -> None:
               f"{first_walls} == the tiles she began on {met}; walls {[(f, t2) for f, t2, _ in walls]}; a step onto one while it "
               f"was given up: {later or 'none'}")
     news = t["news"]
-    run.check(bool(lifts) and bool(news) and bool(walls) and lifts[0] > walls[0][0] and all(n <= 1 for n in t["segments"][1:]),
+    run.check(bool(lifts) and bool(news) and bool(walls) and lifts[0] > walls[0][0] and once_a_tile_after_news(t["segment_tiles"]),
               f"NEWS LIFTS HER, ONCE MORE IS ENOUGH: new words heard in scenes that left the player be "
               f"{[(f, w[:40]) for f, w in news]}; the tiles worth a try again at {lifts}; her push-backs between the news "
-              f"{t['segments'][1:]} (want each <= 1: met once more with nothing new since, she is given up again at once)")
+              f"{t['segments'][1:]}, by tile {t['segment_tiles'][1:]} (want each tile <= 1 after each news: met once more with "
+              f"nothing new since, every tile she began on is given up again at once; since the step-4 verifier's round per "
+              f"TILE: `once_a_tile_after_news`)")
     run.check(after.get("VAR_LITTLEROOT_TOWN_STATE") == 2 and after.get("map") == ROUTE101 and bool(t["passed_her"]),
               f"WHAT HAPPENED AFTER THE TWIN, by save block 1: VAR_LITTLEROOT_TOWN_STATE {before.get('VAR_LITTLEROOT_TOWN_STATE')} "
               f"-> {after.get('VAR_LITTLEROOT_TOWN_STATE')} (want 2: May met in her house (1), then the twin let the player pass "
@@ -2138,6 +2835,7 @@ def grade_SCENEX(run: Run) -> None:
     run.measure("twin_pushes", t["total"])
     run.measure("twin_segments", t["segments"])
     check_crop(run)
+    check_laps(run)
 
 
 def grade_SCENEXR(run: Run, real: Run | None) -> None:
@@ -2160,9 +2858,12 @@ def grade_SCENEXR(run: Run, real: Run | None) -> None:
                   f"{mine['counts']} in all, {mine['total']}), {first} without ({t['counts']} in all, {t['total']}); the end: "
                   f"SCENEX on {(real.after or {}).get('map')} (VAR_LITTLEROOT_TOWN_STATE {(real.after or {}).get('VAR_LITTLEROOT_TOWN_STATE')}), "
                   f"this copy on {truth.get('map')} ({truth.get('VAR_LITTLEROOT_TOWN_STATE')})")
-    run.check(truth.get("map") != ROUTE101,
-              f"and it never got past her: the copy ended on {truth.get('map')} at {truth.get('pos')} (VAR_LITTLEROOT_TOWN_STATE "
-              f"{truth.get('VAR_LITTLEROOT_TOWN_STATE')}), {str(data.get('reason'))[:80]!r}")
+    # (build step 3.2) "and it never got past her" was a check here: with the step-3.1 navigator's laps the copy never reached
+    # May before the novelty window. With turning back where it must, it now meets May, her news lifts the twin (who lets the
+    # player pass at VAR_LITTLEROOT_TOWN_STATE 1) and the copy reaches Route 101 too. Where the copy ends is the walk's, not
+    # the words rule's: the rule's harm is the push-back counted above (4 before any news, against 3). Reported, not a claim.
+    run.notes.append(f"where the copy ended (build step 3.2: reported, not a claim): {truth.get('map')} at {truth.get('pos')} "
+                     f"(VAR_LITTLEROOT_TOWN_STATE {truth.get('VAR_LITTLEROOT_TOWN_STATE')}), {str(data.get('reason'))[:80]!r}")
     run.measure("twin_pushes", t["total"])
     run.measure("twin_segments", t["segments"])
 
@@ -2229,6 +2930,188 @@ def grade_REVR(run: Run, real: Run | None) -> None:
                   f"{len(found)} in {steps} without (reported: not fewer without the rules)")
 
 
+def grade_LAPR(run: Run, real: Run | None) -> None:
+    """(build step 3.2, the step-3.1 review's HIGH finding 1) SCENEX's start and seed from a COPY with finding 1 reverted
+    (`LAPS_MUTATION`: the turn-back cost on every replan, no plan followed): SCENEX's own lap check (`check_laps`, its
+    pre-registered `LAP_BOUNDS`) must FAIL here, and the A/B against SCENEX shows the difference. The in-process run pins
+    the cartridge's clock (`GAME_CLOCK`); SCENEX's bounds hold at EVERY instant (arm CLOCKS), so the bound this run breaks
+    is one the real code meets whenever it is played."""
+    data = run.harness or {}
+    probe = Run(run.arm, records=run.records, world=run.world)
+    check_laps(probe, LAP_BOUNDS[run.arm.base])
+    ok, text = next(((ok, text) for ok, text in probe.checks if text.startswith("LAPS AND THE SHORTEST WAY")),
+                    (True, "no check ran"))
+    report = lap_report(run)
+    run.measure("laps", len(report["laps"]))
+    run.measure("lap_excess", report["excess"])
+    run.measure("lap_worst", report["worst"])
+    run.measure("rings", len(report["rings"]))
+    run.measure("lap_rings", len(report["lap_rings"]))
+    run.check(str(data.get("reason", "")).startswith("explore: "), f"the run's outcome: {str(data.get('reason'))[:160]!r}")
+    run.check(not ok, f"HARM (finding 1 reverted): {run.arm.base}'s lap check FAILS on this run: {text[:600]}")
+    if real is not None:
+        mine = lap_report(real)
+        run.check(mine["excess"] < report["excess"] and mine["worst"] < report["worst"]
+                  and len(mine["lap_rings"]) < len(report["lap_rings"]),
+                  f"A/B on the same fixture and seed: steps beyond the shortest known ways {mine['excess']} with the rule "
+                  f"({real.arm.name}, the worst target {mine['worst']}), {report['excess']} without (the worst {report['worst']}: "
+                  f"{(report['worst_walk'] or {}).get('kind')} {(report['worst_walk'] or {}).get('target')}, "
+                  f"{(report['worst_walk'] or {}).get('walked')} steps where {(report['worst_walk'] or {}).get('shortest')} "
+                  f"would do); LAP RINGS (rings with a leg walked beyond the shortest way to its own target) "
+                  f"{len(mine['lap_rings'])} with, {len(report['lap_rings'])} without "
+                  f"{[(r['tile'], r['steps']) for r in report['lap_rings']]}; RINGS of any kind {len(mine['rings'])} with, "
+                  f"{len(report['rings'])} without; laps with nothing new between {len(mine['laps'])} with, "
+                  f"{len(report['laps'])} without (every round the reverted code walked showed a new tile: that check alone "
+                  f"cannot tell the two apart)")
+
+
+def grade_CHURNR(run: Run, real: Run | None) -> None:
+    """(the step-4 verifier's round, its FAILURE: "Step 3.2 finding 4 ... is NOT fixed: ... the churn is still there")
+    SCENEX's start and seed from a COPY whose decisions are never carried on (`CHURN_MUTATION`: the step-3.2 rule): SCENEX's
+    own churn check (`check_churn`, its pre-registered `CHURN_BOUNDS`) must FAIL here, and the A/B against SCENEX shows the
+    difference: the decisions, the one-step walks, and the VISIBLE COST, which the fix must not raise (every journey's
+    steps beyond the shortest known way, and the steps walked, against the revert's)."""
+    data = run.harness or {}
+    probe = Run(run.arm, records=run.records, world=run.world)
+    check_churn(probe, None, CHURN_BOUNDS[run.arm.base])
+    ok, text = probe.checks[-1] if probe.checks else (True, "no check ran")
+    c = churn(run)
+    run.measure("churn", [c["decisions"], c["on_the_move"], c["carried"], c["walks"], c["ones"]])
+    run.measure("journey_all", [c["journey_all_walked"], c["journey_all_excess"]])
+    run.check(str(data.get("reason", "")).startswith("explore: "), f"the run's outcome: {str(data.get('reason'))[:160]!r}")
+    run.check(not ok and c["carried"] == 0, f"HARM (finding 4 reverted, nothing carried on: {c['carried']}): "
+                                            f"{run.arm.base}'s churn check FAILS on this run: {text[:700]}")
+    if real is not None:
+        # ONE pair of trajectories (one seed): the claim here is the discriminator, the one-step walks and the decisions
+        # made ON THE MOVE; the cost (journeys, steps) of one pair is reported, its frequency is the sweep's CHURN A/B
+        # (`rate_step3.py`, its cost predicted there: the development pass of this arm found SCENEX's journeys 16 steps
+        # dearer with the carry-on and the sweep's 0.28 against 0.29, one pair is no measure of it)
+        mine = churn(real)
+        run.check(mine["ones"] * 3 <= c["ones"] and mine["on_the_move"] < c["on_the_move"],
+                  f"A/B on the same fixture and seed (the discriminator): ONE-STEP WALKS {mine['ones']} of {mine['walks']} with "
+                  f"the carry-on ({real.arm.name}), {c['ones']} of {c['walks']} without (want at most a third); decisions ON THE "
+                  f"MOVE {mine['on_the_move']} with ({mine['carried']} places carried on), {c['on_the_move']} without (want "
+                  f"fewer); reported: decisions in all {mine['decisions']} with, {c['decisions']} without; every journey's steps "
+                  f"beyond the shortest known way {mine['journey_all_excess']} of {mine['journey_all_walked']} with, "
+                  f"{c['journey_all_excess']} of {c['journey_all_walked']} without; steps walked {mine['steps']} with, "
+                  f"{c['steps']} without")
+
+
+def errand_walk(run: Run, number: int) -> list[tuple[int, int]]:
+    """(the step-4 verifier's round) The AI's own confirmed steps (`walk_stretches`) from its decision "errand N of ..." to
+    its next decision, as the tiles walked onto."""
+    decides = [r for r in run.records if r.get("decision") == "decide"]
+    at = next((i for i, r in enumerate(decides) if str(r.get("reason", "")).startswith(f"errand {number} of ")), None)
+    if at is None:
+        return []
+    first = int(decides[at]["frame"])
+    until = int(decides[at + 1]["frame"]) if at + 1 < len(decides) else 10**12
+    return [tuple(xy) for stretch in walk_stretches(run) for (_, xy, frame) in stretch[1:] if first <= frame < until]
+
+
+def forgot(run: Run) -> list[dict]:
+    """The AI's own lines saying a bump was forgotten (`brain/navigator.py` walk_step: `forgot_bump`)."""
+    return [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("forgot_bump") is not None]
+
+
+def grade_FORGET(run: Run) -> None:
+    """(the step-4 verifier's round: "Findings 3 (bump forgotten) ... proven only by unit tests and mutants ... No live arm
+    walks back through a bumped way") Live, through the launcher: the memory (the AI's own, `make_step32_fixtures.py`) holds
+    the tile (0, 5) learned blocked going DOWN and going UP (planted: as if someone had stood there). Errand 2 goes INTO it
+    from above, the only way not dearer (a retry: `BUMP_RETRY_COST`), the GAME lets the player in (its position), and the
+    AI forgets that bump (its own line); errand 4 goes PAST it: through (0, 5), 2 steps, where with the bump remembered the
+    way round is 6 (the revert FORGETR). The bump going UP, never walked, stays."""
+    grade_common(run, "goto: done: walk to")
+    planted = ((json.loads(FIXTURES["house_2f_bumps.world.jsonl"][0].read_text(encoding="utf-8").splitlines()[-1])["maps"]
+                .get("1:1") or {}).get("bumped") or {})
+    run.check(sorted(planted) == ["0,5|down", "0,5|up", "1,4|down"],
+              f"NON-VACUITY (the memory loaded): the room's bumps {sorted(planted)} (the AI's own (1, 4) going down, and the two "
+              f"planted on {FORGET_TILE}: {[(k, v.get('planted', '')[:30]) for k, v in planted.items() if v.get('planted')]})")
+    lines = forgot(run)
+    run.check([((r.get("extra") or {}).get("forgot_bump"), (r.get("extra") or {}).get("direction")) for r in lines]
+              == [(list(FORGET_TILE), "down")],
+              f"FORGOTTEN, by the AI's own line, once: {[str(r.get('reason'))[:120] for r in lines] or 'NONE'}")
+    second, fourth = errand_walk(run, 2), errand_walk(run, 4)
+    run.check(second == [FORGET_TILE] and fourth == [FORGET_TILE, FORGET_PAST],
+              f"THE WAY USED, by the looks: errand 2 walked {second} (want into {FORGET_TILE} from above: the retry); errand 4 "
+              f"walked {fourth} (want straight through {FORGET_TILE} to {FORGET_PAST}: 2 steps, the bump forgotten)")
+    after = run.after or {}
+    run.check(after.get("map") == HOUSE_2F and after.get("pos") == list(FORGET_PAST),
+              f"TRUTH (save block 1): map {after.get('map')} (the player's 2F {HOUSE_2F}) at {after.get('pos')} (want "
+              f"{list(FORGET_PAST)}: the game put the player there, past the tile the memory had blocked)")
+    world = memory_of(run)
+    room = world.maps.get("1:1") if world is not None else None
+    kept = sorted(f"{xy[0]},{xy[1]}|{d}" for xy, d in (room.bumped if room is not None else {}))
+    run.check(kept == ["0,5|up", "1,4|down"],
+              f"THE MEMORY AT THE END: bumps {kept} (want the planted one going UP kept, never walked; the AI's own one-way tile "
+              f"(1, 4) going down kept: its side was never walked)")
+    run.measure("errand_steps", [len(second), len(fourth)])
+
+
+def grade_FORGETR(run: Run, real: Run | None) -> None:
+    """(the step-4 verifier's round) FORGET from a COPY whose bumps are never forgotten (`revert_step3.py` W64): errand 4 walks
+    ROUND the tile it has just walked through (6 steps), and the AI forgets nothing."""
+    data = run.harness or {}
+    fourth = errand_walk(run, 4)
+    run.check(str(data.get("reason", "")).startswith("goto: done") and not forgot(run) and len(fourth) >= 6
+              and FORGET_TILE not in fourth,
+              f"HARM (finding 3 reverted): nothing forgotten ({len(forgot(run))} lines); errand 4 walked {len(fourth)} steps "
+              f"{fourth} round the tile {FORGET_TILE} the player had just walked through (want >= 6, not through it); the outcome "
+              f"{str(data.get('reason'))[:100]!r}")
+    run.measure("errand_steps", [len(errand_walk(run, 2)), len(fourth)])
+    if real is not None:
+        mine = errand_walk(real, 4)
+        run.check(len(mine) < len(fourth), f"A/B on the same fixture, memory and seed: errand 4 {len(mine)} steps with the "
+                                           f"bump forgotten (FORGET), {len(fourth)} without")
+
+
+def grade_REOPEN(run: Run) -> None:
+    """(the step-4 verifier's round: "Findings ... 5 (doors reopen on visible news) are proven only by unit tests and
+    mutants ... No live arm ... meets a closed door") Live, through the launcher: the memory (the AI's own,
+    `make_step32_fixtures.py`) remembers May's house's door (14, 8) CLOSED (planted: as if it had not opened before), and
+    has heard no words. The twin's "Um, um, um!" is words never read before: NEWS a person sees; the AI says the door is
+    worth a try again, and only then goes through it (the game's map change), meets May, and gets past the twin to Route
+    101, where the game's answer is THE ARRIVAL. The revert REOPENR (news reopens nothing) never goes in."""
+    grade_common(run, "explore: done: explore to ROUTE101")
+    reopened = [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("reopened") == list(REOPEN_DOOR)]
+    n = names(run)
+    through = [t for t in transitions(run) if n.get(t[1]) == "LITTLEROOT_TOWN" and t[3] == "warp" and t[5] == list(REOPEN_DOOR)]
+    first = reopened[0]["frame"] if reopened else None
+    run.check(len(reopened) == 1 and "news since it was found closed" in str(reopened[0].get("reason"))
+              and "words never read before" in str(reopened[0].get("reason")),
+              f"REOPENED ON NEWS A PERSON SEES, by the AI's own line: {[(r['frame'], str(r.get('reason'))[:170]) for r in reopened] or 'NONE'}")
+    run.check(bool(through) and first is not None and all(t[0] > first for t in through) and through[0][4] == "ai",
+              f"THE DOOR USED ONLY AFTER: the AI's own warps through {list(REOPEN_DOOR)}: {[(t[0], n.get(t[2]), t[4]) for t in through] or 'NONE'} "
+              f"(want >= 1, every one after the line at f{first})")
+    before, after = run.before or {}, run.after or {}
+    run.check(before.get("VAR_LITTLEROOT_TOWN_STATE") == 0 and after.get("VAR_LITTLEROOT_TOWN_STATE") == 2
+              and after.get("map") == ROUTE101,
+              f"TRUTH (save block 1): VAR_LITTLEROOT_TOWN_STATE {before.get('VAR_LITTLEROOT_TOWN_STATE')} -> "
+              f"{after.get('VAR_LITTLEROOT_TOWN_STATE')} (want 0 -> 2: May met in her house, then the twin let the player pass), "
+              f"map {after.get('map')} (ROUTE101 {ROUTE101}) at {after.get('pos')}")
+    check_crop(run)
+    check_laps(run)
+
+
+def grade_REOPENR(run: Run, real: Run | None) -> None:
+    """(the step-4 verifier's round) REOPEN from a COPY where news reopens no door (`revert_step3.py` W46): May's door is never
+    tried again, May is never met, and the run never reaches Route 101."""
+    data = run.harness or {}
+    truth = data.get("truth") or {}
+    n = names(run)
+    through = [t for t in transitions(run) if n.get(t[1]) == "LITTLEROOT_TOWN" and t[3] == "warp" and t[5] == list(REOPEN_DOOR)]
+    reopened = [r for r in run.records if r.get("decision") == "world" and (r.get("extra") or {}).get("reopened") == list(REOPEN_DOOR)]
+    run.check(not through and not reopened and truth.get("map") != ROUTE101 and truth.get("VAR_LITTLEROOT_TOWN_STATE") == 0
+              and str(data.get("reason", "")).startswith("explore: stuck"),
+              f"HARM (finding 5 reverted: news reopens nothing): May's door reopened {len(reopened)} times, used {len(through)}; "
+              f"the run {str(data.get('reason'))[:110]!r} on {truth.get('map')} at {truth.get('pos')}, VAR_LITTLEROOT_TOWN_STATE "
+              f"{truth.get('VAR_LITTLEROOT_TOWN_STATE')} (want 0: May never met)")
+    if real is not None:
+        run.check((real.after or {}).get("map") == ROUTE101 and truth.get("map") != ROUTE101,
+                  f"A/B on the same fixture, memory and seed: with news reopening the door REOPEN reached "
+                  f"{(real.after or {}).get('map')} (ROUTE101), without on {truth.get('map')}")
+
+
 def grade_EDGER(run: Run, town: Run | None) -> None:
     """(the step-3.1 verifier's round: "the live check 'NO ROAD BEFORE A CROSSING' never fires") TOWN's start and seed
     from a COPY with finding 1 reverted (a map's top and left ends from negative coordinates): the same live check FAILS."""
@@ -2250,13 +3133,18 @@ def grade_EDGER(run: Run, town: Run | None) -> None:
     run.notes.append(f"the run's outcome: {str(data.get('reason'))[:200]!r}")
 
 
-def grade_ROUTE9(run: Run) -> None:
+def grade_ROUTE9(run: Run, route: Run | None = None) -> None:
     """(the step-3.1 verifier's round: "ROUTE seed 3 no longer meets a wild battle, so fleeing is proven live only by
-    ROAM") ROUTE at seed 9, through the launcher: its every check, and a wild battle MET (and fled)."""
+    ROAM") ROUTE at seed 9, through the launcher: its every check, and a wild battle MET (and fled). (Build step 3.2: the
+    trajectories moved: ROUTE at seed 3 now meets one and ROUTE9 none, so the non-vacuity is over the PAIR, ROUTE and
+    ROUTE9 of this session, each battle met fled and counted by the game in its own arm's check.)"""
     grade_ROUTE(run)
-    met = [line for line in world_lines(run) if line.startswith("[AI-WORLD] battle:")]
+    mine = [line for line in world_lines(run) if line.startswith("[AI-WORLD] battle:")]
+    theirs = [line for line in world_lines(route) if line.startswith("[AI-WORLD] battle:")] if route is not None else []
+    met = mine + theirs
     run.check(len(met) >= 1 and all(line.startswith("[AI-WORLD] battle: fled") for line in met),
-              f"NON-VACUITY of the flee check: {len(met)} wild battle(s) met on this trajectory, each fled: {met}")
+              f"NON-VACUITY of the flee check, over ROUTE (seed {SEED}) and ROUTE9 (seed {run.arm.run_seed}): {len(theirs)} + "
+              f"{len(mine)} wild battle(s) met, each fled: {met}")
 
 
 def grade_EXITS(run: Run) -> None:
@@ -2293,17 +3181,23 @@ def grade_EXITS(run: Run) -> None:
 
 GRADERS = {"HOUSE": grade_HOUSE, "TOWN": grade_TOWN, "ROUTE": grade_ROUTE, "ROAM": grade_ROAM, "STUCK": grade_STUCK,
            "BUMP": grade_BUMP, "BUMPR": grade_BUMPR, "TRN": grade_TRN, "XP": grade_XP, "SCENE": grade_SCENE, "EXITS": grade_EXITS,
-           "SCENEX": grade_SCENEX, "TOWN9": grade_TOWN, "ROUTE9": grade_ROUTE9,
+           "SCENEX": grade_SCENEX, "TOWN9": grade_TOWN,
            # the step-3.1 verifier's second round
            "WARPREAD": grade_WARPREAD, "HOUSE9": grade_HOUSE, "BUMP8": grade_BUMP, "SCENEX9": grade_SCENEX,
-           "CLOCKS": grade_CLOCKS}
+           "CLOCKS": grade_CLOCKS,
+           # the step-4 verifier's round
+           "FORGET": grade_FORGET, "REOPEN": grade_REOPEN}
 #: Graders that compare with another arm of the same session (the arm named): a fault arm or a revert and its real arm.
 PAIRED = {"CROP": (grade_CROP, "TOWN"), "XPR": (grade_XPR, "XP"), "SCENER": (grade_SCENER, "SCENE"),
           "SCENEXR": (grade_SCENEXR, "SCENEX"), "HOUSER": (grade_REVR, "HOUSE"), "TOWNR": (grade_REVR, "TOWN"),
           "ROUTER": (grade_REVR, "ROUTE"), "EDGER": (grade_EDGER, "TOWN"),
           # the step-3.1 verifier's second round
           "BUMPSR": (grade_BUMPSR, "BUMP"), "BUMPSR8": (grade_BUMPSR, "BUMP8"), "TOWN9R": (grade_REVR, "TOWN9"),
-          "ROUTE9R": (grade_REVR, "ROUTE9"), "SCENENR": (grade_SCENENR, "SCENEX")}
+          "ROUTE9R": (grade_REVR, "ROUTE9"), "SCENENR": (grade_SCENENR, "SCENEX"),
+          # build step 3.2
+          "SCENEXL": (grade_LAPR, "SCENEX"), "ROUTE9": (grade_ROUTE9, "ROUTE"),
+          # the step-4 verifier's round
+          "SCENEXC": (grade_CHURNR, "SCENEX"), "FORGETR": (grade_FORGETR, "FORGET"), "REOPENR": (grade_REOPENR, "REOPEN")}
 #: Graders of the whole session (every run graded before them): FINDING 2's A/B over its pairs.
 SUMMARIES = {"F2AB": grade_F2AB}
 

@@ -37903,3 +37903,27 @@ bought balls only at fixed story points.
   - MEDIUM: the AI changes target almost every step (22 of 23 dropped as stale).
   - LOW: doors reopen on hidden story-flag counts.
   - Also: SCENE-EXPLORE's reversals (1.23 per 100 steps) are outside the bounds; the warp guard's behavioural half is live-only.
+
+## 2026-10-09 — AI player step 3.2 (no laps, a lap metric, forgetting bumps, target carry-on) and step 4 (BATTLES: knowledge data, a type/move-type/recoil-aware decider, wild fight/run/catch, trainer battles, prompts), all suites PASS; a checkpoint before step 4.1
+
+- **Step 3.2:**
+  - The turn-back cost is charged once per decision (SCENEX: 2 steps beyond the shortest known way, against 48 for the 3.1 rule).
+  - New lap and steps-vs-shortest metrics; bumps cleared after walking through; target CARRY-ON.
+  - Also fixed: a doormat exit counted twice; stairs ping-pong.
+  - SCENE-EXPLORE reaches Route 101 on 20 of 20 development seeds.
+- **Step 4:**
+  - `ai_player/knowledge/` holds extracted data (type chart, moves with recoil flags, species types) with provenance.
+  - `brain/battle.py` decides by type effectiveness x STAB x power x accuracy, with a recoil penalty (the decomp's RECOIL_25, RECOIL_33 and RECOIL_IF_MISS verified via gh api) and personality-weighted picks.
+  - `skills/battle.py` drives the battle menus with gated text, and handles faint, switch, learn and evolve.
+  - `live_step4.py`: WILD win, CATCH (a new PID with the player's OT), TRAINER, RIVAL, TYPE (Absorb vs Geodude 10/10; with types ignored 0/30), FAINT and LEARN arms, all PASS.
+- **Final tree `7b4322c9ac0df2e1`:** every suite PASS; 120 evidence files name it. Two held-out sweeps (seeds never used in development) say FAIL on older predictions and two vacuous checks, and were left in the evidence unloosened.
+- **Open: step 4.1, from the verifier and the adversarial review:**
+  - HIGH: the SHIFT prompt is answered about the FAINTED foe (`gBattleMons` still holds it); this hits every multi-Pokémon trainer.
+  - HIGH: a DISABLED move loops to a bounded failure (150 menus).
+  - MEDIUM: switch, heal and run have never run live. The RIVAL win rate is 2 of 10 and no item was ever used.
+  - MEDIUM: hidden information: catch rate, an exact damage formula with an 8% KO margin, live types.
+  - MEDIUM: robotic battling ("clearly the best" 307 of 550; no status moves; no sleep or paralysis to help a catch).
+  - Overkill is valued, so Take Down beat Water Gun where both KO.
+  - The churn fix mostly relabels decisions, and TOWN-Trainer's journey share of 0.45 sits against a loose 0.5 bound; CROP laps are unbounded.
+  - The TYPE proof rests on one matchup's A/B.
+- **Process change (coordinator):** each workflow fix round re-ran EVERY suite of every step, about 10+ hours per step. From step 4.1, fix rounds re-run only the affected suites, and the full regression runs once, at the end, on the final tree.

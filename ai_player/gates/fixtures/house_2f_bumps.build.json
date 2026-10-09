@@ -1,0 +1,128 @@
+{
+ "world": "ai_player\\gates\\fixtures\\house_2f_bumps.world.jsonl",
+ "from": "ai_player\\gates\\fixtures\\house_2f_clockset.ss1",
+ "from_md5": "2cc0b61450870d34646f7583bfd0c787",
+ "played": "the AI's own navigator (hands_harness run: brain goto, errand (0, 4), Story, seed 3, clock pinned 2026-10-08T06:00)",
+ "reason": "goto: done: walk to [(0, 4)] (7 steps, 1 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 250 tiles learned)",
+ "frames": 171,
+ "presses": 17,
+ "truth": {
+  "frame": 15439,
+  "game_state": "OVERWORLD",
+  "name": "Rowan",
+  "name_bytes": "cce3ebd5e2ffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   1,
+   1
+  ],
+  "party": [],
+  "party_exp": [],
+  "party_moves": [],
+  "party_ot": [],
+  "player_tid": 34234,
+  "battle_outcome": 0,
+  "trainer_defeated": {
+   "322": false,
+   "280": false,
+   "617": false,
+   "631": false,
+   "754": false,
+   "753": false,
+   "529": false,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": false,
+   "333": false,
+   "615": false,
+   "603": false
+  },
+  "boxes": [],
+  "money": 3000,
+  "balls": {},
+  "flags": {
+   "RESCUED_BIRCH": false,
+   "SYS_POKEMON_GET": false,
+   "DEFEATED_RIVAL_ROUTE103": false,
+   "RECEIVED_POKEDEX_FROM_BIRCH": false,
+   "SYS_POKEDEX_GET": false,
+   "ADVENTURE_STARTED": false,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": false,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 6,
+  "VAR_LITTLEROOT_TOWN_STATE": 0,
+  "gLocalTime": [
+   0,
+   13,
+   37,
+   3
+  ],
+  "localTimeOffset": [
+   9777,
+   12,
+   21,
+   6
+  ],
+  "pos": [
+   0,
+   4
+  ],
+  "game_stats": {
+   "steps": 15,
+   "total_battles": 0,
+   "wild_battles": 0,
+   "trainer_battles": 0
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "planted": {
+  "0,5|down": {
+   "from": [
+    0,
+    4
+   ],
+   "direction": "down",
+   "first": 15439,
+   "bumps": 1,
+   "last": 15439,
+   "planted": "test side (make_step32_fixtures.py): as if someone had stood there"
+  },
+  "0,5|up": {
+   "from": [
+    0,
+    6
+   ],
+   "direction": "up",
+   "first": 15439,
+   "bumps": 1,
+   "last": 15439,
+   "planted": "test side (make_step32_fixtures.py): as if someone had stood there"
+  }
+ },
+ "tile_known_walkable": true,
+ "bumps_in_memory": [
+  "0,5|down",
+  "0,5|up",
+  "1,4|down"
+ ],
+ "md5": "7a5b6e187fbc45ee200de9f9c20212c0",
+ "ok": true
+}

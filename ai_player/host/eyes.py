@@ -72,6 +72,18 @@ screen shows it). The table is read on the TEST side only (`gates/live_step3.py`
 guard (the step-3.1 verifier's second round) is behavioural too: `gates/warp_reads.py` (arm WARPREAD) records every read
 these eyes make and checks none touches any map's warp array, whatever the code that asked for it looks like.
 
+BUILD STEP 4 (the AI's own battles), READ ONLY, no new door (the doors of steps 1-3; `eyes/screens.py` has the decomp
+source of every rule):
+  * the MOVE grid, the TARGET choice of a double battle and the battle's YES/NO (`_battle_menus`: the controller function
+    of the battler whose turn it is, NAMED through `get_symbol_name`, and its cursor byte), for each battler at its
+    POSITION (0 and 2 in a double battle, from `gBattlersCount`);
+  * a battle-script command that waits for a key with no text printer waiting (`_battle_script_opcode`, `_battle_wait`:
+    the level-up stats box) and the evolution scene's and the summary screen's move-forget states (`_evolution_yes_no`,
+    `_move_forget`), so every press in a battle has its gate;
+  * the bag's ITEM LIST by pocket and the party menu's action list (`_pocket_items`, `_bag_actions`, `_party_actions`),
+    read only while their input task runs; a party Pokemon's five STATS (`MonSummary.stats`, bytes 90-98 of the party
+    record `_party` already reads) and each battler's PID and position (`BattleMon.pid`, `.battler`).
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -106,7 +118,15 @@ from ai_player.eyes.observation import (
     Tile,
     View,
 )
-from ai_player.eyes.screens import SCENE_CALLBACKS, decode_text, read_ui, scene_of, task_wait
+from ai_player.eyes.screens import (
+    BATTLE_SCRIPT_WAITS,
+    BATTLE_YES_NO_OPCODES,
+    SCENE_CALLBACKS,
+    decode_text,
+    read_ui,
+    scene_of,
+    task_wait,
+)
 from ai_player.eyes.view import (
     BADGE_FLAGS,
     DOOR_BEHAVIORS,
@@ -213,6 +233,26 @@ ITEMS_COUNT, MAX_SPRITES = 377, 64
 #: the 16 MiB cartridge (pret/pokeemerald `pokeemerald.gba` is 16,777,216 bytes) or inside EWRAM first.
 ROM_START, ROM_END = 0x08000000, 0x09000000
 EWRAM_START, EWRAM_END = 0x02000000, 0x0203FFFF
+#: BUILD STEP 4 (`eyes/screens.py` module docstring has the decomp source of each). `include/battle.h` struct
+#: BattleScripting: drawlvlupboxState @0x1E, learnMoveState @0x1F (`sLVLBOX_STATE`, `sLEARNMOVE_STATE`).
+BATTLE_SCRIPTING_LVLUP_BOX_STATE, BATTLE_SCRIPTING_LEARN_MOVE_STATE = 0x1E, 0x1F
+#: `src/evolution_scene.c`: tState EVOSTATE_REPLACE_MOVE, tLearnMoveState MVSTATE_HANDLE_YES_NO.
+EVOSTATE_REPLACE_MOVE, MVSTATE_HANDLE_YES_NO = 22, 4
+#: `src/pokemon_summary_screen.c` struct PokemonSummaryScreenData: summary.moves @0x84 (0x70 + 0x14), newMove @0x40C4,
+#: firstMoveIndex @0x40C6 (0xBC + 4 pages x 2 x 0x400 u16 tilemap buffers = 0x40BC, then mode ... newMove).
+SUMMARY_MOVES, SUMMARY_NEW_MOVE = 0x84, 0x40C4
+#: `src/party_menu.c` struct PartyMenuInternal: task @0, exitCallback @4, a u32 of bit-fields @8, windowId[3] @0xC,
+#: actions[8] @0xF, numActions @0x17.
+PARTY_INTERNAL_ACTIONS = 0x0F
+#: `include/item_menu.h` struct BagMenu: newScreenCallback @0, tilemapBuffer[0x800] @4, spriteIds[12] @0x804,
+#: windowIds[10] @0x810, toSwapPos @0x81A, a bit-field byte @0x81B, unused1[2] @0x81C, two task ids @0x81E,
+#: contextMenuItemsPtr @0x820, contextMenuItemsBuffer[4] @0x824, contextMenuNumItems @0x828.
+BAG_MENU_CONTEXT_ITEMS = 0x820
+#: The bag's action-list tasks (`src/item_menu.c`): their cursor is `sMenu`'s.
+_BAG_ACTION_TASKS = frozenset({"Task_ItemContext_SingleRow", "Task_ItemContext_MultipleRows"})
+#: The player's battle controller functions that take input (`src/battle_controller_player.c`), upper case as named.
+_PLAYER_INPUT_FUNCTIONS = frozenset({"HANDLEINPUTCHOOSEACTION", "HANDLEINPUTCHOOSEMOVE", "HANDLEINPUTCHOOSETARGET",
+                                     "PLAYERHANDLEYESNOINPUT"})
 #: The framework's StatusCondition names, as the eyes name them (`eyes/view.py` status_name).
 _BATTLE_STATUS = {
     "Healthy": "ok", "Sleep": "sleep", "Poison": "poison", "Burn": "burn", "Freeze": "freeze",
@@ -373,6 +413,8 @@ class FrameworkEyes:
         reason = self._guarded("button wait", problems, self._waits_for_button)
         if reason is None:
             reason = task_wait(tasks)  # build step 2: a task polling A/B with no text printer waiting
+        if reason is None and game_state == "BATTLE":
+            reason = self._guarded("battle wait", problems, self._battle_wait)  # build step 4: the level-up stats box
         kind, menu = classify_screen(game_state, in_battle, text_box_mode, tasks)
         # STEP 2.1: what a person sees when nothing takes input (`eyes/screens.py` scene_of): a fade, and the scene.
         # Read BEFORE the menu since the step-2 review (item 4): while a fade runs nothing takes input
@@ -442,28 +484,142 @@ class FrameworkEyes:
             pocket = position[5]
             if pocket < 5:
                 raw["bag"] = {"pocket": pocket, "cursor": _u16(position, 8 + 2 * pocket),
-                              "scroll": _u16(position, 0x12 + 2 * pocket)}
+                              "scroll": _u16(position, 0x12 + 2 * pocket),
+                              "items": self._pocket_items(pocket)}  # build step 4: the list as shown
+            if tasks.keys() & _BAG_ACTION_TASKS:
+                raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
+                raw["bag_action"] = {"actions": self._bag_actions()}
         if game_state == "PARTY_MENU":
             slot = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 1)[0]
             raw["party_slot"] = slot - 256 if slot >= 128 else slot
+            raw["party_tasks_known"] = True  # build step 4: the list takes input only while its task runs
+            if "Task_HandleSelectionMenuInput" in tasks:
+                raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
+                raw["party_action"] = {"actions": self._party_actions()}
         if game_state == "BATTLE":
-            raw["battle_action"] = self._battle_action()
+            raw.update(self._battle_menus(fading))
+        if game_state == "EVOLUTION" and "Task_EvolutionScene" in tasks:
+            raw["battle_yes_no"] = self._evolution_yes_no(tasks["Task_EvolutionScene"], fading)
+        if game_state == "POKEMON_SUMMARY_SCREEN" and "Task_HandleReplaceMoveInput" in tasks:
+            raw["move_forget"] = self._move_forget(fading)
         return read_ui(game_state, tasks, raw)
 
-    @staticmethod
-    def _battle_action() -> dict:
-        """BUILD STEP 3 (read only): the battle's action menu (`eyes/screens.py`). The player's battler is 0
-        (`B_POSITION_PLAYER_LEFT`); its controller function is `gBattlerControllerFuncs[0]`, NAMED by the symbol table
-        at its address (the thumb bit off: `get_symbol_name`, the step-3 door; `get_symbol` cannot be used, the name
-        is static in two files, the gate's door says which), and the menu takes input while it is
-        `HandleInputChooseAction`; the cursor is `gActionSelectionCursor[0]`. A Safari battle's controller has a
-        function of the same name for ITS menu (BALL / POKéBLOCK / GO NEAR / RUN), so a Safari battle is not this
-        menu (`gBattleTypeFlags` BATTLE_TYPE_SAFARI)."""
-        function = _u32(read_symbol("gBattlerControllerFuncs", 0, 4), 0)
+    # ------------------------------------------------------------------ build step 4: the battle's menus (read only)
+    def _battle_menus(self, fading: bool) -> dict:
+        """The battle's ACTION menu (build step 3), its MOVE grid and its YES/NO box (`eyes/screens.py` module docstring
+        has the decomp source of each). One name lookup of the player's controller function (`get_symbol_name`, the
+        step-3 door) serves all three; the yes/no of a battle SCRIPT is told by the opcode the script engine stands on
+        (`gBattlescriptCurrInstr`, a ROM pointer, range-checked) and that command's own input state.
+
+        THE ACTION MENU (build step 3, read only): the player's battler is 0 (`B_POSITION_PLAYER_LEFT`); its controller
+        function is `gBattlerControllerFuncs[0]`, NAMED by the symbol table at its address (the thumb bit off:
+        `get_symbol_name`; `get_symbol` cannot be used, the name is static in two files, the gate's door says which), and
+        the menu takes input while it is `HandleInputChooseAction`; the cursor is `gActionSelectionCursor[0]`. A Safari
+        battle's controller has a function of the same name for ITS menu (BALL / POKéBLOCK / GO NEAR / RUN), so a Safari
+        battle is not this menu (`gBattleTypeFlags` BATTLE_TYPE_SAFARI)."""
         safari = bool(_u32(read_symbol("gBattleTypeFlags", size=4), 0) & BATTLE_TYPE_SAFARI)
-        name = get_symbol_name(function & ~1) if function else ""
-        return {"choosing": name.upper() == "HANDLEINPUTCHOOSEACTION" and not safari,
-                "cursor": read_symbol("gActionSelectionCursor", 0, 1)[0]}
+        funcs = read_symbol("gBattlerControllerFuncs", 0, 16)
+        # the player's battlers: 0 (left, the only one in a single battle) and 2 (right, a double battle's second);
+        # the one whose controller runs an INPUT function is the one choosing (`src/battle_controller_player.c`)
+        battler, name = 0, ""
+        count = read_symbol("gBattlersCount", size=1)[0]  # 2 in a single battle: battler 2's slot may hold an old function
+        for position in ((0, 2) if count > 2 else (0,)):
+            function = _u32(funcs, 4 * position)
+            found = (get_symbol_name(function & ~1) if function else "").upper()
+            if found in _PLAYER_INPUT_FUNCTIONS:
+                battler, name = position, found
+                break
+        out = {"battle_action": {"choosing": name == "HANDLEINPUTCHOOSEACTION" and not safari,
+                                 "cursor": read_symbol("gActionSelectionCursor", battler, 1)[0], "battler": battler}}
+        if name == "HANDLEINPUTCHOOSEMOVE" and not safari:
+            battling = get_battle_state().battling_pokemon
+            moves = [slot.move.name if slot is not None else "" for slot in battling[battler].moves] if battler < len(battling) else []
+            out["battle_move"] = {"choosing": True, "cursor": read_symbol("gMoveSelectionCursor", battler, 1)[0],
+                                  "moves": moves, "battler": battler}
+        if name == "HANDLEINPUTCHOOSETARGET" and not safari:
+            battling = get_battle_state().battling_pokemon
+            out["battle_target"] = {"choosing": True, "cursor": read_symbol("gMultiUsePlayerCursor", size=1)[0],
+                                    "names": [mon.species.name for mon in battling], "battler": battler}
+        if name == "PLAYERHANDLEYESNOINPUT":
+            out["battle_yes_no"] = {"open": True, "cursor": read_symbol("gMultiUsePlayerCursor", size=1)[0],
+                                    "accepts": not fading, "source": "the player's battle controller"}
+            return out
+        opcode, _ = self._battle_script_opcode()
+        if opcode in BATTLE_YES_NO_OPCODES:
+            communication = read_symbol("gBattleCommunication", 0, 2)
+            if opcode in (0x5A, 0x5B):
+                state = read_symbol("gBattleScripting", BATTLE_SCRIPTING_LEARN_MOVE_STATE, 1)[0]
+            else:
+                state = communication[0]
+            if state == 1:
+                out["battle_yes_no"] = {"open": True, "cursor": communication[1], "accepts": not fading,
+                                        "source": f"the battle script's {BATTLE_YES_NO_OPCODES[opcode]}"}
+        return out
+
+    @staticmethod
+    def _battle_script_opcode() -> tuple[int | None, int]:
+        """(the opcode at `gBattlescriptCurrInstr`, the pointer), or (None, pointer) when it does not point into the ROM."""
+        pointer = _u32(read_symbol("gBattlescriptCurrInstr", size=4), 0)
+        if not ROM_START <= pointer < ROM_END:
+            return None, pointer
+        return _rom_bytes(pointer, 1)[0], pointer
+
+    def _battle_wait(self) -> str | None:
+        """BUILD STEP 4: a battle-script command that waits for a key with no text printer waiting (`eyes/screens.py`
+        BATTLE_SCRIPT_WAITS: the level-up stats box), as a wait reason; None otherwise."""
+        opcode, _ = self._battle_script_opcode()
+        if opcode not in BATTLE_SCRIPT_WAITS:
+            return None
+        states, what = BATTLE_SCRIPT_WAITS[opcode]
+        if read_symbol("gBattleScripting", BATTLE_SCRIPTING_LVLUP_BOX_STATE, 1)[0] in states:
+            return what
+        return None
+
+    @staticmethod
+    def _evolution_yes_no(data: bytes, fading: bool) -> dict:
+        """The evolution scene's learn-a-move yes/no (`src/evolution_scene.c`): Task_EvolutionScene's tState data[0] ==
+        EVOSTATE_REPLACE_MOVE (22) and tLearnMoveState data[6] == MVSTATE_HANDLE_YES_NO (4); cursor gBattleCommunication[1]."""
+        if _s16(data, 0) != EVOSTATE_REPLACE_MOVE or _s16(data, 12) != MVSTATE_HANDLE_YES_NO:
+            return {"open": False}
+        return {"open": True, "cursor": read_symbol("gBattleCommunication", 1, 1)[0], "accepts": not fading,
+                "source": "the evolution scene"}
+
+    @staticmethod
+    def _move_forget(fading: bool) -> dict:
+        """The summary screen's forget-a-move list (`src/pokemon_summary_screen.c` struct PokemonSummaryScreenData through
+        the pointer `sMonSummaryScreen`: summary.moves[4] @0x84, newMove @0x40C4, firstMoveIndex @0x40C6), the move names
+        from the game's table (`get_move_by_index`, a lookup)."""
+        pointer = _u32(read_symbol("sMonSummaryScreen", size=4), 0)
+        block = _ewram_bytes(pointer + SUMMARY_MOVES, 8)
+        tail = _ewram_bytes(pointer + SUMMARY_NEW_MOVE, 4)
+        ids = [_u16(block, 2 * i) for i in range(4)] + [_u16(tail, 0)]
+        return {"moves": [get_move_by_index(i).name if i else "" for i in ids], "cursor": tail[2], "accepts": not fading}
+
+    @staticmethod
+    def _party_actions() -> list[int]:
+        """`src/party_menu.c` struct PartyMenuInternal (through `sPartyMenuInternal`): actions[8] @0xF, numActions @0x17."""
+        pointer = _u32(read_symbol("sPartyMenuInternal", size=4), 0)
+        block = _ewram_bytes(pointer + PARTY_INTERNAL_ACTIONS, 9)
+        return list(block[:min(block[8], 8)])
+
+    @staticmethod
+    def _bag_actions() -> list[int]:
+        """`include/item_menu.h` struct BagMenu (through `gBagMenu`): contextMenuItemsPtr @0x820 (a ROM table, or the
+        EWRAM buffer @0x824), contextMenuNumItems @0x828."""
+        pointer = _u32(read_symbol("gBagMenu", size=4), 0)
+        block = _ewram_bytes(pointer + BAG_MENU_CONTEXT_ITEMS, 9)
+        items, count = _u32(block, 0), min(block[8], 6)
+        if ROM_START <= items < ROM_END:
+            return list(_rom_bytes(items, count))
+        return list(_ewram_bytes(items, count))
+
+    @staticmethod
+    def _pocket_items(pocket: int) -> list[str]:
+        """The open pocket's items as the bag LISTS them: its slots holding something, in order (`get_item_bag`, the
+        step-1 door: save block 1's pockets, a decode)."""
+        bag = get_item_bag()
+        slots = (bag.items, bag.poke_balls, bag.tms_hms, bag.berries, bag.key_items)[pocket]
+        return [slot.item.name for slot in slots if slot.quantity > 0]
 
     def _naming(self, tasks: dict[str, bytes]) -> dict | None:
         """`src/naming_screen.c` struct NamingScreenData (via the pointer `sNamingScreen`), and the cursor
@@ -815,7 +971,7 @@ class FrameworkEyes:
             slot=slot, species=species.name, dex=species.national_dex_number, level=raw.level, hp=raw.hp,
             max_hp=raw.max_hp, status=status_name(raw.status_bits), types=tuple(t.name for t in species.types),
             moves=tuple(moves), pid=raw.personality, ot_id=visible_id(raw.ot_id), is_egg=raw.is_egg,
-            experience=raw.experience,
+            experience=raw.experience, stats=raw.stats,
         )
 
     # ------------------------------------------------------------------ the PC boxes
@@ -876,18 +1032,26 @@ class FrameworkEyes:
         trainer = bool(type_flags & BATTLE_TYPE_TRAINER)
         opponent = _u16(read_symbol("gTrainerBattleOpponent_A", size=2), 0) if trainer else None
         enemies = present_pids(read_symbol("gEnemyParty", size=PARTY_MON_SIZE * PARTY_SIZE))
+        # BUILD STEP 4: each battler's POSITION (the framework's `active_battlers` lists a side's present battlers in
+        # position order, 0 then 2 for the player, 1 then 3 for the foe, skipping an absent one: `gAbsentBattlerFlags`)
+        count = read_symbol("gBattlersCount", size=1)[0]
+        absent = read_symbol("gAbsentBattlerFlags", size=1)[0]
+        own_at = [p for p in (0, 2) if p < count and not absent & (1 << p)]
+        foe_at = [p for p in (1, 3) if p < count and not absent & (1 << p)]
+        own = [self._battle_mon(mon, own=True, battler=at) for mon, at in zip(state.own_side.active_battlers, own_at)]
+        foe = [self._battle_mon(mon, own=False, battler=at) for mon, at in zip(state.opponent.active_battlers, foe_at)
+               if mon.personality_value in enemies]
         return BattleView(
             kind="trainer" if trainer else "wild",
             double=state.is_double_battle,
             type_flags=type_flags,
             opponent_trainer_id=opponent,
-            own=tuple(self._battle_mon(mon, own=True) for mon in state.own_side.active_battlers),
-            foe=tuple(self._battle_mon(mon, own=False) for mon in state.opponent.active_battlers
-                      if mon.personality_value in enemies),
+            own=tuple(own),
+            foe=tuple(foe),
         )
 
     @staticmethod
-    def _battle_mon(mon, own: bool) -> BattleMon:
+    def _battle_mon(mon, own: bool, battler: int | None = None) -> BattleMon:
         """One battler. The player's OWN: its numbers and every move with PP (its healthbox and move menu
         show them). A FOE, as a person sees it (step 1.1): the HP BAR only (`hp`, `max_hp` None), and only
         the moves it has USED in this battle, with no PP (`eyes/view.py` foe_move_seen)."""
@@ -902,6 +1066,8 @@ class FrameworkEyes:
             hp=hp if own else None, max_hp=max_hp if own else None, hp_bar=hp_bar_pixels(hp, max_hp),
             status=_BATTLE_STATUS.get(mon.status_permanent.name, mon.status_permanent.name),
             types=tuple(t.name for t in mon.types), moves=moves,
+            pid=mon.personality_value if own else None,  # build step 4: which of the player's Pokemon is out
+            battler=battler,  # build step 4: where it stands
         )
 
 

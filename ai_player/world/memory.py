@@ -38,9 +38,20 @@ WHAT IT LEARNS, AND HOW
     look cannot say is learned by USING them: where one leads (the warp graph) and that a door-looking tile does
     not open (`MapMemory.closed`: pressed into properly, nothing happened). NOT FOR GOOD (the step-3.1 verifier: "a
     door found closed stays closed for good ... could permanently hide a door that a flag opens"): a closed door is
-    worth a try again once the STORY has moved on since it was found closed (one of the eyes' story flags newly set:
-    the events a player has seen) or after `CLOSED_RETRY_FRAMES` (a person tries a locked door again later). The
-    memory reopens it (`WorldMemory.observe`) and keeps what it reopened for the navigator to tell (`take_reopened`).
+    worth a try again once there is NEWS since it was found closed, or after `CLOSED_RETRY_FRAMES` (a person tries a
+    locked door again later). The memory reopens it (`WorldMemory.observe`) and keeps what it reopened for the navigator
+    to tell (`take_reopened`). NEWS (build step 3.2, the step-3.1 review's LOW finding 5: "doors reopen on hidden
+    story-flag counts"): what a PERSON could see change, never a count of the save's flags: words never read before on
+    the overworld (`heard`: a person who is told something new may find a door open), a map never stood on before, a
+    Pokemon of the player's never seen before (by PID). `news`, the count, and `heard` persist with the memory.
+  * BUMPS ARE FORGOTTEN (build step 3.2, the step-3.1 review's MEDIUM finding 3: "a bump is never forgotten after
+    walking through that way"): a step that gets the player into a tile going `d` deletes that tile's bump for `d`
+    (`forget_bump`, called by the navigator, which saw the step); a tile whose LOOK changes (its facts: `absorb`) drops
+    every bump learned there (what was learned was about the old tile), kept for the navigator to tell
+    (`take_dropped_bumps`).
+  * A DOORMAT IS ONE WAY OUT (the step-4 verifier's round): the tiles of an arrow mat side by side across its arrow, with
+    the same look (`mat_tiles`), lead where the tile used or arrived on leads (measured 2026-10-09: the explorer left May's
+    house by the mat's other tile, taken for an exit not used yet, before going upstairs to May).
   * Who caused a change: the AI's own step or warp (the navigator says what it is doing: `intend`), or a SCENE (a
     script moved the player: Mom sending you back upstairs), recorded as `by`.
 
@@ -55,6 +66,7 @@ import json
 from dataclasses import dataclass, field, replace
 
 from ai_player.eyes.observation import Observation, Tile
+from ai_player.eyes.screens import page_text
 from ai_player.eyes.view import VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_UP
 
 __all__ = [
@@ -63,6 +75,8 @@ __all__ = [
     "CLOSED_RETRY_FRAMES",
     "DIRECTIONS",
     "LEDGE_DIRECTIONS",
+    "MAT_ACROSS",
+    "MAT_WIDTH",
     "OPPOSITE",
     "MapMemory",
     "TileFact",
@@ -72,6 +86,7 @@ __all__ = [
     "in_window",
     "learn_edges",
     "map_key",
+    "mat_tiles",
     "moved",
     "past_edge",
     "read_world",
@@ -94,6 +109,33 @@ BUMP_GIVE_UP = 2
 #: (the step-3.1 verifier's round) Frames after which a door found closed is worth a try again even with no story news
 #: (36,000: ten minutes of play at 60 frames a second).
 CLOSED_RETRY_FRAMES = 36_000
+
+
+#: (the step-4 verifier's round) An arrow mat's look -> the axis it lies ACROSS (a south mat is a row of tiles side by side)
+MAT_ACROSS: dict[str, tuple[str, str]] = {"SOUTH_ARROW_WARP": ("left", "right"), "NORTH_ARROW_WARP": ("left", "right"),
+                                          "EAST_ARROW_WARP": ("up", "down"), "WEST_ARROW_WARP": ("up", "down")}
+#: The widest doormat a person takes for one way out (the game's are two tiles wide)
+MAT_WIDTH = 3
+
+
+def mat_tiles(memory: "MapMemory", xy: tuple[int, int]) -> list[tuple[int, int]]:
+    """(the step-4 verifier's round) The other tiles of the DOORMAT `xy` is part of, as a person sees it: tiles beside it
+    across its arrow (`MAT_ACROSS`), seen, with the same look, at most `MAT_WIDTH` in all. [] for anything that is not an
+    arrow mat (two doors side by side are two doors)."""
+    fact = memory.fact(xy)
+    sides = MAT_ACROSS.get(fact.behavior) if fact is not None else None
+    if not sides:
+        return []
+    out: list[tuple[int, int]] = []
+    for side in sides:
+        here = xy
+        while len(out) < MAT_WIDTH - 1:
+            here = moved(here, side)
+            other = memory.fact(here)
+            if other is None or other.behavior != fact.behavior:
+                break
+            out.append(here)
+    return out
 
 
 def map_key(group: int, number: int) -> str:
@@ -211,6 +253,8 @@ class MapMemory:
         self.edges: dict[str, int] = {}
         self.first_frame: int | None = None
         self.arrivals: list[list] = []  # [frame, x, y, how]
+        #: (build step 3.2) bumps dropped because their tile's look changed, not yet told: (frame, tile, directions)
+        self.dropped: list[tuple[int, tuple[int, int], list[str]]] = []
 
     # ------------------------------------------------------------------ facts
     def fact(self, xy: tuple[int, int]) -> TileFact | None:
@@ -274,6 +318,13 @@ class MapMemory:
                     new += 1
                 elif not old.same_as(fact):
                     self.tiles[xy] = replace(fact, seen_frame=old.seen_frame, seen_from=old.seen_from)
+                    # (build step 3.2) the tile looks different now (a script opened a door, moved a rock): what bumping
+                    # it taught was about the old tile
+                    sides = [direction for (where, direction) in self.bumped if where == xy]
+                    for direction in sides:
+                        del self.bumped[(xy, direction)]
+                    if sides:
+                        self.dropped.append((look.frame, xy, sorted(sides)))
         return new
 
     def see_objects(self, look: Observation) -> None:
@@ -370,9 +421,15 @@ class WorldMemory:
         self.transitions: list[Transition] = []
         self.tiles_learned = 0  # every tile ever learned, all maps (the navigator's NOVELTY counter)
         self.looks = 0
-        #: (the step-3.1 verifier's round) how many of the eyes' story flags were set on the last look that read them
-        #: (None until one did): a closed door is retried once this has grown since it was found closed
-        self.story: int | None = None
+        #: (build step 3.2, the step-3.1 review's finding 5: the closed doors reopened on a hidden count of story flags)
+        #: NEWS a person could see, counted: words never read before on the overworld, a map never stood on before, a
+        #: Pokemon never seen before; a closed door is retried once this has grown since it was found closed. `heard`: the
+        #: words read so far (persisted with `news`); `pids`: the Pokemon seen so far (the first look's are not news);
+        #: `news_log`: the newest news, what and when (for the navigator's line)
+        self.news = 0
+        self.heard: set[str] = set()
+        self.pids: set[int] | None = None
+        self.news_log: list[tuple[int, str]] = []
         #: closed doors reopened and not yet told: (frame, map key, tile, why) (`take_reopened`)
         self.reopened: list[tuple[int, str, tuple[int, int], str]] = []
         self._last = _Last()
@@ -439,9 +496,7 @@ class WorldMemory:
     def observe(self, look: Observation) -> None:
         """Learn from one look (called on EVERY look the hands take)."""
         self.looks += 1
-        progress = look.progress
-        if progress is not None:
-            self.story = sum(1 for _, on in progress.flags if on)
+        self._news(look)
         self._reopen(look.frame)
         player = look.player
         last = self._last
@@ -457,6 +512,8 @@ class WorldMemory:
         key = map_key(player.map_group, player.map_number)
         memory = self.maps.get(key)
         if memory is None:
+            if self.maps:
+                self._tell_news(look.frame, f"a new place: {player.map_const or player.map_name or key}")
             memory = self.maps[key] = MapMemory(key, player.map_name, player.map_const)
             memory.first_frame = look.frame
         xy = (player.x, player.y)
@@ -497,6 +554,12 @@ class WorldMemory:
                          "inferred": False})
             link["uses"] = int(link.get("uses", 0)) + 1
             self.warps[name] = link
+            # (the step-4 verifier's round) the rest of the DOORMAT used leads where it led (`mat_tiles`)
+            for xy_mat in mat_tiles(source, tile):
+                other = f"{last.key}|{_text(xy_mat)}"
+                if other not in self.warps:
+                    self.warps[other] = {"to": key, "arrival": list(xy), "direction": direction, "uses": 0, "by": "inferred",
+                                         "first": look.frame, "last": look.frame, "inferred": True}
             change = Transition(look.frame, last.key, key, "warp", by, tile, xy, direction)
             memory.arrivals.append([look.frame, xy[0], xy[1], f"warp from {source.const or last.key} {tile}"])
             self._infer_way_back(look, key, xy, memory, last.key, tile)
@@ -525,11 +588,16 @@ class WorldMemory:
         for xy_back in candidates:
             fact = memory.fact(xy_back)
             if fact is not None and (fact.warp or fact.door):
-                name = f"{key}|{_text(xy_back)}"
-                if name not in self.warps:
-                    self.warps[name] = {"to": source, "arrival": list(tile) if tile else None, "direction": None,
-                                        "uses": 0, "by": "inferred", "first": look.frame, "last": look.frame,
-                                        "inferred": True}
+                # (the step-4 verifier's round) a DOORMAT is one way out however wide it is: the tiles beside the one the
+                # player stands on, across the mat's arrow, with the same look, lead back too (measured 2026-10-09: the
+                # sweep's SCENE-EXPLORE seeds 6 and 10 left May's house by the doormat's other tile, (1, 8), taken for "an
+                # exit not used yet", before going upstairs to May, and never met her)
+                for xy_mat in [xy_back] + mat_tiles(memory, xy_back):
+                    name = f"{key}|{_text(xy_mat)}"
+                    if name not in self.warps:
+                        self.warps[name] = {"to": source, "arrival": list(tile) if tile else None, "direction": None,
+                                            "uses": 0, "by": "inferred", "first": look.frame, "last": look.frame,
+                                            "inferred": True}
                 return
 
     def learn_bump(self, frm: tuple[int, int], direction: str, frame: int) -> tuple[int, int] | None:
@@ -546,23 +614,63 @@ class WorldMemory:
         memory.bumped[key] = info
         return tile
 
+    def forget_bump(self, key: str | None, xy: tuple[int, int], direction: str) -> dict | None:
+        """(build step 3.2, the step-3.1 review's finding 3) A step got the player into `xy` going `direction` on map
+        `key`: a bump learned there that way is wrong now (a person who walked through stops thinking it is a wall), and
+        is forgotten. Returns what was forgotten, or None."""
+        memory = self.maps.get(key) if key is not None else None
+        if memory is None:
+            return None
+        return memory.bumped.pop((xy, direction), None)
+
+    def take_dropped_bumps(self) -> list[tuple[int, str, tuple[int, int], list[str]]]:
+        """(build step 3.2) The bumps dropped because their tile's look changed, since the last call: (frame, map key,
+        tile, directions) (the navigator tells them)."""
+        out = []
+        for key, memory in self.maps.items():
+            out += [(frame, key, xy, sides) for frame, xy, sides in memory.dropped]
+            memory.dropped = []
+        return out
+
+    def _tell_news(self, frame: int, what: str) -> None:
+        self.news += 1
+        self.news_log = (self.news_log + [(frame, what)])[-8:]
+
+    def _news(self, look: Observation) -> None:
+        """(build step 3.2, the step-3.1 review's finding 5) NEWS a person could see on this look (the class docstring):
+        a page of words never read before, on the overworld (a battle's lines are not news: they name every wild Pokemon
+        met), or a Pokemon of the player's never seen before (by PID; the first look that reads them is the baseline).
+        A new map is told where it is first stood on (`observe`)."""
+        screen = look.screen
+        if screen.waits_for_button and screen.text and not screen.in_battle and screen.game_state == "OVERWORLD":
+            words = " ".join((page_text(screen.text) or "").split())
+            if words and words not in self.heard:
+                self.heard.add(words)
+                self._tell_news(look.frame, f"words never read before: {words[:40]!r}")
+        if look.party is not None and look.storage is not None:
+            pids = {mon.pid for mon in look.party} | {mon.pid for mon in look.storage}
+            if self.pids is not None and pids - self.pids:
+                self._tell_news(look.frame, f"a new Pokemon (PID {', '.join(f'{pid:08x}' for pid in sorted(pids - self.pids))})")
+            self.pids = pids if self.pids is None else self.pids | pids
+
     def close_exit(self, xy: tuple[int, int], how: str, frame: int) -> None:
         """An exit-looking tile of the current map that took the player nowhere when used properly (`how`: the press and
         how long): remembered as CLOSED (build step 3.1, finding 5: what a look cannot say is learned by using the
-        exit), with how far the story was then (`story`), until `_reopen` (the step-3.1 verifier's round)."""
+        exit), with how much NEWS there had been then (`news`, build step 3.2), until `_reopen`."""
         memory = self.here()
         if memory is not None:
-            memory.closed[xy] = {"frame": frame, "how": how, "story": self.story}
+            memory.closed[xy] = {"frame": frame, "how": how, "news": self.news}
 
     def _reopen(self, frame: int) -> None:
         """(The step-3.1 verifier's round: a closed door was closed for good) Every door found closed is worth a try
-        again once the story has moved on since (more of the eyes' story flags set than when it was found closed), or
-        `CLOSED_RETRY_FRAMES` after it was found closed. What is reopened is kept in `reopened` for the navigator."""
+        again once there is NEWS since (build step 3.2: something a person could see, `_news`; it was a count of the
+        save's story flags, which a person cannot), or `CLOSED_RETRY_FRAMES` after it was found closed. What is reopened
+        is kept in `reopened` for the navigator."""
         for key, memory in self.maps.items():
             for xy, info in list(memory.closed.items()):
-                then = info.get("story")
-                if then is not None and self.story is not None and self.story > then:
-                    why = f"the story moved on since it was found closed ({then} -> {self.story} story flags set)"
+                then = info.get("news")
+                if then is not None and self.news > int(then):
+                    why = f"news since it was found closed: {self.news_log[-1][1] if self.news_log else self.news}"
                 elif frame - int(info.get("frame", frame)) >= CLOSED_RETRY_FRAMES:
                     why = f"{frame - int(info['frame'])} frames since it was found closed (f{info['frame']})"
                 else:
@@ -584,6 +692,8 @@ class WorldMemory:
             "transitions": [[t.frame, t.source, t.target, t.how, t.by, list(t.tile) if t.tile else None, list(t.arrival),
                              t.direction] for t in self.transitions],
             "tiles_learned": self.tiles_learned,
+            # (build step 3.2) the news a person could see, counted, and the words read so far (`_news`)
+            "news": self.news, "heard": sorted(self.heard), "news_log": [list(item) for item in self.news_log],
         }
 
     def snapshot(self) -> str:
@@ -599,6 +709,14 @@ class WorldMemory:
         world.transitions = [Transition(int(t[0]), str(t[1]), str(t[2]), str(t[3]), str(t[4]), tuple(t[5]) if t[5] else None,
                                         (int(t[6][0]), int(t[6][1])), t[7]) for t in data.get("transitions") or []]
         world.tiles_learned = int(data.get("tiles_learned") or 0)
+        # (build step 3.2) the news so far; a door closed in a memory written before (its "story", a count of the save's
+        # flags, is not news a person sees) is worth a try again at the next news from here on
+        world.news = int(data.get("news") or 0)
+        world.heard = {str(words) for words in data.get("heard") or []}
+        world.news_log = [(int(item[0]), str(item[1])) for item in data.get("news_log") or []]
+        for memory in world.maps.values():
+            for info in memory.closed.values():
+                info.setdefault("news", world.news)
         # every crossing recorded teaches both maps' edges again: a memory written before build step 3.1 kept only the
         # right and bottom edges (the top and left came from the coordinates, which a person cannot see)
         for connection in world.connections:

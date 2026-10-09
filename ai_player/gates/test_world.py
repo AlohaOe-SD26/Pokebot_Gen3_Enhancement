@@ -95,6 +95,18 @@ THE STEP-3.1 VERIFIER'S SECOND ROUND, each with its fault half and a mutant (W52
   GraderTests         a locked player answered by THE ARRIVAL across a connection (SCENEX's end on Route 101); a
                       pre-registered number that does not hold FAILS its arm (`check_predictions`); arm CLOCKS registers
                       launcher frames only where every clock agrees (`grade_CLOCKS`: W61).
+
+THE STEP-4 VERIFIER'S ROUND (its FAILURE: step 3.2's finding 4, "the churn is still there"), each with its fault half and a
+mutant (W79-W87):
+  ChurnTests          a frontier seen past is CARRIED ON by the same decision (`brain/explore.py` carry_on): straight beyond
+                      it; a place two tiles aside is another place (W81); something clearly better that comes into view
+                      ends the decision (W80: carried on whatever comes); never a place beside or behind the player (W85);
+                      on the town model 12 seeds make about a decision per 8 steps where the step-3.2 rule (W79) made one
+                      per step, the walks no more than a tenth longer.
+  GraderTests         one loop is ONE ring and a LAP ring has a leg walked beyond its shortest way (W82, W83); the churn
+                      measure and its bounds (W84); `stale_arrivals` on the place a decision was carried on to (W86); the
+                      twin after news at most once on EACH tile (W87).
+  ExitTests           a DOORMAT is one way out: its other tile, the same look across its arrow, leads back too (W88).
 """
 
 from __future__ import annotations
@@ -788,11 +800,12 @@ class WalkTests(unittest.TestCase):
     def test_the_only_way_on_is_retried_before_it_is_given_up(self) -> None:
         """'Retry at high cost before giving up': after ONE bump the way in is dear, not closed, so when it is the only
         way the navigator presses again; the second refusal from that side closes it (`BUMP_GIVE_UP`), and an errand
-        with no other way is stuck, not a loop. FAULT (one bump = closed): a way that opened is never tried again."""
+        with no other way is stuck, not a loop. FAULT (one bump = closed): a way that opened is never tried again.
+        (Build step 3.2: the bump is FORGOTTEN once the way let the player through: 0 left, where step 3.1 kept 1.)"""
         game, world, outcome, nav = self.corridor(refusals=4)
         self.assertTrue(outcome.startswith("done"), outcome)
-        self.assertEqual((nav.stats.bumps, world.here().bumps((3, 1), "right"), game.pos), (1, 1, (5, 1)),
-                         "refused once (a bump learned), retried as the only way, through")
+        self.assertEqual((nav.stats.bumps, world.here().bumps((3, 1), "right"), game.pos), (1, 0, (5, 1)),
+                         "refused once (a bump learned), retried as the only way, through, and the bump forgotten")
         game, world, outcome, nav = self.corridor(refusals=99)
         self.assertTrue(outcome.startswith("stuck"), outcome)
         self.assertEqual((nav.stats.bumps, world.here().bumps((3, 1), "right")), (memory_module.BUMP_GIVE_UP,) * 2,
@@ -803,6 +816,57 @@ class WalkTests(unittest.TestCase):
             game, world, outcome, nav = self.corridor(refusals=4)
         self.assertTrue(outcome.startswith("stuck"), outcome)
         self.assertEqual(game.pos, (2, 1))
+
+    # ---- build step 3.2, the step-3.1 review's MEDIUM finding 3: "a bump is never forgotten after walking through that way"
+    #: The short way east is through 'T' (3, 1), a tile that refuses its first attempts (something in the way that moved
+    #: on); the way round below is 8 steps. A person stands in the way round at first (`leaving`), so the first errand
+    #: has to try the short way again after its bump.
+    LOOP = ["#######", "#..T..#", "#.###.#", "#.....#", "#######"]
+
+    def loop(self, forget: bool = True):
+        game = GridGame({"HALL": self.LOOP}, ("HALL", (1, 1)), stubborn={("HALL", (3, 1)): 4},
+                        leaving={("HALL", (3, 3)): 10**9})
+        hands, nav, world, notes, lines = rig(game)
+        with (contextlib.nullcontext() if forget else mock.patch.object(WorldMemory, "forget_bump", lambda self, key, xy, d: None)):
+            first = drive(nav.run(goto_intent([(5, 1), (1, 1)], 6000), "east and back"), budget=40_000)
+            bumps = (nav.stats.bumps, world.here().bumps((3, 1), "right"))
+            game.leaving = {}  # the person in the way round has gone
+            steps = game.steps
+            second = drive(nav.run(goto_intent([(5, 1)], 3000), "east again"), budget=20_000)
+        return first, second, bumps, game.steps - steps, game, lines
+
+    def test_a_bump_is_forgotten_when_the_way_lets_the_player_through(self) -> None:
+        """Errand 1 bumps into 'T' going east (one bump, learned), has no other way, tries again and gets through: the
+        bump going east is FORGOTTEN, and said. The next errand east takes the short way straight through it: 4 steps.
+        FAULT (never forgotten: mutant W64): the tile is still 'bumped once' going east, dearer by `BUMP_RETRY_COST`, so the
+        next errand walks the 8 steps round."""
+        first, second, bumps, steps, game, lines = self.loop()
+        self.assertTrue(first.startswith("done") and second.startswith("done"), (first, second))
+        self.assertEqual(bumps, (1, 0), "one bump, and it is forgotten once the way let the player through")
+        self.assertTrue(any("let the player through now: forgotten" in line for line in lines), lines[-6:])
+        self.assertEqual(steps, 4, f"straight through: {game.trail[-6:]}")
+
+    def test_fault_a_bump_never_forgotten_sends_the_player_round(self) -> None:
+        first, second, bumps, steps, game, lines = self.loop(forget=False)
+        self.assertEqual(bumps, (1, 1))
+        self.assertEqual(steps, 8, f"round below: {game.trail[-9:]}")
+
+    def test_a_tile_that_looks_different_drops_its_bumps(self) -> None:
+        """What bumping a tile taught is about THAT tile: when it looks different (a script opened a door, moved a rock),
+        its bumps are dropped, and kept for the navigator to tell. The same look again keeps them. FAULT (kept: mutant
+        W65)."""
+        game = GridGame({"ROOM": ["#######", "#.....#", "#######"]}, ("ROOM", (1, 1)))
+        world = WorldMemory()
+        world.observe(game.look())
+        world.learn_bump((1, 1), "right", 10)
+        world.learn_bump((3, 1), "left", 12)
+        world.observe(replace(game.look(), frame=100))  # looked at again: nothing changed
+        self.assertEqual((world.here().bumps((2, 1), "right"), world.take_dropped_bumps()), (1, []))
+        game.maps["ROOM"] = ["#######", '#.".".#', "#######"]  # (2, 1) and (4, 1) now look like tall grass
+        world.observe(replace(game.look(), frame=200))
+        self.assertEqual(world.here().bumps((2, 1), "right"), 0)
+        self.assertEqual(world.here().bumped, {})
+        self.assertEqual(world.take_dropped_bumps(), [(200, world.current, (2, 1), ["left", "right"])])
 
 
 class ExitTests(unittest.TestCase):
@@ -830,6 +894,31 @@ class ExitTests(unittest.TestCase):
         self.assertTrue(any(name.startswith(keys["DOWN"]) and link["inferred"] for name, link in world.warps.items()),
                         "the stairs at the arrival are inferred as the way back up")
         self.assertEqual([t.how for t in world.transitions], ["warp", "warp"])
+
+    def test_a_doormat_is_one_way_out(self) -> None:
+        """(the step-4 verifier's round) Into the house's DOWN floor from the town's door: the player arrives above the mat
+        (8, 4); the mat's other tile (9, 4), the same look side by side across its arrow, leads back too (`mat_tiles`), so
+        neither is an exit "not used yet" (measured live: the explorer left May's house by the mat's other tile before going
+        upstairs to May). And a mat USED leads its other tile there too. FAULT (mutant W88: a doormat tile by tile): (9, 4)
+        unknown, the explorer's "door"."""
+        game = self.house()
+        game.map, game.pos = "TOWN", (4, 4)
+        game.trail = [(game.map, game.pos)]
+        hands, nav, world, notes, lines = rig(game)
+        outcome = drive(nav.run(explore_intent("DOWN", "Story", 4000), "go in"))
+        self.assertTrue(outcome.startswith("done"), outcome)
+        keys = {map_name: key for key, map_name in world.names().items()}
+        back = {xy: (world.warps.get(f"{keys['DOWN']}|{xy}") or {}).get("to") for xy in ("8,4", "9,4")}
+        self.assertEqual(back, {"8,4": keys["TOWN"], "9,4": keys["TOWN"]}, back)
+        doors = [c for c in candidates(nav, game.look(), WEIGHTS["Story"]) if c.kind == "door" and c.exit in ((8, 4), (9, 4))]
+        self.assertEqual(doors, [], "the doormat's other tile is not an exit not used yet")
+        used = WorldMemory()
+        down = used.maps["0:0"] = memory_module.MapMemory("0:0", "DOWN", "DOWN")
+        mat = memory_module.TileFact(False, False, False, False, None, False, True, 3, "SOUTH_ARROW_WARP", 10, (8, 3))
+        down.tiles[(8, 4)], down.tiles[(9, 4)] = mat, replace(mat)
+        down.tiles[(7, 4)] = replace(mat, warp=False, behavior="NORMAL")
+        self.assertEqual(memory_module.mat_tiles(down, (8, 4)), [(9, 4)], "across the arrow, the same look, not the floor")
+        self.assertEqual(memory_module.mat_tiles(down, (7, 4)), [], "a floor tile is no mat")
 
     def test_a_door_is_pressed_into_from_below(self) -> None:
         maps = {"TOWN": ["#########", "#.......#", "####D####", "#.......#", "#.......#", "#########"],
@@ -908,15 +997,88 @@ class ExitTests(unittest.TestCase):
             tries.append([r for r in notes.records if str(r["reason"]).startswith("use the door at (2, 1)")])
         return world, tries, lines
 
-    def test_a_closed_door_is_tried_again_once_the_story_moves_on(self) -> None:
-        """Found closed in the first intent; a story flag set before the second (what a person has SEEN happen): the
-        door is worth a try again, and the second intent tries it. Without the flag it is not (the test above). FAULT
-        (no reopening on the story: mutant W46): never tried again, the door hidden for good."""
+    def test_a_hidden_story_flag_alone_does_not_reopen_a_door(self) -> None:
+        """(build step 3.2, the step-3.1 review's LOW finding 5: "doors reopen on hidden story-flag counts") A story flag
+        set between the two intents is a bit in the save, nothing a person SEES: the door found closed stays closed and
+        the second intent does not try it. (Step 3.1 reopened it here.) FAULT (the hidden count is news again: mutant
+        W69): tried again."""
         world, tries, lines = self.story_doors(flag_at=1300)
+        self.assertTrue(tries[0], "tried in the first intent")
+        self.assertEqual(tries[1], [], "the second intent never pressed into it")
+        self.assertIn((2, 1), world.here().closed)
+        self.assertFalse(any("worth a try again" in line for line in lines), lines[-4:])
+
+    def news_doors(self, words_at: int | None) -> tuple[WorldMemory, list[list], list[str]]:
+        """`doors`' two intents, with NEWS a person could see between them (`NewsGame`: from `words_at` on, the next
+        moment the player stands still, a scene says words never heard before)."""
+        game = NewsGame(self.DOORS, ("TOWN", (2, 3)))
+        game.news = {} if words_at is None else {words_at: "The door next to you creaked."}
+        hands, nav, world, notes, lines = rig(game)
+        tries = []
+        for intent in range(2):
+            notes.records.clear()
+            drive(nav.run(explore_intent(None, "Story", 1200), "look around"), budget=40_000)
+            tries.append([r for r in notes.records if str(r["reason"]).startswith("use the door at (2, 1)")])
+        return world, tries, lines
+
+    def test_a_closed_door_is_tried_again_after_news_a_person_could_see(self) -> None:
+        """Found closed in the first intent; words never heard before between the two (something a person SEES happen):
+        the door is worth a try again, and the second intent tries it. FAULT (no reopening on news: mutant W46): never
+        tried again, the door hidden until the time rule."""
+        world, tries, lines = self.news_doors(1300)
         self.assertTrue(tries[0] and tries[1], f"tried in both intents: {[len(t) for t in tries]}")
-        self.assertTrue(any("worth a try again: the story moved on" in line for line in lines), lines[-4:])
-        quiet, _, _ = self.story_doors(flag_at=None)
-        self.assertIn((2, 1), quiet.here().closed, "no story news: still closed")
+        self.assertTrue(any("worth a try again: news since it was found closed: words never read before" in line
+                            for line in lines), lines[-6:])
+
+    def test_news_is_what_a_person_could_see(self) -> None:
+        """`WorldMemory`'s NEWS, one look at a time, each reopening the closed door: words never read before on the
+        overworld; a map never stood on before; a Pokemon of the player's never seen before (by PID). NOT news: the same
+        words again, a battle's words, a story flag newly set (a bit of the save), the party first read."""
+        maps = {"TOWN": self.DOORS["TOWN"], "IN": ["#####", "#...#", "#####"]}
+
+        def mon(pid: int) -> MonSummary:
+            return MonSummary(slot=0, species="Mudkip", dex=258, level=5, hp=20, max_hp=20, status="ok", types=("Water",),
+                              moves=(), pid=pid, ot_id=1, is_egg=False)
+
+        def closed():
+            game = GridGame(maps, ("TOWN", (2, 3)))
+            world = WorldMemory()
+            world.observe(replace(game.look(), party=(mon(1),), storage=()))
+            world.close_exit((2, 1), "pressed up", 50)
+            return game, world
+
+        def says(look: Observation, words: str, battle: bool = False) -> Observation:
+            screen = replace(look.screen, waits_for_button=True, text=words, text_box_open=True, in_battle=battle,
+                             game_state="BATTLE" if battle else "OVERWORLD")
+            return replace(look, screen=screen)
+
+        def reopened(world: WorldMemory, look: Observation) -> bool:
+            world.observe(look)
+            world.observe(replace(look, frame=look.frame + 1))  # the next look reopens what this one's news allows
+            return (2, 1) not in world.maps[map_key(0, 1)].closed
+
+        from ai_player.eyes.observation import Progress
+        from ai_player.world.memory import map_key
+
+        game, world = closed()
+        self.assertTrue(reopened(world, says(replace(game.look(), frame=100), "A sign: LITTLEROOT TOWN")), "new words")
+        game, world = closed()
+        world.observe(says(replace(game.look(), frame=60), "A sign: LITTLEROOT TOWN"))
+        world.close_exit((2, 1), "pressed up", 70)
+        self.assertFalse(reopened(world, says(replace(game.look(), frame=100), "A sign: LITTLEROOT TOWN")), "the same words")
+        game, world = closed()
+        self.assertFalse(reopened(world, says(replace(game.look(), frame=100), "Wild ZIGZAGOON appeared!", battle=True)),
+                         "a battle's words")
+        game, world = closed()
+        game.map, game.pos = "IN", (2, 1)
+        self.assertTrue(reopened(world, replace(game.look(), frame=100)), "a new map")
+        game, world = closed()
+        self.assertTrue(reopened(world, replace(game.look(), frame=100, party=(mon(1), replace(mon(2), slot=1)), storage=())),
+                        "a new Pokemon")
+        game, world = closed()
+        flags = Progress(money=0, badges=(), dex_owned=0, dex_seen=0, owned_dex=(), flags=(("FLAG_SOMETHING", True),))
+        self.assertFalse(reopened(world, replace(game.look(), frame=100, progress=flags)), "a story flag is no news")
+        self.assertEqual(world.news, 0)
 
     def test_a_closed_door_is_tried_again_after_a_while(self) -> None:
         """With no story news a closed door is worth a try again `CLOSED_RETRY_FRAMES` after it was found closed (a
@@ -1170,6 +1332,158 @@ class GraderTests(unittest.TestCase):
         steps, found = live_step3.path_reversals(run)
         self.assertEqual((steps, [(r["map"], r["kind"]) for r in found]), (6, [("0:9", "back"), ("1:4", "back")]))
 
+    # ---- build step 3.2, the step-3.1 review's HIGH finding 2: "the reversal metric cannot see laps"
+    def test_laps_in_a_walk(self) -> None:
+        """`live_step3.laps`: back on a tile 4..12 steps after the player last stood there, the same map, NOTHING NEW
+        between (no tile of that map first seen, no novelty told, from the press that LEFT the tile to the press that
+        came back onto it): a lap. A 2-step A -> B -> A is a reversal's (`reversals`); 14 steps is a walk round a block.
+        FAULT (nothing new not asked: mutant W70): the round that showed a new tile is a lap too."""
+        from ai_player.gates import live_step3
+
+        def stretch(tiles: list) -> list:
+            # a stretch's first tile carries its first step's press frame (`walk_stretches`), every step 16 frames on
+            return [("0:9", tiles[0], 100)] + [("0:9", xy, 100 + 16 * i) for i, xy in enumerate(tiles[1:])]
+
+        ring = stretch([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])  # round one tile: 4 steps, presses f100..f148
+        self.assertEqual([(lap["tile"], lap["steps"]) for lap in live_step3.laps(ring, {}, [])], [([0, 0], 4)])
+        self.assertEqual(len(live_step3.laps(ring, {"0:9": [10, 90]}, [150])), 1, "seen before it left, told after it came back")
+        self.assertEqual(live_step3.laps(ring, {"0:9": [10, 120]}, []), [], "a tile first seen on the way round: not a lap")
+        self.assertEqual(live_step3.laps(ring, {}, [130]), [], "a novelty told on the way round: not a lap")
+        self.assertTrue(live_step3.laps(ring, {"1:4": [120]}, []), "a tile first seen on another map is not new HERE")
+        self.assertEqual(live_step3.laps(stretch([(0, 0), (1, 0), (0, 0)]), {}, []), [], "A -> B -> A is a reversal")
+        block = [(x, 0) for x in range(5)] + [(4, y) for y in (1, 2, 3)] + [(x, 3) for x in (3, 2, 1, 0)] + [(0, 2), (0, 1), (0, 0)]
+        self.assertEqual(live_step3.laps(stretch(block), {}, []), [], "14 steps round a block is not a lap round a room")
+        twelve = [(x, 0) for x in range(5)] + [(4, 1), (4, 2)] + [(x, 2) for x in (3, 2, 1, 0)] + [(0, 1), (0, 0)]
+        self.assertEqual([lap["steps"] for lap in live_step3.laps(stretch(twelve), {}, [])], [12])
+
+    def test_rings_in_a_walk(self) -> None:
+        """(the step-3.2 verifier's round: "the new CYCLE check (`laps`) does not tell the fix from the revert ... every one
+        is exempted by 'new tile between'") `live_step3.rings`: back on a tile 4..12 steps later having walked ROUND (every
+        tile between once), WHATEVER was seen on the way; an out-and-back (A B C B A) is a turn back, not a ring. The
+        verifier's own example from the reverted SCENEXL is one. FAULT (mutant W76: the round not asked): the out-and-back
+        counts."""
+        from ai_player.gates import live_step3
+
+        def stretch(tiles: list) -> list:
+            return [("0:9", tiles[0], 100)] + [("0:9", xy, 100 + 16 * i) for i, xy in enumerate(tiles[1:])]
+
+        ring = stretch([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)])
+        self.assertEqual([(r["tile"], r["steps"]) for r in live_step3.rings(ring)], [([0, 0], 4)])
+        self.assertEqual(live_step3.laps(ring, {"0:9": [10, 120]}, []), [], "laps: a tile seen on the way exempts it")
+        self.assertEqual(len(live_step3.rings(ring)), 1, "rings: it is a ring whatever was seen on the way")
+        self.assertEqual(live_step3.rings(stretch([(0, 0), (1, 0), (2, 0), (1, 0), (0, 0)])), [], "out and back: a turn back")
+        self.assertEqual(live_step3.rings(stretch([(0, 0), (1, 0), (0, 0)])), [], "A -> B -> A")
+        block = [(x, 0) for x in range(5)] + [(4, y) for y in (1, 2, 3)] + [(x, 3) for x in (3, 2, 1, 0)] + [(0, 2), (0, 1), (0, 0)]
+        self.assertEqual(live_step3.rings(stretch(block)), [], "14 steps round a block")
+        verifier = [(5, 3), (5, 2), (4, 2), (3, 2), (3, 3), (2, 3), (2, 4), (2, 5), (3, 5), (4, 5), (5, 5), (5, 4), (5, 3)]
+        self.assertEqual([r["steps"] for r in live_step3.rings(stretch(verifier))], [12], "the verifier's SCENEXL ring")
+
+    def test_a_ring_that_saw_new_tiles_is_counted_by_the_report(self) -> None:
+        """`live_step3.lap_report` on an action log that walks round a pillar while a tile is first seen on the way: no lap
+        (nothing new between fails), ONE ring. FAULT (mutant W77: rings only where nothing new was seen, `laps`' rule):
+        none."""
+        from ai_player.gates import live_step3
+
+        rows = ["#####", "#...#", "#.#.#", "#...#", "#####"]
+        world = self.room_world(rows, seen_late={(3, 3): 230})
+        loop = [(1, 1), (2, 1), (3, 1), (3, 2), (3, 3), (2, 3), (1, 3), (1, 2), (1, 1)]
+        steps = [(200 + 16 * i, a, b) for i, (a, b) in enumerate(zip(loop, loop[1:]))]
+        run = live_step3.Run(live_step3.ARMS[0], records=self.walk_records([(190, (1, 1), (1, 1), None)], steps), world=world)
+        report = live_step3.lap_report(run)
+        self.assertEqual((len(report["laps"]), len(report["rings"])), (0, 1), (report["laps"], report["rings"]))
+
+    def test_journeys_join_the_targets_chosen_on_the_move(self) -> None:
+        """(the step-3.2 verifier's round: "steps-vs-shortest is measured per DECISION ... near 0 by construction wherever
+        targets churn") `live_step3.journeys`: a target chosen standing and every target chosen ON THE MOVE whose walk
+        begins where the last ended are ONE journey: three one-step walks out and back are 3 steps from (1, 2) to (1, 3)
+        where the shortest is 1. FAULT (mutant W78: never joined): three journeys, each its own shortest."""
+        from ai_player.gates import live_step3
+
+        def walk(frame, frm, to, on_the_move):
+            return {"map": "0:9", "from": list(frm), "to": list(to), "walked": 1, "frame": frame, "on_the_move": on_the_move,
+                    "detour": None, "end_frame": frame + 8}
+
+        trips = live_step3.journeys([walk(10, (1, 2), (1, 3), None), walk(30, (1, 3), (1, 4), True),
+                                     walk(50, (1, 4), (1, 3), True), walk(70, (5, 5), (5, 6), True)])
+        self.assertEqual([(t["from"], t["to"], t["walked"], t["targets"]) for t in trips],
+                         [([1, 2], [1, 3], 3, 3), ([5, 5], [5, 6], 1, 1)], "a walk that does not begin where the last ended is another")
+        standing = live_step3.journeys([walk(10, (1, 2), (1, 3), None), walk(30, (1, 3), (1, 4), None)])
+        self.assertEqual(len(standing), 2, "a target chosen STANDING begins a journey")
+
+    @staticmethod
+    def room_world(rows: list[str], seen_late: dict | None = None, bumped: dict | None = None) -> dict:
+        """A world.jsonl snapshot of one map "0:9" from character rows ('.' floor seen at f10, '#' wall, '>' a ledge
+        jumped going right), `seen_late`: tile -> the frame it was first seen; `bumped`: "x,y|direction" -> first frame."""
+        tiles = {}
+        for y, row in enumerate(rows):
+            for x, c in enumerate(row):
+                letters, ledge = ("b", "") if c == "#" else ("", "right") if c == ">" else ("", "")
+                tiles[f"{x},{y}"] = [letters, ledge, 3, "NORMAL", (seen_late or {}).get((x, y), 10), 0, 0]
+        return {"maps": {"0:9": {"tiles": tiles, "bumped": {k: {"first": f, "bumps": 1} for k, f in (bumped or {}).items()}}}}
+
+    def test_the_shortest_known_way(self) -> None:
+        """`live_step3.known_shortest`: over the tiles the memory had seen BY the frame asked, a wall, a ledge (only in its
+        jump direction, landing beyond), a way in learned blocked by a bump by then (per side). FAULTS: when a tile was
+        first seen not asked (mutant W71); the bumps not asked (W72)."""
+        from ai_player.gates import live_step3
+
+        rows = ["#####", "#...#", "#.#.#", "#...#", "#####"]  # round a pillar (2, 2): (1, 2) -> (3, 2) is 4 steps
+        self.assertEqual(live_step3.known_shortest(self.room_world(rows), "0:9", (1, 2), (3, 2), 100), 4)
+        late = {(2, 1): 500, (2, 3): 500}
+        self.assertIsNone(live_step3.known_shortest(self.room_world(rows, late), "0:9", (1, 2), (3, 2), 100), "not seen yet")
+        self.assertEqual(live_step3.known_shortest(self.room_world(rows, late), "0:9", (1, 2), (3, 2), 600), 4)
+        bumps = self.room_world(rows, bumped={"2,1|right": 50, "2,3|right": 50})
+        self.assertIsNone(live_step3.known_shortest(bumps, "0:9", (1, 2), (3, 2), 100), "both ways in bumped from that side")
+        self.assertEqual(live_step3.known_shortest(bumps, "0:9", (1, 2), (3, 2), 40), 4, "a bump learned later was not known")
+        self.assertEqual(live_step3.known_shortest(bumps, "0:9", (3, 2), (1, 2), 100), 4, "the other side of the same tiles is open")
+        ledge = ["#####", "#...#", "#.>.#", "#...#", "#####"]
+        self.assertEqual(live_step3.known_shortest(self.room_world(ledge), "0:9", (1, 2), (3, 2), 100), 1, "jumped")
+        self.assertEqual(live_step3.known_shortest(self.room_world(ledge), "0:9", (3, 2), (1, 2), 100), 4, "not against it")
+
+    @staticmethod
+    def walk_records(decisions: list[tuple], steps: list[tuple]) -> list[dict]:
+        """An action log: `decisions` (frame, player, target, detour) and `steps` (frame, from, to): each step a walking
+        press whose look stands on its `from`, and a last look on the last step's `to`."""
+        def press(frame, frm, to):
+            d = "up" if to[1] < frm[1] else "down" if to[1] > frm[1] else "left" if to[0] < frm[0] else "right"
+            return {"frame": frame, "decision": "x", "action": "hold Up 8f", "reason": f"walk {d}: ({frm[0]}, {frm[1]}) -> "
+                    f"({to[0]}, {to[1]}) (seen NORMAL)", "digest": f"f{frame} overworld LITTLEROOT TOWN(0,9) xy=({frm[0]},{frm[1]}) facing=up"}
+
+        records = [{"frame": f, "decision": "decide", "action": "target frontier", "reason": "x",
+                    "extra": {"map": "0:9", "kind": "frontier", "target": list(t), "player": list(p), "detour": d}}
+                   for f, p, t, d in decisions] + [press(*s) for s in steps]
+        last = steps[-1][2]
+        records.append({"frame": steps[-1][0] + 16, "decision": "watch", "action": "busy 1f", "reason": "x",
+                        "digest": f"f{steps[-1][0] + 16} overworld LITTLEROOT TOWN(0,9) xy=({last[0]},{last[1]}) facing=up"})
+        return sorted(records, key=lambda r: r["frame"])
+
+    def test_the_walk_to_each_target_against_the_shortest_known_way(self) -> None:
+        """`live_step3.target_walks` / `lap_report`: from the tile it decided on to where the walk ended (the next decision),
+        the steps walked against the shortest known way: a walk round the pillar the long way, 6 steps where 4 would do, is
+        2 beyond; a decision with a DETOUR (by design) is reported, not graded; `check_laps` holds a run to its bounds and
+        FAILS a run with nothing graded (it would say nothing: mutant W73)."""
+        from ai_player.gates import live_step3
+
+        rows = ["######", "#....#", "#.#..#", "#....#", "######"]
+        world = self.room_world(rows)
+        long_way = [(1, 2), (1, 3), (2, 3), (3, 3), (4, 3), (4, 2), (3, 2)]  # 6 steps; round the top is 4
+        steps = [(200 + 16 * i, a, b) for i, (a, b) in enumerate(zip(long_way, long_way[1:]))]
+        detoured = [(400 + 16 * i, a, b) for i, (a, b) in enumerate(zip([(3, 2), (3, 1), (2, 1)], [(3, 1), (2, 1), (1, 1)]))]
+        records = self.walk_records([(190, (1, 2), (3, 2), None), (390, (3, 2), (1, 1), [3, 1])], steps + detoured)
+        run = live_step3.Run(live_step3.ARMS[0], records=records, world=world)
+        walks = live_step3.target_walks(run)
+        self.assertEqual([(w["from"], w["to"], w["walked"], w["shortest"], w["excess"]) for w in walks],
+                         [([1, 2], [3, 2], 6, 4, 2), ([3, 2], [1, 1], 3, 3, 0)])
+        report = live_step3.lap_report(run)
+        self.assertEqual((report["graded"], report["excess"], report["worst"], len(report["detoured"])), (1, 2, 2, 1))
+        verdicts = []
+        for bound, data in (({"laps": 0, "excess": 2, "worst": 2}, records), ({"laps": 0, "excess": 1, "worst": 2}, records),
+                            ({"laps": 0, "excess": 2, "worst": 1}, records), ({"laps": 0, "excess": 9, "worst": 9}, records[-2:])):
+            graded = live_step3.Run(live_step3.ARMS[0], records=data, world=world)
+            live_step3.check_laps(graded, bound)
+            verdicts.append(graded.passed)
+        self.assertEqual(verdicts, [True, False, False, False], "within; excess over; worst over; nothing graded")
+
     # ---- the step-3.1 verifier's round: the live graders that now tell the fixed code from the reverted one
     @staticmethod
     def decide(frame, kind, target, player, key="0:9", reason="1 unseen tile(s) beside it"):
@@ -1201,6 +1515,25 @@ class GraderTests(unittest.TestCase):
         memory.tiles[(5, 4)] = replace(fact, seen_frame=55)  # first seen only AFTER the arrival: it was not stale then
         run = live_step3.Run(live_step3.ARMS[0], records=records, world=world.to_dict())
         self.assertEqual([a["everything_beside_it_seen"] for a in live_step3.stale_arrivals(run)[1]], [False])
+
+    def test_a_carried_on_target_is_the_one_walked_onto(self) -> None:
+        """(the step-4 verifier's round) A decision CARRIED ON (`brain/explore.py` carry_on) walks to the last place it was
+        carried on to: the next decision made standing there is an arrival at THAT place (whose sides are then graded),
+        not at the place first decided on. FAULT (mutant W86: the carry-ons not read): the arrival is missed."""
+        from ai_player.gates import live_step3
+
+        world = WorldMemory()
+        memory = world.maps["0:9"] = memory_module.MapMemory("0:9", "T", "LITTLEROOT_TOWN")
+        fact = memory_module.TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 10, (5, 9))
+        for xy in [(5, 3), (5, 5), (4, 4), (6, 4)]:
+            memory.tiles[xy] = fact
+        records = [self.decide(10, "frontier", (5, 5), (5, 9)),
+                   {"frame": 30, "decision": "world", "action": "say", "reason": "the frontier at (5, 5) is seen past now (x): the "
+                    "same decision carries on to the frontier at (5, 4)", "extra": {"carry_on": [5, 4], "from": [5, 5], "map": "0:9"}},
+                   self.decide(60, "frontier", (2, 2), (5, 4))]
+        run = live_step3.Run(live_step3.ARMS[0], records=records, world=world.to_dict())
+        chosen, arrived = live_step3.stale_arrivals(run)
+        self.assertEqual([(a["target"], a["arrived"], a["everything_beside_it_seen"]) for a in arrived], [([5, 4], 60, True)])
 
     def edge_run(self, decides: list[dict], connections: list[dict]):
         from ai_player.gates import live_step3
@@ -1286,13 +1619,19 @@ class GraderTests(unittest.TestCase):
         instant."""
         from ai_player.gates import live_step3
 
-        def rows(scenex_second: tuple = (3, 0)) -> list[dict]:
+        def rows(scenex_second: tuple = (3, 0), excess_second: int = 0, rings_second: int = 0, ones_second: float = 0.2) -> list[dict]:
             out = []
             for when in ("t1", "t2"):
                 out.append({"arm": "HOUSE", "when": when, "frames": 3176, "presses": 36})
                 segments = [3, 0] if when == "t1" else list(scenex_second)
+                # (build step 3.2) the lap metrics of a clock-sensitive SCENEX arm at each instant (`LAP_BOUNDS`); (the
+                # step-3.2 verifier's round) its rings too; (the step-4 verifier's round) its LAP rings and its churn
                 out.append({"arm": "SCENEX", "when": when, "frames": 16293 if when == "t1" else 14344, "presses": 489,
-                            "twin_segments": segments, "map": [0, 16], "var": 2})
+                            "twin_segments": segments, "map": [0, 16], "var": 2, "laps": 0, "lap_graded": 40,
+                            "lap_excess": 0 if when == "t1" else excess_second, "lap_worst": 0 if when == "t1" else excess_second,
+                            "rings": 0 if when == "t1" else rings_second, "lap_rings": 0 if when == "t1" else rings_second,
+                            "walks": 30, "move_per_100": 10.0, "ones_share": 0.2 if when == "t1" else ones_second,
+                            "journey_share": 0.3})
             return out
 
         def grade(data: list[dict], sensitive=("SCENEX",), predicted=None) -> bool:
@@ -1309,6 +1648,81 @@ class GraderTests(unittest.TestCase):
         self.assertFalse(grade(rows(), predicted={"HOUSE": {"frames": 3176}, "SCENEX": {"frames": 16293}}),
                          "a clock-sensitive arm registered with frames")
         self.assertFalse(grade(rows(scenex_second=(4, 0))), "the twin rule broken at one instant")
+        with mock.patch.dict(live_step3.LAP_BOUNDS, {"SCENEX": {"laps": 0, "excess": 2, "worst": 2, "lap_rings": 0}}):
+            self.assertTrue(grade(rows(excess_second=2)), "(build step 3.2) the lap bounds held at every instant")
+            self.assertFalse(grade(rows(excess_second=3)), "(build step 3.2) a lap bound broken at one instant")
+            self.assertFalse(grade(rows(rings_second=1)), "(the step-3.2 verifier's round) a LAP ring at one instant")
+            self.assertFalse(grade(rows(ones_second=0.6)), "(the step-4 verifier's round) the churn bound broken at one instant")
+
+    def test_a_lap_ring_has_a_leg_walked_round(self) -> None:
+        """(the step-4 verifier's round) `live_step3.rings` counts ONE LOOP ONCE (a walk that goes on along the loop it has
+        just closed is not a second ring), and a ring is a LAP RING (`lap_ring`) when one of its legs (the walks to each
+        decision inside it, `ring_legs`) walked beyond the shortest known way to its own target; a loop whose every leg was
+        the shortest way to its own target (out to a place, the shortest way back by the next column) is an excursion.
+        FAULTS: every ring a lap ring (mutant W82); the same loop counted twice (W83)."""
+        from ai_player.gates import live_step3
+
+        def stretch(tiles: list) -> list:
+            return [("0:9", tiles[0], 100)] + [("0:9", xy, 100 + 16 * i) for i, xy in enumerate(tiles[1:])]
+
+        loop = [(1, 1), (2, 1), (2, 2), (1, 2), (1, 1), (2, 1)]  # round once, then one step on along the same round
+        self.assertEqual(len(live_step3.rings(stretch(loop))), 1, "one loop, one ring")
+        ring = live_step3.rings(stretch(loop))[0]
+        out_and_back = [{"map": "0:9", "frame": 100, "end_frame": 116, "excess": 0, "detour": None},
+                        {"map": "0:9", "frame": 120, "end_frame": 148, "excess": 0, "detour": None}]
+        self.assertFalse(live_step3.lap_ring(ring, out_and_back), "every leg the shortest way to its own target: an excursion")
+        walked_round = [{"map": "0:9", "frame": 100, "end_frame": 148, "excess": 2, "detour": None}]
+        self.assertTrue(live_step3.lap_ring(ring, walked_round), "a leg 2 beyond its shortest way: a lap ring")
+        detour = [{"map": "0:9", "frame": 100, "end_frame": 148, "excess": 2, "detour": [2, 2]}]
+        self.assertFalse(live_step3.lap_ring(ring, detour), "a leg with a detour (by design) is said, not held against it")
+        elsewhere = [{"map": "1:4", "frame": 100, "end_frame": 148, "excess": 3, "detour": None},
+                     {"map": "0:9", "frame": 500, "end_frame": 600, "excess": 3, "detour": None}]
+        self.assertFalse(live_step3.lap_ring(ring, elsewhere), "legs on another map or at another time are not this ring's")
+
+    def test_after_news_the_twin_once_on_each_tile(self) -> None:
+        """(the step-4 verifier's round) `live_step3.once_a_tile_after_news`: after each news she may send the player back once
+        on each tile (the rule gives every tile she began on up at its first meeting after the news, a tile first met after
+        it included); twice on one tile after the same news fails. FAULT (mutant W87: at most once IN ALL after each news,
+        the check the development sweep's seed 10 failed though the rule did what it says)."""
+        from ai_player.gates import live_step3
+
+        self.assertTrue(live_step3.once_a_tile_after_news([{"10,1": 2}, {"10,1": 1, "11,1": 1}]))
+        self.assertTrue(live_step3.once_a_tile_after_news([{"10,1": 2, "11,1": 1}, {"11,1": 1}, {}]))
+        self.assertFalse(live_step3.once_a_tile_after_news([{"10,1": 2}, {"10,1": 2}]))
+        self.assertFalse(live_step3.once_a_tile_after_news([{"10,1": 2}, {}, {"11,1": 2}]))
+
+    def test_the_churn_of_decisions(self) -> None:
+        """(the step-4 verifier's round, finding 4) `live_step3.churn` / `check_churn` on a synthetic action log: two
+        decisions, the second ON THE MOVE, three places carried on (one where the step-3.2 rule would have gone elsewhere),
+        one stale target dropped because something clearly better came into view; the bounds hold the run (the one-step
+        walks' share over the bound FAILS it)."""
+        from ai_player.gates import live_step3
+
+        rows = ["#######", "#.....#", "#.....#", "#######"]
+        world = self.room_world(rows)
+        steps = [(200 + 16 * i, (1 + i, 1), (2 + i, 1)) for i in range(4)] + [(300, (5, 1), (5, 2))]
+        records = self.walk_records([(190, (1, 1), (2, 1), None), (290, (5, 1), (5, 2), None)], steps)
+        records[[i for i, r in enumerate(records) if r.get("decision") == "decide"][1]]["extra"]["on_the_move"] = True
+        say = lambda frame, reason, extra: {"frame": frame, "decision": "world", "action": "say", "reason": reason, "extra": extra}
+        records += [say(210, "the frontier at (2, 1) is seen past now (x): the same decision carries on", {"carry_on": [3, 1]}),
+                    say(226, "the frontier at (3, 1) is seen past now (x): the same decision carries on", {"carry_on": [4, 1],
+                                                                                                   "step32_would": [1, 2]}),
+                    say(242, "the frontier at (4, 1) is seen past now (x): the same decision carries on", {"carry_on": [5, 1]}),
+                    say(285, "the frontier at (5, 1) is not worth going to any more: x; choosing again on the move",
+                        {"stale": [5, 1], "refused": "the door at (5, 2) is worth 9.0 from here, clearly more than the "
+                                                     "frontier at (5, 0) it would carry on to (5.0)"})]
+        records.sort(key=lambda r: r["frame"])
+        run = live_step3.Run(live_step3.ARMS[0], records=records, world=world)
+        c = live_step3.churn(run)
+        self.assertEqual((c["decisions"], c["on_the_move"], c["carried"], c["would"], c["dropped"], c["refused_better"]),
+                         (2, 1, 3, 1, 1, 1))
+        self.assertEqual((c["steps"], c["walks"], c["ones"]), (5, 2, 1))
+        verdicts = []
+        for bound in ({"move_per_100": 25.0, "ones": 0.5, "journey_share": 0.5}, {"move_per_100": 25.0, "ones": 0.4, "journey_share": 0.5}):
+            graded = live_step3.Run(live_step3.ARMS[0], records=records, world=world)
+            live_step3.check_churn(graded, None, bound)
+            verdicts.append(graded.passed)
+        self.assertEqual(verdicts, [True, False], "within; one-step walks over the bound")
 
     def test_a_locked_arrival_across_a_connection(self) -> None:
         """(the step-3.1 verifier's second round) SCENEX's end: a walking trial the game did not step, LOCKED, and THE
@@ -1373,6 +1787,8 @@ class CropTests(unittest.TestCase):
         outcome = drive(nav.run(explore_intent("ROUTE", "Story", 12000), "leave town"))
         decisions = [r["extra"] for r in notes.records if r["decision"] == "decide"]
         self.world = world
+        #: (build step 3.2, the step-4 verifier's round) the places a decision was CARRIED ON to (`brain/explore.py` carry_on)
+        self.carried = [r["extra"] for r in notes.records if r["decision"] == "world" and (r["extra"] or {}).get("carry_on")]
         return outcome, decisions, game
 
     def test_every_target_was_seen(self) -> None:
@@ -1387,6 +1803,7 @@ class CropTests(unittest.TestCase):
     def test_fault_the_crop_off_beelines_to_a_place_it_could_not_see(self) -> None:
         for seed in (1, 2, 3):
             real, real_decisions, real_game = self.run_town(crop=True, seed=seed)
+            real_carried = list(self.carried)
             outcome, decisions, game = self.run_town(crop=False, seed=seed)
             self.assertTrue(outcome.startswith("done"), outcome)
             first = decisions[0]
@@ -1404,7 +1821,15 @@ class CropTests(unittest.TestCase):
             self.assertTrue(self.shortest(crossed[0]) <= game.steps <= self.shortest(crossed[0]) + 4 * detours,
                             f"a beeline: {game.steps} steps, the true shortest walk over the edge {self.shortest(crossed[0])}, "
                             f"{detours} detour(s)")
-            self.assertGreater(real_game.steps, game.steps, f"seed {seed}: exploring takes longer than the beeline")
+            # (build step 3.2) the honest walk RE-TARGETS on what it sees, the beeline does not. Its LENGTH is no
+            # discriminator (as live_step3's CROP says): with the heading kept on the move, the honest explorer reaches
+            # this model's road in about the beeline's steps (measured 2026-10-08: seeds 1-6, 35-38 steps against 35-37).
+            # (The step-4 verifier's round) a decision is now CARRIED ON as the view opens rather than made again, so the
+            # re-targets are its decisions and its carry-ons (measured 2026-10-09, seeds 1-3: 4 decisions and 23-25
+            # carry-ons; the beeline 1 decision and 0 carry-ons)
+            moves, beeline = len(real_decisions) + len(real_carried), len(decisions) + len(self.carried)
+            self.assertGreater(moves, 5 * beeline, f"seed {seed}: {len(real_decisions)} decisions, {len(real_carried)} carried on; "
+                                                    f"the beeline {len(decisions)}, {len(self.carried)}")
 
 
 class WindowTests(unittest.TestCase):
@@ -1454,7 +1879,12 @@ class ReversalTests(unittest.TestCase):
     reversals`: A -> B -> A, or a U-turn's third step) are graded on the town model, 12 seeds. MEASURED 2026-10-08 before
     the rules (`gates/revert_step3.py` W30, W31 and this file's faults): both rules 2 reversals in 730 steps; the stale
     drop alone 28 in 677 (it re-decides on the move, toward places behind as often as ahead); the turn-back cost alone
-    12 in 788 (arrivals clear the heading); neither (step 3) 12 in 788."""
+    12 in 788 (arrivals clear the heading); neither (step 3) 12 in 788.
+    (BUILD STEP 3.2, measured 2026-10-08 on this model, 12 seeds) with the plan charged once and FOLLOWED and the HEADING
+    kept on the move (`brain/explore.py` pick_on_the_move): 0 reversals in 429 steps (the walks to the road 41% shorter).
+    The turn-back cost ALONE no longer carries this model (0 without it: the heading rule keeps the walk going); the
+    step-3.1 choice ON THE MOVE (a whim) without it: 28 in 677, the fault half below. Where the turn charge now carries
+    weight is the decision's own plan: `LapTests`."""
 
     SEEDS = range(1, 13)
 
@@ -1492,9 +1922,17 @@ class ReversalTests(unittest.TestCase):
         self.assertEqual(arrivals, [], "a frontier target walked onto: the walk there had already shown it (stale)")
 
     def test_fault_without_the_turn_back_cost_the_stale_drop_reverses_often(self) -> None:
-        with mock.patch.object(navigator_module, "TURN_BACK_COST", 0.0):
+        """(build step 3.2) the step-3.1 fault, as it now has to be stated: no turn-back cost AND the choice on the move
+        a WHIM again (the step-3.1 rule): the stale drop re-decides toward places behind as often as ahead (measured
+        2026-10-08 on this code: 12 reversals in 662 steps, against 0 in 429; on the step-3.1 code, with its plan charged
+        at every step, 28 in 677). With the heading kept on the move, no turn-back cost alone gives 0 here."""
+        # (build step 3.2, the step-4 verifier's round) and no carry-on: the step-3.1 explorer re-decided at every stale
+        # step (with the decision carried on, the whim on the move is rarely asked: 0 reversals in 469 steps)
+        with mock.patch.object(navigator_module, "TURN_BACK_COST", 0.0), \
+                mock.patch.object(explore_module, "choose_target", whim_on_the_move(explore_module.choose_target)), \
+                mock.patch.object(sys.modules[__name__], "explore_intent", no_carry_on(explore_module.explore_intent)):
             count, steps, arrivals = self.totals()
-        self.assertGreaterEqual(count, 15, f"{count} reversals in {steps} steps")
+        self.assertGreaterEqual(count, 8, f"{count} reversals in {steps} steps")
 
     def test_fault_without_the_stale_drop_targets_are_walked_onto_and_reversed_from(self) -> None:
         with mock.patch.object(navigator_module, "stale_reason", lambda memory, target: None):
@@ -1502,6 +1940,309 @@ class ReversalTests(unittest.TestCase):
         self.assertGreaterEqual(count, 8, f"{count} reversals in {steps} steps")
         self.assertTrue(arrivals and all(unknown == 0 for _, unknown in arrivals),
                         f"every frontier target walked onto, everything beside it seen: {arrivals[:4]}")
+
+
+def whim_on_the_move(original):
+    """FAULT (the step-3.1 rule, `revert_step3.py` W66): a target chosen ON THE MOVE is picked like one chosen standing,
+    on a whim among equals with the score's jitter (`Navigator.choosing_on_the_move` ignored)."""
+
+    def choose(nav, look, weights, goal=None):
+        nav.choosing_on_the_move = False
+        return original(nav, look, weights, goal)
+
+    return choose
+
+
+def revisits(trail: list, low: int = 4, high: int = 12) -> list[tuple]:
+    """(build step 3.2) Every step back onto a tile of the same map `low`..`high` steps after the player last stood there,
+    in a model's trail (`GridGame.trail`; its maps are all on screen, so nothing new is seen between: a LAP, as
+    `live_step3.laps` grades it)."""
+    out, last = [], {}
+    for j, place in enumerate(trail):
+        i = last.get(place)
+        last[place] = j
+        if i is not None and low <= j - i <= high:
+            out.append((place, j - i))
+    return out
+
+
+class LapTests(unittest.TestCase):
+    """(build step 3.2, the step-3.1 adversarial review's HIGH finding 1) "The turn-back cost is charged on EVERY replan,
+    so the AI walks LAPS instead of turning back (SCENEX: 8 steps around a room where 2 would do)." MEASURED 2026-10-08 on
+    the memory SCENEX seed 3 held at f20190 (pinned clock): at (6, 18), walking left past the corner of a house, the
+    target the door's stand tile (7, 17), up-right behind it; the step-3.1 plan was down, right, up, up, then, charged
+    again at the next tile, left, up, right, right, up: 10 steps where 2 would do. `CORNER` is that corner. Now turning
+    round is charged ONCE, by the decision (where to go: `TURN_BACK_COST`; its first plan: `TURN_ROUND_COST`, a
+    tie-breaker), and the plan is FOLLOWED. FAULTS: the step-3.1 rule (mutant W62); the plan not followed (W63); no
+    turn-back cost at all (W32); never switching to a clearly better way (W74)."""
+
+    #: (6, 1) is the house's corner (a wall), (7, 1) the door's stand tile beside it; the player on (6, 2), walking LEFT
+    #: (it came from (8, 2) through (7, 2)). The whole room is on screen from there: nothing new is seen while walking.
+    CORNER = ["#############", "#.....#.....#", "#...........#", "#...........#", "#############"]
+
+    def corner(self, seed: int = 3):
+        game = GridGame({"TOWN": self.CORNER}, ("TOWN", (6, 2)))
+        hands, nav, world, notes, lines = rig(game, seed=seed)
+        world.observe(game.look())
+        nav.recent = [(world.current, "left"), (world.current, "left")]
+        game.trail = [("TOWN", (7, 2)), ("TOWN", (6, 2))]
+        outcome = drive(nav.run(goto_intent([(7, 1)], 3000), "to the door behind"), budget=20_000)
+        return game, outcome, nav
+
+    def test_a_target_behind_is_reached_by_turning_back(self) -> None:
+        """Turning back costs the decision 1 tile in its plan, going round costs 2 more steps (and a U-turn): it turns
+        back, 2 steps, and walks no lap. Every seed (the path noise)."""
+        for seed in range(1, 9):
+            game, outcome, nav = self.corner(seed)
+            self.assertTrue(outcome.startswith("done"), outcome)
+            self.assertEqual((game.steps, revisits(game.trail[1:])), (2, []), f"seed {seed}: {game.trail}")
+
+    def test_fault_the_turn_back_cost_on_every_replan_walks_a_lap(self) -> None:
+        """FAULT (the step-3.1 rule: every step's plan charged `TURN_BACK_COST` for turning round, no plan followed): a lap
+        round the room, back on a tile it stood on 8 steps before, 10 steps in all (the measured SCENEX walk)."""
+        with mock.patch.object(navigator_module.Navigator, "_next_step", step31_next_step):
+            game, outcome, nav = self.corner()
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertGreaterEqual(game.steps, 8, game.trail)
+        self.assertTrue(revisits(game.trail[1:]), f"no lap: {game.trail}")
+
+    #: (build step 3.2, the plan FOLLOWED) a room; the player stepped DOWN from (5, 2) onto (5, 3); the target (7, 2) is
+    #: up-right of it: three ways of 3 steps (right right up; right up right: a U round (6, 2); up right right: straight
+    #: back). The house's 2F as HOUSE seed 3 met it (a frontier gone stale one step down, the stairs behind).
+    ROOM = ["##########", "#........#", "#........#", "#........#", "#........#", "##########"]
+
+    def room(self, seed: int):
+        game = GridGame({"ROOM": self.ROOM}, ("ROOM", (5, 3)))
+        hands, nav, world, notes, lines = rig(game, seed=seed)
+        world.observe(game.look())
+        nav.recent = [(world.current, "down")]
+        game.trail = [("ROOM", (5, 2)), ("ROOM", (5, 3))]
+        outcome = drive(nav.run(goto_intent([(7, 2)], 2000), "to the stairs"), budget=12_000)
+        return game, outcome, nav
+
+    def turned_round(self, seeds=range(1, 21)) -> list:
+        """The seeds whose walk turned round (A -> B -> A or a U-turn, `live_step3.reversals`) where an equally short way
+        that does not existed."""
+        from ai_player.gates.live_step3 import reversals
+
+        out = []
+        for seed in seeds:
+            game, outcome, nav = self.room(seed)
+            assert outcome.startswith("done") and game.steps == 3, (outcome, game.trail)
+            if reversals(game.trail):
+                out.append((seed, game.trail[1:]))
+        return out
+
+    def test_the_decisions_plan_is_followed_and_turns_round_only_to_break_a_tie(self) -> None:
+        """Three ways of the same length: the decision's plan takes the one that does not turn round (its 1-tile charge
+        breaks the tie the path noise would otherwise break), and FOLLOWS it: 20 seeds, none turns round. FAULTS: the plan
+        redone at every step without a charge (mutant W63: the next step's tie falls to the noise); no turn charge at all
+        (W32)."""
+        self.assertEqual(self.turned_round(), [])
+
+    def test_fault_replanned_every_step_it_turns_round_for_nothing(self) -> None:
+        with mock.patch.object(navigator_module, "PLAN_SWITCH_MARGIN", -1.0):  # every fresh plan replaces the plan
+            self.assertTrue(self.turned_round(), "no seed turned round with the plan replaced at every step")
+        with mock.patch.object(navigator_module, "TURN_ROUND_COST", 0.0), mock.patch.object(navigator_module, "TURN_BACK_COST", 0.0):
+            self.assertTrue(self.turned_round(), "no seed turned round with no turn charge at all")
+
+    #: (build step 3.2) a shortcut that comes into view: the straight way along the bottom row is UNSEEN in its middle
+    #: (priced optimistically, 3 a tile), so the decision's plan goes round by the top (20 steps); one step on, the middle
+    #: is seen to be floor: the straight way is 13 against 19 left.
+    LOOP = ["###############", "#.............#", "#.###########.#", "#.###########.#", "#.###########.#", "#.............#",
+            "###############"]
+
+    def test_a_shortcut_that_comes_into_view_is_taken(self) -> None:
+        """`PLAN_SWITCH_MARGIN`: a fresh plan clearly better than what is left of the plan followed (by more than the
+        margin) replaces it, uncharged: down to the bottom row, not on round the top. FAULT (never switch: mutant W74):
+        the plan round the top is kept."""
+        middle = {(x, 5) for x in range(3, 12)}
+        memory = PlannerTests().memory_of(self.LOOP, {(x, y) for x in range(15) for y in range(7)} - middle)
+        world = WorldMemory()
+        world.maps[memory.key] = memory
+        world._last.key = memory.key
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        target = Target("goto", (13, 5), "the far end")
+        first = nav._next_step(memory, (1, 5), target, frozenset())
+        self.assertEqual((first, len(nav.plan.path)), ("up", 20), "round the top: 20 steps against 30 through the unseen")
+        nav.plan.path.pop(0)
+        nav.plan.at = (1, 4)
+        full = PlannerTests().memory_of(self.LOOP)
+        for xy in middle:
+            memory.tiles[xy] = full.tiles[xy]
+        self.assertEqual(nav._next_step(memory, (1, 4), target, frozenset()), "down")
+        self.assertEqual((nav.stats.switches, nav.plan.charged, len(nav.plan.path)), (1, False, 13))
+
+
+def step31_next_step(self, memory, here, target, walls):
+    """FAULT (the step-3.1 rule, `revert_step3.py` W62): every step planned afresh, charged `TURN_BACK_COST` for
+    turning straight back or completing a U-turn on its first step (no pair charge: step 3.1 had none)."""
+    turns = {key: value for key, value in self.turn_costs().items() if isinstance(key, str)}
+    path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target), first=turns)
+    return path[0] if path else None
+
+
+class HeadingTests(unittest.TestCase):
+    """(build step 3.2, the step-3.1 adversarial review's MEDIUM finding 4) "The AI changes target almost every step (22 of
+    23 dropped as stale)", each re-picked on a WHIM among equals. A target chosen ON THE MOVE now keeps the heading
+    (`explore.pick_on_the_move`): the best place AHEAD unless another is better by more than `CHOICE_MARGIN`, and no draw.
+    FAULTS: the whim on the move (mutant W66), the heading not preferred (W67)."""
+
+    #: the player on (5, 5) walking RIGHT: a place ahead, one behind, one beside
+    PLACES = [Target("frontier", (9, 5), "ahead", 10.0), Target("frontier", (1, 5), "behind", 13.0),
+              Target("frontier", (5, 1), "beside", 12.5)]
+
+    def test_the_heading_is_kept_unless_another_place_is_clearly_better(self) -> None:
+        from ai_player.brain.explore import CHOICE_MARGIN, ahead, pick_on_the_move
+
+        self.assertEqual(pick_on_the_move(self.PLACES, (5, 5), "right").tile, (9, 5), "3 points behind the best: kept")
+        clearly = [self.PLACES[0], replace(self.PLACES[1], score=10.0 + CHOICE_MARGIN + 0.5), self.PLACES[2]]
+        self.assertEqual(pick_on_the_move(clearly, (5, 5), "right").tile, (1, 5), "beaten by more than the margin")
+        self.assertEqual(pick_on_the_move(self.PLACES, (5, 5), "up").tile, (5, 1), "walking up: the place ahead is (5, 1)")
+        self.assertEqual(pick_on_the_move(self.PLACES[1:], (5, 5), "right").tile, (1, 5), "nothing ahead: the best")
+        self.assertEqual(pick_on_the_move(list(reversed(self.PLACES)), (5, 5), "right"), pick_on_the_move(self.PLACES, (5, 5), "right"))
+        self.assertFalse(ahead((5, 5), (5, 1), "right"), "beside is not ahead")
+
+    def test_no_draw_on_the_move(self) -> None:
+        """The same memory, the same heading, 20 different choice seeds: ON THE MOVE every seed chooses the same place
+        (no whim, no jitter); STANDING they choose among several (the whim among equals stays where it belongs). FAULT
+        (the whim on the move: W66): the seeds differ on the move too."""
+        moving = self.choices(True)
+        self.assertEqual(len(moving), 1, moving)
+        self.assertGreater(len(self.choices(False)), 1)
+
+    @staticmethod
+    def choices(on_the_move: bool) -> set:
+        field = ["#" * 31] + ["#" + "." * 29 + "#" for _ in range(15)] + ["#" * 31]
+        out = set()
+        for seed in range(20):
+            game = GridGame({"FIELD": field}, ("FIELD", (15, 8)))
+            hands, nav, world, notes, lines = rig(game, seed=seed)
+            world.observe(game.look())
+            nav.recent = [(world.current, "right")]
+            nav.choosing_on_the_move = on_the_move
+            out.add(choose_target(nav, game.look(), WEIGHTS["Story"]).tile)
+        return out
+
+
+def no_carry_on(original):
+    """FAULT (the step-3.2 rule, `revert_step3.py` W79): an explore intent whose decisions are never carried on: a stale
+    target is dropped and a new one chosen on the move at every stale step."""
+
+    def make(*args, **kwargs):
+        intent = original(*args, **kwargs)
+        intent.carry_on = None
+        return intent
+
+    return make
+
+
+class ChurnTests(unittest.TestCase):
+    """(build step 3.2, the step-4 verifier: "finding 4 ... is NOT fixed: ... 22 of 23 dropped as stale ... decisions on
+    the move 35 of 47 ... 28 of the 47 walks a single step"). A frontier tile at the screen's edge is seen past as soon as
+    the player steps toward it, so the step-3.2 explorer re-decided at nearly every step. Now the DECISION is carried on
+    (`brain/explore.py` carry_on): the place it meant moves on with the view, and a new decision is made only when nothing
+    of it is left there or something clearly better came into view (`CARRY_SWITCH_MARGIN`). FAULTS: no carry-on (the
+    step-3.2 rule: W79), no margin (carried on for good: W80), a carry-on that slides ALONG the screen's edge (W81)."""
+
+    #: an open field taller and wider than the window: the player on (15, 20) walking UP
+    FIELD = ["#" * 31] + ["#" + "." * 29 + "#" for _ in range(28)] + ["#" * 31]
+
+    def walked_up(self, field=None, personality: str = "Story"):
+        """The player on (15, 20) looks, steps up to (15, 19) and looks again: the frontier tile (15, 15) at the top of the
+        first window (its unseen side up, (15, 14)) is now seen past."""
+        game = GridGame({"FIELD": field or self.FIELD}, ("FIELD", (15, 20)))
+        hands, nav, world, notes, lines = rig(game, personality=personality)
+        world.observe(game.look())
+        game.frame += 100
+        game.pos = (15, 19)
+        world.observe(game.look())
+        nav.recent = [(world.current, "up")]
+        nav.carry_note = {}
+        return nav, game, world
+
+    def test_the_decision_carries_on_as_the_view_opens(self) -> None:
+        from ai_player.brain.explore import carry_on
+        from ai_player.brain.navigator import stale_reason
+
+        nav, game, world = self.walked_up()
+        old = Target("frontier", (15, 15), "1 unseen tile(s) beside it", 10.0)
+        self.assertIsNotNone(stale_reason(world.here(), old), "the step showed what was beside it")
+        carried = carry_on(nav, game.look(), WEIGHTS["Story"], old)
+        self.assertEqual((carried.kind, carried.tile), ("frontier", (15, 14)), "the place moved on: straight beyond it")
+        self.assertIn("carried on from (15, 15)", carried.reason)
+
+    def test_a_place_aside_is_another_place(self) -> None:
+        """With the way straight on walled ((14..16, 14) walls), the nearest frontier past the stale tile lies two tiles
+        aside, (13, 14): a frontier sliding ALONG the screen's edge, another place: no carry-on, the reason said. FAULT (W81:
+        any tile further up, however far aside): carried on to it."""
+        from ai_player.brain.explore import carry_on
+
+        field = list(self.FIELD)
+        field[14] = field[14][:14] + "###" + field[14][17:]
+        nav, game, world = self.walked_up(field)
+        old = Target("frontier", (15, 15), "x", 10.0)
+        self.assertIsNone(carry_on(nav, game.look(), WEIGHTS["Story"], old))
+        self.assertIn("nothing of it left", nav.carry_note.get("refused", ""))
+        loose = lambda o, t, sides: any((t[0] - o[0]) * DIRS_LOWER[d][0] + (t[1] - o[1]) * DIRS_LOWER[d][1] >= 1 for d in sides)
+        with mock.patch.object(explore_module, "further", loose):
+            slid = carry_on(nav, game.look(), WEIGHTS["Story"], old)
+        self.assertIsNotNone(slid, "the fault carries on along the edge")
+        self.assertGreaterEqual(abs(slid.tile[0] - 15), 2, slid)
+
+    def test_something_clearly_better_ends_the_decision(self) -> None:
+        """A Catcher's frontier on TALL GRASS comes into view two columns aside (worth far more to it than the plain tile
+        straight on): the decision is not carried on, and the reason names the grass. FAULT (W80, no margin: a decision is
+        carried on whatever comes into view): carried on to the plain tile."""
+        from ai_player.brain.explore import carry_on
+
+        field = list(self.FIELD)
+        field[14] = field[14][:17] + '"' + field[14][18:]
+        nav, game, world = self.walked_up(field, personality="Catcher")
+        old = Target("frontier", (15, 15), "x", 10.0)
+        self.assertIsNone(carry_on(nav, game.look(), WEIGHTS["Catcher"], old))
+        self.assertIn("clearly more", nav.carry_note.get("refused", ""))
+        self.assertIn("(17, 14)", nav.carry_note.get("refused", ""))
+        with mock.patch.object(explore_module, "CARRY_SWITCH_MARGIN", 999.0):
+            held = carry_on(nav, game.look(), WEIGHTS["Catcher"], old)
+        self.assertEqual(held.tile, (15, 14))
+
+    def test_never_carried_behind_the_player(self) -> None:
+        from ai_player.brain.explore import beyond
+
+        self.assertTrue(beyond((15, 19), (15, 15), (15, 14)))
+        self.assertTrue(beyond((15, 19), (15, 15), (16, 14)))
+        self.assertFalse(beyond((15, 19), (15, 15), (15, 21)), "behind the player")
+        self.assertFalse(beyond((15, 19), (15, 15), (18, 19)), "straight beside the player is not on its side")
+
+    @staticmethod
+    def town(fault=None) -> tuple[int, int, int, int]:
+        """CropTests' town, 12 seeds: (decisions, decisions on the move, steps, runs that reached the road)."""
+        decisions = moving = steps = done = 0
+        for seed in range(1, 13):
+            context = (mock.patch.object(sys.modules[__name__], "explore_intent", fault(explore_module.explore_intent))
+                       if fault else contextlib.nullcontext())
+            with context:
+                outcome, found, game = CropTests().run_town(crop=True, seed=seed)
+            decisions += len(found)
+            moving += sum(1 for d in found if d.get("on_the_move"))
+            steps += game.steps
+            done += outcome.startswith("done")
+        return decisions, moving, steps, done
+
+    def test_few_decisions_and_no_longer_walk_on_the_town(self) -> None:
+        """MEASURED 2026-10-09 on this model: 54 decisions (42 on the move) in 452 steps over 12 seeds, against 338 (326 on
+        the move) in 429 with the step-3.2 rule (the fault half): a decision per 8 steps where it was one per step, and the
+        walks to the road no more than a tenth longer."""
+        decisions, moving, steps, done = self.town()
+        fd, fm, fs, fdone = self.town(no_carry_on)
+        self.assertEqual((done, fdone), (12, 12))
+        self.assertLessEqual(decisions, 80, f"{decisions} decisions ({moving} on the move) in {steps} steps")
+        self.assertGreaterEqual(fd, 250, f"FAULT: {fd} decisions ({fm} on the move) in {fs} steps")
+        self.assertLessEqual(steps, 1.1 * fs, f"{steps} steps against the step-3.2 rule's {fs}")
+
+
+DIRS_LOWER = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 
 
 class SceneTests(unittest.TestCase):
@@ -1871,6 +2612,37 @@ class ExploreTests(unittest.TestCase):
             back = [c for c in candidates(nav, game.look(), WEIGHTS["Catcher"]) if c.kind == "back"]
         self.assertTrue(back and "just come from" in back[0].reason, back)
         self.assertLessEqual(back[0].score, VALUE_TILES * WEIGHTS["Catcher"].back + 1.5)
+
+    def test_not_back_to_a_floor_seen_all_of_while_the_town_has_more(self) -> None:
+        """(the step-4 verifier's round) Up the house, down, out into a town too wide for one screen, and back into the house:
+        the stairs lead to a floor SEEN ALL OF, the doormat to the town with things left to see; the stairs are no option
+        (measured live: once a doormat counted as one way out, the stairs one step away outscored the doormat four steps away
+        and the AI went up and down until the ping-pong rule: the sweep's CROP seed 1). FAULT (mutant W89: the rule off):
+        the stairs are a candidate again."""
+        house = ExitTests().house()
+        maps = dict(house.maps)
+        maps["TOWN"] = ["#" * 31, "#" + "." * 29 + "#", "####D" + "#" * 26, "#" + "." * 29 + "#", "#" + "." * 29 + "#", "#" * 31]
+        game = GridGame(maps, ("UP", (2, 2)), warps=house.warps)
+        hands, nav, world, notes, lines = rig(game)
+        self.assertTrue(drive(nav.run(explore_intent("TOWN", "Story", 8000), "out")).startswith("done"))
+        self.assertTrue(drive(nav.run(goto_intent([(4, 3)], 2000), "to the door")).startswith("done"))
+        target = Target("door", (4, 3), "back in", exit=(4, 2), direction="up")
+        self.assertEqual(drive(nav.use_exit(target, "back in")), "used")
+        drive(nav.settle("in"))
+        keys = {name: key for key, name in world.names().items()}
+        self.assertEqual(world.current, keys["DOWN"])
+        self.assertGreater(world.promise(keys["TOWN"]), 0, "the town has things left to see")
+        self.assertEqual(world.promise(keys["UP"]), 0, "the upper floor is seen all of")
+
+        def ways(found):
+            return sorted((t.kind, t.exit, t.reason.split(",")[-1].strip()) for t in found if t.kind == "back")
+
+        found = candidates(nav, game.look(), WEIGHTS["Story"])
+        self.assertTrue(any(t.kind == "back" and t.exit in ((8, 4), (9, 4)) for t in found), ways(found))
+        self.assertFalse(any(t.exit == (8, 1) for t in found), f"the stairs to a floor seen all of: {ways(found)}")
+        with mock.patch.object(explore_module, "not_back_to_seen_all", lambda found: found):
+            faulty = candidates(nav, game.look(), WEIGHTS["Story"])
+        self.assertTrue(any(t.exit == (8, 1) for t in faulty), ways(faulty))
 
     def test_an_exclusion_belongs_to_one_map(self) -> None:
         world = WorldMemory()

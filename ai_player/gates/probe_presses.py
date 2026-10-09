@@ -81,7 +81,10 @@ CONTEXT_SHUTDOWN = 2
 #: `include/text.h` struct TextPrinter: 0x24 bytes; currentChar @0, active @0x1B, state @0x1C.
 PRINTER_SIZE, PRINTER_COUNT = 0x24, 32
 #: A gate that says the game WAITED for the press (`ScreenState.wait_reason`).
-WAIT_GATE = re.compile(r"^(text printer \d+ (WAIT|CLEAR|SCROLL_START)|script waitbuttonpress|task \S+ \(A( or B)?\))$")
+#: (build step 4) and a battle-script command that waits for any key (`eyes/screens.py` BATTLE_SCRIPT_WAITS: the level-up
+#: stats box)
+WAIT_GATE = re.compile(r"^(text printer \d+ (WAIT|CLEAR|SCROLL_START)|script waitbuttonpress|task \S+ \(A( or B)?\)"
+                       r"|battle level-up stats box \(any key\))$")
 #: STEP 2.1 (the review's item 4): the presses other than A the probe forks, judged by "was it taken?".
 OTHER_BUTTONS = ("Start", "B", "Select")
 #: `include/palette.h` struct PaletteFadeControl: `active` is bit 7 of byte 7 (read here by the probe itself).
@@ -92,6 +95,8 @@ NAMING_BLOCK, NAMING_BLOCK_SIZE, NAMING_CURSOR_SPRITE, SPRITE_SIZE, SPRITE_DATA 
 #: The menu gates the hands write (`hands/menus.py`), each with the `MenuView.kind` it names.
 _MENU_GATES = (
     (re.compile(r"^(?P<kind>[a-z_]+) cursor on -?\d+ \("), None),
+    # (build step 4) a list whose options the eyes do not name (the party menu: the cursor is a slot) ends at its number
+    (re.compile(r"^(?P<kind>party) cursor on -?\d+$"), None),
     (re.compile(r"^mart_quantity reads x\d+"), "mart_quantity"),
     (re.compile(r"^keyboard: "), "naming"),
     (re.compile(r"^clock reads \d+:\d+"), "clock"),

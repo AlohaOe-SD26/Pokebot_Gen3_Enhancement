@@ -11,7 +11,55 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 3.1, the step-3 adversarial review's findings fixed, its verifier's nine weak proofs answered,
+**Where it is now: build step 4, the AI's OWN BATTLES** (section "The battles (build step 4)" below): a new brain,
+`AI_PLAYER_BRAIN=battle`, FIGHTS every battle with the AI's own decider (`brain/battle.py`) and hands (`skills/battle.py`):
+a move chosen by its worth against THIS foe (type effectiveness x STAB x power x hit chance, minus a recoil penalty that
+grows as its own HP falls), a seeded draw among the about-as-good moves, a switch when badly matched, a Potion in a
+trainer's battle, RUN from a wild battle it does not want, and for a species it has not caught: weaken without knocking
+out, then throw. It drives every battle menu by READING its cursor (FIGHT / BAG / POKéMON / RUN, the move grid, a double
+battle's target, the bag's pockets, the party menu, every yes/no, the summary screen's forget-a-move list), sends in the
+next Pokemon when one faints, learns a move by keeping the four worth most, and lets an evolution happen. Its game facts
+are the AI's OWN knowledge files (`knowledge/`: the type chart, 354 moves with their recoil class, 386 species), extracted
+from the bot's DATA with provenance and checked entry by entry against pret/pokeemerald (`gates/verify_knowledge.py`).
+Proven live through the real launcher under the unchanged purity audit (`gates/live_step4.py`, 12 arms: a wild battle
+won, a catch, a trainer, the rival, a walk up to the rival and a talk, the type chart in a double battle and its fault,
+a faint and the next Pokemon sent in, a move learned, and since the verifier's round a double battle's partner fainting,
+its step-4 fault, and a battle resumed on the party menu's refusal), by 82 unit tests (`gates/test_battle.py`), 43 mutants
+(`gates/revert_step4.py`) and a seed sweep (`gates/rate_step4.py`, 185 in-process runs, each read by the GAME's own battle
+every frame). The step-3 world brains still flee (their proofs stand).
+
+**The step-4 verifier's SECOND round** (sections "Step 3.2, the step-4 verifier's FAILURE and second round of weak
+proofs" and "Step 4, the verifier's second round" below; everything on ONE tree, named there): the FAILURE, step 3.2's
+finding 4 not fixed (the AI still made a new decision nearly every step, because a frontier at the screen's edge is seen
+past at the next step), is fixed in the AI's code: a decision is CARRIED ON to the place that took its target's place, and
+a new one is made only when nothing of it is left or something is clearly better; its visible cost (every journey's steps
+beyond the shortest known way) is bounded, live and in the sweep, with an A/B against the step-3.2 rule. Found and fixed
+on the way: a doormat is ONE way out, and a way back to a floor seen all of is no option while the front door leads on.
+Findings 3 and 5 now have live arms (FORGET, REOPEN, and their reverts); every choice of the best move tells what the type
+chart changed in it, and the sweep counts those choices against the GAME's own record of the move chosen each turn; a
+refused switch is unit-tested; the gym-leader-level training is named NOT BUILT. Every trajectory number was re-registered
+from development passes moved out of the evidence folder before the graded runs.
+
+**The step-4 verifier's round** (sections "Step 4, the verifier's round" and "Step 3.2, the step-4 verifier's weak
+proofs" below; everything on the tree `sha256:a14d81a107a65b76`, archived in `evidence/archive/a14d81a107a65b76/`): the replacement after a faint REMEMBERS the field through
+the party menu (it sent the Grovyle standing on the field in a double battle and the battle stuck; it ranked every
+replacement by level and HP), a refusal in the party menu is READ, the recoil is charged on the HP a hit can take, the
+sweep and the in-battle live arms are graded by the GAME's battle read each frame, and a ring check sees the laps the
+nothing-new check could not.
+
+**Before that, build step 3.2, the step-3.1 adversarial review's human-likeness findings fixed** (section "Step 3.2"
+below; its final runs' evidence is in `evidence/archive/3ea1b655920e8c61/`, moved there unchanged before step 4's runs
+rewrote the file names): turning round is charged ONCE per decision and the decision's plan is FOLLOWED, so the AI turns back where step 3.1
+walked laps (the step-3.1 rule reverted walks 342 steps beyond the shortest known ways in the sweep, this code 6; SCENEX's
+worst walk with it reverted is 25 steps where 3 would do); LAPS and the walk against the shortest KNOWN way per target are
+graded beside the reversals (pre-registered bounds on TOWN, ROUTE, SCENEX, SCENEX9, held at every clock instant); a bump
+is forgotten once the way lets the player through, and dropped when its tile's look changes; a target chosen on the move
+keeps the heading with no whim (88% of such choices kept it on the TOWN plans, 61% with the whim); a closed door reopens
+on news a person could see, not on a count of the save's flags. Proven by `gates/test_world.py` (108 tests),
+`gates/revert_step3.py` (74 mutants, W62-W75 this step's), `gates/live_step3.py` (34 arms, SCENEXL new) and
+`gates/rate_step3.py` (its LAPS and WHIM reverts), all on the tree `sha256:3ea1b655920e8c61`.
+
+**Before that, build step 3.1, the step-3 adversarial review's findings fixed, its verifier's nine weak proofs answered,
 and that verifier's second round of eight answered** (section "Step 3.1, the verifier's second round" below: the warp-table
 guard is now BEHAVIOURAL, every read the real eyes make checked against every map's warp array, `gates/warp_reads.py`; the
 twin is known by her WORDS, at most 3 push-backs before news instead of 4; NEW WORDS heard in a scene that leaves the player
@@ -193,14 +241,40 @@ walks out of Birch's lab, through Littleroot (knowing nothing of it) and onto Ro
 for 150 steps, fleeing what it meets. The run writes `<run_dir>/world.jsonl` (the memory, a snapshot line at every map
 change and at the end) beside its action log.
 
+Build step 4: the BATTLE brain, `AI_PLAYER_BRAIN=battle` (a world brain too: the same memory and navigator). It plays the
+battle on screen at the start, then walks up to and talks to the person at `AI_PLAYER_TALK_TO` (`x,y` on the current
+map: a trainer, the rival), then roams the grass and FIGHTS what comes, until `AI_PLAYER_BATTLES` battles (default 1) have
+ended; it ends with `battles: N played: [outcomes]` (the game's own `gBattleOutcome`: won, lost, ran, caught, ...), or
+`rest: ...` when a person would stop training and look for a Pokemon Center (its strongest Pokemon fainted or under a
+third of its HP), or `stuck: ...` (a lost battle is `stuck: the battle was lost`). `AI_PLAYER_PURPOSE=train|travel`
+(default train: wild battles fought for experience, run from when its Pokemon is low or the foe far stronger; travel: a
+wild battle it does not want is run from by its temperament). `AI_PLAYER_PERSONALITY` sets the temperament (how near the
+best a move must be to be drawn, how much it wants a new species, how willing it is to switch, when it heals). For example
+
+```
+AI_PLAYER_BRAIN=battle AI_PLAYER_BATTLES=4 AI_PLAYER_PERSONALITY=Story AI_PLAYER_SEED=3 py -3.12 -m ai_player run --profile ai-step4-battle --frames 40000 --state ai_player/gates/fixtures/route101_south.ss1
+AI_PLAYER_BRAIN=battle AI_PLAYER_TALK_TO=10,3 AI_PLAYER_SEED=1 py -3.12 -m ai_player run --profile ai-step4-battle --frames 20000 --state tools/story-dev/saves/route103.ss1
+```
+
+roams Route 101's grass and plays four wild battles; and walks up to May on Route 103, talks to her and plays the rival's
+battle. The in-process harness runs the same brain: `py -3.12 ai_player/gates/hands_harness.py battle --state PATH --seed N
+--battles N [--talk-to X,Y] [--fault ignore_types|ignore_recoil|uncapped_recoil|forget_field|ignore_refusal, or several
+joined by commas] [--battle-log] --game-clock 2026-10-08T06:00` (`--battle-log`: the GAME's battle read after every frame,
+test side: each battler's chosen move, each HP change with its user, move and target, each Pokemon that came onto a
+position). The launcher's fault switches are `AI_PLAYER_FAULT_IGNORE_TYPES`, `_IGNORE_RECOIL`, `_UNCAPPED_RECOIL`,
+`_FORGET_FIELD`, `_IGNORE_REFUSAL` (`options.py`).
+
 ## Layout
 
 | file | what it is for |
 |---|---|
 | `mode.py` | the BRAIN, framework-free: `Brain.play(controls, eyes)` over the abstract `Controls` / `Eyes` interfaces; returns its give-up reason (step 0: a placeholder; step 1 adds `WatcherBrain`; step 2 adds `HandsBrain`, reached through `Brain` because the session is finished; step 3 its world brains, the memory and its `world.jsonl`) |
-| `world/memory.py` | step 3: the WORLD MODEL (framework-free): per map every tile SEEN and where it was seen from, visits, people and item balls, tiles learned blocked by bumping, learned edges; the warp graph (used, and the way back inferred), the connections and every map change (warp or connection, the AI's or a scene's); persistence (`to_dict`, `snapshot`, `read_world`) |
-| `brain/navigator.py` | step 3: the AI's OWN NAVIGATOR (framework-free): A* over the memory (unknown tiles optimistic but costly, ledges one way, exits used on purpose), walking in held chunks with a look between, bumps learned, people waited for, warps and doors used by the right press, interruptions (a battle fled, a scene read through); every `Intent` bounded by a budget progress does not reset, progress = NOVELTY, `stuck:<reason>` (no novelty, a ping-pong, nothing left, a trainer battle) |
-| `brain/explore.py` | step 3: where to go next: the frontier, roads past an edge, unused exits, grass and people, scored by the PERSONALITY's weights (`WEIGHTS`), a known route to the goal, a WHIM among about-equal places (`pick`, `CHOICE_MARGIN`), never idle (it wanders); `explore_intent`, `goto_intent` |
+| `world/memory.py` | step 3: the WORLD MODEL (framework-free): per map every tile SEEN and where it was seen from, visits, people and item balls, tiles learned blocked by bumping, learned edges; the warp graph (used, and the way back inferred), the connections and every map change (warp or connection, the AI's or a scene's); persistence (`to_dict`, `snapshot`, `read_world`); since step 3.2 bumps forgotten (`forget_bump`, `take_dropped_bumps`) and the NEWS a person could see that reopens a closed door (`news`, `heard`); since the step-4 verifier's second round a DOORMAT is one way out (`mat_tiles`) |
+| `brain/navigator.py` | step 3: the AI's OWN NAVIGATOR (framework-free): A* over the memory (unknown tiles optimistic but costly, ledges one way, exits used on purpose), walking in held chunks with a look between, bumps learned, people waited for, warps and doors used by the right press, interruptions (a battle fled, a scene read through); every `Intent` bounded by a budget progress does not reset, progress = NOVELTY, `stuck:<reason>` (no novelty, a ping-pong, nothing left, a trainer battle); since step 3.2 a decision's PLAN followed (`Plan`, `_next_step`: turning round charged once, `TURN_ROUND_COST`; a clearly better way switched to, `PLAN_SWITCH_MARGIN`) and the heading told to the explorer (`heading`, `choosing_on_the_move`) |
+| `brain/explore.py` | step 3: where to go next: the frontier, roads past an edge, unused exits, grass and people, scored by the PERSONALITY's weights (`WEIGHTS`), a known route to the goal, a WHIM among about-equal places (`pick`, `CHOICE_MARGIN`), never idle (it wanders); `explore_intent`, `goto_intent`; since step 3.2 a choice ON THE MOVE keeps the heading (`pick_on_the_move`, `ahead`); since the step-4 verifier's second round a decision is CARRIED ON past a target the walk made stale (`carry_on`, `opened`, `further`, `beyond`, `CARRY_RADIUS`, `CARRY_SWITCH_MARGIN`) |
+| `brain/battle.py` | step 4: the AI's OWN BATTLE DECIDER (framework-free): a move's worth (`move_value`: type x STAB x power x hit chance, minus `recoil_penalty`), the near-best draw (`choose_move`), switching (`matchup`, `better_member`), healing in a trainer's battle, running, the catch (weaken under `KO_MARGIN`, then the ball), who goes in after a faint (`replacement`), the battle's questions by their words (`answer`), which move to forget (`learn_choice`), when training should stop (`needs_rest`); the personality's `Temperament`; the FAULT switches `BattleFaults`; since the step-4 verifier's second round every choice of the best move tells what the type chart changed in it (`TypeSay`) |
+| `skills/battle.py` | step 4: playing a battle to its end (`play_battle`): every text advanced on the eyes' waits, every battle menu chosen by reading its cursor (the action and move grids, a double battle's target, the bag's pocket and item and USE, the party menu and SHIFT / SEND OUT, the yes/no, the summary screen's forget-a-move list), every decision logged with its reason; the outcome is the game's `gBattleOutcome` |
+| `knowledge/` | step 4: the AI's OWN game facts, `types.json` (the Gen-3 chart), `moves.json` (354 moves: type, power, accuracy, PP, effect, priority, target, category, recoil class), `species.json` (386 species: types, base stats, catch rate, experience yield), each with its provenance (the bot's data file it was extracted from and that file's sha256); `facts.py` reads them (the play loop never reads the bot's data) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
 | `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`) |
@@ -221,7 +295,7 @@ change and at the end) beside its action log.
 | `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file |
 | `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
 | `evidence/` | every live and mutant proof's evidence file of the CURRENT tree, at the top level (each names the tree's digest: `provenance.py --check-evidence`); earlier trees' files in `evidence/archive/<digest>/`, kept as they were (`archive/README.md` lists them) |
-| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`) |
+| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`); step 4's knowledge extractor (`extract_knowledge.py`: the bot's data in, `knowledge/*.json` out, `--check`) and its check against pret/pokeemerald (`verify_knowledge.py`, `--plant` its fault half), the battle unit tests (`test_battle.py`), mutant proof (`revert_step4.py`), live proof (`live_step4.py`), seed sweep (`rate_step4.py`) and fixture builder (`make_step4_fixtures.py`: `geodude_grovyle.ss1`, `learn_r116.ss1`, `faint_r116.ss1`, `rival_r103.ss1`, each PLAYED by the AI's own battle brain, and `recoil_r102.look.json`, the AI's own look in a real battle); `hands_harness.py battle` and its `truth` now also read each party Pokemon's moves and OT id, the player's id, `gBattleOutcome`, the trainers' defeated flags and the PC boxes; the step-4 verifier's second round: `make_step32_fixtures.py` (`house_2f_bumps.world.jsonl`, `littleroot_closed.world.jsonl`: the AI's own memories with ONE thing planted, test side, for the live arms FORGET and REOPEN) |
 | `../sandbox-pokebot/plugins/custom_modes/ai_player_mode.py` | the hook: registers "AI Player", APPENDS the repo root to `sys.path`, and keeps its own before/after record of the framework's listeners (`[AI-HOOK]`); no game logic |
 
 The subpackage is `host/`, not `platform/` (step 0's name): `platform` would shadow the standard
@@ -357,22 +431,28 @@ py -3.12 ai_player/gates/hands_harness.py BRAIN --fresh | --state PATH [--seed N
                                                   # one hands brain in-process (development; not a purity proof); `truth STATE` reads a state
 py -3.12 ai_player/gates/make_mart_fixture.py     # rebuilds the MART fixture by walking rustboro.ss1 into the mart (then re-pin its md5)
 py -3.12 ai_player/gates/make_clock_fixture.py    # rebuilds the CLOCK fixture: the AI's own intro (seed 7), then walked to the clock (re-pin)
-py -3.12 ai_player/gates/test_world.py            # step 3 + 3.1 unit proofs (93 tests against a grid model of the overworld, and the graders' rules; each with its fault half), ~1 min
+py -3.12 ai_player/gates/test_world.py            # step 3 + 3.1 + 3.2 unit proofs (108 tests against a grid model of the overworld, and the graders' rules; each with its fault half), ~1 min
 py -3.12 ai_player/gates/revert_step3.py [W1,W2] [--workers N]
-                                                  # step 3 + 3.1: each rule of the REAL navigator / memory / explorer / roam / flee / probe / grader broken in a copy
-                                                  # (61 mutants + a control): 60 caught, 1 redundant alone (the reason), ~50 min alone, ~12 min with --workers 6
-py -3.12 ai_player/gates/live_step3.py            # step 3 + 3.1 live proof, 33 arms (HOUSE, TOWN, ROUTE, ROAM, CROP, STUCK, BUMP, BUMPR, TRN, XP, XPR, SCENE,
+                                                  # step 3 + 3.1 + 3.2: each rule of the REAL navigator / memory / explorer / roam / flee / probe / grader broken in a copy
+                                                  # (74 mutants + a control; W62-W75 step 3.2's): 73 caught, 1 redundant alone (the reason), ~15 min with --workers 6
+py -3.12 ai_player/gates/live_step3.py            # step 3 + 3.1 + 3.2 live proof, 34 arms (HOUSE, TOWN, ROUTE, ROAM, CROP, STUCK, BUMP, BUMPR, TRN, XP, XPR, SCENE,
                                                   # SCENER, EXITS; the step-3.1 verifier's round: SCENEX, SCENEXR, HOUSER, TOWNR, ROUTER, EDGER, and the seed-9
                                                   # replications TOWN9, ROUTE9; its second round: SCENENR, WARPREAD, BUMPSR, TOWN9R, ROUTE9R, HOUSE9, BUMP8,
-                                                  # BUMPSR8, SCENEX9, F2AB, CLOCKS), seed 3, ~30 min; every number in its PREDICTED table machine-checked;
-                                                  # its in-process arms pin the cartridge's clock (GAME_CLOCK), its launcher arms read the host's
+                                                  # BUMPSR8, SCENEX9, F2AB, CLOCKS; step 3.2: SCENEXL; the step-4 verifier's second round: SCENEXC,
+                                                  # FORGET, FORGETR, REOPEN, REOPENR: 39 arms), seed 3, ~16 min; every number in its PREDICTED table
+                                                  # machine-checked; its in-process arms pin the cartridge's clock (GAME_CLOCK), its launcher arms read the host's
 py -3.12 ai_player/gates/warp_reads.py            # step 3.1 (the verifier's second round): the REAL eyes on 7 starts, every memory read recorded, against
                                                   # every map's warp array; and three plants in copies (an attribute, a getattr, a raw read), each caught (arm WARPREAD)
 py -3.12 ai_player/gates/rate_step3.py [--plans HOUSE,TOWN,...] [--seeds 10] [--workers 4]
                                                   # step 3 + 3.1: the SEED SWEEP, 10 plans x 10 seeds in-process, each graded by its second-path truth;
                                                   # also the targets each seed chose, CROP-SEP (TOWN vs CROP seed by seed), the reversal bounds, the
                                                   # REVERTS (finding 2's rules and the scene's count per tile reverted in a copy: the A/B), the scenes,
-                                                  # ROUTE's flee, the seed-3 replay and the roaming metrics; ~5 min with --workers 10
+                                                  # ROUTE's flee, the seed-3 replay and the roaming metrics; since step 3.2 the LAPS and the walks against
+                                                  # the shortest known ways per run, the targets chosen on the move, and the LAPS and WHIM reverts;
+                                                  # since the step-4 verifier's second round the CHURN per plan and its revert A/B, LAP RINGS, and
+                                                  # SCENE-EXPLORE's reversals and journeys bounded; ~11 min with --workers 10. --first-seed 101 plays
+                                                  # HELD-OUT seeds (no development run played them) against the same bounds: a replication, where
+                                                  # seeds 1-10 replay the development sweeps (rate_step4.py takes --first-seed too)
 py -3.12 ai_player/gates/game_answer.py STATE GROUP NUMBER X Y [--after-warp GROUP NUMBER X Y | --after-connection GROUP NUMBER X Y DIRECTION]
                                                   # step 3: where the GAME says the player stands, by its behaviour (hold a direction; its own step
                                                   # counter and loaded map against the ROM layout's prediction at the claimed tile); with no
@@ -408,6 +488,11 @@ Read inside the AI's own code, never set on the happy path:
 | (a COPY) | step 3.1, the verifier's second round: a scene not known by its words (`SCENEWORDS_MUTATION`) / new words not progress (`NEWS_MUTATION`) | SCENEXR / SCENENR (live_step3); the sweep's SCENE-WORDS / SCENE-NEWS reverts |
 | (a COPY) | step 3.1, the verifier's second round: one bump walls a tile from every side again (`BUMPSIDE_MUTATION`) | BUMPSR, BUMPSR8 (live_step3) |
 | (a COPY) | step 3.1, the verifier's second round: a warp-table read planted in `host/eyes.py` `_map_facts` (`warp_reads.PLANTS`: an attribute, a getattr, a raw read) | WARPREAD (live_step3, `gates/warp_reads.py`) |
+| (a COPY) | step 3.2: the turn-back cost charged on every replan, no plan followed (the step-3.1 rule, `live_step3.LAPS_MUTATION`) | SCENEXL (live_step3); the sweep's LAPS revert |
+| (a COPY) | step 3.2: a target chosen on the move picked on a whim again (`live_step3.WHIM_MUTATION`) | the sweep's WHIM revert |
+| `AI_PLAYER_FAULT_IGNORE_TYPES=1` | step 4: the battle decider values every type matchup as neutral and gives no STAB | TYPEX (live_step4); the sweep's TYPE-FAULT; `test_battle.py` TypeTests |
+| `AI_PLAYER_FAULT_IGNORE_RECOIL=1` | step 4: the battle decider drops the recoil penalty | the sweep's RECOIL-FAULT; `test_battle.py` RecoilTests, RecordedRecoilTests |
+| (a COPY) | step 4: one rule of the decider, the skill, the eyes' new waits or the type chart broken (`revert_step4.MUTANTS` B1-B30) | `revert_step4.py` (`test_battle.py` from the copy) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -451,6 +536,319 @@ Evidence of the live proof: `ai_player/evidence/<date>-step01-<ARM>.txt` (step 0
 CURRENT tree only (`provenance.py --check-evidence`): `live_step0.py --arms A,A2,B,C`'s four files; the full step-0 and
 step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) are in `evidence/archive/no-digest/`, unchanged.
 
+## The battles (build step 4)
+
+The AI's OWN battles (design draft §2.3 "battle decider", §10.1; HUMAN-PLAY-DESIGN pillar 3). RULING 35: the bot's
+`modules/battle_strategies/*`, `battle_handler.py`, `battle_action_selection.py`, `battle_move_replacing.py` and `story/*`
+were read as TEACHING material only; the purity gate refuses every one of them, and `test_battle.py`
+`FrameworkFreeTests` checks no AI file even names them. The bot's DATA taught the game's FACTS, extracted into the AI's
+own files with provenance.
+
+### What it knows: `knowledge/`, and how that was checked
+
+`gates/extract_knowledge.py` reads the bot's `sandbox-pokebot/modules/data/{types,moves,species}.json` (never its code)
+and writes `knowledge/{types,moves,species}.json`, each naming its source file and that file's sha256 (`--check`: a written
+file differs from a fresh extraction -> exit 1). Learnsets, evolutions, encounter tables and trainer parties are left out
+ON PURPOSE: a person meets those by playing. `gates/verify_knowledge.py` then reads the GAME's own source through `gh api
+repos/pret/pokeemerald/contents/...` and compares EVERY entry: the chart against `src/battle_main.c` gTypeEffectiveness
+(112 triples, and every pair the decomp does not list must be 1.0 in ours), all 354 moves (type, power, accuracy, PP,
+effect, priority, target) against `src/data/battle_moves.h`, all 386 species (types, six base stats, catch rate,
+experience yield) against `src/data/pokemon/species_info.h`, and the recoil arithmetic against the decomp's own lines
+(`src/battle_script_commands.c`: 1/4 and 1/3 of the HP dealt; Jump Kick's miss recoil is half the damage it would have
+dealt, capped at half the TARGET's max HP; Explosion faints the user). Its fault half `--plant` changes three facts in
+memory and must report exactly those three. Evidence `evidence/2026-10-08-step4-KNOWLEDGE.txt` and `-KNOWLEDGEX.txt`.
+
+### The decider: `brain/battle.py`
+
+* A move's WORTH against this foe (`move_value`): type effectiveness x STAB (1.5) x power x hit chance, minus a RECOIL
+  penalty in the same units (`recoil_penalty`: the recoil's share of the worth, Take Down 1/4, Double-Edge 1/3, weighted
+  0.5 + 2.5 x (1 - its HP share), so the same Take Down costs five times more at 20 % HP than at full; Jump Kick's miss
+  recoil charged at its miss chance on half the worth it would have had; a self-KO move charged its whole worth). Since
+  the step-4 verifier's round the recoil is charged on what the hit can actually TAKE (`recoil_risk`, from the damage
+  estimate): a hit takes at most what the foe's bar has left (the game: `Cmd_datahpupdate` caps gHpDealt at the target's
+  HP, and the recoil is gHpDealt / 4 or / 3), Jump Kick's miss recoil is capped at half the target's max HP, and a recoil
+  that would knock the user out (in HP, against its HP left) costs the move's whole worth. Measured: against the recorded
+  15-HP Poochyena the recoil is 3.75 HP by the estimate and 3 by the game (74 -> 71); step 4 charged 21.6 of 76.5 worth.
+  A STATUS move is worth 0 in a fight: never chosen by habit, only when nothing that hurts has PP.
+* Not a machine: among the moves within its personality's `near_best` share of the best, a seeded value-weighted draw
+  (`choose_move`); a clearly better move is chosen every time.
+* SWITCH when badly matched and a healthy member is MUCH better against this foe (`matchup`, with a level factor), never
+  when its Pokemon outlevels the foe by `OUTLEVELS` (5), at most `MAX_SWITCHES` a battle, never back and forth.
+* HEAL with a Potion-like item only in a TRAINER's battle, when its Pokemon is under its temperament's `heal_below` and
+  the foe is not about to fall, at most `MAX_HEALS`.
+* RUN from a wild battle: training, when its Pokemon is low (`run_low`) and the foe is not, or the foe is 6+ levels above;
+  travelling, by its temperament (`run_travel`). Never from a trainer.
+* CATCH a species the Pokedex does not OWN, when its personality wants it (one seeded draw per species per run, `catch_new`):
+  WEAKEN with the strongest move that cannot knock the foe out at its best damage roll (the bar must keep `KO_MARGIN`, 8 %;
+  the damage is a Gen-3 formula estimate on average stats, calibrated by what its last hit took off the bar), then THROW:
+  a Poke Ball for an easy catch, a Great Ball for a hard one or after two misses, at most `MAX_THROWS`.
+* Its questions by their WORDS (`answer`): "Use next POKéMON?" yes while one can fight; "Will ... change POKéMON?" by the
+  switch rule; a nickname no; learning a move by `learn_choice` (keep the four worth most to that Pokemon, a new move must
+  be worth 15 % and 5 points more than the weakest; an HM is never forgotten).
+* After a faint, who goes in (`replacement`): the healthy member best matched against the foe(s) still standing (the
+  `matchup` score, its mean over a double battle's two foes, scaled by its HP share), by PID, never one ON THE FIELD. The
+  party menu covers the battle and its look carries NO battle view (the eyes read one only in game state BATTLE), so the
+  decider REMEMBERS the field from its last look at the battle (`see`: who stands there, whom it faces), whom it sent in
+  since the turn began (`sent`: a double battle that lost both opens the party menu twice before any look shows the first
+  one there) and whom the game refused (`refuse`), and says so ("Taillow L6 (11/21 HP) is the best left against Shroomish
+  (the field REMEMBERED from the last look at the battle: the party menu covers it)"). Until the verifier's round that look
+  alone was used: in a double battle the partner fainted and the Grovyle standing on the field was sent in (the game
+  refused it, and the battle stuck), and every single battle's replacement was ranked by level and HP only.
+* A DOUBLE battle (`_fight_double`): every (move, foe) pair valued against that foe, a spread move halved (Gen 3:
+  `CalculateBaseDamage`), and the move aimed at the foe it hurts most. No switching, healing, catching or running there.
+* When training should stop (`needs_rest`): its strongest Pokemon fainted or under a third of its HP, or the party under a
+  third in all; the battle brain then ends with `rest:` (step 5's goals take it to a Pokemon Center).
+
+### The hands in a battle: `skills/battle.py` and the eyes' new reads
+
+The eyes now see the MOVE grid, a double battle's TARGET choice and the battle's YES/NO (the controller function of the
+battler whose turn it is, NAMED through `get_symbol_name`, and its cursor), the level-up stats box and other key waits of
+the battle script, the evolution scene's and the summary screen's forget-a-move states, the bag's items by pocket, the
+party menu's actions, each party Pokemon's stats, each battler's PID and position (`host/eyes.py` module docstring: BUILD
+STEP 4; no new door). The skill advances every text only on a wait, chooses every option by reading the cursor, logs every
+decision with its reason and the values it weighed (`[AI-HANDS] battle: turn 1: fight Absorb: ... [Fury Cutter: 10.0 = x0.5
+type ...]`), and reports the game's own outcome. Every loop is bounded (`BATTLE_STEPS` menus, `TEXT_BUDGET` frames a
+stretch of text, `ITEM_STEPS` presses in the bag, `SEND_IN_TRIES` choices in the party menu). Since the verifier's round
+the skill shows the decider every look it takes (a watcher, `BattleMind.see`), and when the game still REFUSES a choice in
+the party menu ("GROVYLE is already in battle!", "CASTFORM has no energy left to battle!": text printer 6, a WAIT over a
+party list that takes no input) it READS the words (`_read_message`: the reading delay, then A on the look's wait), tells
+the decider who was refused (the member it chose, or the one under the menu's cursor when the battle was resumed on the
+message, checked against the name the words begin with) and chooses again; a refused SWITCH goes back to the battle's menu
+with B. Until then the skill watched that message for `MENU_SETTLE_BUDGET` frames and gave up. (`gates/live_step2.py`
+`classify_a` now counts an A on a wait over a BUSY menu, `ui=party(busy)[`, as a wait: the game's A goes to the text.)
+
+### The proof
+
+**Live, through the real launcher** (`gates/live_step4.py`, every arm graded on PURITY (CLEAN, every breach counter 0,
+`ai_presses` == 2 x the pad's presses, the pad's frames == `real_frames`, `ai_bot_calls` 0), the HANDS (every press gated,
+every A a wait, a menu confirm on its look or a talk, no catch-all idle) and THE GAME by a second path from the state the
+run left (`hands_harness.py truth`: party by PID, OT ids, `gBattleOutcome`, defeated flags, battle counters); the
+in-battle arms' frames and presses PRE-REGISTERED from a development run and machine-checked). Since the verifier's round
+every arm that starts IN a battle (TYPE, TYPEX, FAINT, DFAINT, DFAINTX, REFUSE) is also REPLAYED in-process from the same
+fixture, seed and faults with the GAME's battle read after every frame (`hands_harness.py --battle-log`: each battler's
+chosen move, each HP change with its user, move and target, each Pokemon that came onto a position); the replay counts only
+when its frames and presses equal the launcher's (one trajectory, replayed: CLAUDE.md rule 8), and the moves and send-ins
+are then graded from the game's record. Evidence `evidence/2026-10-08-step4-<ARM>.txt`:
+
+| arm | fixture, seed | what the game says (second path) |
+|---|---|---|
+| WILD | `route101_south.ss1`, Story, seed 3, 4 battles | `battles: 4 played: ['won', 'won', 'caught', 'won']`; the Mudkip (PID 550a9be6) 418 -> 463 experience, L8 -> L9; the game's wild-battle count +4 == the battles played; FIGHT chosen 8 times |
+| CATCH | the same, Catcher, 1 battle | `gBattleOutcome` 7; ONE new PID (04016319) with the player's id 22640; Poke Balls 5 -> 4 == 1 thrown; first "to CATCH Poochyena: weaken it first (Tackle takes 66%-78% of its HP and its bar is at 100%: it cannot knock it out)" |
+| TRAINER | `trainer_battle_r116.ss1` (Joey just begun) | won; Joey's flag 322 False -> True; Grovyle 2545 -> 2714 experience; 3811 frames, 14 presses as pre-registered |
+| RIVAL | `rival_r103.ss1`, seed 5 (CHOSEN: a won seed, see the limits) | won; DEFEATED_RIVAL_ROUTE103 and May's flag 529 False -> True; 6103 frames, 21 presses as pre-registered |
+| CHALLENGE | `route103.ss1`, seed 1, `AI_PLAYER_TALK_TO=10,3` | the AI walked up to May and TALKED (one talk A), the trainer-battle count +1, the battle played to its end: LOST, and the game agrees (the rival flag still clear); the run ends `stuck: the battle was lost` |
+| TYPE | `geodude_grovyle.ss1` (a DOUBLE battle: a Geodude and a Shroomish against Grovyle and Nincada) | Grovyle's first move ABSORB aimed at the Geodude (worth 120 against Pursuit 40, Quick Attack 20); BY THE GAME (the replay, 11458 frames and 48 presses == the launcher's): `Grovyle's first hit [('Grovyle', 'Absorb', 'Geodude')] is ABSORB on the Geodude, and every hit it landed on the Geodude was Absorb`; won, CLARK 631 and JOHNSON 754 set |
+| TYPEX | the same, `AI_PLAYER_FAULT_IGNORE_TYPES=1` | its first move Quick Attack at the Shroomish; Absorb never aimed at the Geodude (Pursuit was); no x4 or x0.5 in its told values; BY THE GAME: `Absorb never hit the Geodude: [('Grovyle', 'Quick Attack', 'Shroomish'), ('Grovyle', 'Pursuit', 'Geodude'), ...]`; purity still CLEAN |
+| FAINT | `faint_r116.ss1` (Karen just begun), seed 1 | the Mudkip's HP 0 by the second path; `Taillow L6 (11/21 HP) is the best left against Shroomish (the field REMEMBERED from the last look at the battle: the party menu covers it)` (Flying against Grass; step 4 sent the full Nincada, ranked by level and HP), the party cursor read down to slot 4, SEND OUT; BY THE GAME: `after the Mudkip's HP 0 at position 0, [(0, 'Taillow', 'ae39815d')] came onto it == the decider's choice`; won, Karen's flag 280 set; 9503 frames, 30 presses (re-registered: 11113 / 28 with the Nincada) |
+| LEARN | `learn_r116.ss1`, seed 1 | the Mudkip 1978 -> 2036 experience, L14 -> L15; moves now Tackle, BIDE, Mud-slap, Water Gun ("Bide (40) is worth clearly more than Growl (4)"); the forget list's cursor read onto GROWL; 3918 frames, 19 presses |
+| DFAINT | `geodude_grovyle.ss1`, seed 6, `AI_PLAYER_FAULT_IGNORE_TYPES=1` (the verifier's own reproduction: the types fault only makes the PARTNER Nincada fall; the replacement rule is the real one) | `Skitty L8 (27/27 HP) is the best left against Geodude and Lotad; not Grovyle on the field (the field REMEMBERED ...)`; the game refused nothing; BY THE GAME: `the Nincada's HP 0 at position 2, then [(2, 'Skitty', '7f7652d1')] came onto position 2 while [('550a9be6', 37, 'Grovyle')] stood at position 0`; WON (631, 754 set); 17536 frames, 95 presses |
+| DFAINTX | the same with `AI_PLAYER_FAULT_FORGET_FIELD=1 AI_PLAYER_FAULT_IGNORE_REFUSAL=1` (the step-4 code) | `Grovyle L17 (37/49 HP) is the best left (no foe standing: by level) (no battle view: the field unknown)`, then `stuck: the battle: no Pokemon could be sent in`: the verifier's bug through the real launcher; BY THE GAME: nobody came onto the field; purity CLEAN |
+| REFUSE | `tools/story-dev/saves/ki17_partymenu_wedge.ss1` (the story bot's KI-17 wedge: saved ON the battle party menu's "SKITTY is already in battle!", Mauville's gym), seed 1 | `the party says 'SKITTY is already in battle!': Skitty (5cccd8be) cannot go in`; ONE A on `text printer 6 WAIT` over `ui=party(busy)[0]`; `Mightyena L20 (60/60 HP) is the best left ...; not 5cccd8be refused`; BY THE GAME: `[(2, 'Mightyena', '5c96ea9b')] came onto the field`; WON (`gBattleOutcome` 1); 10182 frames, 52 presses |
+
+Every arm PASS, its purity CLEAN (`ai_bot_calls` 0: the bot's battle code never ran) and every press gated; 34 of 34
+pre-registered numbers held; no emulator left running. The in-battle arms replay exactly (the game reads no clock in a
+battle); WILD, CATCH and CHALLENGE walk the overworld, where the host clock matters, so only their claims were registered.
+`CHALLENGE` proves the walk, the talk and a battle played to its end, not a win. `TYPE` shows ONE decision ("Absorb is
+clearly the best") replayed; the type chart's evidence is the A/B with TYPEX and the sweep's TYPE-FAULT.
+
+**The seed sweep** (`gates/rate_step4.py`, in-process, the cartridge's clock pinned, seeds 1-10 unless named; evidence
+`evidence/2026-10-08-step4-RATE.txt`). Since the verifier's round every run is read by TWO second paths, the end state
+(`truth`) and the GAME's own battle each frame (`--battle-log`); the AI's told lines only cross-check (what it said it chose
+against what the game did); each verdict names the path it rests on; and EVERY run of every plan must end by itself (a
+lost battle counts as ended), except the two fault plans whose prediction is the stuck end (`ENDED: 150 of 150`):
+
+| plan | result over seeds (the path) | bound |
+|---|---|---|
+| TYPE | BY THE GAME (`gChosenMoveByBattler[0]`, the first hit's target): Absorb at the Geodude in **10 of 10**, the told move agrees in every seed, every battle won. ONE decision ("clearly the best") replayed: not a chance argument | 10 of 10 |
+| TYPE-FAULT (types ignored, 30 seeds) | BY THE GAME: Absorb at the Geodude in **0 of 30**; every battle ended by itself (the verifier found seed 6 STUCK here) | 0 |
+| TYPE / TYPE-FAULT DOUBLE-FAINT | BY THE GAME (who came onto the player's positions after a faint): the partner fell in 0 of 10 / **2 of 30** seeds (6 and 23); in both the Pokemon the decider NAMED came in (Skitty, never the Grovyle standing beside it), the game refused nothing, the battle ended by itself | all |
+| FIELD-FAULT (the field forgotten, 30 seeds) | the game REFUSED the one on the field in **seeds 6 and 23**, the AI read the words and another came in; every battle ended by itself | all end |
+| FIELD-STEP4 (field forgotten + refusal ignored: the step-4 code, 30 seeds) | `the battle: no Pokemon could be sent in` in **seeds [6, 23], exactly the seeds FIELD-FAULT was refused in**: the verifier's stuck battle reproduced, and each layer of the fix alone ends it | as FIELD-FAULT |
+| RECOIL (`ch13_r119_wedge.ss1`: Marshtomp L32 74/99 with Take Down against a 15-HP Poochyena) | BY THE GAME: Take Down **10 of 10**; the recoil the game charged `[3] HP` (a quarter of the 15 the hit could take) | >= 9 |
+| RECOIL-FAULT (`uncapped_recoil`, the step-4 rule: the recoil of the whole worth, 21.6 of 76.5) | BY THE GAME: Take Down **2 of 10** (54.9 against Water Gun's 60) | <= 5 |
+| WILD (4 battles each) | BY THE TRUTH: **10 of 10** runs won a wild battle by fighting and raised the Mudkip's experience; the game counted 4 wild battles in each | 10 of 10 |
+| CATCH | BY THE TRUTH (`gBattleOutcome` 7, ONE new PID with the player's OT): **9 of 10** caught; balls spent per seed `[1, 1, 1, 1, 1, 1, 1, 1, 0, 4]` (seed 10 needed 4; step 4's README said "one ball each": wrong); seed 9's Wurmple fell to the weakening Tackle the decider judged safe at 48-56 %: "A critical hit!" | >= 8, the rest a weakening KO |
+| TRAINER | BY THE TRUTH: **10 of 10** won, Joey's flag set | 10 of 10 |
+| RIVAL | BY THE TRUTH: WIN RATE **2 of 10** (seeds 5 and 10); every battle played to its end (outcome 1 or 2) | reported |
+| FAINT | BY THE GAME: the lead fainted in 6 of 10 seeds; in **6 of 6** the Pokemon the decider named (Taillow, "against" the Shroomish it remembered) came onto battler 0, and the battle went on to its end (won) | all |
+| LEARN (5 seeds) | BY THE TRUTH: **5 of 5**: Bide learned, Growl forgotten | all |
+| REFUSE (5 seeds, `ki17_partymenu_wedge.ss1`) | BY THE GAME: in every seed the words read (A on their wait), Mightyena came onto the field by its PID, nothing else refused, won | all |
+| REFUSE-FAULT (`ignore_refusal`, the step-4 skill) | `the party on screen neither took input nor closed` in **5 of 5** | all |
+
+**Unit tests** (`gates/test_battle.py`, 80): the eyes' new reads on recorded task data, the knowledge files, a move's worth,
+the type chart and its fault, the recoil rule at every HP share, the near-best draw, the catch (no weakening move that could
+knock it out, the ball, the bound), switching, running, healing, the questions, learning, a double battle's aim and spread,
+and the skill on a screen model (both grids read, a ball from the ball pocket, a switch by PID through SHIFT, the yes/no on
+the option wanted), each with a fault half. Since the verifier's round: RECOIL on the RECORDED look of a real battle
+(`fixtures/recoil_r102.look.json`, the 15-HP Poochyena) through the decider's own valuation: its recoil 3.75 HP, Take Down at
+full HP and at 20 %, NEVER at 3 HP (the recoil would faint the Marshtomp); FAULTS: the step-4 rule never at 20 %, the
+recoil ignored at 3 HP; a sturdy Taillow: the whole hit lands and Water Gun at 20 %; Jump Kick's miss recoil capped at half
+the target's max HP; a recoil that would faint the user costs the whole worth. `FieldTests` on the look the live party
+menu actually gives (no battle view, `party_menu`): a double battle's partner falls and the Grovyle still standing is not
+sent (FAULT `forget_field`: it is, the verifier's bug); a single battle's replacement against the remembered foe (Taillow;
+FAULT: the Nincada by level and HP); both fell: the second choice is not the first; a refused member not chosen again until
+the next turn. `SkillTests` on the screen model, whose party menu now REFUSES a Pokemon on the field (printer 6, a WAIT):
+the field remembered through the party menu (nothing refused); FAULT `forget_field`: refused, the words read, A on the
+wait, another goes in; FAULTS `forget_field` + `ignore_refusal`: `the battle: no Pokemon could be sent in`; both fell: two
+menus, two different Pokemon, nothing refused; a battle resumed ON the refusal: the cursor's member refused (one message
+only), the other sent (FAULT `ignore_refusal`: `neither took input nor closed`).
+
+**Mutants** (`gates/revert_step4.py`, evidence `evidence/2026-10-08-step4-REVERT.txt`): 30 rules of the real code, each
+broken alone in a copy of the package (B1 the type chart ignored, B2 no STAB, B3 no recoil penalty, B4 a penalty that does
+not grow as HP falls, B5 a status move valued like a damaging one, B6 no near-best draw, B7 no KO check while weakening,
+B8 never a better ball, B9 no bound on throws, B10 every wild species counted new, B11 no level guard on switching, B12 a
+switch in a double battle, B13 a fainted Pokemon sent in, B14 training never runs, B15 healing in any battle, B16 "Use next
+POKéMON?" always no, B17 no learning margin, B18 an HM forgettable, B19 a double battle aimed at the last foe, B20 no spread
+halving, B21 a grid's A on any cursor, B22 the party member by slot not PID, B23 the bag's pocket not switched, B24 every
+yes/no on YES, B25 the party list taking input whatever task runs, B26 / B27 the level-up box and the caught Pokemon's dex
+page not waits, B28 a grid's waiting frames counted as presses, B29 training on with its strongest fainted, B30 a dual
+type's second type ignored); and since the verifier's round B31 the field not remembered (the step-4 bug), B32 the party
+menu's refusal not read, B33 the decider forgets whom it sent in, B34 the skill does not tell it, B35 a refused member
+chosen again, B36 the recoil charged on the whole hit though the foe has less left, B37 Jump Kick's miss recoil not capped,
+B38 a recoil that would faint the user not charged as such, B39 a refusal on screen before any choice not told to the
+decider, B40 refusals never forgotten at a new turn, B41 the skill not showing the decider its looks: **41 of 41 CAUGHT** by
+their predicted tests, and the unchanged copy passes all 80. (B15 was NOT caught at first in step 4: the wild half of its
+test met a Mudkip so low that training ran before any heal was weighed; the test now puts the foe's bar where only the
+battle's KIND keeps the Potion in the bag, with a trainer twin that does heal. B39 was NOT caught at first in this round:
+the unit test's Skitty at 40/52 lost to the Mightyena by level and HP even unrefused; the test now gives it full HP, so only
+the refusal keeps it out.)
+
+**Everything on ONE tree, `sha256:a14d81a107a65b76`** (the step-4 verifier's round; `gates/provenance.py`;
+`--check-evidence`: `114 evidence files at the top of evidence/; 114 name this tree's digest a14d81a107a65b76; other: 0 [] ->
+PASS`): `check_purity.py` PASS; `test_check_purity` 29, `test_host` 20, `test_eyes` 56, `test_hands` 56, `test_world` 111,
+`test_battle` 80, all OK (`evidence/2026-10-08-step4-UNITS.txt`); `extract_knowledge.py --check` up to date;
+`verify_knowledge.py` (112 gTypeEffectiveness triples, 354 moves, 386 species, the recoil lines: 0 mismatches) and its plant
+(exactly the 3 planted) PASS; `live_step0.py --arms A,A2,B,C`, `live_step1.py` (21 arms), `live_step2.py` and its seed-9 replication,
+`live_step3.py` (34 arms, 162 of 162 pre-registered numbers held: this round moved no step-3 trajectory), `rate_step3.py`
+(100 of 100 as intended, every bound and revert prediction held), `revert_step3.py` (76 caught, W13 redundant alone, of
+77), `revert_step2.py` (39 caught, 5 redundant alone, of 44), `revert_step11.py`, `live_step4.py` (12 arms, 34 of 34
+pre-registered numbers), `rate_step4.py` (18 of 18), `revert_step4.py` (41 of 41): every one PASS, no emulator left
+running, `git status -- sandbox-pokebot` empty. (Build step 4's own runs, tree `sha256:83a4581da76e0739`, are in
+`evidence/archive/83a4581da76e0739/`, but for two files this round's development runs wrote over before they were archived:
+`evidence/archive/README.md` says which.)
+
+### Step 4, the verifier's round (2026-10-08)
+
+The step-4 verifier found two FAILURES and twelve weak proofs. Each fix is in the AI's code or in a grader, each with a
+test that fails on its revert (`revert_step4.py` B31-B41, `revert_step3.py` W76-W78) and, where it can be played, a live arm
+or a sweep plan; the numbers were pre-registered from development runs of this code before the graded runs above.
+
+| the verifier said | the fix | proven by (final tree) |
+|---|---|---|
+| FAILURE: "in a DOUBLE battle, when the partner faints, the AI sends in the Pokemon that is already on the field, and the battle gets stuck ... `replacement()` excludes `look.battle.own`, but the party-menu look has no battle view" (TYPE-FAULT seed 6) | `brain/battle.py`: the decider REMEMBERS the field from its last look at the battle (`see`, shown every look by the skill), whom it sent in (`sent`) and whom the game refused (`refuse`); `replacement` excludes them all. `skills/battle.py`: a refusal on screen is READ (A on its wait) and another is chosen (`SEND_IN_TRIES`), so a refusal can no longer strand a battle | live DFAINT (Skitty in, the game shows it at position 2 beside the standing Grovyle, won) and DFAINTX (the step-4 code: stuck, as found); live REFUSE (resumed on the story bot's own refusal wedge: read, Mightyena in, won); RATE DOUBLE-FAINT (seeds 6 and 23 of 30), FIELD-FAULT (refused, read, ended), FIELD-STEP4 (stuck in exactly those seeds), REFUSE 5 of 5 and its fault 5 of 5 stuck; FieldTests, SkillTests; B31-B35, B39-B41 |
+| FAILURE: "the README says 'After a faint, who goes in: the healthy member best matched against the foe' ... The look at the party menu has no battle view, so `replacement` ranks by level x HP share only"; the unit test passed a look WITH a foe, "a screen the live party menu never shows" | the same memory: the replacement is ranked against the foe(s) REMEMBERED, and its reason says so; the unit tests now use the party-menu look the live game gives (`party_menu`: no battle view) | live FAINT: `Taillow L6 (11/21 HP) is the best left against Shroomish (the field REMEMBERED ...)`, the game shows the Taillow come in (step 4 sent the Nincada); RATE FAINT 6 of 6; `FieldTests.test_a_single_battles_replacement_is_matched_against_the_remembered_foe` (FAULT: the Nincada) |
+| "the new CYCLE check (`laps`) does not tell the fix from the revert"; "steps-vs-shortest is measured per DECISION ... near 0 by construction" | RINGS (graded) and JOURNEYS (reported): "Step 3.2, the step-4 verifier's weak proofs" | there |
+| finding 4 "only partly fixed: targets still churn"; findings 3 and 5 "proven only by unit tests and mutants"; SCENE-EXPLORE's reversals "2.91 per 100 steps" | stated, not changed (there, and in "Known limits of step 3"); FIXED in the second round below | there |
+| "TYPE, 'by chance ... P = 9.31e-10': ... one deterministic decision replayed 10 times (CLAUDE.md rule 8) ... The valid evidence is the fault A/B" | the chance figure is gone from `rate_step4.py` and this README; TYPE says it is one decision replayed, and the A/B is TYPE 10 of 10 against TYPE-FAULT 0 of 30, by the game | RATE `TYPE A/B (by the game): Absorb at the Geodude REAL 10 of 10, FAULT 0 of 30` |
+| "rate_step4's docstring claims each run graded by its SECOND-PATH truth ... In fact TYPE, TYPE-FAULT, RECOIL, RECOIL-FAULT, RIVAL and FAINT are graded from the AI's own told lines ... `ended_by_itself` is not applied to the TYPE or RECOIL plans" | `hands_harness.py --battle-log` (`BattleRecorder`: the game's battle read each frame, test side); every plan graded by the game or the truth, each verdict naming its path, the told lines only cross-checked; `ENDED` on every plan | RATE `ENDED ... 150 of 150`; every verdict line begins `BY THE GAME` or `BY THE TRUTH` |
+| "Live arms TYPE and TYPEX grade the move choice only from the AI's told lines; live_step4 makes no game read of the move or its target" | THE REPLAY (`live_step4.py`): the in-battle arms replayed in-process with the battle log, counted only when frames and presses equal the launcher's | TYPE `BY THE GAME (the replay): Grovyle's first hit [('Grovyle', 'Absorb', 'Geodude')]`; TYPEX `Absorb never hit the Geodude` |
+| "`recoil_penalty` charges the fraction of the move's WORTH, not of the HP actually dealt (no cap at the foe's remaining HP), and it ignores the Jump Kick cap stored in moves.json. On the 15-HP Poochyena the real recoil was 3 HP, while the AI charged 21.5 of 76.5 worth" | `recoil_risk`: the recoil on what the hit can take (at most the foe's bar), Jump Kick's miss recoil capped at half the target's max HP (`MoveFact.recoil_capped`), a recoil that would faint the user = the whole worth. The RECOIL plan's A/B is now the cap: the real decider against the step-4 rule (`uncapped_recoil`) | RATE RECOIL `Take Down in 10 of 10 ... the recoil the GAME charged for it [3] HP`, RECOIL-FAULT `2 of 10`; RecordedRecoilTests (never at 3 HP; the step-4 rule never at 20 %), RecoilTests; B36-B38 |
+| "README step-4 CATCH row says '9 of 10 caught (one ball each)', but ... seed 10 used 4 balls" | corrected | RATE `balls spent per seed [1, 1, 1, 1, 1, 1, 1, 1, 0, 4]` |
+| "I did NOT re-run the launcher drivers (live_step0 to live_step4)" | all re-run on the final tree | "Everything on ONE tree" above |
+
+Two things this round did not do: no fixture loses BOTH battlers of a double battle in one turn (the second party menu is
+unit-tested only), and the refused-SWITCH path (B back to the battle's menu) is reached by no test (Known limits below).
+
+### Step 4, the verifier's second round (2026-10-09)
+
+The re-run found every step-4 arm holding by its own reads, and these weak proofs; each is answered in code or a grader, or
+said to be not done:
+
+| the verifier said | what changed | proven by (final tree) |
+|---|---|---|
+| "TYPE 'rate across seeds' is not a rate. The first decision is deterministic ... one counterfactual A/B replayed ... Only one matchup is played live" | every choice of the best move now TELLS what the type chart changed in it (`brain/battle.py` TypeSay: the moves about as good WITH the chart, the best with NO types, the moves that attack; DECISIVE when the type-blind best is not about as good with the chart), and the sweep's TYPE-DECISIONS pairs EVERY such choice of every turn of every battle with the move the GAME shows chosen that turn (`gChosenMoveByBattler`, cleared at every turn's end) | `rate_step4.py` TYPE-DECISIONS (the graded numbers: "Everything on ONE tree" below); `TypeTests.test_the_choice_says_what_the_type_chart_changed`, mutant B43. Still a rate over few MATCHUPS: the saves give few battles where the chart turns the strongest move into a poor one, and none was made |
+| RECOIL's live A/B "covers only the cap"; low HP, Jump Kick's miss cap and the self-faint rule "have no live arm" | not done: no fixture has a recoil move at low HP (Known limits) | unit tests and mutants B36-B38, as before |
+| "both battlers fainting in one turn and the refused-SWITCH B path ... and healing" have no live arm | the refused SWITCH now has a unit test on the screen model (the words read, the decider told, B on the party menu's look, then FIGHT; FAULT `ignore_refusal`); both-fainting and healing: not done live (Known limits) | `SkillTests.test_a_refused_switch_goes_back_to_the_battles_menu_and_fights`, mutant B42 |
+| "'Train to roughly the gym leader's level before challenging' is neither implemented nor named as deferred" | named as NOT BUILT, with what exists and what step 5 adds (Known limits, first bullet) | this README |
+| evidence hygiene: two files of an earlier tree lost | a subset run of `revert_step3.py` no longer writes into `evidence/`; the round's predecessor archived first | `evidence/archive/README.md` |
+| "My re-runs of the in-process sweeps ... are determinism replays, not replications" | both sweeps take `--first-seed`: seeds 1.. are the development seeds (each sweep's header now says the graded run REPLAYS them), seeds from 101 are HELD OUT, graded by the same pre-registered bounds | the two held-out files below; what did not replicate is said there |
+
+**Everything on ONE tree, `sha256:7b4322c9ac0df2e1`** (the step-4 verifier's second round; `gates/provenance.py`;
+`--check-evidence` over the evidence folder, quoted in the round's report): `check_purity.py` PASS; `test_check_purity` 29,
+`test_host` 20, `test_eyes` 56, `test_hands` 56, `test_world` 122, `test_battle` 82, all OK (`evidence/2026-10-09-step4-UNITS.txt`);
+`extract_knowledge.py --check` up to date; `verify_knowledge.py` 0 mismatches and its plant (exactly the 3 planted) PASS;
+`live_step0.py --arms A,A2,B,C` (4 arms), `live_step1.py` (21 arms), `live_step2.py` (17 arms) and its seed-9 replication;
+`live_step3.py` (39 arms, 214 of 214 pre-registered numbers held); `rate_step3.py` (100 of 100 as intended, every bound and
+every revert prediction held, CHURN A/B "DECISIONS REVERTED 1471 ... REAL 629 ... ONE-STEP WALKS REVERTED 965 of 1429, REAL
+145 of 618 ... plans over the bounds when reverted 5 of 5 ... steps REVERTED 2934, REAL 2997 ... every journey's share beyond
+REVERTED 0.29 ..., REAL 0.27 -> the prediction HELD"); `revert_step3.py` (87 caught, W13 redundant alone, of 88);
+`revert_step2.py` (39 caught, 5 redundant alone, of 44); `revert_step11.py`; `live_step4.py` (12 arms, 34 of 34 pre-registered
+numbers); `rate_step4.py` (19 of 19: TYPE-DECISIONS "of 391 choices of the best move over 95 runs of the real plans, 81 were
+DECISIVE ... 4 distinct matchups ... the GAME shows a move of the chart's near-best set chosen in 81 (100%) ... a type-blind
+random pick ... 38%"; the type-blind plans 0 of 843); `revert_step4.py` (43 of 43): every one PASS, no emulator left running,
+`git status -- sandbox-pokebot` empty.
+
+THE GRADED SWEEPS REPLAY THEIR DEVELOPMENT PASSES (seeds 1-10 are the seeds the bounds were registered from, and the final
+code plays them identically: CLAUDE.md rule 8). The REPLICATIONS are the HELD-OUT sweeps, seeds 101-110 (101-130 where a plan
+runs 30), on the same tree, and both files say FAIL. Said here, not loosened:
+* `2026-10-09-step3-RATE-SEEDS101-110.txt`: 100 of 100 runs as intended; THIS ROUND'S CLAIMS REPLICATED: the CHURN bounds on
+  every plan and the CHURN A/B ("DECISIONS REVERTED 1389 ..., REAL 581 ... ONE-STEP WALKS REVERTED 912 of 1347, REAL 125 of
+  575 ... 5 of 5 ... every journey's share beyond REVERTED 0.29, REAL 0.28 -> HELD"), LAP RINGS 0 (bound 4), SCENE-EXPLORE's
+  bounds (3.25 reversals per 100, bound 3.5; journeys 0.35, bound 0.45), SCENE-WORDS, SCENE-NEWS (10 of 10 reach Route 101),
+  LAPS. THREE OLDER PREDICTIONS DID NOT: (1) the per-run reversal bound (2) on TOWN seed 102, 3 reversals, each A -> B -> A on
+  the town's open ground: one walks to a personality DETOUR two tiles off the way and back (`Navigator._detour`, drawn for the
+  decision and kept when it carried on), the other two step aside and back on the way to a frontier (one a new decision's,
+  one carried on; the cause not isolated: a person standing in the way, a wall for the plan, then gone, fits; not verified); the pooled rate over the
+  exploring plans held (0.91 per 100, bound 1.0); (2) FINDING-2's revert "plans with a run over 2 when reverted: 3 of 5
+  (predicted >= 4)", while its discriminators held (REVERTED 3.27 per 100 and 263 stale targets walked onto, REAL 0.91 and 0);
+  (3) WHIM's "at least 15 points more": 75% against 63%, 12 points.
+* `2026-10-09-step4-RATE-SEEDS101.txt`: 17 of 19. Every behaviour replicated (TYPE-DECISIONS 83 decisive of 382, 100% in the
+  chart's set; TYPE, TYPE-FAULT, RECOIL, WILD, CATCH 9 of 10, TRAINER, RIVAL 5 of 10, FAINT, LEARN, REFUSE). FIELD-FAULT and
+  FIELD-STEP4 FAIL AS VACUOUS: their case (the forgotten-field replacement sending the Pokemon still on the field) did not
+  occur in seeds 101-130 ("refused the one on the field in 0 seeds"; the partner fell in 1 of 30, seed 129, Skitty sent in).
+
+### Known limits of step 4
+
+* **"Train to roughly the gym leader's level before challenging" is NOT BUILT** (HUMAN-PLAY-DESIGN pillar 3's first
+  clause; the design draft's `train_to(level)` is one of step 5's goals; named here since the step-4 verifier's second round
+  found it neither built nor named). What step 4 has: the battle brain trains for a NUMBER of battles (`AI_PLAYER_BATTLES`)
+  and stops where a person would rest (`needs_rest`: its strongest Pokemon fainted or under a third of its HP). What it
+  lacks: a LEVEL target, any knowledge of a leader's party (the design's `bosses.json`, from pret's trainer parties, is
+  step 5's), and the chain train -> Pokemon Center -> challenge. The visible cost is measured: RIVAL from `rival_r103.ss1`
+  wins 2 of 10 seeds and CHALLENGE (the walk-up challenge at 13/23 HP) loses: challenging unprepared.
+* **The rival from Route 103's save is usually LOST**: Mudkip L6 at 13/23 HP against a full Treecko is won in 2 of 10
+  seeds (the sweep). Arm RIVAL plays seed 5, a won seed CHOSEN for it and said so; arm CHALLENGE (seed 1) loses, and the
+  game agrees (DEFEATED_RIVAL_ROUTE103 stays clear). A person would heal first: chaining a heal before a challenge is step
+  5's goals.
+* **No status moves on purpose**: Growl, Leer, String Shot are worth 0 in a fight, so the AI never sets up, lowers a stat
+  or puts a foe to sleep; it uses one only when nothing that hurts has PP. The foe's own moves are unknown to it (no
+  learnsets): a matchup is judged by the foe's TYPES and the moves it has been seen to use.
+* **A battle resumed on the party menu** (no look at the battle yet, as `ki17_partymenu_wedge.ss1`) has no field to
+  remember: the replacement is ranked by level and HP ("no battle view: the field unknown"), and the game's refusal is
+  what keeps the one on the field out (arm REFUSE).
+* **Healing, evolution, Struggle and a refused move are not exercised live.** Healing (a Potion in a trainer's battle,
+  then the party menu to choose who) is unit-tested and shares the bag path the CATCH arm proves live, but no live arm
+  heals. An EVOLUTION is let happen (nothing pressed; its texts advanced on their waits), but no fixture within one battle
+  of an evolution was found (a survey of the 172 saves and 12 fixtures). With no PP left the decider presses FIGHT and lets
+  the game use Struggle (untested). A move the game refuses (Disabled, Taunt, Torment) is chosen again until
+  `BATTLE_STEPS` ends the battle as `the battle did not end within 150 menus` (bounded, but a failure).
+* **A weakening hit can still knock the foe out**: the KO check uses the best NORMAL damage roll; a critical hit doubles it
+  (1 in 16), as it would for a person (the sweep: 1 of 10 CATCH seeds, seed 9, whose screen read "A critical hit!").
+* **A double battle**: no switching, healing or running; an ally is never targeted; doubles are only trainers' in Emerald.
+  A partner's faint is handled (arm DFAINT, the sweep's DOUBLE-FAINT); BOTH battlers fainting at once (two party menus) is
+  unit-tested only (`SkillTests.test_both_fell_two_party_menus_two_different_pokemon`, mutants B33, B34): no fixture loses
+  both in one turn.
+* **A refused SWITCH** (the game refusing a Pokemon chosen to SHIFT in) goes back to the battle's menu with B: since the
+  step-4 verifier's second round a UNIT test reaches it (`SkillTests.test_a_refused_switch_goes_back_to_the_battles_menu_
+  and_fights`: the words read, the decider told, B on the party menu's look, then FIGHT; FAULT `ignore_refusal`; mutant
+  B42); no live arm does (the decider never chooses a member on the field to switch to, and no fixture traps the player's
+  Pokemon; a refusal after a faint is proven live by REFUSE and DFAINTX's fault half).
+* **Recoil at LOW HP, Jump Kick's miss cap and a recoil that would faint the user are proven by unit tests and mutants
+  only** (`RecoilTests`, `RecordedRecoilTests` on the recorded look of a real battle; B36-B38). The one recoil rule played
+  live is the cap on the HP a hit can take (RECOIL: the game charged `[3]` HP). Looked for this round and not found: a
+  fixture with a recoil move at low HP. The saves start in only three battles (all against a Wurmple), and chaining wild
+  battles from `ch13_r119_wedge.ss1` to wear the Marshtomp down stopped at Route 119's first scene ("roam: stuck: a scene").
+* **Healing is not played live** (a Potion in a trainer's battle: `HealTests`, mutant B15). No fixture has a trainer's
+  battle with a Potion in the bag and a Pokemon falling under `heal_below` (FAINT's bag has none; RIVAL's and CHALLENGE's
+  neither).
+* **The recoil's HP is an estimate** of the damage (average stats, `damage_fraction`) and of the foe's max HP (its species
+  and level): against a foe it would knock out it is 3.75 HP where the game charged 3; a recoil that would faint the user
+  is judged on that estimate. Overkill is not weighed otherwise: a stronger move is preferred even when a weaker one
+  would finish the foe (only its recoil is capped at what the foe has left).
+* **The step-3 world brains still flee** every wild battle (their proofs stand); only the `battle` brain fights.
+* Damage is an ESTIMATE (average IVs, no EVs, no abilities, held items or weather), used only to rank moves and to keep a
+  catch alive.
+
 ## The world and the navigator (build step 3)
 
 The AI's world model and its own navigator (design draft §2.3 "world model / map memory", "navigator", §6 build step 3,
@@ -464,9 +862,11 @@ during a scene, a menu or a battle is remembered too. Per map, in that map's own
 window ever showed, as the eyes reported it (blocked, water, tall grass, encounters, a ledge and its jump direction, a
 door, a warp, elevation, behaviour), with the frame and the TILE THE PLAYER STOOD ON when it was first seen
 (`TileFact.seen_from`): "it knows only what it saw" is a property of the memory itself, checked by every live arm.
-Visits per tile; people and item balls seen; ways in LEARNED BLOCKED BY BUMPING, per tile AND side (since step 3.1);
-door-looking tiles found CLOSED (reopened once one of the eyes' story flags is newly set since, or after 36,000 frames:
-the step-3.1 verifier's round); the map's EDGES, all four, learned only at a crossing SEEN (since step 3.1: the
+Visits per tile; people and item balls seen; ways in LEARNED BLOCKED BY BUMPING, per tile AND side (since step 3.1;
+since step 3.2 FORGOTTEN when a step gets the player in that way, and dropped when the tile's look changes);
+door-looking tiles found CLOSED (reopened after NEWS a person could see since, or after 36,000 frames: the step-3.1
+verifier's round; since step 3.2 the news is words never read before on the overworld, a map never stood on, a new
+Pokemon by PID, where it was a count of the save's story flags); the map's EDGES, all four, learned only at a crossing SEEN (since step 3.1: the
 coordinates alone say nothing a person sees, so before a crossing a tile past an edge is just a tile). Across maps: the WARP
 GRAPH (`(map, tile) -> (map, arrival)`, learned when used, and the warp tile at or beside the arrival recorded as the
 inferred way BACK, as a person knows the door they came out of), the CONNECTIONS (with their offset; known both ways),
@@ -481,11 +881,14 @@ of arm TOWN's walk.
 while travelling: Story 2, Catcher and Trainer 0), an UNKNOWN tile 3 (optimistic: it may be walkable, so the plan
 walks toward what has not been seen; dearer, so a seen way round is preferred), a wall, water or a tile someone stands on
 is refused, a tile bumped from one SIDE costs 10 more from that side and is refused from it after a second bump (other
-sides stay open: step 3.1), the FIRST step of a plan costs 4 more when it turns straight back or completes a U-turn
-(step 3.1), a LEDGE is entered only in its jump direction and lands one tile beyond it, and a warp or
+sides stay open: step 3.1), a LEDGE is entered only in its jump direction and lands one tile beyond it, and a warp or
 a door is never walked THROUGH: it is USED on purpose (`use_exit`): stand next to it and press toward it, into the wall
 behind it (a door in a front wall, stairs against the back wall, a mat at the bottom of a room, which warps when pressed
-on while stood on). The plan is redone at every step as the screen shows more; a seeded noise per target (+0 to 25 %
+on while stood on). TURNING ROUND (straight back, or a U-turn) is charged ONCE per decision (since step 3.2; step 3.1
+charged 4 tiles on the first step of EVERY replan, which walked laps): 4 tiles in WHERE to go (the explorer's scores) and
+1 tile in the decision's first plan (a tie-breaker between ways of one length, never a reason to walk further). That plan
+is FOLLOWED, redone (uncharged) only when the memory says it no longer goes (a wall seen, a bump, someone standing on it)
+and dropped for a fresh one only when that is 4 tiles better (a shortcut come into view); a seeded noise per target (+0 to 25 %
 per tile) varies the way between runs and targets, and now and then (15 %, seeded) a small DETOUR through a seen tile
 beside it. WALKING: one tile at a time, the D-pad held in chunks of 8 frames with a look between them (back-to-back
 holds of one button are one continuous hold, so the walk does not stutter): the save block's tile changes 8 frames into
@@ -525,7 +928,10 @@ map), GRASS and PEOPLE. Score = 10 x value - the walk to it + the pull away from
 and roads only) + a seeded jitter < 1.5. The target is then a WHIM AMONG EQUALS (`pick`): every candidate within
 `CHOICE_MARGIN` = 4 points (four tiles of walking) of the best is about as good, and the run's choices stream draws one,
 the better more often (weight 1 + its lead over the margin's floor); a clear winner (a route to the goal: 100 points) is
-chosen every time. The PERSONALITY weights (taste, not a plan):
+chosen every time. That whim is a choice made STANDING (at the start, at a target reached); a target chosen WHILE WALKING
+(the last one dropped as stale) keeps the HEADING (since step 3.2, `pick_on_the_move`): the best place ahead of the player
+(in the half of the map it walks into) unless another beats it by more than `CHOICE_MARGIN`, with no draw and no jitter.
+The PERSONALITY weights (taste, not a plan):
 
 | | frontier | road | door | back | grass | people | away / tile | grass cost |
 |---|---|---|---|---|---|---|---|---|
@@ -777,6 +1183,106 @@ pre-registered numbers held; revert_step3 60 mutants caught and W13 redundant al
 | 8. the re-runs are replays of the same trajectories | said so (README "Known limits", CLAUDE.md rule 8); more replications at another seed through the launcher: HOUSE9, SCENEX9, BUMP8, each with its revert A/B at that seed where there is one (TOWN9R, ROUTE9R, BUMPSR8). And measured what "replay" means here: the game reads the HOST'S CLOCK (row 9), so a launcher run is the same run only within a window of the clock | HOUSE9, BUMP8, SCENEX9, TOWN9R, ROUTE9R, BUMPSR8 (their `PREDICTED` numbers from their own development runs) |
 | 9. (FOUND by this round's own graded run) SCENEX9's trajectory changed between its development and graded runs, same code, fixture, seed and presses | CAUSE, MEASURED by an in-process A/B (the throwaway emulator's clock set test side; a development run, its figures in the docstring): the game reads its real-time clock (mGBA's RTC = the host's) at every map load, and berry growth draws random numbers: SCENEX9 plays 14,462 frames with the clock from 09:00 to 12:01 and 15,959 from 13:37 or 20:00; the host's clock offset by 6 hours, or the run slowed 4 ms a frame, changed nothing within a window. The graded form of that A/B is arm CLOCKS (SCENEX9 14,462 at 06:00 and 11:00, 15,959 at 12:30, 18:00 and the next morning, 14,647 from 2026-10-10). Every in-process run now PINS the cartridge's clock (`hands_harness.py --game-clock`, `live_step3.GAME_CLOCK`); arm CLOCKS runs every launcher arm at 8 instants over 12 days | CLOCKS: ROAM, SCENEX and SCENEX9 change with the clock (pre-registered `CLOCK_SENSITIVE`), the other 13 do not; those three register no launcher frames (their pinned numbers under CLOCKS), and their claims hold at every instant (the twin's push-backs, Route 101 reached, ROAM's 150 steps under 2% spins). Unit `test_the_clock_arm_registers_frames_only_where_every_clock_agrees`, mutant W61 |
 
+## Step 3.2: the step-3.1 adversarial review's human-likeness findings, fixed (2026-10-08)
+
+The review of step 3.1 (CHANGELOG 2026-10-08, "Open: step 3.2") found walks a person would not walk that the step-3.1
+metrics could not see. Each finding has a fix in the AI's code and a proof that FAILS when the fix is reverted: a unit test
+with its fault half (`gates/test_world.py`, 108 tests) and a mutant (`gates/revert_step3.py` W62-W75, plus W32, W37, W46
+moved onto the new code), and where it can be played a live arm or a sweep revert. The numbers were PRE-REGISTERED from a
+development pass of each driver on the same AI code, before the graded runs (`live_step3.py`'s docstring "AFTER STEP
+3.2" and its `PREDICTED` table, `LAP_BOUNDS`; `rate_step3.py`'s `LAP_SWEEP_BOUNDS`, `LAPS_REVERT_OVER`,
+`WHIM_REVERT_DROP`, `FINDING2_PLANS_OVER`). Every evidence file of the final run names `working-tree digest
+sha256:3ea1b655920e8c61` (since build step 4 those files are in `evidence/archive/3ea1b655920e8c61/`, unchanged), live_step3's also `predictions: sha256:b801550cbda71ae9`. Final run: live_step3 34 of 34 arms
+PASS, 154 of 154 pre-registered numbers held; revert_step3 73 mutants caught and W13 redundant alone, of 74; rate_step3 100
+of 100 runs as intended, every bound met, every revert as predicted; and on the same tree `check_purity.py` PASS, the five
+unit suites OK, `live_step0.py --arms A,A2,B,C`, `live_step1.py` (21 arms), `live_step2.py` (17) and its seed-9 replication
+(16) PASS, `revert_step2.py` (39 caught, 5 redundant alone) and `revert_step11.py` PASS; `provenance.py --check-evidence`:
+96 files, PASS.
+
+| finding | the fix | proven by |
+|---|---|---|
+| 1 (HIGH) the turn-back cost charged on EVERY replan: each step forward made turning back dearer again, and the AI walked LAPS (SCENEX: 8 steps round a room where 2 would do) | `brain/navigator.py`: turning round (straight back, or a U-turn, now also one the plan completes on its own second step) is charged ONCE per decision: `TURN_BACK_COST` (4) in WHERE to go (the explorer's scores), `TURN_ROUND_COST` (1) in the decision's first plan, a tie-breaker between ways of one length. That plan (`Plan`) is FOLLOWED (`_next_step`): redone uncharged only when the memory says it no longer goes, dropped for a fresh one only when that is `PLAN_SWITCH_MARGIN` (4) better (a shortcut come into view). MEASURED before choosing the plan's charge (in-process, pinned clock, 10 seeds of HOUSE, TOWN, ROUTE, SCENEX): with 4 tiles charged once in the plan, the plan still bought its way round the charge (a U round one tile where turning back was 2 steps, and a step FORWARD then straight back) | `LapTests`: Littleroot's corner as SCENEX seed 3's memory held it (8 seeds: 2 steps, no lap; FAULT, the step-3.1 rule: a lap, 10 steps); three ways of one length, 20 seeds, none turns round (FAULTS: the plan replaced at every step; no turn charge); a shortcut come into view taken (FAULT: never switched). Mutants W62, W63, W74, W32 CAUGHT. Live SCENEX `the walks to 43 targets: 116 steps walked against 114 on the shortest KNOWN ways, 2 beyond them`; its revert arm SCENEXL (the step-3.1 rule, in-process) `162 steps walked against 114 ..., 48 beyond them, the worst target door [2, 3] (25 steps from [4, 4] to [2, 3], shortest 3)`: SCENEX's lap check FAILS on it. RATE `LAPS A/B ... steps beyond the shortest known ways REVERTED 342, REAL 6; runs over {'laps': 0, 'excess': 4, 'worst': 2} REVERTED 13 of 60 (predicted >= 8), REAL 0`. SCENE-EXPLORE now reaches Route 101 on 10 of 10 seeds (`SCENE-EXPLORE, AFTER THE TWIN`) |
+| 2 (HIGH) the reversal metric counts only A-B-A and U-turns: laps score 0 | `gates/live_step3.py`: `laps` (back on a tile 4..12 steps later on the same map with NOTHING NEW between: no tile first seen by the memory, no novelty told), `target_walks` / `known_shortest` (the walk to each target from the tile decided on against the shortest way over what the memory knew by its end, bumps per side included; a walk with a detour reported, not graded), `lap_report`, `check_laps` against the pre-registered `LAP_BOUNDS` on TOWN, ROUTE, SCENEX, SCENEX9 (no lap; at most 2 steps beyond on a target, 4 in all: the only such steps measured are a walk round someone in the way, whom the memory does not know); reported on every other walking arm; per run in the sweep (`LAP_SWEEP_BOUNDS`); arm CLOCKS checks SCENEX's bounds at every instant | GraderTests `test_laps_in_a_walk`, `test_the_shortest_known_way`, `test_the_walk_to_each_target_against_the_shortest_known_way` (each rule with a fault: W70 nothing-new not asked, W71 tiles not yet seen used, W72 bumps ignored, W73 nothing graded passes, W75 a detour graded), `test_the_clock_arm_...` (a lap bound broken at one instant fails). Live TOWN `34 steps walked against 34 ..., 0 beyond them`, ROUTE `28 ... against 28`, SCENEX9 `128 ... against 126, 2 beyond` (the walk (14, 9) -> (11, 0) past the twin, 14 for 12), CLOCKS `SCENEX [('10-08T06:00', 0, 2, 2), ... ('10-20T12:00', 0, 2, 2)]`; RATE every lapped plan within the bounds (`SCENE-EXPLORE: laps 0, 6 steps beyond the shortest known ways over 1047 walked (the worst target 2)`) |
+| 3 (MED) a bump never forgotten after walking through that way | `world/memory.py` `forget_bump` (the navigator calls it when a step got the player into a tile going `d`: that tile's bump for `d` is deleted, and told); `MapMemory.absorb` drops every bump of a tile whose look changed (`take_dropped_bumps`, told) | WalkTests `test_a_bump_is_forgotten_when_the_way_lets_the_player_through` (a tile that refused, then let the player through: the next errand straight through it, 4 steps; FAULT not forgotten: round, 8), `test_a_tile_that_looks_different_drops_its_bumps`, and `test_the_only_way_on_...` now expects the retried way's bump forgotten (0, where step 3.1 kept 1). Mutants W64, W65 CAUGHT. No live arm walks back through a way it bumped |
+| 4 (MED) indecision: 22 of 23 targets dropped as stale and re-picked on a whim | `brain/explore.py` `pick_on_the_move`: a target chosen WHILE WALKING (`Navigator.choosing_on_the_move`) is the best place AHEAD (`ahead`: in the half of the map the player walks into, `Navigator.heading`) unless another beats it by more than `CHOICE_MARGIN`; no draw, no jitter (`candidates(jitter_on=False)`). The whim stays for choices made standing | HeadingTests (the heading kept within the margin, the clearly better taken; 20 seeds choose the same place on the move and several standing). Mutants W66, W67 CAUGHT; the town model's reversal fault half (no turn cost AND the whim on the move: 12 reversals in 662 steps, against 0 in 429). RATE `WHIM A/B ... the walk kept its heading REVERTED 402 of 662 (61%), REAL 592 of 671 (88%; predicted at least 15 points more); reversals REVERTED 25 in 1295 steps, REAL 2 in 1182`. Live, reported per arm: TOWN `TARGETS CHOSEN ON THE MOVE ...: 23; the first step after each kept the heading 20, turned aside 3, turned straight back 0` |
+| 5 (LOW) doors reopen on a hidden count of story flags | `world/memory.py` `_news`: a closed door is retried after NEWS a person could see since it was found closed: words never read before on the overworld (`heard`), a map never stood on, a Pokemon of the player's never seen (by PID); or after 36,000 frames. `news`, `heard` persist | ExitTests `test_a_hidden_story_flag_alone_does_not_reopen_a_door` (FAULT: the flag count again, W69), `test_a_closed_door_is_tried_again_after_news_a_person_could_see` (FAULT: no reopening on news, W46), `test_news_is_what_a_person_could_see` (new words, a new map, a new Pokemon reopen; the same words, a battle's words, a story flag do not). No live arm meets a closed door |
+
+**Three restatements, found by the development pass and pre-registered before the graded run** (`live_step3.py`'s
+docstring says each, with the reason):
+* `REVERSALS_PER_RUN` is 2 (was 1), and the sweep's per-100 bound is over the exploring plans together: a target behind is now
+  reached by turning back where step 3.1 walked a lap (invisible to the reversal metric), and a run that explores two rooms to
+  their end turns back at the end of each (RATE TOWN-Trainer seed 9). The discriminator of the step-3.1 finding 2 is unchanged:
+  `FINDING-2 A/B ... REVERTED 89 reversals in 2875 steps (3.10 per 100, bound 1.0), 257 stale targets walked onto; REAL 6 in
+  1677, 0 walked onto`.
+* SCENEX's twin check asks for ONE target of the explorer's own (was two): kept on the move, the same target may be tried
+  again until the per-target rule gives it up (RATE seeds 2 and 8: (10, -4) twice).
+* SCENEXR no longer claims "never got past her": turning back, the words-reverted copy meets May too, and her news lifts the
+  twin; the rule's harm stays the push-back (`4 without` against `3 push-backs with the rule`). ROUTE9's flee non-vacuity is
+  over the pair ROUTE and ROUTE9 (`1 + 0 wild battle(s) met, each fled`: ROUTE at seed 3 meets one now). CLOCKS: SCENEX9 is no
+  longer clock-sensitive (13,148 frames at every instant), so its launcher numbers are registered.
+
+## Step 3.2, the step-4 verifier's weak proofs (2026-10-08)
+
+(SUPERSEDED in part by the next section: the verifier's second round ruled the "finding 4" and "findings 3 and 5" rows
+below NOT enough, and both were then fixed and proven live; the SCENE-EXPLORE row is now bounded. Kept as the record of
+that round.)
+
+The step-4 verifier re-ran step 3.2 too. Its walking code is UNCHANGED in this round (every pre-registered trajectory held:
+`live_step3.py` 162 of 162 numbers); only the graders changed, and the claims below are restated where they said more than
+the evidence. Pre-registered from the verifier's own recomputation of SCENEX and SCENEXL (seeds 3 and 7) and a development
+sweep (`rate_step3.py`, its file moved out of the evidence folder), before the graded runs.
+
+| the verifier said | what changed | the evidence (final tree) |
+|---|---|---|
+| "the new CYCLE check (`laps`) does not tell the fix from the revert ... SCENEXL's evidence says 'laps 0 with, 0 without' ... Every one is exempted by 'new tile between: True'" | `live_step3.rings`: back on a tile 4..12 steps later having walked ROUND (every tile between visited once), WHATEVER was seen on the way; an out-and-back (A B C B A) is a turn back, not a ring. Bounded at 1 a run (`LAP_BOUNDS`, `LAP_SWEEP_BOUNDS`) and 4 over the sweep's 60 lapped runs; the LAPS revert must ring at least 20 times in 8 runs. `laps` stays, for what it is: a lap with NOTHING new seen on the way. Tests `test_rings_in_a_walk`, `test_a_ring_that_saw_new_tiles_is_counted_by_the_report`, the CLOCKS test's ring half; mutants W76 (an out-and-back counted), W77 (`laps`' exemption: the verifier's point) CAUGHT | SCENEXL `4 RINGS [('1:1', [5, 3], 12), ('1:1', [5, 2], 12), ('0:9', [11, 4], 10), ('1:3', [1, 2], 10)]` and its A/B `RINGS ... 0 with, 4 without; laps with nothing new between 0 with, 0 without (every round the reverted code walked showed a new tile: that check alone cannot tell the two apart)`; SCENEX, TOWN, ROUTE, SCENEX9 `0 RINGS`; CLOCKS: SCENEX 0 rings at all 8 instants. RATE `LAPS A/B ... RINGS ... REVERTED 36 in 14 runs (predicted >= 20 in >= 8 runs), REAL 2 in 2 runs (predicted <= 4)` |
+| (the same, honestly measured) the real code is not ring-free | the sweep's two real rings (SCENE-EXPLORE seeds 1 and 6, once each) were read move by move: each spans a TARGET that vanished (the frontier past the twin "cannot be reached that way", then a door; a frontier whose tiles were all seen on the way, then the way back), and every leg was the shortest known way to its own target ((12, 15) to the door (7, 17) in 7, the shortest; (5, 3) to (7, 2) in 3, the shortest). That is why the bound is 1 a run, not 0 | the reverted code rings within ONE target's walk (SCENEXL: "back (7, 2)" reached by a 12-step round) and where the steps-beyond metric sees nothing (RATE: ROUTE seed 9 reverted, 6 rings, 0 steps beyond any target) |
+| "steps-vs-shortest is measured per DECISION, and the AI re-decides every 1-3 steps ... near 0 by construction wherever targets churn" | `live_step3.journeys`: a target chosen standing and every target re-picked on the move after it, joined, against the shortest known way from where it began to where it ended. REPORTED, not bounded: an exploring walk ends where it stopped, not at a destination, and the real code's journeys walk beyond that way too (a nook looked into and left). Test `test_journeys_join_the_targets_chosen_on_the_move`, mutant W78 | SCENEX `JOURNEYS ... 9 graded (20 targets), 80 steps walked against 60 ... 20 beyond`; RATE `JOURNEYS' steps beyond REVERTED 516, REAL 250 (predicted more reverted)`. The graded discriminators are the rings and the per-target steps (`REVERTED 342, REAL 6`) |
+| finding 4 "only partly fixed: targets still churn" (25 stale drops in 42 steps) | nothing: the fix asked for was the HEADING after a re-pick on the move, and that is what changed (`kept the heading REVERTED 61%, REAL 88%`). A frontier target is dropped when its tiles are seen, so walking toward unseen ground re-picks often by design; the churn itself is a known limit (below) | RATE TOWN `stale_dropped` 23 at seed 3 (PREDICTED, held) |
+| findings 3 and 5 are proven only by unit tests and mutants | unchanged, and said: no live arm walks back through a way it bumped or meets a closed door | `revert_step3.py` W64, W65, W69, W46 CAUGHT |
+| SCENE-EXPLORE's reversals were "settled by exempting the plan" and rose to 2.91 per 100 steps | unchanged, and said: SCENE-EXPLORE is reported, not bounded (a scene sends the player back by design). Listed in seeds 1 and 6 (`live_step3.path_reversals` on their replays): 5 of their 8 reversals are inside the houses and the lab (4 one step in and straight back, 1 a U-turn), 3 in the town (1 U-turn, 2 one step and back); why each was taken was not read | RATE `SCENE-EXPLORE: 41 reversals in 1411 steps over 10 seeds (2.91 per 100 steps)`; the exploring plans together `6 reversals in 1677 steps (0.36 per 100 steps; bound 1.0)` |
+
+## Step 3.2, the step-4 verifier's FAILURE and second round of weak proofs (2026-10-09)
+
+The step-4 verifier's re-run found ONE checklist failure: "Step 3.2 finding 4 (MEDIUM, 'the AI changes target almost every
+step (22 of 23 dropped as stale)') is NOT fixed ... my own recomputation of ... SCENEX shows the churn is still there: '47
+walks ... decisions on the move 35 of 47'; walk length per decision 'mean 2.55', with 28 of the 47 walks a single step. Its
+visible cost is not bounded". The cause: a frontier tile at the screen's edge is seen past at the very next step (the
+screen scrolls), so every frontier target went stale within a step or two and every stale target was a NEW decision. Step
+3.2 had made that decision keep the heading; it was still a decision a step.
+
+THE FIX, in the AI's code (`brain/explore.py` carry_on, `brain/navigator.py` run): a frontier (or grass) target the walk
+has made stale is CARRIED ON by the same decision to the place that took its place: the nearest frontier within
+`CARRY_RADIUS` (3) tiles of it, on its side of the player, at least a tile further the way the unseen lay beside it and at
+most a tile aside (a frontier sliding along the screen's edge is another place). No draw, no new decision, no thinking pause,
+and the decision's plan stays uncharged. A new decision is made, on the move with the heading, only when nothing of it is
+left there, or when another place is worth more than one tile of walking more (`CARRY_SWITCH_MARGIN`); every carry-on
+TELLS where the step-3.2 rule would have gone instead (`carry_note`), and every refusal why. The margin was MEASURED, not
+chosen: 0 walks like the step-3.2 rule with fewer decisions; at 2 the Catcher's and Trainer's walks grew; carried on with no
+margin at all (or at `CHOICE_MARGIN`), the TOWN walk grew a third, a whole street swept past the road out of town.
+
+Found by this round's development sweeps and fixed too (both make the walk more a person's; each with a test, a mutant and
+a sweep): a DOORMAT is one way out (`world/memory.py` mat_tiles: the mat's other tile was taken for "an exit not used yet",
+and 2 of 10 explorers left May's house by it before going upstairs to May), and a way back to a map SEEN ALL OF is no option
+while another leads somewhere with something left to see (`brain/explore.py` not_back_to_seen_all: once a doormat counted as
+one way out, the stairs to a floor seen all of, a step away, outscored the doormat four steps away, and the AI went up and
+down until the ping-pong rule ended the intent).
+
+| the verifier said | the fix | proven by (final tree) |
+|---|---|---|
+| FAILURE: finding 4 "NOT fixed ... 'decisions on the move 35 of 47' ... 28 of the 47 walks a single step. Its visible cost is not bounded: JOURNEYS" | the decision CARRIED ON (above) | `ChurnTests` (the place straight beyond; a place two tiles aside is another; something clearly better ends it; never beside or behind the player; the town model, 12 seeds: about a decision per 8 steps where the step-3.2 rule made one a step, the walks no more than a tenth longer; FAULTS); mutants W79-W81, W85; live CHURN bounds (`CHURN_BOUNDS`, pre-registered) on TOWN, ROUTE, SCENEX, TOWN9, ROUTE9, SCENEX9 and at every clock instant (CLOCKS), and the revert arm SCENEXC: SEE "Everything on ONE tree" BELOW FOR THE GRADED NUMBERS; the sweep's CHURN A/B (`rate_step3.py`) |
+| "Steps-vs-shortest per target is close to vacuous wherever targets churn" | with decisions carried on, a decision's walk is many steps long, so the steps beyond its shortest known way are measured over real walks; and the VISIBLE COST, every journey's steps beyond the shortest known way, is now BOUNDED (`CHURN_BOUNDS` journey_share, `CHURN_SWEEP_BOUNDS`), over EVERY journey: with a decision a step nearly every journey held a detour (drawn per decision) and went ungraded, which flattered the step-3.2 rule (its graded journeys walked 168 of its 338 TOWN steps) | the CHURN checks; the sweep's CHURN A/B predicts the real code's journeys no dearer than the revert's |
+| "`laps` ... cannot tell the fix from the revert ... Rings carry the whole discrimination" | `laps` stays a safety bound (no lap with nothing new seen) and says so; RINGS now count one loop once, and the bound is on LAP RINGS (`lap_ring`: a ring with a leg walked beyond the shortest way to its own target), every ring reported: the carried-on decisions walk EXCURSIONS (into a room up one column, out by the next, each leg the shortest way to its own target) | `GraderTests.test_a_lap_ring_has_a_leg_walked_round` (W82, W83); SCENEXL's lap check FAILS on its lap rings; the sweep's LAPS A/B on lap rings |
+| findings 3 and 5 "proven only by unit tests and mutants ... No live arm walks back through a bumped way or meets a closed door" | live arms on the AI's own memories with ONE thing planted, test side (`make_step32_fixtures.py`): FORGET / FORGETR, REOPEN / REOPENR (no early map gives the AI either case to learn itself: the README's "Known limits") | FORGET: the retry into (0, 5), "forgotten", errand 4 straight through (2 steps) and the end tile by save block 1; FORGETR: 6 steps round. REOPEN: the reopen line names the twin's words, May's door used only after it, VAR_LITTLEROOT_TOWN_STATE 0 -> 2, ROUTE101; REOPENR: stuck, May never met |
+| "SCENE-EXPLORE has 2.91 reversals per 100 steps and its journey excess is not bounded" | bounded, pre-registered (`SCENE_EXPLORE_REVERSALS_PER_100` 3.5, `SCENE_EXPLORE_JOURNEY_SHARE` 0.45) | RATE |
+| "revert_step3.py writes its top-level evidence file even on a subset run" (two files of an earlier tree lost) | a subset writes beside the system's temporary files, never into `evidence/`; the step-4 verifier's round's files were archived BEFORE any run of this round | `evidence/archive/a14d81a107a65b76/` (114 files), `evidence/archive/README.md` |
+| "My re-runs of the in-process sweeps ... are determinism replays, not replications" | said where it applies: each sweep's seed 3 is the live arm replayed; the other seeds are the sample | RATE's REPLAY section |
+
+Restated, not loosened (each found by the development sweeps, written down before the graded runs): the twin after news is
+checked at most once ON EACH TILE (`once_a_tile_after_news`: one seed met her twice on (10, 1) before any news and on (11, 1)
+only after it, and the rule gave each up at its first meeting; the old "once in all" check failed it, W87); the graders that
+read decisions also read the places a decision was carried on to (`stale_arrivals` W86, `edge_targets`, `check_crop`,
+SCENEX's "the explorer's own targets").
+
 ## Known limits of step 3
 
 * The navigator walks; no brain yet CHAINS a walk and a skill (walk to the nurse, then heal): that is step 5's goals.
@@ -786,19 +1292,37 @@ pre-registered numbers held; revert_step3 60 mutants caught and W13 redundant al
   (BUMP's errands 2 and 3), and a wall the eyes call floor is bumped at most once from each side tried (up to four
   bumps for a hidden wall approached from everywhere, where step 3 took one). A side bumped once is tried again only
   when every other way is dearer by 10 tiles; twice, never. The one-way look (IMPASSABLE_*) is not read as a cue yet.
+  Since step 3.2 a bump is FORGOTTEN once a step gets the player into that tile that way (and every bump of a tile whose
+  look changes is dropped): unit-proven (WalkTests, mutants W64, W65) and, since the step-4 verifier's second round, live
+  (arm FORGET and its revert FORGETR), on a memory whose bump was PLANTED test side: no early map gives the AI a way that
+  refuses it once and lets it through later (a bump next to a person is the person's, never learned).
+  A side refused twice is never pressed again, so it is never walked through and never forgotten that way: only a
+  changed look lifts it (a way that opens later with no change of look stays closed from that side).
 * A map's EDGES, all four, are known only after a crossing is SEEN (step 3.1); until then a tile past them is just a
   tile, explored as frontier. So the explorer has no pull toward a town's exit as such: it leaves by the frontier it
   sees there (Littleroot's road north is frontier until crossed). A memory written before step 3.1 learns its top and
   left edges again from its recorded crossings when it is read.
 * Exits are known by their LOOK (step 3.1): every look the game warps on but the Union Room's exit (its behaviour,
-  MB_BRIDGE_OVER_OCEAN, is the bridges' too). A door-looking tile that did not open is remembered CLOSED until the story
-  moves on (one of the eyes' STORY_FLAGS newly set: a door opened by an event that sets none of those flags waits for the
-  time rule) or 36,000 frames pass (since the step-3.1 verifier's round; unit-proven, no live arm meets a closed door).
+  MB_BRIDGE_OVER_OCEAN, is the bridges' too). A door-looking tile that did not open is remembered CLOSED until there is
+  NEWS a person could see (since step 3.2: words never read before on the overworld, a map never stood on, a new Pokemon by
+  PID; step 3.1 counted the save's story flags, which nothing on screen shows) or 36,000 frames pass (unit-proven, and
+  since the step-4 verifier's second round live: arm REOPEN, May's door remembered closed (PLANTED test side: on the maps
+  of Littleroot, Oldale, Petalburg and Routes 101-104 the ROM's only exit-looking tiles with no warp are three in the back
+  wall of each of Oldale's and Petalburg's Pokemon Center 2F, and two mats of a prototype flower shop map (a scan of the
+  ROM's layouts this round; whether the AI could reach and press the Pokemon Centers' was not tried)), reopened by the
+  twin's words, and its revert REOPENR). Any new words count, a sign's too: a person who learns something may try the door
+  again, and it is tried once and closed again if nothing changed.
   The grid model's walk-on warps start at
   the step's attempt; the game's at the step's end (the navigator's warp records are by the exit it USED, either way).
 * Reversals are graded on the AI's own steps as the looks confirmed them (`live_step3.py` walk_path); a U-turn round a
   single blocked tile counts as one even when it was the only way. Roaming sweeps a patch in serpentines, which the
-  same metric would call U-turns: roaming keeps its own spin criterion (A -> B -> A and walking in place).
+  same metric would call U-turns: roaming keeps its own spin criterion (A -> B -> A and walking in place). Since step 3.2
+  a target behind is reached by TURNING BACK (where step 3.1 walked a lap the reversal metric could not see), so a run
+  that explores a room to its end turns back there and the metric counts it: the per-run bound is 2 and the sweep's
+  per-100 bound is over the exploring plans together. LAPS (back on a tile 4..12 steps later with nothing new between)
+  and the steps beyond the shortest KNOWN way per target are graded beside it (`lap_report`). That shortest way is over
+  the memory's tiles and bumps; people are not in the memory (they move), so a step round someone in the way counts as
+  steps beyond it (the bounds allow 2 on a target, 4 a run: the measured cause of every such step in the sweep).
 * The TOWN and ROUTE check "no road before a crossing" is met with no road chosen at all (once a crossing is seen, the
   road's side is a KNOWN connection, so its tiles are "back" or "route", not "road": the kind "road" is in practice for a
   memory whose edge was learned without its link). Since the step-3.1 verifier's round the check also requires the case
@@ -816,11 +1340,11 @@ pre-registered numbers held; revert_step3 60 mutants caught and W13 redundant al
 * NEWS is any page never heard before in the intent, from a scene that did not send the player back or away: May's
   mother's greeting is news too, so the explorer may try the twin once more before May (at most one more push-back,
   then given up again at once; whether it walks there before meeting May depends on the run). The STORY is not read: the AI cannot tell news that changes the twin from news that does not. Measured
-  (the sweep's SCENE-EXPLORE, 10 seeds to their own end): 6 reach Route 101 (May met, the twin passed); the other 4 stop
-  by the PING-PONG rule between Brendan's house and the town before meeting May: with every reachable place in the town
-  seen and the north given up, the way just come in is the only option left and the explorer shuttles through it (May's
-  upper floor, never visited on those seeds, is not worth more than the house next door to it). That dead end is the
-  explorer's, not the scene rule's; step 5's goals are where a person's "go next door, then upstairs" belongs.
+  (the sweep's SCENE-EXPLORE, 10 seeds to their own end): on step 3.1's code 6 reached Route 101 (May met, the twin
+  passed) and the other 4 stopped by the PING-PONG rule between Brendan's house and the town before meeting May; since
+  step 3.2 (the plan followed, the heading kept on the move) all 10 reach it (`SCENE-EXPLORE, AFTER THE TWIN`). Nothing
+  makes the explorer go to May on purpose: it meets her because it explores May's house; step 5's goals are where a
+  person's "go next door, then upstairs" belongs.
 * Wild battles are only FLED (step 4 fights and catches). A trainer battle ends the intent with its reason; so would a
   trainer who spots the player (nothing on screen says who is a trainer).
 * The ping-pong rule counts uses of one warp; a ping-pong through TWO different doors in turn is caught only by the
@@ -876,6 +1400,24 @@ pre-registered numbers held; revert_step3 60 mutants caught and W13 redundant al
   steps happen not to overlap, TOWN 32-53 and CROP 22-26, but before the whim an honest seed walked 26 steps in all,
   CROP's own total then: the step count is still no check.)
 * The personality weights and the roaming scores are plausible taste, not measured from people.
+* (the step-4 verifier's second round) A DECISION IS CARRIED ON, but it is not a plan for a region: what it carries on to
+  is the frontier that took the stale one's place (within `CARRY_RADIUS`, further the way the unseen lay, at most a tile
+  aside), so a decision ends at a wall, a corner, a room's end, and a new one is made on the move there; and it ends
+  whenever another place is worth more than one tile of walking more (`CARRY_SWITCH_MARGIN`). Chosen by measurement, not
+  taste: with no margin at all (a decision held whatever comes) the TOWN walk grew a third (a street swept past the road
+  out); with a margin of 2 the Catcher's and Trainer's walks grew. The TRAINER taste still re-decides often (people move,
+  and a frontier near people is worth 15 points more to it): in the development sweep its decisions on the move were
+  26 per 100 steps against the other plans' 9-20.
+* (the step-4 verifier's second round) The real code is not ring-free: RINGS (a loop walked) are counted and reported; the
+  bound is on LAP RINGS, a ring with a leg walked beyond the shortest way to its own target. The real code's rings are
+  excursions (into a room up one column, out by the next, every leg the shortest way to its own target).
+* (the step-4 verifier's second round) Two ways out of a house were MISREAD, found by this round's development sweeps
+  and fixed: the doormat's OTHER tile was taken for an exit not used yet (2 of 10 seeds left May's house by it before going
+  upstairs to May, and never met her), and once a doormat counted as one way out, the stairs one step away to a floor
+  SEEN ALL OF outscored the doormat four steps away (the AI went up and down until the ping-pong rule: CROP seed 1,
+  SCENE-EXPLORE seeds 5 and 15 of 20). Now a doormat is one way out (`world/memory.py` mat_tiles) and a way back to a map
+  seen all of is no option while another leads somewhere with something left (`brain/explore.py` not_back_to_seen_all):
+  the 20-seed development sweep reached Route 101 on 20 of 20 SCENE-EXPLORE seeds, with the carry-on and without it.
 
 ## The hands (build step 2)
 

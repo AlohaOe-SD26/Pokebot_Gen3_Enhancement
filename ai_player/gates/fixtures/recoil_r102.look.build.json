@@ -1,0 +1,9 @@
+{
+ "fixture": "recoil_r102.look.json",
+ "md5": "14ef9f031e9a1e6df3c169543ab90ad8",
+ "at": "f3640925 battle ui=battle_action[FIGHT] ROUTE 102(0,17) xy=(9,2) facing=right walking party=[Marshtomp:L32 74/99,Swellow:L33 99/99,Mightyena:L33 110/110,Dustox:L23 63/63] battle=wild foe=[Poochyena:L3 bar 48/48] dex=9/65 money=2613 badges=4 cost=0.96ms",
+ "presses": [
+  "f3640705 A: a wait: text printer 0 CLEAR"
+ ],
+ "seconds": 2.0
+}

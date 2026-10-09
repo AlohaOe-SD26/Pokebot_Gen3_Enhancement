@@ -1,0 +1,327 @@
+{
+ "source": [
+  "tools\\story-dev\\saves\\ch13_r119_wedge.ss1",
+  "b04d3e4cb7d8c8e2a3b82225548906ef"
+ ],
+ "frame": 3640925,
+ "digest": "f3640925 battle ui=battle_action[FIGHT] ROUTE 102(0,17) xy=(9,2) facing=right walking party=[Marshtomp:L32 74/99,Swellow:L33 99/99,Mightyena:L33 110/110,Dustox:L23 63/63] battle=wild foe=[Poochyena:L3 bar 48/48] dex=9/65 money=2613 badges=4 cost=0.96ms",
+ "presses": [
+  "f3640705 A: a wait: text printer 0 CLEAR"
+ ],
+ "battle": {
+  "kind": "wild",
+  "double": false,
+  "type_flags": 4,
+  "opponent_trainer_id": null,
+  "own": [
+   {
+    "species": "Marshtomp",
+    "dex": 259,
+    "level": 32,
+    "hp": 74,
+    "max_hp": 99,
+    "hp_bar": 35,
+    "status": "ok",
+    "types": [
+     "Water",
+     "Ground"
+    ],
+    "moves": [
+     {
+      "name": "Tackle",
+      "type": "Normal",
+      "power": 35,
+      "pp": 35,
+      "max_pp": 35
+     },
+     {
+      "name": "Rock Smash",
+      "type": "Fighting",
+      "power": 20,
+      "pp": 15,
+      "max_pp": 15
+     },
+     {
+      "name": "Take Down",
+      "type": "Normal",
+      "power": 90,
+      "pp": 9,
+      "max_pp": 20
+     },
+     {
+      "name": "Water Gun",
+      "type": "Water",
+      "power": 40,
+      "pp": 25,
+      "max_pp": 25
+     }
+    ],
+    "pid": 1426758630,
+    "battler": 0
+   }
+  ],
+  "foe": [
+   {
+    "species": "Poochyena",
+    "dex": 261,
+    "level": 3,
+    "hp": null,
+    "max_hp": null,
+    "hp_bar": 48,
+    "status": "ok",
+    "types": [
+     "Dark"
+    ],
+    "moves": [],
+    "pid": null,
+    "battler": 1
+   }
+  ]
+ },
+ "party": [
+  {
+   "slot": 0,
+   "species": "Marshtomp",
+   "dex": 259,
+   "level": 32,
+   "hp": 74,
+   "max_hp": 99,
+   "status": "ok",
+   "types": [
+    "Ground",
+    "Water"
+   ],
+   "moves": [
+    {
+     "name": "Tackle",
+     "type": "Normal",
+     "power": 35,
+     "pp": 35,
+     "max_pp": 35
+    },
+    {
+     "name": "Rock Smash",
+     "type": "Fighting",
+     "power": 20,
+     "pp": 15,
+     "max_pp": 15
+    },
+    {
+     "name": "Take Down",
+     "type": "Normal",
+     "power": 90,
+     "pp": 9,
+     "max_pp": 20
+    },
+    {
+     "name": "Water Gun",
+     "type": "Water",
+     "power": 40,
+     "pp": 25,
+     "max_pp": 25
+    }
+   ],
+   "pid": 1426758630,
+   "ot_id": 22640,
+   "is_egg": false,
+   "experience": 29656,
+   "stats": [
+    55,
+    61,
+    43,
+    47,
+    54
+   ]
+  },
+  {
+   "slot": 1,
+   "species": "Swellow",
+   "dex": 277,
+   "level": 33,
+   "hp": 99,
+   "max_hp": 99,
+   "status": "ok",
+   "types": [
+    "Flying",
+    "Normal"
+   ],
+   "moves": [
+    {
+     "name": "Peck",
+     "type": "Flying",
+     "power": 35,
+     "pp": 35,
+     "max_pp": 35
+    },
+    {
+     "name": "Wing Attack",
+     "type": "Flying",
+     "power": 60,
+     "pp": 35,
+     "max_pp": 35
+    },
+    {
+     "name": "Double Team",
+     "type": "Normal",
+     "power": 0,
+     "pp": 15,
+     "max_pp": 15
+    },
+    {
+     "name": "Quick Attack",
+     "type": "Normal",
+     "power": 40,
+     "pp": 30,
+     "max_pp": 30
+    }
+   ],
+   "pid": 2832977691,
+   "ot_id": 22640,
+   "is_egg": false,
+   "experience": 30251,
+   "stats": [
+    66,
+    48,
+    94,
+    48,
+    44
+   ]
+  },
+  {
+   "slot": 2,
+   "species": "Mightyena",
+   "dex": 262,
+   "level": 33,
+   "hp": 110,
+   "max_hp": 110,
+   "status": "ok",
+   "types": [
+    "Dark"
+   ],
+   "moves": [
+    {
+     "name": "Tackle",
+     "type": "Normal",
+     "power": 35,
+     "pp": 35,
+     "max_pp": 35
+    },
+    {
+     "name": "Swagger",
+     "type": "Normal",
+     "power": 0,
+     "pp": 15,
+     "max_pp": 15
+    },
+    {
+     "name": "Scary Face",
+     "type": "Normal",
+     "power": 0,
+     "pp": 10,
+     "max_pp": 10
+    },
+    {
+     "name": "Bite",
+     "type": "Dark",
+     "power": 60,
+     "pp": 25,
+     "max_pp": 25
+    }
+   ],
+   "pid": 723110545,
+   "ot_id": 22640,
+   "is_egg": false,
+   "experience": 35960,
+   "stats": [
+    74,
+    54,
+    62,
+    53,
+    58
+   ]
+  },
+  {
+   "slot": 3,
+   "species": "Dustox",
+   "dex": 269,
+   "level": 23,
+   "hp": 63,
+   "max_hp": 63,
+   "status": "ok",
+   "types": [
+    "Bug",
+    "Poison"
+   ],
+   "moves": [
+    {
+     "name": "Tackle",
+     "type": "Normal",
+     "power": 35,
+     "pp": 35,
+     "max_pp": 35
+    },
+    {
+     "name": "Confusion",
+     "type": "Psychic",
+     "power": 50,
+     "pp": 25,
+     "max_pp": 25
+    },
+    {
+     "name": "Moonlight",
+     "type": "Normal",
+     "power": 0,
+     "pp": 5,
+     "max_pp": 5
+    },
+    {
+     "name": "Gust",
+     "type": "Flying",
+     "power": 40,
+     "pp": 35,
+     "max_pp": 35
+    }
+   ],
+   "pid": 2805322082,
+   "ot_id": 22640,
+   "is_egg": false,
+   "experience": 13128,
+   "stats": [
+    33,
+    42,
+    38,
+    30,
+    51
+   ]
+  }
+ ],
+ "bag": {
+  "balls": [
+   [
+    "Poké Ball",
+    17
+   ],
+   [
+    "Premier Ball",
+    1
+   ],
+   [
+    "Great Ball",
+    1
+   ]
+  ],
+  "healing": [],
+  "ball_total": 19
+ },
+ "owned_dex": [
+  258,
+  259,
+  261,
+  262,
+  265,
+  268,
+  269,
+  276,
+  277
+ ]
+}

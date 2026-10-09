@@ -1,0 +1,793 @@
+{
+ "fixture": "geodude_grovyle.ss1",
+ "md5": "0e22cfda06a8bcf7f53b21aacc51a94d",
+ "source": [
+  "ai_player\\gates\\fixtures\\trainer_battle_r116.ss1",
+  "f55f3c2ec6efb9fb20363e8ca92b73ba"
+ ],
+ "played_by": "the AI's battle brain, Story, seed 3, clock 2026-10-08T10:00",
+ "frames": 32230,
+ "at": {
+  "lead": [
+   "Grovyle",
+   17,
+   37,
+   49,
+   [
+    "Fury Cutter",
+    "Pursuit",
+    "Absorb",
+    "Quick Attack"
+   ]
+  ],
+  "foe": "Geodude",
+  "trainer": true,
+  "opponent": 631
+ },
+ "battle_starts_seen": [
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    45,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    37,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    37,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    35,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    35,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    16,
+    28,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Wurmple",
+   "trainer": true,
+   "opponent": 617
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    17,
+    30,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Nincada",
+   "trainer": false,
+   "opponent": 617
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    17,
+    28,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Abra",
+   "trainer": false,
+   "opponent": 617
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Grovyle",
+    17,
+    28,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 617
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Nincada",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    45,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Whismur",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Nincada",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    40,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Whismur",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    16,
+    35,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    17,
+    33,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Wurmple",
+   "trainer": true,
+   "opponent": 617
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    17,
+    27,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Skitty",
+   "trainer": false,
+   "opponent": 617
+  },
+  {
+   "seed": 2,
+   "lead": [
+    "Grovyle",
+    17,
+    18,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 617
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Nincada",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Poochyena",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    46,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 322
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    41,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Shroomish",
+   "trainer": true,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    39,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Nincada",
+   "trainer": false,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    16,
+    39,
+    47,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Whismur",
+   "trainer": false,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    17,
+    41,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    17,
+    31,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Abra",
+   "trainer": false,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    17,
+    37,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Taillow",
+   "trainer": false,
+   "opponent": 280
+  },
+  {
+   "seed": 3,
+   "lead": [
+    "Grovyle",
+    17,
+    37,
+    49,
+    [
+     "Fury Cutter",
+     "Pursuit",
+     "Absorb",
+     "Quick Attack"
+    ]
+   ],
+   "foe": "Geodude",
+   "trainer": true,
+   "opponent": 631
+  }
+ ],
+ "ai_lines": [
+  "[AI-HANDS] brain=battle seed=3 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=60000",
+  "[AI-HANDS] battle brain: 12 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[AI-HANDS] battle: a trainer battle against Machop L9 (Fighting)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack is clearly the best [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 20.0 = x0.5 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Quick Attack: Quick Attack is clearly the best [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 20.0 = x0.5 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 3: fight Quick Attack: Quick Attack is clearly the best [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 20.0 = x0.5 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 46, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 1: won",
+  "[AI-HANDS] battle: a wild battle against Taillow L6 (Normal/Flying); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 46, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 2: won",
+  "[AI-HANDS] battle: a wild battle against Nincada L6 (Bug/Ground)",
+  "[AI-HANDS] battle: turn 1: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 9.5 = x1 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 46, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 3: won",
+  "[AI-HANDS] battle: a wild battle against Poochyena L6 (Dark); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack is clearly the best [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 20.0 = x0.5 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Quick Attack: Quick Attack is clearly the best [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 20.0 = x0.5 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 46, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 4: won",
+  "[AI-HANDS] battle: a wild battle against Taillow L8 (Normal/Flying); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 41, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 5: won",
+  "[AI-HANDS] battle: a trainer battle against Shroomish L9 (Grass)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 3: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 39, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 6: won",
+  "[AI-HANDS] battle: a wild battle against Nincada L6 (Bug/Ground)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 9.5 = x1 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 9.5 = x1 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 16, 39, 47), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 7: won",
+  "[AI-HANDS] battle: a wild battle against Whismur L6 (Normal)",
+  "[AI-HANDS] battle: turn 1: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 9.5 = x1 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 17, 41, 49), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 8: won",
+  "[AI-HANDS] battle: a wild battle against Taillow L8 (Normal/Flying); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 17, 31, 49), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 9: won",
+  "[AI-HANDS] battle: a wild battle against Abra L7 (Psychic); a species it has not caught: it WANTS it (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Absorb: to CATCH Abra: weaken it first (Absorb takes 64%-76% of its HP and its bar is at 100%: it cannot knock it out) [Fury Cutter: 19.0 = x2 type x1 STAB x 10 power x 0.95 hit; Pursuit: 80.0 = x2 type x1 STAB x 40 power x 1.00 hit; Absorb: 30.0 = x1 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: the foe teleported (gBattleOutcome 10); party [('Grovyle', 17, 37, 49), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 10: the foe teleported",
+  "[AI-HANDS] battle: a wild battle against Taillow L8 (Normal/Flying); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[AI-HANDS] battle: turn 1: fight Quick Attack: Quick Attack, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: turn 2: fight Pursuit: Pursuit, drawn among the about-as-good ['Pursuit', 'Quick Attack'] (within 85% of the best, weighted by worth) [Fury Cutter: 4.8 = x0.5 type x1 STAB x 10 power x 0.95 hit; Pursuit: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit; Absorb: 15.0 = x0.5 type x1.5 STAB x 20 power x 1.00 hit; Quick Attack: 40.0 = x1 type x1 STAB x 40 power x 1.00 hit]",
+  "[AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Grovyle', 17, 37, 49), ('Nincada', 6, 21, 21), ('Whismur', 6, 25, 25), ('Skitty', 8, 27, 27)]",
+  "[AI-WORLD] battle 11: won"
+ ],
+ "truth": {
+  "frame": 244252,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   31
+  ],
+  "party": [
+   [
+    "Grovyle",
+    37,
+    49
+   ],
+   [
+    "Nincada",
+    21,
+    21
+   ],
+   [
+    "Whismur",
+    25,
+    25
+   ],
+   [
+    "Skitty",
+    27,
+    27
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Grovyle",
+    3304,
+    17
+   ],
+   [
+    "8fffc144",
+    "Nincada",
+    406,
+    6
+   ],
+   [
+    "a9226d5c",
+    "Whismur",
+    179,
+    6
+   ],
+   [
+    "7f7652d1",
+    "Skitty",
+    409,
+    8
+   ]
+  ],
+  "money": 7004,
+  "balls": {
+   "POKé BALL": 1
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": true,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 4,
+  "gLocalTime": [
+   78,
+   10,
+   49,
+   27
+  ],
+  "localTimeOffset": [
+   9700,
+   0,
+   18,
+   22
+  ],
+  "pos": [
+   36,
+   15
+  ],
+  "game_stats": {
+   "steps": 1402,
+   "total_battles": 59,
+   "wild_battles": 46,
+   "trainer_battles": 13
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 185.2
+}

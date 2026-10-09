@@ -66,6 +66,32 @@ BUILD STEP 3.1 (the step-3 adversarial review), each rule with its proof in `gat
     other way is dearer), and it is open from the others: a one-way tile is crossed the way it lets the player through.
   * AN EXIT IS USED THE WAY IT LOOKS (finding 5): an arrow mat by pressing its arrow, a door by walking into it from
     below (`exit_press`); one that takes the player nowhere when used so is remembered CLOSED (`WorldMemory.close_exit`).
+
+BUILD STEP 3.2 (the step-3.1 adversarial review: human-likeness regressions its metrics could not see), each rule with its
+proof in `gates/test_world.py` and a mutant in `gates/revert_step3.py`:
+  * THE TURN-BACK COST ONCE PER DECISION, THEN THE PLAN IS FOLLOWED (its HIGH finding 1): `TURN_BACK_COST` was charged on
+    EVERY replan, so each step forward made going back dearer again and the AI walked LAPS (SCENEX: 10 steps round the
+    corner of Littleroot where 2 would do; measured 2026-10-08 with the memory of that moment: at (6, 18) heading left,
+    the plan to the door's stand tile (7, 17) was down, right, up, up (4 steps, the 2-step way charged +4), and at the
+    next tile, charged again, left, up, right, right, up). Now turning round is charged once, by the DECISION: in WHERE
+    to go (the explorer's scores, `TURN_BACK_COST`; on the move also the heading: `brain/explore.py`), and in the first
+    plan made for that target (`Plan.charged`), there only `TURN_ROUND_COST`, a tie-breaker between about-equal ways
+    (a 4-tile charge in the plan bought its way round: measured, `TURN_ROUND_COST`). That plan is FOLLOWED
+    (`Navigator._next_step`): redone only when the memory says it no longer goes (a wall seen, a bump, someone standing
+    on it, the player not where it expected), uncharged, and dropped for a fresh one only when that is clearly better
+    (`PLAN_SWITCH_MARGIN` tiles cheaper: a shortcut that came into view). A target behind is reached the short way: a
+    person who has decided to go back turns round.
+  * A BUMP IS FORGOTTEN WHEN THE WAY OPENS (its MEDIUM finding 3): a step that moves the player into a tile going `d`
+    deletes that tile's bump for `d` (`WorldMemory.forget_bump`, told); a tile whose look changes drops its bumps
+    (`MapMemory.absorb`).
+  * NO RANDOM PICK ON THE MOVE (its MEDIUM finding 4): a target chosen while walking (one dropped as stale) is chosen
+    with the HEADING (`heading`, `choosing_on_the_move`: `brain/explore.py` pick_on_the_move), not on a whim.
+  * ONE DECISION, NOT ONE PER STEP (the step-4 verifier's FAILURE: finding 4 "is NOT fixed", the targets still churned: a
+    frontier at the screen's edge is seen past at the next step, and each such stale target was a new decision): a stale
+    target is CARRIED ON by the same decision (`Intent.carry_on`, `brain/explore.py` carry_on: the place it meant moved on
+    with the view), told with where the step-3.2 rule would have gone instead (`carry_note`); a new decision on the move
+    only when nothing of it is left there or something clearly better came into view. Its plan stays uncharged
+    (`planned_for` is kept: the same decision).
 """
 
 from __future__ import annotations
@@ -91,14 +117,18 @@ __all__ = [
     "EXIT_PRESS",
     "NOVELTY_WINDOW",
     "PINGPONG_USES",
+    "PLAN_SWITCH_MARGIN",
     "SCENE_REPEATS",
     "SEARCH_MARGIN",
     "STEP_HOLD_MAX",
+    "TURN_BACK_COST",
+    "TURN_ROUND_COST",
     "UNKNOWN_COST",
     "WARP_HOLD_MAX",
     "Intent",
     "Navigator",
     "Novelty",
+    "Plan",
     "StepResult",
     "Target",
     "astar",
@@ -106,6 +136,7 @@ __all__ = [
     "exit_press",
     "is_scene",
     "nav_free",
+    "path_cost",
     "scene_words",
     "stale_reason",
     "step_from",
@@ -143,6 +174,19 @@ SCENE_REPEATS = 2
 #: 2026-10-08 on the grid model's town (`gates/test_world.py` ReversalTests, 12 seeds): dropping stale targets alone
 #: re-decided on the move toward places behind as often as ahead (28 reversals in 677 steps, against 12 in 788 before).
 TURN_BACK_COST = 4.0
+#: (build step 3.2, the step-3.1 review's finding 1) What turning round costs in a DECISION'S PLAN (in tiles of walking):
+#: one tile, a TIE-BREAKER between about-equal ways (step on, then up, rather than up, then on), never a reason to walk
+#: further. MEASURED 2026-10-08 (in-process, pinned clock, seeds 1-10 of HOUSE, TOWN, ROUTE, SCENEX): with the plan
+#: charged `TURN_BACK_COST` (4) once per decision, the plan still bought its way round the charge: a U round one tile
+#: where turning back was 2 steps (SCENEX seed 3, Brendan's 1F (6,3) -> (5,3) -> (5,2) -> (6,2)), and a step FORWARD and
+#: straight back (Birch's lab (6,6) -> (6,5) -> (6,6), a charge on the first step only): SCENEX 70 steps beyond the
+#: shortest ways in 10 seeds. Where to GO is still chosen with `TURN_BACK_COST` (the explorer's scores) and, on the move,
+#: with the heading (`brain/explore.py` pick_on_the_move).
+TURN_ROUND_COST = 1.0
+#: (build step 3.2, the step-3.1 review's finding 1) How much cheaper (in tiles of walking) a fresh plan must be than what
+#: is left of the plan being followed before the AI changes its way on the move: a shortcut that came into view (unseen
+#: tiles that turn out to be floor) is taken; a way about as good is not (no dithering between equal ways).
+PLAN_SWITCH_MARGIN = TURN_BACK_COST
 #: (build step 3.1, finding 5) The press an exit's LOOK asks for (`eyes/view.py` behaviour names): an arrow mat warps when
 #: its arrow is pressed while stood on (`src/field_control_avatar.c` IsArrowWarpMetatileBehavior), an animated door only
 #: when walked into going north (TryDoorWarp). Stairs, ladders, escalators and holes warp when stepped on: any side.
@@ -232,12 +276,32 @@ def _bounds(memory: MapMemory, start: tuple[int, int], goals: set | None = None)
     return min(xs) - SEARCH_MARGIN, max(xs) + SEARCH_MARGIN, min(ys) - SEARCH_MARGIN, max(ys) + SEARCH_MARGIN
 
 
+def _turn_extra(first: dict | None, phase, direction: str) -> float:
+    """The turning-round charge of one step of a plan (`Navigator.turn_costs`): `phase` "start" for its first step (a
+    direction key), a direction for its second step (the pair (first, second): a U-turn the plan completes itself),
+    None beyond (build step 3.2)."""
+    if not first or phase is None:
+        return 0.0
+    return float(first.get(direction if phase == "start" else (phase, direction), 0.0))
+
+
+def _next_phase(first: dict | None, phase, direction: str):
+    """(build step 3.2) Where a plan stands in its first steps after one more (only a charged plan keeps track)."""
+    if not first:
+        return None
+    return direction if phase == "start" else None
+
+
 def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]], walls: frozenset | set,
           grass_cost: float, noise: Callable[[tuple[int, int]], float] | None = None,
-          allow_unknown: bool = True, first: dict[str, float] | None = None) -> list[str] | None:
+          allow_unknown: bool = True, first: dict | None = None) -> list[str] | None:
     """The cheapest way (a list of directions) from `start` to any of `goals` over what the AI knows; None if none.
     `noise(tile)` (>= 0) varies the cost per tile; the heuristic (Manhattan, every step costs >= 1) stays admissible.
-    `first`: an extra cost per direction for the FIRST step only (turning back: `Navigator.turn_costs`)."""
+    `first`: the charge for TURNING ROUND on the plan's first steps (`Navigator.turn_costs`): per direction for the
+    first step, and (build step 3.2) per (first, second) direction pair for the second (a U-turn the plan completes
+    itself: the old rule charged it at the next REPLAN, which it no longer is). A search node is a tile and how far
+    into its first steps the plan is (`_next_phase`), so a cheaper way to a tile that turned round is not mistaken for
+    one that did not."""
     if start in goals:
         return []
     low_x, high_x, low_y, high_y = _bounds(memory, start, goals)
@@ -245,16 +309,18 @@ def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]]
     def h(xy: tuple[int, int]) -> int:
         return min(abs(xy[0] - g[0]) + abs(xy[1] - g[1]) for g in goals)
 
-    best: dict[tuple[int, int], float] = {start: 0.0}
-    came: dict[tuple[int, int], tuple[tuple[int, int], str]] = {}
-    queue: list[tuple[float, int, tuple[int, int]]] = [(float(h(start)), 0, start)]
+    origin = (start, "start" if first else None)
+    best: dict = {origin: 0.0}
+    came: dict = {}
+    queue: list = [(float(h(start)), 0, origin)]
     order = 0
     while queue:
-        _, _, here = heapq.heappop(queue)
+        _, _, node = heapq.heappop(queue)
+        here, phase = node
         if here in goals:
             path = []
-            while here != start:
-                here, direction = came[here][0], came[here][1]
+            while node != origin:
+                node, direction = came[node]
                 path.append(direction)
             return path[::-1]
         for direction in ("up", "down", "left", "right"):
@@ -266,28 +332,31 @@ def astar(memory: MapMemory, start: tuple[int, int], goals: set[tuple[int, int]]
                 continue
             if noise is not None:
                 cost += noise(nxt)
-            if first and here == start:
-                cost += first.get(direction, 0.0)
-            total = best[here] + cost
-            if total < best.get(nxt, float("inf")):
-                best[nxt] = total
-                came[nxt] = (here, direction)
+            cost += _turn_extra(first, phase, direction)
+            total = best[node] + cost
+            after = (nxt, _next_phase(first, phase, direction))
+            if total < best.get(after, float("inf")):
+                best[after] = total
+                came[after] = (node, direction)
                 order += 1
-                heapq.heappush(queue, (total + h(nxt), order, nxt))
+                heapq.heappush(queue, (total + h(nxt), order, after))
     return None
 
 
 def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set, grass_cost: float,
-              first: dict[str, float] | None = None) -> dict[tuple[int, int], float]:
+              first: dict | None = None) -> dict[tuple[int, int], float]:
     """The cheapest cost from `start` to every tile it can reach (known or not, within the search bounds). `first`: as
-    `astar`'s (an extra cost per direction for the first step: turning back)."""
+    `astar`'s (the charge for turning round on the first steps)."""
     low_x, high_x, low_y, high_y = _bounds(memory, start)
-    best: dict[tuple[int, int], float] = {start: 0.0}
-    queue: list[tuple[float, tuple[int, int]]] = [(0.0, start)]
+    origin = (start, "start" if first else None)
+    best: dict = {origin: 0.0}
+    queue: list = [(0.0, 0, origin)]
+    order = 0
     while queue:
-        cost, here = heapq.heappop(queue)
-        if cost > best.get(here, float("inf")):
+        cost, _, node = heapq.heappop(queue)
+        if cost > best.get(node, float("inf")):
             continue
+        here, phase = node
         for direction in ("up", "down", "left", "right"):
             step = step_from(memory, here, direction, walls, grass_cost)
             if step is None:
@@ -295,13 +364,35 @@ def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set,
             nxt, extra = step
             if not (low_x <= nxt[0] <= high_x and low_y <= nxt[1] <= high_y):
                 continue
-            if first and here == start:
-                extra += first.get(direction, 0.0)
+            extra += _turn_extra(first, phase, direction)
             total = cost + extra
-            if total < best.get(nxt, float("inf")):
-                best[nxt] = total
-                heapq.heappush(queue, (total, nxt))
-    return best
+            after = (nxt, _next_phase(first, phase, direction))
+            if total < best.get(after, float("inf")):
+                best[after] = total
+                order += 1
+                heapq.heappush(queue, (total, order, after))
+    out: dict[tuple[int, int], float] = {}
+    for (xy, _), value in best.items():
+        if value < out.get(xy, float("inf")):
+            out[xy] = value
+    return out
+
+
+def path_cost(memory: MapMemory, start: tuple[int, int], path: list[str] | None, walls: frozenset | set, grass_cost: float,
+              noise: Callable[[tuple[int, int]], float] | None = None) -> float | None:
+    """(build step 3.2) What walking `path` from `start` costs as far as the AI knows NOW (the costs `astar` plans with, no
+    turn-back charge), or None when the memory says it no longer goes (a wall seen, a side bumped twice, someone
+    standing on it)."""
+    if path is None:
+        return None
+    here, total = start, 0.0
+    for direction in path:
+        step = step_from(memory, here, direction, walls, grass_cost)
+        if step is None:
+            return None
+        here, cost = step
+        total += cost + (noise(here) if noise is not None else 0.0)
+    return total
 
 
 @dataclass(frozen=True)
@@ -322,6 +413,18 @@ class Target:
 
 
 @dataclass
+class Plan:
+    """(build step 3.2) The way the AI decided to walk to one target: the steps left (`path`), from the tile `at` on map
+    `map`; `charged`: the plan was made with the turn-back cost (the decision's own plan, the only one that is)."""
+
+    key: str
+    map: str | None
+    at: tuple[int, int]
+    path: list[str]
+    charged: bool
+
+
+@dataclass
 class Intent:
     """One goal and its bounds. `choose(navigator, look)` names the next place to go (None: nothing left to try);
     `done(look)` says the goal is reached; `reached(target)` is told every target arrived at."""
@@ -332,6 +435,9 @@ class Intent:
     done: Callable[[Observation], bool]
     reached: Callable[[Target], None] | None = None
     novelty_window: int = NOVELTY_WINDOW
+    #: (build step 3.2, the step-4 verifier's finding 4) `carry_on(navigator, look, stale)`: the same decision carried on
+    #: past a target the walk made stale (`brain/explore.py` carry_on), or None: a new decision is made on the move
+    carry_on: Callable[["Navigator", Observation, Target], Target | None] | None = None
 
 
 @dataclass
@@ -466,6 +572,12 @@ class _Stats:
     scenes: int = 0
     decisions: int = 0
     detours: int = 0
+    #: (build step 3.2) plans redone because the memory said the plan no longer went, and fresh plans taken because they
+    #: were clearly better (`Navigator._next_step`)
+    replans: int = 0
+    switches: int = 0
+    #: (build step 3.2, the step-4 verifier's finding 4) stale targets CARRIED ON by the same decision (`Intent.carry_on`)
+    carried: int = 0
 
 
 class Navigator:
@@ -496,8 +608,30 @@ class Navigator:
         #: (build step 3.1) the AI's own last steps that moved the player, as (map, direction): the HEADING a plan's
         #: first step is measured against (`turn_costs`)
         self.recent: list[tuple[str | None, str]] = []
+        #: (build step 3.2, the step-3.1 review's finding 1) the plan being followed, and the key of the target (or detour)
+        #: the current DECISION's plans were made for (None: a decision not yet planned: its first plan pays the turn-back
+        #: cost, every later one of the same decision does not)
+        self.plan: Plan | None = None
+        self.planned_for: str | None = None
+        #: (build step 3.2, its finding 4) True while the intent chooses a target ON THE MOVE (a target dropped as stale):
+        #: the explorer then keeps the heading and picks no whim (`brain/explore.py` pick_on_the_move)
+        self.choosing_on_the_move = False
+        #: (build step 3.2, the step-4 verifier's finding 4) places the current decision has carried on to, and what the last
+        #: carry-on said (`brain/explore.py` carry_on: "refused" why not, or "would": where the step-3.2 rule would have gone)
+        self.carries = 0
+        self.carry_note: dict = {}
         self._noise: dict[str, tuple[float, dict[tuple[int, int], float]]] = {}
         self._seen_changes = len(world.transitions)
+        #: BUILD STEP 4: who plays a battle met on the way. None (the step-3 world brains): a wild battle is FLED
+        #: (`skills/flee.py`) and a trainer's ends the intent. The battle brain sets a callable that plays it with the
+        #: decider (`skills/battle.py` play_battle) and returns the game's outcome.
+        self.battler: Callable[[], Generator[None, None, str]] | None = None
+        #: BUILD STEP 4: the battles the battler played, by outcome; and after how many the intent is DONE (None: never)
+        self.battle_outcomes: list[str] = []
+        self.battle_limit: int | None = None
+        #: BUILD STEP 4: asked after each battle while the limit is set (the battle brain's training): a reason to stop
+        #: training now (the party needs a Pokemon Center: `brain/battle.py` needs_rest), or None
+        self.battle_rest: Callable[[Observation], str | None] | None = None
 
     # ------------------------------------------------------------------ telling
     def tell(self, line: str, extra: dict | None = None) -> None:
@@ -507,7 +641,7 @@ class Navigator:
     def summary(self) -> str:
         s = self.stats
         return (f"{s.steps} steps, {s.bumps} bumps, {s.people} people in the way, {s.exits_used} exits used, "
-                f"{s.battles} battles, {s.scenes} scenes, {s.decisions} decisions ({s.detours} detours); "
+                f"{s.battles} battles, {s.scenes} scenes, {s.decisions} decisions ({s.detours} detours, {s.carried} carried on); "
                 f"{len(self.world.maps)} maps, {self.world.tiles_learned} tiles learned")
 
     # ------------------------------------------------------------------ looking
@@ -533,17 +667,30 @@ class Navigator:
     def why_excluded(self, target: Target) -> str:
         return self.excluded.get(f"{self.world.current}|{target.key}") or "unreachable"
 
-    def turn_costs(self) -> dict[str, float]:
-        """(build step 3.1, finding 2) The extra cost of a plan's FIRST step by its direction: `TURN_BACK_COST` for
-        going straight back the way the last step came, and back the way of the step before when the last step was a
-        turn (a U-turn's third step). Only steps on the current map count (a map change starts afresh)."""
+    def turn_costs(self, cost: float | None = None) -> dict:
+        """(build step 3.1, finding 2) The charge for TURNING ROUND on a way's first steps, `cost` each: a FIRST step
+        straight back the way the last step came, or back the way of the step before when the last step was a turn (a
+        U-turn's third step); and (build step 3.2) a SECOND step that completes a U-turn the way begins itself (keyed by
+        the pair (first, second): a step aside, then back against the heading). Only steps on the current map count (a
+        map change starts afresh). Charged once per DECISION (build step 3.2): `TURN_BACK_COST` in where to go (the
+        explorer's scores), `TURN_ROUND_COST` in the decision's first plan (`_next_step`)."""
         steps = [direction for key, direction in self.recent if key == self.world.current]
         if not steps:
             return {}
-        out = {OPPOSITE[steps[-1]]: TURN_BACK_COST}
+        cost = TURN_BACK_COST if cost is None else cost
+        out: dict = {OPPOSITE[steps[-1]]: cost}
         if len(steps) >= 2 and steps[-2] not in (steps[-1], OPPOSITE[steps[-1]]):
-            out.setdefault(OPPOSITE[steps[-2]], TURN_BACK_COST)
+            out.setdefault(OPPOSITE[steps[-2]], cost)
+        for aside in DIRECTIONS:
+            if aside not in (steps[-1], OPPOSITE[steps[-1]]):
+                out[(aside, OPPOSITE[steps[-1]])] = cost
         return out
+
+    def heading(self) -> str | None:
+        """(build step 3.2) The way the player is walking: the direction of its last step on the current map (None: it
+        has not stepped here yet, or it stopped at a target: arriving clears the heading, `run`)."""
+        steps = [direction for key, direction in self.recent if key == self.world.current]
+        return steps[-1] if steps else None
 
     def noise_for(self, target: Target) -> Callable[[tuple[int, int]], float]:
         """A seeded cost variation per tile, fixed for one target (so replanning every step keeps one way)."""
@@ -573,6 +720,17 @@ class Navigator:
         self.world.settle_intent()
         if result.kind == "moved":
             self.recent = (self.recent + [(key, direction)])[-2:]
+            # (build step 3.2, the step-3.1 review's finding 3: "a bump is never forgotten after walking through that way")
+            # the way into this tile going `direction` let the player through: a bump learned there that way is forgotten
+            entered = [moved(result.frm, direction)]
+            if result.to is not None and result.to not in entered:
+                entered.append(result.to)  # a ledge: the tile jumped and the tile landed on
+            for tile in entered:
+                info = self.world.forget_bump(key, tile, direction)
+                if info is not None:
+                    self.tell(f"the way into {tile} moving {direction}, learned blocked by {info.get('bumps')} bump(s) "
+                              f"(f{info.get('first')}..f{info.get('last')}), let the player through now: forgotten",
+                              {"forgot_bump": list(tile), "direction": direction, "map": key, "info": info})
         return result
 
     def _walk(self, direction: str, why: str, gate: str) -> Generator[None, None, StepResult]:
@@ -715,6 +873,20 @@ class Navigator:
         self.world.settle_intent()  # whatever moves the player now, the AI's own step is over
         if in_battle(look):
             self.stats.battles += 1
+            if self.battler is not None:  # BUILD STEP 4: the battle brain fights it
+                outcome = yield from self.battler()
+                self.battle_outcomes.append(outcome)
+                self.tell(f"battle {len(self.battle_outcomes)}: {outcome}")
+                if outcome == "lost":
+                    return "stuck: the battle was lost (the party fainted: the player whited out)"
+                if outcome.startswith("the battle") or outcome.startswith("stuck"):
+                    return f"stuck: {outcome}"
+                if self.battle_limit is not None and len(self.battle_outcomes) >= self.battle_limit:
+                    return f"done: {len(self.battle_outcomes)} battle(s) played: {self.battle_outcomes}"
+                rest = self.battle_rest(self.hands.look()) if self.battle_limit is not None and self.battle_rest else None
+                if rest is not None:
+                    return f"rest: {rest}: a person stops training here and looks for a Pokemon Center"
+                return None
             outcome = yield from flee(self.hands)
             self.tell(f"battle: {outcome}")
             if outcome == TRAINER_OUT_OF_SCOPE:
@@ -750,23 +922,61 @@ class Navigator:
             return "lost"
         memory, here = found
         if here == target.tile:
+            self.plan = None
             if target.exit is None:
                 return "arrived"
             return (yield from self.use_exit(target, why))
         walls = self.walls(memory, here)
-        path = astar(memory, here, {target.tile}, walls, self.grass_cost, self.noise_for(target), first=self.turn_costs())
-        if path is None:
+        direction = self._next_step(memory, here, target, walls)
+        if direction is None:
             return "unreachable"
-        direction = path[0]
         nxt = moved(here, direction)
+        expected = step_from(memory, here, direction, walls, self.grass_cost)
         fact = memory.fact(nxt)
         seen = "unseen" if fact is None else f"seen {fact.behavior}{' (tall grass)' if fact.grass else ''}"
         gate = (f"walk {direction}: {here} -> {nxt} ({seen}), toward the {target.kind} at {target.tile}; the player free "
                 f"(no script, no text, no menu, no fade)")
         result = yield from self.walk_step(direction, why, gate)
+        plan = self.plan
+        if plan is not None and plan.key == target.key and result.kind == "moved":
+            if expected is not None and result.to == expected[0] and plan.path and plan.path[0] == direction:
+                plan.path.pop(0)
+                plan.at = result.to
+            else:
+                self.plan = None  # the step took the player somewhere the plan did not expect: plan again (uncharged)
         if result.kind == "person":
             yield from self.hands.pad.idle(PERSON_WAIT // 3, f"someone is in the way at {result.detail}: letting them pass")
         return result.kind
+
+    def _next_step(self, memory: MapMemory, here: tuple[int, int], target: Target, walls: frozenset) -> str | None:
+        """(build step 3.2, the step-3.1 review's finding 1) The next press toward `target`: the plan being FOLLOWED while
+        the memory says it still goes from where the player stands, unless a fresh plan is clearly better
+        (`PLAN_SWITCH_MARGIN` cheaper: a shortcut came into view); otherwise a new plan. Only the FIRST plan of a decision
+        (`planned_for` None: a target just chosen, its detour included) pays the turn-back cost: a person who decides on
+        the move where to go may keep going round rather than turn back, but does not decide it again at every step (the
+        old rule did: each step forward made turning back dearer again, and the AI walked laps). None: no way known."""
+        noise = self.noise_for(target)
+        plan, current = self.plan, self.world.current
+        if plan is not None and plan.key == target.key and plan.map == current and plan.at == here and plan.path:
+            left = path_cost(memory, here, plan.path, walls, self.grass_cost, noise)
+            if left is not None:
+                fresh = astar(memory, here, {target.tile}, walls, self.grass_cost, noise)
+                better = path_cost(memory, here, fresh, walls, self.grass_cost, noise)
+                if better is None or better + PLAN_SWITCH_MARGIN >= left:
+                    return plan.path[0]
+                self.stats.switches += 1
+                self.plan = Plan(target.key, current, here, list(fresh), False)
+                return fresh[0]
+            self.stats.replans += 1
+        charged = self.planned_for is None
+        path = astar(memory, here, {target.tile}, walls, self.grass_cost, noise,
+                     first=self.turn_costs(TURN_ROUND_COST) if charged else None)
+        self.planned_for = target.key
+        if not path:
+            self.plan = None
+            return None
+        self.plan = Plan(target.key, current, here, list(path), charged)
+        return path[0]
 
     def run(self, intent: Intent, why: str) -> Generator[None, None, str]:
         """Pursue `intent` until it is done, stuck, or out of frames (module docstring)."""
@@ -777,6 +987,8 @@ class Navigator:
         self.excluded = {}
         self.scene_hits = {}
         self.scene_spots, self.scene_walls, self.scene_said = {}, {}, {}
+        self.plan, self.planned_for = None, None
+        self.carries = 0
         on_the_move = False  # a target just dropped as stale: the next one is chosen without a thinking pause
         self._seen_changes = len(world.transitions)
         uses: dict[str, list[int]] = {}
@@ -807,6 +1019,12 @@ class Navigator:
             for frame, key, xy, why in world.take_reopened():
                 self.tell(f"the door-looking tile {xy} on {self.world.names().get(key, key)}, found closed before, is worth a "
                           f"try again: {why}", {"reopened": list(xy), "map": key})
+            # (build step 3.2, the step-3.1 review's finding 3) a tile whose look changed: what was learned by bumping it
+            # was about the old tile
+            for frame, key, xy, sides in world.take_dropped_bumps():
+                self.tell(f"the tile {xy} on {self.world.names().get(key, key)} looks different now (f{frame}): the bumps "
+                          f"learned there ({', '.join(sides)}) are forgotten", {"dropped_bumps": list(xy), "map": key,
+                                                                               "directions": list(sides)})
             for change in self.new_changes():
                 self.arrived(change, look)
                 if change.how == "warp" and change.tile is not None:
@@ -869,20 +1087,47 @@ class Navigator:
                 # (build step 3.1, finding 2) a target the walk has made worthless is dropped at once, not walked onto
                 memory = world.here()
                 stale = stale_reason(memory, target) if memory is not None else None
-                if stale is not None:
-                    self.tell(f"the {target.kind} at {target.tile} is not worth going to any more: {stale}; choosing again "
-                              f"on the move", {"stale": list(target.tile), "kind": target.kind, "map": world.current})
+                # (build step 3.2, the step-4 verifier's finding 4) the SAME decision carried on past it, when the place it
+                # meant moved on with the view (`Intent.carry_on`); a new decision on the move only when nothing of it is left
+                # there or something clearly better came into view (`carry_note` says which)
+                self.carry_note = {}
+                carried = intent.carry_on(self, look, target) if stale is not None and intent.carry_on is not None else None
+                if carried is not None:
+                    self.stats.carried += 1
+                    self.carries += 1
+                    would = self.carry_note.get("would")
+                    self.tell(f"the {target.kind} at {target.tile} is seen past now ({stale}): the same decision carries on to "
+                              f"the {carried.kind} at {carried.tile}, {abs(carried.tile[0] - target.tile[0]) + abs(carried.tile[1] - target.tile[1])} "
+                              f"tile(s) on (no new choice; carried {self.carries} time(s)"
+                              + (f"; the step-3.2 rule would have gone to {tuple(would)} now)" if would else ")"),
+                              {"carry_on": list(carried.tile), "from": list(target.tile), "kind": carried.kind, "map": world.current,
+                               "stale": stale, "carries": self.carries, "step32_would": would})
+                    target = carried
+                elif stale is not None:
+                    why_not = self.carry_note.get("refused")
+                    self.tell(f"the {target.kind} at {target.tile} is not worth going to any more: {stale}"
+                              f"{'; ' + why_not if why_not else ''}; choosing again on the move",
+                              {"stale": list(target.tile), "kind": target.kind, "map": world.current, "refused": why_not,
+                               "carries": self.carries})
                     target = detour = None
                     on_the_move = True
             if target is None:
-                target = intent.choose(self, look)
+                # (build step 3.2, the step-3.1 review's finding 4) chosen ON THE MOVE: the heading kept, no whim
+                self.choosing_on_the_move = on_the_move
+                try:
+                    target = intent.choose(self, look)
+                finally:
+                    self.choosing_on_the_move = False
                 if target is None:
                     return f"stuck: nothing left to try on {self._map_name()} (no frontier, no exit, no target) ({self.summary()})"
                 if self.is_excluded(target):
                     return (f"stuck: the {target.kind} at {target.tile} cannot be reached ({self.why_excluded(target)}), and "
                             f"nothing else is wanted ({self.summary()})")
+                # (build step 3.2, its finding 1) a new DECISION: its first plan pays the turn-back cost, once
+                self.plan, self.planned_for = None, None
+                self.carries = 0
                 detour = self._detour(target, look)
-                self._decided(target, look, detour)
+                self._decided(target, look, detour, on_the_move)
                 if on_the_move:
                     on_the_move = False  # decided while walking: a person who sees there is nothing there just turns
                 else:
@@ -1015,7 +1260,7 @@ class Navigator:
                         lambda look: bool(reached), lambda target: reached.append(True))
         return (yield from self.run(intent, why))
 
-    def _decided(self, target: Target, look: Observation, detour: Target | None) -> None:
+    def _decided(self, target: Target, look: Observation, detour: Target | None, on_the_move: bool = False) -> None:
         found = self.where(look)
         memory, here = found if found is not None else (None, None)
         fact = memory.fact(target.tile) if memory is not None else None
@@ -1025,7 +1270,9 @@ class Navigator:
                  "score": round(target.score, 2), "known": fact is not None,
                  "seen_from": list(fact.seen_from) if fact is not None else None,
                  "in_window": bool(here is not None and in_window(here, target.tile)),
-                 "detour": list(detour.tile) if detour else None, "personality": self.personality}
+                 "detour": list(detour.tile) if detour else None, "personality": self.personality,
+                 # (build step 3.2) chosen while walking (a target dropped as stale), and the heading then
+                 "on_the_move": bool(on_the_move), "heading": self.heading()}
         self.hands.note("decide", f"target {target.kind} {target.tile}", target.reason, extra)
         self.tell(f"go to the {target.kind} at {target.tile}{' then use it pressing ' + target.direction if target.exit else ''}"
                   f": {target.reason} (score {target.score:.1f}{'; a detour by ' + str(detour.tile) if detour else ''})")

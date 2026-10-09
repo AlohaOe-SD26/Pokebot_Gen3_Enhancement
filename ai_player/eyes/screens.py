@@ -34,6 +34,32 @@ WHAT IS READ FOR EACH (the host reads the bytes; `read_ui` interprets them):
     the other column, Up/Down bit 1 only from the other row). Measured 2026-10-08 on `oldale.ss1` (a wild
     battle): the function is HandleInputChooseAction from the first frame the menu is drawn, the cursor 0 ->
     Right 1 -> Down 3 (RUN), A, "Got away safely!".
+
+BUILD STEP 4 (the AI's own battles), each recognised by what RUNS its input, as the game itself does:
+  * the MOVE menu (FIGHT's 2 x 2 grid of the battler's moves): `gBattlerControllerFuncs[0]` is `HandleInputChooseMove`
+    (`src/battle_controller_player.c`), its cursor `gMoveSelectionCursor[0]` (bit 0 the column, bit 1 the row; a move slot
+    with no move is skipped by the D-pad, `gNumberOfMovesToChoose`);
+  * the battle's YES/NO box (`battle_yes_no`, opens on YES unless said): (a) a BATTLE SCRIPT command polling it, by the
+    opcode at `gBattlescriptCurrInstr` and that command's own state (`src/battle_script_commands.c`: `yesnobox` 0x67 and
+    `trygivecaughtmonnick` 0xF3 take input in gBattleCommunication[0] == 1; `yesnoboxlearnmove` 0x5A and
+    `yesnoboxstoplearningmove` 0x5B in gBattleScripting.learnMoveState == 1), cursor gBattleCommunication[1]: "Use next
+    POKéMON?", "... is about to use ... Will PLAYER change POKéMON?", "Delete a move to make room for ...?", "Stop learning
+    ...?", "Give a nickname to the captured ...?"; (b) the player CONTROLLER's `PlayerHandleYesNoInput` (opens on NO), cursor
+    `gMultiUsePlayerCursor`; (c) the EVOLUTION scene's learn-a-move question (`src/evolution_scene.c` Task_EvolutionScene,
+    tState EVOSTATE_REPLACE_MOVE 22 and tLearnMoveState MVSTATE_HANDLE_YES_NO 4), cursor gBattleCommunication[1];
+    the question is the message on screen (`ScreenState.text`, `gDisplayedStringBattle`);
+  * the level-up STATS BOX waits for any key (`Cmd_drawlvlupbox` 0x6C, drawlvlupboxState 6 and 8: `if (gMain.newKeys != 0)`):
+    a WAIT, not a menu (`BATTLE_SCRIPT_WAITS`): step 3's known limit "a level-up's stats box is not read as a wait";
+  * the summary screen's FORGET-A-MOVE list (`move_forget`, `src/pokemon_summary_screen.c` Task_HandleReplaceMoveInput):
+    the four moves and the new one (`sMonSummaryScreen->summary.moves` @0x84, `newMove` @0x40C4), the cursor
+    `firstMoveIndex` @0x40C6 (Up/Down wrap through all five; A forgets the one under the cursor, the fifth keeps them all);
+  * the party menu's ACTION list after a Pokemon is chosen (`party_action`, `src/party_menu.c`
+    Task_HandleSelectionMenuInput): `sPartyMenuInternal->actions[numActions]` (@0xF, @0x17) named by `PARTY_MENU_ACTIONS`,
+    the cursor in `sMenu`; the party menu takes input only while `Task_HandleChooseMonInput` runs;
+  * the bag's pocket LIST (the open pocket's items in order, then CLOSE BAG) and its USE / CANCEL list (`bag_action`,
+    `src/item_menu.c` Task_ItemContext_SingleRow / MultipleRows: `gBagMenu->contextMenuItemsPtr` @0x820 and
+    `contextMenuNumItems` @0x828, named by `BAG_MENU_ACTIONS`, the cursor in `sMenu`); the list takes input while
+    `Task_BagMenu_HandleInput` runs.
 """
 
 from __future__ import annotations
@@ -44,9 +70,14 @@ from dataclasses import replace
 from ai_player.eyes.observation import MenuView
 
 __all__ = [
+    "BAG_MENU_ACTIONS",
     "BAG_POCKETS",
     "BATTLE_ACTIONS",
+    "BATTLE_SCRIPT_WAITS",
+    "BATTLE_YES_NO_OPCODES",
     "CHARMAP",
+    "CLOSE_BAG",
+    "PARTY_MENU_ACTIONS",
     "GENDER_OPTIONS",
     "KEYBOARD_COLUMNS",
     "KEYBOARD_PAGES",
@@ -221,6 +252,34 @@ BAG_POCKETS = ("items", "poke_balls", "tms_hms", "berries", "key_items")
 #: HandleInputChooseAction: B_ACTION_USE_MOVE 0 top-left, B_ACTION_USE_ITEM 1 top-right, B_ACTION_SWITCH 2
 #: bottom-left, B_ACTION_RUN 3 bottom-right; `src/battle_bg.c` sText_... "FIGHT", "BAG", "POKéMON", "RUN").
 BATTLE_ACTIONS = ("FIGHT", "BAG", "POKéMON", "RUN")
+#: BUILD STEP 4: the battle-script commands that poll the battle's yes/no box, by opcode
+#: (`include/constants/battle_script_commands.h`), and the state in which each takes input (module docstring).
+BATTLE_YES_NO_OPCODES: dict[int, str] = {
+    0x5A: "yesnoboxlearnmove",  # gBattleScripting.learnMoveState == 1
+    0x5B: "yesnoboxstoplearningmove",  # gBattleScripting.learnMoveState == 1
+    0x67: "yesnobox",  # gBattleCommunication[MULTIUSE_STATE] == 1
+    0xF3: "trygivecaughtmonnick",  # gBattleCommunication[MULTIUSE_STATE] == 1
+}
+#: BUILD STEP 4: battle-script commands that wait for a key with no text printer waiting: opcode -> (the states of the
+#: command that wait, what waits). `Cmd_drawlvlupbox` (0x6C): states 6 and 8 wait `if (gMain.newKeys != 0)` (page 1
+#: and page 2 of the level-up stats box).
+BATTLE_SCRIPT_WAITS: dict[int, tuple[tuple[int, ...], str]] = {
+    0x6C: ((6, 8), "battle level-up stats box (any key)"),
+}
+#: BUILD STEP 4: `src/party_menu.c` enum MENU_* -> `sCursorOptions[].text` (`src/strings.c`): the party menu's action
+#: list; MENU_FIELD_MOVES (19) + FIELD_MOVE_* -> the field move's name.
+PARTY_MENU_ACTIONS: tuple[str, ...] = (
+    "SUMMARY", "SWITCH", "CANCEL", "ITEM", "GIVE", "TAKE", "MAIL", "TAKE", "READ", "CANCEL", "SHIFT", "SEND OUT",
+    "ENTER", "NO ENTRY", "STORE", "REGISTER", "TRADE", "TRADE", "TOSS",
+    "CUT", "FLASH", "ROCK SMASH", "STRENGTH", "SURF", "FLY", "DIVE", "WATERFALL", "TELEPORT", "DIG", "SECRET POWER",
+    "MILK DRINK", "SOFTBOILED", "SWEET SCENT",
+)
+#: BUILD STEP 4: `src/item_menu.c` enum ACTION_* -> `sItemMenuActions[].text`: the bag's item action list (in a battle,
+#: `sContextMenuItems_BattleUse` = USE (ACTION_BATTLE_USE), CANCEL).
+BAG_MENU_ACTIONS: tuple[str, ...] = ("USE", "TOSS", "REGISTER", "GIVE", "CANCEL", "USE", "CHECK", "WALK", "DESELECT",
+                                     "CHECK TAG", "CONFIRM", "SHOW", "GIVE", "CONFIRM", "")
+#: The bag list's last row (`gText_CloseBag`).
+CLOSE_BAG = "CLOSE BAG"
 #: Tasks that poll A or B themselves with NO text printer waiting, so the text-printer rule cannot see the
 #: wait: each `func` and what it waits for (`gTasks[].func` names).
 TASK_WAITS: dict[str, str] = {
@@ -230,6 +289,9 @@ TASK_WAITS: dict[str, str] = {
     "Task_ViewClock_HandleInput": "A or B",  # src/wallclock.c (looking at a clock already set)
     "Task_WaitForBatteryDryErrorWindow": "A",  # src/main_menu.c (no RTC battery)
     "Task_WaitForSaveFileErrorWindow": "A",  # src/main_menu.c (a corrupted save)
+    # BUILD STEP 4: after a catch of a species new to the Pokedex, the battle shows its Pokedex page
+    # (`Cmd_displaydexinfo` -> DisplayCaughtMonDexPage) and waits `if (JOY_NEW(A_BUTTON | B_BUTTON))`
+    "Task_HandleCaughtMonPageInput": "A or B",  # src/pokedex.c
 }
 
 
@@ -270,6 +332,14 @@ SCENE_CALLBACKS: dict[str, str] = {
     # nothing the eyes report changing for up to ~80 frames (measured 2026-10-08 on `oldale.ss1`); named, so the
     # hands' stall detector gives a battle the named-scene allowance and the busy reason is never the catch-all.
     "BattleMainCB2": "a battle",  # src/battle_main.c (gMain.callback2 for the whole battle)
+    # BUILD STEP 4 (measured 2026-10-08: the callbacks the battle brain stood still on under the catch-all, a ball thrown
+    # from the bag on `oldale.ss1`): the bag opening, and the battle drawn again after a menu
+    "CB2_Bag": "the bag",  # src/item_menu.c (setting the bag up)
+    "CB2_InitPartyMenu": "the party menu opening",  # src/party_menu.c (measured 2026-10-08: a switch on Route 116)
+    "CB2_SetUpReshowBattleScreenAfterMenu": "the battle coming back",  # src/battle_main.c / src/reshow_battle_screen.c
+    "CB2_SetUpReshowBattleScreenAfterMenu2": "the battle coming back",
+    "CB2_ReshowBattleScreenAfterMenu": "the battle coming back",  # src/reshow_battle_screen.c
+    "ReshowBattleScreenAfterMenu": "the battle coming back",
 }
 #: By a task's name PREFIX (first match), when the callback names no scene:
 SCENE_TASKS: tuple[tuple[str, str], ...] = (
@@ -293,6 +363,7 @@ SCENE_STATES: dict[str, str] = {
     "WHITEOUT": "the whiteout",
     "BAG_MENU": "the bag",
     "PARTY_MENU": "the party menu",
+    "POKEMON_SUMMARY_SCREEN": "the summary screen",  # build step 4 (a move to forget is chosen there)
 }
 
 
@@ -347,7 +418,52 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
     if isinstance(action, dict) and action.get("choosing"):
         cursor = action.get("cursor")
         return MenuView(kind="battle_action", options=BATTLE_ACTIONS,
-                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(BATTLE_ACTIONS) else None)
+                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(BATTLE_ACTIONS) else None,
+                        battler=action.get("battler"))
+    # BUILD STEP 4 (module docstring): the move grid, its TARGET choice (a double battle), the battle's yes/no box (a
+    # battle script's, the controller's or the evolution scene's), the summary screen's forget-a-move list, the party
+    # menu's and the bag's action lists
+    move = raw.get("battle_move")
+    if isinstance(move, dict) and move.get("choosing"):
+        names = tuple(move.get("moves") or ())
+        cursor = move.get("cursor")
+        return MenuView(kind="battle_move", options=names,
+                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(names) else None,
+                        battler=move.get("battler"))
+    target = raw.get("battle_target")
+    if isinstance(target, dict) and target.get("choosing"):
+        # a double battle's target: the cursor is a battler POSITION (0 the player's left, 1 the foe's left, 2 the
+        # player's right, 3 the foe's right), the options the species standing there (`src/battle_controller_player.c`
+        # HandleInputChooseTarget: Left/Up and Right/Down step through sTargetIdentities, skipping the absent)
+        names = tuple(target.get("names") or ())
+        cursor = target.get("cursor")
+        return MenuView(kind="battle_target", options=names,
+                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(names) else None,
+                        battler=target.get("battler"))
+    yes_no = raw.get("battle_yes_no")
+    if isinstance(yes_no, dict) and yes_no.get("open"):
+        cursor = yes_no.get("cursor")
+        return MenuView(kind="battle_yes_no", options=YES_NO, cursor=cursor if cursor in (0, 1) else None,
+                        accepts_input=bool(yes_no.get("accepts", True)))
+    forget = raw.get("move_forget")
+    if isinstance(forget, dict):
+        names = tuple(forget.get("moves") or ())
+        cursor = forget.get("cursor")
+        return MenuView(kind="move_forget", options=names,
+                        cursor=cursor if isinstance(cursor, int) and 0 <= cursor < len(names) else None,
+                        accepts_input=bool(forget.get("accepts", True)))
+    party_action = raw.get("party_action")
+    if isinstance(party_action, dict) and isinstance(raw.get("menu"), (bytes, bytearray)):
+        names = tuple(PARTY_MENU_ACTIONS[a] if 0 <= a < len(PARTY_MENU_ACTIONS) else f"action{a}"
+                      for a in party_action.get("actions") or ())
+        cursor = _s8(raw["menu"][2])
+        return MenuView(kind="party_action", options=names, cursor=cursor if 0 <= cursor < len(names) else None)
+    bag_action = raw.get("bag_action")
+    if isinstance(bag_action, dict) and isinstance(raw.get("menu"), (bytes, bytearray)):
+        names = tuple(BAG_MENU_ACTIONS[a] if 0 <= a < len(BAG_MENU_ACTIONS) else f"action{a}"
+                      for a in bag_action.get("actions") or ())
+        cursor = _s8(raw["menu"][2])
+        return MenuView(kind="bag_action", options=names, cursor=cursor if 0 <= cursor < len(names) else None)
     if game_state == "NAMING_SCREEN" or "Task_NamingScreen" in tasks:
         naming = raw.get("naming")
         if isinstance(naming, dict):
@@ -361,11 +477,22 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
         if isinstance(bag, dict):
             pocket = bag["pocket"]
             name = BAG_POCKETS[pocket] if pocket < len(BAG_POCKETS) else f"pocket{pocket}"
-            return MenuView(kind="bag", pocket=name, cursor=bag["cursor"] + bag["scroll"])
+            # BUILD STEP 4: the open pocket's list as shown (its items, then CLOSE BAG), and input only while the list's
+            # task runs (a pocket switching, a message or the action list take it away). Without the item names (an
+            # earlier reader), as before.
+            items = bag.get("items")
+            options = tuple(items) + (CLOSE_BAG,) if isinstance(items, (list, tuple)) else ()
+            accepts = "Task_BagMenu_HandleInput" in tasks if "items" in bag else True
+            return MenuView(kind="bag", pocket=name, cursor=bag["cursor"] + bag["scroll"], options=options,
+                            accepts_input=accepts)
         return MenuView(kind="bag", accepts_input=False)
     if game_state == "PARTY_MENU":
         slot = raw.get("party_slot")
-        return MenuView(kind="party", cursor=slot if isinstance(slot, int) else None)
+        # BUILD STEP 4: the party list takes input only while `Task_HandleChooseMonInput` runs (`src/party_menu.c`); a
+        # message ("Choose a POKéMON.", "... is already in battle!") or the action list take it away. Measured only for
+        # the battle's party menu; a reader without the task list sees it as before (taking input).
+        accepts = "Task_HandleChooseMonInput" in tasks if raw.get("party_tasks_known") else True
+        return MenuView(kind="party", cursor=slot if isinstance(slot, int) else None, accepts_input=accepts)
     menu = raw.get("menu")  # sMenu, 12 bytes
     for task, kind in sorted(UI_TASKS.items()):
         if task not in tasks:

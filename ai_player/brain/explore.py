@@ -20,7 +20,9 @@ The weights are TASTE, not a plan (`WEIGHTS`): Story favours exits toward unexpl
 Trainer grass and people. NEVER IDLE: when nothing is left the explorer WANDERS to the least-visited seen tile (a
 person looks around for what they missed); only when even that is gone does it return None (the intent is stuck).
 A candidate that failed in this intent (`Navigator.excluded`) is not chosen again. Every candidate is a tile the AI has
-SEEN, the stand tile of an exit included (build step 3.1, finding 8: `_approaches`).
+SEEN, the stand tile of an exit included (build step 3.1, finding 8: `_approaches`). (The step-4 verifier's round) A way
+BACK to a map seen all of is no option while another way out leads somewhere new or somewhere with something left to see
+(`not_back_to_seen_all`: a person who has seen all of a house leaves by the front door rather than go upstairs again).
 
 A WHIM AMONG EQUALS (`pick`, `CHOICE_MARGIN`): the next target is not always the top score. Every candidate within
 `CHOICE_MARGIN` points of the best (a point is one tile of walking) is about as good, and a person picks among such
@@ -28,27 +30,60 @@ places on a whim: the run's CHOICES stream draws one, the better ones more often
 margin's floor). WHY (the step-3 verifier, 2026-10-08): with only the score's small jitter, seeds 3 and 7 of the TOWN
 walk chose the SAME seven targets in the same order; their paths differed only by the per-tile path noise. A clear
 winner is still chosen every time: a known route to the goal is worth 100 points, far past any frontier (at most ~31).
+
+NOT ON THE MOVE (build step 3.2, the step-3.1 review's MEDIUM finding 4: "the AI changes target almost every step: 22 of
+23 dropped as stale", each one re-picked at random among equals). A whim is a decision made STANDING (at the start, at
+a target reached). A target chosen WHILE WALKING (the last one dropped as stale: `Navigator.choosing_on_the_move`) keeps
+the HEADING (`pick_on_the_move`): the best place AHEAD of the player (in the half of the map it is walking into), unless
+another place beats it by more than `CHOICE_MARGIN`; no draw, no jitter (`candidates(jitter=False)`): a person who sees
+there is nothing over there walks on toward the next thing ahead, not toward a coin toss.
+
+ONE DECISION, NOT ONE PER STEP (build step 3.2, the step-4 verifier: "finding 4 ... is NOT fixed": 22 of 23 targets still
+dropped as stale, SCENEX "decisions on the move 35 of 47", 28 of its 47 walks ONE step, the journeys 20 steps beyond the
+shortest way). A frontier tile at the screen's edge is seen past as soon as the player steps toward it: the screen
+scrolls, the tile beside it comes into view, and the target is "stale". Re-deciding there, even with the heading kept,
+made a decision of every step. A person who decides "let us see what is up there" keeps walking up while the view opens;
+the place they meant MOVES ON with the view. So a FRONTIER (or GRASS) target made stale by the walk is CARRIED ON
+(`carry_on`): the decision stays the same, and its target becomes the place of the same kind that took the stale one's
+place: the nearest to it within `CARRY_RADIUS` tiles, on its side of the player (never behind: `beyond`) and further the
+way the unseen lay beside it (`opened`, `further`: a frontier that slides ALONG the screen's edge is another place); no
+draw, no new decision, no thinking pause, and its plan stays uncharged (`Navigator.planned_for`). A new place is chosen,
+on the move with the heading (`pick_on_the_move`), only when nothing of it is left there (the region is seen: a wall, the
+map's end, a room's last corner) or when another place is worth more, from where the player now stands, than the carried one by more than
+`CARRY_SWITCH_MARGIN` (one tile of walking: a person changes their mind for something better, not for nothing; with no
+such margin at all, MEASURED, the decision held while the walk passed the road out of town). Every carry-on says where
+the step-3.2 rule would have gone instead, when that is another place (`Navigator.carry_note`). Proven in
+`gates/test_world.py` ChurnTests (FAULTS: no carry-on, the step-3.2 rule; no margin), mutants W79-W81, and live by
+`gates/live_step3.py` CHURN bounds with the revert arm SCENEXC and the sweep's CHURN revert (`gates/rate_step3.py`).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ai_player.brain.navigator import Intent, Navigator, Target, distances, exit_press
 from ai_player.eyes.observation import Observation
 from ai_player.world.memory import DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, moved, road_side
 
 __all__ = [
+    "CARRY_RADIUS",
     "CHOICE_MARGIN",
     "VALUE_TILES",
     "WEIGHTS",
     "Weights",
+    "ahead",
+    "beyond",
     "candidates",
+    "carry_on",
     "choose_target",
+    "further",
+    "opened",
     "explore_intent",
     "goto_intent",
+    "not_back_to_seen_all",
     "pick",
+    "pick_on_the_move",
     "route_to",
     "weights_for",
 ]
@@ -57,6 +92,21 @@ __all__ = [
 VALUE_TILES = 10.0
 #: Candidates scored within this many points (tiles of walking) of the best are about as good: one is picked on a whim.
 CHOICE_MARGIN = 4.0
+#: (build step 3.2, the step-4 verifier's finding 4) How far (tiles, Manhattan) the place that took a stale target's place
+#: may lie from it and still be the SAME place the decision was about (`carry_on`). The view moves one row or column a step,
+#: so the frontier past a stale tile is usually 1 away; 3 lets it slide round a corner of what came into view.
+CARRY_RADIUS = 3
+#: The kinds of target a decision carries on when the walk made them stale (a frontier seen past, grass walked on).
+CARRIED_KINDS = ("frontier", "grass")
+#: (build step 3.2, the step-4 verifier's finding 4) A decision is carried on unless another place, from where the player
+#: now stands, beats the carried place by more than this many points (one tile of walking): then a new decision is made, on
+#: the move. MEASURED
+#: 2026-10-09 (development sweeps, in-process, the clock pinned; TOWN, ROUTE, SCENE-EXPLORE, TOWN-Catcher, TOWN-Trainer):
+#: at 0 (switch for anything better) the walks match the step-3.2 rule's (20 seeds: 5,923 steps against 5,948); at 1,
+#: the same cost with fewer decisions; at 2 the Catcher and Trainer walks grew (709 / 632 and 1,253 / 1,042 steps); at
+#: `CHOICE_MARGIN` (4), or carried on with no margin at all, the TOWN walk grew a third: it swept a whole street past the
+#: road north (a decision held where a person would take the way out it walks past).
+CARRY_SWITCH_MARGIN = 1.0
 
 
 @dataclass(frozen=True)
@@ -88,6 +138,8 @@ PROMISE_FULL = 10
 #: back the way the AI just came in (dropped while any new place is reachable: `candidates`).
 ONWARD_KINDS = ("frontier", "road", "door", "route", "grass")
 JUST_COME_FROM = "it leads straight back to"
+#: (the step-4 verifier's round) the reason's end that marks a way back to a map with nothing left to see (`candidates`)
+SEEN_ALL = "seen all of"
 
 
 def weights_for(personality: str) -> Weights:
@@ -134,8 +186,10 @@ def _approaches(memory: MapMemory, exit_tile: tuple[int, int], reach: dict) -> l
     return sorted(out, key=lambda item: item[2])
 
 
-def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callable[[MapMemory | None, str], bool] | None = None) -> list[Target]:
-    """Every place worth going on this map, scored (module docstring)."""
+def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callable[[MapMemory | None, str], bool] | None = None,
+               jitter_on: bool = True) -> list[Target]:
+    """Every place worth going on this map, scored (module docstring). `jitter_on` False (build step 3.2: a choice ON THE
+    MOVE): no seeded jitter, the scores are what the places are worth."""
     world = nav.world
     found = nav.where(look)
     if found is None:
@@ -154,7 +208,7 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         # the pull AWAY from where it came in is a traveller's: toward new ground (a frontier, a road), never back
         onward = kind in ("frontier", "road", "grass")
         away = weights.away * min(abs(tile[0] - entry[0]) + abs(tile[1] - entry[1]), AWAY_CAP) if onward else 0.0
-        score = VALUE_TILES * value - walk + away + jitter.uniform(0.0, 1.5)
+        score = VALUE_TILES * value - walk + away + (jitter.uniform(0.0, 1.5) if jitter_on else 0.0)
         target = Target(kind, tile, reason, score, exit_tile, direction)
         if not nav.is_excluded(target):
             out.append(target)
@@ -179,7 +233,7 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         if left:
             bonus = BACK_PROMISE * min(1.0, left / PROMISE_FULL)
             return weights.back + bonus, f"it leads back to {name}, where {left} thing(s) are left to see"
-        return weights.back, f"it leads back to {name}, seen all of"
+        return weights.back, f"it leads back to {name}, {SEEN_ALL}"
 
     # exits: warps and doors seen on this map
     for exit_tile in memory.exits():
@@ -230,7 +284,22 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     # path rather than back into the house they have just seen all of.
     if any(t.kind in ONWARD_KINDS for t in out):
         out = [t for t in out if not (t.kind == "back" and JUST_COME_FROM in t.reason)]
-    return out
+    # (the step-4 verifier's round) and a way back to a map SEEN ALL OF is no option while a way out leads somewhere with
+    # something left to see, or somewhere new: measured 2026-10-09 (the sweep's CROP seed 1, and the stair PING-PONGS of
+    # SCENE-EXPLORE seeds 5 and 15 of the 20-seed development sweep), once a doormat counts as one way out the stairs up to a
+    # floor seen all of, one step away, scored above the doormat to the town with things left to see, four steps away, and
+    # the AI went up and down until the ping-pong rule ended the intent. A person who has seen all of a house leaves it by
+    # the front door rather than go upstairs again.
+    return not_back_to_seen_all(out)
+
+
+def not_back_to_seen_all(found: list[Target]) -> list[Target]:
+    """(the step-4 verifier's round) `found` without the ways back to a map SEEN ALL OF, when one of them leads somewhere
+    new or somewhere with something left to see (`candidates`' last rule)."""
+    if any(t.kind in ONWARD_KINDS or (t.kind == "back" and SEEN_ALL not in t.reason and JUST_COME_FROM not in t.reason)
+           for t in found):
+        return [t for t in found if not (t.kind == "back" and SEEN_ALL in t.reason)]
+    return found
 
 
 def pick(found: list[Target], rng) -> Target:
@@ -242,14 +311,118 @@ def pick(found: list[Target], rng) -> Target:
     return rng.choices(near, weights=[1.0 + target.score - floor for target in near])[0]
 
 
+def ahead(here: tuple[int, int], tile: tuple[int, int], heading: str | None) -> bool:
+    """(build step 3.2) Is `tile` AHEAD of a player on `here` walking `heading`: in the half of the map it walks into
+    (strictly: a place straight beside the player is not ahead)? False with no heading."""
+    if heading not in DIRECTIONS:
+        return False
+    dx, dy = DIRECTIONS[heading]
+    return (tile[0] - here[0]) * dx + (tile[1] - here[1]) * dy > 0
+
+
+def pick_on_the_move(found: list[Target], here: tuple[int, int], heading: str | None) -> Target:
+    """(build step 3.2, the step-3.1 review's finding 4) The choice made WHILE WALKING (module docstring): the best place
+    AHEAD (`ahead`), unless the best of all beats it by more than `CHOICE_MARGIN` (then that one: it is clearly better);
+    with nothing ahead, the best of all. No draw: the same places give the same choice, whatever the seed."""
+    order = sorted(found, key=lambda t: (-t.score, t.kind, t.tile))
+    best = order[0]
+    forward = [t for t in order if ahead(here, t.tile, heading)]
+    if not forward:
+        return best
+    keep = forward[0]
+    return best if best.score - keep.score > CHOICE_MARGIN else keep
+
+
+def beyond(here: tuple[int, int], old: tuple[int, int], tile: tuple[int, int]) -> bool:
+    """(build step 3.2, the step-4 verifier's finding 4) Is `tile` on the stale target `old`'s side of a player on `here`:
+    the way to it does not turn back from the way to `old` (their directions from `here` make an acute angle)? A tile
+    the player stands on is not."""
+    return (tile[0] - here[0]) * (old[0] - here[0]) + (tile[1] - here[1]) * (old[1] - here[1]) > 0
+
+
+def opened(memory: MapMemory, tile: tuple[int, int], heading: str | None = None) -> list[str]:
+    """(build step 3.2, the step-4 verifier's finding 4) Which way the unseen lay beside a frontier tile the walk has just
+    seen past: the side(s) whose tile was seen LAST (the memory's own first-seen frames). A tile that never had an unseen
+    side (grass walked on) answers the walk's heading."""
+    frames = {d: memory.tiles[moved(tile, d)].seen_frame for d in DIRECTIONS if moved(tile, d) in memory.tiles}
+    if not frames or len(frames) < len(DIRECTIONS):
+        return [heading] if heading in DIRECTIONS else []
+    last = max(frames.values())
+    return [d for d, frame in frames.items() if frame == last]
+
+
+def further(old: tuple[int, int], tile: tuple[int, int], sides: list[str]) -> bool:
+    """(build step 3.2) Does `tile` lie at least one tile further than `old` toward one of `sides` (the way the unseen lay,
+    the way the decision was going) and at most one tile aside of that line? A frontier that slides ALONG the screen's
+    edge is another place, not this one (measured 2026-10-09: with two tiles aside allowed, a decision on Route 101 slid
+    from (17, 4) to (15, 3) and its walk bent back 4 steps)."""
+    for d in sides:
+        dx, dy = DIRECTIONS[d]
+        along = (tile[0] - old[0]) * dx + (tile[1] - old[1]) * dy
+        aside = abs((tile[0] - old[0]) * dy - (tile[1] - old[1]) * dx)
+        if along >= 1 and aside <= 1:
+            return True
+    return False
+
+
+def carry_on(nav: Navigator, look: Observation, weights: Weights, old: Target,
+             goal: Callable[[MapMemory | None, str], bool] | None = None) -> Target | None:
+    """(build step 3.2, the step-4 verifier's finding 4) The SAME decision, carried on (module docstring "ONE DECISION,
+    NOT ONE PER STEP"): `old`, a frontier or grass target the walk has made stale, is replaced by the place of the same kind
+    nearest to it (within `CARRY_RADIUS` tiles, `beyond` the player: on its side, and `further` the way the unseen lay
+    beside it: `opened`), the further along the way to it first, then the better scored. None (a new decision is then
+    made on the move) when nothing of the kind is left there, or when another place is worth more, from where the player
+    now stands (a place that came into view, or one the walk brought nearer), than the carried one by more than
+    `CARRY_SWITCH_MARGIN` (a person changes their mind for something clearly better, not for a
+    tile's worth). No draw: the same places give the same answer whatever the seed. Its reason names the place it carries
+    on from. It leaves a note on the navigator (`Navigator.carry_note`): "refused" (why not) or "would" (the place the
+    step-3.2 rule, a new choice on the move with the heading, would have gone to now, when that is another place: the
+    counterfactual the live graders count)."""
+    if old.kind not in CARRIED_KINDS:
+        return None
+    located = nav.where(look)
+    if located is None:
+        return None
+    memory, here = located
+    note = getattr(nav, "carry_note", None)
+    note = note if isinstance(note, dict) else {}
+    sides = opened(memory, old.tile, nav.heading()) if old.kind == "frontier" else ([nav.heading()] if nav.heading() else [])
+    found = candidates(nav, look, weights, goal, jitter_on=False)
+    same = [t for t in found
+            if t.kind == old.kind and t.tile != here and beyond(here, old.tile, t.tile) and further(old.tile, t.tile, sides)
+            and abs(t.tile[0] - old.tile[0]) + abs(t.tile[1] - old.tile[1]) <= CARRY_RADIUS]
+    if not same:
+        note["refused"] = f"nothing of it left within {CARRY_RADIUS} tiles beyond it {sides}"
+        return None
+
+    def order(t: Target):
+        near = abs(t.tile[0] - old.tile[0]) + abs(t.tile[1] - old.tile[1])
+        along = (t.tile[0] - here[0]) * (old.tile[0] - here[0]) + (t.tile[1] - here[1]) * (old.tile[1] - here[1])
+        return near, -along, -t.score, t.tile
+
+    nxt = min(same, key=order)
+    best = min(found, key=lambda t: (-t.score, t.kind, t.tile))
+    if best.score - nxt.score > CARRY_SWITCH_MARGIN:
+        note["refused"] = (f"the {best.kind} at {best.tile} is worth {best.score:.1f} from here, clearly more than the "
+                           f"{nxt.kind} at {nxt.tile} it would carry on to ({nxt.score:.1f})")
+        return None
+    step32 = pick_on_the_move(found, here, nav.heading())
+    if step32.tile != nxt.tile:
+        note["would"] = list(step32.tile)
+    return replace(nxt, reason=f"carried on from {old.tile}: {nxt.reason}")
+
+
 def choose_target(nav: Navigator, look: Observation, weights: Weights,
                   goal: Callable[[MapMemory | None, str], bool] | None = None) -> Target | None:
-    """A candidate among the best (`pick`); when there is none, a WANDER to the least-visited seen tile (never idle);
-    None when even that is gone."""
-    found = candidates(nav, look, weights, goal)
-    if found:
-        return pick(found, nav.rng)
+    """A candidate among the best (`pick`), or ON THE MOVE the one that keeps the heading (`pick_on_the_move`, build step
+    3.2); when there is none, a WANDER to the least-visited seen tile (never idle); None when even that is gone."""
+    moving = nav.choosing_on_the_move
     located = nav.where(look)
+    found = candidates(nav, look, weights, goal, jitter_on=not moving)
+    if found:
+        if moving and located is not None:
+            return pick_on_the_move(found, located[1], nav.heading())
+        return pick(found, nav.rng)
     if located is None:
         return None
     memory, here = located
@@ -260,7 +433,9 @@ def choose_target(nav: Navigator, look: Observation, weights: Weights,
         return None
     least = min(memory.visits.get(xy, 0) for xy in spots)
     spots = [xy for xy in spots if memory.visits.get(xy, 0) == least]
-    tile = min(spots, key=lambda xy: (reach[xy] - nav.rng.uniform(0.0, 3.0), xy))
+    # (build step 3.2) on the move no whim here either: the nearest, ahead first
+    tile = min(spots, key=lambda xy: ((reach[xy] - (2.0 if ahead(here, xy, nav.heading()) else 0.0), xy) if moving
+                                      else (reach[xy] - nav.rng.uniform(0.0, 3.0), xy)))
     return Target("wander", tile, "nothing new in sight: looking around for anything missed", WANDER_VALUE * VALUE_TILES - reach[tile])
 
 
@@ -277,6 +452,9 @@ def explore_intent(goal_map: str | None, personality: str, budget: int,
     def choose(nav: Navigator, look: Observation) -> Target | None:
         return choose_target(nav, look, weights, goal if goal_map else None)
 
+    def carry(nav: Navigator, look: Observation, old: Target) -> Target | None:
+        return carry_on(nav, look, weights, old, goal if goal_map else None)
+
     def done(look: Observation) -> bool:
         if finished is not None:
             return finished(look)
@@ -289,7 +467,7 @@ def explore_intent(goal_map: str | None, personality: str, budget: int,
         return memory == goal_map
 
     name = f"explore to {goal_map}" if goal_map else "explore"
-    return Intent(name, budget, choose, done)
+    return Intent(name, budget, choose, done, carry_on=carry)
 
 
 def goto_intent(tiles: list[tuple[int, int]], budget: int) -> Intent:
