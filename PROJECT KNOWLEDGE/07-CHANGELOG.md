@@ -37927,3 +37927,30 @@ bought balls only at fixed story points.
   - The churn fix mostly relabels decisions, and TOWN-Trainer's journey share of 0.45 sits against a loose 0.5 bound; CROP laps are unbounded.
   - The TYPE proof rests on one matchup's A/B.
 - **Process change (coordinator):** each workflow fix round re-ran EVERY suite of every step, about 10+ hours per step. From step 4.1, fix rounds re-run only the affected suites, and the full regression runs once, at the end, on the final tree.
+
+## 2026-10-09 — AI player step 4.1: battle fixes (SHIFT on the INCOMING foe, refused moves, live heal/switch/run, no hidden information, less robotic, no overkill); the review's last 5 bugs fixed by the coordinator
+
+- **Workflow (fix, targeted verifier, 2 refix rounds, ONE full regression, review):**
+  - The SHIFT question is decided on the INCOMING species read from its words, and the chosen PID is carried into the party menu (SHIFTC/SHIFTCX: Taillow 10/10 against 1/10).
+  - A refused move is out of the values.
+  - HEAL, SWITCH and RUN are proven live by game reads.
+  - Hidden information is gone: the ball by visible cues; a rough damage sense corrected by seen hits, and a foe guessed as a typical Pokemon of its level instead of from base stats; foe types from the species.
+  - Openers and Sing for a catch.
+  - Overkill capped.
+  - The navigation walk is bounded per plan.
+  - An evidence archive policy (zips per never-committed tree).
+  - The full regression on tree `d81c4a52572b6e37` passed every suite of every step (live_step3 41/41 with 237/237 pre-registered numbers, live_step4 25/25, rate_step4 36/36, revert_step3 93/94, revert_step4 62/62, units 452 OK).
+- **The verifier's remaining failure and the review's 5 findings, fixed by the coordinator:**
+  1. A refused move during a catch made the AI GIVE UP the battle (the re-decision was a ball, while the move grid expected a move): it now presses B back to the action menu and carries the decision out, and the re-decision does not count a second turn (`decide(redecide=True)`).
+  2. A BERRY was looked for in the items pocket, so healing with berries always failed (`skills/battle.py pocket_for`).
+  3. A move "finished" the foe on its ROUNDED share (a Tackle doing 0.19 against a 25 % bar), and now only on its LOW estimate.
+  4. A refused move was forgotten at every action menu; it is now remembered while the same Pokemon stays in, and a switch forgets it.
+  5. The incoming foe is read from the LAST "about to use".
+  - Tests: `test_battle.py` 107 OK (new `ReviewFixTests`; `UnusableTests` updated to the new rule; one seen-hit test moved off the exact boundary the low-estimate rule makes uncertain).
+  - `revert_step4.py` 62/62 caught; `rate_step4.py` 36/36 (419 runs); `check_purity` PASS.
+  - `live_step4.py`: 22/25 held as registered. SHIFT, SHIFTX and SWITCH still WON and sent the same Pokemon, but their frames and presses moved, because fix 3 changed their move choices (SWITCH: Water Gun for Mud-slap). Those three numbers are RE-REGISTERED AFTER OBSERVATION, marked as such in `live_step4.py`, and re-run as a replay: 10/10 held. The full suite was re-run on the final tree.
+- **Open (none blocking):**
+  - paralysis-for-a-catch and Disable/Taunt are unit-tested only (no save has them);
+  - "clearly the best" is still about 74% of fights;
+  - re-targeting on 5 of 6 navigation plans is measured, not reduced;
+  - CROP's lap bound was raised to the data (25 -> 42).

@@ -81,11 +81,74 @@ game reads no clock), its frames and presses from a development run of the same 
 pinned (`hands_harness.py --game-clock`), written BEFORE the graded runs. The roaming arms (WILD, CATCH, CHALLENGE) walk the
 overworld, where the game reads the HOST's clock (the step-3.1 finding): their claims are registered, not their frames.
 
+STEP 4.1 (2026-10-09, the step-4 verifier's and adversarial review's findings): seven new arms, each from a fixture PLAYED
+by button presses (`gates/make_step41_fixtures.py`) and each REPLAYED for the game's own record:
+  SHIFT      `rival_rustboro.ss1` (Rustboro's rival: Wingull L13 then Treecko L15 against the Marshtomp put first), Trainer,
+             seed 1 (a YES seed, CHOSEN and said so: the sweep's SHIFT plan says how often); CLAIM: "about to use TREECKO.
+             Will ... change POKéMON?" judged about the TREECKO its words name (x4 on the Water/Ground Marshtomp; the battle
+             view still holds the fainted Wingull), YES, the party menu gets the Taillow chosen THERE, and BY THE GAME the
+             Taillow came onto position 0 by its PID before the Treecko came out; won, MAY's flag (600) set.
+  SHIFTX     FAULT of SHIFT (`AI_PLAYER_FAULT_SHIFT_FAINTED=1`, step 4's answer): judged about the fainted Wingull, NO; BY
+             THE GAME nobody came onto position 0 between the Wingull's faint and the Treecko's send-out.
+  HEAL       `heal_r103.ss1` (Route 103's rival after the AI bought two Potions at Oldale's mart), Story, seed 1; CLAIM: a
+             Potion used with the Mudkip low (the told decision), one Potion fewer BY THE TRUTH, the Mudkip's HP up at
+             position 0 BY THE GAME (its max HP unchanged: not a level-up), won, May's flag (529) set. The heal path's
+             DEVELOPMENT RUN found a bug no unit test had: after the Potion the party menu's message waited for A and the
+             skill gave up ("the Potion could not be given"); fixed (`skills/battle.py` _give_item).
+  SWITCH     `switch_joey.ss1` (the Poochyena put first, Joey's Machop: Fighting x2 on Dark), Story, seed 1; CLAIM: the
+             decider SWITCHED, and BY THE GAME the Mudkip came onto position 0 by its PID with the Poochyena still standing;
+             won, Joey's flag set.
+  RUN        `run_r116.ss1` (a wild battle begun with the Poochyena at 29 % while training), Story, seed 1; CLAIM: the
+             decider RAN, gBattleOutcome 4 BY THE TRUTH, and the Poochyena never fell BY THE GAME. (Step 4.1 round 2, the
+             verifier: "the gBattleOutcome check never records the value before the run ... The fixture's start state
+             already reads 4") and BY THE GAME every frame: gBattleOutcome on the replay's first frame, already 0 (the
+             battle's own clear, `BattleStartClearSetData`, runs in that frame), then 4, the last; the stale 4 is what the
+             TRUTH reads in the fixture before the run (round 3: this line called the first recorded value "the fixture's
+             old 4").
+  REFUSED    (step 4.1 round 2, the verifier's weak proof: "Finding 2 has no live arm (no fixture has a Disabled move)")
+             `grind_stall_ppzero.ss1` (a story-bot save in a wild battle: Wailord L61 against a Zubat L36, its Surf, Water
+             Spout and Waterfall at 0 PP, Dive at 10), Story, seed 1, the decider made BLIND TO PP
+             (`AI_PLAYER_FAULT_IGNORE_PP=1`): it chooses moves with none, and the GAME refuses each through the code that
+             refuses a Disabled move (`src/battle_util.c` TrySetCantSelectMoveBattleScript: Disable, Torment, Taunt,
+             Imprison, a Choice item, then `pp == 0`); CLAIM: the grid came back for at least two different moves in one
+             turn, each with 0 PP BY THE TRUTH, and BY THE GAME the moves it TOOK (gChosenMoveByBattler) all have PP; won.
+             REFUSEDX: `_FORGET_UNUSABLE` too (step 4): the grid back again and again, no move taken until a bound (the
+             40,000-frame budget, before the skill's 150-menu bound).
+  CATCHS     (its weak proof: "The catch's sleep or paralysis move is never exercised live") `sing_r117.ss1`
+             (`make_step41_fixtures.py --only sing`: strength_boxfirst_mauville.ss1, a Skitty L17 with SING put first by
+             START-menu presses, the AI's explore brain to Route 117, its battle brain roaming; the first frame of a wild
+             battle against an Oddish the Pokedex has not got), Catcher, seed 1; CLAIM: Sing chosen, BY THE GAME taken
+             and the Oddish ASLEEP (gBattleMons[1].status1) before the catch, caught by the truth (one new PID, the
+             player's OT). CATCHSX: `AI_PLAYER_FAULT_NO_CATCH_STATUS=1` (step 4): no Sing, never asleep.
+  OVERKILL   `ch13_r119_wedge.ss1` (the recorded recoil case: every damaging move finishes the 15-HP Poochyena), Story,
+             seed 1; CLAIM: the told values say the finishers are worth as the strongest, and BY THE GAME the first move is
+             not Take Down. OVERKILLX: FAULT (`AI_PLAYER_FAULT_OVERKILL=1`, step 4's valuation): Take Down.
+Every in-battle arm's frames and presses were RE-REGISTERED from development runs of the step-4.1 code (`PREDICTED`).
+
 THE STEP-4 VERIFIER'S SECOND ROUND (2026-10-09): no arm and no number changes. Two things moved under them: each told fight
 line now ends with the battler position and what the type chart changed in the choice (`brain/battle.py` TypeSay: the
 sweep's TYPE-DECISIONS reads it; TYPE's and TYPEX's checks read the move and the values before it, unchanged), and the
 explorer that WILD, CATCH and CHALLENGE walk with carries its decisions on (`brain/explore.py` carry_on, the doormat, the
 way back to a map seen all of): those three register claims, not trajectories, as before.
+
+STEP 4.1 ROUND 2 (2026-10-09): the arms REFUSED, REFUSEDX, CATCHS and CATCHSX are new (their numbers from a development pass
+of this round's code, moved out of the evidence folder before the graded run); RUN's check reads gBattleOutcome every frame;
+the replay's recorder (`hands_harness.py` BattleRecorder) also records gBattleOutcome and every battler's status1, and the
+truth each move's PP (`party_pp`). The walk under WILD, CATCH and CHALLENGE now waits for someone in its way and bends its
+detours (`brain/navigator.py` STEP 4.1 ROUND 2): those three register claims, not trajectories.
+
+STEP 4.1 ROUND 3 (2026-10-09, the step-4.1 verifier's second round):
+  SHIFTC     (its weak proof: "Finding 1, the PID carried to the party menu, cannot fail live ... the by-level fallback ...
+             also picks the L17 Taillow") `rival_rustboro_hurt.ss1` (`make_step41_fixtures.py --only rival_hurt`: the
+             Taillow hurt by the AI's own battles on Route 116 to 36/45, so a party menu that ranks AGAIN by level puts the
+             Poochyena, 42/42 L16, above it), Trainer, seed 2 (a YES seed, CHOSEN and said so); CLAIM: YES about the
+             TREECKO, "who goes in: Taillow ... decided at the question", and BY THE GAME the Taillow (a8dbcf1b) came onto
+             position 0 before the Treecko. SHIFTCX: `AI_PLAYER_FAULT_FORGET_SHIFT=1` (decided at the question, NOT carried):
+             the same YES, the party menu by level, and BY THE GAME the POOCHYENA (2b19ca91) came in: the carry's A/B.
+  The damage estimate no longer reads the foe's species' base stats (`brain/battle.py` STEP 4.1 ROUND 3: a typical
+  Pokemon of the foe's level, corrected by the hits seen), so every in-battle arm's frames and presses were RE-REGISTERED
+  from a development pass of this round's code, moved out of the evidence folder before the graded run. REFUSEDX's title
+  and RUN's check line were corrected (the verifier: a title naming the wrong bound; three labels for two values).
 """
 
 from __future__ import annotations
@@ -107,13 +170,14 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from ai_player.gates.live_step2 import check_purity, classify_a, clean_env, truth_of  # noqa: E402
-from ai_player.gates.provenance import provenance as tree_provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance  # noqa: E402
 from ai_player.hands.dialogue import GENERIC_BUSY  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
 from ai_player.gates.live_step2 import run_json  # noqa: E402
 from ai_player.options import (  # noqa: E402
-    ENV_BATTLES, ENV_BRAIN, ENV_FAULT_FORGET_FIELD, ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_IGNORE_TYPES, ENV_FAULT_UNCAPPED_RECOIL,
-    ENV_PERSONALITY, ENV_SEED, ENV_TALK_TO,
+    ENV_BATTLES, ENV_BRAIN, ENV_FAULT_FORGET_FIELD, ENV_FAULT_FORGET_UNUSABLE, ENV_FAULT_IGNORE_PP, ENV_FAULT_IGNORE_REFUSAL,
+    ENV_FAULT_IGNORE_TYPES, ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_UNCAPPED_RECOIL,
+    ENV_PERSONALITY, ENV_SEED, ENV_TALK_TO, ENV_FAULT_FORGET_SHIFT,
 )
 
 GATES = Path(__file__).resolve().parent
@@ -133,15 +197,43 @@ FIXTURES: dict[str, tuple[Path, str]] = {
     "learn_r116.ss1": (GATES / "fixtures" / "learn_r116.ss1", "d9f9c6dfdcdec46b08243df38828e98b"),
     # (the step-4 verifier's round) a story-bot save stopped on the battle party menu's refusal (KI-17's wedge)
     "ki17_partymenu_wedge.ss1": (SAVES / "ki17_partymenu_wedge.ss1", "0103bfe9881ba83eb8919a06a952938f"),
+    # (step 4.1) `gates/make_step41_fixtures.py`, each PLAYED by button presses
+    "rival_rustboro.ss1": (GATES / "fixtures" / "rival_rustboro.ss1", "862025959e9a879c729eda359e24b8ff"),
+    "heal_r103.ss1": (GATES / "fixtures" / "heal_r103.ss1", "7c8f131345d801cdc3fee5a150930607"),
+    "switch_joey.ss1": (GATES / "fixtures" / "switch_joey.ss1", "89cbe4e0fd256311a427f506713422e4"),
+    "run_r116.ss1": (GATES / "fixtures" / "run_r116.ss1", "5f7e8b23495c1533030619cc27943e1e"),
+    # the recorded recoil case's save (a wild Poochyena L3 with 15 HP against a Marshtomp L32 with Take Down)
+    "ch13_r119_wedge.ss1": (SAVES / "ch13_r119_wedge.ss1", "b04d3e4cb7d8c8e2a3b82225548906ef"),
+    # (step 4.1 round 2) a story-bot save IN a wild battle: Wailord L61 against a Zubat L36, its Surf, Water Spout and
+    # Waterfall at 0 PP, Dive at 10 (arms REFUSED, REFUSEDX)
+    "grind_stall_ppzero.ss1": (SAVES / "grind_stall_ppzero.ss1", "9ca6c133e2977f5459c7393af27662ef"),
+    # (step 4.1 round 2) `make_step41_fixtures.py --only sing`: a wild Oddish L14 (not caught yet) against a Skitty L17 with
+    # SING, put first by START-menu presses (arms CATCHS, CATCHSX)
+    "sing_r117.ss1": (GATES / "fixtures" / "sing_r117.ss1", "679341be1d3f3557eae74f95d65bfffc"),
+    # (step 4.1 round 3) `make_step41_fixtures.py --only rival_hurt`: Rustboro's rival with the Taillow hurt into the window
+    # where the party menu's by-level ranking puts it under the Poochyena (arms SHIFTC, SHIFTCX)
+    "rival_rustboro_hurt.ss1": (GATES / "fixtures" / "rival_rustboro_hurt.ss1", "baa0a5c385c538f4dede8ffd2f9447c7"),
 }
 HARNESS = GATES / "hands_harness.py"
 #: The replay's cartridge clock (the in-battle arms read none; pinned so the replay is the same whenever it is played).
 REPLAY_CLOCK = "2026-10-08T06:00"
 #: The fault switches of an arm's env, as the harness names them.
 FAULT_NAMES = {ENV_FAULT_IGNORE_TYPES: "ignore_types", ENV_FAULT_UNCAPPED_RECOIL: "uncapped_recoil",
-               ENV_FAULT_FORGET_FIELD: "forget_field", ENV_FAULT_IGNORE_REFUSAL: "ignore_refusal"}
+               ENV_FAULT_FORGET_FIELD: "forget_field", ENV_FAULT_IGNORE_REFUSAL: "ignore_refusal",
+               ENV_FAULT_OVERKILL: "overkill", ENV_FAULT_SHIFT_FAINTED: "shift_fainted",
+               # (step 4.1 round 2)
+               ENV_FAULT_FORGET_UNUSABLE: "forget_unusable", ENV_FAULT_IGNORE_PP: "ignore_pp",
+               ENV_FAULT_NO_CATCH_STATUS: "no_catch_status",
+               # (step 4.1 round 3)
+               ENV_FAULT_FORGET_SHIFT: "forget_shift"}
 #: The arms replayed in-process for the game's own battle record (the module docstring, THE REPLAY).
-REPLAYED = ("TYPE", "TYPEX", "FAINT", "DFAINT", "DFAINTX", "REFUSE")
+REPLAYED = ("TYPE", "TYPEX", "FAINT", "DFAINT", "DFAINTX", "REFUSE", "SHIFT", "SHIFTX", "HEAL", "SWITCH", "RUN", "OVERKILL",
+            "OVERKILLX", "REFUSED", "REFUSEDX", "CATCHS", "CATCHSX", "SHIFTC", "SHIFTCX")
+#: (step 4.1) the PIDs of the step-4.1 fixtures' Pokemon (the framework's decoder, `make_step41_fixtures.py`'s printouts)
+TAILLOW_RUSTBORO, POOCHYENA_116 = "a8dbcf1b", "5815089e"
+#: (step 4.1 round 3) the rival-prep party's Poochyena: the one a party menu ranking again by level sends in the hurt fixture
+POOCHYENA_RUSTBORO = "2b19ca91"
+MAY_RUSTBORO = "600"
 MUDKIP = "550a9be6"  # the starter's PID in every Route 101-116 fixture (the same playthrough)
 GROVYLE = "550a9be6"  # trainer_battle_r116 / geodude_grovyle: the same Pokemon, evolved in another playthrough
 #: Trainers (`include/constants/opponents.h`): TRAINER_JOEY, TRAINER_KAREN_1, TRAINER_MAY_ROUTE_103_MUDKIP.
@@ -152,16 +244,46 @@ JOEY, KAREN, MAY = "322", "280", "529"
 PREDICTED: dict[str, dict] = {
     "TRAINER": {"outcomes": ["won"], "frames": 3811, "presses": 14},
     "RIVAL": {"outcomes": ["won"], "frames": 6103, "presses": 21},
-    "TYPE": {"outcomes": ["won"], "frames": 11458, "presses": 48, "first": ["Absorb", "Geodude"]},
+    # (step 4.1, development runs in-process with this round's code, 2026-10-09, before the graded runs: TYPE 11458 / 48
+    # and DFAINT 17536 / 95 under step 4: the rough damage and the finishers moved their later turns; the other step-4
+    # arms' trajectories did not move)
+    "TYPE": {"outcomes": ["won"], "frames": 12243, "presses": 49, "first": ["Absorb", "Geodude"]},
     "TYPEX": {"outcomes": ["won"], "frames": 9468, "presses": 49, "first": ["Quick Attack", "Shroomish"]},
     # (the step-4 verifier's round, development runs in-process with this round's code, 2026-10-08) FAINT's replacement is
     # now chosen against the remembered Shroomish: Taillow, where step 4 sent the Nincada (11113 frames, 28 presses then)
     "FAINT": {"outcomes": ["won"], "frames": 9503, "presses": 30, "sent": ["Taillow"]},
+    # (step 4.1 round 3, the development pass of this round's code: the typical-Pokemon damage guess moved DFAINT's later
+    # turns back to step 4's trajectory, 17536 / 95; step 4.1's rough species-based estimate gave 15640 / 82; no other
+    # in-battle arm's numbers moved)
     "DFAINT": {"outcomes": ["won"], "frames": 17536, "presses": 95, "sent": ["Skitty"]},
     "DFAINTX": {"outcomes": ["the battle: no Pokemon could be sent in"], "frames": 8200, "presses": 39, "sent": ["Grovyle"]},
     "REFUSE": {"outcomes": ["won"], "frames": 10182, "presses": 52, "sent": ["Mightyena"]},
     "LEARN": {"outcomes": ["won"], "frames": 3918, "presses": 19},
     "CATCH": {"outcomes": ["caught"]},
+    # (step 4.1, the same development runs)
+    # ⚠ RE-REGISTERED AFTER OBSERVATION (2026-10-09, the coordinator's step-4.1 review fixes): finding 3 (a move FINISHES
+    # only on its LOW estimate) changed the MOVES chosen in these three battles (SWITCH: Water Gun for Mud-slap on turn 4;
+    # SHIFT: Tackle, Water Gun, Focus Energy, Wing Attack where Water Gun, Wing Attack were), so their trajectories moved:
+    # SHIFT 10689/36 -> 12162/46, SHIFTX 11693/43 -> 12817/49, SWITCH 5981/28 -> 6020/27. Outcomes and the Pokemon sent
+    # held unchanged. These three numbers are a replay check from here on, NOT predictions made before a look.
+    "SHIFT": {"outcomes": ["won"], "frames": 12162, "presses": 46, "sent": ["Taillow"]},
+    "SHIFTX": {"outcomes": ["won"], "frames": 12817, "presses": 49},
+    "HEAL": {"outcomes": ["won"], "frames": 6978, "presses": 28, "heals": 1},
+    "SWITCH": {"outcomes": ["won"], "frames": 6020, "presses": 27},
+    "RUN": {"outcomes": ["ran"], "frames": 1063, "presses": 5},
+    "OVERKILL": {"outcomes": ["won"], "frames": 1702, "presses": 6},
+    "OVERKILLX": {"outcomes": ["won"], "frames": 1762, "presses": 6},
+    # (step 4.1 round 2, the development pass of this round's code, `--evidence-tag step4dev41b`, moved out before the graded
+    # run; the in-process replays agreed)
+    "REFUSED": {"outcomes": ["won"], "frames": 3222, "presses": 17, "refused": ["Waterfall", "Water Spout", "Surf"],
+                "taken": ["Dive"]},
+    "REFUSEDX": {"outcomes": [], "frames": 40000, "presses": 385, "refused_count": 134},
+    "CATCHS": {"outcomes": ["caught"], "frames": 7162, "presses": 24, "sings": 2},
+    "CATCHSX": {"outcomes": ["caught"], "frames": 4752, "presses": 19},
+    # (step 4.1 round 3, the development pass of this round's code, `--evidence-tag step4dev41c`, moved out of the evidence
+    # folder before the graded run; the in-process replays agreed)
+    "SHIFTC": {"outcomes": ["won"], "frames": 13149, "presses": 43, "sent": ["Taillow"]},
+    "SHIFTCX": {"outcomes": ["won"], "frames": 15648, "presses": 57, "sent": ["Poochyena", "Taillow"]},
 }
 
 
@@ -262,6 +384,66 @@ ARMS: list[Arm] = [
         "ki17_partymenu_wedge.ss1", 30000, 1200.0, story(), seed=1,
         doc="tools/story-dev/saves/ki17_partymenu_wedge.ss1: the story bot's KI-17 wedge, saved on the battle party "
             "menu's refusal (Mauville gym)"),
+    # (step 4.1)
+    Arm("SHIFT", "Rustboro's rival: 'about to use TREECKO. Will ... change?' judged about the TREECKO, YES, the Taillow chosen "
+                 "there sent in before it", "rival_rustboro.ss1", 30000, 1200.0, {ENV_PERSONALITY: "Trainer", ENV_BATTLES: "1"},
+        seed=1, doc="gates/make_step41_fixtures.py --only rival (rival_rustboro.build.json): fresh_rivalprep.ss1, the "
+                    "Marshtomp put first, Potions bought by the AI's mart brain, the rival met by walking; the battle's first "
+                    "frame. Trainer (switch_willing 0.8), seed 1: a YES seed, CHOSEN and said so"),
+    Arm("SHIFTX", "FAULT of SHIFT (AI_PLAYER_FAULT_SHIFT_FAINTED=1, step 4's answer): judged about the FAINTED Wingull: NO",
+        "rival_rustboro.ss1", 30000, 1200.0, {ENV_PERSONALITY: "Trainer", ENV_BATTLES: "1", ENV_FAULT_SHIFT_FAINTED: "1"},
+        seed=1, doc="as SHIFT"),
+    Arm("HEAL", "Route 103's rival with two Potions the AI bought: its Mudkip low, a Potion used (one fewer, HP up), won",
+        "heal_r103.ss1", 20000, 900.0, story(), seed=1,
+        doc="gates/make_step41_fixtures.py --only heal (heal_r103.build.json): route103.ss1, Oldale's mart (the AI's mart "
+            "brain: 2 Potions), back to May and talked to by the AI's battle brain; the battle's first frame"),
+    Arm("SWITCH", "a forced bad matchup (the Poochyena, Dark, against Joey's Machop): SWITCH to the Mudkip by PID, by the game",
+        "switch_joey.ss1", 20000, 900.0, story(), seed=1,
+        doc="gates/make_step41_fixtures.py --only switch (switch_joey.build.json): route116team.ss1, the Poochyena put first "
+            "(START menu presses), Joey talked to by the AI's battle brain; the battle's first frame"),
+    Arm("RUN", "training, the Poochyena at 29 % HP: an unwanted wild battle RUN from (gBattleOutcome 4)", "run_r116.ss1", 12000,
+        600.0, story(), seed=1,
+        doc="gates/make_step41_fixtures.py --only run (run_r116.build.json): route116team.ss1, the Poochyena put first, the "
+            "AI's battle brain roaming; the first frame of a wild battle begun with the Poochyena under 30 %"),
+    Arm("OVERKILL", "every move FINISHES the 15-HP Poochyena: not Take Down (85 %, recoil), by the game", "ch13_r119_wedge.ss1",
+        8000, 600.0, story(), seed=1,
+        doc="tools/story-dev/saves/ch13_r119_wedge.ss1: a wild Poochyena L3 against a Marshtomp L32 74/99 with Take Down "
+            "(the recorded look of `fixtures/recoil_r102.look.json`)"),
+    Arm("OVERKILLX", "FAULT of OVERKILL (AI_PLAYER_FAULT_OVERKILL=1, step 4's valuation): Take Down", "ch13_r119_wedge.ss1",
+        8000, 600.0, story(**{ENV_FAULT_OVERKILL: "1"}), seed=1, doc="as OVERKILL"),
+    # (step 4.1 round 2, the verifier's weak proof: "Finding 2 has no live arm (no fixture has a Disabled move)")
+    Arm("REFUSED", "finding 2 LIVE: the decider made blind to PP (AI_PLAYER_FAULT_IGNORE_PP=1) chooses moves with none; the "
+                   "GAME refuses each (the code that refuses a Disabled move) and gives the grid back; each is out for the "
+                   "turn, and the move with PP, Dive, is the one the game takes", "grind_stall_ppzero.ss1", 12000, 600.0,
+        story(**{ENV_FAULT_IGNORE_PP: "1"}), seed=1,
+        doc="tools/story-dev/saves/grind_stall_ppzero.ss1: a story-bot save in a wild battle, Wailord L61 against a Zubat L36, "
+            "its Surf, Water Spout and Waterfall at 0 PP, Dive at 10"),
+    # (step 4.1 round 3, the verifier: the title said "until the 150-menu bound" while the run ends at the frame bound)
+    Arm("REFUSEDX", "FAULT of REFUSED, the step-4 rule (AI_PLAYER_FAULT_FORGET_UNUSABLE=1 too): a refused move chosen again "
+                    "and again, the game takes no move until a bound ends the run (here the 40,000-frame budget, before "
+                    "the skill's 150-menu bound)", "grind_stall_ppzero.ss1", 40000, 1200.0,
+        story(**{ENV_FAULT_IGNORE_PP: "1", ENV_FAULT_FORGET_UNUSABLE: "1"}), seed=1, doc="as REFUSED"),
+    # (step 4.1 round 2, the verifier's weak proof: "The catch's sleep or paralysis move is never exercised live")
+    Arm("CATCHS", "a CATCH helped by SLEEP: the Skitty's SING on a wild Oddish it has not caught, the Oddish asleep by the "
+                  "game, then the ball: caught", "sing_r117.ss1", 20000, 900.0, {ENV_PERSONALITY: "Catcher", ENV_BATTLES: "1"},
+        seed=1, doc="gates/make_step41_fixtures.py --only sing (sing_r117.build.json): strength_boxfirst_mauville.ss1, the "
+                    "Skitty put first (START menu presses), the AI's explore brain to Route 117, its battle brain roaming; "
+                    "the first frame of a wild battle against a species the Pokedex has not got"),
+    Arm("CATCHSX", "FAULT of CATCHS (AI_PLAYER_FAULT_NO_CATCH_STATUS=1, step 4: no status move to help a catch): no Sing, the "
+                   "ball thrown at the foe awake", "sing_r117.ss1", 20000, 900.0,
+        {ENV_PERSONALITY: "Catcher", ENV_BATTLES: "1", ENV_FAULT_NO_CATCH_STATUS: "1"}, seed=1, doc="as CATCHS"),
+    # (step 4.1 round 3, the verifier's weak proof: "Finding 1, the PID carried to the party menu, cannot fail live")
+    Arm("SHIFTC", "the CARRY live: the Taillow hurt so a by-level party menu would send the Poochyena; YES about the TREECKO, "
+                  "and BY THE GAME the Taillow (its PID, carried from the question) comes in", "rival_rustboro_hurt.ss1",
+        30000, 1200.0, {ENV_PERSONALITY: "Trainer", ENV_BATTLES: "1"}, seed=2,
+        doc="gates/make_step41_fixtures.py --only rival_hurt (rival_rustboro_hurt.build.json): fresh_rivalprep.ss1, the "
+            "Taillow put first and hurt by the AI's battle brain on Route 116 to 36/45 (by level 15.3 under the Poochyena's "
+            "16.0), the Marshtomp put first, Potions bought, the rival met. Trainer, seed 2: a YES seed, CHOSEN and said "
+            "so (the sweep's SHIFT-CARRY says how often)"),
+    Arm("SHIFTCX", "FAULT of SHIFTC (AI_PLAYER_FAULT_FORGET_SHIFT=1): YES about the TREECKO, the member chosen there NOT "
+                   "carried: the party menu ranks by level and BY THE GAME the POOCHYENA comes in",
+        "rival_rustboro_hurt.ss1", 30000, 1200.0,
+        {ENV_PERSONALITY: "Trainer", ENV_BATTLES: "1", ENV_FAULT_FORGET_SHIFT: "1"}, seed=2, doc="as SHIFTC"),
 ]
 
 
@@ -731,9 +913,303 @@ def grade_LEARN(run: Run) -> None:
               f"summary screen on GROWL by reading the cursor ({[str(p.get('reason')) for p in forget]})")
 
 
+# ---------------------------------------------------------------------- (step 4.1) the arms
+def game_ins(game: dict, battler: int) -> list[dict]:
+    return [e for e in game.get("events") or [] if e["kind"] == "in" and e["battler"] == battler]
+
+
+def game_after_foe_faint(game: dict) -> tuple[dict | None, dict | None, list[dict]]:
+    """(the first foe's faint at position 1, the foe the game sent onto position 1 after it, every Pokemon that came onto
+    the player's position 0 between the two), by the GAME."""
+    events = game.get("events") or []
+    faint = next((e for e in events if e["kind"] == "hp" and e["battler"] == 1 and e["hp"][1] == 0), None)
+    if faint is None:
+        return None, None, []
+    foe = next((e for e in game_ins(game, 1) if e["f"] > faint["f"]), None)
+    mine = [e for e in game_ins(game, 0) if e["f"] > faint["f"] and (foe is None or e["f"] < foe["f"])]
+    return faint, foe, mine
+
+
+def game_first_choice(game: dict, battler: int = 0) -> str:
+    return next((c["chosen"][battler] for c in game.get("chosen") or [] if c["chosen"][battler] != "-"), "")
+
+
+def pp_of(truth: dict | None, species: str) -> dict[str, int]:
+    """(step 4.1 round 2) move -> PP left of the party member `species`, by the framework's decoder (`truth` party_pp)."""
+    row = next((r for r in (truth or {}).get("party_pp") or [] if r[1] == species), None)
+    return {name: pp for name, pp in row[2]} if row else {}
+
+
+def grade_REFUSED(run: Run) -> None:
+    """(step 4.1 round 2, the verifier's weak proof: "Finding 2 has no live arm (no fixture has a Disabled move)") A move the
+    GAME refuses: the decider is made blind to PP (FAULT `ignore_pp`), so it chooses moves with none; the game refuses each
+    through the code that refuses a Disabled, Tormented, Taunted or Imprisoned move (`src/battle_util.c`
+    TrySetCantSelectMoveBattleScript, read via gh api: its last check is `pp[...] == 0` -> BattleScript_SelectingMoveWithNoPP)
+    and gives the move grid back; the skill tells the decider (`cannot_use`), the move is out for the turn, and the game
+    takes the move WITH PP. Proven by the truth (the PP of each move the AI was refused) and the game (the moves it TOOK)."""
+    grade_common(run, walking=False)
+    pp = pp_of(run.before, "Wailord")
+    refused = re.findall(r"the move grid came back: (.+?) cannot be used now", " ".join(battle_lines(run)))
+    run.check(len(set(refused)) >= 2 and all(pp.get(move) == 0 for move in refused),
+              f"THE REFUSALS, the AI's words against THE TRUTH (each move's PP at the start, by the framework's decoder: {pp}): "
+              f"the grid came back {len(refused)} times, for {refused}, each a move with 0 PP; at least two different moves in "
+              f"one turn (the per-turn set of unusable moves, not one move)")
+    run.check(outcomes(run) == ["won"], f"the battle WON (ended by itself): {outcomes(run)}")
+    game = check_replay(run)
+    if game is not None:
+        taken = [c["chosen"][0] for c in game.get("chosen") or [] if c["chosen"][0] != "-"]
+        run.check(bool(taken) and all(pp.get(move, 0) > 0 for move in taken),
+                  f"BY THE GAME (the replay's gChosenMoveByBattler[0]: a refused move never reaches it): the moves the game "
+                  f"TOOK {taken}, each one with PP left ({ {m: pp.get(m) for m in taken} })")
+        run.measure("taken", taken)
+    run.measure("refused", refused)
+
+
+def grade_REFUSEDX(run: Run) -> None:
+    """(step 4.1 round 2) FAULT of REFUSED: the step-4 rule (`forget_unusable` too): "decide again" chooses a refused move
+    again, the game takes no move, and only a bound ends the run: the skill's 150-menu bound or, first at this arm's
+    budget, the run's 40,000 frames (round 3: this docstring and the arm's title said the 150-menu bound)."""
+    grade_common(run, walking=False)
+    run.check((run.verdict or {}).get("verdict") == "CLEAN", "a FAULT switch is the AI's own rule: purity is still CLEAN")
+    reason = run.outcome
+    refused = re.findall(r"the move grid came back: (.+?) cannot be used now", " ".join(battle_lines(run)))
+    # (a bound ends it: the skill's 150 menus, or the run's frame budget first: the development pass, 134 refusals in 40,000
+    # frames, "stopped: not finished within 40000 frames")
+    run.check(("did not end within 150 menus" in reason or "not finished within" in reason) and len(refused) >= 20,
+              f"THE HARM (finding 2's loop, reproduced live): the outcome {reason[:200]!r} (a bound, not an end); the grid came "
+              f"back {len(refused)} times ({sorted(set(refused))})")
+    game = check_replay(run)
+    if game is not None:
+        taken = [c["chosen"][0] for c in game.get("chosen") or [] if c["chosen"][0] != "-"]
+        run.check(not taken, f"BY THE GAME (the replay's gChosenMoveByBattler[0]): no move taken in all that time: {taken or 'none'}")
+    run.measure("refused_count", len(refused))
+
+
+def new_pids(run: Run) -> list[tuple]:
+    """(step 4.1 round 2) the PIDs owned after the run that were not before (party and boxes), each with its OT id."""
+    before = {row[0] for row in (run.before or {}).get("party_ot") or []} | {row[0] for row in (run.before or {}).get("boxes") or []}
+    after = [(row[0], row[1], "party") for row in (run.after or {}).get("party_ot") or []] + \
+            [(row[0], row[1], "box") for row in (run.after or {}).get("boxes") or []]
+    return [entry for entry in after if entry[0] not in before]
+
+
+def grade_CATCHS(run: Run) -> None:
+    """(step 4.1 round 2, the verifier's weak proof: "The catch's sleep or paralysis move is never exercised live") A catch
+    HELPED BY SLEEP (`brain/battle.py` _catch_status): the Skitty's SING chosen to catch a species it has not caught (by the
+    game: gChosenMoveByBattler[0]), the foe ASLEEP by the game (gBattleMons[1].status1's sleep turns, the replay's every
+    change) before the catch, and the catch by the truth (gBattleOutcome 7, one new PID with the player's OT)."""
+    grade_common(run, walking=False)
+    run.check(outcomes(run) == ["caught"] and (run.after or {}).get("battle_outcome") == 7,
+              f"the battle ended CAUGHT: the AI's outcome {outcomes(run)}, gBattleOutcome {(run.after or {}).get('battle_outcome')} (7)")
+    tid, new = (run.after or {}).get("player_tid"), new_pids(run)
+    run.check(len(new) == 1 and new[0][1] == tid, f"ONE new PID owned by the player: {new} (the player's visible id {tid})")
+    said = [line for line in battle_lines(run) if "fight Sing: to CATCH" in line]
+    run.check(bool(said), f"the decider chose SING to help the catch: {[s.split('battle: ')[-1][:160] for s in said]}")
+    game = check_replay(run)
+    if game is not None:
+        taken = [c["chosen"][0] for c in game.get("chosen") or [] if c["chosen"][0] != "-"]
+        asleep = [s for s in game.get("statuses") or [] if s["battler"] == 1 and s["sleep"] > 0]
+        caught_at = next((o["f"] for o in game.get("outcomes") or [] if o["value"] == 7), None)
+        run.check("Sing" in taken and bool(asleep) and caught_at is not None and asleep[0]["f"] < caught_at,
+                  f"BY THE GAME (the replay): the moves the game took {taken} include SING; the foe ASLEEP (status1 sleep turns) "
+                  f"at f{asleep[0]['f'] if asleep else None} ({[(s['f'], s['species'], s['sleep']) for s in asleep][:3]}), "
+                  f"before the catch (gBattleOutcome 7 at f{caught_at})")
+        run.measure("sings", taken.count("Sing"))
+
+
+def grade_CATCHSX(run: Run) -> None:
+    """(step 4.1 round 2) FAULT of CATCHS: no status move to help a catch (step 4): no Sing; the foe never asleep by the game."""
+    grade_common(run, walking=False)
+    run.check((run.verdict or {}).get("verdict") == "CLEAN", "a FAULT switch is the AI's own rule: purity is still CLEAN")
+    said = [line for line in battle_lines(run) if "fight Sing" in line]
+    run.check(not said, f"no Sing told: {said or 'none'}; the outcome {outcomes(run)}")
+    game = check_replay(run)
+    if game is not None:
+        taken = [c["chosen"][0] for c in game.get("chosen") or [] if c["chosen"][0] != "-"]
+        asleep = [s for s in game.get("statuses") or [] if s["battler"] == 1 and s["sleep"] > 0]
+        run.check("Sing" not in taken and not asleep,
+                  f"BY THE GAME (the replay): the moves taken {taken}, no Sing; the foe never asleep: {asleep or 'never'}")
+
+
+def grade_SHIFT(run: Run) -> None:
+    grade_common(run, walking=False)
+    asked = [line for line in battle_lines(run) if "the question" in line and "change POK" in line]
+    run.check(bool(asked) and "': YES" in asked[0] and "against Treecko" in asked[0]
+              and "the words say TREECKO comes next" in asked[0],
+              f"the shift question judged about the INCOMING Treecko its words named (x4 on the Marshtomp), answered YES: "
+              f"{[a.split('battle: ')[-1][:300] for a in asked[:1]]}")
+    sent = [line for line in battle_lines(run) if "who goes in:" in line]
+    run.check(bool(sent) and sent[0].split("who goes in: ")[-1].startswith("Taillow") and "decided at the question" in sent[0],
+              f"the party menu got the member chosen AT THE QUESTION (not ranked again): {[s.split('who goes in: ')[-1][:200] for s in sent[:1]]}")
+    run.check(outcomes(run) == ["won"] and trainer(run.before, MAY_RUSTBORO) is False and trainer(run.after, MAY_RUSTBORO) is True,
+              f"the battle WON: {outcomes(run)}; MAY's flag ({MAY_RUSTBORO}) {trainer(run.before, MAY_RUSTBORO)} -> "
+              f"{trainer(run.after, MAY_RUSTBORO)}")
+    run.measure("sent", told_sent(run))
+    game = check_replay(run)
+    if game is not None:
+        faint, foe, mine = game_after_foe_faint(game)
+        run.check(faint is not None and faint["species"] == "Wingull" and foe is not None and foe["species"] == "Treecko"
+                  and [e["pid"] for e in mine] == [TAILLOW_RUSTBORO],
+                  f"BY THE GAME (the replay): the {faint and faint['species']} fainted at position 1, then "
+                  f"{[(e['species'], e['pid']) for e in mine]} came onto position 0 BEFORE the {foe and foe['species']} came onto "
+                  f"position 1: the Taillow ({TAILLOW_RUSTBORO}) the decider chose against the Treecko its words named")
+
+
+def grade_SHIFTX(run: Run) -> None:
+    grade_common(run, walking=False)
+    asked = [line for line in battle_lines(run) if "the question" in line and "change POK" in line]
+    run.check(bool(asked) and "': NO" in asked[0] and "FAULT shift_fainted" in asked[0] and "against Wingull" in asked[0],
+              f"FAULT (step 4's answer): the question judged about the FAINTED Wingull, answered NO: "
+              f"{[a.split('battle: ')[-1][:300] for a in asked[:1]]}")
+    run.check((run.verdict or {}).get("verdict") == "CLEAN", "a FAULT switch is the AI's own rule: purity is still CLEAN")
+    game = check_replay(run)
+    if game is not None:
+        faint, foe, mine = game_after_foe_faint(game)
+        run.check(faint is not None and faint["species"] == "Wingull" and foe is not None and foe["species"] == "Treecko"
+                  and not mine,
+                  f"BY THE GAME (the replay), FAULT: the {faint and faint['species']} fainted, the game sent out the "
+                  f"{foe and foe['species']}, and nobody came onto position 0 between them: {mine}")
+
+
+def grade_SHIFT_CARRY(run: Run, carried: bool) -> None:
+    """(step 4.1 round 3, the verifier's weak proof: "Finding 1, the PID carried to the party menu, cannot fail live ... In
+    this fixture the by-level fallback ... also picks the L17 Taillow") On `rival_rustboro_hurt.ss1` the Taillow is hurt so
+    that a party menu ranking again by level sends the POOCHYENA: SHIFTC (the carry) must show the Taillow come in by the
+    game, SHIFTCX (FAULT forget_shift: decided, not carried) the Poochyena."""
+    grade_common(run, walking=False)
+    want, other = (TAILLOW_RUSTBORO, POOCHYENA_RUSTBORO) if carried else (POOCHYENA_RUSTBORO, TAILLOW_RUSTBORO)
+    asked = [line for line in battle_lines(run) if "the question" in line and "change POK" in line]
+    run.check(bool(asked) and "': YES" in asked[0] and "against Treecko" in asked[0]
+              and "the words say TREECKO comes next" in asked[0],
+              f"the shift question judged about the INCOMING Treecko its words named, answered YES: "
+              f"{[a.split('battle: ')[-1][:300] for a in asked[:1]]}")
+    sent = [line for line in battle_lines(run) if "who goes in:" in line]
+    if carried:
+        run.check(bool(sent) and sent[0].split("who goes in: ")[-1].startswith("Taillow") and "decided at the question" in sent[0],
+                  f"the party menu got the member chosen AT THE QUESTION: {[s.split('who goes in: ')[-1][:200] for s in sent[:1]]}")
+    else:
+        run.check(bool(sent) and sent[0].split("who goes in: ")[-1].startswith("Poochyena") and "by level" in sent[0],
+                  f"FAULT forget_shift: the party menu ranked AGAIN, by level (no foe standing: the Wingull fainted), and named "
+                  f"the Poochyena: {[s.split('who goes in: ')[-1][:200] for s in sent[:1]]}")
+        run.check((run.verdict or {}).get("verdict") == "CLEAN", "a FAULT switch is the AI's own rule: purity is still CLEAN")
+    taillow = next((row for row in (run.before or {}).get("party") or [] if row[0] == "Taillow"), None)
+    run.check(taillow is not None and taillow[1] * 2 >= taillow[2] and taillow[1] < taillow[2],
+              f"THE FIXTURE (the truth before the run): the Taillow hurt but at half its HP or more {taillow}: the question "
+              f"still finds it much better, and by level x HP share it is under the Poochyena (the build's printout)")
+    run.measure("sent", told_sent(run))
+    run.measure("outcomes", outcomes(run))
+    game = check_replay(run)
+    if game is not None:
+        faint, foe, mine = game_after_foe_faint(game)
+        run.check(faint is not None and foe is not None and foe["species"] == "Treecko" and [e["pid"] for e in mine] == [want],
+                  f"BY THE GAME (the replay): the {faint and faint['species']} fainted at position 1, then "
+                  f"{[(e['species'], e['pid']) for e in mine]} came onto position 0 BEFORE the {foe and foe['species']} came "
+                  f"onto position 1: {want} ({'the Taillow, carried' if carried else 'the Poochyena, by level'}), never {other}")
+
+
+def grade_SHIFTC(run: Run) -> None:
+    grade_SHIFT_CARRY(run, carried=True)
+
+
+def grade_SHIFTCX(run: Run) -> None:
+    grade_SHIFT_CARRY(run, carried=False)
+
+
+def grade_HEAL(run: Run) -> None:
+    grade_common(run, walking=False)
+    heals = [line for line in battle_lines(run) if re.search(r"turn \d+: item Potion", line)]
+    run.check(bool(heals) and "is low" in heals[0], f"the decider healed in a trainer's battle with its Mudkip low: "
+                                                    f"{[h.split('battle: ')[-1][:200] for h in heals]}")
+    before = ((run.before or {}).get("items") or {}).get("POTION")
+    after = ((run.after or {}).get("items") or {}).get("POTION")
+    run.check(before is not None and after is not None and before - after == len(heals),
+              f"BY THE TRUTH (the bag's items pocket, the probe's own decoder): POTION {before} -> {after} == the {len(heals)} told")
+    run.check(outcomes(run) == ["won"] and trainer(run.after, MAY) is True,
+              f"the battle WON: {outcomes(run)}; MAY's flag (529) {trainer(run.before, MAY)} -> {trainer(run.after, MAY)}")
+    run.measure("heals", len(heals))
+    game = check_replay(run)
+    if game is not None:
+        start_max = next((s["hp"][1] for s in game.get("start") or [] if s["battler"] == 0), None)
+        rises = [e["hp"] for e in game.get("events") or [] if e["kind"] == "hp" and e["battler"] == 0
+                 and e["hp"][1] > e["hp"][0] and e.get("max_hp") == start_max]
+        run.check(len(rises) >= len(heals) >= 1, f"BY THE GAME (the replay): the Mudkip's HP ROSE at position 0 with its max HP "
+                                                 f"unchanged (a Potion, not a level-up): {rises}")
+
+
+def grade_SWITCH(run: Run) -> None:
+    grade_common(run, walking=False)
+    said = [line for line in battle_lines(run) if re.search(r"turn \d+: switch: Poochyena is badly matched against Machop", line)]
+    run.check(len(said) == 1, f"a forced bad matchup: the decider SWITCHED (Fighting x2 on Dark): "
+                              f"{[s.split('battle: ')[-1][:220] for s in said]}")
+    run.check(outcomes(run) == ["won"] and trainer(run.after, JOEY) is True,
+              f"the battle WON: {outcomes(run)}; Joey's flag (322) {trainer(run.before, JOEY)} -> {trainer(run.after, JOEY)}")
+    game = check_replay(run)
+    if game is not None:
+        came = game_ins(game, 0)[1:2]
+        fainted = any(e["kind"] == "hp" and e["battler"] == 0 and e["hp"][1] == 0 for e in game.get("events") or []
+                      if came and e["f"] < came[0]["f"])
+        run.check(bool(came) and came[0]["pid"] == MUDKIP and not fainted,
+                  f"BY THE GAME (the replay): {[(e['species'], e['pid']) for e in came]} came onto position 0 with the Poochyena "
+                  f"({POOCHYENA_116}) still standing (no HP 0 before it: a SWITCH, not a faint's send-in)")
+
+
+def grade_RUN(run: Run) -> None:
+    grade_common(run, walking=False)
+    said = [line for line in battle_lines(run) if re.search(r"turn \d+: run: its Poochyena is low", line)]
+    run.check(bool(said), f"training, the Poochyena low: the decider RAN: {[s.split('battle: ')[-1][:200] for s in said]}")
+    run.check(outcomes(run) == ["ran"] and (run.after or {}).get("battle_outcome") == 4,
+              f"BY THE TRUTH: gBattleOutcome {(run.after or {}).get('battle_outcome')} (4: ran); the AI's outcome {outcomes(run)}")
+    game = check_replay(run)
+    if game is not None:
+        fainted = [e for e in game.get("events") or [] if e["kind"] == "hp" and e["battler"] == 0 and e["hp"][1] == 0]
+        run.check(not fainted, f"BY THE GAME (the replay): the Poochyena never fell: {fainted}")
+        # (step 4.1 round 2, the verifier: "the gBattleOutcome check never records the value before the run. The fixture's
+        # start state already reads 4 ... valid only because BattleStartClearSetData sets gBattleOutcome = 0") the value on
+        # the replay's first frame and every change after: the battle's own clear to 0, THEN 4, the last value
+        seq = [game.get("outcome_start")] + [o["value"] for o in game.get("outcomes") or []]
+        zeros = [i for i, v in enumerate(seq) if v == 0]
+        stale = (run.before or {}).get("battle_outcome")
+        # (step 4.1 round 3, the verifier: "three labels for two values") the sequence is the REPLAY's: its first value is
+        # already the battle's own clear (that runs in the first frame); the stale 4 is the TRUTH's read of the fixture
+        run.check(bool(zeros) and seq[-1] == 4 and zeros[-1] < len(seq) - 1,
+                  f"BY THE GAME every frame (the replay's gBattleOutcome: its value on the first frame, then each change, with "
+                  f"frames {[(o['f'], o['value']) for o in game.get('outcomes') or []]}): {seq}: 0 (the battle's own clear, "
+                  f"`BattleStartClearSetData`, pret src/battle_main.c, already done in the replay's first frame), then 4 (ran), "
+                  f"the last; the fixture BEFORE the run reads {stale} by the truth (a stale value from an earlier battle)")
+
+
+def grade_OVERKILL(run: Run) -> None:
+    grade_common(run, walking=False)
+    first = [line for line in battle_lines(run) if re.search(r"turn \d+: fight ", line)][:1]
+    run.check(bool(first) and "Take Down" in first[0] and "(finishes it" in first[0]
+              and not re.search(r"turn \d+: fight Take Down:", first[0]),
+              f"every damaging move FINISHES the Poochyena (told '(finishes it: worth as the strongest)'), so the choice is by "
+              f"hit chance and recoil: not Take Down: {[f.split('battle: ')[-1][:260] for f in first]}")
+    game = check_replay(run)
+    if game is not None:
+        chosen = game_first_choice(game)
+        run.check(bool(chosen) and chosen != "Take Down", f"BY THE GAME (the replay): the Marshtomp's first move {chosen!r}")
+
+
+def grade_OVERKILLX(run: Run) -> None:
+    grade_common(run, walking=False)
+    run.check((run.verdict or {}).get("verdict") == "CLEAN", "a FAULT switch is the AI's own rule: purity is still CLEAN")
+    game = check_replay(run)
+    if game is not None:
+        chosen = game_first_choice(game)
+        run.check(chosen == "Take Down", f"BY THE GAME (the replay), FAULT (step 4's valuation): the first move {chosen!r}")
+
+
 GRADERS = {"WILD": grade_WILD, "CATCH": grade_CATCH, "TRAINER": grade_TRAINER, "RIVAL": grade_RIVAL,
            "CHALLENGE": grade_CHALLENGE, "TYPE": grade_TYPE, "TYPEX": grade_TYPEX, "FAINT": grade_FAINT, "LEARN": grade_LEARN,
-           "DFAINT": grade_DFAINT, "DFAINTX": grade_DFAINTX, "REFUSE": grade_REFUSE}
+           "DFAINT": grade_DFAINT, "DFAINTX": grade_DFAINTX, "REFUSE": grade_REFUSE,
+           # (step 4.1)
+           "SHIFT": grade_SHIFT, "SHIFTX": grade_SHIFTX, "HEAL": grade_HEAL, "SWITCH": grade_SWITCH, "RUN": grade_RUN,
+           "OVERKILL": grade_OVERKILL, "OVERKILLX": grade_OVERKILLX,
+           # (step 4.1 round 2)
+           "REFUSED": grade_REFUSED, "REFUSEDX": grade_REFUSEDX, "CATCHS": grade_CATCHS, "CATCHSX": grade_CATCHSX,
+           # (step 4.1 round 3)
+           "SHIFTC": grade_SHIFTC, "SHIFTCX": grade_SHIFTCX}
 
 
 # ---------------------------------------------------------------------- pre-registration
@@ -798,6 +1274,7 @@ def write_evidence(run: Run, code_ref: str, tag: str) -> Path:
     if run.stdout:
         keep = [line for line in run.stdout.splitlines() if line.startswith(("[AI-", "[DRIVER]"))]
         out += ["", "---- evidence lines from stdout ([AI-*]) ----", *[line[:600] for line in keep]]
+    keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 

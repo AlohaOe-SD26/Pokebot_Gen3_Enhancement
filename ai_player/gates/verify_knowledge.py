@@ -244,6 +244,9 @@ def main() -> int:
         verdict = "PASS (the plants were found, and nothing else)" if found == planted else f"FAIL (found {sorted(found)})"
     say(f"[VERIFY] OVERALL {verdict}")
     if args.evidence is not None:
+        from ai_player.gates.provenance import keep_earlier  # (step 4.1 round 3) an earlier tree's file is archived
+
+        keep_earlier(args.evidence)
         args.evidence.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 0 if verdict.startswith("PASS") else 1
 

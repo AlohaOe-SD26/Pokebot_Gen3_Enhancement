@@ -27,7 +27,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-from ai_player.gates.provenance import provenance  # noqa: E402  (the evidence's code line, since step 3's verifier)
+from ai_player.gates.provenance import keep_earlier, provenance  # noqa: E402  (the evidence's code line, since step 3's verifier)
 
 EVIDENCE = REPO / "ai_player" / "evidence"
 TIMEOUT = 300
@@ -173,6 +173,7 @@ def main() -> int:
     print(f"OVERALL: {verdict}")
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step11-REVERT.txt"
+    keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"evidence: {path.relative_to(REPO)}")
     return 0 if ok_all else 1

@@ -40,6 +40,12 @@ __all__ = [
     "ENV_FAULT_IGNORE_REFUSAL",
     "ENV_FAULT_IGNORE_TYPES",
     "ENV_FAULT_UNCAPPED_RECOIL",
+    "ENV_FAULT_OVERKILL",
+    "ENV_FAULT_SHIFT_FAINTED",
+    "ENV_FAULT_FORGET_UNUSABLE",
+    "ENV_FAULT_NO_CATCH_STATUS",
+    "ENV_FAULT_IGNORE_PP",
+    "ENV_FAULT_FORGET_SHIFT",
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
     "ENV_FAULT_NO_CROP",
@@ -186,13 +192,27 @@ ENV_FAULT_IGNORE_RECOIL = "AI_PLAYER_FAULT_IGNORE_RECOIL"
 ENV_FAULT_UNCAPPED_RECOIL = "AI_PLAYER_FAULT_UNCAPPED_RECOIL"
 ENV_FAULT_FORGET_FIELD = "AI_PLAYER_FAULT_FORGET_FIELD"
 ENV_FAULT_IGNORE_REFUSAL = "AI_PLAYER_FAULT_IGNORE_REFUSAL"
+#: FAULTS (step 4.1, `brain/battle.py` BattleFaults): every move valued uncapped (step 4: overkill valued); the shift
+#: question answered about the fainted foe and the party menu ranked by level (step 4); a refused move chosen again (step 4).
+ENV_FAULT_OVERKILL = "AI_PLAYER_FAULT_OVERKILL"
+ENV_FAULT_SHIFT_FAINTED = "AI_PLAYER_FAULT_SHIFT_FAINTED"
+ENV_FAULT_FORGET_UNUSABLE = "AI_PLAYER_FAULT_FORGET_UNUSABLE"
+#: FAULT (step 4.1 round 2, `brain/battle.py` BattleFaults): no sleep or paralysis move to help a catch (step 4: none).
+ENV_FAULT_NO_CATCH_STATUS = "AI_PLAYER_FAULT_NO_CATCH_STATUS"
+#: FAULT (step 4.1 round 2): the decider blind to its moves' PP, so the GAME refuses a move with none (as it refuses a
+#: Disabled one: the same code) and gives the move grid back: finding 2's refusal played live.
+ENV_FAULT_IGNORE_PP = "AI_PLAYER_FAULT_IGNORE_PP"
+#: FAULT (step 4.1 round 3): the shift question judged about the incoming foe, but the member chosen there NOT carried into
+#: the party menu (ranked again, by level): the live A/B of the carry (arm SHIFTCX).
+ENV_FAULT_FORGET_SHIFT = "AI_PLAYER_FAULT_FORGET_SHIFT"
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
     ENV_FAULT_KEEP_LISTENERS, ENV_FAULT_RAISE, ENV_FAULT_MANUAL, ENV_FAULT_HANG, ENV_FAULT_NO_REBIND,
     ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP, ENV_FAULT_UNGATED_A, ENV_FAULT_BLIND_COUNT,
     ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
-    ENV_FAULT_IGNORE_REFUSAL,
+    ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_FORGET_UNUSABLE,
+    ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT,
 )
 
 DEFAULT_FRAMES = 3000
@@ -307,6 +327,15 @@ class HandsOptions:
     fault_uncapped_recoil: bool = False
     fault_forget_field: bool = False
     fault_ignore_refusal: bool = False
+    # (step 4.1)
+    fault_overkill: bool = False
+    fault_shift_fainted: bool = False
+    fault_forget_unusable: bool = False
+    # (step 4.1 round 2)
+    fault_no_catch_status: bool = False
+    fault_ignore_pp: bool = False
+    # (step 4.1 round 3)
+    fault_forget_shift: bool = False
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -361,6 +390,12 @@ class HandsOptions:
             fault_uncapped_recoil=_flag(ENV_FAULT_UNCAPPED_RECOIL),
             fault_forget_field=_flag(ENV_FAULT_FORGET_FIELD),
             fault_ignore_refusal=_flag(ENV_FAULT_IGNORE_REFUSAL),
+            fault_overkill=_flag(ENV_FAULT_OVERKILL),
+            fault_shift_fainted=_flag(ENV_FAULT_SHIFT_FAINTED),
+            fault_forget_unusable=_flag(ENV_FAULT_FORGET_UNUSABLE),
+            fault_no_catch_status=_flag(ENV_FAULT_NO_CATCH_STATUS),
+            fault_ignore_pp=_flag(ENV_FAULT_IGNORE_PP),
+            fault_forget_shift=_flag(ENV_FAULT_FORGET_SHIFT),
         )
 
 

@@ -5,7 +5,7 @@ through the real launcher, under the purity instrument; plus the fault arms that
     py -3.12 ai_player/gates/live_step3.py [--arms HOUSE,TOWN,ROUTE,ROAM,CROP,STUCK,BUMP,BUMPR,TRN,XP,XPR,SCENE,SCENER,EXITS,
                                                   SCENEX,SCENEXR,SCENENR,HOUSER,TOWNR,ROUTER,EDGER,TOWN9,ROUTE9,WARPREAD,
                                                   BUMPSR,TOWN9R,ROUTE9R,HOUSE9,BUMP8,BUMPSR8,SCENEX9,F2AB,CLOCKS,SCENEXL,
-                                                  SCENEXC,FORGET,FORGETR,REOPEN,REOPENR]
+                                                  SCENEXC,FORGET,FORGETR,REOPEN,REOPENR,TOWNT,TOWNTR]
                                            [--seed 3] [--evidence-tag TAG]
 
 Each launcher arm runs `py -3.12 -m ai_player run` (the gate first, the purity instrument, the verdict file) with a
@@ -409,6 +409,18 @@ carry-on). What changed, and what each arm now predicts:
     REOPEN 13,974 frames. CLOCK_SENSITIVE stays ROAM and SCENEX (ROAM 13,475 or 16,646 frames over the 8 instants, SCENEX
     14,043 or 14,044); FORGET and REOPEN play the same frames at all 8 and are registered. SCENEX registers only what
     held at every instant: no lap ring.
+
+STEP 4.1 ROUND 2 (2026-10-09; the step-4 review's finding 7, "FIX the re-targeting so the walk itself gets closer to the
+shortest known way", after its verifier refuted step 4.1's JOURNEY charge: it helped TOWN-Trainer and made TOWN-Catcher worse
+on both seed sets; it is gone, with `JOURNEY_MUTATION`). The AI's walking code CHANGED by cause (`brain/explore.py` "THE
+WALK, NOT THE LABELS", `brain/navigator.py` "STEP 4.1 ROUND 2"): the Trainer walks UP TO a person it sees (a PEOPLE place;
+the step-4 pull was a bonus on unseen tiles near people, gone as soon as the player could see them: it turned back short of
+everyone); a person stepping onto the way is waited for, not walked round backwards; a detour bends the way, never two tiles
+aside and back. NEW ARMS (its verifier's weak proof: "no live arm meets a doubling back"): TOWNT (launcher, TOWN as the
+Trainer, seed 3: it walks up to people and waits for one who steps into its way) and TOWNTR (in-process, a COPY with
+`WALK_MUTATIONS`: the step-4 explorer's walk), the A/B one pair of trajectories; the frequency is the sweep's WALK A/B
+(`rate_step3.py`). Every number re-registered from the development pass of this code (`--evidence-tag step3dev41b`,
+moved out before the graded run): the arms whose trajectories moved are named at `PREDICTED`.
 """
 
 from __future__ import annotations
@@ -434,7 +446,7 @@ from ai_player.brain.navigator import CHUNK_FRAMES  # noqa: E402
 from ai_player.gates.live_step2 import (  # noqa: E402
     check_purity, classify_a, clean_env, make_copy, run_json, truth_of,
 )
-from ai_player.gates.provenance import provenance as tree_provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance  # noqa: E402
 from ai_player.hands.dialogue import GENERIC_BUSY  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
 from ai_player.options import (  # noqa: E402
@@ -494,7 +506,7 @@ SCENE_LINE = f"a scene stopped the way to the goto at {SCENE_TARGET}"
 #: bound is the pre-registered count of this code's seed-3 trajectory, 0 on each ("AFTER THE STEP-3.1 VERIFIER" in the
 #: docstring); the revert arms HOUSER, TOWNR and ROUTER play the same starts and seed with the rules reverted and must
 #: break it. Another seed (the replication arms) is held to the sweep's per-run bound, `REVERSALS_PER_RUN`.
-REVERSALS_SEED3 = {"HOUSE": 0, "TOWN": 0, "ROUTE": 0}
+REVERSALS_SEED3 = {"HOUSE": 0, "TOWN": 0, "ROUTE": 0, "TOWNT": 0}
 #: (build step 3.2) 2, was 1: a target BEHIND is now reached by turning back where the step-3.1 code walked round (a lap,
 #: which this metric cannot see: the review's finding 2), and a run that explores two rooms to their end turns back at
 #: the end of each (the development sweep's TOWN-Trainer seed 9: Littleroot's west end, then May's upper floor). The laps
@@ -555,6 +567,26 @@ WHIM_MUTATION = ("brain/explore.py", "    moving = nav.choosing_on_the_move\n", 
 CHURN_MUTATION = ("brain/navigator.py",
                   "                carried = intent.carry_on(self, look, target) if stale is not None and intent.carry_on is not None else None\n",
                   "                carried = None  # MUTANT CHURN: never carried on (the step-3.2 rule)\n")
+#: (step 4.1 ROUND 2, the step-4 review's finding 7: "FIX the re-targeting so the walk itself gets closer to the shortest
+#: known way"; step 4.1's journey charge is gone, refuted by its verifier) THE STEP-4 EXPLORER'S WALK, restored in a COPY:
+#: the Trainer's people pull as a bonus on unseen tiles within 3 of a person seen lately and no PEOPLE places
+#: (`brain/explore.py`); every person standing on a followed plan breaks it at once, no wait (`brain/navigator.py`
+#: `_next_step`); a detour's tile any tile 1 or 2 from the way's middle (`_detour`). The sweep's WALK A/B (`rate_step3.py`)
+#: and the live arm TOWNTR
+WALK_MUTATIONS = (
+    ("brain/explore.py", "    if weights.people > 0:\n        tries = getattr(nav, \"people_tries\", {})\n",
+     "    if False:  # MUTANT WALK: no PEOPLE places\n        tries = getattr(nav, \"people_tries\", {})\n"),
+    ("brain/explore.py", "        add(\"frontier\", tile, value, f\"{unknown} unseen tile(s) beside it\")\n",
+     "        _people = [xy for xy, frame in memory.people.items() if look.frame - frame < 600]  # MUTANT WALK: the step-4 pull\n"
+     "        if _people and min(abs(tile[0] - p[0]) + abs(tile[1] - p[1]) for p in _people) <= 3:\n"
+     "            value += weights.people\n"
+     "        add(\"frontier\", tile, value, f\"{unknown} unseen tile(s) beside it\")\n"),
+    ("brain/navigator.py", "            further = memory.people_now - near - kept\n",
+     "            further = frozenset()  # MUTANT WALK: every person on the plan breaks it\n"),
+    ("brain/navigator.py", "            if (left is None and near and plan.waits < PERSON_PLAN_WAITS\n",
+     "            if (False  # MUTANT WALK: no wait\n"),
+    ("brain/navigator.py", "                   <= len(path) + DETOUR_EXTRA]\n", "                   <= 10 ** 6]  # MUTANT WALK: any detour\n"),
+)
 #: (the step-4 verifier's round: findings 3 and 5 live) FORGET's errands in the player's room: to (0, 4), INTO the planted
 #: tile (0, 5) from above (the only way not dearer: a retry of the planted bump), back up, then PAST it to (0, 6) (through
 #: it 2 steps; round it 6: (1, 4), (2, 4), (2, 5), (2, 6), (1, 6), (0, 6)); the tile and its planted sides
@@ -606,7 +638,11 @@ PREDICTED: dict[str, dict] = {
     # ROAM, SCENEX: CLOCK-SENSITIVE (arm CLOCKS): no frame or press count for a launcher run; see "CLOCKS". SCENEX registers
     # only what held at every instant of CLOCKS: no lap ring
     "SCENEX": {"lap_rings": 0},
-    "CROP": {"frames": 5559, "presses": 117},
+    # (STEP 4.1 ROUND 2) RE-REGISTERED from this round's development pass (`--evidence-tag step3dev41b`, moved out of the
+    # evidence folder before the graded run): the walk's new rules (a person in the way waited for, a detour that bends, the
+    # Trainer's people places) moved CROP, SCENEXR, SCENENR, TOWNR, ROUTER, TOWN9, TOWN9R, SCENEX9, F2AB, CLOCKS, SCENEXL,
+    # REOPEN and REOPENR (each said here with its step-4.1 number); TOWNT and TOWNTR are new
+    "CROP": {"frames": 5787, "presses": 138},  # step 4.1: 5559 / 117
     "STUCK": {"frames": 1357, "presses": 24},
     "BUMP": {"bumps": 1, "frames": 307, "presses": 25},
     "BUMPR": {"frames": 3123, "presses": 386},
@@ -615,21 +651,23 @@ PREDICTED: dict[str, dict] = {
     "XPR": {"frames": 3032, "presses": 113},
     "SCENE": {"frames": 2471, "presses": 37},
     "SCENER": {"frames": 3570, "presses": 43},
-    "SCENEXR": {"frames": 15005, "presses": 382, "twin_pushes": 4, "twin_segments": [4, 0]},
-    "SCENENR": {"frames": 12387, "presses": 336, "twin_pushes": 3},
+    "SCENEXR": {"frames": 14954, "presses": 374, "twin_pushes": 4, "twin_segments": [4, 0]},  # step 4.1: 15005 / 382
+    "SCENENR": {"frames": 12328, "presses": 329, "twin_pushes": 3},  # step 4.1: 12387 / 336
     "HOUSER": {"frames": 3344, "presses": 52, "reversals": 1, "stale_walked": 1, "steps": 18},
-    "TOWNR": {"frames": 4945, "presses": 89, "reversals": 1, "stale_walked": 4, "steps": 36},
-    "ROUTER": {"frames": 2083, "presses": 108, "reversals": 1, "stale_walked": 5, "steps": 51},
+    "TOWNR": {"frames": 5005, "presses": 89, "reversals": 1, "stale_walked": 4, "steps": 36},  # step 4.1: 4945 frames
+    # step 4.1: 2083 / 108, reversals 1, stale_walked 5, steps 51
+    "ROUTER": {"frames": 1119, "presses": 110, "reversals": 2, "stale_walked": 6, "steps": 55},
     "EDGER": {"frames": 4640, "presses": 71},
-    "TOWN9": {"frames": 4690, "presses": 71, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 26, "laps": 0,
-              "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 18, "lap_rings": 0, "churn": [3, 1, 18, 3, 0],
-              "journey_all": [26, 0]},
+    # step 4.1: 4690 / 71, stale_dropped 1, steps 26, carried 18, churn [3, 1, 18, 3, 0], journey_all [26, 0]
+    "TOWN9": {"frames": 4938, "presses": 104, "reversals": 0, "stale_dropped": 4, "stale_walked": 0, "steps": 43, "laps": 0,
+              "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 22, "lap_rings": 0, "churn": [6, 4, 22, 6, 0],
+              "journey_all": [43, 14]},
     "ROUTE9": {"frames": 1732, "presses": 78, "reversals": 0, "stale_dropped": 6, "stale_walked": 0, "steps": 35, "laps": 0,
                "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 15, "lap_rings": 0, "churn": [7, 6, 15, 7, 0],
                "journey_all": [35, 0]},
     "WARPREAD": {"plant_attribute_caught": 5, "plant_getattr_caught": 5, "plant_raw_caught": 5},
     "BUMPSR": {"bumps": 1, "errand_steps": [4, 4], "frames": 371, "presses": 33},
-    "TOWN9R": {"frames": 5750, "presses": 179, "reversals": 1, "stale_walked": 8, "steps": 83},
+    "TOWN9R": {"frames": 5750, "presses": 179, "reversals": 0, "stale_walked": 8, "steps": 83},  # step 4.1: reversals 1
     "ROUTE9R": {"frames": 4220, "presses": 114, "reversals": 2, "stale_walked": 5, "steps": 48},
     "HOUSE9": {"frames": 3207, "presses": 36, "reversals": 0, "stale_dropped": 1, "stale_walked": 0, "steps": 10, "laps": 0,
                "lap_excess": 0, "lap_worst": 0, "rings": 0, "carried": 0, "lap_rings": 0, "churn": [3, 1, 0, 3, 1],
@@ -637,25 +675,38 @@ PREDICTED: dict[str, dict] = {
     "BUMP8": {"bumps": 1, "frames": 264, "presses": 25},
     "BUMPSR8": {"bumps": 1, "errand_steps": [4, 4], "frames": 328, "presses": 33},
     # (build step 3.2) no longer clock-sensitive (arm CLOCKS): its launcher frames are registered
-    "SCENEX9": {"frames": 14199, "presses": 395, "twin_pushes": 3, "twin_segments": [3, 0], "laps": 0, "lap_excess": 2,
+    # step 4.1: 14199 / 395
+    "SCENEX9": {"frames": 14251, "presses": 394, "twin_pushes": 3, "twin_segments": [3, 0], "laps": 0, "lap_excess": 2,
                 "lap_worst": 2, "rings": 0, "lap_rings": 0, "churn": [25, 12, 17, 24, 4], "journey_all": [112, 36]},
-    "F2AB": {"reversals_real": 0, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 23},
-    # every launcher arm in-process with the cartridge's clock pinned at GAME_CLOCK (the development pass of this code)
+    "F2AB": {"reversals_real": 0, "reversals_revert": 6, "stale_walked_real": 0, "stale_walked_revert": 24},  # step 4.1: 23
+    # every launcher arm in-process with the cartridge's clock pinned at GAME_CLOCK (the development pass of this code);
+    # step 4.1: CROP [5559, 117], SCENEX [14043, 376], TOWN9 [4690, 71], SCENEX9 [14199, 395], REOPEN [13974, 378]; TOWNT new
     "CLOCKS": {"clock_sensitive": ["ROAM", "SCENEX"],
                "HOUSE@pinned": [3176, 36], "TOWN@pinned": [4640, 71], "ROUTE@pinned": [633, 71], "ROAM@pinned": [16646, 399],
-               "CROP@pinned": [5559, 117], "STUCK@pinned": [1357, 24], "BUMP@pinned": [307, 25], "TRN@pinned": [596, 1],
-               "XP@pinned": [3600, 137], "SCENE@pinned": [2471, 37], "SCENEX@pinned": [14043, 376], "TOWN9@pinned": [4690, 71],
+               "CROP@pinned": [5787, 138], "STUCK@pinned": [1357, 24], "BUMP@pinned": [307, 25], "TRN@pinned": [596, 1],
+               "XP@pinned": [3600, 137], "SCENE@pinned": [2471, 37], "SCENEX@pinned": [14062, 375], "TOWN9@pinned": [4938, 104],
                "ROUTE9@pinned": [1732, 78], "HOUSE9@pinned": [3207, 36], "BUMP8@pinned": [264, 25],
-               "SCENEX9@pinned": [14199, 395], "FORGET@pinned": [305, 22], "REOPEN@pinned": [13974, 378]},
-    # (build step 3.2) finding 1 reverted, in-process at the pinned clock; (the step-4 verifier's round) its LAP RINGS
-    "SCENEXL": {"frames": 14851, "presses": 477, "laps": 0, "lap_excess": 46, "lap_worst": 16, "rings": 4, "lap_rings": 4},
+               "SCENEX9@pinned": [14251, 394], "FORGET@pinned": [305, 22], "REOPEN@pinned": [14633, 469],
+               "TOWNT@pinned": [4970, 97]},
+    # (build step 3.2) finding 1 reverted, in-process at the pinned clock; (the step-4 verifier's round) its LAP RINGS;
+    # step 4.1: 14851 / 477, lap_excess 46, lap_worst 16
+    "SCENEXL": {"frames": 14682, "presses": 460, "laps": 0, "lap_excess": 44, "lap_worst": 22, "rings": 4, "lap_rings": 4},
     # (the step-4 verifier's round) the churn's revert, and findings 3 and 5 live
     "SCENEXC": {"frames": 12457, "presses": 315, "churn": [60, 48, 0, 57, 35], "journey_all": [125, 48]},
     "FORGET": {"frames": 305, "presses": 22, "errand_steps": [1, 2]},
     "FORGETR": {"frames": 369, "presses": 30, "errand_steps": [1, 6]},
-    "REOPEN": {"frames": 13974, "presses": 378, "laps": 0, "lap_excess": 0, "lap_worst": 0, "rings": 0, "lap_rings": 0,
-               "churn": [30, 17, 32, 29, 6], "journey_all": [147, 46]},
-    "REOPENR": {"frames": 6951, "presses": 319},
+    # step 4.1: 13974 / 378, churn [30, 17, 32, 29, 6], journey_all [147, 46]
+    "REOPEN": {"frames": 14633, "presses": 469, "laps": 0, "lap_excess": 0, "lap_worst": 0, "rings": 0, "lap_rings": 0,
+               "churn": [24, 11, 16, 24, 3], "journey_all": [113, 34]},
+    "REOPENR": {"frames": 7772, "presses": 337},  # step 4.1: 6951 / 319
+    # (step 4.1 round 2) the Trainer walks UP TO people and waits for one in the way ("people": [decisions to walk up to
+    # someone, people met, people seen], every map; "waits": the waits for someone on the way), and its revert (the step-4
+    # explorer's walk): every journey 10 beyond of 37 walked with the new walk, 26 of 52 with the step-4 one
+    "TOWNT": {"frames": 4970, "presses": 97, "reversals": 0, "stale_dropped": 8, "stale_walked": 0, "steps": 37, "laps": 0,
+              "lap_excess": 2, "lap_worst": 2, "rings": 0, "carried": 8, "lap_rings": 0, "churn": [10, 8, 8, 10, 3],
+              "journey_all": [37, 10], "people": [3, 7, 7], "waits": 3},
+    "TOWNTR": {"frames": 5040, "presses": 123, "churn": [18, 16, 12, 18, 9], "journey_all": [52, 26], "people": [0, 5, 7],
+               "reversals": 0},
 }
 #: The replication arms (another seed, the launcher): the arm they replay, and its seed
 REPLICATION_SEED = 9
@@ -903,6 +954,14 @@ ARMS: list[Arm] = [
         args=("--goal-map", "ROUTE101", "--personality", "Story", "--world-in", str(FIXTURES["littleroot_closed.world.jsonl"][0])),
         mutations=(REOPEN_MUTATION,), doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)",
         base="REOPEN"),
+    # ---- step 4.1 ROUND 2 (the step-4 review's finding 7; its verifier's weak proof: "no live arm meets a doubling back")
+    Arm("TOWNT", "TOWN as the TRAINER: it walks UP TO the people it sees (a PEOPLE place beside each, met within 3 tiles) and "
+        "waits for someone who steps into its way, from Birch's lab to the road to Route 101", "explore", "pokedex_done.ss1",
+        20000, 900.0, {ENV_GOAL_MAP: "ROUTE101", ENV_PERSONALITY: "Trainer"}, doc="as TOWN, the Trainer personality"),
+    Arm("TOWNTR", "REVERT of TOWNT: the step-4 explorer's walk (the people pull on unseen tiles near them, a person on the plan "
+        "breaking it at once, a detour two aside and back), in a COPY", "explore", "pokedex_done.ss1", 20000, 900.0,
+        kind="harness", args=("--goal-map", "ROUTE101", "--personality", "Trainer"), mutations=WALK_MUTATIONS,
+        doc="gates/hands_harness.py from a copy of the package (in-process, not a purity proof)", base="TOWNT"),
 ]
 
 
@@ -1479,10 +1538,15 @@ def grade_TOWN(run: Run) -> None:
               f"the connection learned with its offset: {connection}")
     check_crop(run)
     s0, s1 = stats(before, "steps"), stats(after, "steps")
-    ai_steps = walk_steps_on(run, "0:9") + walk_steps_on(run, "1:4") + walk_steps_on(run, "0:16")
+    # (step 4.1 round 2, found by arm TOWNT's development pass: a "walk" press into a person who stepped into the way at
+    # that moment is no step, and the AI says so, "someone is in the way") the AI's steps the LOOKS CONFIRMED on these maps
+    # (`walk_stretches`); the walking presses are reported beside them
+    ai_steps = sum(len(stretch) - 1 for stretch in walk_stretches(run) if stretch[0][0] in ("0:9", "1:4", "0:16"))
+    pressed = walk_steps_on(run, "0:9") + walk_steps_on(run, "1:4") + walk_steps_on(run, "0:16")
     run.check(isinstance(s0, int) and isinstance(s1, int) and s1 - s0 >= ai_steps > 0,
               f"the game's OWN step counter (gameStats[GAME_STAT_STEPS]): {s0} -> {s1} (+{(s1 or 0) - (s0 or 0)}) >= the AI's "
-              f"walking steps {ai_steps} (a scene's movements count too)")
+              f"steps the looks confirmed {ai_steps} (a scene's movements count too; walking presses {pressed}: a press into a "
+              f"person who stepped into the way is no step)")
     run.notes.append(f"TOWN: {walk_steps_on(run, '0:9')} walking steps on LITTLEROOT_TOWN; decisions "
                      f"{sum(1 for r in run.records if r.get('decision') == 'decide')}")
     check_reversals(run)
@@ -1736,6 +1800,8 @@ LAP_STEPS = (4, 12)
 #: loop counted from two of its tiles: `rings` now counts a loop once).
 LAP_BOUNDS: dict[str, dict[str, int]] = {
     "TOWN": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
+    # (step 4.1 round 2) TOWNT as TOWN: the sweep's per-run bound (`rate_step3.py` LAP_SWEEP_BOUNDS) on every lapped plan
+    "TOWNT": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
     "ROUTE": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
     "SCENEX": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
     "SCENEX9": {"laps": 0, "excess": 4, "worst": 2, "lap_rings": 1},
@@ -1833,6 +1899,10 @@ def journeys(walks: list[dict]) -> list[dict]:
         current = out[-1] if out else None
         joined = (current is not None and walk.get("on_the_move") and walk["map"] == current["map"]
                   and walk["from"] == current["to"] and walk["frame"] >= current["last_frame"])
+        # (step 4.1 round 3, the verifier: "the walk fix moves only TOWN-Trainer ... the churn rule still does not shorten
+        # walks") each walk's own steps beyond the shortest known way to where IT ended (`excess`, a detour's included): the
+        # part of a journey's excess that is the WALKING; the rest is the cost of changing target on the way
+        leg = max(0, walk.get("excess") or 0)
         if joined:
             current["walked"] += walk["walked"]
             current["to"] = walk["to"]
@@ -1840,10 +1910,11 @@ def journeys(walks: list[dict]) -> list[dict]:
             current["detour"] = current["detour"] or bool(walk.get("detour"))
             current["last_frame"] = walk["frame"]
             current["end_frame"] = walk.get("end_frame", walk["frame"])
+            current["legs_excess"] += leg
         else:
             out.append({"map": walk["map"], "from": walk["from"], "to": walk["to"], "walked": walk["walked"], "targets": 1,
                         "detour": bool(walk.get("detour")), "frame": walk["frame"], "last_frame": walk["frame"],
-                        "end_frame": walk.get("end_frame", walk["frame"])})
+                        "end_frame": walk.get("end_frame", walk["frame"]), "legs_excess": leg})
     return out
 
 
@@ -1960,7 +2031,12 @@ def lap_report(run: Run) -> dict:
             "journey_targets": sum(t["targets"] for t in trips_graded),
             "journeys_all": len(trips_all), "journey_all_walked": sum(t["walked"] for t in trips_all),
             "journey_all_excess": sum(max(0, t["excess"]) for t in trips_all),
-            "journey_all_worst": max((t["excess"] for t in trips_all), default=0)}
+            "journey_all_worst": max((t["excess"] for t in trips_all), default=0),
+            # (step 4.1 round 3) EVERY journey's excess split: its walks' own steps beyond the shortest known way to where
+            # each ended (the WALKING), and the rest, what changing target on the way cost (the RE-TARGETING: a target gone
+            # stale, seen past, nothing left there, met, or another place clearly better)
+            "journey_all_legs": sum(min(max(0, t["excess"]), t["legs_excess"]) for t in trips_all),
+            "journey_all_retarget": sum(max(0, max(0, t["excess"]) - t["legs_excess"]) for t in trips_all)}
 
 
 def choices_on_the_move(run: Run) -> dict:
@@ -2052,13 +2128,23 @@ STALE_PREFIX = "is not worth going to any more"
 #: beyond the shortest known way from where it began to where it ended over the steps those journeys walked
 #: ("journey_share": maxima 0.40, 0.15, 0.47; the step-3.2 rule's maxima 0.42, 0.19, 0.44: no dearer than before). The
 #: revert arm SCENEXC (the carry-on off: the step-3.2 rule) must break "ones" on SCENEX's start and seed.
+#: (step 4.1, the step-4 review's finding 7: "a loose bound") the journey bounds of ONE run re-registered from the step-4.1
+#: development sweep's PER-RUN maxima (seeds 1-10, `JOURNEY_SLACK` 4): TOWN 0.36 (seed 6; the rest 0 to 0.07), ROUTE 0.15,
+#: SCENE-EXPLORE 0.48 (seed 4); a live arm is one run (and SCENEX reads the host's clock), so a run's bound covers the
+#: sweep's worst run, and the sweep's own PER-PLAN bounds (`rate_step3.py` CHURN_PLAN_BOUNDS, pooled) are the tight ones
+#: (STEP 4.1 ROUND 2) RE-REGISTERED from the per-run maxima of 20 development seeds of the final code (1-10 and 101-110,
+#: `rate_step3`'s plans in-process, the clock pinned): TOWN's journeys up to 0.46 (seed 102; the step-4.1 registration 0.40
+#: covered ten seeds only), ROUTE 0.15, SCENE-EXPLORE 0.45, TOWN-Trainer 0.44 with 32.4 decisions on the move per 100 steps
+#: and 0.38 of its walks one step: a bound of ONE run covers the worst run of 20, and the sweep's per-plan bounds (pooled
+#: over 10 seeds: `rate_step3.py` CHURN_PLAN_BOUNDS) are the tight ones
 CHURN_BOUNDS: dict[str, dict[str, float]] = {
-    "TOWN": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.45},
-    "ROUTE": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.25},
-    "SCENEX": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.55},
-    "TOWN9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.45},
-    "ROUTE9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.25},
-    "SCENEX9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.55},
+    "TOWN": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.50},
+    "ROUTE": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.20},
+    "SCENEX": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.50},
+    "TOWN9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.50},
+    "ROUTE9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.20},
+    "SCENEX9": {"move_per_100": 25.0, "ones": 0.45, "journey_share": 0.50},
+    "TOWNT": {"move_per_100": 35.0, "ones": 0.45, "journey_share": 0.50},
 }
 
 
@@ -2997,6 +3083,69 @@ def grade_CHURNR(run: Run, real: Run | None) -> None:
                   f"{c['steps']} without")
 
 
+def people_of(run: Run) -> dict:
+    """(step 4.1 round 2, finding 7) The PEOPLE of a run, from the AI's own action log and memory: the decisions to walk up
+    to someone (`decide` records of kind "people": who, and the tile beside them), the people it saw (`persons`) and those it
+    MET (`met`: the player stood within `world/memory.py` MEET_RADIUS tiles of them), keyed (map, who)."""
+    decided = [((r.get("extra") or {}).get("map"), (r.get("extra") or {}).get("who"), (r.get("extra") or {}).get("target"))
+               for r in run.records if r.get("decision") == "decide" and (r.get("extra") or {}).get("kind") == "people"]
+    world = memory_of(run)
+    seen = {(key, who): xy for key, memory in (world.maps.items() if world else []) for who, xy in memory.persons.items()}
+    met = {(key, who): frame for key, memory in (world.maps.items() if world else []) for who, frame in memory.met.items()}
+    waited = [r for r in run.records if "letting them pass" in str(r.get("reason"))]
+    return {"decided": decided, "seen": seen, "met": met, "waited": waited}
+
+
+def grade_TOWNT(run: Run) -> None:
+    """(step 4.1 round 2, the step-4 review's finding 7 and its verifier's weak proof: "Finding 7 is proven by the sweep only:
+    no live arm meets a doubling back") TOWN as the TRAINER, through the launcher: every claim of TOWN (the lab to Route 101
+    by save block 1, the Running Shoes, the crop, the reversals, the laps, the churn), and the new walk it plays: it WALKS UP
+    TO the people it sees (PEOPLE decisions; each person it decided for is MET by its memory, or left after
+    `navigator.MEET_TRIES`), and someone stepping into its way is WAITED for (no step back: its reversals 0). Its revert
+    TOWNTR (the step-4 explorer's walk) is the A/B."""
+    grade_TOWN(run)
+    people = people_of(run)
+    decided = {(key, who) for key, who, _ in people["decided"]}
+    tries = {key_who: sum(1 for key, who, _ in people["decided"] if (key, who) == key_who) for key_who in decided}
+    unmet = [k for k in decided if k not in people["met"] and tries[k] < 2]
+    run.check(bool(decided) and not unmet and decided & set(people["met"]),
+              f"THE PEOPLE (finding 7), the AI's own log and memory: {len(people['decided'])} decisions to walk UP TO someone "
+              f"{people['decided']}; of the {len(people['seen'])} people it saw, MET (within the memory's MEET_RADIUS) "
+              f"{sorted(people['met'])}; every person it decided for met or left after two tries (not met: {unmet or 'none'})")
+    run.notes.append(f"WAITED for someone in the way (finding 7): {len(people['waited'])} times "
+                     f"{[str(r.get('reason'))[:120] for r in people['waited'][:4]]}")
+    run.measure("people", [len(people["decided"]), len(people["met"]), len(people["seen"])])
+    run.measure("waits", len(people["waited"]))
+
+
+def grade_TOWNTR(run: Run, real: Run | None) -> None:
+    """(step 4.1 round 2, finding 7) TOWNT's start and seed from a COPY with the STEP-4 EXPLORER'S WALK (`WALK_MUTATIONS`:
+    the people pull a bonus on unseen tiles near people, a person on the plan breaking it at once, a detour two aside and
+    back). HARM: no decision to walk up to anyone (the pull is on unseen tiles). THE A/B (one pair of trajectories: the
+    frequency is the sweep's WALK A/B, `rate_step3.py`): every journey's steps beyond the shortest known way, and the people
+    met, against TOWNT."""
+    data = run.harness or {}
+    people = people_of(run)
+    c = churn(run)
+    steps, found = path_reversals(run)
+    run.measure("churn", [c["decisions"], c["on_the_move"], c["carried"], c["walks"], c["ones"]])
+    run.measure("journey_all", [c["journey_all_walked"], c["journey_all_excess"]])
+    run.measure("people", [len(people["decided"]), len(people["met"]), len(people["seen"])])
+    run.measure("reversals", len(found))
+    run.check(str(data.get("reason", "")).startswith("explore: done"), f"the run's outcome: {str(data.get('reason'))[:160]!r}")
+    run.check(not people["decided"], f"HARM (the step-4 pull): no decision to walk up to anyone: {people['decided'] or 'none'}; "
+                                     f"met by passing by: {sorted(people['met'])}")
+    if real is not None:
+        mine, theirs = churn(real), people_of(real)
+        run.check(mine["journey_all_excess"] < c["journey_all_excess"] and len(theirs["met"]) >= len(people["met"]),
+                  f"A/B on the same start and seed (ONE pair; the frequency is the sweep's WALK A/B): every journey's steps "
+                  f"beyond the shortest known way {mine['journey_all_excess']} of {mine['journey_all_walked']} with the walk of "
+                  f"step 4.1 round 2 ({real.arm.name}), {c['journey_all_excess']} of {c['journey_all_walked']} with the step-4 "
+                  f"walk (want fewer with); people MET {len(theirs['met'])} with, {len(people['met'])} without (want no fewer); "
+                  f"reported: steps {mine['steps']} with, {c['steps']} without; reversals {len(path_reversals(real)[1])} with, "
+                  f"{len(found)} without")
+
+
 def errand_walk(run: Run, number: int) -> list[tuple[int, int]]:
     """(the step-4 verifier's round) The AI's own confirmed steps (`walk_stretches`) from its decision "errand N of ..." to
     its next decision, as the tiles walked onto."""
@@ -3186,7 +3335,9 @@ GRADERS = {"HOUSE": grade_HOUSE, "TOWN": grade_TOWN, "ROUTE": grade_ROUTE, "ROAM
            "WARPREAD": grade_WARPREAD, "HOUSE9": grade_HOUSE, "BUMP8": grade_BUMP, "SCENEX9": grade_SCENEX,
            "CLOCKS": grade_CLOCKS,
            # the step-4 verifier's round
-           "FORGET": grade_FORGET, "REOPEN": grade_REOPEN}
+           "FORGET": grade_FORGET, "REOPEN": grade_REOPEN,
+           # step 4.1 round 2
+           "TOWNT": grade_TOWNT}
 #: Graders that compare with another arm of the same session (the arm named): a fault arm or a revert and its real arm.
 PAIRED = {"CROP": (grade_CROP, "TOWN"), "XPR": (grade_XPR, "XP"), "SCENER": (grade_SCENER, "SCENE"),
           "SCENEXR": (grade_SCENEXR, "SCENEX"), "HOUSER": (grade_REVR, "HOUSE"), "TOWNR": (grade_REVR, "TOWN"),
@@ -3197,7 +3348,9 @@ PAIRED = {"CROP": (grade_CROP, "TOWN"), "XPR": (grade_XPR, "XP"), "SCENER": (gra
           # build step 3.2
           "SCENEXL": (grade_LAPR, "SCENEX"), "ROUTE9": (grade_ROUTE9, "ROUTE"),
           # the step-4 verifier's round
-          "SCENEXC": (grade_CHURNR, "SCENEX"), "FORGETR": (grade_FORGETR, "FORGET"), "REOPENR": (grade_REOPENR, "REOPEN")}
+          "SCENEXC": (grade_CHURNR, "SCENEX"), "FORGETR": (grade_FORGETR, "FORGET"), "REOPENR": (grade_REOPENR, "REOPEN"),
+          # step 4.1 round 2
+          "TOWNTR": (grade_TOWNTR, "TOWNT")}
 #: Graders of the whole session (every run graded before them): FINDING 2's A/B over its pairs.
 SUMMARIES = {"F2AB": grade_F2AB}
 
@@ -3367,6 +3520,7 @@ def write_evidence(run: Run, code_ref: str, tag: str, predictions: str = "") -> 
     if run.stdout:
         keep = [line for line in run.stdout.splitlines() if line.startswith(("[AI-", "[DRIVER]"))]
         out += ["", "---- evidence lines from stdout ([AI-*]) ----", *[line[:500] for line in keep]]
+    keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 

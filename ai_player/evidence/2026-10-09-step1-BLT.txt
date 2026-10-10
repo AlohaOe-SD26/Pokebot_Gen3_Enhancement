@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM BLT: STEP 1.1 finding 2: a trainer battle played to its end, the [TRAINER] end line
-date: 2026-10-09 02:55:39
-code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-09 19:15:03
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 fixture: (several, see below)
 fixture documentation: probe_step11.py trainer, from E10's fixture; and BLT-X, the between-screens guard reverted
 command: (no AI run: probes only)
@@ -11,7 +11,7 @@ checks (pre-registered in ai_player/gates/live_step1.py's docstring; each quotes
   [PASS] [TRAINER] end, ONE line: ['f215021 [TRAINER] end opp=322 last_seen=Machop#66 lvl_last_seen=9 res=Won money=6680->6824 delta=144 map=ROUTE 116 source=ai-eyes']; truth: money 6680 -> 6824 (the probe's decode of save block 1, XOR the key, before the first press and after the overworld is back), the battle's own text 'NICK got <B7>144<FE>for winning!<FB>' (prize 144), the opponent of E5/E10 (322 JOEY), the foe Machop L9; want 'opp=322 last_seen=Machop#66 lvl_last_seen=9 res=Won money=6680->6824 delta=144'
   [PASS] no line says InProgress, and no [DEX] line drops (the save blocks move at the battle's end): none
   [PASS] scoring.parse_log(the scenario's lines): money_last=6824 (want 6824), losses={}
-  [PASS] [BLT-X] REVERTED: the between-screens guard removed (save blocks read while MoveSaveBlocks_ResetHeap moves them); the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step11_dvwppex1\ai_player\host\eyes.py): CAUGHT (predicted caught): [DEX] lines that drop: ['f215023 [DEX] owned 5 -> 0: +']
+  [PASS] [BLT-X] REVERTED: the between-screens guard removed (save blocks read while MoveSaveBlocks_ResetHeap moves them); the copy's eyes ran (C:\Users\Ripto\AppData\Local\Temp\ai_player_step11_a3m39oc8\ai_player\host\eyes.py): CAUGHT (predicted caught): [DEX] lines that drop: ['f215023 [DEX] owned 5 -> 0: +']
 
 ---- notes ----
 the scenario's scorer lines:

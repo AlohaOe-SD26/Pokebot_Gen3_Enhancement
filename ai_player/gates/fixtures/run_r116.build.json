@@ -1,0 +1,271 @@
+{
+ "fixture": "run_r116.ss1",
+ "md5": "5f7e8b23495c1533030619cc27943e1e",
+ "source": [
+  "tools/story-dev/saves/route116team.ss1",
+  "9710585350be10534737c4362c33189e"
+ ],
+ "played_by": "test-side reorder + the AI's battle brain (Story, roaming, seed 1), clock 2026-10-08T10:00",
+ "at": {
+  "lead": [
+   "Poochyena",
+   4,
+   5,
+   17
+  ],
+  "strongest": [
+   "Mudkip",
+   37,
+   40
+  ],
+  "trainer": false
+ },
+ "battle_starts_seen": [
+  {
+   "seed": 1,
+   "lead": [
+    "Poochyena",
+    4,
+    16,
+    17
+   ],
+   "strongest": [
+    "Mudkip",
+    37,
+    40
+   ],
+   "trainer": false
+  },
+  {
+   "seed": 1,
+   "lead": [
+    "Poochyena",
+    4,
+    5,
+    17
+   ],
+   "strongest": [
+    "Mudkip",
+    37,
+    40
+   ],
+   "trainer": false
+  }
+ ],
+ "steps": [
+  "f136717 Start: open the START menu",
+  "f136756 Down: START menu cursor 0 (sStartMenuCursorPos), POKéMON at 1",
+  "f136775 A: the START menu's POKéMON",
+  "f136843 Down: party cursor 0, wanted 1",
+  "f136862 A: the member in slot 1",
+  "f136881 Down: party_action cursor 0, wanted 1",
+  "f136900 A: SWITCH",
+  "f136939 Up: the switch's second cursor (gPartyMenu.slotId2) on 1, wanted 0",
+  "f136958 A: switch with the first slot",
+  "f137041 B: close the menu (party, party)",
+  "f137120 B: close the menu (start_menu, no view)",
+  "f137169 party order now ['5815089e', '550a9be6', '4457d0fb', '7e9bb3ba']",
+  "f141114 brain battle {'brain': 'battle', 'battles': 30, 'seed': 1}: 3945 frames -> None (stopped: {\"lead\": [\"Poochyena\", 4, 5, 17], \"strongest\": [\"Mudkip\", 37, 40], \"trainer\": false})"
+ ],
+ "ai_lines": [
+  "[battle] [AI-HANDS] brain=battle seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=60000",
+  "[battle] [AI-HANDS] battle brain: 30 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L6 (Dark)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 1 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 2: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 1 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 3: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 1 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 4: run: its Poochyena is low (29%) and the foe is not (56%): not worth the risk (battler 0)",
+  "[battle] [AI-HANDS] battle: over: ran (gBattleOutcome 4); party [('Poochyena', 4, 5, 17), ('Mudkip', 13, 37, 40), ('Nincada', 6, 20, 20), ('Whismur', 6, 23, 23)]",
+  "[battle] [AI-WORLD] battle 1: ran"
+ ],
+ "truth": {
+  "frame": 141114,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   31
+  ],
+  "party": [
+   [
+    "Poochyena",
+    5,
+    17
+   ],
+   [
+    "Mudkip",
+    37,
+    40
+   ],
+   [
+    "Nincada",
+    20,
+    20
+   ],
+   [
+    "Whismur",
+    23,
+    23
+   ]
+  ],
+  "party_exp": [
+   [
+    "5815089e",
+    "Poochyena",
+    119,
+    4
+   ],
+   [
+    "550a9be6",
+    "Mudkip",
+    1569,
+    13
+   ],
+   [
+    "4457d0fb",
+    "Nincada",
+    406,
+    6
+   ],
+   [
+    "7e9bb3ba",
+    "Whismur",
+    179,
+    6
+   ]
+  ],
+  "party_moves": [
+   [
+    "5815089e",
+    "Poochyena",
+    [
+     "Tackle"
+    ]
+   ],
+   [
+    "550a9be6",
+    "Mudkip",
+    [
+     "Tackle",
+     "Growl",
+     "Mud-slap",
+     "Water Gun"
+    ]
+   ],
+   [
+    "4457d0fb",
+    "Nincada",
+    [
+     "Scratch",
+     "Harden",
+     "Leech Life"
+    ]
+   ],
+   [
+    "7e9bb3ba",
+    "Whismur",
+    [
+     "Pound",
+     "Uproar"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "5815089e",
+    22640
+   ],
+   [
+    "550a9be6",
+    22640
+   ],
+   [
+    "4457d0fb",
+    22640
+   ],
+   [
+    "7e9bb3ba",
+    22640
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 4,
+  "trainer_defeated": {
+   "322": false,
+   "280": false,
+   "617": false,
+   "631": false,
+   "754": false,
+   "753": false,
+   "529": true,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": true,
+   "333": true,
+   "615": true,
+   "603": true
+  },
+  "boxes": [],
+  "money": 824,
+  "balls": {
+   "POKé BALL": 27,
+   "PREMIER BALL": 1
+  },
+  "items": {},
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": true,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 4,
+  "gLocalTime": [
+   80,
+   8,
+   46,
+   45
+  ],
+  "localTimeOffset": [
+   9698,
+   1,
+   51,
+   30
+  ],
+  "pos": [
+   14,
+   10
+  ],
+  "game_stats": {
+   "steps": 1080,
+   "total_battles": 31,
+   "wild_battles": 20,
+   "trainer_battles": 11
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 8.0
+}

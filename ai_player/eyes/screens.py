@@ -340,6 +340,10 @@ SCENE_CALLBACKS: dict[str, str] = {
     "CB2_SetUpReshowBattleScreenAfterMenu2": "the battle coming back",
     "CB2_ReshowBattleScreenAfterMenu": "the battle coming back",  # src/reshow_battle_screen.c
     "ReshowBattleScreenAfterMenu": "the battle coming back",
+    # (step 4.1, measured 2026-10-09 by the HEAL arm: one frame each named no scene, the hands' catch-all) a Potion's way
+    # from the bag to the party menu and back to the battle (`src/party_menu.c`)
+    "ChooseMonForInBattleItem": "the party menu opening (for an item)",
+    "CB2_SetUpExitToBattleScreen": "the battle coming back",
 }
 #: By a task's name PREFIX (first match), when the callback names no scene:
 SCENE_TASKS: tuple[tuple[str, str], ...] = (

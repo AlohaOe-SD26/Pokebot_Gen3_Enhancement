@@ -1,0 +1,574 @@
+{
+ "fixture": "rival_rustboro_hurt.ss1",
+ "md5": "baa0a5c385c538f4dede8ffd2f9447c7",
+ "source": [
+  "tools/story-dev/saves/fresh_rivalprep.ss1",
+  "606e86c24dde32de5359566e3d4ce8f8"
+ ],
+ "played_by": "test-side reorders + the AI's battle (Route 116's wild Pokemon, the Taillow first) / goto / mart brains (seed 4), clock 2026-10-08T10:00",
+ "at": {
+  "lead": [
+   "Marshtomp",
+   18,
+   58,
+   58
+  ],
+  "frame": 732021
+ },
+ "hurt": {
+  "taillow": [
+   17,
+   36,
+   45,
+   15.3
+  ],
+  "poochyena": [
+   16,
+   42,
+   42,
+   16.0
+  ],
+  "battles": 9
+ },
+ "opponent": 600,
+ "steps": [
+  "f702259 brain battle {'brain': 'battle', 'battles': 1, 'seed': 4}: 2259 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f702289 Start: open the START menu",
+  "f702328 A: the START menu's POKéMON",
+  "f702393 Down: party cursor 0, wanted 2",
+  "f702412 Down: party cursor 1, wanted 2",
+  "f702431 A: the member in slot 2",
+  "f702450 Down: party_action cursor 0, wanted 1",
+  "f702469 A: SWITCH",
+  "f702508 Up: the switch's second cursor (gPartyMenu.slotId2) on 2, wanted 0",
+  "f702527 Up: the switch's second cursor (gPartyMenu.slotId2) on 1, wanted 0",
+  "f702546 A: switch with the first slot",
+  "f702629 B: close the menu (party, party)",
+  "f702708 B: close the menu (start_menu, no view)",
+  "f702757 party order now ['a8dbcf1b', '550a9be6', '2b19ca91', 'a735d162']",
+  "f704678 brain battle {'brain': 'battle', 'battles': 1, 'seed': 400}: 1921 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f706742 brain battle {'brain': 'battle', 'battles': 1, 'seed': 401}: 2064 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f708710 brain battle {'brain': 'battle', 'battles': 1, 'seed': 402}: 1968 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f710893 brain battle {'brain': 'battle', 'battles': 1, 'seed': 403}: 2183 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f712922 brain battle {'brain': 'battle', 'battles': 1, 'seed': 404}: 2029 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f715712 brain battle {'brain': 'battle', 'battles': 1, 'seed': 405}: 2790 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f717547 brain battle {'brain': 'battle', 'battles': 1, 'seed': 406}: 1835 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f722459 brain battle {'brain': 'battle', 'battles': 1, 'seed': 407}: 4912 frames -> \"battle: battles: 1 played: ['caught']\"",
+  "f725614 brain battle {'brain': 'battle', 'battles': 1, 'seed': 408}: 3155 frames -> \"battle: battles: 1 played: ['caught']\"",
+  "f725614 the Taillow hurt into the window: {'taillow': [17, 36, 45, 15.3], 'poochyena': [16, 42, 42, 16.0], 'battles': 9}",
+  "f725644 Start: open the START menu",
+  "f725683 A: the START menu's POKéMON",
+  "f725751 Down: party cursor 0, wanted 1",
+  "f725770 A: the member in slot 1",
+  "f725789 Down: party_action cursor 0, wanted 1",
+  "f725808 A: SWITCH",
+  "f725847 Up: the switch's second cursor (gPartyMenu.slotId2) on 1, wanted 0",
+  "f725866 A: switch with the first slot",
+  "f725949 B: close the menu (party, party)",
+  "f726028 B: close the menu (start_menu, no view)",
+  "f726077 party order now ['550a9be6', 'a8dbcf1b', '2b19ca91', 'a735d162', '7e2ddf93', '49ebcb0b']",
+  "f726438 brain goto {'brain': 'goto', 'goto': ((0, 8),), 'seed': 4}: 361 frames -> 'goto: done: walk to [(0, 8)] (21 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 399 tiles learned)'",
+  "f726465 step Left (cross into Rustboro): ('ROUTE116', 0, 8) -> ('RUSTBORO_CITY', 39, 8)",
+  "f727530 brain goto {'brain': 'goto', 'goto': ((16, 46),), 'seed': 4}: 1065 frames -> 'goto: done: walk to [(16, 46)] (65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned)'",
+  "f727577 step Up (the mart's door): ('RUSTBORO_CITY', 16, 46) -> ('RUSTBORO_CITY', 16, 45)",
+  "f727817 wait 240 (the door's fade): ('RUSTBORO_CITY_MART', 3, 7)",
+  "f727834 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY_MART', 3, 6)",
+  "f727851 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 6) -> ('RUSTBORO_CITY_MART', 3, 5)",
+  "f727868 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 5) -> ('RUSTBORO_CITY_MART', 3, 4)",
+  "f727885 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 4) -> ('RUSTBORO_CITY_MART', 3, 3)",
+  "f729243 brain mart {'brain': 'mart', 'mart_item': 'POTION', 'mart_count': 3, 'seed': 4}: 1358 frames -> 'mart: bought'",
+  "f729268 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 3) -> ('RUSTBORO_CITY_MART', 3, 4)",
+  "f729285 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 4) -> ('RUSTBORO_CITY_MART', 3, 5)",
+  "f729302 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 5) -> ('RUSTBORO_CITY_MART', 3, 6)",
+  "f729319 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 6) -> ('RUSTBORO_CITY_MART', 3, 7)",
+  "f729375 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY_MART', 3, 7)",
+  "f729413 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY', 16, 45)",
+  "f729653 wait 240 (the door's fade): ('RUSTBORO_CITY', 16, 46)",
+  "f729806 brain goto {'brain': 'goto', 'goto': ((16, 52),), 'seed': 4}: 153 frames -> 'goto: done: walk to [(16, 52)] (8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 271 tiles learned)'",
+  "f729831 step Down (onto the rival's trigger row (y 53)): ('RUSTBORO_CITY', 16, 52) -> ('RUSTBORO_CITY', 16, 53)"
+ ],
+ "ai_lines": [
+  "[battle] [AI-HANDS] brain=battle seed=4 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=15000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Nincada L7 (Bug/Ground); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Bite: Bite is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit; Howl: a status move (0); Sand-attack: a status move (0); Bite: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Bite']; with no types the best Bite; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 2: fight Tackle: Tackle, drawn among the about-as-good ['Tackle', 'Bite'] (within 85% of the best, weighted by worth) [Tackle: 85.5 = x1 type x1 STAB x 35 power x 0.95 hit (finishes it: worth as the strongest); Howl: a status move (0); Sand-attack: a status move (0); Bite: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest)] (battler 0) {types: about as good with the chart ['Bite', 'Tackle']; with no types the best Bite; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Poochyena', 16, 42, 42), ('Marshtomp', 18, 58, 58), ('Taillow', 17, 45, 45), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 165 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=11 frames=2259 looks=1747 records=58",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 2, 'A:battle_move cursor on 0': 1, 'A:battle_move cursor on 3': 1, 'A:text printer 0 CLEAR': 3, 'Down:battle_move cursor on 1': 1, 'Left:battle_move cursor on 3': 1, 'Right:battle_move cursor on 0': 1, 'Up:battle_move cursor on 2': 1}",
+  "[battle] [AI-HANDS] brain=battle seed=400 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Taillow L6 (Flying/Normal)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 13 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 247 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=34 frames=1921 looks=1399 records=73",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 5, 'Down:roam down': 5, 'Left:keep walking left': 3, 'Left:roam left': 3, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 3, 'Right:roam right': 3, 'Up:keep walking up': 3, 'Up:roam up': 3}",
+  "[battle] [AI-HANDS] brain=battle seed=401 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L6 (Dark)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 19 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 305 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=46 frames=2064 looks=1472 records=86",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 5, 'Down:roam down': 5, 'Left:keep walking left': 3, 'Left:roam left': 3, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 7, 'Right:roam right': 7, 'Up:keep walking up': 5, 'Up:roam up': 5}",
+  "[battle] [AI-HANDS] brain=battle seed=402 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L6 (Dark)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 10 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 251 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=28 frames=1968 looks=1426 records=67",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 3, 'Down:roam down': 3, 'Left:keep walking left': 2, 'Left:roam left': 2, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 1, 'Right:roam right': 1, 'Up:keep walking up': 5, 'Up:roam up': 5}",
+  "[battle] [AI-HANDS] brain=battle seed=403 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Nincada L6 (Bug/Ground); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Peck: Peck, drawn among the about-as-good ['Peck', 'Wing Attack'] (within 85% of the best, weighted by worth) [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 180.0 = x2 type x1.5 STAB x 35 power x 1.00 hit (finishes it: worth as the strongest); Wing Attack: 180.0 = x2 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Peck', 'Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 21 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 275 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=49 frames=2183 looks=1549 records=91",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 0': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 6, 'Down:roam down': 6, 'Left:keep walking left': 5, 'Left:roam left': 5, 'Right:keep walking right': 9, 'Right:roam right': 9, 'Up:keep walking up': 2, 'Up:roam up': 2}",
+  "[battle] [AI-HANDS] brain=battle seed=404 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L6 (Dark)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 7 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 236 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=21 frames=2029 looks=1543 records=63",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 1, 'Down:roam down': 1, 'Left:keep walking left': 4, 'Left:roam left': 5, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 2, 'Right:roam right': 2}",
+  "[battle] [AI-HANDS] brain=battle seed=405 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L6 (Dark)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 61 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 398 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=130 frames=2790 looks=1638 records=169",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 9, 'Down:roam down': 9, 'Left:keep walking left': 21, 'Left:roam left': 21, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 18, 'Right:roam right': 18, 'Up:keep walking up': 14, 'Up:roam up': 14}",
+  "[battle] [AI-HANDS] brain=battle seed=406 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Skitty L8 (Normal); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Wing Attack: Wing Attack is clearly the best [no opener this time: Focus Energy possible and safe, the draw over its chance (Story: opener 0.12)] [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit; Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Wing Attack']; with no types the best Wing Attack; 3 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Taillow', 17, 45, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 6 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 226 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=19 frames=1835 looks=1387 records=58",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 1, 'A:battle_move cursor on 1': 1, 'A:text printer 0 CLEAR': 3, 'Down:keep walking down': 2, 'Down:roam down': 2, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 3, 'Right:roam right': 4, 'Up:keep walking up': 1, 'Up:roam up': 1}",
+  "[battle] [AI-HANDS] brain=battle seed=407 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Nincada L7 (Bug/Ground); a species it has not caught: it WANTS it (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Quick Attack: to CATCH Nincada: weaken it first (Quick Attack takes about 50%-75% of its HP (a rough guess) and its bar is at 100%: it cannot knock it out) [Peck: 180.0 = x2 type x1.5 STAB x 35 power x 1.00 hit (finishes it: worth as the strongest); Wing Attack: 180.0 = x2 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0)",
+  "[battle] [AI-HANDS] battle: turn 2: ball Poké Ball: to CATCH Nincada: its bar is at 33%: throw a Poké Ball (an easy catch; ball 1, 19 in the bag) (battler 0)",
+  "[battle] [AI-HANDS] battle: turn 3: ball Poké Ball: to CATCH Nincada: its bar is at 38%: throw a Poké Ball (an easy catch; ball 2, 18 in the bag) (battler 0)",
+  "[battle] [AI-HANDS] battle: the question 'Give a nickname to the captured NINCADA?': NO (no: it keeps the species' name)",
+  "[battle] [AI-HANDS] battle: over: caught (gBattleOutcome 7); party [('Taillow', 17, 41, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37), ('Nincada', 7, 8, 21)]",
+  "[battle] [AI-WORLD] battle 1: caught",
+  "[battle] [AI-WORLD] navigator: 8 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 260 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['caught']\" presses=35 frames=4912 looks=3996 records=135",
+  "[battle] [AI-HANDS] presses by gate: {'A:bag cursor on 0': 2, 'A:bag_action cursor on 0': 2, 'A:battle_action cursor on 0': 1, 'A:battle_action cursor on 1': 2, 'A:battle_move cursor on 3': 1, 'A:battle_yes_no cursor on 1': 1, 'A:task Task_HandleCaughtMonPageInput': 1, 'A:text printer 0 CLEAR': 3, 'Down:battle_move cursor on 1': 1, 'Down:battle_yes_no cursor on 0': 1, 'Down:keep walking down': 4, 'Down:roam down': 4, 'Left:keep walking left': 3, 'Left:roam left': 3, 'Right:battle_action cursor on 0': 1, 'Right:battle_move cursor on 0': 1, 'Up:keep walking up': 2, 'Up:roam up': 2}",
+  "[battle] [AI-HANDS] brain=battle seed=408 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Whismur L6 (Normal); a species it has not caught: it WANTS it (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Peck: to CATCH Whismur: weaken it first (Peck takes about 62%-88% of its HP (a rough guess) and its bar is at 100%: it cannot knock it out) [Peck: 52.5 = x1 type x1.5 STAB x 35 power x 1.00 hit; Wing Attack: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest); Focus Energy: a status move (0); Quick Attack: 60.0 = x1 type x1.5 STAB x 40 power x 1.00 hit] (battler 0)",
+  "[battle] [AI-HANDS] battle: turn 2: ball Poké Ball: to CATCH Whismur: its bar is at 2%: throw a Poké Ball (an easy catch; ball 1, 17 in the bag) (battler 0)",
+  "[battle] [AI-HANDS] battle: the question 'Give a nickname to the captured WHISMUR?': NO (no: it keeps the species' name)",
+  "[battle] [AI-HANDS] battle: over: caught (gBattleOutcome 7); party [('Taillow', 17, 36, 45), ('Marshtomp', 18, 58, 58), ('Poochyena', 16, 42, 42), ('Dustox', 12, 37, 37), ('Nincada', 7, 8, 21), ('Whismur', 6, 1, 25)]",
+  "[battle] [AI-WORLD] battle 1: caught",
+  "[battle] [AI-WORLD] navigator: 4 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 209 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['caught']\" presses=22 frames=3155 looks=2479 records=93",
+  "[battle] [AI-HANDS] presses by gate: {'A:bag cursor on 0': 1, 'A:bag_action cursor on 0': 1, 'A:battle_action cursor on 0': 1, 'A:battle_action cursor on 1': 1, 'A:battle_move cursor on 0': 1, 'A:battle_yes_no cursor on 1': 1, 'A:task Task_HandleCaughtMonPageInput': 1, 'A:text printer 0 CLEAR': 3, 'Down:battle_yes_no cursor on 0': 1, 'Right:battle_action cursor on 0': 1, 'Right:keep walking right': 5, 'Right:roam right': 5}",
+  "[goto] [AI-HANDS] brain=goto seed=4 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 21 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 399 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(0, 8)] (21 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 399 tiles learned)' presses=42 frames=361 looks=90 records=49",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 3, 'Down:walk down': 3, 'Left:keep walking left': 14, 'Left:walk left': 14, 'Up:keep walking up': 4, 'Up:walk up': 4}",
+  "[goto] [AI-HANDS] brain=goto seed=4 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[goto] [AI-WORLD] navigator: 65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(16, 46)] (65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned)' presses=130 frames=1065 looks=266 records=137",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 38, 'Down:walk down': 38, 'Left:keep walking left': 25, 'Left:walk left': 25, 'Right:keep walking right': 2, 'Right:walk right': 2}",
+  "[mart] [AI-HANDS] brain=mart seed=4 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=8000",
+  "[mart] [AI-HANDS] buy at the mart: 3 x POTION; the clerk at (-2,0); in the bag 0, money 4084",
+  "[mart] [AI-HANDS] buy at the mart: done; POTION in the bag 0 -> 3, money 4084 -> 3184, listed price 300",
+  "[mart] [AI-HANDS] outcome='bought' presses=16 frames=1358 looks=845 records=49",
+  "[mart] [AI-HANDS] presses by gate: {'A:mart_buy cursor on 1': 1, 'A:mart_menu cursor on 0': 1, 'A:mart_menu cursor on 2': 1, 'A:mart_quantity reads x3, the number wante': 1, 'A:script waitbuttonpress': 1, 'A:talk': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 1, 'A:text printer 0 CLEAR': 1, 'A:yes_no cursor on 0': 1, 'B:the item list is open': 1, 'Down:mart_buy cursor on 0': 1, 'Down:mart_menu cursor on 0': 1, 'Down:mart_menu cursor on 1': 1, 'Left:turn left to face the npc': 1, 'Up:mart_quantity reads x1, wanted x3': 1, 'Up:mart_quantity reads x2, wanted x3': 1}",
+  "[goto] [AI-HANDS] brain=goto seed=4 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 271 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(16, 52)] (8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 271 tiles learned)' presses=16 frames=153 looks=38 records=23",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 6, 'Down:walk down': 6, 'Left:keep walking left': 1, 'Left:walk left': 1, 'Right:keep walking right': 1, 'Right:walk right': 1}"
+ ],
+ "truth": {
+  "frame": 732021,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   3
+  ],
+  "party": [
+   [
+    "Marshtomp",
+    58,
+    58
+   ],
+   [
+    "Taillow",
+    36,
+    45
+   ],
+   [
+    "Poochyena",
+    42,
+    42
+   ],
+   [
+    "Dustox",
+    37,
+    37
+   ],
+   [
+    "Nincada",
+    8,
+    21
+   ],
+   [
+    "Whismur",
+    1,
+    25
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Marshtomp",
+    4335,
+    18
+   ],
+   [
+    "a8dbcf1b",
+    "Taillow",
+    3497,
+    17
+   ],
+   [
+    "2b19ca91",
+    "Poochyena",
+    4513,
+    16
+   ],
+   [
+    "a735d162",
+    "Dustox",
+    1796,
+    12
+   ],
+   [
+    "7e2ddf93",
+    "Nincada",
+    637,
+    7
+   ],
+   [
+    "49ebcb0b",
+    "Whismur",
+    179,
+    6
+   ]
+  ],
+  "party_moves": [
+   [
+    "550a9be6",
+    "Marshtomp",
+    [
+     "Tackle",
+     "Growl",
+     "Mud-slap",
+     "Water Gun"
+    ]
+   ],
+   [
+    "a8dbcf1b",
+    "Taillow",
+    [
+     "Peck",
+     "Wing Attack",
+     "Focus Energy",
+     "Quick Attack"
+    ]
+   ],
+   [
+    "2b19ca91",
+    "Poochyena",
+    [
+     "Tackle",
+     "Howl",
+     "Sand-attack",
+     "Bite"
+    ]
+   ],
+   [
+    "a735d162",
+    "Dustox",
+    [
+     "Tackle",
+     "Confusion",
+     "Poison Sting",
+     "Harden"
+    ]
+   ],
+   [
+    "7e2ddf93",
+    "Nincada",
+    [
+     "Scratch",
+     "Harden",
+     "Leech Life"
+    ]
+   ],
+   [
+    "49ebcb0b",
+    "Whismur",
+    [
+     "Pound",
+     "Uproar"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "550a9be6",
+    22640
+   ],
+   [
+    "a8dbcf1b",
+    22640
+   ],
+   [
+    "2b19ca91",
+    22640
+   ],
+   [
+    "a735d162",
+    22640
+   ],
+   [
+    "7e2ddf93",
+    22640
+   ],
+   [
+    "49ebcb0b",
+    22640
+   ]
+  ],
+  "party_pp": [
+   [
+    "550a9be6",
+    "Marshtomp",
+    [
+     [
+      "Tackle",
+      35
+     ],
+     [
+      "Growl",
+      40
+     ],
+     [
+      "Mud-slap",
+      10
+     ],
+     [
+      "Water Gun",
+      25
+     ]
+    ]
+   ],
+   [
+    "a8dbcf1b",
+    "Taillow",
+    [
+     [
+      "Peck",
+      33
+     ],
+     [
+      "Wing Attack",
+      29
+     ],
+     [
+      "Focus Energy",
+      30
+     ],
+     [
+      "Quick Attack",
+      29
+     ]
+    ]
+   ],
+   [
+    "2b19ca91",
+    "Poochyena",
+    [
+     [
+      "Tackle",
+      31
+     ],
+     [
+      "Howl",
+      40
+     ],
+     [
+      "Sand-attack",
+      15
+     ],
+     [
+      "Bite",
+      15
+     ]
+    ]
+   ],
+   [
+    "a735d162",
+    "Dustox",
+    [
+     [
+      "Tackle",
+      35
+     ],
+     [
+      "Confusion",
+      25
+     ],
+     [
+      "Poison Sting",
+      35
+     ],
+     [
+      "Harden",
+      30
+     ]
+    ]
+   ],
+   [
+    "7e2ddf93",
+    "Nincada",
+    [
+     [
+      "Scratch",
+      34
+     ],
+     [
+      "Harden",
+      30
+     ],
+     [
+      "Leech Life",
+      14
+     ]
+    ]
+   ],
+   [
+    "49ebcb0b",
+    "Whismur",
+    [
+     [
+      "Pound",
+      34
+     ],
+     [
+      "Uproar",
+      10
+     ]
+    ]
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 7,
+  "trainer_defeated": {
+   "322": true,
+   "280": true,
+   "617": false,
+   "631": true,
+   "754": true,
+   "753": true,
+   "529": true,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": true,
+   "333": true,
+   "615": true,
+   "603": true,
+   "600": false
+  },
+  "boxes": [],
+  "money": 3184,
+  "balls": {
+   "POKé BALL": 14,
+   "PREMIER BALL": 1,
+   "GREAT BALL": 1
+  },
+  "items": {
+   "POTION": 3
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": true,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": true,
+   "BADGE01_GET": true,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 4,
+  "gLocalTime": [
+   79,
+   2,
+   30,
+   56
+  ],
+  "localTimeOffset": [
+   9699,
+   10,
+   52,
+   42
+  ],
+  "pos": [
+   16,
+   53
+  ],
+  "game_stats": {
+   "steps": 7133,
+   "total_battles": 233,
+   "wild_battles": 214,
+   "trainer_battles": 19
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 201.8
+}

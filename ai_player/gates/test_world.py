@@ -107,6 +107,16 @@ mutant (W79-W87):
                       measure and its bounds (W84); `stale_arrivals` on the place a decision was carried on to (W86); the
                       twin after news at most once on EACH tile (W87).
   ExitTests           a DOORMAT is one way out: its other tile, the same look across its arrow, leads back too (W88).
+STEP 4.1 (the step-4 adversarial review's finding 7: "the churn fix mostly relabels decisions") ROUND 2 (its verifier: the
+first fix, a JOURNEY charge, traded TOWN-Catcher for TOWN-Trainer; it and its JourneyTests and mutants W90-W92 are gone),
+each with its fault half and a mutant:
+  PeopleTests         the Trainer WALKS UP TO a person it sees (a PEOPLE place beside them) and meets them, Story does not;
+                      FAULT (the step-4 pull, a bonus on unseen tiles near people, W93): never met, every walk toward them
+                      given up 4 tiles short, more steps; a met person is no place and a target on them is stale (W94); a
+                      person walked after `MEET_TRIES` times is left alone (W95); who was met persists.
+  WaitTests           someone stepping onto the way further on does not break the plan, and on its next steps is waited for:
+                      no step back; FAULT (every person breaks the plan at once, no wait: W96, W97): straight back.
+  BendTests           a detour's tile is one tile aside of the way at most; FAULT (W98): two aside and back.
 """
 
 from __future__ import annotations
@@ -164,13 +174,21 @@ class GridGame:
     map -> (frames, (map, (x, y))): arriving there starts a scene that sends the player to that place."""
 
     def __init__(self, maps: dict[str, list[str]], start: tuple[str, tuple[int, int]], warps=None, links=None, people=None,
-                 scene_on=None, crop: bool = True, leaving=None, stubborn=None, triggers=None) -> None:
+                 scene_on=None, crop: bool = True, leaving=None, stubborn=None, triggers=None, passers=None) -> None:
         self.maps = maps
         self.map, self.pos = start[0], start[1]
         self.warps = warps or {}
         self.links = links or {}
         self.people = people or {}
         self.leaving = leaving or {}
+        #: (step 4.1 round 2) (map, tile) -> (from frame, until frame): someone who steps onto that tile for a while (a
+        #: person walking across the way)
+        self.passers = passers or {}
+        #: (step 4.1 round 2) every person's ID (the object's local id the eyes report): the people, the leaving and the
+        #: passers by (map, tile), in a fixed order
+        self.ids: dict = {}
+        for key in sorted({(name, xy) for name, tiles in self.people.items() for xy in tiles} | set(self.leaving) | set(self.passers)):
+            self.ids[key] = len(self.ids) + 1
         self.scene_on = scene_on or {}
         #: (build step 3.1) (map, tile) -> how many ATTEMPTS (one per 8 frames held) a 'T' tile refuses before it opens
         self.stubborn = stubborn or {}
@@ -218,9 +236,17 @@ class GridGame:
         return rows2[y2][x2] if 0 <= y2 < len(rows2) and 0 <= x2 < len(rows2[0]) else "#"
 
     def people_now(self) -> set:
-        """The people standing on this map now: `people` stay; `leaving` ((map, tile) -> frame) stand until that frame."""
-        here = set(self.people.get(self.map, set()))
-        here |= {xy for (name, xy), until in self.leaving.items() if name == self.map and self.frame < until}
+        """The people standing on this map now: `people` stay; `leaving` ((map, tile) -> frame) stand until that frame;
+        (step 4.1 round 2) `passers` stand on their tile from one frame until another."""
+        return set(self.who_now())
+
+    def who_now(self) -> dict:
+        """(step 4.1 round 2) tile -> the ID of the person standing there now (`ids`)."""
+        here = {xy: self.ids.get((self.map, xy), 1) for xy in self.people.get(self.map, set())}
+        here.update({xy: self.ids.get((name, xy), 1) for (name, xy), until in self.leaving.items()
+                     if name == self.map and self.frame < until})
+        here.update({xy: self.ids.get((name, xy), 1) for (name, xy), (begin, until) in self.passers.items()
+                     if name == self.map and begin <= self.frame < until})
         return here
 
     def inside(self, name: str, xy: tuple[int, int]) -> bool:
@@ -374,8 +400,8 @@ class GridGame:
             rows = self.maps[self.map]
             left, right, up, down = px + 7, len(rows[0]) - 1 - px + 7, py + 7, len(rows) - 1 - py + 7
         rows = tuple(tuple(self.tile(px + dx, py + dy, dx, dy) for dx in range(-left, right + 1)) for dy in range(-up, down + 1))
-        objects = tuple(SeenObject("npc", x, y, x - px, y - py, 1, 7, "down", 3, "object")
-                        for x, y in sorted(self.people_now())
+        objects = tuple(SeenObject("npc", x, y, x - px, y - py, who, 7, "down", 3, "object")
+                        for (x, y), who in sorted(self.who_now().items())
                         if not self.crop or (abs(x - px) <= 7 and abs(y - py) <= 5))
         return View(left=left, right=right, up=up, down=down, rows=rows, objects=objects, cropped=self.crop)
 
@@ -1927,7 +1953,8 @@ class ReversalTests(unittest.TestCase):
         2026-10-08 on this code: 12 reversals in 662 steps, against 0 in 429; on the step-3.1 code, with its plan charged
         at every step, 28 in 677). With the heading kept on the move, no turn-back cost alone gives 0 here."""
         # (build step 3.2, the step-4 verifier's round) and no carry-on: the step-3.1 explorer re-decided at every stale
-        # step (with the decision carried on, the whim on the move is rarely asked: 0 reversals in 469 steps)
+        # step (with the decision carried on, the whim on the move is rarely asked: 0 reversals in 469 steps). (Step 4.1's
+        # journey charge, patched off here too while it existed, is gone since step 4.1 round 2.)
         with mock.patch.object(navigator_module, "TURN_BACK_COST", 0.0), \
                 mock.patch.object(explore_module, "choose_target", whim_on_the_move(explore_module.choose_target)), \
                 mock.patch.object(sys.modules[__name__], "explore_intent", no_carry_on(explore_module.explore_intent)):
@@ -2240,6 +2267,227 @@ class ChurnTests(unittest.TestCase):
         self.assertLessEqual(decisions, 80, f"{decisions} decisions ({moving} on the move) in {steps} steps")
         self.assertGreaterEqual(fd, 250, f"FAULT: {fd} decisions ({fm} on the move) in {fs} steps")
         self.assertLessEqual(steps, 1.1 * fs, f"{steps} steps against the step-3.2 rule's {fs}")
+
+
+def step4_people_pull(original):
+    """FAULT (the step-4 explorer's people pull, `revert_step3.py` W93 and the sweep's WALK revert): no PEOPLE places; the
+    Trainer's taste for people (`Weights.people`) is a bonus on every FRONTIER tile within 3 tiles of a person seen in the
+    last 600 frames, as the step-4 code had it."""
+
+    def candidates(nav, look, weights, goal=None, jitter_on=True):
+        found = [t for t in original(nav, look, weights, goal, jitter_on) if t.kind != "people"]
+        memory = nav.world.here()
+        people = [xy for xy, frame in memory.people.items() if look.frame - frame < 600] if memory is not None else []
+        out = []
+        for target in found:
+            if target.kind == "frontier" and people and min(abs(target.tile[0] - p[0]) + abs(target.tile[1] - p[1])
+                                                            for p in people) <= 3:
+                target = replace(target, score=target.score + VALUE_TILES * weights.people)
+            out.append(target)
+        return out
+
+    return candidates
+
+
+class PeopleTests(unittest.TestCase):
+    """(step 4.1 round 2, the step-4 review's finding 7: "FIX the re-targeting so the walk itself gets closer to the shortest
+    known way"; its verifier: step 4.1's journey charge traded TOWN-Catcher for TOWN-Trainer) THE TRAINER WALKS UP TO PEOPLE.
+    The step-4 pull was a bonus on UNSEEN tiles near people: measured on the sweep, it WAS the Trainer's journey excess
+    (0.45 of its steps beyond the shortest known way; 0.09 with the pull off), and here is why: the unseen tile next to a
+    person is seen from a few tiles away, the bonus goes with it, and the walk turns back SHORT of them. Now a person not
+    met yet is a PEOPLE place (`brain/explore.py` candidates): the seen tile beside them, worth `Weights.people`, dropped once
+    they are met (`world/memory.py` MEET_RADIUS; `navigator.stale_reason`) and after `navigator.MEET_TRIES` walks after one
+    who keeps walking off.
+    The model: a hall the walk follows to the road at its right end, and a NICHE above it (x 15, rows 1-5) with a person at
+    its back, (15, 1): from the hall the whole niche is on screen, and passing under it (5 tiles) is not meeting them.
+    MEASURED 2026-10-09 on this model, 12 seeds: the Trainer met the person in 9 (its first choice a whim among about-equal
+    places), Story in none; the step-4 pull in none, every walk toward them given up 4 tiles short ((15, 0) behind the person
+    came on screen) and 375 steps where this rule walked 300."""
+
+    HALL = (["#" * 32]
+            + ["###############.################"] * 5
+            + ["#" + "." * 31]
+            + ["#" + "." * 30 + "#"]
+            + ["#" * 32])
+    PERSON = (15, 1)
+
+    def run_hall(self, personality: str, seed: int, fault=None):
+        links = {("HALL", "right"): ("ROUTE", (-32, -6)), ("ROUTE", "left"): ("HALL", (32, 6))}
+        game = GridGame({"HALL": self.HALL, "ROUTE": ["." * 12] * 3}, ("HALL", (14, 6)), links=links,
+                        people={"HALL": {self.PERSON}})
+        hands, nav, world, notes, lines = rig(game, seed=seed, personality=personality)
+        context = mock.patch.object(explore_module, "candidates", fault(explore_module.candidates)) if fault else contextlib.nullcontext()
+        with context:
+            outcome = drive(nav.run(explore_intent("ROUTE", personality, 6000), "along the hall"), budget=200_000)
+        self.assertTrue(outcome.startswith("done"), outcome)
+        hall = next(memory for memory in world.maps.values() if memory.name == "HALL")
+        closest = min(abs(x - self.PERSON[0]) + abs(y - self.PERSON[1]) for name, (x, y) in game.trail if name == "HALL")
+        return bool(hall.met), closest, game.steps
+
+    def test_the_trainer_walks_up_to_the_person_story_does_not(self) -> None:
+        trainer = [self.run_hall("Trainer", seed) for seed in range(1, 13)]
+        story = [self.run_hall("Story", seed) for seed in range(1, 13)]
+        self.assertGreaterEqual(sum(met for met, _, _ in trainer), 8, trainer)
+        self.assertTrue(all(closest <= memory_module.MEET_RADIUS for met, closest, _ in trainer if met), trainer)
+        self.assertEqual(sum(met for met, _, _ in story), 0, story)
+
+    def test_fault_the_step4_pull_turns_back_short_of_the_person(self) -> None:
+        """FAULT (the step-4 pull, `step4_people_pull`): never met, every walk toward them given up 4 tiles short (the tile
+        behind them came on screen and the bonus went with it), and more steps in all than the real rule's walks."""
+        real = [self.run_hall("Trainer", seed) for seed in range(1, 13)]
+        fault = [self.run_hall("Trainer", seed, step4_people_pull) for seed in range(1, 13)]
+        self.assertEqual(sum(met for met, _, _ in fault), 0, fault)
+        self.assertGreaterEqual(sum(1 for _, closest, _ in fault if closest == 4), 10, fault)
+        self.assertGreater(sum(steps for _, _, steps in fault), sum(steps for _, _, steps in real), (fault, real))
+
+    def memory_with_person(self):
+        game = GridGame({"HALL": self.HALL}, ("HALL", (14, 6)), people={"HALL": {self.PERSON}})
+        hands, nav, world, notes, lines = rig(game, personality="Trainer")
+        world.observe(game.look())
+        return nav, game, world.here()
+
+    def test_a_person_is_a_place_beside_them_until_met(self) -> None:
+        """The PEOPLE place: the seen tile beside the person (their only open side, (15, 2)), who it is for; once the player
+        has been within `MEET_RADIUS` of them it is gone, and a target on them is STALE ('met'). FAULT (mutant W94: a met
+        person still a place): the place is offered again after meeting."""
+        nav, game, memory = self.memory_with_person()
+        places = [t for t in candidates(nav, game.look(), WEIGHTS["Trainer"]) if t.kind == "people"]
+        self.assertEqual([(t.tile, t.who) for t in places], [((15, 2), game.ids[("HALL", self.PERSON)])])
+        self.assertFalse([t for t in candidates(nav, game.look(), WEIGHTS["Story"]) if t.kind == "people"], "Story: none")
+        target = places[0]
+        self.assertIsNone(navigator_module.stale_reason(memory, target))
+        self.assertFalse(memory.met, "6 tiles away (from (14, 6)): not met")
+        game.pos = (15, 4)  # 3 tiles below them
+        nav.world.observe(game.look())
+        self.assertIn(target.who, memory.met)
+        self.assertEqual(navigator_module.stale_reason(memory, target), "the player has been beside them: met")
+        self.assertFalse([t for t in candidates(nav, game.look(), WEIGHTS["Trainer"]) if t.kind == "people"])
+
+    def test_a_person_walked_after_twice_is_left_alone(self) -> None:
+        """`navigator.MEET_TRIES`: after that many decisions to walk up to one person (someone who keeps walking off), they
+        are no place any more in the intent; another intent starts afresh. FAULT (mutant W95: no limit): offered still."""
+        from ai_player.brain.navigator import MEET_TRIES
+
+        nav, game, memory = self.memory_with_person()
+        who = game.ids[("HALL", self.PERSON)]
+        nav.people_tries[f"{memory.key}|{who}"] = MEET_TRIES - 1
+        self.assertTrue([t for t in candidates(nav, game.look(), WEIGHTS["Trainer"]) if t.kind == "people"])
+        nav.people_tries[f"{memory.key}|{who}"] = MEET_TRIES
+        self.assertFalse([t for t in candidates(nav, game.look(), WEIGHTS["Trainer"]) if t.kind == "people"])
+
+    def test_people_and_who_was_met_persist(self) -> None:
+        nav, game, memory = self.memory_with_person()
+        game.pos = (15, 4)
+        nav.world.observe(game.look())
+        again = WorldMemory.from_dict(json.loads(json.dumps(nav.world.to_dict()))).maps[memory.key]
+        self.assertEqual((again.persons, again.met), (memory.persons, memory.met))
+
+
+class WaitTests(unittest.TestCase):
+    """(step 4.1 round 2, finding 7) A PERSON IN THE WAY IS WAITED FOR (`Navigator._next_step`, `PERSON_AHEAD`,
+    `PERSON_PLAN_WAITS`): measured on the sweep's TOWN seed 102, a person stepping onto the followed plan made the navigator
+    plan again at once round them, and the new plan's first step was straight BACK ((14, 18) -> (13, 18); (16, 10) ->
+    (16, 9)): 3 reversals where the bound is 2. The model: a loop round a block; the player has stepped right from (5, 3)
+    toward (7, 1), the short way on round the right end (6 steps; back round the left end 12); someone steps onto the way
+    at (8, 2), 3 steps on. A person walks on toward them (the plan holds while they are further than `PERSON_AHEAD` steps on)
+    and waits when they are on the next steps; they walk off, and the walk goes on: no step back. FAULT (the step-4 rule,
+    mutants W96, W97: every person on the plan breaks it at once, no wait): the plan is redone the long way back, its first
+    step straight back the way the player came."""
+
+    LOOP = ["##########", "#........#", "#.######.#", "#........#", "##########"]
+
+    def walk_round(self, seed: int, fault: bool = False, stays: int = 70):
+        from ai_player.gates.live_step3 import reversals
+
+        game = GridGame({"LOOP": self.LOOP}, ("LOOP", (4, 3)))
+        hands, nav, world, notes, lines = rig(game, seed=seed)
+        world.observe(game.look())
+        patches = ([mock.patch.object(navigator_module, "PERSON_PLAN_WAITS", 0),
+                    mock.patch.object(navigator_module, "PERSON_AHEAD", 10 ** 6)] if fault else [])
+        generator = nav.run(goto_intent([(7, 1)], 3000), "round the loop")
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
+            outcome, placed = None, False
+            for _ in range(100_000):
+                # someone steps onto (8, 2) the moment the player has taken its first step right, for `stays` frames
+                if not placed and game.pos == (6, 3):
+                    game.passers = {("LOOP", (8, 2)): (game.frame, game.frame + stays)}
+                    game.ids[("LOOP", (8, 2))] = 9
+                    placed = True
+                try:
+                    next(generator)
+                except StopIteration as done:
+                    outcome = done.value
+                    break
+        self.assertTrue(outcome and outcome.startswith("done"), outcome)
+        waits = sum(1 for r in notes.records if "letting them pass" in str(r.get("reason")))
+        return placed, game.steps, len(reversals(game.trail)), waits, [xy for _, xy in game.trail]
+
+    def test_the_walk_waits_for_someone_in_the_way_and_goes_on(self) -> None:
+        rows = [self.walk_round(seed) for seed in range(1, 9)]
+        ran = [row for row in rows if row[0] and row[4][:2] == [(4, 3), (5, 3)]]
+        self.assertGreaterEqual(len(ran), 4, rows)
+        for placed, steps, reversed_, waits, trail in ran:
+            self.assertEqual(reversed_, 0, trail)
+            self.assertLessEqual(steps, 9, trail)
+            self.assertGreaterEqual(waits, 1, trail)
+
+    def test_fault_the_plan_redone_at_once_turns_straight_back(self) -> None:
+        rows = [self.walk_round(seed, fault=True) for seed in range(1, 9)]
+        ran = [row for row in rows if row[0] and row[4][:2] == [(4, 3), (5, 3)]]
+        self.assertGreaterEqual(len(ran), 4, rows)
+        self.assertTrue(all(reversed_ >= 1 and steps > 7 for _, steps, reversed_, _, _ in ran), ran)
+
+    def test_someone_further_on_does_not_break_the_plan(self) -> None:
+        """`PERSON_AHEAD`: the plan being followed, a person standing 3 steps on: the plan's next step (they walk on); on its
+        next step: wait; after `PERSON_PLAN_WAITS` waits, a plan round them."""
+        from ai_player.brain.navigator import PERSON_PLAN_WAITS, WAIT, Plan
+
+        game = GridGame({"LOOP": self.LOOP}, ("LOOP", (6, 3)))
+        hands, nav, world, notes, lines = rig(game)
+        world.observe(game.look())
+        memory = world.here()
+        target = Target("goto", (7, 1), "x")
+        path = ["right", "right", "up", "up", "left"]
+        nav.plan, nav.planned_for = Plan(target.key, world.current, (6, 3), list(path), True), target.key
+        memory.people_now = frozenset({(8, 2)})
+        walls = frozenset({(8, 2)})
+        self.assertEqual(nav._next_step(memory, (6, 3), target, walls), "right", "3 steps on: the plan holds")
+        nav.plan = Plan(target.key, world.current, (7, 3), list(path[1:]), True)
+        for _ in range(PERSON_PLAN_WAITS):
+            self.assertEqual(nav._next_step(memory, (7, 3), target, walls), WAIT)
+        self.assertEqual(nav._next_step(memory, (7, 3), target, walls), "left", "waited enough: the way round, back left")
+
+
+class BendTests(unittest.TestCase):
+    """(step 4.1 round 2, finding 7) A DETOUR BENDS THE WAY (`Navigator._detour`, `DETOUR_EXTRA`): its tile was any seen tile
+    1 or 2 from the way's middle, so a detour could go two tiles aside and straight back (the sweep's TOWN seed 102:
+    (13, 9) -> (12, 9) -> (13, 9) on the way right). Now here -> the detour's tile -> the target is at most `DETOUR_EXTRA`
+    steps longer than the plan. FAULT (mutant W98: any tile 1 or 2 from the middle): two aside and back."""
+
+    FIELD = ["#" * 25] + ["#" + "." * 23 + "#" for _ in range(15)] + ["#" * 25]
+
+    def detours(self, extra: int | None = None) -> list[tuple]:
+        game = GridGame({"F": self.FIELD}, ("F", (3, 8)), crop=False)
+        out = []
+        for seed in range(1, 41):
+            hands, nav, world, notes, lines = rig(game, seed=seed)
+            world.observe(game.look())
+            with mock.patch.object(navigator_module, "DETOUR_P", 1.0), \
+                    (mock.patch.object(navigator_module, "DETOUR_EXTRA", extra) if extra is not None else contextlib.nullcontext()):
+                detour = nav._detour(Target("goto", (19, 8), "x"), game.look())
+            out.append(detour.tile if detour is not None else None)
+        return out
+
+    def test_a_detour_is_one_tile_aside_at_most(self) -> None:
+        tiles = self.detours()
+        self.assertTrue(all(tiles), tiles)
+        self.assertTrue(all(abs(y - 8) <= 1 for x, y in tiles), f"a detour two tiles aside: {tiles}")
+
+    def test_fault_any_tile_near_the_middle_goes_two_aside(self) -> None:
+        tiles = self.detours(extra=99)
+        self.assertTrue(any(abs(y - 8) == 2 for x, y in tiles), tiles)
 
 
 DIRS_LOWER = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
@@ -2575,16 +2823,25 @@ class ExploreTests(unittest.TestCase):
             self.assertEqual(picks, {"Story": "road", "Catcher": "grass", "Trainer": "grass"}, f"seed {seed}")
 
     def test_trainer_goes_toward_people(self) -> None:
+        """(Step 4.1 round 2) The first choice in a corridor with a person 6 tiles to the right: the Trainer walks up to
+        them (a PEOPLE place) or goes their way more often than Story, which has no taste for people. MEASURED 2026-10-09,
+        seeds 1-40: the Trainer toward them 26, a PEOPLE place 21; Story toward them 18 (a whim among the corridor's two
+        ends), never a PEOPLE place. (Under step 4 the pull was a bonus of a whole frontier tile's worth on the unseen
+        tiles next to the person, so the Trainer went that way every time, and turned back short of them: PeopleTests.)
+        FAULT (mutant W93, no PEOPLE places): none."""
         corridor = ["#" * 31] + ["#" + "." * 29 + "#" for _ in range(3)] + ["#" * 31]
-        for seed in (1, 2, 3, 4, 5):
-            sides = {}
+        toward, places = {"Trainer": 0, "Story": 0}, {"Trainer": 0, "Story": 0}
+        for seed in range(1, 41):
             for personality in ("Trainer", "Story"):
                 game = GridGame({"HALL": corridor}, ("HALL", (15, 2)), people={"HALL": {(21, 2)}})
                 hands, nav, world, notes, lines = rig(game, seed=seed, personality=personality)
                 world.observe(game.look())
                 target = choose_target(nav, game.look(), WEIGHTS[personality])
-                sides[personality] = "people" if target.tile[0] > 15 else "empty"
-            self.assertEqual(sides["Trainer"], "people", f"seed {seed}: {sides}")
+                toward[personality] += target.tile[0] > 15
+                places[personality] += target.kind == "people"
+        self.assertGreaterEqual(places["Trainer"], 15, (toward, places))
+        self.assertEqual(places["Story"], 0, (toward, places))
+        self.assertGreaterEqual(toward["Trainer"] - toward["Story"], 5, (toward, places))
 
     def test_not_straight_back_where_it_came_from(self) -> None:
         """Out of a building whose last unseen corner it cannot reach, into a town with plenty unseen: the door back is

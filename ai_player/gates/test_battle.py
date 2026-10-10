@@ -46,6 +46,24 @@ mutants of `gates/revert_step4.py` break each rule in a copy of the real package
   LearnTests          Bide (an equivalent 40) replaces Growl (a status move); four damaging moves keep out a status move;
                       Mud Shot replaces Mud-slap on a Marshtomp; an HM is never forgotten; `needs_rest`.
   DoubleTests         a double battle's move is aimed at a foe (the effective one), a spread move is halved.
+  (step 4.1)
+  ShiftTests          the shift question judged about the INCOMING species its words name (Treecko, x4 on the Marshtomp),
+                      YES, and the member chosen there carried into the party menu (the Taillow, not the Poochyena L19 by
+                      level); no species in the words: NO; a Pokemon far above the guessed level stays. FAULT shift_fainted.
+  UnusableTests       a move the game refused is out of the values until the next turn. FAULT forget_unusable.
+  HiddenInfoTests     the foe's types are its species' (a Kecleon's Color Change unseen); a hit is a rough eighth, give or
+                      take one (the ball's visible cues: CatchTests). (Step 4.1 round 3, the verifier: "the foe's base stats
+                      still feed the damage estimate") the foe's base stats are not used: four Normal types of one level with
+                      the most different base stats (Chansey, Snorlax, Whismur, Zigzagoon) get the same damage guess, max HP
+                      and recoil (mutant B60: the species' base stats back); `TYPICAL_BASE` is the median of the 386 species;
+                      a hit SEEN on this foe corrects the guess (after seeing Tackle take 60 % of a Wurmple it weakens with
+                      Mud-slap; after seeing Take Down take half a Taillow it "finishes it": mutant B61), and what is seen is the
+                      bar's drop after its move (mutant B62). ShiftTests: FAULT `forget_shift` (decided, not carried: by level).
+  OverkillTests       moves that all finish the foe compare by hit chance and recoil (no Take Down); against a foe it cannot
+                      finish, power still counts. FAULT overkill.
+  OpenerTests         an opening stat or status move by temperament on a safe first turn (Story 0.12, Catcher 0.20, Trainer
+                      0.25), never later, never unsafe (its HP, a x2 threat, a stronger foe, a foe about to fall); a sleep or
+                      paralysis move helps a catch, never on its own low HP, never Thunder Wave on a Ground type.
   SkillTests          the battle skill on a SCREEN MODEL (the real menus' rules: the 2 x 2 grids, the lists, the battle's
                       yes/no, the bag's pockets, the party's action list, the forget-a-move list): FIGHT then the move
                       by reading the grid; a ball from the poke_balls pocket reached with Right; a switch to a PID through
@@ -56,7 +74,10 @@ mutants of `gates/revert_step4.py` break each rule in a copy of the real package
                       6, a WAIT), the skill reads it, A on its wait, and another goes in; FAULTS forget_field +
                       ignore_refusal (the step-4 code): "no Pokemon could be sent in"; both fell: two menus, two different
                       Pokemon; a battle resumed ON the refusal (`ki17_partymenu_wedge.ss1`'s shape): read, the cursor's
-                      member refused, the other sent (FAULT ignore_refusal: "neither took input nor closed").
+                      member refused, the other sent (FAULT ignore_refusal: "neither took input nor closed"). (Step 4.1)
+                      the shift question through the model (YES about the words' Treecko, the Taillow sent; FAULT: NO); a
+                      refused move not chosen again that turn (FAULT: "did not end within 150 menus"); a Potion given and
+                      the party menu's message after it READ (the HEAL arm's development run found the skill stuck there).
 """
 
 from __future__ import annotations
@@ -79,6 +100,7 @@ from ai_player.brain import battle as battle_module  # noqa: E402
 from ai_player.brain.battle import (  # noqa: E402
     KO_MARGIN,
     MAX_THROWS,
+    TEMPERAMENTS,
     BattleFaults,
     BattleMind,
     learn_choice,
@@ -447,12 +469,15 @@ def recorded_look(hp: int | None = None) -> Observation:
 
 
 class RecordedRecoilTests(unittest.TestCase):
-    """RECOIL on a RECORDED look (above), through the decider's own valuation (`BattleMind._values`: the damage estimate
-    and the recoil it would really cost, `recoil_risk`). The foe is a 15-HP Poochyena L3: Take Down takes all it has and
-    its recoil is a quarter of THAT (the game's own: the Marshtomp went 74 -> 71 when it was used, the step-4 verifier's
-    per-frame read), so it is the move worth most at full HP and at 20 % alike; at 3 HP its recoil (about 3.75) would knock
-    the Marshtomp out and it is NEVER chosen. FAULTS: `uncapped_recoil` (the step-4 rule: the recoil of its whole worth):
-    never at 20 % (the over-charge the verifier found); `ignore_recoil`: chosen even at 3 HP."""
+    """RECOIL and OVERKILL on a RECORDED look (above), through the decider's own valuation (`BattleMind._values`: the rough
+    damage, the recoil it would really cost, `recoil_risk`, and a move that FINISHES the foe worth as the strongest,
+    `_ko_worth`). The foe is a 15-HP Poochyena L3, and EVERY damaging move finishes it. (Step 4.1, finding 6: "Take Down
+    (85 %, recoil) beat Water Gun (100 %, no recoil) when both KO") so Take Down is NEVER chosen now, at any HP: the moves
+    that finish it compare by hit chance and recoil. Under FAULT `overkill` (the step-4 valuation, every move uncapped) the
+    recoil rules of the step-4 verifier's round still show: Take Down's recoil is a quarter of what the hit can take (the
+    game's own: the Marshtomp went 74 -> 71 when it was used), so it is the move worth most at full HP and at 20 % alike;
+    at 3 HP its recoil (about 3.75) would knock the Marshtomp out and it is never chosen. FAULTS on top: `uncapped_recoil`
+    (the step-4 rule: the recoil of its whole worth): never at 20 %; `ignore_recoil`: chosen even at 3 HP."""
 
     def picks(self, hp: int, faults: BattleFaults = BattleFaults()) -> list[str]:
         """The MOVE the decider picks on the recorded look (its move choice: in a wild battle at low HP the decider would
@@ -474,20 +499,38 @@ class RecordedRecoilTests(unittest.TestCase):
         user = next(m for m in recorded.party if m.pid == own.pid)
         risk = recoil_risk(next(m for m in own.moves if m.name == "Take Down"), user, own, foe_)
         self.assertLess(risk.landed, 0.2, "one hit is many times the Poochyena's HP")
-        self.assertAlmostEqual(risk.recoil_hp, 15 / 4, delta=0.01)  # its max HP guessed 15 (L3, base 35): 3.75
+        # (step 4.1 round 3) its max HP guessed as a TYPICAL Pokemon of L3 (`TYPICAL_BASE` hp 63: 17 HP; its species' base
+        # 35 would say 15, which a person does not know): 4.25; the game charged 3 (a quarter of its real 15, rounded down)
+        self.assertAlmostEqual(risk.recoil_hp, 17 / 4, delta=0.01)
         self.assertFalse(risk.faints_user)
 
-    def test_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it(self) -> None:
-        full, low, brink = self.picks(99), self.picks(20), self.picks(3)
+    def test_overkill_every_move_finishes_it_so_take_down_never(self) -> None:
+        """(step 4.1, finding 6) Every damaging move finishes the 15-HP Poochyena (its rough damage is far more than its
+        bar), so each is worth as the strongest and the hit chance and recoil decide: Take Down (85 %, recoil) is never
+        chosen at any HP, Water Gun (100 %) and the other sure finishers are. FAULT `overkill` (the step-4 valuation):
+        Take Down at full HP and at 20 % (`test_fault_overkill_...`)."""
+        recorded = recorded_look()
+        own, foe_ = recorded.battle.own[0], recorded.battle.foe[0]
+        values = {v.name: v for v in mind()._values(own, foe_, 1.0, recorded)}
+        self.assertTrue(all(v.finishes for v in values.values() if not v.status), [v.line() for v in values.values()])
+        for hp in (99, 20, 3):
+            with self.subTest(hp=hp):
+                picks = self.picks(hp)
+                self.assertNotIn("Take Down", picks)
+                self.assertIn("Water Gun", picks)
+
+    def test_fault_overkill_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it(self) -> None:
+        overkill = BattleFaults(overkill=True)
+        full, low, brink = self.picks(99, overkill), self.picks(20, overkill), self.picks(3, overkill)
         self.assertEqual(set(full), {"Take Down"}, full)
         self.assertEqual(set(low), {"Take Down"}, low)
         self.assertEqual(set(brink), {"Water Gun"}, brink)
 
     def test_fault_the_step4_rule_overcharges_it_at_20_percent(self) -> None:
-        self.assertEqual(set(self.picks(20, BattleFaults(uncapped_recoil=True))), {"Water Gun"})
+        self.assertEqual(set(self.picks(20, BattleFaults(overkill=True, uncapped_recoil=True))), {"Water Gun"})
 
     def test_fault_recoil_ignored_takes_it_at_3_hp(self) -> None:
-        self.assertEqual(set(self.picks(3, BattleFaults(ignore_recoil=True))), {"Take Down"})
+        self.assertEqual(set(self.picks(3, BattleFaults(overkill=True, ignore_recoil=True))), {"Take Down"})
 
 
 # ------------------------------------------------------------------------------------------- choices
@@ -565,12 +608,35 @@ class CatchTests(unittest.TestCase):
         finally:
             battle_module.KO_MARGIN = original
 
-    def test_a_great_ball_for_a_hard_catch(self) -> None:
-        brain = mind("Catcher")
-        observation = look([mon("Mudkip", 8, ["Tackle"], 19, 28)], [foe("Sableye", 6, bar=20)],
-                           balls=(("Poké Ball", 5), ("Great Ball", 1)))  # Sableye's catch rate is 45
-        brain.begin(observation)
-        self.assertEqual(brain.decide(observation).ball, "Great Ball")
+    def test_the_ball_by_what_a_person_sees_not_the_catch_rate(self) -> None:
+        """(step 4.1, "the ball choice uses catch_rate (hidden)") The SAME visible situation gives the same ball whatever the
+        species' hidden catch rate: a weakened Sableye (45) and a weakened Wurmple (255), first throw, met first: a Poke
+        Ball. A better ball by visible cues: after two misses; a foe still strong (its bar above half, no sleep or
+        paralysis); a species that SEEMS RARE (met for the first time after several wild battles)."""
+        balls = (("Poké Ball", 5), ("Great Ball", 3))
+        for species in ("Sableye", "Wurmple"):
+            brain = mind("Catcher")
+            observation = look([mon("Mudkip", 8, ["Tackle"], 19, 28)], [foe(species, 6, bar=20)], balls=balls)
+            brain.begin(observation)
+            decision = brain.decide(observation)
+            self.assertEqual((decision.action, decision.ball), ("ball", "Poké Ball"), (species, decision.reason))
+        missed = mind("Catcher")
+        observation = look([mon("Mudkip", 8, ["Tackle"], 19, 28)], [foe("Wurmple", 6, bar=20)], balls=balls)
+        missed.begin(observation)
+        throws = [missed.decide(observation).ball for _ in range(3)]
+        self.assertEqual(throws, ["Poké Ball", "Poké Ball", "Great Ball"], "a better ball after two misses")
+        strong = mind("Catcher")
+        observation = look([mon("Grovyle", 30, GROVYLE, 80, 80)], [foe("Wurmple", 2, bar=40)], balls=balls)
+        strong.begin(observation)
+        self.assertEqual(strong.decide(observation).ball, "Great Ball", "every move could knock it out: thrown at 83 %")
+        rare = mind("Catcher")
+        for common in range(5):
+            rare.begin(look([mon("Mudkip", 8, ["Tackle"], 19, 28)], [foe("Zigzagoon", 3)], owned=(258, 263)))
+        observation = look([mon("Mudkip", 8, ["Tackle"], 19, 28)], [foe("Wurmple", 6, bar=20)], balls=balls)
+        rare.begin(observation)
+        decision = rare.decide(observation)
+        self.assertEqual(decision.ball, "Great Ball", decision.reason)
+        self.assertIn("seems rare", decision.reason)
 
     def test_at_most_max_throws(self) -> None:
         brain = mind("Catcher")
@@ -858,6 +924,378 @@ class DoubleTests(unittest.TestCase):
         self.assertIn(f"{(95 * 1.5 * 4) * 2 * 0.5:.1f}", surf)
 
 
+# ------------------------------------------------------------------------------------------- step 4.1
+#: `fresh_rivalprep.ss1`'s party (the SHIFT and HEAL fixture's), PIDs as the framework's decoder reads them
+MARSHTOMP_PID, TAILLOW_PID, POOCHYENA_PID, DUSTOX_PID = 0x550A9BE6, 0xA8DBCF1B, 0x2B19CA91, 0xA735D162
+MARSHTOMP_MOVES = ["Tackle", "Growl", "Mud-slap", "Water Gun"]
+
+
+def rival_party(poochyena_level: int = 16) -> list[MonSummary]:
+    """The Rustboro rival fixture's party with the Marshtomp leading: Marshtomp L18 (Water/Ground), Taillow L17,
+    Poochyena, Dustox L12."""
+    return [member("Marshtomp", 18, MARSHTOMP_MOVES, 58, 58, MARSHTOMP_PID, 0),
+            member("Taillow", 17, ["Peck", "Wing Attack", "Focus Energy", "Quick Attack"], 45, 45, TAILLOW_PID, 1),
+            member("Poochyena", poochyena_level, ["Tackle", "Howl", "Sand-attack", "Bite"], 42, 42, POOCHYENA_PID, 2),
+            member("Dustox", 12, ["Tackle", "Confusion", "Poison Sting", "Harden"], 37, 37, DUSTOX_PID, 3)]
+
+
+def shift_look(party: list[MonSummary], level: int = 18) -> Observation:
+    """The look at the shift question as the game shows it: the battle view still holds the FAINTED Wingull (bar 0)."""
+    own = [mon("Marshtomp", level, MARSHTOMP_MOVES, 58, 58, pid=MARSHTOMP_PID)]
+    return look(own, [foe("Wingull", 13, bar=0)], party=party, kind="trainer", ui=MenuView("battle_yes_no", YES_NO, 0, True))
+
+
+def willing_seed(personality: str = "Trainer") -> int:
+    """A seed whose decider's FIRST draw says yes to a switch (at the question it is the switch_willing draw)."""
+    return next(s for s in range(100) if random.Random(f"{s}:battle").random() < TEMPERAMENTS[personality].switch_willing)
+
+
+class ShiftTests(unittest.TestCase):
+    """(step 4.1, finding 1) "MAY is about to use TREECKO. Will BRENDAN change POKéMON?" is asked BEFORE the next foe comes
+    out (`BattleScript_FaintedMonTryChoose`): the battle view still shows the FAINTED Wingull. The decider judges the foe
+    the WORDS name, built from species facts (Treecko: Grass, x4 on the Water/Ground Marshtomp), and a YES carries the
+    member it chose (the Taillow) into the party menu. FAULT `shift_fainted` (step 4): the question answered about the
+    fainted Wingull (not badly matched: NO), and the party menu ranked by level."""
+
+    QUESTION = "Will BRENDAN change POKéMON?"
+    WORDS = "POKéMON TRAINER MAY is about to use TREECKO."
+
+    def test_the_question_is_about_the_incoming_species_named_in_the_words(self) -> None:
+        seed = willing_seed()
+        brain = mind("Trainer", seed)
+        yes, reason = brain.answer(self.QUESTION, shift_look(rival_party()), None, self.WORDS)
+        self.assertTrue(yes, reason)
+        self.assertIn("against Treecko", reason)
+        self.assertIn("TREECKO comes next", reason)
+        self.assertEqual(brain.shift_to, TAILLOW_PID, reason)
+        fault = mind("Trainer", seed, BattleFaults(shift_fainted=True))
+        yes, reason = fault.answer(self.QUESTION, shift_look(rival_party()), None, self.WORDS)
+        self.assertFalse(yes, reason)
+        self.assertIn("Wingull", reason)
+        self.assertIsNone(fault.shift_to)
+
+    def test_a_yes_is_carried_into_the_party_menu(self) -> None:
+        """The Poochyena at L19: by level, step 4's party menu (the remembered foe fainted: "no foe standing") would send
+        it; the member decided at the question is the Taillow, and it is the one sent."""
+        party = rival_party(poochyena_level=19)
+        brain = mind("Trainer", willing_seed())
+        brain.see(shift_look(party))
+        self.assertTrue(brain.answer(self.QUESTION, shift_look(party), None, self.WORDS)[0])
+        pid, reason = brain.replacement(party_menu(party))
+        self.assertEqual(pid, TAILLOW_PID, reason)
+        self.assertIn("decided at the question", reason)
+        unaided = mind("Trainer")
+        unaided.see(shift_look(party))
+        self.assertEqual(unaided.replacement(party_menu(party))[0], POOCHYENA_PID, "without the carry: by level")
+        # (step 4.1 round 3) FAULT `forget_shift` (the live arm SHIFTCX's switch): the question still judged about the
+        # incoming Treecko and answered YES, but the member chosen there not carried: by level, the Poochyena
+        fault = mind("Trainer", willing_seed(), BattleFaults(forget_shift=True))
+        fault.see(shift_look(party))
+        yes, why = fault.answer(self.QUESTION, shift_look(party), None, self.WORDS)
+        self.assertTrue(yes and "against Treecko" in why, why)
+        self.assertEqual(fault.replacement(party_menu(party))[0], POOCHYENA_PID, "FAULT: not carried, by level")
+
+    def test_a_species_whose_name_has_a_full_stop_or_a_sign_is_read_whole(self) -> None:
+        """(step 4.1 round 2, the verifier's minor: "`incoming()` stops its match at the first '.', so 'MR. MIME' becomes
+        'MR' and the question is answered NO") The species' name ends at a full stop the NAME does not contain; and
+        (the same reading) NIDORAN♀ and NIDORAN♂ are two species. FAULT (mutant B58: the first '.'): 'MR' is no species."""
+        from ai_player.brain.battle import incoming
+
+        for words, species in (("PSYCHIC TYRON is about to use MR. MIME. Will BRENDAN change POKéMON?", "Mr. Mime"),
+                               ("POKéMON TRAINER MAY is about to use TREECKO.", "Treecko"),
+                               ("COOLTRAINER ALEX is about to use NIDORAN♀.", "Nidoran♀"),
+                               ("COOLTRAINER ALEX is about to use NIDORAN♂.", "Nidoran♂"),
+                               ("BIRD KEEPER JOSE is about to use FARFETCH’D!", "Farfetch’d"),
+                               ("PKMN RANGER is about to use HO-OH.", "Ho-Oh")):
+            foe, why = incoming(words, None)
+            self.assertIsNotNone(foe, (words, why))
+            self.assertEqual(foe.species, species, why)
+        self.assertEqual(incoming("COOLTRAINER ALEX is about to use NIDORAN♂.", None)[0].types, ("Poison",))
+        foe, why = incoming("SAILOR is about to use MISSINGNO.", None)
+        self.assertIsNone(foe)
+        self.assertIn("MISSINGNO", why)
+
+    def test_no_species_in_the_words_no_switch_and_a_far_stronger_pokemon_stays(self) -> None:
+        yes, reason = mind("Trainer", willing_seed()).answer(self.QUESTION, shift_look(rival_party()), None, "")
+        self.assertFalse(yes)
+        self.assertIn("cannot tell who comes next", reason)
+        strong = shift_look(rival_party(), level=30)  # L30 against a foe guessed L13: 30 >= 13 + 5 + 3
+        yes, reason = mind("Trainer", willing_seed()).answer(self.QUESTION, strong, None, self.WORDS)
+        self.assertFalse(yes, reason)
+
+
+class UnusableTests(unittest.TestCase):
+    """(step 4.1, finding 2) A move the game refuses (Disabled, Taunt, no PP: the move grid comes back) is out of the
+    values for the rest of the turn; a new turn (the action menu) makes it usable again. FAULT `forget_unusable` (step 4):
+    "decide again" chooses it again."""
+
+    def test_a_refused_move_is_out_until_the_next_turn(self) -> None:
+        observation = look([mon("Grovyle", 17, GROVYLE, 37, 49)], [foe("Geodude", 8)], kind="trainer")
+        brain = mind()
+        first = brain.decide(observation)
+        self.assertEqual(first.move_name, "Absorb")
+        brain.chose(0, first.move_name)
+        self.assertEqual(brain.cannot_use("GROVYLE's ABSORB is disabled!"), "Absorb")
+        again = brain.decide(observation)
+        self.assertNotEqual(again.move_name, "Absorb", again.reason)
+        self.assertNotIn("Absorb", " ".join(again.values))
+        turn = replace(observation, screen=replace(observation.screen,
+                                                   ui=MenuView("battle_action", BATTLE_ACTIONS, 0, True, battler=0)))
+        brain.see(turn)
+        self.assertNotEqual(brain.decide(observation).move_name, "Absorb",
+                            "a new turn with the SAME Pokemon in: still remembered (step 4.1 review, finding 4)")
+        switched = replace(turn, battle=replace(turn.battle, own=(mon("Grovyle", 17, GROVYLE, 37, 49, pid=2),)))
+        brain.see(switched)
+        self.assertEqual(brain.decide(switched).move_name, "Absorb", "a switch (another PID in): forgotten")
+        fault = mind(faults=BattleFaults(forget_unusable=True))
+        fault.chose(0, fault.decide(observation).move_name)
+        fault.cannot_use("GROVYLE's ABSORB is disabled!")
+        self.assertEqual(fault.decide(observation).move_name, "Absorb", "FAULT: chosen again")
+
+
+class ReviewFixTests(unittest.TestCase):
+    """(step 4.1 review) A refused move's re-decision is the SAME turn; a move FINISHES only on its low estimate; the
+    LAST "about to use" names the incoming foe; berries come from the berries pocket."""
+
+    def test_deciding_again_after_a_refusal_does_not_count_a_turn(self) -> None:
+        observation = look([mon("Grovyle", 17, GROVYLE, 37, 49)], [foe("Geodude", 8)], kind="trainer")
+        brain = mind()
+        brain.chose(0, brain.decide(observation).move_name)
+        before = (brain.memory.turns, brain.memory.foe_turns, brain.memory.weaken_turns)
+        brain.cannot_use("GROVYLE's ABSORB is disabled!")
+        brain.decide(observation, redecide=True)
+        self.assertEqual((brain.memory.turns, brain.memory.foe_turns, brain.memory.weaken_turns), before)
+        brain.decide(observation)
+        self.assertEqual(brain.memory.turns, before[0] + 1, "a real next turn still counts")
+
+    def test_a_move_finishes_only_on_its_low_estimate(self) -> None:
+        """A hit whose ROUGH share rounds up to the bar left, but whose low estimate does not, is no finisher."""
+        user = member("Mudkip", 14, ["Tackle", "Water Gun"], 40, 40, 1)
+        own = mon("Mudkip", 14, ["Tackle", "Water Gun"], 40, 40)
+        target = foe("Zigzagoon", 12, bar=12)
+        tackle = own.moves[0]
+        low, _high = battle_module.damage_fraction(tackle, user, own, target)
+        rough = battle_module.rough_share(tackle, user, own, target)
+        left = target.hp_bar / battle_module.HP_BAR_PIXELS
+        if not (rough >= left > low):
+            self.skipTest(f"the knowledge no longer gives this case (rough {rough}, low {low}, left {left})")
+        worths = mind()._ko_worth(own, target, user, list(enumerate(own.moves)), own.types, target.types, BattleFaults())
+        self.assertNotIn(0, worths, "Tackle rounds up to the bar but its low estimate does not finish it")
+
+    def test_the_last_about_to_use_names_the_incoming_foe(self) -> None:
+        words = ("YOUNGSTER CALVIN is about to use WURMPLE. Will RED change POKeMON? "
+                 "YOUNGSTER CALVIN is about to use NINCADA. Will RED change POKeMON?")
+        coming, _why = battle_module.incoming(words, foe("Zigzagoon", 5))
+        self.assertIsNotNone(coming)
+        self.assertEqual(coming.species, "Nincada")
+
+    def test_berries_come_from_the_berries_pocket(self) -> None:
+        from ai_player.brain.battle import Decision
+        from ai_player.skills.battle import pocket_for
+        self.assertEqual(pocket_for(Decision("item", "heal", item="Oran Berry")), "berries")
+        self.assertEqual(pocket_for(Decision("item", "heal", item="Potion")), "items")
+        self.assertEqual(pocket_for(Decision("ball", "catch", ball="Poké Ball")), "poke_balls")
+
+
+class HiddenInfoTests(unittest.TestCase):
+    """(step 4.1, finding 4) What a person cannot see is not used: the foe's types are its SPECIES' (not the live types a
+    Color Change gives), a hit's damage is a ROUGH sense (eighths, give or take one), the ball by visible cues
+    (`CatchTests.test_the_ball_by_what_a_person_sees_not_the_catch_rate`)."""
+
+    def test_the_foes_types_are_its_species_not_the_live_ones(self) -> None:
+        """A Kecleon (Normal) whose LIVE types read Rock/Ground (a Color Change): judged as a Normal type, so Absorb (x4
+        on Rock/Ground) is not chosen; with the live types it would be."""
+        live = replace(foe("Kecleon", 8), types=("Rock", "Ground"))
+        decision = mind().decide(look([mon("Grovyle", 17, GROVYLE, 37, 49)], [live], kind="trainer"))
+        self.assertNotEqual(decision.move_name, "Absorb", decision.values)
+        self.assertEqual(battle_module.seen_types(live), ("Normal",))
+
+    def test_a_hit_is_a_rough_sense_not_the_exact_formula(self) -> None:
+        """Every estimate is an eighth of the HP give or take an eighth (never the formula's exact rolls)."""
+        user = member("Mudkip", 8, ["Tackle", "Growl", "Mud-slap"], 19, 28, 1)
+        own = mon("Mudkip", 8, ["Tackle", "Growl", "Mud-slap"], 19, 28)
+        for target in (foe("Wurmple", 2), foe("Zigzagoon", 5), foe("Geodude", 9), foe("Taillow", 4)):
+            for move in (own.moves[0], own.moves[2]):
+                with self.subTest(foe=target.species, move=move.name):
+                    low, high = battle_module.damage_fraction(move, user, own, target)
+                    rough = battle_module.rough_share(move, user, own, target)
+                    if rough == 0:  # an immunity (Mud-slap on the Flying Taillow): nothing at all
+                        self.assertEqual((low, high), (0.0, 0.0))
+                        continue
+                    self.assertAlmostEqual(rough / battle_module.ROUGH_STEP, round(rough / battle_module.ROUGH_STEP))
+                    self.assertAlmostEqual(high, rough + battle_module.ROUGH_STEP)
+                    self.assertAlmostEqual(low, max(rough / 2, rough - battle_module.ROUGH_STEP))
+
+    def test_the_typical_pokemon_is_the_median_of_every_species(self) -> None:
+        """(step 4.1 round 3) `TYPICAL_BASE`, the guess for every foe, is the median base stat over all 386 species of the
+        knowledge file (written as numbers in the decider so it never reads the species file's base stats at all)."""
+        import json
+        import statistics
+
+        species = json.loads((PACKAGE / "knowledge" / "species.json").read_text(encoding="utf-8"))["species"]
+        self.assertEqual(len(species), 386)
+        for stat, value in battle_module.TYPICAL_BASE.items():
+            with self.subTest(stat=stat):
+                self.assertEqual(value, statistics.median(e["base"][stat] for e in species.values()))
+
+    def test_the_foes_base_stats_are_not_used_every_foe_of_a_level_is_guessed_alike(self) -> None:
+        """(step 4.1 round 3, the verifier: "the foe's base stats still feed _formula_share, then rough_share, then the KO
+        and finisher checks and the recoil HP") A person sees a foe's LEVEL and bar, not its base stats: before a hit on it
+        is seen, four NORMAL types of one level whose base stats differ most (a Chansey: HP 250, Defense 5; a Snorlax: HP
+        160; a Whismur: Defense 23; a Zigzagoon) get the SAME damage guess for every move, the same max HP and the same
+        recoil (the same types, so only base stats could tell them apart). FAULT (mutant B60: the species' base stats
+        back): they differ."""
+        own = mon("Marshtomp", 32, MARSHTOMP, 99, 99)
+        user = member("Marshtomp", 32, MARSHTOMP, 99, 99, 1)
+        guesses = {}
+        for species in ("Chansey", "Snorlax", "Whismur", "Zigzagoon"):
+            target = foe(species, 20, bar=30)
+            self.assertEqual(battle_module.seen_types(target), ("Normal",))
+            guesses[species] = (battle_module.foe_max_hp(target),
+                                tuple(battle_module._formula_share(m, user, own, target) for m in own.moves),
+                                tuple(battle_module.damage_fraction(m, user, own, target) for m in own.moves),
+                                battle_module.recoil_risk(own.moves[2], user, own, target))
+        self.assertEqual(len(set(guesses.values())), 1, guesses)
+        self.assertEqual(battle_module.foe_max_hp(foe("Chansey", 20)), battle_module.estimate_stat(63, 20, hp=True))
+
+    def test_a_seen_hit_corrects_the_guess(self) -> None:
+        """(step 4.1 round 3) The typical guess is CORRECTED by what its hits are seen to take off THIS foe's bar (a person
+        learns "Tackle took most of it"): a Catcher weakening a Wurmple L4 at 75 % guesses Tackle takes about 3/8 (safe)
+        and uses it; after SEEING Tackle take 60 %, the same move could knock it out, so it weakens with Mud-slap instead.
+        Against a Taillow at half its bar, Take Down is not guessed to finish it; after SEEING Take Down take half its HP it
+        is ("finishes it"). FAULT (mutant B61: the seen hit ignored): Tackle again, and no finisher."""
+        own = mon("Mudkip", 8, ["Tackle", "Growl", "Mud-slap"], 28, 28)
+        target = foe("Wurmple", 4, bar=36)
+        observation = look([own], [target])
+        brain = mind("Catcher")
+        brain.begin(observation)
+        unseen, why = brain._weakening_move(observation, own, target, 0.75, brain._values(own, target, 1.0, observation))
+        self.assertEqual(unseen.name, "Tackle", why)
+        brain.memory.seen_hit = ("Tackle", 0.6)
+        self.assertGreater(brain._seen_factor(own, target, None), 1.4)
+        seen, why = brain._weakening_move(observation, own, target, 0.75, brain._values(own, target, 1.0, observation))
+        self.assertEqual(seen.name, "Mud-slap", why)
+        marshtomp, taillow = mon("Marshtomp", 32, MARSHTOMP, 99, 99), foe("Taillow", 30, bar=24)
+        sturdy = look([marshtomp], [taillow], kind="trainer")
+        guessing = mind("Trainer", 1)
+        lines = [v.line() for v in guessing._values(marshtomp, taillow, 1.0, sturdy)]
+        self.assertFalse(any(line.startswith("Take Down") and "finishes it" in line for line in lines), lines)
+        # (step 4.1 review, finding 3) a move FINISHES only on its LOW estimate now, so a seen hit of exactly the half the
+        # bar has left is no longer a sure finisher ("probably", not "surely"); a seen hit clearly larger is
+        guessing.memory.seen_hit = ("Take Down", 0.75)
+        lines = [v.line() for v in guessing._values(marshtomp, taillow, 1.0, sturdy)]
+        self.assertTrue(any(line.startswith("Take Down") and "finishes it" in line for line in lines), lines)
+
+    def test_the_hit_it_saw_is_the_bars_drop_after_its_move(self) -> None:
+        """(step 4.1 round 3) What it SEES: the bar before its move and after it (`_observe`, at the next decision), never
+        a number the screen does not show."""
+        own = mon("Mudkip", 8, ["Tackle", "Growl", "Mud-slap"], 28, 28)
+        brain = mind("Story")
+        first = look([own], [foe("Zigzagoon", 3)], owned=(258, 263))
+        brain.begin(first)
+        decision = brain.decide(first)
+        self.assertIsNone(brain.memory.seen_hit)
+        brain.decide(look([own], [foe("Zigzagoon", 3, bar=18)], owned=(258, 263)))
+        self.assertEqual(brain.memory.seen_hit, (decision.move_name, 30 / 48))
+
+
+class OverkillTests(unittest.TestCase):
+    """(step 4.1, finding 6) A move that FINISHES the foe is worth as the strongest: between finishers the hit chance and
+    the recoil decide (the recorded case is `RecordedRecoilTests.test_overkill_...`). FAULT `overkill` (step 4): the
+    stronger, riskier Take Down."""
+
+    def test_moves_that_all_finish_it_compare_by_hit_chance_and_recoil(self) -> None:
+        own = mon("Marshtomp", 32, MARSHTOMP, 99, 99)
+        sliver = look([own], [foe("Poochyena", 9, bar=6)], kind="trainer")
+        picks = {mind("Story", s).decide(sliver).move_name for s in range(30)}
+        self.assertNotIn("Take Down", picks)
+        fault = {mind("Story", s, BattleFaults(overkill=True)).decide(sliver).move_name for s in range(30)}
+        self.assertEqual(fault, {"Take Down"})
+
+    def test_against_a_foe_it_cannot_finish_power_still_counts(self) -> None:
+        """A sturdy foe (full bar, no move finishes it): Take Down at full HP, as before (no finisher, no change)."""
+        own = mon("Marshtomp", 32, MARSHTOMP, 99, 99)
+        decision = mind("Trainer", 1).decide(look([own], [foe("Taillow", 30)], kind="trainer"))
+        self.assertEqual(decision.move_name, "Take Down")
+        self.assertNotIn("finishes it", " ".join(decision.values))
+
+
+class OpenerTests(unittest.TestCase):
+    """(step 4.1, finding 5) Not a machine: on a SAFE first turn against a foe, a small chance by temperament (Story 0.12,
+    Catcher 0.20, Trainer 0.25) of an opening stat or status move (Growl here); never on a later turn, never when it is
+    not safe (its HP under 70 %, the foe hitting it super-effectively, the foe 3+ levels above it, the foe's bar under
+    60 %). A sleep or paralysis move it has is used to help a catch, before the throws, while that turn is safe."""
+
+    MOVES = ["Tackle", "Growl", "Mud-slap"]
+
+    def first_turn(self, personality: str, seed: int, hp: int = 28, target: BattleMon | None = None) -> str:
+        observation = look([mon("Mudkip", 8, self.MOVES, hp, 28)], [target or foe("Zigzagoon", 7)], owned=(258, 263, 285))
+        return mind(personality, seed).decide(observation).move_name
+
+    def test_an_opening_move_by_temperament_on_a_safe_first_turn(self) -> None:
+        counts = {name: sum(self.first_turn(name, s) == "Growl" for s in range(300)) for name in ("Story", "Catcher", "Trainer")}
+        self.assertTrue(18 <= counts["Story"] <= 60, counts)
+        self.assertTrue(40 <= counts["Catcher"] <= 85, counts)
+        self.assertTrue(50 <= counts["Trainer"] <= 100, counts)
+        brain = mind("Trainer", 0)
+        observation = look([mon("Mudkip", 8, self.MOVES, 28, 28)], [foe("Zigzagoon", 7)], owned=(258, 263))
+        later = [brain.decide(observation).move_name for _ in range(6)][1:]
+        self.assertNotIn("Growl", later, "never after the first turn against a foe")
+
+    def test_every_chance_of_an_opener_is_said_drawn_or_passed_over(self) -> None:
+        """(step 4.1 round 2, the verifier: the sweep's count of openers could not tell a rare draw from a missing rule) a
+        safe first turn where the draw passes the opener over SAYS so with the move it chose instead ("no opener this
+        time"), so the sweep counts every chance the rule had; a turn that is not safe, or a later turn, says nothing.
+        FAULT (mutant B59: not said): no chance is visible."""
+        said = []
+        for seed in range(40):
+            observation = look([mon("Mudkip", 8, self.MOVES, 28, 28)], [foe("Zigzagoon", 7)], owned=(258, 263, 285))
+            decision = mind("Trainer", seed).decide(observation)
+            said.append((decision.move_name == "Growl", "an OPENING move" in decision.reason,
+                         "no opener this time" in decision.reason))
+        self.assertTrue(all(drew == opened and opened != passed for drew, opened, passed in said), said)
+        self.assertTrue(any(passed for _, _, passed in said) and any(opened for _, opened, _ in said), said)
+        brain = mind("Trainer", 0)
+        observation = look([mon("Mudkip", 8, self.MOVES, 19, 28)], [foe("Zigzagoon", 7)], owned=(258, 263, 285))
+        self.assertNotIn("no opener this time", brain.decide(observation).reason, "not safe (68 %): no chance at all")
+        safe = look([mon("Mudkip", 8, self.MOVES, 28, 28)], [foe("Zigzagoon", 7)], owned=(258, 263, 285))
+        self.assertNotIn("no opener this time", brain.decide(safe).reason, "a later turn against the same foe: none")
+
+    def test_never_a_status_move_when_it_is_not_safe(self) -> None:
+        unsafe = {"its HP 68 %": dict(hp=19), "a x2 threat": dict(target=foe("Shroomish", 7)),
+                  "the foe 3 levels above": dict(target=foe("Zigzagoon", 11)),
+                  "the foe's bar at 40 %": dict(target=foe("Zigzagoon", 7, bar=19))}
+        for why, kwargs in unsafe.items():
+            with self.subTest(why):
+                picks = [self.first_turn("Trainer", s, **kwargs) for s in range(200)]
+                self.assertNotIn("Growl", picks)
+
+    def test_a_sleep_or_paralysis_move_helps_a_catch(self) -> None:
+        moves = ["Absorb", "Stun Spore", "Tackle"]
+        brain = mind("Catcher")
+        observation = look([mon("Shroomish", 12, moves, 30, 30)], [foe("Zigzagoon", 5, bar=20)], owned=(285,))
+        brain.begin(observation)
+        decision = brain.decide(observation)
+        self.assertEqual((decision.action, decision.move_name), ("fight", "Stun Spore"), decision.reason)
+        paralyzed = look([mon("Shroomish", 12, moves, 30, 30)], [replace(foe("Zigzagoon", 5, bar=20), status="paralysis")],
+                         owned=(285,))
+        self.assertEqual(brain.decide(paralyzed).action, "ball", "the foe paralyzed: throw")
+        # (step 4.1 round 2) FAULT `no_catch_status` (step 4: no status move to help a catch; the live arm CATCHSX's switch)
+        fault = mind("Catcher", faults=BattleFaults(no_catch_status=True))
+        fault.begin(observation)
+        self.assertNotEqual(fault.decide(observation).move_name, "Stun Spore")
+        low = mind("Catcher")
+        weak = look([mon("Shroomish", 12, moves, 10, 30)], [foe("Zigzagoon", 5, bar=20)], owned=(285,))
+        low.begin(weak)
+        self.assertEqual(low.decide(weak).action, "ball", "its own HP low: no turn spent on a status move")
+        # a Normal-type user (a Ground foe is no x2 threat to it, so the turn is safe): only the type check keeps Thunder
+        # Wave off the Geodude
+        ground = mind("Catcher")
+        wave = look([mon("Snorlax", 30, ["Tackle", "Thunder Wave"], 200, 200)], [foe("Geodude", 5, bar=20)], owned=(143,))
+        ground.begin(wave)
+        self.assertEqual(ground.decide(wave).action, "ball", "Thunder Wave never on a Ground type")
+
+
 # ------------------------------------------------------------------------------------------- the skill on a screen model
 class ScreenModel:
     """The battle's screens as the real menus behave (each rule names its decomp source), one frame per tick:
@@ -871,11 +1309,12 @@ class ScreenModel:
     `plan` is the order of screens the battle shows; every press is recorded with what was under the cursor."""
 
     def __init__(self, battle: BattleView, party: list[MonSummary], plan: list[tuple], bag: dict | None = None,
-                 balls: tuple = (("Poké Ball", 5),), on_field: set | None = None) -> None:
+                 balls: tuple = (("Poké Ball", 5),), on_field: set | None = None, healing: tuple = ()) -> None:
         self.battle, self.party, self.plan, self.frame = battle, party, list(plan), 0
         self.bag = bag or {"items": ["Potion"], "poke_balls": ["Poké Ball", "Great Ball"], "tms_hms": [], "berries": [],
                            "key_items": []}
         self.balls = balls
+        self.healing = healing
         self.pressed: list[tuple] = []
         self.state: dict = {}
         self.chosen: list = []
@@ -895,7 +1334,7 @@ class ScreenModel:
         self.state = {"kind": kind, "cursor": 0, "busy": 6, "arg": step[1] if len(step) > 1 else None}
         if kind == "bag":
             self.state.update(pocket="items")
-        if kind == "yes_no":
+        if kind in ("yes_no", "move"):
             self.state["cursor"] = step[2] if len(step) > 2 else 0
         if kind == "faint":
             # the party menu the game opens after a faint (`OpenPartyMenuInBattle`, PARTY_ACTION_SEND_OUT)
@@ -904,6 +1343,10 @@ class ScreenModel:
             # a battle resumed on the party menu's refusal (`ki17_partymenu_wedge.ss1`): the words wait for A, the
             # cursor on the member refused
             self.state = {"kind": "party_message", "cursor": step[2], "busy": 2, "faint": True, "text": step[1]}
+        if kind == "party_item":
+            # (step 4.1) the party menu the bag opens for a Potion's target (`src/party_menu.c` ItemUseCB_Medicine): A on a
+            # member restores its HP, then a message WAITS for A over the busy list, then the menu closes to the battle
+            self.state = {"kind": "party", "cursor": 0, "busy": 6, "item": True}
         if kind == "outcome":
             self.outcome = step[1]
             self._next()
@@ -933,6 +1376,13 @@ class ScreenModel:
                 s["cursor"] ^= 2
             elif button == "Up" and c & 2:
                 s["cursor"] ^= 2
+            elif button == "A" and kind == "move" and isinstance(s.get("arg"), frozenset) and c in s["arg"]:
+                # (step 4.1) the game REFUSES the move (`TrySetCantSelectMoveBattleScript`: Disabled, Taunt, no PP): its
+                # words wait for A, then the move grid again, the cursor where it was
+                name = self.battle.own[0].moves[c].name.upper()
+                self.chosen.append(("move_refused", c))
+                self.plan[0:0] = [("text", f"{self.battle.own[0].species.upper()}'s {name} is disabled!"), ("move", s["arg"], c)]
+                self._next()
             elif button == "A":
                 self.chosen.append((kind, c))
                 self._next()
@@ -973,11 +1423,20 @@ class ScreenModel:
         if kind == "party_message":
             if button == "A":
                 self.chosen.append(("message", s["text"]))
+                if s.get("then_close"):
+                    self._next()
+                    return
                 self.state = {"kind": "party", "cursor": s["cursor"], "busy": 3, "faint": s.get("faint")}
             return
         if kind == "party":
             if button in ("Up", "Down"):
                 s["cursor"] = max(0, min(len(self.party) - 1, s["cursor"] + (1 if button == "Down" else -1)))
+            elif button == "A" and s.get("item"):
+                member = self.party[s["cursor"]]
+                self.chosen.append(("party", member.pid))
+                self.party[s["cursor"]] = replace(member, hp=min(member.max_hp, member.hp + 20))
+                self.state = {"kind": "party_message", "cursor": s["cursor"], "busy": 30, "then_close": True,
+                              "text": f"{member.species.upper()}'s HP was restored by {min(member.max_hp - member.hp, 20)} point(s)."}
             elif button == "B" and not s.get("faint"):
                 # (the step-4 verifier's round) B closes a party menu opened from the action menu: back to the battle's
                 # menu (`src/party_menu.c` HandleChooseMonCancel); after a faint the game's menu cannot be closed so
@@ -1042,7 +1501,7 @@ class ScreenModel:
         screen = ScreenState(state, "battle", None, False, waits and accepts, True, wait_reason=reason if waits else None,
                              ui=ui, text=text, scene="a battle")
         battle = self.battle if state == "BATTLE" else None
-        bag = BagSummary(self.balls, (), sum(c for _, c in self.balls))
+        bag = BagSummary(self.balls, self.healing, sum(c for _, c in self.balls))
         progress = Progress(3000, (), 1, 1, (258,), ())
         return Observation(self.frame, screen, None, None, tuple(self.party), bag, progress, battle, 0, (), 0.0)
 
@@ -1261,6 +1720,59 @@ class SkillTests(unittest.TestCase):
         faulty = ScreenModel(battle, party, [("refusal", "SKITTY is already in battle!", 0), ("outcome", 1)])
         self.assertEqual(play(faulty, mind(faults=BattleFaults(ignore_refusal=True)))[0],
                          "the battle: the party on screen neither took input nor closed")
+
+    # ---------------------------------------------------- (step 4.1)
+    def test_the_shift_question_sends_the_member_decided_against_the_incoming_foe(self) -> None:
+        """(finding 1) The battle's look at the question still shows the FAINTED Wingull; the page before the question
+        names TREECKO. The skill gives the decider the pages, it answers YES about the Treecko (x4 on the Marshtomp), and
+        the party menu that follows gets the Taillow it chose (not the Poochyena L19, the best by level). FAULT
+        `shift_fainted` (step 4): NO, about the fainted Wingull."""
+        party = rival_party(poochyena_level=19)
+        battle = BattleView("trainer", False, 12, 1, (mon("Marshtomp", 18, MARSHTOMP_MOVES, 58, 58, pid=MARSHTOMP_PID),),
+                            (foe("Wingull", 13, bar=0),))
+        words = ("text", "POKéMON TRAINER MAY is about to use TREECKO.")
+        question = ("yes_no", "Will BRENDAN change POKéMON?", 0)
+        model = ScreenModel(battle, party, [words, question, ("party",), ("text", "Go! TAILLOW!"), ("outcome", 1)])
+        outcome, _, _ = play(model, mind("Trainer", willing_seed()))
+        self.assertEqual(outcome, "won")
+        self.assertEqual(model.chosen[0], ("yes_no", 0), "YES")
+        self.assertEqual(model.sent_out, [TAILLOW_PID])
+        faulty = ScreenModel(battle, party, [words, question, ("text", "MAY sent out TREECKO!"), ("outcome", 1)])
+        play(faulty, mind("Trainer", willing_seed(), BattleFaults(shift_fainted=True)))
+        self.assertEqual(faulty.chosen[0], ("yes_no", 1), "FAULT: NO, about the fainted Wingull")
+
+    def test_a_potion_is_given_and_its_message_read(self) -> None:
+        """(found by the HEAL arm's first development run, 2026-10-09: "the battle: the Potion could not be given", the
+        Potion used and the HP restored, the battle stuck) A trainer's battle, the Mudkip at 6/23 HP, a Potion in the bag:
+        BAG, the items pocket, the Potion, USE, then the party menu the bag opens: the Mudkip by its PID, A, and the party
+        menu's message ("MUDKIP's HP was restored by 17 point(s).", a WAIT over a busy list) READ before the menu closes;
+        the battle goes on. (Revert: revert_step4 B48, step 4's target choice that waited for the menu to close.)"""
+        party = [member("Mudkip", 6, ["Tackle", "Growl"], 6, 23, 7)]
+        battle = BattleView("trainer", False, 12, 529, (mon("Mudkip", 6, ["Tackle", "Growl"], 6, 23, pid=7),), (foe("Treecko", 5),))
+        plan = [("action",), ("bag",), ("party_item",), ("text", "TREECKO used POUND!"), ("outcome", 1)]
+        model = ScreenModel(battle, party, plan, healing=(("Potion", 2),))
+        outcome, hands, _ = play(model, mind())
+        self.assertEqual(outcome, "won")
+        self.assertEqual(model.chosen[:5], [("action", 1), ("bag", "items", "Potion"), ("bag_action", "USE"), ("party", 7),
+                                            ("message", "MUDKIP's HP was restored by 17 point(s).")])
+        self.assertEqual(model.party[0].hp, 23)
+        gates = [p["gate"] for p in hands.pad.history if p["button"] == "A"]
+        self.assertIn("text printer 6 WAIT", gates, "the message's A pressed on its wait")
+
+    def test_a_refused_move_is_not_chosen_again_that_turn(self) -> None:
+        """(finding 2) The game refuses ABSORB (slot 2: "GROVYLE's ABSORB is disabled!", then the move grid again): the
+        skill tells the decider, which chooses another move; the battle goes on. FAULT `forget_unusable` (step 4): Absorb
+        again and again, until the battle's bound: "the battle did not end within 150 menus"."""
+        plan = [("action",), ("move", frozenset({2})), ("text", "GROVYLE used PURSUIT!"), ("outcome", 1)]
+        model = ScreenModel(self.battle(), [member("Grovyle", 17, GROVYLE, 37, 49, 2)], list(plan))
+        outcome, _, _ = play(model, mind())
+        self.assertEqual(outcome, "won")
+        self.assertEqual(model.chosen[:2], [("action", 0), ("move_refused", 2)])
+        self.assertEqual(model.chosen[2][0], "move")
+        self.assertNotEqual(model.chosen[2][1], 2, "another move, not the refused Absorb")
+        faulty = ScreenModel(self.battle(), [member("Grovyle", 17, GROVYLE, 37, 49, 2)], list(plan))
+        self.assertEqual(play(faulty, mind(faults=BattleFaults(forget_unusable=True)))[0],
+                         f"the battle did not end within {skill_module.BATTLE_STEPS} menus")
 
     def test_the_questions_are_answered_on_the_option_wanted(self) -> None:
         battle = BattleView("wild", False, 4, None, (mon("Mudkip", 8, ["Tackle"], 19, 28),), (foe("Wurmple", 2),))

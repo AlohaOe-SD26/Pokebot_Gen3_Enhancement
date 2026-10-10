@@ -314,7 +314,10 @@ class HandsBrain:
         options, nav = self.options, self.navigator
         faults = BattleFaults(ignore_types=options.fault_ignore_types, ignore_recoil=options.fault_ignore_recoil,
                               uncapped_recoil=options.fault_uncapped_recoil, forget_field=options.fault_forget_field,
-                              ignore_refusal=options.fault_ignore_refusal)
+                              ignore_refusal=options.fault_ignore_refusal, overkill=options.fault_overkill,
+                              shift_fainted=options.fault_shift_fainted, forget_unusable=options.fault_forget_unusable,
+                              no_catch_status=options.fault_no_catch_status, ignore_pp=options.fault_ignore_pp,
+                              forget_shift=options.fault_forget_shift)
         mind = BattleMind(personality, random.Random(f"{self.seed}:battle"), options.purpose, faults)
         nav.battler = lambda: play_battle(hands, mind, f"battle ({options.purpose})")
         nav.battle_limit = None  # set for the roaming only: a battle met on the way to a challenge does not end the brain
@@ -323,7 +326,13 @@ class HandsBrain:
                    f"ignore_recoil:{options.fault_ignore_recoil}"
                    + "".join(f",{name}:True" for name, on in (("uncapped_recoil", faults.uncapped_recoil),
                                                               ("forget_field", faults.forget_field),
-                                                              ("ignore_refusal", faults.ignore_refusal)) if on))
+                                                              ("ignore_refusal", faults.ignore_refusal),
+                                                              ("overkill", faults.overkill),
+                                                              ("shift_fainted", faults.shift_fainted),
+                                                              ("forget_unusable", faults.forget_unusable),
+                                                              ("no_catch_status", faults.no_catch_status),
+                                                              ("ignore_pp", faults.ignore_pp),
+                                                              ("forget_shift", faults.forget_shift)) if on))
         played = nav.battle_outcomes
         look = hands.look()
         if in_battle(look):

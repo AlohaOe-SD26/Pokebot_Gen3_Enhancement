@@ -1,0 +1,338 @@
+{
+ "fixture": "sing_r117.ss1",
+ "md5": "679341be1d3f3557eae74f95d65bfffc",
+ "source": [
+  "tools/story-dev/saves/strength_boxfirst_mauville.ss1",
+  "ba23ca04f9d774e07ef65347700c2e65"
+ ],
+ "played_by": "test-side reorder + the AI's explore brain (Catcher) to ROUTE117 + its battle brain (Story, roaming, seed 5), clock 2026-10-08T10:00",
+ "at": {
+  "lead": [
+   "Skitty",
+   17,
+   45,
+   45,
+   "5cccd8be"
+  ],
+  "foe": [
+   "Oddish",
+   14,
+   43,
+   [
+    "Grass",
+    "Poison"
+   ]
+  ],
+  "trainer": false
+ },
+ "owned_dex": [
+  252,
+  253,
+  254,
+  261,
+  262,
+  263,
+  276,
+  277,
+  300,
+  351
+ ],
+ "battle_starts_seen": [
+  {
+   "seed": 5,
+   "lead": [
+    "Skitty",
+    17,
+    45,
+    45,
+    "5cccd8be"
+   ],
+   "foe": [
+    "Oddish",
+    14,
+    43,
+    [
+     "Grass",
+     "Poison"
+    ]
+   ],
+   "trainer": false
+  }
+ ],
+ "steps": [
+  "f3295602 Start: open the START menu",
+  "f3295641 A: the START menu's POKéMON",
+  "f3295711 Down: party cursor 0, wanted 3",
+  "f3295730 Down: party cursor 1, wanted 3",
+  "f3295749 Down: party cursor 2, wanted 3",
+  "f3295768 A: the member in slot 3",
+  "f3295787 Down: party_action cursor 0, wanted 1",
+  "f3295806 A: SWITCH",
+  "f3295845 Up: the switch's second cursor (gPartyMenu.slotId2) on 3, wanted 0",
+  "f3295864 Up: the switch's second cursor (gPartyMenu.slotId2) on 2, wanted 0",
+  "f3295883 Up: the switch's second cursor (gPartyMenu.slotId2) on 1, wanted 0",
+  "f3295902 A: switch with the first slot",
+  "f3295985 B: close the menu (party, party)",
+  "f3296064 B: close the menu (start_menu, no view)",
+  "f3296113 party order now ['5cccd8be', '33cb74c3', '0b30a747', '863b0917', '5c96ea9b', 'c978d14e']",
+  "f3297742 brain explore {'brain': 'explore', 'goal_map': 'ROUTE117', 'personality': 'Catcher', 'seed': 5}: 1629 frames -> None (stopped: {\"map\": \"ROUTE117\"})",
+  "f3298842 brain battle {'brain': 'battle', 'battles': 30, 'seed': 5}: 1100 frames -> None (stopped: {\"lead\": [\"Skitty\", 17, 45, 45, \"5cccd8be\"], \"foe\": [\"Oddish\", 14, 43, [\"Grass\", \"Poison\"]], \"trainer\": false})"
+ ],
+ "ai_lines": [
+  "[explore] [AI-HANDS] brain=explore seed=5 (given) personality=Catcher (named by the run) faults=ungated_a:False,blind_count:False frames=30000",
+  "[battle] [AI-HANDS] brain=battle seed=5 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=60000",
+  "[battle] [AI-HANDS] battle brain: 30 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False"
+ ],
+ "truth": {
+  "frame": 3298842,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   32
+  ],
+  "party": [
+   [
+    "Skitty",
+    45,
+    45
+   ],
+   [
+    "Zigzagoon",
+    24,
+    24
+   ],
+   [
+    "Swellow",
+    114,
+    114
+   ],
+   [
+    "Sceptile",
+    122,
+    122
+   ],
+   [
+    "Mightyena",
+    130,
+    130
+   ],
+   [
+    "Castform",
+    100,
+    100
+   ]
+  ],
+  "party_exp": [
+   [
+    "5cccd8be",
+    "Skitty",
+    4598,
+    17
+   ],
+   [
+    "33cb74c3",
+    "Zigzagoon",
+    466,
+    7
+   ],
+   [
+    "0b30a747",
+    "Swellow",
+    64123,
+    41
+   ],
+   [
+    "863b0917",
+    "Sceptile",
+    78517,
+    44
+   ],
+   [
+    "5c96ea9b",
+    "Mightyena",
+    86090,
+    44
+   ],
+   [
+    "c978d14e",
+    "Castform",
+    43949,
+    35
+   ]
+  ],
+  "party_moves": [
+   [
+    "5cccd8be",
+    "Skitty",
+    [
+     "Sing",
+     "Tackle",
+     "Tail Whip",
+     "Attract"
+    ]
+   ],
+   [
+    "33cb74c3",
+    "Zigzagoon",
+    [
+     "Tackle",
+     "Growl",
+     "Surf",
+     "Tail Whip"
+    ]
+   ],
+   [
+    "0b30a747",
+    "Swellow",
+    [
+     "Peck",
+     "Wing Attack",
+     "Aerial Ace",
+     "Quick Attack"
+    ]
+   ],
+   [
+    "863b0917",
+    "Sceptile",
+    [
+     "Rock Smash",
+     "Pursuit",
+     "Leaf Blade",
+     "Slam"
+    ]
+   ],
+   [
+    "5c96ea9b",
+    "Mightyena",
+    [
+     "Tackle",
+     "Strength",
+     "Take Down",
+     "Bite"
+    ]
+   ],
+   [
+    "c978d14e",
+    "Castform",
+    [
+     "Powder Snow",
+     "Weather Ball",
+     "Sunny Day",
+     "Hail"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "5cccd8be",
+    22640
+   ],
+   [
+    "33cb74c3",
+    22640
+   ],
+   [
+    "0b30a747",
+    22640
+   ],
+   [
+    "863b0917",
+    22640
+   ],
+   [
+    "5c96ea9b",
+    22640
+   ],
+   [
+    "c978d14e",
+    22640
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 2,
+  "trainer_defeated": {
+   "322": true,
+   "280": true,
+   "617": false,
+   "631": true,
+   "754": true,
+   "753": true,
+   "529": false,
+   "532": true,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": true,
+   "333": true,
+   "615": true,
+   "603": true,
+   "600": false
+  },
+  "boxes": [],
+  "money": 10243,
+  "balls": {
+   "POKé BALL": 16,
+   "PREMIER BALL": 1,
+   "GREAT BALL": 1,
+   "ULTRA BALL": 1
+  },
+  "items": {
+   "X ATTACK": 1,
+   "ESCAPE ROPE": 1
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": true,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": true,
+   "BADGE01_GET": true,
+   "BADGE02_GET": true,
+   "BADGE03_GET": true,
+   "BADGE04_GET": true,
+   "BADGE05_GET": true,
+   "BADGE06_GET": true,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 4,
+  "gLocalTime": [
+   76,
+   18,
+   43,
+   3
+  ],
+  "localTimeOffset": [
+   9702,
+   6,
+   37,
+   25
+  ],
+  "pos": [
+   31,
+   16
+  ],
+  "game_stats": {
+   "steps": 18612,
+   "total_battles": 614,
+   "wild_battles": 447,
+   "trainer_battles": 167
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 470.5
+}

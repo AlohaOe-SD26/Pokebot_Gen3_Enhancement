@@ -1,24 +1,24 @@
 AI PLAYER BUILD STEP 0.1 - LIVE PROOF - ARM C: FAULT the brain raises
-date: 2026-10-09 02:52:24
-command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fresh --frames 3000 --wall-seconds 240 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C --fresh
+date: 2026-10-09 19:10:04
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fresh --frames 3000 --wall-seconds 240 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C --fresh
 package run: C:\Remote Projects\Pokebot_Gen3_Enhancement
 env switches: AI_PLAYER_FAULT_RAISE=1
 seed: FRESH New Game (no state, no cartridge save)
-code: HEAD af4913ac; ai_player/ + hook has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-exit code: 2   elapsed: 5.4s
-run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C
+code: HEAD 7a70a445; ai_player/ + hook has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+exit code: 2   elapsed: 7.2s
+run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C
 VERDICT: PASS
 checks (pre-registered in ai_player/gates/live_step0.py's docstring):
   [PASS] the launcher gated the real package before launch: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
   [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
-  [PASS] verdict file written by the instrument: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C\purity.json
+  [PASS] verdict file written by the instrument: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C\purity.json
   [PASS] the printed [AI-PURITY] line agrees with the file (differing: none)
   [PASS] exit code 2 (got 2)
   [PASS] verdict file: exit_reason=crash exit_code=2 (want crash / 2)
   [PASS] printed exit line agrees: [AI-EXIT] reason=crash code=2
   [PASS] traceback names the injected fault
-  [PASS] ended by itself, not by the wall clock: [AI-RUN] child exit code=2 elapsed=3.5s killed=False
-  [PASS] finished in 5.4s, inside the 240s wall clock
+  [PASS] ended by itself, not by the wall clock: [AI-RUN] child exit code=2 elapsed=4.7s killed=False
+  [PASS] finished in 7.2s, inside the 240s wall clock
 
 ---- the instrument's verdict file (purity.json): what the grade rests on ----
 {
@@ -46,8 +46,8 @@ checks (pre-registered in ai_player/gates/live_step0.py's docstring):
     "exit_reason": "crash",
     "isolation": {
       "active": "n=1 types=[GuardListener] rebuild_door=AI",
-      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380",
-      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
     },
     "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
   },
@@ -57,7 +57,7 @@ checks (pre-registered in ai_player/gates/live_step0.py's docstring):
     "thread": "MainThread"
   },
   "origins": {},
-  "pid": 42056,
+  "pid": 19344,
   "verdict": "CLEAN",
   "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
 }
@@ -69,13 +69,13 @@ checks (pre-registered in ai_player/gates/live_step0.py's docstring):
 [AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
 [AI-RUN] http_server=off (forced: ai-step0-fresh/http.yml rewritten with enable: false)
 [AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=3000 wall_seconds=240 soft_deadline_margin=24s switches=AI_PLAYER_FAULT_RAISE=1 dropped_env=none
-[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C
 [AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fresh -m AI Player -s 0 -na -hl
 [AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
-[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791539757.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C http_server=off debug=False
+[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791598415.9 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C http_server=off debug=False
 [AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
 [AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
-[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640
 [AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
 [AI-LIFECYCLE] exception in the brain: RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-TRACEBACK] Traceback (most recent call last):
@@ -89,12 +89,12 @@ checks (pre-registered in ai_player/gates/live_step0.py's docstring):
 [AI-TRACEBACK] RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=30 peek_restores=0 verdict=CLEAN
 [AI-PURITY-ORIGINS] none
-[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
-[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C\purity.json
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C\purity.json
 [AI-EXIT] reason=crash code=2
 [AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
-[AI-RUN] child exit code=2 elapsed=3.5s killed=False
-[AI-RUN] verdict file: verdict=CLEAN exit_reason=crash exit_code=2 pid=42056 package_is_the_gated_one=True
+[AI-RUN] child exit code=2 elapsed=4.7s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=crash exit_code=2 pid=19344 package_is_the_gated_one=True
 
 ---- stdout (full) ----
 [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
@@ -103,15 +103,15 @@ checks (pre-registered in ai_player/gates/live_step0.py's docstring):
 [AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
 [AI-RUN] http_server=off (forced: ai-step0-fresh/http.yml rewritten with enable: false)
 [AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=3000 wall_seconds=240 soft_deadline_margin=24s switches=AI_PLAYER_FAULT_RAISE=1 dropped_env=none
-[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C
 [AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step0-fresh -m AI Player -s 0 -na -hl
 Starting PokéBot Gen3 dev!
 Running mGBA 0.10.2
 [AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
-[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791539757.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C http_server=off debug=False
+[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791598415.9 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C http_server=off debug=False
 [AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
 [AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
-[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640
 [AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
 [AI-LIFECYCLE] exception in the brain: RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-TRACEBACK] Traceback (most recent call last):
@@ -125,27 +125,27 @@ Running mGBA 0.10.2
 [AI-TRACEBACK] RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=30 peek_restores=0 verdict=CLEAN
 [AI-PURITY-ORIGINS] none
-[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
-[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C\purity.json
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C\purity.json
 [AI-EXIT] reason=crash code=2
 [AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
 Shutting down...
-Save state C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\states\2026-10-09_02-52-24.ss1 created!
+Save state C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\states\2026-10-09_19-10-04.ss1 created!
 Updated `current_state.ss1`!
-Exception ignored in atexit callback: <function on_exit at 0x000001F2AEFFD9E0>
+Exception ignored in atexit callback: <function on_exit at 0x00000176323CD9E0>
 Traceback (most recent call last):
   File "C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py", line 41, in on_exit
     if gui is not None and gui.window is not None:
                            ^^^^^^^^^^
 AttributeError: 'PokebotHeadless' object has no attribute 'window'
-[AI-RUN] child exit code=2 elapsed=3.5s killed=False
-[AI-RUN] verdict file: verdict=CLEAN exit_reason=crash exit_code=2 pid=42056 package_is_the_gated_one=True
+[AI-RUN] child exit code=2 elapsed=4.7s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=crash exit_code=2 pid=19344 package_is_the_gated_one=True
 
 ---- ai_player.log (the AI's own log file) ----
-[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791539757.3 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C http_server=off debug=False
+[AI-START] mode='AI Player' frames=3000 brain=placeholder watch_every=60 switches=FAULT_RAISE wall_deadline=1791598415.9 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C http_server=off debug=False
 [AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
 [AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
-[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640
 [AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
 [AI-LIFECYCLE] exception in the brain: RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-TRACEBACK] Traceback (most recent call last):
@@ -159,6 +159,6 @@ AttributeError: 'PokebotHeadless' object has no attribute 'window'
 [AI-TRACEBACK] RuntimeError: AI_PLAYER_FAULT_RAISE: injected brain fault
 [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=0 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=30 peek_restores=0 verdict=CLEAN
 [AI-PURITY-ORIGINS] none
-[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1f2e6d25380 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
-[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-025219-C\purity.json
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1766a0e7640 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fresh\ai_player_runs\20261009-190957-C\purity.json
 [AI-EXIT] reason=crash code=2

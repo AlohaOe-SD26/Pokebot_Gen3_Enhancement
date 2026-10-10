@@ -2404,6 +2404,9 @@ def write_evidence(run: Run, code_ref: str, seed_note: str) -> Path:
         out += ["", "---- the profile's http.yml right after the run ----", run.http_after.rstrip()]
     out += ["", "---- stdout (full) ----", run.stdout.rstrip(), "",
             "---- ai_player.log (the AI's own log file) ----", run.ai_log.rstrip() or "(none)"]
+    from ai_player.gates.provenance import keep_earlier  # (step 4.1 round 3) an earlier tree's file is archived, not lost
+
+    keep_earlier(path)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 

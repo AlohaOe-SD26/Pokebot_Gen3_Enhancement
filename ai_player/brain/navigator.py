@@ -92,6 +92,28 @@ proof in `gates/test_world.py` and a mutant in `gates/revert_step3.py`:
     with the view), told with where the step-3.2 rule would have gone instead (`carry_note`); a new decision on the move
     only when nothing of it is left there or something clearly better came into view. Its plan stays uncharged
     (`planned_for` is kept: the same decision).
+
+STEP 4.1 ROUND 2 (the step-4 review's finding 7: "the churn fix mostly relabels decisions ... FIX the re-targeting so the
+walk itself gets closer to the shortest known way"; its verifier: the first fix, a charge on a place chosen on the move for
+what its journey walked beyond the shortest way from where it began, helped TOWN-Trainer and made TOWN-Catcher worse on
+both seed sets, because it was a pull AWAY FROM WHERE THE JOURNEY BEGAN that only happened to point at Littleroot's exit; it
+is gone). The walk's own waste was measured instead, seed by seed (development sweeps of 2026-10-09, seeds 1-10 and
+101-110), and each cause is fixed where it arises, with its proof in `gates/test_world.py` and a mutant in
+`gates/revert_step3.py`:
+  * THE TRAINER WALKS UP TO PEOPLE (`brain/explore.py`: the explorer's PEOPLE place; `Target.who`, `stale_reason`): the
+    pull toward people used to be a bonus on UNSEEN tiles near them, which vanished as soon as the player came close
+    enough to see those tiles, so the Trainer walked toward someone, stopped short and turned back across town for the next
+    one (with the pull off, its journeys were 0.09 of their steps beyond the shortest known way instead of 0.45: the pull
+    WAS the waste). A person who wants to meet people walks up to them, once: met (`world/memory.py` MEET_RADIUS), a
+    person is no place to go any more; `MEET_TRIES` walks after one who keeps walking off, then they are left alone.
+  * A PERSON IN THE WAY IS WAITED FOR, NOT WALKED ROUND BACKWARDS (`_next_step`, `PERSON_AHEAD`, `PERSON_PLAN_WAITS`):
+    someone standing on the plan being followed FURTHER ON than `PERSON_AHEAD` steps does not break it (people walk on);
+    someone on the next steps is waited for, at most `PERSON_PLAN_WAITS` times a plan, before the plan is redone. MEASURED:
+    the sweep's TOWN seed 102 stepped straight back twice for a person who had stepped into the way (14, 18) -> (13, 18),
+    (16, 10) -> (16, 9): 3 reversals in a run where the bound is 2.
+  * A DETOUR BENDS THE WAY, IT DOES NOT GO OUT AND BACK (`_detour`, `DETOUR_EXTRA`): the detour's tile lies on a way at
+    most `DETOUR_EXTRA` steps longer than the plan (it was any tile 1 or 2 from the way's middle: TOWN seed 102 went 2
+    tiles aside and straight back, (13, 9) -> (12, 9) -> (13, 9)).
 """
 
 from __future__ import annotations
@@ -113,8 +135,12 @@ __all__ = [
     "BUMP_RETRY_COST",
     "BUTTONS",
     "CHUNK_FRAMES",
+    "DETOUR_EXTRA",
     "DETOUR_P",
     "EXIT_PRESS",
+    "MEET_TRIES",
+    "PERSON_AHEAD",
+    "PERSON_PLAN_WAITS",
     "NOVELTY_WINDOW",
     "PINGPONG_USES",
     "PLAN_SWITCH_MARGIN",
@@ -161,6 +187,20 @@ NOVELTY_WINDOW = 3000
 PINGPONG_USES = 3
 #: The chance a target gets a small detour through a seen tile beside the way (seeded).
 DETOUR_P = 0.15
+#: (step 4.1 round 2, finding 7) A detour's tile lies on a way at most this many steps longer than the plan (Manhattan:
+#: here -> the tile -> the target): one tile aside of the way and on, never two aside and straight back.
+DETOUR_EXTRA = 2
+#: (step 4.1 round 2, finding 7) Someone standing on the plan being followed further on than this many steps does not
+#: break it (people walk on: the plan is looked at again as the player comes up); someone on the next steps does.
+PERSON_AHEAD = 2
+#: (step 4.1 round 2) How often a plan waits for someone standing on its next steps (`PERSON_WAIT` // 3 frames each)
+#: before it is redone round them.
+PERSON_PLAN_WAITS = 2
+#: (step 4.1 round 2) How many decisions to walk up to ONE person (`brain/explore.py` PEOPLE places) before that person is
+#: left alone for the rest of the intent (someone who keeps walking off).
+MEET_TRIES = 2
+#: (step 4.1 round 2) What `_next_step` answers when the way is free but for someone on its next steps: wait for them.
+WAIT = "wait"
 #: (build step 3.1, finding 4) What entering a tile from a side it was bumped from once costs on top (in tiles of
 #: walking): a way round up to this much longer is taken first; the side is refused at `BUMP_GIVE_UP` bumps.
 BUMP_RETRY_COST = 10.0
@@ -233,11 +273,15 @@ def exit_press(behavior: str) -> str | None:
 
 def stale_reason(memory: MapMemory, target: "Target") -> str | None:
     """Why a chosen target is no longer worth walking to, by what the AI has seen since it chose it (build step 3.1,
-    finding 2), or None: a FRONTIER tile with nothing unseen beside it any more, TALL GRASS already walked."""
+    finding 2), or None: a FRONTIER tile with nothing unseen beside it any more, TALL GRASS already walked, (step 4.1 round
+    2) a PERSON already met."""
     if target.kind == "frontier" and memory.known(target.tile) and not memory.unknown_neighbours(target.tile):
         return "everything beside it has been seen on the way"
     if target.kind == "grass" and memory.visits.get(target.tile):
         return "it has been walked already"
+    # (step 4.1 round 2, finding 7) a person walked up to: met on the way (`world/memory.py` MEET_RADIUS)
+    if target.kind == "people" and target.who is not None and target.who in memory.met:
+        return "the player has been beside them: met"
     return None
 
 
@@ -406,6 +450,8 @@ class Target:
     score: float = 0.0
     exit: tuple[int, int] | None = None
     direction: str | None = None
+    #: (step 4.1 round 2, finding 7) a PEOPLE place: who it is for (the person's id on this map, `MapMemory.persons`)
+    who: int | None = None
 
     @property
     def key(self) -> str:
@@ -422,6 +468,8 @@ class Plan:
     at: tuple[int, int]
     path: list[str]
     charged: bool
+    #: (step 4.1 round 2) how often it has waited for someone standing on its next steps (`PERSON_PLAN_WAITS`)
+    waits: int = 0
 
 
 @dataclass
@@ -620,6 +668,9 @@ class Navigator:
         #: carry-on said (`brain/explore.py` carry_on: "refused" why not, or "would": where the step-3.2 rule would have gone)
         self.carries = 0
         self.carry_note: dict = {}
+        #: (step 4.1 round 2, finding 7) "map|person id" -> the decisions made to walk up to that person in the current
+        #: intent (`MEET_TRIES`)
+        self.people_tries: dict[str, int] = {}
         self._noise: dict[str, tuple[float, dict[tuple[int, int], float]]] = {}
         self._seen_changes = len(world.transitions)
         #: BUILD STEP 4: who plays a battle met on the way. None (the step-3 world brains): a wild battle is FLED
@@ -930,6 +981,12 @@ class Navigator:
         direction = self._next_step(memory, here, target, walls)
         if direction is None:
             return "unreachable"
+        if direction == WAIT:
+            # (step 4.1 round 2, finding 7) someone stands on the next steps of the way being followed: let them pass
+            self.stats.people += 1
+            yield from self.hands.pad.idle(PERSON_WAIT // 3, f"someone stands in the way on the next steps toward the "
+                                                             f"{target.kind} at {target.tile}: letting them pass")
+            return "person"
         nxt = moved(here, direction)
         expected = step_from(memory, here, direction, walls, self.grass_cost)
         fact = memory.fact(nxt)
@@ -954,11 +1011,25 @@ class Navigator:
         (`PLAN_SWITCH_MARGIN` cheaper: a shortcut came into view); otherwise a new plan. Only the FIRST plan of a decision
         (`planned_for` None: a target just chosen, its detour included) pays the turn-back cost: a person who decides on
         the move where to go may keep going round rather than turn back, but does not decide it again at every step (the
-        old rule did: each step forward made turning back dearer again, and the AI walked laps). None: no way known."""
+        old rule did: each step forward made turning back dearer again, and the AI walked laps). None: no way known.
+        (Step 4.1 round 2, finding 7) PEOPLE ON THE WAY: someone standing on the followed plan further on than
+        `PERSON_AHEAD` steps does not break it (they walk on); someone on its next steps, with the way otherwise free, is
+        waited for (`WAIT`), at most `PERSON_PLAN_WAITS` times a plan, before it is redone round them."""
         noise = self.noise_for(target)
         plan, current = self.plan, self.world.current
         if plan is not None and plan.key == target.key and plan.map == current and plan.at == here and plan.path:
-            left = path_cost(memory, here, plan.path, walls, self.grass_cost, noise)
+            near, tile = set(), here
+            for direction in plan.path[:PERSON_AHEAD]:
+                tile = moved(tile, direction)
+                if tile in memory.people_now:
+                    near.add(tile)
+            kept = self.scene_walls.get(memory.key, set())
+            further = memory.people_now - near - kept
+            left = path_cost(memory, here, plan.path, walls - further, self.grass_cost, noise)
+            if (left is None and near and plan.waits < PERSON_PLAN_WAITS
+                    and path_cost(memory, here, plan.path, walls - (memory.people_now - kept), self.grass_cost, noise) is not None):
+                plan.waits += 1
+                return WAIT
             if left is not None:
                 fresh = astar(memory, here, {target.tile}, walls, self.grass_cost, noise)
                 better = path_cost(memory, here, fresh, walls, self.grass_cost, noise)
@@ -989,6 +1060,7 @@ class Navigator:
         self.scene_spots, self.scene_walls, self.scene_said = {}, {}, {}
         self.plan, self.planned_for = None, None
         self.carries = 0
+        self.people_tries = {}
         on_the_move = False  # a target just dropped as stale: the next one is chosen without a thinking pause
         self._seen_changes = len(world.transitions)
         uses: dict[str, list[int]] = {}
@@ -1234,7 +1306,9 @@ class Navigator:
         return (memory.const or memory.name or memory.key) if memory is not None else "?"
 
     def _detour(self, target: Target, look: Observation) -> Target | None:
-        """Now and then (`DETOUR_P`, seeded) a small detour through a seen tile beside the way."""
+        """Now and then (`DETOUR_P`, seeded) a small detour through a seen tile beside the way. (Step 4.1 round 2, finding
+        7) The tile bends the way: here -> it -> the target is at most `DETOUR_EXTRA` steps longer than the plan
+        (Manhattan), so a detour is never two tiles aside and straight back."""
         found = self.where(look)
         if found is None or self.rng.random() >= DETOUR_P:
             return None
@@ -1246,7 +1320,10 @@ class Navigator:
         for direction in path[:middle]:
             tile = moved(tile, direction)
         options = [moved(tile, d) for d in DIRECTIONS] + [moved(moved(tile, d), d) for d in DIRECTIONS]
-        options = [xy for xy in options if memory.passable(xy) and xy != here]
+        goal = target.tile
+        options = [xy for xy in options if memory.passable(xy) and xy != here
+                   and abs(xy[0] - here[0]) + abs(xy[1] - here[1]) + abs(xy[0] - goal[0]) + abs(xy[1] - goal[1])
+                   <= len(path) + DETOUR_EXTRA]
         if not options:
             return None
         self.stats.detours += 1
@@ -1265,6 +1342,10 @@ class Navigator:
         memory, here = found if found is not None else (None, None)
         fact = memory.fact(target.tile) if memory is not None else None
         self.stats.decisions += 1
+        if target.kind == "people" and target.who is not None:
+            # (step 4.1 round 2, finding 7) one more walk up to this person (`MEET_TRIES`)
+            key = f"{self.world.current}|{target.who}"
+            self.people_tries[key] = self.people_tries.get(key, 0) + 1
         extra = {"map": self.world.current, "player": list(here) if here else None, "target": list(target.tile),
                  "kind": target.kind, "exit": list(target.exit) if target.exit else None, "direction": target.direction,
                  "score": round(target.score, 2), "known": fact is not None,
@@ -1272,7 +1353,9 @@ class Navigator:
                  "in_window": bool(here is not None and in_window(here, target.tile)),
                  "detour": list(detour.tile) if detour else None, "personality": self.personality,
                  # (build step 3.2) chosen while walking (a target dropped as stale), and the heading then
-                 "on_the_move": bool(on_the_move), "heading": self.heading()}
+                 "on_the_move": bool(on_the_move), "heading": self.heading(),
+                 # (step 4.1 round 2) a person to walk up to: who
+                 "who": target.who}
         self.hands.note("decide", f"target {target.kind} {target.tile}", target.reason, extra)
         self.tell(f"go to the {target.kind} at {target.tile}{' then use it pressing ' + target.direction if target.exit else ''}"
                   f": {target.reason} (score {target.score:.1f}{'; a detour by ' + str(detour.tile) if detour else ''})")

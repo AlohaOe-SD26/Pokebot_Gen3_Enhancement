@@ -26,7 +26,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-from ai_player.gates.provenance import provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance  # noqa: E402
 
 EVIDENCE = REPO / "ai_player" / "evidence"
 TIMEOUT = 600
@@ -47,7 +47,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
            [(BATTLE, "    penalty = 0.0 if faults.ignore_recoil else recoil_penalty(fact, base, hp_share, full, risk)\n",
              "    penalty = 0.0  # MUTANT B3\n")],
            ["RecoilTests.test_take_down_at_full_hp_water_gun_when_low",
-            "RecordedRecoilTests.test_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
+            "RecordedRecoilTests.test_fault_overkill_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
     "B4": (CAUGHT, "the recoil penalty does not grow as the user's HP falls",
            [(BATTLE, "    weight = 0.5 + 2.5 * (1.0 - max(0.0, min(1.0, hp_share)))\n", "    weight = 0.5  # MUTANT B4\n")],
            ["RecoilTests.test_the_penalty_grows_as_hp_falls", "RecoilTests.test_take_down_at_full_hp_water_gun_when_low"]),
@@ -61,11 +61,12 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
            ["ChoiceTests.test_about_equal_moves_are_both_drawn_a_clear_winner_always",
             "TypeTests.test_fault_types_ignored_never_choose_it"]),
     "B7": (CAUGHT, "a weakening move that could knock the foe out is used (no KO check)",
-           [(BATTLE, "            if bar - high >= KO_MARGIN:\n", "            if True:  # MUTANT B7\n")],
+           [(BATTLE, "            if bar - high > KO_MARGIN:\n", "            if True:  # MUTANT B7\n")],
            ["CatchTests.test_every_move_could_knock_it_out_so_throw_at_once"]),
     "B8": (CAUGHT, "a Poke Ball every time (never a better ball for a hard catch)",
-           [(BATTLE, "        if hard or self.memory.throws >= 2:\n", "        if False:  # MUTANT B8\n")],
-           ["CatchTests.test_a_great_ball_for_a_hard_catch"]),
+           [(BATTLE, "        if cues:\n            for better in GREAT_BALLS:\n",
+             "        if False:  # MUTANT B8\n            for better in GREAT_BALLS:\n")],
+           ["CatchTests.test_the_ball_by_what_a_person_sees_not_the_catch_rate"]),
     "B9": (CAUGHT, "no bound on the balls thrown in one battle",
            [(BATTLE, "        if not balls or mem.throws >= MAX_THROWS:\n", "        if not balls:  # MUTANT B9\n")],
            ["CatchTests.test_at_most_max_throws"]),
@@ -74,7 +75,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "        self.memory.new_species = battle.kind == \"wild\"  # MUTANT B10\n")],
             ["CatchTests.test_an_owned_species_is_fought"]),
     "B11": (CAUGHT, "a Pokemon far above the foe's level switched out for a bad matchup (no level guard)",
-            [(BATTLE, "        if not badly or own.level >= foe.level + OUTLEVELS:\n", "        if not badly:  # MUTANT B11\n")],
+            [(BATTLE, "        if not badly or own.level >= foe.level + margin:\n", "        if not badly:  # MUTANT B11\n")],
             ["SwitchTests.test_not_when_it_far_outlevels_the_foe"]),
     "B12": (CAUGHT, "a switch in a double battle",
             [(BATTLE, "        if look.battle is not None and look.battle.double:\n            return None  # step 4 does not switch "
@@ -170,7 +171,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
     "B36": (CAUGHT, "the recoil charged on the whole hit though the foe has less HP left (no cap at what the hit can take)",
             [(BATTLE, "        landed = min(1.0, left / share)\n", "        landed = 1.0  # MUTANT B36\n")],
             ["RecordedRecoilTests.test_its_recoil_is_a_share_of_what_the_foe_has_left",
-             "RecordedRecoilTests.test_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
+             "RecordedRecoilTests.test_fault_overkill_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
     "B37": (CAUGHT, "Jump Kick's miss recoil not capped at half the target's max HP",
             [(BATTLE, "            miss_capped = min(1.0, 1.0 / share)\n", "            miss_capped = 1.0  # MUTANT B37\n")],
             ["RecoilTests.test_jump_kicks_miss_recoil_is_capped_at_half_the_targets_max_hp"]),
@@ -178,7 +179,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             [(BATTLE, "    faints = user_battler.hp is not None and recoil_hp >= user_battler.hp\n",
               "    faints = False  # MUTANT B38\n")],
             ["RecoilTests.test_a_recoil_that_would_faint_the_user_costs_the_whole_worth",
-             "RecordedRecoilTests.test_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
+             "RecordedRecoilTests.test_fault_overkill_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it"]),
     "B39": (CAUGHT, "a refusal on screen before any choice of its own: the member refused not told to the decider",
             [(SKILL, "                if kind == \"party\" and refused is not None:\n",
               "                if False:  # MUTANT B39\n")],
@@ -198,6 +199,86 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                     "neutral choices as type decisions)",
             [(BATTLE, "        return bool(self.near) and self.blind not in self.near\n", "        return True  # MUTANT B43\n")],
             ["TypeTests.test_the_choice_says_what_the_type_chart_changed"]),
+    # ---- step 4.1 (the step-4 verifier's and adversarial review's findings)
+    "B44": (CAUGHT, "finding 1: the shift question answered about the foe on the field (the FAINTED one, step 4)",
+            [(BATTLE, "            foe, said = incoming(f\"{context} {question}\", on_field)\n",
+              "            foe, said = on_field, \"the foe on the field\"  # MUTANT B44\n")],
+            ["ShiftTests.test_the_question_is_about_the_incoming_species_named_in_the_words",
+             "SkillTests.test_the_shift_question_sends_the_member_decided_against_the_incoming_foe"]),
+    "B45": (CAUGHT, "finding 1: the member chosen at the shift question NOT carried into the party menu (ranked by level, step 4)",
+            [(BATTLE, "        if (chosen is not None and chosen not in out and not self.faults.shift_fainted\n",
+              "        if (False  # MUTANT B45\n")],
+            ["ShiftTests.test_a_yes_is_carried_into_the_party_menu",
+             "SkillTests.test_the_shift_question_sends_the_member_decided_against_the_incoming_foe"]),
+    "B46": (CAUGHT, "finding 2: a move the game refused not remembered for the turn (\"decide again\" picks it again)",
+            [(BATTLE, "            self.unusable[self.last_chosen] = words\n", "            pass  # MUTANT B46\n")],
+            ["UnusableTests.test_a_refused_move_is_out_until_the_next_turn",
+             "SkillTests.test_a_refused_move_is_not_chosen_again_that_turn"]),
+    "B47": (CAUGHT, "finding 2: the skill does not tell the decider the move grid came back",
+            [(SKILL, "            refused = mind.cannot_use(words)\n", "            refused = None  # MUTANT B47\n")],
+            ["SkillTests.test_a_refused_move_is_not_chosen_again_that_turn"]),
+    "B48": (CAUGHT, "a Potion's target chosen as step 4 did: the party menu's message after it not read (the battle stuck)",
+            [(SKILL, "            if not (yield from _give_item(hands, decision.target_pid, item, reason)):\n",
+              "            if not (yield from _pick_member(hands, decision.target_pid, reason)):  # MUTANT B48\n")],
+            ["SkillTests.test_a_potion_is_given_and_its_message_read"]),
+    "B49": (CAUGHT, "finding 4: the foe's LIVE types (gBattleMons) used, not its species'",
+            [(BATTLE, "    return fact.types if fact is not None else mon.types\n", "    return mon.types  # MUTANT B49\n")],
+            ["HiddenInfoTests.test_the_foes_types_are_its_species_not_the_live_ones"]),
+    "B50": (CAUGHT, "finding 4: a hit's damage from the exact formula, not a person's rough sense",
+            [(BATTLE, "    return max(ROUGH_STEP / 2, round(share / ROUGH_STEP) * ROUGH_STEP)\n", "    return share  # MUTANT B50\n")],
+            ["HiddenInfoTests.test_a_hit_is_a_rough_sense_not_the_exact_formula"]),
+    "B51": (CAUGHT, "finding 4: the hidden catch rate back in the ball choice (step 4: a better ball under catch rate 100)",
+            [(BATTLE, "        if mem.throws >= 2:\n            cues.append(f\"{mem.throws} missed\")\n",
+              "        if mem.throws >= 2 or species_fact(foe.species).catch_rate < 100:  # MUTANT B51\n"
+              "            cues.append(f\"{mem.throws} missed\")\n")],
+            ["CatchTests.test_the_ball_by_what_a_person_sees_not_the_catch_rate"]),
+    "B52": (CAUGHT, "finding 6: overkill valued again (a move that finishes the foe worth only its power)",
+            [(BATTLE, "    finishes = ko_worth is not None and effectiveness > 0 and not faults.overkill\n",
+              "    finishes = False  # MUTANT B52\n")],
+            ["RecordedRecoilTests.test_overkill_every_move_finishes_it_so_take_down_never",
+             "OverkillTests.test_moves_that_all_finish_it_compare_by_hit_chance_and_recoil"]),
+    "B53": (CAUGHT, "finding 5: never an opening move (step 4)",
+            [(BATTLE, "        if self.rng.random() >= self.temper.opener:\n", "        if True:  # MUTANT B53\n")],
+            ["OpenerTests.test_an_opening_move_by_temperament_on_a_safe_first_turn"]),
+    "B54": (CAUGHT, "finding 5: an opening status move whether or not it is safe",
+            [(BATTLE, "        unsafe = self._safe_for_status(own, foe, hp_share, OPENER_HP)\n", "        unsafe = None  # MUTANT B54\n")],
+            ["OpenerTests.test_never_a_status_move_when_it_is_not_safe"]),
+    "B55": (CAUGHT, "finding 5: no sleep or paralysis move to help a catch",
+            [(BATTLE, "        status = self._catch_status(own, foe, hp_share, values)\n", "        status = None  # MUTANT B55\n")],
+            ["OpenerTests.test_a_sleep_or_paralysis_move_helps_a_catch"]),
+    "B56": (CAUGHT, "finding 5: a catch's status move even when its own HP is low",
+            [(BATTLE, "        unsafe = self._safe_for_status(own, foe, hp_share, CATCH_STATUS_HP, opener=False)\n",
+              "        unsafe = None  # MUTANT B56\n")],
+            ["OpenerTests.test_a_sleep_or_paralysis_move_helps_a_catch"]),
+    "B57": (CAUGHT, "finding 5: Thunder Wave tried on a Ground type (no type check of a status move)",
+            [(BATTLE, "            if fact.effect == \"PARALYZE\" and fact.type == \"Electric\" and \"Ground\" in types:\n                continue\n", "")],
+            ["OpenerTests.test_a_sleep_or_paralysis_move_helps_a_catch"]),
+    # ---- step 4.1 ROUND 2 (the step-4.1 verifier's findings)
+    "B58": (CAUGHT, "the verifier's minor: the shift question's species read to the first '.' ('MR. MIME' -> 'MR': no species)",
+            [(BATTLE, "    for cut in sorted({m.start() for m in re.finditer(r\"[.!?]\", rest)}, reverse=True):\n",
+              "    for cut in sorted({m.start() for m in re.finditer(r\"[.!?]\", rest)})[:1]:  # MUTANT B58\n")],
+            ["ShiftTests.test_a_species_whose_name_has_a_full_stop_or_a_sign_is_read_whole"]),
+    "B59": (CAUGHT, "finding 5 (its verifier: the STATUS count): an opener the draw passed over not SAID (the sweep cannot "
+                    "count the rule's chances)",
+            [(BATTLE, "        if self.opener_passed:\n", "        if False:  # MUTANT B59\n")],
+            ["OpenerTests.test_every_chance_of_an_opener_is_said_drawn_or_passed_over"]),
+    # ---- step 4.1 ROUND 3 (the step-4.1 verifier's second round: "hidden information is still used")
+    "B60": (CAUGHT, "the foe's SPECIES' base stats back in the damage estimate and its max HP (step 4.1 round 2: hidden "
+                    "information)",
+            [(BATTLE, "    defense = typical_stat(\"defense\" if physical else \"sp_defense\", foe.level)\n",
+              "    _species = species_fact(foe.species)  # MUTANT B60\n"
+              "    defense = estimate_stat(_species.defense if physical else _species.sp_defense, foe.level)\n"),
+             (BATTLE, "    return typical_stat(\"hp\", foe.level)\n",
+              "    return estimate_stat(species_fact(foe.species).hp, foe.level, hp=True)  # MUTANT B60\n")],
+            ["HiddenInfoTests.test_the_foes_base_stats_are_not_used_every_foe_of_a_level_is_guessed_alike",
+             "RecordedRecoilTests.test_its_recoil_is_a_share_of_what_the_foe_has_left"]),
+    "B61": (CAUGHT, "the hits SEEN on this foe ignored: the typical guess never corrected",
+            [(BATTLE, "        hit = self.memory.seen_hit\n", "        hit = None  # MUTANT B61\n")],
+            ["HiddenInfoTests.test_a_seen_hit_corrects_the_guess"]),
+    "B62": (CAUGHT, "the bar's drop after its move not remembered as a hit SEEN",
+            [(BATTLE, "                mem.seen_hit = (mem.last_move, mem.observed[mem.last_move])\n",
+              "                pass  # MUTANT B62\n")],
+            ["HiddenInfoTests.test_the_hit_it_saw_is_the_bars_drop_after_its_move"]),
 }
 
 DRIVER = '''
@@ -284,7 +365,8 @@ def main() -> int:
                 line = (f"[{name}] CONTROL, the unchanged copy: {result['ran']} tests, failing {sorted(bad) or 'none'} "
                         f"(ran the copy: {ran_copy}) -> {'PASS' if ok else 'FAIL'}")
             elif prediction == CAUGHT:
-                caught = [t for t in expected if any(b == t or b.startswith(t + " (") for b in bad)]
+                # a subTest's failure is named "<test> (<params>)" or "<test> [<message>]"
+                caught = [t for t in expected if any(b == t or b.startswith((t + " (", t + " [")) for b in bad)]
                 ok = ran_copy and caught == expected
                 line = (f"[{name}] BROKEN: {what}. Predicted CAUGHT by {expected}. The copy ran {result['ran']} tests "
                         f"({'the copy' if ran_copy else 'NOT THE COPY'}); failing: {failing} -> {'CAUGHT' if ok else 'NOT CAUGHT'}")
@@ -306,6 +388,7 @@ def main() -> int:
     if only is None:
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step4-REVERT.txt"
+        keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over
         path.write_text("\n".join(out) + "\n", encoding="utf-8")
         print(f"evidence: {path.relative_to(REPO)}")
     return 0 if ok_all else 1

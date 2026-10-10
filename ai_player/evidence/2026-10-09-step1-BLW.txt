@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 1 (THE EYES) - LIVE PROOF - ARM BLW: STEP 1.1 findings 1, 2, 5: a wild Pokemon caught (bag, nickname screen), the [CATCH] line by PID
-date: 2026-10-09 02:55:45
-code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-09 19:15:13
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 fixture: (several, see below)
 fixture documentation: probe_step11.py catch --delay 1, from tools/story-dev/saves/oldale.ss1
 command: (no AI run: probes only)

@@ -1,0 +1,280 @@
+{
+ "fixture": "rival_rustboro.ss1",
+ "md5": "862025959e9a879c729eda359e24b8ff",
+ "source": [
+  "tools/story-dev/saves/fresh_rivalprep.ss1",
+  "606e86c24dde32de5359566e3d4ce8f8"
+ ],
+ "played_by": "test-side reorder + the AI's goto / mart brains (seed 1), clock 2026-10-08T10:00",
+ "at": {
+  "lead": [
+   "Marshtomp",
+   18,
+   58,
+   58
+  ],
+  "frame": 708350
+ },
+ "opponent": 600,
+ "steps": [
+  "f702079 brain battle {'brain': 'battle', 'battles': 1, 'seed': 1}: 2079 frames -> \"battle: battles: 1 played: ['won']\"",
+  "f702109 Start: open the START menu",
+  "f702148 A: the START menu's POKéMON",
+  "f702213 Down: party cursor 0, wanted 1",
+  "f702232 A: the member in slot 1",
+  "f702251 Down: party_action cursor 0, wanted 1",
+  "f702270 A: SWITCH",
+  "f702309 Up: the switch's second cursor (gPartyMenu.slotId2) on 1, wanted 0",
+  "f702328 A: switch with the first slot",
+  "f702411 B: close the menu (party, party)",
+  "f702490 B: close the menu (start_menu, no view)",
+  "f702539 party order now ['550a9be6', '2b19ca91', 'a8dbcf1b', 'a735d162']",
+  "f702748 brain goto {'brain': 'goto', 'goto': ((0, 8),), 'seed': 1}: 209 frames -> 'goto: done: walk to [(0, 8)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 301 tiles learned)'",
+  "f702775 step Left (cross into Rustboro): ('ROUTE116', 0, 8) -> ('RUSTBORO_CITY', 39, 8)",
+  "f703824 brain goto {'brain': 'goto', 'goto': ((16, 46),), 'seed': 1}: 1049 frames -> 'goto: done: walk to [(16, 46)] (65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned)'",
+  "f703872 step Up (the mart's door): ('RUSTBORO_CITY', 16, 46) -> ('RUSTBORO_CITY', 16, 45)",
+  "f704112 wait 240 (the door's fade): ('RUSTBORO_CITY_MART', 3, 7)",
+  "f704129 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY_MART', 3, 6)",
+  "f704146 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 6) -> ('RUSTBORO_CITY_MART', 3, 5)",
+  "f704163 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 5) -> ('RUSTBORO_CITY_MART', 3, 4)",
+  "f704180 step Up (to the counter (make_mart_fixture.py's walk)): ('RUSTBORO_CITY_MART', 3, 4) -> ('RUSTBORO_CITY_MART', 3, 3)",
+  "f705589 brain mart {'brain': 'mart', 'mart_item': 'POTION', 'mart_count': 3, 'seed': 1}: 1409 frames -> 'mart: bought'",
+  "f705614 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 3) -> ('RUSTBORO_CITY_MART', 3, 4)",
+  "f705631 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 4) -> ('RUSTBORO_CITY_MART', 3, 5)",
+  "f705648 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 5) -> ('RUSTBORO_CITY_MART', 3, 6)",
+  "f705665 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 6) -> ('RUSTBORO_CITY_MART', 3, 7)",
+  "f705721 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY_MART', 3, 7)",
+  "f705759 step Down (leave the mart): ('RUSTBORO_CITY_MART', 3, 7) -> ('RUSTBORO_CITY', 16, 45)",
+  "f705999 wait 240 (the door's fade): ('RUSTBORO_CITY', 16, 46)",
+  "f706136 brain goto {'brain': 'goto', 'goto': ((16, 52),), 'seed': 1}: 137 frames -> 'goto: done: walk to [(16, 52)] (8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 268 tiles learned)'",
+  "f706161 step Down (onto the rival's trigger row (y 53)): ('RUSTBORO_CITY', 16, 52) -> ('RUSTBORO_CITY', 16, 53)"
+ ],
+ "ai_lines": [
+  "[battle] [AI-HANDS] brain=battle seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=15000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Nincada L7 (Bug/Ground); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Bite: Bite is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit; Howl: a status move (0); Sand-attack: a status move (0); Bite: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest)] (battler 0) {types: about as good with the chart ['Bite']; with no types the best Bite; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 2: fight Bite: Bite, drawn among the about-as-good ['Tackle', 'Bite'] (within 85% of the best, weighted by worth) [Tackle: 85.5 = x1 type x1 STAB x 35 power x 0.95 hit (finishes it: worth as the strongest); Howl: a status move (0); Sand-attack: a status move (0); Bite: 90.0 = x1 type x1.5 STAB x 60 power x 1.00 hit (finishes it: worth as the strongest)] (battler 0) {types: about as good with the chart ['Bite', 'Tackle']; with no types the best Bite; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Poochyena', 16, 39, 42), ('Marshtomp', 18, 58, 58), ('Taillow', 17, 45, 45), ('Dustox', 12, 37, 37)]",
+  "[battle] [AI-WORLD] battle 1: won",
+  "[battle] [AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 165 tiles learned",
+  "[battle] [AI-HANDS] outcome=\"battles: 1 played: ['won']\" presses=9 frames=2079 looks=1596 records=56",
+  "[battle] [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 2, 'A:battle_move cursor on 3': 2, 'A:text printer 0 CLEAR': 3, 'Down:battle_move cursor on 1': 1, 'Right:battle_move cursor on 0': 1}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 301 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(0, 8)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 301 tiles learned)' presses=24 frames=209 looks=54 records=31",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 1, 'Down:walk down': 1, 'Left:keep walking left': 11, 'Left:walk left': 11}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=20000",
+  "[goto] [AI-WORLD] navigator: 65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(16, 46)] (65 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 1032 tiles learned)' presses=129 frames=1049 looks=265 records=136",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 38, 'Down:walk down': 38, 'Left:keep walking left': 24, 'Left:walk left': 25, 'Right:keep walking right': 2, 'Right:walk right': 2}",
+  "[mart] [AI-HANDS] brain=mart seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=8000",
+  "[mart] [AI-HANDS] buy at the mart: 3 x POTION; the clerk at (-2,0); in the bag 0, money 4084",
+  "[mart] [AI-HANDS] buy at the mart: done; POTION in the bag 0 -> 3, money 4084 -> 3184, listed price 300",
+  "[mart] [AI-HANDS] outcome='bought' presses=16 frames=1409 looks=834 records=49",
+  "[mart] [AI-HANDS] presses by gate: {'A:mart_buy cursor on 1': 1, 'A:mart_menu cursor on 0': 1, 'A:mart_menu cursor on 2': 1, 'A:mart_quantity reads x3, the number wante': 1, 'A:script waitbuttonpress': 1, 'A:talk': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 1, 'A:text printer 0 CLEAR': 1, 'A:yes_no cursor on 0': 1, 'B:the item list is open': 1, 'Down:mart_buy cursor on 0': 1, 'Down:mart_menu cursor on 0': 1, 'Down:mart_menu cursor on 1': 1, 'Left:turn left to face the npc': 1, 'Up:mart_quantity reads x1, wanted x3': 1, 'Up:mart_quantity reads x2, wanted x3': 1}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 268 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(16, 52)] (8 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 268 tiles learned)' presses=15 frames=137 looks=37 records=22",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 5, 'Down:walk down': 6, 'Left:keep walking left': 1, 'Left:walk left': 1, 'Right:keep walking right': 1, 'Right:walk right': 1}"
+ ],
+ "truth": {
+  "frame": 708350,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   3
+  ],
+  "party": [
+   [
+    "Marshtomp",
+    58,
+    58
+   ],
+   [
+    "Poochyena",
+    39,
+    42
+   ],
+   [
+    "Taillow",
+    45,
+    45
+   ],
+   [
+    "Dustox",
+    37,
+    37
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Marshtomp",
+    4335,
+    18
+   ],
+   [
+    "2b19ca91",
+    "Poochyena",
+    4513,
+    16
+   ],
+   [
+    "a8dbcf1b",
+    "Taillow",
+    3130,
+    17
+   ],
+   [
+    "a735d162",
+    "Dustox",
+    1796,
+    12
+   ]
+  ],
+  "party_moves": [
+   [
+    "550a9be6",
+    "Marshtomp",
+    [
+     "Tackle",
+     "Growl",
+     "Mud-slap",
+     "Water Gun"
+    ]
+   ],
+   [
+    "2b19ca91",
+    "Poochyena",
+    [
+     "Tackle",
+     "Howl",
+     "Sand-attack",
+     "Bite"
+    ]
+   ],
+   [
+    "a8dbcf1b",
+    "Taillow",
+    [
+     "Peck",
+     "Wing Attack",
+     "Focus Energy",
+     "Quick Attack"
+    ]
+   ],
+   [
+    "a735d162",
+    "Dustox",
+    [
+     "Tackle",
+     "Confusion",
+     "Poison Sting",
+     "Harden"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "550a9be6",
+    22640
+   ],
+   [
+    "2b19ca91",
+    22640
+   ],
+   [
+    "a8dbcf1b",
+    22640
+   ],
+   [
+    "a735d162",
+    22640
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 1,
+  "trainer_defeated": {
+   "322": true,
+   "280": true,
+   "617": false,
+   "631": true,
+   "754": true,
+   "753": true,
+   "529": true,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": true,
+   "333": true,
+   "615": true,
+   "603": true
+  },
+  "boxes": [],
+  "money": 3184,
+  "balls": {
+   "POKé BALL": 17,
+   "PREMIER BALL": 1,
+   "GREAT BALL": 1
+  },
+  "items": {
+   "POTION": 3
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": true,
+   "RECEIVED_POKEDEX_FROM_BIRCH": true,
+   "SYS_POKEDEX_GET": true,
+   "ADVENTURE_STARTED": true,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": true,
+   "SYS_B_DASH": true,
+   "DEFEATED_RUSTBORO_GYM": true,
+   "BADGE01_GET": true,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 4,
+  "gLocalTime": [
+   79,
+   2,
+   24,
+   19
+  ],
+  "localTimeOffset": [
+   9699,
+   10,
+   52,
+   42
+  ],
+  "pos": [
+   16,
+   53
+  ],
+  "game_stats": {
+   "steps": 6975,
+   "total_battles": 224,
+   "wild_battles": 205,
+   "trainer_battles": 19
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 13.7
+}

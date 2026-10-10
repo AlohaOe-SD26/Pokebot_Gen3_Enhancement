@@ -2,9 +2,13 @@
 
 WHY THESE FACTS AND NO OTHERS (HUMAN-PLAY-DESIGN pillar 3: "battle with TYPE advantages, both the Pokemon's types and the
 MOVES' types, and account for RECOIL damage when choosing moves"): a person knows the type chart, what a move does as the
-game describes it (its type, power, accuracy, PP, whether it hurts its user), and a species' types, rough strength and
-how hard it is to catch. They do not know a wild Pokemon's exact HP, its moves before it uses them, or what a trainer
-will send out next: none of that is here, and the eyes show the foe's HP only as its bar (`eyes/observation.py`).
+game describes it (its type, power, accuracy, PP, whether it hurts its user), and a species' types. They do not know a
+wild Pokemon's exact HP, its moves before it uses them, or what a trainer will send out next: none of that is here, and
+the eyes show the foe's HP only as its bar (`eyes/observation.py`). (Step 4.1 rounds 1-3, the hidden-information findings)
+`species.json` still CARRIES each species' base stats, catch rate and experience yield (the extraction and the pret check
+keep the whole record), but the decider reads a species' TYPES and NAME only: the ball is chosen by what is seen, not the
+catch rate (round 1), and a foe's damage is guessed from a typical Pokemon of its level, not its base stats (round 3,
+`brain/battle.py` TYPICAL_BASE, whose numbers `gates/test_battle.py` checks against the median of this file).
 
 The files (`types.json`, `moves.json`, `species.json` next to this module) are extracted by the TEST-side
 `gates/extract_knowledge.py` from the bot's game-fact data and checked entry by entry against pret/pokeemerald by
@@ -25,6 +29,7 @@ __all__ = [
     "move_named",
     "provenance",
     "species_fact",
+    "species_named",
     "stab",
     "type_multiplier",
 ]
@@ -125,7 +130,8 @@ def move_fact(name: str) -> MoveFact | None:
 
 
 def _letters(name: str) -> str:
-    return "".join(c for c in name.casefold().replace("é", "e") if c.isalnum())
+    # (step 4.1 round 2) the gender signs are part of a NAME (NIDORAN♀ and NIDORAN♂ are two species): kept as letters
+    return "".join(c for c in name.casefold().replace("é", "e").replace("♀", "f").replace("♂", "m") if c.isalnum())
 
 
 def move_named(printed: str) -> str | None:
@@ -134,6 +140,14 @@ def move_named(printed: str) -> str | None:
     if "printed names" not in _CACHE:
         _CACHE["printed names"] = {_letters(name): name for name in _load("moves.json")["moves"]}
     return _CACHE["printed names"].get(_letters(printed))
+
+
+def species_named(printed: str) -> str | None:
+    """(step 4.1) The species a screen PRINTS ("TREECKO", "MR. MIME": the battle's texts are upper case) by its name in
+    the knowledge ("Treecko"), or None when no species has that name."""
+    if "printed species" not in _CACHE:
+        _CACHE["printed species"] = {_letters(name): name for name in _load("species.json")["species"]}
+    return _CACHE["printed species"].get(_letters(printed))
 
 
 def species_fact(name: str) -> SpeciesFact | None:

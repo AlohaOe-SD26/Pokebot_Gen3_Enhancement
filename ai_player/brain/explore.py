@@ -14,8 +14,9 @@ and the best one is the next target. The candidates:
   * BACK: an exit KNOWN to lead to a map already visited (the warp graph, or a road on a side whose connection is
     known): worth little, but it is how a dead end (a house) is left;
   * ROUTE: an exit known to lead, directly or through known links, to the intent's GOAL map;
-  * GRASS (Catcher, Trainer): tall grass not walked yet; PEOPLE (Trainer): tiles near people (trainers are people,
-    and nothing on screen tells them apart until one engages).
+  * GRASS (Catcher, Trainer): tall grass not walked yet; PEOPLE (Trainer): a person not met yet (trainers are people,
+    and nothing on screen tells them apart until one engages): the seen tile beside where they stand, walked up to once
+    (step 4.1 round 2: see "THE WALK, NOT THE LABELS" below).
 The weights are TASTE, not a plan (`WEIGHTS`): Story favours exits toward unexplored maps (roads most), Catcher grass,
 Trainer grass and people. NEVER IDLE: when nothing is left the explorer WANDERS to the least-visited seen tile (a
 person looks around for what they missed); only when even that is gone does it return None (the intent is stuck).
@@ -55,6 +56,25 @@ such margin at all, MEASURED, the decision held while the walk passed the road o
 the step-3.2 rule would have gone instead, when that is another place (`Navigator.carry_note`). Proven in
 `gates/test_world.py` ChurnTests (FAULTS: no carry-on, the step-3.2 rule; no margin), mutants W79-W81, and live by
 `gates/live_step3.py` CHURN bounds with the revert arm SCENEXC and the sweep's CHURN revert (`gates/rate_step3.py`).
+
+THE WALK, NOT THE LABELS (step 4.1, the step-4 adversarial review's finding 7: "the churn fix mostly relabels decisions";
+the decisions were carried on, but the journeys were no closer to the shortest known way: TOWN-Trainer's 0.46 of their
+steps beyond it). STEP 4.1's first fix charged a place chosen on the move for what its journey would walk beyond the
+shortest way from where the journey began; its verifier found it helped TOWN-Trainer and made TOWN-Catcher WORSE on both seed
+sets (0.07 -> 0.09, 0.15 -> 0.22): measured seed by seed (2026-10-09), the charge was a pull away from where the journey
+began, so it broke near-ties toward the far side of the start (the Catcher's (18, 8) at the town's east edge over (11, 8) on
+its main street, then back across town), and it helped the Trainer only where "away from the lab" happened to be "toward
+the exit". It is GONE. What the walk wasted was found instead, by cause:
+  * the TRAINER'S PEOPLE PULL (its journeys 0.45 of their steps beyond the shortest known way; 0.09 with the pull off): the
+    pull was a bonus on UNSEEN tiles near people, gone the moment the player came close enough to see them, so the Trainer
+    walked toward someone, stopped short and turned back across town for the next. A person who wants to meet people walks
+    UP to them: a PEOPLE place is the seen tile beside a person not met yet (`world/memory.py` persons, met), worth
+    `Weights.people`, dropped once they are met (`brain/navigator.py` stale_reason) and after `navigator.MEET_TRIES` walks
+    after one who keeps walking off;
+  * a person stepping into the way, walked round backwards, and a detour two tiles aside and straight back: the navigator
+    (`brain/navigator.py`, "STEP 4.1 ROUND 2").
+Measured by the sweep's WALK A/B (`gates/rate_step3.py`: the step-4 explorer against this one on the same plans and seeds)
+and `gates/test_world.py` PeopleTests, WaitTests, BendTests.
 """
 
 from __future__ import annotations
@@ -62,13 +82,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
-from ai_player.brain.navigator import Intent, Navigator, Target, distances, exit_press
+from ai_player.brain.navigator import MEET_TRIES, Intent, Navigator, Target, distances, exit_press
 from ai_player.eyes.observation import Observation
 from ai_player.world.memory import DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, moved, road_side
 
 __all__ = [
     "CARRY_RADIUS",
     "CHOICE_MARGIN",
+    "PEOPLE_RECENT",
     "VALUE_TILES",
     "WEIGHTS",
     "Weights",
@@ -107,6 +128,8 @@ CARRIED_KINDS = ("frontier", "grass")
 #: `CHOICE_MARGIN` (4), or carried on with no margin at all, the TOWN walk grew a third: it swept a whole street past the
 #: road north (a decision held where a person would take the way out it walks past).
 CARRY_SWITCH_MARGIN = 1.0
+#: (step 4.1 round 2, finding 7) A person seen this recently (frames) is a PEOPLE place (they may have walked off since).
+PEOPLE_RECENT = 600
 
 
 @dataclass(frozen=True)
@@ -116,7 +139,7 @@ class Weights:
     door: float  # an exit whose destination is unknown
     back: float  # an exit known to lead to a visited map
     grass: float  # tall grass not walked yet
-    people: float  # near people
+    people: float  # a person not met yet, walked up to (step 4.1 round 2; it was: unseen tiles near people)
     away: float  # per tile away from where the AI came into this map (at most AWAY_CAP tiles)
     grass_cost: float  # the extra cost of a tall-grass tile when TRAVELLING (wild Pokemon there)
 
@@ -135,8 +158,9 @@ WANDER_VALUE = 0.05
 BACK_PROMISE = 0.5
 PROMISE_FULL = 10
 #: (build step 3.1) The kinds of place that are somewhere NEW on this map, and the reason's start that marks the exit
-#: back the way the AI just came in (dropped while any new place is reachable: `candidates`).
-ONWARD_KINDS = ("frontier", "road", "door", "route", "grass")
+#: back the way the AI just came in (dropped while any new place is reachable: `candidates`). (Step 4.1 round 2) a person
+#: not met yet is someone new.
+ONWARD_KINDS = ("frontier", "road", "door", "route", "grass", "people")
 JUST_COME_FROM = "it leads straight back to"
 #: (the step-4 verifier's round) the reason's end that marks a way back to a map with nothing left to see (`candidates`)
 SEEN_ALL = "seen all of"
@@ -201,7 +225,8 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     jitter = nav.rng
     out: list[Target] = []
 
-    def add(kind: str, tile: tuple[int, int], value: float, reason: str, exit_tile=None, direction=None, cost=None) -> None:
+    def add(kind: str, tile: tuple[int, int], value: float, reason: str, exit_tile=None, direction=None, cost=None,
+            who: int | None = None) -> None:
         walk = reach.get(tile) if cost is None else cost
         if walk is None:
             return
@@ -209,7 +234,7 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         onward = kind in ("frontier", "road", "grass")
         away = weights.away * min(abs(tile[0] - entry[0]) + abs(tile[1] - entry[1]), AWAY_CAP) if onward else 0.0
         score = VALUE_TILES * value - walk + away + (jitter.uniform(0.0, 1.5) if jitter_on else 0.0)
-        target = Target(kind, tile, reason, score, exit_tile, direction)
+        target = Target(kind, tile, reason, score, exit_tile, direction, who)
         if not nav.is_excluded(target):
             out.append(target)
 
@@ -261,22 +286,40 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
             add("back", tile, value, f"the road {side}: {why}")
         else:
             add("road", tile, weights.road, f"a road leads {side}, off this map")
-    # the frontier, with the personality's pulls
-    people = [xy for xy, frame in memory.people.items() if look.frame - frame < 600]
+    # the frontier, with the personality's pull toward grass (step 4.1 round 2: no longer toward people: below)
     for tile in memory.frontier():
         unknown = memory.unknown_neighbours(tile)
         value = weights.frontier * (1.0 + unknown / 3.0)
         fact = memory.fact(tile)
         if fact is not None and fact.grass and not memory.visits.get(tile):
             value += weights.grass
-        if people and min(abs(tile[0] - p[0]) + abs(tile[1] - p[1]) for p in people) <= 3:
-            value += weights.people
         add("frontier", tile, value, f"{unknown} unseen tile(s) beside it")
     # grass for its own sake (Catcher, Trainer)
     if weights.grass > 0:
         for tile in memory.grass():
             if not memory.visits.get(tile):
                 add("grass", tile, weights.grass * 0.8, "tall grass not walked yet: wild Pokemon")
+    # (step 4.1 round 2, the step-4 review's finding 7) PEOPLE (Trainer): a person seen lately and not met yet is walked UP
+    # to: the seen walkable tile beside where they stand (the nearest), once (`navigator.MEET_TRIES` decisions at most),
+    # worth the personality's taste for people (`Weights.people`: about what a frontier tile is worth, so a person is met
+    # when they are about on the way, not by crossing town and back for each). It used to be that taste as a bonus on unseen
+    # tiles near people, gone as soon as the player came close enough to see them: the Trainer turned back short of every
+    # person (module docstring, "THE WALK, NOT THE LABELS"). MEASURED 2026-10-09 (TOWN-Trainer, seeds 1-10 and 101-110,
+    # in-process, the clock pinned): the step-4 pull met 57 of the 80 people it saw in 1,043 steps, its journeys 0.43 of their
+    # steps beyond the shortest known way; this place, worth `Weights.people` (1.5), met 69 of 80 in 816 steps, 0.27; worth
+    # 1.75, 2.0 or 2.5 the Trainer crossed town for each person: 0.42, 0.44, 0.50
+    if weights.people > 0:
+        tries = getattr(nav, "people_tries", {})
+        for who, (px, py, frame) in sorted(memory.persons.items()):
+            if (look.frame - frame >= PEOPLE_RECENT or who in memory.met
+                    or tries.get(f"{memory.key}|{who}", 0) >= MEET_TRIES):
+                continue
+            stands = [xy for xy in ((px + 1, py), (px - 1, py), (px, py + 1), (px, py - 1))
+                      if xy in reach and memory.passable(xy) and xy not in memory.objects_now]
+            if stands:
+                stand = min(stands, key=lambda xy: (reach[xy], xy))
+                add("people", stand, weights.people, f"someone not met yet, at {(px, py)}: a trainer would see the player "
+                                                    f"from here", who=who)
     # (build step 3.1) the way JUST COME IN is no option at all while there is somewhere NEW to go on this map, however far:
     # measured 2026-10-08 (the step-3.1 sweep's TOWN-Catcher seed 8), once roads are no longer known from the coordinates
     # the far frontier north of Littleroot (16 tiles) scored below the house door one step away (worth `Weights.back`),

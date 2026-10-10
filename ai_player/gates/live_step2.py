@@ -162,7 +162,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from ai_player.gates.probe_presses import WAIT_GATE, gate_kind  # noqa: E402
-from ai_player.gates.provenance import provenance as tree_provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance  # noqa: E402
 from ai_player.hands.dialogue import GENERIC_BUSY, STALL_FRAMES, STUCK, UNGATED_GATE  # noqa: E402
 from ai_player.hands.menus import BLIND_GATE  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
@@ -1207,24 +1207,68 @@ def write_evidence(run: Run, code_ref: str, tag: str) -> Path:
         if run.arm.kind == "harness":
             out += ["the brain's lines:", *[f"  {line}" for line in run.harness.get("lines") or []],
                     "TRUTH at the end:", json.dumps(run.harness.get("truth"), ensure_ascii=False, sort_keys=True)]
+    keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 
 
-def leftover_processes() -> list[str]:
+#: (step 4.1 round 3, the step-4.1 verifier: "live_step2's graded evidence comes from a second run. The first said OVERALL
+#: FAIL because its leftover-process check counted the concurrent sweep's hands_harness processes ... the check is still
+#: not fixed to be specific to its own processes") THIS driver's mark: set in its own environment at the start (`main`),
+#: so every process it starts inherits it (`clean_env` copies the driver's environment; the launcher passes it on to the
+#: bot, `host/launcher.py` child_env), and a leftover is a matching process that carries THIS run's mark. A process whose
+#: environment cannot be read is counted (it may be this run's).
+DRIVER_MARK = "AI_GATE_DRIVER_MARK"
+
+
+def leftover_processes(mark: str | None = None) -> list[str]:
+    """Emulator and harness processes still running that THIS driver started (`DRIVER_MARK`), never another driver's."""
     try:
         import psutil
     except ImportError:
         return []
+    mark = mark if mark is not None else os.environ.get(DRIVER_MARK)
     found = []
     for proc in psutil.process_iter(["pid", "cmdline"]):
         try:
             cmd = " ".join(proc.info["cmdline"] or [])
         except Exception:  # noqa: BLE001
             continue
-        if ("pokebot.py" in cmd and PROFILE in cmd) or "hands_harness.py" in cmd or "probe_presses.py" in cmd:
-            found.append(f"pid {proc.info['pid']}: {cmd[:160]}")
+        if not (("pokebot.py" in cmd and PROFILE in cmd) or "hands_harness.py" in cmd or "probe_presses.py" in cmd):
+            continue
+        if mark is not None:
+            try:
+                theirs = proc.environ().get(DRIVER_MARK)
+            except Exception:  # noqa: BLE001 - unreadable: counted, it may be ours
+                theirs = mark
+            if theirs != mark:
+                continue  # another driver's process (a sweep running beside this one)
+        found.append(f"pid {proc.info['pid']}: {cmd[:160]}")
     return found
+
+
+def selftest_leftovers() -> list[str]:
+    """(step 4.1 round 3) The leftover check is THIS run's: two idle processes whose command lines name `hands_harness.py`,
+    one carrying this run's mark and one another driver's; the check must find exactly the first (FAULT, the round-2
+    check: both). Both are killed. Returns what broke (empty: PASS)."""
+    mark = os.environ.get(DRIVER_MARK) or "selftest"
+    sleeper = [sys.executable, "-c", "import time; time.sleep(60)", "hands_harness.py", "selftest"]
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+    ours = subprocess.Popen(sleeper, env={**os.environ, DRIVER_MARK: mark}, creationflags=flags)
+    theirs = subprocess.Popen(sleeper, env={**os.environ, DRIVER_MARK: "another-driver"}, creationflags=flags)
+    broken = []
+    try:
+        time.sleep(1.0)
+        found = leftover_processes(mark)
+        if not any(f"pid {ours.pid}:" in line for line in found):
+            broken.append("this run's process not found")
+        if any(f"pid {theirs.pid}:" in line for line in found):
+            broken.append("another driver's process counted")
+    finally:
+        for proc in (ours, theirs):
+            proc.kill()
+            proc.wait(timeout=10)
+    return broken
 
 
 def main() -> int:
@@ -1240,6 +1284,8 @@ def main() -> int:
     args = parser.parse_args()
     global SEED
     SEED = args.seed
+    # (step 4.1 round 3) this run's mark, inherited by every process it starts (`leftover_processes`)
+    os.environ[DRIVER_MARK] = f"live_step2-{os.getpid()}-{time.time():.0f}"
     if args.evidence_tag is None:
         args.evidence_tag = EVIDENCE_TAG if SEED == DEFAULT_SEED else f"{EVIDENCE_TAG}-seed{SEED}"
     print(f"seed {SEED}; evidence tag {args.evidence_tag}")
@@ -1247,8 +1293,12 @@ def main() -> int:
     global SELFTEST_LINE
     SELFTEST_LINE = (f"[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale "
                      f"mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): {'PASS' if not broken else 'FAIL ' + str(broken)}")
+    # (step 4.1 round 3) the leftover check counts only this run's processes
+    stray = selftest_leftovers()
+    SELFTEST_LINE += (f"; [SELFTEST] leftover_processes on two idle 'hands_harness.py' processes (this run's mark: found; "
+                      f"another driver's: not counted): {'PASS' if not stray else 'FAIL ' + str(stray)}")
     print(SELFTEST_LINE)
-    if broken:
+    if broken or stray:
         return 2
     wanted = [name.strip() for name in args.arms.split(",") if name.strip()]
     unknown = [name for name in wanted if name not in GRADERS]

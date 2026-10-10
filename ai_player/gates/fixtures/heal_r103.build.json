@@ -1,0 +1,186 @@
+{
+ "fixture": "heal_r103.ss1",
+ "md5": "7c8f131345d801cdc3fee5a150930607",
+ "source": [
+  "tools/story-dev/saves/route103.ss1",
+  "0d951fe21be35a6eafade207ddff5961"
+ ],
+ "played_by": "the AI's goto / mart / battle brains (seed 1), test-side edge and door steps, clock 2026-10-08T10:00",
+ "at": {
+  "frame": 34629
+ },
+ "opponent": 529,
+ "steps": [
+  "f26980 brain goto {'brain': 'goto', 'goto': ((9, 21),), 'seed': 1}: 298 frames -> 'goto: done: walk to [(9, 21)] (18 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 419 tiles learned)'",
+  "f27013 step Down (cross into Oldale): ('ROUTE103', 9, 21) -> ('OLDALE_TOWN', 9, 0)",
+  "f27214 brain goto {'brain': 'goto', 'goto': ((14, 7),), 'seed': 1}: 201 frames -> 'goto: done: walk to [(14, 7)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned)'",
+  "f27260 step Up (the mart's door): ('OLDALE_TOWN', 14, 7) -> ('OLDALE_TOWN', 14, 6)",
+  "f27500 wait 240 (the door's fade): ('OLDALE_TOWN_MART', 3, 7)",
+  "f27517 step Up (to the counter (make_mart_fixture.py's walk)): ('OLDALE_TOWN_MART', 3, 7) -> ('OLDALE_TOWN_MART', 3, 6)",
+  "f27534 step Up (to the counter (make_mart_fixture.py's walk)): ('OLDALE_TOWN_MART', 3, 6) -> ('OLDALE_TOWN_MART', 3, 5)",
+  "f27551 step Up (to the counter (make_mart_fixture.py's walk)): ('OLDALE_TOWN_MART', 3, 5) -> ('OLDALE_TOWN_MART', 3, 4)",
+  "f27568 step Up (to the counter (make_mart_fixture.py's walk)): ('OLDALE_TOWN_MART', 3, 4) -> ('OLDALE_TOWN_MART', 3, 3)",
+  "f28917 brain mart {'brain': 'mart', 'mart_item': 'POTION', 'mart_count': 2, 'seed': 1}: 1349 frames -> 'mart: bought'",
+  "f28942 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 3) -> ('OLDALE_TOWN_MART', 3, 4)",
+  "f28959 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 4) -> ('OLDALE_TOWN_MART', 3, 5)",
+  "f28976 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 5) -> ('OLDALE_TOWN_MART', 3, 6)",
+  "f28993 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 6) -> ('OLDALE_TOWN_MART', 3, 7)",
+  "f29049 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 7) -> ('OLDALE_TOWN_MART', 3, 7)",
+  "f29085 step Down (leave the mart): ('OLDALE_TOWN_MART', 3, 7) -> ('OLDALE_TOWN', 14, 6)",
+  "f29325 wait 240 (the door's fade): ('OLDALE_TOWN', 14, 7)",
+  "f29534 brain goto {'brain': 'goto', 'goto': ((9, 0),), 'seed': 1}: 209 frames -> 'goto: done: walk to [(9, 0)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned)'",
+  "f29560 step Up (cross into Route 103): ('OLDALE_TOWN', 9, 0) -> ('ROUTE103', 9, 21)",
+  "f30017 brain goto {'brain': 'goto', 'goto': ((5, 7),), 'seed': 1}: 457 frames -> 'goto: done: walk to [(5, 7)] (28 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 489 tiles learned)'",
+  "f34629 brain battle {'brain': 'battle', 'talk_to': (10, 3), 'battles': 1, 'seed': 1}: 4612 frames -> None (stopped: {\"frame\": 34629})"
+ ],
+ "ai_lines": [
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 18 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 419 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(9, 21)] (18 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 419 tiles learned)' presses=35 frames=298 looks=79 records=43",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 13, 'Down:walk down': 14, 'Right:keep walking right': 4, 'Right:walk right': 4}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(14, 7)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned)' presses=23 frames=201 looks=53 records=30",
+  "[goto] [AI-HANDS] presses by gate: {'Down:keep walking down': 6, 'Down:walk down': 7, 'Right:keep walking right': 5, 'Right:walk right': 5}",
+  "[mart] [AI-HANDS] brain=mart seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=8000",
+  "[mart] [AI-HANDS] buy at the mart: 2 x POTION; the clerk at (-2,0); in the bag 0, money 3000",
+  "[mart] [AI-HANDS] buy at the mart: done; POTION in the bag 0 -> 2, money 3000 -> 2400, listed price 300",
+  "[mart] [AI-HANDS] outcome='bought' presses=14 frames=1349 looks=832 records=46",
+  "[mart] [AI-HANDS] presses by gate: {'A:mart_buy cursor on 0': 1, 'A:mart_menu cursor on 0': 1, 'A:mart_menu cursor on 2': 1, 'A:mart_quantity reads x2, the number wante': 1, 'A:script waitbuttonpress': 1, 'A:talk': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 1, 'A:text printer 0 CLEAR': 1, 'A:yes_no cursor on 0': 1, 'B:the item list is open': 1, 'Down:mart_menu cursor on 0': 1, 'Down:mart_menu cursor on 1': 1, 'Left:turn left to face the npc': 1, 'Up:mart_quantity reads x1, wanted x2': 1}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(9, 0)] (12 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 325 tiles learned)' presses=24 frames=209 looks=54 records=31",
+  "[goto] [AI-HANDS] presses by gate: {'Left:keep walking left': 5, 'Left:walk left': 5, 'Up:keep walking up': 7, 'Up:walk up': 7}",
+  "[goto] [AI-HANDS] brain=goto seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000",
+  "[goto] [AI-WORLD] navigator: 28 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 489 tiles learned",
+  "[goto] [AI-HANDS] outcome='done: walk to [(5, 7)] (28 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, 489 tiles learned)' presses=55 frames=457 looks=117 records=62",
+  "[goto] [AI-HANDS] presses by gate: {'Left:keep walking left': 9, 'Left:walk left': 9, 'Right:keep walking right': 5, 'Right:walk right': 5, 'Up:keep walking up': 13, 'Up:walk up': 14}",
+  "[battle] [AI-HANDS] brain=battle seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=30000",
+  "[battle] [AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to (10, 3); faults ignore_types:False,ignore_recoil:False",
+  "[battle] [AI-HANDS] battle: a wild battle against Poochyena L3 (Dark); a species it has not caught: it lets this one go (Story: catch_new 0.6)",
+  "[battle] [AI-HANDS] battle: turn 1: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit; Growl: a status move (0); Mud-slap: 20.0 = x1 type x1 STAB x 20 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 2: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit; Growl: a status move (0); Mud-slap: 20.0 = x1 type x1 STAB x 20 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: turn 3: fight Tackle: Tackle is clearly the best [Tackle: 33.2 = x1 type x1 STAB x 35 power x 0.95 hit (finishes it: worth as the strongest); Growl: a status move (0); Mud-slap: 20.0 = x1 type x1 STAB x 20 power x 1.00 hit] (battler 0) {types: about as good with the chart ['Tackle']; with no types the best Tackle; 2 that hurt}",
+  "[battle] [AI-HANDS] battle: over: won (gBattleOutcome 1); party [('Mudkip', 6, 9, 23)]",
+  "[battle] [AI-WORLD] battle 1: won"
+ ],
+ "truth": {
+  "frame": 34629,
+  "game_state": "BATTLE",
+  "name": "NICK",
+  "name_bytes": "c8c3bdc5ffffffff",
+  "gender": 0,
+  "gender_name": "BOY",
+  "map": [
+   0,
+   18
+  ],
+  "party": [
+   [
+    "Mudkip",
+    9,
+    23
+   ]
+  ],
+  "party_exp": [
+   [
+    "550a9be6",
+    "Mudkip",
+    215,
+    6
+   ]
+  ],
+  "party_moves": [
+   [
+    "550a9be6",
+    "Mudkip",
+    [
+     "Tackle",
+     "Growl",
+     "Mud-slap"
+    ]
+   ]
+  ],
+  "party_ot": [
+   [
+    "550a9be6",
+    22640
+   ]
+  ],
+  "player_tid": 22640,
+  "battle_outcome": 1,
+  "trainer_defeated": {
+   "322": false,
+   "280": false,
+   "617": false,
+   "631": false,
+   "754": false,
+   "753": false,
+   "529": false,
+   "532": false,
+   "535": false,
+   "520": false,
+   "523": false,
+   "526": false,
+   "318": false,
+   "333": false,
+   "615": false,
+   "603": false
+  },
+  "boxes": [],
+  "money": 2400,
+  "balls": {},
+  "items": {
+   "POTION": 2
+  },
+  "flags": {
+   "RESCUED_BIRCH": true,
+   "SYS_POKEMON_GET": true,
+   "DEFEATED_RIVAL_ROUTE103": false,
+   "RECEIVED_POKEDEX_FROM_BIRCH": false,
+   "SYS_POKEDEX_GET": false,
+   "ADVENTURE_STARTED": false,
+   "HIDE_PETALBURG_CITY_WALLYS_MOM": false,
+   "SYS_B_DASH": false,
+   "DEFEATED_RUSTBORO_GYM": false,
+   "BADGE01_GET": false,
+   "BADGE02_GET": false,
+   "BADGE03_GET": false,
+   "BADGE04_GET": false,
+   "BADGE05_GET": false,
+   "BADGE06_GET": false,
+   "BADGE07_GET": false,
+   "BADGE08_GET": false
+  },
+  "FLAG_SET_WALL_CLOCK": true,
+  "VAR_LITTLEROOT_INTRO_STATE": 7,
+  "VAR_LITTLEROOT_TOWN_STATE": 2,
+  "gLocalTime": [
+   80,
+   8,
+   17,
+   38
+  ],
+  "localTimeOffset": [
+   9698,
+   1,
+   51,
+   30
+  ],
+  "pos": [
+   10,
+   4
+  ],
+  "game_stats": {
+   "steps": 281,
+   "total_battles": 5,
+   "wild_battles": 4,
+   "trainer_battles": 1
+  },
+  "rom_poke_ball": {
+   "name": "POKé BALL",
+   "price": 200
+  }
+ },
+ "seconds": 11.4
+}

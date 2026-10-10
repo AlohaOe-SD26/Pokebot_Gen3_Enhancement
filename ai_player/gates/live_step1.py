@@ -1978,6 +1978,9 @@ def write_evidence(run: Run, code_ref: str, tag: str = EVIDENCE_TAG) -> Path:
         out += ["", "---- evidence lines from stdout ([AI-*] and the scorer lines) ----", *keep]
     if run.ai_log:
         out += ["", "---- ai_player.log (the AI's own log: what scoring.parse_log reads) ----", run.ai_log.rstrip()]
+    from ai_player.gates.provenance import keep_earlier  # (step 4.1 round 3) an earlier tree's file is archived, not lost
+
+    keep_earlier(path)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return path
 

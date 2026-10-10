@@ -1,13 +1,13 @@
 AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM RATE: RATE: each skill once per seed 1-20, in-process (gates/hands_harness.py)
-date: 2026-10-09 04:04:24
-code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-09 19:35:34
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 each skill from its own start, seeds 1-20: intro --fresh; nurse post_league_lobby.ss1; mart mart_rustboro.ss1 (5 balls); clock clock_room.ss1 (the time per seed: rate_clock)
 fixture documentation: in-process: the skills' code; the purity of the same code is the launcher arms'
 command: 
 env: none (a test-side script in its own throwaway emulator; its arguments are in the command; seed 3)
-exit code: 0   elapsed: 425.0s   run dir: None
+exit code: 0   elapsed: 824.6s   run dir: None
 VERDICT: PASS
-[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS; [SELFTEST] leftover_processes on two idle 'hands_harness.py' processes (this run's mark: found; another driver's: not counted): PASS
 checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
   [PASS] intro: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 8406-8767; failed: none
   [PASS] nurse: 20 of 20 seeds succeeded by the second-path truth (want all 20; with 0 failures in 20 the failure rate is below ~15% at 95% confidence, the rule of three); frames 1912-1974; failed: none

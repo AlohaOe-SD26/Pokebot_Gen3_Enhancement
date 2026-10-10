@@ -1,0 +1,21 @@
+AI PLAYER BUILD STEP 4.1 ROUND 3 - THE STATIC GATE AND THE UNIT SUITES
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:6044f57f1cfdcb92 over git diff HEAD (25 files, 422258 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+Each suite's START line names the digest it ran on (all the same as the code line above).
+
+== check_purity: started 15:11:57 on sha256:6044f57f1cfdcb92, exit 0 at 15:12:00
+   VERDICT: PASS
+== test_battle: started 15:12:00 on sha256:6044f57f1cfdcb92, exit 0 at 15:12:03
+   Ran 103 tests in 1.985s
+   OK
+== test_world: started 15:12:03 on sha256:6044f57f1cfdcb92, exit 0 at 15:13:54
+   Ran 132 tests in 110.160s
+   OK
+== test_evidence: started 15:13:54 on sha256:6044f57f1cfdcb92, exit 0 at 15:13:55
+   Ran 9 tests in 0.110s
+   OK
+== extract_knowledge_check: started 15:13:55 on sha256:6044f57f1cfdcb92, exit 0 at 15:13:55
+   [KNOWLEDGE] types.json: up to date
+   [KNOWLEDGE] moves.json: up to date
+   [KNOWLEDGE] species.json: up to date
+
+OVERALL: PASS (every suite exit 0)

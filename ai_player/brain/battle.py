@@ -39,22 +39,59 @@ WHAT A PERSON DOES IN A BATTLE, AND HOW EACH PART IS DONE HERE
     level and HP alone.
 Every choice it makes has a REASON string; the skill logs it with the press.
 
+STEP 4.1 (the step-4 verifier's and adversarial review's findings, fixed):
+  * THE SHIFT QUESTION ("TRAINER X is about to use TREECKO. Will ... change POKéMON?") is asked BEFORE the next foe is
+    sent out (`data/battle_scripts_1.s` BattleScript_FaintedMonTryChoose: `printstring STRINGID_ENEMYABOUTTOSWITCHPKMN`,
+    `yesnobox`, then the send-out), so the battle view still holds the FAINTED foe. The decider now reads the INCOMING
+    species from the question's words (`incoming`), builds the foe it judges from SPECIES facts (its types; its level,
+    which the words do not show, guessed as the last foe's), and when it says YES it CARRIES the chosen member's PID into
+    the party menu that follows (`shift_to`: `replacement` sends that one, not the best by level against a fainted foe).
+  * A move the game REFUSES (Disabled, Taunt, Torment, no PP: `TrySetCantSelectMoveBattleScript` brings the move grid
+    straight back) is UNUSABLE for the rest of the turn (`cannot_use`, cleared at the next action menu), and excluded from
+    every value, so "decide again" can no longer pick it again until the 150-menu bound.
+  * Hidden information is gone from the choices: the foe's TYPES come from its species (a person knows a species, not
+    a Color Change: `seen_types`); a hit's damage is a person's ROUGH sense (`damage_fraction`: to the nearest eighth of
+    the foe's HP, give or take an eighth), not the exact formula with an 8 % margin; the ball is chosen by what a person
+    SEES (misses so far, how weakened and whether asleep or paralyzed the foe is, how rare it seems to them), not by the
+    hidden catch rate.
+  * OVERKILL is not valued: a move that would FINISH the foe (its rough damage at least what the bar has left) is worth
+    as much as the strongest move, so moves that all finish it compare by their hit chance and recoil (Water Gun over a
+    Take Down that also finishes a 15-HP Poochyena). FAULT `overkill`: the step-4 valuation.
+  * Not a machine: by its temperament (`Temperament.opener`), a small chance of an OPENING stat or status move on its
+    first turn against a foe, only when that is SAFE (its HP high, the foe not hitting it super-effectively, not
+    stronger, not about to fall: `_safe_for_status`); and when it wants to catch, a sleep or paralysis move it has is
+    used once the foe is weakened, before the throws.
+
+STEP 4.1 ROUND 3 (the step-4.1 verifier's second round: "the foe's base stats still feed _formula_share, then rough_share,
+then the KO and finisher checks and the recoil HP"): the damage estimate no longer reads THIS foe's base stats. A person
+sees the foe's LEVEL and its HP BAR and knows how sturdy Pokemon are ON THE WHOLE, not a species' base stats: every foe is
+first guessed as a TYPICAL Pokemon of its level (`TYPICAL_BASE`: each stat the MEDIAN base stat over all 386 species, the
+same numbers for every foe), and that guess is then CORRECTED by what its own hits are SEEN to take off this foe's bar
+(`BattleMind._seen_factor`: "Tackle took half of it, not the third I thought: a frail one"). The user's own attack is
+its own SUMMARY's stat (what the player sees on its summary screen). No fault switch puts the species' base stats back
+(that would leave the hidden read in the AI's code): `gates/revert_step4.py` B60 and B61 do it in a copy.
+
 FAULT SWITCHES (`Faults`, test side only): `ignore_types` values every move as if every type matchup were neutral and
 every Pokemon untyped (no STAB) (the TYPE arm's fault); `ignore_recoil` drops the recoil penalty (the RECOIL fault);
 `uncapped_recoil` charges the recoil on the move's whole worth (the step-4 rule: no cap at the foe's HP, no Jump Kick
 cap, no self-faint check); `forget_field` makes the replacement see only the look on screen (the step-4 bug);
-`ignore_refusal` makes the skill watch the party menu's refusal ("... is already in battle!") instead of reading it.
+`ignore_refusal` makes the skill watch the party menu's refusal ("... is already in battle!") instead of reading it;
+(step 4.1) `overkill` values every move uncapped (the step-4 valuation: a stronger move wins even when a weaker one
+finishes the foe); `shift_fainted` answers the shift question about the foe on the field (the fainted one) and sends
+the best by level, as step 4 did; `forget_unusable` lets "decide again" pick the refused move again, as step 4 did;
+(round 3) `forget_shift` judges the question about the incoming foe but does NOT carry the member chosen there into the
+party menu (ranked again, by level: the live carry's A/B).
 """
 
 from __future__ import annotations
 
 import random
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ai_player.eyes.observation import BattleMon, BattleView, MonSummary, MoveSlot, Observation
 from ai_player.eyes.view import HP_BAR_PIXELS
-from ai_player.knowledge.facts import MoveFact, move_fact, species_fact, stab, type_multiplier
+from ai_player.knowledge.facts import MoveFact, move_fact, species_fact, species_named, stab, type_multiplier
 
 __all__ = [
     "GREAT_BALLS",
@@ -72,9 +109,12 @@ __all__ = [
     "MoveValue",
     "Temperament",
     "TypeSay",
+    "TYPICAL_BASE",
     "damage_fraction",
     "estimate_stat",
+    "foe_max_hp",
     "general_value",
+    "incoming",
     "learn_choice",
     "matchup",
     "move_key",
@@ -82,10 +122,24 @@ __all__ = [
     "needs_rest",
     "recoil_penalty",
     "recoil_risk",
+    "rough_share",
+    "seen_types",
 ]
 
-#: Weakening for a catch: a move is safe when, at its best damage roll, the foe's bar keeps this share (of 48 pixels).
-KO_MARGIN = 0.08
+#: (step 4.1, the review's "hidden information") A person's ROUGH sense of a hit: the share of the foe's HP it takes, to the
+#: nearest eighth, give or take an eighth (`damage_fraction`).
+ROUGH_STEP = 0.125
+#: Weakening for a catch: a move is safe when, at the ROUGH WORST (its rough share plus an eighth), the foe's bar keeps
+#: more than this (step 4: the exact formula's best roll with an 8 % margin, which no person can see).
+KO_MARGIN = 0.0
+#: (step 4.1 round 3, the verifier: "the foe's base stats still feed the damage estimate") A TYPICAL Pokemon, the guess for
+#: every foe before a hit on it is seen: each stat the MEDIAN base stat over all 386 species of the knowledge file
+#: (`gates/test_battle.py` HiddenInfoTests checks these numbers against `knowledge/species.json`, so they cannot drift).
+#: The same numbers for every foe: a person knows how sturdy Pokemon are on the whole, not a species' base stats.
+TYPICAL_BASE = {"hp": 63, "attack": 70, "defense": 65, "sp_attack": 65, "sp_defense": 65}
+#: (round 3) The correction a SEEN hit makes to that guess (what the bar dropped over what the guess said) is kept within
+#: these bounds: one bar is coarse (48 pixels), a damage roll varies by 15 %, and a critical hit doubles a hit.
+SEEN_FACTOR_RANGE = (0.4, 2.5)
 #: Bounds of one battle.
 MAX_THROWS = 10
 MAX_WEAKEN_TURNS = 4
@@ -110,6 +164,31 @@ STATUS_WORTH = {"SLEEP": 18, "PARALYZE": 16, "TOXIC": 14, "POISON": 10, "CONFUSE
                 "DEFENSE_DOWN": 4, "ACCURACY_DOWN": 5, "SPEED_DOWN": 4, "ATTACK_DOWN_2": 6, "DEFENSE_DOWN_2": 6,
                 "FORESIGHT": 2, "ROAR": 3, "TELEPORT": 1, "SPLASH": 0}
 STATUS_DEFAULT = 4
+#: (step 4.1) OPENING moves a person sometimes makes on a safe first turn: lowering the foe's stats, raising its own, or
+#: putting a status on the foe (the knowledge's effect names, `moves.json`).
+OPENER_EFFECTS = frozenset({"ATTACK_DOWN", "DEFENSE_DOWN", "SPEED_DOWN", "ACCURACY_DOWN", "ATTACK_DOWN_2", "DEFENSE_DOWN_2",
+                            "SPEED_DOWN_2", "SPECIAL_DEFENSE_DOWN_2", "ATTACK_UP", "ATTACK_UP_2", "DEFENSE_UP",
+                            "DEFENSE_UP_2", "SPECIAL_ATTACK_UP", "SPECIAL_ATTACK_UP_2", "SPEED_UP_2", "BULK_UP",
+                            "CALM_MIND", "DRAGON_DANCE", "FOCUS_ENERGY", "SLEEP", "PARALYZE", "POISON", "TOXIC",
+                            "CONFUSE", "LEECH_SEED"})
+#: (step 4.1) Statuses that make a catch easier (`src/battle_script_commands.c` Cmd_handleballthrow: asleep or frozen x2,
+#: paralyzed, poisoned or burned x1.5): the moves a person uses to help a catch are sleep and paralysis.
+CATCH_STATUS_EFFECTS = ("SLEEP", "PARALYZE")
+#: (step 4.1) Tries of a catch-helping status move against one foe (it can miss).
+MAX_STATUS_TRIES = 2
+#: (step 4.1) The SAFE conditions for a status move (`_safe_for_status`): its own HP share at least this for an opener
+#: (`OPENER_HP`) or a catch's status move (`CATCH_STATUS_HP`), the foe's bar at least `OPENER_FOE_BAR` (not about to fall),
+#: the foe at most `OPENER_LEVELS` above it.
+OPENER_HP = 0.7
+CATCH_STATUS_HP = 0.5
+OPENER_FOE_BAR = 0.6
+OPENER_LEVELS = 2
+#: (step 4.1) The shift question's next foe: its level is not shown, so the guard against switching out a Pokemon that far
+#: outlevels the foe asks for this much more margin than `OUTLEVELS` over the last foe's level.
+UNSEEN_LEVEL_SLACK = 3
+#: (step 4.1) The shift question's words: `src/battle_message.c` sText_EnemyAboutToSwitchPkmn "{B_TRAINER1_CLASS}
+#: {B_TRAINER1_NAME} is\nabout to use {B_BUFF2}.\pWill {B_PLAYER_NAME} change\nPOKéMON?" (the eyes join lines with a space).
+_ABOUT_TO_USE = re.compile(r"about to use (.+?)[.!?]", re.I)
 
 
 @dataclass(frozen=True)
@@ -122,12 +201,17 @@ class Temperament:
     switch_willing: float  # the chance it says YES to "Will ... change POKéMON?" when the switch rule finds a better one
     heal_below: float  # its Pokemon's HP share under which it heals in an important battle
     run_low: float  # training: its Pokemon's HP share under which it runs from a wild battle
+    #: (step 4.1) the chance of an OPENING stat or status move on a safe first turn against a foe (one draw per foe)
+    opener: float = 0.0
 
 
 TEMPERAMENTS: dict[str, Temperament] = {
-    "Catcher": Temperament(near_best=0.80, catch_new=1.0, run_travel=0.6, switch_willing=0.5, heal_below=0.25, run_low=0.25),
-    "Story": Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.30, run_low=0.30),
-    "Trainer": Temperament(near_best=0.90, catch_new=0.75, run_travel=0.2, switch_willing=0.8, heal_below=0.25, run_low=0.20),
+    "Catcher": Temperament(near_best=0.80, catch_new=1.0, run_travel=0.6, switch_willing=0.5, heal_below=0.25, run_low=0.25,
+                           opener=0.20),
+    "Story": Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.30, run_low=0.30,
+                         opener=0.12),
+    "Trainer": Temperament(near_best=0.90, catch_new=0.75, run_travel=0.2, switch_willing=0.8, heal_below=0.25, run_low=0.20,
+                           opener=0.25),
 }
 
 
@@ -146,6 +230,24 @@ class BattleFaults:
     #: (the step-4 verifier's round) the skill does not read the party menu's refusal ("... is already in battle!"): it
     #: watches the menu until its bound, as step 4 did (the REFUSE fault)
     ignore_refusal: bool = False
+    #: (step 4.1) every move valued uncapped, as step 4 did: a move that FINISHES the foe is worth no more than its power
+    #: says, so a stronger, riskier move beats a weaker one that also finishes it (the OVERKILL fault)
+    overkill: bool = False
+    #: (step 4.1) the shift question answered about the foe on the field (the FAINTED one) and the party menu after a YES
+    #: ranked by level, as step 4 did (the SHIFT fault)
+    shift_fainted: bool = False
+    #: (step 4.1) a move the game refused this turn is not remembered: "decide again" may choose it again (the DISABLE fault)
+    forget_unusable: bool = False
+    #: (step 4.1 round 2) no sleep or paralysis move to help a catch, as step 4 had none (the CATCHS fault)
+    no_catch_status: bool = False
+    #: (step 4.1 round 2) the decider blind to the PP its moves have left: it may choose a move with none, which the GAME
+    #: refuses through the same code as a Disabled move (`src/battle_util.c` TrySetCantSelectMoveBattleScript: Disable,
+    #: Torment, Taunt, Imprison, a Choice item, no PP) and gives the move grid back (the REFUSED arms: finding 2 live)
+    ignore_pp: bool = False
+    #: (step 4.1 round 3, the verifier: "the PID carried to the party menu cannot fail live") the shift question is still
+    #: judged about the INCOMING foe, but the member chosen there is NOT carried into the party menu: it ranks again, by
+    #: level (the foe it remembers has fainted) (the SHIFTCX arm and the sweep's SHIFT-CARRY-FAULT)
+    forget_shift: bool = False
 
 
 @dataclass(frozen=True)
@@ -160,12 +262,15 @@ class MoveValue:
     power: float
     recoil: float
     status: bool
+    #: (step 4.1) it would FINISH the foe (its rough damage at least what the bar has left): worth as the strongest move
+    finishes: bool = False
 
     def line(self) -> str:
         if self.status:
             return f"{self.name}: a status move (0)"
         return (f"{self.name}: {self.value:.1f} = x{self.effectiveness:g} type x{self.stab:g} STAB x {self.power:g} power x "
-                f"{self.hit_chance:.2f} hit{f' - {self.recoil:.1f} recoil' if self.recoil else ''}")
+                f"{self.hit_chance:.2f} hit{f' - {self.recoil:.1f} recoil' if self.recoil else ''}"
+                f"{' (finishes it: worth as the strongest)' if self.finishes else ''}")
 
 
 @dataclass(frozen=True)
@@ -287,95 +392,153 @@ def recoil_penalty(fact: MoveFact | None, damage_worth: float, hp_share: float, 
 
 def move_value(slot: int, move: MoveSlot, user_types: tuple[str, ...], user_level: int, hp_share: float,
                foe_types: tuple[str, ...], faults: BattleFaults = BattleFaults(),
-               risk: RecoilRisk = NO_ESTIMATE) -> MoveValue | None:
+               risk: RecoilRisk = NO_ESTIMATE, ko_worth: float | None = None) -> MoveValue | None:
     """A move's worth against this foe (module docstring); None when it cannot be used (no PP left). `risk`: what its
-    recoil would cost against this foe (`recoil_risk`; the default: no estimate, the recoil of the whole worth)."""
-    if move.pp is not None and move.pp <= 0:
+    recoil would cost against this foe (`recoil_risk`; the default: no estimate, the recoil of the whole worth).
+    `ko_worth` (step 4.1): the move would FINISH the foe, and this is the worth of the strongest move against it; a move
+    that finishes the foe is worth that much (before its hit chance and recoil), whatever its power (FAULT `overkill`:
+    ignored, as step 4)."""
+    if move.pp is not None and move.pp <= 0 and not faults.ignore_pp:
         return None
     fact = _fact(move)
     mtype = fact.type if fact is not None else move.type
     power = _power(fact, move, user_level)
     if (fact is not None and fact.category == "status") or power <= 0:
         return MoveValue(slot, move.name, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, True)
+    turns = 1.0
     if fact is not None and fact.two_turn:
-        power *= 0.5  # it takes two turns (or a turn's warning)
+        turns *= 0.5  # it takes two turns (or a turn's warning)
     if fact is not None and fact.recharge:
-        power *= 0.6  # the user rests the next turn
+        turns *= 0.6  # the user rests the next turn
+    power *= turns
     effectiveness = 1.0 if faults.ignore_types else type_multiplier(mtype, foe_types)
     if fact is not None and fact.fixed_damage and effectiveness > 0:
         effectiveness = 1.0  # fixed damage ignores the matchup (an immunity still holds)
     bonus = 1.0 if faults.ignore_types else stab(mtype, user_types)
     hit = fact.hit_chance if fact is not None else 1.0
     full = effectiveness * bonus * power
+    finishes = ko_worth is not None and effectiveness > 0 and not faults.overkill
+    if finishes:
+        full = max(full, ko_worth * turns)  # (step 4.1) no worth beyond finishing it: every finisher is the strongest
     base = full * hit
     if faults.uncapped_recoil:
         risk = NO_ESTIMATE  # FAULT: the step-4 rule (the recoil of the whole worth)
     penalty = 0.0 if faults.ignore_recoil else recoil_penalty(fact, base, hp_share, full, risk)
-    return MoveValue(slot, move.name, base - penalty, base, effectiveness, bonus, hit, power, penalty, False)
+    return MoveValue(slot, move.name, base - penalty, base, effectiveness, bonus, hit, power, penalty, False, finishes)
+
+
+def full_worth(move: MoveSlot, user_types: tuple[str, ...], user_level: int, foe_types: tuple[str, ...],
+               faults: BattleFaults = BattleFaults()) -> float:
+    """(step 4.1) A damaging move's worth before its hit chance and recoil (type x STAB x power), 0 for a status move or
+    one with no PP: the scale `ko_worth` is taken from (the strongest move against this foe)."""
+    value = move_value(0, move, user_types, user_level, 1.0, foe_types, replace(faults, ignore_recoil=True))
+    if value is None or value.status:
+        return 0.0
+    return value.base / value.hit_chance if value.hit_chance > 0 else value.base
 
 
 def estimate_stat(base: int, level: int, hp: bool = False) -> int:
-    """A Pokemon's stat as a person would guess it from its species and level (average IVs, no EVs, a neutral nature:
-    `src/pokemon.c` CalculateMonStats with IV 15, EV 0)."""
+    """A stat of a Pokemon with this BASE stat at this level (average IVs, no EVs, a neutral nature: `src/pokemon.c`
+    CalculateMonStats with IV 15, EV 0). Since step 4.1 round 3 the decider calls it only with `TYPICAL_BASE`."""
     if hp:
         return (2 * base + 15) * level // 100 + level + 10
     return (2 * base + 15) * level // 100 + 5
 
 
-def damage_fraction(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
-                    faults: BattleFaults = BattleFaults()) -> tuple[float, float] | None:
-    """The share of the foe's max HP one hit of `move` takes, (lowest roll, highest roll), by the game's damage formula
-    (`src/pokemon.c` CalculateBaseDamage: ((2L/5+2) x power x A / D) / 50 + 2, x STAB x type, x 85-100 %) with the user's
-    own stats (the summary screen's) and the foe's guessed from its species and level (`estimate_stat`); no critical hit.
-    None for a status move or one whose foe is unknown."""
+def typical_stat(stat: str, level: int) -> int:
+    """(step 4.1 round 3) A stat of a TYPICAL Pokemon of `level` (`TYPICAL_BASE`): what a person expects of a Pokemon it
+    knows only by its level."""
+    return estimate_stat(TYPICAL_BASE[stat], level, hp=stat == "hp")
+
+
+def foe_max_hp(foe: BattleMon) -> int:
+    """(step 4.1 round 3) The foe's max HP as a person guesses it: a typical Pokemon of the foe's LEVEL (the bar shows only
+    the share it has left; its species' base HP is not what a person knows)."""
+    return typical_stat("hp", foe.level)
+
+
+def seen_types(mon: BattleMon) -> tuple[str, ...]:
+    """(step 4.1, "foe types from SPECIES facts, not live gBattleMons types") The types a person knows a battler has:
+    its SPECIES' (the Pokedex's), not the battle's live types (a Color Change, a Camouflage or Castform's weather form
+    changes those, and nothing on screen says so). The live types only when the species is unknown."""
+    fact = species_fact(mon.species)
+    return fact.types if fact is not None else mon.types
+
+
+def _formula_share(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
+                   faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> float | None:
+    """The middle of the game's damage formula's rolls as a share of the foe's max HP (`src/pokemon.c`
+    CalculateBaseDamage: ((2L/5+2) x power x A / D) / 50 + 2, x STAB x type, x 85-100 %), with the user's own attack (the
+    summary screen's) and the foe guessed as a TYPICAL Pokemon of its level (step 4.1 round 3: `typical_stat`, never the
+    foe's species' base stats), times `seen` (`BattleMind._seen_factor`: what its hits were seen to take off this foe,
+    over this guess); no critical hit. Only the ROUGH sense made from it (`rough_share`) is used in a choice. None for a
+    status move."""
     fact = _fact(move)
     power = _power(fact, move, user_battler.level)
     if power <= 0 or (fact is not None and fact.category == "status"):
-        return None
-    foe_species = species_fact(foe.species)
-    if foe_species is None:
         return None
     mtype = fact.type if fact is not None else move.type
     physical = (fact.category == "physical") if fact is not None else True
     if user is not None and len(user.stats) == 5:
         attack = user.stats[0] if physical else user.stats[3]
     else:
-        mine = species_fact(user_battler.species)
-        attack = estimate_stat((mine.attack if physical else mine.sp_attack) if mine else 50, user_battler.level)
-    defense = estimate_stat(foe_species.defense if physical else foe_species.sp_defense, foe.level)
-    hp = estimate_stat(foe_species.hp, foe.level, hp=True)
+        # its own summary unread (not met in a battle so far): a typical Pokemon of its level too
+        attack = typical_stat("attack" if physical else "sp_attack", user_battler.level)
+    defense = typical_stat("defense" if physical else "sp_defense", foe.level)
+    hp = foe_max_hp(foe)
     if fact is not None and fact.fixed_damage:
         flat = {"SONICBOOM": 20, "DRAGON_RAGE": 40, "LEVEL_DAMAGE": user_battler.level, "PSYWAVE": user_battler.level}
         if fact.effect in flat:
-            share = flat[fact.effect] / hp
-            return share, share
+            return flat[fact.effect] / hp * seen
         return None
-    effectiveness = 1.0 if faults.ignore_types else type_multiplier(mtype, foe.types)
-    bonus = 1.0 if faults.ignore_types else stab(mtype, user_battler.types)
+    effectiveness = 1.0 if faults.ignore_types else type_multiplier(mtype, seen_types(foe))
+    bonus = 1.0 if faults.ignore_types else stab(mtype, seen_types(user_battler))
     damage = ((2 * user_battler.level // 5 + 2) * power * attack / max(1, defense)) / 50 + 2
     damage *= bonus * effectiveness
-    return damage * 0.85 / hp, damage / hp
+    return damage * 0.925 / hp * seen
+
+
+def rough_share(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
+                faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> float | None:
+    """(step 4.1) A person's ROUGH sense of what one hit of `move` takes off the foe, as a share of its HP: to the nearest
+    eighth (at least a sixteenth: "a scratch"). `seen`: the correction its hits on this foe were seen to make (round 3).
+    None for a status move."""
+    share = _formula_share(move, user, user_battler, foe, faults, seen)
+    if share is None:
+        return None
+    if share <= 0:
+        return 0.0
+    return max(ROUGH_STEP / 2, round(share / ROUGH_STEP) * ROUGH_STEP)
+
+
+def damage_fraction(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
+                    faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> tuple[float, float] | None:
+    """The share of the foe's max HP one hit of `move` takes as a person would put it, (at least, at most): its ROUGH
+    share (`rough_share`) give or take an eighth (step 4.1: step 4 used the exact formula's lowest and highest rolls and an
+    8 % margin, which no person sees). None for a status move."""
+    rough = rough_share(move, user, user_battler, foe, faults, seen)
+    if rough is None:
+        return None
+    if rough <= 0:
+        return 0.0, 0.0
+    return max(rough / 2, rough - ROUGH_STEP), rough + ROUGH_STEP
 
 
 def recoil_risk(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
-                faults: BattleFaults = BattleFaults()) -> RecoilRisk:
+                faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> RecoilRisk:
     """(the step-4 verifier's round) What a recoil move would cost its user against `foe` (`RecoilRisk`), from one hit's
     average damage roll as a share of the foe's max HP (`damage_fraction`) and the foe's bar: Take Down's recoil is a
     quarter of the HP the hit TAKES, at most what the bar has left; Jump Kick's miss recoil half the damage it would have
-    dealt, at most half the foe's max HP; in HP (the foe's max HP guessed from its species and level, as the damage is)
-    against the user's HP left. `NO_ESTIMATE` for a move without recoil or a foe it cannot estimate."""
+    dealt, at most half the foe's max HP; in HP (the foe's max HP guessed as a typical Pokemon of its level, `foe_max_hp`,
+    as the damage is: round 3) against the user's HP left. `NO_ESTIMATE` for a move without recoil."""
     fact = _fact(move)
     if fact is None or fact.recoil_kind is None:
         return NO_ESTIMATE
-    guess = damage_fraction(move, user, user_battler, foe, faults)
-    foe_species = species_fact(foe.species)
-    if guess is None or foe_species is None:
-        return NO_ESTIMATE
-    share = (guess[0] + guess[1]) / 2
-    if share <= 0:
+    share = rough_share(move, user, user_battler, foe, faults, seen)  # (step 4.1) the ROUGH sense of the hit
+    if share is None or share <= 0:
         return NO_ESTIMATE
     left = max(0.0, foe.hp_bar / HP_BAR_PIXELS)
-    foe_max = estimate_stat(foe_species.hp, foe.level, hp=True)
+    foe_max = foe_max_hp(foe)
     landed, miss_capped = 1.0, 1.0
     if fact.recoil_kind == "of_damage_dealt":
         landed = min(1.0, left / share)
@@ -397,11 +560,12 @@ def matchup(types: tuple[str, ...], moves: tuple[MoveSlot, ...], level: int, foe
     because its type is right; measured 2026-10-08 on Route 116, without it the AI swapped its L14 Mudkip for a L6
     Whismur against a L9 Shroomish)."""
     best = 0.0
+    foe_types = seen_types(foe)  # (step 4.1) the foe's SPECIES types
     for slot, move in enumerate(moves):
-        value = move_value(slot, move, types, level, 1.0, foe.types, faults)
+        value = move_value(slot, move, types, level, 1.0, foe_types, faults)
         if value is not None and not value.status:
             best = max(best, value.value)
-    threats = [type_multiplier(t, types) for t in foe.types]
+    threats = [type_multiplier(t, types) for t in foe_types]
     threats += [type_multiplier(m.type, types) for m in foe.moves if m.power > 0]
     threat = 1.0 if faults.ignore_types else max(threats or [1.0])
     levels = min(1.5, max(0.3, (level / max(1, foe.level)) ** 1.5))
@@ -470,6 +634,36 @@ def learn_choice(mon: MonSummary, new_move: str) -> LearnChoice:
                                     f"({worth[weakest]:.0f}), the weakest of [{table}]: keep the four it has")
 
 
+def incoming(words: str, last_foe: BattleMon | None) -> tuple[BattleMon | None, str]:
+    """(step 4.1) The foe a trainer is ABOUT TO SEND OUT, as the shift question's words name it ("YOUNGSTER CALVIN is
+    about to use ZIGZAGOON."), built from SPECIES facts: its types, a full bar, no moves seen; its LEVEL is not in the
+    words, so the last foe's level stands in for it (a person expects a trainer's Pokemon to be about alike). (None, why)
+    when the words name no species the knowledge has."""
+    # (step 4.1 review, finding 5) the LAST "about to use" in the words: an older page still in the window (a missed
+    # page) must not name the Pokemon (it once picked WURMPLE over NINCADA)
+    matches = list(_ABOUT_TO_USE.finditer(words or ""))
+    found = matches[-1] if matches else None
+    if found is None:
+        return None, "the words name no Pokemon about to be used"
+    # (step 4.1 round 2, the verifier's minor: "a species with a period ('MR. MIME') becomes 'MR' and the question is
+    # answered NO") the name ends at a full stop the NAME does not contain: of every cut of the rest of the words at a '.',
+    # '!' or '?', the longest that names a species the knowledge has ("MR. MIME. Will ..." -> "MR. MIME")
+    rest = (words or "")[found.start(1):]
+    printed, name = found.group(1).strip(), None
+    for cut in sorted({m.start() for m in re.finditer(r"[.!?]", rest)}, reverse=True):
+        named = species_named(rest[:cut].strip())
+        if named is not None:
+            printed, name = rest[:cut].strip(), named
+            break
+    fact = species_fact(name) if name is not None else None
+    if fact is None:
+        return None, f"{printed!r} is not a species it knows"
+    level = last_foe.level if last_foe is not None else 1
+    foe = BattleMon(fact.name, fact.dex, level, None, None, HP_BAR_PIXELS, "ok", fact.types, (), None, 1)
+    return foe, (f"the words say {printed} comes next ({'/'.join(fact.types)}; its level unseen, about "
+                 f"L{level} like the last)")
+
+
 @dataclass
 class _Memory:
     """What the decider remembers within ONE battle."""
@@ -488,6 +682,12 @@ class _Memory:
     last_move: str | None = None
     #: the bar each of its moves took off this foe (a person learns "Tackle took a third of its HP")
     observed: dict = field(default_factory=dict)
+    #: (step 4.1 round 3) the LAST hit it saw land on this foe: (its move, the share of the bar it took)
+    seen_hit: tuple[str, float] | None = None
+    #: (step 4.1) decisions against THIS foe, whether the opener was drawn for it, the catch-helping status moves tried
+    foe_turns: int = 0
+    opener_drawn: bool = False
+    status_tries: int = 0
 
 
 class BattleMind:
@@ -503,6 +703,8 @@ class BattleMind:
         self.purpose = purpose
         self.faults = faults
         self.memory = _Memory()
+        #: (step 4.1 round 2) an OPENER the draw passed over on this decision (said with the move chosen instead)
+        self.opener_passed = ""
         #: species -> the run's wish to catch it (drawn once, seeded)
         self.wishes: dict[str, bool] = {}
         self.log: list[str] = []
@@ -513,22 +715,60 @@ class BattleMind:
         #: on the field, or not able to go in
         self.sent_since: set[int] = set()
         self.refused: dict[int, str] = {}
+        #: (step 4.1) the member it decided to SWITCH TO at the shift question (carried into the party menu that follows)
+        self.shift_to: int | None = None
+        self.shift_why: str = ""
+        #: (step 4.1) moves the game REFUSED this turn ((battler position, move name) -> the words), and the last move chosen
+        self.unusable: dict[tuple[int, str], str] = {}
+        #: the PIDs on the player's side when those refusals were made (a switch forgets them)
+        self.unusable_owners: tuple[int, ...] = ()
+        self.last_chosen: tuple[int, str] | None = None
+        #: (step 4.1) how often it has met each wild species this run, and wild battles in all (how rare a species SEEMS)
+        self.met: dict[str, int] = {}
+        self.wild_met = 0
 
     # ------------------------------------------------------------------ what it remembers of the field
     def enter(self) -> None:
         """A battle is on screen (the skill starts): nothing remembered of a field yet."""
         self.field, self.sent_since, self.refused = None, set(), {}
+        self.shift_to, self.shift_why, self.unusable, self.last_chosen = None, "", {}, None
+        self.unusable_owners = ()
 
     def see(self, look: Observation) -> None:
         """Every look the hands take during a battle (a watcher of `skills/battle.py`): a look AT the battle (a battle view)
         is the field as it stands now; at the action menu a new turn begins, and what was sent in or refused before it is
-        on the field now (or no longer refused)."""
+        on the field now (or no longer refused), a move refused last turn may be used again, and a switch decided at the
+        shift question is done."""
         if look.battle is None:
             return
         self.field = look.battle
         ui = look.screen.ui if look.screen is not None else None
         if ui is not None and ui.kind == "battle_action":
             self.sent_since, self.refused = set(), {}
+            self.shift_to, self.shift_why = None, ""
+            # (step 4.1 review, finding 4) a refused move (Disabled, Taunt, Torment) is REMEMBERED while the same
+            # Pokemon stays in, as a person would; a switch (a different PID on the field) forgets it.
+            out = tuple(sorted(m.pid for m in look.battle.own if m.pid is not None))
+            if self.unusable_owners and out != self.unusable_owners:
+                self.unusable = {}
+            self.unusable_owners = out  # () = not known yet: adopted, never read as a switch
+
+    def chose(self, battler: int | None, name: str | None) -> None:
+        """(step 4.1) The move the hands just chose in the move grid (the one the game may refuse)."""
+        self.last_chosen = (battler or 0, name) if name else None
+
+    def cannot_use(self, words: str) -> str | None:
+        """(step 4.1) The move grid came back after a move was chosen: the game REFUSED it (`TrySetCantSelectMoveBattleScript`:
+        Disabled, Taunt, Torment, no PP; the selection script prints why, then the grid again). That move is unusable for
+        the rest of this turn (FAULT `forget_unusable`: not remembered, as step 4). Returns its name (None: none chosen)."""
+        if self.last_chosen is None:
+            return None
+        if not self.faults.forget_unusable:
+            self.unusable[self.last_chosen] = words
+        return self.last_chosen[1]
+
+    def _usable(self, battler: int | None, move: MoveSlot) -> bool:
+        return (battler or 0, move.name) not in self.unusable
 
     def sent(self, pid: int) -> None:
         """The game took `pid` in (SEND OUT): it is on the field from now on, though no look has shown it there yet."""
@@ -558,13 +798,17 @@ class BattleMind:
         if battle is None or foe is None:
             return "a battle with no foe in view yet"
         self.memory.foe_key = f"{foe.species}:{foe.level}"
+        if battle.kind == "wild":
+            # (step 4.1) how rare a species SEEMS to it: how often it has met it among the wild battles of this run
+            self.met[foe.species] = self.met.get(foe.species, 0) + 1
+            self.wild_met += 1
         owned = set(look.progress.owned_dex) if look.progress is not None else set()
         self.memory.new_species = battle.kind == "wild" and foe.dex not in owned
         if self.memory.new_species:
             if foe.species not in self.wishes:
                 self.wishes[foe.species] = self.rng.random() < self.temper.catch_new
             self.memory.want_catch = self.wishes[foe.species]
-        what = (f"a {battle.kind} battle against {foe.species} L{foe.level} ({'/'.join(foe.types)})"
+        what = (f"a {battle.kind} battle against {foe.species} L{foe.level} ({'/'.join(seen_types(foe))})"
                 + (f"; a species it has not caught: {'it WANTS it' if self.memory.want_catch else 'it lets this one go'} "
                    f"({self.personality}: catch_new {self.temper.catch_new})" if self.memory.new_species else ""))
         return what
@@ -577,10 +821,21 @@ class BattleMind:
         mem = self.memory
         mem.foe_key = f"{foe.species}:{foe.level}" if foe is not None else ""
         mem.last_bar, mem.last_move, mem.observed, mem.weaken_turns = None, None, {}, 0
+        mem.foe_turns, mem.opener_drawn, mem.status_tries, mem.seen_hit = 0, False, 0, None
 
     # ------------------------------------------------------------------ the action menu
-    def decide(self, look: Observation, battler: int | None = None) -> Decision:
-        """The decision at the action menu of the player's battler at `battler` (its position; None: the first)."""
+    def decide(self, look: Observation, battler: int | None = None, redecide: bool = False) -> Decision:
+        """The decision at the action menu of the player's battler at `battler` (its position; None: the first).
+        `redecide` (step 4.1 review): the game REFUSED the move this turn's decision chose, so this is the SAME turn
+        decided again: the turn counts (turns, the foe's turns, weakening turns) do not move a second time."""
+        mem = self.memory
+        counts = (mem.turns, mem.foe_turns, mem.weaken_turns)
+        decision = self._decide(look, battler)
+        if redecide:
+            mem.turns, mem.foe_turns, mem.weaken_turns = counts
+        return decision
+
+    def _decide(self, look: Observation, battler: int | None = None) -> Decision:
         battle = look.battle
         if battle is None or not battle.own:
             return Decision("fight", "no battle view: the first usable move", move_slot=0)
@@ -591,6 +846,7 @@ class BattleMind:
         foe = battle.foe[0] if battle.foe else None
         mem = self.memory
         mem.turns += 1
+        mem.foe_turns += 1
         self._observe(foe)
         hp_share = own.hp / own.max_hp if own.hp is not None and own.max_hp else 1.0
         if foe is None:
@@ -611,7 +867,89 @@ class BattleMind:
             decision = self._heal(look, own, foe, hp_share)
             if decision is not None:
                 return decision
-        return self._fight(own, foe, look, "", values)
+        decision = self._opener(own, foe, hp_share, values, battle.double)
+        if decision is not None:
+            return decision
+        decision = self._fight(own, foe, look, "", values)
+        if self.opener_passed:
+            # (step 4.1 round 2, the verifier: the STATUS count could not tell a rare draw from a missing rule) an opener the
+            # draw passed over is SAID with the move chosen instead, so the sweep can count every chance the rule had
+            decision = replace(decision, reason=f"{decision.reason} [{self.opener_passed}]")
+            self.opener_passed = ""
+        return decision
+
+    # ------------------------------------------------------------------ (step 4.1) status moves, when SAFE
+    def _safe_for_status(self, own: BattleMon, foe: BattleMon, hp_share: float, least_hp: float,
+                         opener: bool = True) -> str | None:
+        """Why a turn spent on a status move is NOT safe now (None: it is): its own HP under `least_hp`, the foe hitting
+        it super-effectively (its species' types or a move it was seen to use), the foe more than `OPENER_LEVELS` above
+        it, or (an `opener`) the foe about to fall (its bar under `OPENER_FOE_BAR`: finish it instead). A person does not
+        spend a turn on Growl when the foe could knock it out."""
+        if hp_share < least_hp:
+            return f"its HP is {hp_share:.0%} (under {least_hp:.0%})"
+        types = seen_types(own)
+        threats = [type_multiplier(t, types) for t in seen_types(foe)]
+        threats += [type_multiplier(m.type, types) for m in foe.moves if m.power > 0]
+        if not self.faults.ignore_types and max(threats or [1.0]) >= 2.0:
+            return f"{foe.species} hits it super-effectively (x{max(threats):g})"
+        if foe.level > own.level + OPENER_LEVELS:
+            return f"{foe.species} L{foe.level} is stronger than its {own.species} L{own.level}"
+        if opener and foe.hp_bar / HP_BAR_PIXELS < OPENER_FOE_BAR:
+            return f"the foe's bar is at {foe.hp_bar / HP_BAR_PIXELS:.0%}: finish it"
+        return None
+
+    def _status_moves(self, own: BattleMon, foe: BattleMon, effects) -> list[tuple[int, MoveSlot, MoveFact]]:
+        """The status moves of `own` with PP left, not refused this turn, whose effect is one of `effects` and that can
+        take hold on this foe (a status on a foe that has none; Thunder Wave never on a Ground type, poison never on a
+        Poison or Steel type: `src/battle_script_commands.c` Cmd_seteffectwithchance / the type checks of the effects)."""
+        out = []
+        for slot, move in enumerate(own.moves):
+            fact = move_fact(move.name)
+            if fact is None or fact.category != "status" or fact.effect not in effects:
+                continue
+            if (move.pp is not None and move.pp <= 0) or not self._usable(own.battler, move):
+                continue
+            types = seen_types(foe)
+            if fact.effect in ("SLEEP", "PARALYZE", "POISON", "TOXIC", "CONFUSE") and foe.status not in ("ok", ""):
+                if fact.effect != "CONFUSE":
+                    continue
+            if fact.effect == "PARALYZE" and fact.type == "Electric" and "Ground" in types:
+                continue
+            if fact.effect in ("POISON", "TOXIC") and ("Poison" in types or "Steel" in types):
+                continue
+            if fact.effect == "LEECH_SEED" and "Grass" in types:
+                continue
+            out.append((slot, move, fact))
+        return out
+
+    def _opener(self, own: BattleMon, foe: BattleMon, hp_share: float, values: list[MoveValue],
+                double: bool = False) -> Decision | None:
+        """(step 4.1, the review's "robotic battling: never a status move") On its FIRST turn against a foe, by its
+        temperament's small chance (`Temperament.opener`, one seeded draw per foe), an OPENING stat or status move
+        (`OPENER_EFFECTS`: Growl, Leer, String Shot, Harden, Stun Spore, ...), only when it is SAFE (`_safe_for_status`).
+        Not in a double battle."""
+        mem = self.memory
+        if mem.foe_turns != 1 or mem.opener_drawn or self.temper.opener <= 0 or double:
+            return None
+        candidates = self._status_moves(own, foe, OPENER_EFFECTS)
+        if not candidates or not any(not v.status and v.value > 0 for v in values):
+            return None
+        unsafe = self._safe_for_status(own, foe, hp_share, OPENER_HP)
+        if unsafe is not None:
+            return None
+        mem.opener_drawn = True
+        if self.rng.random() >= self.temper.opener:
+            self.opener_passed = (f"no opener this time: {', '.join(m.name for _, m, _ in candidates)} possible and safe, the "
+                                  f"draw over its chance ({self.personality}: opener {self.temper.opener})")
+            return None
+        weights = [float(STATUS_WORTH.get(fact.effect, STATUS_DEFAULT)) + 1.0 for _, _, fact in candidates]
+        slot, move, fact = self.rng.choices(candidates, weights=weights, k=1)[0]
+        mem.last_move = move.name
+        return Decision("fight", f"an OPENING move: {move.name} ({fact.effect.lower().replace('_', ' ')}) on its first turn "
+                                 f"against {foe.species}, while it is safe (its HP {hp_share:.0%}, the foe's bar "
+                                 f"{foe.hp_bar / HP_BAR_PIXELS:.0%}, no x2 threat, not stronger; {self.personality}: "
+                                 f"opener {self.temper.opener})", move_slot=slot, move_name=move.name,
+                        values=tuple(v.line() for v in values))
 
     def _observe(self, foe: BattleMon | None) -> None:
         """What its last move took off the foe's bar (calibrates the damage guess of the next weakening move)."""
@@ -620,17 +958,66 @@ class BattleMind:
             return
         if mem.last_bar is not None and mem.last_move is not None and foe.hp_bar <= mem.last_bar:
             mem.observed[mem.last_move] = (mem.last_bar - foe.hp_bar) / HP_BAR_PIXELS
+            if foe.hp_bar < mem.last_bar:
+                mem.seen_hit = (mem.last_move, mem.observed[mem.last_move])
         mem.last_bar = foe.hp_bar
         mem.last_move = None
 
+    def _seen_factor(self, own: BattleMon, foe: BattleMon, user: MonSummary | None) -> float:
+        """(step 4.1 round 3) How much harder (or softer) its hits land on THIS foe than on a typical Pokemon of its level:
+        the last hit it SAW land (the bar's drop after its move, `_observe`) over what it guessed that move would take
+        (`_formula_share` of the typical guess), kept within `SEEN_FACTOR_RANGE`; 1 until it has seen one. A person who
+        does not know a species' stats learns them this way ("Tackle took half: a frail one")."""
+        hit = self.memory.seen_hit
+        if hit is None:
+            return 1.0
+        move = next((m for m in own.moves if m.name == hit[0]), None)
+        guess = _formula_share(move, user, own, foe, self.faults) if move is not None else None
+        if not guess or hit[1] <= 0:
+            return 1.0
+        low, high = SEEN_FACTOR_RANGE
+        return min(high, max(low, hit[1] / guess))
+
     def _values(self, own: BattleMon, foe: BattleMon, hp_share: float, look: Observation | None) -> list[MoveValue]:
+        """Every move's worth against `foe` (`move_value`), with the types a person knows (`seen_types`), the recoil it
+        would really cost (`recoil_risk`), a move that would finish the foe worth as the strongest (`_ko_worth`), and
+        (step 4.1) without the moves the game refused this turn (`cannot_use`). (Round 3) The damage behind the recoil and
+        the finishers is the typical guess corrected by the hits seen on this foe (`_seen_factor`)."""
         user = next((m for m in (look.party if look is not None else None) or () if m.pid == own.pid), None)
+        own_types, foe_types = seen_types(own), seen_types(foe)
+        usable = [(slot, move) for slot, move in enumerate(own.moves) if self._usable(own.battler, move)]
+        seen = self._seen_factor(own, foe, user)
+        ko = self._ko_worth(own, foe, user, usable, own_types, foe_types, self.faults, seen)
         out = []
-        for slot, move in enumerate(own.moves):
-            risk = recoil_risk(move, user, own, foe, self.faults)
-            value = move_value(slot, move, own.types, own.level, hp_share, foe.types, self.faults, risk)
+        for slot, move in usable:
+            risk = recoil_risk(move, user, own, foe, self.faults, seen)
+            value = move_value(slot, move, own_types, own.level, hp_share, foe_types, self.faults, risk, ko.get(slot))
             if value is not None:
                 out.append(value)
+        return out
+
+    @staticmethod
+    def _ko_worth(own: BattleMon, foe: BattleMon, user: MonSummary | None, moves: list[tuple[int, MoveSlot]],
+                  own_types: tuple[str, ...], foe_types: tuple[str, ...], faults: BattleFaults,
+                  seen: float = 1.0) -> dict[int, float]:
+        """(step 4.1, "overkill is valued") slot -> the worth of the STRONGEST move against `foe` (type x STAB x power), for
+        every move that would FINISH it: its rough damage (`rough_share`, corrected by the hits seen: `seen`) at least what
+        the foe's bar has left. Such a move is worth as much as the strongest, so moves that all finish the foe compare by
+        their hit chance and recoil."""
+        left = foe.hp_bar / HP_BAR_PIXELS
+        fulls = {slot: full_worth(move, own_types, own.level, foe_types, faults) for slot, move in moves}
+        top = max(fulls.values(), default=0.0)
+        if top <= 0 or left <= 0:
+            return {}
+        out = {}
+        for slot, move in moves:
+            if fulls[slot] <= 0:
+                continue
+            # (step 4.1 review, finding 3) FINISHES only on its LOW estimate: the rough share is rounded to an eighth, and
+            # rounding up called a Tackle that does 0.19 a finisher against a 25 % bar (drawn 167 of 400 times)
+            fraction = damage_fraction(move, user, own, foe, faults, seen)
+            if fraction is not None and fraction[0] >= left:
+                out[slot] = top
         return out
 
     def choose_move(self, values: list[MoveValue]) -> tuple[MoveValue | None, str]:
@@ -660,7 +1047,8 @@ class BattleMind:
             if foe is not None:
                 values = self._values(own, foe, hp_share, look)
             else:
-                values = [move_value(s, m, own.types, own.level, hp_share, (), self.faults) for s, m in enumerate(own.moves)]
+                values = [move_value(s, m, seen_types(own), own.level, hp_share, (), self.faults)
+                          for s, m in enumerate(own.moves) if self._usable(own.battler, m)]
                 values = [v for v in values if v is not None]
         pick, reason = self.choose_move(values)
         lines = tuple(v.line() for v in values)
@@ -727,13 +1115,16 @@ class BattleMind:
         with the fault switches `faults` (the decider's own, or the type chart's counterfactual)."""
         candidates: list[tuple[MoveValue, int | None]] = []
         lines = []
-        for slot, move in enumerate(own.moves):
+        own_types = seen_types(own)
+        usable = [(slot, move) for slot, move in enumerate(own.moves) if self._usable(own.battler, move)]
+        kos = {foe.battler: self._ko_worth(own, foe, user, usable, own_types, seen_types(foe), faults) for foe in foes}
+        for slot, move in usable:
             fact = move_fact(move.name)
             spread = fact is not None and fact.target in ("BOTH", "FOES_AND_ALLY")
             per_foe = []
             for foe in foes:
-                value = move_value(slot, move, own.types, own.level, hp_share, foe.types, faults,
-                                   recoil_risk(move, user, own, foe, faults))
+                value = move_value(slot, move, own_types, own.level, hp_share, seen_types(foe), faults,
+                                   recoil_risk(move, user, own, foe, faults), kos[foe.battler].get(slot))
                 if value is not None:
                     per_foe.append((value, foe))
             if not per_foe:
@@ -775,50 +1166,88 @@ class BattleMind:
             reason = (f"to CATCH {foe.species}: its bar is at {bar:.0%}" if bar <= 0.5 else
                       f"to CATCH {foe.species}: {mem.weaken_turns} weakening turns already" if mem.weaken_turns >= MAX_WEAKEN_TURNS
                       else f"to CATCH {foe.species}: its own HP is low ({hp_share:.0%}): throw before it is too late")
-        ball = self._ball(balls, foe)
+        status = self._catch_status(own, foe, hp_share, values)
+        if status is not None:
+            return status
+        ball, cue = self._ball(balls, foe)
         mem.throws += 1
-        return Decision("ball", f"{reason}: throw a {ball} (ball {mem.throws}, {sum(c for _, c in balls)} in the bag)",
+        return Decision("ball", f"{reason}: throw a {ball} ({cue}; ball {mem.throws}, {sum(c for _, c in balls)} in the bag)",
                         ball=ball)
+
+    def _catch_status(self, own: BattleMon, foe: BattleMon, hp_share: float, values: list[MoveValue]) -> Decision | None:
+        """(step 4.1, "use sleep/paralysis to help a catch when available") Before the throws, a SLEEP or PARALYSIS move it
+        has (`CATCH_STATUS_EFFECTS`: Sleep Powder, Hypnosis, Stun Spore, Thunder Wave, ...), on a foe that has no status
+        and that the move can take hold on, at most `MAX_STATUS_TRIES` times (it can miss), and only while that turn is
+        safe for it (`_safe_for_status`: not when the foe is about to knock it out)."""
+        mem = self.memory
+        if mem.status_tries >= MAX_STATUS_TRIES or foe.status not in ("ok", "") or self.faults.no_catch_status:
+            return None
+        candidates = self._status_moves(own, foe, CATCH_STATUS_EFFECTS)
+        if not candidates:
+            return None
+        unsafe = self._safe_for_status(own, foe, hp_share, CATCH_STATUS_HP, opener=False)
+        if unsafe is not None:
+            self.log.append(f"no status move to help the catch: {unsafe}")
+            return None
+        # sleep helps a catch most (x2 against x1.5), then the surer move
+        slot, move, fact = max(candidates, key=lambda c: (c[2].effect == "SLEEP", c[2].hit_chance, -c[0]))
+        mem.status_tries += 1
+        mem.last_move = move.name
+        return Decision("fight", f"to CATCH {foe.species}: {move.name} first ({fact.effect.lower()} makes a ball hold "
+                                 f"better; try {mem.status_tries} of {MAX_STATUS_TRIES})", move_slot=slot, move_name=move.name,
+                        values=tuple(v.line() for v in values))
 
     def _weakening_move(self, look: Observation, own: BattleMon, foe: BattleMon, bar: float,
                         values: list[MoveValue]) -> tuple[MoveValue | None, str]:
         """The move that takes the most off the foe's bar while, at its best roll, leaving at least `KO_MARGIN`: so a
         weaker move when the bar is already low. None when every move could knock it out."""
         user = next((m for m in look.party or () if m.pid == own.pid), None)
+        seen_factor = self._seen_factor(own, foe, user)  # (round 3) the typical guess corrected by the hits seen
         safe = []
         for value in values:
             if value.status or value.value <= 0:
                 continue
             move = own.moves[value.slot]
-            guess = damage_fraction(move, user, own, foe, self.faults)
+            guess = damage_fraction(move, user, own, foe, self.faults, seen_factor)
             if guess is None:
                 continue
             low, high = guess
             seen = self.memory.observed.get(move.name)
             if seen is not None and seen > 0:
-                high = max(high, seen * 1.15)  # it saw what this move does to this foe
+                high = max(high, seen + ROUGH_STEP)  # it saw what this move does to this foe (give or take an eighth)
                 low = min(low, seen)
-            if bar - high >= KO_MARGIN:
+            if bar - high > KO_MARGIN:
                 safe.append((low + high, value, low, high))
         if not safe:
             return None, f"every move could knock it out (its bar {bar:.0%})"
         safe.sort(key=lambda s: (-s[0], s[1].slot))
         _, value, low, high = safe[0]
-        return value, f"{value.name} takes {low:.0%}-{high:.0%} of its HP and its bar is at {bar:.0%}: it cannot knock it out"
+        return value, (f"{value.name} takes about {low:.0%}-{high:.0%} of its HP (a rough guess) and its bar is at {bar:.0%}: "
+                       f"it cannot knock it out")
 
-    def _ball(self, balls: list[tuple[str, int]], foe: BattleMon) -> str:
-        """A Poke Ball for an easy catch; a better ball for a hard one (catch rate under 100) or after two misses."""
+    def _ball(self, balls: list[tuple[str, int]], foe: BattleMon) -> tuple[str, str]:
+        """(step 4.1, "the ball choice uses catch_rate (hidden)") The ball by what a person SEES: a better ball (Ultra, Great)
+        after two misses, while the foe is still strong (its bar above half and no sleep or paralysis), or when the species
+        SEEMS RARE to it (met for the first time after several wild battles of this run); otherwise a Poke Ball. Returns
+        (the ball, the cue)."""
         names = [name for name, _ in balls]
-        species = species_fact(foe.species)
-        hard = species is not None and species.catch_rate < 100
-        if hard or self.memory.throws >= 2:
+        mem = self.memory
+        bar = foe.hp_bar / HP_BAR_PIXELS
+        cues = []
+        if mem.throws >= 2:
+            cues.append(f"{mem.throws} missed")
+        if bar > 0.5 and foe.status not in ("sleep", "paralysis", "freeze"):
+            cues.append(f"still strong (its bar {bar:.0%})")
+        if self.met.get(foe.species, 0) <= 1 and self.wild_met >= 4:
+            cues.append(f"a {foe.species} seems rare (the first in {self.wild_met} wild battles)")
+        if cues:
             for better in GREAT_BALLS:
                 if better in names:
-                    return better
+                    return better, "a harder catch: " + ", ".join(cues)
         for plain in ("Poké Ball", "Premier Ball"):
             if plain in names:
-                return plain
-        return names[0]
+                return plain, ("an easy catch" if not cues else "no better ball: " + ", ".join(cues))
+        return names[0], "the only ball it has"
 
     # ------------------------------------------------------------------ running
     def _run_or_not(self, own: BattleMon, foe: BattleMon, hp_share: float) -> Decision | None:
@@ -855,14 +1284,18 @@ class BattleMind:
         mem.switched_against.add(foe.species)
         return Decision("switch", why, switch_pid=member.pid)
 
-    def better_member(self, look: Observation, own: BattleMon, foe: BattleMon) -> tuple[MonSummary, str] | None:
+    def better_member(self, look: Observation, own: BattleMon, foe: BattleMon,
+                      level_seen: bool = True) -> tuple[MonSummary, str] | None:
         """A healthy party member MUCH better against `foe` than the Pokemon out, when the one out is badly matched (the
-        foe hits it super-effectively, or its best move does half the worth of a neutral one)."""
-        mine = matchup(own.types, own.moves, own.level, foe, self.faults)
+        foe hits it super-effectively, or its best move does half the worth of a neutral one). `level_seen` False (step
+        4.1: the shift question's next foe, whose level the words do not show): the far-outlevels guard asks for
+        `UNSEEN_LEVEL_SLACK` more levels."""
+        mine = matchup(seen_types(own), own.moves, own.level, foe, self.faults)
         badly = mine[2] >= 2.0 or mine[1] < 0.5 * self._neutral_worth(own)
         # a Pokemon FAR above the foe's level is not in danger from a bad matchup (measured 2026-10-08 on Route 116: the
         # AI swapped its L16 Grovyle out against L6-7 Taillows for its L6-8 Normal types)
-        if not badly or own.level >= foe.level + OUTLEVELS:
+        margin = OUTLEVELS + (0 if level_seen else UNSEEN_LEVEL_SLACK)
+        if not badly or own.level >= foe.level + margin:
             return None
         best = None
         out = ({m.pid for m in (look.battle.own if look.battle is not None else ()) if m.pid is not None} | {own.pid}
@@ -876,14 +1309,14 @@ class BattleMind:
         if best is None:
             return None
         member, theirs = best
-        return member, (f"{own.species} is badly matched against {foe.species} ({'/'.join(foe.types)}: threat x{mine[2]:g}, "
-                        f"its best move worth {mine[1]:.0f}); {member.species} is much better (best move worth "
+        return member, (f"{own.species} is badly matched against {foe.species} ({'/'.join(seen_types(foe))}: threat "
+                        f"x{mine[2]:g}, its best move worth {mine[1]:.0f}); {member.species} is much better (best move worth "
                         f"{theirs[1]:.0f}, threat x{theirs[2]:g}): switch")
 
     def _neutral_worth(self, own: BattleMon) -> float:
         best = 0.0
         for slot, move in enumerate(own.moves):
-            value = move_value(slot, move, own.types, own.level, 1.0, (), self.faults)
+            value = move_value(slot, move, seen_types(own), own.level, 1.0, (), self.faults)
             if value is not None and not value.status:
                 best = max(best, value.value)
         return best
@@ -915,6 +1348,15 @@ class BattleMind:
         foes = [f for f in (battle.foe if battle is not None else ()) if f.hp_bar > 0]
         standing = {m.pid: m.species for m in (battle.own if battle is not None else ()) if m.pid is not None}
         out = set(standing) | self.sent_since | set(self.refused)
+        chosen = self.shift_to
+        if (chosen is not None and chosen not in out and not self.faults.shift_fainted
+                and not self.faults.forget_shift):
+            member = next((m for m in look.party or () if m.pid == chosen and m.hp > 0 and not m.is_egg), None)
+            if member is not None:
+                # (step 4.1) the switch it DECIDED at the shift question, against the foe the words named: carried here
+                # (step 4 ranked again, by level: the foe it remembered had fainted)
+                return member.pid, (f"{member.species} L{member.level} ({member.hp}/{member.max_hp} HP), the switch it decided "
+                                    f"at the question ({self.shift_why})")
         best = None
         for member in look.party or ():
             if member.hp <= 0 or member.is_egg or member.pid in out:
@@ -939,24 +1381,44 @@ class BattleMind:
         return member.pid, (f"{member.species} L{member.level} ({member.hp}/{member.max_hp} HP) is the best left{against}"
                             f"{'; not ' + ', '.join(field) if field else ''}{seen}")
 
-    def answer(self, question: str, look: Observation, learn: LearnChoice | None = None) -> tuple[bool, str]:
-        """The battle's yes/no, by its words (module docstring)."""
+    def _shift(self, question: str, look: Observation, context: str) -> tuple[bool, str]:
+        """(step 4.1, finding 1) "TRAINER X is about to use TREECKO. Will ... change POKéMON?": the game asks BEFORE the
+        next foe is sent out (`BattleScript_FaintedMonTryChoose`), so the battle view still shows the FAINTED foe. The
+        foe judged is the one the WORDS name (`incoming`: species facts, the level guessed); a YES carries the chosen
+        member's PID into the party menu that follows (`shift_to`, `replacement`). FAULT `shift_fainted`: step 4's
+        answer, about the foe on the field."""
+        battle = look.battle if look.battle is not None else self.field
+        own = battle.own[0] if battle is not None and battle.own else None
+        on_field = battle.foe[0] if battle is not None and battle.foe else None
+        if own is None:
+            return False, "no: it cannot see who is out"
+        if self.faults.shift_fainted:
+            foe, said, seen_level = on_field, "FAULT shift_fainted: the foe on the field", True
+        else:
+            foe, said = incoming(f"{context} {question}", on_field)
+            seen_level = False
+        if foe is None:
+            return False, f"no: it cannot tell who comes next ({said})"
+        better = self.better_member(look, own, foe, level_seen=seen_level)
+        if better is None:
+            return False, f"no: {own.species} is not badly matched against {foe.species} ({said})"
+        willing = self.rng.random() < self.temper.switch_willing
+        if willing and not self.faults.shift_fainted:
+            # (FAULT `forget_shift`, round 3: decided here and then not carried; `replacement` ranks again, by level)
+            self.shift_to, self.shift_why = better[0].pid, f"against {foe.species}, {said}"
+        return willing, (f"{'yes' if willing else 'no'}: {better[1]} ({said}; {self.personality}: switch_willing "
+                         f"{self.temper.switch_willing})")
+
+    def answer(self, question: str, look: Observation, learn: LearnChoice | None = None,
+               context: str = "") -> tuple[bool, str]:
+        """The battle's yes/no, by its words (module docstring). `context`: the pages of text before the question (step
+        4.1: the shift question names the next foe on the page before "Will ... change POKéMON?")."""
         words = question.casefold()
         if "use next" in words:
             pid, why = self.replacement(look)
             return (pid is not None), (f"yes: {why}" if pid is not None else f"no: {why}")
         if "change" in words and "pok" in words:
-            battle = look.battle
-            own = battle.own[0] if battle is not None and battle.own else None
-            foe = battle.foe[0] if battle is not None and battle.foe else None
-            if own is None or foe is None:
-                return False, "no: it cannot see who is out"
-            better = self.better_member(look, own, foe)
-            if better is None:
-                return False, f"no: {own.species} is not badly matched against {foe.species}"
-            willing = self.rng.random() < self.temper.switch_willing
-            return willing, (f"{'yes' if willing else 'no'}: {better[1]} ({self.personality}: switch_willing "
-                             f"{self.temper.switch_willing})")
+            return self._shift(question, look, context)
         if "nickname" in words:
             return False, "no: it keeps the species' name"
         if "make room" in words or "delete a move" in words:

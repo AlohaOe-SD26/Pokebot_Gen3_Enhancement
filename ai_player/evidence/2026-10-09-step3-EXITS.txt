@@ -1,12 +1,12 @@
 AI PLAYER BUILD STEP 3 (THE WORLD MODEL AND THE NAVIGATOR) - LIVE PROOF - ARM EXITS: the ROM's warp table (test side) against the exits the eyes see by their LOOK
-date: 2026-10-09 02:59:50
-code: HEAD af4913ac; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7b4322c9ac0df2e1 over git diff HEAD (20 files, 397159 bytes) and 29 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-predictions: sha256:ec897a0693ef6529 of live_step3.py's docstring (45010 characters) + its PREDICTED table (4303 characters) [the docstring alone: sha256:24b060110f4f6cb2], read at the start of this run
+date: 2026-10-09 19:16:05
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+predictions: sha256:9aa184d7e73758ea of live_step3.py's docstring (46330 characters) + its PREDICTED table (4752 characters) [the docstring alone: sha256:574cbb354c9164e8], read at the start of this run
 fixture: ai_player/gates/fixtures/littleroot_twin.ss1 md5=fe4661736a30dd3f34b87c0db7ae1d10
 fixture documentation: gates/exit_looks.py: every map of the ROM, read only
 command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\exit_looks.py
 env: none (a test-side scan of the ROM in its own throwaway emulator: no AI runs; the fixture is only where it boots)
-exit code: 0   elapsed: 3.5s   run dir: None
+exit code: 0   elapsed: 5.2s   run dir: None
 VERDICT: PASS
 [SELFTEST] check_after_is_this_run on 5 synthetic runs (its own: pass; a stale mtime, a frame +3000, no file, the fixture's md5: fail): PASS
 checks (pre-registered in ai_player/gates/live_step3.py's docstring; each quotes both values):

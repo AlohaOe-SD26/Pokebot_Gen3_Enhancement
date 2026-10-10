@@ -95,6 +95,43 @@ def evidence_digests(folder: Path = EVIDENCE) -> dict[str, str | None]:
     return out
 
 
+def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE) -> Path | None:
+    """(step 4.1 round 3, the step-4.1 verifier: "Evidence-policy order broken ... `--retire` ran after round 2's graded
+    chains had started, so 12 top-level evidence files of the never-committed tree 8b742931d35fa205 ... were overwritten.
+    They are unrecoverable") Called by EVERY evidence writer just before it writes `path`: when a file is already there, at
+    the top level of the evidence folder, and its code line names ANOTHER tree's digest than `current` (default: this
+    tree's), it is MOVED to `archive/<that digest>/` first (a name already taken there gets the next free `.N` suffix), so a
+    graded run can no longer write over an earlier tree's evidence, whatever the order of the round's steps. A file of no
+    digest goes to `archive/no-digest/`. Returns where it went (None: nothing to keep). `gates/prune_evidence.py` then
+    keeps, indexes or packs it by the archive policy."""
+    import shutil
+
+    if path.parent.resolve() != folder.resolve() or not path.is_file():
+        return None
+    if current is None:
+        line_now = provenance()
+        at = line_now.find(_DIGEST_MARK)
+        current = line_now[at + len(_DIGEST_MARK):at + len(_DIGEST_MARK) + 16] if at >= 0 else None
+    head = "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[:12])
+    at = head.find(_DIGEST_MARK)
+    digest = head[at + len(_DIGEST_MARK):at + len(_DIGEST_MARK) + 16] if at >= 0 else None
+    if digest is not None and digest == current:
+        return None
+    target_dir = folder / "archive" / (digest or "no-digest")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / path.name
+    suffix = 1
+    while target.exists():
+        if target.read_bytes() == path.read_bytes():
+            path.unlink()
+            return target
+        target = target_dir / f"{path.stem}.{suffix}{path.suffix}"
+        suffix += 1
+    shutil.move(str(path), str(target))
+    print(f"[EVIDENCE] kept the earlier tree's {path.name} (code {digest or 'no digest'}): {target.relative_to(folder).as_posix()}")
+    return target
+
+
 def check_evidence(folder: Path = EVIDENCE, repo: Path = REPO) -> tuple[bool, str]:
     """(ok, report): every top-level evidence file names the CURRENT tree's digest."""
     current = provenance(repo)

@@ -57,7 +57,9 @@ GAME_STATS = {"steps": 5, "total_battles": 7, "wild_battles": 8, "trainer_battle
 #: TRAINER_JOEY 322, TRAINER_KAREN_1 280, TRAINER_JOSE 617, TRAINER_CLARK 631 and TRAINER_JOHNSON 754 (a double battle),
 #: TRAINER_DEVAN 753; Route 103's rival (TRAINER_MAY_ROUTE_103_MUDKIP 529, _TREECKO 532, _TORCHIC 535; BRENDAN's 520, 523,
 #: 526); Route 102's TRAINER_CALVIN_1 318, TRAINER_ALLEN 333, TRAINER_RICK 615, TRAINER_TIANA 603.
-TRAINER_IDS = (322, 280, 617, 631, 754, 753, 529, 532, 535, 520, 523, 526, 318, 333, 615, 603)
+TRAINER_IDS = (322, 280, 617, 631, 754, 753, 529, 532, 535, 520, 523, 526, 318, 333, 615, 603,
+               # (step 4.1) Rustboro's rival (TRAINER_MAY_RUSTBORO_MUDKIP 600: arms SHIFT, SHIFTX)
+               600)
 
 
 class HarnessControls:
@@ -114,6 +116,10 @@ def truth(context) -> dict:
         out["party_moves"] = [[f"{m.personality_value:08x}", m.species.name, [s.move.name for s in m.moves if s is not None]]
                               for m in party]
         out["party_ot"] = [[f"{m.personality_value:08x}", m.original_trainer.id] for m in party]
+        # (step 4.1 round 2, arm REFUSED) each move's PP left, by the framework's decoder: a move with none is one the game
+        # refuses (`src/battle_util.c` TrySetCantSelectMoveBattleScript)
+        out["party_pp"] = [[f"{m.personality_value:08x}", m.species.name, [[s.move.name, s.pp] for s in m.moves if s is not None]]
+                           for m in party]
     except Exception as error:  # noqa: BLE001
         out["party"] = f"unreadable: {type(error).__name__}: {error}"
     try:
@@ -136,6 +142,8 @@ def truth(context) -> dict:
         progress = own_progress(context, sb1, sb2)
         out["money"] = progress["money"]
         out["balls"] = {e["name"]: e["quantity"] for e in progress["bag"]["poke_balls"]}
+        # (step 4.1, arm HEAL) the ITEMS pocket (a Potion used is one fewer here), by the probe's own decoder
+        out["items"] = {e["name"]: e["quantity"] for e in progress["bag"].get("items", [])}
         out["flags"] = progress["flags"]
     except Exception as error:  # noqa: BLE001
         out["money"] = f"unreadable: {type(error).__name__}: {error}"
@@ -192,7 +200,7 @@ class BattleRecorder:
       * every change of `gChosenMoveByBattler` (the move each battler CHOSE for the turn).
     Battler positions: 0 the player's (left), 1 the foe's, 2 and 3 their partners in a double battle."""
 
-    MON_SIZE, HP, MAX_HP, PID = 0x58, 0x28, 0x2C, 0x48
+    MON_SIZE, HP, MAX_HP, PID, STATUS1 = 0x58, 0x28, 0x2C, 0x48, 0x4C
 
     def __init__(self, context) -> None:
         from modules.memory import read_symbol
@@ -204,6 +212,16 @@ class BattleRecorder:
         self.events: list[dict] = []
         self.chosen: list[dict] = []
         self.last: tuple | None = None
+        #: (step 4.1 round 2, the verifier: "RUN: the gBattleOutcome check never records the value before the run ... valid
+        #: only because BattleStartClearSetData sets gBattleOutcome = 0") every change of `gBattleOutcome` (u8), and its
+        #: value on the first frame: a run's 4 must follow the battle's own clear to 0
+        self.outcomes: list[dict] = []
+        self.outcome_start: int | None = None
+        self._outcome: int | None = None
+        #: (step 4.1 round 2, arm CATCHS) every change of a battler's `status1` (struct BattlePokemon @0x4C, u32: bits 0-2
+        #: the turns of SLEEP, 3 poison, 4 burn, 5 freeze, 6 paralysis, 7 bad poison: `include/constants/battle.h`)
+        self.statuses: list[dict] = []
+        self._status: tuple = (0, 0, 0, 0)
 
     def move(self, index: int) -> str:
         try:
@@ -227,6 +245,20 @@ class BattleRecorder:
                      for b in range(4))
         chosen_raw = bytes(self.read("gChosenMoveByBattler", 0, 8))
         chosen = tuple(int.from_bytes(chosen_raw[2 * b:2 * b + 2], "little") for b in range(4))
+        status = tuple(int.from_bytes(raw[b * self.MON_SIZE + self.STATUS1:b * self.MON_SIZE + self.STATUS1 + 4], "little")
+                       for b in range(4))
+        if self.last is not None:
+            for b in range(4):
+                if status[b] != self._status[b] and mons[b][0]:
+                    self.statuses.append({"f": self.frame, "battler": b, "species": self.species(mons[b][0]),
+                                          "status1": status[b], "sleep": status[b] & 7, "paralysis": bool(status[b] & 0x40)})
+        self._status = status
+        outcome = self.read("gBattleOutcome", 0, 1)[0]
+        if self._outcome is None:
+            self.outcome_start = outcome
+        elif outcome != self._outcome:
+            self.outcomes.append({"f": self.frame, "value": outcome})
+        self._outcome = outcome
         if self.last is not None:
             before, before_chosen = self.last
             attacker = target = move = None
@@ -260,7 +292,8 @@ class BattleRecorder:
     start: list | None = None
 
     def result(self) -> dict:
-        return {"start": self.start, "events": self.events, "chosen": self.chosen, "frames": self.frame}
+        return {"start": self.start, "events": self.events, "chosen": self.chosen, "frames": self.frame,
+                "outcome_start": self.outcome_start, "outcomes": self.outcomes, "statuses": self.statuses}
 
 
 class RecordingEyes:
@@ -317,7 +350,14 @@ def play(context, brain: str, seed: int, frames: int, run_dir: Path, fault: str 
                            # (the step-4 verifier's round) a comma list may switch several on (`--fault a,b`)
                            fault_ignore_types="ignore_types" in faults, fault_ignore_recoil="ignore_recoil" in faults,
                            fault_uncapped_recoil="uncapped_recoil" in faults, fault_forget_field="forget_field" in faults,
-                           fault_ignore_refusal="ignore_refusal" in faults)
+                           fault_ignore_refusal="ignore_refusal" in faults,
+                           # (step 4.1)
+                           fault_overkill="overkill" in faults, fault_shift_fainted="shift_fainted" in faults,
+                           fault_forget_unusable="forget_unusable" in faults,
+                           # (step 4.1 round 2)
+                           fault_no_catch_status="no_catch_status" in faults, fault_ignore_pp="ignore_pp" in faults,
+                           # (step 4.1 round 3)
+                           fault_forget_shift="forget_shift" in faults)
     lines: list[str] = []
     brain_object = HandsBrain(BrainSettings(frames=frames), lines.append, options)
     controls = HarnessControls(emulator)
@@ -387,7 +427,8 @@ def run(brain: str, state: Path | None, seed: int, frames: int, fault: str | Non
     return {**result, "start_truth": start_truth, "truth": end, "saved_end": str(save_end) if save_end else None}
 
 
-FAULTS = ("ungated_a", "blind_count", "ignore_types", "ignore_recoil", "uncapped_recoil", "forget_field", "ignore_refusal")
+FAULTS = ("ungated_a", "blind_count", "ignore_types", "ignore_recoil", "uncapped_recoil", "forget_field", "ignore_refusal",
+          "overkill", "shift_fainted", "forget_unusable", "no_catch_status", "ignore_pp", "forget_shift")
 
 
 def fault_names(text: str) -> str:

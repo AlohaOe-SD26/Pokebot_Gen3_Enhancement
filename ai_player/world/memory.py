@@ -13,7 +13,10 @@ WHAT IT LEARNS, AND HOW
     encounters, a ledge and its jump direction, a door, a warp, the elevation and the behaviour's name. A tile seen
     again with other facts is updated (a script can open a door: `setmetatile`).
   * VISITS: how often the player has stood on each tile (the roaming metric and the explorer's "least visited").
-  * PEOPLE AND THINGS: where people (transient: they walk) and item balls were seen.
+  * PEOPLE AND THINGS: where people (transient: they walk) and item balls were seen. (Step 4.1 round 2, finding 7)
+    WHO each person is (`persons`: the figure the eyes follow on screen, by its object's local id, and where it stood
+    last), which people are standing on the screen NOW (`people_now`), and which the player has MET: stood within
+    `MEET_RADIUS` tiles of them (`met`), as a person who walks up to someone has seen them close.
   * BUMPS: a tile the player tried to walk onto FROM ONE SIDE and did not move (`learn_bump`; the navigator decides
     it was not a person in the way): "a hidden wall". The eyes call such a tile walkable (collision 0) when what
     stops the player is something a person cannot see on a still screen either: an ELEVATION step
@@ -83,6 +86,7 @@ __all__ = [
     "Transition",
     "WorldMemory",
     "BUMP_GIVE_UP",
+    "MEET_RADIUS",
     "in_window",
     "learn_edges",
     "map_key",
@@ -109,6 +113,12 @@ BUMP_GIVE_UP = 2
 #: (the step-3.1 verifier's round) Frames after which a door found closed is worth a try again even with no story news
 #: (36,000: ten minutes of play at 60 frames a second).
 CLOSED_RETRY_FRAMES = 36_000
+#: (step 4.1 round 2, the step-4 review's finding 7) A person is MET once the player has stood within this many tiles
+#: (Manhattan) of where they stood: close enough to have seen them (a trainer among them would have seen the player).
+#: MEASURED 2026-10-09 (development sweep, TOWN-Trainer, seeds 1-10 and 101-110, in-process, the clock pinned): with 2, a
+#: person who stepped aside as the player came up was walked after again (journeys 0.32 of their steps beyond the shortest
+#: known way); with 3, 0.28.
+MEET_RADIUS = 3
 
 
 #: (the step-4 verifier's round) An arrow mat's look -> the axis it lies ACROSS (a south mat is a row of tiles side by side)
@@ -247,8 +257,14 @@ class MapMemory:
         #: exit-looking tiles that took the player nowhere when used properly (a closed door): tile -> {"frame", ...}
         self.closed: dict[tuple[int, int], dict] = {}
         self.people: dict[tuple[int, int], int] = {}  # tile -> the last frame a person was seen standing there
+        #: (step 4.1 round 2, finding 7) WHO: a person on screen (the figure the eyes follow: its object's local id on this
+        #: map) -> (x, y, the last frame seen there); and the people the player has MET (`MEET_RADIUS`): id -> the frame
+        self.persons: dict[int, tuple[int, int, int]] = {}
+        self.met: dict[int, int] = {}
         self.items: dict[tuple[int, int], int] = {}  # item balls: tile -> the last frame seen
         self.objects_now: frozenset[tuple[int, int]] = frozenset()  # every object on the LAST look (people, balls, ...)
+        #: (step 4.1 round 2) the PEOPLE among them: tiles a person stood on in the last look (they walk on)
+        self.people_now: frozenset[tuple[int, int]] = frozenset()
         #: per side ("up", "down", "left", "right"): the first coordinate OUTSIDE the map, learned at a crossing SEEN
         self.edges: dict[str, int] = {}
         self.first_frame: int | None = None
@@ -331,16 +347,24 @@ class MapMemory:
         view = look.view
         if view is None:
             return
-        here = []
+        here, people = [], []
+        player = look.player
+        at = (player.x, player.y) if player is not None and player.x is not None else None
         for seen in view.objects:
             if seen.source != "object":
                 continue
             here.append((seen.x, seen.y))
             if seen.kind == "npc":
                 self.people[(seen.x, seen.y)] = look.frame
+                people.append((seen.x, seen.y))
+                # (step 4.1 round 2, finding 7) who it is, where they stand now, and whether the player is beside them
+                self.persons[seen.local_id] = (seen.x, seen.y, look.frame)
+                if at is not None and abs(at[0] - seen.x) + abs(at[1] - seen.y) <= MEET_RADIUS:
+                    self.met.setdefault(seen.local_id, look.frame)
             elif seen.kind == "item_ball":
                 self.items[(seen.x, seen.y)] = look.frame
         self.objects_now = frozenset(here)
+        self.people_now = frozenset(people)
 
     def visit(self, xy: tuple[int, int]) -> None:
         # (build step 3.1) standing on a tile no longer clears its bumps: a one-way tile is reached from its open side,
@@ -358,6 +382,8 @@ class MapMemory:
             "bumped": {f"{_text(xy)}|{direction}": info for (xy, direction), info in sorted(self.bumped.items())},
             "closed": {_text(xy): info for xy, info in sorted(self.closed.items())},
             "people": {_text(xy): frame for xy, frame in sorted(self.people.items())},
+            "persons": {str(who): list(where) for who, where in sorted(self.persons.items())},
+            "met": {str(who): frame for who, frame in sorted(self.met.items())},
             "items": {_text(xy): frame for xy, frame in sorted(self.items.items())},
             "edges": dict(self.edges), "arrivals": list(self.arrivals),
         }
@@ -371,6 +397,8 @@ class MapMemory:
         memory.bumped = {_bump_key(k, v): dict(v) for k, v in (data.get("bumped") or {}).items()}
         memory.closed = {_xy(k): dict(v) for k, v in (data.get("closed") or {}).items()}
         memory.people = {_xy(k): int(v) for k, v in (data.get("people") or {}).items()}
+        memory.persons = {int(k): (int(v[0]), int(v[1]), int(v[2])) for k, v in (data.get("persons") or {}).items()}
+        memory.met = {int(k): int(v) for k, v in (data.get("met") or {}).items()}
         memory.items = {_xy(k): int(v) for k, v in (data.get("items") or {}).items()}
         memory.edges = {str(k): int(v) for k, v in (data.get("edges") or {}).items()}
         memory.arrivals = [list(a) for a in data.get("arrivals") or []]

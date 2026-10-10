@@ -1,0 +1,364 @@
+AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM XU: FAULT ungated A: the same New Game with the naive driver (A on the cadence, no wait gate)
+date: 2026-10-09 17:50:47
+code: HEAD 7a70a445; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d81c4a52572b6e37 over git diff HEAD (25 files, 432978 bytes) and 17 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+start: --fresh (no state, no cartridge save: the title screen and a New Game)
+fixture documentation: -
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step2-hands --frames 16000 --wall-seconds 900 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261009-175032-XU --fresh
+env: AI_PLAYER_BRAIN=intro AI_PLAYER_SEED=9 AI_PLAYER_FAULT_UNGATED_A=1
+exit code: 0   elapsed: 12.7s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261009-175032-XU
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS; [SELFTEST] leftover_processes on two idle 'hands_harness.py' processes (this run's mark: found; another driver's: not counted): PASS
+checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
+  [PASS] the AI's logged intent for seed 9 is the personality's draw, recomputed here from ai_player/personality.py (Trainer, GIRL, 'Luna'): [AI-HANDS] intro: personality Trainer (seed; seed 9): gender GIRL (drawn with P(GIRL)=0.5), name 'Luna' (from GIRL's list)
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=494 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 247 ([AI-HANDS] outcome='in the truck; intended Luna (GIRL)' presses=247 frames=4530 looks=251 records=253), and > 0
+  [PASS] the AI pad's own frame count 4530 == the instrument's real_frames 4530 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='intro: in the truck; intended Luna (GIRL)' exit_code=0 process=0 real_frames=4530 (budget 16000)
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 12.5s after the run started; frame 4530 == start 0 + 4530 real frames (+-5); md5 7a25df53b3a4662a105782c7d845f21e (fixture -: a fresh boot)
+  [PASS] non-vacuous: the seed intends GIRL, not the gender menu's default (BOY), so taking the default is a visible harm
+  [PASS] HARM, by the second path: name 'AAAAAAA' (intended 'Luna'), gender 0 (BOY; intended GIRL): the naive A took the gender menu's default and typed the key under the cursor
+  [PASS] exactly the predicted defaults: name 'AAAAAAA' == 'AAAAAAA' (the top-left key until full), gender BOY
+  [PASS] 247 presses in the action log, every one with its gate (without: 0)
+  [PASS] 0 A presses advanced a text, each on a look whose digest says waits=A/B(<that reason>) (mismatched: none)
+  [PASS] human pace: 247 presses held 3-7 frames (seen [3, 4, 5, 6, 7]) with gaps 8-18 (seen 8-18); 0 short taps (a turn in place, or a single minute on the clock)
+  [PASS] 0 reading delays, None-None frames (bound 18-150), each logged with the page it read
+  [PASS] every A of the fault run was ungated: 247 A presses, gates ['NONE (FAULT ungated A: pressed on the cadence, the eyes not asked)']
+
+---- notes ----
+presses by button and gate: {"A: NONE (FAULT ungated A": 247}
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 494,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 4530,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "intro: in the truck; intended Luna (GIRL)",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2868cc57b80",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2868cc57b80 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 50444,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- TRUTH of the state the run LEFT (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 0, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "battle_outcome": 0, "boxes": [], "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 4530, "gLocalTime": [9779, 17, 50, 45], "game_state": "OVERWORLD", "game_stats": {"steps": 0, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [0, 0, 0, 0], "map": [25, 40], "money": 3000, "name": "AAAAAAA", "name_bytes": "bbbbbbbbbbbbbbff", "party": [], "party_exp": [], "party_moves": [], "party_ot": [], "party_pp": [], "player_tid": 65535, "pos": [2, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "7a25df53b3a4662a105782c7d845f21e", "trainer_defeated": {"280": false, "318": false, "322": false, "333": false, "520": false, "523": false, "526": false, "529": false, "532": false, "535": false, "600": false, "603": false, "615": false, "617": false, "631": false, "753": false, "754": false}}
+
+---- the action log: 253 records (frame | decision | action | gate or reason | digest) ----
+f0 | start | intro | the first look | f0 other party=? problems=1 cost=0.09ms
+f0 | tell | say | intro: personality Trainer (seed; seed 9): gender GIRL (drawn with P(GIRL)=0.5), name 'Luna' (from GIRL's list) | f0 other party=? problems=1 cost=0.09ms
+f0 | decide | gender GIRL | personality-weighted draw | f0 other party=? problems=1 cost=0.09ms
+f0 | decide | name Luna | drawn from the personality's list | f0 other party=? problems=1 cost=0.09ms
+f0 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f0 other party=? problems=1 cost=0.02ms
+f18 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f18 title party=? cost=0.56ms
+f42 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f42 title party=? cost=0.59ms
+f56 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f56 title party=? cost=0.48ms
+f78 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f78 title party=? cost=0.47ms
+f100 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f100 title party=? cost=0.49ms
+f116 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f116 title party=? cost=0.48ms
+f139 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f139 title party=? cost=0.50ms
+f160 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f160 title party=? cost=0.33ms
+f184 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f184 title ui=intro_movie[SKIP] party=? cost=0.38ms
+f205 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f205 title ui=intro_movie[SKIP] party=? cost=0.35ms
+f227 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f227 title ui=intro_movie(busy)[SKIP] party=? cost=0.40ms
+f243 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f243 title ui=intro_movie[SKIP] party=? cost=0.38ms
+f264 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f264 title ui=intro_movie(busy)[SKIP] party=? cost=0.41ms
+f280 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f280 title ui=intro_movie(busy)[SKIP] party=? cost=0.36ms
+f300 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f300 title ui=intro_movie[SKIP] party=? cost=0.53ms
+f317 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f317 title ui=title[PRESS START] party=? cost=0.52ms
+f335 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f335 other ui=title(busy)[PRESS START] dex=0/0 money=0 badges=0 problems=1 cost=1.99ms
+f353 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f353 menu menu=main_menu party=? cost=0.35ms
+f368 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f368 menu menu=main_menu party=? cost=0.37ms
+f392 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f392 menu menu=main_menu party=? cost=0.33ms
+f412 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f412 menu menu=main_menu ui=main_menu[NEW GAME] party=? cost=0.51ms
+f428 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f428 menu menu=main_menu ui=main_menu[NEW GAME] party=? cost=0.35ms
+f452 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f452 menu menu=main_menu party=? cost=0.53ms
+f472 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f472 menu menu=main_menu party=? cost=0.53ms
+f487 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f487 menu menu=main_menu party=? cost=0.33ms
+f504 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f504 menu menu=main_menu party=? cost=0.31ms
+f527 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f527 menu menu=main_menu party=? cost=0.56ms
+f547 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f547 menu menu=main_menu party=? cost=0.54ms
+f566 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f566 menu menu=main_menu party=? cost=0.51ms
+f588 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f588 menu menu=main_menu party=? cost=0.70ms
+f606 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f606 menu menu=main_menu party=? cost=0.55ms
+f621 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f621 menu menu=main_menu party=? cost=0.36ms
+f640 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f640 menu menu=main_menu party=? cost=0.36ms
+f654 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f654 menu menu=main_menu party=? cost=0.33ms
+f677 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f677 menu menu=main_menu party=? cost=0.41ms
+f691 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f691 menu menu=main_menu party=? cost=0.34ms
+f713 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f713 menu menu=main_menu party=? cost=0.56ms
+f727 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f727 menu menu=main_menu party=? cost=0.32ms
+f739 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f739 menu menu=main_menu party=? cost=0.32ms
+f758 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f758 menu menu=main_menu party=? cost=0.33ms
+f779 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f779 menu menu=main_menu party=? cost=0.52ms
+f803 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f803 menu menu=main_menu party=? cost=0.37ms
+f822 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f822 menu menu=main_menu party=? cost=0.40ms
+f834 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f834 menu menu=main_menu party=? cost=0.51ms
+f852 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f852 menu menu=main_menu party=? cost=0.56ms
+f870 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f870 menu menu=main_menu party=? cost=1.18ms
+f885 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f885 menu menu=main_menu party=? cost=0.36ms
+f908 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f908 menu menu=main_menu party=? cost=0.51ms
+f932 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f932 menu menu=main_menu party=? cost=0.39ms
+f946 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f946 menu menu=main_menu party=? cost=0.32ms
+f961 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f961 menu menu=main_menu party=? cost=0.31ms
+f976 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f976 menu menu=main_menu party=? cost=0.36ms
+f990 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f990 menu menu=main_menu party=? cost=0.68ms
+f1007 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1007 menu menu=main_menu party=? cost=0.56ms
+f1031 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1031 menu menu=main_menu party=? cost=0.59ms
+f1050 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1050 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.36ms
+f1074 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1074 menu menu=main_menu party=? cost=0.38ms
+f1087 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1087 menu menu=main_menu party=? cost=0.36ms
+f1107 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1107 menu menu=main_menu party=? cost=0.37ms
+f1118 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1118 menu menu=main_menu party=? cost=0.50ms
+f1134 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1134 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.62ms
+f1152 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1152 menu menu=main_menu party=? cost=0.60ms
+f1166 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1166 menu menu=main_menu party=? cost=0.48ms
+f1178 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1178 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.45ms
+f1197 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1197 menu menu=main_menu party=? cost=0.63ms
+f1222 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1222 menu menu=main_menu party=? cost=0.66ms
+f1243 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1243 menu menu=main_menu party=? cost=0.61ms
+f1258 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1258 menu menu=main_menu party=? cost=0.67ms
+f1274 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1274 menu menu=main_menu party=? cost=0.48ms
+f1288 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1288 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.67ms
+f1305 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1305 menu menu=main_menu party=? cost=0.36ms
+f1319 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1319 menu menu=main_menu party=? cost=0.34ms
+f1336 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1336 menu menu=main_menu party=? cost=0.34ms
+f1358 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1358 menu menu=main_menu party=? cost=0.36ms
+f1375 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1375 menu menu=main_menu party=? cost=0.44ms
+f1396 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1396 menu menu=main_menu party=? cost=0.37ms
+f1411 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1411 menu menu=main_menu party=? cost=0.37ms
+f1428 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1428 menu menu=main_menu party=? cost=0.36ms
+f1443 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1443 menu menu=main_menu party=? cost=0.57ms
+f1467 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1467 menu menu=main_menu party=? cost=0.36ms
+f1487 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1487 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.51ms
+f1505 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1505 menu menu=main_menu party=? cost=0.39ms
+f1518 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1518 menu menu=main_menu party=? cost=0.34ms
+f1537 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1537 menu menu=main_menu party=? cost=0.36ms
+f1552 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1552 menu menu=main_menu party=? cost=0.36ms
+f1565 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1565 menu menu=main_menu party=? cost=0.35ms
+f1582 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1582 menu menu=main_menu party=? cost=0.36ms
+f1602 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1602 menu menu=main_menu party=? cost=0.36ms
+f1618 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1618 menu menu=main_menu party=? cost=0.61ms
+f1633 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1633 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.41ms
+f1656 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1656 menu menu=main_menu party=? cost=0.46ms
+f1669 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1669 menu menu=main_menu party=? cost=0.36ms
+f1686 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1686 menu menu=main_menu party=? cost=0.59ms
+f1706 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1706 menu menu=main_menu party=? cost=0.65ms
+f1726 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1726 menu menu=main_menu party=? cost=0.38ms
+f1749 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1749 menu menu=main_menu party=? cost=0.38ms
+f1768 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1768 menu menu=main_menu party=? cost=0.40ms
+f1791 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1791 menu menu=main_menu party=? cost=0.58ms
+f1812 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1812 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.63ms
+f1824 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1824 menu menu=main_menu party=? cost=0.40ms
+f1848 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1848 menu menu=main_menu party=? cost=0.62ms
+f1865 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1865 menu menu=main_menu party=? cost=0.55ms
+f1885 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1885 menu menu=main_menu party=? cost=0.42ms
+f1899 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1899 menu menu=main_menu party=? cost=0.43ms
+f1910 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1910 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.67ms
+f1934 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1934 menu menu=main_menu party=? cost=0.47ms
+f1956 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1956 menu menu=main_menu party=? cost=0.69ms
+f1971 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1971 menu menu=main_menu party=? cost=0.62ms
+f1996 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f1996 menu menu=main_menu party=? cost=0.46ms
+f2013 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2013 menu menu=main_menu party=? cost=0.43ms
+f2034 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2034 menu menu=main_menu party=? cost=0.43ms
+f2049 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2049 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.44ms
+f2072 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2072 menu menu=main_menu party=? cost=0.78ms
+f2088 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2088 menu menu=main_menu party=? cost=0.78ms
+f2112 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2112 menu menu=main_menu party=? cost=0.49ms
+f2124 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2124 menu menu=main_menu party=? cost=0.49ms
+f2145 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2145 menu menu=main_menu party=? cost=0.51ms
+f2166 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2166 menu menu=main_menu party=? cost=0.51ms
+f2182 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2182 menu menu=main_menu party=? cost=0.51ms
+f2203 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2203 menu menu=main_menu party=? cost=0.61ms
+f2218 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2218 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.45ms
+f2235 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2235 menu menu=main_menu party=? cost=0.85ms
+f2256 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2256 menu menu=main_menu party=? cost=0.58ms
+f2277 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2277 menu menu=main_menu party=? cost=0.51ms
+f2298 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2298 menu menu=main_menu party=? cost=0.50ms
+f2313 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2313 menu menu=main_menu party=? cost=0.51ms
+f2327 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2327 menu menu=main_menu party=? cost=0.51ms
+f2340 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2340 menu menu=main_menu party=? cost=0.49ms
+f2359 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2359 menu menu=main_menu party=? cost=0.69ms
+f2376 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2376 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.84ms
+f2395 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2395 menu menu=main_menu party=? cost=0.81ms
+f2413 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2413 menu menu=main_menu party=? cost=0.72ms
+f2425 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2425 menu menu=main_menu party=? cost=0.57ms
+f2444 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2444 menu menu=main_menu party=? cost=0.53ms
+f2465 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2465 menu menu=main_menu party=? cost=0.52ms
+f2483 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2483 menu menu=main_menu party=? cost=0.93ms
+f2496 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2496 menu menu=main_menu party=? cost=0.57ms
+f2521 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2521 menu menu=main_menu party=? cost=0.56ms
+f2540 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2540 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.55ms
+f2555 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2555 menu menu=main_menu party=? cost=1.00ms
+f2568 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2568 menu menu=main_menu party=? cost=0.53ms
+f2589 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2589 menu menu=main_menu party=? cost=0.59ms
+f2611 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2611 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=1.25ms
+f2627 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2627 menu menu=main_menu party=? cost=0.60ms
+f2648 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2648 menu menu=main_menu party=? cost=0.53ms
+f2664 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2664 menu menu=main_menu party=? cost=0.50ms
+f2689 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2689 menu menu=main_menu party=? cost=0.51ms
+f2703 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2703 menu menu=main_menu party=? cost=0.51ms
+f2726 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2726 menu menu=main_menu party=? cost=0.37ms
+f2740 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2740 menu menu=main_menu party=? cost=0.40ms
+f2760 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2760 menu menu=main_menu party=? cost=0.45ms
+f2775 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2775 menu menu=main_menu party=? cost=0.36ms
+f2797 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2797 menu menu=main_menu party=? cost=0.35ms
+f2811 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2811 menu menu=main_menu party=? cost=0.31ms
+f2824 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2824 menu menu=main_menu party=? cost=0.33ms
+f2840 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2840 menu menu=main_menu party=? cost=0.48ms
+f2857 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2857 menu menu=main_menu party=? cost=0.35ms
+f2868 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2868 menu menu=main_menu party=? cost=0.57ms
+f2885 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2885 menu menu=main_menu party=? cost=0.53ms
+f2905 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2905 menu menu=main_menu ui=gender[BOY] party=? cost=0.79ms
+f2927 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2927 menu menu=main_menu party=? cost=0.34ms
+f2940 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2940 menu menu=main_menu party=? cost=0.34ms
+f2957 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2957 menu menu=main_menu party=? cost=0.56ms
+f2979 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2979 menu menu=main_menu party=? cost=0.35ms
+f2999 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f2999 menu menu=main_menu waits=A/B(task Task_NewGameBirchSpeech_WaitPressBeforeNameChoice (A or B)) party=? cost=0.56ms
+f3016 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3016 menu menu=main_menu party=? cost=0.39ms
+f3040 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3040 menu menu=naming ui=naming(busy)[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=1.67ms
+f3061 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3061 menu menu=naming ui=naming(busy)[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=1.94ms
+f3085 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3085 menu menu=naming ui=naming[upper at (0, 0) text=''] dex=0/0 money=0 badges=0 problems=1 cost=1.08ms
+f3107 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3107 menu menu=naming ui=naming[upper at (0, 0) text='A'] dex=0/0 money=0 badges=0 problems=1 cost=1.09ms
+f3129 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3129 menu menu=naming ui=naming[upper at (0, 0) text='AA'] dex=0/0 money=0 badges=0 problems=1 cost=1.53ms
+f3147 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3147 menu menu=naming ui=naming[upper at (0, 0) text='AAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.92ms
+f3159 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3159 menu menu=naming ui=naming[upper at (0, 0) text='AAAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.19ms
+f3171 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3171 menu menu=naming ui=naming[upper at (0, 0) text='AAAAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.07ms
+f3186 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3186 menu menu=naming ui=naming[upper at (0, 0) text='AAAAAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.04ms
+f3207 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3207 menu menu=naming ui=naming[upper at (8, 2) text='AAAAAAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.51ms
+f3222 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3222 menu menu=naming ui=naming(busy)[upper at (8, 2) text='AAAAAAA'] dex=0/0 money=0 badges=0 problems=1 cost=1.62ms
+f3237 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3237 menu menu=main_menu party=? cost=0.41ms
+f3258 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3258 menu menu=main_menu party=? cost=0.34ms
+f3276 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3276 menu menu=main_menu party=? cost=0.52ms
+f3294 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3294 menu menu=main_menu ui=yes_no[YES] party=? cost=0.36ms
+f3310 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3310 menu menu=main_menu party=? cost=0.33ms
+f3329 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3329 menu menu=main_menu party=? cost=0.34ms
+f3350 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3350 menu menu=main_menu party=? cost=0.49ms
+f3371 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3371 menu menu=main_menu party=? cost=0.34ms
+f3390 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3390 menu menu=main_menu party=? cost=0.38ms
+f3412 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3412 menu menu=main_menu party=? cost=0.38ms
+f3435 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3435 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.58ms
+f3452 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3452 menu menu=main_menu party=? cost=0.56ms
+f3470 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3470 menu menu=main_menu party=? cost=0.36ms
+f3489 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3489 menu menu=main_menu party=? cost=0.49ms
+f3511 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3511 menu menu=main_menu party=? cost=0.35ms
+f3527 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3527 menu menu=main_menu party=? cost=0.35ms
+f3543 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3543 menu menu=main_menu party=? cost=0.35ms
+f3565 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3565 menu menu=main_menu party=? cost=0.37ms
+f3585 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3585 menu menu=main_menu party=? cost=0.37ms
+f3609 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3609 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.54ms
+f3622 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3622 menu menu=main_menu party=? cost=0.35ms
+f3638 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3638 menu menu=main_menu party=? cost=0.35ms
+f3654 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3654 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.70ms
+f3672 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3672 menu menu=main_menu party=? cost=0.62ms
+f3690 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3690 menu menu=main_menu party=? cost=0.56ms
+f3714 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3714 menu menu=main_menu party=? cost=0.53ms
+f3733 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3733 menu menu=main_menu party=? cost=0.53ms
+f3748 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3748 menu menu=main_menu party=? cost=0.56ms
+f3767 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3767 menu menu=main_menu party=? cost=0.50ms
+f3781 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3781 menu menu=main_menu party=? cost=0.54ms
+f3800 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3800 menu menu=main_menu party=? cost=0.70ms
+f3816 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3816 menu menu=main_menu party=? cost=0.52ms
+f3837 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3837 menu menu=main_menu party=? cost=0.59ms
+f3857 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3857 menu menu=main_menu party=? cost=0.52ms
+f3870 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3870 menu menu=main_menu party=? cost=0.53ms
+f3889 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3889 menu menu=main_menu party=? cost=0.36ms
+f3905 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3905 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.51ms
+f3929 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3929 menu menu=main_menu party=? cost=0.58ms
+f3950 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3950 menu menu=main_menu party=? cost=0.57ms
+f3966 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3966 menu menu=main_menu party=? cost=0.55ms
+f3989 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f3989 menu menu=main_menu party=? cost=0.65ms
+f4010 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4010 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.60ms
+f4030 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4030 menu menu=main_menu party=? cost=0.59ms
+f4045 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4045 menu menu=main_menu party=? cost=0.58ms
+f4063 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4063 menu menu=main_menu party=? cost=0.60ms
+f4083 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4083 menu menu=main_menu party=? cost=0.68ms
+f4107 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4107 menu menu=main_menu party=? cost=0.50ms
+f4132 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4132 menu menu=main_menu party=? cost=0.59ms
+f4145 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4145 menu menu=main_menu party=? cost=0.40ms
+f4166 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4166 menu menu=main_menu waits=A/B(text printer 0 SCROLL_START) party=? cost=0.67ms
+f4181 | the intro: from the title to the truck | press A 5f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4181 menu menu=main_menu party=? cost=0.62ms
+f4195 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4195 menu menu=main_menu party=? cost=0.61ms
+f4216 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4216 menu menu=main_menu party=? cost=0.67ms
+f4236 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4236 menu menu=main_menu party=? cost=0.66ms
+f4256 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4256 menu menu=main_menu party=? cost=0.70ms
+f4280 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4280 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.70ms
+f4300 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4300 menu menu=main_menu party=? cost=0.69ms
+f4318 | the intro: from the title to the truck | press A 3f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4318 menu menu=main_menu party=? cost=0.67ms
+f4330 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4330 menu menu=main_menu party=? cost=0.67ms
+f4353 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4353 menu menu=main_menu party=? cost=0.79ms
+f4375 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4375 menu menu=main_menu party=? cost=0.72ms
+f4387 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4387 menu menu=main_menu party=? cost=0.50ms
+f4400 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4400 menu menu=main_menu party=? cost=0.59ms
+f4416 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4416 menu menu=main_menu party=? cost=0.54ms
+f4431 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4431 menu menu=main_menu waits=A/B(text printer 0 CLEAR) party=? cost=0.74ms
+f4452 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4452 menu menu=main_menu party=? cost=0.59ms
+f4473 | the intro: from the title to the truck | press A 4f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4473 menu menu=main_menu party=? cost=0.47ms
+f4489 | the intro: from the title to the truck | press A 6f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4489 menu menu=main_menu party=? cost=0.34ms
+f4509 | the intro: from the title to the truck | press A 7f | NONE (FAULT ungated A: pressed on the cadence, the eyes not asked) | f4509 other problems=1 cost=0.58ms
+f4530 | tell | say | intro: in the truck (INSIDE OF TRUCK, INSIDE_OF_TRUCK) at f4530 | f4530 overworld INSIDE OF TRUCK(25,40) xy=(2,2) facing=down walking sees=[npc(-2,-2),npc(-2,1),npc(0,1),sign(-1,-2),sign(1,2),sign(0,1),sign(-2,-1),sign(-2,0)] dex=0/0 money=3000 badges=0 cost=1.36ms
+f4530 | end | intro | in the truck; intended Luna (GIRL) | f4530 overworld INSIDE OF TRUCK(25,40) xy=(2,2) facing=down walking sees=[npc(-2,-2),npc(-2,1),npc(0,1),sign(-1,-2),sign(1,2),sign(0,1),sign(-2,-1),sign(-2,0)] dex=0/0 money=3000 badges=0 cost=1.34ms
+
+---- evidence lines from stdout ([AI-*]) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step2-hands exists (ai_player-owned=True)
+[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game
+[AI-RUN] http_server=off (forced: ai-step2-hands/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=16000 wall_seconds=900 soft_deadline_margin=30s switches=AI_PLAYER_FAULT_UNGATED_A=1 dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261009-175032-XU
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step2-hands -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=16000 brain=intro watch_every=60 switches=none wall_deadline=1791594305.5 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261009-175032-XU http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2868cc57b80
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-HANDS] brain=intro seed=9 (given) personality=Trainer (seed) faults=ungated_a:True,blind_count:False frames=16000
+[AI-HANDS] intro: personality Trainer (seed; seed 9): gender GIRL (drawn with P(GIRL)=0.5), name 'Luna' (from GIRL's list)
+[AI-HEARTBEAT] frames=1000 ai_steps=999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=108 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=2000 ai_steps=1999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=219 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=3000 ai_steps=2999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=330 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=4000 ai_steps=3999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=438 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HANDS] intro: in the truck (INSIDE OF TRUCK, INSIDE_OF_TRUCK) at f4530
+[AI-HANDS] outcome='in the truck; intended Luna (GIRL)' presses=247 frames=4530 looks=251 records=253
+[AI-HANDS] presses by gate: {'A:NONE': 247}
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=494 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=4530 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2868cc57b80 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261009-175032-XU\purity.json
+[AI-EXIT] reason=intro: in the truck; intended Luna (GIRL) code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=9.9s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=intro: in the truck; intended Luna (GIRL) exit_code=0 pid=50444 package_is_the_gated_one=True

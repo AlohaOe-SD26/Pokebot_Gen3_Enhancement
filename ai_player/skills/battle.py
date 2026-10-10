@@ -23,6 +23,14 @@ printer 6, a WAIT) and takes no input until A: the skill READS them (`_read_mess
 look's wait), tells the decider who was refused (the member it chose, or the one under the menu's cursor when the
 message was on screen before any choice of its own), and chooses again. Until this round the skill watched that message
 for `MENU_SETTLE_BUDGET` frames and gave up: "the party on screen neither took input nor closed".
+
+STEP 4.1. The shift question ("TRAINER X is about to use TREECKO. Will ... change POKéMON?") is answered with the pages
+before it (the decider reads the next foe from the words; the battle view still holds the fainted one), and the party
+menu after a YES gets the member chosen there (`BattleMind.replacement`). When the move grid comes back after a move was
+chosen, the game REFUSED that move (Disabled, Taunt, no PP): the decider is told (`BattleMind.cannot_use`) before it
+decides again, so it cannot choose the same move until the battle's bound. A healing item's target is given by
+`_give_item`, which READS the party menu's message after it ("MUDKIP's HP was restored by 17 point(s)."): the HEAL arm's
+first development run found the skill stuck there ("the Potion could not be given", the Potion used and the HP restored).
 """
 
 from __future__ import annotations
@@ -34,7 +42,7 @@ from ai_player.brain.battle import BattleMind, Decision, LearnChoice, learn_choi
 from ai_player.eyes.observation import Observation
 from ai_player.eyes.screens import BAG_POCKETS, page_text
 from ai_player.hands.dialogue import STUCK, advance, new_characters, player_free
-from ai_player.hands.menus import choose, wait_for_ui
+from ai_player.hands.menus import choose, move_cursor, wait_for_ui
 from ai_player.hands.pad import Hands
 from ai_player.knowledge.facts import move_named
 from ai_player.skills.flee import BATTLE_ACTION, battle_over, choose_in_grid, in_battle
@@ -179,12 +187,33 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
                 return done
             continue
         if kind == BATTLE_MOVE:
-            # back in the move grid without a decision in hand (a move it chose could not be used): decide again
-            decision = mind.decide(look, look.screen.ui.battler if look.screen.ui is not None else None)
+            # back in the move grid without a decision in hand: the game REFUSED the move it chose (Disabled, Taunt,
+            # Torment, no PP: `src/battle_main.c` TrySetCantSelectMoveBattleScript prints why, then the grid again).
+            # (Step 4.1) the decider is told, so that move is out of its values for the rest of the turn, and decides again
+            battler = look.screen.ui.battler if look.screen.ui is not None else None
+            words = pages.pages[-1] if pages.pages else ""
+            refused = mind.cannot_use(words)
+            hands.tell(f"battle: the move grid came back: {refused or 'a move'} cannot be used now ({words!r}): decide again "
+                       f"(battler {battler if battler is not None else 0})")
+            decision = mind.decide(look, battler, redecide=True)
             if decision.action != "fight" or decision.move_slot is None:
-                return f"the battle: in the move grid, but the decision is to {decision.action}"
+                # (step 4.1 review, finding 2) the SAME turn decided again is no fight (a catch whose only safe weakening
+                # move was refused now throws a ball): back out of the move grid with B, as a person would, and carry the
+                # decision out from the action menu. Never a give-up here.
+                hands.tell(f"battle: the new decision is to {decision.action}, not a move: B back to the action menu")
+                yield from hands.pad.press("B", why, f"battle: leave the move grid to {decision.action}")
+                back = yield from wait_for_ui(hands, BATTLE_ACTION, why)
+                if back is None:
+                    return "the battle: the action menu did not come back after B"
+                done = yield from _execute(hands, mind, decision, why)
+                if done is not None:
+                    return done
+                continue
+            hands.tell(f"battle: turn {mind.memory.turns}: fight {decision.move_name}: {decision.reason} (battler "
+                       f"{battler if battler is not None else 0})")
             if not (yield from choose_in_grid(hands, BATTLE_MOVE, decision.move_slot, f"{why}: {decision.reason}")):
                 return "the battle: the move could not be chosen"
+            mind.chose(battler, decision.move_name)
             if not (yield from _aim(hands, decision, why)):
                 return "the battle: the target could not be chosen"
             continue
@@ -202,7 +231,10 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
                 key = learning.group(1).strip()
                 if learn is None or learn_key != key:
                     learn, learn_key = _learn(hands, look, key, pages), key
-            yes, reason = mind.answer(question, look, learn if learning else None)
+            # (step 4.1) the pages before the question and the whole message: the shift question names the next foe on the
+            # page before "Will ... change POKéMON?"
+            context = " ".join(pages.pages[-4:] + [look.screen.text or ""])
+            yes, reason = mind.answer(question, look, learn if learning else None, context)
             hands.tell(f"battle: the question {question!r}: {'YES' if yes else 'NO'} ({reason})")
             if not (yield from choose(hands, BATTLE_YES_NO, 0 if yes else 1, f"{why}: {reason}")):
                 return f"the battle: the question {question!r} could not be answered"
@@ -291,6 +323,7 @@ def _execute(hands: Hands, mind: BattleMind, decision: Decision, why: str) -> Ge
             return None  # the game went on without the grid (e.g. STRUGGLE): watch it
         if not (yield from choose_in_grid(hands, BATTLE_MOVE, decision.move_slot, reason)):
             return "the battle: the move could not be chosen"
+        mind.chose(look.screen.ui.battler if look.screen.ui is not None else None, decision.move_name)
         if not (yield from _aim(hands, decision, reason)):
             return "the battle: the target could not be chosen"
         return None
@@ -301,12 +334,12 @@ def _execute(hands: Hands, mind: BattleMind, decision: Decision, why: str) -> Ge
     if decision.action in ("ball", "item"):
         if not (yield from choose_in_grid(hands, BATTLE_ACTION, 1, f"{reason} (BAG)")):
             return "the battle: BAG could not be chosen"
-        pocket = "poke_balls" if decision.action == "ball" else "items"
+        pocket = pocket_for(decision)
         item = decision.ball if decision.action == "ball" else decision.item
         if not (yield from _use_item(hands, pocket, item, reason)):
             return f"the battle: the {item} could not be used"
         if decision.target_pid is not None:
-            if not (yield from _pick_member(hands, decision.target_pid, reason)):
+            if not (yield from _give_item(hands, decision.target_pid, item, reason)):
                 return f"the battle: the {item} could not be given"
         return None
     if decision.action == "switch":
@@ -371,6 +404,14 @@ def _aim(hands: Hands, decision: Decision, why: str) -> Generator[None, None, bo
     return False
 
 
+def pocket_for(decision: Decision) -> str:
+    """The bag pocket a decision's item lives in. (Step 4.1 review, finding 1) berries have their OWN pocket: an Oran
+    Berry looked for under "items" failed every time and left the bag open."""
+    if decision.action == "ball":
+        return "poke_balls"
+    return "berries" if (decision.item or "").endswith("Berry") else "items"
+
+
 def _use_item(hands: Hands, pocket: str, item: str | None, why: str) -> Generator[None, None, bool]:
     """In the bag: the pocket (Left / Right, read), the item by its name in the list, A, then USE in its action list."""
     for _ in range(ITEM_STEPS):
@@ -426,6 +467,45 @@ def _pick_member(hands: Hands, pid: int | None, why: str) -> Generator[None, Non
         hands.tell(f"{why}: PID {pid:08x} is not in the party {[f'{p:08x}' for p in pids]}")
         return False
     return (yield from choose(hands, "party", pids.index(pid), f"{why}: {look.party[pids.index(pid)].species}"))
+
+
+def _give_item(hands: Hands, pid: int, item: str | None, why: str) -> Generator[None, None, bool]:
+    """(step 4.1, found by the HEAL arm's first development run) A healing item's TARGET in the party menu the bag opens:
+    the Pokemon with this PID (identity), by reading the cursor, A on the look that shows it there; then the party menu
+    stays on screen while the HP bar fills and its message waits for A ("MUDKIP's HP was restored by 17 point(s).",
+    `src/party_menu.c` ItemUseCB_Medicine: printer 6, a WAIT over a party list that takes no input), so the message is
+    READ (`_read_message`) and the menu watched until it closes back to the battle. Step 4 waited for the menu to close
+    after the A, and gave up while the message waited: "the battle: the Potion could not be given" (the Potion used, the
+    HP restored, the battle stuck). True once the party menu has closed."""
+    look = yield from wait_for_ui(hands, "party", why)
+    if look is None:
+        return False
+    pids = [m.pid for m in look.party or ()]
+    if pid not in pids:
+        hands.tell(f"{why}: PID {pid:08x} is not in the party {[f'{p:08x}' for p in pids]}")
+        return False
+    index = pids.index(pid)
+    if not (yield from move_cursor(hands, "party", index, why)):
+        return False
+    look = hands.look()  # THE GATE: the cursor on the member, the menu taking input, on the look right before the press
+    ui = look.screen.ui
+    if ui is None or ui.kind != "party" or ui.cursor != index or not ui.accepts_input:
+        hands.tell(f"{why}: the party cursor is not on {look.party[index].species} before the press")
+        return False
+    yield from hands.pad.press("A", why, f"party cursor on {index}")  # the menus' own gate words (`hands/menus.py` choose)
+    for _ in range(SEND_IN_TRIES):
+        settled = yield from _settle(hands, ("party",), why)
+        if settled == "gone":
+            return True
+        if settled != "message":
+            hands.tell(f"{why}: after the {item} the party menu {'took input again' if settled == 'open' else 'did not close'}")
+            return False
+        words = yield from _read_message(hands, why)
+        if words is None:
+            return False
+        hands.tell(f"battle: the party says {words!r}")
+    hands.tell(f"{why}: the party menu did not close after the {item}")
+    return False
 
 
 def _party_action(hands: Hands, why: str, mind: BattleMind) -> Generator[None, None, str]:

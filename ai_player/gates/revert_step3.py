@@ -57,6 +57,11 @@ W86 `stale_arrivals` blind to the place a decision was carried on to; W87 the tw
 all"; W88 a doormat taken tile by tile, and W89 a way back to a floor seen all of kept, both found by this round's
 development sweeps). A SUBSET run (named mutants) writes its file beside the system's temporary files, never into `evidence/` (the
 verifier found two evidence files of an earlier tree overwritten by a subset run).
+
+STEP 4.1 ROUND 2 (the step-4 review's finding 7, after its verifier refuted step 4.1's journey charge: it and its mutants
+W90-W92 are gone): W93-W98 (W93 no PEOPLE places; W94 a met person still a place; W95 a person chased past `MEET_TRIES`;
+W96 no wait for someone on the next steps; W97 someone anywhere on the plan breaks it, the step-4 rule; W98 a detour two
+tiles aside and back).
 """
 
 from __future__ import annotations
@@ -74,7 +79,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-from ai_player.gates.provenance import provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance  # noqa: E402
 
 EVIDENCE = REPO / "ai_player" / "evidence"
 TIMEOUT = 900
@@ -507,6 +512,35 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                     "things left to see (up and down the stairs until the ping-pong rule: the sweep's CROP seed 1)",
             [("brain/explore.py", "    return not_back_to_seen_all(out)\n", "    return out  # MUTANT W89\n")],
             ["ExploreTests.test_not_back_to_a_floor_seen_all_of_while_the_town_has_more"]),
+    # ---- step 4.1 ROUND 2 (the step-4 adversarial review's finding 7, its verifier: the JOURNEY charge of step 4.1 traded
+    # TOWN-Catcher for TOWN-Trainer; it is gone, and so are its mutants W90-W92). The walk's own waste, fixed by cause:
+    "W93": (CAUGHT, "finding 7: no PEOPLE places (the Trainer's taste for people asks nothing: it never walks up to anyone)",
+            [("brain/explore.py", "    if weights.people > 0:\n        tries = getattr(nav, \"people_tries\", {})\n",
+              "    if False:  # MUTANT W93\n        tries = getattr(nav, \"people_tries\", {})\n")],
+            ["PeopleTests.test_the_trainer_walks_up_to_the_person_story_does_not",
+             "PeopleTests.test_a_person_is_a_place_beside_them_until_met", "ExploreTests.test_trainer_goes_toward_people"]),
+    "W94": (CAUGHT, "finding 7: a person already MET is still a place (and a target on them never stale)",
+            [("brain/navigator.py", "    if target.kind == \"people\" and target.who is not None and target.who in memory.met:\n",
+              "    if False:  # MUTANT W94\n"),
+             ("brain/explore.py", "            if (look.frame - frame >= PEOPLE_RECENT or who in memory.met\n",
+              "            if (look.frame - frame >= PEOPLE_RECENT  # MUTANT W94\n")],
+            ["PeopleTests.test_a_person_is_a_place_beside_them_until_met"]),
+    "W95": (CAUGHT, "finding 7: a person walked after MEET_TRIES times still a place (chased for ever)",
+            [("brain/explore.py", "                    or tries.get(f\"{memory.key}|{who}\", 0) >= MEET_TRIES):\n",
+              "                    or False):  # MUTANT W95\n")],
+            ["PeopleTests.test_a_person_walked_after_twice_is_left_alone"]),
+    "W96": (CAUGHT, "finding 7: no WAIT for someone on the next steps of the way (the plan redone round them at once)",
+            [("brain/navigator.py", "            if (left is None and near and plan.waits < PERSON_PLAN_WAITS\n",
+              "            if (False  # MUTANT W96\n")],
+            ["WaitTests.test_the_walk_waits_for_someone_in_the_way_and_goes_on",
+             "WaitTests.test_someone_further_on_does_not_break_the_plan"]),
+    "W97": (CAUGHT, "finding 7: someone standing anywhere on the plan breaks it (no `PERSON_AHEAD`: the step-4 rule)",
+            [("brain/navigator.py", "            further = memory.people_now - near - kept\n",
+              "            further = frozenset()  # MUTANT W97\n")],
+            ["WaitTests.test_someone_further_on_does_not_break_the_plan"]),
+    "W98": (CAUGHT, "finding 7: a detour's tile any tile 1 or 2 from the way's middle (two aside and straight back)",
+            [("brain/navigator.py", "                   <= len(path) + DETOUR_EXTRA]\n", "                   <= 10 ** 6]  # MUTANT W98\n")],
+            ["BendTests.test_a_detour_is_one_tile_aside_at_most"]),
 }
 
 DRIVER = '''
@@ -625,6 +659,7 @@ def main() -> int:
         path = EVIDENCE / f"{time.strftime('%Y-%m-%d')}-step3-REVERT.txt"
     else:
         path = Path(tempfile.gettempdir()) / f"{time.strftime('%Y-%m-%d')}-step3-REVERT-subset.txt"
+    keep_earlier(path)  # (step 4.1 round 3) an earlier tree's file is archived, not written over (top level only)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"evidence: {path.relative_to(REPO) if only is None else path} {'' if only is None else '(a SUBSET: not evidence)'}")
     return 0 if ok_all else 1
