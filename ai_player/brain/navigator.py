@@ -247,6 +247,14 @@ def nav_free(look: Observation) -> bool:
     return player_free(look) and not look.screen.fading and look.view is not None
 
 
+def _party_hp(look: Observation | None) -> list[int] | None:
+    """(build step 5) [HP, max HP] of the party as the eyes show it (eggs left out), for a battle's record; None unread."""
+    if look is None or look.party is None:
+        return None
+    mons = [m for m in look.party if not m.is_egg]
+    return [sum(max(0, m.hp) for m in mons), sum(m.max_hp for m in mons)]
+
+
 def is_scene(look: Observation) -> bool:
     """Something on screen holds the player: a script runs, the controls are locked, a text or a menu is up (not a
     battle, not a fade alone)."""
@@ -680,9 +688,25 @@ class Navigator:
         #: BUILD STEP 4: the battles the battler played, by outcome; and after how many the intent is DONE (None: never)
         self.battle_outcomes: list[str] = []
         self.battle_limit: int | None = None
-        #: BUILD STEP 4: asked after each battle while the limit is set (the battle brain's training): a reason to stop
-        #: training now (the party needs a Pokemon Center: `brain/battle.py` needs_rest), or None
+        #: BUILD STEP 4: asked after each battle the battler played, whenever it is set: a reason to stop training now (the
+        #: party needs a Pokemon Center: `brain/battle.py` needs_rest), or None. The battle brain sets it together with
+        #: the limit (its training); since build step 5 (the step-5 verifier, 2026-10-14) it is asked with NO limit too:
+        #: the play brain's training roam sets it alone, and until then the rule was never asked there (a dead fix).
         self.battle_rest: Callable[[Observation], str | None] | None = None
+        #: BUILD STEP 5 (the play brain, `ai_player/mode.py`): who ANSWERS a yes/no in a scene, `answer(look) -> (yes, why)`
+        #: (`skills/story.py` answer_question: by its words, as a person goes along with the story). None (the step-3 and
+        #: step-4 brains): NO, "an explorer agrees to nothing it does not know", exactly as before.
+        self.answer: Callable[[Observation], tuple[bool, str]] | None = None
+        #: BUILD STEP 5: who plays ANOTHER menu a scene raises, `on_menu(kind, why)` -> a generator returning True when it
+        #: was played (PROF. BIRCH's bag: `choose_starter`). None (the earlier brains): the intent stops, as before.
+        self.on_menu: Callable[[str, str], Generator[None, None, bool]] | None = None
+        #: BUILD STEP 5: every battle the battler played, as (the frame it began, its kind "wild" / "trainer" as the eyes
+        #: first showed it DURING the battle, its outcome): what the goal manager counts as training and the play brain as
+        #: battles lost (`brain/goals.py` battles_lost)
+        self.battle_log: list[tuple[int, str, str]] = []
+        #: BUILD STEP 5: asked on every free look while roaming (`skills/roam_train.py`): a reason to stop the roam now (an
+        #: item ball came into view: a person walks over to it), or None. None (the earlier brains): roam as before.
+        self.roam_stop: Callable[[Observation], str | None] | None = None
 
     # ------------------------------------------------------------------ telling
     def tell(self, line: str, extra: dict | None = None) -> None:
@@ -925,16 +949,35 @@ class Navigator:
         if in_battle(look):
             self.stats.battles += 1
             if self.battler is not None:  # BUILD STEP 4: the battle brain fights it
-                outcome = yield from self.battler()
+                # BUILD STEP 5 (the step-5 verifier, 2026-10-14): the battle's KIND as the eyes first show it during the
+                # battle. On its first frame the battle view does not exist yet, so a kind read here alone was "?" for
+                # every battle (and the goal manager's count of wild battles in training was always 0): a watcher on the
+                # hands' looks takes the first battle view the battler's own looks show. It presses nothing.
+                kinds: list[str] = [look.battle.kind] if look.battle is not None else []
+                start_party = _party_hp(look)
+
+                def watch(seen: Observation) -> None:
+                    if not kinds and seen.battle is not None:
+                        kinds.append(seen.battle.kind)
+
+                self.hands.watchers.append(watch)
+                try:
+                    outcome = yield from self.battler()
+                finally:
+                    self.hands.watchers.remove(watch)
+                kind = kinds[0] if kinds else "?"
                 self.battle_outcomes.append(outcome)
-                self.tell(f"battle {len(self.battle_outcomes)}: {outcome}")
+                self.battle_log.append((look.frame, kind, outcome))
+                self.tell(f"battle {len(self.battle_outcomes)}: {outcome}",
+                          {"battle": len(self.battle_outcomes), "kind": kind, "outcome": outcome, "began": look.frame,
+                           "party_hp_start": start_party, "party_hp_end": _party_hp(self.hands.last)})
                 if outcome == "lost":
                     return "stuck: the battle was lost (the party fainted: the player whited out)"
                 if outcome.startswith("the battle") or outcome.startswith("stuck"):
                     return f"stuck: {outcome}"
                 if self.battle_limit is not None and len(self.battle_outcomes) >= self.battle_limit:
                     return f"done: {len(self.battle_outcomes)} battle(s) played: {self.battle_outcomes}"
-                rest = self.battle_rest(self.hands.look()) if self.battle_limit is not None and self.battle_rest else None
+                rest = self.battle_rest(self.hands.look()) if self.battle_rest is not None else None
                 if rest is not None:
                     return f"rest: {rest}: a person stops training here and looks for a Pokemon Center"
                 return None
@@ -956,10 +999,17 @@ class Navigator:
             if outcome == "done":
                 return None
             if outcome == "menu:yes_no":
-                if not (yield from answer_yes_no(self.hands, False, f"{why}: a question in a scene: NO (an explorer agrees to nothing it does not know)")):
+                if self.answer is not None:  # BUILD STEP 5: the play brain answers by the question's words
+                    yes, because = self.answer(self.hands.last)
+                    answered = yield from answer_yes_no(self.hands, yes, f"{why}: {because}")
+                else:
+                    answered = yield from answer_yes_no(self.hands, False, f"{why}: a question in a scene: NO (an explorer agrees to nothing it does not know)")
+                if not answered:
                     return "stuck: a yes/no in a scene could not be answered"
                 continue
             if outcome.startswith("menu:"):
+                if self.on_menu is not None and (yield from self.on_menu(outcome[5:], why)):
+                    continue  # BUILD STEP 5: a menu the play brain knows (PROF. BIRCH's bag)
                 return f"stuck: an unexpected {outcome[5:]} on screen"
             return f"stuck: a scene: {outcome}"
         return "stuck: a scene that did not end"

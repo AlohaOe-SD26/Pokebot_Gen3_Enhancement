@@ -6,7 +6,8 @@ eyes saw, one look at a time, and what the AI's own steps did (a bump, a warp it
              grass, warp or door, elevation, and where the player stood when it was first seen), visit counts,
              people and item balls seen, tiles learned blocked by BUMPING; across maps: the warp graph (a door or
              stairs -> where it led, learned when used, and the way back inferred), the map connections learned
-             by walking off an edge, and every map change. Persisted per run as JSON lines (`world.jsonl`).
+             by walking off an edge, and every map change; (build step 5) the doors the play brain RECOGNISED as a
+             POKéMON CENTER's or a MART's. Persisted per run as JSON lines (`world.jsonl`).
 
 It never reads the map's layout or the ROM's map data: the crop (design draft §10.7) is the point. A tile is known
 only after it was on screen; the navigator (`ai_player/brain/navigator.py`) plans over what is known.

@@ -7,6 +7,11 @@ frame and RETURNS an outcome string. Framework-free.
                  what it meets; the spin ratio and the distinct tiles are its metrics
   flee.py        BUILD STEP 3: get away from a WILD battle by choosing RUN with the cursor read (a trainer battle is
                  out of scope until step 4's battle decider: it returns the reason)
+  battle.py      BUILD STEP 4: play a battle with the decider (`brain/battle.py`): every battle menu by its cursor
+  story.py       BUILD STEP 5: the story's person-level skills: TALK to someone seen (beside them or across a counter),
+                 USE a thing (PROF. BIRCH's bag, the rival's POKé BALL), PICK UP an item ball, walk into a door, heal at a
+                 POKéMON CENTER's nurse, shop at a MART's clerk, choose the starter in the bag by its cursor, answer a
+                 scene's yes/no by its words, and play out a scene to its end
 The Pokemon Center nurse and the Poke Mart are `hands/menus.py` nurse_heal and mart_buy (the brain calls them).
 """
 

@@ -105,6 +105,10 @@ def busy_reason(look: Observation) -> str:
         return f"watching: the screen fades ({screen.scene or screen.game_state.lower()})"
     if screen.scene is not None:
         return f"watching: {screen.scene} (it runs by itself: nothing on screen takes a press now)"
+    if screen.game_state == "OVERWORLD" and look.player is not None and look.player.settling:
+        # BUILD STEP 5 (measured 2026-10-14: one frame per ledge jump and per map edge crossed, the play brain's
+        # chapter-1 sweep): the object's tile and the save block's position disagree for a frame (`PlayerState.settling`)
+        return "watching: the player's move finishing (a jump, a map's edge: the position settles)"
     return f"{GENERIC_BUSY} ({screen.game_state.lower()})"
 
 

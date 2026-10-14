@@ -192,6 +192,9 @@ class PlayerState:
     #: player object still stands on the old map's tile (`eyes/view.py` settled_position). Then `x` and `y`
     #: are None and there is no view: the position is unknown, never one map's tile with the other's name.
     settling: bool = False
+    #: BUILD STEP 5: the player's own character, "BOY" or "GIRL", as its sprite shows it (`include/global.fieldmap.h` struct
+    #: PlayerAvatar gender @7): the goal manager's "your house" and "next door" swap with it. None = not read.
+    gender: str | None = None
 
 
 @dataclass(frozen=True)
@@ -250,6 +253,10 @@ class Progress:
     dex_seen: int
     owned_dex: tuple[int, ...]  # national numbers owned (the scorer's `[DEX]` line names the new ones)
     flags: tuple[tuple[str, bool], ...]  # `eyes/view.py` STORY_FLAGS, each with its value
+    #: BUILD STEP 5: the MILESTONE MARKS (`eyes/view.py` MILESTONE_FLAGS and MILESTONE_VARS, from `knowledge/milestones.json`):
+    #: each flag 0 or 1, each var its value; what the goal manager reads the story's progress from. () = not read. Kept apart
+    #: from `flags` (the navigator's novelty), so no earlier step's walk changes.
+    marks: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(frozen=True)

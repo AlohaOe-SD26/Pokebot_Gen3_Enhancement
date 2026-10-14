@@ -24,6 +24,12 @@ second brain, the WATCHER (`AI_PLAYER_BRAIN=watcher`): every `watch_every` frame
 Observation to the action log (`ai_player/memory_log.py`) and prints the scorer-compatible lines for what
 changed, and it presses NOTHING. It is how the eyes are proven against ground truth live, under the
 same purity audit as every run, and it is the recorder later brains build on.
+
+BUILD STEP 5 adds the PLAY brain (`AI_PLAYER_BRAIN=play`, `HandsBrain._play`): the AI plays the STORY itself toward
+`AI_PLAYER_TARGET` (a milestone of `knowledge/milestones.json`), one goal at a time from the goal manager
+(`brain/goals.py`), each with a logged reason, by the personality's weights (`personality.py`), and ends with "done: <target>
+reached" or a reason (the frame budget, `STORY_PATIENCE` frames without a milestone, `MAX_LOSSES` battles lost: every
+battle the navigator's battler played, inside a goal or in a scene, `_count_losses`).
 """
 
 from __future__ import annotations
@@ -36,20 +42,23 @@ from typing import Protocol
 
 from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
-from ai_player.brain.navigator import Navigator
+from ai_player.brain.goals import GoalManager, GoalRunner, battles_lost
+from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
 from ai_player.hands.dialogue import advance, player_free, talk
-from ai_player.hands.menus import mart_buy, nurse_heal
+from ai_player.hands.menus import local_clock, mart_buy, nurse_heal, set_clock
 from ai_player.hands.pad import Faults, Hands
+from ai_player.knowledge.story import load_story
 from ai_player.memory_log import ActionLog, ScorerLines
 from ai_player.options import HANDS_BRAINS, INTENT_MARGIN, WORLD_BRAINS, HandsOptions
-from ai_player.personality import pick_personality
+from ai_player.personality import PersonalityState, choose_favourite, choose_starter, pick_personality
 from ai_player.runlog import RecordFile
 from ai_player.skills.battle import play_battle
 from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
+from ai_player.skills.story import answer_question, choose_starter as choose_starter_in_bag, play_out
 from ai_player.world.memory import WorldMemory, read_world
 
 __all__ = [
@@ -86,6 +95,11 @@ WORLD_FILE_NAME = "world.jsonl"
 #: the frames it gives a walk up to a person it challenges.
 ROAM_FOR_BATTLES = 3000
 CHALLENGE_WALK_BUDGET = 6000
+#: BUILD STEP 5: the play brain gives up when no milestone was reached for this many frames (33 minutes of play: the
+#: longest stretch of chapter 1, the asking, training, healing and walk to the rival, took up to ~75,000 frames in the
+#: development sweeps of 2026-10-14, `gates/rate_step5.py`), or after this many battles lost.
+STORY_PATIENCE = 120_000
+MAX_LOSSES = 3
 
 
 class Controls(Protocol):
@@ -245,6 +259,8 @@ class HandsBrain:
         self.world: WorldMemory | None = None
         self.navigator: Navigator | None = None
         self._world_file = RecordFile(options.run_dir, WORLD_FILE_NAME)
+        #: BUILD STEP 5: the play brain's report (milestones reached, goals, battles lost), for its end line and the harness
+        self.play_report: dict | None = None
 
     def play(self, controls: Controls, eyes: Eyes | None) -> Generator[None, None, str]:
         if eyes is None:
@@ -301,7 +317,166 @@ class HandsBrain:
             return (yield from self.navigator.run(goto_intent(list(options.goto), budget), "errands on this map"))
         if options.brain == "battle":
             return (yield from self._battles(hands, personality.name))
+        if options.brain == "play":
+            return (yield from self._play(hands, personality))
         raise ValueError(f"no hands skill named {options.brain!r}")
+
+    # ------------------------------------------------------------------ build step 5: the story
+    def _play(self, hands: Hands, personality) -> Generator[None, None, str]:
+        """BUILD STEP 5, the PLAY brain: the AI plays the STORY itself (design draft §2.3 "goal manager", §6; USER RULING 37:
+        badge 1 in 4 chapters, human pacing, never idle). At every decision the goal manager (`brain/goals.py`) reads where
+        the story is from the eyes' milestone marks (`knowledge/story.py`) and chooses ONE goal with a logged reason: the
+        current milestone's next step or a human errand (heal, shop, train, an item, catch, a chat), by the personality's
+        weights (`personality.py` ERRANDS, with its step-based DRIFT and a FAVOURITE species); the goal is played by the AI's
+        own skills (`brain/goals.py` GoalRunner: the navigator, roaming, `skills/story.py`). Scenes and battles met on the
+        way are played through the navigator's `handle` with the play brain's own ANSWERS to a scene's yes/no
+        (`skills/story.py` answer_question), its MENUS (PROF. BIRCH's bag, the wall clock) and the battle decider. The
+        seeded streams are its own (`<seed>:story`, `<seed>:goals`, `<seed>:drift`, `<seed>:battle`), so no earlier brain's
+        draws move. Ends "done: <milestone> ..." when the marks prove `AI_PLAYER_TARGET`, or with a reason (the frame budget,
+        no milestone for `STORY_PATIENCE` frames, `MAX_LOSSES` battles lost)."""
+        options, nav, world = self.options, self.navigator, self.world
+        seed = self.seed
+        story_rng = random.Random(f"{seed}:story")
+        state = PersonalityState(personality.name, random.Random(f"{seed}:drift"), self._say)
+        state.favourite = choose_favourite(story_rng)
+        starter, starter_why = choose_starter(story_rng, personality.name, options.starter)
+        mind = BattleMind(personality.name, random.Random(f"{seed}:battle"), "travel", BattleFaults())
+        nav.battler = lambda: play_battle(hands, mind, f"battle ({mind.purpose})")
+        nav.answer = answer_question
+        nav.on_menu = lambda kind, why: self._story_menu(hands, kind, why, starter)
+        look = hands.look()
+        story = load_story(look.player.gender if look.player is not None else None)
+        manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
+                              train_off=options.fault_no_training)
+        manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
+        hands.watchers.append(manager.notice)
+        runner = GoalRunner(hands, nav, manager, mind, hands.tell)
+        target = story.index(options.target)
+        hands.tell(f"play brain: target {options.target} ({story.milestones[target].title}); personality {state.base} "
+                   f"(errands {state.errands}); favourite Pokemon {state.favourite} (the shiny hunt is deferred); starter "
+                   f"{starter} ({starter_why}); faults no_hints:{options.fault_no_hints},no_training:{options.fault_no_training}")
+        self.play_report = report = {"milestones": [], "goals": [], "losses": 0, "target": options.target}
+
+        def visited(const: str) -> bool:
+            return any(memory.const == const and memory.visits for memory in world.maps.values())
+
+        def current(seen: Observation) -> int:
+            return manager.milestone(seen, visited)[0] if seen.progress is not None and seen.progress.marks else last[0]
+
+        last: list = [-1, None]  # the last milestone read from marks (index, milestone): kept while marks are not read
+        changed_at = hands.pad.frames
+        while True:
+            # the battles LOST since the last decision, wherever they were played (inside a goal: training, a walk, a talk;
+            # or a scene on screen): until the step-5 verifier's round of 2026-10-14 only the second kind was counted, so a
+            # run that whited out twice while training reported "battles lost 0" and MAX_LOSSES could not fire
+            # (`gates/test_goals.py` PlayLoopTests drives this loop to its MAX_LOSSES end; mutant G46 removes this call)
+            stop = self._count_losses(hands, nav, report)
+            if stop is not None:
+                return self._play_end(hands, story, manager, runner, report, "stuck", stop)
+            look = hands.look()
+            nav.take_changes()
+            if look.progress is not None and look.progress.marks:
+                index, milestone = manager.milestone(look, visited)
+            elif last[0] < 0 and look.player is None:
+                index, milestone = 0, story.milestones[0]  # the title screen: a New Game (nothing is saved yet)
+            else:
+                index, milestone = last
+            if look.player is not None and look.player.gender is not None and look.player.gender != story.gender:
+                story = load_story(look.player.gender)  # the player's own sprite: whose house is whose
+                manager.story = story
+            if index != last[0] and index >= 0:
+                self._milestone_line(hands, look, story, last, index, milestone, report)
+                last[0], last[1], changed_at = index, milestone, hands.pad.frames
+            if milestone is None or index > target:
+                return self._play_end(hands, story, manager, runner, report, "done", f"{options.target} reached")
+            if milestone.steps and milestone.steps[0].do == "intro" and (look.player is None
+                                                                         or look.screen.game_state != "OVERWORLD"):
+                if any(goal["kind"] == "intro" for goal in report["goals"]):
+                    return self._play_end(hands, story, manager, runner, report, "stuck", "the New Game intro again")
+                outcome = yield from play_intro(hands, personality)
+                report["goals"].append({"kind": "intro", "outcome": outcome, "frame": look.frame})
+                if not outcome.startswith("in the truck"):
+                    return self._play_end(hands, story, manager, runner, report, "stuck", outcome)
+                continue
+            # (the step-5 verifier, 2026-10-14) checked on EVERY pass, not only when the player is free: a screen that never
+            # frees would otherwise call `play_out` again and again until the launcher's frame budget ended the run
+            # (`gates/test_goals.py` PlayLoopTests drives this loop on such a screen; mutant G47 brings the old rule back)
+            if hands.pad.frames - changed_at > STORY_PATIENCE:
+                return self._play_end(hands, story, manager, runner, report, "stuck",
+                                      f"no milestone for {hands.pad.frames - changed_at} frames (since {milestone.title})")
+            if not nav_free(look):
+                stop = yield from play_out(hands, nav, f"{milestone.title}: what is on screen")
+                if stop is not None and "battle was lost" not in stop:  # a loss is counted at the top of the loop
+                    hands.tell(f"what was on screen ended: {stop}")
+                    if not nav_free(hands.look()):
+                        yield from hands.pad.busy("waiting for the screen to settle after a stop")
+                continue
+            state.step(nav.stats.steps)
+            goal = manager.next_goal(look, world, milestone, index)
+            hands.tell(f"[AI-GOALS] goal {goal.kind}: {goal.reason} (milestone {milestone.id}, personality {state.active})")
+            hands.note("goal", goal.kind, goal.reason, {"milestone": milestone.id, "active": state.active, "key": goal.key,
+                                                        "map": goal.map, "steps": goal.steps})
+            yield from hands.pad.idle(hands.pad.think_frames(), f"deciding: {goal.kind}: {goal.reason[:80]}")
+            began = hands.pad.frames
+            ok, outcome = yield from runner.pursue(goal, milestone, index, current)
+            manager.outcome(goal, ok)
+            report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
+                                    "outcome": outcome[:200], "milestone": milestone.id})
+            hands.tell(f"[AI-GOALS] goal {goal.kind} {'done' if ok else 'not done'}: {outcome[:300]}")
+
+    @staticmethod
+    def _count_losses(hands: Hands, nav: Navigator, report: dict) -> str | None:
+        """The play brain's count of battles LOST (`brain/goals.py` battles_lost over every battle the navigator's battler
+        played, inside a goal or in a scene alike) into `report["losses"]`, each new one told; the end reason once
+        `MAX_LOSSES` were lost, else None."""
+        lost = battles_lost(nav.battle_log)
+        while report["losses"] < lost:
+            report["losses"] += 1
+            hands.tell(f"a battle was LOST ({report['losses']} of at most {MAX_LOSSES}): the party whited out; it goes on "
+                       f"from where the game put it")
+        if report["losses"] >= MAX_LOSSES:
+            return f"{report['losses']} battles lost (MAX_LOSSES {MAX_LOSSES})"
+        return None
+
+    def _story_menu(self, hands: Hands, kind: str, why: str, starter: str) -> Generator[None, None, bool]:
+        """A menu a story scene raises (the navigator's `on_menu`): PROF. BIRCH's bag (the starter the personality drew) or
+        the wall clock (the computer's time, as a person sets it, or `AI_PLAYER_CLOCK`)."""
+        if kind == "choose_starter":
+            return (yield from choose_starter_in_bag(hands, starter, f"{why}: PROF. BIRCH's bag: {starter}"))
+        if kind == "clock":
+            hours, minutes = self.options.clock if self.options.clock is not None else local_clock()
+            return (yield from set_clock(hands, hours, minutes, f"{why}: the wall clock to {hours}:{minutes:02d}"))
+        return False
+
+    def _milestone_line(self, hands: Hands, look: Observation, story, last: list, index: int, milestone, report) -> None:
+        marks = dict(look.progress.marks) if look.progress is not None else {}
+        if last[1] is not None and index > last[0]:
+            for passed in story.milestones[max(last[0], 0):index]:
+                report["milestones"].append({"id": passed.id, "frame": look.frame, "pad_frames": hands.pad.frames,
+                                             "proofs": passed.proofs(marks)})
+                hands.tell(f"[AI-GOALS] MILESTONE {passed.id} done at f{look.frame} ({passed.title}): {passed.proofs(marks)}")
+        if milestone is not None:
+            hands.tell(f"[AI-GOALS] the story is at {milestone.id} ({milestone.title}); proofs now: {milestone.proofs(marks)}")
+            hands.note("milestone", milestone.id, milestone.title, {"index": index, "frame": look.frame})
+
+    def _play_end(self, hands: Hands, story, manager, runner, report, kind: str, why: str) -> str:
+        # the losses are the LOOP's count (`_count_losses`, at the top of every pass), never recounted here: every way out
+        # of the loop leaves it after that pass's count, with no battle in between, so a recount could only HIDE a loop
+        # that stopped counting (the step-5 verifier's round 2: with the loop's call removed, this recount made the
+        # sweep's "the AI's battles lost == the game's" pass 40 of 40). A disagreement is told, not mended.
+        logged = battles_lost(runner.nav.battle_log)
+        if logged != report["losses"]:
+            hands.tell(f"the loop counted {report['losses']} battles lost, but the battle log holds {logged}")
+        prep = {key: dict(value) for key, value in manager.memory.fight_prep.items()}
+        hands.tell(f"[AI-GOALS] the end ({kind}: {why}); milestones {[m['id'] for m in report['milestones']]}; before the "
+                   f"fights {prep}; roams {len(runner.roams)}, heals {runner.heals}, shopping {runner.shopping}, items "
+                   f"{runner.picked}, battles lost {report['losses']}, personality {manager.state.history}, favourite "
+                   f"{manager.state.favourite}")
+        hands.note("end", kind, why, {"milestones": report["milestones"], "fight_prep": prep, "roams": runner.roams,
+                                      "heals": runner.heals, "shopping": runner.shopping, "items": runner.picked,
+                                      "losses": report["losses"], "drift": manager.state.history,
+                                      "favourite": manager.state.favourite})
+        return f"{kind}: {why}"
 
     # ------------------------------------------------------------------ build step 4: battles
     def _battles(self, hands: Hands, personality: str) -> Generator[None, None, str]:

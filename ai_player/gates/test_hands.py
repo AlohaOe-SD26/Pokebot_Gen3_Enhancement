@@ -1027,9 +1027,27 @@ class SceneTests(unittest.TestCase):
             ("UNKNOWN", set(), "CB2_StartWallClock"), ("UNKNOWN", {"Task_SetClock_WaitFadeIn"}, "CB2_WallClock"),
             ("UNKNOWN", {"Task_SetClock_Exit"}, "ReturnFromStartWallClock"),
             ("UNKNOWN", {"Task_SetClock_Exit"}, "CB2_ReturnToFieldContinueScriptPlayMapMusic"),
+            # BUILD STEP 5 (measured 2026-10-14 with `probe_callbacks` from a RESCUED_BIRCH state): the starter choice
+            ("CHOOSE_STARTER", {"Task_MuddySlope", "Task_WeatherMain"}, "CB2_ChooseStarter"),
+            ("CHOOSE_STARTER", {"Task_DuckBGMForPokemonCry", "Task_HandleConfirmStarterInput"}, "CB2_StarterChoose"),
+            ("UNKNOWN", {"Task_DuckBGMForPokemonCry", "Task_HandleConfirmStarterInput"}, "CB2_GiveStarter"),
+            ("UNKNOWN", {"Task_BattleTransition", "Task_Blur"}, "CB2_StartFirstBattle"),
         ]
         for state, tasks, callback in stretches:
             self.assertIsNotNone(scene_of(state, tasks, callback), (state, tasks, callback))
+
+    def test_a_settling_position_is_named(self) -> None:
+        """BUILD STEP 5 (measured 2026-10-14): a ledge jump's landing and a map edge crossed leave the position settling
+        for a frame with nothing else on screen; that frame is named, and a settled player with nothing on screen is
+        still the catch-all (the FAULT half)."""
+        settling = PlayerState(map_group=0, map_number=0, map_name="TEST", map_const="TEST", x=None, y=None,
+                               facing="down", movement="walking", elevation=3, avatar_flags=1, trainer_id=1,
+                               settling=True)
+        self.assertEqual(busy_reason(observation(overworld_screen(), 1, settling)),
+                         "watching: the player's move finishing (a jump, a map's edge: the position settles)")
+        settled = PlayerState(map_group=0, map_number=0, map_name="TEST", map_const="TEST", x=5, y=5,
+                              facing="down", movement="walking", elevation=3, avatar_flags=1, trainer_id=1)
+        self.assertTrue(busy_reason(observation(overworld_screen(), 1, settled)).startswith(GENERIC_BUSY))
 
     def test_every_scene_callback_is_a_symbol_of_the_rom(self) -> None:
         """`host/eyes.py` resolves each SCENE_CALLBACKS name with `get_symbol` and SKIPS one the ROM does not name, so a

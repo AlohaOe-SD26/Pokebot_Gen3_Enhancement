@@ -11,7 +11,18 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 4, the AI's OWN BATTLES** (section "The battles (build step 4)" below): a new brain,
+**Where it is now: build step 5, the AI plays the STORY itself** (section "The story (build step 5)" below): a new brain,
+`AI_PLAYER_BRAIN=play`, plays from a real New Game toward a target milestone (`AI_PLAYER_TARGET`, default `ch1_pokedex`)
+of the story to badge 1 (4 chapters, 20 milestones in `knowledge/milestones.json`, each proven by the game's own flags and
+vars, every number checked against pret/pokeemerald). A GOAL MANAGER (`brain/goals.py`) reads where the story is and
+chooses one goal at a time, always with a logged reason: the milestone's next step (go where the game SAID, ask the people
+when it has not said, talk, use a thing, follow a scene) or a person's errand (heal when hurt, buy POKé BALLS once the
+adventure has started, TRAIN by roaming before a known fight, pick up an item ball in view, catch new species, chat), by
+the personality's weights (`personality.py`: Catcher, Story, Trainer, with a step-based DRIFT and a FAVOURITE Pokemon).
+Chapter 1 (truck to POKéDEX) is played through; chapter 2 (to WALLY's tutorial) is the stretch; chapters 3 and 4 exist
+as data only. The proofs are in that section.
+
+**Build step 4, the AI's OWN BATTLES** (section "The battles (build step 4)" below): a new brain,
 `AI_PLAYER_BRAIN=battle`, FIGHTS every battle with the AI's own decider (`brain/battle.py`) and hands (`skills/battle.py`):
 a move chosen by its worth against THIS foe (type effectiveness x STAB x power x hit chance, minus a recoil penalty that
 grows as its own HP falls), a seeded draw among the about-as-good moves, a switch when badly matched, a Potion in a
@@ -327,6 +338,26 @@ AI_PLAYER_BRAIN=battle AI_PLAYER_PERSONALITY=Trainer AI_PLAYER_SEED=1 py -3.12 -
 plays Rustboro's rival with the Marshtomp leading: when her Wingull falls and the game asks "MAY is about to use TREECKO.
 Will ... change POKéMON?", the AI switches to its Taillow (step 4.1's fixtures: `gates/make_step41_fixtures.py`).
 
+Build step 5: the PLAY brain, `AI_PLAYER_BRAIN=play` (a world brain: the same memory, navigator and battle decider). It
+plays the story toward `AI_PLAYER_TARGET` (a milestone id of `knowledge/milestones.json`; default `ch1_pokedex`; e.g.
+`ch2_wally`, `ch4_roxanne`) and ends with `play: done: <target> reached`, or `play: stuck: no milestone for N frames
+(since <milestone>)` (`mode.py` STORY_PATIENCE), `play: ... battles lost` (MAX_LOSSES), or the frame budget. From a fresh
+boot it plays the intro itself (the title screen, the AI's name and gender, the truck). `AI_PLAYER_STARTER=TREECKO|
+TORCHIC|MUDKIP` names the starter (unset: the personality's lean, drawn from the seed); `AI_PLAYER_PERSONALITY`,
+`AI_PLAYER_SEED`, `AI_PLAYER_CLOCK` (the time it sets on the wall clock) and `AI_PLAYER_WORLD` (a `world.jsonl` a previous
+run wrote, its recognised POKéMON CENTER and MART doors included) work as before. For example
+
+```
+AI_PLAYER_BRAIN=play AI_PLAYER_STARTER=TORCHIC AI_PLAYER_PERSONALITY=Catcher AI_PLAYER_SEED=12 AI_PLAYER_CLOCK=10:00 py -3.12 -m ai_player run --profile ai-step5-play --frames 330000 --wall-seconds 3600 --fresh
+AI_PLAYER_BRAIN=play AI_PLAYER_TARGET=ch2_wally AI_PLAYER_WORLD=<that run's dir>/world.jsonl AI_PLAYER_SEED=12 py -3.12 -m ai_player run --profile ai-step5-play --frames 330000 --wall-seconds 3600 --state <that run's end state>
+```
+
+plays a New Game to the POKéDEX with a Torchic, then chapter 2 from where it stopped. The in-process harness runs the same
+brain: `py -3.12 ai_player/gates/play_harness.py --fresh --seed N --personality P --starter S --target T --frames F
+--game-clock 2026-10-14T10:00 --clock 10:00 [--fault no_hints|no_training] [--state PATH --world-in WORLD] [--save-end
+PATH] [--run-dir DIR] [--checkpoints DIR]` (the cartridge's clock PINNED, so a seed replays; its recorder reads the game's
+marks and counters every 30 frames by a second path; `truth STATE` reads a saved state the same way).
+
 ## Layout
 
 | file | what it is for |
@@ -338,12 +369,15 @@ Will ... change POKéMON?", the AI switches to its Taillow (step 4.1's fixtures:
 | `brain/battle.py` | step 4: the AI's OWN BATTLE DECIDER (framework-free): a move's worth (`move_value`: type x STAB x power x hit chance, minus `recoil_penalty`), the near-best draw (`choose_move`), switching (`matchup`, `better_member`), healing in a trainer's battle, running, the catch (weaken under `KO_MARGIN`, then the ball), who goes in after a faint (`replacement`), the battle's questions by their words (`answer`), which move to forget (`learn_choice`), when training should stop (`needs_rest`); the personality's `Temperament`; the FAULT switches `BattleFaults`; since the step-4 verifier's second round every choice of the best move tells what the type chart changed in it (`TypeSay`); since step 4.1 the shift question about the foe its words name (`incoming`, `_shift`, `shift_to`), the moves the game refused this turn (`cannot_use`), the types a person knows (`seen_types`), a rough sense of a hit (`rough_share`, `damage_fraction`), finishers worth as the strongest (`_ko_worth`), safe openers and a catch's sleep or paralysis (`_opener`, `_catch_status`, `_safe_for_status`), the ball by visible cues (`_ball`); since step 4.1 round 2 an opener the draw passes over is SAID with the move chosen ("no opener this time": the sweep counts the rule's chances), a species named with a full stop or a sign read whole (`incoming`: MR. MIME, NIDORAN♀), and the FAULTS `no_catch_status` and `ignore_pp` (the arms CATCHSX, REFUSED) |
 | `skills/battle.py` | step 4: playing a battle to its end (`play_battle`): every text advanced on the eyes' waits, every battle menu chosen by reading its cursor (the action and move grids, a double battle's target, the bag's pocket and item and USE, the party menu and SHIFT / SEND OUT, the yes/no, the summary screen's forget-a-move list), every decision logged with its reason; the outcome is the game's `gBattleOutcome` |
 | `knowledge/` | step 4: the AI's OWN game facts, `types.json` (the Gen-3 chart), `moves.json` (354 moves: type, power, accuracy, PP, effect, priority, target, category, recoil class), `species.json` (386 species: types, base stats, catch rate, experience yield), each with its provenance (the bot's data file it was extracted from and that file's sha256); `facts.py` reads them (the play loop never reads the bot's data) |
+| `brain/goals.py` | step 5: the GOAL MANAGER (framework-free): which milestone the marks prove (`milestone`, a waypoint passed on its map), ONE goal at a time with its reason in a fixed order, HEAL, SHOP, TRAIN, ITEM, CATCH, CHAT, then the STORY step (`next_goal`, `_story_goal`: go where the words heard say, `ask` the people of a place when nothing was said, `seek` someone seen earlier where they stood, `find` them, `use`/`talk`/`follow`), the doors it recognises by their look (`notice`, kept in the world memory), the training target from the fight's levels and the personality's margin (`prep`), a goal that failed twice put aside (`FAIL_LIMIT`, `COOLDOWN_DECISIONS`; a heal not, when the party is in danger); the way to an unknown place (`lead_toward`: out to the open map with most left to see, or a building's own town; `travel_intent`); the roam's rest (`training_rest`, installed by `GoalRunner.roam_hooks`), the losses (`battles_lost`); and `GoalRunner`, which plays each goal with the navigator, roaming and the story skills |
+| `skills/story.py` | step 5: the story's person-level skills: talk to someone seen (beside or across a counter), use a thing, pick up an item ball (read what was found), walk into a door, the nurse and the clerk (found by their look), the starter chosen in the bag by its cursor, a scene's yes/no answered by its words (`answer_question`, `QUESTION_RULES`), a scene played to its end (`play_out`) |
+| `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
 | `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`) |
 | `hands/menus.py` | step 2: move a cursor by reading it, choose by intent, answer a yes/no, type a name, set the clock, the "How many?" box, and the nurse (`nurse_heal`) and the mart (`mart_buy`) |
 | `skills/intro.py`, `skills/clock.py` | step 2: the New Game intro from the title screen to the truck; the wall clock in the player's room |
-| `personality.py` | step 2: the base personality (Catcher, Story, Trainer) and the intro's two choices, gender and name, by a personality-weighted draw from the seed |
+| `personality.py` | step 2: the base personality (Catcher, Story, Trainer) and the intro's two choices, gender and name, by a personality-weighted draw from the seed; step 5: each personality's ERRAND weights (`Errands`, `ERRANDS`: training margin and minimum, catching, balls, healing, chatting), the step-based DRIFT to another personality and back (`PersonalityState`, `DRIFT_EVERY`, `DRIFT_CHANCE`, `DRIFT_STEPS`, every drift logged), the starter's lean (`choose_starter`) and the FAVOURITE Pokemon (`choose_favourite`, a wild species; the shiny hunt is deferred) |
 | `eyes/screens.py` | step 2: the eyes' perception of menus and text (framework-free): which menu is open by its input task, its cursor, the keyboard's layout, the charmap, the tasks that wait for A/B |
 | `eyes/observation.py` | the immutable `Observation` and its parts (framework-free): what one look sees |
 | `eyes/view.py` | the AI's perception rules (framework-free): the on-screen window, tile behaviours, object kinds, the screen, when a text waits for a button (`text_printer_wait`), the story flags; tables from pret/pokeemerald |
@@ -358,7 +392,7 @@ Will ... change POKéMON?", the AI switches to its Taillow (step 4.1's fixtures:
 | `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file |
 | `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
 | `evidence/` | every live and mutant proof's evidence file of the CURRENT tree, at the top level (each names the tree's digest: `provenance.py --check-evidence`); since step 4.1 the archive keeps only the earlier trees' files a document or a commit message CITES, in `evidence/archive/<digest>/`, and lists every other one in `evidence/archive/INDEX.md` (its `git show` line: it stays in git history); the policy is `archive/README.md`, applied by `gates/prune_evidence.py` |
-| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`); step 4's knowledge extractor (`extract_knowledge.py`: the bot's data in, `knowledge/*.json` out, `--check`) and its check against pret/pokeemerald (`verify_knowledge.py`, `--plant` its fault half), the battle unit tests (`test_battle.py`), mutant proof (`revert_step4.py`), live proof (`live_step4.py`), seed sweep (`rate_step4.py`) and fixture builder (`make_step4_fixtures.py`: `geodude_grovyle.ss1`, `learn_r116.ss1`, `faint_r116.ss1`, `rival_r103.ss1`, each PLAYED by the AI's own battle brain, and `recoil_r102.look.json`, the AI's own look in a real battle); `hands_harness.py battle` and its `truth` now also read each party Pokemon's moves and OT id, the player's id, `gBattleOutcome`, the trainers' defeated flags and the PC boxes; the step-4 verifier's second round: `make_step32_fixtures.py` (`house_2f_bumps.world.jsonl`, `littleroot_closed.world.jsonl`: the AI's own memories with ONE thing planted, test side, for the live arms FORGET and REOPEN); step 4.1: `make_step41_fixtures.py` (`rival_rustboro.ss1`, `heal_r103.ss1`, `switch_joey.ss1`, `run_r116.ss1`: the party order changed by START-menu presses, every walk, purchase and battle before the saved frame the AI's own goto, mart and battle brains or a named test-side press) and the evidence archive's policy (`prune_evidence.py`) |
+| `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`); step 4's knowledge extractor (`extract_knowledge.py`: the bot's data in, `knowledge/*.json` out, `--check`) and its check against pret/pokeemerald (`verify_knowledge.py`, `--plant` its fault half), the battle unit tests (`test_battle.py`), mutant proof (`revert_step4.py`), live proof (`live_step4.py`), seed sweep (`rate_step4.py`) and fixture builder (`make_step4_fixtures.py`: `geodude_grovyle.ss1`, `learn_r116.ss1`, `faint_r116.ss1`, `rival_r103.ss1`, each PLAYED by the AI's own battle brain, and `recoil_r102.look.json`, the AI's own look in a real battle); `hands_harness.py battle` and its `truth` now also read each party Pokemon's moves and OT id, the player's id, `gBattleOutcome`, the trainers' defeated flags and the PC boxes; the step-4 verifier's second round: `make_step32_fixtures.py` (`house_2f_bumps.world.jsonl`, `littleroot_closed.world.jsonl`: the AI's own memories with ONE thing planted, test side, for the live arms FORGET and REOPEN); step 4.1: `make_step41_fixtures.py` (`rival_rustboro.ss1`, `heal_r103.ss1`, `switch_joey.ss1`, `run_r116.ss1`: the party order changed by START-menu presses, every walk, purchase and battle before the saved frame the AI's own goto, mart and battle brains or a named test-side press) and the evidence archive's policy (`prune_evidence.py`); step 5: the milestone extractor and its check against pret/pokeemerald (`extract_milestones.py`: `--check`, `--verify`, `--verify --plant` its fault half, `--wild`, `--items` the item balls' flags for the grader, `fixtures/item_flags.json`), the in-process story harness and its second-path recorder (`play_harness.py`), the goal unit tests (`test_goals.py`), mutant proof (`revert_step5.py`), live proof (`live_step5.py`) and seed sweep (`rate_step5.py`) |
 | `../sandbox-pokebot/plugins/custom_modes/ai_player_mode.py` | the hook: registers "AI Player", APPENDS the repo root to `sys.path`, and keeps its own before/after record of the framework's listeners (`[AI-HOOK]`); no game logic |
 
 The subpackage is `host/`, not `platform/` (step 0's name): `platform` would shadow the standard
@@ -570,6 +604,10 @@ Read inside the AI's own code, never set on the happy path:
 | `AI_PLAYER_FAULT_IGNORE_PP=1` | step 4.1 round 2: the decider blind to the PP its moves have left, so it chooses moves with none and the GAME refuses them through the code that refuses a Disabled move (finding 2's refusal, played live) | REFUSED, REFUSEDX (live_step4); the sweep's REFUSED, REFUSED-FAULT |
 | `AI_PLAYER_FAULT_NO_CATCH_STATUS=1` | step 4.1 round 2: no sleep or paralysis move to help a catch (step 4) | CATCHSX (live_step4); the sweep's SING-FAULT; `test_battle.py` OpenerTests |
 | (a COPY) | step 4.1 round 2: THE STEP-4 EXPLORER'S WALK (`live_step3.WALK_MUTATIONS`: the people pull on unseen tiles near people, a person on the plan breaking it at once, a detour two aside and back); step 4.1's journey charge and its `JOURNEY_MUTATION` are gone | TOWNTR (live_step3); the sweep's WALK revert (`rate_step3.py`) |
+| `AI_PLAYER_FAULT_NO_HINTS=1` | step 5: the goal manager never uses what the game SAID (no "go to ROUTE 103" from the rival's mom, no "PETALBURG GYM" from the TV): it explores and asks for nothing | the sweep's NOHINTS (`rate_step5.py`); `test_goals.py` HintTests |
+| `AI_PLAYER_FAULT_NO_TRAINING=1` | step 5: no training before a known fight (the rival goes un-prepared) | the sweep's NOTRAIN (`rate_step5.py`); `test_goals.py` ErrandTests |
+| (a COPY) | step 5: one rule of the goal manager, the story reader, the personality, the story skills, the route rules, the milestone marks, the play loop or the roam's report broken (`revert_step5.MUTANTS` G1-G52) | `revert_step5.py` (`test_goals.py` from the copy) |
+| (a COPY) | step 5 round 2: MAX_LOSSES 1 (`CAP1`), alone and with the play loop's loss count removed (G46) | the sweep's phase 2, STOP and STOPDEAD (`rate_step5.py`) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -618,6 +656,267 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 (`evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt`, "archived in `evidence/archive/<digest>/`") now lead to
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
+
+## The story (build step 5)
+
+The AI plays the STORY itself (design draft §2.3 "goal manager", §6 step 5; HUMAN-PLAY-DESIGN pillars 1, 4 and 5; USER
+RULING 37: badge 1 in 4 chapters). RULING 35 holds: the bot's `story/*` routines are teaching material, read only by the
+TEST-side extractor; the play loop runs the AI's own code over the AI's own data, and the purity gate is unchanged (the
+eyes gained READ-ONLY reads only: below).
+
+### What it knows: `knowledge/milestones.json`, and how that was checked
+
+20 milestones, chapter 1 (the truck, MOM, the wall clock, the rival's house, PROF. BIRCH on ROUTE 101, the starter, the
+lab, the rival on ROUTE 103, the POKéDEX), chapter 2 (OLDALE, ROUTE 102, PETALBURG, DAD at the gym, WALLY's tutorial),
+chapter 3 (ROUTE 104, PETALBURG WOODS and the AQUA grunt, RUSTBORO) and chapter 4 (the gym's trainers, ROXANNE). Each
+names the game's own PROOF (flags and vars, e.g. `FLAG_DEFEATED_RIVAL_ROUTE103`, `VAR_BIRCH_LAB_STATE >= 3`), its maps,
+its steps (go, ask, talk, use, follow), the HINT the game itself gives (the words and who says them: the rival's mom "{RIVAL}
+went out to ROUTE 103", MOM's "next door", the TV's "PETALBURG GYM", DAD's "Head for RUSTBORO CITY ... the GYM LEADER,
+ROXANNE") and the levels of the fight ahead. A hint's map is a place its words NAME (or the map whose own script says them),
+never one the game does not say: `test_goals.py` checks every hint (since the step-5 verifier's round, which found ROUTE
+102 and ROUTE 104 named as goals that no dialogue names; both are now waypoints passed on the way to PETALBURG and
+RUSTBORO CITY, the places the game names). The intro's
+milestone is a WAYPOINT (its flag is set by a coord event INSIDE the truck, so it passes on that map). Written by
+`gates/extract_milestones.py` from the bot's `story/early_game.py` (each milestone names the lines it was taught by and the
+file's sha256); `--verify` checks, through `gh api` against pret/pokeemerald: every flag and var number, that a script
+SETS each proof, every trainer id and party level, every look's graphics id and metatile, and that every hint's words are
+in the game's text; `--verify --plant` plants three wrong facts (a flag number, a party level, a graphics id) and must
+find exactly those. The wall clock's metatile differs from the ROM layout's (the houses' decorations), so it was MEASURED
+live per house (BRENDAN's 2F (5,1) 0x28F, MAY's 2F (3,1) 0x22F).
+
+What the eyes gained (read only): `Progress.marks` (the milestones' flags and vars from save block 1 at the decomp-checked
+numbers, `eyes/view.py` `MILESTONE_FLAGS`, `MILESTONE_VARS`, `milestone_marks`), `PlayerState.gender` (the player's own
+sprite), the starter screen's two menus (`Task_HandleStarterChooseInput` with its cursor, the confirm yes/no), and five
+measured scenes: the starter choice opening and closing, the first battle's start (`CB2_ChooseStarter`,
+`CB2_StarterChoose`, `CB2_GiveStarter`, `CB2_StartFirstBattle`) and one frame per ledge jump or map edge crossed (a
+settling position: `hands/dialogue.py` busy_reason). Before them each chapter-1 run stood still about 8 times under the
+catch-all reason; since, none in 27 runs (sweep `step5dev4`).
+
+### The goal manager: `brain/goals.py`
+
+At every decision: which milestone the marks prove done (a proof NOT READ is never progress), then ONE goal with its
+reason, in this order:
+* **HEAL** when a Pokemon fainted or the party is under the personality's `heal_below` (Catcher 50 %, Story 60 %, Trainer
+  45 %), or, trained and ready for a known fight, under 90 % (`HEAL_BEFORE_FIGHT`): the nearest
+  POKéMON CENTER it knows (a door it RECOGNISED by its look, kept in the world memory so a later run remembers it), else
+  home, where MOM heals; the nurse is found by her look at the counter. On the way it keeps out of the tall grass where
+  it can (`HURT_GRASS_COST`). A heal that failed twice is put aside like any goal, EXCEPT when the party is in danger (a
+  Pokemon fainted, or the strongest under a third: `needs_rest`): then it heals again at once.
+* **SHOP** for POKé BALLS once the adventure has started (`FLAG_ADVENTURE_STARTED`), when fewer than the personality's
+  `balls_low` and the money is there: the MART it recognised.
+* **TRAIN** before a known fight (the milestone's fight levels): to its strongest level + the personality's margin (Trainer
+  +3, Catcher +2, Story +1) and at least its minimum of roaming steps (Trainer 150, Catcher 100, Story 80), in sessions
+  of roaming the nearest grass; at most `TRAIN_SESSIONS` (then it is "ready", and says why). Never far below: a Story
+  player still trains to the fight's level + 1. Never while hurt. A roam STOPS after a battle that left the party under
+  the personality's `heal_below` (`training_rest`, asked by the navigator after every battle: `battle_rest`), so the next
+  decision heals. Under the no-training fault the heal before the fight still happens (the fault removes training only).
+* **ITEM**: an item ball on screen, not tried yet (a roam and a walk STOP for one that comes into view).
+* **CATCH** a species it has not caught (Catcher most), with balls in the bag.
+* **CHAT** with someone nearby not met yet (Trainer most).
+* **STORY**: the milestone's next step. `go` where the game SAID (the words must have been READ, as WHOLE words: "LAB" is
+  not heard in "not available"; none: it explores, and where the milestone says who would know, it `ask`s the people
+  there; a hint with NO words, the truck's open door or a sign it never read, is headed for only once the AI has been
+  there itself; the goal's reason quotes the page it READ, the most recent that says the words, never the milestone's
+  stored line), `seek` someone it saw earlier on this map where
+  they stood, `find` them, `talk` to who looks like them, `use` a thing (PROF. BIRCH's bag, the clock), `follow` a scene.
+  Heading for a map it has not been to, it walks first to the open map with the most left to see (`lead_toward`), or to
+  a building's own town ("PETALBURG GYM" is in PETALBURG CITY).
+
+A goal that failed twice is put aside for 12 decisions; the run ends by itself when no milestone came for
+`STORY_PATIENCE` frames (checked on every pass of the loop, a screen that never frees included), or when `MAX_LOSSES`
+battles were LOST (every battle the navigator's battler played, inside a goal or in a scene: `mode.py` `_count_losses`,
+each loss told "a battle was LOST (n of at most 3)"; the end line reports the loop's count and never recounts it), with
+that reason. Both ends are driven through the real loop by `test_goals.py` PlayLoopTests. Every goal is told
+(`[AI-GOALS] goal <kind>: <reason>`) and logged as a `goal` record; every milestone as `[AI-GOALS] MILESTONE <id> done at
+f<frame>`. A training roam's report says how its battles ENDED (won, caught, lost, and "fled" for the ones RUN from).
+
+### The personality: `personality.py`
+
+Errand weights per personality (`ERRANDS`), a DRIFT every `DRIFT_EVERY` steps with chance `DRIFT_CHANCE` to another
+personality for `DRIFT_STEPS` steps and back (logged `[AI-PERSONALITY]`), a starter drawn by a slight lean
+(`STARTER_LEAN`: TREECKO, TORCHIC, MUDKIP weights per personality; `AI_PLAYER_STARTER` overrides) and a FAVOURITE species
+drawn from the wild ones (logged; the shiny hunt is deferred).
+
+### The proof (one tree: working-tree digest `6172ff8932690719`, every step-5 file below names it)
+
+Every claim is graded by the GAME through a second path (the harness's own reads of save block 1's flags, vars and
+counters, the framework's party decoder, save block 2's name and gender, and in the sweep the game's own battle outcomes,
+`gBattleOutcome` with `gBattleTypeFlags`, and its own step counter over time), never by the AI's eyes; the AI's told lines
+are only cross-checked against it. This is the tree of the step-5 verifier's ROUND 2 (its section below); round 1's tree
+was `c3eb4fd9579e6d78` and the first tree `59521c7ebf62dc70` (their files are in `evidence/archive/<digest>/`).
+
+| proof | what it shows | result (evidence `ai_player/evidence/2026-10-14-step5-*.txt`) |
+|---|---|---|
+| `live_step5.py` CH1T, CH1C, CH1M | chapter 1 from a REAL New Game through the real launcher (title, naming, the clock), one per starter and per personality (seeds 11, 12, 13) | all PASS, purity CLEAN, `play: done: ch1_pokedex reached` in 105,754 / 95,266 / 138,155 frames (bound 300,000); the game's flags RECEIVED_POKEDEX_FROM_BIRCH, SYS_POKEDEX_GET, ADVENTURE_STARTED, DEFEATED_RIVAL_ROUTE103, SET_WALL_CLOCK all 1; the starter named is the first Pokemon, the player's own by OT; TRAINED (round 2: inside its TRAINING roams for the rival, 2 / 1 / 3 of them): 155 / 120 / 266 roaming steps and 11 / 6 / 11 wild battles WON there (between the starter and the rival in all, reported: 11 / 8 / 19 won); THE REST RULE 0 breaches over 2 / 0 / 2 occasions (roams stopped by a rest 2 / 0 / 2); its END LINE's losses (0) == its log's == the play loop's TOLD losses (0), its training counts (met 11 / 6 / 11, won 11 / 6 / 11) == its own log; its told wild battles == GAME_STAT_WILD_BATTLES (13, 13, 21); MOM's heals by the game's GAME_STAT_RESTED_AT_HOME 1 / 1 / 3; spins 1 / 0 / 1 (2 in 541 steps, 0.37 %); no catch-all; never without a goal; its reasons quote the pages it READ ("Oh, BRENDAN went out to ROUTE 103 ...", "We should head back to the LAB." in CH1T, a GIRL's run) |
+| `live_step5.py` CH2 (stretch) | chapter 2 from the CH1C arm's own end state and world memory | PASS, CLEAN, `done: ch2_wally reached` in 138,555 frames: HIDE_PETALBURG_CITY_WALLYS_MOM 1 and VAR_PETALBURG_GYM_STATE 2; GAME_STAT_POKEMON_CAPTURES +5 with 5 new PIDs of the player's OT; GAME_STAT_USED_POKECENTER +2; FLAG_ITEM_ROUTE_102_POTION set (on the SECOND walk to it: a trainer's battle took the first, round 1's section); 10 POKé BALLS bought at OLDALE's MART (money 3300 -> 1256); the rest rule 0 breaches over 2 occasions; its losses 0 == told 0 |
+| `rate_step5.py` (NEW held-out seeds 301-310, in-process, clock pinned; 40 runs + 4 in phase 2) | how OFTEN; what each fault costs | VERDICT PASS. CH1: the POKéDEX 10 of 10, the rival at the FIRST try 10 of 10; TRAINED BY THE GAME in every seed (round 2): inside the windows its log says it roamed to train before the rival's flag, the game's own step counter rose 88-293 (its roam reports 86-290) and the game says 4-18 wild battles were WON there (bounds 60 and 3); whiteouts 0, the rest rule 0 breaches over 14 occasions, spins 8 in 1,603 steps (0.50 %), the catch-all 0, the recorder saw every battle end. THE TRAINED CHECK TELLS TRAINING FROM NONE: it passes 10 of 10 CH1 seeds and 0 of 10 NOTRAIN seeds (no training window: the game's steps and won battles there 0 in every seed, though NOTRAIN won 0-15 wild battles elsewhere before the rival). ALL PLANS: the AI's report == its TOLD losses == the game's in 42 of 42 runs (the game's: CH1 0, NOTRAIN 3, NOHINTS 0, DEADREST 0, STOP 2). NOTRAIN: wild battles won before the rival 63 vs 132; the strongest level at the rival's flag PAIRED by seed +1.1 (every seed +1 or +2); the HP the fight left, paired, +0.10 (reported); first-try 8 of 10 vs 10 of 10 (reported). DEADREST (the rest fix removed): 53 battles fought on under heal_below over 66 occasions (the real code 0). NOHINTS: 0 of 10 reach the POKéDEX, every one ending `play: stuck: no milestone for ~120,000 frames (since <milestone>)`. STOP (phase 2: the two NOTRAIN runs the game recorded a loss in, 307 and 310, replayed with MAX_LOSSES 1): both end `play: stuck: 1 battles lost (MAX_LOSSES 1)` 682 / 679 frames after the game's record of the loss, at the same frame as the base runs' (f59490, f56400); STOPDEAD (the loop's count also removed, G46): neither stops (both reach the POKéDEX, 28,798 / 40,628 frames later), report and told 0 while the game lost 1 / 2 |
+| `test_goals.py` | the rules, unit by unit: the milestone table and the marks, milestone detection, the hints (words heard as WHOLE words, the page READ quoted, the pages kept, a `go` with its words unheard, a wordless hint only for a place it has been, every hint's map NAMED by what is said, asking, hints off), the errands by personality (the training target from the boss levels, the session bound, no training hurt, a heal again in danger, the heal before the fight under the no-training fault), the rest rule (by personality, installed and cleared, asked with no battle limit, the battle's kind during the battle, a walk to heal kept out of the grass, an item walk a battle ate tried again), a roam's battles by how they ended, the losses (in goals, MAX_LOSSES), THE PLAY LOOP ITSELF (MAX_LOSSES and STORY_PATIENCE through `HandsBrain._play`), the drift, the choices, the ways, someone seen sought where they stood, the doors kept with the memory | 59 tests OK |
+| `revert_step5.py` | each rule carries weight: one broken in a COPY, its predicted test fails | 52 of 52 mutants CAUGHT as predicted (7 new in round 2: G46-G52, G46 and G47 the verifier's V6 and V4), the unchanged copy passes |
+| `extract_milestones.py --verify` / `--verify --plant` | every flag and var number, every proof's setter, trainer id and party level, look, metatile and hint word (13) against pret/pokeemerald | OVERALL PASS; with three planted wrong facts, exactly those three found |
+| `run_units.py` (`2026-10-14-step5-UNITS.txt`) | the static gate and every unit suite of every step on this tree | OVERALL PASS (check_purity, test_check_purity 29, test_host 20, test_eyes 56, test_hands 57, test_world 132, test_battle 107, test_evidence 9, test_goals 59, both extractors' `--check`) |
+
+**Determinism, not replication** (CLAUDE.md rule 8): the three live CH1 arms and the CH2 arm ran the same frames on this
+tree as on round 1's (105,754 / 95,266 / 138,155 / 138,555): the whole-word hint rule changed nothing they met. Each is
+one trajectory, replayed. The sweep played NEW held-out seeds (301-310), since this round's fixes were made with 201-210's
+results known. In phase 2 the STOP and STOPDEAD runs met their loss at the base run's own frame: one trajectory replayed
+to it, then the A/B of the loop's count.
+
+**The full regression of steps 0-4 has NOT been run on this tree.** Round 2 changed one shared file, `skills/roam_train.py`
+(its report counts how the battles a battler played ended; with no battler, build step 3, its line and record are
+unchanged by construction). Checked on this tree: the step-3 ROAM plan (`rate_step3.py --plans ROAM --dev --no-reverts`,
+10 seeds) gave rows and metric records IDENTICAL to `2026-10-14-step3-RATE.txt`; the step-4 WILD and CATCH plans (they
+roam with the battler) gave verdict lines identical to `2026-10-14-step4-RATE.txt` (its two pooled checks FAIL on a
+2-plan subset, as their bounds are sized for every plan); `revert_step3.py` W16, W19, W21, W22, W41 (the mutants in this
+file) CAUGHT; all 278 mutant anchors of revert_step11/2/3/4/5 occur exactly once. The live and rate suites of steps 0-4
+in full are left to the one full regression at the end. (The step-4.1 tree's `2026-10-09-*` files are still at the top
+level: `prune_evidence.py --retire` was NOT applied, for the reason the first round gave.)
+
+**How the development sweeps got there** (seeds 1-9, `step5dev1` to `step5dev5`; each fix measured, then re-swept): the
+first chapter-1 run walked into PROF. BIRCH's scene link (a map change a SCENE made is no way to walk); sweep 2 reached the
+POKéDEX in 3 of 9: four seeds had walked past MAY on ROUTE 103 while training and, told to find her, looked everywhere but
+there (`seek`: someone seen is sought where they stood), two went up and down between OLDALE and ROUTE 101 because a walk
+across a map's edge with a fade had been remembered as a WARP from a grass tile (`looks_like_exit`: a "warp" only from a
+tile that looks like a way out); sweep 3 stood still under the catch-all 33 times (the starter screen and the first battle's
+start, then one frame per ledge jump or map edge: named, `probe_callbacks`-measured); sweep 4 reached 9 of 9 but graded
+one seed as "never trained" because the RECORDER read the rival's flag on a frame the game was moving its save blocks
+(`StoryRecorder`: no sample while `gMain.vblankCallback` is NULL, and a change must be confirmed by the next sample); the
+chapter-2 runs went home to MOM past OLDALE's centre (the recognised doors were not kept between runs), explored ROUTE
+102's grass for the PETALBURG GYM (a building is looked for in its own town), roamed past two item balls, and gave up the
+one it tried when a battle stopped the walk (a roam stops for an item ball in view; an interrupted walk is tried again);
+sweep 5 (and the graded sweep) PASS. `live_step5.py`'s leftover check first counted 17 processes of OTHER projects on this
+machine (a check for any `pokebot.py`): it now counts only its own profile's.
+
+### Step 5, the verifier's round (2026-10-14)
+
+The verifier graded the first tree `all_pass: false` on three failures and seven weak proofs. Each, what was wrong, the
+fix, and what now proves it (tests in `test_goals.py`, mutants in `revert_step5.py`, sweep plans in `rate_step5.py`):
+
+* **FAILURE: the training roam's heal-below stop was DEAD.** The roam installed `nav.battle_rest` but cleared the battle
+  limit, and the navigator asked the rest only WITH a limit, so the rule never fired (the Story arm fled 8 battles in a row
+  at 5/23 HP; the Trainer arm whited out twice on the walk home). Fix: the navigator asks `battle_rest` whenever it is set
+  (the step-4 battle brain sets it only together with its limit, so its behaviour is unchanged by construction); the rule
+  is `goals.training_rest` (under the personality's `heal_below`, or `needs_rest`), installed and cleared by
+  `GoalRunner.roam_hooks`. Proof: RestTests (asked with no limit; by personality; installed and cleared), mutants G35, G36
+  (the verifier's V3), G40; the sweep's REST RULE check (0 breaches over 17 occasions in CH1, and the DEADREST plan, the
+  fix removed in a copy, 49 breaches over 58), the live arms' (0 over 4).
+  The verifier's evidence also named the WALK HOME. Fixing the rule did not stop those whiteouts: the development sweeps
+  after it (step5dev6, step5dev7) still whited out 3 times in 9, every one a wild battle met at 2-5 HP, six of them
+  (DEADREST's included) on a walk home that ran out its 9,000 frames on ROUTE 101. The cause: MOM walks the player into
+  the new house in a SCENE, and every scene's map change was refused as a way to walk, so the AI knew NO way home. Three
+  fixes, each with its test and mutant: a scene's map change through a DOOR is that door (`route_to`, `world_distance`;
+  WayTests, G42; still none from where the player merely stood, G21, G26); a heal put aside after two failures is tried
+  again at once when the party is in DANGER, and nobody trains hurt (ErrandTests, G43, G44: seed 3 had then trained six
+  sessions at 2/26 HP, each stopped by the rest at its first battle); on the way to heal it keeps out of the tall grass
+  (`HURT_GRASS_COST`, G41). After them: 0 whiteouts in 9 (step5dev8) and 0 in 10 (graded), and the pre-registered bound
+  `CH1_WHITEOUTS_MAX` 2. Whiteouts were 0 in DEADREST too once the way home was known (step5dev8): the measured effect of
+  the REST rule is the roams it stops, not fewer whiteouts.
+* **FAILURE: MAX_LOSSES did not bound in-goal losses, and the loss counts were false.** Only the main loop's `play_out`
+  counted a loss. Fix: `mode.py` `_count_losses` at the top of every pass counts every battle the battler played and lost
+  (`goals.battles_lost` over `Navigator.battle_log`), told, ending the run at `MAX_LOSSES`; `_play_end` recounted (round
+  2 removed that recount: it hid a loop that had stopped counting, next section). Proof:
+  LossTests, G38, G39; the sweep's ALL PLANS check, the AI's count == the GAME's (`gBattleOutcome` LOST, the new
+  `StoryRecorder` battles) in 40 of 40 runs, with real losses among them (NOTRAIN 1, DEADREST 1; the development sweeps 9);
+  the live arms' "its end line's losses == its log's".
+* **FAILURE (minor): `prep['wild']` was always 0.** The battle's kind was read on its first frame, before the battle view
+  exists. Fix: a watcher on the hands' looks takes the first battle view the battler's own looks show (it presses nothing);
+  the battle record now carries its kind, outcome, start frame and the party's HP at start and end. Proof: RestTests, G37;
+  the live arms' "its end line's training == its log's" (met 11 / 6 / 11 in the three CH1 arms, more than 0 required).
+* **Weak: the hint-words rule was unproven at its own site.** HintTests now play a `go` whose words are unheard (no map,
+  the words awaited) and a hint with NO words (headed for only once the AI has been there: a new rule, `hint_known`).
+  G30 is the verifier's V2 and is caught; G31.
+* **Weak: `TRAIN_SESSIONS` was untested.** ErrandTests plays one session short of the bound and at it (ready, "sessions
+  roamed: no endless grind"); G33 is the verifier's V4 and is caught.
+* **Weak: "wild battles before the rival" counted PROF. BIRCH's and the fled ones.** The sweep now counts wild battles
+  WON between the starter's mark and the rival's flag by the GAME's outcomes (bound >= 3; 7-27 measured); the live arms
+  count WON battles between the starter and rival milestones (11 / 8 / 19).
+* **Weak: the NOTRAIN HP effect was confounded** (the fault also removed the heal before the fight, which waited on
+  training's "ready"). Fix: under `train_off` the party is ready at once, so it heals before the fight (ErrandTests, G34).
+  The comparison is PAIRED by seed: the level effect holds (+1.7, every seed 0 to +3); the HP effect does NOT (+0.04,
+  reported, not bounded). The first round's 0.51 vs 0.65 was the missing heal, not the training.
+* **Weak: `STORY_PATIENCE` was checked only when the player was free.** It is now checked on every pass of the loop.
+  (Round 1 left it a code change read; round 2 drives the loop itself: next section.)
+* **Weak: the hint data named maps the game never says** (ROUTE 102 for MOM's "PETALBURG GYM"; ROUTE 104 with no words at
+  all). Read from the decomp (`PetalburgCity_Gym_Text_DadGoCollectBadges`): DAD says "Head for RUSTBORO CITY ... challenge
+  the GYM LEADER, ROXANNE". ROUTE 102's step now heads for PETALBURG CITY (ROUTE 102 stays the waypoint passed on the way);
+  ROUTE 104 and the woods head for RUSTBORO CITY on DAD's words; the gym's milestones on "ROXANNE". HintTests checks every
+  hint's map is NAMED by what is said or is the map whose own script says it (G32 restores the verifier's case and is
+  caught); `--verify` finds the 13 hint words in the decomp.
+* **Weak: each live arm reads the host clock.** Unchanged: the launcher (the finished host side) has no clock pin, and the
+  sweep's runs pin it. This round's live CH1 arms happened to run the same frames as the tree before (above).
+* **Found by the live CH2 arm of this round, not by the verifier:** a ROUTE 102 trainer's battle took a walk to the POTION
+  and its 4,000 frames; the walk ended "unreachable" and the ball was given up, so the arm FAILED its item claim on tree
+  `4c99079e6160ae9b`. A battle met on a walk to an item is now an interruption (tried again, up to `ITEM_TRIES`): the
+  item test and G45; the CH2 arm on this tree walked back and picked it up.
+
+### Step 5, the verifier's round 2 (2026-10-14)
+
+The verifier graded round 1's tree (`c3eb4fd9579e6d78`) `all_pass: true` with seven weak proofs. Each, the fix, and what
+now proves it:
+
+* **The MAX_LOSSES wiring was unproven.** Its mutant V6 (the loop's `_count_losses` call replaced by None) passed every
+  test and the sweep: `_play_end` RECOUNTED the losses, so the "AI's losses == the game's" check agreed anyway, and no
+  grader read the loop's told lines. Fixes: `_play_end` no longer recounts (every way out of the loop leaves it after that
+  pass's count, so a recount could only hide a dead count; a disagreement is told, not mended); `PlayLoopTests` drives the
+  REAL `HandsBrain._play` loop (its goal manager real; a stand-in goal runner whose every goal loses a battle) and must end
+  `stuck: 3 battles lost (MAX_LOSSES 3)` after exactly three goals, each loss told "(n of at most 3)"; the graders now
+  require report == TOLD losses == the game's (the sweep, every plan) and end line == log == told (the live arms). End to
+  end in the game: the sweep's PHASE 2 replays every run the game recorded a loss in with MAX_LOSSES 1 (STOP: it stops at
+  that loss, 682 / 679 frames after it) and with the loop's count also removed (STOPDEAD: it goes on, report 0 against the
+  game's 1 / 2). Mutant G46 is V6, CAUGHT.
+* **STORY_PATIENCE was untested.** `PlayLoopTests` drives the loop on a screen that never frees (a stand-in `play_out` that
+  never ends it): it must end on the patience at the first pass past it, having chosen no goal; and on goals that never move
+  the story. Mutant G47 is V4 (the old "only when free" rule): the loop never ends, CAUGHT by the test's frame budget.
+* **The game-side training check did not tell training from none** ("won >= 3 between the starter and the rival" was met
+  by NOTRAIN in 6 of 10 seeds: walks win battles too). Fix: `play_harness` now records the game's own step counter
+  (GAME_STAT_STEPS) over time (`StoryRecorder.steps`, read by `steps_counted`, which takes only rises the game can make),
+  and the sweep counts, INSIDE the windows the AI's log says it roamed to train (`rate_step5.training_windows`), the
+  game's steps and the wild battles the game says were won. CH1 passes in 10 of 10, NOTRAIN in 0 of 10 (no window). The
+  live arms count the wild battles won inside their training roams (a live run has no second path while it plays; their
+  told wild battles == GAME_STAT_WILD_BATTLES over the run). The bounds (60 steps, 3 won) are round 1's, carried over; the
+  kept action logs of the development and earlier graded seeds measured 110-279 steps and 5-21 won in the windows, NOTRAIN
+  0 and 0. On seeds 301-310 the game counted 88-293 and 4-18 (three seeds at 4: a thin margin over 3).
+* **The hint words matched substrings** ("LAB" in "available", "BAG" in "baggage", "clock" in "o'clock"). Fix:
+  `goals._names` matches WHOLE words (letters, digits and the apostrophe are word characters). HintTests, G48. No live
+  trajectory changed (the arms ran the same frames as round 1).
+* **The goal reasons quoted the milestone's stored line**, not the page read ("MAY: Well, it's time to head back to the
+  LAB." in a run whose rival was BRENDAN). Fix: the goal manager keeps the pages it READ with when (`notice`, the world
+  memory's own condition) and the reason quotes the most recent page that says the words (`heard_page`, `quote`); CH1T now
+  logs "We should head back to the LAB." and "Oh, BRENDAN went out to ROUTE 103 ...". HintTests, G49, G51, G52.
+* **The roam report's "fled" counted every battle that ended with no stop** ("5 wild encounters, 4 fled" for 5 won).
+  Fix: with a battler, `RoamReport.count` reads the navigator's record of each battle: "fled" is the battles RUN from, and
+  the line and record add won, caught, lost and the trainers' battles (CH1T now: "5 wild encounters, 0 fled, 5 won").
+  With no battler (step 3) the line and record are unchanged (the step-3 ROAM rows replay identically). RestTests on
+  `test_world.EncounterGame` with a battler, G50.
+* **The earlier suites ran only as units.** This round changed `skills/roam_train.py` only (of the shared files); its
+  step-3 and step-4 consumers were replayed on this tree (the proof section above). The full regression stays at the end.
+
+### Known limits of step 5
+
+* **The NOTRAIN arm's predicted win-rate drop is NOT measurable here**: the rival's L5 starter is beaten untrained at the
+  first try 8 times in 10 (seeds 301-310; 9 in 10 on 201-210), trained 10 of 10. The training's effect is graded on the
+  fight's margin instead: the strongest level at the rival's flag, paired by seed (+1.1 on 301-310, +1.7 on 201-210). The
+  HP the fight left shows no clear effect once both arms heal before the fight (+0.10 and +0.04, reported). A real
+  win-rate effect needs a harder fight (the ROUTE 102 trainers, ROXANNE).
+* **`STORY_PATIENCE` on a screen that never frees** is proven through the real loop with a stand-in screen
+  (`PlayLoopTests`, G47); no live or sweep run has met such a screen.
+* **`MAX_LOSSES` 3 itself** has not been reached by an unaltered run (whiteouts are rare: none in the CH1 seeds since the
+  way home was found). The stop is proven through the real loop (`PlayLoopTests`, G46), and end to end in the game at a
+  cap of 1 (the sweep's STOP plan; STOPDEAD, the loop's count removed, does not stop).
+* **Chapters 3 and 4 are DATA only**: their milestones, proofs, hints and fight levels are extracted and verified, but no
+  run plays them; `AI_PLAYER_TARGET=ch4_roxanne` is accepted and untested.
+* **The live arms run on the HOST clock** (the cartridge reads it in a launcher run): each is one trajectory, not
+  replayable; the sweep's runs pin the clock and replay (`play_harness.py --game-clock`). Identical numbers between two
+  development sweeps of unchanged chapter-1 code are a determinism check, never a replication.
+* **Chapter 2 is one live run** (the stretch) plus four development runs; the only item ball picked up in any of them is
+  the ROUTE 102 POTION (one per run, in the runs that picked one up), so "an item picked up" rests on that one ball.
+* **The long errands are slow, not stuck**: a `go` across ROUTE 102 often runs out its 9,000 frames to its battles and is
+  chosen again; before a POKéMON CENTER is known, a heal is a walk home to MOM. A whiteout is still possible on such a
+  walk (a single battle can take a party from above `heal_below` to a few HP): 0 in the 19 chapter-1 seeds since the way
+  home was found, 3 in 9 before.
+* **The milestone marks are a memory read** of the game's own flags (the eyes' abstraction of "a person knows the story
+  moved on"); the hints are only the words the game itself says, and with `AI_PLAYER_FAULT_NO_HINTS` the AI does not
+  find its way (the NOHINTS sweep).
+* The FAVOURITE Pokemon is drawn and logged; the shiny hunt is deferred.
 
 ## The battles (build step 4)
 

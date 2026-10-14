@@ -102,6 +102,7 @@ __all__ = [
     "opened",
     "explore_intent",
     "goto_intent",
+    "looks_like_exit",
     "not_back_to_seen_all",
     "pick",
     "pick_on_the_move",
@@ -178,6 +179,19 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
     while frontier:
         key, path = frontier.pop(0)
         for kind, link in world.links_from(key):
+            if kind == "warp" and not looks_like_exit(world, key, link.get("tile")):
+                # (build step 5) a "warp" whose tile does not LOOK like a way out is no way a person can take: a map change a
+                # SCENE made from where the player stood (PROF. BIRCH taking the player from the grass of ROUTE 101 to his
+                # lab), or a walk across a map's edge remembered as a warp. Measured 2026-10-14 (the play brain's first
+                # chapter-1 run): heading back to the lab, the route ran through Birch's scene link from ROUTE 101, which no
+                # target can use, and the walk went up and down between ROUTE 101 and OLDALE TOWN until its novelty window
+                # ended it, three times; and the chapter-1 sweep's seed 7: a walk across ROUTE 101's edge into LITTLEROOT
+                # with a fade between the two looks was remembered as a warp from (10, 19), a grass-side tile. A scene that
+                # walked the player through a DOOR is that door, though: MOM walks the player in through the front door of
+                # the new house, and until the step-5 verifier's round (2026-10-14) every scene link was refused, so the AI
+                # knew no way HOME (it had never walked in by itself) and its walks home to heal ran out on ROUTE 101
+                # (the development sweep step5dev7, seed 3: twice 9,000 frames, then a whiteout at 2/26 HP)
+                continue
             target = link.get("to") if kind == "warp" else link.get("target")
             if target is None or target in seen:
                 continue
@@ -187,6 +201,14 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
             seen.add(target)
             frontier.append((target, step))
     return None
+
+
+def looks_like_exit(world: WorldMemory, key: str, tile) -> bool:
+    """(build step 5) Does the tile a warp link starts from LOOK like a way out (a door, stairs, a mat: `TileFact.warp` or
+    `.door`)? A tile not seen, or seen as anything else, is not one."""
+    memory = world.maps.get(key)
+    fact = memory.fact((int(tile[0]), int(tile[1]))) if memory is not None and tile is not None else None
+    return fact is not None and (fact.warp or fact.door)
 
 
 def _approaches(memory: MapMemory, exit_tile: tuple[int, int], reach: dict) -> list[tuple[tuple[int, int], str, float]]:
@@ -297,7 +319,12 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     # grass for its own sake (Catcher, Trainer)
     if weights.grass > 0:
         for tile in memory.grass():
-            if not memory.visits.get(tile):
+            # (build step 5) grass SEEN ACROSS an edge it has crossed is the next map's: walking to it leaves this map, and
+            # on that map the way back here was the better place again. Measured 2026-10-14 (the play brain's chapter-1
+            # sweep, seeds 3 and 6, Trainer and Catcher tastes): in OLDALE TOWN the grass of ROUTE 101 below its edge
+            # scored over the road on, and the walk crossed that edge back and forth until the novelty window ended it,
+            # nine times running
+            if not memory.visits.get(tile) and not memory.outside(tile):
                 add("grass", tile, weights.grass * 0.8, "tall grass not walked yet: wild Pokemon")
     # (step 4.1 round 2, the step-4 review's finding 7) PEOPLE (Trainer): a person seen lately and not met yet is walked UP
     # to: the seen walkable tile beside where they stand (the nearest), once (`navigator.MEET_TRIES` decisions at most),

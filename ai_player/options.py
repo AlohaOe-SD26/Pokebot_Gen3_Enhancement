@@ -24,6 +24,7 @@ __all__ = [
     "DEFAULT_MART_COUNT",
     "DEFAULT_MART_ITEM",
     "DEFAULT_ROAM_STEPS",
+    "DEFAULT_TARGET",
     "DEFAULT_WATCH_EVERY",
     "HANDS_BRAINS",
     "INTENT_MARGIN",
@@ -49,7 +50,9 @@ __all__ = [
     "ENV_FAULT_KEEP_LISTENERS",
     "ENV_FAULT_MANUAL",
     "ENV_FAULT_NO_CROP",
+    "ENV_FAULT_NO_HINTS",
     "ENV_FAULT_NO_REBIND",
+    "ENV_FAULT_NO_TRAINING",
     "ENV_FAULT_RAISE",
     "ENV_FAULT_SKIP_RESTORE",
     "ENV_FAULT_UNGATED_A",
@@ -65,7 +68,9 @@ __all__ = [
     "ENV_ROAM_STEPS",
     "ENV_RUN_DIR",
     "ENV_SEED",
+    "ENV_STARTER",
     "ENV_TALK_TO",
+    "ENV_TARGET",
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
     "ENV_WORLD",
@@ -131,7 +136,10 @@ HANDS_BRAINS = ("intro", "nurse", "mart", "clock")
 #: with the AI's own decider (`brain/battle.py`, `skills/battle.py`): the battle on screen at the start, then the person
 #: at `AI_PLAYER_TALK_TO` (walked up to and talked to: a trainer, the rival), then wild battles met while roaming the
 #: grass, until `AI_PLAYER_BATTLES` battles have ended. The step-3 world brains above still FLEE (their proofs stand).
-WORLD_BRAINS = ("explore", "roam", "goto", "battle")
+#: BUILD STEP 5: the PLAY brain (a world brain too), which plays the STORY itself: the goal manager (`brain/goals.py`) reads
+#: where the story is from the milestone marks and chooses one goal at a time (the story's next step, or a human errand:
+#: heal, shop, train, catch, an item, a chat), until the milestone `AI_PLAYER_TARGET` is done or the frames run out.
+WORLD_BRAINS = ("explore", "roam", "goto", "battle", "play")
 BRAINS = ("placeholder", "watcher") + HANDS_BRAINS + WORLD_BRAINS
 DEFAULT_BRAIN = "placeholder"
 DEFAULT_WATCH_EVERY = 60
@@ -205,6 +213,18 @@ ENV_FAULT_IGNORE_PP = "AI_PLAYER_FAULT_IGNORE_PP"
 #: FAULT (step 4.1 round 3): the shift question judged about the incoming foe, but the member chosen there NOT carried into
 #: the party menu (ranked again, by level): the live A/B of the carry (arm SHIFTCX).
 ENV_FAULT_FORGET_SHIFT = "AI_PLAYER_FAULT_FORGET_SHIFT"
+#: BUILD STEP 5 (the play brain). The milestone to reach (an id of `knowledge/milestones.json`, e.g. `ch1_pokedex`, the
+#: end of chapter 1; `ch2_wally`, of chapter 2); the brain ends "done: ..." once the marks prove it.
+ENV_TARGET = "AI_PLAYER_TARGET"
+DEFAULT_TARGET = "ch1_pokedex"
+#: The starter to take from PROF. BIRCH's bag (TREECKO, TORCHIC, MUDKIP); unset: the personality's seeded draw. The
+#: acceptance batch names one per run (design draft §10.5: "the starter is SEEDED per run, giving 9 runs = 3 per starter").
+ENV_STARTER = "AI_PLAYER_STARTER"
+#: FAULT (build step 5): the goal manager never uses a hint (no goal map from the words it read, nobody asked): it explores
+#: with its taste alone (the HINTS arm: slower, or a reasoned stop within its budget).
+ENV_FAULT_NO_HINTS = "AI_PLAYER_FAULT_NO_HINTS"
+#: FAULT (build step 5): no training before a known fight (the TRAIN arm: the rival's win rate measured without it).
+ENV_FAULT_NO_TRAINING = "AI_PLAYER_FAULT_NO_TRAINING"
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
@@ -212,7 +232,7 @@ ALL_SWITCHES = (
     ENV_FAULT_SKIP_RESTORE, ENV_CONTROL_TAP, ENV_FAULT_NO_CROP, ENV_FAULT_UNGATED_A, ENV_FAULT_BLIND_COUNT,
     ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
     ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_FORGET_UNUSABLE,
-    ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT,
+    ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT, ENV_FAULT_NO_HINTS, ENV_FAULT_NO_TRAINING,
 )
 
 DEFAULT_FRAMES = 3000
@@ -336,6 +356,11 @@ class HandsOptions:
     fault_ignore_pp: bool = False
     # (step 4.1 round 3)
     fault_forget_shift: bool = False
+    # BUILD STEP 5 (the play brain); defaults so a caller that names only the earlier fields still works
+    target: str = DEFAULT_TARGET
+    starter: str | None = None
+    fault_no_hints: bool = False
+    fault_no_training: bool = False
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -396,6 +421,10 @@ class HandsOptions:
             fault_no_catch_status=_flag(ENV_FAULT_NO_CATCH_STATUS),
             fault_ignore_pp=_flag(ENV_FAULT_IGNORE_PP),
             fault_forget_shift=_flag(ENV_FAULT_FORGET_SHIFT),
+            target=os.environ.get(ENV_TARGET, "").strip() or DEFAULT_TARGET,
+            starter=os.environ.get(ENV_STARTER, "").strip().upper() or None,
+            fault_no_hints=_flag(ENV_FAULT_NO_HINTS),
+            fault_no_training=_flag(ENV_FAULT_NO_TRAINING),
         )
 
 

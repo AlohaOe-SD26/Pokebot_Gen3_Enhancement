@@ -35,6 +35,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     "test_battle": ([str(GATES / "test_battle.py")], 2),
     "test_evidence": ([str(GATES / "test_evidence.py")], 2),
     "extract_knowledge_check": ([str(GATES / "extract_knowledge.py"), "--check"], 3),
+    # build step 5: the goal manager's unit tests and the milestone table against its extractor
+    "test_goals": ([str(GATES / "test_goals.py")], 2),
+    "extract_milestones_check": ([str(GATES / "extract_milestones.py"), "--check"], 1),
 }
 _MARK = "working-tree digest sha256:"
 

@@ -84,6 +84,15 @@ source of every rule):
     read only while their input task runs; a party Pokemon's five STATS (`MonSummary.stats`, bytes 90-98 of the party
     record `_party` already reads) and each battler's PID and position (`BattleMon.pid`, `.battler`).
 
+BUILD STEP 5 (the story player), READ ONLY, no new door (the doors of steps 1-4):
+  * the MILESTONE MARKS (`Progress.marks`, `_marks`): save block 1's event-flag bytes and var bytes, two plain ranges read
+    through `read_symbol` (the save block's pointer) and `context.emulator.read_bytes`, the reads `_player` already makes,
+    decoded by `eyes/view.py` milestone_marks for exactly the flags and vars `knowledge/milestones.json` names as proofs
+    (kept apart from `Progress.flags`, the navigator's novelty, so no earlier walk moves);
+  * the player's own GENDER (`PlayerState.gender`: struct PlayerAvatar @7, in the `gPlayerAvatar` bytes `_player` reads);
+  * PROF. BIRCH's bag (`eyes/screens.py`: the starter choice from its task's data, already read for every task; its
+    "Do you choose this POKéMON?" through `sMenu`, which is now read while `Task_HandleConfirmStarterInput` runs too).
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -132,6 +141,9 @@ from ai_player.eyes.view import (
     DOOR_BEHAVIORS,
     EXIT_BEHAVIORS,
     LEDGE_DIRECTIONS,
+    SAVE_BLOCK_1_FLAG_BYTES,
+    SAVE_BLOCK_1_FLAGS,
+    SAVE_BLOCK_1_VARS,
     SCRIPT_CONTEXT_SHUTDOWN,
     STORY_FLAGS,
     TALL_GRASS_BEHAVIORS,
@@ -148,6 +160,7 @@ from ai_player.eyes.view import (
     foe_move_seen,
     hp_bar_pixels,
     in_view,
+    milestone_marks,
     movement_mode,
     object_kind,
     script_waits_for_button,
@@ -207,6 +220,8 @@ _SMENU_TASKS = frozenset({
     "Task_HandleMultichoiceGridInput", "Task_ShopMenu",
     # STEP 2.1 (`eyes/screens.py` UI_BUSY_TASKS): the gender menu stays on screen while its sprites slide
     "Task_NewGameBirchSpeech_SlideOutOldGenderSprite", "Task_NewGameBirchSpeech_SlideInNewGenderSprite",
+    # BUILD STEP 5 (`eyes/screens.py`): "Do you choose this POKéMON?", a CreateYesNoMenu polled through sMenu
+    "Task_HandleConfirmStarterInput",
 })
 #: `src/shop.c` struct MartInfo: itemList @8, itemCount @0xC (u16), martType @0xF; struct ShopData:
 #: tilemapBuffers[4][0x400] (0x2000 bytes), totalCost @0x2000, itemsShowed @0x2004, selectedRow @0x2006,
@@ -303,6 +318,17 @@ def _ewram_bytes(address: int, length: int) -> bytes:
     if not (EWRAM_START <= address and address + length <= EWRAM_END and length >= 0):
         raise RuntimeError(f"not an EWRAM pointer: 0x{address:08X} (+{length})")
     return context.emulator.read_bytes(address, length)
+
+
+def _marks() -> tuple[tuple[str, int], ...]:
+    """BUILD STEP 5: the MILESTONE MARKS (`eyes/view.py` MILESTONE_FLAGS, MILESTONE_VARS): save block 1's flag bytes and var
+    bytes, read as TWO plain ranges through the doors this file already has (`read_symbol` for the save block's pointer,
+    `context.emulator.read_bytes` for the bytes: the reads `_player` makes), decoded by `milestone_marks`. No new door,
+    nothing written. Not read while the save blocks may be moving (`look`: progress is not read then)."""
+    save_block_1 = _u32(read_symbol("gSaveBlock1Ptr", size=4), 0)
+    flag_bytes = bytes(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_FLAGS, SAVE_BLOCK_1_FLAG_BYTES))
+    var_bytes = bytes(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_VARS, 0x200))
+    return milestone_marks(flag_bytes, var_bytes)
 
 
 class FrameworkEyes:
@@ -762,6 +788,8 @@ class FrameworkEyes:
             avatar_flags=flags,
             trainer_id=visible_id(trainer),
             settling=position is None,
+            # BUILD STEP 5: the player's own sprite (struct PlayerAvatar gender @7, in the bytes read above): BOY 0, GIRL 1
+            gender={0: "BOY", 1: "GIRL"}.get(avatar[7]),
         )
 
     def _map_names(self, group: int, number: int) -> tuple[str, str | None]:
@@ -1016,6 +1044,7 @@ class FrameworkEyes:
             dex_seen=len(pokedex.seen_species),
             owned_dex=owned,
             flags=tuple((name, bool(get_event_flag(name))) for name, _ in STORY_FLAGS),
+            marks=_marks(),
         )
 
     # ------------------------------------------------------------------ battle

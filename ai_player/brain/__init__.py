@@ -8,6 +8,11 @@ gate refuses them). Framework-free: they see the game through the hands' `Eyes` 
                 progress is NOVELTY only; "stuck:<reason>" instead of a hang or a door ping-pong
   explore.py    where to go next: the frontier of what it has seen, its exits, grass and people, weighed by the
                 PERSONALITY (Catcher grass, Story exits toward unexplored maps, Trainer grass and people)
+  battle.py     BUILD STEP 4: the battle decider (a move by its worth against this foe, switch, heal, run, catch)
+  goals.py      BUILD STEP 5: the GOAL MANAGER: where the story is (the milestone marks), and ONE goal at a time with its
+                reason: the milestone's next step (go where the game SAID, ask people, talk, use a thing, follow a scene)
+                or a person's errand (heal, buy POKé BALLS, train before a known fight, an item ball in view, catch new
+                species, chat), by the personality's weights; and the GoalRunner that plays it with the skills
 """
 
 __all__: list[str] = []

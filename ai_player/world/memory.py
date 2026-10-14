@@ -460,6 +460,11 @@ class WorldMemory:
         self.news_log: list[tuple[int, str]] = []
         #: closed doors reopened and not yet told: (frame, map key, tile, why) (`take_reopened`)
         self.reopened: list[tuple[int, str, tuple[int, int], str]] = []
+        #: BUILD STEP 5: (map key, (x, y)) -> "pokemon_center" / "mart": a door the play brain RECOGNISED by its look
+        #: (`brain/goals.py` GoalManager.notice), kept with the memory so a later run remembers where the centre was (the
+        #: chapter-2 development run of 2026-10-14 started from chapter 1's memory, had walked past OLDALE's centre, and
+        #: went home to MOM to heal). Written only when it holds something, so the earlier brains' snapshots are unchanged.
+        self.landmarks: dict[tuple[str, tuple[int, int]], str] = {}
         self._last = _Last()
 
     # ------------------------------------------------------------------ what the navigator tells it
@@ -713,7 +718,7 @@ class WorldMemory:
 
     # ------------------------------------------------------------------ persistence
     def to_dict(self) -> dict:
-        return {
+        out = {
             "maps": {key: memory.to_dict() for key, memory in sorted(self.maps.items())},
             "warps": dict(sorted(self.warps.items())),
             "connections": list(self.connections),
@@ -723,6 +728,9 @@ class WorldMemory:
             # (build step 3.2) the news a person could see, counted, and the words read so far (`_news`)
             "news": self.news, "heard": sorted(self.heard), "news_log": [list(item) for item in self.news_log],
         }
+        if self.landmarks:  # (build step 5) only when the play brain recognised a door: earlier snapshots unchanged
+            out["landmarks"] = {f"{key}|{xy[0]},{xy[1]}": kind for (key, xy), kind in sorted(self.landmarks.items())}
+        return out
 
     def snapshot(self) -> str:
         """The memory as ONE line of JSON (the brain appends it to `<run_dir>/world.jsonl`)."""
@@ -742,6 +750,10 @@ class WorldMemory:
         world.news = int(data.get("news") or 0)
         world.heard = {str(words) for words in data.get("heard") or []}
         world.news_log = [(int(item[0]), str(item[1])) for item in data.get("news_log") or []]
+        for place, kind in (data.get("landmarks") or {}).items():  # (build step 5) "key|x,y" -> kind
+            key, _, xy = str(place).rpartition("|")
+            x, _, y = xy.partition(",")
+            world.landmarks[(key, (int(x), int(y)))] = str(kind)
         for memory in world.maps.values():
             for info in memory.closed.values():
                 info.setdefault("news", world.news)

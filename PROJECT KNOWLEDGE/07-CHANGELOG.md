@@ -37954,3 +37954,49 @@ bought balls only at fixed story points.
   - "clearly the best" is still about 74% of fights;
   - re-targeting on 5 of 6 navigation plans is measured, not reduced;
   - CROP's lap bound was raised to the data (25 -> 42).
+
+## 2026-10-14 — AI player step 5: the AI plays the STORY itself (goals from the game's flags, hints at the level the dialogue gives, personalities with drift, human errands); Chapter 1 from a real New Game to the POKéDEX, and the Chapter 2 stretch to Wally's tutorial
+
+- **Built (workflow: build, targeted verifier, 2 fix rounds, ONE full regression, review):**
+  - `ai_player/knowledge/milestones.json` with `gates/extract_milestones.py` (`--check`, `--verify`): badge 1 in 4 chapters. Each milestone has the flags that prove it, its map, the HINT words the game's dialogue gives, and the levels of fights the game names. The bot's story code was read as teaching DATA only; the provenance is its sha256.
+  - `ai_player/brain/goals.py`, the GOAL MANAGER. It reads the current milestone from the flags and builds the story goal. A map is unlocked only by whole words the AI actually read on screen. The goal is interleaved with personality-weighted ERRANDS: heal at a Pokemon Center, buy balls, TRAIN by roaming to the next fight's level, catch new species, pick up visible item balls, chat. It is never without a goal, and each goal carries its reason.
+  - `ai_player/personality.py` (Catcher/Story/Trainer, step-based drift and return, a favourite Pokemon). Also `skills/story.py` (talk, pick up, use), `knowledge/story.py` and `knowledge/wild_species.json`.
+  - The play loop `AI_PLAYER_BRAIN=play` in `mode.py`, bounded by `STORY_PATIENCE` and `MAX_LOSSES`.
+  - Gates: `live_step5.py`, `rate_step5.py`, `revert_step5.py`, `test_goals.py` and `play_harness.py`.
+- **Proven (tree `6172ff8932690719`, every result read from the GAME):**
+  - `live_step5.py` `OVERALL PASS: CH1T PASS, CH1C PASS, CH1M PASS, CH2 PASS`:
+    - **CH1:** three real New Games, one per starter, naming and clock included. Each set the POKéDEX and rival-win flags, with the starter it named in the party (by PID and OT). Each trained before the rival: 155/120/266 steps and 11/6/19 wild wins. Spins were at most 0.65 %, and no stretch of standing still was unexplained.
+    - **CH2** started from the save its own CH1 run made. It reached Wally's tutorial (`VAR_PETALBURG_GYM_STATE` 2). It caught 5 Pokemon (5 new PIDs with the player's OT), healed twice at a Pokemon Center, picked up the ROUTE 102 Potion (`FLAG_ITEM_ROUTE_102_POTION`), and bought 10 Poke Balls at Oldale (money 3300 -> 1256).
+  - `rate_step5.py` (seeds 301-310) `VERDICT: PASS`:
+    - POKéDEX 10 of 10; the rival beaten at the first try 10 of 10; whiteouts 0; spins 0.50 %.
+    - The game-side training check passes for 10 of 10 CH1 seeds and 0 of 10 NOTRAIN seeds.
+    - NOTRAIN leaves the party 1.1 levels lower at the rival.
+    - NOHINTS reaches the POKéDEX 0 of 10 and stops with a reason.
+    - The losses in its report, its told losses and the game's agree in 42 of 42 runs.
+  - `revert_step5.py`: 52 of 52 mutants caught.
+  - The full regression of every step passed (steps 0-4 live, rate and revert suites, and `run_units.py`). `provenance.py --check-evidence` passed after the three older trees' evidence was retired by `prune_evidence.py` (147 of 147 top-level files name the tree).
+- **Found and fixed during the round:**
+  - The training roam's "heal below" stop never fired: the navigator asked it only when a battle limit was set.
+  - Battles lost inside a goal were never counted, so a run that whited out twice reported 0.
+  - The "wild battles in training" count was always 0.
+  - The hint words matched substrings ("LAB" in "available").
+  - Reasons quoted the stored milestone line instead of the page actually read.
+  - The roam report's "fled" counted won battles.
+  - A training check could not tell training from none.
+  - Each fix has a mutant.
+- **OPEN, the next round (step 5.1):**
+  - **The verifier's failure (never idle, RULING 37 Q6):**
+    - The starter's yes/no stalls 600 frames (20 of 40 sweep runs).
+    - A goal chosen on the frame a scene's map change lands waits 1200 frames on a text that wants A (13 of 40).
+    - Both are bounded and the story completes. The standing-still check counts only the catch-all reason, so it cannot see them.
+  - **The review's findings:**
+    1. It BEELINES once a route is known: there is no explore errand and no intent-mix or seed-divergence metric. This goes against RULING 32's "no speedrun".
+    2. `STORY_PATIENCE` resets only on a milestone, so long training before ROXANNE would end as "stuck".
+    3. The `use rivals_poke_ball` step is scripted, and `ask` skips the hint check.
+    4. Fight levels are used for fights nobody announced, and shopping and home healing are keyed on flags a player cannot see.
+    5. Story goals have no cooldown, and the gym trainers are mandatory.
+    6. CH2 is one trajectory, and chapters 3-4 have never been run.
+  - **Also:**
+    - The training target's `max()` is untested.
+    - Some milestone lines say "done" on a waypoint pass.
+    - A battle line says it "WANTS" a species before it has balls.

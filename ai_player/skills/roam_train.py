@@ -37,7 +37,11 @@ THE METRICS (design draft §7, criterion 9), logged and returned:
     press is held, and that press never acts) over every press; and the spins split into reversals and walking in place.
     Until the step-3 verifier (2026-10-08) a step that ran into a battle was left out of BOTH counts (150 steps, 163
     presses), and the walk's "the tile it came from" went stale across the battle.
-  * DISTINCT TILES covered; the MOST-VISITED tile's count; encounters met and fled.
+  * DISTINCT TILES covered; the MOST-VISITED tile's count; encounters met and fled. With a BATTLER (build step 4 on: the
+    battle decider fights) "fled" is the battles RUN from, and the report adds how the battles it played ENDED (won,
+    caught, lost) and the trainers' battles met, by the navigator's record of each (`RoamReport.count`; the step-5
+    verifier's round 2 found "fled" counting every battle that ended with no stop). With none (build step 3) the line
+    and the record are unchanged.
 """
 
 from __future__ import annotations
@@ -73,8 +77,16 @@ class RoamReport:
     preempted: int = 0  # presses that did not move the player because a battle (or a scene) took the screen first
     distinct: int = 0
     most_visited: int = 0
-    encounters: int = 0
-    fled: int = 0
+    encounters: int = 0  # wild battles met (with no battler, build step 3: every battle met, each one fled)
+    fled: int = 0  # with no battler: the battles that ended with no stop (`skills/flee.py`); with one: the battles RUN from
+    #: (build step 5, the step-5 verifier's round 2: with a battler "fled" counted every battle that ended with no stop, so
+    #: a roam that WON 5 of 5 said "4 fled") the battles the battler played in the roam, by how they ENDED (the
+    #: navigator's record: `Navigator.battle_log`), and the trainers' battles met (not wild encounters)
+    fought: int = 0
+    won: int = 0
+    caught: int = 0
+    lost: int = 0
+    trainers: int = 0
     interrupted: int = 0  # training steps a battle or a scene began on (resolved once the player was free again)
     path: list = field(default_factory=list)  # every tile stood on after a training step
 
@@ -108,7 +120,33 @@ class RoamReport:
                 f"strict non-moving-press ratio {self.strict_ratio:.4f} ({self.non_moving} presses that did not move the "
                 f"player = {self.in_place} in place + {self.preempted} pre-empted by a battle or a scene, over "
                 f"{self.attempts} pressed; reported, not a criterion), the most-visited tile {self.most_visited} times, "
-                f"{self.encounters} wild encounters, {self.fled} fled")
+                f"{self.encounters} wild encounters, {self.fled} fled"
+                + (f", {self.won} won, {self.caught} caught, {self.lost} lost; {self.trainers} trainer battles"
+                   if self.fought else ""))
+
+    def battles(self) -> dict:
+        """The battle decider's counts (build step 5), for the metrics record: none when it played no battle (build step
+        3's record is unchanged)."""
+        return ({"fought": self.fought, "won": self.won, "caught": self.caught, "lost": self.lost, "trainers": self.trainers}
+                if self.fought else {})
+
+    def count(self, record: tuple[int, str, str] | None, stop: str | None) -> None:
+        """One battle met in the roam: `record` the navigator's record of it when its battler played it (frame, kind,
+        outcome), else None (fled by `skills/flee.py`: it counts as fled when it ended with no stop)."""
+        if record is None:
+            self.encounters += 1
+            self.fled += 1 if stop is None else 0
+            return
+        _, kind, outcome = record
+        self.fought += 1
+        if kind == "trainer":
+            self.trainers += 1
+        else:
+            self.encounters += 1
+        self.fled += outcome == "ran"
+        self.won += outcome == "won"
+        self.caught += outcome == "caught"
+        self.lost += outcome == "lost"
 
 
 def spin_count(path: list[tuple[int, int]], not_moved: int = 0) -> int:
@@ -202,10 +240,10 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
         nav.take_changes()
         if not nav_free(look):
             battle = in_battle(look)
+            logged = len(nav.battle_log)
             stop = yield from nav.handle(look, why)
             if battle:
-                report.encounters += 1
-                report.fled += 1 if stop is None else 0
+                report.count(nav.battle_log[-1] if len(nav.battle_log) > logged else None, stop)
             if stop is not None:
                 _finish(report, visits, not_moved, moved_in)
                 return f"roam: {stop}; {report.line()}"
@@ -229,6 +267,11 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
                 visits[here] = visits.get(here, 0) + 1
                 report.path.append(here)
             continue
+        stop = nav.roam_stop(look) if nav.roam_stop is not None else None
+        if stop is not None:
+            # BUILD STEP 5: the play brain's reason to stop roaming now (an item ball in view: `brain/goals.py`)
+            _finish(report, visits, not_moved, moved_in)
+            return f"roam: {stop}; {report.line()}"
         grass = set(memory.grass())
         area = _area(memory, grass)
         walls = nav.walls(memory, here)
@@ -308,5 +351,6 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
                                                   "preempted": report.preempted, "non_moving": report.non_moving,
                                                   "strict_ratio": round(report.strict_ratio, 6),
                                                   "distinct": report.distinct, "encounters": report.encounters,
-                                                  "fled": report.fled, "most_visited": report.most_visited})
+                                                  "fled": report.fled, "most_visited": report.most_visited,
+                                                  **report.battles()})
     return f"roamed: {report.line()}"

@@ -1,0 +1,38 @@
+AI PLAYER BUILD STEP 4.1 ROUND 3 - THE STATIC GATE AND THE UNIT SUITES
+code: HEAD 80a85906; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:6172ff8932690719 over git diff HEAD (18 files, 79592 bytes) and 12 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+Each suite's START line names the digest it ran on (all the same as the code line above).
+
+== check_purity: started 11:46:51 on sha256:6172ff8932690719, exit 0 at 11:46:53
+   VERDICT: PASS
+== test_check_purity: started 11:46:53 on sha256:6172ff8932690719, exit 0 at 11:52:45
+   Ran 29 tests in 351.875s
+   OK
+== test_host: started 11:52:45 on sha256:6172ff8932690719, exit 0 at 11:53:05
+   Ran 20 tests in 19.067s
+   OK
+== test_eyes: started 11:53:05 on sha256:6172ff8932690719, exit 0 at 11:53:06
+   Ran 56 tests in 0.898s
+   OK
+== test_hands: started 11:53:06 on sha256:6172ff8932690719, exit 0 at 11:53:08
+   Ran 57 tests in 1.682s
+   OK
+== test_world: started 11:53:09 on sha256:6172ff8932690719, exit 0 at 11:54:37
+   Ran 132 tests in 87.696s
+   OK
+== test_battle: started 11:54:37 on sha256:6172ff8932690719, exit 0 at 11:54:38
+   Ran 107 tests in 1.102s
+   OK
+== test_evidence: started 11:54:38 on sha256:6172ff8932690719, exit 0 at 11:54:39
+   Ran 9 tests in 0.087s
+   OK
+== extract_knowledge_check: started 11:54:39 on sha256:6172ff8932690719, exit 0 at 11:54:39
+   [KNOWLEDGE] types.json: up to date
+   [KNOWLEDGE] moves.json: up to date
+   [KNOWLEDGE] species.json: up to date
+== test_goals: started 11:54:39 on sha256:6172ff8932690719, exit 0 at 11:54:40
+   Ran 59 tests in 0.558s
+   OK
+== extract_milestones_check: started 11:54:40 on sha256:6172ff8932690719, exit 0 at 11:54:40
+   [MILESTONES] ai_player\knowledge\milestones.json is up to date
+
+OVERALL: PASS (every suite exit 0)

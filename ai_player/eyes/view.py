@@ -49,9 +49,14 @@ __all__ = [
     "LEDGE_DIRECTIONS",
     "MENU_STATES",
     "MENU_TASKS",
+    "MILESTONE_FLAGS",
+    "MILESTONE_VARS",
     "OUTCOME_CAUGHT",
     "OUTCOME_NAMES",
     "RENDER_STATE_NAMES",
+    "SAVE_BLOCK_1_FLAGS",
+    "SAVE_BLOCK_1_FLAG_BYTES",
+    "SAVE_BLOCK_1_VARS",
     "SCRIPT_CONTEXT_SHUTDOWN",
     "STORY_FLAGS",
     "TALL_GRASS_BEHAVIORS",
@@ -62,6 +67,7 @@ __all__ = [
     "TILE_FLAG_SURFABLE",
     "VIEW_DOWN",
     "VIEW_HALF_WIDTH",
+    "VARS_START",
     "VIEW_UP",
     "behavior_name",
     "classify_screen",
@@ -69,6 +75,7 @@ __all__ = [
     "foe_move_seen",
     "hp_bar_pixels",
     "in_view",
+    "milestone_marks",
     "movement_mode",
     "object_kind",
     "script_waits_for_button",
@@ -362,6 +369,41 @@ STORY_FLAGS: tuple[tuple[str, str], ...] = (
     ("DEFEATED_RUSTBORO_GYM", "Ch4: Roxanne beaten (0x4F0; RustboroCity_Gym/scripts.inc)"),
     ("BADGE01_GET", "Ch4: the Stone Badge (SYSTEM_FLAGS + 0x7; RustboroCity_Gym/scripts.inc)"),
 )
+#: BUILD STEP 5 (the goal manager, `brain/goals.py`): the MILESTONE MARKS, what proves each of badge 1's milestones
+#: (`knowledge/milestones.json`, extracted and checked against pret/pokeemerald by `gates/extract_milestones.py --verify`):
+#: save block 1's event FLAGS by number (a trainer's defeated flag is TRAINER_FLAGS_START 0x500 + its id) and VARS by number
+#: (0x4000 + their index in `vars[]`). Read as two plain byte ranges of save block 1 (`host/eyes.py` _marks), reported in
+#: `Progress.marks`, and kept APART from `STORY_FLAGS` ON PURPOSE: those feed the navigator's novelty (a flag newly set is
+#: progress), and adding these there would move every earlier step's pre-registered walk (e.g. meeting the rival sets
+#: `HIDE_LITTLEROOT_TOWN_*_2F_POKE_BALL`, a progress the step-3.1 scene rules were measured without). `gates/test_goals.py`
+#: checks this table equals the milestones' proofs, number by number.
+MILESTONE_FLAGS: tuple[tuple[str, int], ...] = (
+    ("SET_WALL_CLOCK", 0x51), ("RESCUED_BIRCH", 0x52), ("ADVENTURE_STARTED", 0x74), ("DEFEATED_RIVAL_ROUTE103", 0x82),
+    ("HIDE_PETALBURG_CITY_WALLYS_MOM", 0x2D8), ("DEFEATED_RUSTBORO_GYM", 0x4F0), ("TRAINER_JOSH", 0x640),
+    ("TRAINER_TOMMY", 0x641), ("SYS_POKEMON_GET", 0x860), ("SYS_POKEDEX_GET", 0x861), ("BADGE01_GET", 0x867),
+    ("VISITED_LITTLEROOT_TOWN", 0x86F), ("VISITED_OLDALE_TOWN", 0x870), ("VISITED_PETALBURG_CITY", 0x876),
+    ("VISITED_RUSTBORO_CITY", 0x879), ("RECEIVED_POKEDEX_FROM_BIRCH", 0x8E4),
+)
+MILESTONE_VARS: tuple[tuple[str, int], ...] = (
+    ("BIRCH_LAB_STATE", 0x4084), ("PETALBURG_GYM_STATE", 0x4085), ("LITTLEROOT_RIVAL_STATE", 0x408D),
+    ("LITTLEROOT_INTRO_STATE", 0x4092), ("PETALBURG_WOODS_STATE", 0x4098),
+)
+#: `include/global.h` struct SaveBlock1: flags[NUM_FLAG_BYTES = 300] @0x1270, vars[NUM_VARS = 256] (u16) @0x139C.
+SAVE_BLOCK_1_FLAGS = 0x1270
+SAVE_BLOCK_1_FLAG_BYTES = 300
+SAVE_BLOCK_1_VARS = 0x139C
+VARS_START = 0x4000
+
+
+def milestone_marks(flag_bytes: bytes, var_bytes: bytes) -> tuple[tuple[str, int], ...]:
+    """The MILESTONE marks from save block 1's raw flag and var bytes: each flag 0 or 1, each var its value (u16)."""
+    out: list[tuple[str, int]] = []
+    for name, number in MILESTONE_FLAGS:
+        out.append((name, (flag_bytes[number // 8] >> (number % 8)) & 1 if number // 8 < len(flag_bytes) else 0))
+    for name, number in MILESTONE_VARS:
+        index = 2 * (number - VARS_START)
+        out.append((name, int.from_bytes(var_bytes[index:index + 2], "little") if index + 2 <= len(var_bytes) else 0))
+    return tuple(out)
 
 # ------------------------------------------------------------------------------------------- the screen
 #: Task names (`src/start_menu.c`, `src/script_menu.c`) that mean a menu is open over the overworld.

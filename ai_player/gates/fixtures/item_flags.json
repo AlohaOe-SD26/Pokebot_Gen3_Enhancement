@@ -1,0 +1,114 @@
+{
+ "provenance": "pret/pokeemerald data/maps/<map>/map.json item balls and include/constants/flags.h",
+ "maps": [
+  "LittlerootTown",
+  "Route101",
+  "OldaleTown",
+  "Route103",
+  "Route102",
+  "PetalburgCity",
+  "Route104",
+  "PetalburgWoods",
+  "RustboroCity"
+ ],
+ "flags": {
+  "FLAG_ITEM_PETALBURG_CITY_ETHER": {
+   "number": 1040,
+   "map": "PetalburgCity",
+   "x": 3,
+   "y": 28,
+   "script": "PetalburgCity_EventScript_ItemEther"
+  },
+  "FLAG_ITEM_PETALBURG_CITY_MAX_REVIVE": {
+   "number": 1039,
+   "map": "PetalburgCity",
+   "x": 19,
+   "y": 2,
+   "script": "PetalburgCity_EventScript_ItemMaxRevive"
+  },
+  "FLAG_ITEM_PETALBURG_WOODS_ETHER": {
+   "number": 1058,
+   "map": "PetalburgWoods",
+   "x": 4,
+   "y": 8,
+   "script": "PetalburgWoods_EventScript_ItemEther"
+  },
+  "FLAG_ITEM_PETALBURG_WOODS_GREAT_BALL": {
+   "number": 1056,
+   "map": "PetalburgWoods",
+   "x": 45,
+   "y": 7,
+   "script": "PetalburgWoods_EventScript_ItemGreatBall"
+  },
+  "FLAG_ITEM_PETALBURG_WOODS_PARALYZE_HEAL": {
+   "number": 1117,
+   "map": "PetalburgWoods",
+   "x": 4,
+   "y": 26,
+   "script": "PetalburgWoods_EventScript_ItemParalyzeHeal"
+  },
+  "FLAG_ITEM_PETALBURG_WOODS_X_ATTACK": {
+   "number": 1055,
+   "map": "PetalburgWoods",
+   "x": 35,
+   "y": 20,
+   "script": "PetalburgWoods_EventScript_ItemXAttack"
+  },
+  "FLAG_ITEM_ROUTE_102_POTION": {
+   "number": 1000,
+   "map": "Route102",
+   "x": 11,
+   "y": 15,
+   "script": "Route102_EventScript_ItemPotion"
+  },
+  "FLAG_ITEM_ROUTE_103_GUARD_SPEC": {
+   "number": 1114,
+   "map": "Route103",
+   "x": 50,
+   "y": 5,
+   "script": "Route103_EventScript_ItemGuardSpec"
+  },
+  "FLAG_ITEM_ROUTE_103_PP_UP": {
+   "number": 1137,
+   "map": "Route103",
+   "x": 64,
+   "y": 7,
+   "script": "Route103_EventScript_ItemPPUp"
+  },
+  "FLAG_ITEM_ROUTE_104_POKE_BALL": {
+   "number": 1057,
+   "map": "Route104",
+   "x": 29,
+   "y": 53,
+   "script": "Route104_EventScript_ItemPokeBall"
+  },
+  "FLAG_ITEM_ROUTE_104_POTION": {
+   "number": 1135,
+   "map": "Route104",
+   "x": 5,
+   "y": 8,
+   "script": "Route104_EventScript_ItemPotion"
+  },
+  "FLAG_ITEM_ROUTE_104_PP_UP": {
+   "number": 1002,
+   "map": "Route104",
+   "x": 39,
+   "y": 15,
+   "script": "Route104_EventScript_ItemPPUp"
+  },
+  "FLAG_ITEM_ROUTE_104_X_ACCURACY": {
+   "number": 1115,
+   "map": "Route104",
+   "x": 37,
+   "y": 22,
+   "script": "Route104_EventScript_ItemXAccuracy"
+  },
+  "FLAG_ITEM_RUSTBORO_CITY_X_DEFEND": {
+   "number": 1041,
+   "map": "RustboroCity",
+   "x": 36,
+   "y": 51,
+   "script": "RustboroCity_EventScript_ItemXDefend"
+  }
+ }
+}

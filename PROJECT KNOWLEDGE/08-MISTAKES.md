@@ -23852,3 +23852,22 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** the delta review suggested starting the child with `-s` (no user site-packages), to stop a foreign `ai_player` from shadowing ours. On this PC `confz` and the other framework dependencies are installed per-user, so `-s` made `modules/config` fail at import. A reviewer's fix is a CLAIM too.
 - **The fix that worked:** `-s` was reverted. The shadowing risk is covered instead by `check_package_resolution`, which asks the child's own interpreter which `ai_player` it would import, before launch.
 - **Prevention rule:** before adopting any interpreter or launch flag, run ONE real launch with it; never adopt a flag on reasoning alone. Here the first live arm caught it within a minute.
+
+## 2026-10-14 — ⛔ A CHECK THAT GRADES A REASON'S LABEL CANNOT SEE A STALL UNDER ANOTHER LABEL; A FIX ASKED ONLY UNDER ANOTHER OPTION IS DEAD CODE
+
+- **Symptoms (AI player step 5):**
+  - The "never idle" check (no standing still under the catch-all reason) passed while the AI stood 600-1200 frames in front of a screen waiting for A, logged under a NAMED reason that was not true.
+  - Separately, the training roam's "heal below" stop never fired, although its comment claimed it fixed a lost walk home.
+  - And the AI's report said "battles lost 0" for a run that whited out twice.
+- **Root causes:**
+  - The idle check measured the LABEL, not the property (time standing while the game waits for a button).
+  - The navigator asked `battle_rest` only `if self.battle_limit is not None`, and the goal manager set the limit to None.
+  - Losses were counted only on the main loop's path; a battle lost inside a goal came back as a failed goal.
+- **The fixes that worked:**
+  - The rest is asked on its own.
+  - Losses are counted where they happen, and the graders require report == told == game (42 of 42).
+  - Each fix has a mutant (G36, G46).
+  - The idle check is step 5.1's first item.
+- **Prevention rule:**
+  - Grade the PROPERTY (frames standing while a button is awaited; losses by the game's outcome), never the label the code chose for itself.
+  - And for every new hook, write the mutant that deletes its CALL, not just its body: a call that is never made passes every test of the body.

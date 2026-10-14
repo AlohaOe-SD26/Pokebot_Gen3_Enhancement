@@ -60,6 +60,13 @@ BUILD STEP 4 (the AI's own battles), each recognised by what RUNS its input, as 
     `src/item_menu.c` Task_ItemContext_SingleRow / MultipleRows: `gBagMenu->contextMenuItemsPtr` @0x820 and
     `contextMenuNumItems` @0x828, named by `BAG_MENU_ACTIONS`, the cursor in `sMenu`); the list takes input while
     `Task_BagMenu_HandleInput` runs.
+
+BUILD STEP 5 (the story): PROF. BIRCH's BAG, the STARTER choice (`src/starter_choose.c`): `Task_HandleStarterChooseInput` takes
+A, Left and Right, its cursor is the task's own `tStarterSelection` (data[0]: 0 TREECKO, 1 TORCHIC, 2 MUDKIP, `sStarterMon`;
+it starts on 1); while the cursor slides (`Task_MoveStarterChooseCursor`, `Task_CreateStarterLabel`) or a ball opens
+(`Task_StarterChoose`, `Task_WaitForStarterSprite`, `Task_AskConfirmStarter`) the screen takes no input. "Do you choose this
+POKéMON?" is a YES/NO made by `CreateYesNoMenu` and polled by `Task_HandleConfirmStarterInput` through
+`Menu_ProcessInputNoWrapClearOnChoose`: the cursor in `sMenu`, as every other yes/no here.
 """
 
 from __future__ import annotations
@@ -88,6 +95,7 @@ __all__ = [
     "SCENE_STATES",
     "SCENE_TASKS",
     "SHOP_OPTIONS",
+    "STARTER_OPTIONS",
     "START_MENU_ACTIONS",
     "TASK_WAITS",
     "UI_BUSY_TASKS",
@@ -221,7 +229,12 @@ UI_TASKS: dict[str, str] = {
     "Task_HandleMainMenuInput": "main_menu",  # src/main_menu.c
     "Task_HighlightSelectedMainMenuItem": "main_menu",
     "Task_TitleScreenPhase3": "title",  # src/title_screen.c: A or START goes to the main menu
+    # BUILD STEP 5 (the module docstring): PROF. BIRCH's bag
+    "Task_HandleStarterChooseInput": "choose_starter",  # src/starter_choose.c (tStarterSelection data[0])
+    "Task_HandleConfirmStarterInput": "yes_no",  # src/starter_choose.c ("Do you choose this POKéMON?", sMenu)
 }
+#: BUILD STEP 5: the starter choice's options, left to right (`src/starter_choose.c` sStarterMon).
+STARTER_OPTIONS = ("TREECKO", "TORCHIC", "MUDKIP")
 #: STEP 2.1: tasks during which a menu STAYS ON SCREEN but takes no input, by the menu's kind. Found by the step-2
 #: review's item 6 (a failed choice now ends the skill): moving the gender menu's cursor switches its task to a
 #: sprite slide (`src/main_menu.c` Task_NewGameBirchSpeech_ChooseGender: `if (gender2 != tPlayerGender) ...
@@ -231,6 +244,13 @@ UI_TASKS: dict[str, str] = {
 UI_BUSY_TASKS: dict[str, str] = {
     "Task_NewGameBirchSpeech_SlideOutOldGenderSprite": "gender",
     "Task_NewGameBirchSpeech_SlideInNewGenderSprite": "gender",
+    # BUILD STEP 5: the bag's cursor sliding, a ball opening, the question being asked (`src/starter_choose.c`)
+    "Task_StarterChoose": "choose_starter",
+    "Task_MoveStarterChooseCursor": "choose_starter",
+    "Task_CreateStarterLabel": "choose_starter",
+    "Task_WaitForStarterSprite": "choose_starter",
+    "Task_AskConfirmStarter": "choose_starter",
+    "Task_DeclineStarter": "choose_starter",
 }
 YES_NO = ("YES", "NO")  # src/strings.c gText_YesNo "YES\nNO"
 GENDER_OPTIONS = ("BOY", "GIRL")  # src/main_menu.c sMenuActions_Gender (gText_BirchBoy, gText_BirchGirl)
@@ -336,6 +356,13 @@ SCENE_CALLBACKS: dict[str, str] = {
     # from the bag on `oldale.ss1`): the bag opening, and the battle drawn again after a menu
     "CB2_Bag": "the bag",  # src/item_menu.c (setting the bag up)
     "CB2_InitPartyMenu": "the party menu opening",  # src/party_menu.c (measured 2026-10-08: a switch on Route 116)
+    # BUILD STEP 5 (measured 2026-10-14, `probe_callbacks` from the chapter-1 sweep's RESCUED_BIRCH state: the frames the
+    # play brain stood still on under the catch-all, 3 + 85 + 8 per run): the starter choice opening and closing, and
+    # the first battle's own start (`src/starter_choose.c`, `src/battle_setup.c` CB2_GiveStarter / CB2_StartFirstBattle)
+    "CB2_ChooseStarter": "the starter choice opening",
+    "CB2_StarterChoose": "the starter choice",
+    "CB2_GiveStarter": "the first battle starting",
+    "CB2_StartFirstBattle": "the first battle starting",
     "CB2_SetUpReshowBattleScreenAfterMenu": "the battle coming back",  # src/battle_main.c / src/reshow_battle_screen.c
     "CB2_SetUpReshowBattleScreenAfterMenu2": "the battle coming back",
     "CB2_ReshowBattleScreenAfterMenu": "the battle coming back",  # src/reshow_battle_screen.c
@@ -502,6 +529,11 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
         if task not in tasks:
             continue
         data = tasks[task]
+        if kind == "choose_starter":
+            # BUILD STEP 5: the bag's three balls, the cursor the task's tStarterSelection (data[0])
+            cursor = _s16(data, 0)
+            return MenuView(kind=kind, options=STARTER_OPTIONS,
+                            cursor=cursor if 0 <= cursor < len(STARTER_OPTIONS) else None)
         if kind in ("yes_no", "gender", "mart_menu", "multichoice") and isinstance(menu, (bytes, bytearray)):
             cursor = _s8(menu[2])
             if kind == "yes_no":
@@ -550,6 +582,10 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
             return MenuView(kind=kind, accepts_input=False)
     for task, kind in sorted(UI_BUSY_TASKS.items()):  # STEP 2.1: on screen, not taking input
         if task in tasks:
+            if kind == "choose_starter":  # BUILD STEP 5: the same task, its cursor in its own data[0]
+                cursor = _s16(tasks[task], 0)
+                return MenuView(kind=kind, options=STARTER_OPTIONS,
+                                cursor=cursor if 0 <= cursor < len(STARTER_OPTIONS) else None, accepts_input=False)
             cursor = _s8(menu[2]) if isinstance(menu, (bytes, bytearray)) else None
             return MenuView(kind=kind, options=GENDER_OPTIONS if kind == "gender" else (), cursor=cursor, accepts_input=False)
     if game_state == "TITLE_SCREEN" and tasks:

@@ -1,0 +1,8 @@
+[VERIFY] code: HEAD 80a85906; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:6172ff8932690719 over git diff HEAD (18 files, 79592 bytes) and 12 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+[VERIFY] ai_player\knowledge\milestones.json: 20 milestones; teacher sandbox-pokebot/modules/story/early_game.py sha256 9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77
+[VERIFY] pret/pokeemerald via gh api: flags.h 2419 defines, vars.h 294, opponents.h 857, event_objects.h 276, metatile_labels.h 693
+[VERIFY] checked: 15 flag numbers, 8 var numbers, 25 proofs set by their scripts, 14 trainer ids, 14 party level lists, 11 looks, 13 hint words in their scripts
+[VERIFY] MISMATCH ch1_clock: FLAG_SET_WALL_CLOCK: ours 82, pret 81
+[VERIFY] MISMATCH fight: TRAINER_MAY_ROUTE_103_MUDKIP levels: ours [6], pret [5] (sParty_MayRoute103Mudkip)
+[VERIFY] MISMATCH looks: nurse: ours gfx [57], pret [58] (OBJ_EVENT_GFX_NURSE)
+[VERIFY] OVERALL PASS (the plants were found, and nothing else)

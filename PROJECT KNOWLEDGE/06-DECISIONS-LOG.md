@@ -9273,3 +9273,19 @@ on all three questions:
   - the GUI debug menu reassigning the listener list (counted, not silent);
   - a launcher Ctrl+C has no in-child verdict, because the child has no console (the launcher reports INTERRUPTED).
 - **Rejected:** another hardening round before any AI behaviour exists. That trades progress on the user's goal for defence against an attacker that does not exist. Revisit only if a real bypass appears, e.g. when the AI's own code grows.
+
+## 2026-10-14 — AI player step 5 is COMMITTED with the verifier's pacing failure OPEN; step 5.1 fixes it and the review's findings BEFORE chapters 3-4 are attempted
+
+- **Decision:** commit step 5 now as a checkpoint, and make step 5.1 the next work item. Its scope:
+  - the two pacing stalls, with a check on any stretch where a screen waits for a button, under any reason;
+  - exploring, with an intent-mix metric and a seed-divergence metric;
+  - `STORY_PATIENCE` reset on real progress;
+  - person-fair errand triggers and fight levels;
+  - story-goal cooldowns.
+  Chapters 3-4 (to ROXANNE) come after it.
+- **Why:**
+  - Step 5's acceptance (CH1 from a real New Game, CH2 stretch) holds by independent game reads, and the full regression passed; committing protects that work.
+  - The open items are behaviour the user ruled on (RULING 32 "no speedrun", RULING 37 Q6 "never idle"), and two of them (patience, exploring) change how chapters 3-4 would play, so they come first.
+- **Rejected:**
+  - Fixing them inside step 5: the workflow had used both of its fix rounds.
+  - Going straight to chapters 3-4: they would be built on the beelining and the patience rule, which would then have to be re-proven.
