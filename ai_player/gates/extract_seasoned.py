@@ -303,7 +303,106 @@ def extract_species(d, c, out):
     return sp
 
 
-STEPS = [("species", extract_species)]
+# ---------------------------------------------------------------- moves.json
+def extract_moves(d, c, out):
+    t = strip_comments(d.read("src/data/battle_moves.h"))
+    names = move_names(d)
+    moves = []
+    for m in re.finditer(r"\[(MOVE_\w+)\]\s*=\s*\{", t):
+        sym = m.group(1)
+        body = t[m.end():balanced(t, m.end() - 1)]
+        mid = c.moves[sym]
+        if mid == 0:
+            continue
+        flags = [f[5:] for f in re.findall(r"FLAG_\w+", field(body, "flags", "0") or "0")]
+        moves.append({
+            "id": mid, "symbol": sym, "name": names.get(sym, pretty(sym[5:])),
+            "type": c.types[c.pokemon[field(body, "type")]],
+            "power": int(field(body, "power")), "accuracy": int(field(body, "accuracy")),
+            "pp": int(field(body, "pp")), "priority": int(field(body, "priority")),
+            "effect": field(body, "effect")[7:],
+            "secondary_effect_chance": int(field(body, "secondaryEffectChance")),
+            "target": field(body, "target")[12:],
+            "flags": flags, "makes_contact": "MAKES_CONTACT" in flags,
+        })
+    moves.sort(key=lambda x: x["id"])
+    hdr = d.header(["src/data/battle_moves.h", "src/data/text/move_names.h", "include/constants/moves.h",
+                    "include/constants/pokemon.h"])
+    hdr["_notes"] = {"accuracy": "0 = never misses (bypasses accuracy check)",
+                     "priority": "signed; positive acts first",
+                     "type_category": "Gen 3 physical/special split is by TYPE, not by move; see the decomp's IS_TYPE_PHYSICAL (types before MYSTERY physical)."}
+    hdr["count"] = len(moves)
+    hdr["moves"] = moves
+    write_json(os.path.join(out, "moves.json"), hdr)
+    return moves
+
+
+# ---------------------------------------------------------------- learnsets.json
+def extract_learnsets(d, c, out):
+    lv_text = strip_comments(d.read("src/data/pokemon/level_up_learnsets.h"))
+    lists = {}
+    for m in re.finditer(r"static const u16 (\w+)\[\]\s*=\s*\{(.*?)\};", lv_text, flags=re.S):
+        lists[m.group(1)] = [(int(a), b) for a, b in re.findall(r"LEVEL_UP_MOVE\(\s*(\d+)\s*,\s*(MOVE_\w+)\s*\)", m.group(2))]
+    ptr = strip_comments(d.read("src/data/pokemon/level_up_learnset_pointers.h"))
+    level_by_species = {m.group(1): lists[m.group(2)] for m in re.finditer(r"\[(SPECIES_\w+)\]\s*=\s*(\w+)", ptr)}
+
+    # TM/HM: order of FOREACH_TM / FOREACH_HM in tms_hms.h gives the numbering
+    th = d.read("include/constants/tms_hms.h")
+    tm_names = re.findall(r"F\((\w+)\)", re.search(r"FOREACH_TM\(F\)(.*?)#define FOREACH_HM", th, flags=re.S).group(1))
+    hm_names = re.findall(r"F\((\w+)\)", re.search(r"FOREACH_HM\(F\)(.*?)#define FOREACH_TMHM", th, flags=re.S).group(1))
+    tmhm_label = {n: "TM%02d" % (i + 1) for i, n in enumerate(tm_names)}
+    tmhm_label.update({n: "HM%02d" % (i + 1) for i, n in enumerate(hm_names)})
+    tm_text = strip_comments(d.read("src/data/pokemon/tmhm_learnsets.h"))
+    tmhm_by_species = {}
+    for m in re.finditer(r"\[(SPECIES_\w+)\]\s*=\s*\{\s*\.learnset\s*=\s*\{", tm_text):
+        body = tm_text[m.end():balanced(tm_text, m.end() - 1)]
+        tmhm_by_species[m.group(1)] = [(tmhm_label[n], "MOVE_" + n) for n in re.findall(r"\.(\w+)\s*=\s*TRUE", body)]
+
+    # Tutors
+    tu = strip_comments(d.read("src/data/pokemon/tutor_learnsets.h"))
+    tutor_by_species = {}
+    for m in re.finditer(r"\[(SPECIES_\w+)\]\s*=\s*\(([^;]*?)\)\s*,", tu):
+        tutor_by_species[m.group(1)] = re.findall(r"TUTOR\((MOVE_\w+)\)", m.group(2))
+
+    # Egg moves
+    eg = strip_comments(d.read("src/data/pokemon/egg_moves.h"))
+    egg_by_species = {}
+    for m in re.finditer(r"egg_moves\((\w+),(.*?)\)\s*,", eg, flags=re.S):
+        egg_by_species["SPECIES_" + m.group(1)] = re.findall(r"MOVE_\w+", m.group(2))
+
+    names = move_names(d)
+    def mv(sym):
+        return {"move": sym, "name": names.get(sym)}
+    sp_list = []
+    sp_ids = sorted((v, k) for k, v in c.species.items() if k.startswith("SPECIES_") and 0 < v <= 411 and k != "SPECIES_EGG")
+    for sid, sym in sp_ids:
+        if sym.startswith("SPECIES_OLD_UNOWN_"):
+            continue
+        sp_list.append({
+            "id": sid, "symbol": sym,
+            "level_up": [{"level": l, "move": m_} for l, m_ in level_by_species.get(sym, [])],
+            "tm_hm": [{"tm": a, "move": b} for a, b in tmhm_by_species.get(sym, [])],
+            "tutor": tutor_by_species.get(sym, []),
+            "egg": egg_by_species.get(sym, []),
+        })
+    tm_table = [{"tm": tmhm_label[n], "move": "MOVE_" + n, "name": names.get("MOVE_" + n)} for n in tm_names + hm_names]
+    tutor_moves = re.findall(r"\[TUTOR_MOVE_\w+\]\s*=\s*(MOVE_\w+)", tu)
+    hdr = d.header(["src/data/pokemon/level_up_learnsets.h", "src/data/pokemon/level_up_learnset_pointers.h",
+                    "src/data/pokemon/tmhm_learnsets.h", "src/data/pokemon/tutor_learnsets.h",
+                    "src/data/pokemon/egg_moves.h", "include/constants/tms_hms.h",
+                    "src/data/text/move_names.h", "include/constants/species.h", "include/constants/moves.h"])
+    hdr["_notes"] = {"level_up": "moves learned at that level; a move at level 1 is known on creation. Learnset order is game order.",
+                     "tutor": "Emerald tutors (gTutorMoves); not every one is reachable in a normal playthrough, that is not decided here.",
+                     "egg": "egg moves are only inheritable through breeding."}
+    hdr["tm_table"] = tm_table
+    hdr["tutor_moves"] = tutor_moves
+    hdr["count"] = len(sp_list)
+    hdr["species"] = sp_list
+    write_json(os.path.join(out, "learnsets.json"), hdr)
+    return sp_list
+
+
+STEPS = [("species", extract_species), ("moves", extract_moves), ("learnsets", extract_learnsets)]
 
 
 def run(decomp_root, out):

@@ -6,7 +6,7 @@ Resume: `git clone --depth 1 https://github.com/pret/pokeemerald /tmp/pokeemeral
 | Step | State |
 |---|---|
 | 1 species.json | DONE (411 entries, 386 real + 25 OLD_UNOWN placeholders) |
-| 2 learnsets.json + moves.json | next |
-| 3 encounters.json | not started |
+| 2 learnsets.json + moves.json | DONE (354 moves, 386 species learnsets, 58 TM/HM, 30 tutor moves, 165 egg-move species) |
+| 3 encounters.json | next |
 | 4 verify_seasoned.py | not started |
 | 5 KB1-REPORT.md | not started |
