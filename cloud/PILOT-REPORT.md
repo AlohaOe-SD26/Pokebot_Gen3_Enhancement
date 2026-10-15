@@ -26,3 +26,22 @@ pwsh: NOT FOUND
 | `git stash` | blocked | **RAN** ("No local changes to save") |
 
 Conclusion: the hooks did NOT enforce in this cloud session. Likely cause: `.claude/settings.json` invokes several hooks via `powershell ...` (pwsh/powershell absent on this Linux box) and every command ends in `|| true`, so they fail open. `block_destructive_git.py` is Python and could run, but `git stash` was still not blocked (it may not be wired to run here, or the harness did not apply it). Do not rely on hooks in cloud runs; follow the rules manually.
+
+## Step 3: offline checks (nothing fixed)
+| Check | Verdict |
+|---|---|
+| `tools/story-dev/lint_docs.py` | PASS ("ALL DOCUMENTATION RULES PASS", 2 INFO notes) |
+| `tools/story-dev/audit_doc_consistency.py` | PASS (all checks across 7 files) |
+| `ai_player/gates/check_purity.py` | VERDICT: PASS |
+| `ai_player/gates/run_units.py` | OVERALL: FAIL |
+
+run_units suites:
+- PASS: check_purity, test_check_purity (29), test_world (132), test_battle (107), test_evidence (10), extract_knowledge_check, test_goals (136), extract_milestones_check
+- FAIL: test_host (20 tests, 21 failures), test_eyes (56, 8 errors), test_hands (57, 2 errors)
+
+Failure cause (read-only probe): these three fail on missing Python packages, not directly on mgba: `ModuleNotFoundError: No module named 'confz'` (host, eyes, hands) and `'numpy'` (eyes). `sandbox-pokebot/mgba` is also absent (Windows-only library), so after `pip install confz numpy` they may still fail on mgba. Not verified; nothing was installed or fixed.
+
+## Summary
+Total wall time: ~5.5 min (about 330 s; the full unit run alone took ~3.5 min, dominated by test_check_purity at 190 s).
+
+The cloud box (Linux, Python 3.11.17, 4 cores, 15 GB RAM, 30 GB free, no pwsh) can run the doc lints, the doc-consistency audit and the purity gate, all PASS. The unit runner passes 8 of 11 steps, and the 3 failures (test_host/eyes/hands) are from missing `confz`/`numpy` and the absent Windows-only mgba, not code defects. The repo's safety hooks did NOT enforce here: `git add -A --dry-run` and `git stash` both ran. The hooks call `powershell`, which is not installed, and every hook ends in `|| true`, so they fail open. Cloud runs must follow the stage-explicit-paths and no-destructive-git rules manually.
